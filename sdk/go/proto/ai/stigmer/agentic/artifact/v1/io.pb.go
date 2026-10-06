@@ -72,9 +72,9 @@ func (x *ArtifactId) GetValue() string {
 // ArtifactList contains a paginated list of artifacts.
 type ArtifactList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Always 1: an execution's artifacts are returned whole.
+	// Always 1: a run's artifacts are returned whole.
 	TotalPages int32 `protobuf:"varint,1,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
-	// The execution's artifacts, newest first.
+	// The run's artifacts, newest first.
 	Entries       []*Artifact `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -188,11 +188,11 @@ type ListArtifactsByRunRequest struct {
 	// AgentRun ID to list artifacts for.
 	// Format: "aex_{unique-suffix}"
 	AgentRunId string `protobuf:"bytes,2,opt,name=agent_run_id,json=agentRunId,proto3" json:"agent_run_id,omitempty"`
-	// Not read: an execution's artifacts are returned whole.
+	// Not read: a run's artifacts are returned whole.
 	//
 	// Deprecated: Marked as deprecated in ai/stigmer/agentic/artifact/v1/io.proto.
 	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	// Not read: an execution's artifacts are returned whole.
+	// Not read: a run's artifacts are returned whole.
 	//
 	// Deprecated: Marked as deprecated in ai/stigmer/agentic/artifact/v1/io.proto.
 	PageToken     string `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`

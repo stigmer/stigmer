@@ -12,7 +12,7 @@ public interface RunSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Number of executions currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED).
+   * Number of runs currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED).
    * </pre>
    *
    * <code>int32 active_count = 1 [json_name = "activeCount"];</code>
@@ -22,10 +22,10 @@ public interface RunSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Execution counts broken down by phase.
+   * Run counts broken down by phase.
    *
    * Keys are RunPhase enum values (as int32).
-   * Only phases with at least one execution are included.
+   * Only phases with at least one run are included.
    * </pre>
    *
    * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -33,10 +33,10 @@ public interface RunSummaryOrBuilder extends
   int getPhaseCountsCount();
   /**
    * <pre>
-   * Execution counts broken down by phase.
+   * Run counts broken down by phase.
    *
    * Keys are RunPhase enum values (as int32).
-   * Only phases with at least one execution are included.
+   * Only phases with at least one run are included.
    * </pre>
    *
    * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -51,10 +51,10 @@ public interface RunSummaryOrBuilder extends
   getPhaseCounts();
   /**
    * <pre>
-   * Execution counts broken down by phase.
+   * Run counts broken down by phase.
    *
    * Keys are RunPhase enum values (as int32).
-   * Only phases with at least one execution are included.
+   * Only phases with at least one run are included.
    * </pre>
    *
    * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -63,10 +63,10 @@ public interface RunSummaryOrBuilder extends
   getPhaseCountsMap();
   /**
    * <pre>
-   * Execution counts broken down by phase.
+   * Run counts broken down by phase.
    *
    * Keys are RunPhase enum values (as int32).
-   * Only phases with at least one execution are included.
+   * Only phases with at least one run are included.
    * </pre>
    *
    * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -76,10 +76,10 @@ public interface RunSummaryOrBuilder extends
       int defaultValue);
   /**
    * <pre>
-   * Execution counts broken down by phase.
+   * Run counts broken down by phase.
    *
    * Keys are RunPhase enum values (as int32).
-   * Only phases with at least one execution are included.
+   * Only phases with at least one run are included.
    * </pre>
    *
    * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -89,7 +89,7 @@ public interface RunSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Aggregate cost across all executions in the time window.
+   * Aggregate cost across all runs in the time window.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowCostSummary total_cost = 3 [json_name = "totalCost"];</code>
@@ -98,7 +98,7 @@ public interface RunSummaryOrBuilder extends
   boolean hasTotalCost();
   /**
    * <pre>
-   * Aggregate cost across all executions in the time window.
+   * Aggregate cost across all runs in the time window.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowCostSummary total_cost = 3 [json_name = "totalCost"];</code>
@@ -107,7 +107,7 @@ public interface RunSummaryOrBuilder extends
   ai.stigmer.agentic.workflowrun.v1.WorkflowCostSummary getTotalCost();
   /**
    * <pre>
-   * Aggregate cost across all executions in the time window.
+   * Aggregate cost across all runs in the time window.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowCostSummary total_cost = 3 [json_name = "totalCost"];</code>
@@ -116,9 +116,9 @@ public interface RunSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Mean execution duration (from started_at to completed_at) for completed runs.
+   * Mean run duration (from started_at to completed_at) for completed runs.
    *
-   * Zero when no completed executions exist in the window.
+   * Zero when no completed runs exist in the window.
    * </pre>
    *
    * <code>.google.protobuf.Duration avg_duration = 4 [json_name = "avgDuration"];</code>
@@ -127,9 +127,9 @@ public interface RunSummaryOrBuilder extends
   boolean hasAvgDuration();
   /**
    * <pre>
-   * Mean execution duration (from started_at to completed_at) for completed runs.
+   * Mean run duration (from started_at to completed_at) for completed runs.
    *
-   * Zero when no completed executions exist in the window.
+   * Zero when no completed runs exist in the window.
    * </pre>
    *
    * <code>.google.protobuf.Duration avg_duration = 4 [json_name = "avgDuration"];</code>
@@ -138,9 +138,9 @@ public interface RunSummaryOrBuilder extends
   com.google.protobuf.Duration getAvgDuration();
   /**
    * <pre>
-   * Mean execution duration (from started_at to completed_at) for completed runs.
+   * Mean run duration (from started_at to completed_at) for completed runs.
    *
-   * Zero when no completed executions exist in the window.
+   * Zero when no completed runs exist in the window.
    * </pre>
    *
    * <code>.google.protobuf.Duration avg_duration = 4 [json_name = "avgDuration"];</code>
@@ -257,7 +257,7 @@ public interface RunSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Total number of executions in the time window (sum of all phase_counts values).
+   * Total number of runs in the time window (sum of all phase_counts values).
    * </pre>
    *
    * <code>int32 total_count = 7 [json_name = "totalCount"];</code>
@@ -269,7 +269,7 @@ public interface RunSummaryOrBuilder extends
    * <pre>
    * Success rate as a ratio (0.0 to 1.0).
    * Computed as completed / (completed + failed). Returns -1.0 when no
-   * completed or failed executions exist in the time window.
+   * completed or failed runs exist in the time window.
    * </pre>
    *
    * <code>double success_rate = 8 [json_name = "successRate"];</code>

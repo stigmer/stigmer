@@ -171,7 +171,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object model_ = "";
   /**
    * <pre>
-   * Model identifier the runner requested for this execution's turns.
+   * Model identifier the runner requested for this run's turns.
    * </pre>
    *
    * <code>string model = 8 [json_name = "model"];</code>
@@ -192,7 +192,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Model identifier the runner requested for this execution's turns.
+   * Model identifier the runner requested for this run's turns.
    * </pre>
    *
    * <code>string model = 8 [json_name = "model"];</code>
@@ -264,7 +264,7 @@ private static final long serialVersionUID = 0L;
   private int requestedServiceTier_ = 0;
   /**
    * <pre>
-   * Service tier the runner requested for this execution's model calls.
+   * Service tier the runner requested for this run's model calls.
    *
    * Always explicit once the runner has translated the turn's settings
    * (STANDARD when AgentRunStatus.run_config.service_tier was unset) — the audit
@@ -279,7 +279,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Service tier the runner requested for this execution's model calls.
+   * Service tier the runner requested for this run's model calls.
    *
    * Always explicit once the runner has translated the turn's settings
    * (STANDARD when AgentRunStatus.run_config.service_tier was unset) — the audit
@@ -349,7 +349,7 @@ private static final long serialVersionUID = 0L;
   private int requestedThinkingMode_ = 0;
   /**
    * <pre>
-   * Thinking mode the runner requested for this execution's model calls.
+   * Thinking mode the runner requested for this run's model calls.
    *
    * Always explicit once the runner has translated the turn's settings
    * (DISABLED when AgentRunStatus.run_config.thinking_mode was unset) — the audit
@@ -365,7 +365,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Thinking mode the runner requested for this execution's model calls.
+   * Thinking mode the runner requested for this run's model calls.
    *
    * Always explicit once the runner has translated the turn's settings
    * (DISABLED when AgentRunStatus.run_config.thinking_mode was unset) — the audit
@@ -1260,7 +1260,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object model_ = "";
     /**
      * <pre>
-     * Model identifier the runner requested for this execution's turns.
+     * Model identifier the runner requested for this run's turns.
      * </pre>
      *
      * <code>string model = 8 [json_name = "model"];</code>
@@ -1280,7 +1280,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Model identifier the runner requested for this execution's turns.
+     * Model identifier the runner requested for this run's turns.
      * </pre>
      *
      * <code>string model = 8 [json_name = "model"];</code>
@@ -1301,7 +1301,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Model identifier the runner requested for this execution's turns.
+     * Model identifier the runner requested for this run's turns.
      * </pre>
      *
      * <code>string model = 8 [json_name = "model"];</code>
@@ -1318,7 +1318,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Model identifier the runner requested for this execution's turns.
+     * Model identifier the runner requested for this run's turns.
      * </pre>
      *
      * <code>string model = 8 [json_name = "model"];</code>
@@ -1332,7 +1332,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Model identifier the runner requested for this execution's turns.
+     * Model identifier the runner requested for this run's turns.
      * </pre>
      *
      * <code>string model = 8 [json_name = "model"];</code>
@@ -1444,7 +1444,7 @@ private static final long serialVersionUID = 0L;
     private int requestedServiceTier_ = 0;
     /**
      * <pre>
-     * Service tier the runner requested for this execution's model calls.
+     * Service tier the runner requested for this run's model calls.
      *
      * Always explicit once the runner has translated the turn's settings
      * (STANDARD when AgentRunStatus.run_config.service_tier was unset) — the audit
@@ -1459,7 +1459,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Service tier the runner requested for this execution's model calls.
+     * Service tier the runner requested for this run's model calls.
      *
      * Always explicit once the runner has translated the turn's settings
      * (STANDARD when AgentRunStatus.run_config.service_tier was unset) — the audit
@@ -1479,7 +1479,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Service tier the runner requested for this execution's model calls.
+     * Service tier the runner requested for this run's model calls.
      *
      * Always explicit once the runner has translated the turn's settings
      * (STANDARD when AgentRunStatus.run_config.service_tier was unset) — the audit
@@ -1496,7 +1496,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Service tier the runner requested for this execution's model calls.
+     * Service tier the runner requested for this run's model calls.
      *
      * Always explicit once the runner has translated the turn's settings
      * (STANDARD when AgentRunStatus.run_config.service_tier was unset) — the audit
@@ -1516,7 +1516,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Service tier the runner requested for this execution's model calls.
+     * Service tier the runner requested for this run's model calls.
      *
      * Always explicit once the runner has translated the turn's settings
      * (STANDARD when AgentRunStatus.run_config.service_tier was unset) — the audit
@@ -1638,7 +1638,7 @@ private static final long serialVersionUID = 0L;
     private int requestedThinkingMode_ = 0;
     /**
      * <pre>
-     * Thinking mode the runner requested for this execution's model calls.
+     * Thinking mode the runner requested for this run's model calls.
      *
      * Always explicit once the runner has translated the turn's settings
      * (DISABLED when AgentRunStatus.run_config.thinking_mode was unset) — the audit
@@ -1654,7 +1654,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Thinking mode the runner requested for this execution's model calls.
+     * Thinking mode the runner requested for this run's model calls.
      *
      * Always explicit once the runner has translated the turn's settings
      * (DISABLED when AgentRunStatus.run_config.thinking_mode was unset) — the audit
@@ -1675,7 +1675,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Thinking mode the runner requested for this execution's model calls.
+     * Thinking mode the runner requested for this run's model calls.
      *
      * Always explicit once the runner has translated the turn's settings
      * (DISABLED when AgentRunStatus.run_config.thinking_mode was unset) — the audit
@@ -1693,7 +1693,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Thinking mode the runner requested for this execution's model calls.
+     * Thinking mode the runner requested for this run's model calls.
      *
      * Always explicit once the runner has translated the turn's settings
      * (DISABLED when AgentRunStatus.run_config.thinking_mode was unset) — the audit
@@ -1714,7 +1714,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Thinking mode the runner requested for this execution's model calls.
+     * Thinking mode the runner requested for this run's model calls.
      *
      * Always explicit once the runner has translated the turn's settings
      * (DISABLED when AgentRunStatus.run_config.thinking_mode was unset) — the audit

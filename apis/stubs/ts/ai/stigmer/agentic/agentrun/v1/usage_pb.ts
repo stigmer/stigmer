@@ -342,7 +342,7 @@ export type BillingLink = Message<"ai.stigmer.agentic.agentrun.v1.BillingLink"> 
   debitStatus: BillingDebitStatus;
 
   /**
-   * Execution reservation ID (from authorizeRun).
+   * Run reservation ID (from authorizeRun).
    *
    * @generated from field: string reservation_id = 2;
    */
@@ -387,7 +387,7 @@ export const BillingLinkSchema: GenMessage<BillingLink> = /*@__PURE__*/
  *
  * Written by the proxy after each SSE stream completes (cloud mode) or by
  * the runner directly (OSS mode). Stored in the `llm_call_usage_record`
- * MongoDB collection, never embedded in the execution document.
+ * MongoDB collection, never embedded in the run document.
  *
  * ## Lifecycle
  * 1. Proxy observes SSE stream completion and extracts final usage
@@ -413,23 +413,23 @@ export type LlmCallUsageRecord = Message<"ai.stigmer.agentic.agentrun.v1.LlmCall
   usageRecordId: string;
 
   /**
-   * Execution this call belongs to.
+   * Run this call belongs to.
    *
    * @generated from field: string run_id = 2;
    */
   runId: string;
 
   /**
-   * For sub-agent rollups: root execution of the tree.
+   * For sub-agent rollups: root run of the tree.
    *
    * @generated from field: string root_run_id = 3;
    */
   rootRunId: string;
 
   /**
-   * 1-based call ordering within the execution, as the reporting proxy
+   * 1-based call ordering within the run, as the reporting proxy
    * counted it. An ordering hint, not an identity: a proxy that restarts
-   * mid-execution counts from 1 again, so two records of one execution may
+   * mid-run counts from 1 again, so two records of one run may
    * share a sequence. Order by observed_at, then sequence.
    *
    * @generated from field: int32 sequence = 4;
@@ -654,7 +654,7 @@ export type LlmCallUsageRecord = Message<"ai.stigmer.agentic.agentrun.v1.LlmCall
   org: string;
 
   /**
-   * Session this execution belongs to.
+   * Session this run belongs to.
    *
    * @generated from field: string session_id = 8;
    */
@@ -677,7 +677,7 @@ export const LlmCallUsageRecordSchema: GenMessage<LlmCallUsageRecord> = /*@__PUR
   messageDesc(file_ai_stigmer_agentic_agentrun_v1_usage, 5);
 
 /**
- * Aggregated usage across a scope (execution, session, agent, or org).
+ * Aggregated usage across a scope (run, session, agent, or org).
  *
  * Used as the `total_usage` field in session and agent usage report responses.
  * All token fields are int64 to support large aggregates (org-wide, multi-day).
@@ -898,7 +898,7 @@ export type StreamingUsageSummary = Message<"ai.stigmer.agentic.agentrun.v1.Stre
   estimatedCostUsd: number;
 
   /**
-   * Model identifier the runner requested for this execution's turns.
+   * Model identifier the runner requested for this run's turns.
    *
    * @generated from field: string model = 8;
    */
@@ -912,7 +912,7 @@ export type StreamingUsageSummary = Message<"ai.stigmer.agentic.agentrun.v1.Stre
   observedAt: string;
 
   /**
-   * Service tier the runner requested for this execution's model calls.
+   * Service tier the runner requested for this run's model calls.
    *
    * Always explicit once the runner has translated the turn's settings
    * (STANDARD when AgentRunStatus.run_config.service_tier was unset) — the audit
@@ -932,7 +932,7 @@ export type StreamingUsageSummary = Message<"ai.stigmer.agentic.agentrun.v1.Stre
   requestedModelParams: string;
 
   /**
-   * Thinking mode the runner requested for this execution's model calls.
+   * Thinking mode the runner requested for this run's model calls.
    *
    * Always explicit once the runner has translated the turn's settings
    * (DISABLED when AgentRunStatus.run_config.thinking_mode was unset) — the audit

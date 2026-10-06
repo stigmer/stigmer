@@ -162,7 +162,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Human-readable label for display.
    * For sessions: the conversation subject.
-   * For workflow runs: the execution name.
+   * For workflow runs: the run name.
    * </pre>
    *
    * <code>string subject = 3 [json_name = "subject"];</code>
@@ -185,7 +185,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Human-readable label for display.
    * For sessions: the conversation subject.
-   * For workflow runs: the execution name.
+   * For workflow runs: the run name.
    * </pre>
    *
    * <code>string subject = 3 [json_name = "subject"];</code>
@@ -252,7 +252,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object status_ = "";
   /**
    * <pre>
-   * Execution phase label for workflow runs (e.g., "completed", "failed").
+   * Run phase label for workflow runs (e.g., "completed", "failed").
    * Empty for sessions.
    * </pre>
    *
@@ -274,7 +274,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Execution phase label for workflow runs (e.g., "completed", "failed").
+   * Run phase label for workflow runs (e.g., "completed", "failed").
    * Empty for sessions.
    * </pre>
    *
@@ -904,7 +904,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Human-readable label for display.
      * For sessions: the conversation subject.
-     * For workflow runs: the execution name.
+     * For workflow runs: the run name.
      * </pre>
      *
      * <code>string subject = 3 [json_name = "subject"];</code>
@@ -926,7 +926,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Human-readable label for display.
      * For sessions: the conversation subject.
-     * For workflow runs: the execution name.
+     * For workflow runs: the run name.
      * </pre>
      *
      * <code>string subject = 3 [json_name = "subject"];</code>
@@ -949,7 +949,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Human-readable label for display.
      * For sessions: the conversation subject.
-     * For workflow runs: the execution name.
+     * For workflow runs: the run name.
      * </pre>
      *
      * <code>string subject = 3 [json_name = "subject"];</code>
@@ -968,7 +968,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Human-readable label for display.
      * For sessions: the conversation subject.
-     * For workflow runs: the execution name.
+     * For workflow runs: the run name.
      * </pre>
      *
      * <code>string subject = 3 [json_name = "subject"];</code>
@@ -984,7 +984,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Human-readable label for display.
      * For sessions: the conversation subject.
-     * For workflow runs: the execution name.
+     * For workflow runs: the run name.
      * </pre>
      *
      * <code>string subject = 3 [json_name = "subject"];</code>
@@ -1170,7 +1170,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object status_ = "";
     /**
      * <pre>
-     * Execution phase label for workflow runs (e.g., "completed", "failed").
+     * Run phase label for workflow runs (e.g., "completed", "failed").
      * Empty for sessions.
      * </pre>
      *
@@ -1191,7 +1191,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution phase label for workflow runs (e.g., "completed", "failed").
+     * Run phase label for workflow runs (e.g., "completed", "failed").
      * Empty for sessions.
      * </pre>
      *
@@ -1213,7 +1213,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution phase label for workflow runs (e.g., "completed", "failed").
+     * Run phase label for workflow runs (e.g., "completed", "failed").
      * Empty for sessions.
      * </pre>
      *
@@ -1231,7 +1231,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution phase label for workflow runs (e.g., "completed", "failed").
+     * Run phase label for workflow runs (e.g., "completed", "failed").
      * Empty for sessions.
      * </pre>
      *
@@ -1246,7 +1246,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution phase label for workflow runs (e.g., "completed", "failed").
+     * Run phase label for workflow runs (e.g., "completed", "failed").
      * Empty for sessions.
      * </pre>
      *

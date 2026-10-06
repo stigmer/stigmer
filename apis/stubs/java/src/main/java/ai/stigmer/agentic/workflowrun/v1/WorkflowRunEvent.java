@@ -7,7 +7,7 @@ package ai.stigmer.agentic.workflowrun.v1;
 
 /**
  * <pre>
- * WorkflowRunEvent represents a single timestamped event in the execution
+ * WorkflowRunEvent represents a single timestamped event in the run
  * timeline of a workflow run.
  * </pre>
  *
@@ -1494,7 +1494,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * WorkflowRunEvent represents a single timestamped event in the execution
+   * WorkflowRunEvent represents a single timestamped event in the run
    * timeline of a workflow run.
    * </pre>
    *

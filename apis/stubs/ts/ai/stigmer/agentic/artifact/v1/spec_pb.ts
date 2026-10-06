@@ -34,7 +34,7 @@ export type ArtifactSpec = Message<"ai.stigmer.agentic.artifact.v1.ArtifactSpec"
   displayName: string;
 
   /**
-   * Provenance: which execution and task produced this artifact.
+   * Provenance: which run and task produced this artifact.
    *
    * @generated from field: ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3;
    */
@@ -56,7 +56,7 @@ export const ArtifactSpecSchema: GenMessage<ArtifactSpec> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_artifact_v1_spec, 0);
 
 /**
- * ArtifactSource identifies the execution context that produced an artifact.
+ * ArtifactSource identifies the run and task that produced an artifact.
  *
  * @generated from message ai.stigmer.agentic.artifact.v1.ArtifactSource
  */
@@ -82,8 +82,8 @@ export type ArtifactSource = Message<"ai.stigmer.agentic.artifact.v1.ArtifactSou
 
   /**
    * Name of the task that produced this artifact.
-   * Matches WorkflowTask.task_name in the execution status.
-   * Empty for execution-level artifacts (e.g., final workflow output).
+   * Matches WorkflowTask.task_name in the run status.
+   * Empty for run-level artifacts (e.g., final workflow output).
    *
    * @generated from field: string task_name = 3;
    */

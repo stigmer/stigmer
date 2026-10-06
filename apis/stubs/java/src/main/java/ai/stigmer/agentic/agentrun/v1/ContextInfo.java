@@ -15,7 +15,7 @@ package ai.stigmer.agentic.agentrun.v1;
  *
  * ## Real-Time Updates
  *
- * Fields are updated progressively during execution:
+ * Fields are updated progressively during the run:
  * - current_token_count: Updated after each LLM call
  * - utilization_percent: Recalculated when token count changes
  * - summarization_events: Appended when summarization occurs
@@ -169,7 +169,7 @@ private static final long serialVersionUID = 0L;
    * Whether summarization is enabled for this run.
    *
    * When false, no summarization events will occur regardless of
-   * token count. The execution may fail if context exceeds limits.
+   * token count. The run may fail if context exceeds limits.
    * </pre>
    *
    * <code>bool summarization_enabled = 5 [json_name = "summarizationEnabled"];</code>
@@ -188,7 +188,7 @@ private static final long serialVersionUID = 0L;
    * Summarization events that occurred during this run.
    *
    * Ordered chronologically (oldest first).
-   * Empty if no summarization was triggered during run.
+   * Empty if no summarization was triggered during the run.
    *
    * Multiple events indicate a very long-running conversation that
    * required multiple rounds of summarization.
@@ -205,7 +205,7 @@ private static final long serialVersionUID = 0L;
    * Summarization events that occurred during this run.
    *
    * Ordered chronologically (oldest first).
-   * Empty if no summarization was triggered during run.
+   * Empty if no summarization was triggered during the run.
    *
    * Multiple events indicate a very long-running conversation that
    * required multiple rounds of summarization.
@@ -223,7 +223,7 @@ private static final long serialVersionUID = 0L;
    * Summarization events that occurred during this run.
    *
    * Ordered chronologically (oldest first).
-   * Empty if no summarization was triggered during run.
+   * Empty if no summarization was triggered during the run.
    *
    * Multiple events indicate a very long-running conversation that
    * required multiple rounds of summarization.
@@ -240,7 +240,7 @@ private static final long serialVersionUID = 0L;
    * Summarization events that occurred during this run.
    *
    * Ordered chronologically (oldest first).
-   * Empty if no summarization was triggered during run.
+   * Empty if no summarization was triggered during the run.
    *
    * Multiple events indicate a very long-running conversation that
    * required multiple rounds of summarization.
@@ -257,7 +257,7 @@ private static final long serialVersionUID = 0L;
    * Summarization events that occurred during this run.
    *
    * Ordered chronologically (oldest first).
-   * Empty if no summarization was triggered during run.
+   * Empty if no summarization was triggered during the run.
    *
    * Multiple events indicate a very long-running conversation that
    * required multiple rounds of summarization.
@@ -538,7 +538,7 @@ private static final long serialVersionUID = 0L;
    *
    * ## Real-Time Updates
    *
-   * Fields are updated progressively during execution:
+   * Fields are updated progressively during the run:
    * - current_token_count: Updated after each LLM call
    * - utilization_percent: Recalculated when token count changes
    * - summarization_events: Appended when summarization occurs
@@ -1066,7 +1066,7 @@ private static final long serialVersionUID = 0L;
      * Whether summarization is enabled for this run.
      *
      * When false, no summarization events will occur regardless of
-     * token count. The execution may fail if context exceeds limits.
+     * token count. The run may fail if context exceeds limits.
      * </pre>
      *
      * <code>bool summarization_enabled = 5 [json_name = "summarizationEnabled"];</code>
@@ -1081,7 +1081,7 @@ private static final long serialVersionUID = 0L;
      * Whether summarization is enabled for this run.
      *
      * When false, no summarization events will occur regardless of
-     * token count. The execution may fail if context exceeds limits.
+     * token count. The run may fail if context exceeds limits.
      * </pre>
      *
      * <code>bool summarization_enabled = 5 [json_name = "summarizationEnabled"];</code>
@@ -1100,7 +1100,7 @@ private static final long serialVersionUID = 0L;
      * Whether summarization is enabled for this run.
      *
      * When false, no summarization events will occur regardless of
-     * token count. The execution may fail if context exceeds limits.
+     * token count. The run may fail if context exceeds limits.
      * </pre>
      *
      * <code>bool summarization_enabled = 5 [json_name = "summarizationEnabled"];</code>
@@ -1130,7 +1130,7 @@ private static final long serialVersionUID = 0L;
      * Summarization events that occurred during this run.
      *
      * Ordered chronologically (oldest first).
-     * Empty if no summarization was triggered during run.
+     * Empty if no summarization was triggered during the run.
      *
      * Multiple events indicate a very long-running conversation that
      * required multiple rounds of summarization.
@@ -1150,7 +1150,7 @@ private static final long serialVersionUID = 0L;
      * Summarization events that occurred during this run.
      *
      * Ordered chronologically (oldest first).
-     * Empty if no summarization was triggered during run.
+     * Empty if no summarization was triggered during the run.
      *
      * Multiple events indicate a very long-running conversation that
      * required multiple rounds of summarization.
@@ -1170,7 +1170,7 @@ private static final long serialVersionUID = 0L;
      * Summarization events that occurred during this run.
      *
      * Ordered chronologically (oldest first).
-     * Empty if no summarization was triggered during run.
+     * Empty if no summarization was triggered during the run.
      *
      * Multiple events indicate a very long-running conversation that
      * required multiple rounds of summarization.
@@ -1190,7 +1190,7 @@ private static final long serialVersionUID = 0L;
      * Summarization events that occurred during this run.
      *
      * Ordered chronologically (oldest first).
-     * Empty if no summarization was triggered during run.
+     * Empty if no summarization was triggered during the run.
      *
      * Multiple events indicate a very long-running conversation that
      * required multiple rounds of summarization.
@@ -1217,7 +1217,7 @@ private static final long serialVersionUID = 0L;
      * Summarization events that occurred during this run.
      *
      * Ordered chronologically (oldest first).
-     * Empty if no summarization was triggered during run.
+     * Empty if no summarization was triggered during the run.
      *
      * Multiple events indicate a very long-running conversation that
      * required multiple rounds of summarization.
@@ -1241,7 +1241,7 @@ private static final long serialVersionUID = 0L;
      * Summarization events that occurred during this run.
      *
      * Ordered chronologically (oldest first).
-     * Empty if no summarization was triggered during run.
+     * Empty if no summarization was triggered during the run.
      *
      * Multiple events indicate a very long-running conversation that
      * required multiple rounds of summarization.
@@ -1267,7 +1267,7 @@ private static final long serialVersionUID = 0L;
      * Summarization events that occurred during this run.
      *
      * Ordered chronologically (oldest first).
-     * Empty if no summarization was triggered during run.
+     * Empty if no summarization was triggered during the run.
      *
      * Multiple events indicate a very long-running conversation that
      * required multiple rounds of summarization.
@@ -1294,7 +1294,7 @@ private static final long serialVersionUID = 0L;
      * Summarization events that occurred during this run.
      *
      * Ordered chronologically (oldest first).
-     * Empty if no summarization was triggered during run.
+     * Empty if no summarization was triggered during the run.
      *
      * Multiple events indicate a very long-running conversation that
      * required multiple rounds of summarization.
@@ -1318,7 +1318,7 @@ private static final long serialVersionUID = 0L;
      * Summarization events that occurred during this run.
      *
      * Ordered chronologically (oldest first).
-     * Empty if no summarization was triggered during run.
+     * Empty if no summarization was triggered during the run.
      *
      * Multiple events indicate a very long-running conversation that
      * required multiple rounds of summarization.
@@ -1342,7 +1342,7 @@ private static final long serialVersionUID = 0L;
      * Summarization events that occurred during this run.
      *
      * Ordered chronologically (oldest first).
-     * Empty if no summarization was triggered during run.
+     * Empty if no summarization was triggered during the run.
      *
      * Multiple events indicate a very long-running conversation that
      * required multiple rounds of summarization.
@@ -1367,7 +1367,7 @@ private static final long serialVersionUID = 0L;
      * Summarization events that occurred during this run.
      *
      * Ordered chronologically (oldest first).
-     * Empty if no summarization was triggered during run.
+     * Empty if no summarization was triggered during the run.
      *
      * Multiple events indicate a very long-running conversation that
      * required multiple rounds of summarization.
@@ -1390,7 +1390,7 @@ private static final long serialVersionUID = 0L;
      * Summarization events that occurred during this run.
      *
      * Ordered chronologically (oldest first).
-     * Empty if no summarization was triggered during run.
+     * Empty if no summarization was triggered during the run.
      *
      * Multiple events indicate a very long-running conversation that
      * required multiple rounds of summarization.
@@ -1413,7 +1413,7 @@ private static final long serialVersionUID = 0L;
      * Summarization events that occurred during this run.
      *
      * Ordered chronologically (oldest first).
-     * Empty if no summarization was triggered during run.
+     * Empty if no summarization was triggered during the run.
      *
      * Multiple events indicate a very long-running conversation that
      * required multiple rounds of summarization.
@@ -1430,7 +1430,7 @@ private static final long serialVersionUID = 0L;
      * Summarization events that occurred during this run.
      *
      * Ordered chronologically (oldest first).
-     * Empty if no summarization was triggered during run.
+     * Empty if no summarization was triggered during the run.
      *
      * Multiple events indicate a very long-running conversation that
      * required multiple rounds of summarization.
@@ -1450,7 +1450,7 @@ private static final long serialVersionUID = 0L;
      * Summarization events that occurred during this run.
      *
      * Ordered chronologically (oldest first).
-     * Empty if no summarization was triggered during run.
+     * Empty if no summarization was triggered during the run.
      *
      * Multiple events indicate a very long-running conversation that
      * required multiple rounds of summarization.
@@ -1471,7 +1471,7 @@ private static final long serialVersionUID = 0L;
      * Summarization events that occurred during this run.
      *
      * Ordered chronologically (oldest first).
-     * Empty if no summarization was triggered during run.
+     * Empty if no summarization was triggered during the run.
      *
      * Multiple events indicate a very long-running conversation that
      * required multiple rounds of summarization.
@@ -1488,7 +1488,7 @@ private static final long serialVersionUID = 0L;
      * Summarization events that occurred during this run.
      *
      * Ordered chronologically (oldest first).
-     * Empty if no summarization was triggered during run.
+     * Empty if no summarization was triggered during the run.
      *
      * Multiple events indicate a very long-running conversation that
      * required multiple rounds of summarization.
@@ -1506,7 +1506,7 @@ private static final long serialVersionUID = 0L;
      * Summarization events that occurred during this run.
      *
      * Ordered chronologically (oldest first).
-     * Empty if no summarization was triggered during run.
+     * Empty if no summarization was triggered during the run.
      *
      * Multiple events indicate a very long-running conversation that
      * required multiple rounds of summarization.

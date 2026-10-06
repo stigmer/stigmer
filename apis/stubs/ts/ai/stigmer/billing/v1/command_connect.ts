@@ -83,7 +83,7 @@ export const BillingCommandController = {
     /**
      * Record a single LLM call's usage for billing.
      * Computes cost server-side from the model registry, inserts an immutable
-     * LlmCallUsageRecord, and debits credits from the execution's reservation.
+     * LlmCallUsageRecord, and debits credits from the run's reservation.
      *
      * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.recordLlmCallUsage
      */
@@ -106,7 +106,7 @@ export const BillingCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Re-arm a settled reservation so a failed execution can be recovered.
+     * Re-arm a settled reservation so a failed run can be recovered.
      * The one sanctioned path past the settled-reservation latch: re-runs
      * the affordability check, transfers a fresh hold, and rotates the
      * reservation id as the fence against settles still in flight from the

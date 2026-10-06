@@ -10,7 +10,7 @@ package ai.stigmer.agentic.agentrun.v1;
  * Cost split by execution harness within an org report.
  *
  * Each entry represents one harness (e.g., "native" or "cursor") and
- * aggregates cost, call count, and execution count for that harness
+ * aggregates cost, call count, and run count for that harness
  * within the report's time range.
  * </pre>
  *
@@ -138,7 +138,7 @@ private static final long serialVersionUID = 0L;
   private int runCount_ = 0;
   /**
    * <pre>
-   * Number of distinct executions that used this harness.
+   * Number of distinct runs that used this harness.
    * </pre>
    *
    * <code>int32 run_count = 4 [json_name = "runCount"];</code>
@@ -344,7 +344,7 @@ private static final long serialVersionUID = 0L;
    * Cost split by execution harness within an org report.
    *
    * Each entry represents one harness (e.g., "native" or "cursor") and
-   * aggregates cost, call count, and execution count for that harness
+   * aggregates cost, call count, and run count for that harness
    * within the report's time range.
    * </pre>
    *
@@ -704,7 +704,7 @@ private static final long serialVersionUID = 0L;
     private int runCount_ ;
     /**
      * <pre>
-     * Number of distinct executions that used this harness.
+     * Number of distinct runs that used this harness.
      * </pre>
      *
      * <code>int32 run_count = 4 [json_name = "runCount"];</code>
@@ -716,7 +716,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Number of distinct executions that used this harness.
+     * Number of distinct runs that used this harness.
      * </pre>
      *
      * <code>int32 run_count = 4 [json_name = "runCount"];</code>
@@ -732,7 +732,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Number of distinct executions that used this harness.
+     * Number of distinct runs that used this harness.
      * </pre>
      *
      * <code>int32 run_count = 4 [json_name = "runCount"];</code>

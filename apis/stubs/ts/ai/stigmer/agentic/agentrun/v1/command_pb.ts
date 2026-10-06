@@ -72,16 +72,16 @@ export const AgentRunCommandController: GenService<{
    *
    * ## Preconditions
    *
-   * - Execution must be in RUN_WAITING_FOR_APPROVAL phase
+   * - Run must be in RUN_WAITING_FOR_APPROVAL phase
    * - tool_call_id must match status.pending_approval.tool_call_id
-   * - User must have can_edit permission on the execution
+   * - User must have can_edit permission on the run
    *
    * ## Behavior by Action
    *
-   * - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
-   * - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
+   * - APPROVE: Tool executes normally, run resumes to IN_PROGRESS
+   * - SKIP: Tool returns skip message to LLM, run continues to IN_PROGRESS
    * - REJECT: Tool is denied and the user's objection is fed back to the LLM;
-   *   the execution CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
+   *   the run CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
    *   stop the whole run, use cancel/terminate)
    *
    * @generated from rpc ai.stigmer.agentic.agentrun.v1.AgentRunCommandController.submitApproval
@@ -101,11 +101,11 @@ export const AgentRunCommandController: GenService<{
    *
    * ## Preconditions
    *
-   * - Execution must exist and be non-terminal
+   * - Run must exist and be non-terminal
    * - change_set_id must match a status.file_change_sets[].id; for FILE scope,
    *   file_change_id must match a CapturedFileChange.id within it
    * - expected_digest must match the target's current digest
-   * - User must have can_edit permission on the execution
+   * - User must have can_edit permission on the run
    *
    * @generated from rpc ai.stigmer.agentic.agentrun.v1.AgentRunCommandController.submitFileDecision
    */
@@ -159,7 +159,7 @@ export const AgentRunCommandController: GenService<{
    * Pause a running agent run.
    *
    * Temporarily stops the agent at its current checkpoint. Unlike cancel,
-   * the execution is NOT terminal and can be resumed later from where it left off.
+   * the run is NOT terminal and can be resumed later from where it left off.
    *
    * @generated from rpc ai.stigmer.agentic.agentrun.v1.AgentRunCommandController.pause
    */
@@ -171,7 +171,7 @@ export const AgentRunCommandController: GenService<{
   /**
    * Resume a paused agent run.
    *
-   * Continues execution from the checkpoint where it was paused. The agent
+   * Continues the run from the checkpoint where it was paused. The agent
    * re-invokes with the same thread_id, loading from LangGraph checkpoint
    * and continuing from where it left off.
    *
@@ -185,7 +185,7 @@ export const AgentRunCommandController: GenService<{
   /**
    * Upload a file attachment for use in an agent run.
    *
-   * Pre-uploads files to artifact storage before creating an run.
+   * Pre-uploads files to artifact storage before creating a run.
    * The returned storage_key can be used in Attachment.storage_key when
    * creating the run.
    *

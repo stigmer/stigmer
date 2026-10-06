@@ -12,7 +12,7 @@ public interface SubscribeWorkflowRunRequestOrBuilder extends
 
   /**
    * <pre>
-   * Execution ID to subscribe to.
+   * Run ID to subscribe to.
    * </pre>
    *
    * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface SubscribeWorkflowRunRequestOrBuilder extends
   java.lang.String getRunId();
   /**
    * <pre>
-   * Execution ID to subscribe to.
+   * Run ID to subscribe to.
    * </pre>
    *
    * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>

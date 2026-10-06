@@ -7,7 +7,7 @@ package ai.stigmer.agentic.agentrun.v1;
 
 /**
  * <pre>
- * ServiceTier selects the provider-side speed/service tier for an execution's
+ * ServiceTier selects the provider-side speed/service tier for a run's
  * model calls.
  *
  * Providers spell this differently — Cursor exposes per-model "fast" variants
@@ -20,7 +20,7 @@ package ai.stigmer.agentic.agentrun.v1;
  * The load-bearing rule: UNSPECIFIED resolves to SERVICE_TIER_STANDARD — never
  * the provider account default. The runner always sends the provider an
  * explicit variant selection, so an out-of-band account setting can never
- * silently change what an execution pays (stigmer/stigmer#357).
+ * silently change what a run pays (stigmer/stigmer#357).
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentrun.v1.ServiceTier}
@@ -52,7 +52,7 @@ public enum ServiceTier
    * variant rates.
    *
    * Valid only for models whose registry entry declares a fast pricing
-   * variant; refused at execution create otherwise.
+   * variant; refused at run create otherwise.
    * </pre>
    *
    * <code>SERVICE_TIER_FAST = 2;</code>
@@ -94,7 +94,7 @@ public enum ServiceTier
    * variant rates.
    *
    * Valid only for models whose registry entry declares a fast pricing
-   * variant; refused at execution create otherwise.
+   * variant; refused at run create otherwise.
    * </pre>
    *
    * <code>SERVICE_TIER_FAST = 2;</code>

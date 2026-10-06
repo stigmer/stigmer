@@ -44,7 +44,7 @@ export const file_ai_stigmer_agentic_agentrun_v1_api: GenFile = /*@__PURE__*/
 
 /**
  * AgentRun represents a single agent run instance (conversational).
- * Follows the standard pattern: spec contains user inputs, status contains execution results.
+ * Follows the standard pattern: spec contains user inputs, status contains run results.
  *
  * @generated from message ai.stigmer.agentic.agentrun.v1.AgentRun
  */
@@ -76,7 +76,7 @@ export type AgentRun = Message<"ai.stigmer.agentic.agentrun.v1.AgentRun"> & {
    * Contains: the conversation (session_id or a new session_spec), message,
    * run_config, the per-message intents, and runtime_env. Environment values reach a turn from
    * the environments the server resolves for its run and from the
-   * per-execution runtime_env; see the runtime_env field docs in
+   * per-run runtime_env; see the runtime_env field docs in
    * spec.proto.
    *
    * @generated from field: ai.stigmer.agentic.agentrun.v1.AgentRunSpec spec = 4;
@@ -84,7 +84,7 @@ export type AgentRun = Message<"ai.stigmer.agentic.agentrun.v1.AgentRun"> & {
   spec?: AgentRunSpec;
 
   /**
-   * System-managed execution state and results.
+   * System-managed run state and results.
    * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
    *
    * @generated from field: ai.stigmer.agentic.agentrun.v1.AgentRunStatus status = 5;
@@ -100,8 +100,8 @@ export const AgentRunSchema: GenMessage<AgentRun> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentrun_v1_api, 0);
 
 /**
- * AgentRunStatus contains all execution results and state.
- * Everything populated during or after execution goes here, not in spec.
+ * AgentRunStatus contains all run results and state.
+ * Everything populated during or after the run goes here, not in spec.
  *
  * @generated from message ai.stigmer.agentic.agentrun.v1.AgentRunStatus
  */
@@ -114,17 +114,17 @@ export type AgentRunStatus = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSta
   audit?: ApiResourceAudit;
 
   /**
-   * Sequential stream of execution events: AI messages, tool calls, and system notifications.
-   * Ordered chronologically to reconstruct the complete execution flow.
-   * Each message captures what happened during execution (agent responses, tool invocations, progress updates).
+   * Sequential stream of run events: AI messages, tool calls, and system notifications.
+   * Ordered chronologically to reconstruct the complete run flow.
+   * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
    *
    * @generated from field: repeated ai.stigmer.agentic.agentrun.v1.AgentMessage messages = 1;
    */
   messages: AgentMessage[];
 
   /**
-   * Current execution lifecycle phase.
-   * Tracks the execution state from creation (PENDING) through active processing (IN_PROGRESS)
+   * Current run lifecycle phase.
+   * Tracks the run state from creation (PENDING) through active processing (IN_PROGRESS)
    * to terminal states (COMPLETED/FAILED/CANCELLED).
    *
    * @generated from field: ai.stigmer.agentic.agentrun.v1.RunPhase phase = 2;
@@ -141,7 +141,7 @@ export type AgentRunStatus = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSta
   subAgentRuns: SubAgentRun[];
 
   /**
-   * Error message if execution failed.
+   * Error message if the run failed.
    * Only populated when phase == RUN_FAILED.
    *
    * @generated from field: string error = 6;
@@ -149,7 +149,7 @@ export type AgentRunStatus = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSta
   error: string;
 
   /**
-   * ISO 8601 timestamp when execution started.
+   * ISO 8601 timestamp when the run started.
    * Example: "2025-01-10T10:30:00Z"
    *
    * @generated from field: string started_at = 7;
@@ -157,7 +157,7 @@ export type AgentRunStatus = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSta
   startedAt: string;
 
   /**
-   * ISO 8601 timestamp when execution completed, failed, or was cancelled.
+   * ISO 8601 timestamp when the run completed, failed, or was cancelled.
    * Only populated for terminal states.
    *
    * @generated from field: string completed_at = 8;
@@ -167,7 +167,7 @@ export type AgentRunStatus = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSta
   /**
    * Todo list tracking multi-step tasks and progress for this run.
    * Updated via write_todos tool (if TodoListMiddleware is enabled).
-   * Each execution maintains its own snapshot of todos at execution time.
+   * Each run maintains its own snapshot of todos at run time.
    * Key: todo item ID, Value: todo item details
    *
    * @generated from field: map<string, ai.stigmer.agentic.agentrun.v1.TodoItem> todos = 9;
@@ -175,10 +175,10 @@ export type AgentRunStatus = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSta
   todos: { [key: string]: TodoItem };
 
   /**
-   * Callback token for notifying a parent workflow when this execution completes.
+   * Callback token for notifying a parent workflow when this run completes.
    *
-   * Present when this execution was triggered by a workflow. Empty when the
-   * execution runs independently (chat, API call).
+   * Present when this run was triggered by a workflow. Empty when the
+   * run stands alone (a chat turn or an API call).
    *
    * @generated from field: bytes callback_token = 10;
    */
@@ -206,15 +206,15 @@ export type AgentRunStatus = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSta
    * Context window utilization and summarization tracking.
    *
    * Provides visibility into how the agent is using its context window and
-   * any summarization events that occurred during run.
+   * any summarization events that occurred during the run.
    *
    * Populated when context management is active (not disabled via config).
    * Updated progressively during streaming as token counts change.
    *
    * Use cases:
-   * - **Monitoring**: Track context utilization across executions
-   * - **Debugging**: Understand why an execution hit context limits
-   * - **Cost optimization**: Identify executions with excessive summarization
+   * - **Monitoring**: Track context utilization across runs
+   * - **Debugging**: Understand why a run hit context limits
+   * - **Cost optimization**: Identify runs with excessive summarization
    * - **UX**: Show users their context window health
    *
    * @generated from field: ai.stigmer.agentic.agentrun.v1.ContextInfo context_info = 14;
@@ -229,7 +229,7 @@ export type AgentRunStatus = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSta
    * Each artifact includes a pre-signed URL for direct download.
    *
    * Artifacts are stored in R2 and URLs expire after a configured period.
-   * Use the execution download endpoint to refresh expired URLs.
+   * Use the run download endpoint to refresh expired URLs.
    *
    * Ordered by creation time (oldest first).
    *
@@ -245,7 +245,7 @@ export type AgentRunStatus = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSta
    * for workspace entries with no changes, non-git sources, or disabled
    * write-back mode.
    *
-   * Populated during post-execution processing. Each entry tracks the
+   * Populated during post-run processing. Each entry tracks the
    * write-back lifecycle (committed -> pushed -> PR created) and carries
    * the PR URL for UI display.
    *
@@ -265,7 +265,7 @@ export type AgentRunStatus = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSta
   setupProgress?: SetupProgress;
 
   /**
-   * Streaming usage summary, updated progressively during run.
+   * Streaming usage summary, updated progressively during the run.
    *
    * @generated from field: ai.stigmer.agentic.agentrun.v1.StreamingUsageSummary streaming_usage = 20;
    */
@@ -316,7 +316,7 @@ export type AgentRunStatus = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSta
   fileChangeProgress?: FileChangeProgress;
 
   /**
-   * Report of which recalled memories were injected into this execution's
+   * Report of which recalled memories were injected into this run's
    * prompt.
    *
    * Absent, or present with selection_active=false, means wholesale: every
@@ -350,14 +350,14 @@ export type AgentRunStatus = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSta
 
   /**
    * Standing preferences declared by the organization and the calling user,
-   * snapshotted into this execution at create time.
+   * snapshotted into this run at create time.
    *
    * @generated from field: ai.stigmer.agentic.agentrun.v1.DeclaredPreferences declared_preferences = 29;
    */
   declaredPreferences?: DeclaredPreferences;
 
   /**
-   * The caller's confirmed memories, snapshotted into this execution at
+   * The caller's confirmed memories, snapshotted into this run at
    * create time: the candidate set the prompt was built from.
    *
    * @generated from field: ai.stigmer.agentic.agentrun.v1.RecalledMemories recalled_memories = 30;
@@ -429,7 +429,7 @@ export const SetupProgressSchema: GenMessage<SetupProgress> = /*@__PURE__*/
  */
 export type RecalledMemoriesReport = Message<"ai.stigmer.agentic.agentrun.v1.RecalledMemoriesReport"> & {
   /**
-   * Whether semantic selection was active for this execution's prompt.
+   * Whether semantic selection was active for this run's prompt.
    * False means wholesale: the full status.recalled_memories snapshot was
    * injected.
    *

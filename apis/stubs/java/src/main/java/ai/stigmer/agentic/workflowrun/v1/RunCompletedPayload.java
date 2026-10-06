@@ -98,7 +98,7 @@ private static final long serialVersionUID = 0L;
   private long durationMs_ = 0L;
   /**
    * <pre>
-   * Total wall-clock duration of the execution in milliseconds.
+   * Total wall-clock duration of the run in milliseconds.
    * </pre>
    *
    * <code>int64 duration_ms = 2 [json_name = "durationMs"];</code>
@@ -699,7 +699,7 @@ private static final long serialVersionUID = 0L;
     private long durationMs_ ;
     /**
      * <pre>
-     * Total wall-clock duration of the execution in milliseconds.
+     * Total wall-clock duration of the run in milliseconds.
      * </pre>
      *
      * <code>int64 duration_ms = 2 [json_name = "durationMs"];</code>
@@ -711,7 +711,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total wall-clock duration of the execution in milliseconds.
+     * Total wall-clock duration of the run in milliseconds.
      * </pre>
      *
      * <code>int64 duration_ms = 2 [json_name = "durationMs"];</code>
@@ -727,7 +727,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total wall-clock duration of the execution in milliseconds.
+     * Total wall-clock duration of the run in milliseconds.
      * </pre>
      *
      * <code>int64 duration_ms = 2 [json_name = "durationMs"];</code>

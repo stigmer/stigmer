@@ -27,7 +27,7 @@ type GitWriteBackMode int32
 const (
 	// Platform default behavior — write-back is enabled when git credentials are available.
 	GitWriteBackMode_GIT_WRITE_BACK_MODE_UNSPECIFIED GitWriteBackMode = 0
-	// Create a branch and pull request from the agent's file changes after execution completes.
+	// Create a branch and pull request from the agent's file changes after the run completes.
 	GitWriteBackMode_GIT_WRITE_BACK_BRANCH_AND_PR GitWriteBackMode = 1
 )
 
@@ -143,7 +143,7 @@ func (Harness) EnumDescriptor() ([]byte, []int) {
 //
 // Determines whether the runner that processes agent activities lives on the
 // client's machine (desktop app or CLI) or in a cloud-provisioned sandbox.
-// Set at session creation time and immutable once an execution has run —
+// Set at session creation time and immutable once a run has started —
 // workspace state may not be portable between local and cloud environments.
 type ExecutionTarget int32
 
@@ -155,7 +155,7 @@ const (
 	// Desktop app or CLI spawns a local runner process that polls the
 	// session's task queue. No server-side provisioning needed.
 	ExecutionTarget_EXECUTION_TARGET_LOCAL ExecutionTarget = 1
-	// Server provisions a cloud sandbox for run.
+	// Server provisions a cloud sandbox for execution.
 	//
 	// The control plane triggers EnsureSessionSandbox to create an isolated
 	// environment with a runner polling the session's task queue.

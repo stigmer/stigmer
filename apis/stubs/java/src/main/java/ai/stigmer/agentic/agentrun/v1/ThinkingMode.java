@@ -8,7 +8,7 @@ package ai.stigmer.agentic.agentrun.v1;
 /**
  * <pre>
  * ThinkingMode selects the model's extended-reasoning ("thinking") variant
- * for an execution's model calls — the second variant dimension alongside
+ * for a run's model calls — the second variant dimension alongside
  * ServiceTier (stigmer/stigmer#772).
  *
  * Unlike the fast tier, thinking is NOT a separately priced dimension:
@@ -18,7 +18,7 @@ package ai.stigmer.agentic.agentrun.v1;
  * exactly the fast variant rate). Thinking costs more only by generating
  * additional reasoning tokens, billed as ordinary output. Selectability is
  * therefore CAPABILITY-gated, not pricing-gated: ENABLED is valid only for
- * models whose registry entry on the execution's harness declares a
+ * models whose registry entry on the run's harness declares a
  * thinking capability (capabilities.thinking or capabilities.adaptive_thinking),
  * refused at create time otherwise. ENABLED means "the model reasons before
  * it answers", in the form its entry declares: a fixed budget or adaptive
@@ -52,7 +52,7 @@ public enum ThinkingMode
    * <pre>
    * Extended reasoning off: the model's base variant, requested explicitly
    * (thinking=false pinned where the model declares the parameter).
-   * Refused at execution create for a model that requires thinking.
+   * Refused at run create for a model that requires thinking.
    * </pre>
    *
    * <code>THINKING_MODE_DISABLED = 1;</code>
@@ -63,8 +63,8 @@ public enum ThinkingMode
    * Extended reasoning on: the model's thinking variant, billed at base
    * per-token rates (reasoning tokens bill as output tokens).
    *
-   * Valid only for models whose registry entry on the execution's harness
-   * declares a thinking capability; refused at execution create otherwise.
+   * Valid only for models whose registry entry on the run's harness
+   * declares a thinking capability; refused at run create otherwise.
    * </pre>
    *
    * <code>THINKING_MODE_ENABLED = 2;</code>
@@ -95,7 +95,7 @@ public enum ThinkingMode
    * <pre>
    * Extended reasoning off: the model's base variant, requested explicitly
    * (thinking=false pinned where the model declares the parameter).
-   * Refused at execution create for a model that requires thinking.
+   * Refused at run create for a model that requires thinking.
    * </pre>
    *
    * <code>THINKING_MODE_DISABLED = 1;</code>
@@ -106,8 +106,8 @@ public enum ThinkingMode
    * Extended reasoning on: the model's thinking variant, billed at base
    * per-token rates (reasoning tokens bill as output tokens).
    *
-   * Valid only for models whose registry entry on the execution's harness
-   * declares a thinking capability; refused at execution create otherwise.
+   * Valid only for models whose registry entry on the run's harness
+   * declares a thinking capability; refused at run create otherwise.
    * </pre>
    *
    * <code>THINKING_MODE_ENABLED = 2;</code>

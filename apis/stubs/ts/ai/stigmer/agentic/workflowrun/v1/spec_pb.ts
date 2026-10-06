@@ -45,7 +45,7 @@ export type WorkflowRunSpec = Message<"ai.stigmer.agentic.workflowrun.v1.Workflo
   triggerMetadata: { [key: string]: string };
 
   /**
-   * Execution-scoped environment variables and secrets, available only to this
+   * Run-scoped environment variables and secrets, available only to this
    * run. Values here take the highest merge priority. A key must be
    * declared in Workflow.spec.env to survive the merge: the workflow env map is
    * a declaration whitelist (name + is_secret + optional), never a value source

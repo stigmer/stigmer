@@ -42,18 +42,18 @@ type AgentRunQueryControllerClient interface {
 	Get(ctx context.Context, in *AgentRunId, opts ...grpc.CallOption) (*AgentRun, error)
 	// List all agent runs with pagination and optional filtering.
 	List(ctx context.Context, in *ListAgentRunsRequest, opts ...grpc.CallOption) (*AgentRunList, error)
-	// List all executions in a specific session.
+	// List all runs in a specific session.
 	ListBySession(ctx context.Context, in *ListAgentRunsBySessionRequest, opts ...grpc.CallOption) (*AgentRunList, error)
-	// Subscribe to real-time execution updates (streaming).
+	// Subscribe to real-time run updates (streaming).
 	Subscribe(ctx context.Context, in *AgentRunId, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentRun], error)
-	// Get a presigned download URL for an execution artifact or attachment.
+	// Get a presigned download URL for a run artifact or attachment.
 	//
 	// Returns a time-limited URL for downloading an artifact published by
-	// an agent during execution, or an attachment submitted with the
+	// an agent during the run, or an attachment submitted with the
 	// run. The URL can be used with a simple HTTP GET request without
 	// authentication.
 	GetArtifactDownloadUrl(ctx context.Context, in *GetArtifactDownloadUrlRequest, opts ...grpc.CallOption) (*GetArtifactDownloadUrlResponse, error)
-	// Read the raw content of an execution artifact.
+	// Read the raw content of a run artifact.
 	//
 	// Returns artifact bytes through the Stigmer API, eliminating CORS
 	// concerns for SDK consumers who need to read content programmatically
@@ -68,13 +68,13 @@ type AgentRunQueryControllerClient interface {
 	GetRunUsageReport(ctx context.Context, in *GetRunUsageReportInput, opts ...grpc.CallOption) (*GetRunUsageReportOutput, error)
 	// Get a usage report for a session.
 	//
-	// Returns aggregated tokens, cost, and per-execution breakdown.
+	// Returns aggregated tokens, cost, and per-run breakdown.
 	GetSessionUsageReport(ctx context.Context, in *GetSessionUsageReportInput, opts ...grpc.CallOption) (*GetSessionUsageReportOutput, error)
 	// Get a usage report for an agent within an organization.
 	//
 	// Returns aggregated tokens, cost, and per-session breakdown for one
-	// organization's executions of the agent. Requires can_view on the
-	// organization named in org; executions outside that organization are
+	// organization's runs of the agent. Requires can_view on the
+	// organization named in org; runs outside that organization are
 	// never included, so the report is the per-agent drill-down of
 	// getOrgUsageReport.
 	GetAgentUsageReport(ctx context.Context, in *GetAgentUsageReportInput, opts ...grpc.CallOption) (*GetAgentUsageReportOutput, error)
@@ -82,7 +82,7 @@ type AgentRunQueryControllerClient interface {
 	//
 	// Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
 	GetOrgUsageReport(ctx context.Context, in *GetOrgUsageReportInput, opts ...grpc.CallOption) (*GetOrgUsageReportOutput, error)
-	// Get aggregated execution statistics for an organization's agent runs.
+	// Get aggregated run statistics for an organization's agent runs.
 	//
 	// Returns counts by phase, active count, average duration, and top failing
 	// agents — scoped to a configurable time window (24h, 7d, 30d, all-time).
@@ -226,18 +226,18 @@ type AgentRunQueryControllerServer interface {
 	Get(context.Context, *AgentRunId) (*AgentRun, error)
 	// List all agent runs with pagination and optional filtering.
 	List(context.Context, *ListAgentRunsRequest) (*AgentRunList, error)
-	// List all executions in a specific session.
+	// List all runs in a specific session.
 	ListBySession(context.Context, *ListAgentRunsBySessionRequest) (*AgentRunList, error)
-	// Subscribe to real-time execution updates (streaming).
+	// Subscribe to real-time run updates (streaming).
 	Subscribe(*AgentRunId, grpc.ServerStreamingServer[AgentRun]) error
-	// Get a presigned download URL for an execution artifact or attachment.
+	// Get a presigned download URL for a run artifact or attachment.
 	//
 	// Returns a time-limited URL for downloading an artifact published by
-	// an agent during execution, or an attachment submitted with the
+	// an agent during the run, or an attachment submitted with the
 	// run. The URL can be used with a simple HTTP GET request without
 	// authentication.
 	GetArtifactDownloadUrl(context.Context, *GetArtifactDownloadUrlRequest) (*GetArtifactDownloadUrlResponse, error)
-	// Read the raw content of an execution artifact.
+	// Read the raw content of a run artifact.
 	//
 	// Returns artifact bytes through the Stigmer API, eliminating CORS
 	// concerns for SDK consumers who need to read content programmatically
@@ -252,13 +252,13 @@ type AgentRunQueryControllerServer interface {
 	GetRunUsageReport(context.Context, *GetRunUsageReportInput) (*GetRunUsageReportOutput, error)
 	// Get a usage report for a session.
 	//
-	// Returns aggregated tokens, cost, and per-execution breakdown.
+	// Returns aggregated tokens, cost, and per-run breakdown.
 	GetSessionUsageReport(context.Context, *GetSessionUsageReportInput) (*GetSessionUsageReportOutput, error)
 	// Get a usage report for an agent within an organization.
 	//
 	// Returns aggregated tokens, cost, and per-session breakdown for one
-	// organization's executions of the agent. Requires can_view on the
-	// organization named in org; executions outside that organization are
+	// organization's runs of the agent. Requires can_view on the
+	// organization named in org; runs outside that organization are
 	// never included, so the report is the per-agent drill-down of
 	// getOrgUsageReport.
 	GetAgentUsageReport(context.Context, *GetAgentUsageReportInput) (*GetAgentUsageReportOutput, error)
@@ -266,7 +266,7 @@ type AgentRunQueryControllerServer interface {
 	//
 	// Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
 	GetOrgUsageReport(context.Context, *GetOrgUsageReportInput) (*GetOrgUsageReportOutput, error)
-	// Get aggregated execution statistics for an organization's agent runs.
+	// Get aggregated run statistics for an organization's agent runs.
 	//
 	// Returns counts by phase, active count, average duration, and top failing
 	// agents — scoped to a configurable time window (24h, 7d, 30d, all-time).

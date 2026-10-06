@@ -7,7 +7,7 @@ package ai.stigmer.agentic.agentrun.v1;
 
 /**
  * <pre>
- * GetArtifactContentResponse returns the raw content of an execution artifact.
+ * GetArtifactContentResponse returns the raw content of a run artifact.
  *
  * The content field contains the artifact bytes (up to max_bytes). For text
  * artifacts, clients decode via TextDecoder or equivalent. The content_type
@@ -364,7 +364,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * GetArtifactContentResponse returns the raw content of an execution artifact.
+   * GetArtifactContentResponse returns the raw content of a run artifact.
    *
    * The content field contains the artifact bytes (up to max_bytes). For text
    * artifacts, clients decode via TextDecoder or equivalent. The content_type

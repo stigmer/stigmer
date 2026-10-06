@@ -43,7 +43,7 @@
         "kind": "message",
         "messageType": "ArtifactSource"
       },
-      "description": "Provenance: which execution and task produced this artifact.",
+      "description": "Provenance: which run and task produced this artifact.",
       "required": true,
       "validation": {
         "required": true

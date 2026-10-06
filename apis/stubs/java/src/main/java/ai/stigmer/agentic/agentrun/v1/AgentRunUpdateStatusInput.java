@@ -8,7 +8,7 @@ package ai.stigmer.agentic.agentrun.v1;
 /**
  * <pre>
  * Input message for updateStatus RPC.
- * Contains only the execution ID and the status fields to be updated.
+ * Contains only the run ID and the status fields to be updated.
  * This avoids validation errors on incomplete metadata/spec fields and makes the API contract clearer.
  * </pre>
  *
@@ -110,7 +110,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Status fields to update.
-   * The handler will merge these status fields with the existing execution's status.
+   * The handler will merge these status fields with the existing run's status.
    * Only the fields present in this status object will be updated.
    * </pre>
    *
@@ -124,7 +124,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Status fields to update.
-   * The handler will merge these status fields with the existing execution's status.
+   * The handler will merge these status fields with the existing run's status.
    * Only the fields present in this status object will be updated.
    * </pre>
    *
@@ -138,7 +138,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Status fields to update.
-   * The handler will merge these status fields with the existing execution's status.
+   * The handler will merge these status fields with the existing run's status.
    * Only the fields present in this status object will be updated.
    * </pre>
    *
@@ -324,7 +324,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Input message for updateStatus RPC.
-   * Contains only the execution ID and the status fields to be updated.
+   * Contains only the run ID and the status fields to be updated.
    * This avoids validation errors on incomplete metadata/spec fields and makes the API contract clearer.
    * </pre>
    *
@@ -597,7 +597,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Status fields to update.
-     * The handler will merge these status fields with the existing execution's status.
+     * The handler will merge these status fields with the existing run's status.
      * Only the fields present in this status object will be updated.
      * </pre>
      *
@@ -610,7 +610,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Status fields to update.
-     * The handler will merge these status fields with the existing execution's status.
+     * The handler will merge these status fields with the existing run's status.
      * Only the fields present in this status object will be updated.
      * </pre>
      *
@@ -627,7 +627,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Status fields to update.
-     * The handler will merge these status fields with the existing execution's status.
+     * The handler will merge these status fields with the existing run's status.
      * Only the fields present in this status object will be updated.
      * </pre>
      *
@@ -649,7 +649,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Status fields to update.
-     * The handler will merge these status fields with the existing execution's status.
+     * The handler will merge these status fields with the existing run's status.
      * Only the fields present in this status object will be updated.
      * </pre>
      *
@@ -669,7 +669,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Status fields to update.
-     * The handler will merge these status fields with the existing execution's status.
+     * The handler will merge these status fields with the existing run's status.
      * Only the fields present in this status object will be updated.
      * </pre>
      *
@@ -696,7 +696,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Status fields to update.
-     * The handler will merge these status fields with the existing execution's status.
+     * The handler will merge these status fields with the existing run's status.
      * Only the fields present in this status object will be updated.
      * </pre>
      *
@@ -715,7 +715,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Status fields to update.
-     * The handler will merge these status fields with the existing execution's status.
+     * The handler will merge these status fields with the existing run's status.
      * Only the fields present in this status object will be updated.
      * </pre>
      *
@@ -729,7 +729,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Status fields to update.
-     * The handler will merge these status fields with the existing execution's status.
+     * The handler will merge these status fields with the existing run's status.
      * Only the fields present in this status object will be updated.
      * </pre>
      *
@@ -746,7 +746,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Status fields to update.
-     * The handler will merge these status fields with the existing execution's status.
+     * The handler will merge these status fields with the existing run's status.
      * Only the fields present in this status object will be updated.
      * </pre>
      *

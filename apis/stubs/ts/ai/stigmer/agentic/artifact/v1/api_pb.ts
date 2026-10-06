@@ -5,12 +5,12 @@
 // Package ai.stigmer.agentic.artifact.v1 contains the API definition for Artifact.
 //
 // An Artifact is a persisted blob produced during workflow or agent run.
-// It externalizes large task outputs that would otherwise bloat the execution
+// It externalizes large task outputs that would otherwise bloat the run's
 // status snapshot and Temporal workflow history.
 //
 // Artifacts are a shared, first-class resource reusable by both workflow
-// executions and agent runs. They have their own identity, lifecycle,
-// and access control — independent of the execution that produced them.
+// runs and agent runs. They have their own identity, lifecycle,
+// and access control — independent of the run that produced them.
 //
 // This package belongs to the "agentic" bounded context, which encompasses
 // all AI agent systems and workflow orchestration capabilities.
@@ -18,7 +18,7 @@
 // Key concepts:
 // - Content-addressable: blobs are stored by SHA-256 hash (deduplication)
 // - Immutable: artifact content cannot be modified after creation
-// - Lifecycle-independent: artifact retention is separate from execution retention
+// - Lifecycle-independent: artifact retention is separate from run retention
 // - Auto-promoted: the runtime transparently externalizes outputs exceeding
 //   the size threshold (default: 256KB), replacing inline data with artifact refs
 
@@ -42,7 +42,7 @@ export const file_ai_stigmer_agentic_artifact_v1_api: GenFile = /*@__PURE__*/
   fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvYXJ0aWZhY3QvdjEvYXBpLnByb3RvEh5haS5zdGlnbWVyLmFnZW50aWMuYXJ0aWZhY3QudjEipwIKCEFydGlmYWN0EjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEh0KBGtpbmQYAiABKAlCD7pIDHIKCghBcnRpZmFjdBJNCghtZXRhZGF0YRgDIAEoCzIzLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhQga6SAPIAQESOgoEc3BlYxgEIAEoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy5hcnRpZmFjdC52MS5BcnRpZmFjdFNwZWMSPgoGc3RhdHVzGAUgASgLMi4uYWkuc3RpZ21lci5hZ2VudGljLmFydGlmYWN0LnYxLkFydGlmYWN0U3RhdHVzItwBCg5BcnRpZmFjdFN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0EhQKDGNvbnRlbnRfaGFzaBgBIAEoCRISCgpzaXplX2J5dGVzGAIgASgDEksKDXN0b3JhZ2Vfc3RhdGUYAyABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMuYXJ0aWZhY3QudjEuQXJ0aWZhY3RTdG9yYWdlU3RhdGUSEgoKZXhwaXJlc19hdBgEIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_artifact_v1_enum, file_ai_stigmer_agentic_artifact_v1_spec, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate]);
 
 /**
- * Artifact represents a persisted blob produced during run.
+ * Artifact represents a persisted blob produced during a run.
  *
  * @generated from message ai.stigmer.agentic.artifact.v1.Artifact
  */

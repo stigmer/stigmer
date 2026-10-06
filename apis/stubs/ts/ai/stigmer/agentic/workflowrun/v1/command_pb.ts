@@ -30,7 +30,7 @@ export const file_ai_stigmer_agentic_workflowrun_v1_command: GenFile = /*@__PURE
  * All RPCs use custom authorization logic implemented in middleware.
  * Custom authorization is needed because:
  * - create: Must verify user has "execute" permission on the referenced Workflow
- * - update: Only the workflow runner (system) can update execution status, not users
+ * - update: Only the workflow runner (system) can update run status, not users
  *
  * Service Options:
  * - api_resource_kind: workflow_run - Links this service to the WorkflowRun resource
@@ -41,8 +41,8 @@ export const WorkflowRunCommandController: GenService<{
   /**
    * Create and trigger a new workflow run.
    *
-   * This RPC creates a WorkflowRun resource and immediately triggers it for run.
-   * The workflow run engine picks up the execution and begins processing tasks.
+   * This RPC creates a WorkflowRun resource and immediately triggers it for execution.
+   * The workflow run engine picks up the run and begins processing tasks.
    *
    * @generated from rpc ai.stigmer.agentic.workflowrun.v1.WorkflowRunCommandController.create
    */
@@ -62,7 +62,7 @@ export const WorkflowRunCommandController: GenService<{
     output: typeof WorkflowRunSchema;
   },
   /**
-   * Update execution status during workflow run.
+   * Update run status during workflow run.
    *
    * @generated from rpc ai.stigmer.agentic.workflowrun.v1.WorkflowRunCommandController.updateStatus
    */
@@ -72,7 +72,7 @@ export const WorkflowRunCommandController: GenService<{
     output: typeof WorkflowRunSchema;
   },
   /**
-   * Submit an approval decision for a child agent's tool run.
+   * Submit an approval decision for a child agent's tool execution.
    *
    * This RPC forwards the approval decision to the child AgentRun that
    * is waiting for approval. The child is identified by the child_agent_run_id
@@ -176,7 +176,7 @@ export const WorkflowRunCommandController: GenService<{
    * workflows, recreates the ExecutionContext with freshly resolved environment
    * variables, and starts a new Temporal workflow with recovery mode enabled.
    * The workflow engine reads completed task outputs from the persisted event
-   * log, skips those tasks, and resumes execution from the first incomplete or
+   * log, skips those tasks, and resumes the run from the first incomplete or
    * failed task — preserving all previously completed work.
    *
    * @generated from rpc ai.stigmer.agentic.workflowrun.v1.WorkflowRunCommandController.recover
@@ -190,7 +190,7 @@ export const WorkflowRunCommandController: GenService<{
    * Pause a running workflow run.
    *
    * Temporarily stops the workflow at its current checkpoint. Unlike cancel,
-   * the execution is NOT terminal and can be resumed later from where it left off.
+   * the run is NOT terminal and can be resumed later from where it left off.
    * The workflow gracefully checkpoints and exits, preserving all progress.
    *
    * @generated from rpc ai.stigmer.agentic.workflowrun.v1.WorkflowRunCommandController.pause
@@ -203,7 +203,7 @@ export const WorkflowRunCommandController: GenService<{
   /**
    * Resume a paused workflow run.
    *
-   * Continues execution from the checkpoint where it was paused. The workflow
+   * Continues the run from the checkpoint where it was paused. The workflow
    * re-invokes activities with the same thread_id, which loads from checkpoint
    * and continues from where it left off.
    *

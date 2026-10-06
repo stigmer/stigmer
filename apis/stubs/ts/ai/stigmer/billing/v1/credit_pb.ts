@@ -134,10 +134,10 @@ export type CreditLedgerSource = Message<"ai.stigmer.billing.v1.CreditLedgerSour
   agentId: string;
 
   /**
-   * Sequence number of the LLM call within the execution (1-based), as the
+   * Sequence number of the LLM call within the run (1-based), as the
    * reporting proxy counted it. Display and ordering; the locator of the
    * debited usage record is llm_call_id, because a proxy restart makes two
-   * calls of one execution share a sequence.
+   * calls of one run share a sequence.
    *
    * @generated from field: int32 llm_call_sequence = 4;
    */
@@ -326,9 +326,9 @@ export const CreditPackSchema: GenMessage<CreditPack> = /*@__PURE__*/
 /**
  * RunReservation tracks credits held for an active agent run.
  *
- * Created at execution start (AuthorizeRun), consumed incrementally
+ * Created at run start (AuthorizeRun), consumed incrementally
  * by per-LLM-call debits (via proxy-observed usage metering), and settled
- * at execution end (FinalizeRun) to release any unused hold.
+ * at run end (FinalizeRun) to release any unused hold.
  *
  * @generated from message ai.stigmer.billing.v1.RunReservation
  */
@@ -355,7 +355,7 @@ export type RunReservation = Message<"ai.stigmer.billing.v1.RunReservation"> & {
   runId: string;
 
   /**
-   * Total micro-USD reserved at execution start.
+   * Total micro-USD reserved at run start.
    *
    * @generated from field: int64 reserved_micros = 4;
    */

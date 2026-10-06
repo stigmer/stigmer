@@ -50,9 +50,9 @@ public interface GetArtifactDownloadUrlRequestOrBuilder extends
    *
    * Must be an artifact from the specified run. The storage_key
    * is validated to start with "artifacts/{run_id}/" to prevent
-   * access to other executions' artifacts.
+   * access to other runs' artifacts.
    *
-   * Obtain this value from RunArtifact.storage_key in the execution status.
+   * Obtain this value from RunArtifact.storage_key in the run status.
    *
    * Format: "artifacts/{run_id}/{filename}"
    * Example: "artifacts/aex_abc123xyz456/generated-skill.zip"
@@ -70,9 +70,9 @@ public interface GetArtifactDownloadUrlRequestOrBuilder extends
    *
    * Must be an artifact from the specified run. The storage_key
    * is validated to start with "artifacts/{run_id}/" to prevent
-   * access to other executions' artifacts.
+   * access to other runs' artifacts.
    *
-   * Obtain this value from RunArtifact.storage_key in the execution status.
+   * Obtain this value from RunArtifact.storage_key in the run status.
    *
    * Format: "artifacts/{run_id}/{filename}"
    * Example: "artifacts/aex_abc123xyz456/generated-skill.zip"

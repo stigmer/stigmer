@@ -153,7 +153,7 @@ private static final long serialVersionUID = 0L;
   private int failureCount_ = 0;
   /**
    * <pre>
-   * Number of failed executions in the time window.
+   * Number of failed runs in the time window.
    * </pre>
    *
    * <code>int32 failure_count = 3 [json_name = "failureCount"];</code>
@@ -697,7 +697,7 @@ private static final long serialVersionUID = 0L;
     private int failureCount_ ;
     /**
      * <pre>
-     * Number of failed executions in the time window.
+     * Number of failed runs in the time window.
      * </pre>
      *
      * <code>int32 failure_count = 3 [json_name = "failureCount"];</code>
@@ -709,7 +709,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Number of failed executions in the time window.
+     * Number of failed runs in the time window.
      * </pre>
      *
      * <code>int32 failure_count = 3 [json_name = "failureCount"];</code>
@@ -725,7 +725,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Number of failed executions in the time window.
+     * Number of failed runs in the time window.
      * </pre>
      *
      * <code>int32 failure_count = 3 [json_name = "failureCount"];</code>

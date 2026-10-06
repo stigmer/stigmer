@@ -214,7 +214,7 @@ public final class ArtifactQueryControllerGrpc {
      * retrieve a URL for downloading the content via HTTP GET.
      * Use Cases:
      * 1. Artifact Detail View:
-     *    - User clicks an artifact in the execution viewer
+     *    - User clicks an artifact in the run viewer
      *    - UI calls get() to fetch full metadata
      *    - UI displays content type, size, source task, expiration
      * 2. Artifact Reference Resolution:
@@ -223,7 +223,7 @@ public final class ArtifactQueryControllerGrpc {
      *    - UI renders a download/preview widget instead of raw JSON
      * Error Cases:
      * - NOT_FOUND: No Artifact exists with the given ID
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - PERMISSION_DENIED: User doesn't have view access to the parent run
      * </pre>
      */
     default void get(ai.stigmer.agentic.artifact.v1.ArtifactId request,
@@ -237,8 +237,8 @@ public final class ArtifactQueryControllerGrpc {
      * Returns a paginated list of artifacts filtered by either
      * workflow_run_id or agent_run_id.
      * Use Cases:
-     * 1. Execution Viewer Artifact Panel:
-     *    - User views a workflow run in the execution viewer
+     * 1. Run Viewer Artifact Panel:
+     *    - User views a workflow run in the run viewer
      *    - UI calls listByRun() to populate the artifact sidebar
      *    - Each artifact shows display name, content type, size, source task
      * 2. CLI Artifact Listing:
@@ -246,7 +246,7 @@ public final class ArtifactQueryControllerGrpc {
      *    - CLI calls listByRun() and formats as a table
      * Error Cases:
      * - INVALID_ARGUMENT: Neither workflow_run_id nor agent_run_id provided
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - PERMISSION_DENIED: User doesn't have view access to the parent run
      * </pre>
      */
     default void listByRun(ai.stigmer.agentic.artifact.v1.ListArtifactsByRunRequest request,
@@ -264,7 +264,7 @@ public final class ArtifactQueryControllerGrpc {
      * OSS: returns a direct URL to the local artifact server endpoint.
      * Use Cases:
      * 1. Download Artifact:
-     *    - User clicks "Download" in the execution viewer
+     *    - User clicks "Download" in the run viewer
      *    - UI calls getDownloadUrl() to get a URL
      *    - Browser opens the URL in a new tab or triggers a download
      * 2. Preview Artifact:
@@ -276,7 +276,7 @@ public final class ArtifactQueryControllerGrpc {
      *    - CLI calls getDownloadUrl() then fetches via HTTP GET
      * Error Cases:
      * - NOT_FOUND: No Artifact exists with the given ID
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - PERMISSION_DENIED: User doesn't have view access to the parent run
      * - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
      * </pre>
      */
@@ -344,7 +344,7 @@ public final class ArtifactQueryControllerGrpc {
      * retrieve a URL for downloading the content via HTTP GET.
      * Use Cases:
      * 1. Artifact Detail View:
-     *    - User clicks an artifact in the execution viewer
+     *    - User clicks an artifact in the run viewer
      *    - UI calls get() to fetch full metadata
      *    - UI displays content type, size, source task, expiration
      * 2. Artifact Reference Resolution:
@@ -353,7 +353,7 @@ public final class ArtifactQueryControllerGrpc {
      *    - UI renders a download/preview widget instead of raw JSON
      * Error Cases:
      * - NOT_FOUND: No Artifact exists with the given ID
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - PERMISSION_DENIED: User doesn't have view access to the parent run
      * </pre>
      */
     public void get(ai.stigmer.agentic.artifact.v1.ArtifactId request,
@@ -368,8 +368,8 @@ public final class ArtifactQueryControllerGrpc {
      * Returns a paginated list of artifacts filtered by either
      * workflow_run_id or agent_run_id.
      * Use Cases:
-     * 1. Execution Viewer Artifact Panel:
-     *    - User views a workflow run in the execution viewer
+     * 1. Run Viewer Artifact Panel:
+     *    - User views a workflow run in the run viewer
      *    - UI calls listByRun() to populate the artifact sidebar
      *    - Each artifact shows display name, content type, size, source task
      * 2. CLI Artifact Listing:
@@ -377,7 +377,7 @@ public final class ArtifactQueryControllerGrpc {
      *    - CLI calls listByRun() and formats as a table
      * Error Cases:
      * - INVALID_ARGUMENT: Neither workflow_run_id nor agent_run_id provided
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - PERMISSION_DENIED: User doesn't have view access to the parent run
      * </pre>
      */
     public void listByRun(ai.stigmer.agentic.artifact.v1.ListArtifactsByRunRequest request,
@@ -396,7 +396,7 @@ public final class ArtifactQueryControllerGrpc {
      * OSS: returns a direct URL to the local artifact server endpoint.
      * Use Cases:
      * 1. Download Artifact:
-     *    - User clicks "Download" in the execution viewer
+     *    - User clicks "Download" in the run viewer
      *    - UI calls getDownloadUrl() to get a URL
      *    - Browser opens the URL in a new tab or triggers a download
      * 2. Preview Artifact:
@@ -408,7 +408,7 @@ public final class ArtifactQueryControllerGrpc {
      *    - CLI calls getDownloadUrl() then fetches via HTTP GET
      * Error Cases:
      * - NOT_FOUND: No Artifact exists with the given ID
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - PERMISSION_DENIED: User doesn't have view access to the parent run
      * - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
      * </pre>
      */
@@ -464,7 +464,7 @@ public final class ArtifactQueryControllerGrpc {
      * retrieve a URL for downloading the content via HTTP GET.
      * Use Cases:
      * 1. Artifact Detail View:
-     *    - User clicks an artifact in the execution viewer
+     *    - User clicks an artifact in the run viewer
      *    - UI calls get() to fetch full metadata
      *    - UI displays content type, size, source task, expiration
      * 2. Artifact Reference Resolution:
@@ -473,7 +473,7 @@ public final class ArtifactQueryControllerGrpc {
      *    - UI renders a download/preview widget instead of raw JSON
      * Error Cases:
      * - NOT_FOUND: No Artifact exists with the given ID
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - PERMISSION_DENIED: User doesn't have view access to the parent run
      * </pre>
      */
     public ai.stigmer.agentic.artifact.v1.Artifact get(ai.stigmer.agentic.artifact.v1.ArtifactId request) throws io.grpc.StatusException {
@@ -487,8 +487,8 @@ public final class ArtifactQueryControllerGrpc {
      * Returns a paginated list of artifacts filtered by either
      * workflow_run_id or agent_run_id.
      * Use Cases:
-     * 1. Execution Viewer Artifact Panel:
-     *    - User views a workflow run in the execution viewer
+     * 1. Run Viewer Artifact Panel:
+     *    - User views a workflow run in the run viewer
      *    - UI calls listByRun() to populate the artifact sidebar
      *    - Each artifact shows display name, content type, size, source task
      * 2. CLI Artifact Listing:
@@ -496,7 +496,7 @@ public final class ArtifactQueryControllerGrpc {
      *    - CLI calls listByRun() and formats as a table
      * Error Cases:
      * - INVALID_ARGUMENT: Neither workflow_run_id nor agent_run_id provided
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - PERMISSION_DENIED: User doesn't have view access to the parent run
      * </pre>
      */
     public ai.stigmer.agentic.artifact.v1.ArtifactList listByRun(ai.stigmer.agentic.artifact.v1.ListArtifactsByRunRequest request) throws io.grpc.StatusException {
@@ -514,7 +514,7 @@ public final class ArtifactQueryControllerGrpc {
      * OSS: returns a direct URL to the local artifact server endpoint.
      * Use Cases:
      * 1. Download Artifact:
-     *    - User clicks "Download" in the execution viewer
+     *    - User clicks "Download" in the run viewer
      *    - UI calls getDownloadUrl() to get a URL
      *    - Browser opens the URL in a new tab or triggers a download
      * 2. Preview Artifact:
@@ -526,7 +526,7 @@ public final class ArtifactQueryControllerGrpc {
      *    - CLI calls getDownloadUrl() then fetches via HTTP GET
      * Error Cases:
      * - NOT_FOUND: No Artifact exists with the given ID
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - PERMISSION_DENIED: User doesn't have view access to the parent run
      * - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
      * </pre>
      */
@@ -580,7 +580,7 @@ public final class ArtifactQueryControllerGrpc {
      * retrieve a URL for downloading the content via HTTP GET.
      * Use Cases:
      * 1. Artifact Detail View:
-     *    - User clicks an artifact in the execution viewer
+     *    - User clicks an artifact in the run viewer
      *    - UI calls get() to fetch full metadata
      *    - UI displays content type, size, source task, expiration
      * 2. Artifact Reference Resolution:
@@ -589,7 +589,7 @@ public final class ArtifactQueryControllerGrpc {
      *    - UI renders a download/preview widget instead of raw JSON
      * Error Cases:
      * - NOT_FOUND: No Artifact exists with the given ID
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - PERMISSION_DENIED: User doesn't have view access to the parent run
      * </pre>
      */
     public ai.stigmer.agentic.artifact.v1.Artifact get(ai.stigmer.agentic.artifact.v1.ArtifactId request) {
@@ -603,8 +603,8 @@ public final class ArtifactQueryControllerGrpc {
      * Returns a paginated list of artifacts filtered by either
      * workflow_run_id or agent_run_id.
      * Use Cases:
-     * 1. Execution Viewer Artifact Panel:
-     *    - User views a workflow run in the execution viewer
+     * 1. Run Viewer Artifact Panel:
+     *    - User views a workflow run in the run viewer
      *    - UI calls listByRun() to populate the artifact sidebar
      *    - Each artifact shows display name, content type, size, source task
      * 2. CLI Artifact Listing:
@@ -612,7 +612,7 @@ public final class ArtifactQueryControllerGrpc {
      *    - CLI calls listByRun() and formats as a table
      * Error Cases:
      * - INVALID_ARGUMENT: Neither workflow_run_id nor agent_run_id provided
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - PERMISSION_DENIED: User doesn't have view access to the parent run
      * </pre>
      */
     public ai.stigmer.agentic.artifact.v1.ArtifactList listByRun(ai.stigmer.agentic.artifact.v1.ListArtifactsByRunRequest request) {
@@ -630,7 +630,7 @@ public final class ArtifactQueryControllerGrpc {
      * OSS: returns a direct URL to the local artifact server endpoint.
      * Use Cases:
      * 1. Download Artifact:
-     *    - User clicks "Download" in the execution viewer
+     *    - User clicks "Download" in the run viewer
      *    - UI calls getDownloadUrl() to get a URL
      *    - Browser opens the URL in a new tab or triggers a download
      * 2. Preview Artifact:
@@ -642,7 +642,7 @@ public final class ArtifactQueryControllerGrpc {
      *    - CLI calls getDownloadUrl() then fetches via HTTP GET
      * Error Cases:
      * - NOT_FOUND: No Artifact exists with the given ID
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - PERMISSION_DENIED: User doesn't have view access to the parent run
      * - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
      * </pre>
      */
@@ -696,7 +696,7 @@ public final class ArtifactQueryControllerGrpc {
      * retrieve a URL for downloading the content via HTTP GET.
      * Use Cases:
      * 1. Artifact Detail View:
-     *    - User clicks an artifact in the execution viewer
+     *    - User clicks an artifact in the run viewer
      *    - UI calls get() to fetch full metadata
      *    - UI displays content type, size, source task, expiration
      * 2. Artifact Reference Resolution:
@@ -705,7 +705,7 @@ public final class ArtifactQueryControllerGrpc {
      *    - UI renders a download/preview widget instead of raw JSON
      * Error Cases:
      * - NOT_FOUND: No Artifact exists with the given ID
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - PERMISSION_DENIED: User doesn't have view access to the parent run
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.artifact.v1.Artifact> get(
@@ -720,8 +720,8 @@ public final class ArtifactQueryControllerGrpc {
      * Returns a paginated list of artifacts filtered by either
      * workflow_run_id or agent_run_id.
      * Use Cases:
-     * 1. Execution Viewer Artifact Panel:
-     *    - User views a workflow run in the execution viewer
+     * 1. Run Viewer Artifact Panel:
+     *    - User views a workflow run in the run viewer
      *    - UI calls listByRun() to populate the artifact sidebar
      *    - Each artifact shows display name, content type, size, source task
      * 2. CLI Artifact Listing:
@@ -729,7 +729,7 @@ public final class ArtifactQueryControllerGrpc {
      *    - CLI calls listByRun() and formats as a table
      * Error Cases:
      * - INVALID_ARGUMENT: Neither workflow_run_id nor agent_run_id provided
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - PERMISSION_DENIED: User doesn't have view access to the parent run
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.artifact.v1.ArtifactList> listByRun(
@@ -748,7 +748,7 @@ public final class ArtifactQueryControllerGrpc {
      * OSS: returns a direct URL to the local artifact server endpoint.
      * Use Cases:
      * 1. Download Artifact:
-     *    - User clicks "Download" in the execution viewer
+     *    - User clicks "Download" in the run viewer
      *    - UI calls getDownloadUrl() to get a URL
      *    - Browser opens the URL in a new tab or triggers a download
      * 2. Preview Artifact:
@@ -760,7 +760,7 @@ public final class ArtifactQueryControllerGrpc {
      *    - CLI calls getDownloadUrl() then fetches via HTTP GET
      * Error Cases:
      * - NOT_FOUND: No Artifact exists with the given ID
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - PERMISSION_DENIED: User doesn't have view access to the parent run
      * - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
      * </pre>
      */

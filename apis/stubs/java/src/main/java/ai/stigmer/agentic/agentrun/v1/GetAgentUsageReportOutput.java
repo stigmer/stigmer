@@ -334,7 +334,7 @@ private static final long serialVersionUID = 0L;
   private int totalRuns_ = 0;
   /**
    * <pre>
-   * Total number of executions within the time range.
+   * Total number of runs within the time range.
    * </pre>
    *
    * <code>int32 total_runs = 7 [json_name = "totalRuns"];</code>
@@ -2035,7 +2035,7 @@ private static final long serialVersionUID = 0L;
     private int totalRuns_ ;
     /**
      * <pre>
-     * Total number of executions within the time range.
+     * Total number of runs within the time range.
      * </pre>
      *
      * <code>int32 total_runs = 7 [json_name = "totalRuns"];</code>
@@ -2047,7 +2047,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total number of executions within the time range.
+     * Total number of runs within the time range.
      * </pre>
      *
      * <code>int32 total_runs = 7 [json_name = "totalRuns"];</code>
@@ -2063,7 +2063,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total number of executions within the time range.
+     * Total number of runs within the time range.
      * </pre>
      *
      * <code>int32 total_runs = 7 [json_name = "totalRuns"];</code>

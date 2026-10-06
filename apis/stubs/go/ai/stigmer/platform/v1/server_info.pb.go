@@ -633,14 +633,14 @@ type isGetRunnerScopedTokenInput_Scope interface {
 }
 
 type GetRunnerScopedTokenInput_AgentRunId struct {
-	// AgentRun id — yields a token scoped to the execution's parent
+	// AgentRun id — yields a token scoped to the run's parent
 	// session, valid for every ExecutionContext in that session (multi-turn).
 	AgentRunId string `protobuf:"bytes,1,opt,name=agent_run_id,json=agentRunId,proto3,oneof"`
 }
 
 type GetRunnerScopedTokenInput_WorkflowRunId struct {
 	// WorkflowRun id — yields a token scoped to exactly that workflow
-	// execution's ExecutionContext.
+	// run's ExecutionContext.
 	WorkflowRunId string `protobuf:"bytes,2,opt,name=workflow_run_id,json=workflowRunId,proto3,oneof"`
 }
 
@@ -730,7 +730,7 @@ func (x *PoolClaim) GetSessionId() string {
 // restart (which would wipe an ephemeral sandbox's workspace).
 //
 // Deliberately empty: every mint parameter (identity, org, session /
-// workflow-execution scope) comes from the presented credential's VERIFIED
+// workflow-run scope) comes from the presented credential's VERIFIED
 // claims, never from the client, so a renewed token is claim-identical to
 // the one it replaces.
 type TokenRenewal struct {

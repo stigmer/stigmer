@@ -12,7 +12,7 @@ public interface WorkflowRunListOrBuilder extends
 
   /**
    * <pre>
-   * Not computed for this list: 1 when the response holds every execution,
+   * Not computed for this list: 1 when the response holds every run,
    * 0 when next_page_token is set. Follow next_page_token instead.
    * </pre>
    *
@@ -72,8 +72,8 @@ public interface WorkflowRunListOrBuilder extends
 
   /**
    * <pre>
-   * Set when more executions may follow: pass it as page_token to
-   * continue. A page may hold fewer executions than page_size, even none,
+   * Set when more runs may follow: pass it as page_token to
+   * continue. A page may hold fewer runs than page_size, even none,
    * and still carry a token. Empty when the list is complete, and always
    * empty under a sort field other than the default.
    * </pre>
@@ -84,8 +84,8 @@ public interface WorkflowRunListOrBuilder extends
   java.lang.String getNextPageToken();
   /**
    * <pre>
-   * Set when more executions may follow: pass it as page_token to
-   * continue. A page may hold fewer executions than page_size, even none,
+   * Set when more runs may follow: pass it as page_token to
+   * continue. A page may hold fewer runs than page_size, even none,
    * and still carry a token. Empty when the list is complete, and always
    * empty under a sort field other than the default.
    * </pre>

@@ -304,7 +304,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object sessionId_ = "";
   /**
    * <pre>
-   * Session the execution belongs to (conversation continuity + audit).
+   * Session the run belongs to (conversation continuity + audit).
    * </pre>
    *
    * <code>string session_id = 5 [json_name = "sessionId"];</code>
@@ -325,7 +325,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Session the execution belongs to (conversation continuity + audit).
+   * Session the run belongs to (conversation continuity + audit).
    * </pre>
    *
    * <code>string session_id = 5 [json_name = "sessionId"];</code>
@@ -2115,7 +2115,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object sessionId_ = "";
     /**
      * <pre>
-     * Session the execution belongs to (conversation continuity + audit).
+     * Session the run belongs to (conversation continuity + audit).
      * </pre>
      *
      * <code>string session_id = 5 [json_name = "sessionId"];</code>
@@ -2135,7 +2135,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Session the execution belongs to (conversation continuity + audit).
+     * Session the run belongs to (conversation continuity + audit).
      * </pre>
      *
      * <code>string session_id = 5 [json_name = "sessionId"];</code>
@@ -2156,7 +2156,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Session the execution belongs to (conversation continuity + audit).
+     * Session the run belongs to (conversation continuity + audit).
      * </pre>
      *
      * <code>string session_id = 5 [json_name = "sessionId"];</code>
@@ -2173,7 +2173,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Session the execution belongs to (conversation continuity + audit).
+     * Session the run belongs to (conversation continuity + audit).
      * </pre>
      *
      * <code>string session_id = 5 [json_name = "sessionId"];</code>
@@ -2187,7 +2187,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Session the execution belongs to (conversation continuity + audit).
+     * Session the run belongs to (conversation continuity + audit).
      * </pre>
      *
      * <code>string session_id = 5 [json_name = "sessionId"];</code>

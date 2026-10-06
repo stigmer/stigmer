@@ -62,15 +62,15 @@ type BillingQueryControllerClient interface {
 	// Operator surface: exposes raw provider rates (pre-markup) and revision
 	// provenance, so it is platform-gated like the governance view.
 	ListModelPricingBaselines(ctx context.Context, in *ListModelPricingBaselinesInput, opts ...grpc.CallOption) (*ModelPricingBaselinesResponse, error)
-	// Preview whether an organization can fund an execution, without writing
+	// Preview whether an organization can fund a run, without writing
 	// a reservation. The read-only twin of BillingCommandController's
 	// authorizeRun: both ride the same server-side affordability
 	// predicate (start threshold, negative allowance, default cap), so a
 	// synchronous preflight refusal and the authoritative reservation can
 	// never drift.
 	PreviewAuthorization(ctx context.Context, in *PreviewAuthorizationInput, opts ...grpc.CallOption) (*PreviewAuthorizationResponse, error)
-	// Retrieve the current billing control signal for a running execution
-	// (continue / low-balance warning / stop), derived from the execution's
+	// Retrieve the current billing control signal for a run in progress
+	// (continue / low-balance warning / stop), derived from the run's
 	// reservation headroom and the billing account's status.
 	GetRunBillingSignal(ctx context.Context, in *GetRunBillingSignalInput, opts ...grpc.CallOption) (*GetRunBillingSignalResponse, error)
 }
@@ -205,15 +205,15 @@ type BillingQueryControllerServer interface {
 	// Operator surface: exposes raw provider rates (pre-markup) and revision
 	// provenance, so it is platform-gated like the governance view.
 	ListModelPricingBaselines(context.Context, *ListModelPricingBaselinesInput) (*ModelPricingBaselinesResponse, error)
-	// Preview whether an organization can fund an execution, without writing
+	// Preview whether an organization can fund a run, without writing
 	// a reservation. The read-only twin of BillingCommandController's
 	// authorizeRun: both ride the same server-side affordability
 	// predicate (start threshold, negative allowance, default cap), so a
 	// synchronous preflight refusal and the authoritative reservation can
 	// never drift.
 	PreviewAuthorization(context.Context, *PreviewAuthorizationInput) (*PreviewAuthorizationResponse, error)
-	// Retrieve the current billing control signal for a running execution
-	// (continue / low-balance warning / stop), derived from the execution's
+	// Retrieve the current billing control signal for a run in progress
+	// (continue / low-balance warning / stop), derived from the run's
 	// reservation headroom and the billing account's status.
 	GetRunBillingSignal(context.Context, *GetRunBillingSignalInput) (*GetRunBillingSignalResponse, error)
 }

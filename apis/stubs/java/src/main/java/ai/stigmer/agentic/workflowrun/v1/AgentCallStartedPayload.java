@@ -61,7 +61,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the child AgentRun (format: "aex_{ulid}").
-   * Use this to subscribe to the agent's execution stream for full detail.
+   * Use this to subscribe to the agent's run stream for full detail.
    * </pre>
    *
    * <code>string child_run_id = 1 [json_name = "childRunId"];</code>
@@ -83,7 +83,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ID of the child AgentRun (format: "aex_{ulid}").
-   * Use this to subscribe to the agent's execution stream for full detail.
+   * Use this to subscribe to the agent's run stream for full detail.
    * </pre>
    *
    * <code>string child_run_id = 1 [json_name = "childRunId"];</code>
@@ -550,7 +550,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the child AgentRun (format: "aex_{ulid}").
-     * Use this to subscribe to the agent's execution stream for full detail.
+     * Use this to subscribe to the agent's run stream for full detail.
      * </pre>
      *
      * <code>string child_run_id = 1 [json_name = "childRunId"];</code>
@@ -571,7 +571,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the child AgentRun (format: "aex_{ulid}").
-     * Use this to subscribe to the agent's execution stream for full detail.
+     * Use this to subscribe to the agent's run stream for full detail.
      * </pre>
      *
      * <code>string child_run_id = 1 [json_name = "childRunId"];</code>
@@ -593,7 +593,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the child AgentRun (format: "aex_{ulid}").
-     * Use this to subscribe to the agent's execution stream for full detail.
+     * Use this to subscribe to the agent's run stream for full detail.
      * </pre>
      *
      * <code>string child_run_id = 1 [json_name = "childRunId"];</code>
@@ -611,7 +611,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the child AgentRun (format: "aex_{ulid}").
-     * Use this to subscribe to the agent's execution stream for full detail.
+     * Use this to subscribe to the agent's run stream for full detail.
      * </pre>
      *
      * <code>string child_run_id = 1 [json_name = "childRunId"];</code>
@@ -626,7 +626,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * ID of the child AgentRun (format: "aex_{ulid}").
-     * Use this to subscribe to the agent's execution stream for full detail.
+     * Use this to subscribe to the agent's run stream for full detail.
      * </pre>
      *
      * <code>string child_run_id = 1 [json_name = "childRunId"];</code>

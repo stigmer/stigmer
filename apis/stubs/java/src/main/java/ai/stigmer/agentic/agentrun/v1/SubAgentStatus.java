@@ -23,7 +23,7 @@ package ai.stigmer.agentic.agentrun.v1;
  * Terminal States:
  * - SUB_AGENT_COMPLETED: Sub-agent finished successfully
  * - SUB_AGENT_FAILED: Sub-agent encountered an error
- * - SUB_AGENT_CANCELLED: Parent execution was cancelled while sub-agent was active
+ * - SUB_AGENT_CANCELLED: Parent run was cancelled while sub-agent was active
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentrun.v1.SubAgentStatus}
@@ -73,15 +73,15 @@ public enum SubAgentStatus
   SUB_AGENT_FAILED(4),
   /**
    * <pre>
-   * Parent execution was cancelled while this sub-agent was active.
+   * Parent run was cancelled while this sub-agent was active.
    *
-   * When a parent execution is cancelled (via user action or system timeout),
+   * When a parent run is cancelled (via user action or system timeout),
    * all active sub-agents transition to this terminal state. This prevents
    * sub-agents from remaining in IN_PROGRESS indefinitely in persisted status.
    *
    * When this status is reached:
    * - completed_at timestamp is set
-   * - error field contains: "Cancelled: parent execution was cancelled"
+   * - error field contains: "Cancelled: parent run was cancelled"
    * </pre>
    *
    * <code>SUB_AGENT_CANCELLED = 5;</code>
@@ -141,15 +141,15 @@ public enum SubAgentStatus
   public static final int SUB_AGENT_FAILED_VALUE = 4;
   /**
    * <pre>
-   * Parent execution was cancelled while this sub-agent was active.
+   * Parent run was cancelled while this sub-agent was active.
    *
-   * When a parent execution is cancelled (via user action or system timeout),
+   * When a parent run is cancelled (via user action or system timeout),
    * all active sub-agents transition to this terminal state. This prevents
    * sub-agents from remaining in IN_PROGRESS indefinitely in persisted status.
    *
    * When this status is reached:
    * - completed_at timestamp is set
-   * - error field contains: "Cancelled: parent execution was cancelled"
+   * - error field contains: "Cancelled: parent run was cancelled"
    * </pre>
    *
    * <code>SUB_AGENT_CANCELLED = 5;</code>

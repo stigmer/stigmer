@@ -59,7 +59,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object runId_ = "";
   /**
    * <pre>
-   * Execution ID to subscribe to.
+   * Run ID to subscribe to.
    * </pre>
    *
    * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
@@ -80,7 +80,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Execution ID to subscribe to.
+   * Run ID to subscribe to.
    * </pre>
    *
    * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
@@ -577,7 +577,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object runId_ = "";
     /**
      * <pre>
-     * Execution ID to subscribe to.
+     * Run ID to subscribe to.
      * </pre>
      *
      * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
@@ -597,7 +597,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution ID to subscribe to.
+     * Run ID to subscribe to.
      * </pre>
      *
      * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
@@ -618,7 +618,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution ID to subscribe to.
+     * Run ID to subscribe to.
      * </pre>
      *
      * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
@@ -635,7 +635,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution ID to subscribe to.
+     * Run ID to subscribe to.
      * </pre>
      *
      * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
@@ -649,7 +649,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution ID to subscribe to.
+     * Run ID to subscribe to.
      * </pre>
      *
      * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>

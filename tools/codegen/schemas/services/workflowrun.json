@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowrun.v1.WorkflowRun",
           "outputType": "WorkflowRun",
           "outputFullType": "ai.stigmer.agentic.workflowrun.v1.WorkflowRun",
-          "description": "Create and trigger a new workflow run.\n\n This RPC creates a WorkflowRun resource and immediately triggers it for run.\n The workflow run engine picks up the execution and begins processing tasks."
+          "description": "Create and trigger a new workflow run.\n\n This RPC creates a WorkflowRun resource and immediately triggers it for execution.\n The workflow run engine picks up the run and begins processing tasks."
         },
         {
           "name": "Update",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowrun.v1.WorkflowRunUpdateStatusInput",
           "outputType": "WorkflowRun",
           "outputFullType": "ai.stigmer.agentic.workflowrun.v1.WorkflowRun",
-          "description": "Update execution status during workflow run."
+          "description": "Update run status during workflow run."
         },
         {
           "name": "SubmitApproval",
@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowrun.v1.SubmitWorkflowApprovalInput",
           "outputType": "WorkflowRun",
           "outputFullType": "ai.stigmer.agentic.workflowrun.v1.WorkflowRun",
-          "description": "Submit an approval decision for a child agent's tool run.\n\n This RPC forwards the approval decision to the child AgentRun that\n is waiting for approval. The child is identified by the child_agent_run_id\n in status.pending_approval.\n\n When a workflow invokes an agent that requires tool approval, the approval\n request surfaces at the workflow level via status.pending_approval. Users can\n submit their decision through this RPC, which forwards it to the child agent."
+          "description": "Submit an approval decision for a child agent's tool execution.\n\n This RPC forwards the approval decision to the child AgentRun that\n is waiting for approval. The child is identified by the child_agent_run_id\n in status.pending_approval.\n\n When a workflow invokes an agent that requires tool approval, the approval\n request surfaces at the workflow level via status.pending_approval. Users can\n submit their decision through this RPC, which forwards it to the child agent."
         },
         {
           "name": "SubmitFileDecision",
@@ -94,7 +94,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowrun.v1.RecoverWorkflowRunInput",
           "outputType": "WorkflowRun",
           "outputFullType": "ai.stigmer.agentic.workflowrun.v1.WorkflowRun",
-          "description": "Recover a failed workflow run.\n\n Terminates the existing (possibly stuck) Temporal orchestrator and child\n workflows, recreates the ExecutionContext with freshly resolved environment\n variables, and starts a new Temporal workflow with recovery mode enabled.\n The workflow engine reads completed task outputs from the persisted event\n log, skips those tasks, and resumes execution from the first incomplete or\n failed task — preserving all previously completed work."
+          "description": "Recover a failed workflow run.\n\n Terminates the existing (possibly stuck) Temporal orchestrator and child\n workflows, recreates the ExecutionContext with freshly resolved environment\n variables, and starts a new Temporal workflow with recovery mode enabled.\n The workflow engine reads completed task outputs from the persisted event\n log, skips those tasks, and resumes the run from the first incomplete or\n failed task — preserving all previously completed work."
         },
         {
           "name": "Pause",
@@ -102,7 +102,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowrun.v1.PauseWorkflowRunInput",
           "outputType": "WorkflowRun",
           "outputFullType": "ai.stigmer.agentic.workflowrun.v1.WorkflowRun",
-          "description": "Pause a running workflow run.\n\n Temporarily stops the workflow at its current checkpoint. Unlike cancel,\n the execution is NOT terminal and can be resumed later from where it left off.\n The workflow gracefully checkpoints and exits, preserving all progress."
+          "description": "Pause a running workflow run.\n\n Temporarily stops the workflow at its current checkpoint. Unlike cancel,\n the run is NOT terminal and can be resumed later from where it left off.\n The workflow gracefully checkpoints and exits, preserving all progress."
         },
         {
           "name": "Resume",
@@ -110,7 +110,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowrun.v1.ResumeWorkflowRunInput",
           "outputType": "WorkflowRun",
           "outputFullType": "ai.stigmer.agentic.workflowrun.v1.WorkflowRun",
-          "description": "Resume a paused workflow run.\n\n Continues execution from the checkpoint where it was paused. The workflow\n re-invokes activities with the same thread_id, which loads from checkpoint\n and continues from where it left off."
+          "description": "Resume a paused workflow run.\n\n Continues the run from the checkpoint where it was paused. The workflow\n re-invokes activities with the same thread_id, which loads from checkpoint\n and continues from where it left off."
         }
       ]
     },
@@ -125,7 +125,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowrun.v1.WorkflowRunId",
           "outputType": "WorkflowRun",
           "outputFullType": "ai.stigmer.agentic.workflowrun.v1.WorkflowRun",
-          "description": "Get a single workflow run by ID.\n\n Retrieves the complete WorkflowRun resource including:\n - spec: User inputs (workflow_id, trigger_message, etc.)\n - status: Current execution state (phase, tasks, progress_events, output/error)\n - metadata: Resource identification (id, name, labels, tags)"
+          "description": "Get a single workflow run by ID.\n\n Retrieves the complete WorkflowRun resource including:\n - spec: User inputs (workflow_id, trigger_message, etc.)\n - status: Current run state (phase, tasks, progress_events, output/error)\n - metadata: Resource identification (id, name, labels, tags)"
         },
         {
           "name": "List",
@@ -141,7 +141,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowrun.v1.ListWorkflowRunsByWorkflowRequest",
           "outputType": "WorkflowRunList",
           "outputFullType": "ai.stigmer.agentic.workflowrun.v1.WorkflowRunList",
-          "description": "List all executions for a specific Workflow.\n\n Returns executions filtered by a specific Workflow ID.\n This is useful for viewing execution history of a particular workflow."
+          "description": "List all runs for a specific Workflow.\n\n Returns runs filtered by a specific Workflow ID.\n This is useful for viewing the run history of a particular workflow."
         },
         {
           "name": "Subscribe",
@@ -150,7 +150,7 @@
           "outputType": "WorkflowRun",
           "outputFullType": "ai.stigmer.agentic.workflowrun.v1.WorkflowRun",
           "serverStreaming": true,
-          "description": "Subscribe to real-time updates for a specific workflow run (server streaming).\n\n Opens a bidirectional stream that pushes WorkflowRun updates as they occur.\n Client receives updates when:\n - Execution phase changes (PENDING → IN_PROGRESS → COMPLETED)\n - Tasks start or complete\n - Progress events are appended\n - Output or error fields are set"
+          "description": "Subscribe to real-time updates for a specific workflow run (server streaming).\n\n Opens a bidirectional stream that pushes WorkflowRun updates as they occur.\n Client receives updates when:\n - Run phase changes (PENDING → IN_PROGRESS → COMPLETED)\n - Tasks start or complete\n - Progress events are appended\n - Output or error fields are set"
         },
         {
           "name": "GetEventLog",
@@ -158,7 +158,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowrun.v1.GetEventLogRequest",
           "outputType": "GetEventLogResponse",
           "outputFullType": "ai.stigmer.agentic.workflowrun.v1.GetEventLogResponse",
-          "description": "Fetch the paginated event log for a workflow run.\n\n Returns execution events ordered by sequence_number ascending, with\n cursor-based pagination and optional filtering by event type or task name."
+          "description": "Fetch the paginated event log for a workflow run.\n\n Returns run events ordered by sequence_number ascending, with\n cursor-based pagination and optional filtering by event type or task name."
         },
         {
           "name": "SubscribeEvents",
@@ -167,7 +167,7 @@
           "outputType": "WorkflowRunEvent",
           "outputFullType": "ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent",
           "serverStreaming": true,
-          "description": "Subscribe to real-time execution events (incremental event stream).\n\n Opens a server-side streaming RPC that pushes individual\n WorkflowRunEvent messages as they occur during run.\n Unlike subscribe() which streams full WorkflowRun snapshots,\n this streams lightweight incremental events for the timeline view."
+          "description": "Subscribe to real-time run events (incremental event stream).\n\n Opens a server-side streaming RPC that pushes individual\n WorkflowRunEvent messages as they occur during the run.\n Unlike subscribe() which streams full WorkflowRun snapshots,\n this streams lightweight incremental events for the timeline view."
         },
         {
           "name": "GetRunSummary",
@@ -175,7 +175,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowrun.v1.GetRunSummaryRequest",
           "outputType": "RunSummary",
           "outputFullType": "ai.stigmer.agentic.workflowrun.v1.RunSummary",
-          "description": "Get aggregated execution statistics for an organization's workflows.\n\n Returns counts by phase, total cost, average duration, top failing\n workflows, and per-workflow cost breakdown — scoped to a configurable\n time window (24h, 7d, 30d, all-time)."
+          "description": "Get aggregated run statistics for an organization's workflows.\n\n Returns counts by phase, total cost, average duration, top failing\n workflows, and per-workflow cost breakdown — scoped to a configurable\n time window (24h, 7d, 30d, all-time)."
         },
         {
           "name": "ListPendingApprovals",
@@ -183,7 +183,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowrun.v1.ListPendingApprovalsRequest",
           "outputType": "PendingApprovalsList",
           "outputFullType": "ai.stigmer.agentic.workflowrun.v1.PendingApprovalsList",
-          "description": "List workflow runs with pending human_input tasks awaiting reviewer decisions.\n\n Returns a paginated list of executions where at least one human_input\n task is actively waiting for a response. Each entry includes the\n execution context, task details, requester, and timeout information."
+          "description": "List workflow runs with pending human_input tasks awaiting reviewer decisions.\n\n Returns a paginated list of runs where at least one human_input\n task is actively waiting for a response. Each entry includes the\n execution context, task details, requester, and timeout information."
         }
       ]
     }
@@ -216,7 +216,7 @@
             "kind": "message",
             "messageType": "WorkflowRunStatus"
           },
-          "description": "Status fields to merge into the existing execution status.",
+          "description": "Status fields to merge into the existing run status.",
           "required": true,
           "validation": {
             "required": true
@@ -233,7 +233,7 @@
               "messageType": "WorkflowRunEvent"
             }
           },
-          "description": "Execution events to append to the event log alongside this status update.",
+          "description": "Run events to append to the event log alongside this status update.",
           "required": false
         },
         {
@@ -644,7 +644,7 @@
     },
     {
       "name": "RecoverWorkflowRunInput",
-      "description": "RecoverWorkflowRunInput requests recovery of a failed workflow run.\n\n Recovery preserves completed work: tasks that succeeded in the failed run are\n skipped (their outputs restored into workflow context), and execution resumes\n from the first incomplete or failed task.",
+      "description": "RecoverWorkflowRunInput requests recovery of a failed workflow run.\n\n Recovery preserves completed work: tasks that succeeded in the failed run are\n skipped (their outputs restored into workflow context), and run resumes\n from the first incomplete or failed task.",
       "protoType": "ai.stigmer.agentic.workflowrun.v1.RecoverWorkflowRunInput",
       "protoFile": "apis/ai/stigmer/agentic/workflowrun/v1/io.proto",
       "fields": [
@@ -738,7 +738,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "The most executions to return, at most 100; zero returns them all.",
+          "description": "The most runs to return, at most 100; zero returns them all.",
           "required": false
         },
         {
@@ -768,7 +768,7 @@
               "RUN_PAUSED"
             ]
           },
-          "description": "Filter by execution phase.",
+          "description": "Filter by run phase.",
           "required": false
         },
         {
@@ -829,7 +829,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization slug to scope the results to.\n\n When set, only executions whose metadata.org matches are returned — the\n org-context view a console tab needs. When empty, results are bounded\n only by the caller's view permissions, which for a member of several\n organizations spans all of them.",
+          "description": "Organization slug to scope the results to.\n\n When set, only runs whose metadata.org matches are returned — the\n org-context view a console tab needs. When empty, results are bounded\n only by the caller's view permissions, which for a member of several\n organizations spans all of them.",
           "required": false
         }
       ]
@@ -847,7 +847,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "Not computed for this list: 1 when the response holds every execution,\n 0 when next_page_token is set. Follow next_page_token instead.",
+          "description": "Not computed for this list: 1 when the response holds every run,\n 0 when next_page_token is set. Follow next_page_token instead.",
           "required": false
         },
         {
@@ -871,14 +871,14 @@
           "type": {
             "kind": "string"
           },
-          "description": "Set when more executions may follow: pass it as page_token to\n continue. A page may hold fewer executions than page_size, even none,\n and still carry a token. Empty when the list is complete, and always\n empty under a sort field other than the default.",
+          "description": "Set when more runs may follow: pass it as page_token to\n continue. A page may hold fewer runs than page_size, even none,\n and still carry a token. Empty when the list is complete, and always\n empty under a sort field other than the default.",
           "required": false
         }
       ]
     },
     {
       "name": "ListWorkflowRunsByWorkflowRequest",
-      "description": "ListWorkflowRunsByWorkflowRequest lists executions for a specific workflow.",
+      "description": "ListWorkflowRunsByWorkflowRequest lists runs for a specific workflow.",
       "protoType": "ai.stigmer.agentic.workflowrun.v1.ListWorkflowRunsByWorkflowRequest",
       "protoFile": "apis/ai/stigmer/agentic/workflowrun/v1/io.proto",
       "fields": [
@@ -902,7 +902,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "The most executions to return, at most 100; zero returns them all.",
+          "description": "The most runs to return, at most 100; zero returns them all.",
           "required": false
         },
         {
@@ -957,7 +957,7 @@
     },
     {
       "name": "SubscribeWorkflowRunRequest",
-      "description": "SubscribeWorkflowRunRequest subscribes to real-time execution updates.",
+      "description": "SubscribeWorkflowRunRequest subscribes to real-time run updates.",
       "protoType": "ai.stigmer.agentic.workflowrun.v1.SubscribeWorkflowRunRequest",
       "protoFile": "apis/ai/stigmer/agentic/workflowrun/v1/io.proto",
       "fields": [
@@ -968,7 +968,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Execution ID to subscribe to.",
+          "description": "Run ID to subscribe to.",
           "required": true,
           "validation": {
             "required": true
@@ -989,7 +989,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Execution ID to fetch events for.",
+          "description": "Run ID to fetch events for.",
           "required": false,
           "validation": {
             "minLength": 1
@@ -1066,7 +1066,7 @@
     },
     {
       "name": "GetEventLogResponse",
-      "description": "GetEventLogResponse contains a page of execution events.",
+      "description": "GetEventLogResponse contains a page of run events.",
       "protoType": "ai.stigmer.agentic.workflowrun.v1.GetEventLogResponse",
       "protoFile": "apis/ai/stigmer/agentic/workflowrun/v1/io.proto",
       "fields": [
@@ -1091,7 +1091,7 @@
           "type": {
             "kind": "bool"
           },
-          "description": "Whether more events exist after the last event in this response.\n When false, the client has reached the end of the current event log.\n For in-progress executions, more events may appear later.",
+          "description": "Whether more events exist after the last event in this response.\n When false, the client has reached the end of the current event log.\n For in-progress runs, more events may appear later.",
           "required": false
         },
         {
@@ -1119,7 +1119,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Execution ID to subscribe to.",
+          "description": "Run ID to subscribe to.",
           "required": false,
           "validation": {
             "minLength": 1
@@ -1176,7 +1176,7 @@
     },
     {
       "name": "WorkflowRunEvent",
-      "description": "WorkflowRunEvent represents a single timestamped event in the execution\n timeline of a workflow run.",
+      "description": "WorkflowRunEvent represents a single timestamped event in the run\n timeline of a workflow run.",
       "protoType": "ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent",
       "protoFile": "apis/ai/stigmer/agentic/workflowrun/v1/event.proto",
       "fields": [
@@ -1516,7 +1516,7 @@
     },
     {
       "name": "GetRunSummaryRequest",
-      "description": "GetRunSummaryRequest fetches aggregated execution statistics for an organization,\n optionally scoped to a single workflow.",
+      "description": "GetRunSummaryRequest fetches aggregated run statistics for an organization,\n optionally scoped to a single workflow.",
       "protoType": "ai.stigmer.agentic.workflowrun.v1.GetRunSummaryRequest",
       "protoFile": "apis/ai/stigmer/agentic/workflowrun/v1/io.proto",
       "fields": [
@@ -1557,7 +1557,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "When set, scopes the summary to executions of this workflow only.\n When empty, aggregates across all workflows in the organization.",
+          "description": "When set, scopes the summary to runs of this workflow only.\n When empty, aggregates across all workflows in the organization.",
           "required": false
         }
       ]
@@ -1575,7 +1575,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "Number of executions currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED).",
+          "description": "Number of runs currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED).",
           "required": false
         },
         {
@@ -1591,7 +1591,7 @@
               "kind": "int32"
             }
           },
-          "description": "Execution counts broken down by phase.\n\n Keys are RunPhase enum values (as int32).\n Only phases with at least one execution are included.",
+          "description": "Run counts broken down by phase.\n\n Keys are RunPhase enum values (as int32).\n Only phases with at least one run are included.",
           "required": false
         },
         {
@@ -1602,7 +1602,7 @@
             "kind": "message",
             "messageType": "WorkflowCostSummary"
           },
-          "description": "Aggregate cost across all executions in the time window.",
+          "description": "Aggregate cost across all runs in the time window.",
           "required": false
         },
         {
@@ -1613,7 +1613,7 @@
             "kind": "message",
             "messageType": "Duration"
           },
-          "description": "Mean execution duration (from started_at to completed_at) for completed runs.\n\n Zero when no completed executions exist in the window.",
+          "description": "Mean run duration (from started_at to completed_at) for completed runs.\n\n Zero when no completed runs exist in the window.",
           "required": false
         },
         {
@@ -1651,7 +1651,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "Total number of executions in the time window (sum of all phase_counts values).",
+          "description": "Total number of runs in the time window (sum of all phase_counts values).",
           "required": false
         },
         {
@@ -1661,7 +1661,7 @@
           "type": {
             "kind": "double"
           },
-          "description": "Success rate as a ratio (0.0 to 1.0).\n Computed as completed / (completed + failed). Returns -1.0 when no\n completed or failed executions exist in the time window.",
+          "description": "Success rate as a ratio (0.0 to 1.0).\n Computed as completed / (completed + failed). Returns -1.0 when no\n completed or failed runs exist in the time window.",
           "required": false
         }
       ]
@@ -1724,7 +1724,7 @@
               "messageType": "PendingApproval"
             }
           },
-          "description": "Pending approvals in this page: the newest execution's first, and an\n execution's waiting tasks in their order.",
+          "description": "Pending approvals in this page: the newest run's first, and an\n run's waiting tasks in their order.",
           "required": false
         },
         {
@@ -1753,28 +1753,28 @@
   "enumTypes": [
     {
       "name": "ApprovalAction",
-      "description": "ApprovalAction represents the user's decision on an approval request.\n\n ## Action Semantics\n\n - APPROVE: Execute the tool normally, continue execution\n - SKIP: Return a neutral \"skipped by user\" message to the LLM, continue execution\n - REJECT: Deny the tool and feed the user's reasoned objection back to the LLM,\n   continue run. REJECT denies a single tool call — it does NOT fail the\n   run. To stop the whole execution, use Cancel or Terminate.\n\n ## SKIP vs REJECT\n\n Both continue the execution without running the tool; they differ only in the\n signal fed to the model. SKIP is neutral (\"skip this one, move on\"); REJECT\n carries the user's objection (\"I'm denying this, and here's why\") so the model\n factors that reasoning into what it does next. Neither is a failure.\n\n ## LLM Behavior on Skip/Reject\n\n When a tool is skipped, the LLM receives a message like:\n \"Tool 'delete_repository' was skipped by user. Please proceed without this operation.\"\n When a tool is rejected, the LLM receives the user's objection instead. Either\n way the LLM adapts its plan while preserving execution continuity.\n\n ## Usage\n\n Used in:\n - ToolCall.approval_action: Records the decision made\n - SubmitApprovalInput.action: User's submitted decision",
+      "description": "ApprovalAction represents the user's decision on an approval request.\n\n ## Action Semantics\n\n - APPROVE: Execute the tool normally, continue the run\n - SKIP: Return a neutral \"skipped by user\" message to the LLM, continue the run\n - REJECT: Deny the tool and feed the user's reasoned objection back to the LLM,\n   continue the run. REJECT denies a single tool call — it does NOT fail the\n   run. To stop the whole run, use Cancel or Terminate.\n\n ## SKIP vs REJECT\n\n Both continue the run without running the tool; they differ only in the\n signal fed to the model. SKIP is neutral (\"skip this one, move on\"); REJECT\n carries the user's objection (\"I'm denying this, and here's why\") so the model\n factors that reasoning into what it does next. Neither is a failure.\n\n ## LLM Behavior on Skip/Reject\n\n When a tool is skipped, the LLM receives a message like:\n \"Tool 'delete_repository' was skipped by user. Please proceed without this operation.\"\n When a tool is rejected, the LLM receives the user's objection instead. Either\n way the LLM adapts its plan while preserving run continuity.\n\n ## Usage\n\n Used in:\n - ToolCall.approval_action: Records the decision made\n - SubmitApprovalInput.action: User's submitted decision",
       "protoType": "ai.stigmer.agentic.agentrun.v1.ApprovalAction",
       "values": [
         {
           "name": "APPROVAL_ACTION_APPROVE",
           "number": 1,
-          "description": "Execute the tool normally.\n Tool transitions from WAITING_APPROVAL to RUNNING, then executes.\n Execution phase returns to IN_PROGRESS."
+          "description": "Execute the tool normally.\n Tool transitions from WAITING_APPROVAL to RUNNING, then executes.\n Run phase returns to IN_PROGRESS."
         },
         {
           "name": "APPROVAL_ACTION_SKIP",
           "number": 2,
-          "description": "Skip tool execution, continue without it.\n Tool transitions to SKIPPED status.\n LLM receives: \"Tool '{name}' was skipped by user. Please proceed without this operation.\"\n Execution continues - this is NOT a failure."
+          "description": "Skip tool execution, continue without it.\n Tool transitions to SKIPPED status.\n LLM receives: \"Tool '{name}' was skipped by user. Please proceed without this operation.\"\n Run continues - this is NOT a failure."
         },
         {
           "name": "APPROVAL_ACTION_REJECT",
           "number": 3,
-          "description": "Deny this tool call and continue the run.\n\n The tool is NOT executed. The user's objection (the submitted comment) is\n fed back to the model as the tool result, so the model adapts its plan with\n that reasoning in mind. The tool call transitions to TOOL_CALL_SKIPPED with\n approval_action=REJECT recorded (and a REJECTED approval-event authored), and\n the execution phase returns to RUN_IN_PROGRESS and continues to\n RUN_COMPLETED.\n\n REJECT denies a SINGLE tool call — it does NOT fail the run. This mirrors how\n interactive agent tools (Cursor, Cline, Claude Code) treat a denied tool: the\n agent is told and continues, rather than the whole session dying. To stop the\n entire execution, use Cancel (RUN_CANCELLED, graceful user stop) or\n Terminate (RUN_TERMINATED, platform stop) — the dedicated hard-stop\n verbs. The distinction from SKIP is the strength of the signal, not the\n outcome: SKIP is a neutral skip, REJECT carries the user's reasoned denial."
+          "description": "Deny this tool call and continue the run.\n\n The tool is NOT executed. The user's objection (the submitted comment) is\n fed back to the model as the tool result, so the model adapts its plan with\n that reasoning in mind. The tool call transitions to TOOL_CALL_SKIPPED with\n approval_action=REJECT recorded (and a REJECTED approval-event authored), and\n the run phase returns to RUN_IN_PROGRESS and continues to\n RUN_COMPLETED.\n\n REJECT denies a SINGLE tool call — it does NOT fail the run. This mirrors how\n interactive agent tools (Cursor, Cline, Claude Code) treat a denied tool: the\n agent is told and continues, rather than the whole session dying. To stop the\n entire run, use Cancel (RUN_CANCELLED, graceful user stop) or\n Terminate (RUN_TERMINATED, platform stop) — the dedicated hard-stop\n verbs. The distinction from SKIP is the strength of the signal, not the\n outcome: SKIP is a neutral skip, REJECT carries the user's reasoned denial."
         },
         {
           "name": "APPROVAL_ACTION_APPROVE_ALL",
           "number": 4,
-          "description": "Approve this tool call AND grant a run-lifetime lease that auto-approves\n every subsequent tool call of the SAME class for the rest of this execution\n (\"approve all of this kind, don't ask again\").\n\n This is the gate-time, scoped analog of AgentRunSpec.auto_approve_all:\n it lets a human escalate from per-call approval to \"trust this whole class\"\n at the moment of friction, without pre-arming a global bypass. The lease is\n scoped to one class — a built-in approval category (write / delete / shell,\n with write and edit collapsed) or a single MCP server — never the whole run.\n\n ## Canonical contract (every layer derives its behavior from this)\n\n 1. Control plane (SubmitApproval handler): record APPROVE_ALL on the clicked\n    tool call, and resolve any other still-pending tool call that shares the\n    clicked call's class — including sub-agent tool calls — to\n    APPROVAL_ACTION_APPROVE. Pending tool calls of a DIFFERENT class stay in\n    TOOL_CALL_WAITING_APPROVAL so the gate still holds for them. This keeps\n    the audit trail honest: every tool that runs carries an explicit\n    approval_action.\n\n 2. Runner (native + cursor harness): the lease is derived on read from the\n    persisted APPROVE_ALL decision plus the tool's class — there is no\n    separately stored lease. On reinvocation, a new tool call (or sub-agent\n    tool call) whose class matches an active lease skips the approval gate; a\n    tool call of any other class is still gated. The interrupted tool itself\n    resumes as an approval.\n\n ## Scope\n\n The lease covers the rest of THIS execution and only the matched class. It\n is NOT persisted to the session or the agent; a subsequent execution starts\n gated again unless the caller sets it anew (interactive clients may carry a\n session-scoped preference forward in-memory, but that is a client concern,\n not server-persisted state). AgentRunSpec.auto_approve_all remains the\n single, explicit whole-run global bypass.\n\n ## Audit\n\n Because it bypasses subsequent same-class approval checks, executions\n containing an APPROVE_ALL decision should be auditable. The decision is\n recorded on ToolCall.approval_action like any other; the policy layer that\n cleared each subsequent call is recorded on ToolCall.approval_policy_source\n (APPROVAL_POLICY_SOURCE_APPROVAL_LEASE)."
+          "description": "Approve this tool call AND grant a run-lifetime lease that auto-approves\n every subsequent tool call of the SAME class for the rest of this run\n (\"approve all of this kind, don't ask again\").\n\n This is the gate-time, scoped analog of AgentRunSpec.auto_approve_all:\n it lets a human escalate from per-call approval to \"trust this whole class\"\n at the moment of friction, without pre-arming a global bypass. The lease is\n scoped to one class — a built-in approval category (write / delete / shell,\n with write and edit collapsed) or a single MCP server — never the whole run.\n\n ## Canonical contract (every layer derives its behavior from this)\n\n 1. Control plane (SubmitApproval handler): record APPROVE_ALL on the clicked\n    tool call, and resolve any other still-pending tool call that shares the\n    clicked call's class — including sub-agent tool calls — to\n    APPROVAL_ACTION_APPROVE. Pending tool calls of a DIFFERENT class stay in\n    TOOL_CALL_WAITING_APPROVAL so the gate still holds for them. This keeps\n    the audit trail honest: every tool that runs carries an explicit\n    approval_action.\n\n 2. Runner (native + cursor harness): the lease is derived on read from the\n    persisted APPROVE_ALL decision plus the tool's class — there is no\n    separately stored lease. On reinvocation, a new tool call (or sub-agent\n    tool call) whose class matches an active lease skips the approval gate; a\n    tool call of any other class is still gated. The interrupted tool itself\n    resumes as an approval.\n\n ## Scope\n\n The lease covers the rest of THIS run and only the matched class. It\n is NOT persisted to the session or the agent; a subsequent run starts\n gated again unless the caller sets it anew (interactive clients may carry a\n session-scoped preference forward in-memory, but that is a client concern,\n not server-persisted state). AgentRunSpec.auto_approve_all remains the\n single, explicit whole-run global bypass.\n\n ## Audit\n\n Because it bypasses subsequent same-class approval checks, runs\n containing an APPROVE_ALL decision should be auditable. The decision is\n recorded on ToolCall.approval_action like any other; the policy layer that\n cleared each subsequent call is recorded on ToolCall.approval_policy_source\n (APPROVAL_POLICY_SOURCE_APPROVAL_LEASE)."
         }
       ]
     },
@@ -1820,54 +1820,54 @@
         {
           "name": "RUN_PENDING",
           "number": 1,
-          "description": "Execution created, waiting to start."
+          "description": "Run created, waiting to start."
         },
         {
           "name": "RUN_IN_PROGRESS",
           "number": 2,
-          "description": "Execution is actively running tasks."
+          "description": "Run is in progress, running its tasks."
         },
         {
           "name": "RUN_COMPLETED",
           "number": 3,
-          "description": "Execution completed successfully."
+          "description": "Run completed successfully."
         },
         {
           "name": "RUN_FAILED",
           "number": 4,
-          "description": "Execution failed with an error."
+          "description": "Run failed with an error."
         },
         {
           "name": "RUN_CANCELLED",
           "number": 5,
-          "description": "Execution was cancelled by user or system."
+          "description": "Run was cancelled by user or system."
         },
         {
           "name": "RUN_TERMINATED",
           "number": 6,
-          "description": "Execution was force-stopped immediately without cleanup."
+          "description": "Run was force-stopped immediately without cleanup."
         },
         {
           "name": "RUN_PAUSED",
           "number": 7,
-          "description": "Execution was paused by user and can be resumed."
+          "description": "Run was paused by user and can be resumed."
         }
       ]
     },
     {
       "name": "RunSortField",
-      "description": "RunSortField defines the column to sort execution lists by.",
+      "description": "RunSortField defines the column to sort run lists by.",
       "protoType": "ai.stigmer.agentic.workflowrun.v1.RunSortField",
       "values": [
         {
           "name": "RUN_SORT_FIELD_STARTED_AT",
           "number": 1,
-          "description": "Sort by execution start time."
+          "description": "Sort by run start time."
         },
         {
           "name": "RUN_SORT_FIELD_DURATION",
           "number": 2,
-          "description": "Sort by execution duration (completed_at - started_at).\n\n Executions without both timestamps sort last."
+          "description": "Sort by run duration (completed_at - started_at).\n\n Runs without both timestamps sort last."
         },
         {
           "name": "RUN_SORT_FIELD_COST",
@@ -1877,13 +1877,13 @@
         {
           "name": "RUN_SORT_FIELD_STATUS",
           "number": 4,
-          "description": "Sort by execution phase enum value."
+          "description": "Sort by run phase enum value."
         }
       ]
     },
     {
       "name": "WorkflowEventType",
-      "description": "WorkflowEventType categorizes execution events for filtering and dispatch.",
+      "description": "WorkflowEventType categorizes run events for filtering and dispatch.",
       "protoType": "ai.stigmer.agentic.workflowrun.v1.WorkflowEventType",
       "values": [
         {
@@ -1904,7 +1904,7 @@
         {
           "name": "run_paused",
           "number": 4,
-          "description": "Workflow run was paused by user or system.\n Non-terminal — execution can be resumed.\n Payload: RunPausedPayload."
+          "description": "Workflow run was paused by user or system.\n Non-terminal — run can be resumed.\n Payload: RunPausedPayload."
         },
         {
           "name": "run_resumed",
@@ -1924,7 +1924,7 @@
         {
           "name": "task_started",
           "number": 11,
-          "description": "A workflow task began run.\n Payload: TaskStartedPayload."
+          "description": "A workflow task began execution.\n Payload: TaskStartedPayload."
         },
         {
           "name": "task_completed",
@@ -2022,7 +2022,7 @@
     },
     {
       "name": "ToolKind",
-      "description": "ToolKind is the harness-agnostic category of a tool call.\n\n Both execution harnesses emit tool calls with engine-specific names — the\n native (deepagents) harness uses snake_case (edit_file, execute, grep), while\n the Cursor harness uses PascalCase (StrReplace, Shell, Grep). ToolKind\n normalizes that identity once, in the runner, so every client (web, desktop,\n CLI, Ink) renders a tool the same way regardless of which harness produced it.\n\n This is identity, not presentation: it answers \"what kind of tool is this?\"\n and is deliberately distinct from ToolCallStreamingSource, which describes an\n orthogonal streaming capability. Result formatting is a client concern and is\n intentionally not encoded here.\n\n TOOL_KIND_UNSPECIFIED means the runner did not classify the tool — either the\n execution predates this field, or the tool does not fit a known kind. Clients\n fall back to a tool-name lookup in that case, so legacy executions still\n render correctly.",
+      "description": "ToolKind is the harness-agnostic category of a tool call.\n\n Both execution harnesses emit tool calls with engine-specific names — the\n native (deepagents) harness uses snake_case (edit_file, execute, grep), while\n the Cursor harness uses PascalCase (StrReplace, Shell, Grep). ToolKind\n normalizes that identity once, in the runner, so every client (web, desktop,\n CLI, Ink) renders a tool the same way regardless of which harness produced it.\n\n This is identity, not presentation: it answers \"what kind of tool is this?\"\n and is deliberately distinct from ToolCallStreamingSource, which describes an\n orthogonal streaming capability. Result formatting is a client concern and is\n intentionally not encoded here.\n\n TOOL_KIND_UNSPECIFIED means the runner did not classify the tool — either the\n run predates this field, or the tool does not fit a known kind. Clients\n fall back to a tool-name lookup in that case, so legacy runs still\n render correctly.",
       "protoType": "ai.stigmer.agentic.agentrun.v1.ToolKind",
       "values": [
         {
@@ -2093,13 +2093,13 @@
         {
           "name": "TOOL_KIND_MEMORY",
           "number": 14,
-          "description": "Propose a durable fact about the user for the platform to remember\n (the first-party remember tool, injected via the synthesized memory\n attachment when the execution's recall snapshot is enabled).\n Both harnesses: remember. Rendered as a memory-proposal consent chip\n (verbatim fact + Confirm/Reject), not the generic tool result view —\n the record it creates stays \"proposed\" until the user decides."
+          "description": "Propose a durable fact about the user for the platform to remember\n (the first-party remember tool, injected via the synthesized memory\n attachment when the run's recall snapshot is enabled).\n Both harnesses: remember. Rendered as a memory-proposal consent chip\n (verbatim fact + Confirm/Reject), not the generic tool result view —\n the record it creates stays \"proposed\" until the user decides."
         }
       ]
     },
     {
       "name": "ApprovalPolicySource",
-      "description": "ApprovalPolicySource is the policy layer that decided a tool call's approval\n requirement — the provenance recorded on every gated or auto-approved tool\n call so an execution's authorizations are auditable.\n\n Set by the runner at the approval gate (the one component that evaluates the\n merged policy) and persisted on ToolCall.approval_policy_source, exactly as\n ToolCall.tool_kind is set and persisted. Clients render it to answer \"why was\n this tool gated or auto-approved?\".",
+      "description": "ApprovalPolicySource is the policy layer that decided a tool call's approval\n requirement — the provenance recorded on every gated or auto-approved tool\n call so a run's authorizations are auditable.\n\n Set by the runner at the approval gate (the one component that evaluates the\n merged policy) and persisted on ToolCall.approval_policy_source, exactly as\n ToolCall.tool_kind is set and persisted. Clients render it to answer \"why was\n this tool gated or auto-approved?\".",
       "protoType": "ai.stigmer.agentic.agentrun.v1.ApprovalPolicySource",
       "values": [
         {
@@ -2125,7 +2125,7 @@
         {
           "name": "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP",
           "number": 8,
-          "description": "The unattended approval mode (AgentRunStatus.approval_mode =\n APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:\n the lane the execution came through (a schedule's fire, a messaging\n channel, a guest share) has no approver, so the platform skipped the\n tool and told the model to adapt. A layer-4 resolution source like AUTO_APPROVE_ALL — it\n records HOW the gate was resolved, overriding the gating-layer source on\n the resolved call. The tool call carries TOOL_CALL_SKIPPED with NO\n approval_action / approved_by (those record human decisions only), and\n no approval-request event is ever authored for it."
+          "description": "The unattended approval mode (AgentRunStatus.approval_mode =\n APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:\n the lane the run came through (a schedule's fire, a messaging\n channel, a guest share) has no approver, so the platform skipped the\n tool and told the model to adapt. A layer-4 resolution source like AUTO_APPROVE_ALL — it\n records HOW the gate was resolved, overriding the gating-layer source on\n the resolved call. The tool call carries TOOL_CALL_SKIPPED with NO\n approval_action / approved_by (those record human decisions only), and\n no approval-request event is ever authored for it."
         },
         {
           "name": "APPROVAL_POLICY_SOURCE_HOOK",
@@ -2199,7 +2199,7 @@
         {
           "name": "WORKFLOW_TASK_FAILED",
           "number": 4,
-          "description": "Task failed during run."
+          "description": "Task failed during execution."
         },
         {
           "name": "WORKFLOW_TASK_SKIPPED",
@@ -2236,13 +2236,13 @@
         {
           "name": "visibility_child_orgs",
           "number": 4,
-          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, executions and environments are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
+          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and environments are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
         }
       ]
     },
     {
       "name": "ExecutionTarget",
-      "description": "ExecutionTarget specifies where session activities are executed.\n\n Determines whether the runner that processes agent activities lives on the\n client's machine (desktop app or CLI) or in a cloud-provisioned sandbox.\n Set at session creation time and immutable once an execution has run —\n workspace state may not be portable between local and cloud environments.",
+      "description": "ExecutionTarget specifies where session activities are executed.\n\n Determines whether the runner that processes agent activities lives on the\n client's machine (desktop app or CLI) or in a cloud-provisioned sandbox.\n Set at session creation time and immutable once a run has started —\n workspace state may not be portable between local and cloud environments.",
       "protoType": "ai.stigmer.agentic.session.v1.ExecutionTarget",
       "values": [
         {
@@ -2253,7 +2253,7 @@
         {
           "name": "EXECUTION_TARGET_CLOUD",
           "number": 2,
-          "description": "Server provisions a cloud sandbox for run.\n\n The control plane triggers EnsureSessionSandbox to create an isolated\n environment with a runner polling the session's task queue."
+          "description": "Server provisions a cloud sandbox for execution.\n\n The control plane triggers EnsureSessionSandbox to create an isolated\n environment with a runner polling the session's task queue."
         }
       ]
     },
@@ -2372,42 +2372,42 @@
         {
           "name": "RUN_PENDING",
           "number": 1,
-          "description": "Execution is queued and waiting for a worker to start processing."
+          "description": "Run is queued and waiting for a worker to start processing."
         },
         {
           "name": "RUN_IN_PROGRESS",
           "number": 2,
-          "description": "Execution is actively running — the agent is processing and producing output."
+          "description": "Run is in progress — the agent is processing and producing output."
         },
         {
           "name": "RUN_COMPLETED",
           "number": 3,
-          "description": "Execution finished successfully and the agent produced a final response."
+          "description": "Run finished successfully and the agent produced a final response."
         },
         {
           "name": "RUN_FAILED",
           "number": 4,
-          "description": "Execution encountered an unexpected error and could not finish."
+          "description": "Run encountered an unexpected error and could not finish."
         },
         {
           "name": "RUN_CANCELLED",
           "number": 5,
-          "description": "Execution was gracefully stopped by the user before it finished."
+          "description": "Run was gracefully stopped by the user before it finished."
         },
         {
           "name": "RUN_TERMINATED",
           "number": 8,
-          "description": "Execution was stopped by the platform.\n\n Unlike CANCELLED (user-initiated graceful stop) and FAILED (unexpected\n error), TERMINATED means the platform intentionally stopped this\n execution — either via automated safety mechanisms or user-initiated\n force-kill.\n\n Terminal state — execution will not change phases again.\n\n When this phase is reached:\n - completed_at timestamp is set\n - error field contains the termination reason\n\n Trigger paths:\n - Internal (activity-level): stall timeout (agent unresponsive),\n   tool-call budget exhausted (GraphRecursionError). LangGraph\n   checkpoint is valid; the user can continue via follow-up message.\n - External (Terminate RPC): user or system force-kills the Temporal\n   workflow. LangGraph checkpoint may be incomplete.\n\n Use Cases:\n - Agent stalled — no events for the configured timeout\n - Agent exhausted its tool-call budget (recursion limit)\n - Force-stop stuck agents that don't respond to cancellation\n - Kill agents consuming excessive resources\n\n Terminated vs Cancelled vs Failed:\n - Terminated: Platform stopped it (automated or force-kill)\n - Cancelled: User gracefully stopped it (checkpoint saved)\n - Failed: Something broke unexpectedly (exception, crash)"
+          "description": "Run was stopped by the platform.\n\n Unlike CANCELLED (user-initiated graceful stop) and FAILED (unexpected\n error), TERMINATED means the platform intentionally stopped this\n run — either via automated safety mechanisms or user-initiated\n force-kill.\n\n Terminal state — run will not change phases again.\n\n When this phase is reached:\n - completed_at timestamp is set\n - error field contains the termination reason\n\n Trigger paths:\n - Internal (activity-level): stall timeout (agent unresponsive),\n   tool-call budget exhausted (GraphRecursionError). LangGraph\n   checkpoint is valid; the user can continue via follow-up message.\n - External (Terminate RPC): user or system force-kills the Temporal\n   workflow. LangGraph checkpoint may be incomplete.\n\n Use Cases:\n - Agent stalled — no events for the configured timeout\n - Agent exhausted its tool-call budget (recursion limit)\n - Force-stop stuck agents that don't respond to cancellation\n - Kill agents consuming excessive resources\n\n Terminated vs Cancelled vs Failed:\n - Terminated: Platform stopped it (automated or force-kill)\n - Cancelled: User gracefully stopped it (checkpoint saved)\n - Failed: Something broke unexpectedly (exception, crash)"
         },
         {
           "name": "RUN_WAITING_FOR_APPROVAL",
           "number": 6,
-          "description": "Blocked on tool approval.\n\n The agent has encountered a tool that requires user approval before run.\n When in this phase:\n - status.pending_approval contains details about the tool awaiting approval\n - User must call SubmitApproval RPC to continue\n\n This is NOT a terminal state - execution resumes after approval decision:\n - APPROVE: Tool executes, phase returns to RUN_IN_PROGRESS\n - SKIP: Tool returns a neutral \"skipped\" message, phase returns to RUN_IN_PROGRESS\n - REJECT: Tool is denied and the user's objection is fed back to the model;\n   the tool does NOT execute and phase returns to RUN_IN_PROGRESS. REJECT\n   denies a single tool call, it does NOT fail the run — the model adapts and\n   the execution continues to RUN_COMPLETED. To stop the whole execution,\n   use Cancel (RUN_CANCELLED) or Terminate (RUN_TERMINATED).\n\n UI should show distinct treatment for this phase (e.g., approval dialog)."
+          "description": "Blocked on tool approval.\n\n The agent has encountered a tool that requires user approval before execution.\n When in this phase:\n - status.pending_approval contains details about the tool awaiting approval\n - User must call SubmitApproval RPC to continue\n\n This is NOT a terminal state - run resumes after approval decision:\n - APPROVE: Tool executes, phase returns to RUN_IN_PROGRESS\n - SKIP: Tool returns a neutral \"skipped\" message, phase returns to RUN_IN_PROGRESS\n - REJECT: Tool is denied and the user's objection is fed back to the model;\n   the tool does NOT execute and phase returns to RUN_IN_PROGRESS. REJECT\n   denies a single tool call, it does NOT fail the run — the model adapts and\n   the run continues to RUN_COMPLETED. To stop the whole run,\n   use Cancel (RUN_CANCELLED) or Terminate (RUN_TERMINATED).\n\n UI should show distinct treatment for this phase (e.g., approval dialog)."
         },
         {
           "name": "RUN_PAUSED",
           "number": 7,
-          "description": "Execution was paused by user and can be resumed.\n\n The execution was temporarily stopped at a checkpoint and can continue\n from where it left off. Unlike CANCELLED, the execution is not terminal.\n\n Pause flow:\n RUN_IN_PROGRESS → RUN_PAUSED\n\n Resume flow:\n RUN_PAUSED → RUN_IN_PROGRESS\n\n NOT a terminal state - execution can be resumed.\n\n When this phase is reached:\n - Running activities are gracefully cancelled\n - LangGraph checkpoints are saved (thread_id preserved)\n - No completed_at timestamp (execution is not finished)\n\n Resume behavior:\n - Activity is re-invoked with same thread_id\n - LangGraph loads from checkpoint automatically\n - Execution continues from where it was paused"
+          "description": "Run was paused by user and can be resumed.\n\n The run was temporarily stopped at a checkpoint and can continue\n from where it left off. Unlike CANCELLED, the run is not terminal.\n\n Pause flow:\n RUN_IN_PROGRESS → RUN_PAUSED\n\n Resume flow:\n RUN_PAUSED → RUN_IN_PROGRESS\n\n NOT a terminal state - run can be resumed.\n\n When this phase is reached:\n - Running activities are gracefully cancelled\n - LangGraph checkpoints are saved (thread_id preserved)\n - No completed_at timestamp (run is not finished)\n\n Resume behavior:\n - Activity is re-invoked with same thread_id\n - LangGraph loads from checkpoint automatically\n - Run continues from where it was paused"
         }
       ]
     },
@@ -2419,12 +2419,12 @@
         {
           "name": "budget_exceeded_terminate",
           "number": 1,
-          "description": "Terminate the workflow immediately with RUN_FAILED status.\n The execution record includes the budget breach details for diagnostics."
+          "description": "Terminate the workflow immediately with RUN_FAILED status.\n The run record includes the budget breach details for diagnostics."
         },
         {
           "name": "budget_exceeded_human_review",
           "number": 2,
-          "description": "Pause the workflow and request human review via a system-generated\n approval gate. The reviewer can approve continued execution (with\n an increased budget) or confirm termination.\n Depends on the human_input runtime. If human_input runtime\n is not available, falls back to terminate with a descriptive error."
+          "description": "Pause the workflow and request human review via a system-generated\n approval gate. The reviewer can approve continuing the run (with\n an increased budget) or confirm termination.\n Depends on the human_input runtime. If human_input runtime\n is not available, falls back to terminate with a descriptive error."
         },
         {
           "name": "budget_exceeded_warn",
@@ -2437,7 +2437,7 @@
   "resourceDescription": "WorkflowRun represents a single runtime invocation of a Workflow.",
   "statusType": {
     "name": "WorkflowRunStatus",
-    "description": "WorkflowRunStatus contains all system-managed execution state and results.",
+    "description": "WorkflowRunStatus contains all system-managed run state and results.",
     "protoType": "ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus",
     "protoFile": "apis/ai/stigmer/agentic/workflowrun/v1/api.proto",
     "fields": [
@@ -2469,7 +2469,7 @@
             "RUN_PAUSED"
           ]
         },
-        "description": "Current execution lifecycle phase.",
+        "description": "Current run lifecycle phase.",
         "required": false
       },
       {
@@ -2513,7 +2513,7 @@
         "type": {
           "kind": "string"
         },
-        "description": "ISO 8601 timestamp when execution started processing.",
+        "description": "ISO 8601 timestamp when the run started processing.",
         "required": false
       },
       {
@@ -2523,7 +2523,7 @@
         "type": {
           "kind": "string"
         },
-        "description": "ISO 8601 timestamp when execution reached a terminal state.",
+        "description": "ISO 8601 timestamp when the run reached a terminal state.",
         "required": false
       },
       {
@@ -2547,7 +2547,7 @@
             "messageType": "WorkflowPendingApproval"
           }
         },
-        "description": "Pending approvals from child agent tool runs.",
+        "description": "Pending approvals from child agent tool executions.",
         "required": false
       },
       {
@@ -2757,7 +2757,7 @@
     },
     {
       "name": "PendingApproval",
-      "description": "A pending approval request for a tool call that requires user consent before run.\n\n Each entry represents one tool call waiting for a user decision (approve, skip,\n or reject). Sub-agent approvals are included with from_sub_agent set to true\n and sub_agent_name identifying the origin.",
+      "description": "A pending approval request for a tool call that requires user consent before execution.\n\n Each entry represents one tool call waiting for a user decision (approve, skip,\n or reject). Sub-agent approvals are included with from_sub_agent set to true\n and sub_agent_name identifying the origin.",
       "protoType": "ai.stigmer.agentic.agentrun.v1.PendingApproval",
       "protoFile": "apis/ai/stigmer/agentic/agentrun/v1/approval.proto",
       "fields": [
@@ -3174,7 +3174,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Hint identifying which UI should present this task's review payload.\n\n Copied from the human_input task's ui_hint config when the gate\n activates, so approval surfaces (dashboards, listPendingApprovals)\n can badge or group review requests by type without reading the\n event log. Empty for non-human_input tasks and for executions\n persisted before this field existed — consumers treat empty as a\n generic review.",
+          "description": "Hint identifying which UI should present this task's review payload.\n\n Copied from the human_input task's ui_hint config when the gate\n activates, so approval surfaces (dashboards, listPendingApprovals)\n can badge or group review requests by type without reading the\n event log. Empty for non-human_input tasks and for runs\n persisted before this field existed — consumers treat empty as a\n generic review.",
           "required": false
         }
       ]

@@ -12,7 +12,7 @@ public interface AgentRunSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Number of executions currently in a non-terminal phase
+   * Number of runs currently in a non-terminal phase
    * (PENDING, IN_PROGRESS, WAITING_FOR_APPROVAL, PAUSED).
    * </pre>
    *
@@ -23,10 +23,10 @@ public interface AgentRunSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Execution counts broken down by RunPhase enum value.
+   * Run counts broken down by RunPhase enum value.
    *
    * Keys are RunPhase enum values (as int32).
-   * Only phases with at least one execution are included.
+   * Only phases with at least one run are included.
    * </pre>
    *
    * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -34,10 +34,10 @@ public interface AgentRunSummaryOrBuilder extends
   int getPhaseCountsCount();
   /**
    * <pre>
-   * Execution counts broken down by RunPhase enum value.
+   * Run counts broken down by RunPhase enum value.
    *
    * Keys are RunPhase enum values (as int32).
-   * Only phases with at least one execution are included.
+   * Only phases with at least one run are included.
    * </pre>
    *
    * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -52,10 +52,10 @@ public interface AgentRunSummaryOrBuilder extends
   getPhaseCounts();
   /**
    * <pre>
-   * Execution counts broken down by RunPhase enum value.
+   * Run counts broken down by RunPhase enum value.
    *
    * Keys are RunPhase enum values (as int32).
-   * Only phases with at least one execution are included.
+   * Only phases with at least one run are included.
    * </pre>
    *
    * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -64,10 +64,10 @@ public interface AgentRunSummaryOrBuilder extends
   getPhaseCountsMap();
   /**
    * <pre>
-   * Execution counts broken down by RunPhase enum value.
+   * Run counts broken down by RunPhase enum value.
    *
    * Keys are RunPhase enum values (as int32).
-   * Only phases with at least one execution are included.
+   * Only phases with at least one run are included.
    * </pre>
    *
    * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -77,10 +77,10 @@ public interface AgentRunSummaryOrBuilder extends
       int defaultValue);
   /**
    * <pre>
-   * Execution counts broken down by RunPhase enum value.
+   * Run counts broken down by RunPhase enum value.
    *
    * Keys are RunPhase enum values (as int32).
-   * Only phases with at least one execution are included.
+   * Only phases with at least one run are included.
    * </pre>
    *
    * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -90,10 +90,10 @@ public interface AgentRunSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Mean execution duration (from started_at to completed_at) for completed
-   * executions in the time window.
+   * Mean run duration (from started_at to completed_at) for completed
+   * runs in the time window.
    *
-   * Zero when no completed executions exist.
+   * Zero when no completed runs exist.
    * </pre>
    *
    * <code>.google.protobuf.Duration avg_duration = 3 [json_name = "avgDuration"];</code>
@@ -102,10 +102,10 @@ public interface AgentRunSummaryOrBuilder extends
   boolean hasAvgDuration();
   /**
    * <pre>
-   * Mean execution duration (from started_at to completed_at) for completed
-   * executions in the time window.
+   * Mean run duration (from started_at to completed_at) for completed
+   * runs in the time window.
    *
-   * Zero when no completed executions exist.
+   * Zero when no completed runs exist.
    * </pre>
    *
    * <code>.google.protobuf.Duration avg_duration = 3 [json_name = "avgDuration"];</code>
@@ -114,10 +114,10 @@ public interface AgentRunSummaryOrBuilder extends
   com.google.protobuf.Duration getAvgDuration();
   /**
    * <pre>
-   * Mean execution duration (from started_at to completed_at) for completed
-   * executions in the time window.
+   * Mean run duration (from started_at to completed_at) for completed
+   * runs in the time window.
    *
-   * Zero when no completed executions exist.
+   * Zero when no completed runs exist.
    * </pre>
    *
    * <code>.google.protobuf.Duration avg_duration = 3 [json_name = "avgDuration"];</code>

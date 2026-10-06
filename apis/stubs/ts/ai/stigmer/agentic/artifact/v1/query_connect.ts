@@ -27,7 +27,7 @@ export const ArtifactQueryController = {
      * Use Cases:
      *
      * 1. Artifact Detail View:
-     *    - User clicks an artifact in the execution viewer
+     *    - User clicks an artifact in the run viewer
      *    - UI calls get() to fetch full metadata
      *    - UI displays content type, size, source task, expiration
      *
@@ -39,7 +39,7 @@ export const ArtifactQueryController = {
      * Error Cases:
      *
      * - NOT_FOUND: No Artifact exists with the given ID
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - PERMISSION_DENIED: User doesn't have view access to the parent run
      *
      * @generated from rpc ai.stigmer.agentic.artifact.v1.ArtifactQueryController.get
      */
@@ -57,8 +57,8 @@ export const ArtifactQueryController = {
      *
      * Use Cases:
      *
-     * 1. Execution Viewer Artifact Panel:
-     *    - User views a workflow run in the execution viewer
+     * 1. Run Viewer Artifact Panel:
+     *    - User views a workflow run in the run viewer
      *    - UI calls listByRun() to populate the artifact sidebar
      *    - Each artifact shows display name, content type, size, source task
      *
@@ -69,7 +69,7 @@ export const ArtifactQueryController = {
      * Error Cases:
      *
      * - INVALID_ARGUMENT: Neither workflow_run_id nor agent_run_id provided
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - PERMISSION_DENIED: User doesn't have view access to the parent run
      *
      * @generated from rpc ai.stigmer.agentic.artifact.v1.ArtifactQueryController.listByRun
      */
@@ -92,7 +92,7 @@ export const ArtifactQueryController = {
      * Use Cases:
      *
      * 1. Download Artifact:
-     *    - User clicks "Download" in the execution viewer
+     *    - User clicks "Download" in the run viewer
      *    - UI calls getDownloadUrl() to get a URL
      *    - Browser opens the URL in a new tab or triggers a download
      *
@@ -108,7 +108,7 @@ export const ArtifactQueryController = {
      * Error Cases:
      *
      * - NOT_FOUND: No Artifact exists with the given ID
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - PERMISSION_DENIED: User doesn't have view access to the parent run
      * - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
      *
      * @generated from rpc ai.stigmer.agentic.artifact.v1.ArtifactQueryController.getDownloadUrl

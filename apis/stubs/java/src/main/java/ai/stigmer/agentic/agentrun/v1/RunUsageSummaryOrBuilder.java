@@ -12,7 +12,7 @@ public interface RunUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Execution identifier.
+   * Run identifier.
    * </pre>
    *
    * <code>string run_id = 1 [json_name = "runId"];</code>
@@ -21,7 +21,7 @@ public interface RunUsageSummaryOrBuilder extends
   java.lang.String getRunId();
   /**
    * <pre>
-   * Execution identifier.
+   * Run identifier.
    * </pre>
    *
    * <code>string run_id = 1 [json_name = "runId"];</code>
@@ -32,7 +32,7 @@ public interface RunUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * ISO 8601 timestamp when execution started.
+   * ISO 8601 timestamp when the run started.
    * </pre>
    *
    * <code>string started_at = 2 [json_name = "startedAt"];</code>
@@ -41,7 +41,7 @@ public interface RunUsageSummaryOrBuilder extends
   java.lang.String getStartedAt();
   /**
    * <pre>
-   * ISO 8601 timestamp when execution started.
+   * ISO 8601 timestamp when the run started.
    * </pre>
    *
    * <code>string started_at = 2 [json_name = "startedAt"];</code>
@@ -52,7 +52,7 @@ public interface RunUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * ISO 8601 timestamp when execution completed.
+   * ISO 8601 timestamp when the run completed.
    * </pre>
    *
    * <code>string completed_at = 3 [json_name = "completedAt"];</code>
@@ -61,7 +61,7 @@ public interface RunUsageSummaryOrBuilder extends
   java.lang.String getCompletedAt();
   /**
    * <pre>
-   * ISO 8601 timestamp when execution completed.
+   * ISO 8601 timestamp when the run completed.
    * </pre>
    *
    * <code>string completed_at = 3 [json_name = "completedAt"];</code>
@@ -161,7 +161,7 @@ public interface RunUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Whether this execution's cost is estimated (in-flight, no billing records yet).
+   * Whether this run's cost is estimated (in-flight, no billing records yet).
    * </pre>
    *
    * <code>bool is_estimated = 11 [json_name = "isEstimated"];</code>

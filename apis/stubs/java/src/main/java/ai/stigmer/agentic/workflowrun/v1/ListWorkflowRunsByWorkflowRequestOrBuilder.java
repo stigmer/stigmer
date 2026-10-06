@@ -32,7 +32,7 @@ public interface ListWorkflowRunsByWorkflowRequestOrBuilder extends
 
   /**
    * <pre>
-   * The most executions to return, at most 100; zero returns them all.
+   * The most runs to return, at most 100; zero returns them all.
    * </pre>
    *
    * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>

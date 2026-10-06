@@ -85,7 +85,7 @@ public interface StreamingUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Model identifier the runner requested for this execution's turns.
+   * Model identifier the runner requested for this run's turns.
    * </pre>
    *
    * <code>string model = 8 [json_name = "model"];</code>
@@ -94,7 +94,7 @@ public interface StreamingUsageSummaryOrBuilder extends
   java.lang.String getModel();
   /**
    * <pre>
-   * Model identifier the runner requested for this execution's turns.
+   * Model identifier the runner requested for this run's turns.
    * </pre>
    *
    * <code>string model = 8 [json_name = "model"];</code>
@@ -125,7 +125,7 @@ public interface StreamingUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Service tier the runner requested for this execution's model calls.
+   * Service tier the runner requested for this run's model calls.
    *
    * Always explicit once the runner has translated the turn's settings
    * (STANDARD when AgentRunStatus.run_config.service_tier was unset) — the audit
@@ -138,7 +138,7 @@ public interface StreamingUsageSummaryOrBuilder extends
   int getRequestedServiceTierValue();
   /**
    * <pre>
-   * Service tier the runner requested for this execution's model calls.
+   * Service tier the runner requested for this run's model calls.
    *
    * Always explicit once the runner has translated the turn's settings
    * (STANDARD when AgentRunStatus.run_config.service_tier was unset) — the audit
@@ -176,7 +176,7 @@ public interface StreamingUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Thinking mode the runner requested for this execution's model calls.
+   * Thinking mode the runner requested for this run's model calls.
    *
    * Always explicit once the runner has translated the turn's settings
    * (DISABLED when AgentRunStatus.run_config.thinking_mode was unset) — the audit
@@ -190,7 +190,7 @@ public interface StreamingUsageSummaryOrBuilder extends
   int getRequestedThinkingModeValue();
   /**
    * <pre>
-   * Thinking mode the runner requested for this execution's model calls.
+   * Thinking mode the runner requested for this run's model calls.
    *
    * Always explicit once the runner has translated the turn's settings
    * (DISABLED when AgentRunStatus.run_config.thinking_mode was unset) — the audit

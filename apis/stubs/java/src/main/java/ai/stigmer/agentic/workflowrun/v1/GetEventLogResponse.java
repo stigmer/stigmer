@@ -7,7 +7,7 @@ package ai.stigmer.agentic.workflowrun.v1;
 
 /**
  * <pre>
- * GetEventLogResponse contains a page of execution events.
+ * GetEventLogResponse contains a page of run events.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowrun.v1.GetEventLogResponse}
@@ -120,7 +120,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Whether more events exist after the last event in this response.
    * When false, the client has reached the end of the current event log.
-   * For in-progress executions, more events may appear later.
+   * For in-progress runs, more events may appear later.
    * </pre>
    *
    * <code>bool has_more = 2 [json_name = "hasMore"];</code>
@@ -338,7 +338,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * GetEventLogResponse contains a page of execution events.
+   * GetEventLogResponse contains a page of run events.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowrun.v1.GetEventLogResponse}
@@ -864,7 +864,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Whether more events exist after the last event in this response.
      * When false, the client has reached the end of the current event log.
-     * For in-progress executions, more events may appear later.
+     * For in-progress runs, more events may appear later.
      * </pre>
      *
      * <code>bool has_more = 2 [json_name = "hasMore"];</code>
@@ -878,7 +878,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Whether more events exist after the last event in this response.
      * When false, the client has reached the end of the current event log.
-     * For in-progress executions, more events may appear later.
+     * For in-progress runs, more events may appear later.
      * </pre>
      *
      * <code>bool has_more = 2 [json_name = "hasMore"];</code>
@@ -896,7 +896,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Whether more events exist after the last event in this response.
      * When false, the client has reached the end of the current event log.
-     * For in-progress executions, more events may appear later.
+     * For in-progress runs, more events may appear later.
      * </pre>
      *
      * <code>bool has_more = 2 [json_name = "hasMore"];</code>

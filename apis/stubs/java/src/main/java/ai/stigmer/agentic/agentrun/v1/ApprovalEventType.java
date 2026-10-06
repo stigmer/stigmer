@@ -59,7 +59,7 @@ public enum ApprovalEventType
   APPROVAL_EVENT_TYPE_APPROVED(2),
   /**
    * <pre>
-   * The user rejected the request; the execution fails.
+   * The user rejected the request; the run fails.
    * Payload: ApprovalDecision.
    * </pre>
    *
@@ -68,7 +68,7 @@ public enum ApprovalEventType
   APPROVAL_EVENT_TYPE_REJECTED(3),
   /**
    * <pre>
-   * The user skipped the request; execution continues without the tool.
+   * The user skipped the request; run continues without the tool.
    * Payload: ApprovalDecision.
    * </pre>
    *
@@ -78,14 +78,14 @@ public enum ApprovalEventType
   /**
    * <pre>
    * The platform withdrew the request before any user decision because the gated
-   * call became unreachable while the execution was still live — its sub-agent
+   * call became unreachable while the run was still live — its sub-agent
    * reached a terminal state, or the call was superseded on resume. This is the
    * system-actored terminal transition that makes the lifecycle total: a
    * REQUESTED is resolved by exactly one of APPROVED / REJECTED / SKIPPED (user
    * decisions) or RETRACTED (platform withdrawal). It is distinct from SKIPPED so
    * the audit trail never conflates "the human skipped this" with "the platform
-   * withdrew it." Terminal-execution gate-exits (cancel / fail / terminate) are
-   * NOT modeled as per-call events — a terminal execution simply projects to zero
+   * withdrew it." Terminal-run gate-exits (cancel / fail / terminate) are
+   * NOT modeled as per-call events — a terminal run simply projects to zero
    * pending approvals — so RETRACTED is reserved for the in-flight, per-call case.
    * Payload: ApprovalRetraction.
    * </pre>
@@ -133,7 +133,7 @@ public enum ApprovalEventType
   public static final int APPROVAL_EVENT_TYPE_APPROVED_VALUE = 2;
   /**
    * <pre>
-   * The user rejected the request; the execution fails.
+   * The user rejected the request; the run fails.
    * Payload: ApprovalDecision.
    * </pre>
    *
@@ -142,7 +142,7 @@ public enum ApprovalEventType
   public static final int APPROVAL_EVENT_TYPE_REJECTED_VALUE = 3;
   /**
    * <pre>
-   * The user skipped the request; execution continues without the tool.
+   * The user skipped the request; run continues without the tool.
    * Payload: ApprovalDecision.
    * </pre>
    *
@@ -152,14 +152,14 @@ public enum ApprovalEventType
   /**
    * <pre>
    * The platform withdrew the request before any user decision because the gated
-   * call became unreachable while the execution was still live — its sub-agent
+   * call became unreachable while the run was still live — its sub-agent
    * reached a terminal state, or the call was superseded on resume. This is the
    * system-actored terminal transition that makes the lifecycle total: a
    * REQUESTED is resolved by exactly one of APPROVED / REJECTED / SKIPPED (user
    * decisions) or RETRACTED (platform withdrawal). It is distinct from SKIPPED so
    * the audit trail never conflates "the human skipped this" with "the platform
-   * withdrew it." Terminal-execution gate-exits (cancel / fail / terminate) are
-   * NOT modeled as per-call events — a terminal execution simply projects to zero
+   * withdrew it." Terminal-run gate-exits (cancel / fail / terminate) are
+   * NOT modeled as per-call events — a terminal run simply projects to zero
    * pending approvals — so RETRACTED is reserved for the in-flight, per-call case.
    * Payload: ApprovalRetraction.
    * </pre>

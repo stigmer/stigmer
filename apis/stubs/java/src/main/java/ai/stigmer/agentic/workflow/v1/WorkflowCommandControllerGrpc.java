@@ -378,9 +378,9 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update who can observe the runs (executions) of this workflow.
+     * Update who can observe the runs of this workflow.
      * This is a SEPARATE axis from updateVisibility: it controls run
-     * observability (who sees execution inputs and outputs), not who can see or
+     * observability (who sees run inputs and outputs), not who can see or
      * run the workflow itself. Making a workflow org-runnable does NOT expose
      * other people's runs; that requires this opt-in. The setting covers every
      * run of the workflow, past runs included.
@@ -527,9 +527,9 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update who can observe the runs (executions) of this workflow.
+     * Update who can observe the runs of this workflow.
      * This is a SEPARATE axis from updateVisibility: it controls run
-     * observability (who sees execution inputs and outputs), not who can see or
+     * observability (who sees run inputs and outputs), not who can see or
      * run the workflow itself. Making a workflow org-runnable does NOT expose
      * other people's runs; that requires this opt-in. The setting covers every
      * run of the workflow, past runs included.
@@ -662,9 +662,9 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update who can observe the runs (executions) of this workflow.
+     * Update who can observe the runs of this workflow.
      * This is a SEPARATE axis from updateVisibility: it controls run
-     * observability (who sees execution inputs and outputs), not who can see or
+     * observability (who sees run inputs and outputs), not who can see or
      * run the workflow itself. Making a workflow org-runnable does NOT expose
      * other people's runs; that requires this opt-in. The setting covers every
      * run of the workflow, past runs included.
@@ -793,9 +793,9 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update who can observe the runs (executions) of this workflow.
+     * Update who can observe the runs of this workflow.
      * This is a SEPARATE axis from updateVisibility: it controls run
-     * observability (who sees execution inputs and outputs), not who can see or
+     * observability (who sees run inputs and outputs), not who can see or
      * run the workflow itself. Making a workflow org-runnable does NOT expose
      * other people's runs; that requires this opt-in. The setting covers every
      * run of the workflow, past runs included.
@@ -928,9 +928,9 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update who can observe the runs (executions) of this workflow.
+     * Update who can observe the runs of this workflow.
      * This is a SEPARATE axis from updateVisibility: it controls run
-     * observability (who sees execution inputs and outputs), not who can see or
+     * observability (who sees run inputs and outputs), not who can see or
      * run the workflow itself. Making a workflow org-runnable does NOT expose
      * other people's runs; that requires this opt-in. The setting covers every
      * run of the workflow, past runs included.

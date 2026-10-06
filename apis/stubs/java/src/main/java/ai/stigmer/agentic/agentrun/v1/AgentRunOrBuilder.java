@@ -86,7 +86,7 @@ public interface AgentRunOrBuilder extends
    * Contains: the conversation (session_id or a new session_spec), message,
    * run_config, the per-message intents, and runtime_env. Environment values reach a turn from
    * the environments the server resolves for its run and from the
-   * per-execution runtime_env; see the runtime_env field docs in
+   * per-run runtime_env; see the runtime_env field docs in
    * spec.proto.
    * </pre>
    *
@@ -100,7 +100,7 @@ public interface AgentRunOrBuilder extends
    * Contains: the conversation (session_id or a new session_spec), message,
    * run_config, the per-message intents, and runtime_env. Environment values reach a turn from
    * the environments the server resolves for its run and from the
-   * per-execution runtime_env; see the runtime_env field docs in
+   * per-run runtime_env; see the runtime_env field docs in
    * spec.proto.
    * </pre>
    *
@@ -114,7 +114,7 @@ public interface AgentRunOrBuilder extends
    * Contains: the conversation (session_id or a new session_spec), message,
    * run_config, the per-message intents, and runtime_env. Environment values reach a turn from
    * the environments the server resolves for its run and from the
-   * per-execution runtime_env; see the runtime_env field docs in
+   * per-run runtime_env; see the runtime_env field docs in
    * spec.proto.
    * </pre>
    *
@@ -124,7 +124,7 @@ public interface AgentRunOrBuilder extends
 
   /**
    * <pre>
-   * System-managed execution state and results.
+   * System-managed run state and results.
    * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
    * </pre>
    *
@@ -134,7 +134,7 @@ public interface AgentRunOrBuilder extends
   boolean hasStatus();
   /**
    * <pre>
-   * System-managed execution state and results.
+   * System-managed run state and results.
    * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
    * </pre>
    *
@@ -144,7 +144,7 @@ public interface AgentRunOrBuilder extends
   ai.stigmer.agentic.agentrun.v1.AgentRunStatus getStatus();
   /**
    * <pre>
-   * System-managed execution state and results.
+   * System-managed run state and results.
    * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
    * </pre>
    *

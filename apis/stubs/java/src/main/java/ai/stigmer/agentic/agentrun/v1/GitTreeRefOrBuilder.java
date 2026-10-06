@@ -33,7 +33,7 @@ public interface GitTreeRefOrBuilder extends
   /**
    * <pre>
    * The ref the snapshot is pinned under, e.g.
-   * "refs/stigmer/{execution}/{baseline|candidate|approved}". Keeps the
+   * "refs/stigmer/{run}/{baseline|candidate|approved}". Keeps the
    * snapshot reachable (un-GC'd) without a commit on any user branch.
    * </pre>
    *
@@ -44,7 +44,7 @@ public interface GitTreeRefOrBuilder extends
   /**
    * <pre>
    * The ref the snapshot is pinned under, e.g.
-   * "refs/stigmer/{execution}/{baseline|candidate|approved}". Keeps the
+   * "refs/stigmer/{run}/{baseline|candidate|approved}". Keeps the
    * snapshot reachable (un-GC'd) without a commit on any user branch.
    * </pre>
    *

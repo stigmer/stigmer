@@ -35,7 +35,7 @@ type EmitEventSpec struct {
 	// URI or URI-reference that identifies the context in which the event
 	// happened. Supports ${ } expression interpolation.
 	// When empty, the runtime defaults to the workflow run URI
-	// (e.g., "/workflows/{workflow_id}/executions/{run_id}").
+	// (e.g., "/workflows/runs/{run_id}").
 	Source string `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
 	// Event payload data.
 	// Arbitrary JSON object carried as the CloudEvents data attribute.
@@ -184,7 +184,7 @@ func (x *EmitEventTaskConfig) GetDelivery() []*EmitDeliveryTarget {
 // Two delivery mechanisms are supported:
 //   - webhook: HTTP POST the CloudEvents envelope to an external endpoint.
 //   - signal: deliver the envelope as a signal to another workflow
-//     execution's listen task (the emit/listen pairing).
+//     run's listen task (the emit/listen pairing).
 type EmitDeliveryTarget struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Target:
@@ -331,12 +331,12 @@ func (x *WebhookDelivery) GetHeaders() map[string]string {
 }
 
 // SignalDelivery routes the CloudEvents envelope to another workflow
-// execution as a signal, completing the emit/listen pairing: the target
-// execution receives the envelope on the listen task whose signal id
+// run as a signal, completing the emit/listen pairing: the target
+// run receives the envelope on the listen task whose signal id
 // matches signal_name.
 type SignalDelivery struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Target workflow run id ("wfx_..."), as returned by run/create.
+	// Target workflow run id ("wex_..."), as returned by run/create.
 	// Usually flows from a prior task's output:
 	// "${ .start_processor.run_id }"
 	RunId string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`

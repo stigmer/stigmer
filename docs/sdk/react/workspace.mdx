@@ -119,7 +119,7 @@ Behavior hook that reads a single workspace file's content on demand.
 
 The byte-reading peer of [`useWorkspaceFiles`](#useworkspacefiles)
 (which lists the tree), built on the same `useFetch` engine as the
-content-fetch family ([`useArtifactContent`](/docs/sdk/react/execution#useartifactcontent),
+content-fetch family ([`useArtifactContent`](/docs/sdk/react/run#useartifactcontent),
 `useToolOutputContent`, `useFileChangeContent`) so it inherits their
 stale-while-revalidate, cancellation, and `refetch` semantics for free.
 
@@ -273,10 +273,10 @@ app-level execution target.
 Reads `executionTarget` from `StigmerProvider` context and falls
 back to `deploymentMode` when no explicit target is set:
 
-- **Cloud execution** -> GitHub only (`enableGitHub: true`, `enableLocal: false`).
-- **Local execution with native picker** -> local folder only
+- **Cloud run** -> GitHub only (`enableGitHub: true`, `enableLocal: false`).
+- **Local run with native picker** -> local folder only
   (`enableGitHub: false`, `enableLocal: true`).
-- **Local execution without native picker** -> GitHub fallback
+- **Local run without native picker** -> GitHub fallback
   (`enableGitHub: true`, `enableLocal: true`) so the user is
   never left with zero workspace sources.
 
@@ -347,7 +347,7 @@ The always-mounted toggle for a collapsible workspace panel — the Cursor
 "Show panel" chip. Collapsed, it carries the pending-item count; open, it
 is the hide affordance. Being a small leaf, it is also the one place that
 may safely carry per-arrival re-renders while the panel subtree is
-unmounted. Execution status deliberately does not surface here (or
+unmounted. Run status deliberately does not surface here (or
 anywhere else in viewer chrome) — the thread/graph itself communicates run
 state.
 
@@ -478,7 +478,7 @@ entry's name and source (git repository URL or local path).
 
 This is the display-only counterpart to [`WorkspaceEditor`](#workspaceeditor),
 designed for contexts where workspace data is shown but not edited
-(e.g., execution detail views, session summaries).
+(e.g., run detail views, session summaries).
 
 Renders its content without card chrome (no border, background, or
 elevation). The consumer controls the container styling.
@@ -521,7 +521,7 @@ All visual properties flow through `--stgm-*` tokens.
 
 <TypeTable
   type={{
-    builtInViews: { type: "readonly (\"search\" | \"files\")[]", description: "Which built-in rail views the surface offers, in rail order. Defaults to all of them; hosts without a workspace file source pass `[]` so the rail carries only their injected `extraViews` — an honest facet-only surface instead of inert Explorer/Search icons (an opt-in behavior change with a backward-compatible default). The workflow execution panel does this until a workspace source wires a lister." },
+    builtInViews: { type: "readonly (\"search\" | \"files\")[]", description: "Which built-in rail views the surface offers, in rail order. Defaults to all of them; hosts without a workspace file source pass `[]` so the rail carries only their injected `extraViews` — an honest facet-only surface instead of inert Explorer/Search icons (an opt-in behavior change with a backward-compatible default). The workflow run panel does this until a workspace source wires a lister." },
     change: { type: "FileChange", description: "The session FileChange that touched the open file, when it was changed this session. When present the editor defaults to the authoritative `baseline→candidate` diff, matching the inspector's Viewer tab." },
     className: { type: "string", description: "Additional CSS classes for the root element." },
     editors: { type: "readonly OpenEditor[]", description: "Open editor tabs in order (VS Code open-editors model).", required: true },
@@ -559,10 +559,10 @@ Read-only viewer for a single workspace file.
 
 A thin shell (no new rendering): it resolves the open file, drives
 [`useWorkspaceFileContent`](#useworkspacefilecontent), and — for displayable text — delegates to
-the shared [`ArtifactContentRenderer`](/docs/sdk/react/execution#artifactcontentrenderer) (markdown / YAML / JSON /
+the shared [`ArtifactContentRenderer`](/docs/sdk/react/run#artifactcontentrenderer) (markdown / YAML / JSON /
 line-numbered text). Its state body deliberately mirrors
 `ArtifactFileContent` in `execution/` (same skeleton, error, and
-delegation), extended with the three states an execution artifact never
+delegation), extended with the three states a run artifact never
 has — binary, too-large, and unsupported-substrate. The two are **not**
 merged into one shared component: their surrounding chrome (an artifact's
 copy/download/apply bar vs. this viewer's header) differs enough that a
@@ -658,7 +658,7 @@ hosts extend its rail.
 ### SurfaceVirtualDocument
 
 A host-injected virtual document: an editor tab whose content is not a
-workspace file — the session's `plan.md` today; execution artifacts are the
+workspace file — the session's `plan.md` today; run artifacts are the
 anticipated next family.
 
 The editor-area counterpart of [`SurfaceRailView`](#surfacerailview)'s rail injection:

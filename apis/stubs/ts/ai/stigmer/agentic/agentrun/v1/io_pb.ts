@@ -66,7 +66,7 @@ export const SessionIdSchema: GenMessage<SessionId> = /*@__PURE__*/
  */
 export type AgentRunList = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunList"> & {
   /**
-   * Not computed for this list: 1 when the response holds every execution,
+   * Not computed for this list: 1 when the response holds every run,
    * 0 when next_page_token is set. Follow next_page_token instead.
    *
    * @generated from field: int32 total_pages = 1;
@@ -81,10 +81,10 @@ export type AgentRunList = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunList"
   entries: AgentRun[];
 
   /**
-   * Set when more executions may follow: pass it as page_token to
-   * continue. A page may hold fewer executions than page_size, even none,
+   * Set when more runs may follow: pass it as page_token to
+   * continue. A page may hold fewer runs than page_size, even none,
    * and still carry a token. Empty when the list is complete, and always
-   * empty from listBySession, which returns a session's executions whole.
+   * empty from listBySession, which returns a session's runs whole.
    *
    * @generated from field: string next_page_token = 3;
    */
@@ -105,7 +105,7 @@ export const AgentRunListSchema: GenMessage<AgentRunList> = /*@__PURE__*/
  */
 export type ListAgentRunsRequest = Message<"ai.stigmer.agentic.agentrun.v1.ListAgentRunsRequest"> & {
   /**
-   * The most executions to return, at most 100; zero returns them all.
+   * The most runs to return, at most 100; zero returns them all.
    *
    * @generated from field: int32 page_size = 1;
    */
@@ -120,7 +120,7 @@ export type ListAgentRunsRequest = Message<"ai.stigmer.agentic.agentrun.v1.ListA
   pageToken: string;
 
   /**
-   * Filter by execution phase (optional).
+   * Filter by run phase (optional).
    *
    * @generated from field: ai.stigmer.agentic.agentrun.v1.RunPhase phase = 3;
    */
@@ -136,7 +136,7 @@ export type ListAgentRunsRequest = Message<"ai.stigmer.agentic.agentrun.v1.ListA
   /**
    * Organization slug to scope the results to.
    *
-   * When set, only executions whose metadata.org matches are returned — the
+   * When set, only runs whose metadata.org matches are returned — the
    * org-context view a console tab needs. When empty, results are bounded
    * only by the caller's view permissions, which for a member of several
    * organizations spans all of them.
@@ -154,9 +154,9 @@ export const ListAgentRunsRequestSchema: GenMessage<ListAgentRunsRequest> = /*@_
   messageDesc(file_ai_stigmer_agentic_agentrun_v1_io, 3);
 
 /**
- * ListAgentRunsBySessionRequest lists all executions in a session.
+ * ListAgentRunsBySessionRequest lists all runs in a session.
  *
- * A session's executions are returned whole, newest first: a conversation
+ * A session's runs are returned whole, newest first: a conversation
  * is read as one, and every consumer of this list needs all of it.
  *
  * @generated from message ai.stigmer.agentic.agentrun.v1.ListAgentRunsBySessionRequest
@@ -170,7 +170,7 @@ export type ListAgentRunsBySessionRequest = Message<"ai.stigmer.agentic.agentrun
   sessionId: string;
 
   /**
-   * Not read: a session's executions are returned whole.
+   * Not read: a session's runs are returned whole.
    *
    * @generated from field: int32 page_size = 2 [deprecated = true];
    * @deprecated
@@ -178,7 +178,7 @@ export type ListAgentRunsBySessionRequest = Message<"ai.stigmer.agentic.agentrun
   pageSize: number;
 
   /**
-   * Not read: a session's executions are returned whole.
+   * Not read: a session's runs are returned whole.
    *
    * @generated from field: string page_token = 3 [deprecated = true];
    * @deprecated
@@ -195,7 +195,7 @@ export const ListAgentRunsBySessionRequestSchema: GenMessage<ListAgentRunsBySess
 
 /**
  * Input message for updateStatus RPC.
- * Contains only the execution ID and the status fields to be updated.
+ * Contains only the run ID and the status fields to be updated.
  * This avoids validation errors on incomplete metadata/spec fields and makes the API contract clearer.
  *
  * @generated from message ai.stigmer.agentic.agentrun.v1.AgentRunUpdateStatusInput
@@ -211,7 +211,7 @@ export type AgentRunUpdateStatusInput = Message<"ai.stigmer.agentic.agentrun.v1.
 
   /**
    * Status fields to update.
-   * The handler will merge these status fields with the existing execution's status.
+   * The handler will merge these status fields with the existing run's status.
    * Only the fields present in this status object will be updated.
    *
    * @generated from field: ai.stigmer.agentic.agentrun.v1.AgentRunStatus status = 2;
@@ -232,7 +232,7 @@ export const AgentRunUpdateStatusInputSchema: GenMessage<AgentRunUpdateStatusInp
  * to avoid serializing the full resource on every progressive update
  * (~every 2-3 seconds during streaming).
  *
- * The response carries an optional execution control signal from the
+ * The response carries an optional run control signal from the
  * platform back to the runner. The signal is generic — the runner acts
  * on STOP / WARNING without knowing the source (billing, admin, budget).
  *
@@ -266,7 +266,7 @@ export const UpdateStatusResponseSchema: GenMessage<UpdateStatusResponse> = /*@_
  * Input for submitting an approval decision.
  *
  * All required fields must be provided. The handler validates:
- * 1. The execution exists and is in RUN_WAITING_FOR_APPROVAL phase
+ * 1. The run exists and is in RUN_WAITING_FOR_APPROVAL phase
  * 2. The tool_call_id matches status.pending_approval.tool_call_id
  * 3. The action is a valid non-UNSPECIFIED enum value
  *
@@ -458,24 +458,24 @@ export const SubmitFileDecisionInputSchema: GenMessage<SubmitFileDecisionInput> 
  *
  * Cancellation sends a signal to the agent run, allowing it to clean up
  * gracefully. The agent can handle the cancellation signal (e.g., save checkpoint,
- * report status) before the execution transitions to CANCELLED phase.
+ * report status) before the run transitions to CANCELLED phase.
  *
  * ## Behavior
  *
  * - Sends cancellation signal to Temporal via CancelWorkflow API
  * - Agent activity receives cancellation and saves checkpoint
- * - Execution transitions to RUN_CANCELLED phase after cleanup
+ * - Run transitions to RUN_CANCELLED phase after cleanup
  * - LangGraph checkpoint is preserved for potential future recovery
  *
  * ## Preconditions
  *
- * - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
+ * - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
  * - User must have can_edit permission on the agent run
  *
  * ## Idempotency
  *
- * If the execution is already cancelled (phase == RUN_CANCELLED),
- * the call succeeds as a no-op and returns the current execution state.
+ * If the run is already cancelled (phase == RUN_CANCELLED),
+ * the call succeeds as a no-op and returns the current run state.
  *
  * ## Use Cases
  *
@@ -515,7 +515,7 @@ export type CancelAgentRunInput = Message<"ai.stigmer.agentic.agentrun.v1.Cancel
    * Examples:
    * - "User requested cancellation"
    * - "Incorrect input provided to agent"
-   * - "Superseded by newer execution"
+   * - "Superseded by newer run"
    * - "Pre-maintenance shutdown"
    *
    * @generated from field: string reason = 2;
@@ -541,19 +541,19 @@ export const CancelAgentRunInputSchema: GenMessage<CancelAgentRunInput> = /*@__P
  *
  * - Force-kills workflow via Temporal TerminateWorkflow API
  * - Agent activity does NOT receive any signal (cannot clean up)
- * - Execution transitions to RUN_TERMINATED phase immediately
+ * - Run transitions to RUN_TERMINATED phase immediately
  * - All in-progress tool calls are stopped abruptly
  * - LangGraph checkpoint may be incomplete
  *
  * ## Preconditions
  *
- * - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
+ * - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
  * - User must have can_edit permission on the agent run
  *
  * ## Idempotency
  *
- * If the execution is already terminated (phase == RUN_TERMINATED),
- * the call succeeds as a no-op and returns the current execution state.
+ * If the run is already terminated (phase == RUN_TERMINATED),
+ * the call succeeds as a no-op and returns the current run state.
  *
  * ## Terminated vs Cancelled
  *
@@ -630,19 +630,19 @@ export const TerminateAgentRunInputSchema: GenMessage<TerminateAgentRunInput> = 
  * - The LangGraph checkpoint is loaded using the preserved thread_id, so
  *   completed work carries over from the session's harness state
  * - Completed tool calls are NOT re-executed
- * - Execution transitions from FAILED back to IN_PROGRESS phase
+ * - Run transitions from FAILED back to IN_PROGRESS phase
  * - Agent retries from where it failed
  *
  * ## Preconditions
  *
- * - Execution must be in RUN_FAILED phase
- * - TERMINATED executions cannot be recovered (incomplete checkpoint)
- * - CANCELLED executions cannot be recovered (intentional user action)
+ * - Run must be in RUN_FAILED phase
+ * - TERMINATED runs cannot be recovered (incomplete checkpoint)
+ * - CANCELLED runs cannot be recovered (intentional user action)
  * - User must have can_edit permission on the agent run
  *
  * ## Idempotency
  *
- * If recovery is already in progress (execution moved to IN_PROGRESS after
+ * If recovery is already in progress (run moved to IN_PROGRESS after
  * a previous recover call), the call succeeds as a no-op and returns current state.
  *
  * ## Use Cases
@@ -664,7 +664,7 @@ export type RecoverAgentRunInput = Message<"ai.stigmer.agentic.agentrun.v1.Recov
   /**
    * Agent run ID to recover.
    *
-   * Must be in FAILED phase. TERMINATED and CANCELLED executions
+   * Must be in FAILED phase. TERMINATED and CANCELLED runs
    * cannot be recovered.
    *
    * Format: "aex_{ulid}" (auto-generated unique identifier)
@@ -687,7 +687,7 @@ export const RecoverAgentRunInputSchema: GenMessage<RecoverAgentRunInput> = /*@_
 /**
  * PauseAgentRunInput requests temporarily pausing an agent run.
  *
- * Pauses the agent at its current checkpoint. Unlike cancel, the execution
+ * Pauses the agent at its current checkpoint. Unlike cancel, the run
  * is NOT terminal and can be resumed later from where it left off.
  *
  * ## Behavior
@@ -696,7 +696,7 @@ export const RecoverAgentRunInputSchema: GenMessage<RecoverAgentRunInput> = /*@_
  * 1. A "pause" signal is sent to the Temporal workflow
  * 2. Running activity is gracefully cancelled (checkpoint saved)
  * 3. LangGraph auto-saves checkpoint on cancellation
- * 4. Execution transitions to RUN_PAUSED phase
+ * 4. Run transitions to RUN_PAUSED phase
  * 5. Workflow waits for resume signal (no resources consumed)
  *
  * ## Resume Flow
@@ -709,8 +709,8 @@ export const RecoverAgentRunInputSchema: GenMessage<RecoverAgentRunInput> = /*@_
  *
  * ## Preconditions
  *
- * - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
- * - Cannot pause already paused or terminal executions
+ * - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
+ * - Cannot pause already paused or terminal runs
  *
  * ## Use Cases
  *
@@ -733,7 +733,7 @@ export type PauseAgentRunInput = Message<"ai.stigmer.agentic.agentrun.v1.PauseAg
    * Agent run ID to pause.
    *
    * Must be in PENDING or IN_PROGRESS phase. Cannot pause
-   * executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
+   * runs that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
    *
    * Format: "aex_{ulid}" (auto-generated unique identifier)
    * Example: "aex_abc123xyz456"
@@ -771,7 +771,7 @@ export const PauseAgentRunInputSchema: GenMessage<PauseAgentRunInput> = /*@__PUR
 /**
  * ResumeAgentRunInput requests resuming a paused agent run.
  *
- * Continues execution from the checkpoint where it was paused. The agent
+ * Continues the run from the checkpoint where it was paused. The agent
  * re-invokes activities with the same thread_id, which loads from checkpoint
  * and continues from where it left off.
  *
@@ -786,13 +786,13 @@ export const PauseAgentRunInputSchema: GenMessage<PauseAgentRunInput> = /*@__PUR
  *
  * ## Preconditions
  *
- * - Execution must be in RUN_PAUSED phase
- * - Cannot resume non-paused executions
+ * - Run must be in RUN_PAUSED phase
+ * - Cannot resume non-paused runs
  *
  * ## Idempotency
  *
- * If the execution is not paused (already IN_PROGRESS),
- * the call succeeds as a no-op and returns the current execution state.
+ * If the run is not paused (already IN_PROGRESS),
+ * the call succeeds as a no-op and returns the current run state.
  *
  * ## Example
  *
@@ -806,7 +806,7 @@ export type ResumeAgentRunInput = Message<"ai.stigmer.agentic.agentrun.v1.Resume
   /**
    * Agent run ID to resume.
    *
-   * Must be in PAUSED phase. Cannot resume executions
+   * Must be in PAUSED phase. Cannot resume runs
    * that are not paused.
    *
    * Format: "aex_{ulid}" (auto-generated unique identifier)
@@ -930,7 +930,7 @@ export type UploadAttachmentResponse = Message<"ai.stigmer.agentic.agentrun.v1.U
   /**
    * Storage key for the uploaded attachment.
    *
-   * Use this key in Attachment.storage_key when creating an run.
+   * Use this key in Attachment.storage_key when creating a run.
    * The key includes a unique identifier and the filename.
    *
    * Format: "attachments/{ulid}/{filename}"
@@ -949,22 +949,22 @@ export const UploadAttachmentResponseSchema: GenMessage<UploadAttachmentResponse
   messageDesc(file_ai_stigmer_agentic_agentrun_v1_io, 16);
 
 /**
- * GetArtifactDownloadUrlRequest requests a download URL for an execution artifact.
+ * GetArtifactDownloadUrlRequest requests a download URL for a run artifact.
  *
  * This endpoint generates presigned URLs for artifacts published by agents
- * during run. The URLs are time-limited and can be used for direct
+ * during the run. The URLs are time-limited and can be used for direct
  * HTTP download without authentication.
  *
  * ## Authorization
  *
  * Requires can_view permission on the run. This ensures users can only
- * access artifacts from executions they have access to.
+ * access artifacts from runs they have access to.
  *
  * ## Security
  *
  * The storage_key is validated to ensure it belongs to the specified run.
  * Storage keys must start with "artifacts/{run_id}/" to prevent path
- * traversal attacks where a user could request URLs for other executions'
+ * traversal attacks where a user could request URLs for other runs'
  * artifacts.
  *
  * ## Use Cases
@@ -1009,9 +1009,9 @@ export type GetArtifactDownloadUrlRequest = Message<"ai.stigmer.agentic.agentrun
    *
    * Must be an artifact from the specified run. The storage_key
    * is validated to start with "artifacts/{run_id}/" to prevent
-   * access to other executions' artifacts.
+   * access to other runs' artifacts.
    *
-   * Obtain this value from RunArtifact.storage_key in the execution status.
+   * Obtain this value from RunArtifact.storage_key in the run status.
    *
    * Format: "artifacts/{run_id}/{filename}"
    * Example: "artifacts/aex_abc123xyz456/generated-skill.zip"
@@ -1096,7 +1096,7 @@ export const GetArtifactDownloadUrlResponseSchema: GenMessage<GetArtifactDownloa
   messageDesc(file_ai_stigmer_agentic_agentrun_v1_io, 18);
 
 /**
- * GetArtifactContentRequest reads the raw content of an execution artifact.
+ * GetArtifactContentRequest reads the raw content of a run artifact.
  *
  * Unlike getArtifactDownloadUrl (which returns a presigned URL for direct
  * browser download), this endpoint returns the artifact bytes through the
@@ -1107,13 +1107,13 @@ export const GetArtifactDownloadUrlResponseSchema: GenMessage<GetArtifactDownloa
  * ## Authorization
  *
  * Requires can_view permission on the run. This ensures users can only
- * read artifacts from executions they have access to.
+ * read artifacts from runs they have access to.
  *
  * ## Security
  *
  * The storage_key is validated to ensure it belongs to the specified run.
  * Storage keys must start with "artifacts/{run_id}/" to prevent path
- * traversal attacks where a user could request content from other executions'
+ * traversal attacks where a user could request content from other runs'
  * artifacts.
  *
  * ## Size Limit
@@ -1167,9 +1167,9 @@ export type GetArtifactContentRequest = Message<"ai.stigmer.agentic.agentrun.v1.
    *
    * Must be an artifact from the specified run. The storage_key
    * is validated to start with "artifacts/{run_id}/" to prevent
-   * access to other executions' artifacts.
+   * access to other runs' artifacts.
    *
-   * Obtain this value from RunArtifact.storage_key in the execution status.
+   * Obtain this value from RunArtifact.storage_key in the run status.
    *
    * Format: "artifacts/{run_id}/{filename}"
    * Example: "artifacts/aex_abc123xyz456/pr-review-agent.yaml"
@@ -1220,7 +1220,7 @@ export const GetArtifactContentRequestSchema: GenMessage<GetArtifactContentReque
   messageDesc(file_ai_stigmer_agentic_agentrun_v1_io, 19);
 
 /**
- * GetArtifactContentResponse returns the raw content of an execution artifact.
+ * GetArtifactContentResponse returns the raw content of a run artifact.
  *
  * The content field contains the artifact bytes (up to max_bytes). For text
  * artifacts, clients decode via TextDecoder or equivalent. The content_type
@@ -1288,7 +1288,7 @@ export const GetArtifactContentResponseSchema: GenMessage<GetArtifactContentResp
  */
 export type GetRunUsageReportInput = Message<"ai.stigmer.agentic.agentrun.v1.GetRunUsageReportInput"> & {
   /**
-   * Execution ID to get usage report for.
+   * Run ID to get usage report for.
    *
    * @generated from field: string run_id = 1;
    */
@@ -1332,7 +1332,7 @@ export const GetRunUsageReportOutputSchema: GenMessage<GetRunUsageReportOutput> 
 
 /**
  * GetSessionUsageReportInput requests a usage report for a single session.
- * Aggregates cost and token data across all executions in the session.
+ * Aggregates cost and token data across all runs in the session.
  *
  * @generated from message ai.stigmer.agentic.agentrun.v1.GetSessionUsageReportInput
  */
@@ -1355,8 +1355,8 @@ export const GetSessionUsageReportInputSchema: GenMessage<GetSessionUsageReportI
 /**
  * GetSessionUsageReportOutput returns aggregated usage for a session.
  *
- * Provides both the session-level totals and per-execution breakdown,
- * enabling drill-down from "this session cost $0.90" to "execution #3
+ * Provides both the session-level totals and per-run breakdown,
+ * enabling drill-down from "this session cost $0.90" to "run #3
  * cost $0.12 because it used claude-sonnet-4."
  *
  * @generated from message ai.stigmer.agentic.agentrun.v1.GetSessionUsageReportOutput
@@ -1370,21 +1370,21 @@ export type GetSessionUsageReportOutput = Message<"ai.stigmer.agentic.agentrun.v
   sessionId: string;
 
   /**
-   * Total number of executions in this session.
+   * Total number of runs in this session.
    *
    * @generated from field: int32 run_count = 2;
    */
   runCount: number;
 
   /**
-   * Aggregated usage across all executions in this session.
+   * Aggregated usage across all runs in this session.
    *
    * @generated from field: ai.stigmer.agentic.agentrun.v1.UsageReportAggregate total_usage = 3;
    */
   totalUsage?: UsageReportAggregate;
 
   /**
-   * Per-execution breakdown (ordered chronologically).
+   * Per-run breakdown (ordered chronologically).
    *
    * @generated from field: repeated ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4;
    */
@@ -1398,14 +1398,14 @@ export type GetSessionUsageReportOutput = Message<"ai.stigmer.agentic.agentrun.v
   modelBreakdown: ModelUsage[];
 
   /**
-   * ISO 8601 timestamp of the first execution in this session.
+   * ISO 8601 timestamp of the first run in this session.
    *
    * @generated from field: string first_run_at = 6;
    */
   firstRunAt: string;
 
   /**
-   * ISO 8601 timestamp of the most recent execution in this session.
+   * ISO 8601 timestamp of the most recent run in this session.
    *
    * @generated from field: string last_run_at = 7;
    */
@@ -1413,7 +1413,7 @@ export type GetSessionUsageReportOutput = Message<"ai.stigmer.agentic.agentrun.v
 
   /**
    * Whether any record in this session is still estimated (not yet proxy-metered).
-   * True when execution is in-flight and only streaming usage data is available.
+   * True when the run is in flight and only streaming usage data is available.
    * False once proxy billing records have been written.
    *
    * @generated from field: bool is_estimated = 8;
@@ -1475,7 +1475,7 @@ export type GetAgentUsageReportInput = Message<"ai.stigmer.agentic.agentrun.v1.G
 
   /**
    * Organization scope for the report: usage of this agent within this
-   * organization. Only executions belonging to this organization are
+   * organization. Only runs belonging to this organization are
    * aggregated. The caller must hold can_view on the organization.
    *
    * @generated from field: string org = 6;
@@ -1542,7 +1542,7 @@ export type GetAgentUsageReportOutput = Message<"ai.stigmer.agentic.agentrun.v1.
   totalSessions: number;
 
   /**
-   * Total number of executions within the time range.
+   * Total number of runs within the time range.
    *
    * @generated from field: int32 total_runs = 7;
    */
@@ -1626,7 +1626,7 @@ export type GetOrgUsageReportOutput = Message<"ai.stigmer.agentic.agentrun.v1.Ge
   org: string;
 
   /**
-   * Total distinct agents with executions in the time range.
+   * Total distinct agents with runs in the time range.
    *
    * @generated from field: int32 total_agents = 2;
    */
@@ -1640,7 +1640,7 @@ export type GetOrgUsageReportOutput = Message<"ai.stigmer.agentic.agentrun.v1.Ge
   totalSessions: number;
 
   /**
-   * Total executions across all agents in the time range.
+   * Total runs across all agents in the time range.
    *
    * @generated from field: int32 total_runs = 4;
    */
@@ -1690,27 +1690,27 @@ export const GetOrgUsageReportOutputSchema: GenMessage<GetOrgUsageReportOutput> 
   messageDesc(file_ai_stigmer_agentic_agentrun_v1_io, 28);
 
 /**
- * Lightweight view of a single execution's usage within a session report.
+ * Lightweight view of a single run's usage within a session report.
  *
  * @generated from message ai.stigmer.agentic.agentrun.v1.RunUsageSummary
  */
 export type RunUsageSummary = Message<"ai.stigmer.agentic.agentrun.v1.RunUsageSummary"> & {
   /**
-   * Execution identifier.
+   * Run identifier.
    *
    * @generated from field: string run_id = 1;
    */
   runId: string;
 
   /**
-   * ISO 8601 timestamp when execution started.
+   * ISO 8601 timestamp when the run started.
    *
    * @generated from field: string started_at = 2;
    */
   startedAt: string;
 
   /**
-   * ISO 8601 timestamp when execution completed.
+   * ISO 8601 timestamp when the run completed.
    *
    * @generated from field: string completed_at = 3;
    */
@@ -1766,7 +1766,7 @@ export type RunUsageSummary = Message<"ai.stigmer.agentic.agentrun.v1.RunUsageSu
   phase: RunPhase;
 
   /**
-   * Whether this execution's cost is estimated (in-flight, no billing records yet).
+   * Whether this run's cost is estimated (in-flight, no billing records yet).
    *
    * @generated from field: bool is_estimated = 11;
    */
@@ -1794,14 +1794,14 @@ export type SessionUsageSummary = Message<"ai.stigmer.agentic.agentrun.v1.Sessio
   sessionId: string;
 
   /**
-   * Number of executions in this session.
+   * Number of runs in this session.
    *
    * @generated from field: int32 run_count = 2;
    */
   runCount: number;
 
   /**
-   * Total tokens across all executions (cache-inclusive: the sum of each
+   * Total tokens across all runs (cache-inclusive: the sum of each
    * call's provider-reported total, including cached input tokens).
    *
    * @generated from field: int64 total_tokens = 3;
@@ -1816,14 +1816,14 @@ export type SessionUsageSummary = Message<"ai.stigmer.agentic.agentrun.v1.Sessio
   billableCostMicros: bigint;
 
   /**
-   * ISO 8601 timestamp of the first execution in this session.
+   * ISO 8601 timestamp of the first run in this session.
    *
    * @generated from field: string first_run_at = 5;
    */
   firstRunAt: string;
 
   /**
-   * ISO 8601 timestamp of the most recent execution in this session.
+   * ISO 8601 timestamp of the most recent run in this session.
    *
    * @generated from field: string last_run_at = 6;
    */
@@ -1858,14 +1858,14 @@ export type AgentUsageSummary = Message<"ai.stigmer.agentic.agentrun.v1.AgentUsa
   agentName: string;
 
   /**
-   * Total executions for this agent in the time range.
+   * Total runs for this agent in the time range.
    *
    * @generated from field: int32 run_count = 3;
    */
   runCount: number;
 
   /**
-   * Total tokens across all executions (cache-inclusive: the sum of each
+   * Total tokens across all runs (cache-inclusive: the sum of each
    * call's provider-reported total, including cached input tokens).
    *
    * @generated from field: int64 total_tokens = 4;
@@ -1901,7 +1901,7 @@ export type DailyCostEntry = Message<"ai.stigmer.agentic.agentrun.v1.DailyCostEn
   date: string;
 
   /**
-   * Number of executions on this date.
+   * Number of runs on this date.
    *
    * @generated from field: int32 run_count = 2;
    */
@@ -1933,7 +1933,7 @@ export const DailyCostEntrySchema: GenMessage<DailyCostEntry> = /*@__PURE__*/
  * Cost split by execution harness within an org report.
  *
  * Each entry represents one harness (e.g., "native" or "cursor") and
- * aggregates cost, call count, and execution count for that harness
+ * aggregates cost, call count, and run count for that harness
  * within the report's time range.
  *
  * @generated from message ai.stigmer.agentic.agentrun.v1.HarnessCostSummary
@@ -1961,7 +1961,7 @@ export type HarnessCostSummary = Message<"ai.stigmer.agentic.agentrun.v1.Harness
   callCount: number;
 
   /**
-   * Number of distinct executions that used this harness.
+   * Number of distinct runs that used this harness.
    *
    * @generated from field: int32 run_count = 4;
    */
@@ -1976,7 +1976,7 @@ export const HarnessCostSummarySchema: GenMessage<HarnessCostSummary> = /*@__PUR
   messageDesc(file_ai_stigmer_agentic_agentrun_v1_io, 33);
 
 /**
- * GetAgentRunSummaryRequest fetches aggregated execution statistics
+ * GetAgentRunSummaryRequest fetches aggregated run statistics
  * for an organization's agent runs.
  *
  * @generated from message ai.stigmer.agentic.agentrun.v1.GetAgentRunSummaryRequest
@@ -2018,7 +2018,7 @@ export const GetAgentRunSummaryRequestSchema: GenMessage<GetAgentRunSummaryReque
  */
 export type AgentRunSummary = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSummary"> & {
   /**
-   * Number of executions currently in a non-terminal phase
+   * Number of runs currently in a non-terminal phase
    * (PENDING, IN_PROGRESS, WAITING_FOR_APPROVAL, PAUSED).
    *
    * @generated from field: int32 active_count = 1;
@@ -2026,20 +2026,20 @@ export type AgentRunSummary = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSu
   activeCount: number;
 
   /**
-   * Execution counts broken down by RunPhase enum value.
+   * Run counts broken down by RunPhase enum value.
    *
    * Keys are RunPhase enum values (as int32).
-   * Only phases with at least one execution are included.
+   * Only phases with at least one run are included.
    *
    * @generated from field: map<int32, int32> phase_counts = 2;
    */
   phaseCounts: { [key: number]: number };
 
   /**
-   * Mean execution duration (from started_at to completed_at) for completed
-   * executions in the time window.
+   * Mean run duration (from started_at to completed_at) for completed
+   * runs in the time window.
    *
-   * Zero when no completed executions exist.
+   * Zero when no completed runs exist.
    *
    * @generated from field: google.protobuf.Duration avg_duration = 3;
    */
@@ -2084,7 +2084,7 @@ export type AgentFailureRank = Message<"ai.stigmer.agentic.agentrun.v1.AgentFail
   agentName: string;
 
   /**
-   * Number of failed executions in the time window.
+   * Number of failed runs in the time window.
    *
    * @generated from field: int32 failure_count = 3;
    */

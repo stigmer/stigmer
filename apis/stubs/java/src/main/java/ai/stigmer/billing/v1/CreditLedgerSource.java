@@ -213,10 +213,10 @@ private static final long serialVersionUID = 0L;
   private int llmCallSequence_ = 0;
   /**
    * <pre>
-   * Sequence number of the LLM call within the execution (1-based), as the
+   * Sequence number of the LLM call within the run (1-based), as the
    * reporting proxy counted it. Display and ordering; the locator of the
    * debited usage record is llm_call_id, because a proxy restart makes two
-   * calls of one execution share a sequence.
+   * calls of one run share a sequence.
    * </pre>
    *
    * <code>int32 llm_call_sequence = 4 [json_name = "llmCallSequence"];</code>
@@ -1314,10 +1314,10 @@ private static final long serialVersionUID = 0L;
     private int llmCallSequence_ ;
     /**
      * <pre>
-     * Sequence number of the LLM call within the execution (1-based), as the
+     * Sequence number of the LLM call within the run (1-based), as the
      * reporting proxy counted it. Display and ordering; the locator of the
      * debited usage record is llm_call_id, because a proxy restart makes two
-     * calls of one execution share a sequence.
+     * calls of one run share a sequence.
      * </pre>
      *
      * <code>int32 llm_call_sequence = 4 [json_name = "llmCallSequence"];</code>
@@ -1329,10 +1329,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Sequence number of the LLM call within the execution (1-based), as the
+     * Sequence number of the LLM call within the run (1-based), as the
      * reporting proxy counted it. Display and ordering; the locator of the
      * debited usage record is llm_call_id, because a proxy restart makes two
-     * calls of one execution share a sequence.
+     * calls of one run share a sequence.
      * </pre>
      *
      * <code>int32 llm_call_sequence = 4 [json_name = "llmCallSequence"];</code>
@@ -1348,10 +1348,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Sequence number of the LLM call within the execution (1-based), as the
+     * Sequence number of the LLM call within the run (1-based), as the
      * reporting proxy counted it. Display and ordering; the locator of the
      * debited usage record is llm_call_id, because a proxy restart makes two
-     * calls of one execution share a sequence.
+     * calls of one run share a sequence.
      * </pre>
      *
      * <code>int32 llm_call_sequence = 4 [json_name = "llmCallSequence"];</code>

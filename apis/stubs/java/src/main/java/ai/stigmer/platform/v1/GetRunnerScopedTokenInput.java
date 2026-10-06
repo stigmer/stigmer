@@ -101,7 +101,7 @@ private static final long serialVersionUID = 0L;
   public static final int AGENT_RUN_ID_FIELD_NUMBER = 1;
   /**
    * <pre>
-   * AgentRun id — yields a token scoped to the execution's parent
+   * AgentRun id — yields a token scoped to the run's parent
    * session, valid for every ExecutionContext in that session (multi-turn).
    * </pre>
    *
@@ -113,7 +113,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * AgentRun id — yields a token scoped to the execution's parent
+   * AgentRun id — yields a token scoped to the run's parent
    * session, valid for every ExecutionContext in that session (multi-turn).
    * </pre>
    *
@@ -137,7 +137,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * AgentRun id — yields a token scoped to the execution's parent
+   * AgentRun id — yields a token scoped to the run's parent
    * session, valid for every ExecutionContext in that session (multi-turn).
    * </pre>
    *
@@ -165,7 +165,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * WorkflowRun id — yields a token scoped to exactly that workflow
-   * execution's ExecutionContext.
+   * run's ExecutionContext.
    * </pre>
    *
    * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
@@ -177,7 +177,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * WorkflowRun id — yields a token scoped to exactly that workflow
-   * execution's ExecutionContext.
+   * run's ExecutionContext.
    * </pre>
    *
    * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
@@ -201,7 +201,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * WorkflowRun id — yields a token scoped to exactly that workflow
-   * execution's ExecutionContext.
+   * run's ExecutionContext.
    * </pre>
    *
    * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
@@ -751,7 +751,7 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * AgentRun id — yields a token scoped to the execution's parent
+     * AgentRun id — yields a token scoped to the run's parent
      * session, valid for every ExecutionContext in that session (multi-turn).
      * </pre>
      *
@@ -764,7 +764,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * AgentRun id — yields a token scoped to the execution's parent
+     * AgentRun id — yields a token scoped to the run's parent
      * session, valid for every ExecutionContext in that session (multi-turn).
      * </pre>
      *
@@ -789,7 +789,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * AgentRun id — yields a token scoped to the execution's parent
+     * AgentRun id — yields a token scoped to the run's parent
      * session, valid for every ExecutionContext in that session (multi-turn).
      * </pre>
      *
@@ -815,7 +815,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * AgentRun id — yields a token scoped to the execution's parent
+     * AgentRun id — yields a token scoped to the run's parent
      * session, valid for every ExecutionContext in that session (multi-turn).
      * </pre>
      *
@@ -833,7 +833,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * AgentRun id — yields a token scoped to the execution's parent
+     * AgentRun id — yields a token scoped to the run's parent
      * session, valid for every ExecutionContext in that session (multi-turn).
      * </pre>
      *
@@ -850,7 +850,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * AgentRun id — yields a token scoped to the execution's parent
+     * AgentRun id — yields a token scoped to the run's parent
      * session, valid for every ExecutionContext in that session (multi-turn).
      * </pre>
      *
@@ -871,7 +871,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * WorkflowRun id — yields a token scoped to exactly that workflow
-     * execution's ExecutionContext.
+     * run's ExecutionContext.
      * </pre>
      *
      * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
@@ -884,7 +884,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * WorkflowRun id — yields a token scoped to exactly that workflow
-     * execution's ExecutionContext.
+     * run's ExecutionContext.
      * </pre>
      *
      * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
@@ -909,7 +909,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * WorkflowRun id — yields a token scoped to exactly that workflow
-     * execution's ExecutionContext.
+     * run's ExecutionContext.
      * </pre>
      *
      * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
@@ -935,7 +935,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * WorkflowRun id — yields a token scoped to exactly that workflow
-     * execution's ExecutionContext.
+     * run's ExecutionContext.
      * </pre>
      *
      * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
@@ -953,7 +953,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * WorkflowRun id — yields a token scoped to exactly that workflow
-     * execution's ExecutionContext.
+     * run's ExecutionContext.
      * </pre>
      *
      * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
@@ -970,7 +970,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * WorkflowRun id — yields a token scoped to exactly that workflow
-     * execution's ExecutionContext.
+     * run's ExecutionContext.
      * </pre>
      *
      * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>

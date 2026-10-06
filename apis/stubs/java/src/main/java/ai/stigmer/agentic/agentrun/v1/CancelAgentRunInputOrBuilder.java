@@ -50,7 +50,7 @@ public interface CancelAgentRunInputOrBuilder extends
    * Examples:
    * - "User requested cancellation"
    * - "Incorrect input provided to agent"
-   * - "Superseded by newer execution"
+   * - "Superseded by newer run"
    * - "Pre-maintenance shutdown"
    * </pre>
    *
@@ -68,7 +68,7 @@ public interface CancelAgentRunInputOrBuilder extends
    * Examples:
    * - "User requested cancellation"
    * - "Incorrect input provided to agent"
-   * - "Superseded by newer execution"
+   * - "Superseded by newer run"
    * - "Pre-maintenance shutdown"
    * </pre>
    *

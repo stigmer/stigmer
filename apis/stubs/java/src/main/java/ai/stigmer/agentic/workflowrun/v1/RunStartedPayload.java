@@ -74,7 +74,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object workflowId_ = "";
   /**
    * <pre>
-   * Workflow ID the execution runs.
+   * ID of the workflow being run.
    * </pre>
    *
    * <code>string workflow_id = 2 [json_name = "workflowId"];</code>
@@ -95,7 +95,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Workflow ID the execution runs.
+   * ID of the workflow being run.
    * </pre>
    *
    * <code>string workflow_id = 2 [json_name = "workflowId"];</code>
@@ -487,7 +487,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object workflowId_ = "";
     /**
      * <pre>
-     * Workflow ID the execution runs.
+     * ID of the workflow being run.
      * </pre>
      *
      * <code>string workflow_id = 2 [json_name = "workflowId"];</code>
@@ -507,7 +507,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow ID the execution runs.
+     * ID of the workflow being run.
      * </pre>
      *
      * <code>string workflow_id = 2 [json_name = "workflowId"];</code>
@@ -528,7 +528,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow ID the execution runs.
+     * ID of the workflow being run.
      * </pre>
      *
      * <code>string workflow_id = 2 [json_name = "workflowId"];</code>
@@ -545,7 +545,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow ID the execution runs.
+     * ID of the workflow being run.
      * </pre>
      *
      * <code>string workflow_id = 2 [json_name = "workflowId"];</code>
@@ -559,7 +559,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Workflow ID the execution runs.
+     * ID of the workflow being run.
      * </pre>
      *
      * <code>string workflow_id = 2 [json_name = "workflowId"];</code>

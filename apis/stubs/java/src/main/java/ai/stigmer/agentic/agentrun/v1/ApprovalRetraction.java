@@ -10,11 +10,11 @@ package ai.stigmer.agentic.agentrun.v1;
  * The platform's withdrawal of an in-flight approval request — the system-actored
  * terminal transition of the approval lifecycle, authored when a gated call
  * becomes unreachable before any user decision (its sub-agent went terminal, or
- * it was superseded on resume) while the execution is still live.
+ * it was superseded on resume) while the run is still live.
  *
- * It is distinct from ApprovalDecision (the three user actions). Terminal-execution
+ * It is distinct from ApprovalDecision (the three user actions). Terminal-run
  * gate-exits (cancel / fail / terminate) are NOT modeled here — a terminal
- * execution simply has zero pending approvals by projection — so this event is
+ * run simply has zero pending approvals by projection — so this event is
  * reserved for the in-flight, per-call orphan case. See APPROVAL_EVENT_TYPE_RETRACTED.
  * </pre>
  *
@@ -366,11 +366,11 @@ private static final long serialVersionUID = 0L;
    * The platform's withdrawal of an in-flight approval request — the system-actored
    * terminal transition of the approval lifecycle, authored when a gated call
    * becomes unreachable before any user decision (its sub-agent went terminal, or
-   * it was superseded on resume) while the execution is still live.
+   * it was superseded on resume) while the run is still live.
    *
-   * It is distinct from ApprovalDecision (the three user actions). Terminal-execution
+   * It is distinct from ApprovalDecision (the three user actions). Terminal-run
    * gate-exits (cancel / fail / terminate) are NOT modeled here — a terminal
-   * execution simply has zero pending approvals by projection — so this event is
+   * run simply has zero pending approvals by projection — so this event is
    * reserved for the in-flight, per-call orphan case. See APPROVAL_EVENT_TYPE_RETRACTED.
    * </pre>
    *

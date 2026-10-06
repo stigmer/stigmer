@@ -444,7 +444,7 @@ public final class AgentRunQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all executions in a specific session.
+     * List all runs in a specific session.
      * </pre>
      */
     default void listBySession(ai.stigmer.agentic.agentrun.v1.ListAgentRunsBySessionRequest request,
@@ -454,7 +454,7 @@ public final class AgentRunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Subscribe to real-time execution updates (streaming).
+     * Subscribe to real-time run updates (streaming).
      * </pre>
      */
     default void subscribe(ai.stigmer.agentic.agentrun.v1.AgentRunId request,
@@ -464,9 +464,9 @@ public final class AgentRunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a presigned download URL for an execution artifact or attachment.
+     * Get a presigned download URL for a run artifact or attachment.
      * Returns a time-limited URL for downloading an artifact published by
-     * an agent during execution, or an attachment submitted with the
+     * an agent during the run, or an attachment submitted with the
      * run. The URL can be used with a simple HTTP GET request without
      * authentication.
      * </pre>
@@ -478,7 +478,7 @@ public final class AgentRunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Read the raw content of an execution artifact.
+     * Read the raw content of a run artifact.
      * Returns artifact bytes through the Stigmer API, eliminating CORS
      * concerns for SDK consumers who need to read content programmatically
      * (e.g., YAML parsing for resource detection, in-app preview rendering).
@@ -505,7 +505,7 @@ public final class AgentRunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for a session.
-     * Returns aggregated tokens, cost, and per-execution breakdown.
+     * Returns aggregated tokens, cost, and per-run breakdown.
      * </pre>
      */
     default void getSessionUsageReport(ai.stigmer.agentic.agentrun.v1.GetSessionUsageReportInput request,
@@ -517,8 +517,8 @@ public final class AgentRunQueryControllerGrpc {
      * <pre>
      * Get a usage report for an agent within an organization.
      * Returns aggregated tokens, cost, and per-session breakdown for one
-     * organization's executions of the agent. Requires can_view on the
-     * organization named in org; executions outside that organization are
+     * organization's runs of the agent. Requires can_view on the
+     * organization named in org; runs outside that organization are
      * never included, so the report is the per-agent drill-down of
      * getOrgUsageReport.
      * </pre>
@@ -541,7 +541,7 @@ public final class AgentRunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get aggregated execution statistics for an organization's agent runs.
+     * Get aggregated run statistics for an organization's agent runs.
      * Returns counts by phase, active count, average duration, and top failing
      * agents — scoped to a configurable time window (24h, 7d, 30d, all-time).
      * </pre>
@@ -609,7 +609,7 @@ public final class AgentRunQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all executions in a specific session.
+     * List all runs in a specific session.
      * </pre>
      */
     public void listBySession(ai.stigmer.agentic.agentrun.v1.ListAgentRunsBySessionRequest request,
@@ -620,7 +620,7 @@ public final class AgentRunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Subscribe to real-time execution updates (streaming).
+     * Subscribe to real-time run updates (streaming).
      * </pre>
      */
     public void subscribe(ai.stigmer.agentic.agentrun.v1.AgentRunId request,
@@ -631,9 +631,9 @@ public final class AgentRunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a presigned download URL for an execution artifact or attachment.
+     * Get a presigned download URL for a run artifact or attachment.
      * Returns a time-limited URL for downloading an artifact published by
-     * an agent during execution, or an attachment submitted with the
+     * an agent during the run, or an attachment submitted with the
      * run. The URL can be used with a simple HTTP GET request without
      * authentication.
      * </pre>
@@ -646,7 +646,7 @@ public final class AgentRunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Read the raw content of an execution artifact.
+     * Read the raw content of a run artifact.
      * Returns artifact bytes through the Stigmer API, eliminating CORS
      * concerns for SDK consumers who need to read content programmatically
      * (e.g., YAML parsing for resource detection, in-app preview rendering).
@@ -675,7 +675,7 @@ public final class AgentRunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for a session.
-     * Returns aggregated tokens, cost, and per-execution breakdown.
+     * Returns aggregated tokens, cost, and per-run breakdown.
      * </pre>
      */
     public void getSessionUsageReport(ai.stigmer.agentic.agentrun.v1.GetSessionUsageReportInput request,
@@ -688,8 +688,8 @@ public final class AgentRunQueryControllerGrpc {
      * <pre>
      * Get a usage report for an agent within an organization.
      * Returns aggregated tokens, cost, and per-session breakdown for one
-     * organization's executions of the agent. Requires can_view on the
-     * organization named in org; executions outside that organization are
+     * organization's runs of the agent. Requires can_view on the
+     * organization named in org; runs outside that organization are
      * never included, so the report is the per-agent drill-down of
      * getOrgUsageReport.
      * </pre>
@@ -714,7 +714,7 @@ public final class AgentRunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get aggregated execution statistics for an organization's agent runs.
+     * Get aggregated run statistics for an organization's agent runs.
      * Returns counts by phase, active count, average duration, and top failing
      * agents — scoped to a configurable time window (24h, 7d, 30d, all-time).
      * </pre>
@@ -767,7 +767,7 @@ public final class AgentRunQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all executions in a specific session.
+     * List all runs in a specific session.
      * </pre>
      */
     public ai.stigmer.agentic.agentrun.v1.AgentRunList listBySession(ai.stigmer.agentic.agentrun.v1.ListAgentRunsBySessionRequest request) throws io.grpc.StatusException {
@@ -777,7 +777,7 @@ public final class AgentRunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Subscribe to real-time execution updates (streaming).
+     * Subscribe to real-time run updates (streaming).
      * </pre>
      */
     @io.grpc.ExperimentalApi("https://github.com/grpc/grpc-java/issues/10918")
@@ -789,9 +789,9 @@ public final class AgentRunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a presigned download URL for an execution artifact or attachment.
+     * Get a presigned download URL for a run artifact or attachment.
      * Returns a time-limited URL for downloading an artifact published by
-     * an agent during execution, or an attachment submitted with the
+     * an agent during the run, or an attachment submitted with the
      * run. The URL can be used with a simple HTTP GET request without
      * authentication.
      * </pre>
@@ -803,7 +803,7 @@ public final class AgentRunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Read the raw content of an execution artifact.
+     * Read the raw content of a run artifact.
      * Returns artifact bytes through the Stigmer API, eliminating CORS
      * concerns for SDK consumers who need to read content programmatically
      * (e.g., YAML parsing for resource detection, in-app preview rendering).
@@ -830,7 +830,7 @@ public final class AgentRunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for a session.
-     * Returns aggregated tokens, cost, and per-execution breakdown.
+     * Returns aggregated tokens, cost, and per-run breakdown.
      * </pre>
      */
     public ai.stigmer.agentic.agentrun.v1.GetSessionUsageReportOutput getSessionUsageReport(ai.stigmer.agentic.agentrun.v1.GetSessionUsageReportInput request) throws io.grpc.StatusException {
@@ -842,8 +842,8 @@ public final class AgentRunQueryControllerGrpc {
      * <pre>
      * Get a usage report for an agent within an organization.
      * Returns aggregated tokens, cost, and per-session breakdown for one
-     * organization's executions of the agent. Requires can_view on the
-     * organization named in org; executions outside that organization are
+     * organization's runs of the agent. Requires can_view on the
+     * organization named in org; runs outside that organization are
      * never included, so the report is the per-agent drill-down of
      * getOrgUsageReport.
      * </pre>
@@ -866,7 +866,7 @@ public final class AgentRunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get aggregated execution statistics for an organization's agent runs.
+     * Get aggregated run statistics for an organization's agent runs.
      * Returns counts by phase, active count, average duration, and top failing
      * agents — scoped to a configurable time window (24h, 7d, 30d, all-time).
      * </pre>
@@ -918,7 +918,7 @@ public final class AgentRunQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all executions in a specific session.
+     * List all runs in a specific session.
      * </pre>
      */
     public ai.stigmer.agentic.agentrun.v1.AgentRunList listBySession(ai.stigmer.agentic.agentrun.v1.ListAgentRunsBySessionRequest request) {
@@ -928,7 +928,7 @@ public final class AgentRunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Subscribe to real-time execution updates (streaming).
+     * Subscribe to real-time run updates (streaming).
      * </pre>
      */
     public java.util.Iterator<ai.stigmer.agentic.agentrun.v1.AgentRun> subscribe(
@@ -939,9 +939,9 @@ public final class AgentRunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a presigned download URL for an execution artifact or attachment.
+     * Get a presigned download URL for a run artifact or attachment.
      * Returns a time-limited URL for downloading an artifact published by
-     * an agent during execution, or an attachment submitted with the
+     * an agent during the run, or an attachment submitted with the
      * run. The URL can be used with a simple HTTP GET request without
      * authentication.
      * </pre>
@@ -953,7 +953,7 @@ public final class AgentRunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Read the raw content of an execution artifact.
+     * Read the raw content of a run artifact.
      * Returns artifact bytes through the Stigmer API, eliminating CORS
      * concerns for SDK consumers who need to read content programmatically
      * (e.g., YAML parsing for resource detection, in-app preview rendering).
@@ -980,7 +980,7 @@ public final class AgentRunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for a session.
-     * Returns aggregated tokens, cost, and per-execution breakdown.
+     * Returns aggregated tokens, cost, and per-run breakdown.
      * </pre>
      */
     public ai.stigmer.agentic.agentrun.v1.GetSessionUsageReportOutput getSessionUsageReport(ai.stigmer.agentic.agentrun.v1.GetSessionUsageReportInput request) {
@@ -992,8 +992,8 @@ public final class AgentRunQueryControllerGrpc {
      * <pre>
      * Get a usage report for an agent within an organization.
      * Returns aggregated tokens, cost, and per-session breakdown for one
-     * organization's executions of the agent. Requires can_view on the
-     * organization named in org; executions outside that organization are
+     * organization's runs of the agent. Requires can_view on the
+     * organization named in org; runs outside that organization are
      * never included, so the report is the per-agent drill-down of
      * getOrgUsageReport.
      * </pre>
@@ -1016,7 +1016,7 @@ public final class AgentRunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get aggregated execution statistics for an organization's agent runs.
+     * Get aggregated run statistics for an organization's agent runs.
      * Returns counts by phase, active count, average duration, and top failing
      * agents — scoped to a configurable time window (24h, 7d, 30d, all-time).
      * </pre>
@@ -1070,7 +1070,7 @@ public final class AgentRunQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all executions in a specific session.
+     * List all runs in a specific session.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentrun.v1.AgentRunList> listBySession(
@@ -1081,9 +1081,9 @@ public final class AgentRunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a presigned download URL for an execution artifact or attachment.
+     * Get a presigned download URL for a run artifact or attachment.
      * Returns a time-limited URL for downloading an artifact published by
-     * an agent during execution, or an attachment submitted with the
+     * an agent during the run, or an attachment submitted with the
      * run. The URL can be used with a simple HTTP GET request without
      * authentication.
      * </pre>
@@ -1096,7 +1096,7 @@ public final class AgentRunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Read the raw content of an execution artifact.
+     * Read the raw content of a run artifact.
      * Returns artifact bytes through the Stigmer API, eliminating CORS
      * concerns for SDK consumers who need to read content programmatically
      * (e.g., YAML parsing for resource detection, in-app preview rendering).
@@ -1125,7 +1125,7 @@ public final class AgentRunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for a session.
-     * Returns aggregated tokens, cost, and per-execution breakdown.
+     * Returns aggregated tokens, cost, and per-run breakdown.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentrun.v1.GetSessionUsageReportOutput> getSessionUsageReport(
@@ -1138,8 +1138,8 @@ public final class AgentRunQueryControllerGrpc {
      * <pre>
      * Get a usage report for an agent within an organization.
      * Returns aggregated tokens, cost, and per-session breakdown for one
-     * organization's executions of the agent. Requires can_view on the
-     * organization named in org; executions outside that organization are
+     * organization's runs of the agent. Requires can_view on the
+     * organization named in org; runs outside that organization are
      * never included, so the report is the per-agent drill-down of
      * getOrgUsageReport.
      * </pre>
@@ -1164,7 +1164,7 @@ public final class AgentRunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get aggregated execution statistics for an organization's agent runs.
+     * Get aggregated run statistics for an organization's agent runs.
      * Returns counts by phase, active count, average duration, and top failing
      * agents — scoped to a configurable time window (24h, 7d, 30d, all-time).
      * </pre>

@@ -116,7 +116,7 @@ private static final long serialVersionUID = 0L;
    * URI or URI-reference that identifies the context in which the event
    * happened. Supports ${ } expression interpolation.
    * When empty, the runtime defaults to the workflow run URI
-   * (e.g., "/workflows/{workflow_id}/executions/{run_id}").
+   * (e.g., "/workflows/runs/{run_id}").
    * </pre>
    *
    * <code>string source = 2 [json_name = "source", (.ai.stigmer.commons.apiresource.is_expression) = true];</code>
@@ -141,7 +141,7 @@ private static final long serialVersionUID = 0L;
    * URI or URI-reference that identifies the context in which the event
    * happened. Supports ${ } expression interpolation.
    * When empty, the runtime defaults to the workflow run URI
-   * (e.g., "/workflows/{workflow_id}/executions/{run_id}").
+   * (e.g., "/workflows/runs/{run_id}").
    * </pre>
    *
    * <code>string source = 2 [json_name = "source", (.ai.stigmer.commons.apiresource.is_expression) = true];</code>
@@ -774,7 +774,7 @@ private static final long serialVersionUID = 0L;
      * URI or URI-reference that identifies the context in which the event
      * happened. Supports ${ } expression interpolation.
      * When empty, the runtime defaults to the workflow run URI
-     * (e.g., "/workflows/{workflow_id}/executions/{run_id}").
+     * (e.g., "/workflows/runs/{run_id}").
      * </pre>
      *
      * <code>string source = 2 [json_name = "source", (.ai.stigmer.commons.apiresource.is_expression) = true];</code>
@@ -798,7 +798,7 @@ private static final long serialVersionUID = 0L;
      * URI or URI-reference that identifies the context in which the event
      * happened. Supports ${ } expression interpolation.
      * When empty, the runtime defaults to the workflow run URI
-     * (e.g., "/workflows/{workflow_id}/executions/{run_id}").
+     * (e.g., "/workflows/runs/{run_id}").
      * </pre>
      *
      * <code>string source = 2 [json_name = "source", (.ai.stigmer.commons.apiresource.is_expression) = true];</code>
@@ -823,7 +823,7 @@ private static final long serialVersionUID = 0L;
      * URI or URI-reference that identifies the context in which the event
      * happened. Supports ${ } expression interpolation.
      * When empty, the runtime defaults to the workflow run URI
-     * (e.g., "/workflows/{workflow_id}/executions/{run_id}").
+     * (e.g., "/workflows/runs/{run_id}").
      * </pre>
      *
      * <code>string source = 2 [json_name = "source", (.ai.stigmer.commons.apiresource.is_expression) = true];</code>
@@ -844,7 +844,7 @@ private static final long serialVersionUID = 0L;
      * URI or URI-reference that identifies the context in which the event
      * happened. Supports ${ } expression interpolation.
      * When empty, the runtime defaults to the workflow run URI
-     * (e.g., "/workflows/{workflow_id}/executions/{run_id}").
+     * (e.g., "/workflows/runs/{run_id}").
      * </pre>
      *
      * <code>string source = 2 [json_name = "source", (.ai.stigmer.commons.apiresource.is_expression) = true];</code>
@@ -862,7 +862,7 @@ private static final long serialVersionUID = 0L;
      * URI or URI-reference that identifies the context in which the event
      * happened. Supports ${ } expression interpolation.
      * When empty, the runtime defaults to the workflow run URI
-     * (e.g., "/workflows/{workflow_id}/executions/{run_id}").
+     * (e.g., "/workflows/runs/{run_id}").
      * </pre>
      *
      * <code>string source = 2 [json_name = "source", (.ai.stigmer.commons.apiresource.is_expression) = true];</code>

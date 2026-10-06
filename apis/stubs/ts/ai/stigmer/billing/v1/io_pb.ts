@@ -150,7 +150,7 @@ export const GrantCreditsInputSchema: GenMessage<GrantCreditsInput> = /*@__PURE_
   messageDesc(file_ai_stigmer_billing_v1_io, 2);
 
 /**
- * AuthorizeRunInput requests a credit reservation before execution starts.
+ * AuthorizeRunInput requests a credit reservation before the run starts.
  *
  * @generated from message ai.stigmer.billing.v1.AuthorizeRunInput
  */
@@ -188,13 +188,13 @@ export const AuthorizeRunInputSchema: GenMessage<AuthorizeRunInput> = /*@__PURE_
   messageDesc(file_ai_stigmer_billing_v1_io, 3);
 
 /**
- * AuthorizeRunResponse indicates whether the execution may proceed.
+ * AuthorizeRunResponse indicates whether the run may proceed.
  *
  * @generated from message ai.stigmer.billing.v1.AuthorizeRunResponse
  */
 export type AuthorizeRunResponse = Message<"ai.stigmer.billing.v1.AuthorizeRunResponse"> & {
   /**
-   * Whether the execution is authorized to start.
+   * Whether the run is authorized to start.
    *
    * @generated from field: bool authorized = 1;
    */
@@ -243,9 +243,9 @@ export const AuthorizeRunResponseSchema: GenMessage<AuthorizeRunResponse> = /*@_
  *
  * Deduplication identity: `call_id` when the caller supplies one, else
  * `sequence`. A report that is redelivered under the same identity records
- * nothing new; two reports for the same execution with distinct call ids
+ * nothing new; two reports for the same run with distinct call ids
  * are two calls even when they share a sequence number (a proxy that
- * restarted mid-execution numbers from 1 again).
+ * restarted mid-run numbers from 1 again).
  *
  * @generated from message ai.stigmer.billing.v1.RecordLlmCallUsageInput
  */
@@ -256,7 +256,7 @@ export type RecordLlmCallUsageInput = Message<"ai.stigmer.billing.v1.RecordLlmCa
   runId: string;
 
   /**
-   * 1-based call ordering within the execution, as the reporting proxy
+   * 1-based call ordering within the run, as the reporting proxy
    * counted it. An ordering hint: a proxy counts in process memory, so the
    * numbering restarts when the proxy does. Dedup identity only for callers
    * that send no call_id.
@@ -395,7 +395,7 @@ export type RecordLlmCallUsageInput = Message<"ai.stigmer.billing.v1.RecordLlmCa
    * response usage ("standard" | "priority" | "batch"), OpenAI at the
    * response top level ("default" | "flex" | "priority"). Reported
    * verbatim by the proxy from the SSE stream — the wire truth billing
-   * reconciles against the execution's REQUESTED tier (the
+   * reconciles against the run's REQUESTED tier (the
    * service_tier.mismatch counter). Empty when the provider reported
    * none, and for cursor-harness calls, whose billed variant arrives
    * through the cursor path's pricing-variant resolution instead.
@@ -406,14 +406,14 @@ export type RecordLlmCallUsageInput = Message<"ai.stigmer.billing.v1.RecordLlmCa
 
   /**
    * The agent run this call is metered under, as the proxy resolved
-   * it from the execution's system of record — on the caller's own
+   * it from the run's system of record — on the caller's own
    * credential, before reporting. The billing handler stamps these facts
    * onto the usage record and reconciles the requested tier and thinking
-   * mode against what the wire served; it performs NO execution lookup of
+   * mode against what the wire served; it performs NO run lookup of
    * its own (the same rule as cursor_account_id above: the proxy holds the
    * fact, reports it, the handler stamps it verbatim). Absent when the
-   * proxy could not resolve the execution — a workflow-execution scope,
-   * or an execution found in neither store — in which case the record
+   * proxy could not resolve the run — a workflow-run scope,
+   * or a run found in neither store — in which case the record
    * carries an empty session and the requested-vs-billed reconciliation
    * is skipped.
    *
@@ -442,16 +442,16 @@ export const RecordLlmCallUsageInputSchema: GenMessage<RecordLlmCallUsageInput> 
   messageDesc(file_ai_stigmer_billing_v1_io, 5);
 
 /**
- * The execution-side facts LLM metering denormalizes onto every usage
+ * The run-side facts LLM metering denormalizes onto every usage
  * record, carried from the proxy that authorized the call to the billing
  * handler that records it. Deliberately narrower than the settings the
- * execution resolved: only what metering reconciles or prices against.
+ * run resolved: only what metering reconciles or prices against.
  *
  * @generated from message ai.stigmer.billing.v1.MeteredRun
  */
 export type MeteredRun = Message<"ai.stigmer.billing.v1.MeteredRun"> & {
   /**
-   * The session the execution belongs to. The provider reconciler matches
+   * The session the run belongs to. The provider reconciler matches
    * Cursor conversations to sessions through the usage record's session.
    *
    * @generated from field: string session_id = 1;
@@ -459,7 +459,7 @@ export type MeteredRun = Message<"ai.stigmer.billing.v1.MeteredRun"> & {
   sessionId: string;
 
   /**
-   * The model the execution resolved (status.run_config.model_name, whichever
+   * The model the run resolved (status.run_config.model_name, whichever
    * layer chose it: the message, the agent's defaults or the lane's profile)
    * — the authoritative statement of what was asked for, and the pricing
    * fallback when the wire's requested_model came up empty. Empty when no
@@ -470,7 +470,7 @@ export type MeteredRun = Message<"ai.stigmer.billing.v1.MeteredRun"> & {
   pinnedModel: string;
 
   /**
-   * The service tier the execution resolved (status.run_config.
+   * The service tier the run resolved (status.run_config.
    * service_tier); UNSPECIFIED resolves to standard. Reconciled against
    * served_service_tier by the service_tier.mismatch counter.
    *
@@ -479,7 +479,7 @@ export type MeteredRun = Message<"ai.stigmer.billing.v1.MeteredRun"> & {
   requestedServiceTier: ServiceTier;
 
   /**
-   * The thinking mode the execution resolved (status.run_config.
+   * The thinking mode the run resolved (status.run_config.
    * thinking_mode). Reconciled against the served variant by the
    * thinking.mismatch counter.
    *
@@ -566,7 +566,7 @@ export const FinalizeRunInputSchema: GenMessage<FinalizeRunInput> = /*@__PURE__*
   messageDesc(file_ai_stigmer_billing_v1_io, 8);
 
 /**
- * FinalizeRunResponse summarizes the execution's billing outcome.
+ * FinalizeRunResponse summarizes the run's billing outcome.
  *
  * @generated from message ai.stigmer.billing.v1.FinalizeRunResponse
  */
@@ -609,7 +609,7 @@ export const FinalizeRunResponseSchema: GenMessage<FinalizeRunResponse> = /*@__P
 
 /**
  * RearmForRecoveryInput re-arms a settled reservation so a failed
- * execution can be recovered.
+ * run can be recovered.
  *
  * Recovery is the one sanctioned path past the settled-reservation latch.
  * The response is the same shape authorizeRun returns, carrying the
@@ -1062,7 +1062,7 @@ export type BillingUsageReportResponse = Message<"ai.stigmer.billing.v1.BillingU
   totalBillableAmountMicros: bigint;
 
   /**
-   * Number of executions in the period.
+   * Number of runs in the period.
    *
    * @generated from field: int32 run_count = 3;
    */
@@ -1592,7 +1592,7 @@ export const CustomerModelPricingEntrySchema: GenMessage<CustomerModelPricingEnt
 
 /**
  * PreviewAuthorizationInput asks whether an organization could fund an
- * execution right now, without writing a reservation.
+ * run right now, without writing a reservation.
  *
  * @generated from message ai.stigmer.billing.v1.PreviewAuthorizationInput
  */
@@ -1675,7 +1675,7 @@ export const GetRunBillingSignalInputSchema: GenMessage<GetRunBillingSignalInput
 
 /**
  * GetRunBillingSignalResponse carries the current directive for a
- * running execution and the human-readable reason behind it.
+ * run in progress and the human-readable reason behind it.
  *
  * @generated from message ai.stigmer.billing.v1.GetRunBillingSignalResponse
  */

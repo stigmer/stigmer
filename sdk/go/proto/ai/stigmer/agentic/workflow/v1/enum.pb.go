@@ -159,10 +159,10 @@ const (
 	// budget_exceeded_terminate (fail-safe behavior).
 	BudgetExceededPolicy_budget_exceeded_policy_unspecified BudgetExceededPolicy = 0
 	// Terminate the workflow immediately with RUN_FAILED status.
-	// The execution record includes the budget breach details for diagnostics.
+	// The run record includes the budget breach details for diagnostics.
 	BudgetExceededPolicy_budget_exceeded_terminate BudgetExceededPolicy = 1
 	// Pause the workflow and request human review via a system-generated
-	// approval gate. The reviewer can approve continued execution (with
+	// approval gate. The reviewer can approve continuing the run (with
 	// an increased budget) or confirm termination.
 	// Depends on the human_input runtime. If human_input runtime
 	// is not available, falls back to terminate with a descriptive error.
@@ -215,7 +215,7 @@ func (BudgetExceededPolicy) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDescGZIP(), []int{1}
 }
 
-// WorkflowRunVisibility controls who can observe the runs (executions)
+// WorkflowRunVisibility controls who can observe the runs
 // of a workflow.
 //
 // This is a SEPARATE axis from the workflow's own visibility
@@ -231,12 +231,12 @@ func (BudgetExceededPolicy) EnumDescriptor() ([]byte, []int) {
 type WorkflowRunVisibility int32
 
 const (
-	// Unset. Treated as PRIVATE — each execution is visible only to the user
+	// Unset. Treated as PRIVATE — each run is visible only to the user
 	// who triggered it.
 	WorkflowRunVisibility_workflow_run_visibility_unspecified WorkflowRunVisibility = 0
-	// Each execution is visible only to the user who triggered it (its owner).
+	// Each run is visible only to the user who triggered it (its owner).
 	WorkflowRunVisibility_workflow_run_visibility_private WorkflowRunVisibility = 1
-	// Every member of the owning organization can observe all executions of
+	// Every member of the owning organization can observe all runs of
 	// this workflow.
 	WorkflowRunVisibility_workflow_run_visibility_organization WorkflowRunVisibility = 2
 )

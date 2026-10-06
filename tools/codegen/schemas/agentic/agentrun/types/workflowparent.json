@@ -24,7 +24,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Temporal workflow ID the agent-execution workflow signals about\n approval requests (\"child_approval_required\", carrying only this\n execution's id): the workflow run's engine workflow, which for a nested\n workflow is a child workflow with its own id, so it is named rather\n than derived.",
+      "description": "Temporal workflow ID the agent-execution workflow signals about\n approval requests (\"child_approval_required\", carrying only this\n run's id): the workflow run's engine workflow, which for a nested\n workflow is a child workflow with its own id, so it is named rather\n than derived.",
       "required": false
     },
     {

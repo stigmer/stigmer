@@ -7,7 +7,7 @@ package ai.stigmer.billing.v1;
 
 /**
  * <pre>
- * FinalizeRunResponse summarizes the execution's billing outcome.
+ * FinalizeRunResponse summarizes the run's billing outcome.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.v1.FinalizeRunResponse}
@@ -307,7 +307,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * FinalizeRunResponse summarizes the execution's billing outcome.
+   * FinalizeRunResponse summarizes the run's billing outcome.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.v1.FinalizeRunResponse}

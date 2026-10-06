@@ -133,7 +133,7 @@ type AgentShareSpec struct {
 	//
 	// This is how a tool-using agent becomes chattable over a share link:
 	// bind an org-shared environment holding the needed credentials (for
-	// example a read-only API token), and guest executions receive its
+	// example a read-only API token), and guest runs receive its
 	// values at runtime. The agent itself stays untouched.
 	// Valid on public-audience shares only.
 	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,6,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`

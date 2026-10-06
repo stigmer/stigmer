@@ -8,7 +8,7 @@ package ai.stigmer.agentic.agentrun.v1;
 /**
  * <pre>
  * AgentRun represents a single agent run instance (conversational).
- * Follows the standard pattern: spec contains user inputs, status contains execution results.
+ * Follows the standard pattern: spec contains user inputs, status contains run results.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentrun.v1.AgentRun}
@@ -199,7 +199,7 @@ private static final long serialVersionUID = 0L;
    * Contains: the conversation (session_id or a new session_spec), message,
    * run_config, the per-message intents, and runtime_env. Environment values reach a turn from
    * the environments the server resolves for its run and from the
-   * per-execution runtime_env; see the runtime_env field docs in
+   * per-run runtime_env; see the runtime_env field docs in
    * spec.proto.
    * </pre>
    *
@@ -216,7 +216,7 @@ private static final long serialVersionUID = 0L;
    * Contains: the conversation (session_id or a new session_spec), message,
    * run_config, the per-message intents, and runtime_env. Environment values reach a turn from
    * the environments the server resolves for its run and from the
-   * per-execution runtime_env; see the runtime_env field docs in
+   * per-run runtime_env; see the runtime_env field docs in
    * spec.proto.
    * </pre>
    *
@@ -233,7 +233,7 @@ private static final long serialVersionUID = 0L;
    * Contains: the conversation (session_id or a new session_spec), message,
    * run_config, the per-message intents, and runtime_env. Environment values reach a turn from
    * the environments the server resolves for its run and from the
-   * per-execution runtime_env; see the runtime_env field docs in
+   * per-run runtime_env; see the runtime_env field docs in
    * spec.proto.
    * </pre>
    *
@@ -248,7 +248,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.agentrun.v1.AgentRunStatus status_;
   /**
    * <pre>
-   * System-managed execution state and results.
+   * System-managed run state and results.
    * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
    * </pre>
    *
@@ -261,7 +261,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * System-managed execution state and results.
+   * System-managed run state and results.
    * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
    * </pre>
    *
@@ -274,7 +274,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * System-managed execution state and results.
+   * System-managed run state and results.
    * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
    * </pre>
    *
@@ -502,7 +502,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * AgentRun represents a single agent run instance (conversational).
-   * Follows the standard pattern: spec contains user inputs, status contains execution results.
+   * Follows the standard pattern: spec contains user inputs, status contains run results.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentrun.v1.AgentRun}
@@ -1088,7 +1088,7 @@ private static final long serialVersionUID = 0L;
      * Contains: the conversation (session_id or a new session_spec), message,
      * run_config, the per-message intents, and runtime_env. Environment values reach a turn from
      * the environments the server resolves for its run and from the
-     * per-execution runtime_env; see the runtime_env field docs in
+     * per-run runtime_env; see the runtime_env field docs in
      * spec.proto.
      * </pre>
      *
@@ -1104,7 +1104,7 @@ private static final long serialVersionUID = 0L;
      * Contains: the conversation (session_id or a new session_spec), message,
      * run_config, the per-message intents, and runtime_env. Environment values reach a turn from
      * the environments the server resolves for its run and from the
-     * per-execution runtime_env; see the runtime_env field docs in
+     * per-run runtime_env; see the runtime_env field docs in
      * spec.proto.
      * </pre>
      *
@@ -1124,7 +1124,7 @@ private static final long serialVersionUID = 0L;
      * Contains: the conversation (session_id or a new session_spec), message,
      * run_config, the per-message intents, and runtime_env. Environment values reach a turn from
      * the environments the server resolves for its run and from the
-     * per-execution runtime_env; see the runtime_env field docs in
+     * per-run runtime_env; see the runtime_env field docs in
      * spec.proto.
      * </pre>
      *
@@ -1149,7 +1149,7 @@ private static final long serialVersionUID = 0L;
      * Contains: the conversation (session_id or a new session_spec), message,
      * run_config, the per-message intents, and runtime_env. Environment values reach a turn from
      * the environments the server resolves for its run and from the
-     * per-execution runtime_env; see the runtime_env field docs in
+     * per-run runtime_env; see the runtime_env field docs in
      * spec.proto.
      * </pre>
      *
@@ -1172,7 +1172,7 @@ private static final long serialVersionUID = 0L;
      * Contains: the conversation (session_id or a new session_spec), message,
      * run_config, the per-message intents, and runtime_env. Environment values reach a turn from
      * the environments the server resolves for its run and from the
-     * per-execution runtime_env; see the runtime_env field docs in
+     * per-run runtime_env; see the runtime_env field docs in
      * spec.proto.
      * </pre>
      *
@@ -1202,7 +1202,7 @@ private static final long serialVersionUID = 0L;
      * Contains: the conversation (session_id or a new session_spec), message,
      * run_config, the per-message intents, and runtime_env. Environment values reach a turn from
      * the environments the server resolves for its run and from the
-     * per-execution runtime_env; see the runtime_env field docs in
+     * per-run runtime_env; see the runtime_env field docs in
      * spec.proto.
      * </pre>
      *
@@ -1224,7 +1224,7 @@ private static final long serialVersionUID = 0L;
      * Contains: the conversation (session_id or a new session_spec), message,
      * run_config, the per-message intents, and runtime_env. Environment values reach a turn from
      * the environments the server resolves for its run and from the
-     * per-execution runtime_env; see the runtime_env field docs in
+     * per-run runtime_env; see the runtime_env field docs in
      * spec.proto.
      * </pre>
      *
@@ -1241,7 +1241,7 @@ private static final long serialVersionUID = 0L;
      * Contains: the conversation (session_id or a new session_spec), message,
      * run_config, the per-message intents, and runtime_env. Environment values reach a turn from
      * the environments the server resolves for its run and from the
-     * per-execution runtime_env; see the runtime_env field docs in
+     * per-run runtime_env; see the runtime_env field docs in
      * spec.proto.
      * </pre>
      *
@@ -1261,7 +1261,7 @@ private static final long serialVersionUID = 0L;
      * Contains: the conversation (session_id or a new session_spec), message,
      * run_config, the per-message intents, and runtime_env. Environment values reach a turn from
      * the environments the server resolves for its run and from the
-     * per-execution runtime_env; see the runtime_env field docs in
+     * per-run runtime_env; see the runtime_env field docs in
      * spec.proto.
      * </pre>
      *
@@ -1286,7 +1286,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.agentrun.v1.AgentRunStatus, ai.stigmer.agentic.agentrun.v1.AgentRunStatus.Builder, ai.stigmer.agentic.agentrun.v1.AgentRunStatusOrBuilder> statusBuilder_;
     /**
      * <pre>
-     * System-managed execution state and results.
+     * System-managed run state and results.
      * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
      * </pre>
      *
@@ -1298,7 +1298,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed execution state and results.
+     * System-managed run state and results.
      * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
      * </pre>
      *
@@ -1314,7 +1314,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed execution state and results.
+     * System-managed run state and results.
      * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
      * </pre>
      *
@@ -1335,7 +1335,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed execution state and results.
+     * System-managed run state and results.
      * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
      * </pre>
      *
@@ -1354,7 +1354,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed execution state and results.
+     * System-managed run state and results.
      * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
      * </pre>
      *
@@ -1380,7 +1380,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed execution state and results.
+     * System-managed run state and results.
      * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
      * </pre>
      *
@@ -1398,7 +1398,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed execution state and results.
+     * System-managed run state and results.
      * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
      * </pre>
      *
@@ -1411,7 +1411,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed execution state and results.
+     * System-managed run state and results.
      * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
      * </pre>
      *
@@ -1427,7 +1427,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed execution state and results.
+     * System-managed run state and results.
      * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
      * </pre>
      *

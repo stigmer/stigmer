@@ -1,6 +1,6 @@
 {
   "name": "SignalDelivery",
-  "description": "SignalDelivery routes the CloudEvents envelope to another workflow\n execution as a signal, completing the emit/listen pairing: the target\n execution receives the envelope on the listen task whose signal id\n matches signal_name.",
+  "description": "SignalDelivery routes the CloudEvents envelope to another workflow\n run as a signal, completing the emit/listen pairing: the target\n run receives the envelope on the listen task whose signal id\n matches signal_name.",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/emit_event.proto",
   "fields": [
@@ -11,7 +11,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Target workflow run id (\"wfx_...\"), as returned by run/create.\n Usually flows from a prior task's output:\n \"${ .start_processor.run_id }\"",
+      "description": "Target workflow run id (\"wex_...\"), as returned by run/create.\n Usually flows from a prior task's output:\n \"${ .start_processor.run_id }\"",
       "required": true,
       "isExpression": true,
       "validation": {

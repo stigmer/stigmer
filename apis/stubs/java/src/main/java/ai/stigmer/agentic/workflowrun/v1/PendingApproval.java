@@ -386,7 +386,7 @@ private static final long serialVersionUID = 0L;
    * group pending approvals by review type. The full review payload is
    * deliberately not carried here — it belongs on the gate detail
    * (approval_requested event), read when the reviewer opens the gate.
-   * Empty when the task declares no hint or the execution predates the
+   * Empty when the task declares no hint or the run predates the
    * field — consumers treat empty as a generic review.
    * </pre>
    *
@@ -414,7 +414,7 @@ private static final long serialVersionUID = 0L;
    * group pending approvals by review type. The full review payload is
    * deliberately not carried here — it belongs on the gate detail
    * (approval_requested event), read when the reviewer opens the gate.
-   * Empty when the task declares no hint or the execution predates the
+   * Empty when the task declares no hint or the run predates the
    * field — consumers treat empty as a generic review.
    * </pre>
    *
@@ -1844,7 +1844,7 @@ private static final long serialVersionUID = 0L;
      * group pending approvals by review type. The full review payload is
      * deliberately not carried here — it belongs on the gate detail
      * (approval_requested event), read when the reviewer opens the gate.
-     * Empty when the task declares no hint or the execution predates the
+     * Empty when the task declares no hint or the run predates the
      * field — consumers treat empty as a generic review.
      * </pre>
      *
@@ -1871,7 +1871,7 @@ private static final long serialVersionUID = 0L;
      * group pending approvals by review type. The full review payload is
      * deliberately not carried here — it belongs on the gate detail
      * (approval_requested event), read when the reviewer opens the gate.
-     * Empty when the task declares no hint or the execution predates the
+     * Empty when the task declares no hint or the run predates the
      * field — consumers treat empty as a generic review.
      * </pre>
      *
@@ -1899,7 +1899,7 @@ private static final long serialVersionUID = 0L;
      * group pending approvals by review type. The full review payload is
      * deliberately not carried here — it belongs on the gate detail
      * (approval_requested event), read when the reviewer opens the gate.
-     * Empty when the task declares no hint or the execution predates the
+     * Empty when the task declares no hint or the run predates the
      * field — consumers treat empty as a generic review.
      * </pre>
      *
@@ -1923,7 +1923,7 @@ private static final long serialVersionUID = 0L;
      * group pending approvals by review type. The full review payload is
      * deliberately not carried here — it belongs on the gate detail
      * (approval_requested event), read when the reviewer opens the gate.
-     * Empty when the task declares no hint or the execution predates the
+     * Empty when the task declares no hint or the run predates the
      * field — consumers treat empty as a generic review.
      * </pre>
      *
@@ -1944,7 +1944,7 @@ private static final long serialVersionUID = 0L;
      * group pending approvals by review type. The full review payload is
      * deliberately not carried here — it belongs on the gate detail
      * (approval_requested event), read when the reviewer opens the gate.
-     * Empty when the task declares no hint or the execution predates the
+     * Empty when the task declares no hint or the run predates the
      * field — consumers treat empty as a generic review.
      * </pre>
      *

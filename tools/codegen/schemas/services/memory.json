@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.agentic.memory.v1.Memory",
           "outputType": "Memory",
           "outputFullType": "ai.stigmer.agentic.memory.v1.Memory",
-          "description": "Create a memory in the proposed state.\n\n The memory starts its consent lifecycle as proposed: it is not\n recalled into any execution until the person it is about confirms\n it. The subject and provenance are derived by the server from the\n calling credential and request context — values supplied on the\n request are overwritten."
+          "description": "Create a memory in the proposed state.\n\n The memory starts its consent lifecycle as proposed: it is not\n recalled into any run until the person it is about confirms\n it. The subject and provenance are derived by the server from the\n calling credential and request context — values supplied on the\n request are overwritten."
         },
         {
           "name": "Update",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.agentic.memory.v1.MemoryId",
           "outputType": "Memory",
           "outputFullType": "ai.stigmer.agentic.memory.v1.Memory",
-          "description": "Delete a memory permanently, in any lifecycle state.\n\n Deletion is the retention mechanism: deleting a confirmed memory is\n how consent is revoked, and the fact stops reaching future\n executions immediately. Past executions that already recalled it\n keep their immutable snapshots."
+          "description": "Delete a memory permanently, in any lifecycle state.\n\n Deletion is the retention mechanism: deleting a confirmed memory is\n how consent is revoked, and the fact stops reaching future\n runs immediately. Past runs that already recalled it\n keep their immutable snapshots."
         },
         {
           "name": "Confirm",
@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.agentic.memory.v1.MemoryId",
           "outputType": "Memory",
           "outputFullType": "ai.stigmer.agentic.memory.v1.Memory",
-          "description": "Confirm a proposed memory, making it recallable.\n\n Confirmation is the consent act: from the next eligible execution\n on, the fact is injected as background context. Confirming an\n already-confirmed memory succeeds and changes nothing. Confirming a\n rejected memory is refused — delete it instead and let the agent\n propose again."
+          "description": "Confirm a proposed memory, making it recallable.\n\n Confirmation is the consent act: from the next eligible run\n on, the fact is injected as background context. Confirming an\n already-confirmed memory succeeds and changes nothing. Confirming a\n rejected memory is refused — delete it instead and let the agent\n propose again."
         },
         {
           "name": "Reject",
@@ -186,7 +186,7 @@
         {
           "name": "visibility_child_orgs",
           "number": 4,
-          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, executions and environments are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
+          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and environments are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
         }
       ]
     }

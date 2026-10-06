@@ -11,7 +11,7 @@ package ai.stigmer.agentic.agentrun.v1;
  *
  * Written by the proxy after each SSE stream completes (cloud mode) or by
  * the runner directly (OSS mode). Stored in the `llm_call_usage_record`
- * MongoDB collection, never embedded in the execution document.
+ * MongoDB collection, never embedded in the run document.
  *
  * ## Lifecycle
  * 1. Proxy observes SSE stream completion and extracts final usage
@@ -161,7 +161,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object runId_ = "";
   /**
    * <pre>
-   * Execution this call belongs to.
+   * Run this call belongs to.
    * </pre>
    *
    * <code>string run_id = 2 [json_name = "runId"];</code>
@@ -182,7 +182,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Execution this call belongs to.
+   * Run this call belongs to.
    * </pre>
    *
    * <code>string run_id = 2 [json_name = "runId"];</code>
@@ -208,7 +208,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object rootRunId_ = "";
   /**
    * <pre>
-   * For sub-agent rollups: root execution of the tree.
+   * For sub-agent rollups: root run of the tree.
    * </pre>
    *
    * <code>string root_run_id = 3 [json_name = "rootRunId"];</code>
@@ -229,7 +229,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * For sub-agent rollups: root execution of the tree.
+   * For sub-agent rollups: root run of the tree.
    * </pre>
    *
    * <code>string root_run_id = 3 [json_name = "rootRunId"];</code>
@@ -254,9 +254,9 @@ private static final long serialVersionUID = 0L;
   private int sequence_ = 0;
   /**
    * <pre>
-   * 1-based call ordering within the execution, as the reporting proxy
+   * 1-based call ordering within the run, as the reporting proxy
    * counted it. An ordering hint, not an identity: a proxy that restarts
-   * mid-execution counts from 1 again, so two records of one execution may
+   * mid-run counts from 1 again, so two records of one run may
    * share a sequence. Order by observed_at, then sequence.
    * </pre>
    *
@@ -1433,7 +1433,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object sessionId_ = "";
   /**
    * <pre>
-   * Session this execution belongs to.
+   * Session this run belongs to.
    * </pre>
    *
    * <code>string session_id = 8 [json_name = "sessionId"];</code>
@@ -1454,7 +1454,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Session this execution belongs to.
+   * Session this run belongs to.
    * </pre>
    *
    * <code>string session_id = 8 [json_name = "sessionId"];</code>
@@ -2150,7 +2150,7 @@ java.lang.String defaultValue) {
    *
    * Written by the proxy after each SSE stream completes (cloud mode) or by
    * the runner directly (OSS mode). Stored in the `llm_call_usage_record`
-   * MongoDB collection, never embedded in the execution document.
+   * MongoDB collection, never embedded in the run document.
    *
    * ## Lifecycle
    * 1. Proxy observes SSE stream completion and extracts final usage
@@ -2977,7 +2977,7 @@ java.lang.String defaultValue) {
     private java.lang.Object runId_ = "";
     /**
      * <pre>
-     * Execution this call belongs to.
+     * Run this call belongs to.
      * </pre>
      *
      * <code>string run_id = 2 [json_name = "runId"];</code>
@@ -2997,7 +2997,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Execution this call belongs to.
+     * Run this call belongs to.
      * </pre>
      *
      * <code>string run_id = 2 [json_name = "runId"];</code>
@@ -3018,7 +3018,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Execution this call belongs to.
+     * Run this call belongs to.
      * </pre>
      *
      * <code>string run_id = 2 [json_name = "runId"];</code>
@@ -3035,7 +3035,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Execution this call belongs to.
+     * Run this call belongs to.
      * </pre>
      *
      * <code>string run_id = 2 [json_name = "runId"];</code>
@@ -3049,7 +3049,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Execution this call belongs to.
+     * Run this call belongs to.
      * </pre>
      *
      * <code>string run_id = 2 [json_name = "runId"];</code>
@@ -3069,7 +3069,7 @@ java.lang.String defaultValue) {
     private java.lang.Object rootRunId_ = "";
     /**
      * <pre>
-     * For sub-agent rollups: root execution of the tree.
+     * For sub-agent rollups: root run of the tree.
      * </pre>
      *
      * <code>string root_run_id = 3 [json_name = "rootRunId"];</code>
@@ -3089,7 +3089,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * For sub-agent rollups: root execution of the tree.
+     * For sub-agent rollups: root run of the tree.
      * </pre>
      *
      * <code>string root_run_id = 3 [json_name = "rootRunId"];</code>
@@ -3110,7 +3110,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * For sub-agent rollups: root execution of the tree.
+     * For sub-agent rollups: root run of the tree.
      * </pre>
      *
      * <code>string root_run_id = 3 [json_name = "rootRunId"];</code>
@@ -3127,7 +3127,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * For sub-agent rollups: root execution of the tree.
+     * For sub-agent rollups: root run of the tree.
      * </pre>
      *
      * <code>string root_run_id = 3 [json_name = "rootRunId"];</code>
@@ -3141,7 +3141,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * For sub-agent rollups: root execution of the tree.
+     * For sub-agent rollups: root run of the tree.
      * </pre>
      *
      * <code>string root_run_id = 3 [json_name = "rootRunId"];</code>
@@ -3161,9 +3161,9 @@ java.lang.String defaultValue) {
     private int sequence_ ;
     /**
      * <pre>
-     * 1-based call ordering within the execution, as the reporting proxy
+     * 1-based call ordering within the run, as the reporting proxy
      * counted it. An ordering hint, not an identity: a proxy that restarts
-     * mid-execution counts from 1 again, so two records of one execution may
+     * mid-run counts from 1 again, so two records of one run may
      * share a sequence. Order by observed_at, then sequence.
      * </pre>
      *
@@ -3176,9 +3176,9 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * 1-based call ordering within the execution, as the reporting proxy
+     * 1-based call ordering within the run, as the reporting proxy
      * counted it. An ordering hint, not an identity: a proxy that restarts
-     * mid-execution counts from 1 again, so two records of one execution may
+     * mid-run counts from 1 again, so two records of one run may
      * share a sequence. Order by observed_at, then sequence.
      * </pre>
      *
@@ -3195,9 +3195,9 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * 1-based call ordering within the execution, as the reporting proxy
+     * 1-based call ordering within the run, as the reporting proxy
      * counted it. An ordering hint, not an identity: a proxy that restarts
-     * mid-execution counts from 1 again, so two records of one execution may
+     * mid-run counts from 1 again, so two records of one run may
      * share a sequence. Order by observed_at, then sequence.
      * </pre>
      *
@@ -6106,7 +6106,7 @@ java.lang.String defaultValue) {
     private java.lang.Object sessionId_ = "";
     /**
      * <pre>
-     * Session this execution belongs to.
+     * Session this run belongs to.
      * </pre>
      *
      * <code>string session_id = 8 [json_name = "sessionId"];</code>
@@ -6126,7 +6126,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Session this execution belongs to.
+     * Session this run belongs to.
      * </pre>
      *
      * <code>string session_id = 8 [json_name = "sessionId"];</code>
@@ -6147,7 +6147,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Session this execution belongs to.
+     * Session this run belongs to.
      * </pre>
      *
      * <code>string session_id = 8 [json_name = "sessionId"];</code>
@@ -6164,7 +6164,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Session this execution belongs to.
+     * Session this run belongs to.
      * </pre>
      *
      * <code>string session_id = 8 [json_name = "sessionId"];</code>
@@ -6178,7 +6178,7 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Session this execution belongs to.
+     * Session this run belongs to.
      * </pre>
      *
      * <code>string session_id = 8 [json_name = "sessionId"];</code>

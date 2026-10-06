@@ -12,7 +12,7 @@ public interface GetEventLogRequestOrBuilder extends
 
   /**
    * <pre>
-   * Execution ID to fetch events for.
+   * Run ID to fetch events for.
    * </pre>
    *
    * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface GetEventLogRequestOrBuilder extends
   java.lang.String getRunId();
   /**
    * <pre>
-   * Execution ID to fetch events for.
+   * Run ID to fetch events for.
    * </pre>
    *
    * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>

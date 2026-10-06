@@ -34,7 +34,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Harness-specific state identifier for conversation continuity.\n\n Populated after the first execution completes; empty until then.\n Each harness uses this field differently:\n\n - NATIVE: LangGraph thread ID, derived deterministically as\n   \"thread-{session_id}\" by the EnsureThread activity. Stored here\n   so the immutability sentinel works uniformly across harnesses.\n\n - CURSOR: Cursor SDK agent ID (e.g., \"agent-xxx\" or \"bc-xxx\")\n   returned by Agent.create(). Used for Agent.resume() on\n   subsequent runs.",
+      "description": "Harness-specific state identifier for conversation continuity.\n\n Populated after the first run completes; empty until then.\n Each harness uses this field differently:\n\n - NATIVE: LangGraph thread ID, derived deterministically as\n   \"thread-{session_id}\" by the EnsureThread activity. Stored here\n   so the immutability sentinel works uniformly across harnesses.\n\n - CURSOR: Cursor SDK agent ID (e.g., \"agent-xxx\" or \"bc-xxx\")\n   returned by Agent.create(). Used for Agent.resume() on\n   subsequent runs.",
       "required": false
     },
     {
@@ -77,7 +77,7 @@
           "messageType": "WorkspaceEntry"
         }
       },
-      "description": "Workspace entries for this session.\n\n Each entry pairs a name with a source (git repo or local path), forming\n a multi-root workspace. Entries are provisioned on the first execution;\n subsequent executions reuse the same workspace.\n\n When empty, the session uses an empty workspace directory.",
+      "description": "Workspace entries for this session.\n\n Each entry pairs a name with a source (git repo or local path), forming\n a multi-root workspace. Entries are provisioned on the first run;\n subsequent runs reuse the same workspace.\n\n When empty, the session uses an empty workspace directory.",
       "required": false
     },
     {
@@ -121,7 +121,7 @@
           "HARNESS_CURSOR"
         ]
       },
-      "description": "Execution harness for this session.\n\n Determines which Temporal activity type is dispatched when an\n AgentRun is created in this session:\n - NATIVE (default): ExecuteDeepAgent activity -\u003e Stigmer unified runner\n - CURSOR: ExecuteCursor activity -\u003e TypeScript/Cursor SDK worker\n\n The harness affects which tools the agent has, how conversation state\n is managed, available models, and billing tier. Once set and an execution\n has run, the harness is immutable — changing it would break conversation\n continuity since each harness owns its own state.\n\n When unspecified, defaults to HARNESS_NATIVE.",
+      "description": "Execution harness for this session.\n\n Determines which Temporal activity type is dispatched when an\n AgentRun is created in this session:\n - NATIVE (default): ExecuteDeepAgent activity -\u003e Stigmer unified runner\n - CURSOR: ExecuteCursor activity -\u003e TypeScript/Cursor SDK worker\n\n The harness affects which tools the agent has, how conversation state\n is managed, available models, and billing tier. Once set and a run\n has run, the harness is immutable — changing it would break conversation\n continuity since each harness owns its own state.\n\n When unspecified, defaults to HARNESS_NATIVE.",
       "required": false
     },
     {
@@ -151,7 +151,7 @@
           "EXECUTION_TARGET_CLOUD"
         ]
       },
-      "description": "Where session activities are executed — local client or cloud sandbox.\n\n Determines dispatch routing: LOCAL means the client's embedded runner\n (desktop app or CLI) polls the session's task queue; CLOUD means the\n server provisions a sandbox with a runner.\n\n Set by the client at session creation:\n - Desktop/CLI set LOCAL (they run an embedded runner)\n - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)\n - Customer SDK sets whatever fits their architecture\n\n Immutable once an execution has run — workspace state may not be\n portable between local and cloud environments.",
+      "description": "Where session activities are executed — local client or cloud sandbox.\n\n Determines dispatch routing: LOCAL means the client's embedded runner\n (desktop app or CLI) polls the session's task queue; CLOUD means the\n server provisions a sandbox with a runner.\n\n Set by the client at session creation:\n - Desktop/CLI set LOCAL (they run an embedded runner)\n - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)\n - Customer SDK sets whatever fits their architecture\n\n Immutable once a run has started — workspace state may not be\n portable between local and cloud environments.",
       "required": false
     }
   ]

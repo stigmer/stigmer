@@ -17,19 +17,19 @@ package ai.stigmer.agentic.agentrun.v1;
  *
  * - Force-kills workflow via Temporal TerminateWorkflow API
  * - Agent activity does NOT receive any signal (cannot clean up)
- * - Execution transitions to RUN_TERMINATED phase immediately
+ * - Run transitions to RUN_TERMINATED phase immediately
  * - All in-progress tool calls are stopped abruptly
  * - LangGraph checkpoint may be incomplete
  *
  * ## Preconditions
  *
- * - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
+ * - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
  * - User must have can_edit permission on the agent run
  *
  * ## Idempotency
  *
- * If the execution is already terminated (phase == RUN_TERMINATED),
- * the call succeeds as a no-op and returns the current execution state.
+ * If the run is already terminated (phase == RUN_TERMINATED),
+ * the call succeeds as a no-op and returns the current run state.
  *
  * ## Terminated vs Cancelled
  *
@@ -401,19 +401,19 @@ private static final long serialVersionUID = 0L;
    *
    * - Force-kills workflow via Temporal TerminateWorkflow API
    * - Agent activity does NOT receive any signal (cannot clean up)
-   * - Execution transitions to RUN_TERMINATED phase immediately
+   * - Run transitions to RUN_TERMINATED phase immediately
    * - All in-progress tool calls are stopped abruptly
    * - LangGraph checkpoint may be incomplete
    *
    * ## Preconditions
    *
-   * - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
+   * - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
    * - User must have can_edit permission on the agent run
    *
    * ## Idempotency
    *
-   * If the execution is already terminated (phase == RUN_TERMINATED),
-   * the call succeeds as a no-op and returns the current execution state.
+   * If the run is already terminated (phase == RUN_TERMINATED),
+   * the call succeeds as a no-op and returns the current run state.
    *
    * ## Terminated vs Cancelled
    *

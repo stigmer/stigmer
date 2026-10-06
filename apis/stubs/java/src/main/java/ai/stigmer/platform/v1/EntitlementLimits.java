@@ -195,7 +195,7 @@ private static final long serialVersionUID = 0L;
   private int maxActiveWorkflowSandboxes_ = 0;
   /**
    * <pre>
-   * The most workflow-execution sandboxes an organization may hold
+   * The most workflow-run sandboxes an organization may hold
    * provisioning or running at once. A workflow launch that would need a
    * new sandbox past it is refused. Read by a subscription. A license
    * ignores it until a self-hosted capacity gate reads it.
@@ -210,7 +210,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The most workflow-execution sandboxes an organization may hold
+   * The most workflow-run sandboxes an organization may hold
    * provisioning or running at once. A workflow launch that would need a
    * new sandbox past it is refused. Read by a subscription. A license
    * ignores it until a self-hosted capacity gate reads it.
@@ -990,7 +990,7 @@ private static final long serialVersionUID = 0L;
     private int maxActiveWorkflowSandboxes_ ;
     /**
      * <pre>
-     * The most workflow-execution sandboxes an organization may hold
+     * The most workflow-run sandboxes an organization may hold
      * provisioning or running at once. A workflow launch that would need a
      * new sandbox past it is refused. Read by a subscription. A license
      * ignores it until a self-hosted capacity gate reads it.
@@ -1005,7 +1005,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The most workflow-execution sandboxes an organization may hold
+     * The most workflow-run sandboxes an organization may hold
      * provisioning or running at once. A workflow launch that would need a
      * new sandbox past it is refused. Read by a subscription. A license
      * ignores it until a self-hosted capacity gate reads it.
@@ -1020,7 +1020,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The most workflow-execution sandboxes an organization may hold
+     * The most workflow-run sandboxes an organization may hold
      * provisioning or running at once. A workflow launch that would need a
      * new sandbox past it is refused. Read by a subscription. A license
      * ignores it until a self-hosted capacity gate reads it.
@@ -1039,7 +1039,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The most workflow-execution sandboxes an organization may hold
+     * The most workflow-run sandboxes an organization may hold
      * provisioning or running at once. A workflow launch that would need a
      * new sandbox past it is refused. Read by a subscription. A license
      * ignores it until a self-hosted capacity gate reads it.

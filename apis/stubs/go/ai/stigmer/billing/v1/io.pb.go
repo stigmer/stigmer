@@ -237,7 +237,7 @@ func (x *GrantCreditsInput) GetIdempotencyKey() string {
 	return ""
 }
 
-// AuthorizeRunInput requests a credit reservation before execution starts.
+// AuthorizeRunInput requests a credit reservation before the run starts.
 type AuthorizeRunInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Org   string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
@@ -308,10 +308,10 @@ func (x *AuthorizeRunInput) GetExpectedCostCapMicros() int64 {
 	return 0
 }
 
-// AuthorizeRunResponse indicates whether the execution may proceed.
+// AuthorizeRunResponse indicates whether the run may proceed.
 type AuthorizeRunResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Whether the execution is authorized to start.
+	// Whether the run is authorized to start.
 	Authorized bool `protobuf:"varint,1,opt,name=authorized,proto3" json:"authorized,omitempty"`
 	// Reservation ID for tracking. Empty if authorization was denied.
 	ReservationId string `protobuf:"bytes,2,opt,name=reservation_id,json=reservationId,proto3" json:"reservation_id,omitempty"`
@@ -396,13 +396,13 @@ func (x *AuthorizeRunResponse) GetDenialReason() string {
 //
 // Deduplication identity: `call_id` when the caller supplies one, else
 // `sequence`. A report that is redelivered under the same identity records
-// nothing new; two reports for the same execution with distinct call ids
+// nothing new; two reports for the same run with distinct call ids
 // are two calls even when they share a sequence number (a proxy that
-// restarted mid-execution numbers from 1 again).
+// restarted mid-run numbers from 1 again).
 type RecordLlmCallUsageInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	RunId string                 `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	// 1-based call ordering within the execution, as the reporting proxy
+	// 1-based call ordering within the run, as the reporting proxy
 	// counted it. An ordering hint: a proxy counts in process memory, so the
 	// numbering restarts when the proxy does. Dedup identity only for callers
 	// that send no call_id.
@@ -457,20 +457,20 @@ type RecordLlmCallUsageInput struct {
 	// response usage ("standard" | "priority" | "batch"), OpenAI at the
 	// response top level ("default" | "flex" | "priority"). Reported
 	// verbatim by the proxy from the SSE stream — the wire truth billing
-	// reconciles against the execution's REQUESTED tier (the
+	// reconciles against the run's REQUESTED tier (the
 	// service_tier.mismatch counter). Empty when the provider reported
 	// none, and for cursor-harness calls, whose billed variant arrives
 	// through the cursor path's pricing-variant resolution instead.
 	ServedServiceTier string `protobuf:"bytes,18,opt,name=served_service_tier,json=servedServiceTier,proto3" json:"served_service_tier,omitempty"`
 	// The agent run this call is metered under, as the proxy resolved
-	// it from the execution's system of record — on the caller's own
+	// it from the run's system of record — on the caller's own
 	// credential, before reporting. The billing handler stamps these facts
 	// onto the usage record and reconciles the requested tier and thinking
-	// mode against what the wire served; it performs NO execution lookup of
+	// mode against what the wire served; it performs NO run lookup of
 	// its own (the same rule as cursor_account_id above: the proxy holds the
 	// fact, reports it, the handler stamps it verbatim). Absent when the
-	// proxy could not resolve the execution — a workflow-execution scope,
-	// or an execution found in neither store — in which case the record
+	// proxy could not resolve the run — a workflow-run scope,
+	// or a run found in neither store — in which case the record
 	// carries an empty session and the requested-vs-billed reconciliation
 	// is skipped.
 	MeteredRun *MeteredRun `protobuf:"bytes,19,opt,name=metered_run,json=meteredRun,proto3" json:"metered_run,omitempty"`
@@ -662,26 +662,26 @@ func (x *RecordLlmCallUsageInput) GetProviderKeySource() v1.ProviderKeySource {
 	return v1.ProviderKeySource(0)
 }
 
-// The execution-side facts LLM metering denormalizes onto every usage
+// The run-side facts LLM metering denormalizes onto every usage
 // record, carried from the proxy that authorized the call to the billing
 // handler that records it. Deliberately narrower than the settings the
-// execution resolved: only what metering reconciles or prices against.
+// run resolved: only what metering reconciles or prices against.
 type MeteredRun struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The session the execution belongs to. The provider reconciler matches
+	// The session the run belongs to. The provider reconciler matches
 	// Cursor conversations to sessions through the usage record's session.
 	SessionId string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	// The model the execution resolved (status.run_config.model_name, whichever
+	// The model the run resolved (status.run_config.model_name, whichever
 	// layer chose it: the message, the agent's defaults or the lane's profile)
 	// — the authoritative statement of what was asked for, and the pricing
 	// fallback when the wire's requested_model came up empty. Empty when no
 	// layer named a model and the engine chose.
 	PinnedModel string `protobuf:"bytes,2,opt,name=pinned_model,json=pinnedModel,proto3" json:"pinned_model,omitempty"`
-	// The service tier the execution resolved (status.run_config.
+	// The service tier the run resolved (status.run_config.
 	// service_tier); UNSPECIFIED resolves to standard. Reconciled against
 	// served_service_tier by the service_tier.mismatch counter.
 	RequestedServiceTier v1.ServiceTier `protobuf:"varint,3,opt,name=requested_service_tier,json=requestedServiceTier,proto3,enum=ai.stigmer.agentic.agentrun.v1.ServiceTier" json:"requested_service_tier,omitempty"`
-	// The thinking mode the execution resolved (status.run_config.
+	// The thinking mode the run resolved (status.run_config.
 	// thinking_mode). Reconciled against the served variant by the
 	// thinking.mismatch counter.
 	RequestedThinkingMode v1.ThinkingMode `protobuf:"varint,4,opt,name=requested_thinking_mode,json=requestedThinkingMode,proto3,enum=ai.stigmer.agentic.agentrun.v1.ThinkingMode" json:"requested_thinking_mode,omitempty"`
@@ -876,7 +876,7 @@ func (x *FinalizeRunInput) GetRunId() string {
 	return ""
 }
 
-// FinalizeRunResponse summarizes the execution's billing outcome.
+// FinalizeRunResponse summarizes the run's billing outcome.
 type FinalizeRunResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Total provider cost across all LLM calls in the run.
@@ -950,7 +950,7 @@ func (x *FinalizeRunResponse) GetBilledCallCount() int32 {
 }
 
 // RearmForRecoveryInput re-arms a settled reservation so a failed
-// execution can be recovered.
+// run can be recovered.
 //
 // Recovery is the one sanctioned path past the settled-reservation latch.
 // The response is the same shape authorizeRun returns, carrying the
@@ -1768,7 +1768,7 @@ type BillingUsageReportResponse struct {
 	TotalProviderCostMicros int64 `protobuf:"varint,1,opt,name=total_provider_cost_micros,json=totalProviderCostMicros,proto3" json:"total_provider_cost_micros,omitempty"`
 	// Total amount billed to the customer in the period.
 	TotalBillableAmountMicros int64 `protobuf:"varint,2,opt,name=total_billable_amount_micros,json=totalBillableAmountMicros,proto3" json:"total_billable_amount_micros,omitempty"`
-	// Number of executions in the period.
+	// Number of runs in the period.
 	RunCount int32 `protobuf:"varint,3,opt,name=run_count,json=runCount,proto3" json:"run_count,omitempty"`
 	// Number of LLM calls in the period.
 	LlmCallCount int32 `protobuf:"varint,4,opt,name=llm_call_count,json=llmCallCount,proto3" json:"llm_call_count,omitempty"`
@@ -2745,7 +2745,7 @@ func (x *CustomerModelPricingEntry) GetMarkupBasisPoints() int32 {
 }
 
 // PreviewAuthorizationInput asks whether an organization could fund an
-// execution right now, without writing a reservation.
+// run right now, without writing a reservation.
 type PreviewAuthorizationInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Org   string                 `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
@@ -2911,7 +2911,7 @@ func (x *GetRunBillingSignalInput) GetRunId() string {
 }
 
 // GetRunBillingSignalResponse carries the current directive for a
-// running execution and the human-readable reason behind it.
+// run in progress and the human-readable reason behind it.
 type GetRunBillingSignalResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The directive (continue / low-balance warning / stop).

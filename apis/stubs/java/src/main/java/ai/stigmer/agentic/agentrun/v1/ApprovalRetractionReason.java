@@ -38,7 +38,7 @@ public enum ApprovalRetractionReason
   /**
    * <pre>
    * The gated call left the approval gate without a decision (the harness
-   * advanced past it or abandoned it on resume) while the execution was still
+   * advanced past it or abandoned it on resume) while the run was still
    * live.
    * </pre>
    *
@@ -77,7 +77,7 @@ public enum ApprovalRetractionReason
   /**
    * <pre>
    * The gated call left the approval gate without a decision (the harness
-   * advanced past it or abandoned it on resume) while the execution was still
+   * advanced past it or abandoned it on resume) while the run was still
    * live.
    * </pre>
    *

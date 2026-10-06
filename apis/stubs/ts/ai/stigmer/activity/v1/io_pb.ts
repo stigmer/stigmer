@@ -41,7 +41,7 @@ export type RecentActivityEntry = Message<"ai.stigmer.activity.v1.RecentActivity
   /**
    * Human-readable label for display.
    * For sessions: the conversation subject.
-   * For workflow runs: the execution name.
+   * For workflow runs: the run name.
    *
    * @generated from field: string subject = 3;
    */
@@ -56,7 +56,7 @@ export type RecentActivityEntry = Message<"ai.stigmer.activity.v1.RecentActivity
   updatedAt?: Timestamp;
 
   /**
-   * Execution phase label for workflow runs (e.g., "completed", "failed").
+   * Run phase label for workflow runs (e.g., "completed", "failed").
    * Empty for sessions.
    *
    * @generated from field: string status = 5;

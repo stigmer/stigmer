@@ -475,7 +475,7 @@ private static final long serialVersionUID = 0L;
    * SHA-256 hex digest of the uploaded artifact bytes.
    *
    * Used as a cache-invalidation signal by UI clients: when the same file
-   * is overwritten (e.g., written then edited in the same execution), the
+   * is overwritten (e.g., written then edited in the same run), the
    * storage_key remains stable but the content_hash changes. Clients
    * include this value in their fetch-effect dependencies so that content
    * is re-fetched whenever the underlying bytes change.
@@ -505,7 +505,7 @@ private static final long serialVersionUID = 0L;
    * SHA-256 hex digest of the uploaded artifact bytes.
    *
    * Used as a cache-invalidation signal by UI clients: when the same file
-   * is overwritten (e.g., written then edited in the same execution), the
+   * is overwritten (e.g., written then edited in the same run), the
    * storage_key remains stable but the content_hash changes. Clients
    * include this value in their fetch-effect dependencies so that content
    * is re-fetched whenever the underlying bytes change.
@@ -1924,7 +1924,7 @@ private static final long serialVersionUID = 0L;
      * SHA-256 hex digest of the uploaded artifact bytes.
      *
      * Used as a cache-invalidation signal by UI clients: when the same file
-     * is overwritten (e.g., written then edited in the same execution), the
+     * is overwritten (e.g., written then edited in the same run), the
      * storage_key remains stable but the content_hash changes. Clients
      * include this value in their fetch-effect dependencies so that content
      * is re-fetched whenever the underlying bytes change.
@@ -1953,7 +1953,7 @@ private static final long serialVersionUID = 0L;
      * SHA-256 hex digest of the uploaded artifact bytes.
      *
      * Used as a cache-invalidation signal by UI clients: when the same file
-     * is overwritten (e.g., written then edited in the same execution), the
+     * is overwritten (e.g., written then edited in the same run), the
      * storage_key remains stable but the content_hash changes. Clients
      * include this value in their fetch-effect dependencies so that content
      * is re-fetched whenever the underlying bytes change.
@@ -1983,7 +1983,7 @@ private static final long serialVersionUID = 0L;
      * SHA-256 hex digest of the uploaded artifact bytes.
      *
      * Used as a cache-invalidation signal by UI clients: when the same file
-     * is overwritten (e.g., written then edited in the same execution), the
+     * is overwritten (e.g., written then edited in the same run), the
      * storage_key remains stable but the content_hash changes. Clients
      * include this value in their fetch-effect dependencies so that content
      * is re-fetched whenever the underlying bytes change.
@@ -2009,7 +2009,7 @@ private static final long serialVersionUID = 0L;
      * SHA-256 hex digest of the uploaded artifact bytes.
      *
      * Used as a cache-invalidation signal by UI clients: when the same file
-     * is overwritten (e.g., written then edited in the same execution), the
+     * is overwritten (e.g., written then edited in the same run), the
      * storage_key remains stable but the content_hash changes. Clients
      * include this value in their fetch-effect dependencies so that content
      * is re-fetched whenever the underlying bytes change.
@@ -2032,7 +2032,7 @@ private static final long serialVersionUID = 0L;
      * SHA-256 hex digest of the uploaded artifact bytes.
      *
      * Used as a cache-invalidation signal by UI clients: when the same file
-     * is overwritten (e.g., written then edited in the same execution), the
+     * is overwritten (e.g., written then edited in the same run), the
      * storage_key remains stable but the content_hash changes. Clients
      * include this value in their fetch-effect dependencies so that content
      * is re-fetched whenever the underlying bytes change.

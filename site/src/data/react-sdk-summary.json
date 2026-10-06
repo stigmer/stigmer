@@ -106,13 +106,6 @@
       "components": 2
     },
     {
-      "slug": "execution",
-      "title": "Execution",
-      "description": "Hooks and components for real-time streaming, tool calls, approvals, messages, and artifacts.",
-      "hooks": 22,
-      "components": 35
-    },
-    {
       "slug": "file-reference",
       "title": "file-reference",
       "description": "",
@@ -246,6 +239,13 @@
       "components": 12
     },
     {
+      "slug": "run",
+      "title": "Run",
+      "description": "Hooks and components for real-time streaming, tool calls, approvals, messages, and artifacts.",
+      "hooks": 22,
+      "components": 35
+    },
+    {
       "slug": "schedule",
       "title": "schedule",
       "description": "",
@@ -325,7 +325,7 @@
     {
       "slug": "workflow",
       "title": "Workflow",
-      "description": "Hooks and components for workflow definitions, executions, and the visual builder.",
+      "description": "Hooks and components for workflow definitions, runs, and the visual builder.",
       "hooks": 36,
       "components": 16
     },

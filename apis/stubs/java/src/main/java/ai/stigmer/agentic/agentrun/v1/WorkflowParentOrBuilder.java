@@ -36,7 +36,7 @@ public interface WorkflowParentOrBuilder extends
    * <pre>
    * Temporal workflow ID the agent-execution workflow signals about
    * approval requests ("child_approval_required", carrying only this
-   * execution's id): the workflow run's engine workflow, which for a nested
+   * run's id): the workflow run's engine workflow, which for a nested
    * workflow is a child workflow with its own id, so it is named rather
    * than derived.
    * </pre>
@@ -49,7 +49,7 @@ public interface WorkflowParentOrBuilder extends
    * <pre>
    * Temporal workflow ID the agent-execution workflow signals about
    * approval requests ("child_approval_required", carrying only this
-   * execution's id): the workflow run's engine workflow, which for a nested
+   * run's id): the workflow run's engine workflow, which for a nested
    * workflow is a child workflow with its own id, so it is named rather
    * than derived.
    * </pre>

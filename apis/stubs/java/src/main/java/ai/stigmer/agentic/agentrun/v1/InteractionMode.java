@@ -7,7 +7,7 @@ package ai.stigmer.agentic.agentrun.v1;
 
 /**
  * <pre>
- * InteractionMode controls the agent's behavioral posture for an run.
+ * InteractionMode controls the agent's behavioral posture for a run.
  *
  * Determines what the agent is allowed to do — analysis only, or full
  * read-write access. Mode is set per message

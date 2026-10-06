@@ -39,21 +39,21 @@ export const WorkflowIdSchema: GenMessage<WorkflowId> = /*@__PURE__*/
  * of a single workflow.
  *
  * Mirrors the shape of commons UpdateVisibilityInput, but for the SEPARATE
- * execution-visibility axis (see WorkflowRunVisibility). A dedicated
+ * run-visibility axis (see WorkflowRunVisibility). A dedicated
  * message keeps the two visibility concepts from being conflated.
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput
  */
 export type UpdateWorkflowRunVisibilityInput = Message<"ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput"> & {
   /**
-   * ID of the workflow whose execution visibility is being updated.
+   * ID of the workflow whose run visibility is being updated.
    *
    * @generated from field: string resource_id = 1;
    */
   resourceId: string;
 
   /**
-   * The new execution-visibility setting. Must not be unspecified (0).
+   * The new run-visibility setting. Must not be unspecified (0).
    *
    * @generated from field: ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility run_visibility = 2;
    */

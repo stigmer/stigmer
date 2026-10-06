@@ -62,7 +62,7 @@ export const EnvironmentCommandController: GenService<{
    * metadata fields untouched. Environments support two levels: private
    * (the default) and org. Setting org shares the environment with the
    * owning organization: members can view it with secret values redacted,
-   * and any execution in the organization may use its values at runtime.
+   * and any run in the organization may use its values at runtime.
    * Secret values are revealed only to the environment's creator, at
    * every visibility level.
    *

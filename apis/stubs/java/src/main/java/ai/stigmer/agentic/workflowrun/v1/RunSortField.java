@@ -7,7 +7,7 @@ package ai.stigmer.agentic.workflowrun.v1;
 
 /**
  * <pre>
- * RunSortField defines the column to sort execution lists by.
+ * RunSortField defines the column to sort run lists by.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflowrun.v1.RunSortField}
@@ -25,7 +25,7 @@ public enum RunSortField
   RUN_SORT_FIELD_UNSPECIFIED(0),
   /**
    * <pre>
-   * Sort by execution start time.
+   * Sort by run start time.
    * </pre>
    *
    * <code>RUN_SORT_FIELD_STARTED_AT = 1;</code>
@@ -33,9 +33,9 @@ public enum RunSortField
   RUN_SORT_FIELD_STARTED_AT(1),
   /**
    * <pre>
-   * Sort by execution duration (completed_at - started_at).
+   * Sort by run duration (completed_at - started_at).
    *
-   * Executions without both timestamps sort last.
+   * Runs without both timestamps sort last.
    * </pre>
    *
    * <code>RUN_SORT_FIELD_DURATION = 2;</code>
@@ -51,7 +51,7 @@ public enum RunSortField
   RUN_SORT_FIELD_COST(3),
   /**
    * <pre>
-   * Sort by execution phase enum value.
+   * Sort by run phase enum value.
    * </pre>
    *
    * <code>RUN_SORT_FIELD_STATUS = 4;</code>
@@ -79,7 +79,7 @@ public enum RunSortField
   public static final int RUN_SORT_FIELD_UNSPECIFIED_VALUE = 0;
   /**
    * <pre>
-   * Sort by execution start time.
+   * Sort by run start time.
    * </pre>
    *
    * <code>RUN_SORT_FIELD_STARTED_AT = 1;</code>
@@ -87,9 +87,9 @@ public enum RunSortField
   public static final int RUN_SORT_FIELD_STARTED_AT_VALUE = 1;
   /**
    * <pre>
-   * Sort by execution duration (completed_at - started_at).
+   * Sort by run duration (completed_at - started_at).
    *
-   * Executions without both timestamps sort last.
+   * Runs without both timestamps sort last.
    * </pre>
    *
    * <code>RUN_SORT_FIELD_DURATION = 2;</code>
@@ -105,7 +105,7 @@ public enum RunSortField
   public static final int RUN_SORT_FIELD_COST_VALUE = 3;
   /**
    * <pre>
-   * Sort by execution phase enum value.
+   * Sort by run phase enum value.
    * </pre>
    *
    * <code>RUN_SORT_FIELD_STATUS = 4;</code>

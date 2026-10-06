@@ -24,8 +24,8 @@ export const file_ai_stigmer_agentic_agentrun_v1_spec: GenFile = /*@__PURE__*/
   fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRydW4vdjEvc3BlYy5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLmFnZW50cnVuLnYxIuEJCgxBZ2VudFJ1blNwZWMSFAoKc2Vzc2lvbl9pZBgBIAEoCUgAEkIKDHNlc3Npb25fc3BlYxgNIAEoCzIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TcGVjSAASGAoHbWVzc2FnZRgDIAEoCUIHukgEcgIQARI9CgpydW5fY29uZmlnGBIgASgLMikuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50cnVuLnYxLlJ1bkNvbmZpZxJTChBpbnRlcmFjdGlvbl9tb2RlGBMgASgOMi8uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50cnVuLnYxLkludGVyYWN0aW9uTW9kZUIIukgFggECEAESFwoPYnVpbGRfZnJvbV9wbGFuGBQgASgIEjkKGHN0cnVjdHVyZWRfb3V0cHV0X3NjaGVtYRgVIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSUQoLcnVudGltZV9lbnYYBSADKAsyPC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRydW4udjEuQWdlbnRSdW5TcGVjLlJ1bnRpbWVFbnZFbnRyeRIYChBhdXRvX2FwcHJvdmVfYWxsGAcgASgIEj8KC2F0dGFjaG1lbnRzGAkgAygLMiouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50cnVuLnYxLkF0dGFjaG1lbnQSGwoTd29ya3NwYWNlX2ZpbGVfcmVmcxgKIAMoCRIZChFzdXBlcnNlZGVzX3J1bl9pZBgMIAEoCRJRChRjb252ZXJzYXRpb25fY2F0Y2h1cBgOIAEoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHJ1bi52MS5Db252ZXJzYXRpb25DYXRjaHVwEj4KBnBhcmVudBgRIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHJ1bi52MS5Xb3JrZmxvd1BhcmVudBppCg9SdW50aW1lRW52RW50cnkSCwoDa2V5GAEgASgJEkUKBXZhbHVlGAIgASgLMjYuYWkuc3RpZ21lci5hZ2VudGljLmV4ZWN1dGlvbmNvbnRleHQudjEuRXhlY3V0aW9uVmFsdWU6AjgBOt4BukjaARrXAQokYWdlbnRfcnVuLnNlc3Npb25fc3BlY19oYXJuZXNzX3N0YXRlEmpzZXNzaW9uX3NwZWMuaGFybmVzc19zdGF0ZV9pZCBtdXN0IGJlIGVtcHR5IOKAlCBoYXJuZXNzIHN0YXRlIGlzIGNyZWF0ZWQgYnkgdGhlIHJ1bm5lciBhZnRlciB0aGUgZmlyc3QgcnVuGkMhaGFzKHRoaXMuc2Vzc2lvbl9zcGVjKSB8fCB0aGlzLnNlc3Npb25fc3BlYy5oYXJuZXNzX3N0YXRlX2lkID09ICcnQggKBnRhcmdldEoECAIQA0oECAYQB0oECAgQCUoECAsQDEoECA8QEEoECBAQEUoECAQQBVIIYWdlbnRfaWRSDmNhbGxiYWNrX3Rva2VuUhJwYXJlbnRfd29ya2Zsb3dfaWRSE2FjdGl2aXR5X3Rhc2tfcXVldWVSFGRlY2xhcmVkX3ByZWZlcmVuY2VzUhFyZWNhbGxlZF9tZW1vcmllc1IQZXhlY3V0aW9uX2NvbmZpZyJmCg5Xb3JrZmxvd1BhcmVudBIgCg93b3JrZmxvd19ydW5faWQYASABKAlCB7pIBHICEAESGgoSc2lnbmFsX3dvcmtmbG93X2lkGAIgASgJEhYKDmNhbGxiYWNrX3Rva2VuGAMgASgMItQCCgpBdHRhY2htZW50EtgBCghmaWxlbmFtZRgBIAEoCULFAbpIwQG6AbkBChthdHRhY2htZW50LmZpbGVuYW1lLm5vX3BhdGgSTmZpbGVuYW1lIG11c3QgYmUgYSBiYXJlIGZpbGVuYW1lIHdpdGhvdXQgcGF0aCBzZXBhcmF0b3JzIG9yIHRyYXZlcnNhbCBzZWdtZW50cxpKIXRoaXMuY29udGFpbnMoJy8nKSAmJiAhdGhpcy5jb250YWlucygnXFwnKSAmJiB0aGlzICE9ICcuJyAmJiB0aGlzICE9ICcuLidyAhABEhwKC3N0b3JhZ2Vfa2V5GAIgASgJQge6SARyAhABEhIKCm1vdW50X3BhdGgYAyABKAkSFAoMY29udGVudF90eXBlGAQgASgJEg8KB2V4dHJhY3QYBSABKAgSEgoKbG9jYWxfcGF0aBgGIAEoCSJVChNDb252ZXJzYXRpb25DYXRjaHVwEg4KBmRpZ2VzdBgBIAEoCRIuCgp3aW5kb3dfZW5kGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJAChNEZWNsYXJlZFByZWZlcmVuY2VzEhMKC29yZ19jb250ZXh0GAEgASgJEhQKDHVzZXJfY29udGV4dBgCIAEoCSJmChBSZWNhbGxlZE1lbW9yaWVzEg8KB2VuYWJsZWQYASABKAgSQQoFZmFjdHMYAiADKAsyMi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRydW4udjEuUmVjYWxsZWRNZW1vcnlGYWN0IjgKElJlY2FsbGVkTWVtb3J5RmFjdBIRCgltZW1vcnlfaWQYASABKAkSDwoHY29udGVudBgCIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_agentrun_v1_enum, file_ai_stigmer_agentic_agentrun_v1_invocation, file_ai_stigmer_agentic_executioncontext_v1_spec, file_ai_stigmer_agentic_session_v1_spec, file_buf_validate_validate, file_google_protobuf_struct, file_google_protobuf_timestamp]);
 
 /**
- * AgentRunSpec contains only user-provided inputs for triggering an run.
- * All execution results and state live in AgentRunStatus (in api.proto).
+ * AgentRunSpec contains only user-provided inputs for triggering a run.
+ * All run results and state live in AgentRunStatus (in api.proto).
  *
  * @generated from message ai.stigmer.agentic.agentrun.v1.AgentRunSpec
  */
@@ -47,10 +47,10 @@ export type AgentRunSpec = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSpec"
     /**
      * ID of the existing session this turn continues.
      *
-     * An execution in an existing session belongs to that session's
+     * A run in an existing session belongs to that session's
      * organization: metadata.org, when set, must be the session's
      * (FAILED_PRECONDITION otherwise), and when left empty it is taken from
-     * the session. An execution stays in the session it was created in:
+     * the session. A run stays in the session it was created in:
      * update refuses a different session_id (FAILED_PRECONDITION), and an
      * empty one keeps the stored session.
      *
@@ -67,11 +67,11 @@ export type AgentRunSpec = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSpec"
      * execution_target, MCP servers, skills) together with the first
      * message, so embedders do not need to orchestrate session.create
      * followed by agentRun.create. The created session's ID is
-     * returned on the persisted execution's session_id.
+     * returned on the persisted run's session_id.
      *
      * session_spec.agent_ref names the agent the conversation runs (empty:
      * the built-in assistant). Fields that must be set at session-creation
-     * time and are immutable once an execution has run — harness and
+     * time and are immutable once a run has started — harness and
      * execution_target — can only reach an auto-created session through
      * this field. session_spec.harness_state_id must be empty — it is
      * server-owned harness continuity state, created by the runner after
@@ -85,7 +85,7 @@ export type AgentRunSpec = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSpec"
 
   /**
    * User input message that triggers this run.
-   * Each execution represents one user message and the agent's response.
+   * Each run represents one user message and the agent's response.
    *
    * @generated from field: string message = 3;
    */
@@ -137,7 +137,7 @@ export type AgentRunSpec = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSpec"
 
   /**
    * Marks this message as a "Build from plan" turn: the user approved a plan
-   * produced by a prior Plan-mode execution and asked the agent to implement it.
+   * produced by a prior Plan-mode run and asked the agent to implement it.
    *
    * When set, the runner injects the implement-plan directive into the agent's
    * prompt (see runner shared/implement-plan-prompt.ts). If the approved plan
@@ -172,15 +172,15 @@ export type AgentRunSpec = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSpec"
   structuredOutputSchema?: JsonObject;
 
   /**
-   * Runtime environment variables and secrets (execution-scoped).
-   * These values are only available for this specific execution and take the
+   * Runtime environment variables and secrets (run-scoped).
+   * These values are only available for this specific run and take the
    * highest merge priority, overriding values from Environments bound via
    * environment_refs. A key must be declared in Agent.spec.env to survive the
    * merge: the agent env map is a declaration whitelist (name + is_secret +
    * optional), never a value source — undeclared keys are dropped.
    * Use case: B2B integrations where secrets are injected at runtime per call.
    * These values are consumed into the ExecutionContext (deleted when the
-   * execution completes) and cleared from the persisted run.
+   * run completes) and cleared from the persisted run.
    *
    * @generated from field: map<string, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtime_env = 5;
    */
@@ -201,7 +201,7 @@ export type AgentRunSpec = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSpec"
    *
    * Security consideration: This flag bypasses all approval checks.
    * Ensure appropriate access controls on who can set this flag.
-   * Consider auditing executions where this flag is used.
+   * Consider auditing runs where this flag is used.
    *
    * Default: false (approvals required as configured in policies)
    *
@@ -212,7 +212,7 @@ export type AgentRunSpec = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSpec"
   /**
    * Files attached to this run.
    *
-   * Attachments are injected into the sandbox before execution begins.
+   * Attachments are injected into the sandbox before the run begins.
    * The agent can read these files from the specified mount paths.
    *
    * Use cases:
@@ -256,15 +256,15 @@ export type AgentRunSpec = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSpec"
   workspaceFileRefs: string[];
 
   /**
-   * ID of the execution this one supersedes via edit-and-resubmit (optional).
+   * ID of the run this one supersedes via edit-and-resubmit (optional).
    *
    * When a user stops an in-flight turn, edits the message, and resubmits,
-   * the client sets this field on the NEW execution to point at the stopped
-   * one. Chat-thread consumers hide the superseded execution so the edited
-   * message replaces the original in place; history surfaces (CLI, execution
+   * the client sets this field on the NEW run to point at the stopped
+   * one. Chat-thread consumers hide the superseded run so the edited
+   * message replaces the original in place; history surfaces (CLI, run
    * lists) keep showing the full record.
    *
-   * Empty means this execution is not an edit of another turn.
+   * Empty means this run is not an edit of another turn.
    *
    * @generated from field: string supersedes_run_id = 12;
    */
@@ -277,7 +277,7 @@ export type AgentRunSpec = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSpec"
    * Set on live channel-conversation turns (WhatsApp, Slack): when a human
    * teammate handled the conversation or messages otherwise landed while the
    * agent was not watching, the digest carries what happened so the agent
-   * re-enters informed. Absent on every other execution surface.
+   * re-enters informed. Absent on every other run surface.
    *
    * @generated from field: ai.stigmer.agentic.agentrun.v1.ConversationCatchup conversation_catchup = 14;
    */
@@ -326,7 +326,7 @@ export type WorkflowParent = Message<"ai.stigmer.agentic.agentrun.v1.WorkflowPar
   /**
    * Temporal workflow ID the agent-execution workflow signals about
    * approval requests ("child_approval_required", carrying only this
-   * execution's id): the workflow run's engine workflow, which for a nested
+   * run's id): the workflow run's engine workflow, which for a nested
    * workflow is a child workflow with its own id, so it is named rather
    * than derived.
    *
@@ -361,7 +361,7 @@ export const WorkflowParentSchema: GenMessage<WorkflowParent> = /*@__PURE__*/
  *
  * 1. Client calls uploadAttachment RPC with file content
  * 2. Server returns a storage_key
- * 3. Client creates execution with Attachment containing that storage_key
+ * 3. Client creates run with Attachment containing that storage_key
  * 4. The runner downloads file from storage and injects into sandbox
  *
  * ## Mount Path
@@ -437,7 +437,7 @@ export type Attachment = Message<"ai.stigmer.agentic.agentrun.v1.Attachment"> & 
    *
    * The CLI sets this unconditionally to the resolved absolute path of
    * the attached file.  storage_key remains required -- the upload still
-   * happens for execution history and replay support.
+   * happens for run history and replay support.
    *
    * @generated from field: string local_path = 6;
    */
@@ -483,7 +483,7 @@ export const ConversationCatchupSchema: GenMessage<ConversationCatchup> = /*@__P
 
 /**
  * DeclaredPreferences carries the standing preference texts injected into
- * this execution's prompt, one field per declaring scope.
+ * this run's prompt, one field per declaring scope.
  *
  * @generated from message ai.stigmer.agentic.agentrun.v1.DeclaredPreferences
  */
@@ -512,14 +512,14 @@ export const DeclaredPreferencesSchema: GenMessage<DeclaredPreferences> = /*@__P
 
 /**
  * RecalledMemories is the server-composed snapshot of the caller's
- * confirmed memories for one execution — the candidate set for prompt
+ * confirmed memories for one run — the candidate set for prompt
  * injection.
  *
  * @generated from message ai.stigmer.agentic.agentrun.v1.RecalledMemories
  */
 export type RecalledMemories = Message<"ai.stigmer.agentic.agentrun.v1.RecalledMemories"> & {
   /**
-   * Whether memory is enabled for this execution's caller.
+   * Whether memory is enabled for this run's caller.
    *
    * @generated from field: bool enabled = 1;
    */

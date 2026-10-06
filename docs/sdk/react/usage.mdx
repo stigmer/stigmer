@@ -13,7 +13,7 @@ Behavior hook that generates and downloads usage data as CSV.
 
 Operates entirely client-side from data already in memory — no
 additional RPC calls. Supports two formats:
-- `daily_summary` — one row per day with date, executions, tokens, cost
+- `daily_summary` — one row per day with date, runs, tokens, cost
 - `model_breakdown` — one row per model with calls, tokens, cost
 
 **Signature**
@@ -43,7 +43,7 @@ function useExportCSV(report: GetOrgUsageReportOutput | null, org: string): UseE
 
 Data hook that fetches the organization-level usage report.
 
-Calls `stigmer.agentExecution.getOrgUsageReport` with the provided
+Calls `stigmer.agentRun.getOrgUsageReport` with the provided
 org ID and date range. The server returns aggregated totals, a
 per-model breakdown, the top agents by cost, and a daily cost trend.
 
@@ -94,7 +94,7 @@ return <div>Total cost: {formatCost(costUsd)}</div>;
 
 Renders a ranked list of agents by cost with proportional cost bars.
 
-Each row shows the agent name, execution count, token usage,
+Each row shows the agent name, run count, token usage,
 billable cost, and a visual bar representing cost as a percentage
 of the organization total.
 
@@ -153,7 +153,7 @@ corresponding to the two CSV export formats.
 
 ### HarnessSplitCard
 
-Displays the cost split between execution harnesses as a segmented bar.
+Displays the cost split between run harnesses as a segmented bar.
 
 Renders a two-tone horizontal bar with labels showing cost and percentage
 per harness. Designed for at-a-glance understanding of native vs cursor

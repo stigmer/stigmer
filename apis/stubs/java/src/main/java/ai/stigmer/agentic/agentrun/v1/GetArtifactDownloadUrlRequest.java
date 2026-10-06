@@ -7,22 +7,22 @@ package ai.stigmer.agentic.agentrun.v1;
 
 /**
  * <pre>
- * GetArtifactDownloadUrlRequest requests a download URL for an execution artifact.
+ * GetArtifactDownloadUrlRequest requests a download URL for a run artifact.
  *
  * This endpoint generates presigned URLs for artifacts published by agents
- * during run. The URLs are time-limited and can be used for direct
+ * during the run. The URLs are time-limited and can be used for direct
  * HTTP download without authentication.
  *
  * ## Authorization
  *
  * Requires can_view permission on the run. This ensures users can only
- * access artifacts from executions they have access to.
+ * access artifacts from runs they have access to.
  *
  * ## Security
  *
  * The storage_key is validated to ensure it belongs to the specified run.
  * Storage keys must start with "artifacts/{run_id}/" to prevent path
- * traversal attacks where a user could request URLs for other executions'
+ * traversal attacks where a user could request URLs for other runs'
  * artifacts.
  *
  * ## Use Cases
@@ -160,9 +160,9 @@ private static final long serialVersionUID = 0L;
    *
    * Must be an artifact from the specified run. The storage_key
    * is validated to start with "artifacts/{run_id}/" to prevent
-   * access to other executions' artifacts.
+   * access to other runs' artifacts.
    *
-   * Obtain this value from RunArtifact.storage_key in the execution status.
+   * Obtain this value from RunArtifact.storage_key in the run status.
    *
    * Format: "artifacts/{run_id}/{filename}"
    * Example: "artifacts/aex_abc123xyz456/generated-skill.zip"
@@ -192,9 +192,9 @@ private static final long serialVersionUID = 0L;
    *
    * Must be an artifact from the specified run. The storage_key
    * is validated to start with "artifacts/{run_id}/" to prevent
-   * access to other executions' artifacts.
+   * access to other runs' artifacts.
    *
-   * Obtain this value from RunArtifact.storage_key in the execution status.
+   * Obtain this value from RunArtifact.storage_key in the run status.
    *
    * Format: "artifacts/{run_id}/{filename}"
    * Example: "artifacts/aex_abc123xyz456/generated-skill.zip"
@@ -429,22 +429,22 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * GetArtifactDownloadUrlRequest requests a download URL for an execution artifact.
+   * GetArtifactDownloadUrlRequest requests a download URL for a run artifact.
    *
    * This endpoint generates presigned URLs for artifacts published by agents
-   * during run. The URLs are time-limited and can be used for direct
+   * during the run. The URLs are time-limited and can be used for direct
    * HTTP download without authentication.
    *
    * ## Authorization
    *
    * Requires can_view permission on the run. This ensures users can only
-   * access artifacts from executions they have access to.
+   * access artifacts from runs they have access to.
    *
    * ## Security
    *
    * The storage_key is validated to ensure it belongs to the specified run.
    * Storage keys must start with "artifacts/{run_id}/" to prevent path
-   * traversal attacks where a user could request URLs for other executions'
+   * traversal attacks where a user could request URLs for other runs'
    * artifacts.
    *
    * ## Use Cases
@@ -765,9 +765,9 @@ private static final long serialVersionUID = 0L;
      *
      * Must be an artifact from the specified run. The storage_key
      * is validated to start with "artifacts/{run_id}/" to prevent
-     * access to other executions' artifacts.
+     * access to other runs' artifacts.
      *
-     * Obtain this value from RunArtifact.storage_key in the execution status.
+     * Obtain this value from RunArtifact.storage_key in the run status.
      *
      * Format: "artifacts/{run_id}/{filename}"
      * Example: "artifacts/aex_abc123xyz456/generated-skill.zip"
@@ -796,9 +796,9 @@ private static final long serialVersionUID = 0L;
      *
      * Must be an artifact from the specified run. The storage_key
      * is validated to start with "artifacts/{run_id}/" to prevent
-     * access to other executions' artifacts.
+     * access to other runs' artifacts.
      *
-     * Obtain this value from RunArtifact.storage_key in the execution status.
+     * Obtain this value from RunArtifact.storage_key in the run status.
      *
      * Format: "artifacts/{run_id}/{filename}"
      * Example: "artifacts/aex_abc123xyz456/generated-skill.zip"
@@ -828,9 +828,9 @@ private static final long serialVersionUID = 0L;
      *
      * Must be an artifact from the specified run. The storage_key
      * is validated to start with "artifacts/{run_id}/" to prevent
-     * access to other executions' artifacts.
+     * access to other runs' artifacts.
      *
-     * Obtain this value from RunArtifact.storage_key in the execution status.
+     * Obtain this value from RunArtifact.storage_key in the run status.
      *
      * Format: "artifacts/{run_id}/{filename}"
      * Example: "artifacts/aex_abc123xyz456/generated-skill.zip"
@@ -856,9 +856,9 @@ private static final long serialVersionUID = 0L;
      *
      * Must be an artifact from the specified run. The storage_key
      * is validated to start with "artifacts/{run_id}/" to prevent
-     * access to other executions' artifacts.
+     * access to other runs' artifacts.
      *
-     * Obtain this value from RunArtifact.storage_key in the execution status.
+     * Obtain this value from RunArtifact.storage_key in the run status.
      *
      * Format: "artifacts/{run_id}/{filename}"
      * Example: "artifacts/aex_abc123xyz456/generated-skill.zip"
@@ -881,9 +881,9 @@ private static final long serialVersionUID = 0L;
      *
      * Must be an artifact from the specified run. The storage_key
      * is validated to start with "artifacts/{run_id}/" to prevent
-     * access to other executions' artifacts.
+     * access to other runs' artifacts.
      *
-     * Obtain this value from RunArtifact.storage_key in the execution status.
+     * Obtain this value from RunArtifact.storage_key in the run status.
      *
      * Format: "artifacts/{run_id}/{filename}"
      * Example: "artifacts/aex_abc123xyz456/generated-skill.zip"

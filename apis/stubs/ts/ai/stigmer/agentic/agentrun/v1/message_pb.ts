@@ -77,7 +77,7 @@ export const AgentMessageSchema: GenMessage<AgentMessage> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentrun_v1_message, 0);
 
 /**
- * Represents a tool call made by the agent during run.
+ * Represents a tool call made by the agent during a run.
  *
  * @generated from message ai.stigmer.agentic.agentrun.v1.ToolCall
  */
@@ -114,7 +114,7 @@ export type ToolCall = Message<"ai.stigmer.agentic.agentrun.v1.ToolCall"> & {
   result: string;
 
   /**
-   * Status of the tool call run.
+   * Status of the tool call execution.
    *
    * @generated from field: ai.stigmer.agentic.agentrun.v1.ToolCallStatus status = 5;
    */
@@ -207,8 +207,8 @@ export type ToolCall = Message<"ai.stigmer.agentic.agentrun.v1.ToolCall"> & {
    * Only populated after approval decision is made (approval_decided_at is set).
    * Determines how the tool execution proceeds:
    *   - APPROVE: Tool executes normally
-   *   - SKIP: Tool returns skip message, execution continues
-   *   - REJECT: Execution fails with rejection error
+   *   - SKIP: Tool returns skip message, run continues
+   *   - REJECT: Run fails with rejection error
    *
    * @generated from field: ai.stigmer.agentic.agentrun.v1.ApprovalAction approval_action = 15;
    */
@@ -278,7 +278,7 @@ export type ToolCall = Message<"ai.stigmer.agentic.agentrun.v1.ToolCall"> & {
    * Cursor harnesses use different tool-name conventions; tool_kind erases that
    * difference at the source.
    *
-   * TOOL_KIND_UNSPECIFIED means unclassified — either the execution predates this
+   * TOOL_KIND_UNSPECIFIED means unclassified — either the run predates this
    * field or the tool has no known kind. Clients fall back to a name-based
    * lookup in that case. See ToolKind.
    *
@@ -318,7 +318,7 @@ export type ToolCall = Message<"ai.stigmer.agentic.agentrun.v1.ToolCall"> & {
    * auto-approved?".
    *
    * APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
-   * or an execution that predates this field (clients fall back to no provenance,
+   * or a run that predates this field (clients fall back to no provenance,
    * exactly as for an unset tool_kind). See ApprovalPolicySource.
    *
    * Field 23: appended after file_changes (22), the prior maximum.
@@ -349,7 +349,7 @@ export type ToolCall = Message<"ai.stigmer.agentic.agentrun.v1.ToolCall"> & {
    * drop `args`/`file_changes` for large edits — a recompute-from-args identity
    * would be unrecoverable in that case. Empty for tools whose other identity is
    * already content-exact (shell command, delete path), for read-only tools, and
-   * for executions that predate this field (the runner then degrades to the
+   * for runs that predate this field (the runner then degrades to the
    * coarse (category, path) identity).
    *
    * @generated from field: string approval_content_digest = 25;
@@ -366,7 +366,7 @@ export type ToolCall = Message<"ai.stigmer.agentic.agentrun.v1.ToolCall"> & {
    * reconcile identity is digest-gated (see filereview.proto's identity rule).
    *
    * Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
-   * those rows), rows from executions that predate this field, and turns whose
+   * those rows), rows from runs that predate this field, and turns whose
    * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
    * so there is no change set to reference).
    *
@@ -401,7 +401,7 @@ export const ToolCallSchema: GenMessage<ToolCall> = /*@__PURE__*/
  * publishes for the user to download via publish_artifact): an output ref is
  * internal spillover of a tool's result, not a user-facing deliverable. The
  * bytes live in artifact storage (R2 in the cloud, locally served in dev);
- * only this reference is persisted in the execution status.
+ * only this reference is persisted in the run status.
  *
  * @generated from message ai.stigmer.agentic.agentrun.v1.ToolCallOutputRef
  */

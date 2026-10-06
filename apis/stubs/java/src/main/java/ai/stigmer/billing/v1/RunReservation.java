@@ -9,9 +9,9 @@ package ai.stigmer.billing.v1;
  * <pre>
  * RunReservation tracks credits held for an active agent run.
  *
- * Created at execution start (AuthorizeRun), consumed incrementally
+ * Created at run start (AuthorizeRun), consumed incrementally
  * by per-LLM-call debits (via proxy-observed usage metering), and settled
- * at execution end (FinalizeRun) to release any unused hold.
+ * at run end (FinalizeRun) to release any unused hold.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.v1.RunReservation}
@@ -206,7 +206,7 @@ private static final long serialVersionUID = 0L;
   private long reservedMicros_ = 0L;
   /**
    * <pre>
-   * Total micro-USD reserved at execution start.
+   * Total micro-USD reserved at run start.
    * </pre>
    *
    * <code>int64 reserved_micros = 4 [json_name = "reservedMicros"];</code>
@@ -568,9 +568,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * RunReservation tracks credits held for an active agent run.
    *
-   * Created at execution start (AuthorizeRun), consumed incrementally
+   * Created at run start (AuthorizeRun), consumed incrementally
    * by per-LLM-call debits (via proxy-observed usage metering), and settled
-   * at execution end (FinalizeRun) to release any unused hold.
+   * at run end (FinalizeRun) to release any unused hold.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.v1.RunReservation}
@@ -1104,7 +1104,7 @@ private static final long serialVersionUID = 0L;
     private long reservedMicros_ ;
     /**
      * <pre>
-     * Total micro-USD reserved at execution start.
+     * Total micro-USD reserved at run start.
      * </pre>
      *
      * <code>int64 reserved_micros = 4 [json_name = "reservedMicros"];</code>
@@ -1116,7 +1116,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total micro-USD reserved at execution start.
+     * Total micro-USD reserved at run start.
      * </pre>
      *
      * <code>int64 reserved_micros = 4 [json_name = "reservedMicros"];</code>
@@ -1132,7 +1132,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total micro-USD reserved at execution start.
+     * Total micro-USD reserved at run start.
      * </pre>
      *
      * <code>int64 reserved_micros = 4 [json_name = "reservedMicros"];</code>

@@ -192,7 +192,7 @@ public interface SummarizationEventOrBuilder extends
   /**
    * <pre>
    * Cost in USD of this summarization call.
-   * Computed using the summarization model's pricing rates at execution time.
+   * Computed using the summarization model's pricing rates at run time.
    * </pre>
    *
    * <code>double summarization_cost_usd = 12 [json_name = "summarizationCostUsd"];</code>

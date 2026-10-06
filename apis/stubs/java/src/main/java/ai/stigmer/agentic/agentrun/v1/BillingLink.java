@@ -88,7 +88,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object reservationId_ = "";
   /**
    * <pre>
-   * Execution reservation ID (from authorizeRun).
+   * Run reservation ID (from authorizeRun).
    * </pre>
    *
    * <code>string reservation_id = 2 [json_name = "reservationId"];</code>
@@ -109,7 +109,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Execution reservation ID (from authorizeRun).
+   * Run reservation ID (from authorizeRun).
    * </pre>
    *
    * <code>string reservation_id = 2 [json_name = "reservationId"];</code>
@@ -780,7 +780,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object reservationId_ = "";
     /**
      * <pre>
-     * Execution reservation ID (from authorizeRun).
+     * Run reservation ID (from authorizeRun).
      * </pre>
      *
      * <code>string reservation_id = 2 [json_name = "reservationId"];</code>
@@ -800,7 +800,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution reservation ID (from authorizeRun).
+     * Run reservation ID (from authorizeRun).
      * </pre>
      *
      * <code>string reservation_id = 2 [json_name = "reservationId"];</code>
@@ -821,7 +821,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution reservation ID (from authorizeRun).
+     * Run reservation ID (from authorizeRun).
      * </pre>
      *
      * <code>string reservation_id = 2 [json_name = "reservationId"];</code>
@@ -838,7 +838,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution reservation ID (from authorizeRun).
+     * Run reservation ID (from authorizeRun).
      * </pre>
      *
      * <code>string reservation_id = 2 [json_name = "reservationId"];</code>
@@ -852,7 +852,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution reservation ID (from authorizeRun).
+     * Run reservation ID (from authorizeRun).
      * </pre>
      *
      * <code>string reservation_id = 2 [json_name = "reservationId"];</code>

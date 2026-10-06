@@ -23,7 +23,7 @@ public interface RunStartedPayloadOrBuilder extends
 
   /**
    * <pre>
-   * Workflow ID the execution runs.
+   * ID of the workflow being run.
    * </pre>
    *
    * <code>string workflow_id = 2 [json_name = "workflowId"];</code>
@@ -32,7 +32,7 @@ public interface RunStartedPayloadOrBuilder extends
   java.lang.String getWorkflowId();
   /**
    * <pre>
-   * Workflow ID the execution runs.
+   * ID of the workflow being run.
    * </pre>
    *
    * <code>string workflow_id = 2 [json_name = "workflowId"];</code>

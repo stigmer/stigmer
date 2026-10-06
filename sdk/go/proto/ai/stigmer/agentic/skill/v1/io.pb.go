@@ -398,7 +398,7 @@ func (x *SkillArtifactDownloadUrl) GetSizeBytes() int64 {
 	return 0
 }
 
-// PushSkillFromRunArtifactRequest publishes a skill from an execution
+// PushSkillFromRunArtifactRequest publishes a skill from a run
 // artifact already in storage, without downloading and re-uploading the ZIP.
 type PushSkillFromRunArtifactRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -407,7 +407,7 @@ type PushSkillFromRunArtifactRequest struct {
 	// ID of the agent run that produced the artifact (e.g., "aex_abc123xyz456").
 	RunId string `protobuf:"bytes,2,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	// Storage key of the directory artifact (ZIP) to push as a skill.
-	// Obtain this from RunArtifact.storage_key in the execution status.
+	// Obtain this from RunArtifact.storage_key in the run status.
 	StorageKey string `protobuf:"bytes,3,opt,name=storage_key,json=storageKey,proto3" json:"storage_key,omitempty"`
 	// Optional version tag (same semantics as PushSkillRequest.tag).
 	// Examples: "stable", "v1.0", "latest"

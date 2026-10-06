@@ -107,7 +107,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus status_;
   /**
    * <pre>
-   * Status fields to merge into the existing execution status.
+   * Status fields to merge into the existing run status.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus status = 2 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -119,7 +119,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Status fields to merge into the existing execution status.
+   * Status fields to merge into the existing run status.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus status = 2 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -131,7 +131,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Status fields to merge into the existing execution status.
+   * Status fields to merge into the existing run status.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus status = 2 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -146,7 +146,7 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent> events_;
   /**
    * <pre>
-   * Execution events to append to the event log alongside this status update.
+   * Run events to append to the event log alongside this status update.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -157,7 +157,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Execution events to append to the event log alongside this status update.
+   * Run events to append to the event log alongside this status update.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -169,7 +169,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Execution events to append to the event log alongside this status update.
+   * Run events to append to the event log alongside this status update.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -180,7 +180,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Execution events to append to the event log alongside this status update.
+   * Run events to append to the event log alongside this status update.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -191,7 +191,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Execution events to append to the event log alongside this status update.
+   * Run events to append to the event log alongside this status update.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -884,7 +884,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus, ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus.Builder, ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatusOrBuilder> statusBuilder_;
     /**
      * <pre>
-     * Status fields to merge into the existing execution status.
+     * Status fields to merge into the existing run status.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus status = 2 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -895,7 +895,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status fields to merge into the existing execution status.
+     * Status fields to merge into the existing run status.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus status = 2 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -910,7 +910,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status fields to merge into the existing execution status.
+     * Status fields to merge into the existing run status.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus status = 2 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -930,7 +930,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status fields to merge into the existing execution status.
+     * Status fields to merge into the existing run status.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus status = 2 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -948,7 +948,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status fields to merge into the existing execution status.
+     * Status fields to merge into the existing run status.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus status = 2 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -973,7 +973,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status fields to merge into the existing execution status.
+     * Status fields to merge into the existing run status.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus status = 2 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -990,7 +990,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status fields to merge into the existing execution status.
+     * Status fields to merge into the existing run status.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus status = 2 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -1002,7 +1002,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status fields to merge into the existing execution status.
+     * Status fields to merge into the existing run status.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus status = 2 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -1017,7 +1017,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status fields to merge into the existing execution status.
+     * Status fields to merge into the existing run status.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus status = 2 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -1050,7 +1050,7 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * Execution events to append to the event log alongside this status update.
+     * Run events to append to the event log alongside this status update.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -1064,7 +1064,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution events to append to the event log alongside this status update.
+     * Run events to append to the event log alongside this status update.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -1078,7 +1078,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution events to append to the event log alongside this status update.
+     * Run events to append to the event log alongside this status update.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -1092,7 +1092,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution events to append to the event log alongside this status update.
+     * Run events to append to the event log alongside this status update.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -1113,7 +1113,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution events to append to the event log alongside this status update.
+     * Run events to append to the event log alongside this status update.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -1131,7 +1131,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution events to append to the event log alongside this status update.
+     * Run events to append to the event log alongside this status update.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -1151,7 +1151,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution events to append to the event log alongside this status update.
+     * Run events to append to the event log alongside this status update.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -1172,7 +1172,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution events to append to the event log alongside this status update.
+     * Run events to append to the event log alongside this status update.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -1190,7 +1190,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution events to append to the event log alongside this status update.
+     * Run events to append to the event log alongside this status update.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -1208,7 +1208,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution events to append to the event log alongside this status update.
+     * Run events to append to the event log alongside this status update.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -1227,7 +1227,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution events to append to the event log alongside this status update.
+     * Run events to append to the event log alongside this status update.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -1244,7 +1244,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution events to append to the event log alongside this status update.
+     * Run events to append to the event log alongside this status update.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -1261,7 +1261,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution events to append to the event log alongside this status update.
+     * Run events to append to the event log alongside this status update.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -1272,7 +1272,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution events to append to the event log alongside this status update.
+     * Run events to append to the event log alongside this status update.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -1286,7 +1286,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution events to append to the event log alongside this status update.
+     * Run events to append to the event log alongside this status update.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -1301,7 +1301,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution events to append to the event log alongside this status update.
+     * Run events to append to the event log alongside this status update.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -1312,7 +1312,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution events to append to the event log alongside this status update.
+     * Run events to append to the event log alongside this status update.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -1324,7 +1324,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution events to append to the event log alongside this status update.
+     * Run events to append to the event log alongside this status update.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>

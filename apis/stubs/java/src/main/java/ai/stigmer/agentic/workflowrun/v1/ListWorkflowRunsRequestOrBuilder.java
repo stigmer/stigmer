@@ -12,7 +12,7 @@ public interface ListWorkflowRunsRequestOrBuilder extends
 
   /**
    * <pre>
-   * The most executions to return, at most 100; zero returns them all.
+   * The most runs to return, at most 100; zero returns them all.
    * </pre>
    *
    * <code>int32 page_size = 1 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
@@ -44,7 +44,7 @@ public interface ListWorkflowRunsRequestOrBuilder extends
 
   /**
    * <pre>
-   * Filter by execution phase.
+   * Filter by run phase.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowrun.v1.RunPhase phase = 3 [json_name = "phase"];</code>
@@ -53,7 +53,7 @@ public interface ListWorkflowRunsRequestOrBuilder extends
   int getPhaseValue();
   /**
    * <pre>
-   * Filter by execution phase.
+   * Filter by run phase.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowrun.v1.RunPhase phase = 3 [json_name = "phase"];</code>
@@ -176,7 +176,7 @@ public interface ListWorkflowRunsRequestOrBuilder extends
    * <pre>
    * Organization slug to scope the results to.
    *
-   * When set, only executions whose metadata.org matches are returned — the
+   * When set, only runs whose metadata.org matches are returned — the
    * org-context view a console tab needs. When empty, results are bounded
    * only by the caller's view permissions, which for a member of several
    * organizations spans all of them.
@@ -190,7 +190,7 @@ public interface ListWorkflowRunsRequestOrBuilder extends
    * <pre>
    * Organization slug to scope the results to.
    *
-   * When set, only executions whose metadata.org matches are returned — the
+   * When set, only runs whose metadata.org matches are returned — the
    * org-context view a console tab needs. When empty, results are bounded
    * only by the caller's view permissions, which for a member of several
    * organizations spans all of them.

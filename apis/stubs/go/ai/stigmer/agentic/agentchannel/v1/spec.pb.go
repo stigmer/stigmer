@@ -53,7 +53,7 @@ type AgentChannelSpec struct {
 	//
 	// This is how a tool-using agent becomes chattable over a channel: bind
 	// an org-shared environment holding the needed credentials (for example
-	// a read-only API token), and channel executions receive its values at
+	// a read-only API token), and channel runs receive its values at
 	// runtime. The agent itself stays untouched.
 	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,4,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`
 	// Reference to the ChannelApp this channel installs through.

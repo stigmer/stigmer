@@ -7,7 +7,7 @@ package ai.stigmer.agentic.workflowrun.v1;
 
 /**
  * <pre>
- * WorkflowRunStatus contains all system-managed execution state and results.
+ * WorkflowRunStatus contains all system-managed run state and results.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus}
@@ -104,7 +104,7 @@ private static final long serialVersionUID = 0L;
   private int phase_ = 0;
   /**
    * <pre>
-   * Current execution lifecycle phase.
+   * Current run lifecycle phase.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowrun.v1.RunPhase phase = 1 [json_name = "phase", (.buf.validate.field) = { ... }</code>
@@ -115,7 +115,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Current execution lifecycle phase.
+   * Current run lifecycle phase.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowrun.v1.RunPhase phase = 1 [json_name = "phase", (.buf.validate.field) = { ... }</code>
@@ -277,7 +277,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object startedAt_ = "";
   /**
    * <pre>
-   * ISO 8601 timestamp when execution started processing.
+   * ISO 8601 timestamp when the run started processing.
    * </pre>
    *
    * <code>string started_at = 5 [json_name = "startedAt"];</code>
@@ -298,7 +298,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ISO 8601 timestamp when execution started processing.
+   * ISO 8601 timestamp when the run started processing.
    * </pre>
    *
    * <code>string started_at = 5 [json_name = "startedAt"];</code>
@@ -324,7 +324,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object completedAt_ = "";
   /**
    * <pre>
-   * ISO 8601 timestamp when execution reached a terminal state.
+   * ISO 8601 timestamp when the run reached a terminal state.
    * </pre>
    *
    * <code>string completed_at = 6 [json_name = "completedAt"];</code>
@@ -345,7 +345,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ISO 8601 timestamp when execution reached a terminal state.
+   * ISO 8601 timestamp when the run reached a terminal state.
    * </pre>
    *
    * <code>string completed_at = 6 [json_name = "completedAt"];</code>
@@ -418,7 +418,7 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval> pendingApprovals_;
   /**
    * <pre>
-   * Pending approvals from child agent tool runs.
+   * Pending approvals from child agent tool executions.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -429,7 +429,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Pending approvals from child agent tool runs.
+   * Pending approvals from child agent tool executions.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -441,7 +441,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Pending approvals from child agent tool runs.
+   * Pending approvals from child agent tool executions.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -452,7 +452,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Pending approvals from child agent tool runs.
+   * Pending approvals from child agent tool executions.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -463,7 +463,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Pending approvals from child agent tool runs.
+   * Pending approvals from child agent tool executions.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -962,7 +962,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * WorkflowRunStatus contains all system-managed execution state and results.
+   * WorkflowRunStatus contains all system-managed run state and results.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus}
@@ -1589,7 +1589,7 @@ private static final long serialVersionUID = 0L;
     private int phase_ = 0;
     /**
      * <pre>
-     * Current execution lifecycle phase.
+     * Current run lifecycle phase.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.RunPhase phase = 1 [json_name = "phase", (.buf.validate.field) = { ... }</code>
@@ -1600,7 +1600,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Current execution lifecycle phase.
+     * Current run lifecycle phase.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.RunPhase phase = 1 [json_name = "phase", (.buf.validate.field) = { ... }</code>
@@ -1616,7 +1616,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Current execution lifecycle phase.
+     * Current run lifecycle phase.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.RunPhase phase = 1 [json_name = "phase", (.buf.validate.field) = { ... }</code>
@@ -1629,7 +1629,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Current execution lifecycle phase.
+     * Current run lifecycle phase.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.RunPhase phase = 1 [json_name = "phase", (.buf.validate.field) = { ... }</code>
@@ -1645,7 +1645,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Current execution lifecycle phase.
+     * Current run lifecycle phase.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.RunPhase phase = 1 [json_name = "phase", (.buf.validate.field) = { ... }</code>
@@ -2222,7 +2222,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object startedAt_ = "";
     /**
      * <pre>
-     * ISO 8601 timestamp when execution started processing.
+     * ISO 8601 timestamp when the run started processing.
      * </pre>
      *
      * <code>string started_at = 5 [json_name = "startedAt"];</code>
@@ -2242,7 +2242,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp when execution started processing.
+     * ISO 8601 timestamp when the run started processing.
      * </pre>
      *
      * <code>string started_at = 5 [json_name = "startedAt"];</code>
@@ -2263,7 +2263,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp when execution started processing.
+     * ISO 8601 timestamp when the run started processing.
      * </pre>
      *
      * <code>string started_at = 5 [json_name = "startedAt"];</code>
@@ -2280,7 +2280,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp when execution started processing.
+     * ISO 8601 timestamp when the run started processing.
      * </pre>
      *
      * <code>string started_at = 5 [json_name = "startedAt"];</code>
@@ -2294,7 +2294,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp when execution started processing.
+     * ISO 8601 timestamp when the run started processing.
      * </pre>
      *
      * <code>string started_at = 5 [json_name = "startedAt"];</code>
@@ -2314,7 +2314,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object completedAt_ = "";
     /**
      * <pre>
-     * ISO 8601 timestamp when execution reached a terminal state.
+     * ISO 8601 timestamp when the run reached a terminal state.
      * </pre>
      *
      * <code>string completed_at = 6 [json_name = "completedAt"];</code>
@@ -2334,7 +2334,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp when execution reached a terminal state.
+     * ISO 8601 timestamp when the run reached a terminal state.
      * </pre>
      *
      * <code>string completed_at = 6 [json_name = "completedAt"];</code>
@@ -2355,7 +2355,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp when execution reached a terminal state.
+     * ISO 8601 timestamp when the run reached a terminal state.
      * </pre>
      *
      * <code>string completed_at = 6 [json_name = "completedAt"];</code>
@@ -2372,7 +2372,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp when execution reached a terminal state.
+     * ISO 8601 timestamp when the run reached a terminal state.
      * </pre>
      *
      * <code>string completed_at = 6 [json_name = "completedAt"];</code>
@@ -2386,7 +2386,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp when execution reached a terminal state.
+     * ISO 8601 timestamp when the run reached a terminal state.
      * </pre>
      *
      * <code>string completed_at = 6 [json_name = "completedAt"];</code>
@@ -2509,7 +2509,7 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * Pending approvals from child agent tool runs.
+     * Pending approvals from child agent tool executions.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -2523,7 +2523,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool runs.
+     * Pending approvals from child agent tool executions.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -2537,7 +2537,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool runs.
+     * Pending approvals from child agent tool executions.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -2551,7 +2551,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool runs.
+     * Pending approvals from child agent tool executions.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -2572,7 +2572,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool runs.
+     * Pending approvals from child agent tool executions.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -2590,7 +2590,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool runs.
+     * Pending approvals from child agent tool executions.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -2610,7 +2610,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool runs.
+     * Pending approvals from child agent tool executions.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -2631,7 +2631,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool runs.
+     * Pending approvals from child agent tool executions.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -2649,7 +2649,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool runs.
+     * Pending approvals from child agent tool executions.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -2667,7 +2667,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool runs.
+     * Pending approvals from child agent tool executions.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -2686,7 +2686,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool runs.
+     * Pending approvals from child agent tool executions.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -2703,7 +2703,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool runs.
+     * Pending approvals from child agent tool executions.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -2720,7 +2720,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool runs.
+     * Pending approvals from child agent tool executions.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -2731,7 +2731,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool runs.
+     * Pending approvals from child agent tool executions.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -2745,7 +2745,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool runs.
+     * Pending approvals from child agent tool executions.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -2760,7 +2760,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool runs.
+     * Pending approvals from child agent tool executions.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -2771,7 +2771,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool runs.
+     * Pending approvals from child agent tool executions.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -2783,7 +2783,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool runs.
+     * Pending approvals from child agent tool executions.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>

@@ -14,7 +14,7 @@ public interface ResumeAgentRunInputOrBuilder extends
    * <pre>
    * Agent run ID to resume.
    *
-   * Must be in PAUSED phase. Cannot resume executions
+   * Must be in PAUSED phase. Cannot resume runs
    * that are not paused.
    *
    * Format: "aex_{ulid}" (auto-generated unique identifier)
@@ -31,7 +31,7 @@ public interface ResumeAgentRunInputOrBuilder extends
    * <pre>
    * Agent run ID to resume.
    *
-   * Must be in PAUSED phase. Cannot resume executions
+   * Must be in PAUSED phase. Cannot resume runs
    * that are not paused.
    *
    * Format: "aex_{ulid}" (auto-generated unique identifier)

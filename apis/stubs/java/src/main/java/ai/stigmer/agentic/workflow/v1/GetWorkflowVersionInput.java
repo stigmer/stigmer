@@ -9,8 +9,8 @@ package ai.stigmer.agentic.workflow.v1;
  * <pre>
  * GetWorkflowVersionInput requests a specific historical version of a workflow.
  *
- * Used by the runner (to hydrate execution from a pinned version) and the
- * execution viewer (to render the graph for historical executions).
+ * Used by the runner (to hydrate a run from a pinned version) and the
+ * run viewer (to render the graph for historical runs).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput}
@@ -321,8 +321,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * GetWorkflowVersionInput requests a specific historical version of a workflow.
    *
-   * Used by the runner (to hydrate execution from a pinned version) and the
-   * execution viewer (to render the graph for historical executions).
+   * Used by the runner (to hydrate a run from a pinned version) and the
+   * run viewer (to render the graph for historical runs).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput}

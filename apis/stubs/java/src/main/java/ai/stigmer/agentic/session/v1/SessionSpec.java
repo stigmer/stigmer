@@ -227,7 +227,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Harness-specific state identifier for conversation continuity.
    *
-   * Populated after the first execution completes; empty until then.
+   * Populated after the first run completes; empty until then.
    * Each harness uses this field differently:
    *
    * - NATIVE: LangGraph thread ID, derived deterministically as
@@ -259,7 +259,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Harness-specific state identifier for conversation continuity.
    *
-   * Populated after the first execution completes; empty until then.
+   * Populated after the first run completes; empty until then.
    * Each harness uses this field differently:
    *
    * - NATIVE: LangGraph thread ID, derived deterministically as
@@ -461,8 +461,8 @@ java.lang.String defaultValue) {
    * Workspace entries for this session.
    *
    * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace. Entries are provisioned on the first execution;
-   * subsequent executions reuse the same workspace.
+   * a multi-root workspace. Entries are provisioned on the first run;
+   * subsequent runs reuse the same workspace.
    *
    * When empty, the session uses an empty workspace directory.
    * </pre>
@@ -478,8 +478,8 @@ java.lang.String defaultValue) {
    * Workspace entries for this session.
    *
    * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace. Entries are provisioned on the first execution;
-   * subsequent executions reuse the same workspace.
+   * a multi-root workspace. Entries are provisioned on the first run;
+   * subsequent runs reuse the same workspace.
    *
    * When empty, the session uses an empty workspace directory.
    * </pre>
@@ -496,8 +496,8 @@ java.lang.String defaultValue) {
    * Workspace entries for this session.
    *
    * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace. Entries are provisioned on the first execution;
-   * subsequent executions reuse the same workspace.
+   * a multi-root workspace. Entries are provisioned on the first run;
+   * subsequent runs reuse the same workspace.
    *
    * When empty, the session uses an empty workspace directory.
    * </pre>
@@ -513,8 +513,8 @@ java.lang.String defaultValue) {
    * Workspace entries for this session.
    *
    * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace. Entries are provisioned on the first execution;
-   * subsequent executions reuse the same workspace.
+   * a multi-root workspace. Entries are provisioned on the first run;
+   * subsequent runs reuse the same workspace.
    *
    * When empty, the session uses an empty workspace directory.
    * </pre>
@@ -530,8 +530,8 @@ java.lang.String defaultValue) {
    * Workspace entries for this session.
    *
    * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace. Entries are provisioned on the first execution;
-   * subsequent executions reuse the same workspace.
+   * a multi-root workspace. Entries are provisioned on the first run;
+   * subsequent runs reuse the same workspace.
    *
    * When empty, the session uses an empty workspace directory.
    * </pre>
@@ -723,7 +723,7 @@ java.lang.String defaultValue) {
    * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
    *
    * The harness affects which tools the agent has, how conversation state
-   * is managed, available models, and billing tier. Once set and an execution
+   * is managed, available models, and billing tier. Once set and a run
    * has run, the harness is immutable — changing it would break conversation
    * continuity since each harness owns its own state.
    *
@@ -746,7 +746,7 @@ java.lang.String defaultValue) {
    * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
    *
    * The harness affects which tools the agent has, how conversation state
-   * is managed, available models, and billing tier. Once set and an execution
+   * is managed, available models, and billing tier. Once set and a run
    * has run, the harness is immutable — changing it would break conversation
    * continuity since each harness owns its own state.
    *
@@ -818,7 +818,7 @@ java.lang.String defaultValue) {
    * - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
    * - Customer SDK sets whatever fits their architecture
    *
-   * Immutable once an execution has run — workspace state may not be
+   * Immutable once a run has started — workspace state may not be
    * portable between local and cloud environments.
    * </pre>
    *
@@ -841,7 +841,7 @@ java.lang.String defaultValue) {
    * - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
    * - Customer SDK sets whatever fits their architecture
    *
-   * Immutable once an execution has run — workspace state may not be
+   * Immutable once a run has started — workspace state may not be
    * portable between local and cloud environments.
    * </pre>
    *
@@ -2045,7 +2045,7 @@ java.lang.String defaultValue) {
      * <pre>
      * Harness-specific state identifier for conversation continuity.
      *
-     * Populated after the first execution completes; empty until then.
+     * Populated after the first run completes; empty until then.
      * Each harness uses this field differently:
      *
      * - NATIVE: LangGraph thread ID, derived deterministically as
@@ -2076,7 +2076,7 @@ java.lang.String defaultValue) {
      * <pre>
      * Harness-specific state identifier for conversation continuity.
      *
-     * Populated after the first execution completes; empty until then.
+     * Populated after the first run completes; empty until then.
      * Each harness uses this field differently:
      *
      * - NATIVE: LangGraph thread ID, derived deterministically as
@@ -2108,7 +2108,7 @@ java.lang.String defaultValue) {
      * <pre>
      * Harness-specific state identifier for conversation continuity.
      *
-     * Populated after the first execution completes; empty until then.
+     * Populated after the first run completes; empty until then.
      * Each harness uses this field differently:
      *
      * - NATIVE: LangGraph thread ID, derived deterministically as
@@ -2136,7 +2136,7 @@ java.lang.String defaultValue) {
      * <pre>
      * Harness-specific state identifier for conversation continuity.
      *
-     * Populated after the first execution completes; empty until then.
+     * Populated after the first run completes; empty until then.
      * Each harness uses this field differently:
      *
      * - NATIVE: LangGraph thread ID, derived deterministically as
@@ -2161,7 +2161,7 @@ java.lang.String defaultValue) {
      * <pre>
      * Harness-specific state identifier for conversation continuity.
      *
-     * Populated after the first execution completes; empty until then.
+     * Populated after the first run completes; empty until then.
      * Each harness uses this field differently:
      *
      * - NATIVE: LangGraph thread ID, derived deterministically as
@@ -2542,8 +2542,8 @@ java.lang.String defaultValue) {
      * Workspace entries for this session.
      *
      * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first execution;
-     * subsequent executions reuse the same workspace.
+     * a multi-root workspace. Entries are provisioned on the first run;
+     * subsequent runs reuse the same workspace.
      *
      * When empty, the session uses an empty workspace directory.
      * </pre>
@@ -2562,8 +2562,8 @@ java.lang.String defaultValue) {
      * Workspace entries for this session.
      *
      * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first execution;
-     * subsequent executions reuse the same workspace.
+     * a multi-root workspace. Entries are provisioned on the first run;
+     * subsequent runs reuse the same workspace.
      *
      * When empty, the session uses an empty workspace directory.
      * </pre>
@@ -2582,8 +2582,8 @@ java.lang.String defaultValue) {
      * Workspace entries for this session.
      *
      * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first execution;
-     * subsequent executions reuse the same workspace.
+     * a multi-root workspace. Entries are provisioned on the first run;
+     * subsequent runs reuse the same workspace.
      *
      * When empty, the session uses an empty workspace directory.
      * </pre>
@@ -2602,8 +2602,8 @@ java.lang.String defaultValue) {
      * Workspace entries for this session.
      *
      * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first execution;
-     * subsequent executions reuse the same workspace.
+     * a multi-root workspace. Entries are provisioned on the first run;
+     * subsequent runs reuse the same workspace.
      *
      * When empty, the session uses an empty workspace directory.
      * </pre>
@@ -2629,8 +2629,8 @@ java.lang.String defaultValue) {
      * Workspace entries for this session.
      *
      * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first execution;
-     * subsequent executions reuse the same workspace.
+     * a multi-root workspace. Entries are provisioned on the first run;
+     * subsequent runs reuse the same workspace.
      *
      * When empty, the session uses an empty workspace directory.
      * </pre>
@@ -2653,8 +2653,8 @@ java.lang.String defaultValue) {
      * Workspace entries for this session.
      *
      * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first execution;
-     * subsequent executions reuse the same workspace.
+     * a multi-root workspace. Entries are provisioned on the first run;
+     * subsequent runs reuse the same workspace.
      *
      * When empty, the session uses an empty workspace directory.
      * </pre>
@@ -2679,8 +2679,8 @@ java.lang.String defaultValue) {
      * Workspace entries for this session.
      *
      * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first execution;
-     * subsequent executions reuse the same workspace.
+     * a multi-root workspace. Entries are provisioned on the first run;
+     * subsequent runs reuse the same workspace.
      *
      * When empty, the session uses an empty workspace directory.
      * </pre>
@@ -2706,8 +2706,8 @@ java.lang.String defaultValue) {
      * Workspace entries for this session.
      *
      * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first execution;
-     * subsequent executions reuse the same workspace.
+     * a multi-root workspace. Entries are provisioned on the first run;
+     * subsequent runs reuse the same workspace.
      *
      * When empty, the session uses an empty workspace directory.
      * </pre>
@@ -2730,8 +2730,8 @@ java.lang.String defaultValue) {
      * Workspace entries for this session.
      *
      * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first execution;
-     * subsequent executions reuse the same workspace.
+     * a multi-root workspace. Entries are provisioned on the first run;
+     * subsequent runs reuse the same workspace.
      *
      * When empty, the session uses an empty workspace directory.
      * </pre>
@@ -2754,8 +2754,8 @@ java.lang.String defaultValue) {
      * Workspace entries for this session.
      *
      * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first execution;
-     * subsequent executions reuse the same workspace.
+     * a multi-root workspace. Entries are provisioned on the first run;
+     * subsequent runs reuse the same workspace.
      *
      * When empty, the session uses an empty workspace directory.
      * </pre>
@@ -2779,8 +2779,8 @@ java.lang.String defaultValue) {
      * Workspace entries for this session.
      *
      * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first execution;
-     * subsequent executions reuse the same workspace.
+     * a multi-root workspace. Entries are provisioned on the first run;
+     * subsequent runs reuse the same workspace.
      *
      * When empty, the session uses an empty workspace directory.
      * </pre>
@@ -2802,8 +2802,8 @@ java.lang.String defaultValue) {
      * Workspace entries for this session.
      *
      * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first execution;
-     * subsequent executions reuse the same workspace.
+     * a multi-root workspace. Entries are provisioned on the first run;
+     * subsequent runs reuse the same workspace.
      *
      * When empty, the session uses an empty workspace directory.
      * </pre>
@@ -2825,8 +2825,8 @@ java.lang.String defaultValue) {
      * Workspace entries for this session.
      *
      * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first execution;
-     * subsequent executions reuse the same workspace.
+     * a multi-root workspace. Entries are provisioned on the first run;
+     * subsequent runs reuse the same workspace.
      *
      * When empty, the session uses an empty workspace directory.
      * </pre>
@@ -2842,8 +2842,8 @@ java.lang.String defaultValue) {
      * Workspace entries for this session.
      *
      * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first execution;
-     * subsequent executions reuse the same workspace.
+     * a multi-root workspace. Entries are provisioned on the first run;
+     * subsequent runs reuse the same workspace.
      *
      * When empty, the session uses an empty workspace directory.
      * </pre>
@@ -2862,8 +2862,8 @@ java.lang.String defaultValue) {
      * Workspace entries for this session.
      *
      * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first execution;
-     * subsequent executions reuse the same workspace.
+     * a multi-root workspace. Entries are provisioned on the first run;
+     * subsequent runs reuse the same workspace.
      *
      * When empty, the session uses an empty workspace directory.
      * </pre>
@@ -2883,8 +2883,8 @@ java.lang.String defaultValue) {
      * Workspace entries for this session.
      *
      * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first execution;
-     * subsequent executions reuse the same workspace.
+     * a multi-root workspace. Entries are provisioned on the first run;
+     * subsequent runs reuse the same workspace.
      *
      * When empty, the session uses an empty workspace directory.
      * </pre>
@@ -2900,8 +2900,8 @@ java.lang.String defaultValue) {
      * Workspace entries for this session.
      *
      * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first execution;
-     * subsequent executions reuse the same workspace.
+     * a multi-root workspace. Entries are provisioned on the first run;
+     * subsequent runs reuse the same workspace.
      *
      * When empty, the session uses an empty workspace directory.
      * </pre>
@@ -2918,8 +2918,8 @@ java.lang.String defaultValue) {
      * Workspace entries for this session.
      *
      * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first execution;
-     * subsequent executions reuse the same workspace.
+     * a multi-root workspace. Entries are provisioned on the first run;
+     * subsequent runs reuse the same workspace.
      *
      * When empty, the session uses an empty workspace directory.
      * </pre>
@@ -3742,7 +3742,7 @@ java.lang.String defaultValue) {
      * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
      *
      * The harness affects which tools the agent has, how conversation state
-     * is managed, available models, and billing tier. Once set and an execution
+     * is managed, available models, and billing tier. Once set and a run
      * has run, the harness is immutable — changing it would break conversation
      * continuity since each harness owns its own state.
      *
@@ -3765,7 +3765,7 @@ java.lang.String defaultValue) {
      * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
      *
      * The harness affects which tools the agent has, how conversation state
-     * is managed, available models, and billing tier. Once set and an execution
+     * is managed, available models, and billing tier. Once set and a run
      * has run, the harness is immutable — changing it would break conversation
      * continuity since each harness owns its own state.
      *
@@ -3793,7 +3793,7 @@ java.lang.String defaultValue) {
      * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
      *
      * The harness affects which tools the agent has, how conversation state
-     * is managed, available models, and billing tier. Once set and an execution
+     * is managed, available models, and billing tier. Once set and a run
      * has run, the harness is immutable — changing it would break conversation
      * continuity since each harness owns its own state.
      *
@@ -3818,7 +3818,7 @@ java.lang.String defaultValue) {
      * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
      *
      * The harness affects which tools the agent has, how conversation state
-     * is managed, available models, and billing tier. Once set and an execution
+     * is managed, available models, and billing tier. Once set and a run
      * has run, the harness is immutable — changing it would break conversation
      * continuity since each harness owns its own state.
      *
@@ -3846,7 +3846,7 @@ java.lang.String defaultValue) {
      * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
      *
      * The harness affects which tools the agent has, how conversation state
-     * is managed, available models, and billing tier. Once set and an execution
+     * is managed, available models, and billing tier. Once set and a run
      * has run, the harness is immutable — changing it would break conversation
      * continuity since each harness owns its own state.
      *
@@ -3989,7 +3989,7 @@ java.lang.String defaultValue) {
      * - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
      * - Customer SDK sets whatever fits their architecture
      *
-     * Immutable once an execution has run — workspace state may not be
+     * Immutable once a run has started — workspace state may not be
      * portable between local and cloud environments.
      * </pre>
      *
@@ -4012,7 +4012,7 @@ java.lang.String defaultValue) {
      * - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
      * - Customer SDK sets whatever fits their architecture
      *
-     * Immutable once an execution has run — workspace state may not be
+     * Immutable once a run has started — workspace state may not be
      * portable between local and cloud environments.
      * </pre>
      *
@@ -4040,7 +4040,7 @@ java.lang.String defaultValue) {
      * - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
      * - Customer SDK sets whatever fits their architecture
      *
-     * Immutable once an execution has run — workspace state may not be
+     * Immutable once a run has started — workspace state may not be
      * portable between local and cloud environments.
      * </pre>
      *
@@ -4065,7 +4065,7 @@ java.lang.String defaultValue) {
      * - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
      * - Customer SDK sets whatever fits their architecture
      *
-     * Immutable once an execution has run — workspace state may not be
+     * Immutable once a run has started — workspace state may not be
      * portable between local and cloud environments.
      * </pre>
      *
@@ -4093,7 +4093,7 @@ java.lang.String defaultValue) {
      * - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
      * - Customer SDK sets whatever fits their architecture
      *
-     * Immutable once an execution has run — workspace state may not be
+     * Immutable once a run has started — workspace state may not be
      * portable between local and cloud environments.
      * </pre>
      *

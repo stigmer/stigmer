@@ -34,7 +34,7 @@ public interface LlmCallUsageRecordOrBuilder extends
 
   /**
    * <pre>
-   * Execution this call belongs to.
+   * Run this call belongs to.
    * </pre>
    *
    * <code>string run_id = 2 [json_name = "runId"];</code>
@@ -43,7 +43,7 @@ public interface LlmCallUsageRecordOrBuilder extends
   java.lang.String getRunId();
   /**
    * <pre>
-   * Execution this call belongs to.
+   * Run this call belongs to.
    * </pre>
    *
    * <code>string run_id = 2 [json_name = "runId"];</code>
@@ -54,7 +54,7 @@ public interface LlmCallUsageRecordOrBuilder extends
 
   /**
    * <pre>
-   * For sub-agent rollups: root execution of the tree.
+   * For sub-agent rollups: root run of the tree.
    * </pre>
    *
    * <code>string root_run_id = 3 [json_name = "rootRunId"];</code>
@@ -63,7 +63,7 @@ public interface LlmCallUsageRecordOrBuilder extends
   java.lang.String getRootRunId();
   /**
    * <pre>
-   * For sub-agent rollups: root execution of the tree.
+   * For sub-agent rollups: root run of the tree.
    * </pre>
    *
    * <code>string root_run_id = 3 [json_name = "rootRunId"];</code>
@@ -74,9 +74,9 @@ public interface LlmCallUsageRecordOrBuilder extends
 
   /**
    * <pre>
-   * 1-based call ordering within the execution, as the reporting proxy
+   * 1-based call ordering within the run, as the reporting proxy
    * counted it. An ordering hint, not an identity: a proxy that restarts
-   * mid-execution counts from 1 again, so two records of one execution may
+   * mid-run counts from 1 again, so two records of one run may
    * share a sequence. Order by observed_at, then sequence.
    * </pre>
    *
@@ -672,7 +672,7 @@ public interface LlmCallUsageRecordOrBuilder extends
 
   /**
    * <pre>
-   * Session this execution belongs to.
+   * Session this run belongs to.
    * </pre>
    *
    * <code>string session_id = 8 [json_name = "sessionId"];</code>
@@ -681,7 +681,7 @@ public interface LlmCallUsageRecordOrBuilder extends
   java.lang.String getSessionId();
   /**
    * <pre>
-   * Session this execution belongs to.
+   * Session this run belongs to.
    * </pre>
    *
    * <code>string session_id = 8 [json_name = "sessionId"];</code>

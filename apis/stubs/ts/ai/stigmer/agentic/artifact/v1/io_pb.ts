@@ -46,14 +46,14 @@ export const ArtifactIdSchema: GenMessage<ArtifactId> = /*@__PURE__*/
  */
 export type ArtifactList = Message<"ai.stigmer.agentic.artifact.v1.ArtifactList"> & {
   /**
-   * Always 1: an execution's artifacts are returned whole.
+   * Always 1: a run's artifacts are returned whole.
    *
    * @generated from field: int32 total_pages = 1;
    */
   totalPages: number;
 
   /**
-   * The execution's artifacts, newest first.
+   * The run's artifacts, newest first.
    *
    * @generated from field: repeated ai.stigmer.agentic.artifact.v1.Artifact entries = 2;
    */
@@ -118,7 +118,7 @@ export type ListArtifactsByRunRequest = Message<"ai.stigmer.agentic.artifact.v1.
   agentRunId: string;
 
   /**
-   * Not read: an execution's artifacts are returned whole.
+   * Not read: a run's artifacts are returned whole.
    *
    * @generated from field: int32 page_size = 3 [deprecated = true];
    * @deprecated
@@ -126,7 +126,7 @@ export type ListArtifactsByRunRequest = Message<"ai.stigmer.agentic.artifact.v1.
   pageSize: number;
 
   /**
-   * Not read: an execution's artifacts are returned whole.
+   * Not read: a run's artifacts are returned whole.
    *
    * @generated from field: string page_token = 4 [deprecated = true];
    * @deprecated

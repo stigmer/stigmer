@@ -52,7 +52,7 @@ public interface HarnessCostSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Number of distinct executions that used this harness.
+   * Number of distinct runs that used this harness.
    * </pre>
    *
    * <code>int32 run_count = 4 [json_name = "runCount"];</code>

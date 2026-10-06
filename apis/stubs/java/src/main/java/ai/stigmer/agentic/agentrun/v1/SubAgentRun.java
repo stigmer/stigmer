@@ -7,7 +7,7 @@ package ai.stigmer.agentic.agentrun.v1;
 
 /**
  * <pre>
- * Represents a sub-agent invocation within an run.
+ * Represents a sub-agent invocation within a run.
  * When the main agent delegates work to a specialized sub-agent, this message
  * tracks the complete lifecycle of that delegation including input, output, and timing.
  * </pre>
@@ -1020,7 +1020,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
   }
   /**
    * <pre>
-   * Represents a sub-agent invocation within an run.
+   * Represents a sub-agent invocation within a run.
    * When the main agent delegates work to a specialized sub-agent, this message
    * tracks the complete lifecycle of that delegation including input, output, and timing.
    * </pre>

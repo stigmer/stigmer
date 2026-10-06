@@ -7,7 +7,7 @@
 // Package ai.stigmer.agentic.workflowrun.v1 contains the API definition for WorkflowRun.
 //
 // WorkflowRun represents a single runtime invocation of a Workflow, capturing the complete
-// execution lifecycle from trigger to completion.
+// run lifecycle from trigger to completion.
 //
 // This package belongs to the "agentic" bounded context, which encompasses all AI agent
 // systems and workflow orchestration capabilities.
@@ -44,7 +44,7 @@ type WorkflowRun struct {
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// User-provided inputs and configuration for this workflow run.
 	Spec *WorkflowRunSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
-	// System-managed execution state and results.
+	// System-managed run state and results.
 	Status        *WorkflowRunStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -115,12 +115,12 @@ func (x *WorkflowRun) GetStatus() *WorkflowRunStatus {
 	return nil
 }
 
-// WorkflowRunStatus contains all system-managed execution state and results.
+// WorkflowRunStatus contains all system-managed run state and results.
 type WorkflowRunStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Standard audit information including timestamps and created-by identity.
 	Audit *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
-	// Current execution lifecycle phase.
+	// Current run lifecycle phase.
 	Phase RunPhase `protobuf:"varint,1,opt,name=phase,proto3,enum=ai.stigmer.agentic.workflowrun.v1.RunPhase" json:"phase,omitempty"`
 	// Workflow tasks with their individual execution state.
 	Tasks []*WorkflowTask `protobuf:"bytes,2,rep,name=tasks,proto3" json:"tasks,omitempty"`
@@ -128,13 +128,13 @@ type WorkflowRunStatus struct {
 	Output *structpb.Struct `protobuf:"bytes,3,opt,name=output,proto3" json:"output,omitempty"`
 	// Error message, populated only when phase is RUN_FAILED.
 	Error string `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
-	// ISO 8601 timestamp when execution started processing.
+	// ISO 8601 timestamp when the run started processing.
 	StartedAt string `protobuf:"bytes,5,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
-	// ISO 8601 timestamp when execution reached a terminal state.
+	// ISO 8601 timestamp when the run reached a terminal state.
 	CompletedAt string `protobuf:"bytes,6,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
 	// Correlation ID for the underlying workflow engine.
 	TemporalWorkflowId string `protobuf:"bytes,7,opt,name=temporal_workflow_id,json=temporalWorkflowId,proto3" json:"temporal_workflow_id,omitempty"`
-	// Pending approvals from child agent tool runs.
+	// Pending approvals from child agent tool executions.
 	PendingApprovals []*WorkflowPendingApproval `protobuf:"bytes,9,rep,name=pending_approvals,json=pendingApprovals,proto3" json:"pending_approvals,omitempty"`
 	// Cumulative cost across all tasks in micro-USD (1 USD = 1,000,000 micros).
 	TotalCostMicros int64 `protobuf:"varint,10,opt,name=total_cost_micros,json=totalCostMicros,proto3" json:"total_cost_micros,omitempty"`
@@ -426,7 +426,7 @@ type WorkflowTask struct {
 	// Copied from the human_input task's ui_hint config when the gate
 	// activates, so approval surfaces (dashboards, listPendingApprovals)
 	// can badge or group review requests by type without reading the
-	// event log. Empty for non-human_input tasks and for executions
+	// event log. Empty for non-human_input tasks and for runs
 	// persisted before this field existed — consumers treat empty as a
 	// generic review.
 	UiHint        string `protobuf:"bytes,15,opt,name=ui_hint,json=uiHint,proto3" json:"ui_hint,omitempty"`

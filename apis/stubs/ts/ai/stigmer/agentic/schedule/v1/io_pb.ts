@@ -243,7 +243,7 @@ export type ScheduleRun = Message<"ai.stigmer.agentic.schedule.v1.ScheduleRun"> 
   reason: string;
 
   /**
-   * ID of the created run. Empty when no execution was created
+   * ID of the created run. Empty when no run was created
    * (refused, target missing, skipped).
    *
    * @generated from field: string run_id = 7;
@@ -373,7 +373,7 @@ export enum ScheduleRunOutcome {
   UNSPECIFIED = 0,
 
   /**
-   * An execution was created (or idempotently re-found) and is running.
+   * A run was created (or idempotently re-found) and is running.
    *
    * @generated from enum value: SCHEDULE_RUN_OUTCOME_STARTED = 1;
    */

@@ -12,7 +12,7 @@ public interface GetRunnerScopedTokenInputOrBuilder extends
 
   /**
    * <pre>
-   * AgentRun id — yields a token scoped to the execution's parent
+   * AgentRun id — yields a token scoped to the run's parent
    * session, valid for every ExecutionContext in that session (multi-turn).
    * </pre>
    *
@@ -22,7 +22,7 @@ public interface GetRunnerScopedTokenInputOrBuilder extends
   boolean hasAgentRunId();
   /**
    * <pre>
-   * AgentRun id — yields a token scoped to the execution's parent
+   * AgentRun id — yields a token scoped to the run's parent
    * session, valid for every ExecutionContext in that session (multi-turn).
    * </pre>
    *
@@ -32,7 +32,7 @@ public interface GetRunnerScopedTokenInputOrBuilder extends
   java.lang.String getAgentRunId();
   /**
    * <pre>
-   * AgentRun id — yields a token scoped to the execution's parent
+   * AgentRun id — yields a token scoped to the run's parent
    * session, valid for every ExecutionContext in that session (multi-turn).
    * </pre>
    *
@@ -45,7 +45,7 @@ public interface GetRunnerScopedTokenInputOrBuilder extends
   /**
    * <pre>
    * WorkflowRun id — yields a token scoped to exactly that workflow
-   * execution's ExecutionContext.
+   * run's ExecutionContext.
    * </pre>
    *
    * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
@@ -55,7 +55,7 @@ public interface GetRunnerScopedTokenInputOrBuilder extends
   /**
    * <pre>
    * WorkflowRun id — yields a token scoped to exactly that workflow
-   * execution's ExecutionContext.
+   * run's ExecutionContext.
    * </pre>
    *
    * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
@@ -65,7 +65,7 @@ public interface GetRunnerScopedTokenInputOrBuilder extends
   /**
    * <pre>
    * WorkflowRun id — yields a token scoped to exactly that workflow
-   * execution's ExecutionContext.
+   * run's ExecutionContext.
    * </pre>
    *
    * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>

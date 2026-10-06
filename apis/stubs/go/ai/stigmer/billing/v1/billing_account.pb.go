@@ -175,7 +175,7 @@ type CreditBalance struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Credits available for new reservations and immediate use.
 	AvailableMicros int64 `protobuf:"varint,1,opt,name=available_micros,json=availableMicros,proto3" json:"available_micros,omitempty"`
-	// Credits held by active execution reservations.
+	// Credits held by active run reservations.
 	ReservedMicros int64 `protobuf:"varint,2,opt,name=reserved_micros,json=reservedMicros,proto3" json:"reserved_micros,omitempty"`
 	// Subset of total from promotional grants (free trial, campaigns).
 	PromotionalMicros int64 `protobuf:"varint,3,opt,name=promotional_micros,json=promotionalMicros,proto3" json:"promotional_micros,omitempty"`

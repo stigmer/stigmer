@@ -32,7 +32,7 @@ public interface GetSessionUsageReportOutputOrBuilder extends
 
   /**
    * <pre>
-   * Total number of executions in this session.
+   * Total number of runs in this session.
    * </pre>
    *
    * <code>int32 run_count = 2 [json_name = "runCount"];</code>
@@ -42,7 +42,7 @@ public interface GetSessionUsageReportOutputOrBuilder extends
 
   /**
    * <pre>
-   * Aggregated usage across all executions in this session.
+   * Aggregated usage across all runs in this session.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
@@ -51,7 +51,7 @@ public interface GetSessionUsageReportOutputOrBuilder extends
   boolean hasTotalUsage();
   /**
    * <pre>
-   * Aggregated usage across all executions in this session.
+   * Aggregated usage across all runs in this session.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
@@ -60,7 +60,7 @@ public interface GetSessionUsageReportOutputOrBuilder extends
   ai.stigmer.agentic.agentrun.v1.UsageReportAggregate getTotalUsage();
   /**
    * <pre>
-   * Aggregated usage across all executions in this session.
+   * Aggregated usage across all runs in this session.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
@@ -69,7 +69,7 @@ public interface GetSessionUsageReportOutputOrBuilder extends
 
   /**
    * <pre>
-   * Per-execution breakdown (ordered chronologically).
+   * Per-run breakdown (ordered chronologically).
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -78,7 +78,7 @@ public interface GetSessionUsageReportOutputOrBuilder extends
       getRunsList();
   /**
    * <pre>
-   * Per-execution breakdown (ordered chronologically).
+   * Per-run breakdown (ordered chronologically).
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -86,7 +86,7 @@ public interface GetSessionUsageReportOutputOrBuilder extends
   ai.stigmer.agentic.agentrun.v1.RunUsageSummary getRuns(int index);
   /**
    * <pre>
-   * Per-execution breakdown (ordered chronologically).
+   * Per-run breakdown (ordered chronologically).
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -94,7 +94,7 @@ public interface GetSessionUsageReportOutputOrBuilder extends
   int getRunsCount();
   /**
    * <pre>
-   * Per-execution breakdown (ordered chronologically).
+   * Per-run breakdown (ordered chronologically).
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -103,7 +103,7 @@ public interface GetSessionUsageReportOutputOrBuilder extends
       getRunsOrBuilderList();
   /**
    * <pre>
-   * Per-execution breakdown (ordered chronologically).
+   * Per-run breakdown (ordered chronologically).
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -157,7 +157,7 @@ public interface GetSessionUsageReportOutputOrBuilder extends
 
   /**
    * <pre>
-   * ISO 8601 timestamp of the first execution in this session.
+   * ISO 8601 timestamp of the first run in this session.
    * </pre>
    *
    * <code>string first_run_at = 6 [json_name = "firstRunAt"];</code>
@@ -166,7 +166,7 @@ public interface GetSessionUsageReportOutputOrBuilder extends
   java.lang.String getFirstRunAt();
   /**
    * <pre>
-   * ISO 8601 timestamp of the first execution in this session.
+   * ISO 8601 timestamp of the first run in this session.
    * </pre>
    *
    * <code>string first_run_at = 6 [json_name = "firstRunAt"];</code>
@@ -177,7 +177,7 @@ public interface GetSessionUsageReportOutputOrBuilder extends
 
   /**
    * <pre>
-   * ISO 8601 timestamp of the most recent execution in this session.
+   * ISO 8601 timestamp of the most recent run in this session.
    * </pre>
    *
    * <code>string last_run_at = 7 [json_name = "lastRunAt"];</code>
@@ -186,7 +186,7 @@ public interface GetSessionUsageReportOutputOrBuilder extends
   java.lang.String getLastRunAt();
   /**
    * <pre>
-   * ISO 8601 timestamp of the most recent execution in this session.
+   * ISO 8601 timestamp of the most recent run in this session.
    * </pre>
    *
    * <code>string last_run_at = 7 [json_name = "lastRunAt"];</code>
@@ -198,7 +198,7 @@ public interface GetSessionUsageReportOutputOrBuilder extends
   /**
    * <pre>
    * Whether any record in this session is still estimated (not yet proxy-metered).
-   * True when execution is in-flight and only streaming usage data is available.
+   * True when the run is in flight and only streaming usage data is available.
    * False once proxy billing records have been written.
    * </pre>
    *

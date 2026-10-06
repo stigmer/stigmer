@@ -8,8 +8,8 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 /**
  * <pre>
  * SignalDelivery routes the CloudEvents envelope to another workflow
- * execution as a signal, completing the emit/listen pairing: the target
- * execution receives the envelope on the listen task whose signal id
+ * run as a signal, completing the emit/listen pairing: the target
+ * run receives the envelope on the listen task whose signal id
  * matches signal_name.
  * </pre>
  *
@@ -62,7 +62,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object runId_ = "";
   /**
    * <pre>
-   * Target workflow run id ("wfx_..."), as returned by run/create.
+   * Target workflow run id ("wex_..."), as returned by run/create.
    * Usually flows from a prior task's output:
    * "${ .start_processor.run_id }"
    * </pre>
@@ -85,7 +85,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Target workflow run id ("wfx_..."), as returned by run/create.
+   * Target workflow run id ("wex_..."), as returned by run/create.
    * Usually flows from a prior task's output:
    * "${ .start_processor.run_id }"
    * </pre>
@@ -324,8 +324,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * SignalDelivery routes the CloudEvents envelope to another workflow
-   * execution as a signal, completing the emit/listen pairing: the target
-   * execution receives the envelope on the listen task whose signal id
+   * run as a signal, completing the emit/listen pairing: the target
+   * run receives the envelope on the listen task whose signal id
    * matches signal_name.
    * </pre>
    *
@@ -483,7 +483,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object runId_ = "";
     /**
      * <pre>
-     * Target workflow run id ("wfx_..."), as returned by run/create.
+     * Target workflow run id ("wex_..."), as returned by run/create.
      * Usually flows from a prior task's output:
      * "${ .start_processor.run_id }"
      * </pre>
@@ -505,7 +505,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Target workflow run id ("wfx_..."), as returned by run/create.
+     * Target workflow run id ("wex_..."), as returned by run/create.
      * Usually flows from a prior task's output:
      * "${ .start_processor.run_id }"
      * </pre>
@@ -528,7 +528,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Target workflow run id ("wfx_..."), as returned by run/create.
+     * Target workflow run id ("wex_..."), as returned by run/create.
      * Usually flows from a prior task's output:
      * "${ .start_processor.run_id }"
      * </pre>
@@ -547,7 +547,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Target workflow run id ("wfx_..."), as returned by run/create.
+     * Target workflow run id ("wex_..."), as returned by run/create.
      * Usually flows from a prior task's output:
      * "${ .start_processor.run_id }"
      * </pre>
@@ -563,7 +563,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Target workflow run id ("wfx_..."), as returned by run/create.
+     * Target workflow run id ("wex_..."), as returned by run/create.
      * Usually flows from a prior task's output:
      * "${ .start_processor.run_id }"
      * </pre>

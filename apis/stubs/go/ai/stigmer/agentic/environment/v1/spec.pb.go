@@ -147,7 +147,7 @@ func (x *EnvironmentValue) GetDescription() string {
 // Unlike EnvironmentValue (which stores actual values), this message describes
 // what a blueprint *needs* — its schema, not its data. This separation keeps
 // the blueprint layer free of runtime values and enables the platform to
-// validate completeness before run.
+// validate completeness before a run.
 type EnvVarDeclaration struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Whether the resolved value should be treated as a secret.

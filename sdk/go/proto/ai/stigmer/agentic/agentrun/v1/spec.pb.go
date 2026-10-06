@@ -26,8 +26,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// AgentRunSpec contains only user-provided inputs for triggering an run.
-// All execution results and state live in AgentRunStatus (in api.proto).
+// AgentRunSpec contains only user-provided inputs for triggering a run.
+// All run results and state live in AgentRunStatus (in api.proto).
 type AgentRunSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The conversation this turn belongs to: an existing session, or a new
@@ -46,7 +46,7 @@ type AgentRunSpec struct {
 	//	*AgentRunSpec_SessionSpec
 	Target isAgentRunSpec_Target `protobuf_oneof:"target"`
 	// User input message that triggers this run.
-	// Each execution represents one user message and the agent's response.
+	// Each run represents one user message and the agent's response.
 	Message string `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
 	// The settings this message asks for (optional): a model, a speed tier,
 	// thinking, and run bounds. Zero or empty fields are not set here.
@@ -83,7 +83,7 @@ type AgentRunSpec struct {
 	// sending each message.
 	InteractionMode InteractionMode `protobuf:"varint,19,opt,name=interaction_mode,json=interactionMode,proto3,enum=ai.stigmer.agentic.agentrun.v1.InteractionMode" json:"interaction_mode,omitempty"`
 	// Marks this message as a "Build from plan" turn: the user approved a plan
-	// produced by a prior Plan-mode execution and asked the agent to implement it.
+	// produced by a prior Plan-mode run and asked the agent to implement it.
 	//
 	// When set, the runner injects the implement-plan directive into the agent's
 	// prompt (see runner shared/implement-plan-prompt.ts). If the approved plan
@@ -108,15 +108,15 @@ type AgentRunSpec struct {
 	// The validated structured data is returned in the activity result
 	// and passed back to the parent workflow as `structured`.
 	StructuredOutputSchema *structpb.Struct `protobuf:"bytes,21,opt,name=structured_output_schema,json=structuredOutputSchema,proto3" json:"structured_output_schema,omitempty"`
-	// Runtime environment variables and secrets (execution-scoped).
-	// These values are only available for this specific execution and take the
+	// Runtime environment variables and secrets (run-scoped).
+	// These values are only available for this specific run and take the
 	// highest merge priority, overriding values from Environments bound via
 	// environment_refs. A key must be declared in Agent.spec.env to survive the
 	// merge: the agent env map is a declaration whitelist (name + is_secret +
 	// optional), never a value source — undeclared keys are dropped.
 	// Use case: B2B integrations where secrets are injected at runtime per call.
 	// These values are consumed into the ExecutionContext (deleted when the
-	// execution completes) and cleared from the persisted run.
+	// run completes) and cleared from the persisted run.
 	RuntimeEnv map[string]*v1.ExecutionValue `protobuf:"bytes,5,rep,name=runtime_env,json=runtimeEnv,proto3" json:"runtime_env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Auto-approve all tool executions for this run.
 	//
@@ -132,13 +132,13 @@ type AgentRunSpec struct {
 	//
 	// Security consideration: This flag bypasses all approval checks.
 	// Ensure appropriate access controls on who can set this flag.
-	// Consider auditing executions where this flag is used.
+	// Consider auditing runs where this flag is used.
 	//
 	// Default: false (approvals required as configured in policies)
 	AutoApproveAll bool `protobuf:"varint,7,opt,name=auto_approve_all,json=autoApproveAll,proto3" json:"auto_approve_all,omitempty"`
 	// Files attached to this run.
 	//
-	// Attachments are injected into the sandbox before execution begins.
+	// Attachments are injected into the sandbox before the run begins.
 	// The agent can read these files from the specified mount paths.
 	//
 	// Use cases:
@@ -174,15 +174,15 @@ type AgentRunSpec struct {
 	//	# CLI detects src/config.yaml is inside workspace -> workspace_file_ref
 	//	# No upload, no injection; agent reads directly from src/config.yaml
 	WorkspaceFileRefs []string `protobuf:"bytes,10,rep,name=workspace_file_refs,json=workspaceFileRefs,proto3" json:"workspace_file_refs,omitempty"`
-	// ID of the execution this one supersedes via edit-and-resubmit (optional).
+	// ID of the run this one supersedes via edit-and-resubmit (optional).
 	//
 	// When a user stops an in-flight turn, edits the message, and resubmits,
-	// the client sets this field on the NEW execution to point at the stopped
-	// one. Chat-thread consumers hide the superseded execution so the edited
-	// message replaces the original in place; history surfaces (CLI, execution
+	// the client sets this field on the NEW run to point at the stopped
+	// one. Chat-thread consumers hide the superseded run so the edited
+	// message replaces the original in place; history surfaces (CLI, run
 	// lists) keep showing the full record.
 	//
-	// Empty means this execution is not an edit of another turn.
+	// Empty means this run is not an edit of another turn.
 	SupersedesRunId string `protobuf:"bytes,12,opt,name=supersedes_run_id,json=supersedesRunId,proto3" json:"supersedes_run_id,omitempty"`
 	// Conversation events the agent has not yet seen, composed by the platform
 	// for this turn (optional).
@@ -190,7 +190,7 @@ type AgentRunSpec struct {
 	// Set on live channel-conversation turns (WhatsApp, Slack): when a human
 	// teammate handled the conversation or messages otherwise landed while the
 	// agent was not watching, the digest carries what happened so the agent
-	// re-enters informed. Absent on every other execution surface.
+	// re-enters informed. Absent on every other run surface.
 	ConversationCatchup *ConversationCatchup `protobuf:"bytes,14,opt,name=conversation_catchup,json=conversationCatchup,proto3" json:"conversation_catchup,omitempty"`
 	// The workflow run this turn was started by (optional): set only by a
 	// workflow's agent_call step, which waits for the turn to finish.
@@ -354,10 +354,10 @@ type isAgentRunSpec_Target interface {
 type AgentRunSpec_SessionId struct {
 	// ID of the existing session this turn continues.
 	//
-	// An execution in an existing session belongs to that session's
+	// A run in an existing session belongs to that session's
 	// organization: metadata.org, when set, must be the session's
 	// (FAILED_PRECONDITION otherwise), and when left empty it is taken from
-	// the session. An execution stays in the session it was created in:
+	// the session. A run stays in the session it was created in:
 	// update refuses a different session_id (FAILED_PRECONDITION), and an
 	// empty one keeps the stored session.
 	SessionId string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3,oneof"`
@@ -371,11 +371,11 @@ type AgentRunSpec_SessionSpec struct {
 	// execution_target, MCP servers, skills) together with the first
 	// message, so embedders do not need to orchestrate session.create
 	// followed by agentRun.create. The created session's ID is
-	// returned on the persisted execution's session_id.
+	// returned on the persisted run's session_id.
 	//
 	// session_spec.agent_ref names the agent the conversation runs (empty:
 	// the built-in assistant). Fields that must be set at session-creation
-	// time and are immutable once an execution has run — harness and
+	// time and are immutable once a run has started — harness and
 	// execution_target — can only reach an auto-created session through
 	// this field. session_spec.harness_state_id must be empty — it is
 	// server-owned harness continuity state, created by the runner after
@@ -396,7 +396,7 @@ type WorkflowParent struct {
 	WorkflowRunId string `protobuf:"bytes,1,opt,name=workflow_run_id,json=workflowRunId,proto3" json:"workflow_run_id,omitempty"`
 	// Temporal workflow ID the agent-execution workflow signals about
 	// approval requests ("child_approval_required", carrying only this
-	// execution's id): the workflow run's engine workflow, which for a nested
+	// run's id): the workflow run's engine workflow, which for a nested
 	// workflow is a child workflow with its own id, so it is named rather
 	// than derived.
 	SignalWorkflowId string `protobuf:"bytes,2,opt,name=signal_workflow_id,json=signalWorkflowId,proto3" json:"signal_workflow_id,omitempty"`
@@ -468,7 +468,7 @@ func (x *WorkflowParent) GetCallbackToken() []byte {
 //
 // 1. Client calls uploadAttachment RPC with file content
 // 2. Server returns a storage_key
-// 3. Client creates execution with Attachment containing that storage_key
+// 3. Client creates run with Attachment containing that storage_key
 // 4. The runner downloads file from storage and injects into sandbox
 //
 // ## Mount Path
@@ -516,7 +516,7 @@ type Attachment struct {
 	//
 	// The CLI sets this unconditionally to the resolved absolute path of
 	// the attached file.  storage_key remains required -- the upload still
-	// happens for execution history and replay support.
+	// happens for run history and replay support.
 	LocalPath     string `protobuf:"bytes,6,opt,name=local_path,json=localPath,proto3" json:"local_path,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -652,7 +652,7 @@ func (x *ConversationCatchup) GetWindowEnd() *timestamppb.Timestamp {
 }
 
 // DeclaredPreferences carries the standing preference texts injected into
-// this execution's prompt, one field per declaring scope.
+// this run's prompt, one field per declaring scope.
 type DeclaredPreferences struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The organization's standing context, verbatim.
@@ -708,11 +708,11 @@ func (x *DeclaredPreferences) GetUserContext() string {
 }
 
 // RecalledMemories is the server-composed snapshot of the caller's
-// confirmed memories for one execution — the candidate set for prompt
+// confirmed memories for one run — the candidate set for prompt
 // injection.
 type RecalledMemories struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Whether memory is enabled for this execution's caller.
+	// Whether memory is enabled for this run's caller.
 	Enabled bool `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	// The confirmed facts — every confirmed memory of the caller in this
 	// organization, the candidate set for prompt injection.

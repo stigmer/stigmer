@@ -49,7 +49,7 @@ public enum WorkflowTaskStatus
   WORKFLOW_TASK_COMPLETED(3),
   /**
    * <pre>
-   * Task failed during run.
+   * Task failed during execution.
    * </pre>
    *
    * <code>WORKFLOW_TASK_FAILED = 4;</code>
@@ -117,7 +117,7 @@ public enum WorkflowTaskStatus
   public static final int WORKFLOW_TASK_COMPLETED_VALUE = 3;
   /**
    * <pre>
-   * Task failed during run.
+   * Task failed during execution.
    * </pre>
    *
    * <code>WORKFLOW_TASK_FAILED = 4;</code>

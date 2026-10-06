@@ -12,7 +12,7 @@ public interface AgentRunListOrBuilder extends
 
   /**
    * <pre>
-   * Not computed for this list: 1 when the response holds every execution,
+   * Not computed for this list: 1 when the response holds every run,
    * 0 when next_page_token is set. Follow next_page_token instead.
    * </pre>
    *
@@ -67,10 +67,10 @@ public interface AgentRunListOrBuilder extends
 
   /**
    * <pre>
-   * Set when more executions may follow: pass it as page_token to
-   * continue. A page may hold fewer executions than page_size, even none,
+   * Set when more runs may follow: pass it as page_token to
+   * continue. A page may hold fewer runs than page_size, even none,
    * and still carry a token. Empty when the list is complete, and always
-   * empty from listBySession, which returns a session's executions whole.
+   * empty from listBySession, which returns a session's runs whole.
    * </pre>
    *
    * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
@@ -79,10 +79,10 @@ public interface AgentRunListOrBuilder extends
   java.lang.String getNextPageToken();
   /**
    * <pre>
-   * Set when more executions may follow: pass it as page_token to
-   * continue. A page may hold fewer executions than page_size, even none,
+   * Set when more runs may follow: pass it as page_token to
+   * continue. A page may hold fewer runs than page_size, even none,
    * and still carry a token. Empty when the list is complete, and always
-   * empty from listBySession, which returns a session's executions whole.
+   * empty from listBySession, which returns a session's runs whole.
    * </pre>
    *
    * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>

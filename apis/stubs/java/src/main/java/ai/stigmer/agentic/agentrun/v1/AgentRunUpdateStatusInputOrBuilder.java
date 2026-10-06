@@ -35,7 +35,7 @@ public interface AgentRunUpdateStatusInputOrBuilder extends
   /**
    * <pre>
    * Status fields to update.
-   * The handler will merge these status fields with the existing execution's status.
+   * The handler will merge these status fields with the existing run's status.
    * Only the fields present in this status object will be updated.
    * </pre>
    *
@@ -46,7 +46,7 @@ public interface AgentRunUpdateStatusInputOrBuilder extends
   /**
    * <pre>
    * Status fields to update.
-   * The handler will merge these status fields with the existing execution's status.
+   * The handler will merge these status fields with the existing run's status.
    * Only the fields present in this status object will be updated.
    * </pre>
    *
@@ -57,7 +57,7 @@ public interface AgentRunUpdateStatusInputOrBuilder extends
   /**
    * <pre>
    * Status fields to update.
-   * The handler will merge these status fields with the existing execution's status.
+   * The handler will merge these status fields with the existing run's status.
    * Only the fields present in this status object will be updated.
    * </pre>
    *

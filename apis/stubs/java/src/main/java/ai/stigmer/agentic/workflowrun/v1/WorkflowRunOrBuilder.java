@@ -106,7 +106,7 @@ public interface WorkflowRunOrBuilder extends
 
   /**
    * <pre>
-   * System-managed execution state and results.
+   * System-managed run state and results.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus status = 5 [json_name = "status"];</code>
@@ -115,7 +115,7 @@ public interface WorkflowRunOrBuilder extends
   boolean hasStatus();
   /**
    * <pre>
-   * System-managed execution state and results.
+   * System-managed run state and results.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus status = 5 [json_name = "status"];</code>
@@ -124,7 +124,7 @@ public interface WorkflowRunOrBuilder extends
   ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus getStatus();
   /**
    * <pre>
-   * System-managed execution state and results.
+   * System-managed run state and results.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus status = 5 [json_name = "status"];</code>

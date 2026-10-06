@@ -32,7 +32,7 @@ public interface BillingUsageReportResponseOrBuilder extends
 
   /**
    * <pre>
-   * Number of executions in the period.
+   * Number of runs in the period.
    * </pre>
    *
    * <code>int32 run_count = 3 [json_name = "runCount"];</code>

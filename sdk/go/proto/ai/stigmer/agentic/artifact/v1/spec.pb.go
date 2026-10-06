@@ -29,7 +29,7 @@ type ArtifactSpec struct {
 	ContentType string `protobuf:"bytes,1,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
 	// Human-readable display name for the artifact.
 	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	// Provenance: which execution and task produced this artifact.
+	// Provenance: which run and task produced this artifact.
 	Source *ArtifactSource `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
 	// Retention policy for this artifact.
 	Retention     *RetentionPolicy `protobuf:"bytes,4,opt,name=retention,proto3" json:"retention,omitempty"`
@@ -95,7 +95,7 @@ func (x *ArtifactSpec) GetRetention() *RetentionPolicy {
 	return nil
 }
 
-// ArtifactSource identifies the execution context that produced an artifact.
+// ArtifactSource identifies the run and task that produced an artifact.
 type ArtifactSource struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// WorkflowRun that produced this artifact.
@@ -108,8 +108,8 @@ type ArtifactSource struct {
 	// (either standalone or as a child of a workflow).
 	AgentRunId string `protobuf:"bytes,2,opt,name=agent_run_id,json=agentRunId,proto3" json:"agent_run_id,omitempty"`
 	// Name of the task that produced this artifact.
-	// Matches WorkflowTask.task_name in the execution status.
-	// Empty for execution-level artifacts (e.g., final workflow output).
+	// Matches WorkflowTask.task_name in the run status.
+	// Empty for run-level artifacts (e.g., final workflow output).
 	TaskName      string `protobuf:"bytes,3,opt,name=task_name,json=taskName,proto3" json:"task_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

@@ -60,7 +60,7 @@ private static final long serialVersionUID = 0L;
   private boolean selectionActive_ = false;
   /**
    * <pre>
-   * Whether semantic selection was active for this execution's prompt.
+   * Whether semantic selection was active for this run's prompt.
    * False means wholesale: the full status.recalled_memories snapshot was
    * injected.
    * </pre>
@@ -541,7 +541,7 @@ private static final long serialVersionUID = 0L;
     private boolean selectionActive_ ;
     /**
      * <pre>
-     * Whether semantic selection was active for this execution's prompt.
+     * Whether semantic selection was active for this run's prompt.
      * False means wholesale: the full status.recalled_memories snapshot was
      * injected.
      * </pre>
@@ -555,7 +555,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether semantic selection was active for this execution's prompt.
+     * Whether semantic selection was active for this run's prompt.
      * False means wholesale: the full status.recalled_memories snapshot was
      * injected.
      * </pre>
@@ -573,7 +573,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether semantic selection was active for this execution's prompt.
+     * Whether semantic selection was active for this run's prompt.
      * False means wholesale: the full status.recalled_memories snapshot was
      * injected.
      * </pre>

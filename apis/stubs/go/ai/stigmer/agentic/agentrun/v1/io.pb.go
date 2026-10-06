@@ -172,15 +172,15 @@ func (x *SessionId) GetValue() string {
 // AgentRunList contains one page of agent runs, newest first.
 type AgentRunList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Not computed for this list: 1 when the response holds every execution,
+	// Not computed for this list: 1 when the response holds every run,
 	// 0 when next_page_token is set. Follow next_page_token instead.
 	TotalPages int32 `protobuf:"varint,1,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
 	// Agent runs in this page, newest first.
 	Entries []*AgentRun `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
-	// Set when more executions may follow: pass it as page_token to
-	// continue. A page may hold fewer executions than page_size, even none,
+	// Set when more runs may follow: pass it as page_token to
+	// continue. A page may hold fewer runs than page_size, even none,
 	// and still carry a token. Empty when the list is complete, and always
-	// empty from listBySession, which returns a session's executions whole.
+	// empty from listBySession, which returns a session's runs whole.
 	NextPageToken string `protobuf:"bytes,3,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -240,18 +240,18 @@ func (x *AgentRunList) GetNextPageToken() string {
 // ListAgentRunsRequest specifies parameters for listing runs.
 type ListAgentRunsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The most executions to return, at most 100; zero returns them all.
+	// The most runs to return, at most 100; zero returns them all.
 	PageSize int32 `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.
 	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
-	// Filter by execution phase (optional).
+	// Filter by run phase (optional).
 	Phase RunPhase `protobuf:"varint,3,opt,name=phase,proto3,enum=ai.stigmer.agentic.agentrun.v1.RunPhase" json:"phase,omitempty"`
 	// Filter by tags (optional).
 	Tags []string `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty"`
 	// Organization slug to scope the results to.
 	//
-	// When set, only executions whose metadata.org matches are returned — the
+	// When set, only runs whose metadata.org matches are returned — the
 	// org-context view a console tab needs. When empty, results are bounded
 	// only by the caller's view permissions, which for a member of several
 	// organizations spans all of them.
@@ -325,19 +325,19 @@ func (x *ListAgentRunsRequest) GetOrg() string {
 	return ""
 }
 
-// ListAgentRunsBySessionRequest lists all executions in a session.
+// ListAgentRunsBySessionRequest lists all runs in a session.
 //
-// A session's executions are returned whole, newest first: a conversation
+// A session's runs are returned whole, newest first: a conversation
 // is read as one, and every consumer of this list needs all of it.
 type ListAgentRunsBySessionRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Session ID to filter by.
 	SessionId string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	// Not read: a session's executions are returned whole.
+	// Not read: a session's runs are returned whole.
 	//
 	// Deprecated: Marked as deprecated in ai/stigmer/agentic/agentrun/v1/io.proto.
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	// Not read: a session's executions are returned whole.
+	// Not read: a session's runs are returned whole.
 	//
 	// Deprecated: Marked as deprecated in ai/stigmer/agentic/agentrun/v1/io.proto.
 	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
@@ -399,7 +399,7 @@ func (x *ListAgentRunsBySessionRequest) GetPageToken() string {
 }
 
 // Input message for updateStatus RPC.
-// Contains only the execution ID and the status fields to be updated.
+// Contains only the run ID and the status fields to be updated.
 // This avoids validation errors on incomplete metadata/spec fields and makes the API contract clearer.
 type AgentRunUpdateStatusInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -407,7 +407,7 @@ type AgentRunUpdateStatusInput struct {
 	// Format: "aex_abc123xyz456"
 	RunId string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	// Status fields to update.
-	// The handler will merge these status fields with the existing execution's status.
+	// The handler will merge these status fields with the existing run's status.
 	// Only the fields present in this status object will be updated.
 	Status        *AgentRunStatus `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -463,7 +463,7 @@ func (x *AgentRunUpdateStatusInput) GetStatus() *AgentRunStatus {
 // to avoid serializing the full resource on every progressive update
 // (~every 2-3 seconds during streaming).
 //
-// The response carries an optional execution control signal from the
+// The response carries an optional run control signal from the
 // platform back to the runner. The signal is generic — the runner acts
 // on STOP / WARNING without knowing the source (billing, admin, budget).
 type UpdateStatusResponse struct {
@@ -524,7 +524,7 @@ func (x *UpdateStatusResponse) GetSignalReason() string {
 // Input for submitting an approval decision.
 //
 // All required fields must be provided. The handler validates:
-// 1. The execution exists and is in RUN_WAITING_FOR_APPROVAL phase
+// 1. The run exists and is in RUN_WAITING_FOR_APPROVAL phase
 // 2. The tool_call_id matches status.pending_approval.tool_call_id
 // 3. The action is a valid non-UNSPECIFIED enum value
 //
@@ -814,24 +814,24 @@ func (x *SubmitFileDecisionInput) GetAcknowledgeUnreviewable() bool {
 //
 // Cancellation sends a signal to the agent run, allowing it to clean up
 // gracefully. The agent can handle the cancellation signal (e.g., save checkpoint,
-// report status) before the execution transitions to CANCELLED phase.
+// report status) before the run transitions to CANCELLED phase.
 //
 // ## Behavior
 //
 // - Sends cancellation signal to Temporal via CancelWorkflow API
 // - Agent activity receives cancellation and saves checkpoint
-// - Execution transitions to RUN_CANCELLED phase after cleanup
+// - Run transitions to RUN_CANCELLED phase after cleanup
 // - LangGraph checkpoint is preserved for potential future recovery
 //
 // ## Preconditions
 //
-// - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
+// - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
 // - User must have can_edit permission on the agent run
 //
 // ## Idempotency
 //
-// If the execution is already cancelled (phase == RUN_CANCELLED),
-// the call succeeds as a no-op and returns the current execution state.
+// If the run is already cancelled (phase == RUN_CANCELLED),
+// the call succeeds as a no-op and returns the current run state.
 //
 // ## Use Cases
 //
@@ -863,7 +863,7 @@ type CancelAgentRunInput struct {
 	// Examples:
 	// - "User requested cancellation"
 	// - "Incorrect input provided to agent"
-	// - "Superseded by newer execution"
+	// - "Superseded by newer run"
 	// - "Pre-maintenance shutdown"
 	Reason        string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -924,19 +924,19 @@ func (x *CancelAgentRunInput) GetReason() string {
 //
 // - Force-kills workflow via Temporal TerminateWorkflow API
 // - Agent activity does NOT receive any signal (cannot clean up)
-// - Execution transitions to RUN_TERMINATED phase immediately
+// - Run transitions to RUN_TERMINATED phase immediately
 // - All in-progress tool calls are stopped abruptly
 // - LangGraph checkpoint may be incomplete
 //
 // ## Preconditions
 //
-// - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
+// - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
 // - User must have can_edit permission on the agent run
 //
 // ## Idempotency
 //
-// If the execution is already terminated (phase == RUN_TERMINATED),
-// the call succeeds as a no-op and returns the current execution state.
+// If the run is already terminated (phase == RUN_TERMINATED),
+// the call succeeds as a no-op and returns the current run state.
 //
 // ## Terminated vs Cancelled
 //
@@ -1040,19 +1040,19 @@ func (x *TerminateAgentRunInput) GetReason() string {
 //   - The LangGraph checkpoint is loaded using the preserved thread_id, so
 //     completed work carries over from the session's harness state
 //   - Completed tool calls are NOT re-executed
-//   - Execution transitions from FAILED back to IN_PROGRESS phase
+//   - Run transitions from FAILED back to IN_PROGRESS phase
 //   - Agent retries from where it failed
 //
 // ## Preconditions
 //
-// - Execution must be in RUN_FAILED phase
-// - TERMINATED executions cannot be recovered (incomplete checkpoint)
-// - CANCELLED executions cannot be recovered (intentional user action)
+// - Run must be in RUN_FAILED phase
+// - TERMINATED runs cannot be recovered (incomplete checkpoint)
+// - CANCELLED runs cannot be recovered (intentional user action)
 // - User must have can_edit permission on the agent run
 //
 // ## Idempotency
 //
-// If recovery is already in progress (execution moved to IN_PROGRESS after
+// If recovery is already in progress (run moved to IN_PROGRESS after
 // a previous recover call), the call succeeds as a no-op and returns current state.
 //
 // ## Use Cases
@@ -1071,7 +1071,7 @@ type RecoverAgentRunInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Agent run ID to recover.
 	//
-	// Must be in FAILED phase. TERMINATED and CANCELLED executions
+	// Must be in FAILED phase. TERMINATED and CANCELLED runs
 	// cannot be recovered.
 	//
 	// Format: "aex_{ulid}" (auto-generated unique identifier)
@@ -1122,7 +1122,7 @@ func (x *RecoverAgentRunInput) GetId() string {
 
 // PauseAgentRunInput requests temporarily pausing an agent run.
 //
-// Pauses the agent at its current checkpoint. Unlike cancel, the execution
+// Pauses the agent at its current checkpoint. Unlike cancel, the run
 // is NOT terminal and can be resumed later from where it left off.
 //
 // ## Behavior
@@ -1131,7 +1131,7 @@ func (x *RecoverAgentRunInput) GetId() string {
 // 1. A "pause" signal is sent to the Temporal workflow
 // 2. Running activity is gracefully cancelled (checkpoint saved)
 // 3. LangGraph auto-saves checkpoint on cancellation
-// 4. Execution transitions to RUN_PAUSED phase
+// 4. Run transitions to RUN_PAUSED phase
 // 5. Workflow waits for resume signal (no resources consumed)
 //
 // ## Resume Flow
@@ -1144,8 +1144,8 @@ func (x *RecoverAgentRunInput) GetId() string {
 //
 // ## Preconditions
 //
-// - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
-// - Cannot pause already paused or terminal executions
+// - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
+// - Cannot pause already paused or terminal runs
 //
 // ## Use Cases
 //
@@ -1165,7 +1165,7 @@ type PauseAgentRunInput struct {
 	// Agent run ID to pause.
 	//
 	// Must be in PENDING or IN_PROGRESS phase. Cannot pause
-	// executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
+	// runs that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
 	//
 	// Format: "aex_{ulid}" (auto-generated unique identifier)
 	// Example: "aex_abc123xyz456"
@@ -1233,7 +1233,7 @@ func (x *PauseAgentRunInput) GetReason() string {
 
 // ResumeAgentRunInput requests resuming a paused agent run.
 //
-// Continues execution from the checkpoint where it was paused. The agent
+// Continues the run from the checkpoint where it was paused. The agent
 // re-invokes activities with the same thread_id, which loads from checkpoint
 // and continues from where it left off.
 //
@@ -1248,13 +1248,13 @@ func (x *PauseAgentRunInput) GetReason() string {
 //
 // ## Preconditions
 //
-// - Execution must be in RUN_PAUSED phase
-// - Cannot resume non-paused executions
+// - Run must be in RUN_PAUSED phase
+// - Cannot resume non-paused runs
 //
 // ## Idempotency
 //
-// If the execution is not paused (already IN_PROGRESS),
-// the call succeeds as a no-op and returns the current execution state.
+// If the run is not paused (already IN_PROGRESS),
+// the call succeeds as a no-op and returns the current run state.
 //
 // ## Example
 //
@@ -1265,7 +1265,7 @@ type ResumeAgentRunInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Agent run ID to resume.
 	//
-	// Must be in PAUSED phase. Cannot resume executions
+	// Must be in PAUSED phase. Cannot resume runs
 	// that are not paused.
 	//
 	// Format: "aex_{ulid}" (auto-generated unique identifier)
@@ -1445,7 +1445,7 @@ type UploadAttachmentResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Storage key for the uploaded attachment.
 	//
-	// Use this key in Attachment.storage_key when creating an run.
+	// Use this key in Attachment.storage_key when creating a run.
 	// The key includes a unique identifier and the filename.
 	//
 	// Format: "attachments/{ulid}/{filename}"
@@ -1492,22 +1492,22 @@ func (x *UploadAttachmentResponse) GetStorageKey() string {
 	return ""
 }
 
-// GetArtifactDownloadUrlRequest requests a download URL for an execution artifact.
+// GetArtifactDownloadUrlRequest requests a download URL for a run artifact.
 //
 // This endpoint generates presigned URLs for artifacts published by agents
-// during run. The URLs are time-limited and can be used for direct
+// during the run. The URLs are time-limited and can be used for direct
 // HTTP download without authentication.
 //
 // ## Authorization
 //
 // Requires can_view permission on the run. This ensures users can only
-// access artifacts from executions they have access to.
+// access artifacts from runs they have access to.
 //
 // ## Security
 //
 // The storage_key is validated to ensure it belongs to the specified run.
 // Storage keys must start with "artifacts/{run_id}/" to prevent path
-// traversal attacks where a user could request URLs for other executions'
+// traversal attacks where a user could request URLs for other runs'
 // artifacts.
 //
 // ## Use Cases
@@ -1546,9 +1546,9 @@ type GetArtifactDownloadUrlRequest struct {
 	//
 	// Must be an artifact from the specified run. The storage_key
 	// is validated to start with "artifacts/{run_id}/" to prevent
-	// access to other executions' artifacts.
+	// access to other runs' artifacts.
 	//
-	// Obtain this value from RunArtifact.storage_key in the execution status.
+	// Obtain this value from RunArtifact.storage_key in the run status.
 	//
 	// Format: "artifacts/{run_id}/{filename}"
 	// Example: "artifacts/aex_abc123xyz456/generated-skill.zip"
@@ -1697,7 +1697,7 @@ func (x *GetArtifactDownloadUrlResponse) GetExpiresAt() string {
 	return ""
 }
 
-// GetArtifactContentRequest reads the raw content of an execution artifact.
+// GetArtifactContentRequest reads the raw content of a run artifact.
 //
 // Unlike getArtifactDownloadUrl (which returns a presigned URL for direct
 // browser download), this endpoint returns the artifact bytes through the
@@ -1708,13 +1708,13 @@ func (x *GetArtifactDownloadUrlResponse) GetExpiresAt() string {
 // ## Authorization
 //
 // Requires can_view permission on the run. This ensures users can only
-// read artifacts from executions they have access to.
+// read artifacts from runs they have access to.
 //
 // ## Security
 //
 // The storage_key is validated to ensure it belongs to the specified run.
 // Storage keys must start with "artifacts/{run_id}/" to prevent path
-// traversal attacks where a user could request content from other executions'
+// traversal attacks where a user could request content from other runs'
 // artifacts.
 //
 // ## Size Limit
@@ -1762,9 +1762,9 @@ type GetArtifactContentRequest struct {
 	//
 	// Must be an artifact from the specified run. The storage_key
 	// is validated to start with "artifacts/{run_id}/" to prevent
-	// access to other executions' artifacts.
+	// access to other runs' artifacts.
 	//
-	// Obtain this value from RunArtifact.storage_key in the execution status.
+	// Obtain this value from RunArtifact.storage_key in the run status.
 	//
 	// Format: "artifacts/{run_id}/{filename}"
 	// Example: "artifacts/aex_abc123xyz456/pr-review-agent.yaml"
@@ -1854,7 +1854,7 @@ func (x *GetArtifactContentRequest) GetEntryPath() string {
 	return ""
 }
 
-// GetArtifactContentResponse returns the raw content of an execution artifact.
+// GetArtifactContentResponse returns the raw content of a run artifact.
 //
 // The content field contains the artifact bytes (up to max_bytes). For text
 // artifacts, clients decode via TextDecoder or equivalent. The content_type
@@ -1950,7 +1950,7 @@ func (x *GetArtifactContentResponse) GetTruncated() bool {
 // GetRunUsageReportInput requests a usage report for a single run.
 type GetRunUsageReportInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Execution ID to get usage report for.
+	// Run ID to get usage report for.
 	RunId         string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2049,7 +2049,7 @@ func (x *GetRunUsageReportOutput) GetModelBreakdown() []*ModelUsage {
 }
 
 // GetSessionUsageReportInput requests a usage report for a single session.
-// Aggregates cost and token data across all executions in the session.
+// Aggregates cost and token data across all runs in the session.
 type GetSessionUsageReportInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Session ID to get usage report for.
@@ -2097,27 +2097,27 @@ func (x *GetSessionUsageReportInput) GetSessionId() string {
 
 // GetSessionUsageReportOutput returns aggregated usage for a session.
 //
-// Provides both the session-level totals and per-execution breakdown,
-// enabling drill-down from "this session cost $0.90" to "execution #3
+// Provides both the session-level totals and per-run breakdown,
+// enabling drill-down from "this session cost $0.90" to "run #3
 // cost $0.12 because it used claude-sonnet-4."
 type GetSessionUsageReportOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Session identifier.
 	SessionId string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	// Total number of executions in this session.
+	// Total number of runs in this session.
 	RunCount int32 `protobuf:"varint,2,opt,name=run_count,json=runCount,proto3" json:"run_count,omitempty"`
-	// Aggregated usage across all executions in this session.
+	// Aggregated usage across all runs in this session.
 	TotalUsage *UsageReportAggregate `protobuf:"bytes,3,opt,name=total_usage,json=totalUsage,proto3" json:"total_usage,omitempty"`
-	// Per-execution breakdown (ordered chronologically).
+	// Per-run breakdown (ordered chronologically).
 	Runs []*RunUsageSummary `protobuf:"bytes,4,rep,name=runs,proto3" json:"runs,omitempty"`
 	// Per-model breakdown across the entire session.
 	ModelBreakdown []*ModelUsage `protobuf:"bytes,5,rep,name=model_breakdown,json=modelBreakdown,proto3" json:"model_breakdown,omitempty"`
-	// ISO 8601 timestamp of the first execution in this session.
+	// ISO 8601 timestamp of the first run in this session.
 	FirstRunAt string `protobuf:"bytes,6,opt,name=first_run_at,json=firstRunAt,proto3" json:"first_run_at,omitempty"`
-	// ISO 8601 timestamp of the most recent execution in this session.
+	// ISO 8601 timestamp of the most recent run in this session.
 	LastRunAt string `protobuf:"bytes,7,opt,name=last_run_at,json=lastRunAt,proto3" json:"last_run_at,omitempty"`
 	// Whether any record in this session is still estimated (not yet proxy-metered).
-	// True when execution is in-flight and only streaming usage data is available.
+	// True when the run is in flight and only streaming usage data is available.
 	// False once proxy billing records have been written.
 	IsEstimated   bool `protobuf:"varint,8,opt,name=is_estimated,json=isEstimated,proto3" json:"is_estimated,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -2228,7 +2228,7 @@ type GetAgentUsageReportInput struct {
 	// Token for pagination, obtained from previous response.
 	PageToken string `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Organization scope for the report: usage of this agent within this
-	// organization. Only executions belonging to this organization are
+	// organization. Only runs belonging to this organization are
 	// aggregated. The caller must hold can_view on the organization.
 	Org           string `protobuf:"bytes,6,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -2325,7 +2325,7 @@ type GetAgentUsageReportOutput struct {
 	Sessions []*SessionUsageSummary `protobuf:"bytes,5,rep,name=sessions,proto3" json:"sessions,omitempty"`
 	// Total number of sessions within the time range.
 	TotalSessions int32 `protobuf:"varint,6,opt,name=total_sessions,json=totalSessions,proto3" json:"total_sessions,omitempty"`
-	// Total number of executions within the time range.
+	// Total number of runs within the time range.
 	TotalRuns int32 `protobuf:"varint,7,opt,name=total_runs,json=totalRuns,proto3" json:"total_runs,omitempty"`
 	// Total billable cost in micro-USD within the time range.
 	TotalBillableCostMicros int64 `protobuf:"varint,8,opt,name=total_billable_cost_micros,json=totalBillableCostMicros,proto3" json:"total_billable_cost_micros,omitempty"`
@@ -2504,11 +2504,11 @@ type GetOrgUsageReportOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization identifier.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// Total distinct agents with executions in the time range.
+	// Total distinct agents with runs in the time range.
 	TotalAgents int32 `protobuf:"varint,2,opt,name=total_agents,json=totalAgents,proto3" json:"total_agents,omitempty"`
 	// Total sessions across all agents in the time range.
 	TotalSessions int32 `protobuf:"varint,3,opt,name=total_sessions,json=totalSessions,proto3" json:"total_sessions,omitempty"`
-	// Total executions across all agents in the time range.
+	// Total runs across all agents in the time range.
 	TotalRuns int32 `protobuf:"varint,4,opt,name=total_runs,json=totalRuns,proto3" json:"total_runs,omitempty"`
 	// Total billable cost in micro-USD across the organization in the time range.
 	TotalBillableCostMicros int64 `protobuf:"varint,5,opt,name=total_billable_cost_micros,json=totalBillableCostMicros,proto3" json:"total_billable_cost_micros,omitempty"`
@@ -2617,14 +2617,14 @@ func (x *GetOrgUsageReportOutput) GetHarnessBreakdown() []*HarnessCostSummary {
 	return nil
 }
 
-// Lightweight view of a single execution's usage within a session report.
+// Lightweight view of a single run's usage within a session report.
 type RunUsageSummary struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Execution identifier.
+	// Run identifier.
 	RunId string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	// ISO 8601 timestamp when execution started.
+	// ISO 8601 timestamp when the run started.
 	StartedAt string `protobuf:"bytes,2,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
-	// ISO 8601 timestamp when execution completed.
+	// ISO 8601 timestamp when the run completed.
 	CompletedAt string `protobuf:"bytes,3,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
 	// Input tokens for this run.
 	InputTokens int64 `protobuf:"varint,4,opt,name=input_tokens,json=inputTokens,proto3" json:"input_tokens,omitempty"`
@@ -2640,7 +2640,7 @@ type RunUsageSummary struct {
 	SubAgentCount int32 `protobuf:"varint,9,opt,name=sub_agent_count,json=subAgentCount,proto3" json:"sub_agent_count,omitempty"`
 	// Terminal phase of this run.
 	Phase RunPhase `protobuf:"varint,10,opt,name=phase,proto3,enum=ai.stigmer.agentic.agentrun.v1.RunPhase" json:"phase,omitempty"`
-	// Whether this execution's cost is estimated (in-flight, no billing records yet).
+	// Whether this run's cost is estimated (in-flight, no billing records yet).
 	IsEstimated   bool `protobuf:"varint,11,opt,name=is_estimated,json=isEstimated,proto3" json:"is_estimated,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2758,16 +2758,16 @@ type SessionUsageSummary struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Session identifier.
 	SessionId string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	// Number of executions in this session.
+	// Number of runs in this session.
 	RunCount int32 `protobuf:"varint,2,opt,name=run_count,json=runCount,proto3" json:"run_count,omitempty"`
-	// Total tokens across all executions (cache-inclusive: the sum of each
+	// Total tokens across all runs (cache-inclusive: the sum of each
 	// call's provider-reported total, including cached input tokens).
 	TotalTokens int64 `protobuf:"varint,3,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
 	// Total billable cost in micro-USD for this session.
 	BillableCostMicros int64 `protobuf:"varint,4,opt,name=billable_cost_micros,json=billableCostMicros,proto3" json:"billable_cost_micros,omitempty"`
-	// ISO 8601 timestamp of the first execution in this session.
+	// ISO 8601 timestamp of the first run in this session.
 	FirstRunAt string `protobuf:"bytes,5,opt,name=first_run_at,json=firstRunAt,proto3" json:"first_run_at,omitempty"`
-	// ISO 8601 timestamp of the most recent execution in this session.
+	// ISO 8601 timestamp of the most recent run in this session.
 	LastRunAt     string `protobuf:"bytes,6,opt,name=last_run_at,json=lastRunAt,proto3" json:"last_run_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2852,9 +2852,9 @@ type AgentUsageSummary struct {
 	AgentId string `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
 	// Human-readable agent name for display.
 	AgentName string `protobuf:"bytes,2,opt,name=agent_name,json=agentName,proto3" json:"agent_name,omitempty"`
-	// Total executions for this agent in the time range.
+	// Total runs for this agent in the time range.
 	RunCount int32 `protobuf:"varint,3,opt,name=run_count,json=runCount,proto3" json:"run_count,omitempty"`
-	// Total tokens across all executions (cache-inclusive: the sum of each
+	// Total tokens across all runs (cache-inclusive: the sum of each
 	// call's provider-reported total, including cached input tokens).
 	TotalTokens int64 `protobuf:"varint,4,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
 	// Total billable cost in micro-USD for this agent.
@@ -2933,7 +2933,7 @@ type DailyCostEntry struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Date in YYYY-MM-DD format.
 	Date string `protobuf:"bytes,1,opt,name=date,proto3" json:"date,omitempty"`
-	// Number of executions on this date.
+	// Number of runs on this date.
 	RunCount int32 `protobuf:"varint,2,opt,name=run_count,json=runCount,proto3" json:"run_count,omitempty"`
 	// Total tokens consumed on this date.
 	TotalTokens int64 `protobuf:"varint,3,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
@@ -3004,7 +3004,7 @@ func (x *DailyCostEntry) GetBillableCostMicros() int64 {
 // Cost split by execution harness within an org report.
 //
 // Each entry represents one harness (e.g., "native" or "cursor") and
-// aggregates cost, call count, and execution count for that harness
+// aggregates cost, call count, and run count for that harness
 // within the report's time range.
 type HarnessCostSummary struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -3014,7 +3014,7 @@ type HarnessCostSummary struct {
 	BillableCostMicros int64 `protobuf:"varint,2,opt,name=billable_cost_micros,json=billableCostMicros,proto3" json:"billable_cost_micros,omitempty"`
 	// Number of LLM API calls through this harness.
 	CallCount int32 `protobuf:"varint,3,opt,name=call_count,json=callCount,proto3" json:"call_count,omitempty"`
-	// Number of distinct executions that used this harness.
+	// Number of distinct runs that used this harness.
 	RunCount      int32 `protobuf:"varint,4,opt,name=run_count,json=runCount,proto3" json:"run_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -3078,7 +3078,7 @@ func (x *HarnessCostSummary) GetRunCount() int32 {
 	return 0
 }
 
-// GetAgentRunSummaryRequest fetches aggregated execution statistics
+// GetAgentRunSummaryRequest fetches aggregated run statistics
 // for an organization's agent runs.
 type GetAgentRunSummaryRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -3144,18 +3144,18 @@ func (x *GetAgentRunSummaryRequest) GetTimeWindow() AgentRunSummaryTimeWindow {
 // when workflows delegate to agents. See AD-DASH-005.
 type AgentRunSummary struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Number of executions currently in a non-terminal phase
+	// Number of runs currently in a non-terminal phase
 	// (PENDING, IN_PROGRESS, WAITING_FOR_APPROVAL, PAUSED).
 	ActiveCount int32 `protobuf:"varint,1,opt,name=active_count,json=activeCount,proto3" json:"active_count,omitempty"`
-	// Execution counts broken down by RunPhase enum value.
+	// Run counts broken down by RunPhase enum value.
 	//
 	// Keys are RunPhase enum values (as int32).
-	// Only phases with at least one execution are included.
+	// Only phases with at least one run are included.
 	PhaseCounts map[int32]int32 `protobuf:"bytes,2,rep,name=phase_counts,json=phaseCounts,proto3" json:"phase_counts,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
-	// Mean execution duration (from started_at to completed_at) for completed
-	// executions in the time window.
+	// Mean run duration (from started_at to completed_at) for completed
+	// runs in the time window.
 	//
-	// Zero when no completed executions exist.
+	// Zero when no completed runs exist.
 	AvgDuration *durationpb.Duration `protobuf:"bytes,3,opt,name=avg_duration,json=avgDuration,proto3" json:"avg_duration,omitempty"`
 	// Agents with the highest failure count in the time window, ranked descending.
 	//
@@ -3231,7 +3231,7 @@ type AgentFailureRank struct {
 	AgentSlug string `protobuf:"bytes,1,opt,name=agent_slug,json=agentSlug,proto3" json:"agent_slug,omitempty"`
 	// Human-readable agent name for display.
 	AgentName string `protobuf:"bytes,2,opt,name=agent_name,json=agentName,proto3" json:"agent_name,omitempty"`
-	// Number of failed executions in the time window.
+	// Number of failed runs in the time window.
 	FailureCount  int32 `protobuf:"varint,3,opt,name=failure_count,json=failureCount,proto3" json:"failure_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

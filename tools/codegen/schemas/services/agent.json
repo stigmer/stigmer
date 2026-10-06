@@ -515,7 +515,7 @@
         {
           "name": "visibility_child_orgs",
           "number": 4,
-          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, executions and environments are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
+          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and environments are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
         }
       ]
     },
@@ -712,7 +712,7 @@
     },
     {
       "name": "ServiceTier",
-      "description": "ServiceTier selects the provider-side speed/service tier for an execution's\n model calls.\n\n Providers spell this differently — Cursor exposes per-model \"fast\" variants\n at higher per-token rates, Anthropic and OpenAI expose service tiers — but\n the platform semantic is uniform: the tier is a deterministic, user-selected\n attribute validated against the model registry at create time. A tier is\n selectable for a model only when the registry prices it\n (pricingVariants.\u003ctier\u003e), so a selected tier is always billable.\n\n The load-bearing rule: UNSPECIFIED resolves to SERVICE_TIER_STANDARD — never\n the provider account default. The runner always sends the provider an\n explicit variant selection, so an out-of-band account setting can never\n silently change what an execution pays (stigmer/stigmer#357).",
+      "description": "ServiceTier selects the provider-side speed/service tier for a run's\n model calls.\n\n Providers spell this differently — Cursor exposes per-model \"fast\" variants\n at higher per-token rates, Anthropic and OpenAI expose service tiers — but\n the platform semantic is uniform: the tier is a deterministic, user-selected\n attribute validated against the model registry at create time. A tier is\n selectable for a model only when the registry prices it\n (pricingVariants.\u003ctier\u003e), so a selected tier is always billable.\n\n The load-bearing rule: UNSPECIFIED resolves to SERVICE_TIER_STANDARD — never\n the provider account default. The runner always sends the provider an\n explicit variant selection, so an out-of-band account setting can never\n silently change what a run pays (stigmer/stigmer#357).",
       "protoType": "ai.stigmer.agentic.agentrun.v1.ServiceTier",
       "values": [
         {
@@ -723,24 +723,24 @@
         {
           "name": "SERVICE_TIER_FAST",
           "number": 2,
-          "description": "Fast tier: the model's fast variant, billed at the registry's fast\n variant rates.\n\n Valid only for models whose registry entry declares a fast pricing\n variant; refused at execution create otherwise."
+          "description": "Fast tier: the model's fast variant, billed at the registry's fast\n variant rates.\n\n Valid only for models whose registry entry declares a fast pricing\n variant; refused at run create otherwise."
         }
       ]
     },
     {
       "name": "ThinkingMode",
-      "description": "ThinkingMode selects the model's extended-reasoning (\"thinking\") variant\n for an execution's model calls — the second variant dimension alongside\n ServiceTier (stigmer/stigmer#772).\n\n Unlike the fast tier, thinking is NOT a separately priced dimension:\n Cursor bills thinking variants at the model's base per-token rates\n (verified against the live pricing page and 277 team-ledger events on\n 2026-08-15 — thinking wire ids bill exactly base; thinking+fast bills\n exactly the fast variant rate). Thinking costs more only by generating\n additional reasoning tokens, billed as ordinary output. Selectability is\n therefore CAPABILITY-gated, not pricing-gated: ENABLED is valid only for\n models whose registry entry on the execution's harness declares a\n thinking capability (capabilities.thinking or capabilities.adaptive_thinking),\n refused at create time otherwise. ENABLED means \"the model reasons before\n it answers\", in the form its entry declares: a fixed budget or adaptive\n depth.\n\n The load-bearing rule mirrors ServiceTier: UNSPECIFIED resolves to\n THINKING_MODE_DISABLED — never the provider account default. Several\n catalog default variants are thinking=true (claude-haiku-4-5), so an\n unpinned selection would silently follow an out-of-band account setting;\n the runner always sends an explicit thinking pin where the model declares\n the parameter. The one exception is a model whose entry declares\n capabilities.thinking_required: it always thinks, so an explicit DISABLED\n is refused at create and UNSPECIFIED runs with thinking on.",
+      "description": "ThinkingMode selects the model's extended-reasoning (\"thinking\") variant\n for a run's model calls — the second variant dimension alongside\n ServiceTier (stigmer/stigmer#772).\n\n Unlike the fast tier, thinking is NOT a separately priced dimension:\n Cursor bills thinking variants at the model's base per-token rates\n (verified against the live pricing page and 277 team-ledger events on\n 2026-08-15 — thinking wire ids bill exactly base; thinking+fast bills\n exactly the fast variant rate). Thinking costs more only by generating\n additional reasoning tokens, billed as ordinary output. Selectability is\n therefore CAPABILITY-gated, not pricing-gated: ENABLED is valid only for\n models whose registry entry on the run's harness declares a\n thinking capability (capabilities.thinking or capabilities.adaptive_thinking),\n refused at create time otherwise. ENABLED means \"the model reasons before\n it answers\", in the form its entry declares: a fixed budget or adaptive\n depth.\n\n The load-bearing rule mirrors ServiceTier: UNSPECIFIED resolves to\n THINKING_MODE_DISABLED — never the provider account default. Several\n catalog default variants are thinking=true (claude-haiku-4-5), so an\n unpinned selection would silently follow an out-of-band account setting;\n the runner always sends an explicit thinking pin where the model declares\n the parameter. The one exception is a model whose entry declares\n capabilities.thinking_required: it always thinks, so an explicit DISABLED\n is refused at create and UNSPECIFIED runs with thinking on.",
       "protoType": "ai.stigmer.agentic.agentrun.v1.ThinkingMode",
       "values": [
         {
           "name": "THINKING_MODE_DISABLED",
           "number": 1,
-          "description": "Extended reasoning off: the model's base variant, requested explicitly\n (thinking=false pinned where the model declares the parameter).\n Refused at execution create for a model that requires thinking."
+          "description": "Extended reasoning off: the model's base variant, requested explicitly\n (thinking=false pinned where the model declares the parameter).\n Refused at run create for a model that requires thinking."
         },
         {
           "name": "THINKING_MODE_ENABLED",
           "number": 2,
-          "description": "Extended reasoning on: the model's thinking variant, billed at base\n per-token rates (reasoning tokens bill as output tokens).\n\n Valid only for models whose registry entry on the execution's harness\n declares a thinking capability; refused at execution create otherwise."
+          "description": "Extended reasoning on: the model's thinking variant, billed at base\n per-token rates (reasoning tokens bill as output tokens).\n\n Valid only for models whose registry entry on the run's harness\n declares a thinking capability; refused at run create otherwise."
         }
       ]
     }

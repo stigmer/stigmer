@@ -47,7 +47,7 @@ type ScheduleQueryControllerClient interface {
 	List(ctx context.Context, in *ListSchedulesRequest, opts ...grpc.CallOption) (*ScheduleList, error)
 	// List a schedule's run history, newest first.
 	//
-	// Every fire leaves a row — including fires that created no execution
+	// Every fire leaves a row — including fires that created no run
 	// (a refused launch gate, a missing target agent) — with the refusing
 	// gate's copy verbatim. This is the surface that explains
 	// status.consecutive_failures.
@@ -132,7 +132,7 @@ type ScheduleQueryControllerServer interface {
 	List(context.Context, *ListSchedulesRequest) (*ScheduleList, error)
 	// List a schedule's run history, newest first.
 	//
-	// Every fire leaves a row — including fires that created no execution
+	// Every fire leaves a row — including fires that created no run
 	// (a refused launch gate, a missing target agent) — with the refusing
 	// gate's copy verbatim. This is the surface that explains
 	// status.consecutive_failures.

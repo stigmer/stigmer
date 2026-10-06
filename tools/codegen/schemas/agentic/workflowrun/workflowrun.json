@@ -58,7 +58,7 @@
           "messageType": "ExecutionValue"
         }
       },
-      "description": "Execution-scoped environment variables and secrets, available only to this\n run. Values here take the highest merge priority. A key must be\n declared in Workflow.spec.env to survive the merge: the workflow env map is\n a declaration whitelist (name + is_secret + optional), never a value source\n — undeclared keys are dropped.",
+      "description": "Run-scoped environment variables and secrets, available only to this\n run. Values here take the highest merge priority. A key must be\n declared in Workflow.spec.env to survive the merge: the workflow env map is\n a declaration whitelist (name + is_secret + optional), never a value source\n — undeclared keys are dropped.",
       "required": false
     },
     {

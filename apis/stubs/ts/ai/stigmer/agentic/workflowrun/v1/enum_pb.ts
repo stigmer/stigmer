@@ -25,49 +25,49 @@ export enum RunPhase {
   RUN_PHASE_UNSPECIFIED = 0,
 
   /**
-   * Execution created, waiting to start.
+   * Run created, waiting to start.
    *
    * @generated from enum value: RUN_PENDING = 1;
    */
   RUN_PENDING = 1,
 
   /**
-   * Execution is actively running tasks.
+   * Run is in progress, running its tasks.
    *
    * @generated from enum value: RUN_IN_PROGRESS = 2;
    */
   RUN_IN_PROGRESS = 2,
 
   /**
-   * Execution completed successfully.
+   * Run completed successfully.
    *
    * @generated from enum value: RUN_COMPLETED = 3;
    */
   RUN_COMPLETED = 3,
 
   /**
-   * Execution failed with an error.
+   * Run failed with an error.
    *
    * @generated from enum value: RUN_FAILED = 4;
    */
   RUN_FAILED = 4,
 
   /**
-   * Execution was cancelled by user or system.
+   * Run was cancelled by user or system.
    *
    * @generated from enum value: RUN_CANCELLED = 5;
    */
   RUN_CANCELLED = 5,
 
   /**
-   * Execution was force-stopped immediately without cleanup.
+   * Run was force-stopped immediately without cleanup.
    *
    * @generated from enum value: RUN_TERMINATED = 6;
    */
   RUN_TERMINATED = 6,
 
   /**
-   * Execution was paused by user and can be resumed.
+   * Run was paused by user and can be resumed.
    *
    * @generated from enum value: RUN_PAUSED = 7;
    */
@@ -184,7 +184,7 @@ export enum WorkflowTaskStatus {
   WORKFLOW_TASK_COMPLETED = 3,
 
   /**
-   * Task failed during run.
+   * Task failed during execution.
    *
    * @generated from enum value: WORKFLOW_TASK_FAILED = 4;
    */

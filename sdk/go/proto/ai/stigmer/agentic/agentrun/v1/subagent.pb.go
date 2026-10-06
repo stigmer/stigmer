@@ -23,7 +23,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Represents a sub-agent invocation within an run.
+// Represents a sub-agent invocation within a run.
 // When the main agent delegates work to a specialized sub-agent, this message
 // tracks the complete lifecycle of that delegation including input, output, and timing.
 type SubAgentRun struct {

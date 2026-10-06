@@ -72,7 +72,7 @@ public interface RunReservationOrBuilder extends
 
   /**
    * <pre>
-   * Total micro-USD reserved at execution start.
+   * Total micro-USD reserved at run start.
    * </pre>
    *
    * <code>int64 reserved_micros = 4 [json_name = "reservedMicros"];</code>

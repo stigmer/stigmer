@@ -43,7 +43,7 @@ function useApplyResource(): UseApplyResourceReturn
     clearError: { type: "() => void", description: "Clear the error state (e.g., when the user dismisses an error message)." },
     error: { type: "Error | null", description: "Error from the last failed operation, or `null` when healthy." },
     isApplying: { type: "boolean", description: "`true` while an apply or push operation is in-flight." },
-    pushSkillPackage: { type: "(params: PushSkillParams) => Promise<ApplyResourceResult>", description: "Push a skill package from an execution artifact to an organization.  Uses the server-side `pushFromExecutionArtifact` RPC — the server reads the ZIP from execution storage and pushes it as a skill. No ZIP download reaches the browser." },
+    pushSkillPackage: { type: "(params: PushSkillParams) => Promise<ApplyResourceResult>", description: "Push a skill package from a run artifact to an organization.  Uses the server-side `pushFromExecutionArtifact` RPC — the server reads the ZIP from run storage and pushes it as a skill. No ZIP download reaches the browser." },
   }}
 />
 
@@ -102,7 +102,7 @@ function useBreadcrumbOverride(): { setLabel: (label: string | null) => void }
 
 ### useDetectSkillPackage
 
-Detects whether an execution artifact is a skill package and extracts
+Detects whether a run artifact is a skill package and extracts
 its metadata from SKILL.md.
 
 Combines the synchronous `isSkillPackage()` check (via `entries`) with
@@ -119,13 +119,13 @@ For all other artifacts, returns `{ detected: false }` immediately.
 **Signature**
 
 ```tsx
-function useDetectSkillPackage(artifact: ExecutionArtifact | null, executionId: string | null): UseDetectSkillPackageReturn
+function useDetectSkillPackage(artifact: RunArtifact | null, executionId: string | null): UseDetectSkillPackageReturn
 ```
 
 <TypeTable
   type={{
-    artifact: { type: "ExecutionArtifact | null", description: "The execution artifact to inspect, or `null` to skip.", required: true },
-    executionId: { type: "string | null", description: "Execution that produced the artifact, or `null` to skip.", required: true },
+    artifact: { type: "RunArtifact | null", description: "The run artifact to inspect, or `null` to skip.", required: true },
+    executionId: { type: "string | null", description: "Run that produced the artifact, or `null` to skip.", required: true },
   }}
 />
 
@@ -165,7 +165,7 @@ memoized — detection only re-runs when `content` changes by reference.
 
 Pass `null` to skip detection (returns `{ detected: false }`). This
 makes the hook safe to call unconditionally even while content is
-still loading via [`useArtifactContent`](/docs/sdk/react/execution#useartifactcontent).
+still loading via [`useArtifactContent`](/docs/sdk/react/run#useartifactcontent).
 
 **Signature**
 
@@ -510,7 +510,7 @@ parses the YAML frontmatter to extract `name` and `description`.
 structure returns `{ detected: false }`. This function never throws.
 
 ```tsx
-function detectSkillPackage(artifact: ExecutionArtifact, skillMdContent: string): SkillPackageDetection
+function detectSkillPackage(artifact: RunArtifact, skillMdContent: string): SkillPackageDetection
 ```
 
 ```tsx
@@ -551,36 +551,36 @@ if (result.detected) {
 
 ### findLatestSessionPlan
 
-Finds the session's LATEST plan across all executions — the plan the panel's
-plan document tab edits and the "Build" action implements. Executions are
+Finds the session's LATEST plan across all runs — the plan the panel's
+plan document tab edits and the "Build" action implements. Runs are
 scanned newest-first (the array is chronological), mirroring the thread's
 latest-plan-owns-the-build-action rule so every surface agrees on which
 plan is current.
 
-Returns `undefined` when no execution in the session published a plan.
+Returns `undefined` when no run in the session published a plan.
 
 ```tsx
-function findLatestSessionPlan(executions: readonly AgentExecution[]): SessionPlan | undefined
+function findLatestSessionPlan(executions: readonly AgentRun[]): SessionPlan | undefined
 ```
 
 
 ### findPlanArtifact
 
-Finds the plan artifact on a completed execution, or `undefined` when none
-was published (older executions, or a plan that failed to upload).
+Finds the plan artifact on a completed run, or `undefined` when none
+was published (older runs, or a plan that failed to upload).
 
 Returns the latest `plan.md` if more than one is present — the runner
 replaces rather than appends, so this is defensive.
 
 ```tsx
-function findPlanArtifact(execution: AgentExecution | null | undefined): ExecutionArtifact | undefined
+function findPlanArtifact(execution: AgentRun | null | undefined): RunArtifact | undefined
 ```
 
 
 ### findStreamingPlan
 
-Detects the plan a live Plan-mode execution is currently writing, or
-`undefined` when the execution has no recognizable plan in flight.
+Detects the plan a live Plan-mode run is currently writing, or
+`undefined` when the run has no recognizable plan in flight.
 
 This is the third leg of the plan convention, alongside the runner's prompt
 directive ("your FINAL message IS the plan, starting with a single `#`
@@ -589,7 +589,7 @@ by filename ([`isPlanArtifact`](#isplanartifact)). Completion makes the plan una
 (the published `plan.md` artifact); mid-stream it must be inferred, and the
 directive's mandated shape is the inference:
 
-- the execution runs in Plan mode and is **non-terminal** (a completed turn
+- the run runs in Plan mode and is **non-terminal** (a completed turn
   is owned by the artifact path; a stopped/failed turn has no live plan),
 - the candidate is the **last content-bearing `MESSAGE_AI`** — the exact
   selection rule the runner's `extractFinalPlanText` and the thread's
@@ -605,7 +605,7 @@ is ever considered — an earlier message is settled narration, and falling
 back to it would promote the wrong text.
 
 ```tsx
-function findStreamingPlan(execution: AgentExecution | null | undefined): StreamingPlan | undefined
+function findStreamingPlan(execution: AgentRun | null | undefined): StreamingPlan | undefined
 ```
 
 
@@ -617,10 +617,10 @@ name satisfies [`isPlanArtifactName`](#isplanartifactname).
 Detection is by convention — the same lightweight, content-free approach used
 for skill packages ([`isSkillPackage`](#isskillpackage)) — so the UI never needs an extra
 RPC to know a plan exists. The plan's text is fetched on demand via
-[`useArtifactContent`](/docs/sdk/react/execution#useartifactcontent) only when the user expands the Plan card.
+[`useArtifactContent`](/docs/sdk/react/run#useartifactcontent) only when the user expands the Plan card.
 
 ```tsx
-function isPlanArtifact(artifact: ExecutionArtifact): boolean
+function isPlanArtifact(artifact: RunArtifact): boolean
 ```
 
 
@@ -637,7 +637,7 @@ function isPlanArtifactName(name: string): boolean
 
 ### isSkillPackage
 
-Checks whether an execution artifact is a skill package (directory
+Checks whether a run artifact is a skill package (directory
 artifact whose archive contains `SKILL.md`).
 
 This is a pure, synchronous check that requires no network call — it
@@ -650,7 +650,7 @@ Returns `false` for:
 - DIRECTORY artifacts whose entries do not include `SKILL.md`
 
 ```tsx
-function isSkillPackage(artifact: ExecutionArtifact): boolean
+function isSkillPackage(artifact: RunArtifact): boolean
 ```
 
 ```tsx
@@ -681,15 +681,15 @@ duplicated by design, mirroring [`PLAN_ARTIFACT_NAME`](#plan_artifact_name).
 
 ### PushSkillParams
 
-Parameters for pushing a skill package from an execution artifact.
+Parameters for pushing a skill package from a run artifact.
 
-The server reads the directory artifact (ZIP) from execution storage
+The server reads the directory artifact (ZIP) from run storage
 and pushes it as a skill — no ZIP download reaches the browser.
 
 <TypeTable
   type={{
-    executionId: { type: "string", description: "ID of the execution that produced the artifact (format: `aex_{ulid}`).", required: true },
     org: { type: "string", description: "Organization that will own the skill.", required: true },
+    runId: { type: "string", description: "ID of the run that produced the artifact (format: `aex_{ulid}`).", required: true },
     storageKey: { type: "string", description: "Storage key of the directory artifact. Must start with `artifacts/{executionId}/`.", required: true },
     tag: { type: "string", description: "Optional version tag (e.g., `\"stable\"`, `\"v1.0\"`)." },
   }}
@@ -699,20 +699,20 @@ and pushes it as a skill — no ZIP download reaches the browser.
 ### SessionPlan
 
 The session's current plan: the published plan artifact (a `*.plan.md` FILE)
-of the most recent execution that produced one, plus the execution it belongs
+of the most recent run that produced one, plus the run it belongs
 to (artifact content RPCs are execution-scoped).
 
 <TypeTable
   type={{
-    artifact: { type: "ExecutionArtifact", description: "The published plan artifact (`*.plan.md`).", required: true },
-    executionId: { type: "string", description: "ID of the execution that published the plan.", required: true },
+    artifact: { type: "RunArtifact", description: "The published plan artifact (`*.plan.md`).", required: true },
+    runId: { type: "string", description: "ID of the run that published the plan.", required: true },
   }}
 />
 
 
 ### SkillPackageDetection
 
-Result of detecting whether an execution artifact is a pushable skill package.
+Result of detecting whether a run artifact is a pushable skill package.
 
 Uses a discriminated union on the `detected` field — identical pattern
 to [`StigmerResourceDetection`](#stigmerresourcedetection) — so consumers can narrow with a
@@ -749,7 +749,7 @@ artifacts with SKILL.md) and use a separate detection path via
 
 ### StreamingPlan
 
-A plan being written by a live Plan-mode execution, detected mid-stream so
+A plan being written by a live Plan-mode run, detected mid-stream so
 the UI can promote it to a document surface (panel plan tab + compact thread
 card) instead of letting it dump into the chat as a giant streaming bubble.
 

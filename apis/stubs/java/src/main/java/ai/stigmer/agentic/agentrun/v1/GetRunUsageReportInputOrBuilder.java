@@ -12,7 +12,7 @@ public interface GetRunUsageReportInputOrBuilder extends
 
   /**
    * <pre>
-   * Execution ID to get usage report for.
+   * Run ID to get usage report for.
    * </pre>
    *
    * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface GetRunUsageReportInputOrBuilder extends
   java.lang.String getRunId();
   /**
    * <pre>
-   * Execution ID to get usage report for.
+   * Run ID to get usage report for.
    * </pre>
    *
    * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>

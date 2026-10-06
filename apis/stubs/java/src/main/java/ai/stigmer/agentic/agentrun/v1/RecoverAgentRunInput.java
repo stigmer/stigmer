@@ -18,19 +18,19 @@ package ai.stigmer.agentic.agentrun.v1;
  * - The LangGraph checkpoint is loaded using the preserved thread_id, so
  * completed work carries over from the session's harness state
  * - Completed tool calls are NOT re-executed
- * - Execution transitions from FAILED back to IN_PROGRESS phase
+ * - Run transitions from FAILED back to IN_PROGRESS phase
  * - Agent retries from where it failed
  *
  * ## Preconditions
  *
- * - Execution must be in RUN_FAILED phase
- * - TERMINATED executions cannot be recovered (incomplete checkpoint)
- * - CANCELLED executions cannot be recovered (intentional user action)
+ * - Run must be in RUN_FAILED phase
+ * - TERMINATED runs cannot be recovered (incomplete checkpoint)
+ * - CANCELLED runs cannot be recovered (intentional user action)
  * - User must have can_edit permission on the agent run
  *
  * ## Idempotency
  *
- * If recovery is already in progress (execution moved to IN_PROGRESS after
+ * If recovery is already in progress (run moved to IN_PROGRESS after
  * a previous recover call), the call succeeds as a no-op and returns current state.
  *
  * ## Use Cases
@@ -97,7 +97,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Agent run ID to recover.
    *
-   * Must be in FAILED phase. TERMINATED and CANCELLED executions
+   * Must be in FAILED phase. TERMINATED and CANCELLED runs
    * cannot be recovered.
    *
    * Format: "aex_{ulid}" (auto-generated unique identifier)
@@ -126,7 +126,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Agent run ID to recover.
    *
-   * Must be in FAILED phase. TERMINATED and CANCELLED executions
+   * Must be in FAILED phase. TERMINATED and CANCELLED runs
    * cannot be recovered.
    *
    * Format: "aex_{ulid}" (auto-generated unique identifier)
@@ -322,19 +322,19 @@ private static final long serialVersionUID = 0L;
    * - The LangGraph checkpoint is loaded using the preserved thread_id, so
    * completed work carries over from the session's harness state
    * - Completed tool calls are NOT re-executed
-   * - Execution transitions from FAILED back to IN_PROGRESS phase
+   * - Run transitions from FAILED back to IN_PROGRESS phase
    * - Agent retries from where it failed
    *
    * ## Preconditions
    *
-   * - Execution must be in RUN_FAILED phase
-   * - TERMINATED executions cannot be recovered (incomplete checkpoint)
-   * - CANCELLED executions cannot be recovered (intentional user action)
+   * - Run must be in RUN_FAILED phase
+   * - TERMINATED runs cannot be recovered (incomplete checkpoint)
+   * - CANCELLED runs cannot be recovered (intentional user action)
    * - User must have can_edit permission on the agent run
    *
    * ## Idempotency
    *
-   * If recovery is already in progress (execution moved to IN_PROGRESS after
+   * If recovery is already in progress (run moved to IN_PROGRESS after
    * a previous recover call), the call succeeds as a no-op and returns current state.
    *
    * ## Use Cases
@@ -493,7 +493,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Agent run ID to recover.
      *
-     * Must be in FAILED phase. TERMINATED and CANCELLED executions
+     * Must be in FAILED phase. TERMINATED and CANCELLED runs
      * cannot be recovered.
      *
      * Format: "aex_{ulid}" (auto-generated unique identifier)
@@ -521,7 +521,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Agent run ID to recover.
      *
-     * Must be in FAILED phase. TERMINATED and CANCELLED executions
+     * Must be in FAILED phase. TERMINATED and CANCELLED runs
      * cannot be recovered.
      *
      * Format: "aex_{ulid}" (auto-generated unique identifier)
@@ -550,7 +550,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Agent run ID to recover.
      *
-     * Must be in FAILED phase. TERMINATED and CANCELLED executions
+     * Must be in FAILED phase. TERMINATED and CANCELLED runs
      * cannot be recovered.
      *
      * Format: "aex_{ulid}" (auto-generated unique identifier)
@@ -575,7 +575,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Agent run ID to recover.
      *
-     * Must be in FAILED phase. TERMINATED and CANCELLED executions
+     * Must be in FAILED phase. TERMINATED and CANCELLED runs
      * cannot be recovered.
      *
      * Format: "aex_{ulid}" (auto-generated unique identifier)
@@ -597,7 +597,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Agent run ID to recover.
      *
-     * Must be in FAILED phase. TERMINATED and CANCELLED executions
+     * Must be in FAILED phase. TERMINATED and CANCELLED runs
      * cannot be recovered.
      *
      * Format: "aex_{ulid}" (auto-generated unique identifier)

@@ -209,7 +209,7 @@ option on `submitEnvVars`:
   where every run of an agent the user starts reads the keys the
   agent declares.
 - **One-time** — secrets are returned as `runtimeEnv` for a single
-  execution, with no data persisted.
+  run, with no data persisted.
 
 State is managed by a `useReducer` state machine with five phases:
 `idle → resolving → needsEnvVars → submitting → ready`.
@@ -690,7 +690,7 @@ function agentHarnessOf(spec: AgentSpec | undefined): HarnessOption | undefined
 ### AgentResolution
 
 Describes how the agent was resolved, determining how the caller
-should create the session and its first execution.
+should create the session and its first run.
 
 Every mode starts the conversation on the agent itself (the session's
 `agentRef`); the mode says where the keys the agent declares come from:
@@ -791,7 +791,7 @@ function agentVersionLabel(versions: readonly VersionEntry[], versionHash: strin
 
 ```tsx
 const { versions } = useAgentVersions(org, slug);
-agentVersionLabel(versions, execution.status?.agentVersionHash ?? ""); // "v2" or "3f2a9c1e0b7d"
+agentVersionLabel(versions, run.status?.agentVersionHash ?? ""); // "v2" or "3f2a9c1e0b7d"
 ```
 
 
@@ -822,7 +822,7 @@ an `AgentInput` for submission on the final step.
 
 One MCP server the agent uses that authenticates by OAuth and has no
 usable grant in the organization. The agent is not ready until each is
-signed in: execution would start and fail at the first tool call, so the
+signed in: run would start and fail at the first tool call, so the
 composer asks first, the way it asks for a missing variable. Grants are
 per organization today, so one colleague's sign-in serves everyone.
 
@@ -842,7 +842,7 @@ Options for `UseAgentSetupReturn.submitEnvVars`.
 
 <TypeTable
   type={{
-    saveForFuture: { type: "boolean", description: "When `true` (default), the provided values are saved to the user's personal environment. Every run of an agent the user starts reads the keys that agent declares from there, so later conversations reuse them without asking again.  When `false`, the values are collected as `runtimeEnv` for this execution only — nothing is persisted. This path is instant (no network calls)." },
+    saveForFuture: { type: "boolean", description: "When `true` (default), the provided values are saved to the user's personal environment. Every run of an agent the user starts reads the keys that agent declares from there, so later conversations reuse them without asking again.  When `false`, the values are collected as `runtimeEnv` for this run only — nothing is persisted. This path is instant (no network calls)." },
   }}
 />
 

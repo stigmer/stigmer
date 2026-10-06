@@ -86,7 +86,7 @@
           "workflow_run_visibility_organization"
         ]
       },
-      "description": "Who can observe the runs (executions) of this workflow.\n\n Independent of the workflow's own visibility: making a workflow\n org-visible lets teammates see and run it, but does NOT expose each\n other's run inputs and outputs unless this is set to ORGANIZATION.\n\n Defaults to PRIVATE (unspecified is treated as private): each run is\n visible only to the person who started it. Set at create; afterwards it\n changes only through WorkflowCommandController.updateRunVisibility,\n and update and apply keep the stored level.",
+      "description": "Who can observe the runs of this workflow.\n\n Independent of the workflow's own visibility: making a workflow\n org-visible lets teammates see and run it, but does NOT expose each\n other's run inputs and outputs unless this is set to ORGANIZATION.\n\n Defaults to PRIVATE (unspecified is treated as private): each run is\n visible only to the person who started it. Set at create; afterwards it\n changes only through WorkflowCommandController.updateRunVisibility,\n and update and apply keep the stored level.",
       "required": false
     }
   ]

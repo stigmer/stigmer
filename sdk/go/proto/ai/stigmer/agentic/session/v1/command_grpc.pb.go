@@ -48,7 +48,7 @@ type SessionCommandControllerClient interface {
 	//
 	// Deletion cascades to the session's agent runs. Billing usage
 	// records are immutable and unaffected — they carry their own copies of
-	// the session and execution identifiers.
+	// the session and run identifiers.
 	//
 	// Fails with FAILED_PRECONDITION while any agent run in the
 	// session is still active (pending, in progress, waiting for approval,
@@ -136,7 +136,7 @@ type SessionCommandControllerServer interface {
 	//
 	// Deletion cascades to the session's agent runs. Billing usage
 	// records are immutable and unaffected — they carry their own copies of
-	// the session and execution identifiers.
+	// the session and run identifiers.
 	//
 	// Fails with FAILED_PRECONDITION while any agent run in the
 	// session is still active (pending, in progress, waiting for approval,

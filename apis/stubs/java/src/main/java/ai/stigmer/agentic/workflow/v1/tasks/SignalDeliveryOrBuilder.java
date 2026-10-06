@@ -12,7 +12,7 @@ public interface SignalDeliveryOrBuilder extends
 
   /**
    * <pre>
-   * Target workflow run id ("wfx_..."), as returned by run/create.
+   * Target workflow run id ("wex_..."), as returned by run/create.
    * Usually flows from a prior task's output:
    * "${ .start_processor.run_id }"
    * </pre>
@@ -23,7 +23,7 @@ public interface SignalDeliveryOrBuilder extends
   java.lang.String getRunId();
   /**
    * <pre>
-   * Target workflow run id ("wfx_..."), as returned by run/create.
+   * Target workflow run id ("wex_..."), as returned by run/create.
    * Usually flows from a prior task's output:
    * "${ .start_processor.run_id }"
    * </pre>

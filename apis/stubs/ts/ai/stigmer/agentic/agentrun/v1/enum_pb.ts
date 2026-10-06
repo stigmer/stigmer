@@ -45,56 +45,56 @@ export const file_ai_stigmer_agentic_agentrun_v1_enum: GenFile = /*@__PURE__*/
  */
 export enum RunPhase {
   /**
-   * Default value, not a valid execution phase.
+   * Default value, not a valid run phase.
    *
    * @generated from enum value: RUN_PHASE_UNSPECIFIED = 0;
    */
   RUN_PHASE_UNSPECIFIED = 0,
 
   /**
-   * Execution is queued and waiting for a worker to start processing.
+   * Run is queued and waiting for a worker to start processing.
    *
    * @generated from enum value: RUN_PENDING = 1;
    */
   RUN_PENDING = 1,
 
   /**
-   * Execution is actively running — the agent is processing and producing output.
+   * Run is in progress — the agent is processing and producing output.
    *
    * @generated from enum value: RUN_IN_PROGRESS = 2;
    */
   RUN_IN_PROGRESS = 2,
 
   /**
-   * Execution finished successfully and the agent produced a final response.
+   * Run finished successfully and the agent produced a final response.
    *
    * @generated from enum value: RUN_COMPLETED = 3;
    */
   RUN_COMPLETED = 3,
 
   /**
-   * Execution encountered an unexpected error and could not finish.
+   * Run encountered an unexpected error and could not finish.
    *
    * @generated from enum value: RUN_FAILED = 4;
    */
   RUN_FAILED = 4,
 
   /**
-   * Execution was gracefully stopped by the user before it finished.
+   * Run was gracefully stopped by the user before it finished.
    *
    * @generated from enum value: RUN_CANCELLED = 5;
    */
   RUN_CANCELLED = 5,
 
   /**
-   * Execution was stopped by the platform.
+   * Run was stopped by the platform.
    *
    * Unlike CANCELLED (user-initiated graceful stop) and FAILED (unexpected
    * error), TERMINATED means the platform intentionally stopped this
-   * execution — either via automated safety mechanisms or user-initiated
+   * run — either via automated safety mechanisms or user-initiated
    * force-kill.
    *
-   * Terminal state — execution will not change phases again.
+   * Terminal state — run will not change phases again.
    *
    * When this phase is reached:
    * - completed_at timestamp is set
@@ -125,18 +125,18 @@ export enum RunPhase {
   /**
    * Blocked on tool approval.
    *
-   * The agent has encountered a tool that requires user approval before run.
+   * The agent has encountered a tool that requires user approval before execution.
    * When in this phase:
    * - status.pending_approval contains details about the tool awaiting approval
    * - User must call SubmitApproval RPC to continue
    *
-   * This is NOT a terminal state - execution resumes after approval decision:
+   * This is NOT a terminal state - run resumes after approval decision:
    * - APPROVE: Tool executes, phase returns to RUN_IN_PROGRESS
    * - SKIP: Tool returns a neutral "skipped" message, phase returns to RUN_IN_PROGRESS
    * - REJECT: Tool is denied and the user's objection is fed back to the model;
    *   the tool does NOT execute and phase returns to RUN_IN_PROGRESS. REJECT
    *   denies a single tool call, it does NOT fail the run — the model adapts and
-   *   the execution continues to RUN_COMPLETED. To stop the whole execution,
+   *   the run continues to RUN_COMPLETED. To stop the whole run,
    *   use Cancel (RUN_CANCELLED) or Terminate (RUN_TERMINATED).
    *
    * UI should show distinct treatment for this phase (e.g., approval dialog).
@@ -146,10 +146,10 @@ export enum RunPhase {
   RUN_WAITING_FOR_APPROVAL = 6,
 
   /**
-   * Execution was paused by user and can be resumed.
+   * Run was paused by user and can be resumed.
    *
-   * The execution was temporarily stopped at a checkpoint and can continue
-   * from where it left off. Unlike CANCELLED, the execution is not terminal.
+   * The run was temporarily stopped at a checkpoint and can continue
+   * from where it left off. Unlike CANCELLED, the run is not terminal.
    *
    * Pause flow:
    * RUN_IN_PROGRESS → RUN_PAUSED
@@ -157,17 +157,17 @@ export enum RunPhase {
    * Resume flow:
    * RUN_PAUSED → RUN_IN_PROGRESS
    *
-   * NOT a terminal state - execution can be resumed.
+   * NOT a terminal state - run can be resumed.
    *
    * When this phase is reached:
    * - Running activities are gracefully cancelled
    * - LangGraph checkpoints are saved (thread_id preserved)
-   * - No completed_at timestamp (execution is not finished)
+   * - No completed_at timestamp (run is not finished)
    *
    * Resume behavior:
    * - Activity is re-invoked with same thread_id
    * - LangGraph loads from checkpoint automatically
-   * - Execution continues from where it was paused
+   * - Run continues from where it was paused
    *
    * @generated from enum value: RUN_PAUSED = 7;
    */
@@ -208,7 +208,7 @@ export enum MessageType {
   MESSAGE_AI = 2,
 
   /**
-   * The result returned by a tool after run.
+   * The result returned by a tool after execution.
    *
    * @generated from enum value: MESSAGE_TOOL = 3;
    */
@@ -257,14 +257,14 @@ export const MessageTypeSchema: GenEnum<MessageType> = /*@__PURE__*/
  * TOOL_CALL_PENDING → TOOL_CALL_WAITING_APPROVAL → TOOL_CALL_RUNNING → TOOL_CALL_COMPLETED
  *                                                ↘ TOOL_CALL_SKIPPED (if user skips)
  *
- * Interruption flow (execution terminalizes with the call unfinished):
+ * Interruption flow (run terminalizes with the call unfinished):
  * TOOL_CALL_PENDING / TOOL_CALL_RUNNING / TOOL_CALL_WAITING_APPROVAL → TOOL_CALL_INTERRUPTED
  *
  * Terminal States:
  * - TOOL_CALL_COMPLETED: Tool executed successfully
  * - TOOL_CALL_FAILED: Tool execution failed
  * - TOOL_CALL_SKIPPED: User chose to skip this tool (HITL)
- * - TOOL_CALL_INTERRUPTED: Execution terminalized before the tool finished
+ * - TOOL_CALL_INTERRUPTED: Run terminalized before the tool finished
  *   (platform-authored; see the value's doc for the recovery supersede rule)
  *
  * @generated from enum ai.stigmer.agentic.agentrun.v1.ToolCallStatus
@@ -308,7 +308,7 @@ export enum ToolCallStatus {
   /**
    * Blocked on user approval.
    *
-   * The tool requires user consent before run. This status is set when:
+   * The tool requires user consent before execution. This status is set when:
    * - Tool has requires_approval=true (from approval policy chain)
    * - AgentRunSpec.auto_approve_all is false
    *
@@ -336,7 +336,7 @@ export enum ToolCallStatus {
    * Terminal state indicating the user chose not to execute this tool.
    * When a tool is skipped:
    * - The LLM receives a message: "Tool '{name}' was skipped by user"
-   * - Execution continues without this tool's result
+   * - Run continues without this tool's result
    * - The LLM can adapt its plan accordingly
    *
    * This is a terminal state - the tool will not be retried.
@@ -347,16 +347,16 @@ export enum ToolCallStatus {
   TOOL_CALL_SKIPPED = 6,
 
   /**
-   * The execution terminalized before this tool call finished (issue #207).
+   * The run terminalized before this tool call finished (issue #207).
    *
    * PLATFORM-AUTHORED, never user- or tool-authored: the control plane settles
    * any tool call still in PENDING / RUNNING / WAITING_APPROVAL to this value
-   * whenever its execution reaches a terminal phase (COMPLETED / FAILED /
+   * whenever its run reaches a terminal phase (COMPLETED / FAILED /
    * CANCELLED / TERMINATED). Enforced at the server's persistence seams — the
    * updateStatus merge chokepoint and the whole-resource terminal writers
    * (Cancel/Terminate cascade, stale-workflow reconciliation) — so no runner
    * exit path has to remember it. This is what makes the invariant total:
-   * a terminal execution carries zero non-terminal tool calls.
+   * a terminal run carries zero non-terminal tool calls.
    *
    * Honesty semantics (why the existing terminal values would lie):
    * - Not FAILED: the tool never ran to an error — the run around it died.
@@ -365,17 +365,17 @@ export enum ToolCallStatus {
    *
    * A settled call keeps its args, result-so-far, and approval provenance
    * (requires_approval, approval_requested_at, ...) for the audit trail. A
-   * gated call settled here authors NO approval event — terminal-execution
+   * gated call settled here authors NO approval event — terminal-run
    * gate-exits are deliberately not modeled as per-call events (see
-   * ApprovalEventType: a terminal execution simply projects to zero pending
+   * ApprovalEventType: a terminal run simply projects to zero pending
    * approvals; RETRACTED is reserved for in-flight withdrawals).
    *
    * Recovery supersede rule: terminal for every consumer (clients render a
    * neutral "interrupted" state; projections never gate on it), with ONE
-   * exception — when a FAILED execution is recovered (Recover RPC) and the
+   * exception — when a FAILED run is recovered (Recover RPC) and the
    * harness checkpoint re-executes the call under its original call id, the
    * runner may advance the row in place to the call's true outcome. Live
-   * execution evidence outranks the interruption marker; every other terminal
+   * run evidence outranks the interruption marker; every other terminal
    * status remains immovable.
    *
    * @generated from enum value: TOOL_CALL_INTERRUPTED = 7;
@@ -404,15 +404,15 @@ export const ToolCallStatusSchema: GenEnum<ToolCallStatus> = /*@__PURE__*/
  * intentionally not encoded here.
  *
  * TOOL_KIND_UNSPECIFIED means the runner did not classify the tool — either the
- * execution predates this field, or the tool does not fit a known kind. Clients
- * fall back to a tool-name lookup in that case, so legacy executions still
+ * run predates this field, or the tool does not fit a known kind. Clients
+ * fall back to a tool-name lookup in that case, so legacy runs still
  * render correctly.
  *
  * @generated from enum ai.stigmer.agentic.agentrun.v1.ToolKind
  */
 export enum ToolKind {
   /**
-   * Not classified. Legacy executions (persisted before this field existed) and
+   * Not classified. Legacy runs (persisted before this field existed) and
    * tools with no known kind. Clients fall back to a name-based resolver.
    *
    * @generated from enum value: TOOL_KIND_UNSPECIFIED = 0;
@@ -519,7 +519,7 @@ export enum ToolKind {
   /**
    * Propose a durable fact about the user for the platform to remember
    * (the first-party remember tool, injected via the synthesized memory
-   * attachment when the execution's recall snapshot is enabled).
+   * attachment when the run's recall snapshot is enabled).
    * Both harnesses: remember. Rendered as a memory-proposal consent chip
    * (verbatim fact + Confirm/Reject), not the generic tool result view —
    * the record it creates stays "proposed" until the user decides.
@@ -600,7 +600,7 @@ export const TodoStatusSchema: GenEnum<TodoStatus> = /*@__PURE__*/
  * Terminal States:
  * - SUB_AGENT_COMPLETED: Sub-agent finished successfully
  * - SUB_AGENT_FAILED: Sub-agent encountered an error
- * - SUB_AGENT_CANCELLED: Parent execution was cancelled while sub-agent was active
+ * - SUB_AGENT_CANCELLED: Parent run was cancelled while sub-agent was active
  *
  * @generated from enum ai.stigmer.agentic.agentrun.v1.SubAgentStatus
  */
@@ -641,15 +641,15 @@ export enum SubAgentStatus {
   SUB_AGENT_FAILED = 4,
 
   /**
-   * Parent execution was cancelled while this sub-agent was active.
+   * Parent run was cancelled while this sub-agent was active.
    *
-   * When a parent execution is cancelled (via user action or system timeout),
+   * When a parent run is cancelled (via user action or system timeout),
    * all active sub-agents transition to this terminal state. This prevents
    * sub-agents from remaining in IN_PROGRESS indefinitely in persisted status.
    *
    * When this status is reached:
    * - completed_at timestamp is set
-   * - error field contains: "Cancelled: parent execution was cancelled"
+   * - error field contains: "Cancelled: parent run was cancelled"
    *
    * @generated from enum value: SUB_AGENT_CANCELLED = 5;
    */
@@ -702,9 +702,9 @@ export const RunArtifactKindSchema: GenEnum<RunArtifactKind> = /*@__PURE__*/
 /**
  * SummarizationSource identifies what triggered a context summarization event.
  *
- * Context summarization can be triggered at two points during execution:
+ * Context summarization can be triggered at two points during the run:
  * - At graph start, when resuming a conversation that already exceeds the threshold
- * - Mid-execution, when accumulated tool responses push context past the threshold
+ * - Mid-run, when accumulated tool responses push context past the threshold
  *
  * This distinction enables the CLI to render appropriate notifications and
  * allows monitoring to track compaction frequency by trigger type.
@@ -727,7 +727,7 @@ export enum SummarizationSource {
   graph_start = 1,
 
   /**
-   * Summarization triggered mid-execution, when accumulated tool responses push context past the token threshold.
+   * Summarization triggered mid-run, when accumulated tool responses push context past the token threshold.
    *
    * @generated from enum value: mid_run = 2;
    */
@@ -813,14 +813,14 @@ export const ToolCallStreamingSourceSchema: GenEnum<ToolCallStreamingSource> = /
  */
 export enum RunControlSignal {
   /**
-   * No action required — continue execution normally.
+   * No action required — continue the run normally.
    *
    * @generated from enum value: RUN_CONTROL_SIGNAL_UNSPECIFIED = 0;
    */
   UNSPECIFIED = 0,
 
   /**
-   * Execution must stop gracefully. The runner should block further tool
+   * Run must stop gracefully. The runner should block further tool
    * calls and give the model one final turn to produce a summary.
    *
    * @generated from enum value: RUN_CONTROL_SIGNAL_STOP = 1;
@@ -829,7 +829,7 @@ export enum RunControlSignal {
 
   /**
    * Informational warning (e.g. low credit balance). The runner logs the
-   * warning and continues run.
+   * warning and continues the run.
    *
    * @generated from enum value: RUN_CONTROL_SIGNAL_WARNING = 2;
    */
@@ -847,15 +847,15 @@ export const RunControlSignalSchema: GenEnum<RunControlSignal> = /*@__PURE__*/
  *
  * ## Action Semantics
  *
- * - APPROVE: Execute the tool normally, continue execution
- * - SKIP: Return a neutral "skipped by user" message to the LLM, continue execution
+ * - APPROVE: Execute the tool normally, continue the run
+ * - SKIP: Return a neutral "skipped by user" message to the LLM, continue the run
  * - REJECT: Deny the tool and feed the user's reasoned objection back to the LLM,
- *   continue run. REJECT denies a single tool call — it does NOT fail the
- *   run. To stop the whole execution, use Cancel or Terminate.
+ *   continue the run. REJECT denies a single tool call — it does NOT fail the
+ *   run. To stop the whole run, use Cancel or Terminate.
  *
  * ## SKIP vs REJECT
  *
- * Both continue the execution without running the tool; they differ only in the
+ * Both continue the run without running the tool; they differ only in the
  * signal fed to the model. SKIP is neutral ("skip this one, move on"); REJECT
  * carries the user's objection ("I'm denying this, and here's why") so the model
  * factors that reasoning into what it does next. Neither is a failure.
@@ -865,7 +865,7 @@ export const RunControlSignalSchema: GenEnum<RunControlSignal> = /*@__PURE__*/
  * When a tool is skipped, the LLM receives a message like:
  * "Tool 'delete_repository' was skipped by user. Please proceed without this operation."
  * When a tool is rejected, the LLM receives the user's objection instead. Either
- * way the LLM adapts its plan while preserving execution continuity.
+ * way the LLM adapts its plan while preserving run continuity.
  *
  * ## Usage
  *
@@ -887,7 +887,7 @@ export enum ApprovalAction {
   /**
    * Execute the tool normally.
    * Tool transitions from WAITING_APPROVAL to RUNNING, then executes.
-   * Execution phase returns to IN_PROGRESS.
+   * Run phase returns to IN_PROGRESS.
    *
    * @generated from enum value: APPROVAL_ACTION_APPROVE = 1;
    */
@@ -897,7 +897,7 @@ export enum ApprovalAction {
    * Skip tool execution, continue without it.
    * Tool transitions to SKIPPED status.
    * LLM receives: "Tool '{name}' was skipped by user. Please proceed without this operation."
-   * Execution continues - this is NOT a failure.
+   * Run continues - this is NOT a failure.
    *
    * @generated from enum value: APPROVAL_ACTION_SKIP = 2;
    */
@@ -910,13 +910,13 @@ export enum ApprovalAction {
    * fed back to the model as the tool result, so the model adapts its plan with
    * that reasoning in mind. The tool call transitions to TOOL_CALL_SKIPPED with
    * approval_action=REJECT recorded (and a REJECTED approval-event authored), and
-   * the execution phase returns to RUN_IN_PROGRESS and continues to
+   * the run phase returns to RUN_IN_PROGRESS and continues to
    * RUN_COMPLETED.
    *
    * REJECT denies a SINGLE tool call — it does NOT fail the run. This mirrors how
    * interactive agent tools (Cursor, Cline, Claude Code) treat a denied tool: the
    * agent is told and continues, rather than the whole session dying. To stop the
-   * entire execution, use Cancel (RUN_CANCELLED, graceful user stop) or
+   * entire run, use Cancel (RUN_CANCELLED, graceful user stop) or
    * Terminate (RUN_TERMINATED, platform stop) — the dedicated hard-stop
    * verbs. The distinction from SKIP is the strength of the signal, not the
    * outcome: SKIP is a neutral skip, REJECT carries the user's reasoned denial.
@@ -927,7 +927,7 @@ export enum ApprovalAction {
 
   /**
    * Approve this tool call AND grant a run-lifetime lease that auto-approves
-   * every subsequent tool call of the SAME class for the rest of this execution
+   * every subsequent tool call of the SAME class for the rest of this run
    * ("approve all of this kind, don't ask again").
    *
    * This is the gate-time, scoped analog of AgentRunSpec.auto_approve_all:
@@ -955,8 +955,8 @@ export enum ApprovalAction {
    *
    * ## Scope
    *
-   * The lease covers the rest of THIS execution and only the matched class. It
-   * is NOT persisted to the session or the agent; a subsequent execution starts
+   * The lease covers the rest of THIS run and only the matched class. It
+   * is NOT persisted to the session or the agent; a subsequent run starts
    * gated again unless the caller sets it anew (interactive clients may carry a
    * session-scoped preference forward in-memory, but that is a client concern,
    * not server-persisted state). AgentRunSpec.auto_approve_all remains the
@@ -964,7 +964,7 @@ export enum ApprovalAction {
    *
    * ## Audit
    *
-   * Because it bypasses subsequent same-class approval checks, executions
+   * Because it bypasses subsequent same-class approval checks, runs
    * containing an APPROVE_ALL decision should be auditable. The decision is
    * recorded on ToolCall.approval_action like any other; the policy layer that
    * cleared each subsequent call is recorded on ToolCall.approval_policy_source
@@ -984,7 +984,7 @@ export const ApprovalActionSchema: GenEnum<ApprovalAction> = /*@__PURE__*/
 /**
  * ApprovalPolicySource is the policy layer that decided a tool call's approval
  * requirement — the provenance recorded on every gated or auto-approved tool
- * call so an execution's authorizations are auditable.
+ * call so a run's authorizations are auditable.
  *
  * Set by the runner at the approval gate (the one component that evaluates the
  * merged policy) and persisted on ToolCall.approval_policy_source, exactly as
@@ -995,7 +995,7 @@ export const ApprovalActionSchema: GenEnum<ApprovalAction> = /*@__PURE__*/
  */
 export enum ApprovalPolicySource {
   /**
-   * Default — the execution predates this field, or no approval was required
+   * Default — the run predates this field, or no approval was required
    * (a read-only built-in, or an MCP tool its server does not mark
    * destructive). Clients show no provenance.
    *
@@ -1040,7 +1040,7 @@ export enum ApprovalPolicySource {
   /**
    * The unattended approval mode (AgentRunStatus.approval_mode =
    * APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:
-   * the lane the execution came through (a schedule's fire, a messaging
+   * the lane the run came through (a schedule's fire, a messaging
    * channel, a guest share) has no approver, so the platform skipped the
    * tool and told the model to adapt. A layer-4 resolution source like AUTO_APPROVE_ALL — it
    * records HOW the gate was resolved, overriding the gating-layer source on
@@ -1114,7 +1114,7 @@ export enum ApprovalEventType {
   APPROVED = 2,
 
   /**
-   * The user rejected the request; the execution fails.
+   * The user rejected the request; the run fails.
    * Payload: ApprovalDecision.
    *
    * @generated from enum value: APPROVAL_EVENT_TYPE_REJECTED = 3;
@@ -1122,7 +1122,7 @@ export enum ApprovalEventType {
   REJECTED = 3,
 
   /**
-   * The user skipped the request; execution continues without the tool.
+   * The user skipped the request; run continues without the tool.
    * Payload: ApprovalDecision.
    *
    * @generated from enum value: APPROVAL_EVENT_TYPE_SKIPPED = 4;
@@ -1131,14 +1131,14 @@ export enum ApprovalEventType {
 
   /**
    * The platform withdrew the request before any user decision because the gated
-   * call became unreachable while the execution was still live — its sub-agent
+   * call became unreachable while the run was still live — its sub-agent
    * reached a terminal state, or the call was superseded on resume. This is the
    * system-actored terminal transition that makes the lifecycle total: a
    * REQUESTED is resolved by exactly one of APPROVED / REJECTED / SKIPPED (user
    * decisions) or RETRACTED (platform withdrawal). It is distinct from SKIPPED so
    * the audit trail never conflates "the human skipped this" with "the platform
-   * withdrew it." Terminal-execution gate-exits (cancel / fail / terminate) are
-   * NOT modeled as per-call events — a terminal execution simply projects to zero
+   * withdrew it." Terminal-run gate-exits (cancel / fail / terminate) are
+   * NOT modeled as per-call events — a terminal run simply projects to zero
    * pending approvals — so RETRACTED is reserved for the in-flight, per-call case.
    * Payload: ApprovalRetraction.
    *
@@ -1179,7 +1179,7 @@ export enum ApprovalRetractionReason {
 
   /**
    * The gated call left the approval gate without a decision (the harness
-   * advanced past it or abandoned it on resume) while the execution was still
+   * advanced past it or abandoned it on resume) while the run was still
    * live.
    *
    * @generated from enum value: APPROVAL_RETRACTION_REASON_SUPERSEDED = 2;
@@ -1194,7 +1194,7 @@ export const ApprovalRetractionReasonSchema: GenEnum<ApprovalRetractionReason> =
   enumDesc(file_ai_stigmer_agentic_agentrun_v1_enum, 13);
 
 /**
- * InteractionMode controls the agent's behavioral posture for an run.
+ * InteractionMode controls the agent's behavioral posture for a run.
  *
  * Determines what the agent is allowed to do — analysis only, or full
  * read-write access. Mode is set per message
@@ -1254,16 +1254,16 @@ export const InteractionModeSchema: GenEnum<InteractionMode> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_agentic_agentrun_v1_enum, 14);
 
 /**
- * ApprovalMode controls how an execution resolves HITL approval gates.
+ * ApprovalMode controls how a run resolves HITL approval gates.
  *
  * The approval default (shell commands, file writes and deletes, and MCP tools
  * their server marks destructive) decides WHICH tools are gated; this mode
  * decides WHAT HAPPENS when a gate fires. It exists for lanes where no
  * approver is present at the conversation — a schedule's fire, messaging
  * channels (Slack/WhatsApp) and guest shares — where an interactive pause
- * would park the execution in RUN_WAITING_FOR_APPROVAL forever.
+ * would park the run in RUN_WAITING_FOR_APPROVAL forever.
  *
- * The mode is a fact of the lane the execution came through, recorded by
+ * The mode is a fact of the lane the run came through, recorded by
  * the server on AgentRunStatus.approval_mode, never chosen by the
  * request or the external user: it is runtime policy owned by the lane,
  * exactly like the bounded execution profile. Every other turn (console,
@@ -1288,8 +1288,8 @@ export enum ApprovalMode {
 
   /**
    * Interactive approval (today's behavior): a gated tool pauses the
-   * execution (RUN_WAITING_FOR_APPROVAL) until a human submits a
-   * decision via the submitApproval RPC. No timeout — the execution waits
+   * run (RUN_WAITING_FOR_APPROVAL) until a human submits a
+   * decision via the submitApproval RPC. No timeout — the run waits
    * indefinitely.
    *
    * @generated from enum value: APPROVAL_MODE_INTERACTIVE = 1;
@@ -1320,7 +1320,7 @@ export const ApprovalModeSchema: GenEnum<ApprovalMode> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_agentic_agentrun_v1_enum, 15);
 
 /**
- * ServiceTier selects the provider-side speed/service tier for an execution's
+ * ServiceTier selects the provider-side speed/service tier for a run's
  * model calls.
  *
  * Providers spell this differently — Cursor exposes per-model "fast" variants
@@ -1333,7 +1333,7 @@ export const ApprovalModeSchema: GenEnum<ApprovalMode> = /*@__PURE__*/
  * The load-bearing rule: UNSPECIFIED resolves to SERVICE_TIER_STANDARD — never
  * the provider account default. The runner always sends the provider an
  * explicit variant selection, so an out-of-band account setting can never
- * silently change what an execution pays (stigmer/stigmer#357).
+ * silently change what a run pays (stigmer/stigmer#357).
  *
  * @generated from enum ai.stigmer.agentic.agentrun.v1.ServiceTier
  */
@@ -1359,7 +1359,7 @@ export enum ServiceTier {
    * variant rates.
    *
    * Valid only for models whose registry entry declares a fast pricing
-   * variant; refused at execution create otherwise.
+   * variant; refused at run create otherwise.
    *
    * @generated from enum value: SERVICE_TIER_FAST = 2;
    */
@@ -1374,7 +1374,7 @@ export const ServiceTierSchema: GenEnum<ServiceTier> = /*@__PURE__*/
 
 /**
  * ThinkingMode selects the model's extended-reasoning ("thinking") variant
- * for an execution's model calls — the second variant dimension alongside
+ * for a run's model calls — the second variant dimension alongside
  * ServiceTier (stigmer/stigmer#772).
  *
  * Unlike the fast tier, thinking is NOT a separately priced dimension:
@@ -1384,7 +1384,7 @@ export const ServiceTierSchema: GenEnum<ServiceTier> = /*@__PURE__*/
  * exactly the fast variant rate). Thinking costs more only by generating
  * additional reasoning tokens, billed as ordinary output. Selectability is
  * therefore CAPABILITY-gated, not pricing-gated: ENABLED is valid only for
- * models whose registry entry on the execution's harness declares a
+ * models whose registry entry on the run's harness declares a
  * thinking capability (capabilities.thinking or capabilities.adaptive_thinking),
  * refused at create time otherwise. ENABLED means "the model reasons before
  * it answers", in the form its entry declares: a fixed budget or adaptive
@@ -1413,7 +1413,7 @@ export enum ThinkingMode {
   /**
    * Extended reasoning off: the model's base variant, requested explicitly
    * (thinking=false pinned where the model declares the parameter).
-   * Refused at execution create for a model that requires thinking.
+   * Refused at run create for a model that requires thinking.
    *
    * @generated from enum value: THINKING_MODE_DISABLED = 1;
    */
@@ -1423,8 +1423,8 @@ export enum ThinkingMode {
    * Extended reasoning on: the model's thinking variant, billed at base
    * per-token rates (reasoning tokens bill as output tokens).
    *
-   * Valid only for models whose registry entry on the execution's harness
-   * declares a thinking capability; refused at execution create otherwise.
+   * Valid only for models whose registry entry on the run's harness
+   * declares a thinking capability; refused at run create otherwise.
    *
    * @generated from enum value: THINKING_MODE_ENABLED = 2;
    */

@@ -27,19 +27,19 @@ type RunPhase int32
 const (
 	// Unspecified phase (invalid).
 	RunPhase_RUN_PHASE_UNSPECIFIED RunPhase = 0
-	// Execution created, waiting to start.
+	// Run created, waiting to start.
 	RunPhase_RUN_PENDING RunPhase = 1
-	// Execution is actively running tasks.
+	// Run is in progress, running its tasks.
 	RunPhase_RUN_IN_PROGRESS RunPhase = 2
-	// Execution completed successfully.
+	// Run completed successfully.
 	RunPhase_RUN_COMPLETED RunPhase = 3
-	// Execution failed with an error.
+	// Run failed with an error.
 	RunPhase_RUN_FAILED RunPhase = 4
-	// Execution was cancelled by user or system.
+	// Run was cancelled by user or system.
 	RunPhase_RUN_CANCELLED RunPhase = 5
-	// Execution was force-stopped immediately without cleanup.
+	// Run was force-stopped immediately without cleanup.
 	RunPhase_RUN_TERMINATED RunPhase = 6
-	// Execution was paused by user and can be resumed.
+	// Run was paused by user and can be resumed.
 	RunPhase_RUN_PAUSED RunPhase = 7
 )
 
@@ -179,7 +179,7 @@ const (
 	WorkflowTaskStatus_WORKFLOW_TASK_IN_PROGRESS WorkflowTaskStatus = 2
 	// Task finished successfully.
 	WorkflowTaskStatus_WORKFLOW_TASK_COMPLETED WorkflowTaskStatus = 3
-	// Task failed during run.
+	// Task failed during execution.
 	WorkflowTaskStatus_WORKFLOW_TASK_FAILED WorkflowTaskStatus = 4
 	// Task was skipped due to conditional logic.
 	WorkflowTaskStatus_WORKFLOW_TASK_SKIPPED WorkflowTaskStatus = 5

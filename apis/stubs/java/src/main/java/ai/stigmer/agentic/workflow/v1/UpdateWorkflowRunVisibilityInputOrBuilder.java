@@ -12,7 +12,7 @@ public interface UpdateWorkflowRunVisibilityInputOrBuilder extends
 
   /**
    * <pre>
-   * ID of the workflow whose execution visibility is being updated.
+   * ID of the workflow whose run visibility is being updated.
    * </pre>
    *
    * <code>string resource_id = 1 [json_name = "resourceId", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface UpdateWorkflowRunVisibilityInputOrBuilder extends
   java.lang.String getResourceId();
   /**
    * <pre>
-   * ID of the workflow whose execution visibility is being updated.
+   * ID of the workflow whose run visibility is being updated.
    * </pre>
    *
    * <code>string resource_id = 1 [json_name = "resourceId", (.buf.validate.field) = { ... }</code>
@@ -32,7 +32,7 @@ public interface UpdateWorkflowRunVisibilityInputOrBuilder extends
 
   /**
    * <pre>
-   * The new execution-visibility setting. Must not be unspecified (0).
+   * The new run-visibility setting. Must not be unspecified (0).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility run_visibility = 2 [json_name = "runVisibility", (.buf.validate.field) = { ... }</code>
@@ -41,7 +41,7 @@ public interface UpdateWorkflowRunVisibilityInputOrBuilder extends
   int getRunVisibilityValue();
   /**
    * <pre>
-   * The new execution-visibility setting. Must not be unspecified (0).
+   * The new run-visibility setting. Must not be unspecified (0).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility run_visibility = 2 [json_name = "runVisibility", (.buf.validate.field) = { ... }</code>

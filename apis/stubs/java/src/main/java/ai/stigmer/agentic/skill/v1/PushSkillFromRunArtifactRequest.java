@@ -7,7 +7,7 @@ package ai.stigmer.agentic.skill.v1;
 
 /**
  * <pre>
- * PushSkillFromRunArtifactRequest publishes a skill from an execution
+ * PushSkillFromRunArtifactRequest publishes a skill from a run
  * artifact already in storage, without downloading and re-uploading the ZIP.
  * </pre>
  *
@@ -157,7 +157,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Storage key of the directory artifact (ZIP) to push as a skill.
-   * Obtain this from RunArtifact.storage_key in the execution status.
+   * Obtain this from RunArtifact.storage_key in the run status.
    * </pre>
    *
    * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>
@@ -179,7 +179,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Storage key of the directory artifact (ZIP) to push as a skill.
-   * Obtain this from RunArtifact.storage_key in the execution status.
+   * Obtain this from RunArtifact.storage_key in the run status.
    * </pre>
    *
    * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>
@@ -437,7 +437,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * PushSkillFromRunArtifactRequest publishes a skill from an execution
+   * PushSkillFromRunArtifactRequest publishes a skill from a run
    * artifact already in storage, without downloading and re-uploading the ZIP.
    * </pre>
    *
@@ -808,7 +808,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Storage key of the directory artifact (ZIP) to push as a skill.
-     * Obtain this from RunArtifact.storage_key in the execution status.
+     * Obtain this from RunArtifact.storage_key in the run status.
      * </pre>
      *
      * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>
@@ -829,7 +829,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Storage key of the directory artifact (ZIP) to push as a skill.
-     * Obtain this from RunArtifact.storage_key in the execution status.
+     * Obtain this from RunArtifact.storage_key in the run status.
      * </pre>
      *
      * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>
@@ -851,7 +851,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Storage key of the directory artifact (ZIP) to push as a skill.
-     * Obtain this from RunArtifact.storage_key in the execution status.
+     * Obtain this from RunArtifact.storage_key in the run status.
      * </pre>
      *
      * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>
@@ -869,7 +869,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Storage key of the directory artifact (ZIP) to push as a skill.
-     * Obtain this from RunArtifact.storage_key in the execution status.
+     * Obtain this from RunArtifact.storage_key in the run status.
      * </pre>
      *
      * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>
@@ -884,7 +884,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Storage key of the directory artifact (ZIP) to push as a skill.
-     * Obtain this from RunArtifact.storage_key in the execution status.
+     * Obtain this from RunArtifact.storage_key in the run status.
      * </pre>
      *
      * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>

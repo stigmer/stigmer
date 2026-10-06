@@ -7,7 +7,7 @@ package ai.stigmer.agentic.agentrun.v1;
 
 /**
  * <pre>
- * Aggregated usage across a scope (execution, session, agent, or org).
+ * Aggregated usage across a scope (run, session, agent, or org).
  *
  * Used as the `total_usage` field in session and agent usage report responses.
  * All token fields are int64 to support large aggregates (org-wide, multi-day).
@@ -543,7 +543,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Aggregated usage across a scope (execution, session, agent, or org).
+   * Aggregated usage across a scope (run, session, agent, or org).
    *
    * Used as the `total_usage` field in session and agent usage report responses.
    * All token fields are int64 to support large aggregates (org-wide, multi-day).

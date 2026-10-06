@@ -15,7 +15,7 @@ export const file_ai_stigmer_agentic_agentrun_v1_approval: GenFile = /*@__PURE__
   fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRydW4vdjEvYXBwcm92YWwucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHJ1bi52MSLdAwoPUGVuZGluZ0FwcHJvdmFsEhQKDHRvb2xfY2FsbF9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIUCgxhcmdzX3ByZXZpZXcYBCABKAkSFAoMcmVxdWVzdGVkX2F0GAUgASgJEhYKDmZyb21fc3ViX2FnZW50GAYgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAcgASgJEhcKD21jcF9zZXJ2ZXJfc2x1ZxgIIAEoCRIZChFzdWJfYWdlbnRfc3ViamVjdBgJIAEoCRIXCg9hZ2VudF9yYXRpb25hbGUYCiABKAkSFgoOYnJhbmNoX2F0X2RlbnkYCyABKAkSGAoQaGVhZF9zaGFfYXRfZGVueRgMIAEoCRI7Cgl0b29sX2tpbmQYDSABKA4yKC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRydW4udjEuVG9vbEtpbmQSVAoWYXBwcm92YWxfcG9saWN5X3NvdXJjZRgPIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHJ1bi52MS5BcHByb3ZhbFBvbGljeVNvdXJjZRIcChRhcHByb3ZhbF9wb2xpY3lfaG9vaxgQIAEoCUoECA4QDyJ3ChlDaGlsZEFwcHJvdmFsTm90aWZpY2F0aW9uEg4KBnJ1bl9pZBgBIAEoCRJKChFwZW5kaW5nX2FwcHJvdmFscxgCIAMoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHJ1bi52MS5QZW5kaW5nQXBwcm92YWwirwMKD0FwcHJvdmFsUmVxdWVzdBIbChNhcHByb3ZhbF9yZXF1ZXN0X2lkGAEgASgJEhQKDHRvb2xfY2FsbF9pZBgCIAEoCRIUCgxyZXF1ZXN0ZWRfYXQYAyABKAkSEQoJdG9vbF9uYW1lGAQgASgJEg8KB21lc3NhZ2UYBSABKAkSFAoMYXJnc19wcmV2aWV3GAYgASgJEhYKDmZyb21fc3ViX2FnZW50GAcgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAggASgJEhkKEXN1Yl9hZ2VudF9zdWJqZWN0GAkgASgJEhcKD21jcF9zZXJ2ZXJfc2x1ZxgKIAEoCRI7Cgl0b29sX2tpbmQYCyABKA4yKC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRydW4udjEuVG9vbEtpbmQSVAoWYXBwcm92YWxfcG9saWN5X3NvdXJjZRgNIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHJ1bi52MS5BcHByb3ZhbFBvbGljeVNvdXJjZRIcChRhcHByb3ZhbF9wb2xpY3lfaG9vaxgOIAEoCUoECAwQDSKRAQoSQXBwcm92YWxSZXRyYWN0aW9uEhsKE2FwcHJvdmFsX3JlcXVlc3RfaWQYASABKAkSSAoGcmVhc29uGAIgASgOMjguYWkuc3RpZ21lci5hZ2VudGljLmFnZW50cnVuLnYxLkFwcHJvdmFsUmV0cmFjdGlvblJlYXNvbhIUCgxyZXRyYWN0ZWRfYXQYAyABKAkiqAEKEEFwcHJvdmFsRGVjaXNpb24SGwoTYXBwcm92YWxfcmVxdWVzdF9pZBgBIAEoCRI+CgZhY3Rpb24YAiABKA4yLi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRydW4udjEuQXBwcm92YWxBY3Rpb24SEgoKZGVjaWRlZF9hdBgDIAEoCRISCgpkZWNpZGVkX2J5GAQgASgJEg8KB2NvbW1lbnQYBSABKAkihgMKDUFwcHJvdmFsRXZlbnQSEAoIZXZlbnRfaWQYASABKAkSGwoTYXBwcm92YWxfcmVxdWVzdF9pZBgCIAEoCRJFCgpldmVudF90eXBlGAMgASgOMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50cnVuLnYxLkFwcHJvdmFsRXZlbnRUeXBlEhEKCXRpbWVzdGFtcBgEIAEoCRINCgVhY3RvchgFIAEoCRJECglyZXF1ZXN0ZWQYBiABKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRydW4udjEuQXBwcm92YWxSZXF1ZXN0SAASQwoHZGVjaWRlZBgHIAEoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHJ1bi52MS5BcHByb3ZhbERlY2lzaW9uSAASRwoJcmV0cmFjdGVkGAggASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50cnVuLnYxLkFwcHJvdmFsUmV0cmFjdGlvbkgAQgkKB3BheWxvYWQiZAoTQXBwcm92YWxFdmVudFN0cmVhbRIOCgZydW5faWQYASABKAkSPQoGZXZlbnRzGAIgAygLMi0uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50cnVuLnYxLkFwcHJvdmFsRXZlbnRiBnByb3RvMw", [file_ai_stigmer_agentic_agentrun_v1_enum]);
 
 /**
- * A pending approval request for a tool call that requires user consent before run.
+ * A pending approval request for a tool call that requires user consent before execution.
  *
  * Each entry represents one tool call waiting for a user decision (approve, skip,
  * or reject). Sub-agent approvals are included with from_sub_agent set to true
@@ -208,8 +208,8 @@ export const PendingApprovalSchema: GenMessage<PendingApproval> = /*@__PURE__*/
  *
  * Retained for wire compatibility; the platform no longer produces or
  * consumes it. The live "child_approval_required" signal is identity-only —
- * a bare-string child execution id — and the parent side derives pending
- * approvals by reading the child execution record (a single source of truth
+ * a bare-string child run id — and the parent side derives pending
+ * approvals by reading the child run record (a single source of truth
  * instead of a payload copy that can drift).
  *
  * @generated from message ai.stigmer.agentic.agentrun.v1.ChildApprovalNotification
@@ -373,11 +373,11 @@ export const ApprovalRequestSchema: GenMessage<ApprovalRequest> = /*@__PURE__*/
  * The platform's withdrawal of an in-flight approval request — the system-actored
  * terminal transition of the approval lifecycle, authored when a gated call
  * becomes unreachable before any user decision (its sub-agent went terminal, or
- * it was superseded on resume) while the execution is still live.
+ * it was superseded on resume) while the run is still live.
  *
- * It is distinct from ApprovalDecision (the three user actions). Terminal-execution
+ * It is distinct from ApprovalDecision (the three user actions). Terminal-run
  * gate-exits (cancel / fail / terminate) are NOT modeled here — a terminal
- * execution simply has zero pending approvals by projection — so this event is
+ * run simply has zero pending approvals by projection — so this event is
  * reserved for the in-flight, per-call orphan case. See APPROVAL_EVENT_TYPE_RETRACTED.
  *
  * @generated from message ai.stigmer.agentic.agentrun.v1.ApprovalRetraction
@@ -565,7 +565,7 @@ export const ApprovalEventSchema: GenMessage<ApprovalEvent> = /*@__PURE__*/
  * The lifecycle is total: every REQUESTED is eventually resolved by a decision
  * (APPROVED / REJECTED / SKIPPED) or by a RETRACTED event the reconciler authors
  * when an in-flight gated call becomes unreachable without a decision. Combined
- * with the projection treating a terminal execution as zero pending approvals,
+ * with the projection treating a terminal run as zero pending approvals,
  * this makes ComputePendingApprovalsFromEvents over this stream agree with the
  * message scan after every write — the equality property the eventual
  * source-of-truth flip rides on. The source of truth does not flip in this
@@ -574,7 +574,7 @@ export const ApprovalEventSchema: GenMessage<ApprovalEvent> = /*@__PURE__*/
  *
  * Appends are keyed by the deterministic ApprovalEvent.event_id: REQUESTED and
  * RETRACTED events are authored by the UpdateStatus / SubmitApproval reconciler
- * (REQUESTED seeded once from the scan for executions predating the field),
+ * (REQUESTED seeded once from the scan for runs predating the field),
  * decision events by SubmitApproval (with decided_by and comment). Authoring the
  * rich decision event in the same operation that records the decision on the
  * scan guarantees it can never be duplicated or clobbered by a coarse

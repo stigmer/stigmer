@@ -15,7 +15,7 @@ export const file_ai_stigmer_agentic_agentrun_v1_context: GenFile = /*@__PURE__*
   fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRydW4vdjEvY29udGV4dC5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLmFnZW50cnVuLnYxIoADChJTdW1tYXJpemF0aW9uRXZlbnQSEQoJdGltZXN0YW1wGAEgASgJEhUKDXRva2Vuc19iZWZvcmUYAiABKAUSFAoMdG9rZW5zX2FmdGVyGAMgASgFEhkKEWNvbXByZXNzaW9uX3JhdGlvGAQgASgCEhMKC2R1cmF0aW9uX21zGAUgASgFEhsKE3N1bW1hcml6YXRpb25fbW9kZWwYBiABKAkSFwoPbWVzc2FnZXNfYmVmb3JlGAcgASgFEhYKDm1lc3NhZ2VzX2FmdGVyGAggASgFEkMKBnNvdXJjZRgJIAEoDjIzLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHJ1bi52MS5TdW1tYXJpemF0aW9uU291cmNlEiIKGnN1bW1hcml6YXRpb25faW5wdXRfdG9rZW5zGAogASgFEiMKG3N1bW1hcml6YXRpb25fb3V0cHV0X3Rva2VucxgLIAEoBRIeChZzdW1tYXJpemF0aW9uX2Nvc3RfdXNkGAwgASgBIqQCCgtDb250ZXh0SW5mbxIbChNjdXJyZW50X3Rva2VuX2NvdW50GAEgASgFEhwKFGNvbnRleHRfd2luZG93X2xpbWl0GAIgASgFEicKH3N1bW1hcml6YXRpb25fdHJpZ2dlcl90aHJlc2hvbGQYAyABKAUSIwobc3VtbWFyaXphdGlvbl90YXJnZXRfdG9rZW5zGAQgASgFEh0KFXN1bW1hcml6YXRpb25fZW5hYmxlZBgFIAEoCBJQChRzdW1tYXJpemF0aW9uX2V2ZW50cxgGIAMoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHJ1bi52MS5TdW1tYXJpemF0aW9uRXZlbnQSGwoTdXRpbGl6YXRpb25fcGVyY2VudBgHIAEoAmIGcHJvdG8z", [file_ai_stigmer_agentic_agentrun_v1_enum]);
 
 /**
- * SummarizationEvent records a single summarization occurrence during run.
+ * SummarizationEvent records a single summarization occurrence during the run.
  *
  * Each time the context window approaches the model's limit and summarization
  * is triggered, an event is recorded with before/after metrics.
@@ -145,7 +145,7 @@ export type SummarizationEvent = Message<"ai.stigmer.agentic.agentrun.v1.Summari
 
   /**
    * Cost in USD of this summarization call.
-   * Computed using the summarization model's pricing rates at execution time.
+   * Computed using the summarization model's pricing rates at run time.
    *
    * @generated from field: double summarization_cost_usd = 12;
    */
@@ -168,7 +168,7 @@ export const SummarizationEventSchema: GenMessage<SummarizationEvent> = /*@__PUR
  *
  * ## Real-Time Updates
  *
- * Fields are updated progressively during execution:
+ * Fields are updated progressively during the run:
  * - current_token_count: Updated after each LLM call
  * - utilization_percent: Recalculated when token count changes
  * - summarization_events: Appended when summarization occurs
@@ -246,7 +246,7 @@ export type ContextInfo = Message<"ai.stigmer.agentic.agentrun.v1.ContextInfo"> 
    * Whether summarization is enabled for this run.
    *
    * When false, no summarization events will occur regardless of
-   * token count. The execution may fail if context exceeds limits.
+   * token count. The run may fail if context exceeds limits.
    *
    * @generated from field: bool summarization_enabled = 5;
    */
@@ -256,7 +256,7 @@ export type ContextInfo = Message<"ai.stigmer.agentic.agentrun.v1.ContextInfo"> 
    * Summarization events that occurred during this run.
    *
    * Ordered chronologically (oldest first).
-   * Empty if no summarization was triggered during run.
+   * Empty if no summarization was triggered during the run.
    *
    * Multiple events indicate a very long-running conversation that
    * required multiple rounds of summarization.

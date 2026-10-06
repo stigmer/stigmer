@@ -7,7 +7,7 @@ package ai.stigmer.agentic.workflowrun.v1;
 
 /**
  * <pre>
- * WorkflowEventType categorizes execution events for filtering and dispatch.
+ * WorkflowEventType categorizes run events for filtering and dispatch.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflowrun.v1.WorkflowEventType}
@@ -52,7 +52,7 @@ public enum WorkflowEventType
   /**
    * <pre>
    * Workflow run was paused by user or system.
-   * Non-terminal — execution can be resumed.
+   * Non-terminal — run can be resumed.
    * Payload: RunPausedPayload.
    * </pre>
    *
@@ -90,7 +90,7 @@ public enum WorkflowEventType
   run_terminated(7),
   /**
    * <pre>
-   * A workflow task began run.
+   * A workflow task began execution.
    * Payload: TaskStartedPayload.
    * </pre>
    *
@@ -263,7 +263,7 @@ public enum WorkflowEventType
   /**
    * <pre>
    * Workflow run was paused by user or system.
-   * Non-terminal — execution can be resumed.
+   * Non-terminal — run can be resumed.
    * Payload: RunPausedPayload.
    * </pre>
    *
@@ -301,7 +301,7 @@ public enum WorkflowEventType
   public static final int run_terminated_VALUE = 7;
   /**
    * <pre>
-   * A workflow task began run.
+   * A workflow task began execution.
    * Payload: TaskStartedPayload.
    * </pre>
    *

@@ -7,7 +7,7 @@ package ai.stigmer.agentic.artifact.v1;
 
 /**
  * <pre>
- * ArtifactSource identifies the execution context that produced an artifact.
+ * ArtifactSource identifies the run and task that produced an artifact.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.artifact.v1.ArtifactSource}
@@ -165,8 +165,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Name of the task that produced this artifact.
-   * Matches WorkflowTask.task_name in the execution status.
-   * Empty for execution-level artifacts (e.g., final workflow output).
+   * Matches WorkflowTask.task_name in the run status.
+   * Empty for run-level artifacts (e.g., final workflow output).
    * </pre>
    *
    * <code>string task_name = 3 [json_name = "taskName"];</code>
@@ -188,8 +188,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Name of the task that produced this artifact.
-   * Matches WorkflowTask.task_name in the execution status.
-   * Empty for execution-level artifacts (e.g., final workflow output).
+   * Matches WorkflowTask.task_name in the run status.
+   * Empty for run-level artifacts (e.g., final workflow output).
    * </pre>
    *
    * <code>string task_name = 3 [json_name = "taskName"];</code>
@@ -388,7 +388,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ArtifactSource identifies the execution context that produced an artifact.
+   * ArtifactSource identifies the run and task that produced an artifact.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.artifact.v1.ArtifactSource}
@@ -769,8 +769,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Name of the task that produced this artifact.
-     * Matches WorkflowTask.task_name in the execution status.
-     * Empty for execution-level artifacts (e.g., final workflow output).
+     * Matches WorkflowTask.task_name in the run status.
+     * Empty for run-level artifacts (e.g., final workflow output).
      * </pre>
      *
      * <code>string task_name = 3 [json_name = "taskName"];</code>
@@ -791,8 +791,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Name of the task that produced this artifact.
-     * Matches WorkflowTask.task_name in the execution status.
-     * Empty for execution-level artifacts (e.g., final workflow output).
+     * Matches WorkflowTask.task_name in the run status.
+     * Empty for run-level artifacts (e.g., final workflow output).
      * </pre>
      *
      * <code>string task_name = 3 [json_name = "taskName"];</code>
@@ -814,8 +814,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Name of the task that produced this artifact.
-     * Matches WorkflowTask.task_name in the execution status.
-     * Empty for execution-level artifacts (e.g., final workflow output).
+     * Matches WorkflowTask.task_name in the run status.
+     * Empty for run-level artifacts (e.g., final workflow output).
      * </pre>
      *
      * <code>string task_name = 3 [json_name = "taskName"];</code>
@@ -833,8 +833,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Name of the task that produced this artifact.
-     * Matches WorkflowTask.task_name in the execution status.
-     * Empty for execution-level artifacts (e.g., final workflow output).
+     * Matches WorkflowTask.task_name in the run status.
+     * Empty for run-level artifacts (e.g., final workflow output).
      * </pre>
      *
      * <code>string task_name = 3 [json_name = "taskName"];</code>
@@ -849,8 +849,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Name of the task that produced this artifact.
-     * Matches WorkflowTask.task_name in the execution status.
-     * Empty for execution-level artifacts (e.g., final workflow output).
+     * Matches WorkflowTask.task_name in the run status.
+     * Empty for run-level artifacts (e.g., final workflow output).
      * </pre>
      *
      * <code>string task_name = 3 [json_name = "taskName"];</code>

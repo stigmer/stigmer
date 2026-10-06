@@ -23,7 +23,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Workflow defines a multi-step task orchestration with sequential, parallel, and conditional run.
+// Workflow defines a multi-step task orchestration with sequential, parallel, and conditional execution.
 type Workflow struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.

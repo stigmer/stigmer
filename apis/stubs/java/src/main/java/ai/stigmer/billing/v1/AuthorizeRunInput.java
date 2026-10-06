@@ -7,7 +7,7 @@ package ai.stigmer.billing.v1;
 
 /**
  * <pre>
- * AuthorizeRunInput requests a credit reservation before execution starts.
+ * AuthorizeRunInput requests a credit reservation before the run starts.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.v1.AuthorizeRunInput}
@@ -385,7 +385,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * AuthorizeRunInput requests a credit reservation before execution starts.
+   * AuthorizeRunInput requests a credit reservation before the run starts.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.v1.AuthorizeRunInput}

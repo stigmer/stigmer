@@ -106,7 +106,7 @@ java.lang.String defaultValue);
 
   /**
    * <pre>
-   * Execution-scoped environment variables and secrets, available only to this
+   * Run-scoped environment variables and secrets, available only to this
    * run. Values here take the highest merge priority. A key must be
    * declared in Workflow.spec.env to survive the merge: the workflow env map is
    * a declaration whitelist (name + is_secret + optional), never a value source
@@ -118,7 +118,7 @@ java.lang.String defaultValue);
   int getRuntimeEnvCount();
   /**
    * <pre>
-   * Execution-scoped environment variables and secrets, available only to this
+   * Run-scoped environment variables and secrets, available only to this
    * run. Values here take the highest merge priority. A key must be
    * declared in Workflow.spec.env to survive the merge: the workflow env map is
    * a declaration whitelist (name + is_secret + optional), never a value source
@@ -137,7 +137,7 @@ java.lang.String defaultValue);
   getRuntimeEnv();
   /**
    * <pre>
-   * Execution-scoped environment variables and secrets, available only to this
+   * Run-scoped environment variables and secrets, available only to this
    * run. Values here take the highest merge priority. A key must be
    * declared in Workflow.spec.env to survive the merge: the workflow env map is
    * a declaration whitelist (name + is_secret + optional), never a value source
@@ -150,7 +150,7 @@ java.lang.String defaultValue);
   getRuntimeEnvMap();
   /**
    * <pre>
-   * Execution-scoped environment variables and secrets, available only to this
+   * Run-scoped environment variables and secrets, available only to this
    * run. Values here take the highest merge priority. A key must be
    * declared in Workflow.spec.env to survive the merge: the workflow env map is
    * a declaration whitelist (name + is_secret + optional), never a value source
@@ -166,7 +166,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrDefault(
 ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
   /**
    * <pre>
-   * Execution-scoped environment variables and secrets, available only to this
+   * Run-scoped environment variables and secrets, available only to this
    * run. Values here take the highest merge priority. A key must be
    * declared in Workflow.spec.env to survive the merge: the workflow env map is
    * a declaration whitelist (name + is_secret + optional), never a value source

@@ -7,7 +7,7 @@ package ai.stigmer.agentic.agentrun.v1;
 
 /**
  * <pre>
- * Lightweight view of a single execution's usage within a session report.
+ * Lightweight view of a single run's usage within a session report.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentrun.v1.RunUsageSummary}
@@ -62,7 +62,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object runId_ = "";
   /**
    * <pre>
-   * Execution identifier.
+   * Run identifier.
    * </pre>
    *
    * <code>string run_id = 1 [json_name = "runId"];</code>
@@ -83,7 +83,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Execution identifier.
+   * Run identifier.
    * </pre>
    *
    * <code>string run_id = 1 [json_name = "runId"];</code>
@@ -109,7 +109,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object startedAt_ = "";
   /**
    * <pre>
-   * ISO 8601 timestamp when execution started.
+   * ISO 8601 timestamp when the run started.
    * </pre>
    *
    * <code>string started_at = 2 [json_name = "startedAt"];</code>
@@ -130,7 +130,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ISO 8601 timestamp when execution started.
+   * ISO 8601 timestamp when the run started.
    * </pre>
    *
    * <code>string started_at = 2 [json_name = "startedAt"];</code>
@@ -156,7 +156,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object completedAt_ = "";
   /**
    * <pre>
-   * ISO 8601 timestamp when execution completed.
+   * ISO 8601 timestamp when the run completed.
    * </pre>
    *
    * <code>string completed_at = 3 [json_name = "completedAt"];</code>
@@ -177,7 +177,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ISO 8601 timestamp when execution completed.
+   * ISO 8601 timestamp when the run completed.
    * </pre>
    *
    * <code>string completed_at = 3 [json_name = "completedAt"];</code>
@@ -350,7 +350,7 @@ private static final long serialVersionUID = 0L;
   private boolean isEstimated_ = false;
   /**
    * <pre>
-   * Whether this execution's cost is estimated (in-flight, no billing records yet).
+   * Whether this run's cost is estimated (in-flight, no billing records yet).
    * </pre>
    *
    * <code>bool is_estimated = 11 [json_name = "isEstimated"];</code>
@@ -630,7 +630,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Lightweight view of a single execution's usage within a session report.
+   * Lightweight view of a single run's usage within a session report.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentrun.v1.RunUsageSummary}
@@ -899,7 +899,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object runId_ = "";
     /**
      * <pre>
-     * Execution identifier.
+     * Run identifier.
      * </pre>
      *
      * <code>string run_id = 1 [json_name = "runId"];</code>
@@ -919,7 +919,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution identifier.
+     * Run identifier.
      * </pre>
      *
      * <code>string run_id = 1 [json_name = "runId"];</code>
@@ -940,7 +940,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution identifier.
+     * Run identifier.
      * </pre>
      *
      * <code>string run_id = 1 [json_name = "runId"];</code>
@@ -957,7 +957,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution identifier.
+     * Run identifier.
      * </pre>
      *
      * <code>string run_id = 1 [json_name = "runId"];</code>
@@ -971,7 +971,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution identifier.
+     * Run identifier.
      * </pre>
      *
      * <code>string run_id = 1 [json_name = "runId"];</code>
@@ -991,7 +991,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object startedAt_ = "";
     /**
      * <pre>
-     * ISO 8601 timestamp when execution started.
+     * ISO 8601 timestamp when the run started.
      * </pre>
      *
      * <code>string started_at = 2 [json_name = "startedAt"];</code>
@@ -1011,7 +1011,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp when execution started.
+     * ISO 8601 timestamp when the run started.
      * </pre>
      *
      * <code>string started_at = 2 [json_name = "startedAt"];</code>
@@ -1032,7 +1032,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp when execution started.
+     * ISO 8601 timestamp when the run started.
      * </pre>
      *
      * <code>string started_at = 2 [json_name = "startedAt"];</code>
@@ -1049,7 +1049,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp when execution started.
+     * ISO 8601 timestamp when the run started.
      * </pre>
      *
      * <code>string started_at = 2 [json_name = "startedAt"];</code>
@@ -1063,7 +1063,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp when execution started.
+     * ISO 8601 timestamp when the run started.
      * </pre>
      *
      * <code>string started_at = 2 [json_name = "startedAt"];</code>
@@ -1083,7 +1083,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object completedAt_ = "";
     /**
      * <pre>
-     * ISO 8601 timestamp when execution completed.
+     * ISO 8601 timestamp when the run completed.
      * </pre>
      *
      * <code>string completed_at = 3 [json_name = "completedAt"];</code>
@@ -1103,7 +1103,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp when execution completed.
+     * ISO 8601 timestamp when the run completed.
      * </pre>
      *
      * <code>string completed_at = 3 [json_name = "completedAt"];</code>
@@ -1124,7 +1124,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp when execution completed.
+     * ISO 8601 timestamp when the run completed.
      * </pre>
      *
      * <code>string completed_at = 3 [json_name = "completedAt"];</code>
@@ -1141,7 +1141,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp when execution completed.
+     * ISO 8601 timestamp when the run completed.
      * </pre>
      *
      * <code>string completed_at = 3 [json_name = "completedAt"];</code>
@@ -1155,7 +1155,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp when execution completed.
+     * ISO 8601 timestamp when the run completed.
      * </pre>
      *
      * <code>string completed_at = 3 [json_name = "completedAt"];</code>
@@ -1559,7 +1559,7 @@ private static final long serialVersionUID = 0L;
     private boolean isEstimated_ ;
     /**
      * <pre>
-     * Whether this execution's cost is estimated (in-flight, no billing records yet).
+     * Whether this run's cost is estimated (in-flight, no billing records yet).
      * </pre>
      *
      * <code>bool is_estimated = 11 [json_name = "isEstimated"];</code>
@@ -1571,7 +1571,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether this execution's cost is estimated (in-flight, no billing records yet).
+     * Whether this run's cost is estimated (in-flight, no billing records yet).
      * </pre>
      *
      * <code>bool is_estimated = 11 [json_name = "isEstimated"];</code>
@@ -1587,7 +1587,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether this execution's cost is estimated (in-flight, no billing records yet).
+     * Whether this run's cost is estimated (in-flight, no billing records yet).
      * </pre>
      *
      * <code>bool is_estimated = 11 [json_name = "isEstimated"];</code>

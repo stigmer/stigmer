@@ -68,12 +68,12 @@ type BillingCommandControllerClient interface {
 	AuthorizeRun(ctx context.Context, in *AuthorizeRunInput, opts ...grpc.CallOption) (*AuthorizeRunResponse, error)
 	// Record a single LLM call's usage for billing.
 	// Computes cost server-side from the model registry, inserts an immutable
-	// LlmCallUsageRecord, and debits credits from the execution's reservation.
+	// LlmCallUsageRecord, and debits credits from the run's reservation.
 	RecordLlmCallUsage(ctx context.Context, in *RecordLlmCallUsageInput, opts ...grpc.CallOption) (*RecordLlmCallUsageResponse, error)
 	// Settle billing for a completed run.
 	// Releases unused reservation credits and produces the final billing record.
 	FinalizeRun(ctx context.Context, in *FinalizeRunInput, opts ...grpc.CallOption) (*FinalizeRunResponse, error)
-	// Re-arm a settled reservation so a failed execution can be recovered.
+	// Re-arm a settled reservation so a failed run can be recovered.
 	// The one sanctioned path past the settled-reservation latch: re-runs
 	// the affordability check, transfers a fresh hold, and rotates the
 	// reservation id as the fence against settles still in flight from the
@@ -307,12 +307,12 @@ type BillingCommandControllerServer interface {
 	AuthorizeRun(context.Context, *AuthorizeRunInput) (*AuthorizeRunResponse, error)
 	// Record a single LLM call's usage for billing.
 	// Computes cost server-side from the model registry, inserts an immutable
-	// LlmCallUsageRecord, and debits credits from the execution's reservation.
+	// LlmCallUsageRecord, and debits credits from the run's reservation.
 	RecordLlmCallUsage(context.Context, *RecordLlmCallUsageInput) (*RecordLlmCallUsageResponse, error)
 	// Settle billing for a completed run.
 	// Releases unused reservation credits and produces the final billing record.
 	FinalizeRun(context.Context, *FinalizeRunInput) (*FinalizeRunResponse, error)
-	// Re-arm a settled reservation so a failed execution can be recovered.
+	// Re-arm a settled reservation so a failed run can be recovered.
 	// The one sanctioned path past the settled-reservation latch: re-runs
 	// the affordability check, transfers a fresh hold, and rotates the
 	// reservation id as the fence against settles still in flight from the

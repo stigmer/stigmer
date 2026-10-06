@@ -9,7 +9,7 @@ package ai.stigmer.agentic.agentrun.v1;
  * <pre>
  * ApprovalPolicySource is the policy layer that decided a tool call's approval
  * requirement — the provenance recorded on every gated or auto-approved tool
- * call so an execution's authorizations are auditable.
+ * call so a run's authorizations are auditable.
  *
  * Set by the runner at the approval gate (the one component that evaluates the
  * merged policy) and persisted on ToolCall.approval_policy_source, exactly as
@@ -24,7 +24,7 @@ public enum ApprovalPolicySource
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
    * <pre>
-   * Default — the execution predates this field, or no approval was required
+   * Default — the run predates this field, or no approval was required
    * (a read-only built-in, or an MCP tool its server does not mark
    * destructive). Clients show no provenance.
    * </pre>
@@ -74,7 +74,7 @@ public enum ApprovalPolicySource
    * <pre>
    * The unattended approval mode (AgentRunStatus.approval_mode =
    * APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:
-   * the lane the execution came through (a schedule's fire, a messaging
+   * the lane the run came through (a schedule's fire, a messaging
    * channel, a guest share) has no approver, so the platform skipped the
    * tool and told the model to adapt. A layer-4 resolution source like AUTO_APPROVE_ALL — it
    * records HOW the gate was resolved, overriding the gating-layer source on
@@ -110,7 +110,7 @@ public enum ApprovalPolicySource
   }
   /**
    * <pre>
-   * Default — the execution predates this field, or no approval was required
+   * Default — the run predates this field, or no approval was required
    * (a read-only built-in, or an MCP tool its server does not mark
    * destructive). Clients show no provenance.
    * </pre>
@@ -160,7 +160,7 @@ public enum ApprovalPolicySource
    * <pre>
    * The unattended approval mode (AgentRunStatus.approval_mode =
    * APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:
-   * the lane the execution came through (a schedule's fire, a messaging
+   * the lane the run came through (a schedule's fire, a messaging
    * channel, a guest share) has no approver, so the platform skipped the
    * tool and told the model to adapt. A layer-4 resolution source like AUTO_APPROVE_ALL — it
    * records HOW the gate was resolved, overriding the gating-layer source on

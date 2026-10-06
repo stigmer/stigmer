@@ -25,7 +25,7 @@ public enum ChannelDeliveryStatus
   channel_delivery_status_unspecified(0),
   /**
    * <pre>
-   * Awaiting the execution's terminal phase, or awaiting (re)claim.
+   * Awaiting the run's terminal phase, or awaiting (re)claim.
    * </pre>
    *
    * <code>pending = 1;</code>
@@ -88,7 +88,7 @@ public enum ChannelDeliveryStatus
   public static final int channel_delivery_status_unspecified_VALUE = 0;
   /**
    * <pre>
-   * Awaiting the execution's terminal phase, or awaiting (re)claim.
+   * Awaiting the run's terminal phase, or awaiting (re)claim.
    * </pre>
    *
    * <code>pending = 1;</code>

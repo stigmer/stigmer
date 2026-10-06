@@ -51,7 +51,7 @@ export type ChannelDelivery = Message<"ai.stigmer.agentic.agentchannel.v1.Channe
   runId: string;
 
   /**
-   * Session the execution belongs to (conversation continuity + audit).
+   * Session the run belongs to (conversation continuity + audit).
    *
    * @generated from field: string session_id = 5;
    */
@@ -258,7 +258,7 @@ export enum ChannelDeliveryStatus {
   channel_delivery_status_unspecified = 0,
 
   /**
-   * Awaiting the execution's terminal phase, or awaiting (re)claim.
+   * Awaiting the run's terminal phase, or awaiting (re)claim.
    *
    * @generated from enum value: pending = 1;
    */
@@ -341,7 +341,7 @@ export enum ChannelAttemptFailureKind {
   /**
    * The platform withdrew the send for a structural reason;
    * attempt_detail carries the short fact ("channel deleted",
-   * "execution no longer exists").
+   * "run no longer exists").
    *
    * @generated from enum value: attempt_withdrawn = 3;
    */

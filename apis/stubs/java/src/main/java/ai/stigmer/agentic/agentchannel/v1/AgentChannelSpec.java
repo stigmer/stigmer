@@ -270,7 +270,7 @@ private static final long serialVersionUID = 0L;
    *
    * This is how a tool-using agent becomes chattable over a channel: bind
    * an org-shared environment holding the needed credentials (for example
-   * a read-only API token), and channel executions receive its values at
+   * a read-only API token), and channel runs receive its values at
    * runtime. The agent itself stays untouched.
    * </pre>
    *
@@ -287,7 +287,7 @@ private static final long serialVersionUID = 0L;
    *
    * This is how a tool-using agent becomes chattable over a channel: bind
    * an org-shared environment holding the needed credentials (for example
-   * a read-only API token), and channel executions receive its values at
+   * a read-only API token), and channel runs receive its values at
    * runtime. The agent itself stays untouched.
    * </pre>
    *
@@ -305,7 +305,7 @@ private static final long serialVersionUID = 0L;
    *
    * This is how a tool-using agent becomes chattable over a channel: bind
    * an org-shared environment holding the needed credentials (for example
-   * a read-only API token), and channel executions receive its values at
+   * a read-only API token), and channel runs receive its values at
    * runtime. The agent itself stays untouched.
    * </pre>
    *
@@ -322,7 +322,7 @@ private static final long serialVersionUID = 0L;
    *
    * This is how a tool-using agent becomes chattable over a channel: bind
    * an org-shared environment holding the needed credentials (for example
-   * a read-only API token), and channel executions receive its values at
+   * a read-only API token), and channel runs receive its values at
    * runtime. The agent itself stays untouched.
    * </pre>
    *
@@ -339,7 +339,7 @@ private static final long serialVersionUID = 0L;
    *
    * This is how a tool-using agent becomes chattable over a channel: bind
    * an org-shared environment holding the needed credentials (for example
-   * a read-only API token), and channel executions receive its values at
+   * a read-only API token), and channel runs receive its values at
    * runtime. The agent itself stays untouched.
    * </pre>
    *
@@ -1752,7 +1752,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
-     * a read-only API token), and channel executions receive its values at
+     * a read-only API token), and channel runs receive its values at
      * runtime. The agent itself stays untouched.
      * </pre>
      *
@@ -1772,7 +1772,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
-     * a read-only API token), and channel executions receive its values at
+     * a read-only API token), and channel runs receive its values at
      * runtime. The agent itself stays untouched.
      * </pre>
      *
@@ -1792,7 +1792,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
-     * a read-only API token), and channel executions receive its values at
+     * a read-only API token), and channel runs receive its values at
      * runtime. The agent itself stays untouched.
      * </pre>
      *
@@ -1812,7 +1812,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
-     * a read-only API token), and channel executions receive its values at
+     * a read-only API token), and channel runs receive its values at
      * runtime. The agent itself stays untouched.
      * </pre>
      *
@@ -1839,7 +1839,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
-     * a read-only API token), and channel executions receive its values at
+     * a read-only API token), and channel runs receive its values at
      * runtime. The agent itself stays untouched.
      * </pre>
      *
@@ -1863,7 +1863,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
-     * a read-only API token), and channel executions receive its values at
+     * a read-only API token), and channel runs receive its values at
      * runtime. The agent itself stays untouched.
      * </pre>
      *
@@ -1889,7 +1889,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
-     * a read-only API token), and channel executions receive its values at
+     * a read-only API token), and channel runs receive its values at
      * runtime. The agent itself stays untouched.
      * </pre>
      *
@@ -1916,7 +1916,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
-     * a read-only API token), and channel executions receive its values at
+     * a read-only API token), and channel runs receive its values at
      * runtime. The agent itself stays untouched.
      * </pre>
      *
@@ -1940,7 +1940,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
-     * a read-only API token), and channel executions receive its values at
+     * a read-only API token), and channel runs receive its values at
      * runtime. The agent itself stays untouched.
      * </pre>
      *
@@ -1964,7 +1964,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
-     * a read-only API token), and channel executions receive its values at
+     * a read-only API token), and channel runs receive its values at
      * runtime. The agent itself stays untouched.
      * </pre>
      *
@@ -1989,7 +1989,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
-     * a read-only API token), and channel executions receive its values at
+     * a read-only API token), and channel runs receive its values at
      * runtime. The agent itself stays untouched.
      * </pre>
      *
@@ -2012,7 +2012,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
-     * a read-only API token), and channel executions receive its values at
+     * a read-only API token), and channel runs receive its values at
      * runtime. The agent itself stays untouched.
      * </pre>
      *
@@ -2035,7 +2035,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
-     * a read-only API token), and channel executions receive its values at
+     * a read-only API token), and channel runs receive its values at
      * runtime. The agent itself stays untouched.
      * </pre>
      *
@@ -2052,7 +2052,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
-     * a read-only API token), and channel executions receive its values at
+     * a read-only API token), and channel runs receive its values at
      * runtime. The agent itself stays untouched.
      * </pre>
      *
@@ -2072,7 +2072,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
-     * a read-only API token), and channel executions receive its values at
+     * a read-only API token), and channel runs receive its values at
      * runtime. The agent itself stays untouched.
      * </pre>
      *
@@ -2093,7 +2093,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
-     * a read-only API token), and channel executions receive its values at
+     * a read-only API token), and channel runs receive its values at
      * runtime. The agent itself stays untouched.
      * </pre>
      *
@@ -2110,7 +2110,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
-     * a read-only API token), and channel executions receive its values at
+     * a read-only API token), and channel runs receive its values at
      * runtime. The agent itself stays untouched.
      * </pre>
      *
@@ -2128,7 +2128,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is how a tool-using agent becomes chattable over a channel: bind
      * an org-shared environment holding the needed credentials (for example
-     * a read-only API token), and channel executions receive its values at
+     * a read-only API token), and channel runs receive its values at
      * runtime. The agent itself stays untouched.
      * </pre>
      *

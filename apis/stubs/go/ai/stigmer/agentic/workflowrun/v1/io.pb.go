@@ -26,21 +26,21 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// RunSortField defines the column to sort execution lists by.
+// RunSortField defines the column to sort run lists by.
 type RunSortField int32
 
 const (
 	// Default: newest created first, the one order that pages.
 	RunSortField_RUN_SORT_FIELD_UNSPECIFIED RunSortField = 0
-	// Sort by execution start time.
+	// Sort by run start time.
 	RunSortField_RUN_SORT_FIELD_STARTED_AT RunSortField = 1
-	// Sort by execution duration (completed_at - started_at).
+	// Sort by run duration (completed_at - started_at).
 	//
-	// Executions without both timestamps sort last.
+	// Runs without both timestamps sort last.
 	RunSortField_RUN_SORT_FIELD_DURATION RunSortField = 2
 	// Sort by total cost (status.total_cost_micros).
 	RunSortField_RUN_SORT_FIELD_COST RunSortField = 3
-	// Sort by execution phase enum value.
+	// Sort by run phase enum value.
 	RunSortField_RUN_SORT_FIELD_STATUS RunSortField = 4
 )
 
@@ -240,14 +240,14 @@ func (x *WorkflowId) GetValue() string {
 // WorkflowRunList contains a paginated list of workflow runs.
 type WorkflowRunList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Not computed for this list: 1 when the response holds every execution,
+	// Not computed for this list: 1 when the response holds every run,
 	// 0 when next_page_token is set. Follow next_page_token instead.
 	TotalPages int32 `protobuf:"varint,1,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
 	// Workflow runs in this page, newest created first unless another
 	// sort field was requested.
 	Entries []*WorkflowRun `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
-	// Set when more executions may follow: pass it as page_token to
-	// continue. A page may hold fewer executions than page_size, even none,
+	// Set when more runs may follow: pass it as page_token to
+	// continue. A page may hold fewer runs than page_size, even none,
 	// and still carry a token. Empty when the list is complete, and always
 	// empty under a sort field other than the default.
 	NextPageToken string `protobuf:"bytes,3,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
@@ -309,12 +309,12 @@ func (x *WorkflowRunList) GetNextPageToken() string {
 // ListWorkflowRunsRequest specifies parameters for listing workflow runs.
 type ListWorkflowRunsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The most executions to return, at most 100; zero returns them all.
+	// The most runs to return, at most 100; zero returns them all.
 	PageSize int32 `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.
 	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
-	// Filter by execution phase.
+	// Filter by run phase.
 	Phase RunPhase `protobuf:"varint,3,opt,name=phase,proto3,enum=ai.stigmer.agentic.workflowrun.v1.RunPhase" json:"phase,omitempty"`
 	// Filter by resource tags (AND logic).
 	Tags []string `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty"`
@@ -332,7 +332,7 @@ type ListWorkflowRunsRequest struct {
 	SortAscending bool `protobuf:"varint,7,opt,name=sort_ascending,json=sortAscending,proto3" json:"sort_ascending,omitempty"`
 	// Organization slug to scope the results to.
 	//
-	// When set, only executions whose metadata.org matches are returned — the
+	// When set, only runs whose metadata.org matches are returned — the
 	// org-context view a console tab needs. When empty, results are bounded
 	// only by the caller's view permissions, which for a member of several
 	// organizations spans all of them.
@@ -427,12 +427,12 @@ func (x *ListWorkflowRunsRequest) GetOrg() string {
 	return ""
 }
 
-// ListWorkflowRunsByWorkflowRequest lists executions for a specific workflow.
+// ListWorkflowRunsByWorkflowRequest lists runs for a specific workflow.
 type ListWorkflowRunsByWorkflowRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Workflow ID to filter by.
 	WorkflowId string `protobuf:"bytes,1,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
-	// The most executions to return, at most 100; zero returns them all.
+	// The most runs to return, at most 100; zero returns them all.
 	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.
@@ -527,9 +527,9 @@ type WorkflowRunUpdateStatusInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ID of the workflow run to update.
 	RunId string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	// Status fields to merge into the existing execution status.
+	// Status fields to merge into the existing run status.
 	Status *WorkflowRunStatus `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
-	// Execution events to append to the event log alongside this status update.
+	// Run events to append to the event log alongside this status update.
 	Events []*WorkflowRunEvent `protobuf:"bytes,10,rep,name=events,proto3" json:"events,omitempty"`
 	// When true, status.pending_approvals is merged for the single child named by
 	// pending_update_child_agent_run_id. When false (default), the stored
@@ -914,10 +914,10 @@ func (x *SubmitWorkflowTaskApprovalInput) GetComment() string {
 	return ""
 }
 
-// SubscribeWorkflowRunRequest subscribes to real-time execution updates.
+// SubscribeWorkflowRunRequest subscribes to real-time run updates.
 type SubscribeWorkflowRunRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Execution ID to subscribe to.
+	// Run ID to subscribe to.
 	RunId         string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1073,7 +1073,7 @@ func (x *TerminateWorkflowRunInput) GetReason() string {
 // RecoverWorkflowRunInput requests recovery of a failed workflow run.
 //
 // Recovery preserves completed work: tasks that succeeded in the failed run are
-// skipped (their outputs restored into workflow context), and execution resumes
+// skipped (their outputs restored into workflow context), and run resumes
 // from the first incomplete or failed task.
 type RecoverWorkflowRunInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -1306,7 +1306,7 @@ func (x *SendSignalInput) GetIdempotencyKey() string {
 // GetEventLogRequest fetches the paginated event log for a workflow run.
 type GetEventLogRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Execution ID to fetch events for.
+	// Run ID to fetch events for.
 	RunId string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	// Return events with sequence_number strictly greater than this value.
 	AfterSequence uint64 `protobuf:"varint,2,opt,name=after_sequence,json=afterSequence,proto3" json:"after_sequence,omitempty"`
@@ -1385,14 +1385,14 @@ func (x *GetEventLogRequest) GetPageSize() int32 {
 	return 0
 }
 
-// GetEventLogResponse contains a page of execution events.
+// GetEventLogResponse contains a page of run events.
 type GetEventLogResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Events in this page, ordered by sequence_number ascending.
 	Events []*WorkflowRunEvent `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
 	// Whether more events exist after the last event in this response.
 	// When false, the client has reached the end of the current event log.
-	// For in-progress executions, more events may appear later.
+	// For in-progress runs, more events may appear later.
 	HasMore bool `protobuf:"varint,2,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
 	// Highest sequence_number returned in this response.
 	// Use as after_sequence in the next request for cursor-based pagination.
@@ -1456,7 +1456,7 @@ func (x *GetEventLogResponse) GetLatestSequence() uint64 {
 // SubscribeEventsRequest opens a real-time event stream for a workflow run.
 type SubscribeEventsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Execution ID to subscribe to.
+	// Run ID to subscribe to.
 	RunId string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	// Resume from this sequence number (replay + live tail).
 	AfterSequence uint64 `protobuf:"varint,2,opt,name=after_sequence,json=afterSequence,proto3" json:"after_sequence,omitempty"`
@@ -1521,32 +1521,32 @@ func (x *SubscribeEventsRequest) GetEventTypes() []WorkflowEventType {
 // workflow runs. All specified conditions are combined with AND logic.
 type RunFilterCriteria struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Filter by execution phases. Empty means all phases.
+	// Filter by run phases. Empty means all phases.
 	//
 	// Supersedes the top-level `phase` field on ListWorkflowRunsRequest
 	// when both are set.
 	Phases []RunPhase `protobuf:"varint,1,rep,packed,name=phases,proto3,enum=ai.stigmer.agentic.workflowrun.v1.RunPhase" json:"phases,omitempty"`
-	// Include only executions started at or after this timestamp.
+	// Include only runs started at or after this timestamp.
 	StartedAfter *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=started_after,json=startedAfter,proto3" json:"started_after,omitempty"`
-	// Include only executions started at or before this timestamp.
+	// Include only runs started at or before this timestamp.
 	StartedBefore *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=started_before,json=startedBefore,proto3" json:"started_before,omitempty"`
-	// Minimum execution duration (completed executions only).
+	// Minimum run duration (completed runs only).
 	//
-	// Executions still in progress or without timestamps are excluded
+	// Runs still in progress or without timestamps are excluded
 	// when this filter is set.
 	MinDuration *durationpb.Duration `protobuf:"bytes,4,opt,name=min_duration,json=minDuration,proto3" json:"min_duration,omitempty"`
-	// Maximum execution duration (completed executions only).
+	// Maximum run duration (completed runs only).
 	MaxDuration *durationpb.Duration `protobuf:"bytes,5,opt,name=max_duration,json=maxDuration,proto3" json:"max_duration,omitempty"`
 	// Minimum cost in micro-USD.
 	MinCostMicros int64 `protobuf:"varint,6,opt,name=min_cost_micros,json=minCostMicros,proto3" json:"min_cost_micros,omitempty"`
 	// Maximum cost in micro-USD.
 	MaxCostMicros int64 `protobuf:"varint,7,opt,name=max_cost_micros,json=maxCostMicros,proto3" json:"max_cost_micros,omitempty"`
-	// Filter to executions containing a failed task with this exact name.
+	// Filter to runs containing a failed task with this exact name.
 	//
 	// Matches against any task in status.tasks where
 	// task.status == WORKFLOW_TASK_FAILED AND task.task_name == this value.
 	FailedTaskName string `protobuf:"bytes,8,opt,name=failed_task_name,json=failedTaskName,proto3" json:"failed_task_name,omitempty"`
-	// When true, include only executions that contain at least one retried task.
+	// When true, include only runs that contain at least one retried task.
 	//
 	// A task is considered retried when its metadata contains a retry_count > 0.
 	HasRetries    bool `protobuf:"varint,9,opt,name=has_retries,json=hasRetries,proto3" json:"has_retries,omitempty"`
@@ -1647,7 +1647,7 @@ func (x *RunFilterCriteria) GetHasRetries() bool {
 	return false
 }
 
-// GetRunSummaryRequest fetches aggregated execution statistics for an organization,
+// GetRunSummaryRequest fetches aggregated run statistics for an organization,
 // optionally scoped to a single workflow.
 type GetRunSummaryRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -1657,7 +1657,7 @@ type GetRunSummaryRequest struct {
 	//
 	// Defaults to LAST_7D when unspecified.
 	TimeWindow SummaryTimeWindow `protobuf:"varint,2,opt,name=time_window,json=timeWindow,proto3,enum=ai.stigmer.agentic.workflowrun.v1.SummaryTimeWindow" json:"time_window,omitempty"`
-	// When set, scopes the summary to executions of this workflow only.
+	// When set, scopes the summary to runs of this workflow only.
 	// When empty, aggregates across all workflows in the organization.
 	WorkflowId    string `protobuf:"bytes,3,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -1720,18 +1720,18 @@ func (x *GetRunSummaryRequest) GetWorkflowId() string {
 // All counts, costs, and durations are scoped to the requested time window.
 type RunSummary struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Number of executions currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED).
+	// Number of runs currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED).
 	ActiveCount int32 `protobuf:"varint,1,opt,name=active_count,json=activeCount,proto3" json:"active_count,omitempty"`
-	// Execution counts broken down by phase.
+	// Run counts broken down by phase.
 	//
 	// Keys are RunPhase enum values (as int32).
-	// Only phases with at least one execution are included.
+	// Only phases with at least one run are included.
 	PhaseCounts map[int32]int32 `protobuf:"bytes,2,rep,name=phase_counts,json=phaseCounts,proto3" json:"phase_counts,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
-	// Aggregate cost across all executions in the time window.
+	// Aggregate cost across all runs in the time window.
 	TotalCost *WorkflowCostSummary `protobuf:"bytes,3,opt,name=total_cost,json=totalCost,proto3" json:"total_cost,omitempty"`
-	// Mean execution duration (from started_at to completed_at) for completed runs.
+	// Mean run duration (from started_at to completed_at) for completed runs.
 	//
-	// Zero when no completed executions exist in the window.
+	// Zero when no completed runs exist in the window.
 	AvgDuration *durationpb.Duration `protobuf:"bytes,4,opt,name=avg_duration,json=avgDuration,proto3" json:"avg_duration,omitempty"`
 	// Workflows with the highest failure count in the time window, ranked descending.
 	//
@@ -1741,11 +1741,11 @@ type RunSummary struct {
 	//
 	// Capped at 10 entries.
 	CostByWorkflow []*WorkflowCostBreakdown `protobuf:"bytes,6,rep,name=cost_by_workflow,json=costByWorkflow,proto3" json:"cost_by_workflow,omitempty"`
-	// Total number of executions in the time window (sum of all phase_counts values).
+	// Total number of runs in the time window (sum of all phase_counts values).
 	TotalCount int32 `protobuf:"varint,7,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	// Success rate as a ratio (0.0 to 1.0).
 	// Computed as completed / (completed + failed). Returns -1.0 when no
-	// completed or failed executions exist in the time window.
+	// completed or failed runs exist in the time window.
 	SuccessRate   float64 `protobuf:"fixed64,8,opt,name=success_rate,json=successRate,proto3" json:"success_rate,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2124,7 +2124,7 @@ type PendingApproval struct {
 	// group pending approvals by review type. The full review payload is
 	// deliberately not carried here — it belongs on the gate detail
 	// (approval_requested event), read when the reviewer opens the gate.
-	// Empty when the task declares no hint or the execution predates the
+	// Empty when the task declares no hint or the run predates the
 	// field — consumers treat empty as a generic review.
 	UiHint        string `protobuf:"bytes,8,opt,name=ui_hint,json=uiHint,proto3" json:"ui_hint,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -2220,8 +2220,8 @@ func (x *PendingApproval) GetUiHint() string {
 // PendingApprovalsList contains one page of pending approvals.
 type PendingApprovalsList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Pending approvals in this page: the newest execution's first, and an
-	// execution's waiting tasks in their order.
+	// Pending approvals in this page: the newest run's first, and an
+	// run's waiting tasks in their order.
 	Entries []*PendingApproval `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
 	// Total number of pending approvals matching the query (across all pages).
 	TotalCount int32 `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`

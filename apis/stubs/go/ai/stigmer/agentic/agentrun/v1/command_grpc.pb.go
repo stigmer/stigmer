@@ -54,16 +54,16 @@ type AgentRunCommandControllerClient interface {
 	//
 	// ## Preconditions
 	//
-	// - Execution must be in RUN_WAITING_FOR_APPROVAL phase
+	// - Run must be in RUN_WAITING_FOR_APPROVAL phase
 	// - tool_call_id must match status.pending_approval.tool_call_id
-	// - User must have can_edit permission on the execution
+	// - User must have can_edit permission on the run
 	//
 	// ## Behavior by Action
 	//
-	//   - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
-	//   - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
+	//   - APPROVE: Tool executes normally, run resumes to IN_PROGRESS
+	//   - SKIP: Tool returns skip message to LLM, run continues to IN_PROGRESS
 	//   - REJECT: Tool is denied and the user's objection is fed back to the LLM;
-	//     the execution CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
+	//     the run CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
 	//     stop the whole run, use cancel/terminate)
 	SubmitApproval(ctx context.Context, in *SubmitApprovalInput, opts ...grpc.CallOption) (*AgentRun, error)
 	// Submit a keep/discard decision on a file change set (or a single file).
@@ -75,11 +75,11 @@ type AgentRunCommandControllerClient interface {
 	//
 	// ## Preconditions
 	//
-	//   - Execution must exist and be non-terminal
+	//   - Run must exist and be non-terminal
 	//   - change_set_id must match a status.file_change_sets[].id; for FILE scope,
 	//     file_change_id must match a CapturedFileChange.id within it
 	//   - expected_digest must match the target's current digest
-	//   - User must have can_edit permission on the execution
+	//   - User must have can_edit permission on the run
 	SubmitFileDecision(ctx context.Context, in *SubmitFileDecisionInput, opts ...grpc.CallOption) (*AgentRun, error)
 	// Cancel a running agent run gracefully.
 	//
@@ -101,17 +101,17 @@ type AgentRunCommandControllerClient interface {
 	// Pause a running agent run.
 	//
 	// Temporarily stops the agent at its current checkpoint. Unlike cancel,
-	// the execution is NOT terminal and can be resumed later from where it left off.
+	// the run is NOT terminal and can be resumed later from where it left off.
 	Pause(ctx context.Context, in *PauseAgentRunInput, opts ...grpc.CallOption) (*AgentRun, error)
 	// Resume a paused agent run.
 	//
-	// Continues execution from the checkpoint where it was paused. The agent
+	// Continues the run from the checkpoint where it was paused. The agent
 	// re-invokes with the same thread_id, loading from LangGraph checkpoint
 	// and continuing from where it left off.
 	Resume(ctx context.Context, in *ResumeAgentRunInput, opts ...grpc.CallOption) (*AgentRun, error)
 	// Upload a file attachment for use in an agent run.
 	//
-	// Pre-uploads files to artifact storage before creating an run.
+	// Pre-uploads files to artifact storage before creating a run.
 	// The returned storage_key can be used in Attachment.storage_key when
 	// creating the run.
 	UploadAttachment(ctx context.Context, in *UploadAttachmentRequest, opts ...grpc.CallOption) (*UploadAttachmentResponse, error)
@@ -265,16 +265,16 @@ type AgentRunCommandControllerServer interface {
 	//
 	// ## Preconditions
 	//
-	// - Execution must be in RUN_WAITING_FOR_APPROVAL phase
+	// - Run must be in RUN_WAITING_FOR_APPROVAL phase
 	// - tool_call_id must match status.pending_approval.tool_call_id
-	// - User must have can_edit permission on the execution
+	// - User must have can_edit permission on the run
 	//
 	// ## Behavior by Action
 	//
-	//   - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
-	//   - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
+	//   - APPROVE: Tool executes normally, run resumes to IN_PROGRESS
+	//   - SKIP: Tool returns skip message to LLM, run continues to IN_PROGRESS
 	//   - REJECT: Tool is denied and the user's objection is fed back to the LLM;
-	//     the execution CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
+	//     the run CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
 	//     stop the whole run, use cancel/terminate)
 	SubmitApproval(context.Context, *SubmitApprovalInput) (*AgentRun, error)
 	// Submit a keep/discard decision on a file change set (or a single file).
@@ -286,11 +286,11 @@ type AgentRunCommandControllerServer interface {
 	//
 	// ## Preconditions
 	//
-	//   - Execution must exist and be non-terminal
+	//   - Run must exist and be non-terminal
 	//   - change_set_id must match a status.file_change_sets[].id; for FILE scope,
 	//     file_change_id must match a CapturedFileChange.id within it
 	//   - expected_digest must match the target's current digest
-	//   - User must have can_edit permission on the execution
+	//   - User must have can_edit permission on the run
 	SubmitFileDecision(context.Context, *SubmitFileDecisionInput) (*AgentRun, error)
 	// Cancel a running agent run gracefully.
 	//
@@ -312,17 +312,17 @@ type AgentRunCommandControllerServer interface {
 	// Pause a running agent run.
 	//
 	// Temporarily stops the agent at its current checkpoint. Unlike cancel,
-	// the execution is NOT terminal and can be resumed later from where it left off.
+	// the run is NOT terminal and can be resumed later from where it left off.
 	Pause(context.Context, *PauseAgentRunInput) (*AgentRun, error)
 	// Resume a paused agent run.
 	//
-	// Continues execution from the checkpoint where it was paused. The agent
+	// Continues the run from the checkpoint where it was paused. The agent
 	// re-invokes with the same thread_id, loading from LangGraph checkpoint
 	// and continuing from where it left off.
 	Resume(context.Context, *ResumeAgentRunInput) (*AgentRun, error)
 	// Upload a file attachment for use in an agent run.
 	//
-	// Pre-uploads files to artifact storage before creating an run.
+	// Pre-uploads files to artifact storage before creating a run.
 	// The returned storage_key can be used in Attachment.storage_key when
 	// creating the run.
 	UploadAttachment(context.Context, *UploadAttachmentRequest) (*UploadAttachmentResponse, error)

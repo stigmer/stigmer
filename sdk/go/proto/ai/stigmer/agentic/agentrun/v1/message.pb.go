@@ -118,7 +118,7 @@ func (x *AgentMessage) GetIsStreaming() bool {
 	return false
 }
 
-// Represents a tool call made by the agent during run.
+// Represents a tool call made by the agent during a run.
 type ToolCall struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Unique identifier for this tool call.
@@ -132,7 +132,7 @@ type ToolCall struct {
 	Args *structpb.Struct `protobuf:"bytes,3,opt,name=args,proto3" json:"args,omitempty"`
 	// Result returned by the tool (optional, populated after execution).
 	Result string `protobuf:"bytes,4,opt,name=result,proto3" json:"result,omitempty"`
-	// Status of the tool call run.
+	// Status of the tool call execution.
 	Status ToolCallStatus `protobuf:"varint,5,opt,name=status,proto3,enum=ai.stigmer.agentic.agentrun.v1.ToolCallStatus" json:"status,omitempty"`
 	// ISO 8601 timestamp when the tool call started.
 	StartedAt string `protobuf:"bytes,7,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
@@ -180,8 +180,8 @@ type ToolCall struct {
 	// Only populated after approval decision is made (approval_decided_at is set).
 	// Determines how the tool execution proceeds:
 	//   - APPROVE: Tool executes normally
-	//   - SKIP: Tool returns skip message, execution continues
-	//   - REJECT: Execution fails with rejection error
+	//   - SKIP: Tool returns skip message, run continues
+	//   - REJECT: Run fails with rejection error
 	ApprovalAction ApprovalAction `protobuf:"varint,15,opt,name=approval_action,json=approvalAction,proto3,enum=ai.stigmer.agentic.agentrun.v1.ApprovalAction" json:"approval_action,omitempty"`
 	// True while the tool is actively producing content, false when complete.
 	// Enables UI to show live output during long-running tool executions or
@@ -229,7 +229,7 @@ type ToolCall struct {
 	// Cursor harnesses use different tool-name conventions; tool_kind erases that
 	// difference at the source.
 	//
-	// TOOL_KIND_UNSPECIFIED means unclassified — either the execution predates this
+	// TOOL_KIND_UNSPECIFIED means unclassified — either the run predates this
 	// field or the tool has no known kind. Clients fall back to a name-based
 	// lookup in that case. See ToolKind.
 	//
@@ -259,7 +259,7 @@ type ToolCall struct {
 	// auto-approved?".
 	//
 	// APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
-	// or an execution that predates this field (clients fall back to no provenance,
+	// or a run that predates this field (clients fall back to no provenance,
 	// exactly as for an unset tool_kind). See ApprovalPolicySource.
 	//
 	// Field 23: appended after file_changes (22), the prior maximum.
@@ -280,7 +280,7 @@ type ToolCall struct {
 	// drop `args`/`file_changes` for large edits — a recompute-from-args identity
 	// would be unrecoverable in that case. Empty for tools whose other identity is
 	// already content-exact (shell command, delete path), for read-only tools, and
-	// for executions that predate this field (the runner then degrades to the
+	// for runs that predate this field (the runner then degrades to the
 	// coarse (category, path) identity).
 	ApprovalContentDigest string `protobuf:"bytes,25,opt,name=approval_content_digest,json=approvalContentDigest,proto3" json:"approval_content_digest,omitempty"`
 	// Id of the FileChangeSet this flowed file-edit contributed to
@@ -292,7 +292,7 @@ type ToolCall struct {
 	// reconcile identity is digest-gated (see filereview.proto's identity rule).
 	//
 	// Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
-	// those rows), rows from executions that predate this field, and turns whose
+	// those rows), rows from runs that predate this field, and turns whose
 	// edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
 	// so there is no change set to reference).
 	//
@@ -518,7 +518,7 @@ func (x *ToolCall) GetApprovalPolicyHook() string {
 // publishes for the user to download via publish_artifact): an output ref is
 // internal spillover of a tool's result, not a user-facing deliverable. The
 // bytes live in artifact storage (R2 in the cloud, locally served in dev);
-// only this reference is persisted in the execution status.
+// only this reference is persisted in the run status.
 type ToolCallOutputRef struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Storage location of the full output bytes.

@@ -107,7 +107,7 @@ public interface GetAgentUsageReportInputOrBuilder extends
   /**
    * <pre>
    * Organization scope for the report: usage of this agent within this
-   * organization. Only executions belonging to this organization are
+   * organization. Only runs belonging to this organization are
    * aggregated. The caller must hold can_view on the organization.
    * </pre>
    *
@@ -118,7 +118,7 @@ public interface GetAgentUsageReportInputOrBuilder extends
   /**
    * <pre>
    * Organization scope for the report: usage of this agent within this
-   * organization. Only executions belonging to this organization are
+   * organization. Only runs belonging to this organization are
    * aggregated. The caller must hold can_view on the organization.
    * </pre>
    *

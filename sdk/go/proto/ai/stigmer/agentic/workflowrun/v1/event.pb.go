@@ -26,7 +26,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// WorkflowEventType categorizes execution events for filtering and dispatch.
+// WorkflowEventType categorizes run events for filtering and dispatch.
 type WorkflowEventType int32
 
 const (
@@ -44,7 +44,7 @@ const (
 	// Payload: RunFailedPayload.
 	WorkflowEventType_run_failed WorkflowEventType = 3
 	// Workflow run was paused by user or system.
-	// Non-terminal — execution can be resumed.
+	// Non-terminal — run can be resumed.
 	// Payload: RunPausedPayload.
 	WorkflowEventType_run_paused WorkflowEventType = 4
 	// Workflow run was resumed after a pause.
@@ -58,7 +58,7 @@ const (
 	// Terminal event.
 	// Payload: RunTerminatedPayload.
 	WorkflowEventType_run_terminated WorkflowEventType = 7
-	// A workflow task began run.
+	// A workflow task began execution.
 	// Payload: TaskStartedPayload.
 	WorkflowEventType_task_started WorkflowEventType = 11
 	// A workflow task completed successfully.
@@ -181,7 +181,7 @@ func (WorkflowEventType) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_workflowrun_v1_event_proto_rawDescGZIP(), []int{0}
 }
 
-// WorkflowRunEvent represents a single timestamped event in the execution
+// WorkflowRunEvent represents a single timestamped event in the run
 // timeline of a workflow run.
 type WorkflowRunEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -598,7 +598,7 @@ type RunStartedPayload struct {
 	// Total number of top-level tasks in the workflow definition.
 	// Enables progress calculation (completed_count / total_tasks).
 	TotalTasks int32 `protobuf:"varint,1,opt,name=total_tasks,json=totalTasks,proto3" json:"total_tasks,omitempty"`
-	// Workflow ID the execution runs.
+	// ID of the workflow being run.
 	WorkflowId    string `protobuf:"bytes,2,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -654,7 +654,7 @@ type RunCompletedPayload struct {
 	// Final workflow output, truncated if exceeding size limits.
 	// The full output is available on WorkflowRunStatus.output.
 	OutputSummary *structpb.Struct `protobuf:"bytes,1,opt,name=output_summary,json=outputSummary,proto3" json:"output_summary,omitempty"`
-	// Total wall-clock duration of the execution in milliseconds.
+	// Total wall-clock duration of the run in milliseconds.
 	DurationMs int64 `protobuf:"varint,2,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"`
 	// Aggregate cost across all tasks in micro-USD (1 USD = 1,000,000 micros).
 	TotalCostMicros int64 `protobuf:"varint,3,opt,name=total_cost_micros,json=totalCostMicros,proto3" json:"total_cost_micros,omitempty"`
@@ -1366,7 +1366,7 @@ func (x *TaskRetryingPayload) GetDelayMs() int64 {
 type AgentCallStartedPayload struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ID of the child AgentRun (format: "aex_{ulid}").
-	// Use this to subscribe to the agent's execution stream for full detail.
+	// Use this to subscribe to the agent's run stream for full detail.
 	ChildRunId string `protobuf:"bytes,1,opt,name=child_run_id,json=childRunId,proto3" json:"child_run_id,omitempty"`
 	// Agent slug being invoked (e.g., "customer-support-agent").
 	AgentSlug string `protobuf:"bytes,2,opt,name=agent_slug,json=agentSlug,proto3" json:"agent_slug,omitempty"`

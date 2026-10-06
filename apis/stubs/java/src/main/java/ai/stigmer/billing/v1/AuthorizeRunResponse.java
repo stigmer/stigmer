@@ -7,7 +7,7 @@ package ai.stigmer.billing.v1;
 
 /**
  * <pre>
- * AuthorizeRunResponse indicates whether the execution may proceed.
+ * AuthorizeRunResponse indicates whether the run may proceed.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.v1.AuthorizeRunResponse}
@@ -58,7 +58,7 @@ private static final long serialVersionUID = 0L;
   private boolean authorized_ = false;
   /**
    * <pre>
-   * Whether the execution is authorized to start.
+   * Whether the run is authorized to start.
    * </pre>
    *
    * <code>bool authorized = 1 [json_name = "authorized"];</code>
@@ -397,7 +397,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * AuthorizeRunResponse indicates whether the execution may proceed.
+   * AuthorizeRunResponse indicates whether the run may proceed.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.v1.AuthorizeRunResponse}
@@ -590,7 +590,7 @@ private static final long serialVersionUID = 0L;
     private boolean authorized_ ;
     /**
      * <pre>
-     * Whether the execution is authorized to start.
+     * Whether the run is authorized to start.
      * </pre>
      *
      * <code>bool authorized = 1 [json_name = "authorized"];</code>
@@ -602,7 +602,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether the execution is authorized to start.
+     * Whether the run is authorized to start.
      * </pre>
      *
      * <code>bool authorized = 1 [json_name = "authorized"];</code>
@@ -618,7 +618,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether the execution is authorized to start.
+     * Whether the run is authorized to start.
      * </pre>
      *
      * <code>bool authorized = 1 [json_name = "authorized"];</code>

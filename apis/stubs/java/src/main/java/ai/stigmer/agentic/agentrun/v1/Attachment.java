@@ -16,7 +16,7 @@ package ai.stigmer.agentic.agentrun.v1;
  *
  * 1. Client calls uploadAttachment RPC with file content
  * 2. Server returns a storage_key
- * 3. Client creates execution with Attachment containing that storage_key
+ * 3. Client creates run with Attachment containing that storage_key
  * 4. The runner downloads file from storage and injects into sandbox
  *
  * ## Mount Path
@@ -320,7 +320,7 @@ private static final long serialVersionUID = 0L;
    *
    * The CLI sets this unconditionally to the resolved absolute path of
    * the attached file.  storage_key remains required -- the upload still
-   * happens for execution history and replay support.
+   * happens for run history and replay support.
    * </pre>
    *
    * <code>string local_path = 6 [json_name = "localPath"];</code>
@@ -353,7 +353,7 @@ private static final long serialVersionUID = 0L;
    *
    * The CLI sets this unconditionally to the resolved absolute path of
    * the attached file.  storage_key remains required -- the upload still
-   * happens for execution history and replay support.
+   * happens for run history and replay support.
    * </pre>
    *
    * <code>string local_path = 6 [json_name = "localPath"];</code>
@@ -593,7 +593,7 @@ private static final long serialVersionUID = 0L;
    *
    * 1. Client calls uploadAttachment RPC with file content
    * 2. Server returns a storage_key
-   * 3. Client creates execution with Attachment containing that storage_key
+   * 3. Client creates run with Attachment containing that storage_key
    * 4. The runner downloads file from storage and injects into sandbox
    *
    * ## Mount Path
@@ -1299,7 +1299,7 @@ private static final long serialVersionUID = 0L;
      *
      * The CLI sets this unconditionally to the resolved absolute path of
      * the attached file.  storage_key remains required -- the upload still
-     * happens for execution history and replay support.
+     * happens for run history and replay support.
      * </pre>
      *
      * <code>string local_path = 6 [json_name = "localPath"];</code>
@@ -1331,7 +1331,7 @@ private static final long serialVersionUID = 0L;
      *
      * The CLI sets this unconditionally to the resolved absolute path of
      * the attached file.  storage_key remains required -- the upload still
-     * happens for execution history and replay support.
+     * happens for run history and replay support.
      * </pre>
      *
      * <code>string local_path = 6 [json_name = "localPath"];</code>
@@ -1364,7 +1364,7 @@ private static final long serialVersionUID = 0L;
      *
      * The CLI sets this unconditionally to the resolved absolute path of
      * the attached file.  storage_key remains required -- the upload still
-     * happens for execution history and replay support.
+     * happens for run history and replay support.
      * </pre>
      *
      * <code>string local_path = 6 [json_name = "localPath"];</code>
@@ -1393,7 +1393,7 @@ private static final long serialVersionUID = 0L;
      *
      * The CLI sets this unconditionally to the resolved absolute path of
      * the attached file.  storage_key remains required -- the upload still
-     * happens for execution history and replay support.
+     * happens for run history and replay support.
      * </pre>
      *
      * <code>string local_path = 6 [json_name = "localPath"];</code>
@@ -1419,7 +1419,7 @@ private static final long serialVersionUID = 0L;
      *
      * The CLI sets this unconditionally to the resolved absolute path of
      * the attached file.  storage_key remains required -- the upload still
-     * happens for execution history and replay support.
+     * happens for run history and replay support.
      * </pre>
      *
      * <code>string local_path = 6 [json_name = "localPath"];</code>

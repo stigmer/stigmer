@@ -8,7 +8,7 @@ package ai.stigmer.billing.v1;
 /**
  * <pre>
  * GetRunBillingSignalResponse carries the current directive for a
- * running execution and the human-readable reason behind it.
+ * run in progress and the human-readable reason behind it.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.v1.GetRunBillingSignalResponse}
@@ -299,7 +299,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * GetRunBillingSignalResponse carries the current directive for a
-   * running execution and the human-readable reason behind it.
+   * run in progress and the human-readable reason behind it.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.v1.GetRunBillingSignalResponse}

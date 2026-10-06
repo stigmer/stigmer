@@ -8,7 +8,7 @@ package ai.stigmer.billing.v1;
 /**
  * <pre>
  * PreviewAuthorizationInput asks whether an organization could fund an
- * execution right now, without writing a reservation.
+ * run right now, without writing a reservation.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.v1.PreviewAuthorizationInput}
@@ -280,7 +280,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * PreviewAuthorizationInput asks whether an organization could fund an
-   * execution right now, without writing a reservation.
+   * run right now, without writing a reservation.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.v1.PreviewAuthorizationInput}

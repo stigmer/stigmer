@@ -71,7 +71,7 @@ private static final long serialVersionUID = 0L;
           };
   /**
    * <pre>
-   * Filter by execution phases. Empty means all phases.
+   * Filter by run phases. Empty means all phases.
    *
    * Supersedes the top-level `phase` field on ListWorkflowRunsRequest
    * when both are set.
@@ -87,7 +87,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Filter by execution phases. Empty means all phases.
+   * Filter by run phases. Empty means all phases.
    *
    * Supersedes the top-level `phase` field on ListWorkflowRunsRequest
    * when both are set.
@@ -102,7 +102,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Filter by execution phases. Empty means all phases.
+   * Filter by run phases. Empty means all phases.
    *
    * Supersedes the top-level `phase` field on ListWorkflowRunsRequest
    * when both are set.
@@ -118,7 +118,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Filter by execution phases. Empty means all phases.
+   * Filter by run phases. Empty means all phases.
    *
    * Supersedes the top-level `phase` field on ListWorkflowRunsRequest
    * when both are set.
@@ -134,7 +134,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Filter by execution phases. Empty means all phases.
+   * Filter by run phases. Empty means all phases.
    *
    * Supersedes the top-level `phase` field on ListWorkflowRunsRequest
    * when both are set.
@@ -154,7 +154,7 @@ private static final long serialVersionUID = 0L;
   private com.google.protobuf.Timestamp startedAfter_;
   /**
    * <pre>
-   * Include only executions started at or after this timestamp.
+   * Include only runs started at or after this timestamp.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp started_after = 2 [json_name = "startedAfter"];</code>
@@ -166,7 +166,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Include only executions started at or after this timestamp.
+   * Include only runs started at or after this timestamp.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp started_after = 2 [json_name = "startedAfter"];</code>
@@ -178,7 +178,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Include only executions started at or after this timestamp.
+   * Include only runs started at or after this timestamp.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp started_after = 2 [json_name = "startedAfter"];</code>
@@ -192,7 +192,7 @@ private static final long serialVersionUID = 0L;
   private com.google.protobuf.Timestamp startedBefore_;
   /**
    * <pre>
-   * Include only executions started at or before this timestamp.
+   * Include only runs started at or before this timestamp.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp started_before = 3 [json_name = "startedBefore"];</code>
@@ -204,7 +204,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Include only executions started at or before this timestamp.
+   * Include only runs started at or before this timestamp.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp started_before = 3 [json_name = "startedBefore"];</code>
@@ -216,7 +216,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Include only executions started at or before this timestamp.
+   * Include only runs started at or before this timestamp.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp started_before = 3 [json_name = "startedBefore"];</code>
@@ -230,9 +230,9 @@ private static final long serialVersionUID = 0L;
   private com.google.protobuf.Duration minDuration_;
   /**
    * <pre>
-   * Minimum execution duration (completed executions only).
+   * Minimum run duration (completed runs only).
    *
-   * Executions still in progress or without timestamps are excluded
+   * Runs still in progress or without timestamps are excluded
    * when this filter is set.
    * </pre>
    *
@@ -245,9 +245,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Minimum execution duration (completed executions only).
+   * Minimum run duration (completed runs only).
    *
-   * Executions still in progress or without timestamps are excluded
+   * Runs still in progress or without timestamps are excluded
    * when this filter is set.
    * </pre>
    *
@@ -260,9 +260,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Minimum execution duration (completed executions only).
+   * Minimum run duration (completed runs only).
    *
-   * Executions still in progress or without timestamps are excluded
+   * Runs still in progress or without timestamps are excluded
    * when this filter is set.
    * </pre>
    *
@@ -277,7 +277,7 @@ private static final long serialVersionUID = 0L;
   private com.google.protobuf.Duration maxDuration_;
   /**
    * <pre>
-   * Maximum execution duration (completed executions only).
+   * Maximum run duration (completed runs only).
    * </pre>
    *
    * <code>.google.protobuf.Duration max_duration = 5 [json_name = "maxDuration"];</code>
@@ -289,7 +289,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Maximum execution duration (completed executions only).
+   * Maximum run duration (completed runs only).
    * </pre>
    *
    * <code>.google.protobuf.Duration max_duration = 5 [json_name = "maxDuration"];</code>
@@ -301,7 +301,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Maximum execution duration (completed executions only).
+   * Maximum run duration (completed runs only).
    * </pre>
    *
    * <code>.google.protobuf.Duration max_duration = 5 [json_name = "maxDuration"];</code>
@@ -346,7 +346,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object failedTaskName_ = "";
   /**
    * <pre>
-   * Filter to executions containing a failed task with this exact name.
+   * Filter to runs containing a failed task with this exact name.
    *
    * Matches against any task in status.tasks where
    * task.status == WORKFLOW_TASK_FAILED AND task.task_name == this value.
@@ -370,7 +370,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Filter to executions containing a failed task with this exact name.
+   * Filter to runs containing a failed task with this exact name.
    *
    * Matches against any task in status.tasks where
    * task.status == WORKFLOW_TASK_FAILED AND task.task_name == this value.
@@ -398,7 +398,7 @@ private static final long serialVersionUID = 0L;
   private boolean hasRetries_ = false;
   /**
    * <pre>
-   * When true, include only executions that contain at least one retried task.
+   * When true, include only runs that contain at least one retried task.
    *
    * A task is considered retried when its metadata contains a retry_count &gt; 0.
    * </pre>
@@ -1007,7 +1007,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Filter by execution phases. Empty means all phases.
+     * Filter by run phases. Empty means all phases.
      *
      * Supersedes the top-level `phase` field on ListWorkflowRunsRequest
      * when both are set.
@@ -1022,7 +1022,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Filter by execution phases. Empty means all phases.
+     * Filter by run phases. Empty means all phases.
      *
      * Supersedes the top-level `phase` field on ListWorkflowRunsRequest
      * when both are set.
@@ -1036,7 +1036,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Filter by execution phases. Empty means all phases.
+     * Filter by run phases. Empty means all phases.
      *
      * Supersedes the top-level `phase` field on ListWorkflowRunsRequest
      * when both are set.
@@ -1051,7 +1051,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Filter by execution phases. Empty means all phases.
+     * Filter by run phases. Empty means all phases.
      *
      * Supersedes the top-level `phase` field on ListWorkflowRunsRequest
      * when both are set.
@@ -1072,7 +1072,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Filter by execution phases. Empty means all phases.
+     * Filter by run phases. Empty means all phases.
      *
      * Supersedes the top-level `phase` field on ListWorkflowRunsRequest
      * when both are set.
@@ -1091,7 +1091,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Filter by execution phases. Empty means all phases.
+     * Filter by run phases. Empty means all phases.
      *
      * Supersedes the top-level `phase` field on ListWorkflowRunsRequest
      * when both are set.
@@ -1112,7 +1112,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Filter by execution phases. Empty means all phases.
+     * Filter by run phases. Empty means all phases.
      *
      * Supersedes the top-level `phase` field on ListWorkflowRunsRequest
      * when both are set.
@@ -1129,7 +1129,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Filter by execution phases. Empty means all phases.
+     * Filter by run phases. Empty means all phases.
      *
      * Supersedes the top-level `phase` field on ListWorkflowRunsRequest
      * when both are set.
@@ -1145,7 +1145,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Filter by execution phases. Empty means all phases.
+     * Filter by run phases. Empty means all phases.
      *
      * Supersedes the top-level `phase` field on ListWorkflowRunsRequest
      * when both are set.
@@ -1160,7 +1160,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Filter by execution phases. Empty means all phases.
+     * Filter by run phases. Empty means all phases.
      *
      * Supersedes the top-level `phase` field on ListWorkflowRunsRequest
      * when both are set.
@@ -1180,7 +1180,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Filter by execution phases. Empty means all phases.
+     * Filter by run phases. Empty means all phases.
      *
      * Supersedes the top-level `phase` field on ListWorkflowRunsRequest
      * when both are set.
@@ -1199,7 +1199,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Filter by execution phases. Empty means all phases.
+     * Filter by run phases. Empty means all phases.
      *
      * Supersedes the top-level `phase` field on ListWorkflowRunsRequest
      * when both are set.
@@ -1225,7 +1225,7 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> startedAfterBuilder_;
     /**
      * <pre>
-     * Include only executions started at or after this timestamp.
+     * Include only runs started at or after this timestamp.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp started_after = 2 [json_name = "startedAfter"];</code>
@@ -1236,7 +1236,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Include only executions started at or after this timestamp.
+     * Include only runs started at or after this timestamp.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp started_after = 2 [json_name = "startedAfter"];</code>
@@ -1251,7 +1251,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Include only executions started at or after this timestamp.
+     * Include only runs started at or after this timestamp.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp started_after = 2 [json_name = "startedAfter"];</code>
@@ -1271,7 +1271,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Include only executions started at or after this timestamp.
+     * Include only runs started at or after this timestamp.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp started_after = 2 [json_name = "startedAfter"];</code>
@@ -1289,7 +1289,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Include only executions started at or after this timestamp.
+     * Include only runs started at or after this timestamp.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp started_after = 2 [json_name = "startedAfter"];</code>
@@ -1314,7 +1314,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Include only executions started at or after this timestamp.
+     * Include only runs started at or after this timestamp.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp started_after = 2 [json_name = "startedAfter"];</code>
@@ -1331,7 +1331,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Include only executions started at or after this timestamp.
+     * Include only runs started at or after this timestamp.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp started_after = 2 [json_name = "startedAfter"];</code>
@@ -1343,7 +1343,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Include only executions started at or after this timestamp.
+     * Include only runs started at or after this timestamp.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp started_after = 2 [json_name = "startedAfter"];</code>
@@ -1358,7 +1358,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Include only executions started at or after this timestamp.
+     * Include only runs started at or after this timestamp.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp started_after = 2 [json_name = "startedAfter"];</code>
@@ -1382,7 +1382,7 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> startedBeforeBuilder_;
     /**
      * <pre>
-     * Include only executions started at or before this timestamp.
+     * Include only runs started at or before this timestamp.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp started_before = 3 [json_name = "startedBefore"];</code>
@@ -1393,7 +1393,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Include only executions started at or before this timestamp.
+     * Include only runs started at or before this timestamp.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp started_before = 3 [json_name = "startedBefore"];</code>
@@ -1408,7 +1408,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Include only executions started at or before this timestamp.
+     * Include only runs started at or before this timestamp.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp started_before = 3 [json_name = "startedBefore"];</code>
@@ -1428,7 +1428,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Include only executions started at or before this timestamp.
+     * Include only runs started at or before this timestamp.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp started_before = 3 [json_name = "startedBefore"];</code>
@@ -1446,7 +1446,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Include only executions started at or before this timestamp.
+     * Include only runs started at or before this timestamp.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp started_before = 3 [json_name = "startedBefore"];</code>
@@ -1471,7 +1471,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Include only executions started at or before this timestamp.
+     * Include only runs started at or before this timestamp.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp started_before = 3 [json_name = "startedBefore"];</code>
@@ -1488,7 +1488,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Include only executions started at or before this timestamp.
+     * Include only runs started at or before this timestamp.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp started_before = 3 [json_name = "startedBefore"];</code>
@@ -1500,7 +1500,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Include only executions started at or before this timestamp.
+     * Include only runs started at or before this timestamp.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp started_before = 3 [json_name = "startedBefore"];</code>
@@ -1515,7 +1515,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Include only executions started at or before this timestamp.
+     * Include only runs started at or before this timestamp.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp started_before = 3 [json_name = "startedBefore"];</code>
@@ -1539,9 +1539,9 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.Duration, com.google.protobuf.Duration.Builder, com.google.protobuf.DurationOrBuilder> minDurationBuilder_;
     /**
      * <pre>
-     * Minimum execution duration (completed executions only).
+     * Minimum run duration (completed runs only).
      *
-     * Executions still in progress or without timestamps are excluded
+     * Runs still in progress or without timestamps are excluded
      * when this filter is set.
      * </pre>
      *
@@ -1553,9 +1553,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Minimum execution duration (completed executions only).
+     * Minimum run duration (completed runs only).
      *
-     * Executions still in progress or without timestamps are excluded
+     * Runs still in progress or without timestamps are excluded
      * when this filter is set.
      * </pre>
      *
@@ -1571,9 +1571,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Minimum execution duration (completed executions only).
+     * Minimum run duration (completed runs only).
      *
-     * Executions still in progress or without timestamps are excluded
+     * Runs still in progress or without timestamps are excluded
      * when this filter is set.
      * </pre>
      *
@@ -1594,9 +1594,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Minimum execution duration (completed executions only).
+     * Minimum run duration (completed runs only).
      *
-     * Executions still in progress or without timestamps are excluded
+     * Runs still in progress or without timestamps are excluded
      * when this filter is set.
      * </pre>
      *
@@ -1615,9 +1615,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Minimum execution duration (completed executions only).
+     * Minimum run duration (completed runs only).
      *
-     * Executions still in progress or without timestamps are excluded
+     * Runs still in progress or without timestamps are excluded
      * when this filter is set.
      * </pre>
      *
@@ -1643,9 +1643,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Minimum execution duration (completed executions only).
+     * Minimum run duration (completed runs only).
      *
-     * Executions still in progress or without timestamps are excluded
+     * Runs still in progress or without timestamps are excluded
      * when this filter is set.
      * </pre>
      *
@@ -1663,9 +1663,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Minimum execution duration (completed executions only).
+     * Minimum run duration (completed runs only).
      *
-     * Executions still in progress or without timestamps are excluded
+     * Runs still in progress or without timestamps are excluded
      * when this filter is set.
      * </pre>
      *
@@ -1678,9 +1678,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Minimum execution duration (completed executions only).
+     * Minimum run duration (completed runs only).
      *
-     * Executions still in progress or without timestamps are excluded
+     * Runs still in progress or without timestamps are excluded
      * when this filter is set.
      * </pre>
      *
@@ -1696,9 +1696,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Minimum execution duration (completed executions only).
+     * Minimum run duration (completed runs only).
      *
-     * Executions still in progress or without timestamps are excluded
+     * Runs still in progress or without timestamps are excluded
      * when this filter is set.
      * </pre>
      *
@@ -1723,7 +1723,7 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.Duration, com.google.protobuf.Duration.Builder, com.google.protobuf.DurationOrBuilder> maxDurationBuilder_;
     /**
      * <pre>
-     * Maximum execution duration (completed executions only).
+     * Maximum run duration (completed runs only).
      * </pre>
      *
      * <code>.google.protobuf.Duration max_duration = 5 [json_name = "maxDuration"];</code>
@@ -1734,7 +1734,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Maximum execution duration (completed executions only).
+     * Maximum run duration (completed runs only).
      * </pre>
      *
      * <code>.google.protobuf.Duration max_duration = 5 [json_name = "maxDuration"];</code>
@@ -1749,7 +1749,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Maximum execution duration (completed executions only).
+     * Maximum run duration (completed runs only).
      * </pre>
      *
      * <code>.google.protobuf.Duration max_duration = 5 [json_name = "maxDuration"];</code>
@@ -1769,7 +1769,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Maximum execution duration (completed executions only).
+     * Maximum run duration (completed runs only).
      * </pre>
      *
      * <code>.google.protobuf.Duration max_duration = 5 [json_name = "maxDuration"];</code>
@@ -1787,7 +1787,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Maximum execution duration (completed executions only).
+     * Maximum run duration (completed runs only).
      * </pre>
      *
      * <code>.google.protobuf.Duration max_duration = 5 [json_name = "maxDuration"];</code>
@@ -1812,7 +1812,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Maximum execution duration (completed executions only).
+     * Maximum run duration (completed runs only).
      * </pre>
      *
      * <code>.google.protobuf.Duration max_duration = 5 [json_name = "maxDuration"];</code>
@@ -1829,7 +1829,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Maximum execution duration (completed executions only).
+     * Maximum run duration (completed runs only).
      * </pre>
      *
      * <code>.google.protobuf.Duration max_duration = 5 [json_name = "maxDuration"];</code>
@@ -1841,7 +1841,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Maximum execution duration (completed executions only).
+     * Maximum run duration (completed runs only).
      * </pre>
      *
      * <code>.google.protobuf.Duration max_duration = 5 [json_name = "maxDuration"];</code>
@@ -1856,7 +1856,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Maximum execution duration (completed executions only).
+     * Maximum run duration (completed runs only).
      * </pre>
      *
      * <code>.google.protobuf.Duration max_duration = 5 [json_name = "maxDuration"];</code>
@@ -1966,7 +1966,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object failedTaskName_ = "";
     /**
      * <pre>
-     * Filter to executions containing a failed task with this exact name.
+     * Filter to runs containing a failed task with this exact name.
      *
      * Matches against any task in status.tasks where
      * task.status == WORKFLOW_TASK_FAILED AND task.task_name == this value.
@@ -1989,7 +1989,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Filter to executions containing a failed task with this exact name.
+     * Filter to runs containing a failed task with this exact name.
      *
      * Matches against any task in status.tasks where
      * task.status == WORKFLOW_TASK_FAILED AND task.task_name == this value.
@@ -2013,7 +2013,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Filter to executions containing a failed task with this exact name.
+     * Filter to runs containing a failed task with this exact name.
      *
      * Matches against any task in status.tasks where
      * task.status == WORKFLOW_TASK_FAILED AND task.task_name == this value.
@@ -2033,7 +2033,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Filter to executions containing a failed task with this exact name.
+     * Filter to runs containing a failed task with this exact name.
      *
      * Matches against any task in status.tasks where
      * task.status == WORKFLOW_TASK_FAILED AND task.task_name == this value.
@@ -2050,7 +2050,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Filter to executions containing a failed task with this exact name.
+     * Filter to runs containing a failed task with this exact name.
      *
      * Matches against any task in status.tasks where
      * task.status == WORKFLOW_TASK_FAILED AND task.task_name == this value.
@@ -2073,7 +2073,7 @@ private static final long serialVersionUID = 0L;
     private boolean hasRetries_ ;
     /**
      * <pre>
-     * When true, include only executions that contain at least one retried task.
+     * When true, include only runs that contain at least one retried task.
      *
      * A task is considered retried when its metadata contains a retry_count &gt; 0.
      * </pre>
@@ -2087,7 +2087,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When true, include only executions that contain at least one retried task.
+     * When true, include only runs that contain at least one retried task.
      *
      * A task is considered retried when its metadata contains a retry_count &gt; 0.
      * </pre>
@@ -2105,7 +2105,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When true, include only executions that contain at least one retried task.
+     * When true, include only runs that contain at least one retried task.
      *
      * A task is considered retried when its metadata contains a retry_count &gt; 0.
      * </pre>

@@ -157,7 +157,7 @@ private static final long serialVersionUID = 0L;
   private int pageSize_ = 0;
   /**
    * <pre>
-   * Not read: an execution's artifacts are returned whole.
+   * Not read: a run's artifacts are returned whole.
    * </pre>
    *
    * <code>int32 page_size = 3 [json_name = "pageSize", deprecated = true];</code>
@@ -175,7 +175,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object pageToken_ = "";
   /**
    * <pre>
-   * Not read: an execution's artifacts are returned whole.
+   * Not read: a run's artifacts are returned whole.
    * </pre>
    *
    * <code>string page_token = 4 [json_name = "pageToken", deprecated = true];</code>
@@ -198,7 +198,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Not read: an execution's artifacts are returned whole.
+   * Not read: a run's artifacts are returned whole.
    * </pre>
    *
    * <code>string page_token = 4 [json_name = "pageToken", deprecated = true];</code>
@@ -787,7 +787,7 @@ private static final long serialVersionUID = 0L;
     private int pageSize_ ;
     /**
      * <pre>
-     * Not read: an execution's artifacts are returned whole.
+     * Not read: a run's artifacts are returned whole.
      * </pre>
      *
      * <code>int32 page_size = 3 [json_name = "pageSize", deprecated = true];</code>
@@ -801,7 +801,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Not read: an execution's artifacts are returned whole.
+     * Not read: a run's artifacts are returned whole.
      * </pre>
      *
      * <code>int32 page_size = 3 [json_name = "pageSize", deprecated = true];</code>
@@ -819,7 +819,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Not read: an execution's artifacts are returned whole.
+     * Not read: a run's artifacts are returned whole.
      * </pre>
      *
      * <code>int32 page_size = 3 [json_name = "pageSize", deprecated = true];</code>
@@ -837,7 +837,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object pageToken_ = "";
     /**
      * <pre>
-     * Not read: an execution's artifacts are returned whole.
+     * Not read: a run's artifacts are returned whole.
      * </pre>
      *
      * <code>string page_token = 4 [json_name = "pageToken", deprecated = true];</code>
@@ -859,7 +859,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Not read: an execution's artifacts are returned whole.
+     * Not read: a run's artifacts are returned whole.
      * </pre>
      *
      * <code>string page_token = 4 [json_name = "pageToken", deprecated = true];</code>
@@ -882,7 +882,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Not read: an execution's artifacts are returned whole.
+     * Not read: a run's artifacts are returned whole.
      * </pre>
      *
      * <code>string page_token = 4 [json_name = "pageToken", deprecated = true];</code>
@@ -901,7 +901,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Not read: an execution's artifacts are returned whole.
+     * Not read: a run's artifacts are returned whole.
      * </pre>
      *
      * <code>string page_token = 4 [json_name = "pageToken", deprecated = true];</code>
@@ -917,7 +917,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Not read: an execution's artifacts are returned whole.
+     * Not read: a run's artifacts are returned whole.
      * </pre>
      *
      * <code>string page_token = 4 [json_name = "pageToken", deprecated = true];</code>

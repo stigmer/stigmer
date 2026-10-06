@@ -21,7 +21,7 @@ public enum ScheduleRunOutcome
   SCHEDULE_RUN_OUTCOME_UNSPECIFIED(0),
   /**
    * <pre>
-   * An execution was created (or idempotently re-found) and is running.
+   * A run was created (or idempotently re-found) and is running.
    * </pre>
    *
    * <code>SCHEDULE_RUN_OUTCOME_STARTED = 1;</code>
@@ -96,7 +96,7 @@ public enum ScheduleRunOutcome
   public static final int SCHEDULE_RUN_OUTCOME_UNSPECIFIED_VALUE = 0;
   /**
    * <pre>
-   * An execution was created (or idempotently re-found) and is running.
+   * A run was created (or idempotently re-found) and is running.
    * </pre>
    *
    * <code>SCHEDULE_RUN_OUTCOME_STARTED = 1;</code>

@@ -52,7 +52,7 @@ public interface AgentFailureRankOrBuilder extends
 
   /**
    * <pre>
-   * Number of failed executions in the time window.
+   * Number of failed runs in the time window.
    * </pre>
    *
    * <code>int32 failure_count = 3 [json_name = "failureCount"];</code>

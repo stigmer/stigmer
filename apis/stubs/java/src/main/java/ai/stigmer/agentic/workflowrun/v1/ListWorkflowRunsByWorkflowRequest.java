@@ -7,7 +7,7 @@ package ai.stigmer.agentic.workflowrun.v1;
 
 /**
  * <pre>
- * ListWorkflowRunsByWorkflowRequest lists executions for a specific workflow.
+ * ListWorkflowRunsByWorkflowRequest lists runs for a specific workflow.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowrun.v1.ListWorkflowRunsByWorkflowRequest}
@@ -107,7 +107,7 @@ private static final long serialVersionUID = 0L;
   private int pageSize_ = 0;
   /**
    * <pre>
-   * The most executions to return, at most 100; zero returns them all.
+   * The most runs to return, at most 100; zero returns them all.
    * </pre>
    *
    * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
@@ -468,7 +468,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ListWorkflowRunsByWorkflowRequest lists executions for a specific workflow.
+   * ListWorkflowRunsByWorkflowRequest lists runs for a specific workflow.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowrun.v1.ListWorkflowRunsByWorkflowRequest}
@@ -782,7 +782,7 @@ private static final long serialVersionUID = 0L;
     private int pageSize_ ;
     /**
      * <pre>
-     * The most executions to return, at most 100; zero returns them all.
+     * The most runs to return, at most 100; zero returns them all.
      * </pre>
      *
      * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
@@ -794,7 +794,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The most executions to return, at most 100; zero returns them all.
+     * The most runs to return, at most 100; zero returns them all.
      * </pre>
      *
      * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
@@ -810,7 +810,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The most executions to return, at most 100; zero returns them all.
+     * The most runs to return, at most 100; zero returns them all.
      * </pre>
      *
      * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>

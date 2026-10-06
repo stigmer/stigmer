@@ -21,7 +21,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// A pending approval request for a tool call that requires user consent before run.
+// A pending approval request for a tool call that requires user consent before execution.
 //
 // Each entry represents one tool call waiting for a user decision (approve, skip,
 // or reject). Sub-agent approvals are included with from_sub_agent set to true
@@ -268,8 +268,8 @@ func (x *PendingApproval) GetApprovalPolicyHook() string {
 //
 // Retained for wire compatibility; the platform no longer produces or
 // consumes it. The live "child_approval_required" signal is identity-only —
-// a bare-string child execution id — and the parent side derives pending
-// approvals by reading the child execution record (a single source of truth
+// a bare-string child run id — and the parent side derives pending
+// approvals by reading the child run record (a single source of truth
 // instead of a payload copy that can drift).
 type ChildApprovalNotification struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -509,11 +509,11 @@ func (x *ApprovalRequest) GetApprovalPolicyHook() string {
 // The platform's withdrawal of an in-flight approval request — the system-actored
 // terminal transition of the approval lifecycle, authored when a gated call
 // becomes unreachable before any user decision (its sub-agent went terminal, or
-// it was superseded on resume) while the execution is still live.
+// it was superseded on resume) while the run is still live.
 //
-// It is distinct from ApprovalDecision (the three user actions). Terminal-execution
+// It is distinct from ApprovalDecision (the three user actions). Terminal-run
 // gate-exits (cancel / fail / terminate) are NOT modeled here — a terminal
-// execution simply has zero pending approvals by projection — so this event is
+// run simply has zero pending approvals by projection — so this event is
 // reserved for the in-flight, per-call orphan case. See APPROVAL_EVENT_TYPE_RETRACTED.
 type ApprovalRetraction struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -832,7 +832,7 @@ func (*ApprovalEvent_Retracted) isApprovalEvent_Payload() {}
 // The lifecycle is total: every REQUESTED is eventually resolved by a decision
 // (APPROVED / REJECTED / SKIPPED) or by a RETRACTED event the reconciler authors
 // when an in-flight gated call becomes unreachable without a decision. Combined
-// with the projection treating a terminal execution as zero pending approvals,
+// with the projection treating a terminal run as zero pending approvals,
 // this makes ComputePendingApprovalsFromEvents over this stream agree with the
 // message scan after every write — the equality property the eventual
 // source-of-truth flip rides on. The source of truth does not flip in this
@@ -841,7 +841,7 @@ func (*ApprovalEvent_Retracted) isApprovalEvent_Payload() {}
 //
 // Appends are keyed by the deterministic ApprovalEvent.event_id: REQUESTED and
 // RETRACTED events are authored by the UpdateStatus / SubmitApproval reconciler
-// (REQUESTED seeded once from the scan for executions predating the field),
+// (REQUESTED seeded once from the scan for runs predating the field),
 // decision events by SubmitApproval (with decided_by and comment). Authoring the
 // rich decision event in the same operation that records the decision on the
 // scan guarantees it can never be duplicated or clobbered by a coarse

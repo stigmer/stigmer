@@ -334,7 +334,7 @@ export type GitTreeRef = Message<"ai.stigmer.agentic.agentrun.v1.GitTreeRef"> & 
 
   /**
    * The ref the snapshot is pinned under, e.g.
-   * "refs/stigmer/{execution}/{baseline|candidate|approved}". Keeps the
+   * "refs/stigmer/{run}/{baseline|candidate|approved}". Keeps the
    * snapshot reachable (un-GC'd) without a commit on any user branch.
    *
    * @generated from field: string ref = 2;

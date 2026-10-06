@@ -48,7 +48,7 @@ public enum LedgerEntryType
   usage_debit(3),
   /**
    * <pre>
-   * Hold placed at execution start to reserve credits.
+   * Hold placed at run start to reserve credits.
    * </pre>
    *
    * <code>reservation_hold = 4;</code>
@@ -56,7 +56,7 @@ public enum LedgerEntryType
   reservation_hold(4),
   /**
    * <pre>
-   * Release of unused reservation after execution completes.
+   * Release of unused reservation after the run completes.
    * </pre>
    *
    * <code>reservation_release = 5;</code>
@@ -160,7 +160,7 @@ public enum LedgerEntryType
   public static final int usage_debit_VALUE = 3;
   /**
    * <pre>
-   * Hold placed at execution start to reserve credits.
+   * Hold placed at run start to reserve credits.
    * </pre>
    *
    * <code>reservation_hold = 4;</code>
@@ -168,7 +168,7 @@ public enum LedgerEntryType
   public static final int reservation_hold_VALUE = 4;
   /**
    * <pre>
-   * Release of unused reservation after execution completes.
+   * Release of unused reservation after the run completes.
    * </pre>
    *
    * <code>reservation_release = 5;</code>

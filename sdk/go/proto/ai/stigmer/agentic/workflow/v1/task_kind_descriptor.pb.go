@@ -420,7 +420,7 @@ func (x *TaskFieldDescriptor) GetValidationHints() []string {
 // - Generate configuration forms (fields, field_groups)
 // - Power YAML editor autocomplete (config_json_schema)
 // - Validate task configs client-side (config_json_schema)
-// - Display task output shapes in the execution viewer (output_json_schema)
+// - Display task output shapes in the run viewer (output_json_schema)
 // - Generate documentation (description, yaml_examples, documentation_url)
 type TaskKindDescriptor struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -449,7 +449,7 @@ type TaskKindDescriptor struct {
 	// and autocomplete, and by form libraries (RJSF) for form generation.
 	ConfigJsonSchema string `protobuf:"bytes,9,opt,name=config_json_schema,json=configJsonSchema,proto3" json:"config_json_schema,omitempty"`
 	// JSON Schema describing the task's output shape.
-	// Serialized as a JSON string. Used by the execution viewer to
+	// Serialized as a JSON string. Used by the run viewer to
 	// render typed output inspection panels.
 	OutputJsonSchema string `protobuf:"bytes,10,opt,name=output_json_schema,json=outputJsonSchema,proto3" json:"output_json_schema,omitempty"`
 	// YAML code examples demonstrating common usage patterns.

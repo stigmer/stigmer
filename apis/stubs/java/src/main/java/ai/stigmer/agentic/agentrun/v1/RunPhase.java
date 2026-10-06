@@ -44,7 +44,7 @@ public enum RunPhase
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
    * <pre>
-   * Default value, not a valid execution phase.
+   * Default value, not a valid run phase.
    * </pre>
    *
    * <code>RUN_PHASE_UNSPECIFIED = 0;</code>
@@ -52,7 +52,7 @@ public enum RunPhase
   RUN_PHASE_UNSPECIFIED(0),
   /**
    * <pre>
-   * Execution is queued and waiting for a worker to start processing.
+   * Run is queued and waiting for a worker to start processing.
    * </pre>
    *
    * <code>RUN_PENDING = 1;</code>
@@ -60,7 +60,7 @@ public enum RunPhase
   RUN_PENDING(1),
   /**
    * <pre>
-   * Execution is actively running — the agent is processing and producing output.
+   * Run is in progress — the agent is processing and producing output.
    * </pre>
    *
    * <code>RUN_IN_PROGRESS = 2;</code>
@@ -68,7 +68,7 @@ public enum RunPhase
   RUN_IN_PROGRESS(2),
   /**
    * <pre>
-   * Execution finished successfully and the agent produced a final response.
+   * Run finished successfully and the agent produced a final response.
    * </pre>
    *
    * <code>RUN_COMPLETED = 3;</code>
@@ -76,7 +76,7 @@ public enum RunPhase
   RUN_COMPLETED(3),
   /**
    * <pre>
-   * Execution encountered an unexpected error and could not finish.
+   * Run encountered an unexpected error and could not finish.
    * </pre>
    *
    * <code>RUN_FAILED = 4;</code>
@@ -84,7 +84,7 @@ public enum RunPhase
   RUN_FAILED(4),
   /**
    * <pre>
-   * Execution was gracefully stopped by the user before it finished.
+   * Run was gracefully stopped by the user before it finished.
    * </pre>
    *
    * <code>RUN_CANCELLED = 5;</code>
@@ -92,14 +92,14 @@ public enum RunPhase
   RUN_CANCELLED(5),
   /**
    * <pre>
-   * Execution was stopped by the platform.
+   * Run was stopped by the platform.
    *
    * Unlike CANCELLED (user-initiated graceful stop) and FAILED (unexpected
    * error), TERMINATED means the platform intentionally stopped this
-   * execution — either via automated safety mechanisms or user-initiated
+   * run — either via automated safety mechanisms or user-initiated
    * force-kill.
    *
-   * Terminal state — execution will not change phases again.
+   * Terminal state — run will not change phases again.
    *
    * When this phase is reached:
    * - completed_at timestamp is set
@@ -131,18 +131,18 @@ public enum RunPhase
    * <pre>
    * Blocked on tool approval.
    *
-   * The agent has encountered a tool that requires user approval before run.
+   * The agent has encountered a tool that requires user approval before execution.
    * When in this phase:
    * - status.pending_approval contains details about the tool awaiting approval
    * - User must call SubmitApproval RPC to continue
    *
-   * This is NOT a terminal state - execution resumes after approval decision:
+   * This is NOT a terminal state - run resumes after approval decision:
    * - APPROVE: Tool executes, phase returns to RUN_IN_PROGRESS
    * - SKIP: Tool returns a neutral "skipped" message, phase returns to RUN_IN_PROGRESS
    * - REJECT: Tool is denied and the user's objection is fed back to the model;
    * the tool does NOT execute and phase returns to RUN_IN_PROGRESS. REJECT
    * denies a single tool call, it does NOT fail the run — the model adapts and
-   * the execution continues to RUN_COMPLETED. To stop the whole execution,
+   * the run continues to RUN_COMPLETED. To stop the whole run,
    * use Cancel (RUN_CANCELLED) or Terminate (RUN_TERMINATED).
    *
    * UI should show distinct treatment for this phase (e.g., approval dialog).
@@ -153,10 +153,10 @@ public enum RunPhase
   RUN_WAITING_FOR_APPROVAL(6),
   /**
    * <pre>
-   * Execution was paused by user and can be resumed.
+   * Run was paused by user and can be resumed.
    *
-   * The execution was temporarily stopped at a checkpoint and can continue
-   * from where it left off. Unlike CANCELLED, the execution is not terminal.
+   * The run was temporarily stopped at a checkpoint and can continue
+   * from where it left off. Unlike CANCELLED, the run is not terminal.
    *
    * Pause flow:
    * RUN_IN_PROGRESS → RUN_PAUSED
@@ -164,17 +164,17 @@ public enum RunPhase
    * Resume flow:
    * RUN_PAUSED → RUN_IN_PROGRESS
    *
-   * NOT a terminal state - execution can be resumed.
+   * NOT a terminal state - run can be resumed.
    *
    * When this phase is reached:
    * - Running activities are gracefully cancelled
    * - LangGraph checkpoints are saved (thread_id preserved)
-   * - No completed_at timestamp (execution is not finished)
+   * - No completed_at timestamp (run is not finished)
    *
    * Resume behavior:
    * - Activity is re-invoked with same thread_id
    * - LangGraph loads from checkpoint automatically
-   * - Execution continues from where it was paused
+   * - Run continues from where it was paused
    * </pre>
    *
    * <code>RUN_PAUSED = 7;</code>
@@ -194,7 +194,7 @@ public enum RunPhase
   }
   /**
    * <pre>
-   * Default value, not a valid execution phase.
+   * Default value, not a valid run phase.
    * </pre>
    *
    * <code>RUN_PHASE_UNSPECIFIED = 0;</code>
@@ -202,7 +202,7 @@ public enum RunPhase
   public static final int RUN_PHASE_UNSPECIFIED_VALUE = 0;
   /**
    * <pre>
-   * Execution is queued and waiting for a worker to start processing.
+   * Run is queued and waiting for a worker to start processing.
    * </pre>
    *
    * <code>RUN_PENDING = 1;</code>
@@ -210,7 +210,7 @@ public enum RunPhase
   public static final int RUN_PENDING_VALUE = 1;
   /**
    * <pre>
-   * Execution is actively running — the agent is processing and producing output.
+   * Run is in progress — the agent is processing and producing output.
    * </pre>
    *
    * <code>RUN_IN_PROGRESS = 2;</code>
@@ -218,7 +218,7 @@ public enum RunPhase
   public static final int RUN_IN_PROGRESS_VALUE = 2;
   /**
    * <pre>
-   * Execution finished successfully and the agent produced a final response.
+   * Run finished successfully and the agent produced a final response.
    * </pre>
    *
    * <code>RUN_COMPLETED = 3;</code>
@@ -226,7 +226,7 @@ public enum RunPhase
   public static final int RUN_COMPLETED_VALUE = 3;
   /**
    * <pre>
-   * Execution encountered an unexpected error and could not finish.
+   * Run encountered an unexpected error and could not finish.
    * </pre>
    *
    * <code>RUN_FAILED = 4;</code>
@@ -234,7 +234,7 @@ public enum RunPhase
   public static final int RUN_FAILED_VALUE = 4;
   /**
    * <pre>
-   * Execution was gracefully stopped by the user before it finished.
+   * Run was gracefully stopped by the user before it finished.
    * </pre>
    *
    * <code>RUN_CANCELLED = 5;</code>
@@ -242,14 +242,14 @@ public enum RunPhase
   public static final int RUN_CANCELLED_VALUE = 5;
   /**
    * <pre>
-   * Execution was stopped by the platform.
+   * Run was stopped by the platform.
    *
    * Unlike CANCELLED (user-initiated graceful stop) and FAILED (unexpected
    * error), TERMINATED means the platform intentionally stopped this
-   * execution — either via automated safety mechanisms or user-initiated
+   * run — either via automated safety mechanisms or user-initiated
    * force-kill.
    *
-   * Terminal state — execution will not change phases again.
+   * Terminal state — run will not change phases again.
    *
    * When this phase is reached:
    * - completed_at timestamp is set
@@ -281,18 +281,18 @@ public enum RunPhase
    * <pre>
    * Blocked on tool approval.
    *
-   * The agent has encountered a tool that requires user approval before run.
+   * The agent has encountered a tool that requires user approval before execution.
    * When in this phase:
    * - status.pending_approval contains details about the tool awaiting approval
    * - User must call SubmitApproval RPC to continue
    *
-   * This is NOT a terminal state - execution resumes after approval decision:
+   * This is NOT a terminal state - run resumes after approval decision:
    * - APPROVE: Tool executes, phase returns to RUN_IN_PROGRESS
    * - SKIP: Tool returns a neutral "skipped" message, phase returns to RUN_IN_PROGRESS
    * - REJECT: Tool is denied and the user's objection is fed back to the model;
    * the tool does NOT execute and phase returns to RUN_IN_PROGRESS. REJECT
    * denies a single tool call, it does NOT fail the run — the model adapts and
-   * the execution continues to RUN_COMPLETED. To stop the whole execution,
+   * the run continues to RUN_COMPLETED. To stop the whole run,
    * use Cancel (RUN_CANCELLED) or Terminate (RUN_TERMINATED).
    *
    * UI should show distinct treatment for this phase (e.g., approval dialog).
@@ -303,10 +303,10 @@ public enum RunPhase
   public static final int RUN_WAITING_FOR_APPROVAL_VALUE = 6;
   /**
    * <pre>
-   * Execution was paused by user and can be resumed.
+   * Run was paused by user and can be resumed.
    *
-   * The execution was temporarily stopped at a checkpoint and can continue
-   * from where it left off. Unlike CANCELLED, the execution is not terminal.
+   * The run was temporarily stopped at a checkpoint and can continue
+   * from where it left off. Unlike CANCELLED, the run is not terminal.
    *
    * Pause flow:
    * RUN_IN_PROGRESS → RUN_PAUSED
@@ -314,17 +314,17 @@ public enum RunPhase
    * Resume flow:
    * RUN_PAUSED → RUN_IN_PROGRESS
    *
-   * NOT a terminal state - execution can be resumed.
+   * NOT a terminal state - run can be resumed.
    *
    * When this phase is reached:
    * - Running activities are gracefully cancelled
    * - LangGraph checkpoints are saved (thread_id preserved)
-   * - No completed_at timestamp (execution is not finished)
+   * - No completed_at timestamp (run is not finished)
    *
    * Resume behavior:
    * - Activity is re-invoked with same thread_id
    * - LangGraph loads from checkpoint automatically
-   * - Execution continues from where it was paused
+   * - Run continues from where it was paused
    * </pre>
    *
    * <code>RUN_PAUSED = 7;</code>

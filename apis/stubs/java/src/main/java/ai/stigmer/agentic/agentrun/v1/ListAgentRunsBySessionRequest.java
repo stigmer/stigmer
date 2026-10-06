@@ -7,9 +7,9 @@ package ai.stigmer.agentic.agentrun.v1;
 
 /**
  * <pre>
- * ListAgentRunsBySessionRequest lists all executions in a session.
+ * ListAgentRunsBySessionRequest lists all runs in a session.
  *
- * A session's executions are returned whole, newest first: a conversation
+ * A session's runs are returned whole, newest first: a conversation
  * is read as one, and every consumer of this list needs all of it.
  * </pre>
  *
@@ -108,7 +108,7 @@ private static final long serialVersionUID = 0L;
   private int pageSize_ = 0;
   /**
    * <pre>
-   * Not read: a session's executions are returned whole.
+   * Not read: a session's runs are returned whole.
    * </pre>
    *
    * <code>int32 page_size = 2 [json_name = "pageSize", deprecated = true];</code>
@@ -126,7 +126,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object pageToken_ = "";
   /**
    * <pre>
-   * Not read: a session's executions are returned whole.
+   * Not read: a session's runs are returned whole.
    * </pre>
    *
    * <code>string page_token = 3 [json_name = "pageToken", deprecated = true];</code>
@@ -149,7 +149,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Not read: a session's executions are returned whole.
+   * Not read: a session's runs are returned whole.
    * </pre>
    *
    * <code>string page_token = 3 [json_name = "pageToken", deprecated = true];</code>
@@ -351,9 +351,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ListAgentRunsBySessionRequest lists all executions in a session.
+   * ListAgentRunsBySessionRequest lists all runs in a session.
    *
-   * A session's executions are returned whole, newest first: a conversation
+   * A session's runs are returned whole, newest first: a conversation
    * is read as one, and every consumer of this list needs all of it.
    * </pre>
    *
@@ -615,7 +615,7 @@ private static final long serialVersionUID = 0L;
     private int pageSize_ ;
     /**
      * <pre>
-     * Not read: a session's executions are returned whole.
+     * Not read: a session's runs are returned whole.
      * </pre>
      *
      * <code>int32 page_size = 2 [json_name = "pageSize", deprecated = true];</code>
@@ -629,7 +629,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Not read: a session's executions are returned whole.
+     * Not read: a session's runs are returned whole.
      * </pre>
      *
      * <code>int32 page_size = 2 [json_name = "pageSize", deprecated = true];</code>
@@ -647,7 +647,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Not read: a session's executions are returned whole.
+     * Not read: a session's runs are returned whole.
      * </pre>
      *
      * <code>int32 page_size = 2 [json_name = "pageSize", deprecated = true];</code>
@@ -665,7 +665,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object pageToken_ = "";
     /**
      * <pre>
-     * Not read: a session's executions are returned whole.
+     * Not read: a session's runs are returned whole.
      * </pre>
      *
      * <code>string page_token = 3 [json_name = "pageToken", deprecated = true];</code>
@@ -687,7 +687,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Not read: a session's executions are returned whole.
+     * Not read: a session's runs are returned whole.
      * </pre>
      *
      * <code>string page_token = 3 [json_name = "pageToken", deprecated = true];</code>
@@ -710,7 +710,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Not read: a session's executions are returned whole.
+     * Not read: a session's runs are returned whole.
      * </pre>
      *
      * <code>string page_token = 3 [json_name = "pageToken", deprecated = true];</code>
@@ -729,7 +729,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Not read: a session's executions are returned whole.
+     * Not read: a session's runs are returned whole.
      * </pre>
      *
      * <code>string page_token = 3 [json_name = "pageToken", deprecated = true];</code>
@@ -745,7 +745,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Not read: a session's executions are returned whole.
+     * Not read: a session's runs are returned whole.
      * </pre>
      *
      * <code>string page_token = 3 [json_name = "pageToken", deprecated = true];</code>

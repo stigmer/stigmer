@@ -92,14 +92,14 @@ class AgentRunQueryControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def listBySession(self, request, context):
-        """List all executions in a specific session.
+        """List all runs in a specific session.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def subscribe(self, request, context):
-        """Subscribe to real-time execution updates (streaming).
+        """Subscribe to real-time run updates (streaming).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -112,10 +112,10 @@ class AgentRunQueryControllerServicer(object):
         These RPCs support downloading artifacts created by agent runs.
         ─────────────────────────────────────────────────────────────────────────────
 
-        Get a presigned download URL for an execution artifact or attachment.
+        Get a presigned download URL for a run artifact or attachment.
 
         Returns a time-limited URL for downloading an artifact published by
-        an agent during execution, or an attachment submitted with the
+        an agent during the run, or an attachment submitted with the
         run. The URL can be used with a simple HTTP GET request without
         authentication.
         """
@@ -124,7 +124,7 @@ class AgentRunQueryControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def getArtifactContent(self, request, context):
-        """Read the raw content of an execution artifact.
+        """Read the raw content of a run artifact.
 
         Returns artifact bytes through the Stigmer API, eliminating CORS
         concerns for SDK consumers who need to read content programmatically
@@ -141,7 +141,7 @@ class AgentRunQueryControllerServicer(object):
         """─────────────────────────────────────────────────────────────────────────────
         Usage Report Operations
 
-        These RPCs provide cost and token consumption visibility at execution,
+        These RPCs provide cost and token consumption visibility at run,
         session, agent, and organization levels. All data is sourced from the
         llm_call_usage_record collection (billing domain).
         ─────────────────────────────────────────────────────────────────────────────
@@ -157,7 +157,7 @@ class AgentRunQueryControllerServicer(object):
     def getSessionUsageReport(self, request, context):
         """Get a usage report for a session.
 
-        Returns aggregated tokens, cost, and per-execution breakdown.
+        Returns aggregated tokens, cost, and per-run breakdown.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -167,8 +167,8 @@ class AgentRunQueryControllerServicer(object):
         """Get a usage report for an agent within an organization.
 
         Returns aggregated tokens, cost, and per-session breakdown for one
-        organization's executions of the agent. Requires can_view on the
-        organization named in org; executions outside that organization are
+        organization's runs of the agent. Requires can_view on the
+        organization named in org; runs outside that organization are
         never included, so the report is the per-agent drill-down of
         getOrgUsageReport.
         """
@@ -187,14 +187,14 @@ class AgentRunQueryControllerServicer(object):
 
     def getRunSummary(self, request, context):
         """─────────────────────────────────────────────────────────────────────────────
-        Execution Summary (Dashboard Aggregation)
+        Run Summary (Dashboard Aggregation)
 
         Operational summary for the unified platform dashboard. Returns phase
-        counts and active execution count — cost is sourced separately from
+        counts and active run count — cost is sourced separately from
         getOrgUsageReport to prevent double-counting (AD-DASH-005).
         ─────────────────────────────────────────────────────────────────────────────
 
-        Get aggregated execution statistics for an organization's agent runs.
+        Get aggregated run statistics for an organization's agent runs.
 
         Returns counts by phase, active count, average duration, and top failing
         agents — scoped to a configurable time window (24h, 7d, 30d, all-time).

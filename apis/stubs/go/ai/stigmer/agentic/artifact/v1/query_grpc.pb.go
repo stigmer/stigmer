@@ -42,7 +42,7 @@ type ArtifactQueryControllerClient interface {
 	// Use Cases:
 	//
 	// 1. Artifact Detail View:
-	//   - User clicks an artifact in the execution viewer
+	//   - User clicks an artifact in the run viewer
 	//   - UI calls get() to fetch full metadata
 	//   - UI displays content type, size, source task, expiration
 	//
@@ -54,7 +54,7 @@ type ArtifactQueryControllerClient interface {
 	// Error Cases:
 	//
 	// - NOT_FOUND: No Artifact exists with the given ID
-	// - PERMISSION_DENIED: User doesn't have view access to the parent execution
+	// - PERMISSION_DENIED: User doesn't have view access to the parent run
 	Get(ctx context.Context, in *ArtifactId, opts ...grpc.CallOption) (*Artifact, error)
 	// List all artifacts produced by a specific run.
 	//
@@ -63,8 +63,8 @@ type ArtifactQueryControllerClient interface {
 	//
 	// Use Cases:
 	//
-	// 1. Execution Viewer Artifact Panel:
-	//   - User views a workflow run in the execution viewer
+	// 1. Run Viewer Artifact Panel:
+	//   - User views a workflow run in the run viewer
 	//   - UI calls listByRun() to populate the artifact sidebar
 	//   - Each artifact shows display name, content type, size, source task
 	//
@@ -75,7 +75,7 @@ type ArtifactQueryControllerClient interface {
 	// Error Cases:
 	//
 	// - INVALID_ARGUMENT: Neither workflow_run_id nor agent_run_id provided
-	// - PERMISSION_DENIED: User doesn't have view access to the parent execution
+	// - PERMISSION_DENIED: User doesn't have view access to the parent run
 	ListByRun(ctx context.Context, in *ListArtifactsByRunRequest, opts ...grpc.CallOption) (*ArtifactList, error)
 	// Get a download URL for artifact content.
 	//
@@ -89,7 +89,7 @@ type ArtifactQueryControllerClient interface {
 	// Use Cases:
 	//
 	// 1. Download Artifact:
-	//   - User clicks "Download" in the execution viewer
+	//   - User clicks "Download" in the run viewer
 	//   - UI calls getDownloadUrl() to get a URL
 	//   - Browser opens the URL in a new tab or triggers a download
 	//
@@ -105,7 +105,7 @@ type ArtifactQueryControllerClient interface {
 	// Error Cases:
 	//
 	// - NOT_FOUND: No Artifact exists with the given ID
-	// - PERMISSION_DENIED: User doesn't have view access to the parent execution
+	// - PERMISSION_DENIED: User doesn't have view access to the parent run
 	// - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
 	GetDownloadUrl(ctx context.Context, in *ArtifactId, opts ...grpc.CallOption) (*ArtifactDownloadUrl, error)
 	// Read artifact content bytes through the Stigmer API.
@@ -185,7 +185,7 @@ type ArtifactQueryControllerServer interface {
 	// Use Cases:
 	//
 	// 1. Artifact Detail View:
-	//   - User clicks an artifact in the execution viewer
+	//   - User clicks an artifact in the run viewer
 	//   - UI calls get() to fetch full metadata
 	//   - UI displays content type, size, source task, expiration
 	//
@@ -197,7 +197,7 @@ type ArtifactQueryControllerServer interface {
 	// Error Cases:
 	//
 	// - NOT_FOUND: No Artifact exists with the given ID
-	// - PERMISSION_DENIED: User doesn't have view access to the parent execution
+	// - PERMISSION_DENIED: User doesn't have view access to the parent run
 	Get(context.Context, *ArtifactId) (*Artifact, error)
 	// List all artifacts produced by a specific run.
 	//
@@ -206,8 +206,8 @@ type ArtifactQueryControllerServer interface {
 	//
 	// Use Cases:
 	//
-	// 1. Execution Viewer Artifact Panel:
-	//   - User views a workflow run in the execution viewer
+	// 1. Run Viewer Artifact Panel:
+	//   - User views a workflow run in the run viewer
 	//   - UI calls listByRun() to populate the artifact sidebar
 	//   - Each artifact shows display name, content type, size, source task
 	//
@@ -218,7 +218,7 @@ type ArtifactQueryControllerServer interface {
 	// Error Cases:
 	//
 	// - INVALID_ARGUMENT: Neither workflow_run_id nor agent_run_id provided
-	// - PERMISSION_DENIED: User doesn't have view access to the parent execution
+	// - PERMISSION_DENIED: User doesn't have view access to the parent run
 	ListByRun(context.Context, *ListArtifactsByRunRequest) (*ArtifactList, error)
 	// Get a download URL for artifact content.
 	//
@@ -232,7 +232,7 @@ type ArtifactQueryControllerServer interface {
 	// Use Cases:
 	//
 	// 1. Download Artifact:
-	//   - User clicks "Download" in the execution viewer
+	//   - User clicks "Download" in the run viewer
 	//   - UI calls getDownloadUrl() to get a URL
 	//   - Browser opens the URL in a new tab or triggers a download
 	//
@@ -248,7 +248,7 @@ type ArtifactQueryControllerServer interface {
 	// Error Cases:
 	//
 	// - NOT_FOUND: No Artifact exists with the given ID
-	// - PERMISSION_DENIED: User doesn't have view access to the parent execution
+	// - PERMISSION_DENIED: User doesn't have view access to the parent run
 	// - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
 	GetDownloadUrl(context.Context, *ArtifactId) (*ArtifactDownloadUrl, error)
 	// Read artifact content bytes through the Stigmer API.

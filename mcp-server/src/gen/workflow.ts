@@ -54,7 +54,7 @@ export const WorkflowInputShape = {
   tasks: z.array(z.lazy(() => WorkflowTaskInputSchema)).optional().describe("Ordered list of tasks that make up this workflow. Tasks execute sequentially unless fork/parallel is used."),
   env: z.record(z.lazy(() => EnvVarDeclarationInputSchema)).optional().describe("Environment variable declarations for this workflow. Keys are variable names; values describe their metadata and optionality."),
   budget: z.lazy(() => WorkflowBudgetInputSchema).optional().describe("Budget limits for this workflow run. When set, the runtime enforces cost, token, and duration limits across all tasks. The existing org-level billing reservation system (AuthorizeRun / RunBillingSignal) remains the safety net for overall credit exhaustion; workflow budgets prevent individual workflows from consuming more than intended. Optional — when not set, no workflow-level budget is enforced."),
-  run_visibility: z.string().optional().describe("Who can observe the runs (executions) of this workflow. Independent of the workflow's own visibility: making a workflow org-visible lets teammates see and run it, but does NOT expose each other's run inputs and outputs unless this is set to ORGANIZATION. Defaults to PRIVATE (unspecified is treated as private): each run is visible only to the person who started it. Set at create; afterwards it changes only through WorkflowCommandController.updateRunVisibility, and update and apply keep the stored level. Allowed values: workflow_run_visibility_private, workflow_run_visibility_organization."),
+  run_visibility: z.string().optional().describe("Who can observe the runs of this workflow. Independent of the workflow's own visibility: making a workflow org-visible lets teammates see and run it, but does NOT expose each other's run inputs and outputs unless this is set to ORGANIZATION. Defaults to PRIVATE (unspecified is treated as private): each run is visible only to the person who started it. Set at create; afterwards it changes only through WorkflowCommandController.updateRunVisibility, and update and apply keep the stored level. Allowed values: workflow_run_visibility_private, workflow_run_visibility_organization."),
 } as const;
 
 export const WorkflowInputSchema = z.object(WorkflowInputShape);
@@ -139,7 +139,7 @@ type CallActivityTaskConfigInput = z.infer<typeof CallActivityTaskConfigInputSch
 
 const EmitEventInputSchema = z.object({
   type: z.string().describe("CloudEvents type identifier. A reverse-DNS string that categorizes the event for routing and filtering. Examples: 'stigmer.workflow.ticket.classified', 'acme.order.completed'"),
-  source: z.string().optional().describe("CloudEvents source identifier. URI or URI-reference that identifies the context in which the event happened. Supports ${ } expression interpolation. When empty, the runtime defaults to the workflow run URI (e.g., '/workflows/{workflow_id}/executions/{run_id}')."),
+  source: z.string().optional().describe("CloudEvents source identifier. URI or URI-reference that identifies the context in which the event happened. Supports ${ } expression interpolation. When empty, the runtime defaults to the workflow run URI (e.g., '/workflows/runs/{run_id}')."),
   data: z.record(z.unknown()).optional().describe("Event payload data. Arbitrary JSON object carried as the CloudEvents data attribute. Values within the Struct can contain ${ } expressions that the runtime evaluates before emission. Unlike other Struct fields in the workflow domain (response_schema, form_schema, schema) which carry JSON Schema definitions, this field carries the actual event payload — not a schema."),
   subject: z.string().optional().describe("CloudEvents subject identifier. Describes the subject of the event in the context of the event producer. Supports ${ } expression interpolation. Examples: '${ $context.ticket.id }', '${ $context.order.number }'"),
 });
@@ -152,7 +152,7 @@ const WebhookDeliveryInputSchema = z.object({
 type WebhookDeliveryInput = z.infer<typeof WebhookDeliveryInputSchema>;
 
 const SignalDeliveryInputSchema = z.object({
-  run_id: z.string().describe("Target workflow run id ('wfx_...'), as returned by run/create. Usually flows from a prior task's output: '${ .start_processor.run_id }'"),
+  run_id: z.string().describe("Target workflow run id ('wex_...'), as returned by run/create. Usually flows from a prior task's output: '${ .start_processor.run_id }'"),
   signal_name: z.string().describe("Signal name, matching the target's listen task event id (verbatim)."),
 });
 type SignalDeliveryInput = z.infer<typeof SignalDeliveryInputSchema>;
@@ -455,7 +455,7 @@ const WorkflowTaskInputSchema: z.ZodType<WorkflowTaskInput> = z.lazy(() => z.obj
   transform: z.lazy(() => TransformTaskConfigInputSchema).optional().describe("Required when kind='transform'. TransformTaskConfig defines the configuration for transform tasks that perform deterministic data transformation without LLM calls."),
   try_catch: z.lazy(() => TryTaskConfigInputSchema).optional().describe("Required when kind='try_catch'. TryTaskConfig defines the configuration for try_catch tasks that handle errors."),
   validate: z.lazy(() => ValidateTaskConfigInputSchema).optional().describe("Required when kind='validate'. ValidateTaskConfig defines the configuration for validate tasks that perform explicit schema and business-rule validation on workflow data."),
-  wait: z.lazy(() => WaitTaskConfigInputSchema).optional().describe("Required when kind='wait'. WaitTaskConfig defines the configuration for wait tasks that pause workflow run. Supports both relative durations and absolute timestamps."),
+  wait: z.lazy(() => WaitTaskConfigInputSchema).optional().describe("Required when kind='wait'. WaitTaskConfig defines the configuration for wait tasks that pause a workflow run. Supports both relative durations and absolute timestamps."),
   export: z.lazy(() => ExportInputSchema).optional().describe("Export configuration (how to save task output to context). Optional - if not set, output is not saved."),
   flow: z.lazy(() => FlowControlInputSchema).optional().describe("Flow control (which task executes next). Optional - if not set, continues to next task in sequence."),
   compensate: z.array(z.lazy(() => WorkflowTaskInputSchema)).optional().describe("Compensation tasks to execute if this task needs to be 'undone.'"),

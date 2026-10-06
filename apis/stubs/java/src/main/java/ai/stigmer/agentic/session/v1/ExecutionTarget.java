@@ -11,7 +11,7 @@ package ai.stigmer.agentic.session.v1;
  *
  * Determines whether the runner that processes agent activities lives on the
  * client's machine (desktop app or CLI) or in a cloud-provisioned sandbox.
- * Set at session creation time and immutable once an execution has run —
+ * Set at session creation time and immutable once a run has started —
  * workspace state may not be portable between local and cloud environments.
  * </pre>
  *
@@ -41,7 +41,7 @@ public enum ExecutionTarget
   EXECUTION_TARGET_LOCAL(1),
   /**
    * <pre>
-   * Server provisions a cloud sandbox for run.
+   * Server provisions a cloud sandbox for execution.
    *
    * The control plane triggers EnsureSessionSandbox to create an isolated
    * environment with a runner polling the session's task queue.
@@ -83,7 +83,7 @@ public enum ExecutionTarget
   public static final int EXECUTION_TARGET_LOCAL_VALUE = 1;
   /**
    * <pre>
-   * Server provisions a cloud sandbox for run.
+   * Server provisions a cloud sandbox for execution.
    *
    * The control plane triggers EnsureSessionSandbox to create an isolated
    * environment with a runner polling the session's task queue.

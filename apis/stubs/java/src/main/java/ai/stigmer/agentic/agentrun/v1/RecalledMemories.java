@@ -8,7 +8,7 @@ package ai.stigmer.agentic.agentrun.v1;
 /**
  * <pre>
  * RecalledMemories is the server-composed snapshot of the caller's
- * confirmed memories for one execution — the candidate set for prompt
+ * confirmed memories for one run — the candidate set for prompt
  * injection.
  * </pre>
  *
@@ -59,7 +59,7 @@ private static final long serialVersionUID = 0L;
   private boolean enabled_ = false;
   /**
    * <pre>
-   * Whether memory is enabled for this execution's caller.
+   * Whether memory is enabled for this run's caller.
    * </pre>
    *
    * <code>bool enabled = 1 [json_name = "enabled"];</code>
@@ -315,7 +315,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * RecalledMemories is the server-composed snapshot of the caller's
-   * confirmed memories for one execution — the candidate set for prompt
+   * confirmed memories for one run — the candidate set for prompt
    * injection.
    * </pre>
    *
@@ -516,7 +516,7 @@ private static final long serialVersionUID = 0L;
     private boolean enabled_ ;
     /**
      * <pre>
-     * Whether memory is enabled for this execution's caller.
+     * Whether memory is enabled for this run's caller.
      * </pre>
      *
      * <code>bool enabled = 1 [json_name = "enabled"];</code>
@@ -528,7 +528,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether memory is enabled for this execution's caller.
+     * Whether memory is enabled for this run's caller.
      * </pre>
      *
      * <code>bool enabled = 1 [json_name = "enabled"];</code>
@@ -544,7 +544,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether memory is enabled for this execution's caller.
+     * Whether memory is enabled for this run's caller.
      * </pre>
      *
      * <code>bool enabled = 1 [json_name = "enabled"];</code>

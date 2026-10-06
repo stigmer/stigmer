@@ -284,7 +284,7 @@ public final class SessionCommandControllerGrpc {
      * Delete a session.
      * Deletion cascades to the session's agent runs. Billing usage
      * records are immutable and unaffected — they carry their own copies of
-     * the session and execution identifiers.
+     * the session and run identifiers.
      * Fails with FAILED_PRECONDITION while any agent run in the
      * session is still active (pending, in progress, waiting for approval,
      * or paused); cancel it or wait for it to finish first.
@@ -381,7 +381,7 @@ public final class SessionCommandControllerGrpc {
      * Delete a session.
      * Deletion cascades to the session's agent runs. Billing usage
      * records are immutable and unaffected — they carry their own copies of
-     * the session and execution identifiers.
+     * the session and run identifiers.
      * Fails with FAILED_PRECONDITION while any agent run in the
      * session is still active (pending, in progress, waiting for approval,
      * or paused); cancel it or wait for it to finish first.
@@ -461,7 +461,7 @@ public final class SessionCommandControllerGrpc {
      * Delete a session.
      * Deletion cascades to the session's agent runs. Billing usage
      * records are immutable and unaffected — they carry their own copies of
-     * the session and execution identifiers.
+     * the session and run identifiers.
      * Fails with FAILED_PRECONDITION while any agent run in the
      * session is still active (pending, in progress, waiting for approval,
      * or paused); cancel it or wait for it to finish first.
@@ -540,7 +540,7 @@ public final class SessionCommandControllerGrpc {
      * Delete a session.
      * Deletion cascades to the session's agent runs. Billing usage
      * records are immutable and unaffected — they carry their own copies of
-     * the session and execution identifiers.
+     * the session and run identifiers.
      * Fails with FAILED_PRECONDITION while any agent run in the
      * session is still active (pending, in progress, waiting for approval,
      * or paused); cancel it or wait for it to finish first.
@@ -623,7 +623,7 @@ public final class SessionCommandControllerGrpc {
      * Delete a session.
      * Deletion cascades to the session's agent runs. Billing usage
      * records are immutable and unaffected — they carry their own copies of
-     * the session and execution identifiers.
+     * the session and run identifiers.
      * Fails with FAILED_PRECONDITION while any agent run in the
      * session is still active (pending, in progress, waiting for approval,
      * or paused); cancel it or wait for it to finish first.

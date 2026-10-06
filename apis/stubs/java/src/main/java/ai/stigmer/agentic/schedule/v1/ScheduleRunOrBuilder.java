@@ -142,7 +142,7 @@ public interface ScheduleRunOrBuilder extends
 
   /**
    * <pre>
-   * ID of the created run. Empty when no execution was created
+   * ID of the created run. Empty when no run was created
    * (refused, target missing, skipped).
    * </pre>
    *
@@ -152,7 +152,7 @@ public interface ScheduleRunOrBuilder extends
   java.lang.String getRunId();
   /**
    * <pre>
-   * ID of the created run. Empty when no execution was created
+   * ID of the created run. Empty when no run was created
    * (refused, target missing, skipped).
    * </pre>
    *

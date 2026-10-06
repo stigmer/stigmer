@@ -14,7 +14,7 @@ public interface RecoverAgentRunInputOrBuilder extends
    * <pre>
    * Agent run ID to recover.
    *
-   * Must be in FAILED phase. TERMINATED and CANCELLED executions
+   * Must be in FAILED phase. TERMINATED and CANCELLED runs
    * cannot be recovered.
    *
    * Format: "aex_{ulid}" (auto-generated unique identifier)
@@ -31,7 +31,7 @@ public interface RecoverAgentRunInputOrBuilder extends
    * <pre>
    * Agent run ID to recover.
    *
-   * Must be in FAILED phase. TERMINATED and CANCELLED executions
+   * Must be in FAILED phase. TERMINATED and CANCELLED runs
    * cannot be recovered.
    *
    * Format: "aex_{ulid}" (auto-generated unique identifier)

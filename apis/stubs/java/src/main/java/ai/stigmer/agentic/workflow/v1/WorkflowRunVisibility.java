@@ -7,7 +7,7 @@ package ai.stigmer.agentic.workflow.v1;
 
 /**
  * <pre>
- * WorkflowRunVisibility controls who can observe the runs (executions)
+ * WorkflowRunVisibility controls who can observe the runs
  * of a workflow.
  *
  * This is a SEPARATE axis from the workflow's own visibility
@@ -29,7 +29,7 @@ public enum WorkflowRunVisibility
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
    * <pre>
-   * Unset. Treated as PRIVATE — each execution is visible only to the user
+   * Unset. Treated as PRIVATE — each run is visible only to the user
    * who triggered it.
    * </pre>
    *
@@ -38,7 +38,7 @@ public enum WorkflowRunVisibility
   workflow_run_visibility_unspecified(0),
   /**
    * <pre>
-   * Each execution is visible only to the user who triggered it (its owner).
+   * Each run is visible only to the user who triggered it (its owner).
    * </pre>
    *
    * <code>workflow_run_visibility_private = 1;</code>
@@ -46,7 +46,7 @@ public enum WorkflowRunVisibility
   workflow_run_visibility_private(1),
   /**
    * <pre>
-   * Every member of the owning organization can observe all executions of
+   * Every member of the owning organization can observe all runs of
    * this workflow.
    * </pre>
    *
@@ -67,7 +67,7 @@ public enum WorkflowRunVisibility
   }
   /**
    * <pre>
-   * Unset. Treated as PRIVATE — each execution is visible only to the user
+   * Unset. Treated as PRIVATE — each run is visible only to the user
    * who triggered it.
    * </pre>
    *
@@ -76,7 +76,7 @@ public enum WorkflowRunVisibility
   public static final int workflow_run_visibility_unspecified_VALUE = 0;
   /**
    * <pre>
-   * Each execution is visible only to the user who triggered it (its owner).
+   * Each run is visible only to the user who triggered it (its owner).
    * </pre>
    *
    * <code>workflow_run_visibility_private = 1;</code>
@@ -84,7 +84,7 @@ public enum WorkflowRunVisibility
   public static final int workflow_run_visibility_private_VALUE = 1;
   /**
    * <pre>
-   * Every member of the owning organization can observe all executions of
+   * Every member of the owning organization can observe all runs of
    * this workflow.
    * </pre>
    *

@@ -32,7 +32,7 @@ public interface GetOrgUsageReportOutputOrBuilder extends
 
   /**
    * <pre>
-   * Total distinct agents with executions in the time range.
+   * Total distinct agents with runs in the time range.
    * </pre>
    *
    * <code>int32 total_agents = 2 [json_name = "totalAgents"];</code>
@@ -52,7 +52,7 @@ public interface GetOrgUsageReportOutputOrBuilder extends
 
   /**
    * <pre>
-   * Total executions across all agents in the time range.
+   * Total runs across all agents in the time range.
    * </pre>
    *
    * <code>int32 total_runs = 4 [json_name = "totalRuns"];</code>

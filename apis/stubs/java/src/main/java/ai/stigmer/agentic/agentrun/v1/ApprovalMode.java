@@ -7,16 +7,16 @@ package ai.stigmer.agentic.agentrun.v1;
 
 /**
  * <pre>
- * ApprovalMode controls how an execution resolves HITL approval gates.
+ * ApprovalMode controls how a run resolves HITL approval gates.
  *
  * The approval default (shell commands, file writes and deletes, and MCP tools
  * their server marks destructive) decides WHICH tools are gated; this mode
  * decides WHAT HAPPENS when a gate fires. It exists for lanes where no
  * approver is present at the conversation — a schedule's fire, messaging
  * channels (Slack/WhatsApp) and guest shares — where an interactive pause
- * would park the execution in RUN_WAITING_FOR_APPROVAL forever.
+ * would park the run in RUN_WAITING_FOR_APPROVAL forever.
  *
- * The mode is a fact of the lane the execution came through, recorded by
+ * The mode is a fact of the lane the run came through, recorded by
  * the server on AgentRunStatus.approval_mode, never chosen by the
  * request or the external user: it is runtime policy owned by the lane,
  * exactly like the bounded execution profile. Every other turn (console,
@@ -46,8 +46,8 @@ public enum ApprovalMode
   /**
    * <pre>
    * Interactive approval (today's behavior): a gated tool pauses the
-   * execution (RUN_WAITING_FOR_APPROVAL) until a human submits a
-   * decision via the submitApproval RPC. No timeout — the execution waits
+   * run (RUN_WAITING_FOR_APPROVAL) until a human submits a
+   * decision via the submitApproval RPC. No timeout — the run waits
    * indefinitely.
    * </pre>
    *
@@ -94,8 +94,8 @@ public enum ApprovalMode
   /**
    * <pre>
    * Interactive approval (today's behavior): a gated tool pauses the
-   * execution (RUN_WAITING_FOR_APPROVAL) until a human submits a
-   * decision via the submitApproval RPC. No timeout — the execution waits
+   * run (RUN_WAITING_FOR_APPROVAL) until a human submits a
+   * decision via the submitApproval RPC. No timeout — the run waits
    * indefinitely.
    * </pre>
    *

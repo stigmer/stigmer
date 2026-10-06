@@ -75,7 +75,7 @@ private static final long serialVersionUID = 0L;
   private int activeCount_ = 0;
   /**
    * <pre>
-   * Number of executions currently in a non-terminal phase
+   * Number of runs currently in a non-terminal phase
    * (PENDING, IN_PROGRESS, WAITING_FOR_APPROVAL, PAUSED).
    * </pre>
    *
@@ -115,10 +115,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Execution counts broken down by RunPhase enum value.
+   * Run counts broken down by RunPhase enum value.
    *
    * Keys are RunPhase enum values (as int32).
-   * Only phases with at least one execution are included.
+   * Only phases with at least one run are included.
    * </pre>
    *
    * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -139,10 +139,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Execution counts broken down by RunPhase enum value.
+   * Run counts broken down by RunPhase enum value.
    *
    * Keys are RunPhase enum values (as int32).
-   * Only phases with at least one execution are included.
+   * Only phases with at least one run are included.
    * </pre>
    *
    * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -153,10 +153,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Execution counts broken down by RunPhase enum value.
+   * Run counts broken down by RunPhase enum value.
    *
    * Keys are RunPhase enum values (as int32).
-   * Only phases with at least one execution are included.
+   * Only phases with at least one run are included.
    * </pre>
    *
    * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -172,10 +172,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Execution counts broken down by RunPhase enum value.
+   * Run counts broken down by RunPhase enum value.
    *
    * Keys are RunPhase enum values (as int32).
-   * Only phases with at least one execution are included.
+   * Only phases with at least one run are included.
    * </pre>
    *
    * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -196,10 +196,10 @@ private static final long serialVersionUID = 0L;
   private com.google.protobuf.Duration avgDuration_;
   /**
    * <pre>
-   * Mean execution duration (from started_at to completed_at) for completed
-   * executions in the time window.
+   * Mean run duration (from started_at to completed_at) for completed
+   * runs in the time window.
    *
-   * Zero when no completed executions exist.
+   * Zero when no completed runs exist.
    * </pre>
    *
    * <code>.google.protobuf.Duration avg_duration = 3 [json_name = "avgDuration"];</code>
@@ -211,10 +211,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Mean execution duration (from started_at to completed_at) for completed
-   * executions in the time window.
+   * Mean run duration (from started_at to completed_at) for completed
+   * runs in the time window.
    *
-   * Zero when no completed executions exist.
+   * Zero when no completed runs exist.
    * </pre>
    *
    * <code>.google.protobuf.Duration avg_duration = 3 [json_name = "avgDuration"];</code>
@@ -226,10 +226,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Mean execution duration (from started_at to completed_at) for completed
-   * executions in the time window.
+   * Mean run duration (from started_at to completed_at) for completed
+   * runs in the time window.
    *
-   * Zero when no completed executions exist.
+   * Zero when no completed runs exist.
    * </pre>
    *
    * <code>.google.protobuf.Duration avg_duration = 3 [json_name = "avgDuration"];</code>
@@ -799,7 +799,7 @@ private static final long serialVersionUID = 0L;
     private int activeCount_ ;
     /**
      * <pre>
-     * Number of executions currently in a non-terminal phase
+     * Number of runs currently in a non-terminal phase
      * (PENDING, IN_PROGRESS, WAITING_FOR_APPROVAL, PAUSED).
      * </pre>
      *
@@ -812,7 +812,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Number of executions currently in a non-terminal phase
+     * Number of runs currently in a non-terminal phase
      * (PENDING, IN_PROGRESS, WAITING_FOR_APPROVAL, PAUSED).
      * </pre>
      *
@@ -829,7 +829,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Number of executions currently in a non-terminal phase
+     * Number of runs currently in a non-terminal phase
      * (PENDING, IN_PROGRESS, WAITING_FOR_APPROVAL, PAUSED).
      * </pre>
      *
@@ -871,10 +871,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution counts broken down by RunPhase enum value.
+     * Run counts broken down by RunPhase enum value.
      *
      * Keys are RunPhase enum values (as int32).
-     * Only phases with at least one execution are included.
+     * Only phases with at least one run are included.
      * </pre>
      *
      * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -895,10 +895,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution counts broken down by RunPhase enum value.
+     * Run counts broken down by RunPhase enum value.
      *
      * Keys are RunPhase enum values (as int32).
-     * Only phases with at least one execution are included.
+     * Only phases with at least one run are included.
      * </pre>
      *
      * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -909,10 +909,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution counts broken down by RunPhase enum value.
+     * Run counts broken down by RunPhase enum value.
      *
      * Keys are RunPhase enum values (as int32).
-     * Only phases with at least one execution are included.
+     * Only phases with at least one run are included.
      * </pre>
      *
      * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -928,10 +928,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution counts broken down by RunPhase enum value.
+     * Run counts broken down by RunPhase enum value.
      *
      * Keys are RunPhase enum values (as int32).
-     * Only phases with at least one execution are included.
+     * Only phases with at least one run are included.
      * </pre>
      *
      * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -955,10 +955,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution counts broken down by RunPhase enum value.
+     * Run counts broken down by RunPhase enum value.
      *
      * Keys are RunPhase enum values (as int32).
-     * Only phases with at least one execution are included.
+     * Only phases with at least one run are included.
      * </pre>
      *
      * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -981,10 +981,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution counts broken down by RunPhase enum value.
+     * Run counts broken down by RunPhase enum value.
      *
      * Keys are RunPhase enum values (as int32).
-     * Only phases with at least one execution are included.
+     * Only phases with at least one run are included.
      * </pre>
      *
      * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -1001,10 +1001,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution counts broken down by RunPhase enum value.
+     * Run counts broken down by RunPhase enum value.
      *
      * Keys are RunPhase enum values (as int32).
-     * Only phases with at least one execution are included.
+     * Only phases with at least one run are included.
      * </pre>
      *
      * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -1022,10 +1022,10 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.Duration, com.google.protobuf.Duration.Builder, com.google.protobuf.DurationOrBuilder> avgDurationBuilder_;
     /**
      * <pre>
-     * Mean execution duration (from started_at to completed_at) for completed
-     * executions in the time window.
+     * Mean run duration (from started_at to completed_at) for completed
+     * runs in the time window.
      *
-     * Zero when no completed executions exist.
+     * Zero when no completed runs exist.
      * </pre>
      *
      * <code>.google.protobuf.Duration avg_duration = 3 [json_name = "avgDuration"];</code>
@@ -1036,10 +1036,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Mean execution duration (from started_at to completed_at) for completed
-     * executions in the time window.
+     * Mean run duration (from started_at to completed_at) for completed
+     * runs in the time window.
      *
-     * Zero when no completed executions exist.
+     * Zero when no completed runs exist.
      * </pre>
      *
      * <code>.google.protobuf.Duration avg_duration = 3 [json_name = "avgDuration"];</code>
@@ -1054,10 +1054,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Mean execution duration (from started_at to completed_at) for completed
-     * executions in the time window.
+     * Mean run duration (from started_at to completed_at) for completed
+     * runs in the time window.
      *
-     * Zero when no completed executions exist.
+     * Zero when no completed runs exist.
      * </pre>
      *
      * <code>.google.protobuf.Duration avg_duration = 3 [json_name = "avgDuration"];</code>
@@ -1077,10 +1077,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Mean execution duration (from started_at to completed_at) for completed
-     * executions in the time window.
+     * Mean run duration (from started_at to completed_at) for completed
+     * runs in the time window.
      *
-     * Zero when no completed executions exist.
+     * Zero when no completed runs exist.
      * </pre>
      *
      * <code>.google.protobuf.Duration avg_duration = 3 [json_name = "avgDuration"];</code>
@@ -1098,10 +1098,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Mean execution duration (from started_at to completed_at) for completed
-     * executions in the time window.
+     * Mean run duration (from started_at to completed_at) for completed
+     * runs in the time window.
      *
-     * Zero when no completed executions exist.
+     * Zero when no completed runs exist.
      * </pre>
      *
      * <code>.google.protobuf.Duration avg_duration = 3 [json_name = "avgDuration"];</code>
@@ -1126,10 +1126,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Mean execution duration (from started_at to completed_at) for completed
-     * executions in the time window.
+     * Mean run duration (from started_at to completed_at) for completed
+     * runs in the time window.
      *
-     * Zero when no completed executions exist.
+     * Zero when no completed runs exist.
      * </pre>
      *
      * <code>.google.protobuf.Duration avg_duration = 3 [json_name = "avgDuration"];</code>
@@ -1146,10 +1146,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Mean execution duration (from started_at to completed_at) for completed
-     * executions in the time window.
+     * Mean run duration (from started_at to completed_at) for completed
+     * runs in the time window.
      *
-     * Zero when no completed executions exist.
+     * Zero when no completed runs exist.
      * </pre>
      *
      * <code>.google.protobuf.Duration avg_duration = 3 [json_name = "avgDuration"];</code>
@@ -1161,10 +1161,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Mean execution duration (from started_at to completed_at) for completed
-     * executions in the time window.
+     * Mean run duration (from started_at to completed_at) for completed
+     * runs in the time window.
      *
-     * Zero when no completed executions exist.
+     * Zero when no completed runs exist.
      * </pre>
      *
      * <code>.google.protobuf.Duration avg_duration = 3 [json_name = "avgDuration"];</code>
@@ -1179,10 +1179,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Mean execution duration (from started_at to completed_at) for completed
-     * executions in the time window.
+     * Mean run duration (from started_at to completed_at) for completed
+     * runs in the time window.
      *
-     * Zero when no completed executions exist.
+     * Zero when no completed runs exist.
      * </pre>
      *
      * <code>.google.protobuf.Duration avg_duration = 3 [json_name = "avgDuration"];</code>

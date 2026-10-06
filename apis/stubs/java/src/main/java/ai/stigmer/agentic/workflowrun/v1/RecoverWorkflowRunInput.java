@@ -10,7 +10,7 @@ package ai.stigmer.agentic.workflowrun.v1;
  * RecoverWorkflowRunInput requests recovery of a failed workflow run.
  *
  * Recovery preserves completed work: tasks that succeeded in the failed run are
- * skipped (their outputs restored into workflow context), and execution resumes
+ * skipped (their outputs restored into workflow context), and run resumes
  * from the first incomplete or failed task.
  * </pre>
  *
@@ -323,7 +323,7 @@ private static final long serialVersionUID = 0L;
    * RecoverWorkflowRunInput requests recovery of a failed workflow run.
    *
    * Recovery preserves completed work: tasks that succeeded in the failed run are
-   * skipped (their outputs restored into workflow context), and execution resumes
+   * skipped (their outputs restored into workflow context), and run resumes
    * from the first incomplete or failed task.
    * </pre>
    *

@@ -236,9 +236,9 @@ export type ModelCapabilities = Message<"ai.stigmer.billing.v1.ModelCapabilities
    * off (Anthropic returns a 400 for `{type: "disabled"}`). When true, an
    * explicit THINKING_MODE_DISABLED is refused at create and the native
    * runner always sends the model's thinking form; when false, a disabled
-   * execution on a model with a thinking form sends `{type: "disabled"}`
+   * run on a model with a thinking form sends `{type: "disabled"}`
    * explicitly; when absent (a row never assessed for it), the runner sends
-   * no thinking parameter for a disabled execution and the model's own
+   * no thinking parameter for a disabled run and the model's own
    * default applies.
    *
    * @generated from field: optional bool thinking_required = 6;

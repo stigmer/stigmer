@@ -52,7 +52,7 @@ public interface AgentUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Total executions for this agent in the time range.
+   * Total runs for this agent in the time range.
    * </pre>
    *
    * <code>int32 run_count = 3 [json_name = "runCount"];</code>
@@ -62,7 +62,7 @@ public interface AgentUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Total tokens across all executions (cache-inclusive: the sum of each
+   * Total tokens across all runs (cache-inclusive: the sum of each
    * call's provider-reported total, including cached input tokens).
    * </pre>
    *

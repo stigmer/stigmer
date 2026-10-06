@@ -52,7 +52,7 @@ type WorkflowRunQueryControllerClient interface {
 	//
 	// Retrieves the complete WorkflowRun resource including:
 	// - spec: User inputs (workflow_id, trigger_message, etc.)
-	// - status: Current execution state (phase, tasks, progress_events, output/error)
+	// - status: Current run state (phase, tasks, progress_events, output/error)
 	// - metadata: Resource identification (id, name, labels, tags)
 	Get(ctx context.Context, in *WorkflowRunId, opts ...grpc.CallOption) (*WorkflowRun, error)
 	// List workflow runs with pagination and optional filtering.
@@ -60,33 +60,33 @@ type WorkflowRunQueryControllerClient interface {
 	// Returns a paginated list of WorkflowRun resources that the user has access to.
 	// Results are automatically filtered based on user's permissions and owner scope.
 	List(ctx context.Context, in *ListWorkflowRunsRequest, opts ...grpc.CallOption) (*WorkflowRunList, error)
-	// List all executions for a specific Workflow.
+	// List all runs for a specific Workflow.
 	//
-	// Returns executions filtered by a specific Workflow ID.
-	// This is useful for viewing execution history of a particular workflow.
+	// Returns runs filtered by a specific Workflow ID.
+	// This is useful for viewing the run history of a particular workflow.
 	ListByWorkflow(ctx context.Context, in *ListWorkflowRunsByWorkflowRequest, opts ...grpc.CallOption) (*WorkflowRunList, error)
 	// Subscribe to real-time updates for a specific workflow run (server streaming).
 	//
 	// Opens a bidirectional stream that pushes WorkflowRun updates as they occur.
 	// Client receives updates when:
-	// - Execution phase changes (PENDING → IN_PROGRESS → COMPLETED)
+	// - Run phase changes (PENDING → IN_PROGRESS → COMPLETED)
 	// - Tasks start or complete
 	// - Progress events are appended
 	// - Output or error fields are set
 	Subscribe(ctx context.Context, in *SubscribeWorkflowRunRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WorkflowRun], error)
 	// Fetch the paginated event log for a workflow run.
 	//
-	// Returns execution events ordered by sequence_number ascending, with
+	// Returns run events ordered by sequence_number ascending, with
 	// cursor-based pagination and optional filtering by event type or task name.
 	GetEventLog(ctx context.Context, in *GetEventLogRequest, opts ...grpc.CallOption) (*GetEventLogResponse, error)
-	// Subscribe to real-time execution events (incremental event stream).
+	// Subscribe to real-time run events (incremental event stream).
 	//
 	// Opens a server-side streaming RPC that pushes individual
-	// WorkflowRunEvent messages as they occur during run.
+	// WorkflowRunEvent messages as they occur during the run.
 	// Unlike subscribe() which streams full WorkflowRun snapshots,
 	// this streams lightweight incremental events for the timeline view.
 	SubscribeEvents(ctx context.Context, in *SubscribeEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WorkflowRunEvent], error)
-	// Get aggregated execution statistics for an organization's workflows.
+	// Get aggregated run statistics for an organization's workflows.
 	//
 	// Returns counts by phase, total cost, average duration, top failing
 	// workflows, and per-workflow cost breakdown — scoped to a configurable
@@ -94,7 +94,7 @@ type WorkflowRunQueryControllerClient interface {
 	GetRunSummary(ctx context.Context, in *GetRunSummaryRequest, opts ...grpc.CallOption) (*RunSummary, error)
 	// List workflow runs with pending human_input tasks awaiting reviewer decisions.
 	//
-	// Returns a paginated list of executions where at least one human_input
+	// Returns a paginated list of runs where at least one human_input
 	// task is actively waiting for a response. Each entry includes the
 	// execution context, task details, requester, and timeout information.
 	ListPendingApprovals(ctx context.Context, in *ListPendingApprovalsRequest, opts ...grpc.CallOption) (*PendingApprovalsList, error)
@@ -229,7 +229,7 @@ type WorkflowRunQueryControllerServer interface {
 	//
 	// Retrieves the complete WorkflowRun resource including:
 	// - spec: User inputs (workflow_id, trigger_message, etc.)
-	// - status: Current execution state (phase, tasks, progress_events, output/error)
+	// - status: Current run state (phase, tasks, progress_events, output/error)
 	// - metadata: Resource identification (id, name, labels, tags)
 	Get(context.Context, *WorkflowRunId) (*WorkflowRun, error)
 	// List workflow runs with pagination and optional filtering.
@@ -237,33 +237,33 @@ type WorkflowRunQueryControllerServer interface {
 	// Returns a paginated list of WorkflowRun resources that the user has access to.
 	// Results are automatically filtered based on user's permissions and owner scope.
 	List(context.Context, *ListWorkflowRunsRequest) (*WorkflowRunList, error)
-	// List all executions for a specific Workflow.
+	// List all runs for a specific Workflow.
 	//
-	// Returns executions filtered by a specific Workflow ID.
-	// This is useful for viewing execution history of a particular workflow.
+	// Returns runs filtered by a specific Workflow ID.
+	// This is useful for viewing the run history of a particular workflow.
 	ListByWorkflow(context.Context, *ListWorkflowRunsByWorkflowRequest) (*WorkflowRunList, error)
 	// Subscribe to real-time updates for a specific workflow run (server streaming).
 	//
 	// Opens a bidirectional stream that pushes WorkflowRun updates as they occur.
 	// Client receives updates when:
-	// - Execution phase changes (PENDING → IN_PROGRESS → COMPLETED)
+	// - Run phase changes (PENDING → IN_PROGRESS → COMPLETED)
 	// - Tasks start or complete
 	// - Progress events are appended
 	// - Output or error fields are set
 	Subscribe(*SubscribeWorkflowRunRequest, grpc.ServerStreamingServer[WorkflowRun]) error
 	// Fetch the paginated event log for a workflow run.
 	//
-	// Returns execution events ordered by sequence_number ascending, with
+	// Returns run events ordered by sequence_number ascending, with
 	// cursor-based pagination and optional filtering by event type or task name.
 	GetEventLog(context.Context, *GetEventLogRequest) (*GetEventLogResponse, error)
-	// Subscribe to real-time execution events (incremental event stream).
+	// Subscribe to real-time run events (incremental event stream).
 	//
 	// Opens a server-side streaming RPC that pushes individual
-	// WorkflowRunEvent messages as they occur during run.
+	// WorkflowRunEvent messages as they occur during the run.
 	// Unlike subscribe() which streams full WorkflowRun snapshots,
 	// this streams lightweight incremental events for the timeline view.
 	SubscribeEvents(*SubscribeEventsRequest, grpc.ServerStreamingServer[WorkflowRunEvent]) error
-	// Get aggregated execution statistics for an organization's workflows.
+	// Get aggregated run statistics for an organization's workflows.
 	//
 	// Returns counts by phase, total cost, average duration, top failing
 	// workflows, and per-workflow cost breakdown — scoped to a configurable
@@ -271,7 +271,7 @@ type WorkflowRunQueryControllerServer interface {
 	GetRunSummary(context.Context, *GetRunSummaryRequest) (*RunSummary, error)
 	// List workflow runs with pending human_input tasks awaiting reviewer decisions.
 	//
-	// Returns a paginated list of executions where at least one human_input
+	// Returns a paginated list of runs where at least one human_input
 	// task is actively waiting for a response. Each entry includes the
 	// execution context, task details, requester, and timeout information.
 	ListPendingApprovals(context.Context, *ListPendingApprovalsRequest) (*PendingApprovalsList, error)

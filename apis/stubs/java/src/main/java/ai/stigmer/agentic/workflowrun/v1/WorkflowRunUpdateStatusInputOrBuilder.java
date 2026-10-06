@@ -32,7 +32,7 @@ public interface WorkflowRunUpdateStatusInputOrBuilder extends
 
   /**
    * <pre>
-   * Status fields to merge into the existing execution status.
+   * Status fields to merge into the existing run status.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus status = 2 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -41,7 +41,7 @@ public interface WorkflowRunUpdateStatusInputOrBuilder extends
   boolean hasStatus();
   /**
    * <pre>
-   * Status fields to merge into the existing execution status.
+   * Status fields to merge into the existing run status.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus status = 2 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -50,7 +50,7 @@ public interface WorkflowRunUpdateStatusInputOrBuilder extends
   ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus getStatus();
   /**
    * <pre>
-   * Status fields to merge into the existing execution status.
+   * Status fields to merge into the existing run status.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus status = 2 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -59,7 +59,7 @@ public interface WorkflowRunUpdateStatusInputOrBuilder extends
 
   /**
    * <pre>
-   * Execution events to append to the event log alongside this status update.
+   * Run events to append to the event log alongside this status update.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -68,7 +68,7 @@ public interface WorkflowRunUpdateStatusInputOrBuilder extends
       getEventsList();
   /**
    * <pre>
-   * Execution events to append to the event log alongside this status update.
+   * Run events to append to the event log alongside this status update.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -76,7 +76,7 @@ public interface WorkflowRunUpdateStatusInputOrBuilder extends
   ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent getEvents(int index);
   /**
    * <pre>
-   * Execution events to append to the event log alongside this status update.
+   * Run events to append to the event log alongside this status update.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -84,7 +84,7 @@ public interface WorkflowRunUpdateStatusInputOrBuilder extends
   int getEventsCount();
   /**
    * <pre>
-   * Execution events to append to the event log alongside this status update.
+   * Run events to append to the event log alongside this status update.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>
@@ -93,7 +93,7 @@ public interface WorkflowRunUpdateStatusInputOrBuilder extends
       getEventsOrBuilderList();
   /**
    * <pre>
-   * Execution events to append to the event log alongside this status update.
+   * Run events to append to the event log alongside this status update.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10 [json_name = "events"];</code>

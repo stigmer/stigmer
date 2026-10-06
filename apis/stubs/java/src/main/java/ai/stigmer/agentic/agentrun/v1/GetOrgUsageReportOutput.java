@@ -111,7 +111,7 @@ private static final long serialVersionUID = 0L;
   private int totalAgents_ = 0;
   /**
    * <pre>
-   * Total distinct agents with executions in the time range.
+   * Total distinct agents with runs in the time range.
    * </pre>
    *
    * <code>int32 total_agents = 2 [json_name = "totalAgents"];</code>
@@ -141,7 +141,7 @@ private static final long serialVersionUID = 0L;
   private int totalRuns_ = 0;
   /**
    * <pre>
-   * Total executions across all agents in the time range.
+   * Total runs across all agents in the time range.
    * </pre>
    *
    * <code>int32 total_runs = 4 [json_name = "totalRuns"];</code>
@@ -1196,7 +1196,7 @@ private static final long serialVersionUID = 0L;
     private int totalAgents_ ;
     /**
      * <pre>
-     * Total distinct agents with executions in the time range.
+     * Total distinct agents with runs in the time range.
      * </pre>
      *
      * <code>int32 total_agents = 2 [json_name = "totalAgents"];</code>
@@ -1208,7 +1208,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total distinct agents with executions in the time range.
+     * Total distinct agents with runs in the time range.
      * </pre>
      *
      * <code>int32 total_agents = 2 [json_name = "totalAgents"];</code>
@@ -1224,7 +1224,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total distinct agents with executions in the time range.
+     * Total distinct agents with runs in the time range.
      * </pre>
      *
      * <code>int32 total_agents = 2 [json_name = "totalAgents"];</code>
@@ -1284,7 +1284,7 @@ private static final long serialVersionUID = 0L;
     private int totalRuns_ ;
     /**
      * <pre>
-     * Total executions across all agents in the time range.
+     * Total runs across all agents in the time range.
      * </pre>
      *
      * <code>int32 total_runs = 4 [json_name = "totalRuns"];</code>
@@ -1296,7 +1296,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total executions across all agents in the time range.
+     * Total runs across all agents in the time range.
      * </pre>
      *
      * <code>int32 total_runs = 4 [json_name = "totalRuns"];</code>
@@ -1312,7 +1312,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total executions across all agents in the time range.
+     * Total runs across all agents in the time range.
      * </pre>
      *
      * <code>int32 total_runs = 4 [json_name = "totalRuns"];</code>

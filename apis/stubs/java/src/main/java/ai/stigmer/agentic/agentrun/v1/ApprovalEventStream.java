@@ -19,7 +19,7 @@ package ai.stigmer.agentic.agentrun.v1;
  * The lifecycle is total: every REQUESTED is eventually resolved by a decision
  * (APPROVED / REJECTED / SKIPPED) or by a RETRACTED event the reconciler authors
  * when an in-flight gated call becomes unreachable without a decision. Combined
- * with the projection treating a terminal execution as zero pending approvals,
+ * with the projection treating a terminal run as zero pending approvals,
  * this makes ComputePendingApprovalsFromEvents over this stream agree with the
  * message scan after every write — the equality property the eventual
  * source-of-truth flip rides on. The source of truth does not flip in this
@@ -28,7 +28,7 @@ package ai.stigmer.agentic.agentrun.v1;
  *
  * Appends are keyed by the deterministic ApprovalEvent.event_id: REQUESTED and
  * RETRACTED events are authored by the UpdateStatus / SubmitApproval reconciler
- * (REQUESTED seeded once from the scan for executions predating the field),
+ * (REQUESTED seeded once from the scan for runs predating the field),
  * decision events by SubmitApproval (with decided_by and comment). Authoring the
  * rich decision event in the same operation that records the decision on the
  * scan guarantees it can never be duplicated or clobbered by a coarse
@@ -375,7 +375,7 @@ private static final long serialVersionUID = 0L;
    * The lifecycle is total: every REQUESTED is eventually resolved by a decision
    * (APPROVED / REJECTED / SKIPPED) or by a RETRACTED event the reconciler authors
    * when an in-flight gated call becomes unreachable without a decision. Combined
-   * with the projection treating a terminal execution as zero pending approvals,
+   * with the projection treating a terminal run as zero pending approvals,
    * this makes ComputePendingApprovalsFromEvents over this stream agree with the
    * message scan after every write — the equality property the eventual
    * source-of-truth flip rides on. The source of truth does not flip in this
@@ -384,7 +384,7 @@ private static final long serialVersionUID = 0L;
    *
    * Appends are keyed by the deterministic ApprovalEvent.event_id: REQUESTED and
    * RETRACTED events are authored by the UpdateStatus / SubmitApproval reconciler
-   * (REQUESTED seeded once from the scan for executions predating the field),
+   * (REQUESTED seeded once from the scan for runs predating the field),
    * decision events by SubmitApproval (with decided_by and comment). Authoring the
    * rich decision event in the same operation that records the decision on the
    * scan guarantees it can never be duplicated or clobbered by a coarse

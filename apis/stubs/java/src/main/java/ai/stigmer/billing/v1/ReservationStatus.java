@@ -7,7 +7,7 @@ package ai.stigmer.billing.v1;
 
 /**
  * <pre>
- * ReservationStatus tracks the lifecycle of an execution credit reservation.
+ * ReservationStatus tracks the lifecycle of a run credit reservation.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.billing.v1.ReservationStatus}
@@ -21,7 +21,7 @@ public enum ReservationStatus
   reservation_status_unspecified(0),
   /**
    * <pre>
-   * Reservation is active; execution is in progress.
+   * Reservation is active; run is in progress.
    * </pre>
    *
    * <code>reservation_active = 1;</code>
@@ -29,7 +29,7 @@ public enum ReservationStatus
   reservation_active(1),
   /**
    * <pre>
-   * Execution completed; reservation settled and unused credits released.
+   * Run completed; reservation settled and unused credits released.
    * </pre>
    *
    * <code>reservation_finalized = 2;</code>
@@ -45,7 +45,7 @@ public enum ReservationStatus
   reservation_expired(3),
   /**
    * <pre>
-   * Reservation cancelled before execution started.
+   * Reservation cancelled before the run started.
    * </pre>
    *
    * <code>reservation_cancelled = 4;</code>
@@ -69,7 +69,7 @@ public enum ReservationStatus
   public static final int reservation_status_unspecified_VALUE = 0;
   /**
    * <pre>
-   * Reservation is active; execution is in progress.
+   * Reservation is active; run is in progress.
    * </pre>
    *
    * <code>reservation_active = 1;</code>
@@ -77,7 +77,7 @@ public enum ReservationStatus
   public static final int reservation_active_VALUE = 1;
   /**
    * <pre>
-   * Execution completed; reservation settled and unused credits released.
+   * Run completed; reservation settled and unused credits released.
    * </pre>
    *
    * <code>reservation_finalized = 2;</code>
@@ -93,7 +93,7 @@ public enum ReservationStatus
   public static final int reservation_expired_VALUE = 3;
   /**
    * <pre>
-   * Reservation cancelled before execution started.
+   * Reservation cancelled before the run started.
    * </pre>
    *
    * <code>reservation_cancelled = 4;</code>

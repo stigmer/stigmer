@@ -11,8 +11,8 @@ package ai.stigmer.agentic.agentrun.v1;
  *
  * Retained for wire compatibility; the platform no longer produces or
  * consumes it. The live "child_approval_required" signal is identity-only —
- * a bare-string child execution id — and the parent side derives pending
- * approvals by reading the child execution record (a single source of truth
+ * a bare-string child run id — and the parent side derives pending
+ * approvals by reading the child run record (a single source of truth
  * instead of a payload copy that can drift).
  * </pre>
  *
@@ -397,8 +397,8 @@ private static final long serialVersionUID = 0L;
    *
    * Retained for wire compatibility; the platform no longer produces or
    * consumes it. The live "child_approval_required" signal is identity-only —
-   * a bare-string child execution id — and the parent side derives pending
-   * approvals by reading the child execution record (a single source of truth
+   * a bare-string child run id — and the parent side derives pending
+   * approvals by reading the child run record (a single source of truth
    * instead of a payload copy that can drift).
    * </pre>
    *

@@ -81,7 +81,7 @@ type ScheduleRunOutcome int32
 
 const (
 	ScheduleRunOutcome_SCHEDULE_RUN_OUTCOME_UNSPECIFIED ScheduleRunOutcome = 0
-	// An execution was created (or idempotently re-found) and is running.
+	// A run was created (or idempotently re-found) and is running.
 	ScheduleRunOutcome_SCHEDULE_RUN_OUTCOME_STARTED ScheduleRunOutcome = 1
 	// A launch gate refused the run deterministically; reason carries the
 	// gate's copy verbatim.
@@ -482,7 +482,7 @@ type ScheduleRun struct {
 	// The refusing gate's or terminal verdict's copy, verbatim. Empty for
 	// healthy outcomes.
 	Reason string `protobuf:"bytes,6,opt,name=reason,proto3" json:"reason,omitempty"`
-	// ID of the created run. Empty when no execution was created
+	// ID of the created run. Empty when no run was created
 	// (refused, target missing, skipped).
 	RunId string `protobuf:"bytes,7,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	// When the fire was recorded.

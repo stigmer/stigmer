@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest",
           "outputType": "Skill",
           "outputFullType": "ai.stigmer.agentic.skill.v1.Skill",
-          "description": "Push a skill from an execution artifact already in storage.\n Use this when an agent run has already produced a skill artifact\n and you want to publish it without downloading and re-uploading the ZIP."
+          "description": "Push a skill from a run artifact already in storage.\n Use this when an agent run has already produced a skill artifact\n and you want to publish it without downloading and re-uploading the ZIP."
         },
         {
           "name": "UpdateVisibility",
@@ -262,7 +262,7 @@
     },
     {
       "name": "PushSkillFromRunArtifactRequest",
-      "description": "PushSkillFromRunArtifactRequest publishes a skill from an execution\n artifact already in storage, without downloading and re-uploading the ZIP.",
+      "description": "PushSkillFromRunArtifactRequest publishes a skill from a run\n artifact already in storage, without downloading and re-uploading the ZIP.",
       "protoType": "ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest",
       "protoFile": "apis/ai/stigmer/agentic/skill/v1/io.proto",
       "fields": [
@@ -299,7 +299,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Storage key of the directory artifact (ZIP) to push as a skill.\n Obtain this from RunArtifact.storage_key in the execution status.",
+          "description": "Storage key of the directory artifact (ZIP) to push as a skill.\n Obtain this from RunArtifact.storage_key in the run status.",
           "required": false,
           "validation": {
             "minLength": 1
@@ -650,7 +650,7 @@
         {
           "name": "visibility_child_orgs",
           "number": 4,
-          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, executions and environments are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
+          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and environments are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
         }
       ]
     },

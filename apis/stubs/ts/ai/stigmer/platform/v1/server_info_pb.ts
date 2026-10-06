@@ -298,7 +298,7 @@ export type GetRunnerScopedTokenInput = Message<"ai.stigmer.platform.v1.GetRunne
    */
   scope: {
     /**
-     * AgentRun id — yields a token scoped to the execution's parent
+     * AgentRun id — yields a token scoped to the run's parent
      * session, valid for every ExecutionContext in that session (multi-turn).
      *
      * @generated from field: string agent_run_id = 1;
@@ -308,7 +308,7 @@ export type GetRunnerScopedTokenInput = Message<"ai.stigmer.platform.v1.GetRunne
   } | {
     /**
      * WorkflowRun id — yields a token scoped to exactly that workflow
-     * execution's ExecutionContext.
+     * run's ExecutionContext.
      *
      * @generated from field: string workflow_run_id = 2;
      */
@@ -384,7 +384,7 @@ export const PoolClaimSchema: GenMessage<PoolClaim> = /*@__PURE__*/
  * restart (which would wipe an ephemeral sandbox's workspace).
  *
  * Deliberately empty: every mint parameter (identity, org, session /
- * workflow-execution scope) comes from the presented credential's VERIFIED
+ * workflow-run scope) comes from the presented credential's VERIFIED
  * claims, never from the client, so a renewed token is claim-identical to
  * the one it replaces.
  *
@@ -577,7 +577,7 @@ export const PlatformQueryController: GenService<{
    * coordinate and mints a token bound to the caller, so any valid token is
    * required, but no specific FGA permission is — every authenticated caller in
    * an environment shares one Temporal cluster, and task queues are
-   * per-session/execution and gated separately by control-plane session access.
+   * per-session/run and gated separately by control-plane session access.
    *
    * @generated from rpc ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig
    */
@@ -591,10 +591,10 @@ export const PlatformQueryController: GenService<{
    * one unit of dispatched work.
    *
    * The bootstrap token from getRunnerBootstrapConfig identifies a runner but
-   * is minted before any execution exists, so it carries no session or
-   * execution scope. Secrets are only released to runner credentials bound to
+   * is minted before any run exists, so it carries no session or
+   * run scope. Secrets are only released to runner credentials bound to
    * the exact work they serve. At task start the runner presents its bootstrap
-   * token and names the execution it was dispatched; the control plane verifies
+   * token and names the run it was dispatched; the control plane verifies
    * the caller and returns a short-lived token scoped to that work, which the
    * runner then uses for its ExecutionContext fetch. This makes a desktop
    * runner indistinguishable, at the secret-release gate, from a

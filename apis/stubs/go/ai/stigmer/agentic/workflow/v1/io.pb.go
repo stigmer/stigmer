@@ -71,13 +71,13 @@ func (x *WorkflowId) GetValue() string {
 // of a single workflow.
 //
 // Mirrors the shape of commons UpdateVisibilityInput, but for the SEPARATE
-// execution-visibility axis (see WorkflowRunVisibility). A dedicated
+// run-visibility axis (see WorkflowRunVisibility). A dedicated
 // message keeps the two visibility concepts from being conflated.
 type UpdateWorkflowRunVisibilityInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// ID of the workflow whose execution visibility is being updated.
+	// ID of the workflow whose run visibility is being updated.
 	ResourceId string `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
-	// The new execution-visibility setting. Must not be unspecified (0).
+	// The new run-visibility setting. Must not be unspecified (0).
 	RunVisibility WorkflowRunVisibility `protobuf:"varint,2,opt,name=run_visibility,json=runVisibility,proto3,enum=ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility" json:"run_visibility,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

@@ -46,7 +46,7 @@ type WorkflowSpec struct {
 	// workflows from consuming more than intended.
 	// Optional — when not set, no workflow-level budget is enforced.
 	Budget *WorkflowBudget `protobuf:"bytes,5,opt,name=budget,proto3" json:"budget,omitempty"`
-	// Who can observe the runs (executions) of this workflow.
+	// Who can observe the runs of this workflow.
 	//
 	// Independent of the workflow's own visibility: making a workflow
 	// org-visible lets teammates see and run it, but does NOT expose each

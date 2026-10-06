@@ -36,7 +36,7 @@ public enum LedgerView
    * Customer-facing account statement: funding and money-movement events
    * only (purchases, auto-recharge, promotional credits, refunds, admin
    * adjustments, expirations, and disputes). Excludes routine internal
-   * mechanics — per-call usage debits and execution reservation
+   * mechanics — per-call usage debits and run reservation
    * holds/releases — which are surfaced as consumption analytics elsewhere.
    * </pre>
    *
@@ -69,7 +69,7 @@ public enum LedgerView
    * Customer-facing account statement: funding and money-movement events
    * only (purchases, auto-recharge, promotional credits, refunds, admin
    * adjustments, expirations, and disputes). Excludes routine internal
-   * mechanics — per-call usage debits and execution reservation
+   * mechanics — per-call usage debits and run reservation
    * holds/releases — which are surfaced as consumption analytics elsewhere.
    * </pre>
    *

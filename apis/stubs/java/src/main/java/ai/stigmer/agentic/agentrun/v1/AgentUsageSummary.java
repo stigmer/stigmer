@@ -152,7 +152,7 @@ private static final long serialVersionUID = 0L;
   private int runCount_ = 0;
   /**
    * <pre>
-   * Total executions for this agent in the time range.
+   * Total runs for this agent in the time range.
    * </pre>
    *
    * <code>int32 run_count = 3 [json_name = "runCount"];</code>
@@ -167,7 +167,7 @@ private static final long serialVersionUID = 0L;
   private long totalTokens_ = 0L;
   /**
    * <pre>
-   * Total tokens across all executions (cache-inclusive: the sum of each
+   * Total tokens across all runs (cache-inclusive: the sum of each
    * call's provider-reported total, including cached input tokens).
    * </pre>
    *
@@ -774,7 +774,7 @@ private static final long serialVersionUID = 0L;
     private int runCount_ ;
     /**
      * <pre>
-     * Total executions for this agent in the time range.
+     * Total runs for this agent in the time range.
      * </pre>
      *
      * <code>int32 run_count = 3 [json_name = "runCount"];</code>
@@ -786,7 +786,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total executions for this agent in the time range.
+     * Total runs for this agent in the time range.
      * </pre>
      *
      * <code>int32 run_count = 3 [json_name = "runCount"];</code>
@@ -802,7 +802,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total executions for this agent in the time range.
+     * Total runs for this agent in the time range.
      * </pre>
      *
      * <code>int32 run_count = 3 [json_name = "runCount"];</code>
@@ -818,7 +818,7 @@ private static final long serialVersionUID = 0L;
     private long totalTokens_ ;
     /**
      * <pre>
-     * Total tokens across all executions (cache-inclusive: the sum of each
+     * Total tokens across all runs (cache-inclusive: the sum of each
      * call's provider-reported total, including cached input tokens).
      * </pre>
      *
@@ -831,7 +831,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total tokens across all executions (cache-inclusive: the sum of each
+     * Total tokens across all runs (cache-inclusive: the sum of each
      * call's provider-reported total, including cached input tokens).
      * </pre>
      *
@@ -848,7 +848,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total tokens across all executions (cache-inclusive: the sum of each
+     * Total tokens across all runs (cache-inclusive: the sum of each
      * call's provider-reported total, including cached input tokens).
      * </pre>
      *

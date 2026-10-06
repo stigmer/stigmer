@@ -22,7 +22,7 @@ public enum RunBillingSignal
   run_billing_signal_unspecified(0),
   /**
    * <pre>
-   * Balance is healthy; execution may continue.
+   * Balance is healthy; run may continue.
    * </pre>
    *
    * <code>continue_run = 1;</code>
@@ -30,7 +30,7 @@ public enum RunBillingSignal
   continue_run(1),
   /**
    * <pre>
-   * Balance is low; execution may continue but a warning should be shown.
+   * Balance is low; run may continue but a warning should be shown.
    * </pre>
    *
    * <code>low_balance_warning = 2;</code>
@@ -38,7 +38,7 @@ public enum RunBillingSignal
   low_balance_warning(2),
   /**
    * <pre>
-   * Balance is exhausted; execution must stop gracefully.
+   * Balance is exhausted; run must stop gracefully.
    * </pre>
    *
    * <code>stop_run = 3;</code>
@@ -62,7 +62,7 @@ public enum RunBillingSignal
   public static final int run_billing_signal_unspecified_VALUE = 0;
   /**
    * <pre>
-   * Balance is healthy; execution may continue.
+   * Balance is healthy; run may continue.
    * </pre>
    *
    * <code>continue_run = 1;</code>
@@ -70,7 +70,7 @@ public enum RunBillingSignal
   public static final int continue_run_VALUE = 1;
   /**
    * <pre>
-   * Balance is low; execution may continue but a warning should be shown.
+   * Balance is low; run may continue but a warning should be shown.
    * </pre>
    *
    * <code>low_balance_warning = 2;</code>
@@ -78,7 +78,7 @@ public enum RunBillingSignal
   public static final int low_balance_warning_VALUE = 2;
   /**
    * <pre>
-   * Balance is exhausted; execution must stop gracefully.
+   * Balance is exhausted; run must stop gracefully.
    * </pre>
    *
    * <code>stop_run = 3;</code>

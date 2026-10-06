@@ -12,7 +12,7 @@ package ai.stigmer.agentic.workflow.v1.tasks;
  * Two delivery mechanisms are supported:
  * - webhook: HTTP POST the CloudEvents envelope to an external endpoint.
  * - signal: deliver the envelope as a signal to another workflow
- * execution's listen task (the emit/listen pairing).
+ * run's listen task (the emit/listen pairing).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget}
@@ -377,7 +377,7 @@ private static final long serialVersionUID = 0L;
    * Two delivery mechanisms are supported:
    * - webhook: HTTP POST the CloudEvents envelope to an external endpoint.
    * - signal: deliver the envelope as a signal to another workflow
-   * execution's listen task (the emit/listen pairing).
+   * run's listen task (the emit/listen pairing).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget}

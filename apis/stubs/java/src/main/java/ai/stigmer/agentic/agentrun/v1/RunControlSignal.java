@@ -24,7 +24,7 @@ public enum RunControlSignal
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
    * <pre>
-   * No action required — continue execution normally.
+   * No action required — continue the run normally.
    * </pre>
    *
    * <code>RUN_CONTROL_SIGNAL_UNSPECIFIED = 0;</code>
@@ -32,7 +32,7 @@ public enum RunControlSignal
   RUN_CONTROL_SIGNAL_UNSPECIFIED(0),
   /**
    * <pre>
-   * Execution must stop gracefully. The runner should block further tool
+   * Run must stop gracefully. The runner should block further tool
    * calls and give the model one final turn to produce a summary.
    * </pre>
    *
@@ -42,7 +42,7 @@ public enum RunControlSignal
   /**
    * <pre>
    * Informational warning (e.g. low credit balance). The runner logs the
-   * warning and continues run.
+   * warning and continues the run.
    * </pre>
    *
    * <code>RUN_CONTROL_SIGNAL_WARNING = 2;</code>
@@ -62,7 +62,7 @@ public enum RunControlSignal
   }
   /**
    * <pre>
-   * No action required — continue execution normally.
+   * No action required — continue the run normally.
    * </pre>
    *
    * <code>RUN_CONTROL_SIGNAL_UNSPECIFIED = 0;</code>
@@ -70,7 +70,7 @@ public enum RunControlSignal
   public static final int RUN_CONTROL_SIGNAL_UNSPECIFIED_VALUE = 0;
   /**
    * <pre>
-   * Execution must stop gracefully. The runner should block further tool
+   * Run must stop gracefully. The runner should block further tool
    * calls and give the model one final turn to produce a summary.
    * </pre>
    *
@@ -80,7 +80,7 @@ public enum RunControlSignal
   /**
    * <pre>
    * Informational warning (e.g. low credit balance). The runner logs the
-   * warning and continues run.
+   * warning and continues the run.
    * </pre>
    *
    * <code>RUN_CONTROL_SIGNAL_WARNING = 2;</code>

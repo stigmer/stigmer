@@ -12,8 +12,8 @@ public interface PendingApprovalsListOrBuilder extends
 
   /**
    * <pre>
-   * Pending approvals in this page: the newest execution's first, and an
-   * execution's waiting tasks in their order.
+   * Pending approvals in this page: the newest run's first, and an
+   * run's waiting tasks in their order.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
@@ -22,8 +22,8 @@ public interface PendingApprovalsListOrBuilder extends
       getEntriesList();
   /**
    * <pre>
-   * Pending approvals in this page: the newest execution's first, and an
-   * execution's waiting tasks in their order.
+   * Pending approvals in this page: the newest run's first, and an
+   * run's waiting tasks in their order.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
@@ -31,8 +31,8 @@ public interface PendingApprovalsListOrBuilder extends
   ai.stigmer.agentic.workflowrun.v1.PendingApproval getEntries(int index);
   /**
    * <pre>
-   * Pending approvals in this page: the newest execution's first, and an
-   * execution's waiting tasks in their order.
+   * Pending approvals in this page: the newest run's first, and an
+   * run's waiting tasks in their order.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
@@ -40,8 +40,8 @@ public interface PendingApprovalsListOrBuilder extends
   int getEntriesCount();
   /**
    * <pre>
-   * Pending approvals in this page: the newest execution's first, and an
-   * execution's waiting tasks in their order.
+   * Pending approvals in this page: the newest run's first, and an
+   * run's waiting tasks in their order.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.PendingApproval entries = 1 [json_name = "entries"];</code>
@@ -50,8 +50,8 @@ public interface PendingApprovalsListOrBuilder extends
       getEntriesOrBuilderList();
   /**
    * <pre>
-   * Pending approvals in this page: the newest execution's first, and an
-   * execution's waiting tasks in their order.
+   * Pending approvals in this page: the newest run's first, and an
+   * run's waiting tasks in their order.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.PendingApproval entries = 1 [json_name = "entries"];</code>

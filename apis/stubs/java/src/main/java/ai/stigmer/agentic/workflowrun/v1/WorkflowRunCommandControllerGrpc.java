@@ -12,7 +12,7 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * All RPCs use custom authorization logic implemented in middleware.
  * Custom authorization is needed because:
  * - create: Must verify user has "execute" permission on the referenced Workflow
- * - update: Only the workflow runner (system) can update execution status, not users
+ * - update: Only the workflow runner (system) can update run status, not users
  * Service Options:
  * - api_resource_kind: workflow_run - Links this service to the WorkflowRun resource
  * </pre>
@@ -497,7 +497,7 @@ public final class WorkflowRunCommandControllerGrpc {
    * All RPCs use custom authorization logic implemented in middleware.
    * Custom authorization is needed because:
    * - create: Must verify user has "execute" permission on the referenced Workflow
-   * - update: Only the workflow runner (system) can update execution status, not users
+   * - update: Only the workflow runner (system) can update run status, not users
    * Service Options:
    * - api_resource_kind: workflow_run - Links this service to the WorkflowRun resource
    * </pre>
@@ -507,8 +507,8 @@ public final class WorkflowRunCommandControllerGrpc {
     /**
      * <pre>
      * Create and trigger a new workflow run.
-     * This RPC creates a WorkflowRun resource and immediately triggers it for run.
-     * The workflow run engine picks up the execution and begins processing tasks.
+     * This RPC creates a WorkflowRun resource and immediately triggers it for execution.
+     * The workflow run engine picks up the run and begins processing tasks.
      * </pre>
      */
     default void create(ai.stigmer.agentic.workflowrun.v1.WorkflowRun request,
@@ -528,7 +528,7 @@ public final class WorkflowRunCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update execution status during workflow run.
+     * Update run status during workflow run.
      * </pre>
      */
     default void updateStatus(ai.stigmer.agentic.workflowrun.v1.WorkflowRunUpdateStatusInput request,
@@ -538,7 +538,7 @@ public final class WorkflowRunCommandControllerGrpc {
 
     /**
      * <pre>
-     * Submit an approval decision for a child agent's tool run.
+     * Submit an approval decision for a child agent's tool execution.
      * This RPC forwards the approval decision to the child AgentRun that
      * is waiting for approval. The child is identified by the child_agent_run_id
      * in status.pending_approval.
@@ -634,7 +634,7 @@ public final class WorkflowRunCommandControllerGrpc {
      * workflows, recreates the ExecutionContext with freshly resolved environment
      * variables, and starts a new Temporal workflow with recovery mode enabled.
      * The workflow engine reads completed task outputs from the persisted event
-     * log, skips those tasks, and resumes execution from the first incomplete or
+     * log, skips those tasks, and resumes the run from the first incomplete or
      * failed task — preserving all previously completed work.
      * </pre>
      */
@@ -647,7 +647,7 @@ public final class WorkflowRunCommandControllerGrpc {
      * <pre>
      * Pause a running workflow run.
      * Temporarily stops the workflow at its current checkpoint. Unlike cancel,
-     * the execution is NOT terminal and can be resumed later from where it left off.
+     * the run is NOT terminal and can be resumed later from where it left off.
      * The workflow gracefully checkpoints and exits, preserving all progress.
      * </pre>
      */
@@ -659,7 +659,7 @@ public final class WorkflowRunCommandControllerGrpc {
     /**
      * <pre>
      * Resume a paused workflow run.
-     * Continues execution from the checkpoint where it was paused. The workflow
+     * Continues the run from the checkpoint where it was paused. The workflow
      * re-invokes activities with the same thread_id, which loads from checkpoint
      * and continues from where it left off.
      * </pre>
@@ -681,7 +681,7 @@ public final class WorkflowRunCommandControllerGrpc {
    * All RPCs use custom authorization logic implemented in middleware.
    * Custom authorization is needed because:
    * - create: Must verify user has "execute" permission on the referenced Workflow
-   * - update: Only the workflow runner (system) can update execution status, not users
+   * - update: Only the workflow runner (system) can update run status, not users
    * Service Options:
    * - api_resource_kind: workflow_run - Links this service to the WorkflowRun resource
    * </pre>
@@ -705,7 +705,7 @@ public final class WorkflowRunCommandControllerGrpc {
    * All RPCs use custom authorization logic implemented in middleware.
    * Custom authorization is needed because:
    * - create: Must verify user has "execute" permission on the referenced Workflow
-   * - update: Only the workflow runner (system) can update execution status, not users
+   * - update: Only the workflow runner (system) can update run status, not users
    * Service Options:
    * - api_resource_kind: workflow_run - Links this service to the WorkflowRun resource
    * </pre>
@@ -726,8 +726,8 @@ public final class WorkflowRunCommandControllerGrpc {
     /**
      * <pre>
      * Create and trigger a new workflow run.
-     * This RPC creates a WorkflowRun resource and immediately triggers it for run.
-     * The workflow run engine picks up the execution and begins processing tasks.
+     * This RPC creates a WorkflowRun resource and immediately triggers it for execution.
+     * The workflow run engine picks up the run and begins processing tasks.
      * </pre>
      */
     public void create(ai.stigmer.agentic.workflowrun.v1.WorkflowRun request,
@@ -749,7 +749,7 @@ public final class WorkflowRunCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update execution status during workflow run.
+     * Update run status during workflow run.
      * </pre>
      */
     public void updateStatus(ai.stigmer.agentic.workflowrun.v1.WorkflowRunUpdateStatusInput request,
@@ -760,7 +760,7 @@ public final class WorkflowRunCommandControllerGrpc {
 
     /**
      * <pre>
-     * Submit an approval decision for a child agent's tool run.
+     * Submit an approval decision for a child agent's tool execution.
      * This RPC forwards the approval decision to the child AgentRun that
      * is waiting for approval. The child is identified by the child_agent_run_id
      * in status.pending_approval.
@@ -863,7 +863,7 @@ public final class WorkflowRunCommandControllerGrpc {
      * workflows, recreates the ExecutionContext with freshly resolved environment
      * variables, and starts a new Temporal workflow with recovery mode enabled.
      * The workflow engine reads completed task outputs from the persisted event
-     * log, skips those tasks, and resumes execution from the first incomplete or
+     * log, skips those tasks, and resumes the run from the first incomplete or
      * failed task — preserving all previously completed work.
      * </pre>
      */
@@ -877,7 +877,7 @@ public final class WorkflowRunCommandControllerGrpc {
      * <pre>
      * Pause a running workflow run.
      * Temporarily stops the workflow at its current checkpoint. Unlike cancel,
-     * the execution is NOT terminal and can be resumed later from where it left off.
+     * the run is NOT terminal and can be resumed later from where it left off.
      * The workflow gracefully checkpoints and exits, preserving all progress.
      * </pre>
      */
@@ -890,7 +890,7 @@ public final class WorkflowRunCommandControllerGrpc {
     /**
      * <pre>
      * Resume a paused workflow run.
-     * Continues execution from the checkpoint where it was paused. The workflow
+     * Continues the run from the checkpoint where it was paused. The workflow
      * re-invokes activities with the same thread_id, which loads from checkpoint
      * and continues from where it left off.
      * </pre>
@@ -913,7 +913,7 @@ public final class WorkflowRunCommandControllerGrpc {
    * All RPCs use custom authorization logic implemented in middleware.
    * Custom authorization is needed because:
    * - create: Must verify user has "execute" permission on the referenced Workflow
-   * - update: Only the workflow runner (system) can update execution status, not users
+   * - update: Only the workflow runner (system) can update run status, not users
    * Service Options:
    * - api_resource_kind: workflow_run - Links this service to the WorkflowRun resource
    * </pre>
@@ -934,8 +934,8 @@ public final class WorkflowRunCommandControllerGrpc {
     /**
      * <pre>
      * Create and trigger a new workflow run.
-     * This RPC creates a WorkflowRun resource and immediately triggers it for run.
-     * The workflow run engine picks up the execution and begins processing tasks.
+     * This RPC creates a WorkflowRun resource and immediately triggers it for execution.
+     * The workflow run engine picks up the run and begins processing tasks.
      * </pre>
      */
     public ai.stigmer.agentic.workflowrun.v1.WorkflowRun create(ai.stigmer.agentic.workflowrun.v1.WorkflowRun request) throws io.grpc.StatusException {
@@ -955,7 +955,7 @@ public final class WorkflowRunCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update execution status during workflow run.
+     * Update run status during workflow run.
      * </pre>
      */
     public ai.stigmer.agentic.workflowrun.v1.WorkflowRun updateStatus(ai.stigmer.agentic.workflowrun.v1.WorkflowRunUpdateStatusInput request) throws io.grpc.StatusException {
@@ -965,7 +965,7 @@ public final class WorkflowRunCommandControllerGrpc {
 
     /**
      * <pre>
-     * Submit an approval decision for a child agent's tool run.
+     * Submit an approval decision for a child agent's tool execution.
      * This RPC forwards the approval decision to the child AgentRun that
      * is waiting for approval. The child is identified by the child_agent_run_id
      * in status.pending_approval.
@@ -1061,7 +1061,7 @@ public final class WorkflowRunCommandControllerGrpc {
      * workflows, recreates the ExecutionContext with freshly resolved environment
      * variables, and starts a new Temporal workflow with recovery mode enabled.
      * The workflow engine reads completed task outputs from the persisted event
-     * log, skips those tasks, and resumes execution from the first incomplete or
+     * log, skips those tasks, and resumes the run from the first incomplete or
      * failed task — preserving all previously completed work.
      * </pre>
      */
@@ -1074,7 +1074,7 @@ public final class WorkflowRunCommandControllerGrpc {
      * <pre>
      * Pause a running workflow run.
      * Temporarily stops the workflow at its current checkpoint. Unlike cancel,
-     * the execution is NOT terminal and can be resumed later from where it left off.
+     * the run is NOT terminal and can be resumed later from where it left off.
      * The workflow gracefully checkpoints and exits, preserving all progress.
      * </pre>
      */
@@ -1086,7 +1086,7 @@ public final class WorkflowRunCommandControllerGrpc {
     /**
      * <pre>
      * Resume a paused workflow run.
-     * Continues execution from the checkpoint where it was paused. The workflow
+     * Continues the run from the checkpoint where it was paused. The workflow
      * re-invokes activities with the same thread_id, which loads from checkpoint
      * and continues from where it left off.
      * </pre>
@@ -1108,7 +1108,7 @@ public final class WorkflowRunCommandControllerGrpc {
    * All RPCs use custom authorization logic implemented in middleware.
    * Custom authorization is needed because:
    * - create: Must verify user has "execute" permission on the referenced Workflow
-   * - update: Only the workflow runner (system) can update execution status, not users
+   * - update: Only the workflow runner (system) can update run status, not users
    * Service Options:
    * - api_resource_kind: workflow_run - Links this service to the WorkflowRun resource
    * </pre>
@@ -1129,8 +1129,8 @@ public final class WorkflowRunCommandControllerGrpc {
     /**
      * <pre>
      * Create and trigger a new workflow run.
-     * This RPC creates a WorkflowRun resource and immediately triggers it for run.
-     * The workflow run engine picks up the execution and begins processing tasks.
+     * This RPC creates a WorkflowRun resource and immediately triggers it for execution.
+     * The workflow run engine picks up the run and begins processing tasks.
      * </pre>
      */
     public ai.stigmer.agentic.workflowrun.v1.WorkflowRun create(ai.stigmer.agentic.workflowrun.v1.WorkflowRun request) {
@@ -1150,7 +1150,7 @@ public final class WorkflowRunCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update execution status during workflow run.
+     * Update run status during workflow run.
      * </pre>
      */
     public ai.stigmer.agentic.workflowrun.v1.WorkflowRun updateStatus(ai.stigmer.agentic.workflowrun.v1.WorkflowRunUpdateStatusInput request) {
@@ -1160,7 +1160,7 @@ public final class WorkflowRunCommandControllerGrpc {
 
     /**
      * <pre>
-     * Submit an approval decision for a child agent's tool run.
+     * Submit an approval decision for a child agent's tool execution.
      * This RPC forwards the approval decision to the child AgentRun that
      * is waiting for approval. The child is identified by the child_agent_run_id
      * in status.pending_approval.
@@ -1256,7 +1256,7 @@ public final class WorkflowRunCommandControllerGrpc {
      * workflows, recreates the ExecutionContext with freshly resolved environment
      * variables, and starts a new Temporal workflow with recovery mode enabled.
      * The workflow engine reads completed task outputs from the persisted event
-     * log, skips those tasks, and resumes execution from the first incomplete or
+     * log, skips those tasks, and resumes the run from the first incomplete or
      * failed task — preserving all previously completed work.
      * </pre>
      */
@@ -1269,7 +1269,7 @@ public final class WorkflowRunCommandControllerGrpc {
      * <pre>
      * Pause a running workflow run.
      * Temporarily stops the workflow at its current checkpoint. Unlike cancel,
-     * the execution is NOT terminal and can be resumed later from where it left off.
+     * the run is NOT terminal and can be resumed later from where it left off.
      * The workflow gracefully checkpoints and exits, preserving all progress.
      * </pre>
      */
@@ -1281,7 +1281,7 @@ public final class WorkflowRunCommandControllerGrpc {
     /**
      * <pre>
      * Resume a paused workflow run.
-     * Continues execution from the checkpoint where it was paused. The workflow
+     * Continues the run from the checkpoint where it was paused. The workflow
      * re-invokes activities with the same thread_id, which loads from checkpoint
      * and continues from where it left off.
      * </pre>
@@ -1303,7 +1303,7 @@ public final class WorkflowRunCommandControllerGrpc {
    * All RPCs use custom authorization logic implemented in middleware.
    * Custom authorization is needed because:
    * - create: Must verify user has "execute" permission on the referenced Workflow
-   * - update: Only the workflow runner (system) can update execution status, not users
+   * - update: Only the workflow runner (system) can update run status, not users
    * Service Options:
    * - api_resource_kind: workflow_run - Links this service to the WorkflowRun resource
    * </pre>
@@ -1324,8 +1324,8 @@ public final class WorkflowRunCommandControllerGrpc {
     /**
      * <pre>
      * Create and trigger a new workflow run.
-     * This RPC creates a WorkflowRun resource and immediately triggers it for run.
-     * The workflow run engine picks up the execution and begins processing tasks.
+     * This RPC creates a WorkflowRun resource and immediately triggers it for execution.
+     * The workflow run engine picks up the run and begins processing tasks.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflowrun.v1.WorkflowRun> create(
@@ -1347,7 +1347,7 @@ public final class WorkflowRunCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update execution status during workflow run.
+     * Update run status during workflow run.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflowrun.v1.WorkflowRun> updateStatus(
@@ -1358,7 +1358,7 @@ public final class WorkflowRunCommandControllerGrpc {
 
     /**
      * <pre>
-     * Submit an approval decision for a child agent's tool run.
+     * Submit an approval decision for a child agent's tool execution.
      * This RPC forwards the approval decision to the child AgentRun that
      * is waiting for approval. The child is identified by the child_agent_run_id
      * in status.pending_approval.
@@ -1461,7 +1461,7 @@ public final class WorkflowRunCommandControllerGrpc {
      * workflows, recreates the ExecutionContext with freshly resolved environment
      * variables, and starts a new Temporal workflow with recovery mode enabled.
      * The workflow engine reads completed task outputs from the persisted event
-     * log, skips those tasks, and resumes execution from the first incomplete or
+     * log, skips those tasks, and resumes the run from the first incomplete or
      * failed task — preserving all previously completed work.
      * </pre>
      */
@@ -1475,7 +1475,7 @@ public final class WorkflowRunCommandControllerGrpc {
      * <pre>
      * Pause a running workflow run.
      * Temporarily stops the workflow at its current checkpoint. Unlike cancel,
-     * the execution is NOT terminal and can be resumed later from where it left off.
+     * the run is NOT terminal and can be resumed later from where it left off.
      * The workflow gracefully checkpoints and exits, preserving all progress.
      * </pre>
      */
@@ -1488,7 +1488,7 @@ public final class WorkflowRunCommandControllerGrpc {
     /**
      * <pre>
      * Resume a paused workflow run.
-     * Continues execution from the checkpoint where it was paused. The workflow
+     * Continues the run from the checkpoint where it was paused. The workflow
      * re-invokes activities with the same thread_id, which loads from checkpoint
      * and continues from where it left off.
      * </pre>

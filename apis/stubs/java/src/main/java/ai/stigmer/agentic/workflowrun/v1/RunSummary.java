@@ -73,7 +73,7 @@ private static final long serialVersionUID = 0L;
   private int activeCount_ = 0;
   /**
    * <pre>
-   * Number of executions currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED).
+   * Number of runs currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED).
    * </pre>
    *
    * <code>int32 active_count = 1 [json_name = "activeCount"];</code>
@@ -112,10 +112,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Execution counts broken down by phase.
+   * Run counts broken down by phase.
    *
    * Keys are RunPhase enum values (as int32).
-   * Only phases with at least one execution are included.
+   * Only phases with at least one run are included.
    * </pre>
    *
    * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -136,10 +136,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Execution counts broken down by phase.
+   * Run counts broken down by phase.
    *
    * Keys are RunPhase enum values (as int32).
-   * Only phases with at least one execution are included.
+   * Only phases with at least one run are included.
    * </pre>
    *
    * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -150,10 +150,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Execution counts broken down by phase.
+   * Run counts broken down by phase.
    *
    * Keys are RunPhase enum values (as int32).
-   * Only phases with at least one execution are included.
+   * Only phases with at least one run are included.
    * </pre>
    *
    * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -169,10 +169,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Execution counts broken down by phase.
+   * Run counts broken down by phase.
    *
    * Keys are RunPhase enum values (as int32).
-   * Only phases with at least one execution are included.
+   * Only phases with at least one run are included.
    * </pre>
    *
    * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -193,7 +193,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.workflowrun.v1.WorkflowCostSummary totalCost_;
   /**
    * <pre>
-   * Aggregate cost across all executions in the time window.
+   * Aggregate cost across all runs in the time window.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowCostSummary total_cost = 3 [json_name = "totalCost"];</code>
@@ -205,7 +205,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Aggregate cost across all executions in the time window.
+   * Aggregate cost across all runs in the time window.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowCostSummary total_cost = 3 [json_name = "totalCost"];</code>
@@ -217,7 +217,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Aggregate cost across all executions in the time window.
+   * Aggregate cost across all runs in the time window.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowCostSummary total_cost = 3 [json_name = "totalCost"];</code>
@@ -231,9 +231,9 @@ private static final long serialVersionUID = 0L;
   private com.google.protobuf.Duration avgDuration_;
   /**
    * <pre>
-   * Mean execution duration (from started_at to completed_at) for completed runs.
+   * Mean run duration (from started_at to completed_at) for completed runs.
    *
-   * Zero when no completed executions exist in the window.
+   * Zero when no completed runs exist in the window.
    * </pre>
    *
    * <code>.google.protobuf.Duration avg_duration = 4 [json_name = "avgDuration"];</code>
@@ -245,9 +245,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Mean execution duration (from started_at to completed_at) for completed runs.
+   * Mean run duration (from started_at to completed_at) for completed runs.
    *
-   * Zero when no completed executions exist in the window.
+   * Zero when no completed runs exist in the window.
    * </pre>
    *
    * <code>.google.protobuf.Duration avg_duration = 4 [json_name = "avgDuration"];</code>
@@ -259,9 +259,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Mean execution duration (from started_at to completed_at) for completed runs.
+   * Mean run duration (from started_at to completed_at) for completed runs.
    *
-   * Zero when no completed executions exist in the window.
+   * Zero when no completed runs exist in the window.
    * </pre>
    *
    * <code>.google.protobuf.Duration avg_duration = 4 [json_name = "avgDuration"];</code>
@@ -417,7 +417,7 @@ private static final long serialVersionUID = 0L;
   private int totalCount_ = 0;
   /**
    * <pre>
-   * Total number of executions in the time window (sum of all phase_counts values).
+   * Total number of runs in the time window (sum of all phase_counts values).
    * </pre>
    *
    * <code>int32 total_count = 7 [json_name = "totalCount"];</code>
@@ -434,7 +434,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Success rate as a ratio (0.0 to 1.0).
    * Computed as completed / (completed + failed). Returns -1.0 when no
-   * completed or failed executions exist in the time window.
+   * completed or failed runs exist in the time window.
    * </pre>
    *
    * <code>double success_rate = 8 [json_name = "successRate"];</code>
@@ -1091,7 +1091,7 @@ private static final long serialVersionUID = 0L;
     private int activeCount_ ;
     /**
      * <pre>
-     * Number of executions currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED).
+     * Number of runs currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED).
      * </pre>
      *
      * <code>int32 active_count = 1 [json_name = "activeCount"];</code>
@@ -1103,7 +1103,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Number of executions currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED).
+     * Number of runs currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED).
      * </pre>
      *
      * <code>int32 active_count = 1 [json_name = "activeCount"];</code>
@@ -1119,7 +1119,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Number of executions currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED).
+     * Number of runs currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED).
      * </pre>
      *
      * <code>int32 active_count = 1 [json_name = "activeCount"];</code>
@@ -1160,10 +1160,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution counts broken down by phase.
+     * Run counts broken down by phase.
      *
      * Keys are RunPhase enum values (as int32).
-     * Only phases with at least one execution are included.
+     * Only phases with at least one run are included.
      * </pre>
      *
      * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -1184,10 +1184,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution counts broken down by phase.
+     * Run counts broken down by phase.
      *
      * Keys are RunPhase enum values (as int32).
-     * Only phases with at least one execution are included.
+     * Only phases with at least one run are included.
      * </pre>
      *
      * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -1198,10 +1198,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution counts broken down by phase.
+     * Run counts broken down by phase.
      *
      * Keys are RunPhase enum values (as int32).
-     * Only phases with at least one execution are included.
+     * Only phases with at least one run are included.
      * </pre>
      *
      * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -1217,10 +1217,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution counts broken down by phase.
+     * Run counts broken down by phase.
      *
      * Keys are RunPhase enum values (as int32).
-     * Only phases with at least one execution are included.
+     * Only phases with at least one run are included.
      * </pre>
      *
      * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -1244,10 +1244,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution counts broken down by phase.
+     * Run counts broken down by phase.
      *
      * Keys are RunPhase enum values (as int32).
-     * Only phases with at least one execution are included.
+     * Only phases with at least one run are included.
      * </pre>
      *
      * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -1270,10 +1270,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution counts broken down by phase.
+     * Run counts broken down by phase.
      *
      * Keys are RunPhase enum values (as int32).
-     * Only phases with at least one execution are included.
+     * Only phases with at least one run are included.
      * </pre>
      *
      * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -1290,10 +1290,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Execution counts broken down by phase.
+     * Run counts broken down by phase.
      *
      * Keys are RunPhase enum values (as int32).
-     * Only phases with at least one execution are included.
+     * Only phases with at least one run are included.
      * </pre>
      *
      * <code>map&lt;int32, int32&gt; phase_counts = 2 [json_name = "phaseCounts"];</code>
@@ -1311,7 +1311,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.workflowrun.v1.WorkflowCostSummary, ai.stigmer.agentic.workflowrun.v1.WorkflowCostSummary.Builder, ai.stigmer.agentic.workflowrun.v1.WorkflowCostSummaryOrBuilder> totalCostBuilder_;
     /**
      * <pre>
-     * Aggregate cost across all executions in the time window.
+     * Aggregate cost across all runs in the time window.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowCostSummary total_cost = 3 [json_name = "totalCost"];</code>
@@ -1322,7 +1322,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Aggregate cost across all executions in the time window.
+     * Aggregate cost across all runs in the time window.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowCostSummary total_cost = 3 [json_name = "totalCost"];</code>
@@ -1337,7 +1337,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Aggregate cost across all executions in the time window.
+     * Aggregate cost across all runs in the time window.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowCostSummary total_cost = 3 [json_name = "totalCost"];</code>
@@ -1357,7 +1357,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Aggregate cost across all executions in the time window.
+     * Aggregate cost across all runs in the time window.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowCostSummary total_cost = 3 [json_name = "totalCost"];</code>
@@ -1375,7 +1375,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Aggregate cost across all executions in the time window.
+     * Aggregate cost across all runs in the time window.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowCostSummary total_cost = 3 [json_name = "totalCost"];</code>
@@ -1400,7 +1400,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Aggregate cost across all executions in the time window.
+     * Aggregate cost across all runs in the time window.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowCostSummary total_cost = 3 [json_name = "totalCost"];</code>
@@ -1417,7 +1417,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Aggregate cost across all executions in the time window.
+     * Aggregate cost across all runs in the time window.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowCostSummary total_cost = 3 [json_name = "totalCost"];</code>
@@ -1429,7 +1429,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Aggregate cost across all executions in the time window.
+     * Aggregate cost across all runs in the time window.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowCostSummary total_cost = 3 [json_name = "totalCost"];</code>
@@ -1444,7 +1444,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Aggregate cost across all executions in the time window.
+     * Aggregate cost across all runs in the time window.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.WorkflowCostSummary total_cost = 3 [json_name = "totalCost"];</code>
@@ -1468,9 +1468,9 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.Duration, com.google.protobuf.Duration.Builder, com.google.protobuf.DurationOrBuilder> avgDurationBuilder_;
     /**
      * <pre>
-     * Mean execution duration (from started_at to completed_at) for completed runs.
+     * Mean run duration (from started_at to completed_at) for completed runs.
      *
-     * Zero when no completed executions exist in the window.
+     * Zero when no completed runs exist in the window.
      * </pre>
      *
      * <code>.google.protobuf.Duration avg_duration = 4 [json_name = "avgDuration"];</code>
@@ -1481,9 +1481,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Mean execution duration (from started_at to completed_at) for completed runs.
+     * Mean run duration (from started_at to completed_at) for completed runs.
      *
-     * Zero when no completed executions exist in the window.
+     * Zero when no completed runs exist in the window.
      * </pre>
      *
      * <code>.google.protobuf.Duration avg_duration = 4 [json_name = "avgDuration"];</code>
@@ -1498,9 +1498,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Mean execution duration (from started_at to completed_at) for completed runs.
+     * Mean run duration (from started_at to completed_at) for completed runs.
      *
-     * Zero when no completed executions exist in the window.
+     * Zero when no completed runs exist in the window.
      * </pre>
      *
      * <code>.google.protobuf.Duration avg_duration = 4 [json_name = "avgDuration"];</code>
@@ -1520,9 +1520,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Mean execution duration (from started_at to completed_at) for completed runs.
+     * Mean run duration (from started_at to completed_at) for completed runs.
      *
-     * Zero when no completed executions exist in the window.
+     * Zero when no completed runs exist in the window.
      * </pre>
      *
      * <code>.google.protobuf.Duration avg_duration = 4 [json_name = "avgDuration"];</code>
@@ -1540,9 +1540,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Mean execution duration (from started_at to completed_at) for completed runs.
+     * Mean run duration (from started_at to completed_at) for completed runs.
      *
-     * Zero when no completed executions exist in the window.
+     * Zero when no completed runs exist in the window.
      * </pre>
      *
      * <code>.google.protobuf.Duration avg_duration = 4 [json_name = "avgDuration"];</code>
@@ -1567,9 +1567,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Mean execution duration (from started_at to completed_at) for completed runs.
+     * Mean run duration (from started_at to completed_at) for completed runs.
      *
-     * Zero when no completed executions exist in the window.
+     * Zero when no completed runs exist in the window.
      * </pre>
      *
      * <code>.google.protobuf.Duration avg_duration = 4 [json_name = "avgDuration"];</code>
@@ -1586,9 +1586,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Mean execution duration (from started_at to completed_at) for completed runs.
+     * Mean run duration (from started_at to completed_at) for completed runs.
      *
-     * Zero when no completed executions exist in the window.
+     * Zero when no completed runs exist in the window.
      * </pre>
      *
      * <code>.google.protobuf.Duration avg_duration = 4 [json_name = "avgDuration"];</code>
@@ -1600,9 +1600,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Mean execution duration (from started_at to completed_at) for completed runs.
+     * Mean run duration (from started_at to completed_at) for completed runs.
      *
-     * Zero when no completed executions exist in the window.
+     * Zero when no completed runs exist in the window.
      * </pre>
      *
      * <code>.google.protobuf.Duration avg_duration = 4 [json_name = "avgDuration"];</code>
@@ -1617,9 +1617,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Mean execution duration (from started_at to completed_at) for completed runs.
+     * Mean run duration (from started_at to completed_at) for completed runs.
      *
-     * Zero when no completed executions exist in the window.
+     * Zero when no completed runs exist in the window.
      * </pre>
      *
      * <code>.google.protobuf.Duration avg_duration = 4 [json_name = "avgDuration"];</code>
@@ -2337,7 +2337,7 @@ private static final long serialVersionUID = 0L;
     private int totalCount_ ;
     /**
      * <pre>
-     * Total number of executions in the time window (sum of all phase_counts values).
+     * Total number of runs in the time window (sum of all phase_counts values).
      * </pre>
      *
      * <code>int32 total_count = 7 [json_name = "totalCount"];</code>
@@ -2349,7 +2349,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total number of executions in the time window (sum of all phase_counts values).
+     * Total number of runs in the time window (sum of all phase_counts values).
      * </pre>
      *
      * <code>int32 total_count = 7 [json_name = "totalCount"];</code>
@@ -2365,7 +2365,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total number of executions in the time window (sum of all phase_counts values).
+     * Total number of runs in the time window (sum of all phase_counts values).
      * </pre>
      *
      * <code>int32 total_count = 7 [json_name = "totalCount"];</code>
@@ -2383,7 +2383,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Success rate as a ratio (0.0 to 1.0).
      * Computed as completed / (completed + failed). Returns -1.0 when no
-     * completed or failed executions exist in the time window.
+     * completed or failed runs exist in the time window.
      * </pre>
      *
      * <code>double success_rate = 8 [json_name = "successRate"];</code>
@@ -2397,7 +2397,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Success rate as a ratio (0.0 to 1.0).
      * Computed as completed / (completed + failed). Returns -1.0 when no
-     * completed or failed executions exist in the time window.
+     * completed or failed runs exist in the time window.
      * </pre>
      *
      * <code>double success_rate = 8 [json_name = "successRate"];</code>
@@ -2415,7 +2415,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Success rate as a ratio (0.0 to 1.0).
      * Computed as completed / (completed + failed). Returns -1.0 when no
-     * completed or failed executions exist in the time window.
+     * completed or failed runs exist in the time window.
      * </pre>
      *
      * <code>double success_rate = 8 [json_name = "successRate"];</code>

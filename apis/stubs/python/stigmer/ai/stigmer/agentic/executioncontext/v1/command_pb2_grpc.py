@@ -45,7 +45,7 @@ class ExecutionContextCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def create(self, request, context):
-        """Create a new ExecutionContext for an run.
+        """Create a new ExecutionContext for a run.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

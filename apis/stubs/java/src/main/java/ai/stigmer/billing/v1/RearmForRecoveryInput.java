@@ -8,7 +8,7 @@ package ai.stigmer.billing.v1;
 /**
  * <pre>
  * RearmForRecoveryInput re-arms a settled reservation so a failed
- * execution can be recovered.
+ * run can be recovered.
  *
  * Recovery is the one sanctioned path past the settled-reservation latch.
  * The response is the same shape authorizeRun returns, carrying the
@@ -257,7 +257,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * RearmForRecoveryInput re-arms a settled reservation so a failed
-   * execution can be recovered.
+   * run can be recovered.
    *
    * Recovery is the one sanctioned path past the settled-reservation latch.
    * The response is the same shape authorizeRun returns, carrying the

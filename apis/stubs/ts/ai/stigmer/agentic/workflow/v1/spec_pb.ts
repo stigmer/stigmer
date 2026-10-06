@@ -69,7 +69,7 @@ export type WorkflowSpec = Message<"ai.stigmer.agentic.workflow.v1.WorkflowSpec"
   budget?: WorkflowBudget;
 
   /**
-   * Who can observe the runs (executions) of this workflow.
+   * Who can observe the runs of this workflow.
    *
    * Independent of the workflow's own visibility: making a workflow
    * org-visible lets teammates see and run it, but does NOT expose each

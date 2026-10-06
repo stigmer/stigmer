@@ -11,7 +11,7 @@ package ai.stigmer.agentic.workflow.v1;
  * of a single workflow.
  *
  * Mirrors the shape of commons UpdateVisibilityInput, but for the SEPARATE
- * execution-visibility axis (see WorkflowRunVisibility). A dedicated
+ * run-visibility axis (see WorkflowRunVisibility). A dedicated
  * message keeps the two visibility concepts from being conflated.
  * </pre>
  *
@@ -64,7 +64,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object resourceId_ = "";
   /**
    * <pre>
-   * ID of the workflow whose execution visibility is being updated.
+   * ID of the workflow whose run visibility is being updated.
    * </pre>
    *
    * <code>string resource_id = 1 [json_name = "resourceId", (.buf.validate.field) = { ... }</code>
@@ -85,7 +85,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ID of the workflow whose execution visibility is being updated.
+   * ID of the workflow whose run visibility is being updated.
    * </pre>
    *
    * <code>string resource_id = 1 [json_name = "resourceId", (.buf.validate.field) = { ... }</code>
@@ -110,7 +110,7 @@ private static final long serialVersionUID = 0L;
   private int runVisibility_ = 0;
   /**
    * <pre>
-   * The new execution-visibility setting. Must not be unspecified (0).
+   * The new run-visibility setting. Must not be unspecified (0).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility run_visibility = 2 [json_name = "runVisibility", (.buf.validate.field) = { ... }</code>
@@ -121,7 +121,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The new execution-visibility setting. Must not be unspecified (0).
+   * The new run-visibility setting. Must not be unspecified (0).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility run_visibility = 2 [json_name = "runVisibility", (.buf.validate.field) = { ... }</code>
@@ -304,7 +304,7 @@ private static final long serialVersionUID = 0L;
    * of a single workflow.
    *
    * Mirrors the shape of commons UpdateVisibilityInput, but for the SEPARATE
-   * execution-visibility axis (see WorkflowRunVisibility). A dedicated
+   * run-visibility axis (see WorkflowRunVisibility). A dedicated
    * message keeps the two visibility concepts from being conflated.
    * </pre>
    *
@@ -460,7 +460,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object resourceId_ = "";
     /**
      * <pre>
-     * ID of the workflow whose execution visibility is being updated.
+     * ID of the workflow whose run visibility is being updated.
      * </pre>
      *
      * <code>string resource_id = 1 [json_name = "resourceId", (.buf.validate.field) = { ... }</code>
@@ -480,7 +480,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the workflow whose execution visibility is being updated.
+     * ID of the workflow whose run visibility is being updated.
      * </pre>
      *
      * <code>string resource_id = 1 [json_name = "resourceId", (.buf.validate.field) = { ... }</code>
@@ -501,7 +501,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the workflow whose execution visibility is being updated.
+     * ID of the workflow whose run visibility is being updated.
      * </pre>
      *
      * <code>string resource_id = 1 [json_name = "resourceId", (.buf.validate.field) = { ... }</code>
@@ -518,7 +518,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the workflow whose execution visibility is being updated.
+     * ID of the workflow whose run visibility is being updated.
      * </pre>
      *
      * <code>string resource_id = 1 [json_name = "resourceId", (.buf.validate.field) = { ... }</code>
@@ -532,7 +532,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the workflow whose execution visibility is being updated.
+     * ID of the workflow whose run visibility is being updated.
      * </pre>
      *
      * <code>string resource_id = 1 [json_name = "resourceId", (.buf.validate.field) = { ... }</code>
@@ -552,7 +552,7 @@ private static final long serialVersionUID = 0L;
     private int runVisibility_ = 0;
     /**
      * <pre>
-     * The new execution-visibility setting. Must not be unspecified (0).
+     * The new run-visibility setting. Must not be unspecified (0).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility run_visibility = 2 [json_name = "runVisibility", (.buf.validate.field) = { ... }</code>
@@ -563,7 +563,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The new execution-visibility setting. Must not be unspecified (0).
+     * The new run-visibility setting. Must not be unspecified (0).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility run_visibility = 2 [json_name = "runVisibility", (.buf.validate.field) = { ... }</code>
@@ -579,7 +579,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The new execution-visibility setting. Must not be unspecified (0).
+     * The new run-visibility setting. Must not be unspecified (0).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility run_visibility = 2 [json_name = "runVisibility", (.buf.validate.field) = { ... }</code>
@@ -592,7 +592,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The new execution-visibility setting. Must not be unspecified (0).
+     * The new run-visibility setting. Must not be unspecified (0).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility run_visibility = 2 [json_name = "runVisibility", (.buf.validate.field) = { ... }</code>
@@ -608,7 +608,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The new execution-visibility setting. Must not be unspecified (0).
+     * The new run-visibility setting. Must not be unspecified (0).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility run_visibility = 2 [json_name = "runVisibility", (.buf.validate.field) = { ... }</code>

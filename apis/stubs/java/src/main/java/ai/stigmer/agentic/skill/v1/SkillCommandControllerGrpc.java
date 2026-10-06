@@ -266,7 +266,7 @@ public final class SkillCommandControllerGrpc {
 
     /**
      * <pre>
-     * Push a skill from an execution artifact already in storage.
+     * Push a skill from a run artifact already in storage.
      * Use this when an agent run has already produced a skill artifact
      * and you want to publish it without downloading and re-uploading the ZIP.
      * </pre>
@@ -365,7 +365,7 @@ public final class SkillCommandControllerGrpc {
 
     /**
      * <pre>
-     * Push a skill from an execution artifact already in storage.
+     * Push a skill from a run artifact already in storage.
      * Use this when an agent run has already produced a skill artifact
      * and you want to publish it without downloading and re-uploading the ZIP.
      * </pre>
@@ -451,7 +451,7 @@ public final class SkillCommandControllerGrpc {
 
     /**
      * <pre>
-     * Push a skill from an execution artifact already in storage.
+     * Push a skill from a run artifact already in storage.
      * Use this when an agent run has already produced a skill artifact
      * and you want to publish it without downloading and re-uploading the ZIP.
      * </pre>
@@ -534,7 +534,7 @@ public final class SkillCommandControllerGrpc {
 
     /**
      * <pre>
-     * Push a skill from an execution artifact already in storage.
+     * Push a skill from a run artifact already in storage.
      * Use this when an agent run has already produced a skill artifact
      * and you want to publish it without downloading and re-uploading the ZIP.
      * </pre>
@@ -619,7 +619,7 @@ public final class SkillCommandControllerGrpc {
 
     /**
      * <pre>
-     * Push a skill from an execution artifact already in storage.
+     * Push a skill from a run artifact already in storage.
      * Use this when an agent run has already produced a skill artifact
      * and you want to publish it without downloading and re-uploading the ZIP.
      * </pre>

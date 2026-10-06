@@ -94,7 +94,7 @@ class WorkflowRunQueryControllerServicer(object):
 
         Retrieves the complete WorkflowRun resource including:
         - spec: User inputs (workflow_id, trigger_message, etc.)
-        - status: Current execution state (phase, tasks, progress_events, output/error)
+        - status: Current run state (phase, tasks, progress_events, output/error)
         - metadata: Resource identification (id, name, labels, tags)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -112,10 +112,10 @@ class WorkflowRunQueryControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def listByWorkflow(self, request, context):
-        """List all executions for a specific Workflow.
+        """List all runs for a specific Workflow.
 
-        Returns executions filtered by a specific Workflow ID.
-        This is useful for viewing execution history of a particular workflow.
+        Returns runs filtered by a specific Workflow ID.
+        This is useful for viewing the run history of a particular workflow.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -126,7 +126,7 @@ class WorkflowRunQueryControllerServicer(object):
 
         Opens a bidirectional stream that pushes WorkflowRun updates as they occur.
         Client receives updates when:
-        - Execution phase changes (PENDING → IN_PROGRESS → COMPLETED)
+        - Run phase changes (PENDING → IN_PROGRESS → COMPLETED)
         - Tasks start or complete
         - Progress events are appended
         - Output or error fields are set
@@ -138,7 +138,7 @@ class WorkflowRunQueryControllerServicer(object):
     def getEventLog(self, request, context):
         """Fetch the paginated event log for a workflow run.
 
-        Returns execution events ordered by sequence_number ascending, with
+        Returns run events ordered by sequence_number ascending, with
         cursor-based pagination and optional filtering by event type or task name.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -146,10 +146,10 @@ class WorkflowRunQueryControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def subscribeEvents(self, request, context):
-        """Subscribe to real-time execution events (incremental event stream).
+        """Subscribe to real-time run events (incremental event stream).
 
         Opens a server-side streaming RPC that pushes individual
-        WorkflowRunEvent messages as they occur during run.
+        WorkflowRunEvent messages as they occur during the run.
         Unlike subscribe() which streams full WorkflowRun snapshots,
         this streams lightweight incremental events for the timeline view.
         """
@@ -158,7 +158,7 @@ class WorkflowRunQueryControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def getRunSummary(self, request, context):
-        """Get aggregated execution statistics for an organization's workflows.
+        """Get aggregated run statistics for an organization's workflows.
 
         Returns counts by phase, total cost, average duration, top failing
         workflows, and per-workflow cost breakdown — scoped to a configurable
@@ -171,7 +171,7 @@ class WorkflowRunQueryControllerServicer(object):
     def listPendingApprovals(self, request, context):
         """List workflow runs with pending human_input tasks awaiting reviewer decisions.
 
-        Returns a paginated list of executions where at least one human_input
+        Returns a paginated list of runs where at least one human_input
         task is actively waiting for a response. Each entry includes the
         execution context, task details, requester, and timeout information.
         """

@@ -12,7 +12,7 @@ public interface AuthorizeRunResponseOrBuilder extends
 
   /**
    * <pre>
-   * Whether the execution is authorized to start.
+   * Whether the run is authorized to start.
    * </pre>
    *
    * <code>bool authorized = 1 [json_name = "authorized"];</code>

@@ -63,8 +63,8 @@ public interface ArtifactSourceOrBuilder extends
   /**
    * <pre>
    * Name of the task that produced this artifact.
-   * Matches WorkflowTask.task_name in the execution status.
-   * Empty for execution-level artifacts (e.g., final workflow output).
+   * Matches WorkflowTask.task_name in the run status.
+   * Empty for run-level artifacts (e.g., final workflow output).
    * </pre>
    *
    * <code>string task_name = 3 [json_name = "taskName"];</code>
@@ -74,8 +74,8 @@ public interface ArtifactSourceOrBuilder extends
   /**
    * <pre>
    * Name of the task that produced this artifact.
-   * Matches WorkflowTask.task_name in the execution status.
-   * Empty for execution-level artifacts (e.g., final workflow output).
+   * Matches WorkflowTask.task_name in the run status.
+   * Empty for run-level artifacts (e.g., final workflow output).
    * </pre>
    *
    * <code>string task_name = 3 [json_name = "taskName"];</code>

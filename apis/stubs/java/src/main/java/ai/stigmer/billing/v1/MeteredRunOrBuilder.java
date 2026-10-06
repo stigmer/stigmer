@@ -12,7 +12,7 @@ public interface MeteredRunOrBuilder extends
 
   /**
    * <pre>
-   * The session the execution belongs to. The provider reconciler matches
+   * The session the run belongs to. The provider reconciler matches
    * Cursor conversations to sessions through the usage record's session.
    * </pre>
    *
@@ -22,7 +22,7 @@ public interface MeteredRunOrBuilder extends
   java.lang.String getSessionId();
   /**
    * <pre>
-   * The session the execution belongs to. The provider reconciler matches
+   * The session the run belongs to. The provider reconciler matches
    * Cursor conversations to sessions through the usage record's session.
    * </pre>
    *
@@ -34,7 +34,7 @@ public interface MeteredRunOrBuilder extends
 
   /**
    * <pre>
-   * The model the execution resolved (status.run_config.model_name, whichever
+   * The model the run resolved (status.run_config.model_name, whichever
    * layer chose it: the message, the agent's defaults or the lane's profile)
    * — the authoritative statement of what was asked for, and the pricing
    * fallback when the wire's requested_model came up empty. Empty when no
@@ -47,7 +47,7 @@ public interface MeteredRunOrBuilder extends
   java.lang.String getPinnedModel();
   /**
    * <pre>
-   * The model the execution resolved (status.run_config.model_name, whichever
+   * The model the run resolved (status.run_config.model_name, whichever
    * layer chose it: the message, the agent's defaults or the lane's profile)
    * — the authoritative statement of what was asked for, and the pricing
    * fallback when the wire's requested_model came up empty. Empty when no
@@ -62,7 +62,7 @@ public interface MeteredRunOrBuilder extends
 
   /**
    * <pre>
-   * The service tier the execution resolved (status.run_config.
+   * The service tier the run resolved (status.run_config.
    * service_tier); UNSPECIFIED resolves to standard. Reconciled against
    * served_service_tier by the service_tier.mismatch counter.
    * </pre>
@@ -73,7 +73,7 @@ public interface MeteredRunOrBuilder extends
   int getRequestedServiceTierValue();
   /**
    * <pre>
-   * The service tier the execution resolved (status.run_config.
+   * The service tier the run resolved (status.run_config.
    * service_tier); UNSPECIFIED resolves to standard. Reconciled against
    * served_service_tier by the service_tier.mismatch counter.
    * </pre>
@@ -85,7 +85,7 @@ public interface MeteredRunOrBuilder extends
 
   /**
    * <pre>
-   * The thinking mode the execution resolved (status.run_config.
+   * The thinking mode the run resolved (status.run_config.
    * thinking_mode). Reconciled against the served variant by the
    * thinking.mismatch counter.
    * </pre>
@@ -96,7 +96,7 @@ public interface MeteredRunOrBuilder extends
   int getRequestedThinkingModeValue();
   /**
    * <pre>
-   * The thinking mode the execution resolved (status.run_config.
+   * The thinking mode the run resolved (status.run_config.
    * thinking_mode). Reconciled against the served variant by the
    * thinking.mismatch counter.
    * </pre>

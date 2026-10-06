@@ -7,7 +7,7 @@ package ai.stigmer.agentic.agentrun.v1;
 
 /**
  * <pre>
- * GetArtifactContentRequest reads the raw content of an execution artifact.
+ * GetArtifactContentRequest reads the raw content of a run artifact.
  *
  * Unlike getArtifactDownloadUrl (which returns a presigned URL for direct
  * browser download), this endpoint returns the artifact bytes through the
@@ -18,13 +18,13 @@ package ai.stigmer.agentic.agentrun.v1;
  * ## Authorization
  *
  * Requires can_view permission on the run. This ensures users can only
- * read artifacts from executions they have access to.
+ * read artifacts from runs they have access to.
  *
  * ## Security
  *
  * The storage_key is validated to ensure it belongs to the specified run.
  * Storage keys must start with "artifacts/{run_id}/" to prevent path
- * traversal attacks where a user could request content from other executions'
+ * traversal attacks where a user could request content from other runs'
  * artifacts.
  *
  * ## Size Limit
@@ -172,9 +172,9 @@ private static final long serialVersionUID = 0L;
    *
    * Must be an artifact from the specified run. The storage_key
    * is validated to start with "artifacts/{run_id}/" to prevent
-   * access to other executions' artifacts.
+   * access to other runs' artifacts.
    *
-   * Obtain this value from RunArtifact.storage_key in the execution status.
+   * Obtain this value from RunArtifact.storage_key in the run status.
    *
    * Format: "artifacts/{run_id}/{filename}"
    * Example: "artifacts/aex_abc123xyz456/pr-review-agent.yaml"
@@ -204,9 +204,9 @@ private static final long serialVersionUID = 0L;
    *
    * Must be an artifact from the specified run. The storage_key
    * is validated to start with "artifacts/{run_id}/" to prevent
-   * access to other executions' artifacts.
+   * access to other runs' artifacts.
    *
-   * Obtain this value from RunArtifact.storage_key in the execution status.
+   * Obtain this value from RunArtifact.storage_key in the run status.
    *
    * Format: "artifacts/{run_id}/{filename}"
    * Example: "artifacts/aex_abc123xyz456/pr-review-agent.yaml"
@@ -510,7 +510,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * GetArtifactContentRequest reads the raw content of an execution artifact.
+   * GetArtifactContentRequest reads the raw content of a run artifact.
    *
    * Unlike getArtifactDownloadUrl (which returns a presigned URL for direct
    * browser download), this endpoint returns the artifact bytes through the
@@ -521,13 +521,13 @@ private static final long serialVersionUID = 0L;
    * ## Authorization
    *
    * Requires can_view permission on the run. This ensures users can only
-   * read artifacts from executions they have access to.
+   * read artifacts from runs they have access to.
    *
    * ## Security
    *
    * The storage_key is validated to ensure it belongs to the specified run.
    * Storage keys must start with "artifacts/{run_id}/" to prevent path
-   * traversal attacks where a user could request content from other executions'
+   * traversal attacks where a user could request content from other runs'
    * artifacts.
    *
    * ## Size Limit
@@ -871,9 +871,9 @@ private static final long serialVersionUID = 0L;
      *
      * Must be an artifact from the specified run. The storage_key
      * is validated to start with "artifacts/{run_id}/" to prevent
-     * access to other executions' artifacts.
+     * access to other runs' artifacts.
      *
-     * Obtain this value from RunArtifact.storage_key in the execution status.
+     * Obtain this value from RunArtifact.storage_key in the run status.
      *
      * Format: "artifacts/{run_id}/{filename}"
      * Example: "artifacts/aex_abc123xyz456/pr-review-agent.yaml"
@@ -902,9 +902,9 @@ private static final long serialVersionUID = 0L;
      *
      * Must be an artifact from the specified run. The storage_key
      * is validated to start with "artifacts/{run_id}/" to prevent
-     * access to other executions' artifacts.
+     * access to other runs' artifacts.
      *
-     * Obtain this value from RunArtifact.storage_key in the execution status.
+     * Obtain this value from RunArtifact.storage_key in the run status.
      *
      * Format: "artifacts/{run_id}/{filename}"
      * Example: "artifacts/aex_abc123xyz456/pr-review-agent.yaml"
@@ -934,9 +934,9 @@ private static final long serialVersionUID = 0L;
      *
      * Must be an artifact from the specified run. The storage_key
      * is validated to start with "artifacts/{run_id}/" to prevent
-     * access to other executions' artifacts.
+     * access to other runs' artifacts.
      *
-     * Obtain this value from RunArtifact.storage_key in the execution status.
+     * Obtain this value from RunArtifact.storage_key in the run status.
      *
      * Format: "artifacts/{run_id}/{filename}"
      * Example: "artifacts/aex_abc123xyz456/pr-review-agent.yaml"
@@ -962,9 +962,9 @@ private static final long serialVersionUID = 0L;
      *
      * Must be an artifact from the specified run. The storage_key
      * is validated to start with "artifacts/{run_id}/" to prevent
-     * access to other executions' artifacts.
+     * access to other runs' artifacts.
      *
-     * Obtain this value from RunArtifact.storage_key in the execution status.
+     * Obtain this value from RunArtifact.storage_key in the run status.
      *
      * Format: "artifacts/{run_id}/{filename}"
      * Example: "artifacts/aex_abc123xyz456/pr-review-agent.yaml"
@@ -987,9 +987,9 @@ private static final long serialVersionUID = 0L;
      *
      * Must be an artifact from the specified run. The storage_key
      * is validated to start with "artifacts/{run_id}/" to prevent
-     * access to other executions' artifacts.
+     * access to other runs' artifacts.
      *
-     * Obtain this value from RunArtifact.storage_key in the execution status.
+     * Obtain this value from RunArtifact.storage_key in the run status.
      *
      * Format: "artifacts/{run_id}/{filename}"
      * Example: "artifacts/aex_abc123xyz456/pr-review-agent.yaml"

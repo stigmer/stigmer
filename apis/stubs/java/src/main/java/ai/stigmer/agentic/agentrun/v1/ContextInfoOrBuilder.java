@@ -79,7 +79,7 @@ public interface ContextInfoOrBuilder extends
    * Whether summarization is enabled for this run.
    *
    * When false, no summarization events will occur regardless of
-   * token count. The execution may fail if context exceeds limits.
+   * token count. The run may fail if context exceeds limits.
    * </pre>
    *
    * <code>bool summarization_enabled = 5 [json_name = "summarizationEnabled"];</code>
@@ -92,7 +92,7 @@ public interface ContextInfoOrBuilder extends
    * Summarization events that occurred during this run.
    *
    * Ordered chronologically (oldest first).
-   * Empty if no summarization was triggered during run.
+   * Empty if no summarization was triggered during the run.
    *
    * Multiple events indicate a very long-running conversation that
    * required multiple rounds of summarization.
@@ -107,7 +107,7 @@ public interface ContextInfoOrBuilder extends
    * Summarization events that occurred during this run.
    *
    * Ordered chronologically (oldest first).
-   * Empty if no summarization was triggered during run.
+   * Empty if no summarization was triggered during the run.
    *
    * Multiple events indicate a very long-running conversation that
    * required multiple rounds of summarization.
@@ -121,7 +121,7 @@ public interface ContextInfoOrBuilder extends
    * Summarization events that occurred during this run.
    *
    * Ordered chronologically (oldest first).
-   * Empty if no summarization was triggered during run.
+   * Empty if no summarization was triggered during the run.
    *
    * Multiple events indicate a very long-running conversation that
    * required multiple rounds of summarization.
@@ -135,7 +135,7 @@ public interface ContextInfoOrBuilder extends
    * Summarization events that occurred during this run.
    *
    * Ordered chronologically (oldest first).
-   * Empty if no summarization was triggered during run.
+   * Empty if no summarization was triggered during the run.
    *
    * Multiple events indicate a very long-running conversation that
    * required multiple rounds of summarization.
@@ -150,7 +150,7 @@ public interface ContextInfoOrBuilder extends
    * Summarization events that occurred during this run.
    *
    * Ordered chronologically (oldest first).
-   * Empty if no summarization was triggered during run.
+   * Empty if no summarization was triggered during the run.
    *
    * Multiple events indicate a very long-running conversation that
    * required multiple rounds of summarization.

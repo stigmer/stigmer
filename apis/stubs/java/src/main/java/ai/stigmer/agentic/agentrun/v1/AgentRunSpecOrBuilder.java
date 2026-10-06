@@ -14,10 +14,10 @@ public interface AgentRunSpecOrBuilder extends
    * <pre>
    * ID of the existing session this turn continues.
    *
-   * An execution in an existing session belongs to that session's
+   * A run in an existing session belongs to that session's
    * organization: metadata.org, when set, must be the session's
    * (FAILED_PRECONDITION otherwise), and when left empty it is taken from
-   * the session. An execution stays in the session it was created in:
+   * the session. A run stays in the session it was created in:
    * update refuses a different session_id (FAILED_PRECONDITION), and an
    * empty one keeps the stored session.
    * </pre>
@@ -30,10 +30,10 @@ public interface AgentRunSpecOrBuilder extends
    * <pre>
    * ID of the existing session this turn continues.
    *
-   * An execution in an existing session belongs to that session's
+   * A run in an existing session belongs to that session's
    * organization: metadata.org, when set, must be the session's
    * (FAILED_PRECONDITION otherwise), and when left empty it is taken from
-   * the session. An execution stays in the session it was created in:
+   * the session. A run stays in the session it was created in:
    * update refuses a different session_id (FAILED_PRECONDITION), and an
    * empty one keeps the stored session.
    * </pre>
@@ -46,10 +46,10 @@ public interface AgentRunSpecOrBuilder extends
    * <pre>
    * ID of the existing session this turn continues.
    *
-   * An execution in an existing session belongs to that session's
+   * A run in an existing session belongs to that session's
    * organization: metadata.org, when set, must be the session's
    * (FAILED_PRECONDITION otherwise), and when left empty it is taken from
-   * the session. An execution stays in the session it was created in:
+   * the session. A run stays in the session it was created in:
    * update refuses a different session_id (FAILED_PRECONDITION), and an
    * empty one keeps the stored session.
    * </pre>
@@ -69,11 +69,11 @@ public interface AgentRunSpecOrBuilder extends
    * execution_target, MCP servers, skills) together with the first
    * message, so embedders do not need to orchestrate session.create
    * followed by agentRun.create. The created session's ID is
-   * returned on the persisted execution's session_id.
+   * returned on the persisted run's session_id.
    *
    * session_spec.agent_ref names the agent the conversation runs (empty:
    * the built-in assistant). Fields that must be set at session-creation
-   * time and are immutable once an execution has run — harness and
+   * time and are immutable once a run has started — harness and
    * execution_target — can only reach an auto-created session through
    * this field. session_spec.harness_state_id must be empty — it is
    * server-owned harness continuity state, created by the runner after
@@ -93,11 +93,11 @@ public interface AgentRunSpecOrBuilder extends
    * execution_target, MCP servers, skills) together with the first
    * message, so embedders do not need to orchestrate session.create
    * followed by agentRun.create. The created session's ID is
-   * returned on the persisted execution's session_id.
+   * returned on the persisted run's session_id.
    *
    * session_spec.agent_ref names the agent the conversation runs (empty:
    * the built-in assistant). Fields that must be set at session-creation
-   * time and are immutable once an execution has run — harness and
+   * time and are immutable once a run has started — harness and
    * execution_target — can only reach an auto-created session through
    * this field. session_spec.harness_state_id must be empty — it is
    * server-owned harness continuity state, created by the runner after
@@ -117,11 +117,11 @@ public interface AgentRunSpecOrBuilder extends
    * execution_target, MCP servers, skills) together with the first
    * message, so embedders do not need to orchestrate session.create
    * followed by agentRun.create. The created session's ID is
-   * returned on the persisted execution's session_id.
+   * returned on the persisted run's session_id.
    *
    * session_spec.agent_ref names the agent the conversation runs (empty:
    * the built-in assistant). Fields that must be set at session-creation
-   * time and are immutable once an execution has run — harness and
+   * time and are immutable once a run has started — harness and
    * execution_target — can only reach an auto-created session through
    * this field. session_spec.harness_state_id must be empty — it is
    * server-owned harness continuity state, created by the runner after
@@ -135,7 +135,7 @@ public interface AgentRunSpecOrBuilder extends
   /**
    * <pre>
    * User input message that triggers this run.
-   * Each execution represents one user message and the agent's response.
+   * Each run represents one user message and the agent's response.
    * </pre>
    *
    * <code>string message = 3 [json_name = "message", (.buf.validate.field) = { ... }</code>
@@ -145,7 +145,7 @@ public interface AgentRunSpecOrBuilder extends
   /**
    * <pre>
    * User input message that triggers this run.
-   * Each execution represents one user message and the agent's response.
+   * Each run represents one user message and the agent's response.
    * </pre>
    *
    * <code>string message = 3 [json_name = "message", (.buf.validate.field) = { ... }</code>
@@ -284,7 +284,7 @@ public interface AgentRunSpecOrBuilder extends
   /**
    * <pre>
    * Marks this message as a "Build from plan" turn: the user approved a plan
-   * produced by a prior Plan-mode execution and asked the agent to implement it.
+   * produced by a prior Plan-mode run and asked the agent to implement it.
    *
    * When set, the runner injects the implement-plan directive into the agent's
    * prompt (see runner shared/implement-plan-prompt.ts). If the approved plan
@@ -356,15 +356,15 @@ public interface AgentRunSpecOrBuilder extends
 
   /**
    * <pre>
-   * Runtime environment variables and secrets (execution-scoped).
-   * These values are only available for this specific execution and take the
+   * Runtime environment variables and secrets (run-scoped).
+   * These values are only available for this specific run and take the
    * highest merge priority, overriding values from Environments bound via
    * environment_refs. A key must be declared in Agent.spec.env to survive the
    * merge: the agent env map is a declaration whitelist (name + is_secret +
    * optional), never a value source — undeclared keys are dropped.
    * Use case: B2B integrations where secrets are injected at runtime per call.
    * These values are consumed into the ExecutionContext (deleted when the
-   * execution completes) and cleared from the persisted run.
+   * run completes) and cleared from the persisted run.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -372,15 +372,15 @@ public interface AgentRunSpecOrBuilder extends
   int getRuntimeEnvCount();
   /**
    * <pre>
-   * Runtime environment variables and secrets (execution-scoped).
-   * These values are only available for this specific execution and take the
+   * Runtime environment variables and secrets (run-scoped).
+   * These values are only available for this specific run and take the
    * highest merge priority, overriding values from Environments bound via
    * environment_refs. A key must be declared in Agent.spec.env to survive the
    * merge: the agent env map is a declaration whitelist (name + is_secret +
    * optional), never a value source — undeclared keys are dropped.
    * Use case: B2B integrations where secrets are injected at runtime per call.
    * These values are consumed into the ExecutionContext (deleted when the
-   * execution completes) and cleared from the persisted run.
+   * run completes) and cleared from the persisted run.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -395,15 +395,15 @@ public interface AgentRunSpecOrBuilder extends
   getRuntimeEnv();
   /**
    * <pre>
-   * Runtime environment variables and secrets (execution-scoped).
-   * These values are only available for this specific execution and take the
+   * Runtime environment variables and secrets (run-scoped).
+   * These values are only available for this specific run and take the
    * highest merge priority, overriding values from Environments bound via
    * environment_refs. A key must be declared in Agent.spec.env to survive the
    * merge: the agent env map is a declaration whitelist (name + is_secret +
    * optional), never a value source — undeclared keys are dropped.
    * Use case: B2B integrations where secrets are injected at runtime per call.
    * These values are consumed into the ExecutionContext (deleted when the
-   * execution completes) and cleared from the persisted run.
+   * run completes) and cleared from the persisted run.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -412,15 +412,15 @@ public interface AgentRunSpecOrBuilder extends
   getRuntimeEnvMap();
   /**
    * <pre>
-   * Runtime environment variables and secrets (execution-scoped).
-   * These values are only available for this specific execution and take the
+   * Runtime environment variables and secrets (run-scoped).
+   * These values are only available for this specific run and take the
    * highest merge priority, overriding values from Environments bound via
    * environment_refs. A key must be declared in Agent.spec.env to survive the
    * merge: the agent env map is a declaration whitelist (name + is_secret +
    * optional), never a value source — undeclared keys are dropped.
    * Use case: B2B integrations where secrets are injected at runtime per call.
    * These values are consumed into the ExecutionContext (deleted when the
-   * execution completes) and cleared from the persisted run.
+   * run completes) and cleared from the persisted run.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -432,15 +432,15 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrDefault(
 ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
   /**
    * <pre>
-   * Runtime environment variables and secrets (execution-scoped).
-   * These values are only available for this specific execution and take the
+   * Runtime environment variables and secrets (run-scoped).
+   * These values are only available for this specific run and take the
    * highest merge priority, overriding values from Environments bound via
    * environment_refs. A key must be declared in Agent.spec.env to survive the
    * merge: the agent env map is a declaration whitelist (name + is_secret +
    * optional), never a value source — undeclared keys are dropped.
    * Use case: B2B integrations where secrets are injected at runtime per call.
    * These values are consumed into the ExecutionContext (deleted when the
-   * execution completes) and cleared from the persisted run.
+   * run completes) and cleared from the persisted run.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
@@ -464,7 +464,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    *
    * Security consideration: This flag bypasses all approval checks.
    * Ensure appropriate access controls on who can set this flag.
-   * Consider auditing executions where this flag is used.
+   * Consider auditing runs where this flag is used.
    *
    * Default: false (approvals required as configured in policies)
    * </pre>
@@ -478,7 +478,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    * <pre>
    * Files attached to this run.
    *
-   * Attachments are injected into the sandbox before execution begins.
+   * Attachments are injected into the sandbox before the run begins.
    * The agent can read these files from the specified mount paths.
    *
    * Use cases:
@@ -498,7 +498,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    * <pre>
    * Files attached to this run.
    *
-   * Attachments are injected into the sandbox before execution begins.
+   * Attachments are injected into the sandbox before the run begins.
    * The agent can read these files from the specified mount paths.
    *
    * Use cases:
@@ -517,7 +517,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    * <pre>
    * Files attached to this run.
    *
-   * Attachments are injected into the sandbox before execution begins.
+   * Attachments are injected into the sandbox before the run begins.
    * The agent can read these files from the specified mount paths.
    *
    * Use cases:
@@ -536,7 +536,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    * <pre>
    * Files attached to this run.
    *
-   * Attachments are injected into the sandbox before execution begins.
+   * Attachments are injected into the sandbox before the run begins.
    * The agent can read these files from the specified mount paths.
    *
    * Use cases:
@@ -556,7 +556,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    * <pre>
    * Files attached to this run.
    *
-   * Attachments are injected into the sandbox before execution begins.
+   * Attachments are injected into the sandbox before the run begins.
    * The agent can read these files from the specified mount paths.
    *
    * Use cases:
@@ -700,15 +700,15 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
 
   /**
    * <pre>
-   * ID of the execution this one supersedes via edit-and-resubmit (optional).
+   * ID of the run this one supersedes via edit-and-resubmit (optional).
    *
    * When a user stops an in-flight turn, edits the message, and resubmits,
-   * the client sets this field on the NEW execution to point at the stopped
-   * one. Chat-thread consumers hide the superseded execution so the edited
-   * message replaces the original in place; history surfaces (CLI, execution
+   * the client sets this field on the NEW run to point at the stopped
+   * one. Chat-thread consumers hide the superseded run so the edited
+   * message replaces the original in place; history surfaces (CLI, run
    * lists) keep showing the full record.
    *
-   * Empty means this execution is not an edit of another turn.
+   * Empty means this run is not an edit of another turn.
    * </pre>
    *
    * <code>string supersedes_run_id = 12 [json_name = "supersedesRunId"];</code>
@@ -717,15 +717,15 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
   java.lang.String getSupersedesRunId();
   /**
    * <pre>
-   * ID of the execution this one supersedes via edit-and-resubmit (optional).
+   * ID of the run this one supersedes via edit-and-resubmit (optional).
    *
    * When a user stops an in-flight turn, edits the message, and resubmits,
-   * the client sets this field on the NEW execution to point at the stopped
-   * one. Chat-thread consumers hide the superseded execution so the edited
-   * message replaces the original in place; history surfaces (CLI, execution
+   * the client sets this field on the NEW run to point at the stopped
+   * one. Chat-thread consumers hide the superseded run so the edited
+   * message replaces the original in place; history surfaces (CLI, run
    * lists) keep showing the full record.
    *
-   * Empty means this execution is not an edit of another turn.
+   * Empty means this run is not an edit of another turn.
    * </pre>
    *
    * <code>string supersedes_run_id = 12 [json_name = "supersedesRunId"];</code>
@@ -742,7 +742,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    * Set on live channel-conversation turns (WhatsApp, Slack): when a human
    * teammate handled the conversation or messages otherwise landed while the
    * agent was not watching, the digest carries what happened so the agent
-   * re-enters informed. Absent on every other execution surface.
+   * re-enters informed. Absent on every other run surface.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
@@ -757,7 +757,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    * Set on live channel-conversation turns (WhatsApp, Slack): when a human
    * teammate handled the conversation or messages otherwise landed while the
    * agent was not watching, the digest carries what happened so the agent
-   * re-enters informed. Absent on every other execution surface.
+   * re-enters informed. Absent on every other run surface.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
@@ -772,7 +772,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    * Set on live channel-conversation turns (WhatsApp, Slack): when a human
    * teammate handled the conversation or messages otherwise landed while the
    * agent was not watching, the digest carries what happened so the agent
-   * re-enters informed. Absent on every other execution surface.
+   * re-enters informed. Absent on every other run surface.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>

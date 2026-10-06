@@ -457,7 +457,7 @@ type GitTreeRef struct {
 	// The tree object id produced by git write-tree.
 	TreeOid string `protobuf:"bytes,1,opt,name=tree_oid,json=treeOid,proto3" json:"tree_oid,omitempty"`
 	// The ref the snapshot is pinned under, e.g.
-	// "refs/stigmer/{execution}/{baseline|candidate|approved}". Keeps the
+	// "refs/stigmer/{run}/{baseline|candidate|approved}". Keeps the
 	// snapshot reachable (un-GC'd) without a commit on any user branch.
 	Ref           string `protobuf:"bytes,2,opt,name=ref,proto3" json:"ref,omitempty"`
 	unknownFields protoimpl.UnknownFields

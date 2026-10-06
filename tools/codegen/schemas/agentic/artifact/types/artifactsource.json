@@ -1,6 +1,6 @@
 {
   "name": "ArtifactSource",
-  "description": "ArtifactSource identifies the execution context that produced an artifact.",
+  "description": "ArtifactSource identifies the run and task that produced an artifact.",
   "protoType": "ai.stigmer.agentic.artifact.v1.ArtifactSource",
   "protoFile": "apis/ai/stigmer/agentic/artifact/v1/spec.proto",
   "fields": [
@@ -31,7 +31,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Name of the task that produced this artifact.\n Matches WorkflowTask.task_name in the execution status.\n Empty for execution-level artifacts (e.g., final workflow output).",
+      "description": "Name of the task that produced this artifact.\n Matches WorkflowTask.task_name in the run status.\n Empty for run-level artifacts (e.g., final workflow output).",
       "required": false
     }
   ]

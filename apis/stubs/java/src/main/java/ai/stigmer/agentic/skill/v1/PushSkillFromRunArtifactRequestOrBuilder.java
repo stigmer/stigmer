@@ -53,7 +53,7 @@ public interface PushSkillFromRunArtifactRequestOrBuilder extends
   /**
    * <pre>
    * Storage key of the directory artifact (ZIP) to push as a skill.
-   * Obtain this from RunArtifact.storage_key in the execution status.
+   * Obtain this from RunArtifact.storage_key in the run status.
    * </pre>
    *
    * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>
@@ -63,7 +63,7 @@ public interface PushSkillFromRunArtifactRequestOrBuilder extends
   /**
    * <pre>
    * Storage key of the directory artifact (ZIP) to push as a skill.
-   * Obtain this from RunArtifact.storage_key in the execution status.
+   * Obtain this from RunArtifact.storage_key in the run status.
    * </pre>
    *
    * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>

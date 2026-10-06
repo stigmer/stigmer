@@ -7,7 +7,7 @@ package ai.stigmer.agentic.agentrun.v1;
 
 /**
  * <pre>
- * SummarizationEvent records a single summarization occurrence during run.
+ * SummarizationEvent records a single summarization occurrence during the run.
  *
  * Each time the context window approaches the model's limit and summarization
  * is triggered, an event is recorded with before/after metrics.
@@ -358,7 +358,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Cost in USD of this summarization call.
-   * Computed using the summarization model's pricing rates at execution time.
+   * Computed using the summarization model's pricing rates at run time.
    * </pre>
    *
    * <code>double summarization_cost_usd = 12 [json_name = "summarizationCostUsd"];</code>
@@ -650,7 +650,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * SummarizationEvent records a single summarization occurrence during run.
+   * SummarizationEvent records a single summarization occurrence during the run.
    *
    * Each time the context window approaches the model's limit and summarization
    * is triggered, an event is recorded with before/after metrics.
@@ -1662,7 +1662,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Cost in USD of this summarization call.
-     * Computed using the summarization model's pricing rates at execution time.
+     * Computed using the summarization model's pricing rates at run time.
      * </pre>
      *
      * <code>double summarization_cost_usd = 12 [json_name = "summarizationCostUsd"];</code>
@@ -1675,7 +1675,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Cost in USD of this summarization call.
-     * Computed using the summarization model's pricing rates at execution time.
+     * Computed using the summarization model's pricing rates at run time.
      * </pre>
      *
      * <code>double summarization_cost_usd = 12 [json_name = "summarizationCostUsd"];</code>
@@ -1692,7 +1692,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Cost in USD of this summarization call.
-     * Computed using the summarization model's pricing rates at execution time.
+     * Computed using the summarization model's pricing rates at run time.
      * </pre>
      *
      * <code>double summarization_cost_usd = 12 [json_name = "summarizationCostUsd"];</code>

@@ -35,9 +35,9 @@ const (
 	LedgerEntryType_promotional_credit LedgerEntryType = 2
 	// Debit for a single LLM call during agent run.
 	LedgerEntryType_usage_debit LedgerEntryType = 3
-	// Hold placed at execution start to reserve credits.
+	// Hold placed at run start to reserve credits.
 	LedgerEntryType_reservation_hold LedgerEntryType = 4
-	// Release of unused reservation after execution completes.
+	// Release of unused reservation after the run completes.
 	LedgerEntryType_reservation_release LedgerEntryType = 5
 	// Manual credit added by a platform admin.
 	LedgerEntryType_adjustment_credit LedgerEntryType = 6
@@ -133,7 +133,7 @@ const (
 	// Customer-facing account statement: funding and money-movement events
 	// only (purchases, auto-recharge, promotional credits, refunds, admin
 	// adjustments, expirations, and disputes). Excludes routine internal
-	// mechanics — per-call usage debits and execution reservation
+	// mechanics — per-call usage debits and run reservation
 	// holds/releases — which are surfaced as consumption analytics elsewhere.
 	LedgerView_ledger_view_statement LedgerView = 1
 )
@@ -242,7 +242,7 @@ const (
 	BillingAccountStatus_billing_account_status_unspecified BillingAccountStatus = 0
 	// Account is operational; credits can be consumed and purchased.
 	BillingAccountStatus_billing_account_active BillingAccountStatus = 1
-	// Account is frozen (e.g., dispute, compliance hold). Executions blocked.
+	// Account is frozen (e.g., dispute, compliance hold). Runs blocked.
 	BillingAccountStatus_billing_account_suspended BillingAccountStatus = 2
 	// Account is permanently closed. No further operations allowed.
 	BillingAccountStatus_billing_account_closed BillingAccountStatus = 3
@@ -291,18 +291,18 @@ func (BillingAccountStatus) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_v1_enum_proto_rawDescGZIP(), []int{3}
 }
 
-// ReservationStatus tracks the lifecycle of an execution credit reservation.
+// ReservationStatus tracks the lifecycle of a run credit reservation.
 type ReservationStatus int32
 
 const (
 	ReservationStatus_reservation_status_unspecified ReservationStatus = 0
-	// Reservation is active; execution is in progress.
+	// Reservation is active; run is in progress.
 	ReservationStatus_reservation_active ReservationStatus = 1
-	// Execution completed; reservation settled and unused credits released.
+	// Run completed; reservation settled and unused credits released.
 	ReservationStatus_reservation_finalized ReservationStatus = 2
 	// Reservation expired without finalization (safety timeout).
 	ReservationStatus_reservation_expired ReservationStatus = 3
-	// Reservation cancelled before execution started.
+	// Reservation cancelled before the run started.
 	ReservationStatus_reservation_cancelled ReservationStatus = 4
 )
 
@@ -357,11 +357,11 @@ type RunBillingSignal int32
 
 const (
 	RunBillingSignal_run_billing_signal_unspecified RunBillingSignal = 0
-	// Balance is healthy; execution may continue.
+	// Balance is healthy; run may continue.
 	RunBillingSignal_continue_run RunBillingSignal = 1
-	// Balance is low; execution may continue but a warning should be shown.
+	// Balance is low; run may continue but a warning should be shown.
 	RunBillingSignal_low_balance_warning RunBillingSignal = 2
-	// Balance is exhausted; execution must stop gracefully.
+	// Balance is exhausted; run must stop gracefully.
 	RunBillingSignal_stop_run RunBillingSignal = 3
 )
 

@@ -10,7 +10,7 @@ package ai.stigmer.agentic.agentrun.v1;
  * Input for submitting an approval decision.
  *
  * All required fields must be provided. The handler validates:
- * 1. The execution exists and is in RUN_WAITING_FOR_APPROVAL phase
+ * 1. The run exists and is in RUN_WAITING_FOR_APPROVAL phase
  * 2. The tool_call_id matches status.pending_approval.tool_call_id
  * 3. The action is a valid non-UNSPECIFIED enum value
  *
@@ -445,7 +445,7 @@ private static final long serialVersionUID = 0L;
    * Input for submitting an approval decision.
    *
    * All required fields must be provided. The handler validates:
-   * 1. The execution exists and is in RUN_WAITING_FOR_APPROVAL phase
+   * 1. The run exists and is in RUN_WAITING_FOR_APPROVAL phase
    * 2. The tool_call_id matches status.pending_approval.tool_call_id
    * 3. The action is a valid non-UNSPECIFIED enum value
    *

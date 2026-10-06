@@ -245,7 +245,7 @@ export const SkillArtifactDownloadUrlSchema: GenMessage<SkillArtifactDownloadUrl
   messageDesc(file_ai_stigmer_agentic_skill_v1_io, 4);
 
 /**
- * PushSkillFromRunArtifactRequest publishes a skill from an execution
+ * PushSkillFromRunArtifactRequest publishes a skill from a run
  * artifact already in storage, without downloading and re-uploading the ZIP.
  *
  * @generated from message ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest
@@ -267,7 +267,7 @@ export type PushSkillFromRunArtifactRequest = Message<"ai.stigmer.agentic.skill.
 
   /**
    * Storage key of the directory artifact (ZIP) to push as a skill.
-   * Obtain this from RunArtifact.storage_key in the execution status.
+   * Obtain this from RunArtifact.storage_key in the run status.
    *
    * @generated from field: string storage_key = 3;
    */

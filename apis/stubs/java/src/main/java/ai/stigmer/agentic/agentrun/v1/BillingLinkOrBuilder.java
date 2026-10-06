@@ -31,7 +31,7 @@ public interface BillingLinkOrBuilder extends
 
   /**
    * <pre>
-   * Execution reservation ID (from authorizeRun).
+   * Run reservation ID (from authorizeRun).
    * </pre>
    *
    * <code>string reservation_id = 2 [json_name = "reservationId"];</code>
@@ -40,7 +40,7 @@ public interface BillingLinkOrBuilder extends
   java.lang.String getReservationId();
   /**
    * <pre>
-   * Execution reservation ID (from authorizeRun).
+   * Run reservation ID (from authorizeRun).
    * </pre>
    *
    * <code>string reservation_id = 2 [json_name = "reservationId"];</code>

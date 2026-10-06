@@ -47,14 +47,14 @@ export enum LedgerEntryType {
   usage_debit = 3,
 
   /**
-   * Hold placed at execution start to reserve credits.
+   * Hold placed at run start to reserve credits.
    *
    * @generated from enum value: reservation_hold = 4;
    */
   reservation_hold = 4,
 
   /**
-   * Release of unused reservation after execution completes.
+   * Release of unused reservation after the run completes.
    *
    * @generated from enum value: reservation_release = 5;
    */
@@ -141,7 +141,7 @@ export enum LedgerView {
    * Customer-facing account statement: funding and money-movement events
    * only (purchases, auto-recharge, promotional credits, refunds, admin
    * adjustments, expirations, and disputes). Excludes routine internal
-   * mechanics — per-call usage debits and execution reservation
+   * mechanics — per-call usage debits and run reservation
    * holds/releases — which are surfaced as consumption analytics elsewhere.
    *
    * @generated from enum value: ledger_view_statement = 1;
@@ -215,7 +215,7 @@ export enum BillingAccountStatus {
   billing_account_active = 1,
 
   /**
-   * Account is frozen (e.g., dispute, compliance hold). Executions blocked.
+   * Account is frozen (e.g., dispute, compliance hold). Runs blocked.
    *
    * @generated from enum value: billing_account_suspended = 2;
    */
@@ -236,7 +236,7 @@ export const BillingAccountStatusSchema: GenEnum<BillingAccountStatus> = /*@__PU
   enumDesc(file_ai_stigmer_billing_v1_enum, 3);
 
 /**
- * ReservationStatus tracks the lifecycle of an execution credit reservation.
+ * ReservationStatus tracks the lifecycle of a run credit reservation.
  *
  * @generated from enum ai.stigmer.billing.v1.ReservationStatus
  */
@@ -247,14 +247,14 @@ export enum ReservationStatus {
   reservation_status_unspecified = 0,
 
   /**
-   * Reservation is active; execution is in progress.
+   * Reservation is active; run is in progress.
    *
    * @generated from enum value: reservation_active = 1;
    */
   reservation_active = 1,
 
   /**
-   * Execution completed; reservation settled and unused credits released.
+   * Run completed; reservation settled and unused credits released.
    *
    * @generated from enum value: reservation_finalized = 2;
    */
@@ -268,7 +268,7 @@ export enum ReservationStatus {
   reservation_expired = 3,
 
   /**
-   * Reservation cancelled before execution started.
+   * Reservation cancelled before the run started.
    *
    * @generated from enum value: reservation_cancelled = 4;
    */
@@ -294,21 +294,21 @@ export enum RunBillingSignal {
   run_billing_signal_unspecified = 0,
 
   /**
-   * Balance is healthy; execution may continue.
+   * Balance is healthy; run may continue.
    *
    * @generated from enum value: continue_run = 1;
    */
   continue_run = 1,
 
   /**
-   * Balance is low; execution may continue but a warning should be shown.
+   * Balance is low; run may continue but a warning should be shown.
    *
    * @generated from enum value: low_balance_warning = 2;
    */
   low_balance_warning = 2,
 
   /**
-   * Balance is exhausted; execution must stop gracefully.
+   * Balance is exhausted; run must stop gracefully.
    *
    * @generated from enum value: stop_run = 3;
    */

@@ -11,24 +11,24 @@ package ai.stigmer.agentic.agentrun.v1;
  *
  * Cancellation sends a signal to the agent run, allowing it to clean up
  * gracefully. The agent can handle the cancellation signal (e.g., save checkpoint,
- * report status) before the execution transitions to CANCELLED phase.
+ * report status) before the run transitions to CANCELLED phase.
  *
  * ## Behavior
  *
  * - Sends cancellation signal to Temporal via CancelWorkflow API
  * - Agent activity receives cancellation and saves checkpoint
- * - Execution transitions to RUN_CANCELLED phase after cleanup
+ * - Run transitions to RUN_CANCELLED phase after cleanup
  * - LangGraph checkpoint is preserved for potential future recovery
  *
  * ## Preconditions
  *
- * - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
+ * - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
  * - User must have can_edit permission on the agent run
  *
  * ## Idempotency
  *
- * If the execution is already cancelled (phase == RUN_CANCELLED),
- * the call succeeds as a no-op and returns the current execution state.
+ * If the run is already cancelled (phase == RUN_CANCELLED),
+ * the call succeeds as a no-op and returns the current run state.
  *
  * ## Use Cases
  *
@@ -159,7 +159,7 @@ private static final long serialVersionUID = 0L;
    * Examples:
    * - "User requested cancellation"
    * - "Incorrect input provided to agent"
-   * - "Superseded by newer execution"
+   * - "Superseded by newer run"
    * - "Pre-maintenance shutdown"
    * </pre>
    *
@@ -189,7 +189,7 @@ private static final long serialVersionUID = 0L;
    * Examples:
    * - "User requested cancellation"
    * - "Incorrect input provided to agent"
-   * - "Superseded by newer execution"
+   * - "Superseded by newer run"
    * - "Pre-maintenance shutdown"
    * </pre>
    *
@@ -383,24 +383,24 @@ private static final long serialVersionUID = 0L;
    *
    * Cancellation sends a signal to the agent run, allowing it to clean up
    * gracefully. The agent can handle the cancellation signal (e.g., save checkpoint,
-   * report status) before the execution transitions to CANCELLED phase.
+   * report status) before the run transitions to CANCELLED phase.
    *
    * ## Behavior
    *
    * - Sends cancellation signal to Temporal via CancelWorkflow API
    * - Agent activity receives cancellation and saves checkpoint
-   * - Execution transitions to RUN_CANCELLED phase after cleanup
+   * - Run transitions to RUN_CANCELLED phase after cleanup
    * - LangGraph checkpoint is preserved for potential future recovery
    *
    * ## Preconditions
    *
-   * - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
+   * - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
    * - User must have can_edit permission on the agent run
    *
    * ## Idempotency
    *
-   * If the execution is already cancelled (phase == RUN_CANCELLED),
-   * the call succeeds as a no-op and returns the current execution state.
+   * If the run is already cancelled (phase == RUN_CANCELLED),
+   * the call succeeds as a no-op and returns the current run state.
    *
    * ## Use Cases
    *
@@ -696,7 +696,7 @@ private static final long serialVersionUID = 0L;
      * Examples:
      * - "User requested cancellation"
      * - "Incorrect input provided to agent"
-     * - "Superseded by newer execution"
+     * - "Superseded by newer run"
      * - "Pre-maintenance shutdown"
      * </pre>
      *
@@ -725,7 +725,7 @@ private static final long serialVersionUID = 0L;
      * Examples:
      * - "User requested cancellation"
      * - "Incorrect input provided to agent"
-     * - "Superseded by newer execution"
+     * - "Superseded by newer run"
      * - "Pre-maintenance shutdown"
      * </pre>
      *
@@ -755,7 +755,7 @@ private static final long serialVersionUID = 0L;
      * Examples:
      * - "User requested cancellation"
      * - "Incorrect input provided to agent"
-     * - "Superseded by newer execution"
+     * - "Superseded by newer run"
      * - "Pre-maintenance shutdown"
      * </pre>
      *
@@ -781,7 +781,7 @@ private static final long serialVersionUID = 0L;
      * Examples:
      * - "User requested cancellation"
      * - "Incorrect input provided to agent"
-     * - "Superseded by newer execution"
+     * - "Superseded by newer run"
      * - "Pre-maintenance shutdown"
      * </pre>
      *
@@ -804,7 +804,7 @@ private static final long serialVersionUID = 0L;
      * Examples:
      * - "User requested cancellation"
      * - "Incorrect input provided to agent"
-     * - "Superseded by newer execution"
+     * - "Superseded by newer run"
      * - "Pre-maintenance shutdown"
      * </pre>
      *

@@ -58,7 +58,7 @@ public interface GetEventLogResponseOrBuilder extends
    * <pre>
    * Whether more events exist after the last event in this response.
    * When false, the client has reached the end of the current event log.
-   * For in-progress executions, more events may appear later.
+   * For in-progress runs, more events may appear later.
    * </pre>
    *
    * <code>bool has_more = 2 [json_name = "hasMore"];</code>

@@ -9,9 +9,9 @@ package ai.stigmer.agentic.agentrun.v1;
  * <pre>
  * SummarizationSource identifies what triggered a context summarization event.
  *
- * Context summarization can be triggered at two points during execution:
+ * Context summarization can be triggered at two points during the run:
  * - At graph start, when resuming a conversation that already exceeds the threshold
- * - Mid-execution, when accumulated tool responses push context past the threshold
+ * - Mid-run, when accumulated tool responses push context past the threshold
  *
  * This distinction enables the CLI to render appropriate notifications and
  * allows monitoring to track compaction frequency by trigger type.
@@ -40,7 +40,7 @@ public enum SummarizationSource
   graph_start(1),
   /**
    * <pre>
-   * Summarization triggered mid-execution, when accumulated tool responses push context past the token threshold.
+   * Summarization triggered mid-run, when accumulated tool responses push context past the token threshold.
    * </pre>
    *
    * <code>mid_run = 2;</code>
@@ -76,7 +76,7 @@ public enum SummarizationSource
   public static final int graph_start_VALUE = 1;
   /**
    * <pre>
-   * Summarization triggered mid-execution, when accumulated tool responses push context past the token threshold.
+   * Summarization triggered mid-run, when accumulated tool responses push context past the token threshold.
    * </pre>
    *
    * <code>mid_run = 2;</code>

@@ -7,7 +7,7 @@ package ai.stigmer.agentic.workflowrun.v1;
 
 /**
  * <pre>
- * GetRunSummaryRequest fetches aggregated execution statistics for an organization,
+ * GetRunSummaryRequest fetches aggregated run statistics for an organization,
  * optionally scoped to a single workflow.
  * </pre>
  *
@@ -138,7 +138,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object workflowId_ = "";
   /**
    * <pre>
-   * When set, scopes the summary to executions of this workflow only.
+   * When set, scopes the summary to runs of this workflow only.
    * When empty, aggregates across all workflows in the organization.
    * </pre>
    *
@@ -160,7 +160,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * When set, scopes the summary to executions of this workflow only.
+   * When set, scopes the summary to runs of this workflow only.
    * When empty, aggregates across all workflows in the organization.
    * </pre>
    *
@@ -360,7 +360,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * GetRunSummaryRequest fetches aggregated execution statistics for an organization,
+   * GetRunSummaryRequest fetches aggregated run statistics for an organization,
    * optionally scoped to a single workflow.
    * </pre>
    *
@@ -704,7 +704,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object workflowId_ = "";
     /**
      * <pre>
-     * When set, scopes the summary to executions of this workflow only.
+     * When set, scopes the summary to runs of this workflow only.
      * When empty, aggregates across all workflows in the organization.
      * </pre>
      *
@@ -725,7 +725,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When set, scopes the summary to executions of this workflow only.
+     * When set, scopes the summary to runs of this workflow only.
      * When empty, aggregates across all workflows in the organization.
      * </pre>
      *
@@ -747,7 +747,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When set, scopes the summary to executions of this workflow only.
+     * When set, scopes the summary to runs of this workflow only.
      * When empty, aggregates across all workflows in the organization.
      * </pre>
      *
@@ -765,7 +765,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When set, scopes the summary to executions of this workflow only.
+     * When set, scopes the summary to runs of this workflow only.
      * When empty, aggregates across all workflows in the organization.
      * </pre>
      *
@@ -780,7 +780,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When set, scopes the summary to executions of this workflow only.
+     * When set, scopes the summary to runs of this workflow only.
      * When empty, aggregates across all workflows in the organization.
      * </pre>
      *

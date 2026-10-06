@@ -43,7 +43,7 @@ const (
 	// The user must re-authenticate via the OAuth flow.
 	OAuthConnectionHealth_OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED OAuthConnectionHealth = 2
 	// The access token is expired but a refresh token is available.
-	// The backend will attempt automatic refresh at execution time.
+	// The backend will attempt automatic refresh at run time.
 	// If the refresh token is itself expired, the refresh will fail and
 	// the user will need to re-authenticate.
 	OAuthConnectionHealth_OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE OAuthConnectionHealth = 3

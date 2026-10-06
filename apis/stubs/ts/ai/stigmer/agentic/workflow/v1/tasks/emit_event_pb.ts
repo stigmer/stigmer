@@ -35,7 +35,7 @@ export type EmitEventSpec = Message<"ai.stigmer.agentic.workflow.v1.tasks.EmitEv
    * URI or URI-reference that identifies the context in which the event
    * happened. Supports ${ } expression interpolation.
    * When empty, the runtime defaults to the workflow run URI
-   * (e.g., "/workflows/{workflow_id}/executions/{run_id}").
+   * (e.g., "/workflows/runs/{run_id}").
    *
    * @generated from field: string source = 2;
    */
@@ -118,7 +118,7 @@ export const EmitEventTaskConfigSchema: GenMessage<EmitEventTaskConfig> = /*@__P
  * Two delivery mechanisms are supported:
  * - webhook: HTTP POST the CloudEvents envelope to an external endpoint.
  * - signal: deliver the envelope as a signal to another workflow
- *   execution's listen task (the emit/listen pairing).
+ *   run's listen task (the emit/listen pairing).
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.tasks.EmitDeliveryTarget
  */
@@ -188,15 +188,15 @@ export const WebhookDeliverySchema: GenMessage<WebhookDelivery> = /*@__PURE__*/
 
 /**
  * SignalDelivery routes the CloudEvents envelope to another workflow
- * execution as a signal, completing the emit/listen pairing: the target
- * execution receives the envelope on the listen task whose signal id
+ * run as a signal, completing the emit/listen pairing: the target
+ * run receives the envelope on the listen task whose signal id
  * matches signal_name.
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery
  */
 export type SignalDelivery = Message<"ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery"> & {
   /**
-   * Target workflow run id ("wfx_..."), as returned by run/create.
+   * Target workflow run id ("wex_..."), as returned by run/create.
    * Usually flows from a prior task's output:
    * "${ .start_processor.run_id }"
    *

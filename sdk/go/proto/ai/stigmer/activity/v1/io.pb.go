@@ -35,12 +35,12 @@ type RecentActivityEntry struct {
 	Type string `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
 	// Human-readable label for display.
 	// For sessions: the conversation subject.
-	// For workflow runs: the execution name.
+	// For workflow runs: the run name.
 	Subject string `protobuf:"bytes,3,opt,name=subject,proto3" json:"subject,omitempty"`
 	// When this entry was last meaningfully updated.
 	// Used for interleaved sort (newest first).
 	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	// Execution phase label for workflow runs (e.g., "completed", "failed").
+	// Run phase label for workflow runs (e.g., "completed", "failed").
 	// Empty for sessions.
 	Status        string `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields

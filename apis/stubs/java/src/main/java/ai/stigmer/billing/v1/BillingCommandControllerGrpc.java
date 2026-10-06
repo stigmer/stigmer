@@ -578,7 +578,7 @@ public final class BillingCommandControllerGrpc {
      * <pre>
      * Record a single LLM call's usage for billing.
      * Computes cost server-side from the model registry, inserts an immutable
-     * LlmCallUsageRecord, and debits credits from the execution's reservation.
+     * LlmCallUsageRecord, and debits credits from the run's reservation.
      * </pre>
      */
     default void recordLlmCallUsage(ai.stigmer.billing.v1.RecordLlmCallUsageInput request,
@@ -599,7 +599,7 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Re-arm a settled reservation so a failed execution can be recovered.
+     * Re-arm a settled reservation so a failed run can be recovered.
      * The one sanctioned path past the settled-reservation latch: re-runs
      * the affordability check, transfers a fresh hold, and rotates the
      * reservation id as the fence against settles still in flight from the
@@ -809,7 +809,7 @@ public final class BillingCommandControllerGrpc {
      * <pre>
      * Record a single LLM call's usage for billing.
      * Computes cost server-side from the model registry, inserts an immutable
-     * LlmCallUsageRecord, and debits credits from the execution's reservation.
+     * LlmCallUsageRecord, and debits credits from the run's reservation.
      * </pre>
      */
     public void recordLlmCallUsage(ai.stigmer.billing.v1.RecordLlmCallUsageInput request,
@@ -832,7 +832,7 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Re-arm a settled reservation so a failed execution can be recovered.
+     * Re-arm a settled reservation so a failed run can be recovered.
      * The one sanctioned path past the settled-reservation latch: re-runs
      * the affordability check, transfers a fresh hold, and rotates the
      * reservation id as the fence against settles still in flight from the
@@ -1028,7 +1028,7 @@ public final class BillingCommandControllerGrpc {
      * <pre>
      * Record a single LLM call's usage for billing.
      * Computes cost server-side from the model registry, inserts an immutable
-     * LlmCallUsageRecord, and debits credits from the execution's reservation.
+     * LlmCallUsageRecord, and debits credits from the run's reservation.
      * </pre>
      */
     public ai.stigmer.billing.v1.RecordLlmCallUsageResponse recordLlmCallUsage(ai.stigmer.billing.v1.RecordLlmCallUsageInput request) throws io.grpc.StatusException {
@@ -1049,7 +1049,7 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Re-arm a settled reservation so a failed execution can be recovered.
+     * Re-arm a settled reservation so a failed run can be recovered.
      * The one sanctioned path past the settled-reservation latch: re-runs
      * the affordability check, transfers a fresh hold, and rotates the
      * reservation id as the fence against settles still in flight from the
@@ -1237,7 +1237,7 @@ public final class BillingCommandControllerGrpc {
      * <pre>
      * Record a single LLM call's usage for billing.
      * Computes cost server-side from the model registry, inserts an immutable
-     * LlmCallUsageRecord, and debits credits from the execution's reservation.
+     * LlmCallUsageRecord, and debits credits from the run's reservation.
      * </pre>
      */
     public ai.stigmer.billing.v1.RecordLlmCallUsageResponse recordLlmCallUsage(ai.stigmer.billing.v1.RecordLlmCallUsageInput request) {
@@ -1258,7 +1258,7 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Re-arm a settled reservation so a failed execution can be recovered.
+     * Re-arm a settled reservation so a failed run can be recovered.
      * The one sanctioned path past the settled-reservation latch: re-runs
      * the affordability check, transfers a fresh hold, and rotates the
      * reservation id as the fence against settles still in flight from the
@@ -1450,7 +1450,7 @@ public final class BillingCommandControllerGrpc {
      * <pre>
      * Record a single LLM call's usage for billing.
      * Computes cost server-side from the model registry, inserts an immutable
-     * LlmCallUsageRecord, and debits credits from the execution's reservation.
+     * LlmCallUsageRecord, and debits credits from the run's reservation.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.RecordLlmCallUsageResponse> recordLlmCallUsage(
@@ -1473,7 +1473,7 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Re-arm a settled reservation so a failed execution can be recovered.
+     * Re-arm a settled reservation so a failed run can be recovered.
      * The one sanctioned path past the settled-reservation latch: re-runs
      * the affordability check, transfers a fresh hold, and rotates the
      * reservation id as the fence against settles still in flight from the

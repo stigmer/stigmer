@@ -25,7 +25,7 @@ const (
 )
 
 // AgentRun represents a single agent run instance (conversational).
-// Follows the standard pattern: spec contains user inputs, status contains execution results.
+// Follows the standard pattern: spec contains user inputs, status contains run results.
 type AgentRun struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.
@@ -39,10 +39,10 @@ type AgentRun struct {
 	// Contains: the conversation (session_id or a new session_spec), message,
 	// run_config, the per-message intents, and runtime_env. Environment values reach a turn from
 	// the environments the server resolves for its run and from the
-	// per-execution runtime_env; see the runtime_env field docs in
+	// per-run runtime_env; see the runtime_env field docs in
 	// spec.proto.
 	Spec *AgentRunSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
-	// System-managed execution state and results.
+	// System-managed run state and results.
 	// Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
 	Status        *AgentRunStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -114,42 +114,42 @@ func (x *AgentRun) GetStatus() *AgentRunStatus {
 	return nil
 }
 
-// AgentRunStatus contains all execution results and state.
-// Everything populated during or after execution goes here, not in spec.
+// AgentRunStatus contains all run results and state.
+// Everything populated during or after the run goes here, not in spec.
 type AgentRunStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Standard audit information (created_at, updated_at, created_by, etc.)
 	Audit *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
-	// Sequential stream of execution events: AI messages, tool calls, and system notifications.
-	// Ordered chronologically to reconstruct the complete execution flow.
-	// Each message captures what happened during execution (agent responses, tool invocations, progress updates).
+	// Sequential stream of run events: AI messages, tool calls, and system notifications.
+	// Ordered chronologically to reconstruct the complete run flow.
+	// Each message captures what happened during the run (agent responses, tool invocations, progress updates).
 	Messages []*AgentMessage `protobuf:"bytes,1,rep,name=messages,proto3" json:"messages,omitempty"`
-	// Current execution lifecycle phase.
-	// Tracks the execution state from creation (PENDING) through active processing (IN_PROGRESS)
+	// Current run lifecycle phase.
+	// Tracks the run state from creation (PENDING) through active processing (IN_PROGRESS)
 	// to terminal states (COMPLETED/FAILED/CANCELLED).
 	Phase RunPhase `protobuf:"varint,2,opt,name=phase,proto3,enum=ai.stigmer.agentic.agentrun.v1.RunPhase" json:"phase,omitempty"`
 	// Sub-agent runs invoked during this run.
 	// Tracks when the main agent delegates work to specialized sub-agents.
 	// Ordered chronologically by invocation time.
 	SubAgentRuns []*SubAgentRun `protobuf:"bytes,4,rep,name=sub_agent_runs,json=subAgentRuns,proto3" json:"sub_agent_runs,omitempty"`
-	// Error message if execution failed.
+	// Error message if the run failed.
 	// Only populated when phase == RUN_FAILED.
 	Error string `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
-	// ISO 8601 timestamp when execution started.
+	// ISO 8601 timestamp when the run started.
 	// Example: "2025-01-10T10:30:00Z"
 	StartedAt string `protobuf:"bytes,7,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
-	// ISO 8601 timestamp when execution completed, failed, or was cancelled.
+	// ISO 8601 timestamp when the run completed, failed, or was cancelled.
 	// Only populated for terminal states.
 	CompletedAt string `protobuf:"bytes,8,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
 	// Todo list tracking multi-step tasks and progress for this run.
 	// Updated via write_todos tool (if TodoListMiddleware is enabled).
-	// Each execution maintains its own snapshot of todos at execution time.
+	// Each run maintains its own snapshot of todos at run time.
 	// Key: todo item ID, Value: todo item details
 	Todos map[string]*TodoItem `protobuf:"bytes,9,rep,name=todos,proto3" json:"todos,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Callback token for notifying a parent workflow when this execution completes.
+	// Callback token for notifying a parent workflow when this run completes.
 	//
-	// Present when this execution was triggered by a workflow. Empty when the
-	// execution runs independently (chat, API call).
+	// Present when this run was triggered by a workflow. Empty when the
+	// run stands alone (a chat turn or an API call).
 	CallbackToken []byte `protobuf:"bytes,10,opt,name=callback_token,json=callbackToken,proto3" json:"callback_token,omitempty"`
 	// Active pending approval requests for this run.
 	//
@@ -162,15 +162,15 @@ type AgentRunStatus struct {
 	// Context window utilization and summarization tracking.
 	//
 	// Provides visibility into how the agent is using its context window and
-	// any summarization events that occurred during run.
+	// any summarization events that occurred during the run.
 	//
 	// Populated when context management is active (not disabled via config).
 	// Updated progressively during streaming as token counts change.
 	//
 	// Use cases:
-	// - **Monitoring**: Track context utilization across executions
-	// - **Debugging**: Understand why an execution hit context limits
-	// - **Cost optimization**: Identify executions with excessive summarization
+	// - **Monitoring**: Track context utilization across runs
+	// - **Debugging**: Understand why a run hit context limits
+	// - **Cost optimization**: Identify runs with excessive summarization
 	// - **UX**: Show users their context window health
 	ContextInfo *ContextInfo `protobuf:"bytes,14,opt,name=context_info,json=contextInfo,proto3" json:"context_info,omitempty"`
 	// Files/directories published by the agent for download.
@@ -180,7 +180,7 @@ type AgentRunStatus struct {
 	// Each artifact includes a pre-signed URL for direct download.
 	//
 	// Artifacts are stored in R2 and URLs expire after a configured period.
-	// Use the execution download endpoint to refresh expired URLs.
+	// Use the run download endpoint to refresh expired URLs.
 	//
 	// Ordered by creation time (oldest first).
 	Artifacts []*RunArtifact `protobuf:"bytes,15,rep,name=artifacts,proto3" json:"artifacts,omitempty"`
@@ -191,7 +191,7 @@ type AgentRunStatus struct {
 	// for workspace entries with no changes, non-git sources, or disabled
 	// write-back mode.
 	//
-	// Populated during post-execution processing. Each entry tracks the
+	// Populated during post-run processing. Each entry tracks the
 	// write-back lifecycle (committed -> pushed -> PR created) and carries
 	// the PR URL for UI display.
 	WorkspaceWriteBacks []*WorkspaceWriteBack `protobuf:"bytes,17,rep,name=workspace_write_backs,json=workspaceWriteBacks,proto3" json:"workspace_write_backs,omitempty"`
@@ -201,7 +201,7 @@ type AgentRunStatus struct {
 	// Only meaningful while phase == RUN_PENDING. Cleared by the server
 	// when phase transitions away from PENDING.
 	SetupProgress *SetupProgress `protobuf:"bytes,18,opt,name=setup_progress,json=setupProgress,proto3" json:"setup_progress,omitempty"`
-	// Streaming usage summary, updated progressively during run.
+	// Streaming usage summary, updated progressively during the run.
 	StreamingUsage *StreamingUsageSummary `protobuf:"bytes,20,opt,name=streaming_usage,json=streamingUsage,proto3" json:"streaming_usage,omitempty"`
 	// Structured output extracted from the agent's final response.
 	//
@@ -227,7 +227,7 @@ type AgentRunStatus struct {
 	// during the current turn — the live "N files changed so far" surface, shown
 	// before any review is possible.
 	FileChangeProgress *FileChangeProgress `protobuf:"bytes,25,opt,name=file_change_progress,json=fileChangeProgress,proto3" json:"file_change_progress,omitempty"`
-	// Report of which recalled memories were injected into this execution's
+	// Report of which recalled memories were injected into this run's
 	// prompt.
 	//
 	// Absent, or present with selection_active=false, means wholesale: every
@@ -246,9 +246,9 @@ type AgentRunStatus struct {
 	// it is when the turn starts.
 	AgentVersionHash string `protobuf:"bytes,28,opt,name=agent_version_hash,json=agentVersionHash,proto3" json:"agent_version_hash,omitempty"`
 	// Standing preferences declared by the organization and the calling user,
-	// snapshotted into this execution at create time.
+	// snapshotted into this run at create time.
 	DeclaredPreferences *DeclaredPreferences `protobuf:"bytes,29,opt,name=declared_preferences,json=declaredPreferences,proto3" json:"declared_preferences,omitempty"`
-	// The caller's confirmed memories, snapshotted into this execution at
+	// The caller's confirmed memories, snapshotted into this run at
 	// create time: the candidate set the prompt was built from.
 	RecalledMemories *RecalledMemories `protobuf:"bytes,30,opt,name=recalled_memories,json=recalledMemories,proto3" json:"recalled_memories,omitempty"`
 	// The settings this turn runs with: spec.run_config (or the saved settings
@@ -542,7 +542,7 @@ func (x *SetupProgress) GetCurrentPhase() string {
 // for one run.
 type RecalledMemoriesReport struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Whether semantic selection was active for this execution's prompt.
+	// Whether semantic selection was active for this run's prompt.
 	// False means wholesale: the full status.recalled_memories snapshot was
 	// injected.
 	SelectionActive bool `protobuf:"varint,1,opt,name=selection_active,json=selectionActive,proto3" json:"selection_active,omitempty"`

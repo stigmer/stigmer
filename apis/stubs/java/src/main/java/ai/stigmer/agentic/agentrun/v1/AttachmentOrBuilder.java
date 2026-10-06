@@ -138,7 +138,7 @@ public interface AttachmentOrBuilder extends
    *
    * The CLI sets this unconditionally to the resolved absolute path of
    * the attached file.  storage_key remains required -- the upload still
-   * happens for execution history and replay support.
+   * happens for run history and replay support.
    * </pre>
    *
    * <code>string local_path = 6 [json_name = "localPath"];</code>
@@ -159,7 +159,7 @@ public interface AttachmentOrBuilder extends
    *
    * The CLI sets this unconditionally to the resolved absolute path of
    * the attached file.  storage_key remains required -- the upload still
-   * happens for execution history and replay support.
+   * happens for run history and replay support.
    * </pre>
    *
    * <code>string local_path = 6 [json_name = "localPath"];</code>

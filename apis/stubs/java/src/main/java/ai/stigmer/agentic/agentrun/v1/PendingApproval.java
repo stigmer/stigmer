@@ -7,7 +7,7 @@ package ai.stigmer.agentic.agentrun.v1;
 
 /**
  * <pre>
- * A pending approval request for a tool call that requires user consent before run.
+ * A pending approval request for a tool call that requires user consent before execution.
  *
  * Each entry represents one tool call waiting for a user decision (approve, skip,
  * or reject). Sub-agent approvals are included with from_sub_agent set to true
@@ -1130,7 +1130,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * A pending approval request for a tool call that requires user consent before run.
+   * A pending approval request for a tool call that requires user consent before execution.
    *
    * Each entry represents one tool call waiting for a user decision (approve, skip,
    * or reject). Sub-agent approvals are included with from_sub_agent set to true

@@ -90,7 +90,7 @@ func (WorkspaceWriteBackPhase) EnumDescriptor() ([]byte, []int) {
 // write-back workflow for a single workspace entry.
 //
 // One entry is created per git-backed workspace entry that had uncommitted
-// changes when the execution reached a terminal phase. Not populated for
+// changes when the run reached a terminal phase. Not populated for
 // LocalPathSource workspace entries or git workspaces with no detected
 // changes.
 //

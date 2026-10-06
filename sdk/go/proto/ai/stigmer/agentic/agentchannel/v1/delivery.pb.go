@@ -28,7 +28,7 @@ type ChannelDeliveryStatus int32
 const (
 	// Default value when no status is set.
 	ChannelDeliveryStatus_channel_delivery_status_unspecified ChannelDeliveryStatus = 0
-	// Awaiting the execution's terminal phase, or awaiting (re)claim.
+	// Awaiting the run's terminal phase, or awaiting (re)claim.
 	ChannelDeliveryStatus_pending ChannelDeliveryStatus = 1
 	// Claimed by a delivery worker; provider I/O in flight.
 	ChannelDeliveryStatus_delivering ChannelDeliveryStatus = 2
@@ -111,7 +111,7 @@ const (
 	ChannelAttemptFailureKind_attempt_errored ChannelAttemptFailureKind = 2
 	// The platform withdrew the send for a structural reason;
 	// attempt_detail carries the short fact ("channel deleted",
-	// "execution no longer exists").
+	// "run no longer exists").
 	ChannelAttemptFailureKind_attempt_withdrawn ChannelAttemptFailureKind = 3
 )
 
@@ -171,7 +171,7 @@ type ChannelDelivery struct {
 	Org string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
 	// AgentRun whose terminal result this delivery carries.
 	RunId string `protobuf:"bytes,4,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	// Session the execution belongs to (conversation continuity + audit).
+	// Session the run belongs to (conversation continuity + audit).
 	SessionId string `protobuf:"bytes,5,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	// Provider-neutral conversation key (the DM thread
 	// timestamp or the mention thread_ts, per mapping).

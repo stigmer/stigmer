@@ -177,7 +177,7 @@ public interface GetAgentUsageReportOutputOrBuilder extends
 
   /**
    * <pre>
-   * Total number of executions within the time range.
+   * Total number of runs within the time range.
    * </pre>
    *
    * <code>int32 total_runs = 7 [json_name = "totalRuns"];</code>

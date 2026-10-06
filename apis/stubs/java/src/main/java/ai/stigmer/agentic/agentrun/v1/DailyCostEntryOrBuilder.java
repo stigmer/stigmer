@@ -32,7 +32,7 @@ public interface DailyCostEntryOrBuilder extends
 
   /**
    * <pre>
-   * Number of executions on this date.
+   * Number of runs on this date.
    * </pre>
    *
    * <code>int32 run_count = 2 [json_name = "runCount"];</code>

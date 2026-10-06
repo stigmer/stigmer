@@ -56,7 +56,7 @@ public interface ListArtifactsByRunRequestOrBuilder extends
 
   /**
    * <pre>
-   * Not read: an execution's artifacts are returned whole.
+   * Not read: a run's artifacts are returned whole.
    * </pre>
    *
    * <code>int32 page_size = 3 [json_name = "pageSize", deprecated = true];</code>
@@ -68,7 +68,7 @@ public interface ListArtifactsByRunRequestOrBuilder extends
 
   /**
    * <pre>
-   * Not read: an execution's artifacts are returned whole.
+   * Not read: a run's artifacts are returned whole.
    * </pre>
    *
    * <code>string page_token = 4 [json_name = "pageToken", deprecated = true];</code>
@@ -79,7 +79,7 @@ public interface ListArtifactsByRunRequestOrBuilder extends
   @java.lang.Deprecated java.lang.String getPageToken();
   /**
    * <pre>
-   * Not read: an execution's artifacts are returned whole.
+   * Not read: a run's artifacts are returned whole.
    * </pre>
    *
    * <code>string page_token = 4 [json_name = "pageToken", deprecated = true];</code>

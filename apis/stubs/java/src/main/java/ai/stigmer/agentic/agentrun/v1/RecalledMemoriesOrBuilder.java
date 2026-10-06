@@ -12,7 +12,7 @@ public interface RecalledMemoriesOrBuilder extends
 
   /**
    * <pre>
-   * Whether memory is enabled for this execution's caller.
+   * Whether memory is enabled for this run's caller.
    * </pre>
    *
    * <code>bool enabled = 1 [json_name = "enabled"];</code>

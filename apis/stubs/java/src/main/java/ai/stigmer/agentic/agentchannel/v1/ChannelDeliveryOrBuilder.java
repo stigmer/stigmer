@@ -94,7 +94,7 @@ public interface ChannelDeliveryOrBuilder extends
 
   /**
    * <pre>
-   * Session the execution belongs to (conversation continuity + audit).
+   * Session the run belongs to (conversation continuity + audit).
    * </pre>
    *
    * <code>string session_id = 5 [json_name = "sessionId"];</code>
@@ -103,7 +103,7 @@ public interface ChannelDeliveryOrBuilder extends
   java.lang.String getSessionId();
   /**
    * <pre>
-   * Session the execution belongs to (conversation continuity + audit).
+   * Session the run belongs to (conversation continuity + audit).
    * </pre>
    *
    * <code>string session_id = 5 [json_name = "sessionId"];</code>

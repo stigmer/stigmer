@@ -161,10 +161,10 @@ type CreditLedgerSource struct {
 	SessionId string `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	// Agent that was executing.
 	AgentId string `protobuf:"bytes,3,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
-	// Sequence number of the LLM call within the execution (1-based), as the
+	// Sequence number of the LLM call within the run (1-based), as the
 	// reporting proxy counted it. Display and ordering; the locator of the
 	// debited usage record is llm_call_id, because a proxy restart makes two
-	// calls of one execution share a sequence.
+	// calls of one run share a sequence.
 	LlmCallSequence int32 `protobuf:"varint,4,opt,name=llm_call_sequence,json=llmCallSequence,proto3" json:"llm_call_sequence,omitempty"`
 	// The debited usage record's call_id (LlmCallUsageRecord.call_id) — the
 	// drill-down from this debit to the exact record it paid for. Empty for
@@ -487,9 +487,9 @@ func (x *CreditPack) GetActive() bool {
 
 // RunReservation tracks credits held for an active agent run.
 //
-// Created at execution start (AuthorizeRun), consumed incrementally
+// Created at run start (AuthorizeRun), consumed incrementally
 // by per-LLM-call debits (via proxy-observed usage metering), and settled
-// at execution end (FinalizeRun) to release any unused hold.
+// at run end (FinalizeRun) to release any unused hold.
 type RunReservation struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Unique identifier for this reservation.
@@ -498,7 +498,7 @@ type RunReservation struct {
 	Org string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
 	// Agent run this reservation is for.
 	RunId string `protobuf:"bytes,3,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	// Total micro-USD reserved at execution start.
+	// Total micro-USD reserved at run start.
 	ReservedMicros int64 `protobuf:"varint,4,opt,name=reserved_micros,json=reservedMicros,proto3" json:"reserved_micros,omitempty"`
 	// Micro-USD consumed so far by usage debits against this reservation.
 	ConsumedMicros int64 `protobuf:"varint,5,opt,name=consumed_micros,json=consumedMicros,proto3" json:"consumed_micros,omitempty"`

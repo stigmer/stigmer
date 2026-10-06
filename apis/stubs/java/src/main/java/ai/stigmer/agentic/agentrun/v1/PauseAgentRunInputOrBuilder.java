@@ -15,7 +15,7 @@ public interface PauseAgentRunInputOrBuilder extends
    * Agent run ID to pause.
    *
    * Must be in PENDING or IN_PROGRESS phase. Cannot pause
-   * executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
+   * runs that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
    *
    * Format: "aex_{ulid}" (auto-generated unique identifier)
    * Example: "aex_abc123xyz456"
@@ -32,7 +32,7 @@ public interface PauseAgentRunInputOrBuilder extends
    * Agent run ID to pause.
    *
    * Must be in PENDING or IN_PROGRESS phase. Cannot pause
-   * executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
+   * runs that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
    *
    * Format: "aex_{ulid}" (auto-generated unique identifier)
    * Example: "aex_abc123xyz456"

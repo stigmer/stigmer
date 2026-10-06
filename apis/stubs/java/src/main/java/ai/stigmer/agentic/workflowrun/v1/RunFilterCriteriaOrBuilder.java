@@ -12,7 +12,7 @@ public interface RunFilterCriteriaOrBuilder extends
 
   /**
    * <pre>
-   * Filter by execution phases. Empty means all phases.
+   * Filter by run phases. Empty means all phases.
    *
    * Supersedes the top-level `phase` field on ListWorkflowRunsRequest
    * when both are set.
@@ -24,7 +24,7 @@ public interface RunFilterCriteriaOrBuilder extends
   java.util.List<ai.stigmer.agentic.workflowrun.v1.RunPhase> getPhasesList();
   /**
    * <pre>
-   * Filter by execution phases. Empty means all phases.
+   * Filter by run phases. Empty means all phases.
    *
    * Supersedes the top-level `phase` field on ListWorkflowRunsRequest
    * when both are set.
@@ -36,7 +36,7 @@ public interface RunFilterCriteriaOrBuilder extends
   int getPhasesCount();
   /**
    * <pre>
-   * Filter by execution phases. Empty means all phases.
+   * Filter by run phases. Empty means all phases.
    *
    * Supersedes the top-level `phase` field on ListWorkflowRunsRequest
    * when both are set.
@@ -49,7 +49,7 @@ public interface RunFilterCriteriaOrBuilder extends
   ai.stigmer.agentic.workflowrun.v1.RunPhase getPhases(int index);
   /**
    * <pre>
-   * Filter by execution phases. Empty means all phases.
+   * Filter by run phases. Empty means all phases.
    *
    * Supersedes the top-level `phase` field on ListWorkflowRunsRequest
    * when both are set.
@@ -62,7 +62,7 @@ public interface RunFilterCriteriaOrBuilder extends
   getPhasesValueList();
   /**
    * <pre>
-   * Filter by execution phases. Empty means all phases.
+   * Filter by run phases. Empty means all phases.
    *
    * Supersedes the top-level `phase` field on ListWorkflowRunsRequest
    * when both are set.
@@ -76,7 +76,7 @@ public interface RunFilterCriteriaOrBuilder extends
 
   /**
    * <pre>
-   * Include only executions started at or after this timestamp.
+   * Include only runs started at or after this timestamp.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp started_after = 2 [json_name = "startedAfter"];</code>
@@ -85,7 +85,7 @@ public interface RunFilterCriteriaOrBuilder extends
   boolean hasStartedAfter();
   /**
    * <pre>
-   * Include only executions started at or after this timestamp.
+   * Include only runs started at or after this timestamp.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp started_after = 2 [json_name = "startedAfter"];</code>
@@ -94,7 +94,7 @@ public interface RunFilterCriteriaOrBuilder extends
   com.google.protobuf.Timestamp getStartedAfter();
   /**
    * <pre>
-   * Include only executions started at or after this timestamp.
+   * Include only runs started at or after this timestamp.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp started_after = 2 [json_name = "startedAfter"];</code>
@@ -103,7 +103,7 @@ public interface RunFilterCriteriaOrBuilder extends
 
   /**
    * <pre>
-   * Include only executions started at or before this timestamp.
+   * Include only runs started at or before this timestamp.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp started_before = 3 [json_name = "startedBefore"];</code>
@@ -112,7 +112,7 @@ public interface RunFilterCriteriaOrBuilder extends
   boolean hasStartedBefore();
   /**
    * <pre>
-   * Include only executions started at or before this timestamp.
+   * Include only runs started at or before this timestamp.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp started_before = 3 [json_name = "startedBefore"];</code>
@@ -121,7 +121,7 @@ public interface RunFilterCriteriaOrBuilder extends
   com.google.protobuf.Timestamp getStartedBefore();
   /**
    * <pre>
-   * Include only executions started at or before this timestamp.
+   * Include only runs started at or before this timestamp.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp started_before = 3 [json_name = "startedBefore"];</code>
@@ -130,9 +130,9 @@ public interface RunFilterCriteriaOrBuilder extends
 
   /**
    * <pre>
-   * Minimum execution duration (completed executions only).
+   * Minimum run duration (completed runs only).
    *
-   * Executions still in progress or without timestamps are excluded
+   * Runs still in progress or without timestamps are excluded
    * when this filter is set.
    * </pre>
    *
@@ -142,9 +142,9 @@ public interface RunFilterCriteriaOrBuilder extends
   boolean hasMinDuration();
   /**
    * <pre>
-   * Minimum execution duration (completed executions only).
+   * Minimum run duration (completed runs only).
    *
-   * Executions still in progress or without timestamps are excluded
+   * Runs still in progress or without timestamps are excluded
    * when this filter is set.
    * </pre>
    *
@@ -154,9 +154,9 @@ public interface RunFilterCriteriaOrBuilder extends
   com.google.protobuf.Duration getMinDuration();
   /**
    * <pre>
-   * Minimum execution duration (completed executions only).
+   * Minimum run duration (completed runs only).
    *
-   * Executions still in progress or without timestamps are excluded
+   * Runs still in progress or without timestamps are excluded
    * when this filter is set.
    * </pre>
    *
@@ -166,7 +166,7 @@ public interface RunFilterCriteriaOrBuilder extends
 
   /**
    * <pre>
-   * Maximum execution duration (completed executions only).
+   * Maximum run duration (completed runs only).
    * </pre>
    *
    * <code>.google.protobuf.Duration max_duration = 5 [json_name = "maxDuration"];</code>
@@ -175,7 +175,7 @@ public interface RunFilterCriteriaOrBuilder extends
   boolean hasMaxDuration();
   /**
    * <pre>
-   * Maximum execution duration (completed executions only).
+   * Maximum run duration (completed runs only).
    * </pre>
    *
    * <code>.google.protobuf.Duration max_duration = 5 [json_name = "maxDuration"];</code>
@@ -184,7 +184,7 @@ public interface RunFilterCriteriaOrBuilder extends
   com.google.protobuf.Duration getMaxDuration();
   /**
    * <pre>
-   * Maximum execution duration (completed executions only).
+   * Maximum run duration (completed runs only).
    * </pre>
    *
    * <code>.google.protobuf.Duration max_duration = 5 [json_name = "maxDuration"];</code>
@@ -213,7 +213,7 @@ public interface RunFilterCriteriaOrBuilder extends
 
   /**
    * <pre>
-   * Filter to executions containing a failed task with this exact name.
+   * Filter to runs containing a failed task with this exact name.
    *
    * Matches against any task in status.tasks where
    * task.status == WORKFLOW_TASK_FAILED AND task.task_name == this value.
@@ -225,7 +225,7 @@ public interface RunFilterCriteriaOrBuilder extends
   java.lang.String getFailedTaskName();
   /**
    * <pre>
-   * Filter to executions containing a failed task with this exact name.
+   * Filter to runs containing a failed task with this exact name.
    *
    * Matches against any task in status.tasks where
    * task.status == WORKFLOW_TASK_FAILED AND task.task_name == this value.
@@ -239,7 +239,7 @@ public interface RunFilterCriteriaOrBuilder extends
 
   /**
    * <pre>
-   * When true, include only executions that contain at least one retried task.
+   * When true, include only runs that contain at least one retried task.
    *
    * A task is considered retried when its metadata contains a retry_count &gt; 0.
    * </pre>

@@ -33,7 +33,7 @@ type WorkflowRunSpec struct {
 	TriggerMessage string `protobuf:"bytes,3,opt,name=trigger_message,json=triggerMessage,proto3" json:"trigger_message,omitempty"`
 	// Contextual metadata about what triggered this run.
 	TriggerMetadata map[string]string `protobuf:"bytes,4,rep,name=trigger_metadata,json=triggerMetadata,proto3" json:"trigger_metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Execution-scoped environment variables and secrets, available only to this
+	// Run-scoped environment variables and secrets, available only to this
 	// run. Values here take the highest merge priority. A key must be
 	// declared in Workflow.spec.env to survive the merge: the workflow env map is
 	// a declaration whitelist (name + is_secret + optional), never a value source

@@ -7,7 +7,7 @@ package ai.stigmer.agentic.agentrun.v1;
 
 /**
  * <pre>
- * Represents a tool call made by the agent during run.
+ * Represents a tool call made by the agent during a run.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentrun.v1.ToolCall}
@@ -266,7 +266,7 @@ private static final long serialVersionUID = 0L;
   private int status_ = 0;
   /**
    * <pre>
-   * Status of the tool call run.
+   * Status of the tool call execution.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.ToolCallStatus status = 5 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -277,7 +277,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Status of the tool call run.
+   * Status of the tool call execution.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.ToolCallStatus status = 5 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -682,8 +682,8 @@ private static final long serialVersionUID = 0L;
    * Only populated after approval decision is made (approval_decided_at is set).
    * Determines how the tool execution proceeds:
    * - APPROVE: Tool executes normally
-   * - SKIP: Tool returns skip message, execution continues
-   * - REJECT: Execution fails with rejection error
+   * - SKIP: Tool returns skip message, run continues
+   * - REJECT: Run fails with rejection error
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.ApprovalAction approval_action = 15 [json_name = "approvalAction"];</code>
@@ -698,8 +698,8 @@ private static final long serialVersionUID = 0L;
    * Only populated after approval decision is made (approval_decided_at is set).
    * Determines how the tool execution proceeds:
    * - APPROVE: Tool executes normally
-   * - SKIP: Tool returns skip message, execution continues
-   * - REJECT: Execution fails with rejection error
+   * - SKIP: Tool returns skip message, run continues
+   * - REJECT: Run fails with rejection error
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.ApprovalAction approval_action = 15 [json_name = "approvalAction"];</code>
@@ -907,7 +907,7 @@ private static final long serialVersionUID = 0L;
    * Cursor harnesses use different tool-name conventions; tool_kind erases that
    * difference at the source.
    *
-   * TOOL_KIND_UNSPECIFIED means unclassified — either the execution predates this
+   * TOOL_KIND_UNSPECIFIED means unclassified — either the run predates this
    * field or the tool has no known kind. Clients fall back to a name-based
    * lookup in that case. See ToolKind.
    *
@@ -928,7 +928,7 @@ private static final long serialVersionUID = 0L;
    * Cursor harnesses use different tool-name conventions; tool_kind erases that
    * difference at the source.
    *
-   * TOOL_KIND_UNSPECIFIED means unclassified — either the execution predates this
+   * TOOL_KIND_UNSPECIFIED means unclassified — either the run predates this
    * field or the tool has no known kind. Clients fall back to a name-based
    * lookup in that case. See ToolKind.
    *
@@ -1039,7 +1039,7 @@ private static final long serialVersionUID = 0L;
    * auto-approved?".
    *
    * APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
-   * or an execution that predates this field (clients fall back to no provenance,
+   * or a run that predates this field (clients fall back to no provenance,
    * exactly as for an unset tool_kind). See ApprovalPolicySource.
    *
    * Field 23: appended after file_changes (22), the prior maximum.
@@ -1058,7 +1058,7 @@ private static final long serialVersionUID = 0L;
    * auto-approved?".
    *
    * APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
-   * or an execution that predates this field (clients fall back to no provenance,
+   * or a run that predates this field (clients fall back to no provenance,
    * exactly as for an unset tool_kind). See ApprovalPolicySource.
    *
    * Field 23: appended after file_changes (22), the prior maximum.
@@ -1140,7 +1140,7 @@ private static final long serialVersionUID = 0L;
    * drop `args`/`file_changes` for large edits — a recompute-from-args identity
    * would be unrecoverable in that case. Empty for tools whose other identity is
    * already content-exact (shell command, delete path), for read-only tools, and
-   * for executions that predate this field (the runner then degrades to the
+   * for runs that predate this field (the runner then degrades to the
    * coarse (category, path) identity).
    * </pre>
    *
@@ -1174,7 +1174,7 @@ private static final long serialVersionUID = 0L;
    * drop `args`/`file_changes` for large edits — a recompute-from-args identity
    * would be unrecoverable in that case. Empty for tools whose other identity is
    * already content-exact (shell command, delete path), for read-only tools, and
-   * for executions that predate this field (the runner then degrades to the
+   * for runs that predate this field (the runner then degrades to the
    * coarse (category, path) identity).
    * </pre>
    *
@@ -1210,7 +1210,7 @@ private static final long serialVersionUID = 0L;
    * reconcile identity is digest-gated (see filereview.proto's identity rule).
    *
    * Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
-   * those rows), rows from executions that predate this field, and turns whose
+   * those rows), rows from runs that predate this field, and turns whose
    * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
    * so there is no change set to reference).
    *
@@ -1244,7 +1244,7 @@ private static final long serialVersionUID = 0L;
    * reconcile identity is digest-gated (see filereview.proto's identity rule).
    *
    * Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
-   * those rows), rows from executions that predate this field, and turns whose
+   * those rows), rows from runs that predate this field, and turns whose
    * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
    * so there is no change set to reference).
    *
@@ -1732,7 +1732,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Represents a tool call made by the agent during run.
+   * Represents a tool call made by the agent during a run.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentrun.v1.ToolCall}
@@ -2680,7 +2680,7 @@ private static final long serialVersionUID = 0L;
     private int status_ = 0;
     /**
      * <pre>
-     * Status of the tool call run.
+     * Status of the tool call execution.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentrun.v1.ToolCallStatus status = 5 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -2691,7 +2691,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status of the tool call run.
+     * Status of the tool call execution.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentrun.v1.ToolCallStatus status = 5 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -2707,7 +2707,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status of the tool call run.
+     * Status of the tool call execution.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentrun.v1.ToolCallStatus status = 5 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -2720,7 +2720,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status of the tool call run.
+     * Status of the tool call execution.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentrun.v1.ToolCallStatus status = 5 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -2736,7 +2736,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Status of the tool call run.
+     * Status of the tool call execution.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentrun.v1.ToolCallStatus status = 5 [json_name = "status", (.buf.validate.field) = { ... }</code>
@@ -3554,8 +3554,8 @@ private static final long serialVersionUID = 0L;
      * Only populated after approval decision is made (approval_decided_at is set).
      * Determines how the tool execution proceeds:
      * - APPROVE: Tool executes normally
-     * - SKIP: Tool returns skip message, execution continues
-     * - REJECT: Execution fails with rejection error
+     * - SKIP: Tool returns skip message, run continues
+     * - REJECT: Run fails with rejection error
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentrun.v1.ApprovalAction approval_action = 15 [json_name = "approvalAction"];</code>
@@ -3570,8 +3570,8 @@ private static final long serialVersionUID = 0L;
      * Only populated after approval decision is made (approval_decided_at is set).
      * Determines how the tool execution proceeds:
      * - APPROVE: Tool executes normally
-     * - SKIP: Tool returns skip message, execution continues
-     * - REJECT: Execution fails with rejection error
+     * - SKIP: Tool returns skip message, run continues
+     * - REJECT: Run fails with rejection error
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentrun.v1.ApprovalAction approval_action = 15 [json_name = "approvalAction"];</code>
@@ -3591,8 +3591,8 @@ private static final long serialVersionUID = 0L;
      * Only populated after approval decision is made (approval_decided_at is set).
      * Determines how the tool execution proceeds:
      * - APPROVE: Tool executes normally
-     * - SKIP: Tool returns skip message, execution continues
-     * - REJECT: Execution fails with rejection error
+     * - SKIP: Tool returns skip message, run continues
+     * - REJECT: Run fails with rejection error
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentrun.v1.ApprovalAction approval_action = 15 [json_name = "approvalAction"];</code>
@@ -3609,8 +3609,8 @@ private static final long serialVersionUID = 0L;
      * Only populated after approval decision is made (approval_decided_at is set).
      * Determines how the tool execution proceeds:
      * - APPROVE: Tool executes normally
-     * - SKIP: Tool returns skip message, execution continues
-     * - REJECT: Execution fails with rejection error
+     * - SKIP: Tool returns skip message, run continues
+     * - REJECT: Run fails with rejection error
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentrun.v1.ApprovalAction approval_action = 15 [json_name = "approvalAction"];</code>
@@ -3630,8 +3630,8 @@ private static final long serialVersionUID = 0L;
      * Only populated after approval decision is made (approval_decided_at is set).
      * Determines how the tool execution proceeds:
      * - APPROVE: Tool executes normally
-     * - SKIP: Tool returns skip message, execution continues
-     * - REJECT: Execution fails with rejection error
+     * - SKIP: Tool returns skip message, run continues
+     * - REJECT: Run fails with rejection error
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentrun.v1.ApprovalAction approval_action = 15 [json_name = "approvalAction"];</code>
@@ -4088,7 +4088,7 @@ private static final long serialVersionUID = 0L;
      * Cursor harnesses use different tool-name conventions; tool_kind erases that
      * difference at the source.
      *
-     * TOOL_KIND_UNSPECIFIED means unclassified — either the execution predates this
+     * TOOL_KIND_UNSPECIFIED means unclassified — either the run predates this
      * field or the tool has no known kind. Clients fall back to a name-based
      * lookup in that case. See ToolKind.
      *
@@ -4109,7 +4109,7 @@ private static final long serialVersionUID = 0L;
      * Cursor harnesses use different tool-name conventions; tool_kind erases that
      * difference at the source.
      *
-     * TOOL_KIND_UNSPECIFIED means unclassified — either the execution predates this
+     * TOOL_KIND_UNSPECIFIED means unclassified — either the run predates this
      * field or the tool has no known kind. Clients fall back to a name-based
      * lookup in that case. See ToolKind.
      *
@@ -4135,7 +4135,7 @@ private static final long serialVersionUID = 0L;
      * Cursor harnesses use different tool-name conventions; tool_kind erases that
      * difference at the source.
      *
-     * TOOL_KIND_UNSPECIFIED means unclassified — either the execution predates this
+     * TOOL_KIND_UNSPECIFIED means unclassified — either the run predates this
      * field or the tool has no known kind. Clients fall back to a name-based
      * lookup in that case. See ToolKind.
      *
@@ -4158,7 +4158,7 @@ private static final long serialVersionUID = 0L;
      * Cursor harnesses use different tool-name conventions; tool_kind erases that
      * difference at the source.
      *
-     * TOOL_KIND_UNSPECIFIED means unclassified — either the execution predates this
+     * TOOL_KIND_UNSPECIFIED means unclassified — either the run predates this
      * field or the tool has no known kind. Clients fall back to a name-based
      * lookup in that case. See ToolKind.
      *
@@ -4184,7 +4184,7 @@ private static final long serialVersionUID = 0L;
      * Cursor harnesses use different tool-name conventions; tool_kind erases that
      * difference at the source.
      *
-     * TOOL_KIND_UNSPECIFIED means unclassified — either the execution predates this
+     * TOOL_KIND_UNSPECIFIED means unclassified — either the run predates this
      * field or the tool has no known kind. Clients fall back to a name-based
      * lookup in that case. See ToolKind.
      *
@@ -4511,7 +4511,7 @@ private static final long serialVersionUID = 0L;
      * auto-approved?".
      *
      * APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
-     * or an execution that predates this field (clients fall back to no provenance,
+     * or a run that predates this field (clients fall back to no provenance,
      * exactly as for an unset tool_kind). See ApprovalPolicySource.
      *
      * Field 23: appended after file_changes (22), the prior maximum.
@@ -4530,7 +4530,7 @@ private static final long serialVersionUID = 0L;
      * auto-approved?".
      *
      * APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
-     * or an execution that predates this field (clients fall back to no provenance,
+     * or a run that predates this field (clients fall back to no provenance,
      * exactly as for an unset tool_kind). See ApprovalPolicySource.
      *
      * Field 23: appended after file_changes (22), the prior maximum.
@@ -4554,7 +4554,7 @@ private static final long serialVersionUID = 0L;
      * auto-approved?".
      *
      * APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
-     * or an execution that predates this field (clients fall back to no provenance,
+     * or a run that predates this field (clients fall back to no provenance,
      * exactly as for an unset tool_kind). See ApprovalPolicySource.
      *
      * Field 23: appended after file_changes (22), the prior maximum.
@@ -4575,7 +4575,7 @@ private static final long serialVersionUID = 0L;
      * auto-approved?".
      *
      * APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
-     * or an execution that predates this field (clients fall back to no provenance,
+     * or a run that predates this field (clients fall back to no provenance,
      * exactly as for an unset tool_kind). See ApprovalPolicySource.
      *
      * Field 23: appended after file_changes (22), the prior maximum.
@@ -4599,7 +4599,7 @@ private static final long serialVersionUID = 0L;
      * auto-approved?".
      *
      * APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
-     * or an execution that predates this field (clients fall back to no provenance,
+     * or a run that predates this field (clients fall back to no provenance,
      * exactly as for an unset tool_kind). See ApprovalPolicySource.
      *
      * Field 23: appended after file_changes (22), the prior maximum.
@@ -4732,7 +4732,7 @@ private static final long serialVersionUID = 0L;
      * drop `args`/`file_changes` for large edits — a recompute-from-args identity
      * would be unrecoverable in that case. Empty for tools whose other identity is
      * already content-exact (shell command, delete path), for read-only tools, and
-     * for executions that predate this field (the runner then degrades to the
+     * for runs that predate this field (the runner then degrades to the
      * coarse (category, path) identity).
      * </pre>
      *
@@ -4765,7 +4765,7 @@ private static final long serialVersionUID = 0L;
      * drop `args`/`file_changes` for large edits — a recompute-from-args identity
      * would be unrecoverable in that case. Empty for tools whose other identity is
      * already content-exact (shell command, delete path), for read-only tools, and
-     * for executions that predate this field (the runner then degrades to the
+     * for runs that predate this field (the runner then degrades to the
      * coarse (category, path) identity).
      * </pre>
      *
@@ -4799,7 +4799,7 @@ private static final long serialVersionUID = 0L;
      * drop `args`/`file_changes` for large edits — a recompute-from-args identity
      * would be unrecoverable in that case. Empty for tools whose other identity is
      * already content-exact (shell command, delete path), for read-only tools, and
-     * for executions that predate this field (the runner then degrades to the
+     * for runs that predate this field (the runner then degrades to the
      * coarse (category, path) identity).
      * </pre>
      *
@@ -4829,7 +4829,7 @@ private static final long serialVersionUID = 0L;
      * drop `args`/`file_changes` for large edits — a recompute-from-args identity
      * would be unrecoverable in that case. Empty for tools whose other identity is
      * already content-exact (shell command, delete path), for read-only tools, and
-     * for executions that predate this field (the runner then degrades to the
+     * for runs that predate this field (the runner then degrades to the
      * coarse (category, path) identity).
      * </pre>
      *
@@ -4856,7 +4856,7 @@ private static final long serialVersionUID = 0L;
      * drop `args`/`file_changes` for large edits — a recompute-from-args identity
      * would be unrecoverable in that case. Empty for tools whose other identity is
      * already content-exact (shell command, delete path), for read-only tools, and
-     * for executions that predate this field (the runner then degrades to the
+     * for runs that predate this field (the runner then degrades to the
      * coarse (category, path) identity).
      * </pre>
      *
@@ -4886,7 +4886,7 @@ private static final long serialVersionUID = 0L;
      * reconcile identity is digest-gated (see filereview.proto's identity rule).
      *
      * Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
-     * those rows), rows from executions that predate this field, and turns whose
+     * those rows), rows from runs that predate this field, and turns whose
      * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
      * so there is no change set to reference).
      *
@@ -4919,7 +4919,7 @@ private static final long serialVersionUID = 0L;
      * reconcile identity is digest-gated (see filereview.proto's identity rule).
      *
      * Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
-     * those rows), rows from executions that predate this field, and turns whose
+     * those rows), rows from runs that predate this field, and turns whose
      * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
      * so there is no change set to reference).
      *
@@ -4953,7 +4953,7 @@ private static final long serialVersionUID = 0L;
      * reconcile identity is digest-gated (see filereview.proto's identity rule).
      *
      * Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
-     * those rows), rows from executions that predate this field, and turns whose
+     * those rows), rows from runs that predate this field, and turns whose
      * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
      * so there is no change set to reference).
      *
@@ -4983,7 +4983,7 @@ private static final long serialVersionUID = 0L;
      * reconcile identity is digest-gated (see filereview.proto's identity rule).
      *
      * Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
-     * those rows), rows from executions that predate this field, and turns whose
+     * those rows), rows from runs that predate this field, and turns whose
      * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
      * so there is no change set to reference).
      *
@@ -5010,7 +5010,7 @@ private static final long serialVersionUID = 0L;
      * reconcile identity is digest-gated (see filereview.proto's identity rule).
      *
      * Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
-     * those rows), rows from executions that predate this field, and turns whose
+     * those rows), rows from runs that predate this field, and turns whose
      * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
      * so there is no change set to reference).
      *

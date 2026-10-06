@@ -106,7 +106,7 @@ private static final long serialVersionUID = 0L;
   private int runCount_ = 0;
   /**
    * <pre>
-   * Number of executions in this session.
+   * Number of runs in this session.
    * </pre>
    *
    * <code>int32 run_count = 2 [json_name = "runCount"];</code>
@@ -121,7 +121,7 @@ private static final long serialVersionUID = 0L;
   private long totalTokens_ = 0L;
   /**
    * <pre>
-   * Total tokens across all executions (cache-inclusive: the sum of each
+   * Total tokens across all runs (cache-inclusive: the sum of each
    * call's provider-reported total, including cached input tokens).
    * </pre>
    *
@@ -153,7 +153,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object firstRunAt_ = "";
   /**
    * <pre>
-   * ISO 8601 timestamp of the first execution in this session.
+   * ISO 8601 timestamp of the first run in this session.
    * </pre>
    *
    * <code>string first_run_at = 5 [json_name = "firstRunAt"];</code>
@@ -174,7 +174,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ISO 8601 timestamp of the first execution in this session.
+   * ISO 8601 timestamp of the first run in this session.
    * </pre>
    *
    * <code>string first_run_at = 5 [json_name = "firstRunAt"];</code>
@@ -200,7 +200,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object lastRunAt_ = "";
   /**
    * <pre>
-   * ISO 8601 timestamp of the most recent execution in this session.
+   * ISO 8601 timestamp of the most recent run in this session.
    * </pre>
    *
    * <code>string last_run_at = 6 [json_name = "lastRunAt"];</code>
@@ -221,7 +221,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ISO 8601 timestamp of the most recent execution in this session.
+   * ISO 8601 timestamp of the most recent run in this session.
    * </pre>
    *
    * <code>string last_run_at = 6 [json_name = "lastRunAt"];</code>
@@ -754,7 +754,7 @@ private static final long serialVersionUID = 0L;
     private int runCount_ ;
     /**
      * <pre>
-     * Number of executions in this session.
+     * Number of runs in this session.
      * </pre>
      *
      * <code>int32 run_count = 2 [json_name = "runCount"];</code>
@@ -766,7 +766,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Number of executions in this session.
+     * Number of runs in this session.
      * </pre>
      *
      * <code>int32 run_count = 2 [json_name = "runCount"];</code>
@@ -782,7 +782,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Number of executions in this session.
+     * Number of runs in this session.
      * </pre>
      *
      * <code>int32 run_count = 2 [json_name = "runCount"];</code>
@@ -798,7 +798,7 @@ private static final long serialVersionUID = 0L;
     private long totalTokens_ ;
     /**
      * <pre>
-     * Total tokens across all executions (cache-inclusive: the sum of each
+     * Total tokens across all runs (cache-inclusive: the sum of each
      * call's provider-reported total, including cached input tokens).
      * </pre>
      *
@@ -811,7 +811,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total tokens across all executions (cache-inclusive: the sum of each
+     * Total tokens across all runs (cache-inclusive: the sum of each
      * call's provider-reported total, including cached input tokens).
      * </pre>
      *
@@ -828,7 +828,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total tokens across all executions (cache-inclusive: the sum of each
+     * Total tokens across all runs (cache-inclusive: the sum of each
      * call's provider-reported total, including cached input tokens).
      * </pre>
      *
@@ -889,7 +889,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object firstRunAt_ = "";
     /**
      * <pre>
-     * ISO 8601 timestamp of the first execution in this session.
+     * ISO 8601 timestamp of the first run in this session.
      * </pre>
      *
      * <code>string first_run_at = 5 [json_name = "firstRunAt"];</code>
@@ -909,7 +909,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp of the first execution in this session.
+     * ISO 8601 timestamp of the first run in this session.
      * </pre>
      *
      * <code>string first_run_at = 5 [json_name = "firstRunAt"];</code>
@@ -930,7 +930,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp of the first execution in this session.
+     * ISO 8601 timestamp of the first run in this session.
      * </pre>
      *
      * <code>string first_run_at = 5 [json_name = "firstRunAt"];</code>
@@ -947,7 +947,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp of the first execution in this session.
+     * ISO 8601 timestamp of the first run in this session.
      * </pre>
      *
      * <code>string first_run_at = 5 [json_name = "firstRunAt"];</code>
@@ -961,7 +961,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp of the first execution in this session.
+     * ISO 8601 timestamp of the first run in this session.
      * </pre>
      *
      * <code>string first_run_at = 5 [json_name = "firstRunAt"];</code>
@@ -981,7 +981,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object lastRunAt_ = "";
     /**
      * <pre>
-     * ISO 8601 timestamp of the most recent execution in this session.
+     * ISO 8601 timestamp of the most recent run in this session.
      * </pre>
      *
      * <code>string last_run_at = 6 [json_name = "lastRunAt"];</code>
@@ -1001,7 +1001,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp of the most recent execution in this session.
+     * ISO 8601 timestamp of the most recent run in this session.
      * </pre>
      *
      * <code>string last_run_at = 6 [json_name = "lastRunAt"];</code>
@@ -1022,7 +1022,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp of the most recent execution in this session.
+     * ISO 8601 timestamp of the most recent run in this session.
      * </pre>
      *
      * <code>string last_run_at = 6 [json_name = "lastRunAt"];</code>
@@ -1039,7 +1039,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp of the most recent execution in this session.
+     * ISO 8601 timestamp of the most recent run in this session.
      * </pre>
      *
      * <code>string last_run_at = 6 [json_name = "lastRunAt"];</code>
@@ -1053,7 +1053,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp of the most recent execution in this session.
+     * ISO 8601 timestamp of the most recent run in this session.
      * </pre>
      *
      * <code>string last_run_at = 6 [json_name = "lastRunAt"];</code>

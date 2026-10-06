@@ -8,7 +8,7 @@ package ai.stigmer.agentic.agentrun.v1;
 /**
  * <pre>
  * DeclaredPreferences carries the standing preference texts injected into
- * this execution's prompt, one field per declaring scope.
+ * this run's prompt, one field per declaring scope.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentrun.v1.DeclaredPreferences}
@@ -318,7 +318,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * DeclaredPreferences carries the standing preference texts injected into
-   * this execution's prompt, one field per declaring scope.
+   * this run's prompt, one field per declaring scope.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentrun.v1.DeclaredPreferences}

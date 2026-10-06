@@ -9,7 +9,7 @@ package ai.stigmer.agentic.agentrun.v1;
  * <pre>
  * ResumeAgentRunInput requests resuming a paused agent run.
  *
- * Continues execution from the checkpoint where it was paused. The agent
+ * Continues the run from the checkpoint where it was paused. The agent
  * re-invokes activities with the same thread_id, which loads from checkpoint
  * and continues from where it left off.
  *
@@ -24,13 +24,13 @@ package ai.stigmer.agentic.agentrun.v1;
  *
  * ## Preconditions
  *
- * - Execution must be in RUN_PAUSED phase
- * - Cannot resume non-paused executions
+ * - Run must be in RUN_PAUSED phase
+ * - Cannot resume non-paused runs
  *
  * ## Idempotency
  *
- * If the execution is not paused (already IN_PROGRESS),
- * the call succeeds as a no-op and returns the current execution state.
+ * If the run is not paused (already IN_PROGRESS),
+ * the call succeeds as a no-op and returns the current run state.
  *
  * ## Example
  *
@@ -89,7 +89,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Agent run ID to resume.
    *
-   * Must be in PAUSED phase. Cannot resume executions
+   * Must be in PAUSED phase. Cannot resume runs
    * that are not paused.
    *
    * Format: "aex_{ulid}" (auto-generated unique identifier)
@@ -118,7 +118,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Agent run ID to resume.
    *
-   * Must be in PAUSED phase. Cannot resume executions
+   * Must be in PAUSED phase. Cannot resume runs
    * that are not paused.
    *
    * Format: "aex_{ulid}" (auto-generated unique identifier)
@@ -305,7 +305,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * ResumeAgentRunInput requests resuming a paused agent run.
    *
-   * Continues execution from the checkpoint where it was paused. The agent
+   * Continues the run from the checkpoint where it was paused. The agent
    * re-invokes activities with the same thread_id, which loads from checkpoint
    * and continues from where it left off.
    *
@@ -320,13 +320,13 @@ private static final long serialVersionUID = 0L;
    *
    * ## Preconditions
    *
-   * - Execution must be in RUN_PAUSED phase
-   * - Cannot resume non-paused executions
+   * - Run must be in RUN_PAUSED phase
+   * - Cannot resume non-paused runs
    *
    * ## Idempotency
    *
-   * If the execution is not paused (already IN_PROGRESS),
-   * the call succeeds as a no-op and returns the current execution state.
+   * If the run is not paused (already IN_PROGRESS),
+   * the call succeeds as a no-op and returns the current run state.
    *
    * ## Example
    *
@@ -477,7 +477,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Agent run ID to resume.
      *
-     * Must be in PAUSED phase. Cannot resume executions
+     * Must be in PAUSED phase. Cannot resume runs
      * that are not paused.
      *
      * Format: "aex_{ulid}" (auto-generated unique identifier)
@@ -505,7 +505,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Agent run ID to resume.
      *
-     * Must be in PAUSED phase. Cannot resume executions
+     * Must be in PAUSED phase. Cannot resume runs
      * that are not paused.
      *
      * Format: "aex_{ulid}" (auto-generated unique identifier)
@@ -534,7 +534,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Agent run ID to resume.
      *
-     * Must be in PAUSED phase. Cannot resume executions
+     * Must be in PAUSED phase. Cannot resume runs
      * that are not paused.
      *
      * Format: "aex_{ulid}" (auto-generated unique identifier)
@@ -559,7 +559,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Agent run ID to resume.
      *
-     * Must be in PAUSED phase. Cannot resume executions
+     * Must be in PAUSED phase. Cannot resume runs
      * that are not paused.
      *
      * Format: "aex_{ulid}" (auto-generated unique identifier)
@@ -581,7 +581,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Agent run ID to resume.
      *
-     * Must be in PAUSED phase. Cannot resume executions
+     * Must be in PAUSED phase. Cannot resume runs
      * that are not paused.
      *
      * Format: "aex_{ulid}" (auto-generated unique identifier)

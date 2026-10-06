@@ -114,7 +114,7 @@ func (x *Duration) GetMilliseconds() uint32 {
 	return 0
 }
 
-// WaitTaskConfig defines the configuration for wait tasks that pause workflow run.
+// WaitTaskConfig defines the configuration for wait tasks that pause a workflow run.
 //
 // Supports both relative durations and absolute timestamps.
 type WaitTaskConfig struct {

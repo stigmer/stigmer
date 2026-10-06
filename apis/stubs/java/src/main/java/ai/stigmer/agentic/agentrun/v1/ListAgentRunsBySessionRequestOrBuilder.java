@@ -32,7 +32,7 @@ public interface ListAgentRunsBySessionRequestOrBuilder extends
 
   /**
    * <pre>
-   * Not read: a session's executions are returned whole.
+   * Not read: a session's runs are returned whole.
    * </pre>
    *
    * <code>int32 page_size = 2 [json_name = "pageSize", deprecated = true];</code>
@@ -44,7 +44,7 @@ public interface ListAgentRunsBySessionRequestOrBuilder extends
 
   /**
    * <pre>
-   * Not read: a session's executions are returned whole.
+   * Not read: a session's runs are returned whole.
    * </pre>
    *
    * <code>string page_token = 3 [json_name = "pageToken", deprecated = true];</code>
@@ -55,7 +55,7 @@ public interface ListAgentRunsBySessionRequestOrBuilder extends
   @java.lang.Deprecated java.lang.String getPageToken();
   /**
    * <pre>
-   * Not read: a session's executions are returned whole.
+   * Not read: a session's runs are returned whole.
    * </pre>
    *
    * <code>string page_token = 3 [json_name = "pageToken", deprecated = true];</code>

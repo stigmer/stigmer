@@ -7,10 +7,10 @@ package ai.stigmer.billing.v1;
 
 /**
  * <pre>
- * The execution-side facts LLM metering denormalizes onto every usage
+ * The run-side facts LLM metering denormalizes onto every usage
  * record, carried from the proxy that authorized the call to the billing
  * handler that records it. Deliberately narrower than the settings the
- * execution resolved: only what metering reconciles or prices against.
+ * run resolved: only what metering reconciles or prices against.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.v1.MeteredRun}
@@ -64,7 +64,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object sessionId_ = "";
   /**
    * <pre>
-   * The session the execution belongs to. The provider reconciler matches
+   * The session the run belongs to. The provider reconciler matches
    * Cursor conversations to sessions through the usage record's session.
    * </pre>
    *
@@ -86,7 +86,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The session the execution belongs to. The provider reconciler matches
+   * The session the run belongs to. The provider reconciler matches
    * Cursor conversations to sessions through the usage record's session.
    * </pre>
    *
@@ -113,7 +113,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object pinnedModel_ = "";
   /**
    * <pre>
-   * The model the execution resolved (status.run_config.model_name, whichever
+   * The model the run resolved (status.run_config.model_name, whichever
    * layer chose it: the message, the agent's defaults or the lane's profile)
    * — the authoritative statement of what was asked for, and the pricing
    * fallback when the wire's requested_model came up empty. Empty when no
@@ -138,7 +138,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The model the execution resolved (status.run_config.model_name, whichever
+   * The model the run resolved (status.run_config.model_name, whichever
    * layer chose it: the message, the agent's defaults or the lane's profile)
    * — the authoritative statement of what was asked for, and the pricing
    * fallback when the wire's requested_model came up empty. Empty when no
@@ -167,7 +167,7 @@ private static final long serialVersionUID = 0L;
   private int requestedServiceTier_ = 0;
   /**
    * <pre>
-   * The service tier the execution resolved (status.run_config.
+   * The service tier the run resolved (status.run_config.
    * service_tier); UNSPECIFIED resolves to standard. Reconciled against
    * served_service_tier by the service_tier.mismatch counter.
    * </pre>
@@ -180,7 +180,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The service tier the execution resolved (status.run_config.
+   * The service tier the run resolved (status.run_config.
    * service_tier); UNSPECIFIED resolves to standard. Reconciled against
    * served_service_tier by the service_tier.mismatch counter.
    * </pre>
@@ -197,7 +197,7 @@ private static final long serialVersionUID = 0L;
   private int requestedThinkingMode_ = 0;
   /**
    * <pre>
-   * The thinking mode the execution resolved (status.run_config.
+   * The thinking mode the run resolved (status.run_config.
    * thinking_mode). Reconciled against the served variant by the
    * thinking.mismatch counter.
    * </pre>
@@ -210,7 +210,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The thinking mode the execution resolved (status.run_config.
+   * The thinking mode the run resolved (status.run_config.
    * thinking_mode). Reconciled against the served variant by the
    * thinking.mismatch counter.
    * </pre>
@@ -411,10 +411,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The execution-side facts LLM metering denormalizes onto every usage
+   * The run-side facts LLM metering denormalizes onto every usage
    * record, carried from the proxy that authorized the call to the billing
    * handler that records it. Deliberately narrower than the settings the
-   * execution resolved: only what metering reconciles or prices against.
+   * run resolved: only what metering reconciles or prices against.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.v1.MeteredRun}
@@ -595,7 +595,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object sessionId_ = "";
     /**
      * <pre>
-     * The session the execution belongs to. The provider reconciler matches
+     * The session the run belongs to. The provider reconciler matches
      * Cursor conversations to sessions through the usage record's session.
      * </pre>
      *
@@ -616,7 +616,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The session the execution belongs to. The provider reconciler matches
+     * The session the run belongs to. The provider reconciler matches
      * Cursor conversations to sessions through the usage record's session.
      * </pre>
      *
@@ -638,7 +638,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The session the execution belongs to. The provider reconciler matches
+     * The session the run belongs to. The provider reconciler matches
      * Cursor conversations to sessions through the usage record's session.
      * </pre>
      *
@@ -656,7 +656,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The session the execution belongs to. The provider reconciler matches
+     * The session the run belongs to. The provider reconciler matches
      * Cursor conversations to sessions through the usage record's session.
      * </pre>
      *
@@ -671,7 +671,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The session the execution belongs to. The provider reconciler matches
+     * The session the run belongs to. The provider reconciler matches
      * Cursor conversations to sessions through the usage record's session.
      * </pre>
      *
@@ -692,7 +692,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object pinnedModel_ = "";
     /**
      * <pre>
-     * The model the execution resolved (status.run_config.model_name, whichever
+     * The model the run resolved (status.run_config.model_name, whichever
      * layer chose it: the message, the agent's defaults or the lane's profile)
      * — the authoritative statement of what was asked for, and the pricing
      * fallback when the wire's requested_model came up empty. Empty when no
@@ -716,7 +716,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The model the execution resolved (status.run_config.model_name, whichever
+     * The model the run resolved (status.run_config.model_name, whichever
      * layer chose it: the message, the agent's defaults or the lane's profile)
      * — the authoritative statement of what was asked for, and the pricing
      * fallback when the wire's requested_model came up empty. Empty when no
@@ -741,7 +741,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The model the execution resolved (status.run_config.model_name, whichever
+     * The model the run resolved (status.run_config.model_name, whichever
      * layer chose it: the message, the agent's defaults or the lane's profile)
      * — the authoritative statement of what was asked for, and the pricing
      * fallback when the wire's requested_model came up empty. Empty when no
@@ -762,7 +762,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The model the execution resolved (status.run_config.model_name, whichever
+     * The model the run resolved (status.run_config.model_name, whichever
      * layer chose it: the message, the agent's defaults or the lane's profile)
      * — the authoritative statement of what was asked for, and the pricing
      * fallback when the wire's requested_model came up empty. Empty when no
@@ -780,7 +780,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The model the execution resolved (status.run_config.model_name, whichever
+     * The model the run resolved (status.run_config.model_name, whichever
      * layer chose it: the message, the agent's defaults or the lane's profile)
      * — the authoritative statement of what was asked for, and the pricing
      * fallback when the wire's requested_model came up empty. Empty when no
@@ -804,7 +804,7 @@ private static final long serialVersionUID = 0L;
     private int requestedServiceTier_ = 0;
     /**
      * <pre>
-     * The service tier the execution resolved (status.run_config.
+     * The service tier the run resolved (status.run_config.
      * service_tier); UNSPECIFIED resolves to standard. Reconciled against
      * served_service_tier by the service_tier.mismatch counter.
      * </pre>
@@ -817,7 +817,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The service tier the execution resolved (status.run_config.
+     * The service tier the run resolved (status.run_config.
      * service_tier); UNSPECIFIED resolves to standard. Reconciled against
      * served_service_tier by the service_tier.mismatch counter.
      * </pre>
@@ -835,7 +835,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The service tier the execution resolved (status.run_config.
+     * The service tier the run resolved (status.run_config.
      * service_tier); UNSPECIFIED resolves to standard. Reconciled against
      * served_service_tier by the service_tier.mismatch counter.
      * </pre>
@@ -850,7 +850,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The service tier the execution resolved (status.run_config.
+     * The service tier the run resolved (status.run_config.
      * service_tier); UNSPECIFIED resolves to standard. Reconciled against
      * served_service_tier by the service_tier.mismatch counter.
      * </pre>
@@ -868,7 +868,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The service tier the execution resolved (status.run_config.
+     * The service tier the run resolved (status.run_config.
      * service_tier); UNSPECIFIED resolves to standard. Reconciled against
      * served_service_tier by the service_tier.mismatch counter.
      * </pre>
@@ -886,7 +886,7 @@ private static final long serialVersionUID = 0L;
     private int requestedThinkingMode_ = 0;
     /**
      * <pre>
-     * The thinking mode the execution resolved (status.run_config.
+     * The thinking mode the run resolved (status.run_config.
      * thinking_mode). Reconciled against the served variant by the
      * thinking.mismatch counter.
      * </pre>
@@ -899,7 +899,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The thinking mode the execution resolved (status.run_config.
+     * The thinking mode the run resolved (status.run_config.
      * thinking_mode). Reconciled against the served variant by the
      * thinking.mismatch counter.
      * </pre>
@@ -917,7 +917,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The thinking mode the execution resolved (status.run_config.
+     * The thinking mode the run resolved (status.run_config.
      * thinking_mode). Reconciled against the served variant by the
      * thinking.mismatch counter.
      * </pre>
@@ -932,7 +932,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The thinking mode the execution resolved (status.run_config.
+     * The thinking mode the run resolved (status.run_config.
      * thinking_mode). Reconciled against the served variant by the
      * thinking.mismatch counter.
      * </pre>
@@ -950,7 +950,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The thinking mode the execution resolved (status.run_config.
+     * The thinking mode the run resolved (status.run_config.
      * thinking_mode). Reconciled against the served variant by the
      * thinking.mismatch counter.
      * </pre>

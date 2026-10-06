@@ -105,7 +105,7 @@ export const BillingQueryController: GenService<{
     output: typeof ModelPricingBaselinesResponseSchema;
   },
   /**
-   * Preview whether an organization can fund an execution, without writing
+   * Preview whether an organization can fund a run, without writing
    * a reservation. The read-only twin of BillingCommandController's
    * authorizeRun: both ride the same server-side affordability
    * predicate (start threshold, negative allowance, default cap), so a
@@ -120,8 +120,8 @@ export const BillingQueryController: GenService<{
     output: typeof PreviewAuthorizationResponseSchema;
   },
   /**
-   * Retrieve the current billing control signal for a running execution
-   * (continue / low-balance warning / stop), derived from the execution's
+   * Retrieve the current billing control signal for a run in progress
+   * (continue / low-balance warning / stop), derived from the run's
    * reservation headroom and the billing account's status.
    *
    * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.getRunBillingSignal

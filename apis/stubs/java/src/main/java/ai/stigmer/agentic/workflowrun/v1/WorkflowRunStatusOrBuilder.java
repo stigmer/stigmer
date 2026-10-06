@@ -39,7 +39,7 @@ public interface WorkflowRunStatusOrBuilder extends
 
   /**
    * <pre>
-   * Current execution lifecycle phase.
+   * Current run lifecycle phase.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowrun.v1.RunPhase phase = 1 [json_name = "phase", (.buf.validate.field) = { ... }</code>
@@ -48,7 +48,7 @@ public interface WorkflowRunStatusOrBuilder extends
   int getPhaseValue();
   /**
    * <pre>
-   * Current execution lifecycle phase.
+   * Current run lifecycle phase.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowrun.v1.RunPhase phase = 1 [json_name = "phase", (.buf.validate.field) = { ... }</code>
@@ -149,7 +149,7 @@ public interface WorkflowRunStatusOrBuilder extends
 
   /**
    * <pre>
-   * ISO 8601 timestamp when execution started processing.
+   * ISO 8601 timestamp when the run started processing.
    * </pre>
    *
    * <code>string started_at = 5 [json_name = "startedAt"];</code>
@@ -158,7 +158,7 @@ public interface WorkflowRunStatusOrBuilder extends
   java.lang.String getStartedAt();
   /**
    * <pre>
-   * ISO 8601 timestamp when execution started processing.
+   * ISO 8601 timestamp when the run started processing.
    * </pre>
    *
    * <code>string started_at = 5 [json_name = "startedAt"];</code>
@@ -169,7 +169,7 @@ public interface WorkflowRunStatusOrBuilder extends
 
   /**
    * <pre>
-   * ISO 8601 timestamp when execution reached a terminal state.
+   * ISO 8601 timestamp when the run reached a terminal state.
    * </pre>
    *
    * <code>string completed_at = 6 [json_name = "completedAt"];</code>
@@ -178,7 +178,7 @@ public interface WorkflowRunStatusOrBuilder extends
   java.lang.String getCompletedAt();
   /**
    * <pre>
-   * ISO 8601 timestamp when execution reached a terminal state.
+   * ISO 8601 timestamp when the run reached a terminal state.
    * </pre>
    *
    * <code>string completed_at = 6 [json_name = "completedAt"];</code>
@@ -209,7 +209,7 @@ public interface WorkflowRunStatusOrBuilder extends
 
   /**
    * <pre>
-   * Pending approvals from child agent tool runs.
+   * Pending approvals from child agent tool executions.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -218,7 +218,7 @@ public interface WorkflowRunStatusOrBuilder extends
       getPendingApprovalsList();
   /**
    * <pre>
-   * Pending approvals from child agent tool runs.
+   * Pending approvals from child agent tool executions.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -226,7 +226,7 @@ public interface WorkflowRunStatusOrBuilder extends
   ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval getPendingApprovals(int index);
   /**
    * <pre>
-   * Pending approvals from child agent tool runs.
+   * Pending approvals from child agent tool executions.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -234,7 +234,7 @@ public interface WorkflowRunStatusOrBuilder extends
   int getPendingApprovalsCount();
   /**
    * <pre>
-   * Pending approvals from child agent tool runs.
+   * Pending approvals from child agent tool executions.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
@@ -243,7 +243,7 @@ public interface WorkflowRunStatusOrBuilder extends
       getPendingApprovalsOrBuilderList();
   /**
    * <pre>
-   * Pending approvals from child agent tool runs.
+   * Pending approvals from child agent tool executions.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>

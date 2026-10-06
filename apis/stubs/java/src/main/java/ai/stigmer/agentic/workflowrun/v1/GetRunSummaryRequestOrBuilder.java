@@ -55,7 +55,7 @@ public interface GetRunSummaryRequestOrBuilder extends
 
   /**
    * <pre>
-   * When set, scopes the summary to executions of this workflow only.
+   * When set, scopes the summary to runs of this workflow only.
    * When empty, aggregates across all workflows in the organization.
    * </pre>
    *
@@ -65,7 +65,7 @@ public interface GetRunSummaryRequestOrBuilder extends
   java.lang.String getWorkflowId();
   /**
    * <pre>
-   * When set, scopes the summary to executions of this workflow only.
+   * When set, scopes the summary to runs of this workflow only.
    * When empty, aggregates across all workflows in the organization.
    * </pre>
    *

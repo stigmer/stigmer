@@ -15,7 +15,7 @@ package ai.stigmer.agentic.agentrun.v1;
  * publishes for the user to download via publish_artifact): an output ref is
  * internal spillover of a tool's result, not a user-facing deliverable. The
  * bytes live in artifact storage (R2 in the cloud, locally served in dev);
- * only this reference is persisted in the execution status.
+ * only this reference is persisted in the run status.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentrun.v1.ToolCallOutputRef}
@@ -523,7 +523,7 @@ private static final long serialVersionUID = 0L;
    * publishes for the user to download via publish_artifact): an output ref is
    * internal spillover of a tool's result, not a user-facing deliverable. The
    * bytes live in artifact storage (R2 in the cloud, locally served in dev);
-   * only this reference is persisted in the execution status.
+   * only this reference is persisted in the run status.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentrun.v1.ToolCallOutputRef}

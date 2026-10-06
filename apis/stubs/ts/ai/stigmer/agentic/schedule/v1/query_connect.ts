@@ -67,7 +67,7 @@ export const ScheduleQueryController = {
     /**
      * List a schedule's run history, newest first.
      *
-     * Every fire leaves a row — including fires that created no execution
+     * Every fire leaves a row — including fires that created no run
      * (a refused launch gate, a missing target agent) — with the refusing
      * gate's copy verbatim. This is the surface that explains
      * status.consecutive_failures.

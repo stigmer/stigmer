@@ -52,7 +52,7 @@ public enum ChannelAttemptFailureKind
    * <pre>
    * The platform withdrew the send for a structural reason;
    * attempt_detail carries the short fact ("channel deleted",
-   * "execution no longer exists").
+   * "run no longer exists").
    * </pre>
    *
    * <code>attempt_withdrawn = 3;</code>
@@ -104,7 +104,7 @@ public enum ChannelAttemptFailureKind
    * <pre>
    * The platform withdrew the send for a structural reason;
    * attempt_detail carries the short fact ("channel deleted",
-   * "execution no longer exists").
+   * "run no longer exists").
    * </pre>
    *
    * <code>attempt_withdrawn = 3;</code>

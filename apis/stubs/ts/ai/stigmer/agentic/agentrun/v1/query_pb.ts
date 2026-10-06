@@ -44,7 +44,7 @@ export const AgentRunQueryController: GenService<{
     output: typeof AgentRunListSchema;
   },
   /**
-   * List all executions in a specific session.
+   * List all runs in a specific session.
    *
    * @generated from rpc ai.stigmer.agentic.agentrun.v1.AgentRunQueryController.listBySession
    */
@@ -54,7 +54,7 @@ export const AgentRunQueryController: GenService<{
     output: typeof AgentRunListSchema;
   },
   /**
-   * Subscribe to real-time execution updates (streaming).
+   * Subscribe to real-time run updates (streaming).
    *
    * @generated from rpc ai.stigmer.agentic.agentrun.v1.AgentRunQueryController.subscribe
    */
@@ -64,10 +64,10 @@ export const AgentRunQueryController: GenService<{
     output: typeof AgentRunSchema;
   },
   /**
-   * Get a presigned download URL for an execution artifact or attachment.
+   * Get a presigned download URL for a run artifact or attachment.
    *
    * Returns a time-limited URL for downloading an artifact published by
-   * an agent during execution, or an attachment submitted with the
+   * an agent during the run, or an attachment submitted with the
    * run. The URL can be used with a simple HTTP GET request without
    * authentication.
    *
@@ -79,7 +79,7 @@ export const AgentRunQueryController: GenService<{
     output: typeof GetArtifactDownloadUrlResponseSchema;
   },
   /**
-   * Read the raw content of an execution artifact.
+   * Read the raw content of a run artifact.
    *
    * Returns artifact bytes through the Stigmer API, eliminating CORS
    * concerns for SDK consumers who need to read content programmatically
@@ -110,7 +110,7 @@ export const AgentRunQueryController: GenService<{
   /**
    * Get a usage report for a session.
    *
-   * Returns aggregated tokens, cost, and per-execution breakdown.
+   * Returns aggregated tokens, cost, and per-run breakdown.
    *
    * @generated from rpc ai.stigmer.agentic.agentrun.v1.AgentRunQueryController.getSessionUsageReport
    */
@@ -123,8 +123,8 @@ export const AgentRunQueryController: GenService<{
    * Get a usage report for an agent within an organization.
    *
    * Returns aggregated tokens, cost, and per-session breakdown for one
-   * organization's executions of the agent. Requires can_view on the
-   * organization named in org; executions outside that organization are
+   * organization's runs of the agent. Requires can_view on the
+   * organization named in org; runs outside that organization are
    * never included, so the report is the per-agent drill-down of
    * getOrgUsageReport.
    *
@@ -148,7 +148,7 @@ export const AgentRunQueryController: GenService<{
     output: typeof GetOrgUsageReportOutputSchema;
   },
   /**
-   * Get aggregated execution statistics for an organization's agent runs.
+   * Get aggregated run statistics for an organization's agent runs.
    *
    * Returns counts by phase, active count, average duration, and top failing
    * agents — scoped to a configurable time window (24h, 7d, 30d, all-time).

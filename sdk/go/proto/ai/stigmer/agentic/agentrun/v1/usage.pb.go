@@ -954,7 +954,7 @@ type BillingLink struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Current debit status.
 	DebitStatus BillingDebitStatus `protobuf:"varint,1,opt,name=debit_status,json=debitStatus,proto3,enum=ai.stigmer.agentic.agentrun.v1.BillingDebitStatus" json:"debit_status,omitempty"`
-	// Execution reservation ID (from authorizeRun).
+	// Run reservation ID (from authorizeRun).
 	ReservationId string `protobuf:"bytes,2,opt,name=reservation_id,json=reservationId,proto3" json:"reservation_id,omitempty"`
 	// Billing ledger debit ID (from reportLlmCallUsage).
 	BillingDebitId string `protobuf:"bytes,3,opt,name=billing_debit_id,json=billingDebitId,proto3" json:"billing_debit_id,omitempty"`
@@ -1043,7 +1043,7 @@ func (x *BillingLink) GetLastBillingError() string {
 //
 // Written by the proxy after each SSE stream completes (cloud mode) or by
 // the runner directly (OSS mode). Stored in the `llm_call_usage_record`
-// MongoDB collection, never embedded in the execution document.
+// MongoDB collection, never embedded in the run document.
 //
 // ## Lifecycle
 // 1. Proxy observes SSE stream completion and extracts final usage
@@ -1061,13 +1061,13 @@ type LlmCallUsageRecord struct {
 	// ─── Identity ───────────────────────────────────────────────────────────────
 	// Stable unique ID for this record (ULID).
 	UsageRecordId string `protobuf:"bytes,1,opt,name=usage_record_id,json=usageRecordId,proto3" json:"usage_record_id,omitempty"`
-	// Execution this call belongs to.
+	// Run this call belongs to.
 	RunId string `protobuf:"bytes,2,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	// For sub-agent rollups: root execution of the tree.
+	// For sub-agent rollups: root run of the tree.
 	RootRunId string `protobuf:"bytes,3,opt,name=root_run_id,json=rootRunId,proto3" json:"root_run_id,omitempty"`
-	// 1-based call ordering within the execution, as the reporting proxy
+	// 1-based call ordering within the run, as the reporting proxy
 	// counted it. An ordering hint, not an identity: a proxy that restarts
-	// mid-execution counts from 1 again, so two records of one execution may
+	// mid-run counts from 1 again, so two records of one run may
 	// share a sequence. Order by observed_at, then sequence.
 	Sequence int32 `protobuf:"varint,4,opt,name=sequence,proto3" json:"sequence,omitempty"`
 	// Deduplication key: run_id + (call_id, else sequence) + metering_source.
@@ -1145,7 +1145,7 @@ type LlmCallUsageRecord struct {
 	Billing *BillingLink `protobuf:"bytes,80,opt,name=billing,proto3" json:"billing,omitempty"`
 	// Organization that owns this run.
 	Org string `protobuf:"bytes,7,opt,name=org,proto3" json:"org,omitempty"`
-	// Session this execution belongs to.
+	// Session this run belongs to.
 	SessionId string `protobuf:"bytes,8,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	// ─── Labels ─────────────────────────────────────────────────────────────────
 	// Custom metadata for filtering (e.g., agent_path, node_path).
@@ -1443,7 +1443,7 @@ func (x *LlmCallUsageRecord) GetLabels() map[string]string {
 	return nil
 }
 
-// Aggregated usage across a scope (execution, session, agent, or org).
+// Aggregated usage across a scope (run, session, agent, or org).
 //
 // Used as the `total_usage` field in session and agent usage report responses.
 // All token fields are int64 to support large aggregates (org-wide, multi-day).
@@ -1721,11 +1721,11 @@ type StreamingUsageSummary struct {
 	// Estimated cost in USD computed from runner-side rate card.
 	// Labeled "Estimated" in the UI — not provider-verified.
 	EstimatedCostUsd float64 `protobuf:"fixed64,7,opt,name=estimated_cost_usd,json=estimatedCostUsd,proto3" json:"estimated_cost_usd,omitempty"`
-	// Model identifier the runner requested for this execution's turns.
+	// Model identifier the runner requested for this run's turns.
 	Model string `protobuf:"bytes,8,opt,name=model,proto3" json:"model,omitempty"`
 	// ISO 8601 timestamp of the last turn-ended event observed.
 	ObservedAt string `protobuf:"bytes,9,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
-	// Service tier the runner requested for this execution's model calls.
+	// Service tier the runner requested for this run's model calls.
 	//
 	// Always explicit once the runner has translated the turn's settings
 	// (STANDARD when AgentRunStatus.run_config.service_tier was unset) — the audit
@@ -1735,7 +1735,7 @@ type StreamingUsageSummary struct {
 	// selection (Cursor ModelSelection.params, e.g.
 	// [{"id":"fast","value":"false"}]). Empty when the harness sent none.
 	RequestedModelParams string `protobuf:"bytes,11,opt,name=requested_model_params,json=requestedModelParams,proto3" json:"requested_model_params,omitempty"`
-	// Thinking mode the runner requested for this execution's model calls.
+	// Thinking mode the runner requested for this run's model calls.
 	//
 	// Always explicit once the runner has translated the turn's settings
 	// (DISABLED when AgentRunStatus.run_config.thinking_mode was unset) — the audit

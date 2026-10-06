@@ -12,7 +12,7 @@ public interface ListAgentRunsRequestOrBuilder extends
 
   /**
    * <pre>
-   * The most executions to return, at most 100; zero returns them all.
+   * The most runs to return, at most 100; zero returns them all.
    * </pre>
    *
    * <code>int32 page_size = 1 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
@@ -44,7 +44,7 @@ public interface ListAgentRunsRequestOrBuilder extends
 
   /**
    * <pre>
-   * Filter by execution phase (optional).
+   * Filter by run phase (optional).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.RunPhase phase = 3 [json_name = "phase"];</code>
@@ -53,7 +53,7 @@ public interface ListAgentRunsRequestOrBuilder extends
   int getPhaseValue();
   /**
    * <pre>
-   * Filter by execution phase (optional).
+   * Filter by run phase (optional).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.RunPhase phase = 3 [json_name = "phase"];</code>
@@ -106,7 +106,7 @@ public interface ListAgentRunsRequestOrBuilder extends
    * <pre>
    * Organization slug to scope the results to.
    *
-   * When set, only executions whose metadata.org matches are returned — the
+   * When set, only runs whose metadata.org matches are returned — the
    * org-context view a console tab needs. When empty, results are bounded
    * only by the caller's view permissions, which for a member of several
    * organizations spans all of them.
@@ -120,7 +120,7 @@ public interface ListAgentRunsRequestOrBuilder extends
    * <pre>
    * Organization slug to scope the results to.
    *
-   * When set, only executions whose metadata.org matches are returned — the
+   * When set, only runs whose metadata.org matches are returned — the
    * org-context view a console tab needs. When empty, results are bounded
    * only by the caller's view permissions, which for a member of several
    * organizations spans all of them.

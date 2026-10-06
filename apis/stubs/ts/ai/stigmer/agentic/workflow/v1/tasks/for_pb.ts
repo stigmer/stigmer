@@ -101,7 +101,7 @@ export const ForTaskConfigSchema: GenMessage<ForTaskConfig> = /*@__PURE__*/
 
 /**
  * ForEachErrorPolicy defines what happens when an individual iteration fails
- * during parallel or sequential for_each run.
+ * during parallel or sequential for_each execution.
  *
  * @generated from enum ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy
  */

@@ -9,7 +9,7 @@ package ai.stigmer.agentic.agentrun.v1;
  * <pre>
  * PauseAgentRunInput requests temporarily pausing an agent run.
  *
- * Pauses the agent at its current checkpoint. Unlike cancel, the execution
+ * Pauses the agent at its current checkpoint. Unlike cancel, the run
  * is NOT terminal and can be resumed later from where it left off.
  *
  * ## Behavior
@@ -18,7 +18,7 @@ package ai.stigmer.agentic.agentrun.v1;
  * 1. A "pause" signal is sent to the Temporal workflow
  * 2. Running activity is gracefully cancelled (checkpoint saved)
  * 3. LangGraph auto-saves checkpoint on cancellation
- * 4. Execution transitions to RUN_PAUSED phase
+ * 4. Run transitions to RUN_PAUSED phase
  * 5. Workflow waits for resume signal (no resources consumed)
  *
  * ## Resume Flow
@@ -31,8 +31,8 @@ package ai.stigmer.agentic.agentrun.v1;
  *
  * ## Preconditions
  *
- * - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
- * - Cannot pause already paused or terminal executions
+ * - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
+ * - Cannot pause already paused or terminal runs
  *
  * ## Use Cases
  *
@@ -101,7 +101,7 @@ private static final long serialVersionUID = 0L;
    * Agent run ID to pause.
    *
    * Must be in PENDING or IN_PROGRESS phase. Cannot pause
-   * executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
+   * runs that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
    *
    * Format: "aex_{ulid}" (auto-generated unique identifier)
    * Example: "aex_abc123xyz456"
@@ -130,7 +130,7 @@ private static final long serialVersionUID = 0L;
    * Agent run ID to pause.
    *
    * Must be in PENDING or IN_PROGRESS phase. Cannot pause
-   * executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
+   * runs that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
    *
    * Format: "aex_{ulid}" (auto-generated unique identifier)
    * Example: "aex_abc123xyz456"
@@ -391,7 +391,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * PauseAgentRunInput requests temporarily pausing an agent run.
    *
-   * Pauses the agent at its current checkpoint. Unlike cancel, the execution
+   * Pauses the agent at its current checkpoint. Unlike cancel, the run
    * is NOT terminal and can be resumed later from where it left off.
    *
    * ## Behavior
@@ -400,7 +400,7 @@ private static final long serialVersionUID = 0L;
    * 1. A "pause" signal is sent to the Temporal workflow
    * 2. Running activity is gracefully cancelled (checkpoint saved)
    * 3. LangGraph auto-saves checkpoint on cancellation
-   * 4. Execution transitions to RUN_PAUSED phase
+   * 4. Run transitions to RUN_PAUSED phase
    * 5. Workflow waits for resume signal (no resources consumed)
    *
    * ## Resume Flow
@@ -413,8 +413,8 @@ private static final long serialVersionUID = 0L;
    *
    * ## Preconditions
    *
-   * - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
-   * - Cannot pause already paused or terminal executions
+   * - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
+   * - Cannot pause already paused or terminal runs
    *
    * ## Use Cases
    *
@@ -588,7 +588,7 @@ private static final long serialVersionUID = 0L;
      * Agent run ID to pause.
      *
      * Must be in PENDING or IN_PROGRESS phase. Cannot pause
-     * executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
+     * runs that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
      *
      * Format: "aex_{ulid}" (auto-generated unique identifier)
      * Example: "aex_abc123xyz456"
@@ -616,7 +616,7 @@ private static final long serialVersionUID = 0L;
      * Agent run ID to pause.
      *
      * Must be in PENDING or IN_PROGRESS phase. Cannot pause
-     * executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
+     * runs that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
      *
      * Format: "aex_{ulid}" (auto-generated unique identifier)
      * Example: "aex_abc123xyz456"
@@ -645,7 +645,7 @@ private static final long serialVersionUID = 0L;
      * Agent run ID to pause.
      *
      * Must be in PENDING or IN_PROGRESS phase. Cannot pause
-     * executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
+     * runs that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
      *
      * Format: "aex_{ulid}" (auto-generated unique identifier)
      * Example: "aex_abc123xyz456"
@@ -670,7 +670,7 @@ private static final long serialVersionUID = 0L;
      * Agent run ID to pause.
      *
      * Must be in PENDING or IN_PROGRESS phase. Cannot pause
-     * executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
+     * runs that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
      *
      * Format: "aex_{ulid}" (auto-generated unique identifier)
      * Example: "aex_abc123xyz456"
@@ -692,7 +692,7 @@ private static final long serialVersionUID = 0L;
      * Agent run ID to pause.
      *
      * Must be in PENDING or IN_PROGRESS phase. Cannot pause
-     * executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
+     * runs that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
      *
      * Format: "aex_{ulid}" (auto-generated unique identifier)
      * Example: "aex_abc123xyz456"

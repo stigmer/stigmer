@@ -185,7 +185,7 @@ func (OwnerAttributionType) EnumDescriptor() ([]byte, []int) {
 // Kinds WITHOUT a visibility config accept only visibility_private (or
 // unspecified) — they are personal or org-structural resources whose access
 // is fully defined by their FGA model, never by per-resource visibility
-// tuples (session, environment, executions, etc.).
+// tuples (session, environment, runs, etc.).
 //
 // Current classification:
 //   - Blueprint kinds (agent, skill, workflow, mcp_server, plugin):

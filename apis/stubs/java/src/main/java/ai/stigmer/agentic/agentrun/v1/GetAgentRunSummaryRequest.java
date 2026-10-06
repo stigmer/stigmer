@@ -7,7 +7,7 @@ package ai.stigmer.agentic.agentrun.v1;
 
 /**
  * <pre>
- * GetAgentRunSummaryRequest fetches aggregated execution statistics
+ * GetAgentRunSummaryRequest fetches aggregated run statistics
  * for an organization's agent runs.
  * </pre>
  *
@@ -300,7 +300,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * GetAgentRunSummaryRequest fetches aggregated execution statistics
+   * GetAgentRunSummaryRequest fetches aggregated run statistics
    * for an organization's agent runs.
    * </pre>
    *

@@ -502,7 +502,7 @@ option on `submitEnvVars`:
 - **Saved** — secrets are persisted to the personal environment for
   reuse across sessions.
 - **One-time** — secrets are collected as `pendingRuntimeEnv` for a
-  single execution, with no data persisted.
+  single run, with no data persisted.
 
 State is managed by `useReducer(mcpServerSetupReducer)` — a per-server
 state machine with four phases:
@@ -538,7 +538,7 @@ function useMcpServerSetup(org: string | null, poolKeys?: Set<string>): UseMcpSe
     clearError: { type: "(ref: ResourceRef) => void", description: "Clear the error on a specific server entry without changing its phase." },
     entries: { type: "Readonly<Record<string, McpServerSetupEntry>>", description: "Per-server setup state, keyed by `\"org/slug\"` (see toServerKey).  Each entry tracks an individual MCP server through the setup lifecycle: `loading → needsSetup → submitting → ready` (or `loading → ready` when no credentials are required)." },
     needsSetupCount: { type: "number", description: "Count of entries in `needsSetup` status — servers that require user-provided credentials before the session can be created." },
-    pendingRuntimeEnv: { type: "Record<string, EnvVarInput>", description: "Accumulated one-time env vars from servers whose credentials were submitted with `saveForFuture: false`.  Consumed imperatively at session creation time and merged into the execution's `runtimeEnv`. Cleared on reset." },
+    pendingRuntimeEnv: { type: "Record<string, EnvVarInput>", description: "Accumulated one-time env vars from servers whose credentials were submitted with `saveForFuture: false`.  Consumed imperatively at session creation time and merged into the run's `runtimeEnv`. Cleared on reset." },
     removeServer: { type: "(ref: ResourceRef) => void", description: "Remove an MCP server from the setup flow.  Removes the entry from state. Safe to call for servers not in entries (no-op)." },
     reset: { type: "() => void", description: "Reset all entries and pending runtime env to initial state." },
     submitEnvVars: { type: "(ref: ResourceRef, values: Record<string, EnvVarInput>, options?: SubmitMcpEnvVarsOptions) => Promise<void>", description: "Complete credential collection for a server in `needsSetup` status.  Behavior depends on `options.saveForFuture`: - `true` (default) — Saves values to the personal environment via   `addVariables`. The server transitions to `ready`. - `false` — Accumulates values into pendingRuntimeEnv   without API calls. The server transitions to `ready` immediately.  Must only be called when the entry is in `needsSetup` status." },
@@ -1267,7 +1267,7 @@ Options for `UseMcpServerSetupReturn.submitEnvVars`.
 
 <TypeTable
   type={{
-    saveForFuture: { type: "boolean", description: "When `true` (default), the provided values are saved to the user's personal environment. Subsequent sessions using the same MCP server will reuse these credentials.  When `false`, the values are collected as `pendingRuntimeEnv` for this session only — no data is persisted and no network calls are made. The runtime env is passed to execution creation." },
+    saveForFuture: { type: "boolean", description: "When `true` (default), the provided values are saved to the user's personal environment. Subsequent sessions using the same MCP server will reuse these credentials.  When `false`, the values are collected as `pendingRuntimeEnv` for this session only — no data is persisted and no network calls are made. The runtime env is passed to run creation." },
   }}
 />
 

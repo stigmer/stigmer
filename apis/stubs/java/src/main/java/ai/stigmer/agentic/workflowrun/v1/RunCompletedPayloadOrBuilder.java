@@ -42,7 +42,7 @@ public interface RunCompletedPayloadOrBuilder extends
 
   /**
    * <pre>
-   * Total wall-clock duration of the execution in milliseconds.
+   * Total wall-clock duration of the run in milliseconds.
    * </pre>
    *
    * <code>int64 duration_ms = 2 [json_name = "durationMs"];</code>

@@ -5,7 +5,7 @@
 // Package ai.stigmer.agentic.workflowrun.v1 contains the API definition for WorkflowRun.
 //
 // WorkflowRun represents a single runtime invocation of a Workflow, capturing the complete
-// execution lifecycle from trigger to completion.
+// run lifecycle from trigger to completion.
 //
 // This package belongs to the "agentic" bounded context, which encompasses all AI agent
 // systems and workflow orchestration capabilities.
@@ -67,7 +67,7 @@ export type WorkflowRun = Message<"ai.stigmer.agentic.workflowrun.v1.WorkflowRun
   spec?: WorkflowRunSpec;
 
   /**
-   * System-managed execution state and results.
+   * System-managed run state and results.
    *
    * @generated from field: ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus status = 5;
    */
@@ -82,7 +82,7 @@ export const WorkflowRunSchema: GenMessage<WorkflowRun> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_workflowrun_v1_api, 0);
 
 /**
- * WorkflowRunStatus contains all system-managed execution state and results.
+ * WorkflowRunStatus contains all system-managed run state and results.
  *
  * @generated from message ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus
  */
@@ -95,7 +95,7 @@ export type WorkflowRunStatus = Message<"ai.stigmer.agentic.workflowrun.v1.Workf
   audit?: ApiResourceAudit;
 
   /**
-   * Current execution lifecycle phase.
+   * Current run lifecycle phase.
    *
    * @generated from field: ai.stigmer.agentic.workflowrun.v1.RunPhase phase = 1;
    */
@@ -123,14 +123,14 @@ export type WorkflowRunStatus = Message<"ai.stigmer.agentic.workflowrun.v1.Workf
   error: string;
 
   /**
-   * ISO 8601 timestamp when execution started processing.
+   * ISO 8601 timestamp when the run started processing.
    *
    * @generated from field: string started_at = 5;
    */
   startedAt: string;
 
   /**
-   * ISO 8601 timestamp when execution reached a terminal state.
+   * ISO 8601 timestamp when the run reached a terminal state.
    *
    * @generated from field: string completed_at = 6;
    */
@@ -144,7 +144,7 @@ export type WorkflowRunStatus = Message<"ai.stigmer.agentic.workflowrun.v1.Workf
   temporalWorkflowId: string;
 
   /**
-   * Pending approvals from child agent tool runs.
+   * Pending approvals from child agent tool executions.
    *
    * @generated from field: repeated ai.stigmer.agentic.workflowrun.v1.WorkflowPendingApproval pending_approvals = 9;
    */
@@ -361,7 +361,7 @@ export type WorkflowTask = Message<"ai.stigmer.agentic.workflowrun.v1.WorkflowTa
    * Copied from the human_input task's ui_hint config when the gate
    * activates, so approval surfaces (dashboards, listPendingApprovals)
    * can badge or group review requests by type without reading the
-   * event log. Empty for non-human_input tasks and for executions
+   * event log. Empty for non-human_input tasks and for runs
    * persisted before this field existed — consumers treat empty as a
    * generic review.
    *

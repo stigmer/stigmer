@@ -41,7 +41,7 @@ public enum MessageType
   MESSAGE_AI(2),
   /**
    * <pre>
-   * The result returned by a tool after run.
+   * The result returned by a tool after execution.
    * </pre>
    *
    * <code>MESSAGE_TOOL = 3;</code>
@@ -108,7 +108,7 @@ public enum MessageType
   public static final int MESSAGE_AI_VALUE = 2;
   /**
    * <pre>
-   * The result returned by a tool after run.
+   * The result returned by a tool after execution.
    * </pre>
    *
    * <code>MESSAGE_TOOL = 3;</code>

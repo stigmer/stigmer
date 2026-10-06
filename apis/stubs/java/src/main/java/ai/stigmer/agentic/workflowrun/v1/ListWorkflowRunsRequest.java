@@ -63,7 +63,7 @@ private static final long serialVersionUID = 0L;
   private int pageSize_ = 0;
   /**
    * <pre>
-   * The most executions to return, at most 100; zero returns them all.
+   * The most runs to return, at most 100; zero returns them all.
    * </pre>
    *
    * <code>int32 page_size = 1 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
@@ -127,7 +127,7 @@ private static final long serialVersionUID = 0L;
   private int phase_ = 0;
   /**
    * <pre>
-   * Filter by execution phase.
+   * Filter by run phase.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowrun.v1.RunPhase phase = 3 [json_name = "phase"];</code>
@@ -138,7 +138,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Filter by execution phase.
+   * Filter by run phase.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflowrun.v1.RunPhase phase = 3 [json_name = "phase"];</code>
@@ -302,7 +302,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Organization slug to scope the results to.
    *
-   * When set, only executions whose metadata.org matches are returned — the
+   * When set, only runs whose metadata.org matches are returned — the
    * org-context view a console tab needs. When empty, results are bounded
    * only by the caller's view permissions, which for a member of several
    * organizations spans all of them.
@@ -328,7 +328,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Organization slug to scope the results to.
    *
-   * When set, only executions whose metadata.org matches are returned — the
+   * When set, only runs whose metadata.org matches are returned — the
    * org-context view a console tab needs. When empty, results are bounded
    * only by the caller's view permissions, which for a member of several
    * organizations spans all of them.
@@ -851,7 +851,7 @@ private static final long serialVersionUID = 0L;
     private int pageSize_ ;
     /**
      * <pre>
-     * The most executions to return, at most 100; zero returns them all.
+     * The most runs to return, at most 100; zero returns them all.
      * </pre>
      *
      * <code>int32 page_size = 1 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
@@ -863,7 +863,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The most executions to return, at most 100; zero returns them all.
+     * The most runs to return, at most 100; zero returns them all.
      * </pre>
      *
      * <code>int32 page_size = 1 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
@@ -879,7 +879,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The most executions to return, at most 100; zero returns them all.
+     * The most runs to return, at most 100; zero returns them all.
      * </pre>
      *
      * <code>int32 page_size = 1 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
@@ -992,7 +992,7 @@ private static final long serialVersionUID = 0L;
     private int phase_ = 0;
     /**
      * <pre>
-     * Filter by execution phase.
+     * Filter by run phase.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.RunPhase phase = 3 [json_name = "phase"];</code>
@@ -1003,7 +1003,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Filter by execution phase.
+     * Filter by run phase.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.RunPhase phase = 3 [json_name = "phase"];</code>
@@ -1019,7 +1019,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Filter by execution phase.
+     * Filter by run phase.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.RunPhase phase = 3 [json_name = "phase"];</code>
@@ -1032,7 +1032,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Filter by execution phase.
+     * Filter by run phase.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.RunPhase phase = 3 [json_name = "phase"];</code>
@@ -1048,7 +1048,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Filter by execution phase.
+     * Filter by run phase.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.workflowrun.v1.RunPhase phase = 3 [json_name = "phase"];</code>
@@ -1526,7 +1526,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Organization slug to scope the results to.
      *
-     * When set, only executions whose metadata.org matches are returned — the
+     * When set, only runs whose metadata.org matches are returned — the
      * org-context view a console tab needs. When empty, results are bounded
      * only by the caller's view permissions, which for a member of several
      * organizations spans all of them.
@@ -1551,7 +1551,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Organization slug to scope the results to.
      *
-     * When set, only executions whose metadata.org matches are returned — the
+     * When set, only runs whose metadata.org matches are returned — the
      * org-context view a console tab needs. When empty, results are bounded
      * only by the caller's view permissions, which for a member of several
      * organizations spans all of them.
@@ -1577,7 +1577,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Organization slug to scope the results to.
      *
-     * When set, only executions whose metadata.org matches are returned — the
+     * When set, only runs whose metadata.org matches are returned — the
      * org-context view a console tab needs. When empty, results are bounded
      * only by the caller's view permissions, which for a member of several
      * organizations spans all of them.
@@ -1599,7 +1599,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Organization slug to scope the results to.
      *
-     * When set, only executions whose metadata.org matches are returned — the
+     * When set, only runs whose metadata.org matches are returned — the
      * org-context view a console tab needs. When empty, results are bounded
      * only by the caller's view permissions, which for a member of several
      * organizations spans all of them.
@@ -1618,7 +1618,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Organization slug to scope the results to.
      *
-     * When set, only executions whose metadata.org matches are returned — the
+     * When set, only runs whose metadata.org matches are returned — the
      * org-context view a console tab needs. When empty, results are bounded
      * only by the caller's view permissions, which for a member of several
      * organizations spans all of them.

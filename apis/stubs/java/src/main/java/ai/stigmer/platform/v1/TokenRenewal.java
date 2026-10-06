@@ -19,7 +19,7 @@ package ai.stigmer.platform.v1;
  * restart (which would wipe an ephemeral sandbox's workspace).
  *
  * Deliberately empty: every mint parameter (identity, org, session /
- * workflow-execution scope) comes from the presented credential's VERIFIED
+ * workflow-run scope) comes from the presented credential's VERIFIED
  * claims, never from the client, so a renewed token is claim-identical to
  * the one it replaces.
  * </pre>
@@ -226,7 +226,7 @@ private static final long serialVersionUID = 0L;
    * restart (which would wipe an ephemeral sandbox's workspace).
    *
    * Deliberately empty: every mint parameter (identity, org, session /
-   * workflow-execution scope) comes from the presented credential's VERIFIED
+   * workflow-run scope) comes from the presented credential's VERIFIED
    * claims, never from the client, so a renewed token is claim-identical to
    * the one it replaces.
    * </pre>

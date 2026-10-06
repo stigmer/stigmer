@@ -131,7 +131,7 @@ export type CreditBalance = Message<"ai.stigmer.billing.v1.CreditBalance"> & {
   availableMicros: bigint;
 
   /**
-   * Credits held by active execution reservations.
+   * Credits held by active run reservations.
    *
    * @generated from field: int64 reserved_micros = 2;
    */

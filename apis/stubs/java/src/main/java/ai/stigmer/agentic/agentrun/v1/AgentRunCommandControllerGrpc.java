@@ -500,14 +500,14 @@ public final class AgentRunCommandControllerGrpc {
      * <pre>
      * Submit an approval decision for a pending tool call.
      * ## Preconditions
-     * - Execution must be in RUN_WAITING_FOR_APPROVAL phase
+     * - Run must be in RUN_WAITING_FOR_APPROVAL phase
      * - tool_call_id must match status.pending_approval.tool_call_id
-     * - User must have can_edit permission on the execution
+     * - User must have can_edit permission on the run
      * ## Behavior by Action
-     * - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
-     * - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
+     * - APPROVE: Tool executes normally, run resumes to IN_PROGRESS
+     * - SKIP: Tool returns skip message to LLM, run continues to IN_PROGRESS
      * - REJECT: Tool is denied and the user's objection is fed back to the LLM;
-     *   the execution CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
+     *   the run CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
      *   stop the whole run, use cancel/terminate)
      * </pre>
      */
@@ -524,11 +524,11 @@ public final class AgentRunCommandControllerGrpc {
      * the approved bytes — this RPC records the decision and enforces
      * that expected_digest still matches the captured content the user reviewed.
      * ## Preconditions
-     * - Execution must exist and be non-terminal
+     * - Run must exist and be non-terminal
      * - change_set_id must match a status.file_change_sets[].id; for FILE scope,
      *   file_change_id must match a CapturedFileChange.id within it
      * - expected_digest must match the target's current digest
-     * - User must have can_edit permission on the execution
+     * - User must have can_edit permission on the run
      * </pre>
      */
     default void submitFileDecision(ai.stigmer.agentic.agentrun.v1.SubmitFileDecisionInput request,
@@ -578,7 +578,7 @@ public final class AgentRunCommandControllerGrpc {
      * <pre>
      * Pause a running agent run.
      * Temporarily stops the agent at its current checkpoint. Unlike cancel,
-     * the execution is NOT terminal and can be resumed later from where it left off.
+     * the run is NOT terminal and can be resumed later from where it left off.
      * </pre>
      */
     default void pause(ai.stigmer.agentic.agentrun.v1.PauseAgentRunInput request,
@@ -589,7 +589,7 @@ public final class AgentRunCommandControllerGrpc {
     /**
      * <pre>
      * Resume a paused agent run.
-     * Continues execution from the checkpoint where it was paused. The agent
+     * Continues the run from the checkpoint where it was paused. The agent
      * re-invokes with the same thread_id, loading from LangGraph checkpoint
      * and continuing from where it left off.
      * </pre>
@@ -602,7 +602,7 @@ public final class AgentRunCommandControllerGrpc {
     /**
      * <pre>
      * Upload a file attachment for use in an agent run.
-     * Pre-uploads files to artifact storage before creating an run.
+     * Pre-uploads files to artifact storage before creating a run.
      * The returned storage_key can be used in Attachment.storage_key when
      * creating the run.
      * </pre>
@@ -697,14 +697,14 @@ public final class AgentRunCommandControllerGrpc {
      * <pre>
      * Submit an approval decision for a pending tool call.
      * ## Preconditions
-     * - Execution must be in RUN_WAITING_FOR_APPROVAL phase
+     * - Run must be in RUN_WAITING_FOR_APPROVAL phase
      * - tool_call_id must match status.pending_approval.tool_call_id
-     * - User must have can_edit permission on the execution
+     * - User must have can_edit permission on the run
      * ## Behavior by Action
-     * - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
-     * - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
+     * - APPROVE: Tool executes normally, run resumes to IN_PROGRESS
+     * - SKIP: Tool returns skip message to LLM, run continues to IN_PROGRESS
      * - REJECT: Tool is denied and the user's objection is fed back to the LLM;
-     *   the execution CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
+     *   the run CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
      *   stop the whole run, use cancel/terminate)
      * </pre>
      */
@@ -722,11 +722,11 @@ public final class AgentRunCommandControllerGrpc {
      * the approved bytes — this RPC records the decision and enforces
      * that expected_digest still matches the captured content the user reviewed.
      * ## Preconditions
-     * - Execution must exist and be non-terminal
+     * - Run must exist and be non-terminal
      * - change_set_id must match a status.file_change_sets[].id; for FILE scope,
      *   file_change_id must match a CapturedFileChange.id within it
      * - expected_digest must match the target's current digest
-     * - User must have can_edit permission on the execution
+     * - User must have can_edit permission on the run
      * </pre>
      */
     public void submitFileDecision(ai.stigmer.agentic.agentrun.v1.SubmitFileDecisionInput request,
@@ -780,7 +780,7 @@ public final class AgentRunCommandControllerGrpc {
      * <pre>
      * Pause a running agent run.
      * Temporarily stops the agent at its current checkpoint. Unlike cancel,
-     * the execution is NOT terminal and can be resumed later from where it left off.
+     * the run is NOT terminal and can be resumed later from where it left off.
      * </pre>
      */
     public void pause(ai.stigmer.agentic.agentrun.v1.PauseAgentRunInput request,
@@ -792,7 +792,7 @@ public final class AgentRunCommandControllerGrpc {
     /**
      * <pre>
      * Resume a paused agent run.
-     * Continues execution from the checkpoint where it was paused. The agent
+     * Continues the run from the checkpoint where it was paused. The agent
      * re-invokes with the same thread_id, loading from LangGraph checkpoint
      * and continuing from where it left off.
      * </pre>
@@ -806,7 +806,7 @@ public final class AgentRunCommandControllerGrpc {
     /**
      * <pre>
      * Upload a file attachment for use in an agent run.
-     * Pre-uploads files to artifact storage before creating an run.
+     * Pre-uploads files to artifact storage before creating a run.
      * The returned storage_key can be used in Attachment.storage_key when
      * creating the run.
      * </pre>
@@ -883,14 +883,14 @@ public final class AgentRunCommandControllerGrpc {
      * <pre>
      * Submit an approval decision for a pending tool call.
      * ## Preconditions
-     * - Execution must be in RUN_WAITING_FOR_APPROVAL phase
+     * - Run must be in RUN_WAITING_FOR_APPROVAL phase
      * - tool_call_id must match status.pending_approval.tool_call_id
-     * - User must have can_edit permission on the execution
+     * - User must have can_edit permission on the run
      * ## Behavior by Action
-     * - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
-     * - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
+     * - APPROVE: Tool executes normally, run resumes to IN_PROGRESS
+     * - SKIP: Tool returns skip message to LLM, run continues to IN_PROGRESS
      * - REJECT: Tool is denied and the user's objection is fed back to the LLM;
-     *   the execution CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
+     *   the run CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
      *   stop the whole run, use cancel/terminate)
      * </pre>
      */
@@ -907,11 +907,11 @@ public final class AgentRunCommandControllerGrpc {
      * the approved bytes — this RPC records the decision and enforces
      * that expected_digest still matches the captured content the user reviewed.
      * ## Preconditions
-     * - Execution must exist and be non-terminal
+     * - Run must exist and be non-terminal
      * - change_set_id must match a status.file_change_sets[].id; for FILE scope,
      *   file_change_id must match a CapturedFileChange.id within it
      * - expected_digest must match the target's current digest
-     * - User must have can_edit permission on the execution
+     * - User must have can_edit permission on the run
      * </pre>
      */
     public ai.stigmer.agentic.agentrun.v1.AgentRun submitFileDecision(ai.stigmer.agentic.agentrun.v1.SubmitFileDecisionInput request) throws io.grpc.StatusException {
@@ -961,7 +961,7 @@ public final class AgentRunCommandControllerGrpc {
      * <pre>
      * Pause a running agent run.
      * Temporarily stops the agent at its current checkpoint. Unlike cancel,
-     * the execution is NOT terminal and can be resumed later from where it left off.
+     * the run is NOT terminal and can be resumed later from where it left off.
      * </pre>
      */
     public ai.stigmer.agentic.agentrun.v1.AgentRun pause(ai.stigmer.agentic.agentrun.v1.PauseAgentRunInput request) throws io.grpc.StatusException {
@@ -972,7 +972,7 @@ public final class AgentRunCommandControllerGrpc {
     /**
      * <pre>
      * Resume a paused agent run.
-     * Continues execution from the checkpoint where it was paused. The agent
+     * Continues the run from the checkpoint where it was paused. The agent
      * re-invokes with the same thread_id, loading from LangGraph checkpoint
      * and continuing from where it left off.
      * </pre>
@@ -985,7 +985,7 @@ public final class AgentRunCommandControllerGrpc {
     /**
      * <pre>
      * Upload a file attachment for use in an agent run.
-     * Pre-uploads files to artifact storage before creating an run.
+     * Pre-uploads files to artifact storage before creating a run.
      * The returned storage_key can be used in Attachment.storage_key when
      * creating the run.
      * </pre>
@@ -1061,14 +1061,14 @@ public final class AgentRunCommandControllerGrpc {
      * <pre>
      * Submit an approval decision for a pending tool call.
      * ## Preconditions
-     * - Execution must be in RUN_WAITING_FOR_APPROVAL phase
+     * - Run must be in RUN_WAITING_FOR_APPROVAL phase
      * - tool_call_id must match status.pending_approval.tool_call_id
-     * - User must have can_edit permission on the execution
+     * - User must have can_edit permission on the run
      * ## Behavior by Action
-     * - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
-     * - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
+     * - APPROVE: Tool executes normally, run resumes to IN_PROGRESS
+     * - SKIP: Tool returns skip message to LLM, run continues to IN_PROGRESS
      * - REJECT: Tool is denied and the user's objection is fed back to the LLM;
-     *   the execution CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
+     *   the run CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
      *   stop the whole run, use cancel/terminate)
      * </pre>
      */
@@ -1085,11 +1085,11 @@ public final class AgentRunCommandControllerGrpc {
      * the approved bytes — this RPC records the decision and enforces
      * that expected_digest still matches the captured content the user reviewed.
      * ## Preconditions
-     * - Execution must exist and be non-terminal
+     * - Run must exist and be non-terminal
      * - change_set_id must match a status.file_change_sets[].id; for FILE scope,
      *   file_change_id must match a CapturedFileChange.id within it
      * - expected_digest must match the target's current digest
-     * - User must have can_edit permission on the execution
+     * - User must have can_edit permission on the run
      * </pre>
      */
     public ai.stigmer.agentic.agentrun.v1.AgentRun submitFileDecision(ai.stigmer.agentic.agentrun.v1.SubmitFileDecisionInput request) {
@@ -1139,7 +1139,7 @@ public final class AgentRunCommandControllerGrpc {
      * <pre>
      * Pause a running agent run.
      * Temporarily stops the agent at its current checkpoint. Unlike cancel,
-     * the execution is NOT terminal and can be resumed later from where it left off.
+     * the run is NOT terminal and can be resumed later from where it left off.
      * </pre>
      */
     public ai.stigmer.agentic.agentrun.v1.AgentRun pause(ai.stigmer.agentic.agentrun.v1.PauseAgentRunInput request) {
@@ -1150,7 +1150,7 @@ public final class AgentRunCommandControllerGrpc {
     /**
      * <pre>
      * Resume a paused agent run.
-     * Continues execution from the checkpoint where it was paused. The agent
+     * Continues the run from the checkpoint where it was paused. The agent
      * re-invokes with the same thread_id, loading from LangGraph checkpoint
      * and continuing from where it left off.
      * </pre>
@@ -1163,7 +1163,7 @@ public final class AgentRunCommandControllerGrpc {
     /**
      * <pre>
      * Upload a file attachment for use in an agent run.
-     * Pre-uploads files to artifact storage before creating an run.
+     * Pre-uploads files to artifact storage before creating a run.
      * The returned storage_key can be used in Attachment.storage_key when
      * creating the run.
      * </pre>
@@ -1243,14 +1243,14 @@ public final class AgentRunCommandControllerGrpc {
      * <pre>
      * Submit an approval decision for a pending tool call.
      * ## Preconditions
-     * - Execution must be in RUN_WAITING_FOR_APPROVAL phase
+     * - Run must be in RUN_WAITING_FOR_APPROVAL phase
      * - tool_call_id must match status.pending_approval.tool_call_id
-     * - User must have can_edit permission on the execution
+     * - User must have can_edit permission on the run
      * ## Behavior by Action
-     * - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
-     * - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
+     * - APPROVE: Tool executes normally, run resumes to IN_PROGRESS
+     * - SKIP: Tool returns skip message to LLM, run continues to IN_PROGRESS
      * - REJECT: Tool is denied and the user's objection is fed back to the LLM;
-     *   the execution CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
+     *   the run CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
      *   stop the whole run, use cancel/terminate)
      * </pre>
      */
@@ -1268,11 +1268,11 @@ public final class AgentRunCommandControllerGrpc {
      * the approved bytes — this RPC records the decision and enforces
      * that expected_digest still matches the captured content the user reviewed.
      * ## Preconditions
-     * - Execution must exist and be non-terminal
+     * - Run must exist and be non-terminal
      * - change_set_id must match a status.file_change_sets[].id; for FILE scope,
      *   file_change_id must match a CapturedFileChange.id within it
      * - expected_digest must match the target's current digest
-     * - User must have can_edit permission on the execution
+     * - User must have can_edit permission on the run
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentrun.v1.AgentRun> submitFileDecision(
@@ -1326,7 +1326,7 @@ public final class AgentRunCommandControllerGrpc {
      * <pre>
      * Pause a running agent run.
      * Temporarily stops the agent at its current checkpoint. Unlike cancel,
-     * the execution is NOT terminal and can be resumed later from where it left off.
+     * the run is NOT terminal and can be resumed later from where it left off.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentrun.v1.AgentRun> pause(
@@ -1338,7 +1338,7 @@ public final class AgentRunCommandControllerGrpc {
     /**
      * <pre>
      * Resume a paused agent run.
-     * Continues execution from the checkpoint where it was paused. The agent
+     * Continues the run from the checkpoint where it was paused. The agent
      * re-invokes with the same thread_id, loading from LangGraph checkpoint
      * and continuing from where it left off.
      * </pre>
@@ -1352,7 +1352,7 @@ public final class AgentRunCommandControllerGrpc {
     /**
      * <pre>
      * Upload a file attachment for use in an agent run.
-     * Pre-uploads files to artifact storage before creating an run.
+     * Pre-uploads files to artifact storage before creating a run.
      * The returned storage_key can be used in Attachment.storage_key when
      * creating the run.
      * </pre>

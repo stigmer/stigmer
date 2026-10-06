@@ -205,7 +205,7 @@ func (x *AgentCallTaskConfig) GetEnvironmentRefs() []*apiresource.ApiResourceRef
 //	{
 //	  "structured": { <validated JSON matching the schema> },
 //	  "final_text": "<the agent's human-readable response>",
-//	  "agent_run_id": "<execution ID for drill-down>",
+//	  "agent_run_id": "<run ID for drill-down>",
 //	  "usage_summary": {
 //	    "total_tokens": 4523,
 //	    "estimated_cost_usd": 0.045,

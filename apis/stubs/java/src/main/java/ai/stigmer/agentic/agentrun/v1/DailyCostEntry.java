@@ -104,7 +104,7 @@ private static final long serialVersionUID = 0L;
   private int runCount_ = 0;
   /**
    * <pre>
-   * Number of executions on this date.
+   * Number of runs on this date.
    * </pre>
    *
    * <code>int32 run_count = 2 [json_name = "runCount"];</code>
@@ -609,7 +609,7 @@ private static final long serialVersionUID = 0L;
     private int runCount_ ;
     /**
      * <pre>
-     * Number of executions on this date.
+     * Number of runs on this date.
      * </pre>
      *
      * <code>int32 run_count = 2 [json_name = "runCount"];</code>
@@ -621,7 +621,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Number of executions on this date.
+     * Number of runs on this date.
      * </pre>
      *
      * <code>int32 run_count = 2 [json_name = "runCount"];</code>
@@ -637,7 +637,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Number of executions on this date.
+     * Number of runs on this date.
      * </pre>
      *
      * <code>int32 run_count = 2 [json_name = "runCount"];</code>

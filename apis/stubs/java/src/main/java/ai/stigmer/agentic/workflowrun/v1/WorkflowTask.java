@@ -572,7 +572,7 @@ private static final long serialVersionUID = 0L;
    * Copied from the human_input task's ui_hint config when the gate
    * activates, so approval surfaces (dashboards, listPendingApprovals)
    * can badge or group review requests by type without reading the
-   * event log. Empty for non-human_input tasks and for executions
+   * event log. Empty for non-human_input tasks and for runs
    * persisted before this field existed — consumers treat empty as a
    * generic review.
    * </pre>
@@ -600,7 +600,7 @@ private static final long serialVersionUID = 0L;
    * Copied from the human_input task's ui_hint config when the gate
    * activates, so approval surfaces (dashboards, listPendingApprovals)
    * can badge or group review requests by type without reading the
-   * event log. Empty for non-human_input tasks and for executions
+   * event log. Empty for non-human_input tasks and for runs
    * persisted before this field existed — consumers treat empty as a
    * generic review.
    * </pre>
@@ -2678,7 +2678,7 @@ private static final long serialVersionUID = 0L;
      * Copied from the human_input task's ui_hint config when the gate
      * activates, so approval surfaces (dashboards, listPendingApprovals)
      * can badge or group review requests by type without reading the
-     * event log. Empty for non-human_input tasks and for executions
+     * event log. Empty for non-human_input tasks and for runs
      * persisted before this field existed — consumers treat empty as a
      * generic review.
      * </pre>
@@ -2705,7 +2705,7 @@ private static final long serialVersionUID = 0L;
      * Copied from the human_input task's ui_hint config when the gate
      * activates, so approval surfaces (dashboards, listPendingApprovals)
      * can badge or group review requests by type without reading the
-     * event log. Empty for non-human_input tasks and for executions
+     * event log. Empty for non-human_input tasks and for runs
      * persisted before this field existed — consumers treat empty as a
      * generic review.
      * </pre>
@@ -2733,7 +2733,7 @@ private static final long serialVersionUID = 0L;
      * Copied from the human_input task's ui_hint config when the gate
      * activates, so approval surfaces (dashboards, listPendingApprovals)
      * can badge or group review requests by type without reading the
-     * event log. Empty for non-human_input tasks and for executions
+     * event log. Empty for non-human_input tasks and for runs
      * persisted before this field existed — consumers treat empty as a
      * generic review.
      * </pre>
@@ -2757,7 +2757,7 @@ private static final long serialVersionUID = 0L;
      * Copied from the human_input task's ui_hint config when the gate
      * activates, so approval surfaces (dashboards, listPendingApprovals)
      * can badge or group review requests by type without reading the
-     * event log. Empty for non-human_input tasks and for executions
+     * event log. Empty for non-human_input tasks and for runs
      * persisted before this field existed — consumers treat empty as a
      * generic review.
      * </pre>
@@ -2778,7 +2778,7 @@ private static final long serialVersionUID = 0L;
      * Copied from the human_input task's ui_hint config when the gate
      * activates, so approval surfaces (dashboards, listPendingApprovals)
      * can badge or group review requests by type without reading the
-     * event log. Empty for non-human_input tasks and for executions
+     * event log. Empty for non-human_input tasks and for runs
      * persisted before this field existed — consumers treat empty as a
      * generic review.
      * </pre>

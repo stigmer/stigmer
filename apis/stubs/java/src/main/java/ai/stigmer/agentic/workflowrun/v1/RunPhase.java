@@ -25,7 +25,7 @@ public enum RunPhase
   RUN_PHASE_UNSPECIFIED(0),
   /**
    * <pre>
-   * Execution created, waiting to start.
+   * Run created, waiting to start.
    * </pre>
    *
    * <code>RUN_PENDING = 1;</code>
@@ -33,7 +33,7 @@ public enum RunPhase
   RUN_PENDING(1),
   /**
    * <pre>
-   * Execution is actively running tasks.
+   * Run is in progress, running its tasks.
    * </pre>
    *
    * <code>RUN_IN_PROGRESS = 2;</code>
@@ -41,7 +41,7 @@ public enum RunPhase
   RUN_IN_PROGRESS(2),
   /**
    * <pre>
-   * Execution completed successfully.
+   * Run completed successfully.
    * </pre>
    *
    * <code>RUN_COMPLETED = 3;</code>
@@ -49,7 +49,7 @@ public enum RunPhase
   RUN_COMPLETED(3),
   /**
    * <pre>
-   * Execution failed with an error.
+   * Run failed with an error.
    * </pre>
    *
    * <code>RUN_FAILED = 4;</code>
@@ -57,7 +57,7 @@ public enum RunPhase
   RUN_FAILED(4),
   /**
    * <pre>
-   * Execution was cancelled by user or system.
+   * Run was cancelled by user or system.
    * </pre>
    *
    * <code>RUN_CANCELLED = 5;</code>
@@ -65,7 +65,7 @@ public enum RunPhase
   RUN_CANCELLED(5),
   /**
    * <pre>
-   * Execution was force-stopped immediately without cleanup.
+   * Run was force-stopped immediately without cleanup.
    * </pre>
    *
    * <code>RUN_TERMINATED = 6;</code>
@@ -73,7 +73,7 @@ public enum RunPhase
   RUN_TERMINATED(6),
   /**
    * <pre>
-   * Execution was paused by user and can be resumed.
+   * Run was paused by user and can be resumed.
    * </pre>
    *
    * <code>RUN_PAUSED = 7;</code>
@@ -101,7 +101,7 @@ public enum RunPhase
   public static final int RUN_PHASE_UNSPECIFIED_VALUE = 0;
   /**
    * <pre>
-   * Execution created, waiting to start.
+   * Run created, waiting to start.
    * </pre>
    *
    * <code>RUN_PENDING = 1;</code>
@@ -109,7 +109,7 @@ public enum RunPhase
   public static final int RUN_PENDING_VALUE = 1;
   /**
    * <pre>
-   * Execution is actively running tasks.
+   * Run is in progress, running its tasks.
    * </pre>
    *
    * <code>RUN_IN_PROGRESS = 2;</code>
@@ -117,7 +117,7 @@ public enum RunPhase
   public static final int RUN_IN_PROGRESS_VALUE = 2;
   /**
    * <pre>
-   * Execution completed successfully.
+   * Run completed successfully.
    * </pre>
    *
    * <code>RUN_COMPLETED = 3;</code>
@@ -125,7 +125,7 @@ public enum RunPhase
   public static final int RUN_COMPLETED_VALUE = 3;
   /**
    * <pre>
-   * Execution failed with an error.
+   * Run failed with an error.
    * </pre>
    *
    * <code>RUN_FAILED = 4;</code>
@@ -133,7 +133,7 @@ public enum RunPhase
   public static final int RUN_FAILED_VALUE = 4;
   /**
    * <pre>
-   * Execution was cancelled by user or system.
+   * Run was cancelled by user or system.
    * </pre>
    *
    * <code>RUN_CANCELLED = 5;</code>
@@ -141,7 +141,7 @@ public enum RunPhase
   public static final int RUN_CANCELLED_VALUE = 5;
   /**
    * <pre>
-   * Execution was force-stopped immediately without cleanup.
+   * Run was force-stopped immediately without cleanup.
    * </pre>
    *
    * <code>RUN_TERMINATED = 6;</code>
@@ -149,7 +149,7 @@ public enum RunPhase
   public static final int RUN_TERMINATED_VALUE = 6;
   /**
    * <pre>
-   * Execution was paused by user and can be resumed.
+   * Run was paused by user and can be resumed.
    * </pre>
    *
    * <code>RUN_PAUSED = 7;</code>

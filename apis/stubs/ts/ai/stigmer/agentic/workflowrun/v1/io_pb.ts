@@ -72,7 +72,7 @@ export const WorkflowIdSchema: GenMessage<WorkflowId> = /*@__PURE__*/
  */
 export type WorkflowRunList = Message<"ai.stigmer.agentic.workflowrun.v1.WorkflowRunList"> & {
   /**
-   * Not computed for this list: 1 when the response holds every execution,
+   * Not computed for this list: 1 when the response holds every run,
    * 0 when next_page_token is set. Follow next_page_token instead.
    *
    * @generated from field: int32 total_pages = 1;
@@ -88,8 +88,8 @@ export type WorkflowRunList = Message<"ai.stigmer.agentic.workflowrun.v1.Workflo
   entries: WorkflowRun[];
 
   /**
-   * Set when more executions may follow: pass it as page_token to
-   * continue. A page may hold fewer executions than page_size, even none,
+   * Set when more runs may follow: pass it as page_token to
+   * continue. A page may hold fewer runs than page_size, even none,
    * and still carry a token. Empty when the list is complete, and always
    * empty under a sort field other than the default.
    *
@@ -112,7 +112,7 @@ export const WorkflowRunListSchema: GenMessage<WorkflowRunList> = /*@__PURE__*/
  */
 export type ListWorkflowRunsRequest = Message<"ai.stigmer.agentic.workflowrun.v1.ListWorkflowRunsRequest"> & {
   /**
-   * The most executions to return, at most 100; zero returns them all.
+   * The most runs to return, at most 100; zero returns them all.
    *
    * @generated from field: int32 page_size = 1;
    */
@@ -127,7 +127,7 @@ export type ListWorkflowRunsRequest = Message<"ai.stigmer.agentic.workflowrun.v1
   pageToken: string;
 
   /**
-   * Filter by execution phase.
+   * Filter by run phase.
    *
    * @generated from field: ai.stigmer.agentic.workflowrun.v1.RunPhase phase = 3;
    */
@@ -170,7 +170,7 @@ export type ListWorkflowRunsRequest = Message<"ai.stigmer.agentic.workflowrun.v1
   /**
    * Organization slug to scope the results to.
    *
-   * When set, only executions whose metadata.org matches are returned — the
+   * When set, only runs whose metadata.org matches are returned — the
    * org-context view a console tab needs. When empty, results are bounded
    * only by the caller's view permissions, which for a member of several
    * organizations spans all of them.
@@ -188,7 +188,7 @@ export const ListWorkflowRunsRequestSchema: GenMessage<ListWorkflowRunsRequest> 
   messageDesc(file_ai_stigmer_agentic_workflowrun_v1_io, 3);
 
 /**
- * ListWorkflowRunsByWorkflowRequest lists executions for a specific workflow.
+ * ListWorkflowRunsByWorkflowRequest lists runs for a specific workflow.
  *
  * @generated from message ai.stigmer.agentic.workflowrun.v1.ListWorkflowRunsByWorkflowRequest
  */
@@ -201,7 +201,7 @@ export type ListWorkflowRunsByWorkflowRequest = Message<"ai.stigmer.agentic.work
   workflowId: string;
 
   /**
-   * The most executions to return, at most 100; zero returns them all.
+   * The most runs to return, at most 100; zero returns them all.
    *
    * @generated from field: int32 page_size = 2;
    */
@@ -261,14 +261,14 @@ export type WorkflowRunUpdateStatusInput = Message<"ai.stigmer.agentic.workflowr
   runId: string;
 
   /**
-   * Status fields to merge into the existing execution status.
+   * Status fields to merge into the existing run status.
    *
    * @generated from field: ai.stigmer.agentic.workflowrun.v1.WorkflowRunStatus status = 2;
    */
   status?: WorkflowRunStatus;
 
   /**
-   * Execution events to append to the event log alongside this status update.
+   * Run events to append to the event log alongside this status update.
    *
    * @generated from field: repeated ai.stigmer.agentic.workflowrun.v1.WorkflowRunEvent events = 10;
    */
@@ -498,13 +498,13 @@ export const SubmitWorkflowTaskApprovalInputSchema: GenMessage<SubmitWorkflowTas
   messageDesc(file_ai_stigmer_agentic_workflowrun_v1_io, 8);
 
 /**
- * SubscribeWorkflowRunRequest subscribes to real-time execution updates.
+ * SubscribeWorkflowRunRequest subscribes to real-time run updates.
  *
  * @generated from message ai.stigmer.agentic.workflowrun.v1.SubscribeWorkflowRunRequest
  */
 export type SubscribeWorkflowRunRequest = Message<"ai.stigmer.agentic.workflowrun.v1.SubscribeWorkflowRunRequest"> & {
   /**
-   * Execution ID to subscribe to.
+   * Run ID to subscribe to.
    *
    * @generated from field: string run_id = 1;
    */
@@ -578,7 +578,7 @@ export const TerminateWorkflowRunInputSchema: GenMessage<TerminateWorkflowRunInp
  * RecoverWorkflowRunInput requests recovery of a failed workflow run.
  *
  * Recovery preserves completed work: tasks that succeeded in the failed run are
- * skipped (their outputs restored into workflow context), and execution resumes
+ * skipped (their outputs restored into workflow context), and run resumes
  * from the first incomplete or failed task.
  *
  * @generated from message ai.stigmer.agentic.workflowrun.v1.RecoverWorkflowRunInput
@@ -704,7 +704,7 @@ export const SendSignalInputSchema: GenMessage<SendSignalInput> = /*@__PURE__*/
  */
 export type GetEventLogRequest = Message<"ai.stigmer.agentic.workflowrun.v1.GetEventLogRequest"> & {
   /**
-   * Execution ID to fetch events for.
+   * Run ID to fetch events for.
    *
    * @generated from field: string run_id = 1;
    */
@@ -747,7 +747,7 @@ export const GetEventLogRequestSchema: GenMessage<GetEventLogRequest> = /*@__PUR
   messageDesc(file_ai_stigmer_agentic_workflowrun_v1_io, 16);
 
 /**
- * GetEventLogResponse contains a page of execution events.
+ * GetEventLogResponse contains a page of run events.
  *
  * @generated from message ai.stigmer.agentic.workflowrun.v1.GetEventLogResponse
  */
@@ -762,7 +762,7 @@ export type GetEventLogResponse = Message<"ai.stigmer.agentic.workflowrun.v1.Get
   /**
    * Whether more events exist after the last event in this response.
    * When false, the client has reached the end of the current event log.
-   * For in-progress executions, more events may appear later.
+   * For in-progress runs, more events may appear later.
    *
    * @generated from field: bool has_more = 2;
    */
@@ -792,7 +792,7 @@ export const GetEventLogResponseSchema: GenMessage<GetEventLogResponse> = /*@__P
  */
 export type SubscribeEventsRequest = Message<"ai.stigmer.agentic.workflowrun.v1.SubscribeEventsRequest"> & {
   /**
-   * Execution ID to subscribe to.
+   * Run ID to subscribe to.
    *
    * @generated from field: string run_id = 1;
    */
@@ -828,7 +828,7 @@ export const SubscribeEventsRequestSchema: GenMessage<SubscribeEventsRequest> = 
  */
 export type RunFilterCriteria = Message<"ai.stigmer.agentic.workflowrun.v1.RunFilterCriteria"> & {
   /**
-   * Filter by execution phases. Empty means all phases.
+   * Filter by run phases. Empty means all phases.
    *
    * Supersedes the top-level `phase` field on ListWorkflowRunsRequest
    * when both are set.
@@ -838,23 +838,23 @@ export type RunFilterCriteria = Message<"ai.stigmer.agentic.workflowrun.v1.RunFi
   phases: RunPhase[];
 
   /**
-   * Include only executions started at or after this timestamp.
+   * Include only runs started at or after this timestamp.
    *
    * @generated from field: google.protobuf.Timestamp started_after = 2;
    */
   startedAfter?: Timestamp;
 
   /**
-   * Include only executions started at or before this timestamp.
+   * Include only runs started at or before this timestamp.
    *
    * @generated from field: google.protobuf.Timestamp started_before = 3;
    */
   startedBefore?: Timestamp;
 
   /**
-   * Minimum execution duration (completed executions only).
+   * Minimum run duration (completed runs only).
    *
-   * Executions still in progress or without timestamps are excluded
+   * Runs still in progress or without timestamps are excluded
    * when this filter is set.
    *
    * @generated from field: google.protobuf.Duration min_duration = 4;
@@ -862,7 +862,7 @@ export type RunFilterCriteria = Message<"ai.stigmer.agentic.workflowrun.v1.RunFi
   minDuration?: Duration;
 
   /**
-   * Maximum execution duration (completed executions only).
+   * Maximum run duration (completed runs only).
    *
    * @generated from field: google.protobuf.Duration max_duration = 5;
    */
@@ -883,7 +883,7 @@ export type RunFilterCriteria = Message<"ai.stigmer.agentic.workflowrun.v1.RunFi
   maxCostMicros: bigint;
 
   /**
-   * Filter to executions containing a failed task with this exact name.
+   * Filter to runs containing a failed task with this exact name.
    *
    * Matches against any task in status.tasks where
    * task.status == WORKFLOW_TASK_FAILED AND task.task_name == this value.
@@ -893,7 +893,7 @@ export type RunFilterCriteria = Message<"ai.stigmer.agentic.workflowrun.v1.RunFi
   failedTaskName: string;
 
   /**
-   * When true, include only executions that contain at least one retried task.
+   * When true, include only runs that contain at least one retried task.
    *
    * A task is considered retried when its metadata contains a retry_count > 0.
    *
@@ -910,7 +910,7 @@ export const RunFilterCriteriaSchema: GenMessage<RunFilterCriteria> = /*@__PURE_
   messageDesc(file_ai_stigmer_agentic_workflowrun_v1_io, 19);
 
 /**
- * GetRunSummaryRequest fetches aggregated execution statistics for an organization,
+ * GetRunSummaryRequest fetches aggregated run statistics for an organization,
  * optionally scoped to a single workflow.
  *
  * @generated from message ai.stigmer.agentic.workflowrun.v1.GetRunSummaryRequest
@@ -933,7 +933,7 @@ export type GetRunSummaryRequest = Message<"ai.stigmer.agentic.workflowrun.v1.Ge
   timeWindow: SummaryTimeWindow;
 
   /**
-   * When set, scopes the summary to executions of this workflow only.
+   * When set, scopes the summary to runs of this workflow only.
    * When empty, aggregates across all workflows in the organization.
    *
    * @generated from field: string workflow_id = 3;
@@ -957,33 +957,33 @@ export const GetRunSummaryRequestSchema: GenMessage<GetRunSummaryRequest> = /*@_
  */
 export type RunSummary = Message<"ai.stigmer.agentic.workflowrun.v1.RunSummary"> & {
   /**
-   * Number of executions currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED).
+   * Number of runs currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED).
    *
    * @generated from field: int32 active_count = 1;
    */
   activeCount: number;
 
   /**
-   * Execution counts broken down by phase.
+   * Run counts broken down by phase.
    *
    * Keys are RunPhase enum values (as int32).
-   * Only phases with at least one execution are included.
+   * Only phases with at least one run are included.
    *
    * @generated from field: map<int32, int32> phase_counts = 2;
    */
   phaseCounts: { [key: number]: number };
 
   /**
-   * Aggregate cost across all executions in the time window.
+   * Aggregate cost across all runs in the time window.
    *
    * @generated from field: ai.stigmer.agentic.workflowrun.v1.WorkflowCostSummary total_cost = 3;
    */
   totalCost?: WorkflowCostSummary;
 
   /**
-   * Mean execution duration (from started_at to completed_at) for completed runs.
+   * Mean run duration (from started_at to completed_at) for completed runs.
    *
-   * Zero when no completed executions exist in the window.
+   * Zero when no completed runs exist in the window.
    *
    * @generated from field: google.protobuf.Duration avg_duration = 4;
    */
@@ -1008,7 +1008,7 @@ export type RunSummary = Message<"ai.stigmer.agentic.workflowrun.v1.RunSummary">
   costByWorkflow: WorkflowCostBreakdown[];
 
   /**
-   * Total number of executions in the time window (sum of all phase_counts values).
+   * Total number of runs in the time window (sum of all phase_counts values).
    *
    * @generated from field: int32 total_count = 7;
    */
@@ -1017,7 +1017,7 @@ export type RunSummary = Message<"ai.stigmer.agentic.workflowrun.v1.RunSummary">
   /**
    * Success rate as a ratio (0.0 to 1.0).
    * Computed as completed / (completed + failed). Returns -1.0 when no
-   * completed or failed executions exist in the time window.
+   * completed or failed runs exist in the time window.
    *
    * @generated from field: double success_rate = 8;
    */
@@ -1229,7 +1229,7 @@ export type PendingApproval = Message<"ai.stigmer.agentic.workflowrun.v1.Pending
    * group pending approvals by review type. The full review payload is
    * deliberately not carried here — it belongs on the gate detail
    * (approval_requested event), read when the reviewer opens the gate.
-   * Empty when the task declares no hint or the execution predates the
+   * Empty when the task declares no hint or the run predates the
    * field — consumers treat empty as a generic review.
    *
    * @generated from field: string ui_hint = 8;
@@ -1251,8 +1251,8 @@ export const PendingApprovalSchema: GenMessage<PendingApproval> = /*@__PURE__*/
  */
 export type PendingApprovalsList = Message<"ai.stigmer.agentic.workflowrun.v1.PendingApprovalsList"> & {
   /**
-   * Pending approvals in this page: the newest execution's first, and an
-   * execution's waiting tasks in their order.
+   * Pending approvals in this page: the newest run's first, and an
+   * run's waiting tasks in their order.
    *
    * @generated from field: repeated ai.stigmer.agentic.workflowrun.v1.PendingApproval entries = 1;
    */
@@ -1282,7 +1282,7 @@ export const PendingApprovalsListSchema: GenMessage<PendingApprovalsList> = /*@_
   messageDesc(file_ai_stigmer_agentic_workflowrun_v1_io, 27);
 
 /**
- * RunSortField defines the column to sort execution lists by.
+ * RunSortField defines the column to sort run lists by.
  *
  * @generated from enum ai.stigmer.agentic.workflowrun.v1.RunSortField
  */
@@ -1295,16 +1295,16 @@ export enum RunSortField {
   UNSPECIFIED = 0,
 
   /**
-   * Sort by execution start time.
+   * Sort by run start time.
    *
    * @generated from enum value: RUN_SORT_FIELD_STARTED_AT = 1;
    */
   STARTED_AT = 1,
 
   /**
-   * Sort by execution duration (completed_at - started_at).
+   * Sort by run duration (completed_at - started_at).
    *
-   * Executions without both timestamps sort last.
+   * Runs without both timestamps sort last.
    *
    * @generated from enum value: RUN_SORT_FIELD_DURATION = 2;
    */
@@ -1318,7 +1318,7 @@ export enum RunSortField {
   COST = 3,
 
   /**
-   * Sort by execution phase enum value.
+   * Sort by run phase enum value.
    *
    * @generated from enum value: RUN_SORT_FIELD_STATUS = 4;
    */

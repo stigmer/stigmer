@@ -14,7 +14,7 @@ public interface UploadAttachmentResponseOrBuilder extends
    * <pre>
    * Storage key for the uploaded attachment.
    *
-   * Use this key in Attachment.storage_key when creating an run.
+   * Use this key in Attachment.storage_key when creating a run.
    * The key includes a unique identifier and the filename.
    *
    * Format: "attachments/{ulid}/{filename}"
@@ -29,7 +29,7 @@ public interface UploadAttachmentResponseOrBuilder extends
    * <pre>
    * Storage key for the uploaded attachment.
    *
-   * Use this key in Attachment.storage_key when creating an run.
+   * Use this key in Attachment.storage_key when creating a run.
    * The key includes a unique identifier and the filename.
    *
    * Format: "attachments/{ulid}/{filename}"

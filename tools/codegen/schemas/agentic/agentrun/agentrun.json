@@ -1,7 +1,7 @@
 {
   "name": "AgentRunSpec",
   "kind": "AGENT_RUN_SPEC",
-  "description": "AgentRunSpec contains only user-provided inputs for triggering an run.\n All execution results and state live in AgentRunStatus (in api.proto).",
+  "description": "AgentRunSpec contains only user-provided inputs for triggering a run.\n All run results and state live in AgentRunStatus (in api.proto).",
   "protoType": "ai.stigmer.agentic.agentrun.v1.AgentRunSpec",
   "protoFile": "apis/ai/stigmer/agentic/agentrun/v1/spec.proto",
   "fields": [
@@ -12,7 +12,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "ID of the existing session this turn continues.\n\n An execution in an existing session belongs to that session's\n organization: metadata.org, when set, must be the session's\n (FAILED_PRECONDITION otherwise), and when left empty it is taken from\n the session. An execution stays in the session it was created in:\n update refuses a different session_id (FAILED_PRECONDITION), and an\n empty one keeps the stored session.",
+      "description": "ID of the existing session this turn continues.\n\n A run in an existing session belongs to that session's\n organization: metadata.org, when set, must be the session's\n (FAILED_PRECONDITION otherwise), and when left empty it is taken from\n the session. A run stays in the session it was created in:\n update refuses a different session_id (FAILED_PRECONDITION), and an\n empty one keeps the stored session.",
       "required": false,
       "oneofGroup": "target"
     },
@@ -24,7 +24,7 @@
         "kind": "message",
         "messageType": "SessionSpec"
       },
-      "description": "Spec for a new session this turn starts.\n\n This is the one-call session bootstrap: a single create carries the\n full session shape (the agent, workspace_entries, harness,\n execution_target, MCP servers, skills) together with the first\n message, so embedders do not need to orchestrate session.create\n followed by agentRun.create. The created session's ID is\n returned on the persisted execution's session_id.\n\n session_spec.agent_ref names the agent the conversation runs (empty:\n the built-in assistant). Fields that must be set at session-creation\n time and are immutable once an execution has run — harness and\n execution_target — can only reach an auto-created session through\n this field. session_spec.harness_state_id must be empty — it is\n server-owned harness continuity state, created by the runner after\n the first run.",
+      "description": "Spec for a new session this turn starts.\n\n This is the one-call session bootstrap: a single create carries the\n full session shape (the agent, workspace_entries, harness,\n execution_target, MCP servers, skills) together with the first\n message, so embedders do not need to orchestrate session.create\n followed by agentRun.create. The created session's ID is\n returned on the persisted run's session_id.\n\n session_spec.agent_ref names the agent the conversation runs (empty:\n the built-in assistant). Fields that must be set at session-creation\n time and are immutable once a run has started — harness and\n execution_target — can only reach an auto-created session through\n this field. session_spec.harness_state_id must be empty — it is\n server-owned harness continuity state, created by the runner after\n the first run.",
       "required": false,
       "oneofGroup": "target"
     },
@@ -35,7 +35,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "User input message that triggers this run.\n Each execution represents one user message and the agent's response.",
+      "description": "User input message that triggers this run.\n Each run represents one user message and the agent's response.",
       "required": false,
       "validation": {
         "minLength": 1
@@ -74,7 +74,7 @@
       "type": {
         "kind": "bool"
       },
-      "description": "Marks this message as a \"Build from plan\" turn: the user approved a plan\n produced by a prior Plan-mode execution and asked the agent to implement it.\n\n When set, the runner injects the implement-plan directive into the agent's\n prompt (see runner shared/implement-plan-prompt.ts). If the approved plan\n document travels as an attachment (the normal case), the directive points\n the agent at the attached plan file and treats it as authoritative; when no\n plan attachment is present (e.g. the client's upload failed), the directive\n tells the agent to follow the plan from the conversation instead.\n\n Clients set this flag INSTEAD of embedding implement instructions in\n `message`, so `message` stays a short human-readable label (e.g.\n \"Build from plan\") that UIs can render as a compact chip.\n\n Like interaction_mode, this is per message and never carries over\n between messages in the same session.",
+      "description": "Marks this message as a \"Build from plan\" turn: the user approved a plan\n produced by a prior Plan-mode run and asked the agent to implement it.\n\n When set, the runner injects the implement-plan directive into the agent's\n prompt (see runner shared/implement-plan-prompt.ts). If the approved plan\n document travels as an attachment (the normal case), the directive points\n the agent at the attached plan file and treats it as authoritative; when no\n plan attachment is present (e.g. the client's upload failed), the directive\n tells the agent to follow the plan from the conversation instead.\n\n Clients set this flag INSTEAD of embedding implement instructions in\n `message`, so `message` stays a short human-readable label (e.g.\n \"Build from plan\") that UIs can render as a compact chip.\n\n Like interaction_mode, this is per message and never carries over\n between messages in the same session.",
       "required": false
     },
     {
@@ -101,7 +101,7 @@
           "messageType": "ExecutionValue"
         }
       },
-      "description": "Runtime environment variables and secrets (execution-scoped).\n These values are only available for this specific execution and take the\n highest merge priority, overriding values from Environments bound via\n environment_refs. A key must be declared in Agent.spec.env to survive the\n merge: the agent env map is a declaration whitelist (name + is_secret +\n optional), never a value source — undeclared keys are dropped.\n Use case: B2B integrations where secrets are injected at runtime per call.\n These values are consumed into the ExecutionContext (deleted when the\n execution completes) and cleared from the persisted run.",
+      "description": "Runtime environment variables and secrets (run-scoped).\n These values are only available for this specific run and take the\n highest merge priority, overriding values from Environments bound via\n environment_refs. A key must be declared in Agent.spec.env to survive the\n merge: the agent env map is a declaration whitelist (name + is_secret +\n optional), never a value source — undeclared keys are dropped.\n Use case: B2B integrations where secrets are injected at runtime per call.\n These values are consumed into the ExecutionContext (deleted when the\n run completes) and cleared from the persisted run.",
       "required": false
     },
     {
@@ -111,7 +111,7 @@
       "type": {
         "kind": "bool"
       },
-      "description": "Auto-approve all tool executions for this run.\n\n When true, tools that would normally require approval are automatically\n approved without user intervention. It clears approvals only: a tool the\n agent's tool lists exclude stays excluded.\n\n Use cases:\n - Automated CI/CD pipelines where human approval isn't practical\n - Trusted batch operations with pre-validated inputs\n - Development/testing environments\n - Scheduled jobs where approval would block automation\n\n Security consideration: This flag bypasses all approval checks.\n Ensure appropriate access controls on who can set this flag.\n Consider auditing executions where this flag is used.\n\n Default: false (approvals required as configured in policies)",
+      "description": "Auto-approve all tool executions for this run.\n\n When true, tools that would normally require approval are automatically\n approved without user intervention. It clears approvals only: a tool the\n agent's tool lists exclude stays excluded.\n\n Use cases:\n - Automated CI/CD pipelines where human approval isn't practical\n - Trusted batch operations with pre-validated inputs\n - Development/testing environments\n - Scheduled jobs where approval would block automation\n\n Security consideration: This flag bypasses all approval checks.\n Ensure appropriate access controls on who can set this flag.\n Consider auditing runs where this flag is used.\n\n Default: false (approvals required as configured in policies)",
       "required": false
     },
     {
@@ -125,7 +125,7 @@
           "messageType": "Attachment"
         }
       },
-      "description": "Files attached to this run.\n\n Attachments are injected into the sandbox before execution begins.\n The agent can read these files from the specified mount paths.\n\n Use cases:\n - Provide input data files to process\n - Pass configuration files\n - Supply reference documents for analysis\n\n Example CLI usage:\n   stigmer run agent my-agent --attach ./config.yaml -m \"Process this config\"",
+      "description": "Files attached to this run.\n\n Attachments are injected into the sandbox before the run begins.\n The agent can read these files from the specified mount paths.\n\n Use cases:\n - Provide input data files to process\n - Pass configuration files\n - Supply reference documents for analysis\n\n Example CLI usage:\n   stigmer run agent my-agent --attach ./config.yaml -m \"Process this config\"",
       "required": false
     },
     {
@@ -148,7 +148,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "ID of the execution this one supersedes via edit-and-resubmit (optional).\n\n When a user stops an in-flight turn, edits the message, and resubmits,\n the client sets this field on the NEW execution to point at the stopped\n one. Chat-thread consumers hide the superseded execution so the edited\n message replaces the original in place; history surfaces (CLI, execution\n lists) keep showing the full record.\n\n Empty means this execution is not an edit of another turn.",
+      "description": "ID of the run this one supersedes via edit-and-resubmit (optional).\n\n When a user stops an in-flight turn, edits the message, and resubmits,\n the client sets this field on the NEW run to point at the stopped\n one. Chat-thread consumers hide the superseded run so the edited\n message replaces the original in place; history surfaces (CLI, run\n lists) keep showing the full record.\n\n Empty means this run is not an edit of another turn.",
       "required": false
     },
     {
@@ -159,7 +159,7 @@
         "kind": "message",
         "messageType": "ConversationCatchup"
       },
-      "description": "Conversation events the agent has not yet seen, composed by the platform\n for this turn (optional).\n\n Set on live channel-conversation turns (WhatsApp, Slack): when a human\n teammate handled the conversation or messages otherwise landed while the\n agent was not watching, the digest carries what happened so the agent\n re-enters informed. Absent on every other execution surface.",
+      "description": "Conversation events the agent has not yet seen, composed by the platform\n for this turn (optional).\n\n Set on live channel-conversation turns (WhatsApp, Slack): when a human\n teammate handled the conversation or messages otherwise landed while the\n agent was not watching, the digest carries what happened so the agent\n re-enters informed. Absent on every other run surface.",
       "required": false
     },
     {

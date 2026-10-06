@@ -21,8 +21,8 @@ package ai.stigmer.agentic.agentrun.v1;
  * intentionally not encoded here.
  *
  * TOOL_KIND_UNSPECIFIED means the runner did not classify the tool — either the
- * execution predates this field, or the tool does not fit a known kind. Clients
- * fall back to a tool-name lookup in that case, so legacy executions still
+ * run predates this field, or the tool does not fit a known kind. Clients
+ * fall back to a tool-name lookup in that case, so legacy runs still
  * render correctly.
  * </pre>
  *
@@ -33,7 +33,7 @@ public enum ToolKind
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
    * <pre>
-   * Not classified. Legacy executions (persisted before this field existed) and
+   * Not classified. Legacy runs (persisted before this field existed) and
    * tools with no known kind. Clients fall back to a name-based resolver.
    * </pre>
    *
@@ -154,7 +154,7 @@ public enum ToolKind
    * <pre>
    * Propose a durable fact about the user for the platform to remember
    * (the first-party remember tool, injected via the synthesized memory
-   * attachment when the execution's recall snapshot is enabled).
+   * attachment when the run's recall snapshot is enabled).
    * Both harnesses: remember. Rendered as a memory-proposal consent chip
    * (verbatim fact + Confirm/Reject), not the generic tool result view —
    * the record it creates stays "proposed" until the user decides.
@@ -177,7 +177,7 @@ public enum ToolKind
   }
   /**
    * <pre>
-   * Not classified. Legacy executions (persisted before this field existed) and
+   * Not classified. Legacy runs (persisted before this field existed) and
    * tools with no known kind. Clients fall back to a name-based resolver.
    * </pre>
    *
@@ -298,7 +298,7 @@ public enum ToolKind
    * <pre>
    * Propose a durable fact about the user for the platform to remember
    * (the first-party remember tool, injected via the synthesized memory
-   * attachment when the execution's recall snapshot is enabled).
+   * attachment when the run's recall snapshot is enabled).
    * Both harnesses: remember. Rendered as a memory-proposal consent chip
    * (verbatim fact + Confirm/Reject), not the generic tool result view —
    * the record it creates stays "proposed" until the user decides.

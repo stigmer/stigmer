@@ -24,7 +24,7 @@ public interface RecordLlmCallUsageInputOrBuilder extends
 
   /**
    * <pre>
-   * 1-based call ordering within the execution, as the reporting proxy
+   * 1-based call ordering within the run, as the reporting proxy
    * counted it. An ordering hint: a proxy counts in process memory, so the
    * numbering restarts when the proxy does. Dedup identity only for callers
    * that send no call_id.
@@ -374,7 +374,7 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    * response usage ("standard" | "priority" | "batch"), OpenAI at the
    * response top level ("default" | "flex" | "priority"). Reported
    * verbatim by the proxy from the SSE stream — the wire truth billing
-   * reconciles against the execution's REQUESTED tier (the
+   * reconciles against the run's REQUESTED tier (the
    * service_tier.mismatch counter). Empty when the provider reported
    * none, and for cursor-harness calls, whose billed variant arrives
    * through the cursor path's pricing-variant resolution instead.
@@ -391,7 +391,7 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    * response usage ("standard" | "priority" | "batch"), OpenAI at the
    * response top level ("default" | "flex" | "priority"). Reported
    * verbatim by the proxy from the SSE stream — the wire truth billing
-   * reconciles against the execution's REQUESTED tier (the
+   * reconciles against the run's REQUESTED tier (the
    * service_tier.mismatch counter). Empty when the provider reported
    * none, and for cursor-harness calls, whose billed variant arrives
    * through the cursor path's pricing-variant resolution instead.
@@ -406,14 +406,14 @@ public interface RecordLlmCallUsageInputOrBuilder extends
   /**
    * <pre>
    * The agent run this call is metered under, as the proxy resolved
-   * it from the execution's system of record — on the caller's own
+   * it from the run's system of record — on the caller's own
    * credential, before reporting. The billing handler stamps these facts
    * onto the usage record and reconciles the requested tier and thinking
-   * mode against what the wire served; it performs NO execution lookup of
+   * mode against what the wire served; it performs NO run lookup of
    * its own (the same rule as cursor_account_id above: the proxy holds the
    * fact, reports it, the handler stamps it verbatim). Absent when the
-   * proxy could not resolve the execution — a workflow-execution scope,
-   * or an execution found in neither store — in which case the record
+   * proxy could not resolve the run — a workflow-run scope,
+   * or a run found in neither store — in which case the record
    * carries an empty session and the requested-vs-billed reconciliation
    * is skipped.
    * </pre>
@@ -425,14 +425,14 @@ public interface RecordLlmCallUsageInputOrBuilder extends
   /**
    * <pre>
    * The agent run this call is metered under, as the proxy resolved
-   * it from the execution's system of record — on the caller's own
+   * it from the run's system of record — on the caller's own
    * credential, before reporting. The billing handler stamps these facts
    * onto the usage record and reconciles the requested tier and thinking
-   * mode against what the wire served; it performs NO execution lookup of
+   * mode against what the wire served; it performs NO run lookup of
    * its own (the same rule as cursor_account_id above: the proxy holds the
    * fact, reports it, the handler stamps it verbatim). Absent when the
-   * proxy could not resolve the execution — a workflow-execution scope,
-   * or an execution found in neither store — in which case the record
+   * proxy could not resolve the run — a workflow-run scope,
+   * or a run found in neither store — in which case the record
    * carries an empty session and the requested-vs-billed reconciliation
    * is skipped.
    * </pre>
@@ -444,14 +444,14 @@ public interface RecordLlmCallUsageInputOrBuilder extends
   /**
    * <pre>
    * The agent run this call is metered under, as the proxy resolved
-   * it from the execution's system of record — on the caller's own
+   * it from the run's system of record — on the caller's own
    * credential, before reporting. The billing handler stamps these facts
    * onto the usage record and reconciles the requested tier and thinking
-   * mode against what the wire served; it performs NO execution lookup of
+   * mode against what the wire served; it performs NO run lookup of
    * its own (the same rule as cursor_account_id above: the proxy holds the
    * fact, reports it, the handler stamps it verbatim). Absent when the
-   * proxy could not resolve the execution — a workflow-execution scope,
-   * or an execution found in neither store — in which case the record
+   * proxy could not resolve the run — a workflow-run scope,
+   * or a run found in neither store — in which case the record
    * carries an empty session and the requested-vs-billed reconciliation
    * is skipped.
    * </pre>

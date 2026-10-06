@@ -12,7 +12,7 @@ package ai.stigmer.agentic.agentrun.v1;
  * to avoid serializing the full resource on every progressive update
  * (~every 2-3 seconds during streaming).
  *
- * The response carries an optional execution control signal from the
+ * The response carries an optional run control signal from the
  * platform back to the runner. The signal is generic — the runner acts
  * on STOP / WARNING without knowing the source (billing, admin, budget).
  * </pre>
@@ -309,7 +309,7 @@ private static final long serialVersionUID = 0L;
    * to avoid serializing the full resource on every progressive update
    * (~every 2-3 seconds during streaming).
    *
-   * The response carries an optional execution control signal from the
+   * The response carries an optional run control signal from the
    * platform back to the runner. The signal is generic — the runner acts
    * on STOP / WARNING without knowing the source (billing, admin, budget).
    * </pre>

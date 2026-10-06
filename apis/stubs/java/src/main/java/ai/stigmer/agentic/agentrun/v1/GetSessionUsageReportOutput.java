@@ -9,8 +9,8 @@ package ai.stigmer.agentic.agentrun.v1;
  * <pre>
  * GetSessionUsageReportOutput returns aggregated usage for a session.
  *
- * Provides both the session-level totals and per-execution breakdown,
- * enabling drill-down from "this session cost $0.90" to "execution #3
+ * Provides both the session-level totals and per-run breakdown,
+ * enabling drill-down from "this session cost $0.90" to "run #3
  * cost $0.12 because it used claude-sonnet-4."
  * </pre>
  *
@@ -113,7 +113,7 @@ private static final long serialVersionUID = 0L;
   private int runCount_ = 0;
   /**
    * <pre>
-   * Total number of executions in this session.
+   * Total number of runs in this session.
    * </pre>
    *
    * <code>int32 run_count = 2 [json_name = "runCount"];</code>
@@ -128,7 +128,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.agentrun.v1.UsageReportAggregate totalUsage_;
   /**
    * <pre>
-   * Aggregated usage across all executions in this session.
+   * Aggregated usage across all runs in this session.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
@@ -140,7 +140,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Aggregated usage across all executions in this session.
+   * Aggregated usage across all runs in this session.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
@@ -152,7 +152,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Aggregated usage across all executions in this session.
+   * Aggregated usage across all runs in this session.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
@@ -167,7 +167,7 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.agentic.agentrun.v1.RunUsageSummary> runs_;
   /**
    * <pre>
-   * Per-execution breakdown (ordered chronologically).
+   * Per-run breakdown (ordered chronologically).
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -178,7 +178,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Per-execution breakdown (ordered chronologically).
+   * Per-run breakdown (ordered chronologically).
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -190,7 +190,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Per-execution breakdown (ordered chronologically).
+   * Per-run breakdown (ordered chronologically).
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -201,7 +201,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Per-execution breakdown (ordered chronologically).
+   * Per-run breakdown (ordered chronologically).
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -212,7 +212,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Per-execution breakdown (ordered chronologically).
+   * Per-run breakdown (ordered chronologically).
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -289,7 +289,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object firstRunAt_ = "";
   /**
    * <pre>
-   * ISO 8601 timestamp of the first execution in this session.
+   * ISO 8601 timestamp of the first run in this session.
    * </pre>
    *
    * <code>string first_run_at = 6 [json_name = "firstRunAt"];</code>
@@ -310,7 +310,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ISO 8601 timestamp of the first execution in this session.
+   * ISO 8601 timestamp of the first run in this session.
    * </pre>
    *
    * <code>string first_run_at = 6 [json_name = "firstRunAt"];</code>
@@ -336,7 +336,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object lastRunAt_ = "";
   /**
    * <pre>
-   * ISO 8601 timestamp of the most recent execution in this session.
+   * ISO 8601 timestamp of the most recent run in this session.
    * </pre>
    *
    * <code>string last_run_at = 7 [json_name = "lastRunAt"];</code>
@@ -357,7 +357,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ISO 8601 timestamp of the most recent execution in this session.
+   * ISO 8601 timestamp of the most recent run in this session.
    * </pre>
    *
    * <code>string last_run_at = 7 [json_name = "lastRunAt"];</code>
@@ -383,7 +383,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Whether any record in this session is still estimated (not yet proxy-metered).
-   * True when execution is in-flight and only streaming usage data is available.
+   * True when the run is in flight and only streaming usage data is available.
    * False once proxy billing records have been written.
    * </pre>
    *
@@ -650,8 +650,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * GetSessionUsageReportOutput returns aggregated usage for a session.
    *
-   * Provides both the session-level totals and per-execution breakdown,
-   * enabling drill-down from "this session cost $0.90" to "execution #3
+   * Provides both the session-level totals and per-run breakdown,
+   * enabling drill-down from "this session cost $0.90" to "run #3
    * cost $0.12 because it used claude-sonnet-4."
    * </pre>
    *
@@ -1084,7 +1084,7 @@ private static final long serialVersionUID = 0L;
     private int runCount_ ;
     /**
      * <pre>
-     * Total number of executions in this session.
+     * Total number of runs in this session.
      * </pre>
      *
      * <code>int32 run_count = 2 [json_name = "runCount"];</code>
@@ -1096,7 +1096,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total number of executions in this session.
+     * Total number of runs in this session.
      * </pre>
      *
      * <code>int32 run_count = 2 [json_name = "runCount"];</code>
@@ -1112,7 +1112,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total number of executions in this session.
+     * Total number of runs in this session.
      * </pre>
      *
      * <code>int32 run_count = 2 [json_name = "runCount"];</code>
@@ -1130,7 +1130,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.agentrun.v1.UsageReportAggregate, ai.stigmer.agentic.agentrun.v1.UsageReportAggregate.Builder, ai.stigmer.agentic.agentrun.v1.UsageReportAggregateOrBuilder> totalUsageBuilder_;
     /**
      * <pre>
-     * Aggregated usage across all executions in this session.
+     * Aggregated usage across all runs in this session.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentrun.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
@@ -1141,7 +1141,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Aggregated usage across all executions in this session.
+     * Aggregated usage across all runs in this session.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentrun.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
@@ -1156,7 +1156,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Aggregated usage across all executions in this session.
+     * Aggregated usage across all runs in this session.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentrun.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
@@ -1176,7 +1176,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Aggregated usage across all executions in this session.
+     * Aggregated usage across all runs in this session.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentrun.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
@@ -1194,7 +1194,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Aggregated usage across all executions in this session.
+     * Aggregated usage across all runs in this session.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentrun.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
@@ -1219,7 +1219,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Aggregated usage across all executions in this session.
+     * Aggregated usage across all runs in this session.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentrun.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
@@ -1236,7 +1236,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Aggregated usage across all executions in this session.
+     * Aggregated usage across all runs in this session.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentrun.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
@@ -1248,7 +1248,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Aggregated usage across all executions in this session.
+     * Aggregated usage across all runs in this session.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentrun.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
@@ -1263,7 +1263,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Aggregated usage across all executions in this session.
+     * Aggregated usage across all runs in this session.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentrun.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
@@ -1296,7 +1296,7 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * Per-execution breakdown (ordered chronologically).
+     * Per-run breakdown (ordered chronologically).
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -1310,7 +1310,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-execution breakdown (ordered chronologically).
+     * Per-run breakdown (ordered chronologically).
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -1324,7 +1324,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-execution breakdown (ordered chronologically).
+     * Per-run breakdown (ordered chronologically).
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -1338,7 +1338,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-execution breakdown (ordered chronologically).
+     * Per-run breakdown (ordered chronologically).
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -1359,7 +1359,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-execution breakdown (ordered chronologically).
+     * Per-run breakdown (ordered chronologically).
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -1377,7 +1377,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-execution breakdown (ordered chronologically).
+     * Per-run breakdown (ordered chronologically).
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -1397,7 +1397,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-execution breakdown (ordered chronologically).
+     * Per-run breakdown (ordered chronologically).
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -1418,7 +1418,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-execution breakdown (ordered chronologically).
+     * Per-run breakdown (ordered chronologically).
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -1436,7 +1436,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-execution breakdown (ordered chronologically).
+     * Per-run breakdown (ordered chronologically).
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -1454,7 +1454,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-execution breakdown (ordered chronologically).
+     * Per-run breakdown (ordered chronologically).
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -1473,7 +1473,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-execution breakdown (ordered chronologically).
+     * Per-run breakdown (ordered chronologically).
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -1490,7 +1490,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-execution breakdown (ordered chronologically).
+     * Per-run breakdown (ordered chronologically).
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -1507,7 +1507,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-execution breakdown (ordered chronologically).
+     * Per-run breakdown (ordered chronologically).
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -1518,7 +1518,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-execution breakdown (ordered chronologically).
+     * Per-run breakdown (ordered chronologically).
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -1532,7 +1532,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-execution breakdown (ordered chronologically).
+     * Per-run breakdown (ordered chronologically).
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -1547,7 +1547,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-execution breakdown (ordered chronologically).
+     * Per-run breakdown (ordered chronologically).
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -1558,7 +1558,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-execution breakdown (ordered chronologically).
+     * Per-run breakdown (ordered chronologically).
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -1570,7 +1570,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Per-execution breakdown (ordered chronologically).
+     * Per-run breakdown (ordered chronologically).
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentrun.v1.RunUsageSummary runs = 4 [json_name = "runs"];</code>
@@ -1909,7 +1909,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object firstRunAt_ = "";
     /**
      * <pre>
-     * ISO 8601 timestamp of the first execution in this session.
+     * ISO 8601 timestamp of the first run in this session.
      * </pre>
      *
      * <code>string first_run_at = 6 [json_name = "firstRunAt"];</code>
@@ -1929,7 +1929,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp of the first execution in this session.
+     * ISO 8601 timestamp of the first run in this session.
      * </pre>
      *
      * <code>string first_run_at = 6 [json_name = "firstRunAt"];</code>
@@ -1950,7 +1950,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp of the first execution in this session.
+     * ISO 8601 timestamp of the first run in this session.
      * </pre>
      *
      * <code>string first_run_at = 6 [json_name = "firstRunAt"];</code>
@@ -1967,7 +1967,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp of the first execution in this session.
+     * ISO 8601 timestamp of the first run in this session.
      * </pre>
      *
      * <code>string first_run_at = 6 [json_name = "firstRunAt"];</code>
@@ -1981,7 +1981,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp of the first execution in this session.
+     * ISO 8601 timestamp of the first run in this session.
      * </pre>
      *
      * <code>string first_run_at = 6 [json_name = "firstRunAt"];</code>
@@ -2001,7 +2001,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object lastRunAt_ = "";
     /**
      * <pre>
-     * ISO 8601 timestamp of the most recent execution in this session.
+     * ISO 8601 timestamp of the most recent run in this session.
      * </pre>
      *
      * <code>string last_run_at = 7 [json_name = "lastRunAt"];</code>
@@ -2021,7 +2021,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp of the most recent execution in this session.
+     * ISO 8601 timestamp of the most recent run in this session.
      * </pre>
      *
      * <code>string last_run_at = 7 [json_name = "lastRunAt"];</code>
@@ -2042,7 +2042,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp of the most recent execution in this session.
+     * ISO 8601 timestamp of the most recent run in this session.
      * </pre>
      *
      * <code>string last_run_at = 7 [json_name = "lastRunAt"];</code>
@@ -2059,7 +2059,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp of the most recent execution in this session.
+     * ISO 8601 timestamp of the most recent run in this session.
      * </pre>
      *
      * <code>string last_run_at = 7 [json_name = "lastRunAt"];</code>
@@ -2073,7 +2073,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ISO 8601 timestamp of the most recent execution in this session.
+     * ISO 8601 timestamp of the most recent run in this session.
      * </pre>
      *
      * <code>string last_run_at = 7 [json_name = "lastRunAt"];</code>
@@ -2094,7 +2094,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether any record in this session is still estimated (not yet proxy-metered).
-     * True when execution is in-flight and only streaming usage data is available.
+     * True when the run is in flight and only streaming usage data is available.
      * False once proxy billing records have been written.
      * </pre>
      *
@@ -2108,7 +2108,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether any record in this session is still estimated (not yet proxy-metered).
-     * True when execution is in-flight and only streaming usage data is available.
+     * True when the run is in flight and only streaming usage data is available.
      * False once proxy billing records have been written.
      * </pre>
      *
@@ -2126,7 +2126,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether any record in this session is still estimated (not yet proxy-metered).
-     * True when execution is in-flight and only streaming usage data is available.
+     * True when the run is in flight and only streaming usage data is available.
      * False once proxy billing records have been written.
      * </pre>
      *

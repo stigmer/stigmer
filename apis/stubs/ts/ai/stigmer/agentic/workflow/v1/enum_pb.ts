@@ -192,7 +192,7 @@ export enum BudgetExceededPolicy {
 
   /**
    * Terminate the workflow immediately with RUN_FAILED status.
-   * The execution record includes the budget breach details for diagnostics.
+   * The run record includes the budget breach details for diagnostics.
    *
    * @generated from enum value: budget_exceeded_terminate = 1;
    */
@@ -200,7 +200,7 @@ export enum BudgetExceededPolicy {
 
   /**
    * Pause the workflow and request human review via a system-generated
-   * approval gate. The reviewer can approve continued execution (with
+   * approval gate. The reviewer can approve continuing the run (with
    * an increased budget) or confirm termination.
    * Depends on the human_input runtime. If human_input runtime
    * is not available, falls back to terminate with a descriptive error.
@@ -225,7 +225,7 @@ export const BudgetExceededPolicySchema: GenEnum<BudgetExceededPolicy> = /*@__PU
   enumDesc(file_ai_stigmer_agentic_workflow_v1_enum, 1);
 
 /**
- * WorkflowRunVisibility controls who can observe the runs (executions)
+ * WorkflowRunVisibility controls who can observe the runs
  * of a workflow.
  *
  * This is a SEPARATE axis from the workflow's own visibility
@@ -243,7 +243,7 @@ export const BudgetExceededPolicySchema: GenEnum<BudgetExceededPolicy> = /*@__PU
  */
 export enum WorkflowRunVisibility {
   /**
-   * Unset. Treated as PRIVATE — each execution is visible only to the user
+   * Unset. Treated as PRIVATE — each run is visible only to the user
    * who triggered it.
    *
    * @generated from enum value: workflow_run_visibility_unspecified = 0;
@@ -251,14 +251,14 @@ export enum WorkflowRunVisibility {
   unspecified = 0,
 
   /**
-   * Each execution is visible only to the user who triggered it (its owner).
+   * Each run is visible only to the user who triggered it (its owner).
    *
    * @generated from enum value: workflow_run_visibility_private = 1;
    */
   private = 1,
 
   /**
-   * Every member of the owning organization can observe all executions of
+   * Every member of the owning organization can observe all runs of
    * this workflow.
    *
    * @generated from enum value: workflow_run_visibility_organization = 2;

@@ -32,7 +32,7 @@ public interface SessionUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Number of executions in this session.
+   * Number of runs in this session.
    * </pre>
    *
    * <code>int32 run_count = 2 [json_name = "runCount"];</code>
@@ -42,7 +42,7 @@ public interface SessionUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Total tokens across all executions (cache-inclusive: the sum of each
+   * Total tokens across all runs (cache-inclusive: the sum of each
    * call's provider-reported total, including cached input tokens).
    * </pre>
    *
@@ -63,7 +63,7 @@ public interface SessionUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * ISO 8601 timestamp of the first execution in this session.
+   * ISO 8601 timestamp of the first run in this session.
    * </pre>
    *
    * <code>string first_run_at = 5 [json_name = "firstRunAt"];</code>
@@ -72,7 +72,7 @@ public interface SessionUsageSummaryOrBuilder extends
   java.lang.String getFirstRunAt();
   /**
    * <pre>
-   * ISO 8601 timestamp of the first execution in this session.
+   * ISO 8601 timestamp of the first run in this session.
    * </pre>
    *
    * <code>string first_run_at = 5 [json_name = "firstRunAt"];</code>
@@ -83,7 +83,7 @@ public interface SessionUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * ISO 8601 timestamp of the most recent execution in this session.
+   * ISO 8601 timestamp of the most recent run in this session.
    * </pre>
    *
    * <code>string last_run_at = 6 [json_name = "lastRunAt"];</code>
@@ -92,7 +92,7 @@ public interface SessionUsageSummaryOrBuilder extends
   java.lang.String getLastRunAt();
   /**
    * <pre>
-   * ISO 8601 timestamp of the most recent execution in this session.
+   * ISO 8601 timestamp of the most recent run in this session.
    * </pre>
    *
    * <code>string last_run_at = 6 [json_name = "lastRunAt"];</code>

@@ -11,15 +11,15 @@ package ai.stigmer.agentic.agentrun.v1;
  *
  * ## Action Semantics
  *
- * - APPROVE: Execute the tool normally, continue execution
- * - SKIP: Return a neutral "skipped by user" message to the LLM, continue execution
+ * - APPROVE: Execute the tool normally, continue the run
+ * - SKIP: Return a neutral "skipped by user" message to the LLM, continue the run
  * - REJECT: Deny the tool and feed the user's reasoned objection back to the LLM,
- * continue run. REJECT denies a single tool call — it does NOT fail the
- * run. To stop the whole execution, use Cancel or Terminate.
+ * continue the run. REJECT denies a single tool call — it does NOT fail the
+ * run. To stop the whole run, use Cancel or Terminate.
  *
  * ## SKIP vs REJECT
  *
- * Both continue the execution without running the tool; they differ only in the
+ * Both continue the run without running the tool; they differ only in the
  * signal fed to the model. SKIP is neutral ("skip this one, move on"); REJECT
  * carries the user's objection ("I'm denying this, and here's why") so the model
  * factors that reasoning into what it does next. Neither is a failure.
@@ -29,7 +29,7 @@ package ai.stigmer.agentic.agentrun.v1;
  * When a tool is skipped, the LLM receives a message like:
  * "Tool 'delete_repository' was skipped by user. Please proceed without this operation."
  * When a tool is rejected, the LLM receives the user's objection instead. Either
- * way the LLM adapts its plan while preserving execution continuity.
+ * way the LLM adapts its plan while preserving run continuity.
  *
  * ## Usage
  *
@@ -56,7 +56,7 @@ public enum ApprovalAction
    * <pre>
    * Execute the tool normally.
    * Tool transitions from WAITING_APPROVAL to RUNNING, then executes.
-   * Execution phase returns to IN_PROGRESS.
+   * Run phase returns to IN_PROGRESS.
    * </pre>
    *
    * <code>APPROVAL_ACTION_APPROVE = 1;</code>
@@ -67,7 +67,7 @@ public enum ApprovalAction
    * Skip tool execution, continue without it.
    * Tool transitions to SKIPPED status.
    * LLM receives: "Tool '{name}' was skipped by user. Please proceed without this operation."
-   * Execution continues - this is NOT a failure.
+   * Run continues - this is NOT a failure.
    * </pre>
    *
    * <code>APPROVAL_ACTION_SKIP = 2;</code>
@@ -81,13 +81,13 @@ public enum ApprovalAction
    * fed back to the model as the tool result, so the model adapts its plan with
    * that reasoning in mind. The tool call transitions to TOOL_CALL_SKIPPED with
    * approval_action=REJECT recorded (and a REJECTED approval-event authored), and
-   * the execution phase returns to RUN_IN_PROGRESS and continues to
+   * the run phase returns to RUN_IN_PROGRESS and continues to
    * RUN_COMPLETED.
    *
    * REJECT denies a SINGLE tool call — it does NOT fail the run. This mirrors how
    * interactive agent tools (Cursor, Cline, Claude Code) treat a denied tool: the
    * agent is told and continues, rather than the whole session dying. To stop the
-   * entire execution, use Cancel (RUN_CANCELLED, graceful user stop) or
+   * entire run, use Cancel (RUN_CANCELLED, graceful user stop) or
    * Terminate (RUN_TERMINATED, platform stop) — the dedicated hard-stop
    * verbs. The distinction from SKIP is the strength of the signal, not the
    * outcome: SKIP is a neutral skip, REJECT carries the user's reasoned denial.
@@ -99,7 +99,7 @@ public enum ApprovalAction
   /**
    * <pre>
    * Approve this tool call AND grant a run-lifetime lease that auto-approves
-   * every subsequent tool call of the SAME class for the rest of this execution
+   * every subsequent tool call of the SAME class for the rest of this run
    * ("approve all of this kind, don't ask again").
    *
    * This is the gate-time, scoped analog of AgentRunSpec.auto_approve_all:
@@ -127,8 +127,8 @@ public enum ApprovalAction
    *
    * ## Scope
    *
-   * The lease covers the rest of THIS execution and only the matched class. It
-   * is NOT persisted to the session or the agent; a subsequent execution starts
+   * The lease covers the rest of THIS run and only the matched class. It
+   * is NOT persisted to the session or the agent; a subsequent run starts
    * gated again unless the caller sets it anew (interactive clients may carry a
    * session-scoped preference forward in-memory, but that is a client concern,
    * not server-persisted state). AgentRunSpec.auto_approve_all remains the
@@ -136,7 +136,7 @@ public enum ApprovalAction
    *
    * ## Audit
    *
-   * Because it bypasses subsequent same-class approval checks, executions
+   * Because it bypasses subsequent same-class approval checks, runs
    * containing an APPROVE_ALL decision should be auditable. The decision is
    * recorded on ToolCall.approval_action like any other; the policy layer that
    * cleared each subsequent call is recorded on ToolCall.approval_policy_source
@@ -171,7 +171,7 @@ public enum ApprovalAction
    * <pre>
    * Execute the tool normally.
    * Tool transitions from WAITING_APPROVAL to RUNNING, then executes.
-   * Execution phase returns to IN_PROGRESS.
+   * Run phase returns to IN_PROGRESS.
    * </pre>
    *
    * <code>APPROVAL_ACTION_APPROVE = 1;</code>
@@ -182,7 +182,7 @@ public enum ApprovalAction
    * Skip tool execution, continue without it.
    * Tool transitions to SKIPPED status.
    * LLM receives: "Tool '{name}' was skipped by user. Please proceed without this operation."
-   * Execution continues - this is NOT a failure.
+   * Run continues - this is NOT a failure.
    * </pre>
    *
    * <code>APPROVAL_ACTION_SKIP = 2;</code>
@@ -196,13 +196,13 @@ public enum ApprovalAction
    * fed back to the model as the tool result, so the model adapts its plan with
    * that reasoning in mind. The tool call transitions to TOOL_CALL_SKIPPED with
    * approval_action=REJECT recorded (and a REJECTED approval-event authored), and
-   * the execution phase returns to RUN_IN_PROGRESS and continues to
+   * the run phase returns to RUN_IN_PROGRESS and continues to
    * RUN_COMPLETED.
    *
    * REJECT denies a SINGLE tool call — it does NOT fail the run. This mirrors how
    * interactive agent tools (Cursor, Cline, Claude Code) treat a denied tool: the
    * agent is told and continues, rather than the whole session dying. To stop the
-   * entire execution, use Cancel (RUN_CANCELLED, graceful user stop) or
+   * entire run, use Cancel (RUN_CANCELLED, graceful user stop) or
    * Terminate (RUN_TERMINATED, platform stop) — the dedicated hard-stop
    * verbs. The distinction from SKIP is the strength of the signal, not the
    * outcome: SKIP is a neutral skip, REJECT carries the user's reasoned denial.
@@ -214,7 +214,7 @@ public enum ApprovalAction
   /**
    * <pre>
    * Approve this tool call AND grant a run-lifetime lease that auto-approves
-   * every subsequent tool call of the SAME class for the rest of this execution
+   * every subsequent tool call of the SAME class for the rest of this run
    * ("approve all of this kind, don't ask again").
    *
    * This is the gate-time, scoped analog of AgentRunSpec.auto_approve_all:
@@ -242,8 +242,8 @@ public enum ApprovalAction
    *
    * ## Scope
    *
-   * The lease covers the rest of THIS execution and only the matched class. It
-   * is NOT persisted to the session or the agent; a subsequent execution starts
+   * The lease covers the rest of THIS run and only the matched class. It
+   * is NOT persisted to the session or the agent; a subsequent run starts
    * gated again unless the caller sets it anew (interactive clients may carry a
    * session-scoped preference forward in-memory, but that is a client concern,
    * not server-persisted state). AgentRunSpec.auto_approve_all remains the
@@ -251,7 +251,7 @@ public enum ApprovalAction
    *
    * ## Audit
    *
-   * Because it bypasses subsequent same-class approval checks, executions
+   * Because it bypasses subsequent same-class approval checks, runs
    * containing an APPROVE_ALL decision should be auditable. The decision is
    * recorded on ToolCall.approval_action like any other; the policy layer that
    * cleared each subsequent call is recorded on ToolCall.approval_policy_source

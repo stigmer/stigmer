@@ -54,7 +54,7 @@ public interface RecentActivityEntryOrBuilder extends
    * <pre>
    * Human-readable label for display.
    * For sessions: the conversation subject.
-   * For workflow runs: the execution name.
+   * For workflow runs: the run name.
    * </pre>
    *
    * <code>string subject = 3 [json_name = "subject"];</code>
@@ -65,7 +65,7 @@ public interface RecentActivityEntryOrBuilder extends
    * <pre>
    * Human-readable label for display.
    * For sessions: the conversation subject.
-   * For workflow runs: the execution name.
+   * For workflow runs: the run name.
    * </pre>
    *
    * <code>string subject = 3 [json_name = "subject"];</code>
@@ -106,7 +106,7 @@ public interface RecentActivityEntryOrBuilder extends
 
   /**
    * <pre>
-   * Execution phase label for workflow runs (e.g., "completed", "failed").
+   * Run phase label for workflow runs (e.g., "completed", "failed").
    * Empty for sessions.
    * </pre>
    *
@@ -116,7 +116,7 @@ public interface RecentActivityEntryOrBuilder extends
   java.lang.String getStatus();
   /**
    * <pre>
-   * Execution phase label for workflow runs (e.g., "completed", "failed").
+   * Run phase label for workflow runs (e.g., "completed", "failed").
    * Empty for sessions.
    * </pre>
    *

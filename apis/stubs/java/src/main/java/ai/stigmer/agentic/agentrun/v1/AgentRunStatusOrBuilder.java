@@ -39,9 +39,9 @@ public interface AgentRunStatusOrBuilder extends
 
   /**
    * <pre>
-   * Sequential stream of execution events: AI messages, tool calls, and system notifications.
-   * Ordered chronologically to reconstruct the complete execution flow.
-   * Each message captures what happened during execution (agent responses, tool invocations, progress updates).
+   * Sequential stream of run events: AI messages, tool calls, and system notifications.
+   * Ordered chronologically to reconstruct the complete run flow.
+   * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentrun.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
@@ -50,9 +50,9 @@ public interface AgentRunStatusOrBuilder extends
       getMessagesList();
   /**
    * <pre>
-   * Sequential stream of execution events: AI messages, tool calls, and system notifications.
-   * Ordered chronologically to reconstruct the complete execution flow.
-   * Each message captures what happened during execution (agent responses, tool invocations, progress updates).
+   * Sequential stream of run events: AI messages, tool calls, and system notifications.
+   * Ordered chronologically to reconstruct the complete run flow.
+   * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentrun.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
@@ -60,9 +60,9 @@ public interface AgentRunStatusOrBuilder extends
   ai.stigmer.agentic.agentrun.v1.AgentMessage getMessages(int index);
   /**
    * <pre>
-   * Sequential stream of execution events: AI messages, tool calls, and system notifications.
-   * Ordered chronologically to reconstruct the complete execution flow.
-   * Each message captures what happened during execution (agent responses, tool invocations, progress updates).
+   * Sequential stream of run events: AI messages, tool calls, and system notifications.
+   * Ordered chronologically to reconstruct the complete run flow.
+   * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentrun.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
@@ -70,9 +70,9 @@ public interface AgentRunStatusOrBuilder extends
   int getMessagesCount();
   /**
    * <pre>
-   * Sequential stream of execution events: AI messages, tool calls, and system notifications.
-   * Ordered chronologically to reconstruct the complete execution flow.
-   * Each message captures what happened during execution (agent responses, tool invocations, progress updates).
+   * Sequential stream of run events: AI messages, tool calls, and system notifications.
+   * Ordered chronologically to reconstruct the complete run flow.
+   * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentrun.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
@@ -81,9 +81,9 @@ public interface AgentRunStatusOrBuilder extends
       getMessagesOrBuilderList();
   /**
    * <pre>
-   * Sequential stream of execution events: AI messages, tool calls, and system notifications.
-   * Ordered chronologically to reconstruct the complete execution flow.
-   * Each message captures what happened during execution (agent responses, tool invocations, progress updates).
+   * Sequential stream of run events: AI messages, tool calls, and system notifications.
+   * Ordered chronologically to reconstruct the complete run flow.
+   * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentrun.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
@@ -93,8 +93,8 @@ public interface AgentRunStatusOrBuilder extends
 
   /**
    * <pre>
-   * Current execution lifecycle phase.
-   * Tracks the execution state from creation (PENDING) through active processing (IN_PROGRESS)
+   * Current run lifecycle phase.
+   * Tracks the run state from creation (PENDING) through active processing (IN_PROGRESS)
    * to terminal states (COMPLETED/FAILED/CANCELLED).
    * </pre>
    *
@@ -104,8 +104,8 @@ public interface AgentRunStatusOrBuilder extends
   int getPhaseValue();
   /**
    * <pre>
-   * Current execution lifecycle phase.
-   * Tracks the execution state from creation (PENDING) through active processing (IN_PROGRESS)
+   * Current run lifecycle phase.
+   * Tracks the run state from creation (PENDING) through active processing (IN_PROGRESS)
    * to terminal states (COMPLETED/FAILED/CANCELLED).
    * </pre>
    *
@@ -170,7 +170,7 @@ public interface AgentRunStatusOrBuilder extends
 
   /**
    * <pre>
-   * Error message if execution failed.
+   * Error message if the run failed.
    * Only populated when phase == RUN_FAILED.
    * </pre>
    *
@@ -180,7 +180,7 @@ public interface AgentRunStatusOrBuilder extends
   java.lang.String getError();
   /**
    * <pre>
-   * Error message if execution failed.
+   * Error message if the run failed.
    * Only populated when phase == RUN_FAILED.
    * </pre>
    *
@@ -192,7 +192,7 @@ public interface AgentRunStatusOrBuilder extends
 
   /**
    * <pre>
-   * ISO 8601 timestamp when execution started.
+   * ISO 8601 timestamp when the run started.
    * Example: "2025-01-10T10:30:00Z"
    * </pre>
    *
@@ -202,7 +202,7 @@ public interface AgentRunStatusOrBuilder extends
   java.lang.String getStartedAt();
   /**
    * <pre>
-   * ISO 8601 timestamp when execution started.
+   * ISO 8601 timestamp when the run started.
    * Example: "2025-01-10T10:30:00Z"
    * </pre>
    *
@@ -214,7 +214,7 @@ public interface AgentRunStatusOrBuilder extends
 
   /**
    * <pre>
-   * ISO 8601 timestamp when execution completed, failed, or was cancelled.
+   * ISO 8601 timestamp when the run completed, failed, or was cancelled.
    * Only populated for terminal states.
    * </pre>
    *
@@ -224,7 +224,7 @@ public interface AgentRunStatusOrBuilder extends
   java.lang.String getCompletedAt();
   /**
    * <pre>
-   * ISO 8601 timestamp when execution completed, failed, or was cancelled.
+   * ISO 8601 timestamp when the run completed, failed, or was cancelled.
    * Only populated for terminal states.
    * </pre>
    *
@@ -238,7 +238,7 @@ public interface AgentRunStatusOrBuilder extends
    * <pre>
    * Todo list tracking multi-step tasks and progress for this run.
    * Updated via write_todos tool (if TodoListMiddleware is enabled).
-   * Each execution maintains its own snapshot of todos at execution time.
+   * Each run maintains its own snapshot of todos at run time.
    * Key: todo item ID, Value: todo item details
    * </pre>
    *
@@ -249,7 +249,7 @@ public interface AgentRunStatusOrBuilder extends
    * <pre>
    * Todo list tracking multi-step tasks and progress for this run.
    * Updated via write_todos tool (if TodoListMiddleware is enabled).
-   * Each execution maintains its own snapshot of todos at execution time.
+   * Each run maintains its own snapshot of todos at run time.
    * Key: todo item ID, Value: todo item details
    * </pre>
    *
@@ -267,7 +267,7 @@ public interface AgentRunStatusOrBuilder extends
    * <pre>
    * Todo list tracking multi-step tasks and progress for this run.
    * Updated via write_todos tool (if TodoListMiddleware is enabled).
-   * Each execution maintains its own snapshot of todos at execution time.
+   * Each run maintains its own snapshot of todos at run time.
    * Key: todo item ID, Value: todo item details
    * </pre>
    *
@@ -279,7 +279,7 @@ public interface AgentRunStatusOrBuilder extends
    * <pre>
    * Todo list tracking multi-step tasks and progress for this run.
    * Updated via write_todos tool (if TodoListMiddleware is enabled).
-   * Each execution maintains its own snapshot of todos at execution time.
+   * Each run maintains its own snapshot of todos at run time.
    * Key: todo item ID, Value: todo item details
    * </pre>
    *
@@ -294,7 +294,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
    * <pre>
    * Todo list tracking multi-step tasks and progress for this run.
    * Updated via write_todos tool (if TodoListMiddleware is enabled).
-   * Each execution maintains its own snapshot of todos at execution time.
+   * Each run maintains its own snapshot of todos at run time.
    * Key: todo item ID, Value: todo item details
    * </pre>
    *
@@ -305,10 +305,10 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
 
   /**
    * <pre>
-   * Callback token for notifying a parent workflow when this execution completes.
+   * Callback token for notifying a parent workflow when this run completes.
    *
-   * Present when this execution was triggered by a workflow. Empty when the
-   * execution runs independently (chat, API call).
+   * Present when this run was triggered by a workflow. Empty when the
+   * run stands alone (a chat turn or an API call).
    * </pre>
    *
    * <code>bytes callback_token = 10 [json_name = "callbackToken"];</code>
@@ -412,15 +412,15 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
    * Context window utilization and summarization tracking.
    *
    * Provides visibility into how the agent is using its context window and
-   * any summarization events that occurred during run.
+   * any summarization events that occurred during the run.
    *
    * Populated when context management is active (not disabled via config).
    * Updated progressively during streaming as token counts change.
    *
    * Use cases:
-   * - **Monitoring**: Track context utilization across executions
-   * - **Debugging**: Understand why an execution hit context limits
-   * - **Cost optimization**: Identify executions with excessive summarization
+   * - **Monitoring**: Track context utilization across runs
+   * - **Debugging**: Understand why a run hit context limits
+   * - **Cost optimization**: Identify runs with excessive summarization
    * - **UX**: Show users their context window health
    * </pre>
    *
@@ -433,15 +433,15 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
    * Context window utilization and summarization tracking.
    *
    * Provides visibility into how the agent is using its context window and
-   * any summarization events that occurred during run.
+   * any summarization events that occurred during the run.
    *
    * Populated when context management is active (not disabled via config).
    * Updated progressively during streaming as token counts change.
    *
    * Use cases:
-   * - **Monitoring**: Track context utilization across executions
-   * - **Debugging**: Understand why an execution hit context limits
-   * - **Cost optimization**: Identify executions with excessive summarization
+   * - **Monitoring**: Track context utilization across runs
+   * - **Debugging**: Understand why a run hit context limits
+   * - **Cost optimization**: Identify runs with excessive summarization
    * - **UX**: Show users their context window health
    * </pre>
    *
@@ -454,15 +454,15 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
    * Context window utilization and summarization tracking.
    *
    * Provides visibility into how the agent is using its context window and
-   * any summarization events that occurred during run.
+   * any summarization events that occurred during the run.
    *
    * Populated when context management is active (not disabled via config).
    * Updated progressively during streaming as token counts change.
    *
    * Use cases:
-   * - **Monitoring**: Track context utilization across executions
-   * - **Debugging**: Understand why an execution hit context limits
-   * - **Cost optimization**: Identify executions with excessive summarization
+   * - **Monitoring**: Track context utilization across runs
+   * - **Debugging**: Understand why a run hit context limits
+   * - **Cost optimization**: Identify runs with excessive summarization
    * - **UX**: Show users their context window health
    * </pre>
    *
@@ -479,7 +479,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
    * Each artifact includes a pre-signed URL for direct download.
    *
    * Artifacts are stored in R2 and URLs expire after a configured period.
-   * Use the execution download endpoint to refresh expired URLs.
+   * Use the run download endpoint to refresh expired URLs.
    *
    * Ordered by creation time (oldest first).
    * </pre>
@@ -497,7 +497,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
    * Each artifact includes a pre-signed URL for direct download.
    *
    * Artifacts are stored in R2 and URLs expire after a configured period.
-   * Use the execution download endpoint to refresh expired URLs.
+   * Use the run download endpoint to refresh expired URLs.
    *
    * Ordered by creation time (oldest first).
    * </pre>
@@ -514,7 +514,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
    * Each artifact includes a pre-signed URL for direct download.
    *
    * Artifacts are stored in R2 and URLs expire after a configured period.
-   * Use the execution download endpoint to refresh expired URLs.
+   * Use the run download endpoint to refresh expired URLs.
    *
    * Ordered by creation time (oldest first).
    * </pre>
@@ -531,7 +531,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
    * Each artifact includes a pre-signed URL for direct download.
    *
    * Artifacts are stored in R2 and URLs expire after a configured period.
-   * Use the execution download endpoint to refresh expired URLs.
+   * Use the run download endpoint to refresh expired URLs.
    *
    * Ordered by creation time (oldest first).
    * </pre>
@@ -549,7 +549,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
    * Each artifact includes a pre-signed URL for direct download.
    *
    * Artifacts are stored in R2 and URLs expire after a configured period.
-   * Use the execution download endpoint to refresh expired URLs.
+   * Use the run download endpoint to refresh expired URLs.
    *
    * Ordered by creation time (oldest first).
    * </pre>
@@ -568,7 +568,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
    * for workspace entries with no changes, non-git sources, or disabled
    * write-back mode.
    *
-   * Populated during post-execution processing. Each entry tracks the
+   * Populated during post-run processing. Each entry tracks the
    * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
    * the PR URL for UI display.
    * </pre>
@@ -586,7 +586,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
    * for workspace entries with no changes, non-git sources, or disabled
    * write-back mode.
    *
-   * Populated during post-execution processing. Each entry tracks the
+   * Populated during post-run processing. Each entry tracks the
    * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
    * the PR URL for UI display.
    * </pre>
@@ -603,7 +603,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
    * for workspace entries with no changes, non-git sources, or disabled
    * write-back mode.
    *
-   * Populated during post-execution processing. Each entry tracks the
+   * Populated during post-run processing. Each entry tracks the
    * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
    * the PR URL for UI display.
    * </pre>
@@ -620,7 +620,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
    * for workspace entries with no changes, non-git sources, or disabled
    * write-back mode.
    *
-   * Populated during post-execution processing. Each entry tracks the
+   * Populated during post-run processing. Each entry tracks the
    * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
    * the PR URL for UI display.
    * </pre>
@@ -638,7 +638,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
    * for workspace entries with no changes, non-git sources, or disabled
    * write-back mode.
    *
-   * Populated during post-execution processing. Each entry tracks the
+   * Populated during post-run processing. Each entry tracks the
    * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
    * the PR URL for UI display.
    * </pre>
@@ -689,7 +689,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
 
   /**
    * <pre>
-   * Streaming usage summary, updated progressively during run.
+   * Streaming usage summary, updated progressively during the run.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
@@ -698,7 +698,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
   boolean hasStreamingUsage();
   /**
    * <pre>
-   * Streaming usage summary, updated progressively during run.
+   * Streaming usage summary, updated progressively during the run.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
@@ -707,7 +707,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
   ai.stigmer.agentic.agentrun.v1.StreamingUsageSummary getStreamingUsage();
   /**
    * <pre>
-   * Streaming usage summary, updated progressively during run.
+   * Streaming usage summary, updated progressively during the run.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
@@ -891,7 +891,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
 
   /**
    * <pre>
-   * Report of which recalled memories were injected into this execution's
+   * Report of which recalled memories were injected into this run's
    * prompt.
    *
    * Absent, or present with selection_active=false, means wholesale: every
@@ -904,7 +904,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
   boolean hasRecalledMemoriesReport();
   /**
    * <pre>
-   * Report of which recalled memories were injected into this execution's
+   * Report of which recalled memories were injected into this run's
    * prompt.
    *
    * Absent, or present with selection_active=false, means wholesale: every
@@ -917,7 +917,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
   ai.stigmer.agentic.agentrun.v1.RecalledMemoriesReport getRecalledMemoriesReport();
   /**
    * <pre>
-   * Report of which recalled memories were injected into this execution's
+   * Report of which recalled memories were injected into this run's
    * prompt.
    *
    * Absent, or present with selection_active=false, means wholesale: every
@@ -987,7 +987,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
   /**
    * <pre>
    * Standing preferences declared by the organization and the calling user,
-   * snapshotted into this execution at create time.
+   * snapshotted into this run at create time.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
@@ -997,7 +997,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
   /**
    * <pre>
    * Standing preferences declared by the organization and the calling user,
-   * snapshotted into this execution at create time.
+   * snapshotted into this run at create time.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
@@ -1007,7 +1007,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
   /**
    * <pre>
    * Standing preferences declared by the organization and the calling user,
-   * snapshotted into this execution at create time.
+   * snapshotted into this run at create time.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
@@ -1016,7 +1016,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
 
   /**
    * <pre>
-   * The caller's confirmed memories, snapshotted into this execution at
+   * The caller's confirmed memories, snapshotted into this run at
    * create time: the candidate set the prompt was built from.
    * </pre>
    *
@@ -1026,7 +1026,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
   boolean hasRecalledMemories();
   /**
    * <pre>
-   * The caller's confirmed memories, snapshotted into this execution at
+   * The caller's confirmed memories, snapshotted into this run at
    * create time: the candidate set the prompt was built from.
    * </pre>
    *
@@ -1036,7 +1036,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
   ai.stigmer.agentic.agentrun.v1.RecalledMemories getRecalledMemories();
   /**
    * <pre>
-   * The caller's confirmed memories, snapshotted into this execution at
+   * The caller's confirmed memories, snapshotted into this run at
    * create time: the candidate set the prompt was built from.
    * </pre>
    *
