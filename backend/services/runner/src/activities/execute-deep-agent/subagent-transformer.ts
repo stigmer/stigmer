@@ -47,11 +47,10 @@ import { createCasCaptureBackend } from "./cas-capture-backend.js";
 import { mountPlatformRoute } from "./platform-route.js";
 import type { CasCaptureObserver } from "./cas-capture-observer.js";
 import type { CostAdvisoryMiddleware, StigmerMiddleware } from "../../middleware/index.js";
-import { createThinkTool, createWebFetchTool, type GuardPosture } from "../../tools/index.js";
+import { createWebFetchTool, type GuardPosture } from "../../tools/index.js";
 import { buildSubAgentMiddleware } from "./subagent-wiring.js";
 import { SubAgentGate } from "../../shared/subagent-gate.js";
-import { getNativeRequestProfile, isModelRegistered } from "../../shared/model-registry.js";
-import { graphThinks, type EffectiveThinkingMode } from "../../shared/thinking-mode.js";
+import { isModelRegistered } from "../../shared/model-registry.js";
 import type { SkillMetadata } from "../../shared/skill-resolver.js";
 import { renderSkillsSection } from "./prompt-builder.js";
 import { ENGINE_TOOL } from "./engine-tools.js";
@@ -209,15 +208,6 @@ export interface SubagentTransformOptions {
   readonly casObserver?: CasCaptureObserver;
   readonly parentModelName: string;
   /**
-   * Whether the parent's graph reasons natively (thinking-mode.ts
-   * `graphThinks` on its row). A sub-agent that names no model of its own
-   * runs on the parent's, so it inherits this answer; a sub-agent with a
-   * `model_override` is answered from its own model's row.
-   */
-  readonly parentThinks: boolean;
-  /** The execution's effective thinking mode, read against a sub-agent's own row. */
-  readonly thinkingMode: EffectiveThinkingMode;
-  /**
    * URL-guard posture for the native `web_fetch` tool, inherited from the
    * parent (resolveGuardPosture(config.mode) in turn-setup.ts) so a sub-agent
    * fetch is bounded exactly like a parent fetch.
@@ -336,8 +326,8 @@ export function createBuiltinSubagents(
 /**
  * Transform a single SubAgent proto into the intermediate representation.
  *
- * Handles: proto field extraction, model override validation, think tool
- * injection, the sub-agent's tool scope, and response rules appending. The
+ * Handles: proto field extraction, model override validation, the runner's
+ * own tools, the sub-agent's tool scope, and response rules appending. The
  * parent's MCP tools and skill resolution are composed by the caller.
  *
  * Returns null if the subagent should be skipped (e.g., invalid model override).
@@ -346,8 +336,6 @@ export async function transformSingleSubagent(
   subAgent: SubAgent,
   opts: {
     readonly parentScope: ToolScope;
-    readonly parentThinks: boolean;
-    readonly thinkingMode: EffectiveThinkingMode;
     readonly parentModelName: string;
     readonly webFetchPosture: GuardPosture;
   },
@@ -372,24 +360,12 @@ export async function transformSingleSubagent(
   }
 
   // The runner's own tools; the caller prepends the parent's MCP tools.
-  const tools: StructuredTool[] = [];
-
-  // `think` is a reasoning aid for a graph that does not reason natively.
-  // Whether this one does is the same answer its model's request carries
-  // (the model factory maps the same mode against the same row).
-  const saThinks = model
-    ? graphThinks(opts.thinkingMode, (await getNativeRequestProfile(model))?.thinking)
-    : opts.parentThinks;
-
-  if (!saThinks) {
-    tools.push(createThinkTool() as unknown as StructuredTool);
-  }
-
-  // web_fetch is unconditional — unlike think, it is a capability, not a
-  // reasoning aid, and the parent always has it (turn-setup.ts `buildEngine`). A
-  // sub-agent silently lacking web access the parent has would recreate the
-  // harness-parity gap of issue #214 one level down.
-  tools.push(createWebFetchTool({ posture: opts.webFetchPosture }) as unknown as StructuredTool);
+  // web_fetch is unconditional: the parent always has it (turn-setup.ts
+  // `buildEngine`), and a sub-agent silently lacking web access the parent
+  // has would recreate the harness-parity gap of issue #214 one level down.
+  // No tool stands in for reasoning: the sub-agent's model thinks in the
+  // execution's thinking mode (#1976).
+  const tools: StructuredTool[] = [createWebFetchTool({ posture: opts.webFetchPosture }) as unknown as StructuredTool];
 
   // Append response rules
   systemPrompt += RESPONSE_RULES;
@@ -623,8 +599,6 @@ export async function transformAndCompileSubagents(
     approvalGate,
     casObserver,
     parentModelName,
-    parentThinks,
-    thinkingMode,
     webFetchPosture,
     costAdvisory,
     modelFactory,
@@ -663,8 +637,6 @@ export async function transformAndCompileSubagents(
     try {
       const result = await transformSingleSubagent(subAgent, {
         parentScope,
-        parentThinks,
-        thinkingMode,
         parentModelName,
         webFetchPosture,
       });

@@ -36,8 +36,8 @@
  *    no plugin can name them and an agent without them cannot answer its
  *    channel.
  *  - Every other tool is the engine's, judged by its native name
- *    (`NATIVE_TOOL_COVERS`): `think` is the platform's, a name the table
- *    does not carry is an engine extra (hidden only by an allow-list).
+ *    (`NATIVE_TOOL_COVERS`): a name the table does not carry is an engine
+ *    extra (hidden only by an allow-list).
  *
  * `Read` excluded is the one exception to "out of scope is hidden":
  * `read_file` is how the agent reads the platform's `.stigmer/` content (its

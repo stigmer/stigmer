@@ -22,7 +22,6 @@
  *    an approval category in `toolApprovalCategory`, it is auto-approved.
  */
 
-export { createThinkTool } from "./think-tool.js";
 export { WEB_FETCH_TOOL_NAME, createWebFetchTool } from "./web-fetch-tool.js";
 export { validateFetchUrl, resolveGuardPosture, UrlGuardError } from "./url-guard.js";
 export type { GuardPosture } from "./url-guard.js";

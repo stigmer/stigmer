@@ -113,8 +113,8 @@ export function toAnthropicThinking(
 /**
  * Whether a graph built on this row reasons natively: true exactly when
  * {@link toAnthropicThinking} asks for thinking. Derived from the same
- * mapping, never decided separately, so the `think` tool and the structured
- * output strategy can never disagree with the wire.
+ * mapping, never decided separately, so the structured output strategy can
+ * never disagree with the wire.
  */
 export function graphThinks(
   mode: EffectiveThinkingMode,

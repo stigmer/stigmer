@@ -5,9 +5,10 @@
  * The hook only looks names up in these tables, so the one property that
  * matters is equality: for every list shape here, a table lookup answers what
  * `ToolScope` answers, for named, discovered, undiscovered and unknown
- * servers, tools and sub-agent types alike. Also pinned: platform servers and
- * `think` stay in scope, refusal keys agree across Cursor's two taxonomies,
- * and an agent with no lists compiles to the inert scope.
+ * servers, tools and sub-agent types alike. Also pinned: platform servers
+ * stay in scope, the table carries only Cursor's own built-ins, refusal keys
+ * agree across Cursor's two taxonomies, and an agent with no lists compiles
+ * to the inert scope.
  */
 
 import { describe, expect, it } from "vitest";
@@ -103,7 +104,7 @@ describe("compileHookToolScope", () => {
     ).toEqual(UNRESTRICTED_HOOK_SCOPE);
   });
 
-  it("answers each hook built-in by its own name, keeps think and the platform's servers in scope, and carries the refusal template", () => {
+  it("answers each hook built-in by its own name, keeps the platform's servers in scope, and carries the refusal template", () => {
     const scope = ToolScope.of('Agent "support"', { tools: ["Read", "mcp__github__list_prs"], disallowedTools: [] });
     const compiled = compileHookToolScope({
       scope,
@@ -116,7 +117,7 @@ describe("compileHookToolScope", () => {
     expect(compiled.builtins.Read.allowed).toBe(true);
     expect(compiled.builtins.Shell.allowed).toBe(false);
     expect(compiled.builtins.Write.allowed).toBe(false);
-    expect(compiled.builtins.think.allowed).toBe(true);
+    expect(Object.keys(compiled.builtins).sort(), "only Cursor's own built-ins").toEqual([...CURSOR_HOOK_TOOL_COVERS.keys()].sort());
     expect(compiled.otherBuiltins, "an allow-list hides engine extras").toBe(false);
     expect(compiled.mcp.servers.github.tools).toEqual({ list_prs: true, merge_pr: false });
     expect(compiled.mcp.servers["stigmer-memory"]).toEqual({ tools: {}, otherTools: true });

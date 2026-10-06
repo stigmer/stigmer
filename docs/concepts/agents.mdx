@@ -211,14 +211,14 @@ Every message to this Agent runs on Claude Sonnet 4.5 with thinking on, and
 stops once its estimated cost reaches $2, keeping the work done so far. The next
 message starts a fresh count.
 
-| Field                   | What it sets                                                                                                  |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `model_name`            | The model, by its name in the model catalog. It must be one the named Harness lists.                          |
-| `thinking_mode`         | `THINKING_MODE_ENABLED` turns on the model's extended reasoning. Needs a model that can think.                |
-| `service_tier`          | `SERVICE_TIER_FAST` runs at the model's fast tier and bills at its fast rates. Needs a model that offers one. |
-| `max_cost_usd`          | Stops a message once its estimated cost reaches this many dollars.                                            |
-| `max_tool_rounds`       | Stops a message after this many rounds of tool calls (native Harness only).                                   |
-| `max_tool_result_chars` | Cuts a single tool result longer than this; 30,000 characters when no one sets it.                            |
+| Field                   | What it sets                                                                                                                                        |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model_name`            | The model, by its name in the model catalog. It must be one the named Harness lists.                                                                |
+| `thinking_mode`         | `THINKING_MODE_ENABLED` turns on the model's extended reasoning, so the Agent reasons before it acts. Off unless set. Needs a model that can think. |
+| `service_tier`          | `SERVICE_TIER_FAST` runs at the model's fast tier and bills at its fast rates. Needs a model that offers one.                                       |
+| `max_cost_usd`          | Stops a message once its estimated cost reaches this many dollars.                                                                                  |
+| `max_tool_rounds`       | Stops a message after this many rounds of tool calls (native Harness only).                                                                         |
+| `max_tool_result_chars` | Cuts a single tool result longer than this; 30,000 characters when no one sets it.                                                                  |
 
 ### Where each setting comes from
 
