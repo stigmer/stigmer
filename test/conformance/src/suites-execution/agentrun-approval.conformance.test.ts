@@ -26,7 +26,7 @@
 //
 // Asserted contract:
 // - submitApproval is on the Command controller; SubmitApprovalInput is
-//   {agent_execution_id, tool_call_id, ApprovalAction action, comment}, and the
+//   {agent_run_id, tool_call_id, ApprovalAction action, comment}, and the
 //   response is the AgentRun with the decision recorded and
 //   pending_approvals recomputed synchronously.
 // - APPROVE / SKIP / REJECT each resolve the single gate (response
@@ -524,7 +524,7 @@ describe("AgentRun submitApproval — negatives", () => {
     );
   });
 
-  it("[rpc:AgentRunCommandController.submitApproval] rejects an empty agent_execution_id with InvalidArgument", async () => {
+  it("[rpc:AgentRunCommandController.submitApproval] rejects an empty agent_run_id with InvalidArgument", async () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitApproval({
@@ -533,7 +533,7 @@ describe("AgentRun submitApproval — negatives", () => {
           action: ApprovalAction.APPROVE,
         }),
       Code.InvalidArgument,
-      "empty agent_execution_id",
+      "empty agent_run_id",
     );
   });
 

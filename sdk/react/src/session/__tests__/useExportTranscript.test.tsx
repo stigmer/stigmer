@@ -161,8 +161,8 @@ describe("useExportTranscript", () => {
 
     expect(downloadedFilenames).toEqual(["fix-the-flaky-test-transcript.json"]);
     const parsed = JSON.parse(await createdBlobs[0].text());
-    expect(parsed.format).toBe("stigmer.ai/session-transcript/v1");
-    expect(parsed.turns[0].execution.status.messages[0].content).toBe(
+    expect(parsed.format).toBe("stigmer.ai/session-transcript/v2");
+    expect(parsed.turns[0].run.status.messages[0].content).toBe(
       "Checking the loop.",
     );
   });

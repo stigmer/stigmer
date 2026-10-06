@@ -244,11 +244,11 @@ describe("WorkflowRun conformance — queries", () => {
       "listByWorkflow empty workflow_id",
     ));
 
-  it("[rpc:WorkflowRunQueryController.getEventLog] getEventLog rejects an empty execution_id with InvalidArgument", () =>
+  it("[rpc:WorkflowRunQueryController.getEventLog] getEventLog rejects an empty run_id with InvalidArgument", () =>
     expectGrpcCode(
       () => clients.workflowExecutionQuery.getEventLog({ runId: "" }),
       Code.InvalidArgument,
-      "getEventLog empty execution_id",
+      "getEventLog empty run_id",
     ));
 
   it("[rpc:WorkflowRunQueryController.getEventLog] getEventLog of an unknown execution returns an empty page (not NotFound)", async (ctx) => {
@@ -378,11 +378,11 @@ describe("WorkflowRun conformance — lifecycle preconditions & negatives", () =
       "pause missing execution",
     ));
 
-  it("[rpc:WorkflowRunCommandController.sendSignal] sendSignal rejects an empty execution_id with InvalidArgument", () =>
+  it("[rpc:WorkflowRunCommandController.sendSignal] sendSignal rejects an empty run_id with InvalidArgument", () =>
     expectGrpcCode(
       () => clients.workflowExecutionCommand.sendSignal({ runId: "", signalName: "go" }),
       Code.InvalidArgument,
-      "sendSignal empty execution_id",
+      "sendSignal empty run_id",
     ));
 
   it("[rpc:WorkflowRunCommandController.sendSignal] sendSignal to a missing execution returns NotFound", () =>

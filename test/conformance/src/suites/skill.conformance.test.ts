@@ -1052,7 +1052,7 @@ describe("[rpc:SkillCommandController.pushFromRunArtifact] Skill conformance —
   // covered at the integration layer, not here. The manual validation checks,
   // however, run before any storage access and are fully reachable.
 
-  it("rejects an empty execution_id (InvalidArgument)", async () => {
+  it("rejects an empty run_id (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () =>
@@ -1062,7 +1062,7 @@ describe("[rpc:SkillCommandController.pushFromRunArtifact] Skill conformance —
           storageKey: "artifacts/aex_example/skill.zip",
         }),
       Code.InvalidArgument,
-      "pushFromRunArtifact empty execution_id",
+      "pushFromRunArtifact empty run_id",
     );
   });
 

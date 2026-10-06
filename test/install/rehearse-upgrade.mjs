@@ -92,6 +92,7 @@ import {
   recordState,
   runAgentExecution,
   runAgentToReply,
+  runApiOf,
   serverVersion,
   waitForServing,
 } from "./lib/stigmer-smoke.mjs";
@@ -430,13 +431,16 @@ async function main() {
     log(`upgraded ${before} -> ${after} (${lap()})`);
 
     const baseUrl = install.baseUrl();
+    // The run API the upgraded server speaks: a rehearsal to a release from
+    // before runs were named runs (`--to`) still starts its runs there.
+    const api = await runApiOf(baseUrl);
     await assertStateSurvived(baseUrl, recorded);
     log(`read back unchanged: ${Object.keys(recorded.snapshot).join(", ")}; the old reply: ${recorded.snapshot.agentExecution.reply}`);
     const oldAgent = await runAgentExecution(
       baseUrl,
       { orgId: recorded.ids.agentOrgId, agentId: recorded.ids.agentId, agentSlug: recorded.ids.agentSlug },
       RUN_TIMEOUT_MS,
-      { expectText: fake.replyText, log },
+      { expectText: fake.replyText, log, api },
     );
     log(`the agent ${before} stored ran on ${after}: execution ${oldAgent.executionId} replied`);
     // In the organization the base release made: a release before the server
@@ -446,6 +450,7 @@ async function main() {
       expectText: fake.replyText,
       log,
       org: recorded.ids.agentOrgId,
+      api,
     });
     log(`a fresh agent on ${after}: execution ${fresh.executionId} replied (${lap()})`);
     log(`PASS: ${args.artifact} ${before} -> ${after} in ${Math.round((Date.now() - started) / 1000)}s`);

@@ -14,7 +14,7 @@
  * and the OAuth callback is derived from the public address the install was
  * given. The approval probes read a workflow's human_input gate as a
  * reviewer meets it: waiting in the organization's queue, resolved on the
- * execution's event log, and printed by `stigmer execution logs`.
+ * execution's event log, and printed by `stigmer runs logs`.
  *
  * Plain node + fetch, no dependencies — runnable everywhere CI is. Every
  * probe takes the server's base URL so the same code serves a stack on
@@ -804,7 +804,7 @@ export async function workflowExecutionCreator(baseUrl, executionId) {
 }
 
 /**
- * Why `stigmer execution logs` output does not show a gate's resolution, or
+ * Why `stigmer runs logs` output does not show a gate's resolution, or
  * undefined when it does. `resolution` is `"timed out"` for a gate that
  * timed out under the fail policy, whose line must say it decided nothing
  * and come before the task's failure; otherwise `{ outcome, by }`, whose

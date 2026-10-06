@@ -10,7 +10,7 @@
 //   - this forwarder (submitApproval): a workflow invokes an agent via an
 //     `agent_call` task; when that *child* AgentRun gates on a tool, the gate
 //     surfaces at the parent's status.pending_approvals (carrying the
-//     child_agent_execution_id), and submitApproval routes the decision down to the
+//     child_agent_run_id), and submitApproval routes the decision down to the
 //     child's AgentRun.submitApproval. The parent owns no gate of its own — it
 //     is a conduit.
 //
@@ -37,20 +37,20 @@
 // ## Asserted contract (sourced from submit_approval.go)
 //
 //   - submitApproval is on the Command controller; SubmitWorkflowApprovalInput is
-//     {execution_id, tool_call_id, ApprovalAction action, comment}.
+//     {run_id, tool_call_id, ApprovalAction action, comment}.
 //   - Negatives carry the handler's codes (proto validation runs before the store
-//     lookup): empty execution_id / empty tool_call_id / UNSPECIFIED action ->
+//     lookup): empty run_id / empty tool_call_id / UNSPECIFIED action ->
 //     InvalidArgument; missing execution -> NotFound; an execution with no pending
 //     approvals -> FailedPrecondition. The no-pending guard has no separate phase
 //     check, so both a *running* approval-free execution and a *terminal* one hit
 //     it — two caller states pinned as distinct scenarios.
 //   - Happy path (gated): a gated child surfaces at the parent's pending_approvals
-//     with child_agent_execution_id + tool_call_id; submitApproval forwards the
+//     with child_agent_run_id + tool_call_id; submitApproval forwards the
 //     decision; the child resumes and the workflow COMPLETES (proven by the
 //     downstream task running).
 //
 // Negatives that need a *populated* pending_approvals — a tool_call_id that
-// doesn't match, or a matched entry with an empty child_agent_execution_id — are
+// doesn't match, or a matched entry with an empty child_agent_run_id — are
 // deliberately NOT asserted here: OSS never produces that state, so they belong to
 // the gated/cloud contract, not the edition-agnostic negatives.
 import { Code } from "@connectrpc/connect";
@@ -116,7 +116,7 @@ afterAll(async () => {
 });
 
 describe("WorkflowRun submitApproval (child-agent forwarder) — negatives", () => {
-  it("[rpc:WorkflowRunCommandController.submitApproval] rejects an empty execution_id with InvalidArgument", () =>
+  it("[rpc:WorkflowRunCommandController.submitApproval] rejects an empty run_id with InvalidArgument", () =>
     expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitApproval({
@@ -125,7 +125,7 @@ describe("WorkflowRun submitApproval (child-agent forwarder) — negatives", () 
           action: ApprovalAction.APPROVE,
         }),
       Code.InvalidArgument,
-      "empty execution_id",
+      "empty run_id",
     ));
 
   it("[rpc:WorkflowRunCommandController.submitApproval] rejects an empty tool_call_id with InvalidArgument", () =>

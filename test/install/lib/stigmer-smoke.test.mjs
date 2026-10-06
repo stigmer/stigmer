@@ -27,7 +27,7 @@
 // OAuth callback must name the public address it was given. The approval
 // probes: a gate is found in the organization's queue by its workflow, its
 // resolutions are read from every page of the event log, its creator is
-// refused when absent, and `stigmer execution logs` must say a timed-out gate
+// refused when absent, and `stigmer runs logs` must say a timed-out gate
 // decided nothing before its task failed, and name who approved the other.
 // The stream probe: a CLI run's NDJSON is read for its final phase and its
 // last top-level reply, the two facts a live-model run asserts. Run via

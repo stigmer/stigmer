@@ -194,7 +194,7 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
     target.llmProxy!().enqueue(anthropicText("Reminders sent."));
 
     // The sync trigger answers with the execution — no polling for
-    // last_execution_id (the asynchronous shape this replaced).
+    // last_run_id (the asynchronous shape this replaced).
     const result = await clients.scheduleCommand.trigger({ value: id });
     expect(result.outcome).toBe(ScheduleRunOutcome.STARTED);
     const executionId = result.runId;

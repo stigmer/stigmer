@@ -29,8 +29,8 @@
  * with `--live-model`, the real provider's; see Usage).
  * Then two workflow approval gates are run and decided the way a reviewer
  * does from the CLI: one times out under the fail policy, and
- * `stigmer execution logs` must say it decided nothing before its task
- * failed; the other is approved with `stigmer execution approve --comment`,
+ * `stigmer runs logs` must say it decided nothing before its task
+ * failed; the other is approved with `stigmer runs approve --comment`,
  * and the logs must name who approved it (the run's creator) while its
  * approval_resolved event carries the comment. No model is called. A gate's
  * run is still streaming while the smoke decides it, so a step that fails

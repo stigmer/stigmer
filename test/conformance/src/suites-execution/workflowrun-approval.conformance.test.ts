@@ -23,7 +23,7 @@
 // submit_workflow_task_approval.go and confirmed empirically):
 // - The gate is task-level: `awaitApproval` reaches WORKFLOW_TASK_WAITING_APPROVAL
 //   with task_type WORKFLOW_TASK_APPROVAL while the execution stays IN_PROGRESS.
-// - submitWorkflowTaskApproval{execution_id, task_name, outcome, form_data?,
+// - submitWorkflowTaskApproval{run_id, task_name, outcome, form_data?,
 //   reviewer?, comment?} resolves the gate; the named human_input task and the
 //   downstream task complete and the execution reaches RUN_COMPLETED.
 // - The decision reaches the public event log: the gate's one approval_resolved
@@ -46,7 +46,7 @@
 //   approval_resolved event with auto_resolved true, no reviewer, and the
 //   outcome the policy resolved to: the first declared outcome, the last, and
 //   the one named "escalate".
-// - Negatives carry the handler's codes: empty execution_id / task_name / outcome
+// - Negatives carry the handler's codes: empty run_id / task_name / outcome
 //   -> InvalidArgument; missing execution -> NotFound; unknown task_name ->
 //   InvalidArgument; a real but non-human_input task -> InvalidArgument; a submit
 //   on a non-signalable (terminal) execution -> FailedPrecondition. (This tightens
@@ -488,7 +488,7 @@ describe("WorkflowRun submitWorkflowTaskApproval — timeout policy", () => {
 });
 
 describe("WorkflowRun submitWorkflowTaskApproval — negatives", () => {
-  it("[rpc:WorkflowRunCommandController.submitWorkflowTaskApproval] rejects an empty execution_id with InvalidArgument", () =>
+  it("[rpc:WorkflowRunCommandController.submitWorkflowTaskApproval] rejects an empty run_id with InvalidArgument", () =>
     expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.submitWorkflowTaskApproval({
@@ -497,7 +497,7 @@ describe("WorkflowRun submitWorkflowTaskApproval — negatives", () => {
           outcome: "approve",
         }),
       Code.InvalidArgument,
-      "empty execution_id",
+      "empty run_id",
     ));
 
   it("[rpc:WorkflowRunCommandController.submitWorkflowTaskApproval] rejects an empty task_name with InvalidArgument", () =>
