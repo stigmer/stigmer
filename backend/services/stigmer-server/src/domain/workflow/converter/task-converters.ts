@@ -543,7 +543,7 @@ function convertEmitEventTask(cfg: EmitEventTaskConfig): YamlMap {
         case "signal":
           targets.push({
             signal: {
-              execution_id: target.target.value.runId,
+              run_id: target.target.value.runId,
               signal_name: target.target.value.signalName,
             },
           });

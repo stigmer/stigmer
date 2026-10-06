@@ -60,6 +60,7 @@ import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apires
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 
 import { HISTORY_PAGE_SIZE } from "../../organization-slug-history.js";
 import { PUBLIC_ROW_KINDS_AT_RETIREMENT } from "../../public-visibility-retired.js";
@@ -74,6 +75,7 @@ import {
   SCHEMA_VERSION_9,
   SCHEMA_VERSION_10,
   SCHEMA_VERSION_12,
+  SCHEMA_VERSION_13,
   runMigrations,
 } from "../migrations.js";
 import { RETIREMENT_PAGE_SIZE } from "../../agent-instance-retired.js";
@@ -98,6 +100,19 @@ import {
   workflowExecutionBytes,
 } from "../../__tests__/retired-workflow-instance-rows.js";
 import { PostgresStore } from "../store.js";
+import { agentExecutionListIndex } from "../../../domain/agentrun/list-index.js";
+import { policyIdFor } from "../../../domain/iampolicy/constants.js";
+import { iamPolicyListIndex } from "../../../domain/iampolicy/list-index.js";
+import { RUN_RENAME_PAGE_SIZE, renamedWorkflowRow } from "../../run-rename.js";
+import {
+  NEW_RUN_NAMES,
+  OLD_RUN_NAMES,
+  RUN_RENAME_HASH,
+  RUN_RENAME_ORG,
+  agentRunBytes,
+  workflowRunBytes,
+  workflowWithSteps,
+} from "../../__tests__/run-rename-rows.js";
 import {
   createTestDatabase,
   testDatabaseAdminUrl,
@@ -1662,8 +1677,10 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           } finally {
             await store.close();
           }
+          // The store carried the database on to the current version, where
+          // the run kind is workflow_run.
           const keys = await client.query<{ key: string }>(
-            `SELECT DISTINCT key FROM resource_list_keys WHERE kind = 'workflow_execution' ORDER BY key`,
+            `SELECT DISTINCT key FROM resource_list_keys WHERE kind = 'workflow_run' ORDER BY key`,
           );
           expect(keys.rows).toEqual([{ key: "workflow" }]);
         } finally {
@@ -1826,8 +1843,8 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           );
           expect(ledger.rows).toEqual([{ slug: "deleted-org", retired: true }]);
 
-          await migrateTo(db.databaseUrl, CURRENT_SCHEMA_VERSION);
-          expect(await version(client)).toBe(CURRENT_SCHEMA_VERSION);
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_12);
+          expect(await version(client)).toBe(SCHEMA_VERSION_12);
           expect((await row(client, "workflow_execution", "wex_1")).data).toEqual(
             workflowExecutionBytes({
               metadata: { id: "wex_1", org: "deleted-org", slug: "wex_1" },
@@ -1836,6 +1853,280 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           );
           expect(await count(client, "resources", "workflow_instance")).toBe(0);
           expect(await count(client, "resources", "iam_policy")).toBe(0);
+        } finally {
+          await client.end();
+        }
+      });
+    });
+
+    describe("v13: agent and workflow executions are runs", () => {
+      const seededAt = new Date("2026-10-01T00:00:00Z");
+
+      /** A v12 database, the one v13 starts from, and a client on it for the seeding. */
+      async function v12Client(): Promise<pg.Client> {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_13 - 1);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        return client;
+      }
+
+      async function insertPlain(
+        client: pg.Client,
+        kind: string,
+        id: string,
+        data: Uint8Array,
+      ): Promise<void> {
+        await client.query(
+          `INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, $4)`,
+          [kind, id, Buffer.from(data), seededAt],
+        );
+      }
+
+      /** A row as the release before stored it, its list facts proven under revision 1. */
+      async function insertIndexed(
+        client: pg.Client,
+        kind: string,
+        id: string,
+        data: Uint8Array,
+        keys: Record<string, string>,
+      ): Promise<void> {
+        await client.query(
+          `INSERT INTO resources (kind, id, data, updated_at, list_org, list_created_at, list_index_revision, list_indexed_at)
+           VALUES ($1, $2, $3, $4, $5, '', 1, $4)`,
+          [kind, id, Buffer.from(data), seededAt, RUN_RENAME_ORG],
+        );
+        for (const [key, value] of Object.entries(keys)) {
+          await client.query(
+            `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ($1, $2, $3, $4, '')`,
+            [kind, id, key, value],
+          );
+        }
+      }
+
+      async function row(
+        client: pg.Client,
+        kind: string,
+        id: string,
+      ): Promise<{ data: Uint8Array; updatedAt: Date } | undefined> {
+        const result = await client.query<{ data: Buffer; updated_at: Date }>(
+          `SELECT data, updated_at FROM resources WHERE kind = $1 AND id = $2`,
+          [kind, id],
+        );
+        const found = result.rows[0];
+        return found === undefined
+          ? undefined
+          : { data: new Uint8Array(found.data), updatedAt: found.updated_at };
+      }
+
+      async function count(client: pg.Client, table: string, kind: string): Promise<number> {
+        const result = await client.query<{ n: string }>(
+          `SELECT COUNT(*) AS n FROM ${table} WHERE kind = $1`,
+          [kind],
+        );
+        return Number(result.rows[0]!.n);
+      }
+
+      async function version(client: pg.Client): Promise<number> {
+        const result = await client.query(
+          `SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`,
+        );
+        return Number(result.rows[0].version);
+      }
+
+      const runGrant = {
+        id: "iamp_on_run",
+        principal: "identity_account:ida_2",
+        relation: "viewer",
+        resource: "workflow_execution:wex_1",
+      };
+      const keptGrant = {
+        id: "iamp_on_workflow",
+        principal: "identity_account:ida_3",
+        relation: "viewer",
+        resource: "workflow:wfl_1",
+      };
+      const oldWorkflow = toBinary(WorkflowSchema, workflowWithSteps("wfl_1", OLD_RUN_NAMES));
+
+      it("renames the run kinds in every table, rewrites the rows that spell them, re-keys grants on runs and rewrites workflows' run keys", async () => {
+        const client = await v12Client();
+        try {
+          await insertIndexed(
+            client,
+            "agent_execution",
+            "aex_1",
+            agentRunBytes("aex_1", "ses_1", OLD_RUN_NAMES),
+            { session: "ses_1" },
+          );
+          await insertIndexed(
+            client,
+            "workflow_execution",
+            "wex_1",
+            workflowRunBytes("wex_1", "wfl_1", OLD_RUN_NAMES),
+            { workflow: "wfl_1" },
+          );
+          const runAudit = new Uint8Array([0x0a, 0x01, 0x61]);
+          await client.query(
+            `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('agent_execution', 'aex_1', $1, '', '')`,
+            [Buffer.from(runAudit)],
+          );
+          await client.query(
+            `INSERT INTO resource_names (kind, org, name, id, state, claimed_at) VALUES ('agent_execution', $1, 'aex_1', 'aex_1', 'current', $2)`,
+            [RUN_RENAME_ORG, seededAt],
+          );
+          for (const grant of [runGrant, keptGrant]) {
+            await insertPlain(client, "iam_policy", grant.id, policyRow(grant));
+            await client.query(
+              `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('iam_policy', $1, 'principal', $2, '')`,
+              [grant.id, grant.principal.split(":")[1] ?? ""],
+            );
+          }
+          await client.query(
+            `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('iam_policy', $1, $2, '', '')`,
+            [runGrant.id, Buffer.from(policyRow(runGrant))],
+          );
+          await insertPlain(client, "workflow", "wfl_1", oldWorkflow);
+          await client.query(
+            `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('workflow', 'wfl_1', $1, $2, 'v1')`,
+            [Buffer.from(oldWorkflow), RUN_RENAME_HASH],
+          );
+          const currentWorkflow = toBinary(WorkflowSchema, workflowWithSteps("wfl_2", NEW_RUN_NAMES));
+          await insertPlain(client, "workflow", "wfl_2", currentWorkflow);
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_13);
+          expect(await version(client)).toBe(SCHEMA_VERSION_13);
+
+          for (const table of ["resources", "resource_audit", "resource_list_keys", "resource_names"]) {
+            expect(await count(client, table, "agent_execution")).toBe(0);
+            expect(await count(client, table, "workflow_execution")).toBe(0);
+          }
+          // Each run reads the contract's kind string under its new kind,
+          // and keeps its stamp: no list key reads what changed.
+          expect(await row(client, "agent_run", "aex_1")).toEqual({
+            data: agentRunBytes("aex_1", "ses_1", NEW_RUN_NAMES),
+            updatedAt: seededAt,
+          });
+          expect(await row(client, "workflow_run", "wex_1")).toEqual({
+            data: workflowRunBytes("wex_1", "wfl_1", NEW_RUN_NAMES),
+            updatedAt: seededAt,
+          });
+          const audit = await client.query<{ kind: string; data: Buffer }>(
+            `SELECT kind, data FROM resource_audit WHERE resource_id = 'aex_1'`,
+          );
+          expect(audit.rows.map((r) => ({ kind: r.kind, data: new Uint8Array(r.data) }))).toEqual([
+            { kind: "agent_run", data: runAudit },
+          ]);
+          const names = await client.query(
+            `SELECT kind, name FROM resource_names WHERE id = 'aex_1'`,
+          );
+          expect(names.rows).toEqual([{ kind: "agent_run", name: "aex_1" }]);
+
+          // The grant on the run moves to the id its renamed triple
+          // derives; its history stays under the old id.
+          const rekeyedId = policyIdFor(
+            fromBinary(IamPolicySchema, policyRow({ ...runGrant, resource: "workflow_run:wex_1" }))
+              .spec!,
+          );
+          expect(await row(client, "iam_policy", runGrant.id)).toBeUndefined();
+          const rekeyed = fromBinary(
+            IamPolicySchema,
+            (await row(client, "iam_policy", rekeyedId))!.data,
+          );
+          expect(rekeyed.metadata?.id).toBe(rekeyedId);
+          expect(rekeyed.spec?.resource).toMatchObject({ kind: "workflow_run", id: "wex_1" });
+          expect((await row(client, "iam_policy", keptGrant.id))?.data).toEqual(
+            policyRow(keptGrant),
+          );
+          const policyHistory = await client.query(
+            `SELECT resource_id FROM resource_audit WHERE kind = 'iam_policy'`,
+          );
+          expect(policyHistory.rows).toEqual([{ resource_id: runGrant.id }]);
+
+          // The workflow and its archived version name runs by the new
+          // step keys; the version keeps its hash and tag.
+          const migratedWorkflow = renamedWorkflowRow(oldWorkflow)!;
+          expect(await row(client, "workflow", "wfl_1")).toEqual({
+            data: migratedWorkflow,
+            updatedAt: seededAt,
+          });
+          const versions = await client.query<{ data: Buffer; version_hash: string; tag: string }>(
+            `SELECT data, version_hash, tag FROM resource_audit WHERE kind = 'workflow' AND resource_id = 'wfl_1'`,
+          );
+          expect(
+            versions.rows.map((r) => ({
+              data: new Uint8Array(r.data),
+              versionHash: r.version_hash,
+              tag: r.tag,
+            })),
+          ).toEqual([{ data: migratedWorkflow, versionHash: RUN_RENAME_HASH, tag: "v1" }]);
+          expect((await row(client, "workflow", "wfl_2"))?.data).toEqual(currentWorkflow);
+
+          // The store the server opens finds each run through the key its
+          // list reads, and the re-keyed grant through its principal.
+          const store = await PostgresStore.open(db.databaseUrl, undefined, {
+            listIndexes: [agentExecutionListIndex, workflowExecutionListIndex, iamPolicyListIndex],
+          });
+          try {
+            const ids = async (
+              index: Parameters<typeof store.queryResources>[0],
+              name: string,
+              value: string,
+            ): Promise<string[]> =>
+              (await store.queryResources(index, { anyKey: [{ name, value }] })).map((r) => r.id);
+            expect(await ids(agentExecutionListIndex, "session", "ses_1")).toEqual(["aex_1"]);
+            expect(await ids(workflowExecutionListIndex, "workflow", "wfl_1")).toEqual(["wex_1"]);
+            expect(await ids(iamPolicyListIndex, "principal", "ida_2")).toEqual([rekeyedId]);
+            expect(await ids(iamPolicyListIndex, "principal", "ida_3")).toEqual([keptGrant.id]);
+          } finally {
+            await store.close();
+          }
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("reads runs across keyset pages, missing none past the first page", async () => {
+        const client = await v12Client();
+        try {
+          const total = RUN_RENAME_PAGE_SIZE + 3;
+          for (let i = 0; i < total; i++) {
+            // Mixed case and punctuation order differently under a
+            // linguistic collation than as bytes; the keyset compares and
+            // orders under one collation, so it misses none either way.
+            const id = `${i % 2 === 0 ? "aex_" : "AEX-"}${String(i).padStart(4, "0")}`;
+            await insertPlain(client, "agent_execution", id, agentRunBytes(id, "ses_1", OLD_RUN_NAMES));
+          }
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_13);
+
+          const rows = await client.query<{ id: string; data: Buffer }>(
+            `SELECT id, data FROM resources WHERE kind = 'agent_run'`,
+          );
+          expect(rows.rowCount).toBe(total);
+          for (const r of rows.rows) {
+            expect(new Uint8Array(r.data)).toEqual(agentRunBytes(r.id, "ses_1", NEW_RUN_NAMES));
+          }
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("a run that does not decode fails the step, names the row, and leaves the database at v12", async () => {
+        const client = await v12Client();
+        try {
+          await insertPlain(
+            client,
+            "agent_execution",
+            "aex_good",
+            agentRunBytes("aex_good", "ses_1", OLD_RUN_NAMES),
+          );
+          await insertPlain(client, "agent_execution", "aex_bad", new Uint8Array([0x22, 0xff]));
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_13)).rejects.toThrow(
+            /agent_execution row aex_bad/,
+          );
+          expect(await version(client)).toBe(SCHEMA_VERSION_12);
+          expect((await row(client, "agent_execution", "aex_good"))?.data).toEqual(
+            agentRunBytes("aex_good", "ses_1", OLD_RUN_NAMES),
+          );
         } finally {
           await client.end();
         }

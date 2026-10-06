@@ -18,14 +18,14 @@ import { LIST_INDEXES } from "../list-indexes.js";
 const PINNED: Readonly<
   Record<string, { revision: number; fingerprint: string }>
 > = {
-  agent_execution: {
+  agent_run: {
     revision: 1,
-    fingerprint: "agent_execution{session=field:spec.session_id}",
+    fingerprint: "agent_run{session=field:spec.session_id}",
   },
   artifact: {
-    revision: 2,
+    revision: 3,
     fingerprint:
-      "artifact{agent_execution=field:spec.source.agent_execution_id,blob=field:status.content_hash,workflow_execution=field:spec.source.workflow_execution_id}",
+      "artifact{agent_execution=field:spec.source.agent_run_id,blob=field:status.content_hash,workflow_execution=field:spec.source.workflow_run_id}",
   },
   iam_policy: {
     revision: 1,
@@ -44,9 +44,9 @@ const PINNED: Readonly<
     fingerprint:
       "session{agent=field:status.agent_id,channel=label:stigmer.ai/channel-id}",
   },
-  workflow_execution: {
+  workflow_run: {
     revision: 2,
-    fingerprint: "workflow_execution{workflow=field:spec.workflow_id}",
+    fingerprint: "workflow_run{workflow=field:spec.workflow_id}",
   },
 };
 
