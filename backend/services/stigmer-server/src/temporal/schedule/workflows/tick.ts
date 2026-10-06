@@ -68,7 +68,7 @@ import {
   TICK_FIRED,
   artifactId,
   type FailureRecorded,
-  type RunPhase,
+  type ObservedRunPhase,
   type RunStart,
   type ScheduleTickActivities,
 } from "../names.js";
@@ -212,7 +212,7 @@ async function trackRun(
 ): Promise<void> {
   const deadline = Date.now() + runStart.trackingTimeoutMinutes * 60_000;
 
-  let phase: RunPhase = PHASE_RUNNING;
+  let phase: ObservedRunPhase = PHASE_RUNNING;
   let budgetExhausted = false;
   // Poll-first, deadline checked after each poll and before each sleep: an
   // ALREADY_STARTED retry may already be terminal, and the loop must never

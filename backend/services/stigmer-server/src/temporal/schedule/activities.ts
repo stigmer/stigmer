@@ -50,7 +50,7 @@ import {
   TICK_SKIPPED_DISABLED,
   type FailureKind,
   type FailureRecorded,
-  type RunPhase,
+  type ObservedRunPhase,
   type RunStart,
   type ScheduleTickActivities,
   type TickOutcome,
@@ -332,7 +332,7 @@ async function startScheduledRun(
 async function pollExecutionPhase(
   deps: ScheduleTickActivityDeps,
   executionId: string,
-): Promise<RunPhase> {
+): Promise<ObservedRunPhase> {
   let phase: RunPhase;
   try {
     const execution = await deps.store.getResource(
