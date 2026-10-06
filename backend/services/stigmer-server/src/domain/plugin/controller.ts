@@ -509,7 +509,7 @@ async function deletePlugin(
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, PluginSchema))
-    .addStep(newGuardMembersUnreferencedStep(deps.store))
+    .addStep(newGuardPluginUnreferencedStep(deps.store))
     .addStep(
       newCascadeDeleteMembersStep(deps.materializerProvider, deps.logger),
     )
@@ -537,29 +537,33 @@ async function deletePlugin(
 }
 
 /**
- * GuardMembersUnreferenced — a user's own agent or workflow that
- * references a member blocks the uninstall, naming the referrers: a
- * dangling `skill_ref` found at the next session is the worse outcome.
- * Members referencing each other are the plugin's business and pass.
+ * GuardPluginUnreferenced — a user's own agent or workflow that references
+ * a member, or an agent whose hooks name the plugin itself, blocks the
+ * uninstall, naming the referrers and what to undo: a dangling `skill_ref`
+ * found at the next session, or an agent whose next turn is refused for a
+ * plugin that is gone, is the worse outcome. A plugin with no members (one
+ * that is only hooks) is checked too. Members referencing each other are
+ * the plugin's business and pass. The scan covers the plugin's own
+ * organization (stigmer#1956).
  */
-function newGuardMembersUnreferencedStep(
+function newGuardPluginUnreferencedStep(
   store: Store,
 ): PipelineStep<DeleteDesc> {
   return {
-    name: "GuardMembersUnreferenced",
+    name: "GuardPluginUnreferenced",
     async execute(ctx: RequestContext<DeleteDesc>): Promise<void> {
       const plugin = ctx.get(EXISTING_RESOURCE_KEY) as Plugin;
       const members = await membersOf(store, plugin);
       ctx.set(DELETE_MEMBERS_KEY, members);
-      if (members.length === 0) {
-        return;
-      }
       const org = plugin.metadata?.org ?? "";
+      const pluginKey = `${ApiResourceKind.plugin}:${plugin.metadata?.slug ?? ""}`;
       const memberKeys = new Set(
         members.map((member) => `${member.kind}:${member.slug}`),
       );
       const memberIds = new Set(members.map((member) => member.id));
       const referrers: string[] = [];
+      let usesMembers = false;
+      let usesHooks = false;
       for (const { kind, schema, noun } of [
         { kind: ApiResourceKind.agent, schema: AgentSchema, noun: "agent" },
         {
@@ -587,20 +591,27 @@ function newGuardMembersUnreferencedStep(
           ) {
             continue;
           }
-          const hit = collectSpecReferences(schema, resource).some(
-            (ref) =>
-              (ref.org === "" || ref.org === org) &&
-              memberKeys.has(`${ref.kind}:${ref.slug}`),
-          );
-          if (hit) {
+          const keys = collectSpecReferences(schema, resource)
+            .filter((ref) => ref.org === "" || ref.org === org)
+            .map((ref) => `${ref.kind}:${ref.slug}`);
+          const member = keys.some((key) => memberKeys.has(key));
+          const hooks = keys.includes(pluginKey);
+          if (member || hooks) {
             referrers.push(`${noun} '${metadata.slug}'`);
+            usesMembers ||= member;
+            usesHooks ||= hooks;
           }
         }
       }
       if (referrers.length > 0) {
+        const remedy =
+          usesMembers && usesHooks
+            ? "detach them from the plugin's skills and servers, and switch the plugin's hooks off on them, first"
+            : usesHooks
+              ? "switch the plugin's hooks off on them first"
+              : "detach them from the plugin's skills and servers first";
         throw failedPreconditionError(
-          `plugin '${plugin.metadata?.slug ?? ""}' is still used by ${referrers.sort().join(", ")}; ` +
-            "detach them from the plugin's skills and servers first",
+          `plugin '${plugin.metadata?.slug ?? ""}' is still used by ${referrers.sort().join(", ")}; ${remedy}`,
         );
       }
     },

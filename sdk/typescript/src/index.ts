@@ -361,6 +361,14 @@ export {
   hookApproveAllLabel,
   isInformativePolicySource,
 } from "./execution/approval-provenance.js";
+export {
+  HOOK_FORMAT_LABELS,
+  hookEventLabel,
+  hookFormatName,
+  hookMatcherLabel,
+  hooksSummary,
+  type HookFormatName,
+} from "./hook-words.js";
 export { isTerminalPhase } from "./execution/execution-phases.js";
 export {
   sortChronologically,

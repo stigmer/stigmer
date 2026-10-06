@@ -76,8 +76,9 @@ service PluginCommandController {
   }
 
   // Delete a plugin and every resource it materialised.
-  // Refused when a resource outside the plugin still references a member;
-  // the error names the referencing resources.
+  // Refused when a resource outside the plugin still references a member,
+  // or an agent's hooks (AgentSpec.hooks) name the plugin; the error names
+  // the referencing resources and what to remove from them.
   //
   // @internal
   // Members are deleted through their own delete chains in-process (agent,
