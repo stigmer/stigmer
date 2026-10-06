@@ -755,7 +755,7 @@ NOT pinned, see the file header), `agentrun-file-review` and
 harness git workspace, the secret and binary rules, and the mid-run progress
 strip under the runner's capture throttle), `agentrun-memory-selection`
 (the embedder posture, beside `-memory-retrieval`'s no-embedder one),
-`agentrun-workflow-architect` (a fixture agent on the real
+`agentrun-stigmer-mcp-stdio` (a fixture agent on the real
 `stigmer mcp-server` over stdio, the always-on proof of the stdio lane), `workflowrun-llm-call` and
 `workflowrun-eval` (the LLM-backed workflow tasks), plus additions to
 `agentrun` (idempotent cancel/terminate), `agentrun-approval` (the
@@ -795,7 +795,7 @@ src/
   targets/          target (interface + capabilities), local, local-execution, local-postgres, cloud, cloud-execution, index
   contract/         errors, parity
   support/          naming, workflows (set_vars + wait + human_input + agent_call + llm_call + eval), execution-poll,
-                    workflowruns, agentruns, file-review, workflow-architect, working-agent (the benchmark's
+                    workflowruns, agentruns, file-review, stigmer-mcp-stdio, working-agent (the benchmark's
                     working agent), agents, mcpservers, memories, skills, environments, executioncontexts, sessions,
                     request-shape (the golden renderers), …
   benchmark/        report (the contract a run writes), cells, quality-tasks, run (the direct-mode stack and driver), session
@@ -806,7 +806,7 @@ src/
                     + workflowrun*.conformance.test.ts (lifecycle, approval, child-approval, recover, signal, llm-call, eval,
                       run-visibility)
                     + agentrun*.conformance.test.ts (lifecycle, approval, recover, messages, subagent, provider-error,
-                      structured-output, file-review, file-review-progress, memory-retrieval, memory-selection, workflow-architect,
+                      structured-output, file-review, file-review-progress, memory-retrieval, memory-selection, stigmer-mcp-stdio,
                       request-shape, tool-lists)
                     + mcpserver-connect, mcp-caller-identity, mcp-server-address, envmerge-*, session-immutability, schedule-firing, billing-*  (Class B)
                     + goldens/  (the request-shape facet's file goldens; regenerated only under a ruling)
