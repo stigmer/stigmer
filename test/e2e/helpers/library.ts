@@ -9,14 +9,6 @@ export async function navigateToAgents(page: Page): Promise<void> {
   });
 }
 
-export async function navigateToWorkflows(page: Page): Promise<void> {
-  await page.goto("/library/workflows");
-  await page.locator('[aria-label="Workflow workbench"]').waitFor({
-    state: "visible",
-    timeout: 15_000,
-  });
-}
-
 export function getResourceCardsList(page: Page): Locator {
   return page.getByRole("list", { name: "Resource cards" });
 }

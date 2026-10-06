@@ -4,12 +4,8 @@ import type { Stigmer } from "@stigmer/sdk";
 import {
   createTestOrg,
   createTestAgent,
-  createTestWorkflow,
-  createTestWaitWorkflow,
-  createMultiKindTestWorkflow,
   type TestOrgResult,
   type TestAgentResult,
-  type TestWorkflowResult,
 } from "./seed-helpers";
 
 type WorkerFixtures = {
@@ -19,9 +15,6 @@ type WorkerFixtures = {
 type TestFixtures = {
   freshOrg: TestOrgResult;
   testAgent: TestAgentResult;
-  testWorkflow: TestWorkflowResult;
-  testWaitWorkflow: TestWorkflowResult;
-  testMultiKindWorkflow: TestWorkflowResult;
 };
 
 export const test = base.extend<TestFixtures, WorkerFixtures>({
@@ -51,29 +44,6 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
 
   testAgent: async ({ stigmerClient }, use) => {
     const result = await createTestAgent(stigmerClient);
-    await use(result);
-    await result.cleanup();
-  },
-
-  testWorkflow: async ({ stigmerClient }, use) => {
-    const result = await createTestWorkflow(stigmerClient);
-    await use(result);
-    await result.cleanup();
-  },
-
-  testWaitWorkflow: async ({ stigmerClient }, use) => {
-    const result = await createTestWaitWorkflow(stigmerClient);
-    await use(result);
-    await result.cleanup();
-  },
-
-  // The workflow's `agent_call` names an agent that must exist, so this
-  // fixture is composed over `testAgent`; Playwright tears fixtures down in
-  // reverse, so the workflow is deleted before the agent it references.
-  testMultiKindWorkflow: async ({ stigmerClient, testAgent }, use) => {
-    const result = await createMultiKindTestWorkflow(stigmerClient, {
-      agentSlug: testAgent.slug,
-    });
     await use(result);
     await result.cleanup();
   },

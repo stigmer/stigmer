@@ -20,10 +20,9 @@
 # Distinct from ci.e2e.yaml, which smoke-tests the DEPLOYED console after
 # releases; this lane tests the code on the PR.
 #
-# Needs NO secrets: the deterministic specs drive set_vars/wait workflows
-# through the real runner, and the two session specs self-skip without an
-# LLM key (test.skip(!HAS_LLM_KEY)). Bringing those in via the mock-LLM
-# proxy (the interactive-approval pattern) is a tracked follow-up. The
+# Needs NO secrets: the specs that need a model self-skip without an LLM key
+# (test.skip(!HAS_LLM_KEY)). Bringing those in via the mock-LLM proxy (the
+# interactive-approval pattern) is a tracked follow-up. The
 # functional job's OAuth MCP fixture is hermetic too (fixtures/oauth-mcp.ts).
 #
 # Which changes need it is its list in scripts/ci-lanes.mjs; ci.gate.yaml
