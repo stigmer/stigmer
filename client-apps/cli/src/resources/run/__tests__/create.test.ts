@@ -6,7 +6,7 @@
 // the RPC.
 
 import { describe, expect, it } from "vitest";
-import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { create } from "@bufbuild/protobuf";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import {
@@ -14,15 +14,15 @@ import {
   WorkspaceEntrySchema,
   WorkspaceSourceSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { type ControllerFn, createAgentExecution, createWorkflowExecution } from "../create.js";
+import { type ControllerFn, createAgentRun, createWorkflowRun } from "../create.js";
 
 const AGENT_REF = { org: "acme", slug: "helper" };
 
 // The embedded session_spec of a new-conversation target, or undefined.
-function sessionSpecOf(exec: AgentExecution): SessionSpec | undefined {
+function sessionSpecOf(exec: AgentRun): SessionSpec | undefined {
   const target = exec.spec?.target;
   return target?.case === "sessionSpec" ? target.value : undefined;
 }
@@ -41,10 +41,10 @@ function fakeController(): { fn: ControllerFn; last: () => unknown } {
   return { fn, last: () => captured };
 }
 
-describe("createAgentExecution", () => {
+describe("createAgentRun", () => {
   it("maps the full spec and defaults an empty message to 'execute'", async () => {
     const { fn } = fakeController();
-    const exec = await createAgentExecution(fn, {
+    const exec = await createAgentRun(fn, {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "",
@@ -60,7 +60,7 @@ describe("createAgentExecution", () => {
       harness: "",
     });
 
-    expect(exec.kind).toBe("AgentExecution");
+    expect(exec.kind).toBe("AgentRun");
     expect(exec.metadata?.org).toBe("acme");
     expect(exec.spec?.message).toBe("execute");
     expect(sessionSpecOf(exec)?.agentRef).toMatchObject({
@@ -79,7 +79,7 @@ describe("createAgentExecution", () => {
 
   it("omits run_config and the mode when no flag is set", async () => {
     const { fn } = fakeController();
-    const exec = await createAgentExecution(fn, {
+    const exec = await createAgentRun(fn, {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "hi",
@@ -101,7 +101,7 @@ describe("createAgentExecution", () => {
 
   it("maps --service-tier fast to the enum (#357)", async () => {
     const { fn } = fakeController();
-    const exec = await createAgentExecution(fn, {
+    const exec = await createAgentRun(fn, {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "x",
@@ -123,7 +123,7 @@ describe("createAgentExecution", () => {
     // Unspecified-vs-explicit-standard is a load-bearing ledger
     // distinction (#357): an explicit choice must survive to the proto.
     const { fn } = fakeController();
-    const exec = await createAgentExecution(fn, {
+    const exec = await createAgentRun(fn, {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "x",
@@ -143,7 +143,7 @@ describe("createAgentExecution", () => {
 
   it("maps --thinking enabled to the enum (#772)", async () => {
     const { fn } = fakeController();
-    const exec = await createAgentExecution(fn, {
+    const exec = await createAgentRun(fn, {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "x",
@@ -165,7 +165,7 @@ describe("createAgentExecution", () => {
     // The tier's #772 twin: unspecified-vs-explicit-disabled is the same
     // load-bearing ledger distinction.
     const { fn } = fakeController();
-    const exec = await createAgentExecution(fn, {
+    const exec = await createAgentRun(fn, {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "x",
@@ -185,7 +185,7 @@ describe("createAgentExecution", () => {
 
   it("leaves InteractionMode unspecified for agent mode", async () => {
     const { fn } = fakeController();
-    const exec = await createAgentExecution(fn, {
+    const exec = await createAgentRun(fn, {
       sessionId: "ses_1",
       orgId: "acme",
       message: "x",
@@ -213,7 +213,7 @@ describe("createAgentExecution", () => {
     });
 
     const { fn } = fakeController();
-    const exec = await createAgentExecution(fn, {
+    const exec = await createAgentRun(fn, {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "hi",
@@ -245,7 +245,7 @@ describe("createAgentExecution", () => {
     // plain runs have started carrying a spec they never carried before — a
     // silent contract change, not a feature.
     const { fn } = fakeController();
-    const exec = await createAgentExecution(fn, {
+    const exec = await createAgentRun(fn, {
       orgId: "acme",
       message: "hi",
       runtimeEnv: {},
@@ -264,7 +264,7 @@ describe("createAgentExecution", () => {
 
   it("carries a version the caller names on the agent reference", async () => {
     const { fn } = fakeController();
-    const exec = await createAgentExecution(fn, {
+    const exec = await createAgentRun(fn, {
       agentRef: { ...AGENT_REF, version: "stable" },
       orgId: "acme",
       message: "hi",
@@ -287,7 +287,7 @@ describe("createAgentExecution", () => {
     // in it names the session alone, never an agent beside it.
     const entry = create(WorkspaceEntrySchema, { name: "repo" });
     const { fn } = fakeController();
-    const exec = await createAgentExecution(fn, {
+    const exec = await createAgentRun(fn, {
       sessionId: "ses_1",
       agentRef: AGENT_REF,
       orgId: "acme",
@@ -308,7 +308,7 @@ describe("createAgentExecution", () => {
 
   it("stamps cursor harness on a session_spec created just for it (oss#293)", async () => {
     const { fn } = fakeController();
-    const exec = await createAgentExecution(fn, {
+    const exec = await createAgentRun(fn, {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "hi",
@@ -334,7 +334,7 @@ describe("createAgentExecution", () => {
     // default_harness preference — it must survive on the wire so it beats
     // any future change to the server-side default.
     const { fn } = fakeController();
-    const exec = await createAgentExecution(fn, {
+    const exec = await createAgentRun(fn, {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "hi",
@@ -361,7 +361,7 @@ describe("createAgentExecution", () => {
     });
 
     const { fn } = fakeController();
-    const exec = await createAgentExecution(fn, {
+    const exec = await createAgentRun(fn, {
       agentRef: AGENT_REF,
       orgId: "acme",
       message: "hi",
@@ -381,16 +381,16 @@ describe("createAgentExecution", () => {
   });
 });
 
-describe("createWorkflowExecution", () => {
-  it("builds a workflow execution with the trigger message", async () => {
+describe("createWorkflowRun", () => {
+  it("builds a workflow run with the trigger message", async () => {
     const { fn } = fakeController();
-    const exec = await createWorkflowExecution(fn, {
+    const exec = await createWorkflowRun(fn, {
       workflowId: "wfl_1",
       orgId: "acme",
       message: "",
       runtimeEnv: { K: { value: "v", isSecret: false } },
     });
-    expect(exec.kind).toBe("WorkflowExecution");
+    expect(exec.kind).toBe("WorkflowRun");
     expect(exec.spec?.workflowId).toBe("wfl_1");
     expect(exec.spec?.triggerMessage).toBe("execute");
     expect(exec.spec?.runtimeEnv.K).toMatchObject({ value: "v", isSecret: false });

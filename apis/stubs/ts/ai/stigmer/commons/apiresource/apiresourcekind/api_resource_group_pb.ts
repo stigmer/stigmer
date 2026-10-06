@@ -54,7 +54,7 @@ export enum ApiResourceGroup {
   api_resource_group_unspecified = 0,
 
   /**
-   * Agentic - AI agents, workflows, executions, sessions, skills, and orchestration
+   * Agentic - AI agents, workflows, runs, sessions, skills, and orchestration
    *
    * @generated from enum value: agentic = 1;
    */

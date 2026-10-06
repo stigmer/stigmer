@@ -37,7 +37,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { HumanMessage, ToolMessage, type BaseMessage } from "@langchain/core/messages";
 import { create } from "@bufbuild/protobuf";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
@@ -121,8 +121,8 @@ describe("ExecuteDeepAgent hermetic — the cost advisory", () => {
     // ── Assert: the run went past the warning ────────────────────────────────
     expect(invocation.outcome.kind).toBe("returned");
     expect(record.persistedPhases, "neither failed on the warning nor stopped by the cap").toEqual([
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
-      ExecutionPhase.EXECUTION_COMPLETED,
+      RunPhase.RUN_IN_PROGRESS,
+      RunPhase.RUN_COMPLETED,
     ]);
     expect(record.toolCalls()).toHaveLength(COSTLY_ROUNDS);
 
@@ -152,7 +152,7 @@ describe("ExecuteDeepAgent hermetic — the cost advisory", () => {
       script: () => spendingPlayer(firstTranscripts),
     });
     await runDeepAgentTurn(first);
-    expect(first.record.lastFullStatus!.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(first.record.lastFullStatus!.phase).toBe(RunPhase.RUN_COMPLETED);
     expect(firstTranscripts.some((t) => t.some(isAdvisory)), "the first message was warned").toBe(true);
 
     const nextTranscripts: BaseMessage[][] = [];
@@ -169,7 +169,7 @@ describe("ExecuteDeepAgent hermetic — the cost advisory", () => {
     await runDeepAgentTurn(next);
 
     // ── Assert ───────────────────────────────────────────────────────────────
-    expect(record.persistedPhases).toEqual([ExecutionPhase.EXECUTION_IN_PROGRESS, ExecutionPhase.EXECUTION_COMPLETED]);
+    expect(record.persistedPhases).toEqual([RunPhase.RUN_IN_PROGRESS, RunPhase.RUN_COMPLETED]);
     expect(nextTranscripts).toHaveLength(1);
     expect(
       completedToolRounds(nextTranscripts[0]),
@@ -216,8 +216,8 @@ describe("ExecuteDeepAgent hermetic — the cost advisory", () => {
     // ── Assert: the run went past the warning, short of the cap ──────────────
     expect(invocation.outcome.kind).toBe("returned");
     expect(record.persistedPhases, "neither failed on the warning nor stopped by the cap").toEqual([
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
-      ExecutionPhase.EXECUTION_COMPLETED,
+      RunPhase.RUN_IN_PROGRESS,
+      RunPhase.RUN_COMPLETED,
     ]);
 
     // ── Assert: the helper crossed on its only call, and was not advised ─────
@@ -236,7 +236,7 @@ describe("ExecuteDeepAgent hermetic — the cost advisory", () => {
     // ── Assert: what the control plane holds never shows it ──────────────────
     const persisted = record.lastFullStatus!;
     expect(persisted.messages.some((m) => m.content.includes(ADVISORY_LEAD_IN))).toBe(false);
-    expect(persisted.subAgentExecutions).toHaveLength(1);
-    expect(persisted.subAgentExecutions[0].messages.some((m) => m.content.includes(ADVISORY_LEAD_IN))).toBe(false);
+    expect(persisted.subAgentRuns).toHaveLength(1);
+    expect(persisted.subAgentRuns[0].messages.some((m) => m.content.includes(ADVISORY_LEAD_IN))).toBe(false);
   });
 });

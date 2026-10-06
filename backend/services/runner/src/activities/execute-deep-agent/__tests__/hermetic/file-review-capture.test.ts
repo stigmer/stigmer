@@ -73,15 +73,15 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   DiffCompleteness,
-  ExecutionPhase,
+  RunPhase,
   FileCaptureClass,
   FileChangeKind,
   SnapshotKind,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -164,11 +164,11 @@ describe("ExecuteDeepAgent hermetic — file-review capture", () => {
     expect(readFileSync(join(repo, FILE), "utf-8"), "the working tree holds the candidate").toBe(AFTER);
     expect(invocation.outcome.kind, "a review pause RETURNS to the workflow").toBe("returned");
     expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe(
-      "EXECUTION_WAITING_FOR_APPROVAL",
+      "RUN_WAITING_FOR_APPROVAL",
     );
     expect(record.persistedPhases).toEqual([
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
-      ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      RunPhase.RUN_IN_PROGRESS,
+      RunPhase.RUN_WAITING_FOR_APPROVAL,
     ]);
 
     // ── Assert: the file_review ledger, byte by byte where the host cannot reach ──
@@ -220,12 +220,12 @@ describe("ExecuteDeepAgent hermetic — file-review capture", () => {
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final));
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, final));
     expect(json, "no temp path reaches the status itself").not.toContain(env.workspaceRootDir);
     expect(json, "no host path reaches the status itself").not.toContain(env.home);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const pretty = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
+    const pretty = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
     await expect(pretty).toMatchFileSnapshot("./goldens/file-review-capture.status.json");
   });
 });

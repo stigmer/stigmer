@@ -1,11 +1,11 @@
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 
 /**
- * Compares two `AgentExecution` snapshots and returns a hybrid object
+ * Compares two `AgentRun` snapshots and returns a hybrid object
  * that reuses old references for unchanged subtrees.
  *
  * The backend appends new messages and mutates the streaming tail.
@@ -15,9 +15,9 @@ import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution
  * When `prev` is `null` (first snapshot), returns `next` unchanged.
  */
 export function structuralShare(
-  prev: AgentExecution | null,
-  next: AgentExecution,
-): AgentExecution {
+  prev: AgentRun | null,
+  next: AgentRun,
+): AgentRun {
   if (prev === null) return next;
 
   const prevStatus = prev.status;
@@ -30,8 +30,8 @@ export function structuralShare(
     nextStatus.messages,
   );
   const sharedSubAgents = shareSubAgents(
-    prevStatus.subAgentExecutions,
-    nextStatus.subAgentExecutions,
+    prevStatus.subAgentRuns,
+    nextStatus.subAgentRuns,
   );
   const sharedApprovals = shareApprovals(
     prevStatus.pendingApprovals,
@@ -40,7 +40,7 @@ export function structuralShare(
   const sharedTodos = shareTodos(prevStatus.todos, nextStatus.todos);
 
   const messagesUnchanged = sharedMessages === prevStatus.messages;
-  const subAgentsUnchanged = sharedSubAgents === prevStatus.subAgentExecutions;
+  const subAgentsUnchanged = sharedSubAgents === prevStatus.subAgentRuns;
   const approvalsUnchanged = sharedApprovals === prevStatus.pendingApprovals;
   const todosUnchanged = sharedTodos === prevStatus.todos;
 
@@ -66,7 +66,7 @@ export function structuralShare(
   const sharedStatus = Object.create(Object.getPrototypeOf(nextStatus));
   Object.assign(sharedStatus, nextStatus);
   sharedStatus.messages = sharedMessages;
-  sharedStatus.subAgentExecutions = sharedSubAgents;
+  sharedStatus.subAgentRuns = sharedSubAgents;
   sharedStatus.pendingApprovals = sharedApprovals;
   sharedStatus.todos = sharedTodos;
 
@@ -185,23 +185,23 @@ function toolCallEqual(a: ToolCall, b: ToolCall): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Sub-agent executions — compare by `id`
+// Sub-agent runs — compare by `id`
 // ---------------------------------------------------------------------------
 
 function shareSubAgents(
-  prev: readonly SubAgentExecution[],
-  next: readonly SubAgentExecution[],
-): readonly SubAgentExecution[] {
+  prev: readonly SubAgentRun[],
+  next: readonly SubAgentRun[],
+): readonly SubAgentRun[] {
   if (prev.length === 0 && next.length === 0) return prev;
   if (prev.length === 0) return next;
 
-  const prevById = new Map<string, SubAgentExecution>();
+  const prevById = new Map<string, SubAgentRun>();
   for (const sa of prev) {
     if (sa.id) prevById.set(sa.id, sa);
   }
 
   let allSame = prev.length === next.length;
-  const result: SubAgentExecution[] = new Array(next.length);
+  const result: SubAgentRun[] = new Array(next.length);
 
   for (let i = 0; i < next.length; i++) {
     const nsa = next[i];
@@ -221,7 +221,7 @@ function shareSubAgents(
   return allSame ? prev : result;
 }
 
-function subAgentEqual(a: SubAgentExecution, b: SubAgentExecution): boolean {
+function subAgentEqual(a: SubAgentRun, b: SubAgentRun): boolean {
   return (
     a.id === b.id &&
     a.status === b.status &&
@@ -246,9 +246,9 @@ function subAgentMessagesEqual(
 }
 
 function shareSubAgentMessages(
-  prev: SubAgentExecution,
-  next: SubAgentExecution,
-): SubAgentExecution {
+  prev: SubAgentRun,
+  next: SubAgentRun,
+): SubAgentRun {
   const sharedMsgs = shareMessages(prev.messages, next.messages);
   if (sharedMsgs === prev.messages && subAgentEqual(prev, next)) {
     return prev;

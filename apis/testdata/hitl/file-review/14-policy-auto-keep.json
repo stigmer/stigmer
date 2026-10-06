@@ -1,8 +1,8 @@
 {
   "name": "policy-auto-keep",
   "description": "Approved-command auto-keep: the candidate carries command provenance and the backend authored a policy-origin CHANGE_SET approve (actor 'policy') in the same write -> DECIDED without the gate ever arming. The fold treats a policy decision identically to a human one; origin/actor are audit provenance.",
-  "execution_id": "aex_policy_auto_keep",
-  "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+  "run_id": "aex_policy_auto_keep",
+  "phase": "RUN_WAITING_FOR_APPROVAL",
   "events": [
     {
       "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",

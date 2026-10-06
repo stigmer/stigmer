@@ -142,7 +142,7 @@ public final class StigmerClient extends GeneratedClient implements AutoCloseabl
          * Sets the runner adapter for local execution lifecycle management.
          *
          * <p>When executionTarget is LOCAL, the SDK automatically calls adapter
-         * methods after session/execution creation and on terminal phase
+         * methods after session/run creation and on terminal phase
          * detection. Cloud consumers omit this setting entirely.
          */
         public Builder runnerAdapter(RunnerAdapter adapter) {

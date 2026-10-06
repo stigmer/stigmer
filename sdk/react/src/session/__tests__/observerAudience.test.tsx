@@ -30,7 +30,7 @@ vi.mock("../../composer", async (importOriginal) => {
 });
 
 const threadProps: CapturedProps[] = [];
-vi.mock("../../execution/MessageThread", () => ({
+vi.mock("../../run/MessageThread", () => ({
   MessageThread: (props: CapturedProps) => {
     threadProps.push(props);
     return <div data-testid="thread-probe" />;
@@ -38,7 +38,7 @@ vi.mock("../../execution/MessageThread", () => ({
 }));
 
 const fileReviewDockProps: CapturedProps[] = [];
-vi.mock("../../execution/FileReviewDock", () => ({
+vi.mock("../../run/FileReviewDock", () => ({
   FileReviewDock: (props: CapturedProps) => {
     fileReviewDockProps.push(props);
     return <div data-testid="file-review-dock-probe" />;
@@ -73,8 +73,8 @@ const stubConv = {
   session: { spec: {} } as Record<string, unknown>,
   isLoading: false,
   loadError: null,
-  completedExecutions: [],
-  activeStreamExecution: null,
+  completedRuns: [],
+  activeStreamRun: null,
   activePhase: null,
   isStreaming: false,
   isConnecting: false,
@@ -131,8 +131,8 @@ const stubSessionPageFlow = {
   submitApproval: vi.fn(),
   handleSubmit: vi.fn(),
   submitError: null as Error | null,
-  displayExecution: null,
-  allExecutions: [],
+  displayRun: null,
+  allRuns: [],
   sandboxWorkspaceRoot: undefined,
 };
 vi.mock("../useSessionPageFlow", () => ({
@@ -141,7 +141,7 @@ vi.mock("../useSessionPageFlow", () => ({
 
 vi.mock("../../hooks", () => ({
   useStigmer: () => ({
-    agentExecution: {
+    agentRun: {
       uploadAttachment: vi.fn(),
       getArtifactContent: vi.fn(),
     },
@@ -179,7 +179,7 @@ function expectReadOnlyTranscript() {
   expect(thread.onApprovalSubmit).toBeUndefined();
   expect(thread.onEditMessage).toBeUndefined();
   expect(thread.onRetrySend).toBeUndefined();
-  expect(thread.onRetryExecution).toBeUndefined();
+  expect(thread.onRetryRun).toBeUndefined();
   expect(thread.onBuildFromPlan).toBeUndefined();
   expect(thread.planActionsDisabled).toBe(true);
 

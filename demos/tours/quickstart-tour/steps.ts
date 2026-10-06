@@ -59,7 +59,7 @@ function askAgentListing(headline: string, question: string): string[] {
     '  org: "my-org",',
     "});",
     "",
-    "const execution = await stigmer.agentExecution.create({",
+    "const run = await stigmer.agentRun.create({",
     '  org: "my-org",',
     "  sessionId: session.metadata!.id,",
     `  message: "${question}",`,
@@ -81,7 +81,7 @@ export const DOMAIN_CODE = askAgentListing(
 
 /**
  * 0-based lines beat 1 highlights: the `session.create` and
- * `agentExecution.create` blocks — the two calls the narration walks
+ * `agentRun.create` blocks — the two calls the narration walks
  * through (the import and client construction stay unhighlighted).
  */
 export const CONNECT_HIGHLIGHT_LINES = [7, 8, 9, 10, 12, 13, 14, 15];

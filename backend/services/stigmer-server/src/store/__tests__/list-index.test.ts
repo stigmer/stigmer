@@ -11,7 +11,7 @@
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { ArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -144,13 +144,13 @@ describe("listIndexFactsOf", () => {
       kind: ApiResourceKind.artifact,
       schema: ArtifactSchema,
       revision: 1,
-      keys: { agent_execution: field("spec.source.agent_execution_id") },
+      keys: { agent_run: field("spec.source.agent_run_id") },
     });
     const artifact = create(ArtifactSchema, {
-      spec: { source: { agentExecutionId: "aex_1" } },
+      spec: { source: { agentRunId: "aex_1" } },
     });
     expect(listIndexFactsOf(artifacts, artifact).keys).toEqual([
-      { key: "agent_execution", value: "aex_1" },
+      { key: "agent_run", value: "aex_1" },
     ]);
   });
 
@@ -158,12 +158,12 @@ describe("listIndexFactsOf", () => {
     expect(() =>
       listIndexFactsOf(
         {
-          kind: ApiResourceKind.agent_execution,
-          schema: AgentExecutionSchema,
+          kind: ApiResourceKind.agent_run,
+          schema: AgentRunSchema,
           revision: 1,
           keys: {},
         },
-        create(AgentExecutionSchema, {}),
+        create(AgentRunSchema, {}),
       ),
     ).toThrow("was not made by declareListIndex");
   });

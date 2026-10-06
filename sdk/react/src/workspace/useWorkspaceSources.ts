@@ -36,10 +36,10 @@ export interface UseWorkspaceSourcesReturn {
  * Reads `executionTarget` from `StigmerProvider` context and falls
  * back to `deploymentMode` when no explicit target is set:
  *
- * - **Cloud execution** -> GitHub only (`enableGitHub: true`, `enableLocal: false`).
- * - **Local execution with native picker** -> local folder only
+ * - **Cloud run** -> GitHub only (`enableGitHub: true`, `enableLocal: false`).
+ * - **Local run with native picker** -> local folder only
  *   (`enableGitHub: false`, `enableLocal: true`).
- * - **Local execution without native picker** -> GitHub fallback
+ * - **Local run without native picker** -> GitHub fallback
  *   (`enableGitHub: true`, `enableLocal: true`) so the user is
  *   never left with zero workspace sources.
  *
@@ -73,7 +73,7 @@ export function useWorkspaceSources(
       return { enableGitHub: true, enableLocal: false };
     }
 
-    // Local execution: prefer the native picker when available.
+    // Local run: prefer the native picker when available.
     // Fall back to GitHub when no picker exists (e.g. web-local OSS).
     return {
       enableGitHub: !hasLocalPicker,

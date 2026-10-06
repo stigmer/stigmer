@@ -27,7 +27,7 @@
 import { create } from "@bufbuild/protobuf";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
@@ -86,8 +86,8 @@ const SEEDED_KINDS = [
   ApiResourceKind.organization,
   ApiResourceKind.agent,
   ApiResourceKind.session,
-  ApiResourceKind.agent_execution,
-  ApiResourceKind.workflow_execution,
+  ApiResourceKind.agent_run,
+  ApiResourceKind.workflow_run,
   ApiResourceKind.memory,
   ApiResourceKind.api_key,
   ApiResourceKind.environment,
@@ -335,7 +335,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             ["aex_m1", "ses_member"],
             ["aex_orphan", "ses_gone"],
           ] as const) {
-            await save("agent_execution", {
+            await save("agent_run", {
               id,
               org: ORG,
               visibility: ApiResourceVisibility.visibility_private,
@@ -353,7 +353,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             visibility: ApiResourceVisibility.visibility_private,
             createdBy: MEMBER,
             spec: {
-              executionVisibility: WorkflowExecutionVisibility.organization,
+              runVisibility: WorkflowRunVisibility.organization,
             },
           });
           await save("workflow", {
@@ -361,16 +361,16 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             org: ORG,
             visibility: ApiResourceVisibility.visibility_private,
             createdBy: FOUNDER,
-            spec: { executionVisibility: WorkflowExecutionVisibility.private },
+            spec: { runVisibility: WorkflowRunVisibility.private },
           });
-          await save("workflow_execution", {
+          await save("workflow_run", {
             id: "wex_member_observable",
             org: ORG,
             visibility: ApiResourceVisibility.visibility_private,
             createdBy: MEMBER,
             spec: { workflowId: "wfl_observable" },
           });
-          await save("workflow_execution", {
+          await save("workflow_run", {
             id: "wex_founder_private",
             org: ORG,
             visibility: ApiResourceVisibility.visibility_private,
@@ -461,33 +461,33 @@ describe.each(driverFixtures(SEEDED_KINDS))(
 
           it("an execution is its SESSION's (`can_view from session`): each person lists the runs of their own sessions; an orphaned execution is nobody's", async () => {
             expect(
-              await listAs(resolved(FOUNDER), ApiResourceKind.agent_execution),
+              await listAs(resolved(FOUNDER), ApiResourceKind.agent_run),
             ).toEqual(["aex_f1", "aex_f2"]);
             expect(
-              await listAs(resolved(MEMBER), ApiResourceKind.agent_execution),
+              await listAs(resolved(MEMBER), ApiResourceKind.agent_run),
             ).toEqual(["aex_m1"]);
             expect(
-              await listAs(resolved(ADMIN), ApiResourceKind.agent_execution),
+              await listAs(resolved(ADMIN), ApiResourceKind.agent_run),
             ).toEqual([]);
           });
 
-          it("a run of an org-observable workflow reaches the organization's viewers through `execution_viewer`; a run of a private one is its starter's alone", async () => {
+          it("a run of an org-observable workflow reaches the organization's viewers through `run_viewer`; a run of a private one is its starter's alone", async () => {
             expect(
               await listAs(
                 resolved(VIEWER),
-                ApiResourceKind.workflow_execution,
+                ApiResourceKind.workflow_run,
               ),
             ).toEqual(["wex_member_observable"]);
             expect(
               await listAs(
                 resolved(FOUNDER),
-                ApiResourceKind.workflow_execution,
+                ApiResourceKind.workflow_run,
               ),
             ).toEqual(["wex_member_observable", "wex_founder_private"]);
             expect(
               await listAs(
                 resolved(MEMBER),
-                ApiResourceKind.workflow_execution,
+                ApiResourceKind.workflow_run,
               ),
             ).toEqual(["wex_member_observable"]);
           });
@@ -733,7 +733,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
 
         describe("cost", () => {
           it("a list of executions reads each DISTINCT session once and no execution row at all — the candidates' facts are the entries'", async () => {
-            await listAs(resolved(FOUNDER), ApiResourceKind.agent_execution);
+            await listAs(resolved(FOUNDER), ApiResourceKind.agent_run);
             // Three sessions named across four candidates (one of them
             // gone); the organization row is not walked for an execution.
             expect(storeReads).toEqual({ rows: 3, scans: 0 });
@@ -763,14 +763,14 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             expect(principalReads).toBe(1);
           });
 
-          it("a list of runs reads each run's workflow row once beside the organization — the `execution_viewer` rule reads the workflow's run audience, which a candidate's facts do not carry (stated, not hidden)", async () => {
-            // The viewer started neither run, so `execution_viewer from
+          it("a list of runs reads each run's workflow row once beside the organization — the `run_viewer` rule reads the workflow's run audience, which a candidate's facts do not carry (stated, not hidden)", async () => {
+            // The viewer started neither run, so `run_viewer from
             // workflow` is evaluated for both: the two workflow rows, the
             // one organization.
             await listAs(
               resolved(VIEWER),
-              ApiResourceKind.workflow_execution,
-              rowsOf(ApiResourceKind.workflow_execution),
+              ApiResourceKind.workflow_run,
+              rowsOf(ApiResourceKind.workflow_run),
             );
             expect(storeReads).toEqual({ rows: 3, scans: 0 });
           });

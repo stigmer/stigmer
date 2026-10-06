@@ -1,9 +1,9 @@
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 /**
  * String form of the service tier for component props and hook inputs
  * (stigmer/stigmer#357). Mirrors {@link HarnessOption}: components speak
- * strings, execution creation speaks proto.
+ * strings, run creation speaks proto.
  *
  * "standard" is the model's base-priced configuration; "fast" is the
  * provider's fast variant at the registry's fast rates — selectable only

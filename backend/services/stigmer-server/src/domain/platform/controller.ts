@@ -322,10 +322,10 @@ async function getRunnerScopedToken(
 
   let executionId: string;
   switch (input.scope.case) {
-    case "agentExecutionId":
+    case "agentRunId":
       executionId = input.scope.value;
       break;
-    case "workflowExecutionId":
+    case "workflowRunId":
       executionId = input.scope.value;
       break;
     case "poolClaim":
@@ -380,9 +380,9 @@ function exchangeRequestOf(
   input: GetRunnerScopedTokenInput,
 ): RunnerScopedTokenRequest {
   switch (input.scope.case) {
-    case "agentExecutionId":
+    case "agentRunId":
       return { arm: "agent-execution", executionId: input.scope.value };
-    case "workflowExecutionId":
+    case "workflowRunId":
       return { arm: "workflow-execution", executionId: input.scope.value };
     case "poolClaim":
       return { arm: "pool-claim", sessionId: input.scope.value.sessionId };

@@ -17,11 +17,11 @@ function workflowDetailTarget(segments: string[]): string | null {
   return `/library/workflows/${org}/${slug}`;
 }
 
-/** `/workflows/executions/[id]` → `/executions/[id]` */
+/** `/workflows/executions/[id]` → `/runs/[id]` */
 function workflowExecutionTarget(segments: string[]): string | null {
   const id = segments[2];
   if (!id || id === PLACEHOLDER) return null;
-  return `/executions/${id}`;
+  return `/runs/${id}`;
 }
 
 function RedirectingNotice() {
@@ -40,10 +40,10 @@ export function LegacyWorkflowDetailRedirect() {
 }
 
 /**
- * Legacy alias for workflow execution pages
- * (`/workflows/executions/[id]` predates the `/executions/[id]` zone).
+ * Legacy alias for workflow run pages
+ * (`/workflows/executions/[id]` predates the `/runs/[id]` zone).
  */
-export function LegacyWorkflowExecutionRedirect() {
+export function LegacyWorkflowRunRedirect() {
   useLegacyPathRedirect(workflowExecutionTarget);
   return <RedirectingNotice />;
 }

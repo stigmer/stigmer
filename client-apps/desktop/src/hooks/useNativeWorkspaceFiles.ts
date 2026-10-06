@@ -29,7 +29,7 @@ const TRUNCATION_MARKER: WorkspaceFileEntry = {
  *   `.gitignore` support (nested rules, `.git/info/exclude`, global
  *   gitconfig excludes) and caps at 10,000 entries.
  * - Returns `null` for non-local entries (git entries are not listable
- *   on desktop — the runner clones them at execution time).
+ *   on desktop — the runner clones them at run time).
  * - When the walker caps the folder, appends a {@link TRUNCATION_MARKER} so the
  *   SDK surfaces the same incomplete-listing banner the web (GitHub) lister
  *   does.

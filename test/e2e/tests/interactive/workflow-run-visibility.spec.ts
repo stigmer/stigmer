@@ -1,14 +1,14 @@
 import type { Locator, Page } from "@playwright/test";
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { test, expect } from "../../fixtures";
 import { openManageAccessFromKebab } from "../../helpers/access";
 import { assertNoErrorBoundary } from "../../helpers/navigation";
 import {
   navigateToWorkflowDetail,
   openRunDialog,
-  submitRunAndWaitForExecution,
+  submitRunAndWaitForRunPage,
 } from "../../helpers/workflow-detail";
-import { waitForPhaseBadge } from "../../helpers/workflow-execution";
+import { waitForPhaseBadge } from "../../helpers/workflow-run";
 
 /**
  * Running a workflow, and who sees its runs, from the workflow's own page.
@@ -26,7 +26,7 @@ import { waitForPhaseBadge } from "../../helpers/workflow-execution";
  * one person. That a teammate then reads the run, and loses it when the
  * setting goes back, needs a second person and is pinned on the enforcing
  * lane by the conformance suite
- * (test/conformance/src/suites-execution/workflowexecution-run-visibility.conformance.test.ts).
+ * (test/conformance/src/suites-execution/workflowrun-run-visibility.conformance.test.ts).
  */
 
 const ORG_RUNS_NOTE = "Every run of this workflow is visible to everyone in its organization.";
@@ -59,12 +59,12 @@ test.describe("Workflow run visibility", () => {
     await openRunDialog(page);
     const runDialog = page.getByRole("dialog");
     await expect(runDialog.getByText(ORG_RUNS_NOTE)).toHaveCount(0);
-    await submitRunAndWaitForExecution(page);
+    await submitRunAndWaitForRunPage(page);
     await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
 
-    const runId = /\/executions\/(wex_[0-9a-z]+)/.exec(page.url())?.[1];
+    const runId = /\/runs\/(wex_[0-9a-z]+)/.exec(page.url())?.[1];
     expect(runId, `the execution page URL names the run: ${page.url()}`).toBeDefined();
-    const run = await stigmerClient.workflowExecution.get(runId!);
+    const run = await stigmerClient.workflowRun.get(runId!);
     expect(run.spec?.workflowId, "the run names its workflow").toBe(testWorkflow.id);
     const pinned = (await stigmerClient.workflow.get(testWorkflow.id)).status?.versionHash;
     expect(pinned, "the workflow has a version").toMatch(/^[0-9a-f]{64}$/);
@@ -81,10 +81,10 @@ test.describe("Workflow run visibility", () => {
 
     await chooseRunVisibility(page, "All organization members");
     await expect
-      .poll(async () => (await stigmerClient.workflow.get(testWorkflow.id)).spec?.executionVisibility, {
+      .poll(async () => (await stigmerClient.workflow.get(testWorkflow.id)).spec?.runVisibility, {
         timeout: 15_000,
       })
-      .toBe(WorkflowExecutionVisibility.organization);
+      .toBe(WorkflowRunVisibility.organization);
 
     // The next run says, before it starts, who will see it.
     await openRunDialog(page);
@@ -95,10 +95,10 @@ test.describe("Workflow run visibility", () => {
     // And back: the runs are their runners' own again.
     await chooseRunVisibility(page, "Only the person who runs it");
     await expect
-      .poll(async () => (await stigmerClient.workflow.get(testWorkflow.id)).spec?.executionVisibility, {
+      .poll(async () => (await stigmerClient.workflow.get(testWorkflow.id)).spec?.runVisibility, {
         timeout: 15_000,
       })
-      .toBe(WorkflowExecutionVisibility.private);
+      .toBe(WorkflowRunVisibility.private);
     await openRunDialog(page);
     await expect(page.getByRole("dialog").getByText(ORG_RUNS_NOTE)).toHaveCount(0);
   });

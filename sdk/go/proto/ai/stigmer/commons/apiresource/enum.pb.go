@@ -200,7 +200,7 @@ const (
 	// all org roles including read-only viewers (the role SSO auto-provisioning
 	// grants by default). Running or otherwise spending against the resource
 	// still requires the org-level member-or-guest permissions
-	// (can_create_session / can_create_execution_in); org visibility widens
+	// (can_create_session / can_create_run_in); org visibility widens
 	// read, never spend.
 	//
 	// FGA tuple: resource#viewer@organization:<org>#viewer
@@ -212,7 +212,7 @@ const (
 	// read and run this resource: the shared catalog an organization offers
 	// the organizations under it (spec.parent_org). Child organizations
 	// created later gain access automatically, and no other organization
-	// does. Instances, sessions, executions and environments are never shared
+	// does. Instances, sessions, runs and environments are never shared
 	// this way: each child runs the shared blueprint inside its own boundary.
 	//
 	// Only valid for blueprint kinds with supports_child_orgs: true, and only

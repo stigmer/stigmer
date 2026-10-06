@@ -8,8 +8,8 @@
 # `can_delete: owner` on the session itself (deletion no longer threatens
 # the billing trail; usage records are immutable and denormalized).
 #
-# Agent executions inherit ALL access from their parent session
-# (`owner from session`), so the execution assertions here pin the
+# Agent runs inherit ALL access from their parent session
+# (`owner from session`), so the run assertions here pin the
 # inheritance that session cascade-delete relies on.
 #
 # Run with:
@@ -59,10 +59,10 @@ tuples:
     relation: viewer
     object: session:bobs-chat
 
-  # --- an execution inside the session ---
+  # --- a run inside the session ---
   - user: session:bobs-chat
     relation: session
-    object: agent_execution:run-1
+    object: agent_run:run-1
 
 tests:
   - name: owner has full control including delete
@@ -73,7 +73,7 @@ tests:
           can_view: true
           can_edit: true
           can_delete: true
-          can_create_execution_in: true
+          can_create_run_in: true
           can_grant_access: true
 
   - name: explicit viewer can view and run, but not edit or delete
@@ -82,7 +82,7 @@ tests:
         object: session:bobs-chat
         assertions:
           can_view: true
-          can_create_execution_in: true
+          can_create_run_in: true
           can_edit: false
           can_delete: false
           can_grant_access: false
@@ -104,19 +104,19 @@ tests:
           can_view: false
           can_delete: false
 
-  - name: execution access is inherited from the parent session
+  - name: run access is inherited from the parent session
     check:
       - user: identity_account:bob
-        object: agent_execution:run-1
+        object: agent_run:run-1
         assertions:
           can_view: true
           can_edit: true
       - user: identity_account:carol
-        object: agent_execution:run-1
+        object: agent_run:run-1
         assertions:
           can_view: true
           can_edit: false
       - user: identity_account:alice
-        object: agent_execution:run-1
+        object: agent_run:run-1
         assertions:
           can_view: false

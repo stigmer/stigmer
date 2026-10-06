@@ -76,7 +76,7 @@ const DOCUMENTS = [
   "schedule-session-visibility.fga.yaml",
   "session-personal-resource.fga.yaml",
   "team-membership.fga.yaml",
-  "workflow-execution-sharing.fga.yaml",
+  "workflow-run-sharing.fga.yaml",
 ] as const;
 
 describe("the model's suites over the built-in evaluator", () => {

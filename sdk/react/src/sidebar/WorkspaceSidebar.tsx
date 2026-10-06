@@ -73,7 +73,7 @@ export interface WorkspaceSidebarProps {
   /** Session id highlighted in Recents, if a session is open. */
   readonly activeSessionId?: string | null;
   /** Workflow-execution id highlighted in Recents, if one is open. */
-  readonly activeExecutionId?: string | null;
+  readonly activeRunId?: string | null;
   /**
    * Optional trailing accessory per recents row — e.g. the desktop
    * app's "running in background" pulse dot. Rendered after the
@@ -137,7 +137,7 @@ export function WorkspaceSidebar({
   renderLink,
   recentActivity,
   activeSessionId = null,
-  activeExecutionId = null,
+  activeRunId = null,
   renderEntryAccessory,
   conversationsBadgeCount,
   footer,
@@ -232,7 +232,7 @@ export function WorkspaceSidebar({
             <ActivityGroupList
               groups={groups}
               activeSessionId={activeSessionId}
-              activeExecutionId={activeExecutionId}
+              activeRunId={activeRunId}
               renderLink={renderLink}
               renderEntryAccessory={renderEntryAccessory}
               now={now}
@@ -310,14 +310,14 @@ function WantsHumanBadge({ count }: { readonly count: number }) {
 function ActivityGroupList({
   groups,
   activeSessionId,
-  activeExecutionId,
+  activeRunId,
   renderLink,
   renderEntryAccessory,
   now,
 }: {
   readonly groups: readonly RecentActivityGroup[];
   readonly activeSessionId: string | null;
-  readonly activeExecutionId: string | null;
+  readonly activeRunId: string | null;
   readonly renderLink: RenderSidebarLink;
   readonly renderEntryAccessory?: (entry: RecentActivityEntry) => ReactNode;
   readonly now?: Date;
@@ -337,7 +337,7 @@ function ActivityGroupList({
                   key={entry.id}
                   entry={entry}
                   activeSessionId={activeSessionId}
-                  activeExecutionId={activeExecutionId}
+                  activeRunId={activeRunId}
                   renderLink={renderLink}
                   renderEntryAccessory={renderEntryAccessory}
                   now={now}
@@ -354,14 +354,14 @@ function ActivityGroupList({
 const ActivityEntry = memo(function ActivityEntry({
   entry,
   activeSessionId,
-  activeExecutionId,
+  activeRunId,
   renderLink,
   renderEntryAccessory,
   now,
 }: {
   readonly entry: RecentActivityEntry;
   readonly activeSessionId: string | null;
-  readonly activeExecutionId: string | null;
+  readonly activeRunId: string | null;
   readonly renderLink: RenderSidebarLink;
   readonly renderEntryAccessory?: (entry: RecentActivityEntry) => ReactNode;
   readonly now?: Date;
@@ -369,8 +369,8 @@ const ActivityEntry = memo(function ActivityEntry({
   const isSession = entry.type === "session";
   const isActive = isSession
     ? entry.id === activeSessionId
-    : entry.id === activeExecutionId;
-  const href = isSession ? `/sessions/${entry.id}` : `/executions/${entry.id}`;
+    : entry.id === activeRunId;
+  const href = isSession ? `/sessions/${entry.id}` : `/runs/${entry.id}`;
   const TypeIcon = isSession ? MessageSquare : Workflow;
   const statusBadge = recentActivityStatusBadge(entry);
 
@@ -386,7 +386,7 @@ const ActivityEntry = memo(function ActivityEntry({
         <TypeIcon className="stg:mt-0.5 stg:size-3 stg:shrink-0 stg:opacity-50" aria-hidden="true" />
         <span className="stg:line-clamp-2 stg:flex-1">{entry.subject}</span>
         {/* Last-activity stamp + noteworthy status: the list sorts by
-            activity while execution names embed creation time, so the row
+            activity while run names embed creation time, so the row
             must say WHY it is here ("failed · 2h"). */}
         <span className="stg:flex stg:shrink-0 stg:flex-col stg:items-end stg:gap-0.5 stg:text-[10px] stg:leading-tight">
           <span className="stg:text-sidebar-muted-foreground stg:tabular-nums">

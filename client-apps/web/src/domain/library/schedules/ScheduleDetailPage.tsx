@@ -8,7 +8,7 @@ import {
   useLibraryNavigation,
   useRouteDetailYieldsToOverlay,
 } from "@/domain/library/library-navigation";
-import { useExecutionNavigation } from "@/domain/workflow/execution-navigation";
+import { useRunNavigation } from "@/domain/workflow/run-navigation";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 
 /**
@@ -43,7 +43,7 @@ export function ScheduleDetailPageInner({
   const router = useRouter();
   const { setLabel } = useBreadcrumbOverride();
   const { navigateToDetail } = useLibraryNavigation();
-  const { navigateToExecution } = useExecutionNavigation();
+  const { navigateToRun } = useRunNavigation();
 
   // Controlled tab state seeded from the ?tab= deep link so cross-surface
   // handoffs land on the right tab (the AgentDetailPage precedent).
@@ -71,7 +71,7 @@ export function ScheduleDetailPageInner({
       onNavigateToAgent={(agentOrg, agentSlug) =>
         navigateToDetail("agents", agentOrg, agentSlug)
       }
-      onNavigateToExecution={navigateToExecution}
+      onNavigateToRun={navigateToRun}
       onDeleted={() => router.push("/library/schedules")}
     />
   );

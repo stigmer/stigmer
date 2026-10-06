@@ -50,16 +50,16 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | ChannelMessageCommandController.sendMessage | `org` |
 | ChannelMessageQueryController.listTemplates | `org` |
 
-## `ai.stigmer.agentic.agentexecution.v1`
+## `ai.stigmer.agentic.agentrun.v1`
 
 | Method | Organization fields |
 |---|---|
-| AgentExecutionCommandController.create | `metadata.org`, `spec.session_spec.agent_ref.org`, `spec.session_spec.mcp_server_usages.mcp_server_ref.org`, `spec.session_spec.skill_refs.org` |
-| AgentExecutionCommandController.update | `metadata.org`, `spec.session_spec.agent_ref.org`, `spec.session_spec.mcp_server_usages.mcp_server_ref.org`, `spec.session_spec.skill_refs.org` |
-| AgentExecutionQueryController.getAgentUsageReport | `org` |
-| AgentExecutionQueryController.getExecutionSummary | `org` |
-| AgentExecutionQueryController.getOrgUsageReport | `org` |
-| AgentExecutionQueryController.list | `org` |
+| AgentRunCommandController.create | `metadata.org`, `spec.session_spec.agent_ref.org`, `spec.session_spec.mcp_server_usages.mcp_server_ref.org`, `spec.session_spec.skill_refs.org` |
+| AgentRunCommandController.update | `metadata.org`, `spec.session_spec.agent_ref.org`, `spec.session_spec.mcp_server_usages.mcp_server_ref.org`, `spec.session_spec.skill_refs.org` |
+| AgentRunQueryController.getAgentUsageReport | `org` |
+| AgentRunQueryController.getRunSummary | `org` |
+| AgentRunQueryController.getOrgUsageReport | `org` |
+| AgentRunQueryController.list | `org` |
 
 ## `ai.stigmer.agentic.agentshare.v1`
 
@@ -160,7 +160,7 @@ Rows read `| Service.method | <field>, <field>, … |`.
 |---|---|
 | SkillCommandController.createArtifactUploadUrl | `org` |
 | SkillCommandController.push | `org` |
-| SkillCommandController.pushFromExecutionArtifact | `org` |
+| SkillCommandController.pushFromRunArtifact | `org` |
 | SkillQueryController.getByReference | `org` |
 | SkillQueryController.listVersions | `org` |
 
@@ -175,15 +175,15 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | WorkflowQueryController.getByReference | `org` |
 | WorkflowQueryController.listVersions | `org` |
 
-## `ai.stigmer.agentic.workflowexecution.v1`
+## `ai.stigmer.agentic.workflowrun.v1`
 
 | Method | Organization fields |
 |---|---|
-| WorkflowExecutionCommandController.create | `metadata.org` |
-| WorkflowExecutionCommandController.update | `metadata.org` |
-| WorkflowExecutionQueryController.getExecutionSummary | `org` |
-| WorkflowExecutionQueryController.list | `org` |
-| WorkflowExecutionQueryController.listPendingApprovals | `org` |
+| WorkflowRunCommandController.create | `metadata.org` |
+| WorkflowRunCommandController.update | `metadata.org` |
+| WorkflowRunQueryController.getRunSummary | `org` |
+| WorkflowRunQueryController.list | `org` |
+| WorkflowRunQueryController.listPendingApprovals | `org` |
 
 ## `ai.stigmer.iam.apikey.v1`
 

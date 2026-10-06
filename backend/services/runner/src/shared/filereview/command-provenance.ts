@@ -34,10 +34,10 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { TurnCommandProvenanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
-import type { TurnCommandProvenance } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
-import { ApprovalAction, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { TurnCommandProvenanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+import type { TurnCommandProvenance } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+import { ApprovalAction, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { classifyTool, toolApprovalCategory } from "../tool-kind.js";
 import { isToolCallRowHidden } from "../tool-row.js";
 

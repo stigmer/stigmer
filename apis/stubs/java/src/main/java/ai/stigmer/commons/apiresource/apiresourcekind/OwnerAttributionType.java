@@ -33,7 +33,7 @@ public enum OwnerAttributionType
   /**
    * <pre>
    * Owner is computed from parent - no tuple created.
-   * Used for: agent_execution (inherits owner from session)
+   * Used for: agent_run (inherits owner from session)
    * FGA: owner relation derived via "owner from session"
    * </pre>
    *
@@ -88,7 +88,7 @@ public enum OwnerAttributionType
   /**
    * <pre>
    * Owner is computed from parent - no tuple created.
-   * Used for: agent_execution (inherits owner from session)
+   * Used for: agent_run (inherits owner from session)
    * FGA: owner relation derived via "owner from session"
    * </pre>
    *

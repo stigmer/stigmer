@@ -6,7 +6,7 @@ import { forwardRef, useImperativeHandle } from "react";
 // Wiring-contract test for edit-and-resubmit (stigmer/stigmer#181): the
 // onEditMessage SessionViewer hands to MessageThread stops the in-flight
 // turn, prefills the composer, and enters editing mode; submitting while
-// editing attaches the superseded execution's id to the submit context;
+// editing attaches the superseded run's id to the submit context;
 // cancelling drops the link so the next send appends normally. MessageThread
 // and SessionComposer render as prop-capturing probes; the viewer's editing
 // state machine is the subject under test.
@@ -15,7 +15,7 @@ import { forwardRef, useImperativeHandle } from "react";
 type CapturedProps = Record<string, unknown>;
 
 const threadProps: CapturedProps[] = [];
-vi.mock("../../execution/MessageThread", () => ({
+vi.mock("../../run/MessageThread", () => ({
   MessageThread: (props: CapturedProps) => {
     threadProps.push(props);
     return <div data-testid="thread-probe" />;
@@ -50,8 +50,8 @@ const stubConv = {
   session: { spec: {} },
   isLoading: false,
   loadError: null,
-  completedExecutions: [],
-  activeStreamExecution: { metadata: { id: "exec-old" } },
+  completedRuns: [],
+  activeStreamRun: { metadata: { id: "exec-old" } },
   pendingUserMessage: null,
   workspaceEntries: [],
   fileChangeSets: [],
@@ -114,8 +114,8 @@ const stubSessionPageFlow = {
   setAutoApproveAll: vi.fn(),
   handleSubmit: vi.fn(),
   submitError: null as Error | null,
-  displayExecution: null,
-  allExecutions: [],
+  displayRun: null,
+  allRuns: [],
   sandboxWorkspaceRoot: "/home/daytona/workspace",
 };
 vi.mock("../useSessionPageFlow", () => ({
@@ -124,7 +124,7 @@ vi.mock("../useSessionPageFlow", () => ({
 
 vi.mock("../../hooks", () => ({
   useStigmer: () => ({
-    agentExecution: {
+    agentRun: {
       uploadAttachment: vi.fn(),
       getArtifactContent: vi.fn(),
     },
@@ -199,7 +199,7 @@ describe("SessionViewer — edit-and-resubmit wiring", () => {
       stubSessionPageFlow.handleSubmit.mock.calls[0];
     expect(message).toBe("corrected message");
     expect(context).toMatchObject({
-      supersedesExecutionId: "exec-old",
+      supersedesRunId: "exec-old",
       // Composer-provided context fields survive the merge.
       interactionMode: "agent",
     });
@@ -225,7 +225,7 @@ describe("SessionViewer — edit-and-resubmit wiring", () => {
       submitViaComposer("unrelated new message");
     });
     const [, , context] = stubSessionPageFlow.handleSubmit.mock.calls[0];
-    expect(context).not.toHaveProperty("supersedesExecutionId");
+    expect(context).not.toHaveProperty("supersedesRunId");
   });
 
   it("ordinary sends pass the composer context through untouched", () => {

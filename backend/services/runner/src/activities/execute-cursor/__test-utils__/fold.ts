@@ -1,6 +1,6 @@
 /**
  * Drive Cursor SDK events through the REAL pair the harness runs in production
- * — `CursorTranslator` into `TranscriptBuilder` over an `AgentExecutionStatus`
+ * — `CursorTranslator` into `TranscriptBuilder` over an `AgentRunStatus`
  * — and hand back what they built. The unit-test seam that replaced
  * `new <accumulator>(messages, options)` in #1097 (the accumulator folded
  * rows itself; now the translator emits events and the shared builder folds
@@ -19,14 +19,14 @@
 
 import { create } from "@bufbuild/protobuf";
 import type { InteractionUpdate, SDKMessage } from "@cursor/sdk";
-import { AgentExecutionStatusSchema, type AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { AgentRunStatusSchema, type AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import { TranscriptBuilder, type TranscriptObserver } from "../../../harness/transcript/builder.js";
 import { CursorTranslator, type CursorTranslatorOptions } from "../translator.js";
 
 export interface CursorFoldOptions {
   /** The status to build into; a fresh empty one when omitted. Its `messages` are the translator's seed. */
-  readonly status?: AgentExecutionStatus;
+  readonly status?: AgentRunStatus;
   /**
    * An existing `messages` array to build into BY REFERENCE (a test that
    * hand-built its seeded rows and keeps asserting on the same objects). Wins
@@ -40,12 +40,12 @@ export interface CursorFoldOptions {
 }
 
 export class CursorFold {
-  readonly status: AgentExecutionStatus;
+  readonly status: AgentRunStatus;
   readonly translator: CursorTranslator;
   readonly builder: TranscriptBuilder;
 
   constructor(options: CursorFoldOptions = {}) {
-    this.status = options.status ?? create(AgentExecutionStatusSchema, {});
+    this.status = options.status ?? create(AgentRunStatusSchema, {});
     if (options.messages) this.status.messages = options.messages;
     this.translator = new CursorTranslator({
       mcpDefault: options.mcpDefault ?? { destructive: new Set(), leasedServers: new Set() },
@@ -112,7 +112,7 @@ export function foldCursorEvents(events: readonly SDKMessage[], options: CursorF
  * on the same objects.
  */
 export function builderOver(messages: AgentMessage[], executionId = "exec-boundary"): TranscriptBuilder {
-  const status = create(AgentExecutionStatusSchema, {});
+  const status = create(AgentRunStatusSchema, {});
   status.messages = messages;
   return new TranscriptBuilder(executionId, status);
 }

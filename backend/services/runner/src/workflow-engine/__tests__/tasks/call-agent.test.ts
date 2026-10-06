@@ -2,8 +2,9 @@
  * The call:agent task builder (`tasks/call-agent.ts`): config expression
  * evaluation, the hand-off to `ctx.callAgent` (the task's name only; the
  * ids that link the child to the run are the engine's own, never workflow
- * data), output-contract validation and retries, and the event bracketing
- * around each call.
+ * data), output-contract validation and retries, the event bracketing
+ * around each call, and the keys the output names the child run by
+ * (`agent_run_id`, and its retired name until #1966).
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -65,7 +66,13 @@ describe("CallAgentTaskBuilder", () => {
     expect(config.agent).toBe("code-reviewer");
     expect(config.message).toBe("Review this code");
     expect(metadata).toEqual({ taskName: "reviewCode" });
-    expect(output).toEqual(result);
+    // The step names the child run as workflow expressions read it
+    // (agent_run_id), and under its retired key until #1966.
+    expect(output).toEqual({
+      final_text: "Code looks good",
+      agent_execution_id: "aex-123",
+      agent_run_id: "aex-123",
+    });
   });
 
   it("hands over no link ids, whatever the workflow data carries", async () => {
@@ -715,6 +722,7 @@ describe("CallAgentTaskBuilder — ON_INVALID_FALLBACK", () => {
     const invalidResult: AgentCallResult = {
       final_text: "not json",
       agent_execution_id: "aex-fb-1",
+      usage_summary: { total_tokens: 40, estimated_cost_usd: 0.002 },
     };
     mockCallAgent.mockResolvedValue(invalidResult);
 
@@ -739,7 +747,8 @@ describe("CallAgentTaskBuilder — ON_INVALID_FALLBACK", () => {
     expect(output.__flow_directive__).toBe("handleBadOutput");
     expect(output.validation_errors).toBeDefined();
     expect(Array.isArray(output.validation_errors)).toBe(true);
-    expect(output.original_output).toBeDefined();
+    // The agent's answer as it came back, its child run named; no cost keys.
+    expect(output.original_output).toEqual({ ...invalidResult, agent_run_id: "aex-fb-1" });
   });
 
   it("defaults fallback_task to 'continue' when not specified", async () => {

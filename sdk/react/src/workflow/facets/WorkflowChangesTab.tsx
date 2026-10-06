@@ -1,19 +1,19 @@
 "use client";
 
-// Changes facet for the workflow execution panel's activity rail.
+// Changes facet for the workflow run panel's activity rail.
 // Domain: workflow. Deliberate naming divergence from the SESSION's Changes
 // tab (which shows git write-backs — the session renders file diffs inline in
 // its transcript): the workflow has no transcript, so here "Changes" is the
 // execution-level net file-diff rollup across all AGENT_CALL tasks.
 
 import { useMemo } from "react";
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { toFileDiffEntry } from "../../execution/deriveExecutionFileChanges.js";
+import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { toFileDiffEntry } from "../../run/deriveRunFileChanges.js";
 import { DiffFileList } from "../../version-history/DiffFileList.js";
 
 /** Props for {@link WorkflowChangesTab}. */
 export interface WorkflowChangesTabProps {
-  /** Net file changes across all tasks (from `useWorkflowExecutionFileChanges`). */
+  /** Net file changes across all tasks (from `useWorkflowRunFileChanges`). */
   readonly fileChanges: readonly FileChange[];
   /** `true` while the first child-execution fetches are in flight (no data yet). */
   readonly isLoading?: boolean;
@@ -31,9 +31,9 @@ export interface WorkflowChangesTabProps {
 }
 
 /**
- * Changes facet for the workflow execution panel (a
- * `useWorkflowExecutionRailViews` rail view): a VS Code Source Control-style
- * dense file list of the execution's net file changes across ALL agent-call
+ * Changes facet for the workflow run panel (a
+ * `useWorkflowRunRailViews` rail view): a VS Code Source Control-style
+ * dense file list of the run's net file changes across ALL agent-call
  * tasks — path, M/A/D badge, `+N -N` — one row per changed file.
  *
  * Clicking a row opens that file's diff in the editor pane

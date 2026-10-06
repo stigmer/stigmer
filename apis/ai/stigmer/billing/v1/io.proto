@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package ai.stigmer.billing.v1;
 
-import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
-import "ai/stigmer/agentic/agentexecution/v1/usage.proto";
+import "ai/stigmer/agentic/agentrun/v1/enum.proto";
+import "ai/stigmer/agentic/agentrun/v1/usage.proto";
 import "ai/stigmer/billing/v1/credit.proto";
 import "ai/stigmer/billing/v1/enum.proto";
 import "ai/stigmer/billing/v1/model_pricing_baseline.proto";
@@ -66,10 +66,10 @@ message GrantCreditsInput {
   string idempotency_key = 5 [(buf.validate.field).required = true];
 }
 
-// AuthorizeExecutionInput requests a credit reservation before execution starts.
-message AuthorizeExecutionInput {
+// AuthorizeRunInput requests a credit reservation before the run starts.
+message AuthorizeRunInput {
   string org = 1 [(buf.validate.field).required = true];
-  string execution_id = 2 [(buf.validate.field).required = true];
+  string run_id = 2 [(buf.validate.field).required = true];
 
   // Execution harness ("native" or "cursor").
   string harness = 3 [(buf.validate.field).required = true];
@@ -78,9 +78,9 @@ message AuthorizeExecutionInput {
   int64 expected_cost_cap_micros = 4;
 }
 
-// AuthorizeExecutionResponse indicates whether the execution may proceed.
-message AuthorizeExecutionResponse {
-  // Whether the execution is authorized to start.
+// AuthorizeRunResponse indicates whether the run may proceed.
+message AuthorizeRunResponse {
+  // Whether the run is authorized to start.
   bool authorized = 1;
 
   // Reservation ID for tracking. Empty if authorization was denied.
@@ -102,13 +102,13 @@ message AuthorizeExecutionResponse {
 //
 // Deduplication identity: `call_id` when the caller supplies one, else
 // `sequence`. A report that is redelivered under the same identity records
-// nothing new; two reports for the same execution with distinct call ids
+// nothing new; two reports for the same run with distinct call ids
 // are two calls even when they share a sequence number (a proxy that
-// restarted mid-execution numbers from 1 again).
+// restarted mid-run numbers from 1 again).
 message RecordLlmCallUsageInput {
-  string execution_id = 1 [(buf.validate.field).required = true];
+  string run_id = 1 [(buf.validate.field).required = true];
 
-  // 1-based call ordering within the execution, as the reporting proxy
+  // 1-based call ordering within the run, as the reporting proxy
   // counted it. An ordering hint: a proxy counts in process memory, so the
   // numbering restarts when the proxy does. Dedup identity only for callers
   // that send no call_id.
@@ -131,10 +131,10 @@ message RecordLlmCallUsageInput {
   string requested_model = 5;
 
   // Token usage extracted from the provider's SSE stream.
-  ai.stigmer.agentic.agentexecution.v1.TokenUsage tokens = 6;
+  ai.stigmer.agentic.agentrun.v1.TokenUsage tokens = 6;
 
   // Status of usage extraction.
-  ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus usage_status = 7;
+  ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus usage_status = 7;
 
   // Provider request ID from response headers.
   string provider_request_id = 8;
@@ -149,7 +149,7 @@ message RecordLlmCallUsageInput {
   string finish_reason = 11;
 
   // Proxy-observed timing for this call.
-  ai.stigmer.agentic.agentexecution.v1.ProxyTiming proxy_timing = 12;
+  ai.stigmer.agentic.agentrun.v1.ProxyTiming proxy_timing = 12;
 
   // Raw provider usage JSON for audit/debug.
   string provider_usage_json = 13;
@@ -172,31 +172,31 @@ message RecordLlmCallUsageInput {
   // CursorAccount store is the only credential source, so a current
   // proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
   // caller.
-  ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17;
+  ai.stigmer.agentic.agentrun.v1.CursorKeySource cursor_key_source = 17;
 
   // Provider-reported service tier that actually served this call
   // (native harness, stigmer/stigmer#361): Anthropic reports it in the
   // response usage ("standard" | "priority" | "batch"), OpenAI at the
   // response top level ("default" | "flex" | "priority"). Reported
   // verbatim by the proxy from the SSE stream — the wire truth billing
-  // reconciles against the execution's REQUESTED tier (the
+  // reconciles against the run's REQUESTED tier (the
   // service_tier.mismatch counter). Empty when the provider reported
   // none, and for cursor-harness calls, whose billed variant arrives
   // through the cursor path's pricing-variant resolution instead.
   string served_service_tier = 18;
 
-  // The agent execution this call is metered under, as the proxy resolved
-  // it from the execution's system of record — on the caller's own
+  // The agent run this call is metered under, as the proxy resolved
+  // it from the run's system of record — on the caller's own
   // credential, before reporting. The billing handler stamps these facts
   // onto the usage record and reconciles the requested tier and thinking
-  // mode against what the wire served; it performs NO execution lookup of
+  // mode against what the wire served; it performs NO run lookup of
   // its own (the same rule as cursor_account_id above: the proxy holds the
   // fact, reports it, the handler stamps it verbatim). Absent when the
-  // proxy could not resolve the execution — a workflow-execution scope,
-  // or an execution found in neither store — in which case the record
+  // proxy could not resolve the run — a workflow-run scope,
+  // or a run found in neither store — in which case the record
   // carries an empty session and the requested-vs-billed reconciliation
   // is skipped.
-  MeteredExecution metered_execution = 19;
+  MeteredRun metered_run = 19;
 
   // Whose provider credential the proxy injected upstream for this call,
   // stamped verbatim onto the usage record (the same rule as
@@ -204,34 +204,34 @@ message RecordLlmCallUsageInput {
   // organization's own provider key served the call: it is recorded and
   // priced for visibility, and never debited. UNSPECIFIED from a proxy
   // that predates the field, read as the platform's key.
-  ai.stigmer.agentic.agentexecution.v1.ProviderKeySource provider_key_source = 21;
+  ai.stigmer.agentic.agentrun.v1.ProviderKeySource provider_key_source = 21;
 }
 
-// The execution-side facts LLM metering denormalizes onto every usage
+// The run-side facts LLM metering denormalizes onto every usage
 // record, carried from the proxy that authorized the call to the billing
 // handler that records it. Deliberately narrower than the settings the
-// execution resolved: only what metering reconciles or prices against.
-message MeteredExecution {
-  // The session the execution belongs to. The provider reconciler matches
+// run resolved: only what metering reconciles or prices against.
+message MeteredRun {
+  // The session the run belongs to. The provider reconciler matches
   // Cursor conversations to sessions through the usage record's session.
   string session_id = 1;
 
-  // The model the execution resolved (status.run_config.model_name, whichever
+  // The model the run resolved (status.run_config.model_name, whichever
   // layer chose it: the message, the agent's defaults or the lane's profile)
   // — the authoritative statement of what was asked for, and the pricing
   // fallback when the wire's requested_model came up empty. Empty when no
   // layer named a model and the engine chose.
   string pinned_model = 2;
 
-  // The service tier the execution resolved (status.run_config.
+  // The service tier the run resolved (status.run_config.
   // service_tier); UNSPECIFIED resolves to standard. Reconciled against
   // served_service_tier by the service_tier.mismatch counter.
-  ai.stigmer.agentic.agentexecution.v1.ServiceTier requested_service_tier = 3;
+  ai.stigmer.agentic.agentrun.v1.ServiceTier requested_service_tier = 3;
 
-  // The thinking mode the execution resolved (status.run_config.
+  // The thinking mode the run resolved (status.run_config.
   // thinking_mode). Reconciled against the served variant by the
   // thinking.mismatch counter.
-  ai.stigmer.agentic.agentexecution.v1.ThinkingMode requested_thinking_mode = 4;
+  ai.stigmer.agentic.agentrun.v1.ThinkingMode requested_thinking_mode = 4;
 }
 
 // RecordLlmCallUsageResponse returns the cost result so callers can
@@ -253,15 +253,15 @@ message RecordLlmCallUsageResponse {
   bool is_duplicate = 5;
 }
 
-// FinalizeExecutionInput settles the billing for a completed execution.
+// FinalizeRunInput settles the billing for a completed run.
 // Releases unused reservation credits and produces the final billing record.
-message FinalizeExecutionInput {
-  string execution_id = 1 [(buf.validate.field).required = true];
+message FinalizeRunInput {
+  string run_id = 1 [(buf.validate.field).required = true];
 }
 
-// FinalizeExecutionResponse summarizes the execution's billing outcome.
-message FinalizeExecutionResponse {
-  // Total provider cost across all LLM calls in the execution.
+// FinalizeRunResponse summarizes the run's billing outcome.
+message FinalizeRunResponse {
+  // Total provider cost across all LLM calls in the run.
   int64 total_provider_cost_micros = 1;
 
   // Total amount charged to the customer across all LLM calls.
@@ -270,19 +270,19 @@ message FinalizeExecutionResponse {
   // Micro-USD released back to available balance from the reservation.
   int64 released_reservation_micros = 3;
 
-  // Number of LLM calls billed in this execution.
+  // Number of LLM calls billed in this run.
   int32 billed_call_count = 4;
 }
 
 // RearmForRecoveryInput re-arms a settled reservation so a failed
-// execution can be recovered.
+// run can be recovered.
 //
 // Recovery is the one sanctioned path past the settled-reservation latch.
-// The response is the same shape authorizeExecution returns, carrying the
+// The response is the same shape authorizeRun returns, carrying the
 // ROTATED reservation id — the fence that keeps settles still in flight
 // from the terminated run away from the re-armed hold.
 message RearmForRecoveryInput {
-  string execution_id = 1 [(buf.validate.field).required = true];
+  string run_id = 1 [(buf.validate.field).required = true];
 }
 
 // CreateCreditCheckoutSessionInput initiates a Stripe Checkout purchase
@@ -451,8 +451,8 @@ message BillingUsageReportResponse {
   // Total amount billed to the customer in the period.
   int64 total_billable_amount_micros = 2;
 
-  // Number of executions in the period.
-  int32 execution_count = 3;
+  // Number of runs in the period.
+  int32 run_count = 3;
 
   // Number of LLM calls in the period.
   int32 llm_call_count = 4;
@@ -636,12 +636,12 @@ message CustomerModelPricingEntry {
 }
 
 // PreviewAuthorizationInput asks whether an organization could fund an
-// execution right now, without writing a reservation.
+// run right now, without writing a reservation.
 message PreviewAuthorizationInput {
   string org = 1 [(buf.validate.field).required = true];
 
   // Expected maximum cost. 0 means use the server-configured default cap,
-  // exactly as authorizeExecution treats it.
+  // exactly as authorizeRun treats it.
   int64 expected_cost_cap_micros = 2;
 }
 
@@ -657,19 +657,19 @@ message PreviewAuthorizationResponse {
   int64 reserve_amount_micros = 3;
 }
 
-// GetExecutionBillingSignalInput retrieves the billing control signal for
-// one execution.
-message GetExecutionBillingSignalInput {
-  string execution_id = 1 [(buf.validate.field).required = true];
+// GetRunBillingSignalInput retrieves the billing control signal for
+// one run.
+message GetRunBillingSignalInput {
+  string run_id = 1 [(buf.validate.field).required = true];
 }
 
-// GetExecutionBillingSignalResponse carries the current directive for a
-// running execution and the human-readable reason behind it.
-message GetExecutionBillingSignalResponse {
+// GetRunBillingSignalResponse carries the current directive for a
+// run in progress and the human-readable reason behind it.
+message GetRunBillingSignalResponse {
   // The directive (continue / low-balance warning / stop).
-  ExecutionBillingSignal signal = 1;
+  RunBillingSignal signal = 1;
 
   // Human-readable reason (e.g. "Credit balance exhausted"). Empty when
-  // the signal is continue_execution.
+  // the signal is continue_run.
   string reason = 2;
 }

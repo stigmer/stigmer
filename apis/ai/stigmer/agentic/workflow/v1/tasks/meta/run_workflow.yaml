@@ -9,7 +9,7 @@ documentation_url: "/docs/guides/workflows/task-types/run-workflow"
 
 output_schema:
   type: object
-  description: "Output from the child workflow execution."
+  description: "Output from the child workflow run."
 
 field_groups:
   - id: core

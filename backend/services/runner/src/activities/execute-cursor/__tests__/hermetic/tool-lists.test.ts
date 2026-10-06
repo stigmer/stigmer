@@ -13,7 +13,7 @@
  *    created, naming the sub-agent: the hook cannot tell a sub-agent's call
  *    from the main agent's, so its lists could not bind;
  *  - a `tools` list naming nothing the turn has fails the turn the same way;
- *    both refusals settle as the native engine settles them: EXECUTION_FAILED
+ *    both refusals settle as the native engine settles them: RUN_FAILED
  *    on the actionable surface, the refusal's own sentence as `status.error`
  *    and the one `Execution failed:` row;
  *  - an engine extra the real hook refuses under an allow-list (a hook name
@@ -52,7 +52,7 @@ import {
   ApprovalPolicySource,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   FIXTURE,
   SDK_CATALOG,
@@ -143,7 +143,7 @@ describe("ExecuteCursor hermetic — tool lists", () => {
       { message: USER_MESSAGE, tools: ["Read", "Grep"] },
       answeringAgent("agent-lists-allow", "run-lists-allow", clock),
     );
-    expect(phase).toBe("EXECUTION_COMPLETED");
+    expect(phase).toBe("RUN_COMPLETED");
     expect(scenario.sdk.resolutions.map((r) => r.kind)).toEqual(["create"]);
     const options = scenario.sdk.resolutions[0].options!;
     expect(options.tools).toEqual(expect.arrayContaining(["read", "grep", "semSearch"]));
@@ -156,7 +156,7 @@ describe("ExecuteCursor hermetic — tool lists", () => {
       { message: USER_MESSAGE, disallowedTools: ["Bash"] },
       answeringAgent("agent-lists-deny", "run-lists-deny", clock),
     );
-    expect(phase).toBe("EXECUTION_COMPLETED");
+    expect(phase).toBe("RUN_COMPLETED");
     const options = scenario.sdk.resolutions[0].options!;
     expect(options.disallowedTools).toEqual(["shell"]);
     expect(options.tools).toBeUndefined();
@@ -175,7 +175,7 @@ describe("ExecuteCursor hermetic — tool lists", () => {
       { message: USER_MESSAGE, tools: ["Read", "Agent(explore)"], subAgents: [subAgent("researcher")] },
       neverUsed,
     );
-    expect(phase).toBe("EXECUTION_FAILED");
+    expect(phase).toBe("RUN_FAILED");
     expect(final.error).toMatch(/^.+ lists Agent\(explore\), which the Cursor engine cannot enforce: it cannot limit which sub-agents an agent starts\./);
     expect(systemRows(final)).toEqual([`Execution failed: ${final.error}`]);
     expect(scenario.sdk.resolutions, "the SDK was never reached").toHaveLength(0);
@@ -186,7 +186,7 @@ describe("ExecuteCursor hermetic — tool lists", () => {
       { message: USER_MESSAGE, tools: ["Read", "Agent"], subAgents: [subAgent("researcher"), subAgent("writer")] },
       answeringAgent("agent-lists-types", "run-lists-types", clock),
     );
-    expect(phase).toBe("EXECUTION_COMPLETED");
+    expect(phase).toBe("RUN_COMPLETED");
     const options = scenario.sdk.resolutions[0].options!;
     expect(Object.keys(options.agents ?? {}).sort()).toEqual(["researcher", "writer"]);
     expect(options.tools).toContain("task");
@@ -198,7 +198,7 @@ describe("ExecuteCursor hermetic — tool lists", () => {
       { message: USER_MESSAGE, subAgents: [subAgent("helper", { tools: ["Read"] }), subAgent("plain")] },
       neverUsed,
     );
-    expect(phase).toBe("EXECUTION_FAILED");
+    expect(phase).toBe("RUN_FAILED");
     expect(final.error.startsWith('Sub-agent "helper" carries its own tool lists'), "the refusal's own sentence, unprefixed").toBe(true);
     expect(final.error).toContain("native engine");
     expect(final.error).not.toContain('"plain"');
@@ -249,10 +249,10 @@ describe("ExecuteCursor hermetic — tool lists", () => {
     const { phase, final } = await run({ message: USER_MESSAGE, ...lists, subAgents: [subAgent("helper")] }, agent);
 
     expect(hookDecisions, "the real hook refused both").toEqual(["deny", "deny"]);
-    expect(phase, "a refused call never fails the turn").toBe("EXECUTION_COMPLETED");
+    expect(phase, "a refused call never fails the turn").toBe("RUN_COMPLETED");
     const expected = outOfScopeMessage("GenerateImage", ToolScope.of("The agent", lists));
     const rootRow = final.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === "gen-1")!;
-    const subRows = final.subAgentExecutions.flatMap((sa) => sa.messages.flatMap((m) => m.toolCalls));
+    const subRows = final.subAgentRuns.flatMap((sa) => sa.messages.flatMap((m) => m.toolCalls));
     expect(subRows.map((tc) => tc.id)).toEqual(["sub-gen-1"]);
     for (const row of [rootRow, subRows[0]]) {
       expect(row.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
@@ -265,7 +265,7 @@ describe("ExecuteCursor hermetic — tool lists", () => {
   it("refuses the turn when a tools list names nothing the turn has", async () => {
     const neverUsed = new ScriptedCursorAgent({ agentId: "agent-lists-never-2", turns: [] });
     const { scenario, phase, final } = await run({ message: USER_MESSAGE, tools: ["mcp__nosuch"] }, neverUsed);
-    expect(phase).toBe("EXECUTION_FAILED");
+    expect(phase).toBe("RUN_FAILED");
     const message = new ToolListResolutionError("The agent", ["mcp__nosuch"]).message;
     expect(final.error).toBe(message);
     expect(systemRows(final)).toEqual([`Execution failed: ${message}`]);

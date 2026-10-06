@@ -64,7 +64,7 @@ message SessionSpec {
 
   // Harness-specific state identifier for conversation continuity.
   //
-  // Populated after the first execution completes; empty until then.
+  // Populated after the first run completes; empty until then.
   // Each harness uses this field differently:
   //
   // - NATIVE: LangGraph thread ID, derived deterministically as
@@ -73,7 +73,7 @@ message SessionSpec {
   //
   // - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
   //   returned by Agent.create(). Used for Agent.resume() on
-  //   subsequent executions.
+  //   subsequent runs.
   //
   // @internal
   // Also serves as the immutability sentinel: when non-empty, the
@@ -102,8 +102,8 @@ message SessionSpec {
   // Workspace entries for this session.
   //
   // Each entry pairs a name with a source (git repo or local path), forming
-  // a multi-root workspace. Entries are provisioned on the first execution;
-  // subsequent executions reuse the same workspace.
+  // a multi-root workspace. Entries are provisioned on the first run;
+  // subsequent runs reuse the same workspace.
   //
   // When empty, the session uses an empty workspace directory.
   repeated WorkspaceEntry workspace_entries = 6;
@@ -145,12 +145,12 @@ message SessionSpec {
   // Execution harness for this session.
   //
   // Determines which Temporal activity type is dispatched when an
-  // AgentExecution is created in this session:
+  // AgentRun is created in this session:
   // - NATIVE (default): ExecuteDeepAgent activity -> Stigmer unified runner
   // - CURSOR: ExecuteCursor activity -> TypeScript/Cursor SDK worker
   //
   // The harness affects which tools the agent has, how conversation state
-  // is managed, available models, and billing tier. Once set and an execution
+  // is managed, available models, and billing tier. Once set and a run
   // has run, the harness is immutable — changing it would break conversation
   // continuity since each harness owns its own state.
   //
@@ -169,9 +169,9 @@ message SessionSpec {
   //
   // @internal
   // Runner-owned, never user-set (see the CursorMode enum docs): the
-  // cursor-runner stamps it on the first execution when UNSPECIFIED —
+  // cursor-runner stamps it on the first run when UNSPECIFIED —
   // always LOCAL while cloud mode is disabled platform-wide. The
-  // workflow reads it back on subsequent executions to route to the
+  // workflow reads it back on subsequent runs to route to the
   // correct Agent.create / Agent.resume path.
   //
   // When UNSPECIFIED on an existing CURSOR session, the runner defaults
@@ -189,7 +189,7 @@ message SessionSpec {
   // - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)
   // - Customer SDK sets whatever fits their architecture
   //
-  // Immutable once an execution has run — workspace state may not be
+  // Immutable once a run has started — workspace state may not be
   // portable between local and cloud environments.
   ExecutionTarget execution_target = 12;
 }

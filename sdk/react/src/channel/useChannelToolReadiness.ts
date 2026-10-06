@@ -15,7 +15,7 @@ import {
  * (`AgentChannelSpec.environment_refs`) and each one is shared with the
  * organization.
  *
- * Channel executions receive credentials exclusively from the
+ * Channel runs receive credentials exclusively from the
  * channel's own bindings, resolved through the org-shared environment
  * seam — exactly the share contract, without the audience arm (channels
  * have no audience concept). So a tool-using agent on a channel with no

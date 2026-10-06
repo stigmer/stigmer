@@ -7,7 +7,7 @@
  * Direct handlers, matching Go: create takes CreateArtifactInput (spec +
  * content bytes — not a HasMetadata resource), delete is a soft
  * storage_state transition rather than the hard-delete pipeline; only
- * get/listByExecution ride pipelines. Proven by
+ * get/listByRun ride pipelines. Proven by
  * artifact.conformance.test.ts (CONFORMANCE_TARGET=local, incl. the
  * file-server lane), __tests__/artifact.test.ts and
  * __tests__/store-faults.test.ts.
@@ -48,7 +48,7 @@ import type {
   CreateArtifactInput,
   GetArtifactContentRequest,
   GetArtifactContentResponse,
-  ListArtifactsByExecutionRequest,
+  ListArtifactsByRunRequest,
 } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/io_pb";
 import { ArtifactQueryController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/query_pb";
 import type { ArtifactSource } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/spec_pb";
@@ -120,7 +120,7 @@ export function registerArtifactServices(
   });
   router.service(ArtifactQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
-    listByExecution: (req, ctx) => listByExecution(deps, req, ctx),
+    listByRun: (req, ctx) => listByRun(deps, req, ctx),
     getDownloadUrl: (id, ctx) =>
       getDownloadUrl(deps, id, callerIdentityOf(ctx)),
     getContent: (req, ctx) => getContent(deps, req, callerIdentityOf(ctx)),
@@ -189,10 +189,10 @@ async function createArtifact(
   const source = spec.source;
   if (
     source === undefined ||
-    (source.workflowExecutionId === "" && source.agentExecutionId === "")
+    (source.workflowRunId === "" && source.agentRunId === "")
   ) {
     throw invalidArgumentError(
-      "spec.source must include workflow_execution_id or agent_execution_id",
+      "spec.source must include workflow_run_id or agent_run_id",
     );
   }
 
@@ -302,10 +302,10 @@ async function deriveOrgFromSource(
 ): Promise<string> {
   const lookups: Array<{ id: string; kind: ApiResourceKind }> = [
     {
-      id: source.workflowExecutionId,
-      kind: ApiResourceKind.workflow_execution,
+      id: source.workflowRunId,
+      kind: ApiResourceKind.workflow_run,
     },
-    { id: source.agentExecutionId, kind: ApiResourceKind.agent_execution },
+    { id: source.agentRunId, kind: ApiResourceKind.agent_run },
   ];
   for (const lookup of lookups) {
     if (lookup.id === "") {
@@ -475,23 +475,23 @@ const ARTIFACT_LIST_KEY = "artifactList";
  * mirrors the code, the mismatch is disclosed in the PR), unmarshal
  * failures skipped, TotalPages hardcoded to 1.
  */
-async function listByExecution(
+async function listByRun(
   deps: ArtifactControllerDeps,
-  req: ListArtifactsByExecutionRequest,
+  req: ListArtifactsByRunRequest,
   ctx: HandlerContext,
 ): Promise<ArtifactList> {
   const reqCtx = new RequestContext(
-    ArtifactQueryController.method.listByExecution.input,
+    ArtifactQueryController.method.listByRun.input,
     req,
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
   await newPipeline<
-    typeof ArtifactQueryController.method.listByExecution.input
+    typeof ArtifactQueryController.method.listByRun.input
   >("artifact-list-by-execution", deps.logger)
     .addStep(
       newAuthorizeStep(
-        ArtifactQueryController.method.listByExecution,
+        ArtifactQueryController.method.listByRun,
         deps.authorizer,
       ),
     )
@@ -499,9 +499,9 @@ async function listByExecution(
       name: "ValidateListByExecutionRequest",
       execute(stepCtx): void {
         const input = stepCtx.input;
-        if (input.workflowExecutionId === "" && input.agentExecutionId === "") {
+        if (input.workflowRunId === "" && input.agentRunId === "") {
           throw invalidArgumentError(
-            "workflow_execution_id or agent_execution_id is required",
+            "workflow_run_id or agent_run_id is required",
           );
         }
       },
@@ -521,13 +521,13 @@ async function listByExecution(
           {
             permission: IamPermission.can_view,
             resourceKind:
-              input.workflowExecutionId !== ""
-                ? ApiResourceKind.workflow_execution
-                : ApiResourceKind.agent_execution,
+              input.workflowRunId !== ""
+                ? ApiResourceKind.workflow_run
+                : ApiResourceKind.agent_run,
             resourceId:
-              input.workflowExecutionId !== ""
-                ? input.workflowExecutionId
-                : input.agentExecutionId,
+              input.workflowRunId !== ""
+                ? input.workflowRunId
+                : input.agentRunId,
             deniedMessage: "unauthorized to list artifacts for this execution",
           },
         ],
@@ -545,20 +545,20 @@ async function listByExecution(
         try {
           rows = await deps.store.queryResources(artifactListIndex, {
             anyKey: [
-              ...(input.workflowExecutionId === ""
+              ...(input.workflowRunId === ""
                 ? []
                 : [
                     {
                       name: "workflow_execution" as const,
-                      value: input.workflowExecutionId,
+                      value: input.workflowRunId,
                     },
                   ]),
-              ...(input.agentExecutionId === ""
+              ...(input.agentRunId === ""
                 ? []
                 : [
                     {
                       name: "agent_execution" as const,
-                      value: input.agentExecutionId,
+                      value: input.agentRunId,
                     },
                   ]),
             ],
@@ -603,7 +603,7 @@ async function listByExecution(
  * local URLs never actually expire, and this is pinned as the wire
  * contract despite the semantic mismatch. The empty
  * download filename keeps the URL inline; attachment disposition is
- * opt-in only on the AgentExecution artifact download path.
+ * opt-in only on the AgentRun artifact download path.
  */
 async function getDownloadUrl(
   deps: ArtifactControllerDeps,
@@ -663,7 +663,7 @@ async function getDownloadUrl(
  * GetContent — Go's direct handler: the artifact bytes in the response
  * (no CORS concerns for SDK consumers), truncated to max_bytes with the
  * FULL blob size reported. Default/implicit cap 512KB, matching
- * AgentExecution.GetArtifactContent so the two content-read endpoints
+ * AgentRun.GetArtifactContent so the two content-read endpoints
  * behave identically.
  */
 async function getContent(

@@ -1,16 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import type { FileChangeProgress, FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
-import { ApprovalAction, ExecutionPhase, FileChangeSetStatus, FileDecisionAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+import type { FileChangeProgress, FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+import { ApprovalAction, RunPhase, FileChangeSetStatus, FileDecisionAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { McpServerUsage as ProtoMcpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 import type { WorkspaceEntry as ProtoWorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { ApiResourceReference as ProtoApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import {
-  supersededExecutionIds,
+  supersededRunIds,
   toSessionUpdateInput,
   type AttachmentInput,
   type EnvVarInput,
@@ -18,27 +18,27 @@ import {
   type ResourceRef,
   type WorkspaceEntryInput,
 } from "@stigmer/sdk";
-import { isTerminalPhase } from "../execution/execution-phases.js";
+import { isTerminalPhase } from "../run/run-phases.js";
 import type { ServiceTierOption } from "../models/service-tier.js";
 import type { ThinkingModeOption } from "../models/thinking-mode.js";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { useConversationStoreRef } from "../internal/store/index.js";
-// Type-only import so the SharedAgentExecutionFields doc links below resolve;
+// Type-only import so the SharedAgentRunFields doc links below resolve;
 // the strict tsdoc gate (tsdoc:check) guards it against removal.
-import { useCreateAgentExecution, type SharedAgentExecutionFields } from "../execution/useCreateAgentExecution.js";
-import { useExecutionStream } from "../execution/useExecutionStream.js";
-import { useAgentExecutionActions } from "../execution/useAgentExecutionActions.js";
-import { useSubmitApproval } from "../execution/useSubmitApproval.js";
-import { useFileReview, type FileDecisionOptions } from "../execution/useFileReview.js";
+import { useCreateAgentRun, type SharedAgentRunFields } from "../run/useCreateAgentRun.js";
+import { useRunStream } from "../run/useRunStream.js";
+import { useAgentRunActions } from "../run/useAgentRunActions.js";
+import { useSubmitApproval } from "../run/useSubmitApproval.js";
+import { useFileReview, type FileDecisionOptions } from "../run/useFileReview.js";
 import { useSession } from "./useSession.js";
-import { useSessionExecutions } from "./useSessionExecutions.js";
+import { useSessionRuns } from "./useSessionRuns.js";
 import { useUpdateSession } from "./useUpdateSession.js";
 import { useLocalSessionWorker } from "./useLocalSessionWorker.js";
 
 /**
- * Cadence for re-discovering the session's executions while the live stream
- * cannot be relied on (a created-but-not-yet-listed execution, a silent
+ * Cadence for re-discovering the session's runs while the live stream
+ * cannot be relied on (a created-but-not-yet-listed run, a silent
  * connect-timeout, or an exhausted stream error). Disabled the instant the
  * stream is healthy or terminal, so this never competes with the live feed.
  */
@@ -48,12 +48,12 @@ const REDISCOVERY_POLL_INTERVAL_MS = 5_000;
  * Options for {@link UseSessionConversationReturn.sendFollowUp}.
  *
  * Session-level fields (`workspaceEntries`, `mcpServerUsages`,
- * `skillRefs`) trigger a `session.update()` before the execution is
+ * `skillRefs`) trigger a `session.update()` before the run is
  * created. Only provided fields are overwritten; omitted fields
  * preserve the session's existing values.
  *
- * `runtimeEnv` is forwarded to the execution (Execution Flow). These
- * values are scoped to the single execution and deleted on completion.
+ * `runtimeEnv` is forwarded to the run (Run Flow). These
+ * values are scoped to the single run and deleted on completion.
  */
 export interface SendFollowUpOptions {
   /**
@@ -61,48 +61,48 @@ export interface SendFollowUpOptions {
    * specific layer chooses (the agent's run defaults, the operator
    * profile, the engine's default).
    *
-   * @see {@link SharedAgentExecutionFields.modelName}
+   * @see {@link SharedAgentRunFields.modelName}
    */
   readonly modelName?: string;
   /**
    * Move the conversation to another agent for this and all future
-   * executions: a reference rebinds the session to that agent (the server
+   * runs: a reference rebinds the session to that agent (the server
    * pins the version the reference names, the agent's current one when it
    * names none), `null` returns it to the built-in assistant, and
    * `undefined` leaves the session's agent alone. When provided, the
-   * session is updated before the execution is created.
+   * session is updated before the run is created.
    */
   readonly agentRef?: ResourceRef | null;
-  /** Workspace entries to attach to the execution. */
+  /** Workspace entries to attach to the run. */
   readonly workspaceEntries?: WorkspaceEntryInput[];
   /** MCP server configurations to include for tool access. */
   readonly mcpServerUsages?: McpServerUsageInput[];
-  /** Skill references to enable for this execution. */
+  /** Skill references to enable for this run. */
   readonly skillRefs?: ResourceRef[];
   /**
-   * Execution-scoped secrets and configuration (Execution Flow).
+   * Execution-scoped secrets and configuration (Run Flow).
    *
-   * Values are injected into the agent sandbox for this execution only
-   * and deleted when the execution completes. They take the highest
+   * Values are injected into the agent sandbox for this run only
+   * and deleted when the run completes. They take the highest
    * merge priority, overriding every environment layer. Keys must be
    * declared in the agent's env declarations (a whitelist, not a value
    * source) or they are dropped.
    *
-   * @see {@link SharedAgentExecutionFields.runtimeEnv}
+   * @see {@link SharedAgentRunFields.runtimeEnv}
    */
   readonly runtimeEnv?: Record<string, EnvVarInput>;
   /**
-   * Pre-uploaded file attachments for this execution.
+   * Pre-uploaded file attachments for this run.
    *
    * Each entry must include a `storageKey` from
-   * `agentExecution.uploadAttachment()`. Forwarded directly to
-   * execution creation.
+   * `agentRun.uploadAttachment()`. Forwarded directly to
+   * run creation.
    *
-   * @see {@link SharedAgentExecutionFields.attachments}
+   * @see {@link SharedAgentRunFields.attachments}
    */
   readonly attachments?: AttachmentInput[];
   /**
-   * Interaction mode for this execution.
+   * Interaction mode for this run.
    *
    * - `"agent"` (default): full tool access.
    * - `"plan"`: read-only analysis, no file mutations.
@@ -113,7 +113,7 @@ export interface SendFollowUpOptions {
    * when the person chose one, `"standard"` as explicitly as `"fast"`;
    * `undefined` keeps the tier of the layer that chose the model.
    *
-   * @see {@link SharedAgentExecutionFields.serviceTier}
+   * @see {@link SharedAgentRunFields.serviceTier}
    */
   readonly serviceTier?: ServiceTierOption;
   /**
@@ -121,19 +121,19 @@ export interface SendFollowUpOptions {
    * when the person chose one, `"disabled"` as explicitly as `"enabled"`;
    * `undefined` keeps the mode of the layer that chose the model.
    *
-   * @see {@link SharedAgentExecutionFields.thinkingMode}
+   * @see {@link SharedAgentRunFields.thinkingMode}
    */
   readonly thinkingMode?: ThinkingModeOption;
   /**
-   * Marks this execution as a Build-from-plan turn.
+   * Marks this run as a Build-from-plan turn.
    *
-   * @see {@link SharedAgentExecutionFields.buildFromPlan}
+   * @see {@link SharedAgentRunFields.buildFromPlan}
    */
   readonly buildFromPlan?: boolean;
   /**
-   * Auto-approve every tool call for this execution (bypass the HITL gate).
+   * Auto-approve every tool call for this run (bypass the HITL gate).
    *
-   * @see {@link SharedAgentExecutionFields.autoApproveAll}
+   * @see {@link SharedAgentRunFields.autoApproveAll}
    */
   readonly autoApproveAll?: boolean;
   /**
@@ -142,18 +142,18 @@ export interface SendFollowUpOptions {
    * Lightweight "attention" signals — no upload, no injection. The agent
    * reads these files directly from the workspace filesystem.
    *
-   * @see {@link SharedAgentExecutionFields.workspaceFileRefs}
+   * @see {@link SharedAgentRunFields.workspaceFileRefs}
    */
   readonly workspaceFileRefs?: string[];
   /**
-   * ID of the execution this follow-up supersedes (edit-and-resubmit).
+   * ID of the run this follow-up supersedes (edit-and-resubmit).
    *
-   * The conversation read model hides the superseded execution so the
+   * The conversation read model hides the superseded run so the
    * edited message replaces the original in place.
    *
-   * @see {@link SharedAgentExecutionFields.supersedesExecutionId}
+   * @see {@link SharedAgentRunFields.supersedesRunId}
    */
-  readonly supersedesExecutionId?: string;
+  readonly supersedesRunId?: string;
 }
 
 /**
@@ -176,19 +176,19 @@ export interface UseSessionConversationReturn {
    */
   readonly org: string;
   /**
-   * Executions in terminal phases, in chronological order.
+   * Runs in terminal phases, in chronological order.
    *
-   * Excludes turns replaced via edit-and-resubmit (an execution whose id
-   * appears as another execution's `supersedesExecutionId`) — the edited
+   * Excludes turns replaced via edit-and-resubmit (a run whose id
+   * appears as another run's `supersedesRunId`) — the edited
    * message stands in the original's place. Superseded records remain in
-   * execution history surfaces; only the conversation view hides them.
+   * run history surfaces; only the conversation view hides them.
    */
-  readonly completedExecutions: readonly AgentExecution[];
-  /** Currently streaming execution (stream or fetch fallback), or null. */
-  readonly activeStreamExecution: AgentExecution | null;
-  /** Phase of the active execution, or null if none active. */
-  readonly activePhase: ExecutionPhase | null;
-  /** True while the active execution's stream is delivering updates. */
+  readonly completedRuns: readonly AgentRun[];
+  /** Currently streaming run (stream or fetch fallback), or null. */
+  readonly activeStreamRun: AgentRun | null;
+  /** Phase of the active run, or null if none active. */
+  readonly activePhase: RunPhase | null;
+  /** True while the active run's stream is delivering updates. */
   readonly isStreaming: boolean;
   /**
    * True after the stream subscription starts but before the first
@@ -199,21 +199,21 @@ export interface UseSessionConversationReturn {
   readonly isConnecting: boolean;
 
   /**
-   * Submit a follow-up message. Internally creates an execution and
+   * Submit a follow-up message. Internally creates a run and
    * starts streaming it.
    *
    * When session-level fields (`agentRef`, `workspaceEntries`,
    * `mcpServerUsages`, `skillRefs`) are provided in options, the
    * session is updated via `session.update()` before creating the
-   * execution.
+   * run.
    */
   readonly sendFollowUp: (
     message: string,
     options?: SendFollowUpOptions,
   ) => Promise<void>;
-  /** True when the input should be enabled (no active execution, not creating). */
+  /** True when the input should be enabled (no active run, not creating). */
   readonly canSendFollowUp: boolean;
-  /** True during the create RPC call (between submit and execution ID). */
+  /** True during the create RPC call (between submit and run ID). */
   readonly isSending: boolean;
   /**
    * Error from the last `sendFollowUp` attempt, or `null`.
@@ -266,7 +266,7 @@ export interface UseSessionConversationReturn {
   /** Current skill references from the session spec. Empty array when session is not loaded. */
   readonly skillRefs: readonly ProtoApiResourceReference[];
 
-  /** Pending approval requests from the active execution, empty when none. */
+  /** Pending approval requests from the active run, empty when none. */
   readonly pendingApprovals: readonly PendingApproval[];
   /** Submit an approval decision. The executionId is managed internally. */
   readonly submitApproval: (
@@ -292,7 +292,7 @@ export interface UseSessionConversationReturn {
   /** Reset every approval error (both {@link approvalErrors} and `approvalError`). */
   readonly clearApprovalError: () => void;
 
-  /** Captured change sets awaiting file review on the active execution, empty when none. */
+  /** Captured change sets awaiting file review on the active run, empty when none. */
   readonly fileChangeSets: readonly FileChangeSet[];
   /**
    * Mid-run live capture: the transient, non-authoritative snapshot of the
@@ -326,10 +326,10 @@ export interface UseSessionConversationReturn {
   readonly clearFileReviewError: () => void;
 
   /**
-   * `true` when the active execution can be stopped — i.e. it is in a phase
+   * `true` when the active run can be stopped — i.e. it is in a phase
    * the backend accepts a cancel/terminate from (`PENDING` or `IN_PROGRESS`).
    *
-   * Distinct from "is something active": an execution paused at an approval
+   * Distinct from "is something active": a run paused at an approval
    * gate (`WAITING_FOR_APPROVAL`) is active but **not** stoppable — the
    * approval card (approve / skip / reject) is its control surface. Drive the
    * composer's Stop affordance off this so it only appears when {@link stop}
@@ -337,7 +337,7 @@ export interface UseSessionConversationReturn {
    */
   readonly isStoppable: boolean;
   /**
-   * Stop the active execution, with progressive escalation: the first call
+   * Stop the active run, with progressive escalation: the first call
    * gracefully cancels; a repeat call (because the run is still winding down)
    * forcefully terminates. No-op when nothing is {@link isStoppable}.
    */
@@ -347,13 +347,13 @@ export interface UseSessionConversationReturn {
   /** Error from the last stop attempt, or `null` when healthy. */
   readonly stopError: Error | null;
 
-  /** `true` while the session or execution list is loading. */
+  /** `true` while the session or run list is loading. */
   readonly isLoading: boolean;
-  /** Error from session or execution list loading, or `null` when healthy. */
+  /** Error from session or run list loading, or `null` when healthy. */
   readonly loadError: Error | null;
 
   /**
-   * `true` while the execution stream is auto-reconnecting after a transient
+   * `true` while the run stream is auto-reconnecting after a transient
    * drop. The conversation stays visible and `streamError` remains `null` —
    * surface a subtle "Reconnecting…" hint rather than an error banner.
    */
@@ -372,26 +372,26 @@ export interface UseSessionConversationReturn {
    * usual"); cleared by the next update. Never an error.
    */
   readonly isSlow: boolean;
-  /** Error from the execution stream, or `null` when healthy or reconnecting. */
+  /** Error from the run stream, or `null` when healthy or reconnecting. */
   readonly streamError: Error | null;
-  /** Reset the stream error and re-establish the execution stream subscription. */
+  /** Reset the stream error and re-establish the run stream subscription. */
   readonly reconnectStream: () => void;
 }
 
 /**
  * Behavior hook that encapsulates the full conversation lifecycle for
- * a session: loading data, streaming the active execution, submitting
+ * a session: loading data, streaming the active run, submitting
  * follow-up messages, and updating session-level workspace entries.
  *
- * Composes {@link useSession}, {@link useSessionExecutions},
- * {@link useCreateAgentExecution}, {@link useExecutionStream}, and
+ * Composes {@link useSession}, {@link useSessionRuns},
+ * {@link useCreateAgentRun}, {@link useRunStream}, and
  * {@link useUpdateSession} into a single return value that drives
  * both {@link MessageThread} and {@link SessionComposer}.
  *
  * Platform builders get the complete conversation loop without
  * reimplementing orchestration logic.
  *
- * For local execution, this hook also owns the session's runner worker
+ * For local run, this hook also owns the session's runner worker
  * lifecycle: while the session is open it keeps a worker polling the
  * session task queue, and it tears the worker down on close. This is a
  * no-op unless a `runnerAdapter` is configured and the session runs
@@ -410,8 +410,8 @@ export interface UseSessionConversationReturn {
  *   return (
  *     <>
  *       <MessageThread
- *         executions={conv.completedExecutions}
- *         activeStreamExecution={conv.activeStreamExecution}
+ *         runs={conv.completedRuns}
+ *         activeStreamRun={conv.activeStreamRun}
  *         pendingUserMessage={conv.pendingUserMessage}
  *         onApprovalSubmit={conv.submitApproval}
  *         submittingApprovalIds={conv.submittingApprovalIds}
@@ -442,13 +442,13 @@ export function useSessionConversation(
   // back here on the next render — a one-frame lag that is immaterial at 5s.
   const [rediscoveryActive, setRediscoveryActive] = useState(false);
   const {
-    executions,
+    runs: executions,
     isLoading: executionsLoading,
     error: executionsError,
     refetch,
-  } = useSessionExecutions(sessionId, {
+  } = useSessionRuns(sessionId, {
     refetchInterval: rediscoveryActive ? REDISCOVERY_POLL_INTERVAL_MS : false,
-    // Re-list on app-relaunch / tab refocus so an execution that appeared while
+    // Re-list on app-relaunch / tab refocus so a run that appeared while
     // backgrounded is picked up without the user having to act.
     refetchOnWindowFocus: true,
   });
@@ -456,7 +456,7 @@ export function useSessionConversation(
     create,
     isCreating,
     clearError: clearCreateError,
-  } = useCreateAgentExecution();
+  } = useCreateAgentRun();
   const { update: updateSession } = useUpdateSession();
   const turnOrg = session?.metadata?.org || org;
   const {
@@ -475,7 +475,7 @@ export function useSessionConversation(
     clearError: clearFileReviewError,
   } = useFileReview();
 
-  // Local execution: attach the session's runner worker while it is open and
+  // Local run: attach the session's runner worker while it is open and
   // detach it on close. No-op for cloud sessions or when no adapter is set.
   useLocalSessionWorker(sessionId, session);
 
@@ -510,29 +510,29 @@ export function useSessionConversation(
     return null;
   }, [executions]);
 
-  const activeExecutionId = pendingExecutionId ?? listActiveId;
+  const activeRunId = pendingExecutionId ?? listActiveId;
 
-  // The conversation store is shared between useExecutionStream (which
+  // The conversation store is shared between useRunStream (which
   // ingests snapshots with structural sharing + rAF coalescing) and the
   // rendering tree. This eliminates the duplicate structuralShare that
   // was previously done in this hook.
   const conversationStore = useConversationStoreRef();
-  const stream = useExecutionStream(activeExecutionId, {
+  const stream = useRunStream(activeRunId, {
     store: conversationStore,
   });
 
   // Re-discovery gate. Poll only while the live stream cannot carry us:
-  //  • a fresh session whose first execution is created but not yet listed
+  //  • a fresh session whose first run is created but not yet listed
   //    (`executions.length === 0`) — the race this fix targets,
   //  • a silent connect-timeout, or an exhausted stream error.
-  // Never while the stream is healthy (`isStreaming`) or the active execution
+  // Never while the stream is healthy (`isStreaming`) or the active run
   // has reached a terminal phase — the live feed is then the source of truth.
   const streamTerminal =
-    activeExecutionId !== null && isTerminalPhase(stream.phase);
+    activeRunId !== null && isTerminalPhase(stream.phase);
   const needsRediscovery =
     !stream.isStreaming &&
     !streamTerminal &&
-    ((activeExecutionId === null && executions.length === 0) ||
+    ((activeRunId === null && executions.length === 0) ||
       stream.connectTimedOut ||
       stream.error !== null);
 
@@ -540,7 +540,7 @@ export function useSessionConversation(
     setRediscoveryActive(needsRediscovery);
   }, [needsRediscovery]);
 
-  // Clear pendingExecutionId once the execution appears in the fetched list
+  // Clear pendingExecutionId once the run appears in the fetched list
   useEffect(() => {
     if (
       pendingExecutionId &&
@@ -552,75 +552,75 @@ export function useSessionConversation(
 
   // Clear the optimistic message — and any stale send error — once the stream
   // delivers a real snapshot. This also handles recovery: if a failed send's
-  // execution is later re-discovered and streams, the failed turn resolves into
+  // run is later re-discovered and streams, the failed turn resolves into
   // the live one instead of lingering. (At send time the composer is only
-  // enabled when no execution is active, so a *fresh* failure cannot be cleared
+  // enabled when no run is active, so a *fresh* failure cannot be cleared
   // here prematurely — `stream.execution` is null then.)
   useEffect(() => {
-    if (!stream.execution) return;
+    if (!stream.run) return;
     if (pendingUserMessage) setPendingUserMessage(null);
     if (pendingAttachments) setPendingAttachments(null);
     if (sendError) setSendError(null);
-  }, [pendingUserMessage, pendingAttachments, sendError, stream.execution]);
+  }, [pendingUserMessage, pendingAttachments, sendError, stream.run]);
 
-  // Refetch executions when stream reaches a terminal phase so the
+  // Refetch runs when stream reaches a terminal phase so the
   // fetched list reflects the completed status and listActiveId clears.
   useEffect(() => {
-    if (activeExecutionId && isTerminalPhase(stream.phase)) {
+    if (activeRunId && isTerminalPhase(stream.phase)) {
       refetch();
     }
-  }, [activeExecutionId, stream.phase, refetch]);
+  }, [activeRunId, stream.phase, refetch]);
 
-  // Executions replaced via edit-and-resubmit (the shared conversation rule —
-  // see supersededExecutionIds in @stigmer/sdk for the why). The extra id is
+  // Runs replaced via edit-and-resubmit (the shared conversation rule —
+  // see supersededRunIds in @stigmer/sdk for the why). The extra id is
   // the live stream copy's link: right after a resubmit, the successor streams
   // before the list refetch delivers it. Display-only: the raw `executions`
   // list (and therefore active-id resolution above) is never filtered.
   //
   // Dep is the scalar link, NOT stream.execution: the stream object changes
   // reference every frame, and rebuilding the Set per frame would hand
-  // MessageThread a fresh executions array mid-stream, defeating its
+  // MessageThread a fresh runs array mid-stream, defeating its
   // memoization.
   const streamSupersededId =
-    stream.execution?.spec?.supersedesExecutionId || null;
+    stream.run?.spec?.supersedesRunId || null;
   const supersededIds = useMemo(
-    () => supersededExecutionIds(executions, streamSupersededId),
+    () => supersededRunIds(executions, streamSupersededId),
     [executions, streamSupersededId],
   );
 
-  const completedExecutions = useMemo(() => {
+  const completedRuns = useMemo(() => {
     return executions.filter((e) => {
       const id = e.metadata?.id ?? "";
-      if (activeExecutionId && id === activeExecutionId) return false;
+      if (activeRunId && id === activeRunId) return false;
       return !supersededIds.has(id);
     });
-  }, [executions, activeExecutionId, supersededIds]);
+  }, [executions, activeRunId, supersededIds]);
 
   const fetchedActiveExecution = useMemo(() => {
-    if (!activeExecutionId) return null;
+    if (!activeRunId) return null;
     return (
       executions.find(
-        (e) => (e.metadata?.id ?? "") === activeExecutionId,
+        (e) => (e.metadata?.id ?? "") === activeRunId,
       ) ?? null
     );
-  }, [executions, activeExecutionId]);
+  }, [executions, activeRunId]);
 
-  const activeStreamExecution =
-    stream.execution ?? fetchedActiveExecution;
+  const activeStreamRun =
+    stream.run ?? fetchedActiveExecution;
 
-  const activePhase = useMemo<ExecutionPhase | null>(() => {
-    if (!activeExecutionId) return null;
+  const activePhase = useMemo<RunPhase | null>(() => {
+    if (!activeRunId) return null;
     return stream.phase;
-  }, [activeExecutionId, stream.phase]);
+  }, [activeRunId, stream.phase]);
 
   // Stop is only valid in phases the backend cancels/terminates from
   // (PENDING / IN_PROGRESS). Other non-terminal phases (e.g.
   // WAITING_FOR_APPROVAL) are handled by their own control surface.
   const isStoppable =
-    activePhase === ExecutionPhase.EXECUTION_PENDING ||
-    activePhase === ExecutionPhase.EXECUTION_IN_PROGRESS;
+    activePhase === RunPhase.RUN_PENDING ||
+    activePhase === RunPhase.RUN_IN_PROGRESS;
 
-  const stopActions = useAgentExecutionActions(activeExecutionId, {
+  const stopActions = useAgentRunActions(activeRunId, {
     // The cancel/terminate also broadcasts the new phase over the stream, but
     // refetch is the belt-and-suspenders that clears the active id even if the
     // stream has already ended — mirrors the workflow viewer's onSuccess.
@@ -635,7 +635,7 @@ export function useSessionConversation(
     [isStoppable, stopActions.stop],
   );
 
-  const canSendFollowUp = !isCreating && activeExecutionId === null;
+  const canSendFollowUp = !isCreating && activeRunId === null;
 
   const workspaceEntries = useMemo<readonly ProtoWorkspaceEntry[]>(
     () => session?.spec?.workspaceEntries ?? [],
@@ -705,9 +705,9 @@ export function useSessionConversation(
           buildFromPlan: options?.buildFromPlan,
           autoApproveAll: options?.autoApproveAll,
           workspaceFileRefs: options?.workspaceFileRefs,
-          supersedesExecutionId: options?.supersedesExecutionId,
+          supersedesRunId: options?.supersedesRunId,
         });
-        setPendingExecutionId(result.executionId);
+        setPendingExecutionId(result.runId);
         refetch();
       } catch (err) {
         // Surface the failure and KEEP the user's message visible (do not clear
@@ -757,8 +757,8 @@ export function useSessionConversation(
   }, [clearCreateError]);
 
   const pendingApprovals = useMemo<readonly PendingApproval[]>(
-    () => activeStreamExecution?.status?.pendingApprovals ?? [],
-    [activeStreamExecution],
+    () => activeStreamRun?.status?.pendingApprovals ?? [],
+    [activeStreamRun],
   );
 
   const submitApproval = useCallback(
@@ -767,18 +767,18 @@ export function useSessionConversation(
       action: ApprovalAction,
       comment?: string,
     ): Promise<void> => {
-      if (!activeExecutionId) return;
-      await rawSubmitApproval(activeExecutionId, toolCallId, action, comment);
+      if (!activeRunId) return;
+      await rawSubmitApproval(activeRunId, toolCallId, action, comment);
     },
-    [activeExecutionId, rawSubmitApproval],
+    [activeRunId, rawSubmitApproval],
   );
 
   const fileChangeSets = useMemo<readonly FileChangeSet[]>(
     () =>
-      (activeStreamExecution?.status?.fileChangeSets ?? []).filter(
+      (activeStreamRun?.status?.fileChangeSets ?? []).filter(
         (cs) => cs.status === FileChangeSetStatus.AWAITING_REVIEW,
       ),
-    [activeStreamExecution],
+    [activeStreamRun],
   );
 
   // Mid-run live capture: the transient, non-authoritative "N files
@@ -787,8 +787,8 @@ export function useSessionConversation(
   // still accumulating changes. Reference-stable (it rides the
   // structurally-shared live status).
   const fileChangeProgress = useMemo<FileChangeProgress | undefined>(
-    () => activeStreamExecution?.status?.fileChangeProgress,
-    [activeStreamExecution],
+    () => activeStreamRun?.status?.fileChangeProgress,
+    [activeStreamRun],
   );
 
   const submitFileDecision = useCallback(
@@ -797,10 +797,10 @@ export function useSessionConversation(
       action: FileDecisionAction,
       options?: FileDecisionOptions,
     ): Promise<void> => {
-      if (!activeExecutionId) return;
-      await rawSubmitFileDecision(activeExecutionId, changeSetId, action, options);
+      if (!activeRunId) return;
+      await rawSubmitFileDecision(activeRunId, changeSetId, action, options);
     },
-    [activeExecutionId, rawSubmitFileDecision],
+    [activeRunId, rawSubmitFileDecision],
   );
 
   const isLoading = sessionLoading || executionsLoading;
@@ -809,8 +809,8 @@ export function useSessionConversation(
   return {
     session,
     org: turnOrg,
-    completedExecutions,
-    activeStreamExecution,
+    completedRuns,
+    activeStreamRun,
     activePhase,
     isStreaming: stream.isStreaming,
     isConnecting: stream.isConnecting,

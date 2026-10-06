@@ -111,7 +111,7 @@ describe("cross-harness naming parity", () => {
       contentType: "text/plain",
       extract: false,
       localPath: "",
-      $typeName: "ai.stigmer.agentic.agentexecution.v1.Attachment" as const,
+      $typeName: "ai.stigmer.agentic.agentrun.v1.Attachment" as const,
       $unknown: undefined,
     } as any;
   }

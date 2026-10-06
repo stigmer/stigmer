@@ -56,7 +56,7 @@ import { ACCOUNT_TYPE, formatObjectRef, isPerson, pairKey } from "./tuples.js";
 /**
  * OpenFGA's default resolution-depth limit (its `resolveNodeLimit`), so
  * the bound here is the oracle's own and not a number chosen locally. The
- * deepest real chain in the model is under ten: a run's `execution_viewer
+ * deepest real chain in the model is under ten: a run's `run_viewer
  * from workflow` to its workflow, the workflow's `organization#viewer`
  * userset, then the organization's four-rung ladder.
  */

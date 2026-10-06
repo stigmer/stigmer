@@ -42,9 +42,9 @@ class ArtifactClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def list_by_execution(self, input: io_pb2.ListArtifactsByExecutionRequest) -> io_pb2.ArtifactList:
+    def list_by_run(self, input: io_pb2.ListArtifactsByRunRequest) -> io_pb2.ArtifactList:
         try:
-            return self._query.listByExecution(input)
+            return self._query.listByRun(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -109,14 +109,14 @@ class ArtifactInput:
 class ArtifactSourceInput:
     """SDK input type for ArtifactSource."""
 
-    workflow_execution_id: str = ""
-    agent_execution_id: str = ""
+    workflow_run_id: str = ""
+    agent_run_id: str = ""
     task_name: str = ""
 
     def _to_proto(self) -> spec_pb2.ArtifactSource:
         msg = spec_pb2.ArtifactSource(
-            workflow_execution_id=self.workflow_execution_id,
-            agent_execution_id=self.agent_execution_id,
+            workflow_run_id=self.workflow_run_id,
+            agent_run_id=self.agent_run_id,
             task_name=self.task_name,
         )
         return msg

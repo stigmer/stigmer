@@ -1341,7 +1341,7 @@
         "type": "object"
       },
       "outputJsonSchema": {
-        "description": "Output from the child workflow execution.",
+        "description": "Output from the child workflow run.",
         "type": "object"
       },
       "yamlExamples": [
@@ -1418,7 +1418,7 @@
         {
           "name": "harness",
           "displayName": "Harness",
-          "description": "Execution harness for the agent invocation. Determines which execution engine processes the agent call: - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph) - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor) The runner creates a Session with this harness before creating the AgentExecution. The harness is a session-level concern — it determines tool availability, state management, model access, and billing tier. When unspecified: native when run_config names a model (the engine the model was checked against at save), else the agent's own engine (AgentSpec.harness), else native. YAML Example: - code_review: call: agent with: agent: \"code-reviewer\" harness: cursor message: \"Review this PR\"",
+          "description": "Execution harness for the agent invocation. Determines which execution engine processes the agent call: - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph) - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor) The runner creates a Session with this harness before creating the AgentRun. The harness is a session-level concern — it determines tool availability, state management, model access, and billing tier. When unspecified: native when run_config names a model (the engine the model was checked against at save), else the agent's own engine (AgentSpec.harness), else native. YAML Example: - code_review: call: agent with: agent: \"code-reviewer\" harness: cursor message: \"Review this PR\"",
           "type": "enum",
           "required": false,
           "enumValues": [
@@ -1502,7 +1502,7 @@
                     "organization",
                     "platform",
                     "agent",
-                    "agent_execution",
+                    "agent_run",
                     "session",
                     "skill",
                     "mcp_server",
@@ -1510,7 +1510,7 @@
                     "agent_channel",
                     "channel_app",
                     "workflow",
-                    "workflow_execution",
+                    "workflow_run",
                     "environment",
                     "artifact",
                     "execution_context",
@@ -1550,7 +1550,7 @@
             "type": "array"
           },
           "harness": {
-            "description": "Execution harness for the agent invocation. Determines which execution engine processes the agent call: - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph) - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor) The runner creates a Session with this harness before creating the AgentExecution. The harness is a session-level concern — it determines tool availability, state management, model access, and billing tier. When unspecified: native when run_config names a model (the engine the model was checked against at save), else the agent's own engine (AgentSpec.harness), else native. YAML Example: - code_review: call: agent with: agent: \"code-reviewer\" harness: cursor message: \"Review this PR\"",
+            "description": "Execution harness for the agent invocation. Determines which execution engine processes the agent call: - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph) - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor) The runner creates a Session with this harness before creating the AgentRun. The harness is a session-level concern — it determines tool availability, state management, model access, and billing tier. When unspecified: native when run_config names a model (the engine the model was checked against at save), else the agent's own engine (AgentSpec.harness), else native. YAML Example: - code_review: call: agent with: agent: \"code-reviewer\" harness: cursor message: \"Review this PR\"",
             "enum": [
               "HARNESS_NATIVE",
               "HARNESS_CURSOR"
@@ -1600,7 +1600,7 @@
             "description": "Per-call model choice and run bounds. Unset fields fall to the agent's defaults (RunConfig has the rule).",
             "properties": {
               "max_cost_usd": {
-                "description": "Maximum estimated cost in USD per run. When the run's estimated spend reaches this limit, the run stops with a \"send another message to continue\" prompt and ends TERMINATED; the work done so far is kept. The limit is checked each time the engine reports its spend, so a run can end somewhat above it. The native harness reports after every model call, counts a sub-agent's spend toward the limit, and advises the agent to wrap up at about 80% of the budget; the Cursor harness gives no warning. 0 = not set at this layer. The budget is per message: a follow-up message, or a run resuming after an approval, starts a fresh count. The spend is the runner's estimate, reported on AgentExecutionStatus.streaming_usage.estimated_cost_usd, not the billed amount.",
+                "description": "Maximum estimated cost in USD per run. When the run's estimated spend reaches this limit, the run stops with a \"send another message to continue\" prompt and ends TERMINATED; the work done so far is kept. The limit is checked each time the engine reports its spend, so a run can end somewhat above it. The native harness reports after every model call, counts a sub-agent's spend toward the limit, and advises the agent to wrap up at about 80% of the budget; the Cursor harness gives no warning. 0 = not set at this layer. The budget is per message: a follow-up message, or a run resuming after an approval, starts a fresh count. The spend is the runner's estimate, reported on AgentRunStatus.streaming_usage.estimated_cost_usd, not the billed amount.",
                 "type": "number"
               },
               "max_tool_result_chars": {
@@ -1713,10 +1713,10 @@
         "type": "object"
       },
       "outputJsonSchema": {
-        "description": "Agent execution result with dual-channel output.",
+        "description": "Agent run result with dual-channel output.",
         "properties": {
-          "agent_execution_id": {
-            "description": "Execution ID for drill-down into agent trace.",
+          "agent_run_id": {
+            "description": "Agent run ID for drill-down into the agent trace.",
             "type": "string"
           },
           "final_text": {
@@ -2148,7 +2148,7 @@
         {
           "name": "outcomes",
           "displayName": "Outcomes",
-          "description": "Named outcomes that the reviewer can select. Each outcome represents a decision the reviewer can make, with optional routing to a different downstream task. This enables rich branching beyond binary approve/deny. When empty, the task defaults to binary behavior: - \"approve\": task completes, workflow continues to next task - \"deny\": task fails (enters try_catch or EXECUTION_FAILED) When custom outcomes are defined, the first outcome is used as the default for HUMAN_INPUT_TIMEOUT_APPROVE, and the last outcome is used as the default for HUMAN_INPUT_TIMEOUT_DENY.",
+          "description": "Named outcomes that the reviewer can select. Each outcome represents a decision the reviewer can make, with optional routing to a different downstream task. This enables rich branching beyond binary approve/deny. When empty, the task defaults to binary behavior: - \"approve\": task completes, workflow continues to next task - \"deny\": task fails (enters try_catch or RUN_FAILED) When custom outcomes are defined, the first outcome is used as the default for HUMAN_INPUT_TIMEOUT_APPROVE, and the last outcome is used as the default for HUMAN_INPUT_TIMEOUT_DENY.",
           "type": "repeated",
           "required": false,
           "groupId": "core",
@@ -2273,7 +2273,7 @@
             "type": "string"
           },
           "outcomes": {
-            "description": "Named outcomes that the reviewer can select. Each outcome represents a decision the reviewer can make, with optional routing to a different downstream task. This enables rich branching beyond binary approve/deny. When empty, the task defaults to binary behavior: - \"approve\": task completes, workflow continues to next task - \"deny\": task fails (enters try_catch or EXECUTION_FAILED) When custom outcomes are defined, the first outcome is used as the default for HUMAN_INPUT_TIMEOUT_APPROVE, and the last outcome is used as the default for HUMAN_INPUT_TIMEOUT_DENY.",
+            "description": "Named outcomes that the reviewer can select. Each outcome represents a decision the reviewer can make, with optional routing to a different downstream task. This enables rich branching beyond binary approve/deny. When empty, the task defaults to binary behavior: - \"approve\": task completes, workflow continues to next task - \"deny\": task fails (enters try_catch or RUN_FAILED) When custom outcomes are defined, the first outcome is used as the default for HUMAN_INPUT_TIMEOUT_APPROVE, and the last outcome is used as the default for HUMAN_INPUT_TIMEOUT_DENY.",
             "items": {
               "additionalProperties": false,
               "properties": {
@@ -2617,10 +2617,10 @@
               "properties": {
                 "signal": {
                   "additionalProperties": false,
-                  "description": "Signal another workflow execution's listen task.",
+                  "description": "Signal another workflow run's listen task.",
                   "properties": {
-                    "execution_id": {
-                      "description": "Target workflow execution id (\"wfx_...\"), as returned by run/create. Usually flows from a prior task's output: \"${ .start_processor.execution_id }\"",
+                    "run_id": {
+                      "description": "Target workflow run id (\"wex_...\"), as returned by run/create. Usually flows from a prior task's output: \"${ .start_processor.run_id }\"",
                       "minLength": 1,
                       "type": "string"
                     },
@@ -2631,7 +2631,7 @@
                     }
                   },
                   "required": [
-                    "execution_id",
+                    "run_id",
                     "signal_name"
                   ],
                   "type": "object"
@@ -2672,7 +2672,7 @@
                 "type": "object"
               },
               "source": {
-                "description": "CloudEvents source identifier. URI or URI-reference that identifies the context in which the event happened. Supports ${ } expression interpolation. When empty, the runtime defaults to the workflow execution URI (e.g., \"/workflows/{workflow_id}/executions/{execution_id}\").",
+                "description": "CloudEvents source identifier. URI or URI-reference that identifies the context in which the event happened. Supports ${ } expression interpolation. When empty, the runtime defaults to the workflow run URI (e.g., \"/workflows/runs/{run_id}\").",
                 "type": "string"
               },
               "subject": {
@@ -2720,6 +2720,7 @@
             "type": "string"
           },
           "source": {
+            "description": "Event source; defaults to the workflow run URI, /workflows/runs/\u003crun id\u003e.",
             "type": "string"
           },
           "specversion": {
@@ -2741,7 +2742,7 @@
       },
       "yamlExamples": [
         "- name: notify_classified\n  kind: emit_event\n  task_config:\n    event:\n      type: \"stigmer.workflow.ticket.classified\"\n      subject: \"${ $context.ticket.id }\"\n      data:\n        ticket_id: \"${ $context.ticket.id }\"\n        severity: \"${ $context.triage.severity }\"\n        category: \"${ $context.triage.category }\"\n  export:\n    as: \"${ . }\"\n",
-        "- name: notify_downstream\n  kind: emit_event\n  task_config:\n    event:\n      type: \"acme.order.fulfilled\"\n      subject: \"${ $context.order.number }\"\n      data:\n        order_id: \"${ $context.order.id }\"\n    delivery:\n      - webhook:\n          url: \"https://hooks.acme.com/orders\"\n          headers:\n            Authorization: \"Bearer ${.secrets.ACME_HOOK_TOKEN}\"\n      - signal:\n          execution_id: \"${ .start_shipping.execution_id }\"\n          signal_name: \"order-fulfilled\"\n"
+        "- name: notify_downstream\n  kind: emit_event\n  task_config:\n    event:\n      type: \"acme.order.fulfilled\"\n      subject: \"${ $context.order.number }\"\n      data:\n        order_id: \"${ $context.order.id }\"\n    delivery:\n      - webhook:\n          url: \"https://hooks.acme.com/orders\"\n          headers:\n            Authorization: \"Bearer ${.secrets.ACME_HOOK_TOKEN}\"\n      - signal:\n          run_id: \"${ .start_shipping.run_id }\"\n          signal_name: \"order-fulfilled\"\n"
       ],
       "documentationUrl": "/docs/guides/workflows/task-types/emit-event",
       "isAiNative": false,

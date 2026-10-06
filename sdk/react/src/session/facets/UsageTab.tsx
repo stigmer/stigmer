@@ -1,20 +1,20 @@
 "use client";
 
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { useSessionUsage, type ExecutionUsageEntry } from "../useSessionUsage.js";
-import { UsageWidget, formatCost } from "../../execution/UsageWidget.js";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { useSessionUsage, type RunUsageEntry } from "../useSessionUsage.js";
+import { UsageWidget, formatCost } from "../../run/UsageWidget.js";
 import { FacetSection } from "./primitives.js";
 
 export interface UsageTabProps {
-  readonly executions: readonly AgentExecution[];
+  readonly runs: readonly AgentRun[];
 }
 
 /**
  * Usage facet for the session panel (a `useSessionRailViews` rail view).
  *
  * Renders the session totals ({@link UsageWidget}) plus the #362 model
- * provenance list: per execution, the billing-RESOLVED model with its
+ * provenance list: per run, the billing-RESOLVED model with its
  * cost — for a Cursor Auto run, the only honest answer to "which model
  * actually ran and what did it cost", since the requested model is empty
  * by definition there — paired with the tier the runner REQUESTED (the
@@ -25,7 +25,7 @@ export interface UsageTabProps {
  * Rendered in the session panel's shared facet vocabulary (see
  * `./primitives.tsx`). Shows an empty state when no usage data is available.
  */
-export function UsageTab({ executions }: UsageTabProps) {
+export function UsageTab({ runs: executions }: UsageTabProps) {
   const usage = useSessionUsage(executions);
 
   if (!usage.hasUsage) {
@@ -40,10 +40,10 @@ export function UsageTab({ executions }: UsageTabProps) {
 
   return (
     <div className="stg:flex stg:flex-col stg:gap-5">
-      <UsageWidget executions={executions} />
-      {usage.executionBreakdown.length > 0 && (
+      <UsageWidget runs={executions} />
+      {usage.runBreakdown.length > 0 && (
         <ExecutionModelList
-          entries={usage.executionBreakdown}
+          entries={usage.runBreakdown}
           executions={executions}
         />
       )}
@@ -59,17 +59,17 @@ function ExecutionModelList({
   entries,
   executions,
 }: {
-  readonly entries: readonly ExecutionUsageEntry[];
-  readonly executions: readonly AgentExecution[];
+  readonly entries: readonly RunUsageEntry[];
+  readonly executions: readonly AgentRun[];
 }) {
   return (
     <FacetSection heading="Models per run">
-      <div role="list" aria-label="Per-execution model and tier" className="stg:flex stg:flex-col">
+      <div role="list" aria-label="Per-run model and tier" className="stg:flex stg:flex-col">
         {entries.map((entry, index) => {
-          const requestedTier = requestedTierLabel(executions, entry.executionId);
+          const requestedTier = requestedTierLabel(executions, entry.runId);
           return (
             <div
-              key={entry.executionId}
+              key={entry.runId}
               className="stg:flex stg:items-baseline stg:justify-between stg:gap-2 stg:px-2 stg:py-1 stg:text-xs"
               role="listitem"
             >
@@ -102,14 +102,14 @@ function RowBadge({ children }: { readonly children: React.ReactNode }) {
 }
 
 /**
- * The tier the runner requested for one execution, from its streaming
- * usage summary — present once the runner has translated the execution
- * config, absent for executions that predate the tier attribute. Never
+ * The tier the runner requested for one run, from its streaming
+ * usage summary — present once the runner has translated the run
+ * config, absent for runs that predate the tier attribute. Never
  * "unspecified": the runner records the RESOLVED tier (#357's audit
  * contract).
  */
 function requestedTierLabel(
-  executions: readonly AgentExecution[],
+  executions: readonly AgentRun[],
   executionId: string,
 ): string | null {
   const match = executions.find((e) => e.metadata?.id === executionId);

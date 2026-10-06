@@ -31,7 +31,7 @@ export interface NodeActionsProps {
  * - Hover add-successor button (bottom-center)
  * - TaskPickerPopover for adding downstream nodes
  *
- * This component is only relevant in design mode; overview and execution
+ * This component is only relevant in design mode; overview and run
  * modes should not render it.
  */
 export const NodeActions = memo(function NodeActions({

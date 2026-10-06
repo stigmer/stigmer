@@ -103,7 +103,7 @@ const AGENT_DEFAULTS: AgentRunDefaults = {
 
 function createWrapper() {
   const client = {
-    agentExecution: { uploadAttachment: vi.fn() },
+    agentRun: { uploadAttachment: vi.fn() },
     environment: { getPersonal: vi.fn().mockResolvedValue(null) },
     baseUrl: "http://localhost:8080",
     getAuthCredential: vi.fn().mockResolvedValue("test-token"),

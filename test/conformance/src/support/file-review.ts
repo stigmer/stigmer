@@ -4,7 +4,7 @@
 // A turn that edits files in a git workspace does not gate per tool call: the
 // runner captures the whole delta at the turn boundary and the server projects
 // it onto status.file_change_sets as a FileChangeSet AWAITING_REVIEW while the
-// execution sits in EXECUTION_WAITING_FOR_APPROVAL with ZERO pending_approvals
+// execution sits in RUN_WAITING_FOR_APPROVAL with ZERO pending_approvals
 // (the two gates are siblings, not one). Decisions go through
 // submitFileDecision at FILE or CHANGE_SET scope, bound to the digest the
 // reviewer saw; the runner reconciles the approved bytes and the ledger records
@@ -31,22 +31,22 @@
 // files". Every progress wait records the distinct snapshots it saw and puts
 // them in its failure message, because the sequence (say 0 -> 1 -> 3) is the
 // diagnosis a bare timeout hides.
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   FileChangeKind,
   FileChangeSetStatus,
   FileDecisionAction,
   FileDecisionScope,
   FileReviewEventType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type {
   CapturedFileChange,
   FileChangeProgress,
   FileChangeProgressEntry,
   FileChangeSet,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
 import type { ConformanceClients } from "../harness/clients";
-import { isTerminalPhase, pollExecution, type PollOptions } from "./agentexecutions";
+import { isTerminalPhase, pollExecution, type PollOptions } from "./agentruns";
 
 // Polls until a change set is offered for review. Fails — with the phase — if
 // the execution ends first (the agent edited nothing, or every edit landed on a
@@ -56,7 +56,7 @@ export function awaitFileReview(
   clients: ConformanceClients,
   executionId: string,
   opts: PollOptions = {},
-): Promise<AgentExecution> {
+): Promise<AgentRun> {
   return pollExecution(
     clients,
     executionId,
@@ -119,7 +119,7 @@ export async function awaitFileChangeProgress(
   executionId: string,
   settled: (progress: FileChangeProgress) => boolean,
   opts: PollOptions = {},
-): Promise<AgentExecution> {
+): Promise<AgentRun> {
   const trace = new ProgressTrace();
   try {
     return await pollExecution(
@@ -154,7 +154,7 @@ export function awaitProgressEntries(
   executionId: string,
   expected: readonly ExpectedProgressEntry[],
   opts: PollOptions = {},
-): Promise<AgentExecution> {
+): Promise<AgentRun> {
   const label = `a mid-run file_change_progress snapshot carrying ${expected.map((e) => e.path).join(", ")}`;
   return awaitFileChangeProgress(clients, executionId, (p) => progressCarries(p, expected), { label, ...opts });
 }
@@ -190,13 +190,13 @@ function renderProgress(progress: FileChangeProgress): string {
 
 // The first projected change set in `status`, if any — the file-review analogue
 // of scanning pending_approvals.
-export function findChangeSet(exec: AgentExecution, status: FileChangeSetStatus): FileChangeSet | undefined {
+export function findChangeSet(exec: AgentRun, status: FileChangeSetStatus): FileChangeSet | undefined {
   return exec.status?.fileChangeSets.find((set) => set.status === status);
 }
 
 // The set AWAITING_REVIEW, which every decide-and-continue arm starts from;
 // throws when absent so an assertion never dereferences a missing set.
-export function requireReviewSet(exec: AgentExecution): FileChangeSet {
+export function requireReviewSet(exec: AgentRun): FileChangeSet {
   const set = findChangeSet(exec, FileChangeSetStatus.AWAITING_REVIEW);
   if (set === undefined) {
     throw new Error(
@@ -242,10 +242,10 @@ export function submitFileDecisionByPath(
   path: string,
   action: FileDecisionAction,
   opts: FileDecisionOptions = {},
-): Promise<AgentExecution> {
+): Promise<AgentRun> {
   const change = requireChangeByPath(set, path);
   return clients.agentExecutionCommand.submitFileDecision({
-    agentExecutionId: executionId,
+    agentRunId: executionId,
     changeSetId: set.id,
     scope: FileDecisionScope.FILE,
     fileChangeId: change.id,
@@ -263,9 +263,9 @@ export function submitChangeSetDecision(
   set: FileChangeSet,
   action: FileDecisionAction,
   opts: FileDecisionOptions = {},
-): Promise<AgentExecution> {
+): Promise<AgentRun> {
   return clients.agentExecutionCommand.submitFileDecision({
-    agentExecutionId: executionId,
+    agentRunId: executionId,
     changeSetId: set.id,
     scope: FileDecisionScope.CHANGE_SET,
     action,
@@ -279,7 +279,7 @@ export function submitChangeSetDecision(
 // omitted). The ledger is the source of truth the projection is derived from,
 // so RECONCILED here is the proof the runner applied the decision.
 export function fileReviewStreamHas(
-  exec: AgentExecution,
+  exec: AgentRun,
   type: FileReviewEventType,
   changeSetId?: string,
 ): boolean {
@@ -295,7 +295,7 @@ export function fileReviewStreamHas(
 // principal it authorized, the same id it stamps as created_by on what that
 // caller creates, so a suite compares the two without knowing the edition's
 // identity scheme.
-export function fileReviewersOf(exec: AgentExecution, changeSetId: string): string[] {
+export function fileReviewersOf(exec: AgentRun, changeSetId: string): string[] {
   return (exec.status?.fileReviewEventStream?.events ?? []).flatMap((event) =>
     event.eventType === FileReviewEventType.FILE_DECIDED &&
     event.changeSetId === changeSetId &&

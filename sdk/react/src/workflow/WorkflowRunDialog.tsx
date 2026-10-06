@@ -28,8 +28,8 @@ export interface WorkflowRunDialogProps {
   /** The workflow to run. */
   readonly workflow: Workflow;
   /**
-   * Called after the execution is created successfully.
-   * Receives the execution ID — use for navigation.
+   * Called after the run is created successfully.
+   * Receives the run ID — use for navigation.
    */
   readonly onSuccess: (executionId: string) => void;
   /**
@@ -40,7 +40,7 @@ export interface WorkflowRunDialogProps {
 }
 
 /**
- * Dialog for running a workflow execution.
+ * Dialog for running a workflow run.
  *
  * Composes {@link useRunWorkflowFlow} with {@link WorkflowRunForm}
  * inside a native `<dialog>` element. Manages the full lifecycle:
@@ -60,7 +60,7 @@ export interface WorkflowRunDialogProps {
  *   onOpenChange={setShowRunDialog}
  *   org="acme"
  *   workflow={workflow}
- *   onSuccess={(id) => router.push(`/workflows/executions/${id}`)}
+ *   onSuccess={(id) => router.push(`/runs/${id}`)}
  *   onError={(msg) => toast.error(msg)}
  * />
  * ```
@@ -112,7 +112,7 @@ export function WorkflowRunDialog({
             Run {workflowName}
           </h3>
           <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
-            Configure inputs and start a new execution
+            Configure inputs and start a new run
           </p>
         </div>
 

@@ -29,3 +29,66 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
+  # One pull request renames agent and workflow executions to runs: the
+  # agentexecution/v1 and workflowexecution/v1 packages move to agentrun/v1
+  # and workflowrun/v1, and every message, enum, value, field, service and RPC
+  # that names a run says run, with every field and value number kept. It is
+  # made before launch: the release notes name every change under Upgrading.
+  # This block exists for that one pull request. While it stays, buf breaking
+  # does not report these rules on the listed files, so the pull request that
+  # removes it lands straight after the merge
+  # (https://github.com/stigmer/stigmer/issues/1961).
+  ignore_only:
+    ENUM_NO_DELETE:
+      - ai/stigmer/agentic/workflow/v1/enum.proto
+      - ai/stigmer/billing/v1/enum.proto
+    ENUM_VALUE_SAME_NAME:
+      - ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto
+      - ai/stigmer/iam/v1/enum.proto
+    FIELD_SAME_JSON_NAME:
+      - ai/stigmer/agentic/agentchannel/v1/delivery.proto
+      - ai/stigmer/agentic/artifact/v1/spec.proto
+      - ai/stigmer/agentic/memory/v1/spec.proto
+      - ai/stigmer/agentic/schedule/v1/io.proto
+      - ai/stigmer/agentic/schedule/v1/status.proto
+      - ai/stigmer/agentic/workflow/v1/spec.proto
+      - ai/stigmer/agentic/workflow/v1/tasks/emit_event.proto
+      - ai/stigmer/billing/v1/credit.proto
+      - ai/stigmer/billing/v1/io.proto
+      - ai/stigmer/platform/v1/server_info.proto
+    FIELD_SAME_NAME:
+      - ai/stigmer/agentic/agentchannel/v1/delivery.proto
+      - ai/stigmer/agentic/artifact/v1/spec.proto
+      - ai/stigmer/agentic/memory/v1/spec.proto
+      - ai/stigmer/agentic/schedule/v1/io.proto
+      - ai/stigmer/agentic/schedule/v1/status.proto
+      - ai/stigmer/agentic/workflow/v1/spec.proto
+      - ai/stigmer/agentic/workflow/v1/tasks/emit_event.proto
+      - ai/stigmer/billing/v1/credit.proto
+      - ai/stigmer/billing/v1/io.proto
+      - ai/stigmer/platform/v1/server_info.proto
+    FIELD_SAME_TYPE:
+      - ai/stigmer/agentic/agent/v1/spec.proto
+      - ai/stigmer/agentic/agentchannel/v1/spec.proto
+      - ai/stigmer/agentic/agentshare/v1/spec.proto
+      - ai/stigmer/agentic/schedule/v1/spec.proto
+      - ai/stigmer/agentic/workflow/v1/spec.proto
+      - ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto
+      - ai/stigmer/billing/v1/io.proto
+    FILE_NO_DELETE:
+      - ai/stigmer/agentic/agentexecution
+      - ai/stigmer/agentic/workflowexecution
+    MESSAGE_NO_DELETE:
+      - ai/stigmer/agentic/artifact/v1/io.proto
+      - ai/stigmer/agentic/skill/v1/io.proto
+      - ai/stigmer/agentic/workflow/v1/io.proto
+      - ai/stigmer/billing/v1/credit.proto
+      - ai/stigmer/billing/v1/io.proto
+    RPC_NO_DELETE:
+      - ai/stigmer/agentic/artifact/v1/query.proto
+      - ai/stigmer/agentic/skill/v1/command.proto
+      - ai/stigmer/agentic/workflow/v1/command.proto
+      - ai/stigmer/billing/v1/command.proto
+      - ai/stigmer/billing/v1/query.proto
+    RPC_SAME_RESPONSE_TYPE:
+      - ai/stigmer/billing/v1/command.proto

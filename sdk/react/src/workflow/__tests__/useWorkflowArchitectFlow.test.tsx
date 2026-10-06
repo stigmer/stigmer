@@ -4,11 +4,11 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 vi.mock("../../session/useCreateSession", () => ({
   useCreateSession: vi.fn(),
 }));
-vi.mock("../../execution/useCreateAgentExecution", () => ({
-  useCreateAgentExecution: vi.fn(),
+vi.mock("../../run/useCreateAgentRun", () => ({
+  useCreateAgentRun: vi.fn(),
 }));
-vi.mock("../../execution/useExecutionStream", () => ({
-  useExecutionStream: vi.fn(),
+vi.mock("../../run/useRunStream", () => ({
+  useRunStream: vi.fn(),
 }));
 vi.mock("../../internal/store", () => ({
   useConversationStoreRef: vi.fn(() => ({ current: null })),
@@ -22,8 +22,8 @@ vi.mock("../serialize-workflow-yaml", () => ({
 
 import { useWorkflowArchitectFlow } from "../useWorkflowArchitectFlow";
 import { useCreateSession } from "../../session/useCreateSession";
-import { useCreateAgentExecution } from "../../execution/useCreateAgentExecution";
-import { useExecutionStream } from "../../execution/useExecutionStream";
+import { useCreateAgentRun } from "../../run/useCreateAgentRun";
+import { useRunStream } from "../../run/useRunStream";
 import { useStigmer } from "../../hooks";
 import { parseWorkflowYaml } from "../serialize-workflow-yaml";
 
@@ -59,7 +59,7 @@ function makeExecutionWithStructuredOutput(structured: Record<string, unknown>) 
 
 function defaultStreamReturn(overrides: Record<string, unknown> = {}) {
   return {
-    execution: null,
+    run: null,
     phase: 0,
     isStreaming: false,
     isConnecting: false,
@@ -81,7 +81,7 @@ describe("useWorkflowArchitectFlow", () => {
     vi.clearAllMocks();
 
     mockCreateSession.mockResolvedValue({ sessionId: "sess-123" });
-    mockCreateExecution.mockResolvedValue({ executionId: "exec-456" });
+    mockCreateExecution.mockResolvedValue({ runId: "exec-456" });
     mockApply.mockResolvedValue({
       metadata: { org: "test-org", slug: "generated-workflow" },
     });
@@ -92,13 +92,13 @@ describe("useWorkflowArchitectFlow", () => {
       error: null,
       clearError: vi.fn(),
     });
-    (useCreateAgentExecution as ReturnType<typeof vi.fn>).mockReturnValue({
+    (useCreateAgentRun as ReturnType<typeof vi.fn>).mockReturnValue({
       create: mockCreateExecution,
       isCreating: false,
       error: null,
       clearError: vi.fn(),
     });
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue(
       defaultStreamReturn(),
     );
     (useStigmer as ReturnType<typeof vi.fn>).mockReturnValue({
@@ -234,10 +234,10 @@ describe("useWorkflowArchitectFlow", () => {
     expect(result.current.phase).toBe("streaming");
 
     const yamlContent = "apiVersion: v1\nname: generated-workflow";
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue(
       defaultStreamReturn({
         phase: 4,
-        execution: makeExecution(yamlContent),
+        run: makeExecution(yamlContent),
         isStreaming: false,
       }),
     );
@@ -263,10 +263,10 @@ describe("useWorkflowArchitectFlow", () => {
       await result.current.generate();
     });
 
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue(
       defaultStreamReturn({
         phase: 4,
-        execution: makeExecution(),
+        run: makeExecution(),
         isStreaming: false,
       }),
     );
@@ -293,7 +293,7 @@ describe("useWorkflowArchitectFlow", () => {
       await result.current.generate();
     });
 
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue(
       defaultStreamReturn({
         error: new Error("WebSocket closed"),
       }),
@@ -341,10 +341,10 @@ describe("useWorkflowArchitectFlow", () => {
     });
 
     const yamlContent = "apiVersion: v1\nname: generated-workflow";
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue(
       defaultStreamReturn({
         phase: 4,
-        execution: makeExecution(yamlContent),
+        run: makeExecution(yamlContent),
         isStreaming: false,
       }),
     );
@@ -380,10 +380,10 @@ describe("useWorkflowArchitectFlow", () => {
     });
 
     const yamlContent = "apiVersion: v1\nname: generated-workflow";
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue(
       defaultStreamReturn({
         phase: 4,
-        execution: makeExecution(yamlContent),
+        run: makeExecution(yamlContent),
         isStreaming: false,
       }),
     );
@@ -415,10 +415,10 @@ describe("useWorkflowArchitectFlow", () => {
     });
 
     const yamlContent = "apiVersion: v1\nname: generated-workflow";
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue(
       defaultStreamReturn({
         phase: 4,
-        execution: makeExecution(yamlContent),
+        run: makeExecution(yamlContent),
         isStreaming: false,
       }),
     );
@@ -452,10 +452,10 @@ describe("useWorkflowArchitectFlow", () => {
     });
 
     const yamlContent = "apiVersion: v1\nname: from-structured";
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue(
       defaultStreamReturn({
         phase: 4,
-        execution: makeExecutionWithStructuredOutput({
+        run: makeExecutionWithStructuredOutput({
           action: "generated_yaml",
           yaml: yamlContent,
           explanation: "Created a user onboarding workflow.",
@@ -486,10 +486,10 @@ describe("useWorkflowArchitectFlow", () => {
       await result.current.generate();
     });
 
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue(
       defaultStreamReturn({
         phase: 4,
-        execution: makeExecutionWithStructuredOutput({
+        run: makeExecutionWithStructuredOutput({
           action: "clarification",
           explanation: "Which organization should own this workflow?",
         }),
@@ -519,10 +519,10 @@ describe("useWorkflowArchitectFlow", () => {
     });
 
     const yamlContent = "apiVersion: v1\nname: from-regex";
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue(
       defaultStreamReturn({
         phase: 4,
-        execution: makeExecution(yamlContent),
+        run: makeExecution(yamlContent),
         isStreaming: false,
       }),
     );

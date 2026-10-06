@@ -1,0 +1,236 @@
+import { test, expect } from "../../fixtures";
+import {
+  startNewSession,
+  sendFollowUp,
+  waitForAIResponse,
+  getAIResponses,
+  getUserMessages,
+  getMessageThread,
+  getSessionComposer,
+  assertComposerDisabled,
+  assertComposerEnabled,
+  START_SESSION_WAITS_MS,
+} from "../../helpers/session";
+import {
+  enqueueCannedTextTurns,
+  getMockControlUrl,
+} from "../../helpers/mock-llm-control";
+import { ensureDefaultOrg } from "../../fixtures/seed-helpers";
+import { assertNoErrorBoundary } from "../../helpers/navigation";
+
+const HAS_LLM_KEY = !!(
+  process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY
+);
+
+// Simulated model latency for every canned turn in this file: these tests
+// assert MID-execution states (disabled composer), so the run must stay
+// observable for longer than the page needs to reflect it — a zero-latency
+// turn can complete before the UI ever shows the run (stigmer/stigmer#743).
+const TURN_DELAY_MS = 2_000;
+
+/**
+ * How long one wait on a turn may take on a loaded runner: every wait for a
+ * response, a response count or a settled response passes it. Note that
+ * `waitForAIResponse` (helpers/session.ts) spends it twice, once for the
+ * response to appear and once for it to settle, so one call is two turn
+ * waits.
+ */
+const TURN_BUDGET_MS = 90_000;
+
+/** `startNewSession`'s own waits (the composer, then the session's URL), read from the helper. */
+const SESSION_START_MS = START_SESSION_WAITS_MS.composer + START_SESSION_WAITS_MS.sessionUrl;
+
+/**
+ * The case budget, derived from the turn and session waits (the short waits
+ * are tallied below, so a change to them must move this too)
+ * (#1563: every case waited up to 90 s under Playwright's 30 s default, so a
+ * slow turn failed as a test timeout while its own wait was in budget). The
+ * follow-up case waits longest: a session start, four turn waits (one
+ * `waitForAIResponse`, then the response count and the settled response),
+ * and its bounded short waits (30 s together: the error-boundary check, two
+ * composer checks at 5 s each, the user message at 10 s, one more composer
+ * check). The 60 s allowance covers those and the steps that carry no bound
+ * of their own (navigation, fills, clicks, the agent fixture). The
+ * pasted-screenshot case makes three turn waits and about 65 s of bounded
+ * short waits, inside the same budget. A case that adds a turn wait raises the
+ * count.
+ */
+const CASE_BUDGET_MS = SESSION_START_MS + 4 * TURN_BUDGET_MS + 60_000;
+
+/**
+ * Agent run through the session surface, anchored to the signals the
+ * CURRENT session viewer exposes (stigmer/stigmer#743 re-anchor): the
+ * composer disables while a run is active and re-enables after, and the
+ * response lands in the thread. The pre-redesign sidebar "Execution
+ * progress" phase region these tests originally pinned is no longer
+ * rendered by any console page — run phases are deliberately not a
+ * header/sidebar surface anymore.
+ */
+test.describe("Agent execution via session", () => {
+  test.describe.configure({ timeout: CASE_BUDGET_MS });
+
+  // The launcher sends with no agent picked and the built-in assistant
+  // answers; a raw e2e stack has no org seeded. Idempotent.
+  test.beforeAll(async ({ stigmerClient }) => {
+    await ensureDefaultOrg(stigmerClient);
+  });
+
+  // Runnable two ways: against a real provider key, or with zero secrets
+  // against the mock-LLM proxy (STIGMER_E2E_MOCK_LLM=1 — how the CI lane
+  // runs it). Each test programs the proxy with exactly the turns it will
+  // consume and drains them before ending.
+  test.skip(
+    !HAS_LLM_KEY && !getMockControlUrl(),
+    "Requires ANTHROPIC_API_KEY/OPENAI_API_KEY or the mock-LLM stack (STIGMER_E2E_MOCK_LLM=1)",
+  );
+
+  // Folds the old "execution progress appears in sidebar" intent into the
+  // composer lifecycle: the disabled composer IS the user-visible "a run is
+  // in progress" signal on the current surface.
+  test("composer reflects the execution lifecycle: disabled while running, enabled after", async ({
+    page,
+    testAgent,
+  }) => {
+    await enqueueCannedTextTurns(["hello"], { delayMs: TURN_DELAY_MS });
+
+    await startNewSession(page, "Say exactly: hello");
+    await assertNoErrorBoundary(page);
+
+    // Follow-up composer should exist (session page, not launcher).
+    const form = getSessionComposer(page);
+    await expect(form).toBeVisible({ timeout: 15_000 });
+
+    // Disabled while the run is active — the in-progress signal.
+    await assertComposerDisabled(page);
+
+    // The settled response is the completion signal on this surface.
+    await waitForAIResponse(page, { timeout: TURN_BUDGET_MS });
+    await assertComposerEnabled(page);
+  });
+
+  test("AI response appears in thread after completion", async ({
+    page,
+    testAgent,
+  }) => {
+    await enqueueCannedTextTurns(["world"], { delayMs: TURN_DELAY_MS });
+
+    await startNewSession(page, "Say exactly: world");
+    await assertNoErrorBoundary(page);
+
+    // Settled response: visible and no longer streaming (not aria-busy).
+    const aiResponse = await waitForAIResponse(page, { timeout: TURN_BUDGET_MS });
+    await expect(aiResponse).toBeVisible();
+
+    const thread = getMessageThread(page);
+    await expect(thread).toBeVisible();
+
+    // User message should also be in the thread.
+    const userMsg = getUserMessages(page).first();
+    await expect(userMsg).toBeVisible();
+    await expect(userMsg).toContainText("Say exactly: world");
+  });
+
+  test("pasted screenshot uploads for real and rides the follow-up message", async ({
+    page,
+    testAgent,
+  }) => {
+    // Two turns: the opening message and the follow-up that carries the image.
+    await enqueueCannedTextTurns(["ready", "got the image"], {
+      delayMs: TURN_DELAY_MS,
+    });
+
+    await startNewSession(page, "Say exactly: ready");
+    await assertNoErrorBoundary(page);
+    await waitForAIResponse(page, { timeout: TURN_BUDGET_MS });
+    await assertComposerEnabled(page);
+
+    const form = getSessionComposer(page);
+    const textarea = form.locator("textarea");
+
+    // Synthetic ClipboardEvent with a real (decodable) 1x1 PNG named the way
+    // browsers name clipboard screenshots — OS-clipboard automation is not
+    // portable across CI runners, and the synthetic event exercises the
+    // exact same React paste handler.
+    await textarea.click();
+    await textarea.evaluate((el) => {
+      const base64 =
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+      const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+      const file = new File([bytes], "image.png", { type: "image/png" });
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(file);
+      el.dispatchEvent(
+        new ClipboardEvent("paste", {
+          clipboardData: dataTransfer,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+
+    // The chip appears with a synthesized name and the REAL upload against
+    // the real server completes (no "uploading", no "upload failed").
+    const chip = form
+      .getByRole("list", { name: "Attached files" })
+      .getByRole("listitem");
+    await expect(chip).toBeVisible({ timeout: 10_000 });
+    await expect(chip).toHaveAttribute("aria-label", /^pasted-image-\d{6}-\d+\.png/);
+    await expect(chip).not.toHaveAttribute("aria-label", /uploading/, {
+      timeout: 15_000,
+    });
+    await expect(chip).not.toHaveAttribute("aria-label", /upload failed/);
+
+    // Send — the message dispatches with the attachment and the chip clears.
+    await textarea.fill("Say exactly: got the image");
+    await page.getByRole("button", { name: "Send message" }).click();
+
+    await expect(getUserMessages(page).last()).toContainText(
+      "Say exactly: got the image",
+      { timeout: 10_000 },
+    );
+    await expect(chip).toHaveCount(0);
+
+    // Drain the follow-up's turn before ending: the send above started a
+    // second run; its settled response re-enables the composer.
+    await expect(getAIResponses(page)).toHaveCount(2, { timeout: TURN_BUDGET_MS });
+    await assertComposerEnabled(page);
+  });
+
+  test("follow-up message creates new execution", async ({
+    page,
+    testAgent,
+  }) => {
+    await enqueueCannedTextTurns(["first", "second"], {
+      delayMs: TURN_DELAY_MS,
+    });
+
+    await startNewSession(page, "Say exactly: first");
+    await assertNoErrorBoundary(page);
+
+    // Wait for the first run to complete.
+    await waitForAIResponse(page, { timeout: TURN_BUDGET_MS });
+    await assertComposerEnabled(page);
+
+    // Send follow-up.
+    await sendFollowUp(page, "Say exactly: second");
+
+    // User message should appear immediately (optimistic rendering).
+    await expect(getUserMessages(page).last()).toContainText(
+      "Say exactly: second",
+      { timeout: 10_000 },
+    );
+
+    // New run should start — composer disables again.
+    await assertComposerDisabled(page);
+
+    // Thread ends with two settled AI responses — the second run's
+    // completion signal — and the composer re-enables.
+    await expect(getAIResponses(page)).toHaveCount(2, { timeout: TURN_BUDGET_MS });
+    await expect(getAIResponses(page).last()).not.toHaveAttribute(
+      "aria-busy",
+      "true",
+      { timeout: TURN_BUDGET_MS },
+    );
+    await assertComposerEnabled(page);
+  });
+});

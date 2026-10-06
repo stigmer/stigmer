@@ -45,7 +45,7 @@ type BillingAccount struct {
 	AutoRecharge *AutoRechargeConfig `protobuf:"bytes,5,opt,name=auto_recharge,json=autoRecharge,proto3" json:"auto_recharge,omitempty"`
 	// Stripe Customer ID. Empty until the org's first Stripe interaction.
 	StripeCustomerId string `protobuf:"bytes,6,opt,name=stripe_customer_id,json=stripeCustomerId,proto3" json:"stripe_customer_id,omitempty"`
-	// Maximum negative balance allowed before hard-stopping executions.
+	// Maximum negative balance allowed before hard-stopping runs.
 	// Free orgs: 0. Paid orgs: typically 2_000_000 ($2.00). Enterprise: contract-specific.
 	AllowedNegativeBalanceMicros int64 `protobuf:"varint,7,opt,name=allowed_negative_balance_micros,json=allowedNegativeBalanceMicros,proto3" json:"allowed_negative_balance_micros,omitempty"`
 	// Balance threshold that triggers low-balance warnings and notifications.
@@ -175,7 +175,7 @@ type CreditBalance struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Credits available for new reservations and immediate use.
 	AvailableMicros int64 `protobuf:"varint,1,opt,name=available_micros,json=availableMicros,proto3" json:"available_micros,omitempty"`
-	// Credits held by active execution reservations.
+	// Credits held by active run reservations.
 	ReservedMicros int64 `protobuf:"varint,2,opt,name=reserved_micros,json=reservedMicros,proto3" json:"reserved_micros,omitempty"`
 	// Subset of total from promotional grants (free trial, campaigns).
 	PromotionalMicros int64 `protobuf:"varint,3,opt,name=promotional_micros,json=promotionalMicros,proto3" json:"promotional_micros,omitempty"`

@@ -21,11 +21,11 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { type AgentExecutionStatus, AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ApprovalAction, ApprovalPolicySource, ExecutionPhase, MessageType, ToolCallStatus, ToolKind, TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
+import { type AgentRunStatus, AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { ApprovalAction, ApprovalPolicySource, RunPhase, MessageType, ToolCallStatus, ToolKind, TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/writeback_pb";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import { DeepAgentTranslator } from "../translator.js";
 import type { DeepAgentGateState } from "../turn-setup.js";
@@ -52,8 +52,8 @@ import type { V3ProtocolEvent } from "../v3-event-recorder.js";
  * carry are the wire's real shape and are ignored by everything here.
  */
 /** A builder and the status it builds into: the test writes through `sb` and reads `status`, as production reads `TurnSink.status`. */
-function makeBuilder(): { sb: TranscriptBuilder; status: AgentExecutionStatus } {
-  const status = create(AgentExecutionStatusSchema, {});
+function makeBuilder(): { sb: TranscriptBuilder; status: AgentRunStatus } {
+  const status = create(AgentRunStatusSchema, {});
   return { sb: new TranscriptBuilder("exec-test", status), status };
 }
 
@@ -79,7 +79,7 @@ describe("the native translator through the builder", () => {
   describe("initialization", () => {
     it("writes neither phase nor startedAt (the turn runtime owns both)", () => {
       const { sb, status } = makeBuilder();
-      expect(status.phase).toBe(ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED);
+      expect(status.phase).toBe(RunPhase.RUN_PHASE_UNSPECIFIED);
       expect(status.startedAt).toBe("");
       expect(sb.awaitingApproval).toBe(false);
     });
@@ -304,7 +304,7 @@ describe("the native translator through the builder", () => {
         ], gate);
 
         expect(sb.awaitingApproval, "no tool_started parks a row").toBe(false);
-        expect(status.phase).toBe(ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED);
+        expect(status.phase).toBe(RunPhase.RUN_PHASE_UNSPECIFIED);
 
         const tc = status.messages[0].toolCalls[0];
         expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
@@ -541,8 +541,8 @@ describe("the native translator through the builder", () => {
       ]);
 
       expect(status.messages.map((m) => m.content)).toEqual(["Delegating."]);
-      expect(status.subAgentExecutions).toHaveLength(1);
-      expect(status.subAgentExecutions[0].messages.map((m) => m.content)).toEqual(["Working on it."]);
+      expect(status.subAgentRuns).toHaveLength(1);
+      expect(status.subAgentRuns[0].messages.map((m) => m.content)).toEqual(["Working on it."]);
     });
 
     it("does not project a sub-agent's write_todos into parent status.todos", () => {
@@ -732,8 +732,8 @@ describe("the native translator through the builder", () => {
     const GATED_ID = "toolu_seeded_01";
 
     it("resolves the seeded gated row in place — no duplicate, history kept, no re-gate", () => {
-      const status = create(AgentExecutionStatusSchema, {
-        phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      const status = create(AgentRunStatusSchema, {
+        phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
         messages: [
           create(AgentMessageSchema, {
             type: MessageType.MESSAGE_AI,
@@ -778,7 +778,7 @@ describe("the native translator through the builder", () => {
 
   describe("artifacts and write-backs", () => {
     const artifact = (sandboxPath: string, contentHash: string) =>
-      create(ExecutionArtifactSchema, { sandboxPath, contentHash, storageKey: `k/${contentHash}` });
+      create(RunArtifactSchema, { sandboxPath, contentHash, storageKey: `k/${contentHash}` });
 
     it("appends a new artifact and forces the next persist", () => {
       const { sb, status } = makeBuilder();

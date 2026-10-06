@@ -16,11 +16,11 @@ vi.mock("../../workflow/useWorkflowDashboardSummary.js", () => ({
   },
 }));
 
-vi.mock("../useAgentExecutionSummary.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../useAgentExecutionSummary.js")>();
+vi.mock("../useAgentRunSummary.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../useAgentRunSummary.js")>();
   return {
     ...actual,
-    useAgentExecutionSummary: (options: { org: unknown }) => {
+    useAgentRunSummary: (options: { org: unknown }) => {
       asked.agent.push(options.org);
       return { summary: null, isLoading: false, error: null, refetch: () => {} };
     },

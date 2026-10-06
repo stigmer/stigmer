@@ -31,7 +31,7 @@ public enum MemoryLifecycleState
   /**
    * <pre>
    * Confirmed by the subject. Recalled into the subject's future
-   * eligible executions.
+   * eligible runs.
    * </pre>
    *
    * <code>lifecycle_state_confirmed = 2;</code>
@@ -73,7 +73,7 @@ public enum MemoryLifecycleState
   /**
    * <pre>
    * Confirmed by the subject. Recalled into the subject's future
-   * eligible executions.
+   * eligible runs.
    * </pre>
    *
    * <code>lifecycle_state_confirmed = 2;</code>

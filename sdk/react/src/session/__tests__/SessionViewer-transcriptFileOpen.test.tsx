@@ -13,7 +13,7 @@ import { render, screen, cleanup, act, fireEvent } from "@testing-library/react"
 type CapturedProps = Record<string, unknown>;
 
 const threadProps: CapturedProps[] = [];
-vi.mock("../../execution/MessageThread", () => ({
+vi.mock("../../run/MessageThread", () => ({
   MessageThread: (props: CapturedProps) => {
     threadProps.push(props);
     return <div data-testid="thread-probe" />;
@@ -60,8 +60,8 @@ const stubConv = {
   session: { spec: {} },
   isLoading: false,
   loadError: null,
-  completedExecutions: [],
-  activeStreamExecution: null,
+  completedRuns: [],
+  activeStreamRun: null,
   pendingUserMessage: null,
   workspaceEntries: [],
   fileChangeSets: [],
@@ -115,8 +115,8 @@ const stubSessionPageFlow = {
   setAutoApproveAll: vi.fn(),
   handleSubmit: vi.fn(),
   submitError: null as Error | null,
-  displayExecution: null,
-  allExecutions: [],
+  displayRun: null,
+  allRuns: [],
   sandboxWorkspaceRoot: "/home/daytona/workspace",
 };
 vi.mock("../useSessionPageFlow", () => ({
@@ -125,7 +125,7 @@ vi.mock("../useSessionPageFlow", () => ({
 
 vi.mock("../../hooks", () => ({
   useStigmer: () => ({
-    agentExecution: {
+    agentRun: {
       uploadAttachment: vi.fn(),
       getArtifactContent: vi.fn(),
     },

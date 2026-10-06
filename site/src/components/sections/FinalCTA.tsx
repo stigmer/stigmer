@@ -75,7 +75,7 @@ const stigmer = new Stigmer({
   apiKey: "sk_...",
 });
 
-const execution = await stigmer.agentExecution.create({
+const run = await stigmer.agentRun.create({
   org: "my-org",
   name: "support-run",
   agentId: "support-agent",
@@ -91,8 +91,8 @@ const execution = await stigmer.agentExecution.create({
 client, _ := stigmer.NewClient("sk_...")
 defer client.Close()
 
-exec, _ := client.AgentExecution.Create(ctx,
-  &stigmer.AgentExecutionInput{
+run, _ := client.AgentRun.Create(ctx,
+  &stigmer.AgentRunInput{
     Org:     "my-org",
     Name:    "support-run",
     AgentId: "support-agent",
@@ -104,11 +104,11 @@ exec, _ := client.AgentExecution.Create(ctx,
       label: "Python",
       installPrefix: "$",
       install: "pip install stigmer",
-      code: `from stigmer import StigmerClient, AgentExecutionInput
+      code: `from stigmer import StigmerClient, AgentRunInput
 
 with StigmerClient("sk_...") as client:
-    execution = client.agent_executions.create(
-        AgentExecutionInput(
+    run = client.agent_runs.create(
+        AgentRunInput(
             org="my-org",
             name="support-run",
             agent_id="support-agent",
@@ -121,11 +121,11 @@ with StigmerClient("sk_...") as client:
       installPrefix: "// Gradle:",
       install: `implementation("ai.stigmer:stigmer-java:0.1.0")`,
       code: `import ai.stigmer.sdk.StigmerClient;
-import ai.stigmer.sdk.gen.AgentExecutionInput;
+import ai.stigmer.sdk.gen.AgentRunInput;
 
 try (var client = StigmerClient.builder("sk_...").build()) {
-    var execution = client.agentExecutions().create(
-        AgentExecutionInput.builder()
+    var run = client.agentRun.create(
+        AgentRunInput.builder()
             .org("my-org")
             .name("support-run")
             .agentId("support-agent")

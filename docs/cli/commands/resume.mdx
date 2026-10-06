@@ -8,10 +8,9 @@ description: resume an existing session by ID
 
 Resume an existing session by ID, or browse recent sessions interactively.
 
-`stigmer resume` reconnects you to a previous conversation. If the latest
-execution is still running, you re-attach to the live stream. If all executions
-have completed, you see the full conversation history and can send follow-up
-messages.
+`stigmer resume` reconnects you to a previous conversation. If the latest run is
+still in progress, you re-attach to the live stream. If all runs have completed,
+you see the full conversation history and can send follow-up messages.
 
 ## Usage
 
@@ -38,15 +37,15 @@ stigmer resume "deploy staging"
 | ----------------- | -------- | ------- | ------------------------------------------------------------------- |
 | `--json`          | `bool`   |         | stream events as newline-delimited JSON                             |
 | `--mode`          | `string` |         | follow-up interaction mode: "agent" (default) or "plan" (read-only) |
-| `--verbose`, `-v` | `bool`   |         | show all execution events                                           |
+| `--verbose`, `-v` | `bool`   |         | show all run events                                                 |
 
 ### How resuming works
 
-| Scenario                    | Behavior                                          |
-| --------------------------- | ------------------------------------------------- |
-| Latest execution is running | Re-attach to the live output stream               |
-| All executions complete     | Display conversation history, accept new messages |
-| Search text provided        | Find sessions by subject, show interactive picker |
+| Scenario                  | Behavior                                          |
+| ------------------------- | ------------------------------------------------- |
+| Latest run is in progress | Re-attach to the live output stream               |
+| All runs complete         | Display conversation history, accept new messages |
+| Search text provided      | Find sessions by subject, show interactive picker |
 
 Session IDs must be provided in full (e.g., `ses-01abc123xyz456`). Partial IDs
 are not accepted.
@@ -88,11 +87,11 @@ if multiple match.
 
 ## Related commands
 
-| Command                  | Description                 |
-| ------------------------ | --------------------------- |
-| [`stigmer run`](./run)   | Start a new agent execution |
-| [`stigmer get`](./get)   | Inspect session details     |
-| [`stigmer list`](./list) | List all sessions           |
+| Command                  | Description             |
+| ------------------------ | ----------------------- |
+| [`stigmer run`](./run)   | Start a new agent run   |
+| [`stigmer get`](./get)   | Inspect session details |
+| [`stigmer list`](./list) | List all sessions       |
 
 ## See also
 

@@ -96,8 +96,8 @@ function MySessionView({ sessionId, org }: { sessionId: string; org: string }) {
 
   if (conv.isLoading) return <Text>Loading...</Text>;
 
-  const lastMessage = conv.completedExecutions
-    .flatMap((e) => e.status?.messages ?? [])
+  const lastMessage = conv.completedRuns
+    .flatMap((run) => run.status?.messages ?? [])
     .pop();
 
   return (
@@ -123,7 +123,7 @@ import {
   InkStigmerProvider,
   createNodeClient,
   MessageThread,
-  ExecutionProgress,
+  RunProgress,
   FollowUpInput,
 } from "@stigmer/ink";
 import { useSessionConversation } from "@stigmer/react";
@@ -135,11 +135,11 @@ function CustomView({ sessionId, org }: { sessionId: string; org: string }) {
   return (
     <Box flexDirection="column">
       {conv.activePhase != null && (
-        <ExecutionProgress phase={conv.activePhase} />
+        <RunProgress phase={conv.activePhase} />
       )}
       <MessageThread
-        executions={conv.completedExecutions}
-        activeStreamExecution={conv.activeStreamExecution}
+        runs={conv.completedRuns}
+        activeStreamRun={conv.activeStreamRun}
         onApprovalSubmit={conv.submitApproval}
         submittingApprovalIds={conv.submittingApprovalIds}
       />

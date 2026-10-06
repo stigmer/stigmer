@@ -44,9 +44,9 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionControlSignal } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
+import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunControlSignal } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/usage_pb";
 
 import type { StigmerClient } from "../client/stigmer-client.js";
 import { captureFileChangeProgress } from "../shared/filereview/progress.js";
@@ -59,7 +59,7 @@ import type { UsageAccumulator } from "./usage-accumulator.js";
 export interface PersistChokepointDeps {
   readonly client: StigmerClient;
   readonly executionId: string;
-  readonly status: AgentExecutionStatus;
+  readonly status: AgentRunStatus;
   /** Present when artifact storage resolved; enables tool-output offload on every write. */
   readonly offload: ToolOutputOffloadContext | undefined;
   /**
@@ -116,7 +116,7 @@ export class PersistChokepoint {
    */
   async write(): Promise<void> {
     const { client, executionId, status, offload, heartbeat } = this.deps;
-    withholdSecretContentFromMessages(status.messages, status.subAgentExecutions);
+    withholdSecretContentFromMessages(status.messages, status.subAgentRuns);
     const progress = this.deps.progress();
     if (progress) {
       await captureFileChangeProgress({ status, changeSetId: progress.changeSetId, substrate: progress.substrate, state: progress.state });
@@ -127,7 +127,7 @@ export class PersistChokepoint {
     }
     const signal = await persistStatus(client, executionId, status, { offload });
     heartbeat();
-    if (signal === ExecutionControlSignal.STOP) {
+    if (signal === RunControlSignal.STOP) {
       this.deps.onPlatformStop();
     }
   }

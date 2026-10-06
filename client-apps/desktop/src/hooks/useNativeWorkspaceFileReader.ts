@@ -25,7 +25,7 @@ type NativeReadResult = Omit<WorkspaceFileContent, "bytes"> & {
  *   path-traversal rejection, and returns the `WorkspaceFileContent` shape
  *   directly — with image bytes base64-encoded, decoded to `bytes` here.
  * - Returns `null` for non-local entries (git content is not readable on
- *   desktop — the runner clones repos at execution time), mirroring
+ *   desktop — the runner clones repos at run time), mirroring
  *   `useNativeWorkspaceFiles`.
  * - Real failures (missing file, directory, unreadable) surface as a rejected
  *   invoke and propagate to the caller — never collapsed into `null`.

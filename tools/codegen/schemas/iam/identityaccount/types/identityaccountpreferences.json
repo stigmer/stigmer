@@ -1,6 +1,6 @@
 {
   "name": "IdentityAccountPreferences",
-  "description": "IdentityAccountPreferences holds user-declared defaults that apply to the\n user's own agent executions.",
+  "description": "IdentityAccountPreferences holds user-declared defaults that apply to the\n user's own agent runs.",
   "protoType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences",
   "protoFile": "apis/ai/stigmer/iam/identityaccount/v1/spec.proto",
   "fields": [
@@ -11,7 +11,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Free-text standing context injected into this user's eligible agent\n executions. Example: \"Keep answers terse.\"",
+      "description": "Free-text standing context injected into this user's eligible agent\n runs. Example: \"Keep answers terse.\"",
       "required": false,
       "validation": {
         "maxLength": 2000

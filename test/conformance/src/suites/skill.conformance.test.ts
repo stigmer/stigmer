@@ -16,7 +16,7 @@
 //     version's artifact_storage_key, which getArtifact downloads.
 //
 // No known deviations are expected: every user-reachable Skill path runs through
-// ValidateProtoStep (or, for pushFromExecutionArtifact, equivalent manual checks)
+// ValidateProtoStep (or, for pushFromRunArtifact, equivalent manual checks)
 // and returns correct gRPC codes — unlike Workflow's create pipeline.
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -1039,8 +1039,8 @@ describe("[rpc:SkillCommandController.delete] Skill conformance — delete", () 
     ));
 });
 
-describe("[rpc:SkillCommandController.pushFromExecutionArtifact] Skill conformance — pushFromExecutionArtifact (input validation)", () => {
-  // pushFromExecutionArtifact is a DIRECT handler: it does not run through the
+describe("[rpc:SkillCommandController.pushFromRunArtifact] Skill conformance — pushFromRunArtifact (input validation)", () => {
+  // pushFromRunArtifact is a DIRECT handler: it does not run through the
   // request pipeline, so protovalidate never executes. It instead performs its
   // own ordered manual checks and — unlike Workflow's getVersion — returns the
   // correct gRPC codes, so there is no deviation to register here.
@@ -1056,13 +1056,13 @@ describe("[rpc:SkillCommandController.pushFromExecutionArtifact] Skill conforman
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () =>
-        clients.skillCommand.pushFromExecutionArtifact({
+        clients.skillCommand.pushFromRunArtifact({
           org,
-          executionId: "",
+          runId: "",
           storageKey: "artifacts/aex_example/skill.zip",
         }),
       Code.InvalidArgument,
-      "pushFromExecutionArtifact empty execution_id",
+      "pushFromRunArtifact empty execution_id",
     );
   });
 
@@ -1070,26 +1070,26 @@ describe("[rpc:SkillCommandController.pushFromExecutionArtifact] Skill conforman
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () =>
-        clients.skillCommand.pushFromExecutionArtifact({
+        clients.skillCommand.pushFromRunArtifact({
           org,
-          executionId: "aex_example",
+          runId: "aex_example",
           storageKey: "",
         }),
       Code.InvalidArgument,
-      "pushFromExecutionArtifact empty storage_key",
+      "pushFromRunArtifact empty storage_key",
     );
   });
 
   it("rejects an empty org (InvalidArgument)", async () => {
     await expectGrpcCode(
       () =>
-        clients.skillCommand.pushFromExecutionArtifact({
+        clients.skillCommand.pushFromRunArtifact({
           org: "",
-          executionId: "aex_example",
+          runId: "aex_example",
           storageKey: "artifacts/aex_example/skill.zip",
         }),
       Code.InvalidArgument,
-      "pushFromExecutionArtifact empty org",
+      "pushFromRunArtifact empty org",
     );
   });
 
@@ -1099,13 +1099,13 @@ describe("[rpc:SkillCommandController.pushFromExecutionArtifact] Skill conforman
     // different execution is rejected as a path-traversal attempt.
     await expectGrpcCode(
       () =>
-        clients.skillCommand.pushFromExecutionArtifact({
+        clients.skillCommand.pushFromRunArtifact({
           org,
-          executionId: "aex_example",
+          runId: "aex_example",
           storageKey: "artifacts/aex_other/skill.zip",
         }),
       Code.InvalidArgument,
-      "pushFromExecutionArtifact storage_key prefix guard",
+      "pushFromRunArtifact storage_key prefix guard",
     );
   });
 });

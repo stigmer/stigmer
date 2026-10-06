@@ -1,5 +1,5 @@
 // The capture context a remember call attaches to the Memory it creates —
-// org addressing plus provenance (agent, session, execution), threaded from
+// org addressing plus provenance (agent, session, run), threaded from
 // the runner that synthesized the memory attachment (provenance as
 // supplied by the capture path, since 2026-08-22).
 //
@@ -18,22 +18,22 @@
 // stores them under the local single-user trust model. A missing field
 // degrades to empty — provenance is best-effort, the fact itself is not.
 
-/** Header carrying the execution's org (per-request, bridge route). */
+/** Header carrying the run's org (per-request, bridge route). */
 export const MEMORY_ORG_HEADER = "x-stigmer-memory-org";
 /** Header carrying the executing agent's id. */
 export const MEMORY_AGENT_ID_HEADER = "x-stigmer-memory-agent-id";
-/** Header carrying the session id the execution belongs to. */
+/** Header carrying the session id the run belongs to. */
 export const MEMORY_SESSION_ID_HEADER = "x-stigmer-memory-session-id";
-/** Header carrying the agent execution id. */
+/** Header carrying the agent run id (the wire name keeps "execution"). */
 export const MEMORY_EXECUTION_ID_HEADER = "x-stigmer-memory-execution-id";
 
-/** Env var carrying the execution's org (per-process, stdio child). */
+/** Env var carrying the run's org (per-process, stdio child). */
 export const MEMORY_ORG_ENV = "STIGMER_MEMORY_ORG";
 /** Env var carrying the executing agent's id. */
 export const MEMORY_AGENT_ID_ENV = "STIGMER_MEMORY_AGENT_ID";
-/** Env var carrying the session id the execution belongs to. */
+/** Env var carrying the session id the run belongs to. */
 export const MEMORY_SESSION_ID_ENV = "STIGMER_MEMORY_SESSION_ID";
-/** Env var carrying the agent execution id. */
+/** Env var carrying the agent run id (the wire name keeps "execution"). */
 export const MEMORY_EXECUTION_ID_ENV = "STIGMER_MEMORY_EXECUTION_ID";
 
 /**
@@ -45,7 +45,7 @@ export interface CaptureContext {
   readonly org: string;
   readonly agentId: string;
   readonly sessionId: string;
-  readonly agentExecutionId: string;
+  readonly agentRunId: string;
 }
 
 /** A context with no attribution — the resolve fallback of last resort. */
@@ -53,7 +53,7 @@ export const EMPTY_CAPTURE_CONTEXT: CaptureContext = {
   org: "",
   agentId: "",
   sessionId: "",
-  agentExecutionId: "",
+  agentRunId: "",
 };
 
 /**
@@ -73,14 +73,14 @@ export interface RequestHeaders {
  * shape, captured once at server construction exactly like the startup
  * API key. Deliberately NOT part of config.ts: Config mirrors the Go
  * server's operator-facing surface, while these values are
- * runner-injected per execution and owned by this domain.
+ * runner-injected per run and owned by this domain.
  */
 export function loadCaptureContextFromEnv(env: NodeJS.ProcessEnv = process.env): CaptureContext {
   return {
     org: env[MEMORY_ORG_ENV] ?? "",
     agentId: env[MEMORY_AGENT_ID_ENV] ?? "",
     sessionId: env[MEMORY_SESSION_ID_ENV] ?? "",
-    agentExecutionId: env[MEMORY_EXECUTION_ID_ENV] ?? "",
+    agentRunId: env[MEMORY_EXECUTION_ID_ENV] ?? "",
   };
 }
 
@@ -100,7 +100,7 @@ export function resolveCaptureContext(
     org: headerValue(headers, MEMORY_ORG_HEADER),
     agentId: headerValue(headers, MEMORY_AGENT_ID_HEADER),
     sessionId: headerValue(headers, MEMORY_SESSION_ID_HEADER),
-    agentExecutionId: headerValue(headers, MEMORY_EXECUTION_ID_HEADER),
+    agentRunId: headerValue(headers, MEMORY_EXECUTION_ID_HEADER),
   };
 }
 

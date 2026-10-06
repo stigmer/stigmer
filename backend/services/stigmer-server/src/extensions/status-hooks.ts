@@ -1,7 +1,7 @@
 /**
  * Status-transition hook types — the execution-lifecycle seam, carried
  * by the extension registry and CONSUMED at
- * the updateStatus chokepoint (src/domain/agentexecution/update-status.ts,
+ * the updateStatus chokepoint (src/domain/agentrun/update-status.ts,
  * the single merge point every status transition funnels through).
  *
  * The contract: observers fire synchronously after the
@@ -16,16 +16,16 @@
  * agent-execution family ONLY. Workflowexecution is unmetered in the cloud
  * edition, and no hook is built ahead of need there.
  */
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { UpdateStatusResponse } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { UpdateStatusResponse } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 
 /** One observed phase transition, delivered post-merge. */
-export interface AgentExecutionStatusTransition {
-  /** The merged, persisted execution snapshot. Observers may not mutate it. */
-  readonly execution: AgentExecution;
-  readonly oldPhase: ExecutionPhase;
-  readonly newPhase: ExecutionPhase;
+export interface AgentRunStatusTransition {
+  /** The merged, persisted run snapshot. Observers may not mutate it. */
+  readonly run: AgentRun;
+  readonly oldPhase: RunPhase;
+  readonly newPhase: RunPhase;
 }
 
 /**
@@ -33,8 +33,8 @@ export interface AgentExecutionStatusTransition {
  * extension bug logged by the chokepoint, never a failed transition — the
  * cloud's expiry sweep remains the reconciliation backstop it already is.
  */
-export type AgentExecutionStatusObserver = (
-  transition: AgentExecutionStatusTransition,
+export type AgentRunStatusObserver = (
+  transition: AgentRunStatusTransition,
 ) => void | Promise<void>;
 
 /**
@@ -42,13 +42,13 @@ export type AgentExecutionStatusObserver = (
  * reply schema carries. Decorator failure degrades the contributed fields
  * to their defaults (the verified non-fatal posture), never the RPC.
  */
-export type AgentExecutionResponseDecorator = (
-  execution: AgentExecution,
+export type AgentRunResponseDecorator = (
+  execution: AgentRun,
   response: UpdateStatusResponse,
 ) => void | Promise<void>;
 
 /** The hook bundle one extension unit contributes (both lists optional). */
-export interface AgentExecutionStatusHooks {
-  readonly observers?: ReadonlyArray<AgentExecutionStatusObserver>;
-  readonly responseDecorators?: ReadonlyArray<AgentExecutionResponseDecorator>;
+export interface AgentRunStatusHooks {
+  readonly observers?: ReadonlyArray<AgentRunStatusObserver>;
+  readonly responseDecorators?: ReadonlyArray<AgentRunResponseDecorator>;
 }

@@ -139,35 +139,35 @@ public final class WorkflowCommandControllerGrpc {
     return getUpdateVisibilityMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput,
-      ai.stigmer.agentic.workflow.v1.Workflow> getUpdateExecutionVisibilityMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput,
+      ai.stigmer.agentic.workflow.v1.Workflow> getUpdateRunVisibilityMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "updateExecutionVisibility",
-      requestType = ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput.class,
+      fullMethodName = SERVICE_NAME + '/' + "updateRunVisibility",
+      requestType = ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput.class,
       responseType = ai.stigmer.agentic.workflow.v1.Workflow.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput,
-      ai.stigmer.agentic.workflow.v1.Workflow> getUpdateExecutionVisibilityMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput, ai.stigmer.agentic.workflow.v1.Workflow> getUpdateExecutionVisibilityMethod;
-    if ((getUpdateExecutionVisibilityMethod = WorkflowCommandControllerGrpc.getUpdateExecutionVisibilityMethod) == null) {
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput,
+      ai.stigmer.agentic.workflow.v1.Workflow> getUpdateRunVisibilityMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput, ai.stigmer.agentic.workflow.v1.Workflow> getUpdateRunVisibilityMethod;
+    if ((getUpdateRunVisibilityMethod = WorkflowCommandControllerGrpc.getUpdateRunVisibilityMethod) == null) {
       synchronized (WorkflowCommandControllerGrpc.class) {
-        if ((getUpdateExecutionVisibilityMethod = WorkflowCommandControllerGrpc.getUpdateExecutionVisibilityMethod) == null) {
-          WorkflowCommandControllerGrpc.getUpdateExecutionVisibilityMethod = getUpdateExecutionVisibilityMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput, ai.stigmer.agentic.workflow.v1.Workflow>newBuilder()
+        if ((getUpdateRunVisibilityMethod = WorkflowCommandControllerGrpc.getUpdateRunVisibilityMethod) == null) {
+          WorkflowCommandControllerGrpc.getUpdateRunVisibilityMethod = getUpdateRunVisibilityMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput, ai.stigmer.agentic.workflow.v1.Workflow>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "updateExecutionVisibility"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "updateRunVisibility"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput.getDefaultInstance()))
+                  ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.workflow.v1.Workflow.getDefaultInstance()))
-              .setSchemaDescriptor(new WorkflowCommandControllerMethodDescriptorSupplier("updateExecutionVisibility"))
+              .setSchemaDescriptor(new WorkflowCommandControllerMethodDescriptorSupplier("updateRunVisibility"))
               .build();
         }
       }
     }
-    return getUpdateExecutionVisibilityMethod;
+    return getUpdateRunVisibilityMethod;
   }
 
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.WorkflowId,
@@ -378,9 +378,9 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update who can observe the runs (executions) of this workflow.
+     * Update who can observe the runs of this workflow.
      * This is a SEPARATE axis from updateVisibility: it controls run
-     * observability (who sees execution inputs and outputs), not who can see or
+     * observability (who sees run inputs and outputs), not who can see or
      * run the workflow itself. Making a workflow org-runnable does NOT expose
      * other people's runs; that requires this opt-in. The setting covers every
      * run of the workflow, past runs included.
@@ -388,9 +388,9 @@ public final class WorkflowCommandControllerGrpc {
      * ORGANIZATION (all org members). Platform is unsupported.
      * </pre>
      */
-    default void updateExecutionVisibility(ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput request,
+    default void updateRunVisibility(ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.Workflow> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateExecutionVisibilityMethod(), responseObserver);
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateRunVisibilityMethod(), responseObserver);
     }
 
     /**
@@ -527,9 +527,9 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update who can observe the runs (executions) of this workflow.
+     * Update who can observe the runs of this workflow.
      * This is a SEPARATE axis from updateVisibility: it controls run
-     * observability (who sees execution inputs and outputs), not who can see or
+     * observability (who sees run inputs and outputs), not who can see or
      * run the workflow itself. Making a workflow org-runnable does NOT expose
      * other people's runs; that requires this opt-in. The setting covers every
      * run of the workflow, past runs included.
@@ -537,10 +537,10 @@ public final class WorkflowCommandControllerGrpc {
      * ORGANIZATION (all org members). Platform is unsupported.
      * </pre>
      */
-    public void updateExecutionVisibility(ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput request,
+    public void updateRunVisibility(ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.Workflow> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getUpdateExecutionVisibilityMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getUpdateRunVisibilityMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -662,9 +662,9 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update who can observe the runs (executions) of this workflow.
+     * Update who can observe the runs of this workflow.
      * This is a SEPARATE axis from updateVisibility: it controls run
-     * observability (who sees execution inputs and outputs), not who can see or
+     * observability (who sees run inputs and outputs), not who can see or
      * run the workflow itself. Making a workflow org-runnable does NOT expose
      * other people's runs; that requires this opt-in. The setting covers every
      * run of the workflow, past runs included.
@@ -672,9 +672,9 @@ public final class WorkflowCommandControllerGrpc {
      * ORGANIZATION (all org members). Platform is unsupported.
      * </pre>
      */
-    public ai.stigmer.agentic.workflow.v1.Workflow updateExecutionVisibility(ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.workflow.v1.Workflow updateRunVisibility(ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getUpdateExecutionVisibilityMethod(), getCallOptions(), request);
+          getChannel(), getUpdateRunVisibilityMethod(), getCallOptions(), request);
     }
 
     /**
@@ -793,9 +793,9 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update who can observe the runs (executions) of this workflow.
+     * Update who can observe the runs of this workflow.
      * This is a SEPARATE axis from updateVisibility: it controls run
-     * observability (who sees execution inputs and outputs), not who can see or
+     * observability (who sees run inputs and outputs), not who can see or
      * run the workflow itself. Making a workflow org-runnable does NOT expose
      * other people's runs; that requires this opt-in. The setting covers every
      * run of the workflow, past runs included.
@@ -803,9 +803,9 @@ public final class WorkflowCommandControllerGrpc {
      * ORGANIZATION (all org members). Platform is unsupported.
      * </pre>
      */
-    public ai.stigmer.agentic.workflow.v1.Workflow updateExecutionVisibility(ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput request) {
+    public ai.stigmer.agentic.workflow.v1.Workflow updateRunVisibility(ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getUpdateExecutionVisibilityMethod(), getCallOptions(), request);
+          getChannel(), getUpdateRunVisibilityMethod(), getCallOptions(), request);
     }
 
     /**
@@ -928,9 +928,9 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update who can observe the runs (executions) of this workflow.
+     * Update who can observe the runs of this workflow.
      * This is a SEPARATE axis from updateVisibility: it controls run
-     * observability (who sees execution inputs and outputs), not who can see or
+     * observability (who sees run inputs and outputs), not who can see or
      * run the workflow itself. Making a workflow org-runnable does NOT expose
      * other people's runs; that requires this opt-in. The setting covers every
      * run of the workflow, past runs included.
@@ -938,10 +938,10 @@ public final class WorkflowCommandControllerGrpc {
      * ORGANIZATION (all org members). Platform is unsupported.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.Workflow> updateExecutionVisibility(
-        ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput request) {
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.Workflow> updateRunVisibility(
+        ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getUpdateExecutionVisibilityMethod(), getCallOptions()), request);
+          getChannel().newCall(getUpdateRunVisibilityMethod(), getCallOptions()), request);
     }
 
     /**
@@ -999,7 +999,7 @@ public final class WorkflowCommandControllerGrpc {
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_UPDATE_VISIBILITY = 3;
-  private static final int METHODID_UPDATE_EXECUTION_VISIBILITY = 4;
+  private static final int METHODID_UPDATE_RUN_VISIBILITY = 4;
   private static final int METHODID_DELETE = 5;
   private static final int METHODID_VALIDATE_SPEC = 6;
   private static final int METHODID_TAG_VERSION = 7;
@@ -1037,8 +1037,8 @@ public final class WorkflowCommandControllerGrpc {
           serviceImpl.updateVisibility((ai.stigmer.commons.apiresource.UpdateVisibilityInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.Workflow>) responseObserver);
           break;
-        case METHODID_UPDATE_EXECUTION_VISIBILITY:
-          serviceImpl.updateExecutionVisibility((ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput) request,
+        case METHODID_UPDATE_RUN_VISIBILITY:
+          serviceImpl.updateRunVisibility((ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.Workflow>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -1100,12 +1100,12 @@ public final class WorkflowCommandControllerGrpc {
               ai.stigmer.agentic.workflow.v1.Workflow>(
                 service, METHODID_UPDATE_VISIBILITY)))
         .addMethod(
-          getUpdateExecutionVisibilityMethod(),
+          getUpdateRunVisibilityMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput,
+              ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput,
               ai.stigmer.agentic.workflow.v1.Workflow>(
-                service, METHODID_UPDATE_EXECUTION_VISIBILITY)))
+                service, METHODID_UPDATE_RUN_VISIBILITY)))
         .addMethod(
           getDeleteMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -1179,7 +1179,7 @@ public final class WorkflowCommandControllerGrpc {
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
               .addMethod(getUpdateVisibilityMethod())
-              .addMethod(getUpdateExecutionVisibilityMethod())
+              .addMethod(getUpdateRunVisibilityMethod())
               .addMethod(getDeleteMethod())
               .addMethod(getValidateSpecMethod())
               .addMethod(getTagVersionMethod())

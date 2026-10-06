@@ -16,7 +16,7 @@ export const file_ai_stigmer_activity_v1_io: GenFile = /*@__PURE__*/
 
 /**
  * RecentActivityEntry is a lightweight summary of either an agent session
- * or a workflow execution, used for the sidebar "recents" list.
+ * or a workflow run, used for the sidebar "recents" list.
  *
  * This is a projection — not the full resource. Clients that need the
  * complete resource should call the specific get() RPC for the resource kind.
@@ -25,14 +25,14 @@ export const file_ai_stigmer_activity_v1_io: GenFile = /*@__PURE__*/
  */
 export type RecentActivityEntry = Message<"ai.stigmer.activity.v1.RecentActivityEntry"> & {
   /**
-   * Resource ID (session ID or workflow execution ID).
+   * Resource ID (session ID or workflow run ID).
    *
    * @generated from field: string id = 1;
    */
   id: string;
 
   /**
-   * Discriminator: "session" or "workflow_execution".
+   * Discriminator: "session" or "workflow_run".
    *
    * @generated from field: string type = 2;
    */
@@ -41,7 +41,7 @@ export type RecentActivityEntry = Message<"ai.stigmer.activity.v1.RecentActivity
   /**
    * Human-readable label for display.
    * For sessions: the conversation subject.
-   * For workflow executions: the execution name.
+   * For workflow runs: the run name.
    *
    * @generated from field: string subject = 3;
    */
@@ -56,7 +56,7 @@ export type RecentActivityEntry = Message<"ai.stigmer.activity.v1.RecentActivity
   updatedAt?: Timestamp;
 
   /**
-   * Execution phase label for workflow executions (e.g., "completed", "failed").
+   * Run phase label for workflow runs (e.g., "completed", "failed").
    * Empty for sessions.
    *
    * @generated from field: string status = 5;
@@ -92,7 +92,7 @@ export type ListRecentActivityRequest = Message<"ai.stigmer.activity.v1.ListRece
    * enforced (on the hosted edition, FGA `can_view` enumeration per kind),
    * and the org filter only intersects that authorized set. Both recents
    * kinds are private by default — sessions are personal resources and
-   * workflow executions opt in to org observability per workflow — so org
+   * workflow runs opt in to org observability per workflow — so org
    * membership alone must never substitute for the per-resource check. An
    * earlier "org member = query by org directly" fast path leaked session
    * titles to every org member.
@@ -124,7 +124,7 @@ export const ListRecentActivityRequestSchema: GenMessage<ListRecentActivityReque
 export type ListRecentActivityResponse = Message<"ai.stigmer.activity.v1.ListRecentActivityResponse"> & {
   /**
    * Entries sorted by updated_at descending, interleaving sessions
-   * and workflow executions.
+   * and workflow runs.
    *
    * @generated from field: repeated ai.stigmer.activity.v1.RecentActivityEntry entries = 1;
    */

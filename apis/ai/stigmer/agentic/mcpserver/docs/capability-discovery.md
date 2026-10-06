@@ -127,7 +127,7 @@ stigmer get mcp-server github --output yaml
 5. Pushes the results to the platform via the `updateDiscoveredCapabilities` RPC.
 6. The platform stores the snapshot in `status.discovered_capabilities`.
 
-The CLI does **not** push discovery results in real time during execution — it's an explicit, on-demand operation.
+The CLI does **not** push discovery results in real time during the run — it's an explicit, on-demand operation.
 
 ### Privacy Model
 

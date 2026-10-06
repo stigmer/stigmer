@@ -1,10 +1,10 @@
 import {
-  ExecutionPhase,
+  RunPhase,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
 import type { UseWorkspaceEntriesReturn } from "@stigmer/react";
 import { samples } from "@stigmer/react/test";
 
@@ -24,7 +24,7 @@ export const MOCK_WORKSPACE: UseWorkspaceEntriesReturn = {
 };
 
 /**
- * Build an execution snapshot where the first human message goes into
+ * Build a run snapshot where the first human message goes into
  * `spec.message` and the remaining messages go into `status.messages`.
  *
  * `MessageThread` synthesizes a human bubble from `spec.message`
@@ -32,9 +32,9 @@ export const MOCK_WORKSPACE: UseWorkspaceEntriesReturn = {
  */
 export function snapshot(
   msgs: AgentMessage[],
-  phase: ExecutionPhase = ExecutionPhase.EXECUTION_IN_PROGRESS,
-  artifacts?: ExecutionArtifact[],
-): AgentExecution {
+  phase: RunPhase = RunPhase.RUN_IN_PROGRESS,
+  artifacts?: RunArtifact[],
+): AgentRun {
   const firstHumanIdx = msgs.findIndex(
     (m) => m.type === MessageType.MESSAGE_HUMAN,
   );
@@ -45,7 +45,7 @@ export function snapshot(
       ? [...msgs.slice(0, firstHumanIdx), ...msgs.slice(firstHumanIdx + 1)]
       : msgs;
 
-  const exec = samples.agentExecution({
+  const exec = samples.agentRun({
     phase,
     messages: statusMessages,
     artifacts,

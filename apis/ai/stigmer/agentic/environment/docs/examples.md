@@ -262,7 +262,7 @@ stigmer environment apply env.yaml
 
 ## Rotating a Secret
 
-To rotate a secret, update the environment with the new value. All future executions referencing this environment will use the new secret immediately — no changes needed to any agent, schedule or workflow.
+To rotate a secret, update the environment with the new value. All future runs referencing this environment will use the new secret immediately — no changes needed to any agent, schedule or workflow.
 
 ```yaml
 # env-rotate.yaml — same structure, new secret value
@@ -295,6 +295,6 @@ stigmer environment get github-prod-secrets --output yaml
 # List all environments in the org
 stigmer environment list --org acme-corp
 
-# Delete an environment (will cause future executions referencing it to fail)
+# Delete an environment (will cause future runs referencing it to fail)
 stigmer environment delete github-staging-secrets
 ```

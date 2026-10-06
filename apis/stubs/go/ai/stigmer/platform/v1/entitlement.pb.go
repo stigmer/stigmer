@@ -220,7 +220,7 @@ type EntitlementLimits struct {
 	// counted. Read by a subscription. A license ignores it until a
 	// self-hosted capacity gate reads it.
 	MaxActiveSessionSandboxes *int32 `protobuf:"varint,4,opt,name=max_active_session_sandboxes,json=maxActiveSessionSandboxes,proto3,oneof" json:"max_active_session_sandboxes,omitempty"`
-	// The most workflow-execution sandboxes an organization may hold
+	// The most workflow-run sandboxes an organization may hold
 	// provisioning or running at once. A workflow launch that would need a
 	// new sandbox past it is refused. Read by a subscription. A license
 	// ignores it until a self-hosted capacity gate reads it.

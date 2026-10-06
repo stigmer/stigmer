@@ -16,7 +16,7 @@ test.describe("Workflow detail page", () => {
 
     await expect(page.getByRole("heading", { name: testWorkflow.slug })).toBeVisible();
     const tabs = page.getByRole("tablist", { name: "Workflow detail tabs" });
-    for (const name of ["Overview", "Executions", "Versions", "Editor"]) {
+    for (const name of ["Overview", "Runs", "Versions", "Editor"]) {
       await expect(tabs.getByRole("tab", { name })).toBeVisible();
     }
     await expect(tabs.getByRole("tab", { name: "Overview" })).toHaveAttribute(
@@ -37,7 +37,7 @@ test.describe("Workflow detail page", () => {
     await navigateToWorkflowDetail(page, testWorkflow.org, testWorkflow.slug);
     const tabs = page.getByRole("tablist", { name: "Workflow detail tabs" });
 
-    for (const name of ["Executions", "Versions"]) {
+    for (const name of ["Runs", "Versions"]) {
       const tab = tabs.getByRole("tab", { name });
       await tab.click();
       await expect(tab).toHaveAttribute("aria-selected", "true");

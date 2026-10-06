@@ -37,7 +37,7 @@ Artifact artifact = client.artifacts().get("art_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`get`](#get) | Get a single artifact by ID. |
 | [`getContent`](#getcontent) | Read artifact content bytes through the Stigmer API. |
 | [`getDownloadUrl`](#getdownloadurl) | Get a download URL for artifact content. |
-| [`listByExecution`](#listbyexecution) | List all artifacts produced by a specific execution. |
+| [`listByRun`](#listbyrun) | List all artifacts produced by a specific run. |
 | [`create`](#create) | Create a new artifact with content. |
 | [`delete`](#delete) | Delete an artifact. |
 
@@ -51,13 +51,13 @@ Does NOT return the artifact content — use getDownloadUrl to retrieve a URL fo
 
 Use Cases:
 
-1. Artifact Detail View: - User clicks an artifact in the execution viewer - UI calls get() to fetch full metadata - UI displays content type, size, source task, expiration
+1. Artifact Detail View: - User clicks an artifact in the run viewer - UI calls get() to fetch full metadata - UI displays content type, size, source task, expiration
 
 2. Artifact Reference Resolution: - Task output contains _artifact_ref field - UI calls get() to resolve the reference to metadata - UI renders a download/preview widget instead of raw JSON
 
 Error Cases:
 
-- NOT_FOUND: No Artifact exists with the given ID - PERMISSION_DENIED: User doesn't have view access to the parent execution
+- NOT_FOUND: No Artifact exists with the given ID - PERMISSION_DENIED: User doesn't have view access to the parent run
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -147,7 +147,7 @@ Cloud: returns a pre-signed S3 URL with a short TTL (15 minutes). OSS: returns a
 
 Use Cases:
 
-1. Download Artifact: - User clicks "Download" in the execution viewer - UI calls getDownloadUrl() to get a URL - Browser opens the URL in a new tab or triggers a download
+1. Download Artifact: - User clicks "Download" in the run viewer - UI calls getDownloadUrl() to get a URL - Browser opens the URL in a new tab or triggers a download
 
 2. Preview Artifact: - UI calls getDownloadUrl() for JSON/text artifacts - UI fetches content from the URL and renders inline - Large artifacts show a truncated preview with download option
 
@@ -155,7 +155,7 @@ Use Cases:
 
 Error Cases:
 
-- NOT_FOUND: No Artifact exists with the given ID - PERMISSION_DENIED: User doesn't have view access to the parent execution - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
+- NOT_FOUND: No Artifact exists with the given ID - PERMISSION_DENIED: User doesn't have view access to the parent run - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -188,28 +188,28 @@ ArtifactDownloadUrl artifactDownloadUrl = client.artifacts().getDownloadUrl(id);
 
 **Returns**: [`ArtifactDownloadUrl`](#artifactdownloadurl)
 
-### listByExecution
+### listByRun
 
-List all artifacts produced by a specific execution.
+List all artifacts produced by a specific run.
 
-Returns a paginated list of artifacts filtered by either workflow_execution_id or agent_execution_id.
+Returns a paginated list of artifacts filtered by either workflow_run_id or agent_run_id.
 
 Use Cases:
 
-1. Execution Viewer Artifact Panel: - User views a workflow execution in the execution viewer - UI calls listByExecution() to populate the artifact sidebar - Each artifact shows display name, content type, size, source task
+1. Run Viewer Artifact Panel: - User views a workflow run in the run viewer - UI calls listByRun() to populate the artifact sidebar - Each artifact shows display name, content type, size, source task
 
-2. CLI Artifact Listing: - `stigmer workflow artifacts wex_abc123` - CLI calls listByExecution() and formats as a table
+2. CLI Artifact Listing: - `stigmer workflow artifacts wex_abc123` - CLI calls listByRun() and formats as a table
 
 Error Cases:
 
-- INVALID_ARGUMENT: Neither workflow_execution_id nor agent_execution_id provided - PERMISSION_DENIED: User doesn't have view access to the parent execution
+- INVALID_ARGUMENT: Neither workflow_run_id nor agent_run_id provided - PERMISSION_DENIED: User doesn't have view access to the parent run
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const result = await stigmer.artifact.listByExecution({
-  workflowExecutionId: "...",
-  agentExecutionId: "...",
+const result = await stigmer.artifact.listByRun({
+  workflowRunId: "...",
+  agentRunId: "...",
   pageSize: 0,
   pageToken: "...",
 });
@@ -217,19 +217,19 @@ const result = await stigmer.artifact.listByExecution({
 </Tab>
 <Tab value="Go">
 ```go
-result, err := client.Artifact.ListByExecution(ctx, &stigmer.ListArtifactsByExecutionRequest{
-  WorkflowExecutionId: "...",
-  AgentExecutionId:    "...",
-  PageSize:            0,
-  PageToken:           "...",
+result, err := client.Artifact.ListByRun(ctx, &stigmer.ListArtifactsByRunRequest{
+  WorkflowRunId: "...",
+  AgentRunId:    "...",
+  PageSize:      0,
+  PageToken:     "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.artifacts.list_by_execution(ListArtifactsByExecutionRequest(
-    workflow_execution_id="...",
-    agent_execution_id="...",
+result = client.artifacts.list_by_run(ListArtifactsByRunRequest(
+    workflow_run_id="...",
+    agent_run_id="...",
     page_size=0,
     page_token="...",
 ))
@@ -237,9 +237,9 @@ result = client.artifacts.list_by_execution(ListArtifactsByExecutionRequest(
 </Tab>
 <Tab value="Java">
 ```java
-ArtifactList result = client.artifacts().listByExecution(ListArtifactsByExecutionRequest.builder()
-    .workflowExecutionId("...")
-    .agentExecutionId("...")
+ArtifactList result = client.artifacts().listByRun(ListArtifactsByRunRequest.builder()
+    .workflowRunId("...")
+    .agentRunId("...")
     .pageSize(0)
     .pageToken("...")
     .build());
@@ -247,7 +247,7 @@ ArtifactList result = client.artifacts().listByExecution(ListArtifactsByExecutio
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`ListArtifactsByExecutionRequest`](#listartifactsbyexecutionrequest)
+**Parameters**: [`ListArtifactsByRunRequest`](#listartifactsbyrunrequest)
 
 **Returns**: [`ArtifactList`](#artifactlist)
 
@@ -347,19 +347,19 @@ Input for creating or updating an Artifact.
     labels: { type: "Record<string, string>", description: "Key-value labels." },
     contentType: { type: "string", description: "MIME content type of the artifact payload.", required: true },
     displayName: { type: "string", description: "Human-readable display name for the artifact.", required: true },
-    source: { type: "ArtifactSourceInput", description: "Provenance: which execution and task produced this artifact.", typeDescriptionLink: "#artifactsourceinput", required: true },
+    source: { type: "ArtifactSourceInput", description: "Provenance: which run and task produced this artifact.", typeDescriptionLink: "#artifactsourceinput", required: true },
     retention: { type: "RetentionPolicyInput", description: "Retention policy for this artifact.", typeDescriptionLink: "#retentionpolicyinput" },
   }}
 />
 
 ### ArtifactSourceInput
 
-ArtifactSource identifies the execution context that produced an artifact.
+ArtifactSource identifies the run and task that produced an artifact.
 
 <TypeTable
   type={{
-    workflowExecutionId: { type: "string", description: "WorkflowExecution that produced this artifact." },
-    agentExecutionId: { type: "string", description: "AgentExecution that produced this artifact." },
+    workflowRunId: { type: "string", description: "WorkflowRun that produced this artifact." },
+    agentRunId: { type: "string", description: "AgentRun that produced this artifact." },
     taskName: { type: "string", description: "Name of the task that produced this artifact." },
   }}
 />
@@ -385,16 +385,16 @@ CreateArtifactInput provides the data needed to create an artifact.
   }}
 />
 
-### ListArtifactsByExecutionRequest
+### ListArtifactsByRunRequest
 
-ListArtifactsByExecutionRequest lists artifacts produced by a specific execution.
+ListArtifactsByRunRequest lists artifacts produced by a specific run.
 
 <TypeTable
   type={{
-    workflowExecutionId: { type: "string", description: "WorkflowExecution ID to list artifacts for." },
-    agentExecutionId: { type: "string", description: "AgentExecution ID to list artifacts for." },
-    pageSize: { type: "number", description: "Not read: an execution's artifacts are returned whole." },
-    pageToken: { type: "string", description: "Not read: an execution's artifacts are returned whole." },
+    workflowRunId: { type: "string", description: "WorkflowRun ID to list artifacts for." },
+    agentRunId: { type: "string", description: "AgentRun ID to list artifacts for." },
+    pageSize: { type: "number", description: "Not read: a run's artifacts are returned whole." },
+    pageToken: { type: "string", description: "Not read: a run's artifacts are returned whole." },
   }}
 />
 
@@ -404,8 +404,8 @@ ArtifactList contains a paginated list of artifacts.
 
 <TypeTable
   type={{
-    totalPages: { type: "number", description: "Always 1: an execution's artifacts are returned whole." },
-    entries: { type: "ArtifactInput[]", description: "The execution's artifacts, newest first.", typeDescriptionLink: "#artifactinput" },
+    totalPages: { type: "number", description: "Always 1: a run's artifacts are returned whole." },
+    entries: { type: "ArtifactInput[]", description: "The run's artifacts, newest first.", typeDescriptionLink: "#artifactinput" },
   }}
 />
 
@@ -448,7 +448,7 @@ GetArtifactContentResponse returns the raw content of an artifact.
 
 ### Artifact
 
-Artifact represents a persisted blob produced during execution.
+Artifact represents a persisted blob produced during a run.
 
 <TypeTable
   type={{

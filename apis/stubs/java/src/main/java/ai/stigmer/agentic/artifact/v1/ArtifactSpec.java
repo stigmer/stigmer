@@ -153,7 +153,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.artifact.v1.ArtifactSource source_;
   /**
    * <pre>
-   * Provenance: which execution and task produced this artifact.
+   * Provenance: which run and task produced this artifact.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -165,7 +165,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Provenance: which execution and task produced this artifact.
+   * Provenance: which run and task produced this artifact.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -177,7 +177,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Provenance: which execution and task produced this artifact.
+   * Provenance: which run and task produced this artifact.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -819,7 +819,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.artifact.v1.ArtifactSource, ai.stigmer.agentic.artifact.v1.ArtifactSource.Builder, ai.stigmer.agentic.artifact.v1.ArtifactSourceOrBuilder> sourceBuilder_;
     /**
      * <pre>
-     * Provenance: which execution and task produced this artifact.
+     * Provenance: which run and task produced this artifact.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -830,7 +830,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Provenance: which execution and task produced this artifact.
+     * Provenance: which run and task produced this artifact.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -845,7 +845,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Provenance: which execution and task produced this artifact.
+     * Provenance: which run and task produced this artifact.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -865,7 +865,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Provenance: which execution and task produced this artifact.
+     * Provenance: which run and task produced this artifact.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -883,7 +883,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Provenance: which execution and task produced this artifact.
+     * Provenance: which run and task produced this artifact.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -908,7 +908,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Provenance: which execution and task produced this artifact.
+     * Provenance: which run and task produced this artifact.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -925,7 +925,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Provenance: which execution and task produced this artifact.
+     * Provenance: which run and task produced this artifact.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -937,7 +937,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Provenance: which execution and task produced this artifact.
+     * Provenance: which run and task produced this artifact.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -952,7 +952,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Provenance: which execution and task produced this artifact.
+     * Provenance: which run and task produced this artifact.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>

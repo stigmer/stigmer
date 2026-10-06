@@ -6,12 +6,14 @@
  * delete confirmation names the workflow alone and keeps its past runs, in
  * the same words as the workflows list's row Delete;
  * the Run action opens the run dialog, which names the workflow alone, and
- * a change saved on the page refreshes the dialog's copy of the workflow.
+ * a change saved on the page refreshes the dialog's copy of the workflow;
+ * a started run, a run picked from the run list and the latest-run link
+ * each open that run's page at /runs/<id>, and a started run says so.
  * The detail view and the editor are pinned in @stigmer/react.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { act, render } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { act, render, screen } from "@testing-library/react";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 
 interface Action {
   id: string;
@@ -28,6 +30,8 @@ interface DetailProps {
   onResourceLoad: (resource: { name: string; id: string }) => void;
   onResourceUpdated?: () => void;
   primaryAction?: Action;
+  onRunClick: (runId: string) => void;
+  onViewLatestRun: (runId: string) => void;
 }
 
 const page = vi.hoisted(() => ({
@@ -38,6 +42,7 @@ const page = vi.hoisted(() => ({
   confirms: [] as Array<{ description: string }>,
   runDialog: [] as Array<Record<string, unknown>>,
   refetchWorkflow: () => undefined,
+  toasts: [] as Array<[string, string]>,
 }));
 
 const noop = () => undefined;
@@ -74,18 +79,27 @@ vi.mock("@stigmer/react", () => ({
   useDeleteResource: () => ({ deleteResource: noop, isDeleting: false }),
   useElkLayoutEngine: () => undefined,
   useBreadcrumbOverride: () => ({ setLabel: noop }),
-  toast: { success: () => undefined, error: () => undefined },
+  toast: {
+    success: (message: string) => page.toasts.push(["success", message]),
+    error: (message: string) => page.toasts.push(["error", message]),
+  },
 }));
 
 import WorkflowDetailPage from "../workflow/WorkflowDetailPage";
 import { WORKFLOW_DELETE_DESCRIPTION } from "../workflow/workflow-delete-confirmation";
+
+function Location() {
+  return <span data-testid="location">{useLocation().pathname}</span>;
+}
 
 function renderWorkflow() {
   return render(
     <MemoryRouter initialEntries={["/library/workflows/acme/digest"]}>
       <Routes>
         <Route path="/library/workflows/:org/:slug" element={<WorkflowDetailPage />} />
+        <Route path="*" element={null} />
       </Routes>
+      <Location />
     </MemoryRouter>,
   );
 }
@@ -101,6 +115,7 @@ beforeEach(() => {
   page.copiedSlugs.length = 0;
   page.confirms.length = 0;
   page.runDialog.length = 0;
+  page.toasts.length = 0;
 });
 
 describe("desktop WorkflowDetailPage — header actions", () => {
@@ -157,7 +172,7 @@ describe("desktop WorkflowDetailPage — header actions", () => {
 
     expect(page.confirms.at(-1)?.description).toBe(
       "This permanently removes the workflow. " +
-        "Past executions are preserved in the execution history. " +
+        "Past runs are preserved in the run history. " +
         "This action cannot be undone.",
     );
     expect(page.confirms.at(-1)?.description).toBe(WORKFLOW_DELETE_DESCRIPTION);
@@ -184,5 +199,43 @@ describe("desktop WorkflowDetailPage — header actions", () => {
     act(() => run?.onAction());
 
     expect(page.runDialog.at(-1)?.open).toBe(true);
+  });
+});
+
+describe("desktop WorkflowDetailPage — opening a run", () => {
+  it("announces a started run and opens its page", () => {
+    renderWorkflow();
+    const onSuccess = page.runDialog.at(-1)?.onSuccess as (runId: string) => void;
+
+    act(() => onSuccess("wfr_started"));
+
+    expect(page.toasts).toEqual([["success", "Workflow run started"]]);
+    expect(screen.getByTestId("location").textContent).toBe("/runs/wfr_started");
+  });
+
+  it("shows a run that fails to start as an error toast and stays on the workflow", () => {
+    renderWorkflow();
+    const onError = page.runDialog.at(-1)?.onError as (message: string) => void;
+
+    act(() => onError("quota exhausted"));
+
+    expect(page.toasts).toEqual([["error", "quota exhausted"]]);
+    expect(screen.getByTestId("location").textContent).toBe("/library/workflows/acme/digest");
+  });
+
+  it("opens a run picked from the workflow's run list", () => {
+    renderWorkflow();
+
+    act(() => page.detail.at(-1)?.onRunClick("wfr_listed"));
+
+    expect(screen.getByTestId("location").textContent).toBe("/runs/wfr_listed");
+  });
+
+  it("opens the latest run from its link", () => {
+    renderWorkflow();
+
+    act(() => page.detail.at(-1)?.onViewLatestRun("wfr_latest"));
+
+    expect(screen.getByTestId("location").textContent).toBe("/runs/wfr_latest");
   });
 });

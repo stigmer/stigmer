@@ -49,8 +49,8 @@ type WorkflowQueryControllerClient interface {
 	ListVersions(ctx context.Context, in *ListWorkflowVersionsInput, opts ...grpc.CallOption) (*ListWorkflowVersionsResponse, error)
 	// Get a specific historical version of a workflow by its content hash.
 	//
-	// Used by the runner (to hydrate execution from a pinned version) and
-	// the execution viewer (to render the graph for historical executions).
+	// Used by the runner (to hydrate a run from a pinned version) and
+	// the run viewer (to render the graph for historical runs).
 	GetVersion(ctx context.Context, in *GetWorkflowVersionInput, opts ...grpc.CallOption) (*WorkflowVersionEntry, error)
 }
 
@@ -125,8 +125,8 @@ type WorkflowQueryControllerServer interface {
 	ListVersions(context.Context, *ListWorkflowVersionsInput) (*ListWorkflowVersionsResponse, error)
 	// Get a specific historical version of a workflow by its content hash.
 	//
-	// Used by the runner (to hydrate execution from a pinned version) and
-	// the execution viewer (to render the graph for historical executions).
+	// Used by the runner (to hydrate a run from a pinned version) and
+	// the run viewer (to render the graph for historical runs).
 	GetVersion(context.Context, *GetWorkflowVersionInput) (*WorkflowVersionEntry, error)
 }
 

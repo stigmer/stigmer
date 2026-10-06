@@ -30,8 +30,8 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 // Both mocks are hoisted by vitest; they must live in this file. Each factory
 // imports the reusable module and returns its mock surface.
@@ -125,14 +125,14 @@ describe("ExecuteCursor hermetic — plain turn", () => {
     // ── Assert: the outcome the workflow sees ────────────────────────────────
     expect(invocation.outcome.kind, "a completed turn RETURNS, never throws").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_COMPLETED");
+    expect(slim.phase).toBe("RUN_COMPLETED");
     expect(slim.final_text).toBe(ASSISTANT_TEXT);
     expect(slim, "the slim return carries no transcript").not.toHaveProperty("messages");
 
     // ── Assert: what the control plane received, in order ────────────────────
     expect(record.persistedPhases).toEqual([
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
-      ExecutionPhase.EXECUTION_COMPLETED,
+      RunPhase.RUN_IN_PROGRESS,
+      RunPhase.RUN_COMPLETED,
     ]);
     expect(record.setupProgress, "the setup pipeline's phase labels, in order").toEqual([
       "Fetching execution",
@@ -169,7 +169,7 @@ describe("ExecuteCursor hermetic — plain turn", () => {
     // ── Assert: the golden ───────────────────────────────────────────────────
     const finalStatus = record.lastFullStatus;
     expect(finalStatus).toBeDefined();
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, finalStatus!), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, finalStatus!), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/plain-turn.status.json");
   });
 });

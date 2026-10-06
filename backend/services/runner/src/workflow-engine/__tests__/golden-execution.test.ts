@@ -869,7 +869,7 @@ describe("Golden Execution — Structured Output Pipeline", () => {
   it("REGRESSION: old Java code sends plain string — no structured output", async () => {
     // Before the v3 fix, Java's executeCursorFlow() completed the async
     // activity with a plain string like:
-    //   "Agent execution completed - execution_id: aex_xxx, phase: EXECUTION_COMPLETED"
+    //   "Agent execution completed - execution_id: aex_xxx, phase: RUN_COMPLETED"
     //
     // The TS orchestrator's JSON.parse fails, so activityResult = {}.
     // At the workflow engine level, callAgent returns {} (empty object).

@@ -12,7 +12,7 @@ import type { VisibilityResourceKind } from "../library/useUpdateVisibility.js";
 export interface AccessResource {
   /** ApiResourceKind enum — drives grantable-role lookup and capability. */
   readonly kind: ApiResourceKind;
-  /** FGA/API kind string (e.g. "mcp_server", "session", "workflow_execution"). */
+  /** FGA/API kind string (e.g. "mcp_server", "session", "workflow_run"). */
   readonly kindString: string;
   /** Resource id. */
   readonly id: string;
@@ -25,7 +25,7 @@ export interface AccessResource {
 /**
  * Describes the "General access" (visibility) axis for the Manage access
  * dialog. Optional because not every resource has visibility (e.g. sessions
- * and workflow executions do not). When present, the dialog renders the
+ * and workflow runs do not). When present, the dialog renders the
  * shared `ResourceVisibilityControl`, which owns level selection and
  * the `can_manage_audience` gate.
  */

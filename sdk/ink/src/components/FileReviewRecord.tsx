@@ -1,10 +1,10 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
 import {
   FileChangeSetStatus,
   FileDecisionAction,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { deriveEffectiveVerdicts } from "@stigmer/react";
 import {
   changeDisplayPath,

@@ -73,7 +73,7 @@ class ChannelConversationQueryControllerServicer(object):
 
         The timeline contains customer-visible items only: inbound customer
         messages (including non-text kinds the platform cannot render),
-        delivered agent replies, and operator or platform sends. Execution
+        delivered agent replies, and operator or platform sends. Run
         internals never appear.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)

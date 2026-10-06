@@ -2,7 +2,7 @@
   "name": "terminal-sub-agent-excluded",
   "description": "A gated tool call inside a COMPLETED sub-agent is an orphan and must NOT surface.",
   "input": {
-    "sub_agent_executions": [
+    "sub_agent_runs": [
       {
         "name": "researcher",
         "subject": "Gather context",

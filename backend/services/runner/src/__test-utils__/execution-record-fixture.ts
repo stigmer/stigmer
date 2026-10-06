@@ -22,13 +22,13 @@
 
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
-import { RunConfigSchema, type RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
-import { ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+import { RunConfigSchema, type RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
+import { ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
@@ -118,9 +118,9 @@ export interface ExecutionRecordOptions {
 export function executionRecordFixture(options: ExecutionRecordOptions): ExecutionRecord {
   const ids = options.ids ?? DEFAULT_RECORD_IDS;
   const builtIn = options.builtInAssistant === true;
-  const execution: AgentExecution = create(AgentExecutionSchema, {
+  const execution: AgentRun = create(AgentRunSchema, {
     metadata: create(ApiResourceMetadataSchema, { id: ids.executionId, org: ids.org, name: ids.executionId }),
-    spec: create(AgentExecutionSpecSchema, {
+    spec: create(AgentRunSpecSchema, {
       target: { case: "sessionId", value: ids.sessionId },
       message: options.message,
       autoApproveAll: options.autoApproveAll ?? false,
@@ -128,7 +128,7 @@ export function executionRecordFixture(options: ExecutionRecordOptions): Executi
       // A `google.protobuf.Struct` field is a plain `JsonObject` in protobuf-es.
       structuredOutputSchema: options.structuredOutputSchema,
     }),
-    status: create(AgentExecutionStatusSchema, {
+    status: create(AgentRunStatusSchema, {
       agentId: builtIn ? "" : ids.agentId,
       agentVersionHash: builtIn ? "" : ids.agentVersionHash,
       runConfig: create(RunConfigSchema, {

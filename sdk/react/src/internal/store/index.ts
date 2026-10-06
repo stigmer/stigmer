@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useRef, useSyncExternalStore } from "react";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { ConversationStore, type StreamState } from "./conversation-store.js";
 import {
   WorkspaceFileSelectionStore,
@@ -15,11 +15,11 @@ import {
 export { ConversationStore, type StreamState } from "./conversation-store.js";
 export { structuralShare } from "./structural-share.js";
 export {
-  WorkflowExecutionEventStore,
+  WorkflowRunEventStore,
   type WorkflowEventStreamState,
   type DerivedTaskState,
   type DerivedCostSummary,
-} from "./workflow-execution-event-store.js";
+} from "./workflow-run-event-store.js";
 
 export { WorkspaceFileSelectionStore } from "./workspace-file-selection-store.js";
 export type { SelectedWorkspaceFile } from "./workspace-file-selection-store.js";
@@ -79,13 +79,13 @@ export function useConversationStoreRef(): ConversationStore {
 }
 
 /**
- * Subscribe to the execution snapshot from the conversation store.
- * Returns a stable reference when the execution is unchanged
+ * Subscribe to the run snapshot from the conversation store.
+ * Returns a stable reference when the run is unchanged
  * (structural sharing ensures this).
  */
-export function useStoreExecution(
+export function useStoreRun(
   store: ConversationStore,
-): AgentExecution | null {
+): AgentRun | null {
   return useSyncExternalStore(store.subscribe, store.getExecution);
 }
 

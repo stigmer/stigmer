@@ -103,7 +103,7 @@ export type EntitlementLimits = Message<"ai.stigmer.platform.v1.EntitlementLimit
   maxActiveSessionSandboxes?: number;
 
   /**
-   * The most workflow-execution sandboxes an organization may hold
+   * The most workflow-run sandboxes an organization may hold
    * provisioning or running at once. A workflow launch that would need a
    * new sandbox past it is refused. Read by a subscription. A license
    * ignores it until a self-hosted capacity gate reads it.

@@ -8,7 +8,7 @@ import {
   formatJson,
   humanizeArgKey,
   isScalar,
-} from "../../execution/tool-rendering-primitives.js";
+} from "../../run/tool-rendering-primitives.js";
 import { TruncatedText } from "../../internal/truncated-text.js";
 
 /**

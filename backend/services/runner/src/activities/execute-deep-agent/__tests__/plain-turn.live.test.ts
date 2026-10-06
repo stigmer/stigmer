@@ -19,7 +19,7 @@
  * the prices are the ones users get.
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { ExecutionPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("../../../client/stigmer-client.js", async () =>
   (await import("../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
@@ -75,7 +75,7 @@ describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("ExecuteDeepAgent live — a p
 
     const rows = record.toolCalls().map((r) => `${r.name}:${ToolCallStatus[r.status]}`).join(", ");
     expect(invocation.outcome.kind, final?.error).toBe("returned");
-    expect(record.persistedPhases.at(-1), `${final?.error ?? ""} tool rows: [${rows}]`).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(record.persistedPhases.at(-1), `${final?.error ?? ""} tool rows: [${rows}]`).toBe(RunPhase.RUN_COMPLETED);
     const ai = (final?.messages ?? []).filter((m) => m.type === MessageType.MESSAGE_AI);
     expect(ai.length, "at least one assistant message").toBeGreaterThan(0);
     expect(ai.at(-1)?.content.trim().length, "the last assistant message carries text").toBeGreaterThan(0);
@@ -96,7 +96,7 @@ describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("ExecuteDeepAgent live — a p
     const final = record.lastFullStatus;
     recordLiveSpend("native cost-cap stop (claude-haiku-4.5)", final?.streamingUsage?.estimatedCostUsd);
 
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_TERMINATED);
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_TERMINATED);
     expect(final?.error.startsWith(COST_LIMIT_ERROR_PREFIX), final?.error).toBe(true);
   });
 });

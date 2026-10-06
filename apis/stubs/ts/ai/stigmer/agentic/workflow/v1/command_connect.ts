@@ -6,7 +6,7 @@
 import { Workflow } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
-import { UpdateWorkflowExecutionVisibilityInput, WorkflowId } from "./io_pbjs";
+import { UpdateWorkflowRunVisibilityInput, WorkflowId } from "./io_pbjs";
 import { ServerlessWorkflowValidation } from "./serverless/validation_pbjs";
 import { TagWorkflowVersionInput } from "./version_pbjs";
 
@@ -72,10 +72,10 @@ export const WorkflowCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Update who can observe the runs (executions) of this workflow.
+     * Update who can observe the runs of this workflow.
      *
      * This is a SEPARATE axis from updateVisibility: it controls run
-     * observability (who sees execution inputs and outputs), not who can see or
+     * observability (who sees run inputs and outputs), not who can see or
      * run the workflow itself. Making a workflow org-runnable does NOT expose
      * other people's runs; that requires this opt-in. The setting covers every
      * run of the workflow, past runs included.
@@ -83,11 +83,11 @@ export const WorkflowCommandController = {
      * Supported levels: PRIVATE (only the person who started each run) and
      * ORGANIZATION (all org members). Platform is unsupported.
      *
-     * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.updateExecutionVisibility
+     * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.updateRunVisibility
      */
-    updateExecutionVisibility: {
-      name: "updateExecutionVisibility",
-      I: UpdateWorkflowExecutionVisibilityInput,
+    updateRunVisibility: {
+      name: "updateRunVisibility",
+      I: UpdateWorkflowRunVisibilityInput,
       O: Workflow,
       kind: MethodKind.Unary,
     },

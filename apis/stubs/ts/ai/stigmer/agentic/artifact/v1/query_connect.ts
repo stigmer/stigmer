@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ArtifactDownloadUrl, ArtifactId, ArtifactList, GetArtifactContentRequest, GetArtifactContentResponse, ListArtifactsByExecutionRequest } from "./io_pbjs";
+import { ArtifactDownloadUrl, ArtifactId, ArtifactList, GetArtifactContentRequest, GetArtifactContentResponse, ListArtifactsByRunRequest } from "./io_pbjs";
 import { Artifact } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -27,7 +27,7 @@ export const ArtifactQueryController = {
      * Use Cases:
      *
      * 1. Artifact Detail View:
-     *    - User clicks an artifact in the execution viewer
+     *    - User clicks an artifact in the run viewer
      *    - UI calls get() to fetch full metadata
      *    - UI displays content type, size, source task, expiration
      *
@@ -39,7 +39,7 @@ export const ArtifactQueryController = {
      * Error Cases:
      *
      * - NOT_FOUND: No Artifact exists with the given ID
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - PERMISSION_DENIED: User doesn't have view access to the parent run
      *
      * @generated from rpc ai.stigmer.agentic.artifact.v1.ArtifactQueryController.get
      */
@@ -50,32 +50,32 @@ export const ArtifactQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * List all artifacts produced by a specific execution.
+     * List all artifacts produced by a specific run.
      *
      * Returns a paginated list of artifacts filtered by either
-     * workflow_execution_id or agent_execution_id.
+     * workflow_run_id or agent_run_id.
      *
      * Use Cases:
      *
-     * 1. Execution Viewer Artifact Panel:
-     *    - User views a workflow execution in the execution viewer
-     *    - UI calls listByExecution() to populate the artifact sidebar
+     * 1. Run Viewer Artifact Panel:
+     *    - User views a workflow run in the run viewer
+     *    - UI calls listByRun() to populate the artifact sidebar
      *    - Each artifact shows display name, content type, size, source task
      *
      * 2. CLI Artifact Listing:
      *    - `stigmer workflow artifacts wex_abc123`
-     *    - CLI calls listByExecution() and formats as a table
+     *    - CLI calls listByRun() and formats as a table
      *
      * Error Cases:
      *
-     * - INVALID_ARGUMENT: Neither workflow_execution_id nor agent_execution_id provided
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - INVALID_ARGUMENT: Neither workflow_run_id nor agent_run_id provided
+     * - PERMISSION_DENIED: User doesn't have view access to the parent run
      *
-     * @generated from rpc ai.stigmer.agentic.artifact.v1.ArtifactQueryController.listByExecution
+     * @generated from rpc ai.stigmer.agentic.artifact.v1.ArtifactQueryController.listByRun
      */
-    listByExecution: {
-      name: "listByExecution",
-      I: ListArtifactsByExecutionRequest,
+    listByRun: {
+      name: "listByRun",
+      I: ListArtifactsByRunRequest,
       O: ArtifactList,
       kind: MethodKind.Unary,
     },
@@ -92,7 +92,7 @@ export const ArtifactQueryController = {
      * Use Cases:
      *
      * 1. Download Artifact:
-     *    - User clicks "Download" in the execution viewer
+     *    - User clicks "Download" in the run viewer
      *    - UI calls getDownloadUrl() to get a URL
      *    - Browser opens the URL in a new tab or triggers a download
      *
@@ -108,7 +108,7 @@ export const ArtifactQueryController = {
      * Error Cases:
      *
      * - NOT_FOUND: No Artifact exists with the given ID
-     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - PERMISSION_DENIED: User doesn't have view access to the parent run
      * - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
      *
      * @generated from rpc ai.stigmer.agentic.artifact.v1.ArtifactQueryController.getDownloadUrl

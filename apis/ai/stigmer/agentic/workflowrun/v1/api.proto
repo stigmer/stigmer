@@ -1,0 +1,588 @@
+syntax = "proto3";
+
+// Package ai.stigmer.agentic.workflowrun.v1 contains the API definition for WorkflowRun.
+//
+// WorkflowRun represents a single runtime invocation of a Workflow, capturing the complete
+// run lifecycle from trigger to completion.
+//
+// This package belongs to the "agentic" bounded context, which encompasses all AI agent
+// systems and workflow orchestration capabilities.
+package ai.stigmer.agentic.workflowrun.v1;
+
+import "ai/stigmer/agentic/agentrun/v1/approval.proto";
+import "ai/stigmer/agentic/workflowrun/v1/enum.proto";
+import "ai/stigmer/agentic/workflowrun/v1/spec.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/struct.proto";
+
+// WorkflowRun represents a single runtime invocation of a Workflow.
+//
+// @internal
+// It captures the complete lifecycle of a workflow run, from initial trigger through
+// task-by-task execution to final completion or failure.
+//
+// A WorkflowRun:
+// - Names the Workflow it runs, pinned to the version current at create
+// - Is triggered by a user action, API call, webhook, or scheduled event
+// - Executes tasks sequentially or in parallel based on the workflow definition
+// - Tracks real-time progress through tasks and phases
+// - Captures outputs, errors, and run metadata
+// - Is ephemeral - deleted after completion based on retention policies
+//
+// Run Pattern:
+// Workflow "customer-onboarding"
+//   → WorkflowRun "customer-onboarding-20250111-143022" (specific run)
+//     - Phase: IN_PROGRESS
+//     - Tasks: [validate_email: COMPLETED, create_account: IN_PROGRESS, send_welcome: PENDING]
+//     - Progress: 1/3 tasks completed
+//
+// Separation of Concerns:
+// - User Inputs (spec): workflow_id, trigger_message, trigger_metadata, runtime_env
+// - System State (status): phase, tasks, output, timestamps, errors
+//
+// This separation ensures:
+// - Clear boundary between what users control (spec) and what the system manages (status)
+// - Status can be updated independently during the run without modifying user inputs
+// - Run can be retried by creating a new WorkflowRun with the same spec
+message WorkflowRun {
+  // API version for this resource type.
+  //
+  // @internal
+  // Format: 'agentic.stigmer.ai/v1'
+  // Validated as const to ensure version consistency across all workflow run resources.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  //
+  // @internal
+  // Must be exactly 'WorkflowRun' to match the message name.
+  // Validated as const for type safety and resource identification.
+  string kind = 2 [(buf.validate.field).string.const = 'WorkflowRun'];
+
+  // Resource metadata including name, organization, visibility, and labels.
+  //
+  // @internal
+  // All workflow runs belong to an organization. Visibility (public/private)
+  // is typically PRIVATE for runs since they contain runtime data.
+  //
+  // Naming Pattern:
+  // - ID Format: "wfx_abc123xyz456" (auto-generated, unique)
+  // - Name Format: "{workflow_name}-{timestamp}" (e.g., "prod-deploy-20250111-143022")
+  // - Slug Format: Same as name, URL-safe
+  //
+  // Labels and Tags:
+  // - Labels: workflow_id, trigger_source
+  // - Tags: environment names, team names, run metadata
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // User-provided inputs and configuration for this workflow run.
+  //
+  // @internal
+  // Contains:
+  // - workflow_id: Which Workflow to run (required)
+  // - trigger_message: Input message or payload for the workflow (optional)
+  // - trigger_metadata: Metadata about who/what triggered the run (optional)
+  // - runtime_env: Run-specific environment variables and secrets (optional)
+  //
+  // The spec is immutable after creation - it represents the "inputs" for this run.
+  // To retry with different inputs, create a new WorkflowRun with updated spec.
+  //
+  // Example:
+  // spec {
+  //   workflow_id: "wfl_customer-onboarding"
+  //   trigger_message: "New customer: customer-email@example.com"
+  //   trigger_metadata: {
+  //     "source": "api"
+  //     "caller_id": "usr-john-doe"
+  //     "timestamp": "2025-01-11T14:30:22Z"
+  //   }
+  //   runtime_env: {
+  //     "CUSTOMER_EMAIL": { value: "customer-email@example.com" }
+  //     "WEBHOOK_URL": { secret_ref: "sec-webhook-callback" }
+  //   }
+  // }
+  WorkflowRunSpec spec = 4;
+
+  // System-managed run state and results.
+  //
+  // @internal
+  // Contains:
+  // - phase: Current lifecycle phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)
+  // - tasks: List of workflow tasks with their execution state (source of truth for progress)
+  // - output: Final workflow output (JSON structure, only for COMPLETED runs)
+  // - error: Error message (only for FAILED runs)
+  // - started_at: Timestamp when the run started
+  // - completed_at: Timestamp when the run finished (COMPLETED/FAILED/CANCELLED)
+  // - temporal_workflow_id: Correlation ID for workflow engine
+  //
+  // The status is continuously updated by the workflow run engine as the workflow progresses.
+  // Users can read status but cannot modify it - it reflects the actual run state.
+  //
+  // Progress Tracking:
+  // - Total tasks: tasks.length
+  // - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
+  // - Progress percentage: (completed_tasks / total_tasks) * 100
+  //
+  // Example (in-progress run):
+  // status {
+  //   phase: RUN_IN_PROGRESS
+  //   tasks: [
+  //     { task_id: "task-1", task_name: "validate_email", status: WORKFLOW_TASK_COMPLETED }
+  //     { task_id: "task-2", task_name: "create_account", status: WORKFLOW_TASK_IN_PROGRESS }
+  //     { task_id: "task-3", task_name: "send_welcome", status: WORKFLOW_TASK_PENDING }
+  //   ]
+  //   started_at: "2025-01-11T14:30:22Z"
+  // }
+  WorkflowRunStatus status = 5;
+}
+
+// WorkflowRunStatus contains all system-managed run state and results.
+//
+// @internal
+// Everything populated during or after the run goes here, not in spec.
+// This message follows the standard pattern: audit information at field 99, custom fields at 1-98.
+//
+// Status Lifecycle:
+// 1. Created: audit.created_at set, phase = RUN_PENDING
+// 2. Started: started_at set, phase = RUN_IN_PROGRESS, tasks populated
+// 3. Progress: tasks updated as workflow runner sends status updates
+// 4. Completed: completed_at set, phase = RUN_COMPLETED, output populated
+// 5. Failed: completed_at set, phase = RUN_FAILED, error populated
+// 6. Cancelled: completed_at set, phase = RUN_CANCELLED
+//
+// The status is read-only to users and continuously updated by the workflow run engine.
+//
+// Progress Tracking Pattern (Matches Agent Run):
+// - Agent run: messages[], tool_calls[], sub_agent_runs[] (transformed from LLM streaming events)
+// - Workflow run: tasks[] (transformed from workflow task execution)
+// - Both store structured state, not raw streaming events
+// - Both use updateStatus RPC for progressive updates during the run
+message WorkflowRunStatus {
+  // Standard audit information including timestamps and created-by identity.
+  //
+  // @internal
+  // Always at field 99 for consistency across all Stigmer API resources.
+  //
+  // Contains:
+  // - created_at: When this run was created (ISO 8601 timestamp)
+  // - updated_at: Last time status was updated (ISO 8601 timestamp)
+  // - created_by: User or system that created this run
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+
+  // Current run lifecycle phase.
+  //
+  // @internal
+  // Phase Transitions:
+  // PENDING → IN_PROGRESS → COMPLETED
+  //        ↓              ↘ FAILED
+  //        ↓              ↘ CANCELLED
+  //
+  // The phase is used for:
+  // - UI status indicators (progress bars, badges)
+  // - Filtering runs (show only failed, show only in-progress)
+  // - Alerting and notifications (notify on failure)
+  // - Retry logic (retry failed runs)
+  //
+  // Validation: Must be a defined enum value (no unspecified/unknown).
+  RunPhase phase = 1 [(buf.validate.field).enum.defined_only = true];
+
+  // Workflow tasks with their individual execution state.
+  //
+  // @internal
+  // Tasks represent the atomic units of work within the workflow.
+  // Each task has:
+  // - task_id: Unique identifier within this run
+  // - task_name: Human-readable name (e.g., "validate_email", "send_notification")
+  // - task_type: Type of task (agent_invocation, api_call, approval, etc.)
+  // - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
+  // - input: Task input parameters (JSON structure)
+  // - output: Task output results (JSON structure, only for COMPLETED tasks)
+  // - error: Error message (only for FAILED tasks)
+  // - started_at: When task started executing
+  // - completed_at: When task finished (COMPLETED/FAILED/SKIPPED)
+  //
+  // Tasks are populated as the workflow progresses through its task graph.
+  // The order in this list reflects the execution order (sequential or parallel).
+  //
+  // Progress Calculation:
+  // - Total tasks: tasks.length
+  // - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
+  // - Progress percentage: (completed_tasks / total_tasks) * 100
+  // - Current task: tasks.find(status == IN_PROGRESS)
+  repeated WorkflowTask tasks = 2;
+
+  // Final workflow output, populated only when phase is RUN_COMPLETED.
+  //
+  // @internal
+  // The output structure is workflow-specific and defined by the Workflow template.
+  // Common patterns:
+  // - API response data (e.g., created user ID, order confirmation)
+  // - Aggregated results from multiple tasks
+  // - Links to generated artifacts (reports, files)
+  // - Summary statistics (items processed, duration)
+  google.protobuf.Struct output = 3;
+
+  // Error message, populated only when phase is RUN_FAILED.
+  //
+  // @internal
+  // Contains a human-readable description of what went wrong.
+  //
+  // Error message includes:
+  // - What failed (which task or workflow step)
+  // - Why it failed (validation error, API error, timeout, etc.)
+  // - How to fix it (if known)
+  //
+  // For detailed debugging, inspect tasks[].error for task-specific error messages.
+  string error = 4;
+
+  // ISO 8601 timestamp when the run started processing.
+  //
+  // @internal
+  // Set when phase transitions from PENDING to IN_PROGRESS.
+  // Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
+  string started_at = 5;
+
+  // ISO 8601 timestamp when the run reached a terminal state.
+  //
+  // @internal
+  // Set when the workflow reaches a terminal state:
+  // - RUN_COMPLETED: Successfully finished
+  // - RUN_FAILED: Failed during the run
+  // - RUN_CANCELLED: Cancelled by user or system
+  //
+  // Not set for PENDING or IN_PROGRESS runs.
+  // Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
+  string completed_at = 6;
+
+  // Correlation ID for the underlying workflow engine.
+  //
+  // @internal
+  // This is the workflow ID in Temporal, used for:
+  // - Correlation between Stigmer and Temporal (for debugging)
+  // - Querying Temporal directly (for advanced troubleshooting)
+  // - Signaling or cancelling Temporal workflows
+  //
+  // Format: Typically "{workflow_id}-{run_id}" or a UUID
+  // Example: "wfl_prod-deploy-wfx_abc123xyz456" or "temporal-wf-uuid-12345"
+  //
+  // This field is optional and only relevant when Temporal is used as the execution engine.
+  // Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.
+  string temporal_workflow_id = 7;
+
+  // Pending approvals from child agent tool executions.
+  //
+  // @internal
+  // Populated when workflow tasks invoke agents that enter
+  // RUN_WAITING_FOR_APPROVAL phase. This surfaces all approval
+  // requests at the workflow level for UI visibility.
+  //
+  // Guarded Update Protocol:
+  // This field is only modified when UpdateStatusInput.update_pending_approvals
+  // is explicitly set to true. Normal event emissions (which don't concern
+  // approvals) leave this field untouched, preventing race conditions between
+  // concurrent status writers.
+  //
+  // Only call-agent-status manages this field:
+  // - Non-empty list: child agent(s) need approval
+  // - Empty list + update_pending_approvals=true: all approvals resolved
+  //
+  // Parallel Agents:
+  // When multiple child agents run in parallel, entries from different children
+  // accumulate in this list. Each entry's child_agent_run_id distinguishes
+  // the source.
+  repeated WorkflowPendingApproval pending_approvals = 9;
+
+  // Cumulative cost across all tasks in micro-USD (1 USD = 1,000,000 micros).
+  //
+  // @internal
+  // Updated by the runner alongside each status update. Reflects the
+  // budget tracker's accumulated cost at the time of the last status write.
+  // Used by getRunSummary for fast aggregation without scanning events.
+  //
+  // Consistent with WorkflowBudget.max_cost_micros and the billing domain's
+  // micro-USD convention (CostStamp.provider_cost_micros, etc.).
+  int64 total_cost_micros = 10;
+
+  // Cumulative input tokens consumed across all LLM and agent tasks.
+  //
+  // @internal
+  // Input tokens represent prompt/context tokens sent to the model.
+  // Updated alongside total_cost_micros from the budget tracker.
+  int64 total_input_tokens = 11;
+
+  // Cumulative output tokens consumed across all LLM and agent tasks.
+  //
+  // @internal
+  // Output tokens represent completion/generation tokens returned by the model.
+  // Updated alongside total_cost_micros from the budget tracker.
+  int64 total_output_tokens = 12;
+
+  // SHA-256 hash identifying which workflow version was used for this run.
+  //
+  // @internal
+  // Pinned at run creation time from Workflow.status.version_hash.
+  // Immutable after creation — represents the exact workflow definition this
+  // run ran (or will run, if still pending).
+  //
+  // Consumers:
+  // - Runner: fetches the version-specific CNCF YAML via getVersion() during
+  //   hydration, ensuring the run executes the intended definition even if
+  //   the workflow has been updated since creation.
+  // - Run viewer: fetches the version entry to render the correct graph
+  //   for historical runs, eliminating the version mismatch problem.
+  //
+  // Empty for runs created before workflow versioning was introduced.
+  // In that case, consumers fall back to fetching the current workflow
+  // definition (legacy behavior with mismatch warning).
+  string workflow_version_hash = 13;
+
+  // Pending file reviews from child agent runs, surfaced for
+  // workflow-level visibility and in-place keep/discard decisioning.
+  //
+  // @internal
+  // A reference-only sibling of pending_approvals (field 9): each entry names a
+  // child agent run and the change_set ids it currently has
+  // AWAITING_REVIEW. The heavy content (diffs, blobs) is NOT copied here — it
+  // stays single-sourced on the child's
+  // AgentRun.status.file_change_sets and is read on demand by the UI.
+  //
+  // Guarded, per-child merge protocol:
+  // Modified only when WorkflowRunUpdateStatusInput.update_pending_file_reviews
+  // is true, scoped by pending_update_child_agent_run_id. The write
+  // replaces the entry for that one child and preserves every sibling child's
+  // entry, so parallel child agents never clobber each other. A scoped write with
+  // an empty change_set list removes that child's entry. Only call-agent-status
+  // manages this field.
+  repeated WorkflowPendingFileReview pending_file_reviews = 14;
+}
+
+// WorkflowPendingApproval pairs approval details with routing information for workflow-level forwarding.
+//
+// @internal
+// PendingApproval is an agentrun domain type — it describes what tool
+// needs approval. WorkflowPendingApproval adds the workflow-level concern:
+// which child agent run the approval should be forwarded to.
+message WorkflowPendingApproval {
+  // Approval details from the child agent's tool call.
+  ai.stigmer.agentic.agentrun.v1.PendingApproval approval = 1;
+
+  // ID of the child agent run to forward the approval decision to.
+  //
+  // @internal
+  // Set by the runner when surfacing child agent approvals
+  // at the workflow level. WorkflowRun.SubmitApproval uses this
+  // to route the decision to the correct AgentRun.SubmitApproval RPC.
+  //
+  // Format: AgentRun.metadata.id (e.g., "aex_abc123xyz456")
+  string child_agent_run_id = 2;
+}
+
+// WorkflowPendingFileReview references a child agent run's file-review
+// gate for workflow-level surfacing. Reference-only — never a copy of the diff.
+//
+// @internal
+// FileChangeSet is an agentrun domain concept owned by the child
+// AgentRun. WorkflowPendingFileReview adds only the workflow-level
+// concern: which child holds a file-review gate, and which of its change sets
+// are awaiting a decision. The UI reads the child's file_change_sets to render
+// the diff; WorkflowRun.submitFileDecision forwards the verdict to the
+// child. This mirrors how WorkflowPendingApproval references a child's tool
+// approval without embedding the tool call.
+message WorkflowPendingFileReview {
+  // ID of the child agent run that holds the file-review gate.
+  //
+  // @internal
+  // WorkflowRun.submitFileDecision uses this to route the decision to the
+  // correct AgentRun.submitFileDecision RPC.
+  // Format: AgentRun.metadata.id (e.g., "aex_abc123xyz456")
+  string child_agent_run_id = 1;
+
+  // IDs of the child's change sets currently AWAITING_REVIEW.
+  //
+  // @internal
+  // Each matches a FileChangeSet.id on the child's
+  // AgentRun.status.file_change_sets. Empty means the child has no
+  // outstanding review (used transiently to clear this child's entry under the
+  // per-child merge protocol).
+  repeated string change_set_id = 2;
+}
+
+// WorkflowTask represents a single task within a workflow run.
+//
+// @internal
+// Tasks are the atomic units of work in a workflow. Each task:
+// - Has a specific type (agent invocation, API call, approval, conditional, etc.)
+// - Receives input parameters from the workflow context or previous tasks
+// - Executes its specific logic (invoke an agent, call an API, wait for approval)
+// - Produces output that can be used by subsequent tasks
+// - Tracks its own execution state (pending, in-progress, completed, failed, skipped)
+//
+// Task Execution Flow:
+// 1. Task is in PENDING state when workflow starts
+// 2. When task dependencies are met, task_status changes to IN_PROGRESS
+// 3. Task executes its logic (invoke agent, call API, etc.)
+// 4. Task completes successfully (COMPLETED) or fails (FAILED) or is skipped (SKIPPED)
+message WorkflowTask {
+  // Unique task identifier within this workflow run.
+  //
+  // @internal
+  // Format: Typically "task-{number}" or a descriptive slug
+  // Examples: "task-1", "task-validate-email", "task-send-notification"
+  //
+  // The task_id is unique within this WorkflowRun but may repeat across
+  // different runs of the same Workflow (same task, different run).
+  string task_id = 1;
+
+  // Human-readable task name.
+  //
+  // @internal
+  // Describes what this task does in plain language.
+  // Used in UI to show task progress and in logs for debugging.
+  //
+  // Naming conventions:
+  // - Use verb phrases (validate, create, send, wait)
+  // - Be specific about what's being operated on
+  // - Keep it concise (under 50 characters)
+  string task_name = 2;
+
+  // Type of task (agent invocation, API call, approval, etc.).
+  //
+  // @internal
+  // Determines how the task is executed by the workflow engine.
+  // The task_type influences:
+  // - How task.input is structured (different types expect different input schemas)
+  // - How task.output is produced (different types produce different outputs)
+  // - How errors are handled (retry policies, timeout behaviors)
+  //
+  // Validation: Must be a defined enum value (no unspecified).
+  WorkflowTaskType task_type = 3 [(buf.validate.field).enum.defined_only = true];
+
+  // Task input parameters, structured as JSON.
+  //
+  // @internal
+  // Contains the configuration and data needed for this task to execute.
+  // The structure varies by task_type.
+  //
+  // Input can reference:
+  // - Workflow inputs: {{workflow.input.field_name}}
+  // - Previous task outputs: {{tasks.task-1.output.field_name}}
+  // - Environment variables: {{env.VARIABLE_NAME}}
+  google.protobuf.Struct input = 4;
+
+  // Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
+  //
+  // @internal
+  // Contains the data produced by this task after successful execution.
+  // Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
+  google.protobuf.Struct output = 5;
+
+  // Current task execution status.
+  //
+  // @internal
+  // Status Transitions:
+  // PENDING → IN_PROGRESS → COMPLETED
+  //        ↓              ↘ FAILED
+  //        ↓              ↘ SKIPPED (if conditional)
+  //
+  // Validation: Must be a defined enum value (no unspecified).
+  WorkflowTaskStatus status = 6 [(buf.validate.field).enum.defined_only = true];
+
+  // ISO 8601 timestamp when the task started executing.
+  //
+  // @internal
+  // Set when task status changes from PENDING to IN_PROGRESS.
+  // Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
+  string started_at = 7;
+
+  // ISO 8601 timestamp when the task reached a terminal state.
+  //
+  // @internal
+  // Set when task reaches COMPLETED, FAILED, or SKIPPED.
+  // Not set for PENDING or IN_PROGRESS tasks.
+  // Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
+  string completed_at = 8;
+
+  // Error message, populated only when status is WORKFLOW_TASK_FAILED.
+  //
+  // @internal
+  // Contains a human-readable description of why the task failed.
+  //
+  // Error message includes:
+  // - What operation failed (API call, agent invocation, etc.)
+  // - Error type (validation error, network error, timeout, etc.)
+  // - Error details (status code, exception message, stacktrace)
+  // - How to fix it (if known)
+  string error = 9;
+
+  // Task-specific metadata as arbitrary JSON.
+  //
+  // @internal
+  // Contains task-specific information that doesn't fit in other fields.
+  // Used for:
+  // - Retry count (how many times this task was retried)
+  // - Agent run ID (for WORKFLOW_TASK_AGENT_INVOCATION)
+  // - API response headers (for WORKFLOW_TASK_API_CALL)
+  // - Approval history (who approved, when, comments)
+  // - Performance metrics (execution time, memory usage)
+  google.protobuf.Struct metadata = 10;
+
+  // Artifact IDs produced by this task.
+  //
+  // @internal
+  // Populated when the task's output (or portions of it) is auto-promoted
+  // to the artifact store because it exceeds the size threshold (256KB),
+  // or when the workflow author explicitly declares artifact persistence.
+  //
+  // Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+  // be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+  //
+  // When artifact_ids is non-empty, the task's output field contains
+  // artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+  // the original inline data. Consumers (run viewer, SDK hooks)
+  // detect these references and resolve them via the Artifact APIs.
+  repeated string artifact_ids = 11;
+
+  // Cost incurred by this task in micro-USD (1 USD = 1,000,000 micros).
+  //
+  // @internal
+  // Non-zero for cost-incurring task kinds (llm_call, agent_call).
+  // Zero for non-LLM tasks (transform, validate, emit_event, etc.).
+  // Set by the runner when the task completes.
+  int64 cost_micros = 12;
+
+  // Input (prompt/context) tokens consumed by this task.
+  //
+  // @internal
+  // Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+  int64 input_tokens = 13;
+
+  // Output (completion/generation) tokens produced by this task.
+  //
+  // @internal
+  // Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+  int64 output_tokens = 14;
+
+  // Hint identifying which UI should present this task's review payload.
+  //
+  // Copied from the human_input task's ui_hint config when the gate
+  // activates, so approval surfaces (dashboards, listPendingApprovals)
+  // can badge or group review requests by type without reading the
+  // event log. Empty for non-human_input tasks and for runs
+  // persisted before this field existed — consumers treat empty as a
+  // generic review.
+  //
+  // @internal
+  // Written by the runner's task status accumulator on the
+  // waiting_approval transition and retained after the gate resolves
+  // (the record of what kind of review was performed). The user-input
+  // length constraint (max 63 chars) is enforced at the source field,
+  // HumanInputTaskConfig.ui_hint; this system-written copy is trusted,
+  // matching the other string fields on this message.
+  //
+  // Not to be confused with WorkflowRunStatus.pending_approvals,
+  // which carries forwarded child-agent *tool* approvals — workflow-native
+  // human_input gates live only here, on tasks[].
+  string ui_hint = 15;
+}

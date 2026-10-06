@@ -245,8 +245,8 @@ public final class WorkflowQueryControllerGrpc {
     /**
      * <pre>
      * Get a specific historical version of a workflow by its content hash.
-     * Used by the runner (to hydrate execution from a pinned version) and
-     * the execution viewer (to render the graph for historical executions).
+     * Used by the runner (to hydrate a run from a pinned version) and
+     * the run viewer (to render the graph for historical runs).
      * </pre>
      */
     default void getVersion(ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput request,
@@ -331,8 +331,8 @@ public final class WorkflowQueryControllerGrpc {
     /**
      * <pre>
      * Get a specific historical version of a workflow by its content hash.
-     * Used by the runner (to hydrate execution from a pinned version) and
-     * the execution viewer (to render the graph for historical executions).
+     * Used by the runner (to hydrate a run from a pinned version) and
+     * the run viewer (to render the graph for historical runs).
      * </pre>
      */
     public void getVersion(ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput request,
@@ -401,8 +401,8 @@ public final class WorkflowQueryControllerGrpc {
     /**
      * <pre>
      * Get a specific historical version of a workflow by its content hash.
-     * Used by the runner (to hydrate execution from a pinned version) and
-     * the execution viewer (to render the graph for historical executions).
+     * Used by the runner (to hydrate a run from a pinned version) and
+     * the run viewer (to render the graph for historical runs).
      * </pre>
      */
     public ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry getVersion(ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput request) throws io.grpc.StatusException {
@@ -470,8 +470,8 @@ public final class WorkflowQueryControllerGrpc {
     /**
      * <pre>
      * Get a specific historical version of a workflow by its content hash.
-     * Used by the runner (to hydrate execution from a pinned version) and
-     * the execution viewer (to render the graph for historical executions).
+     * Used by the runner (to hydrate a run from a pinned version) and
+     * the run viewer (to render the graph for historical runs).
      * </pre>
      */
     public ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry getVersion(ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput request) {
@@ -542,8 +542,8 @@ public final class WorkflowQueryControllerGrpc {
     /**
      * <pre>
      * Get a specific historical version of a workflow by its content hash.
-     * Used by the runner (to hydrate execution from a pinned version) and
-     * the execution viewer (to render the graph for historical executions).
+     * Used by the runner (to hydrate a run from a pinned version) and
+     * the run viewer (to render the graph for historical runs).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry> getVersion(

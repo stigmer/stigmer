@@ -1,12 +1,12 @@
 {
   "name": "failed-at-gate",
   "description": "The parity-bug-fix case: an execution fails while parked at the gate, and the gated call survives in the transcript (no message wipe). The phase-aware seam projects zero pending, and the reconciler authors NO per-call RETRACTED \u2014 terminal gate-exits are handled by the seam, not the ledger. (Before phase-awareness, OSS cleared pending via an incidental wipe while Cloud retained them.)",
-  "execution_id": "exec-failed-at-gate",
+  "run_id": "exec-failed-at-gate",
   "steps": [
     {
       "name": "seed: tc1 gated",
       "status": {
-        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "phase": "RUN_WAITING_FOR_APPROVAL",
         "messages": [
           {
             "type": "MESSAGE_AI",
@@ -44,7 +44,7 @@
       "name": "execution fails while parked at the gate",
       "description": "Terminal phase; tc1 still WAITING in the transcript. Seam projects empty; no RETRACTED authored.",
       "status": {
-        "phase": "EXECUTION_FAILED",
+        "phase": "RUN_FAILED",
         "messages": [
           {
             "type": "MESSAGE_AI",

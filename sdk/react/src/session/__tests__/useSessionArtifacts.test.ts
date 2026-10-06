@@ -1,18 +1,18 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { renderHook, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
 import {
-  ExecutionArtifactKind,
-  ExecutionPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+  RunArtifactKind,
+  RunPhase,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { useSessionArtifacts, artifactKey } from "../useSessionArtifacts";
 
 function artifact(opts: { name: string; sandboxPath?: string }) {
-  return create(ExecutionArtifactSchema, {
+  return create(RunArtifactSchema, {
     name: opts.name,
-    kind: ExecutionArtifactKind.FILE,
+    kind: RunArtifactKind.FILE,
     sizeBytes: 8n,
     ...(opts.sandboxPath ? { sandboxPath: opts.sandboxPath } : {}),
     storageKey: `artifacts/aex/${opts.name}`,
@@ -33,25 +33,25 @@ describe("artifactKey", () => {
   });
 
   it("is the key useSessionArtifacts dedups on (same key → latest wins)", () => {
-    const older = create(AgentExecutionSchema, {
+    const older = create(AgentRunSchema, {
       metadata: { id: "aex_1" },
       status: {
-        phase: ExecutionPhase.EXECUTION_COMPLETED,
+        phase: RunPhase.RUN_COMPLETED,
         artifacts: [artifact({ name: "a.md", sandboxPath: "/w/a.md" })],
       },
     });
-    const newer = create(AgentExecutionSchema, {
+    const newer = create(AgentRunSchema, {
       metadata: { id: "aex_2" },
       status: {
-        phase: ExecutionPhase.EXECUTION_COMPLETED,
+        phase: RunPhase.RUN_COMPLETED,
         artifacts: [artifact({ name: "a.md", sandboxPath: "/w/a.md" })],
       },
     });
 
     const { result } = renderHook(() => useSessionArtifacts([older, newer]));
     expect(result.current.artifacts).toHaveLength(1);
-    // The later execution's version wins for a shared key.
-    expect(result.current.artifacts[0].executionId).toBe("aex_2");
+    // The later run's version wins for a shared key.
+    expect(result.current.artifacts[0].runId).toBe("aex_2");
     expect(artifactKey(result.current.artifacts[0].artifact)).toBe("/w/a.md");
   });
 });

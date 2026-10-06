@@ -114,7 +114,7 @@ public interface EntitlementLimitsOrBuilder extends
 
   /**
    * <pre>
-   * The most workflow-execution sandboxes an organization may hold
+   * The most workflow-run sandboxes an organization may hold
    * provisioning or running at once. A workflow launch that would need a
    * new sandbox past it is refused. Read by a subscription. A license
    * ignores it until a self-hosted capacity gate reads it.
@@ -126,7 +126,7 @@ public interface EntitlementLimitsOrBuilder extends
   boolean hasMaxActiveWorkflowSandboxes();
   /**
    * <pre>
-   * The most workflow-execution sandboxes an organization may hold
+   * The most workflow-run sandboxes an organization may hold
    * provisioning or running at once. A workflow launch that would need a
    * new sandbox past it is refused. Read by a subscription. A license
    * ignores it until a self-hosted capacity gate reads it.

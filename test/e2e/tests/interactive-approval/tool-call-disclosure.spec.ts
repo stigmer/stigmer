@@ -7,7 +7,7 @@
 // rework) can only be observed end-to-end, where the runner emits real
 // COMPLETED tool calls into a real SessionViewer.
 //
-// Determinism: the execution is created with `auto_approve_all`, so no
+// Determinism: the run is created with `auto_approve_all`, so no
 // pre-execution GATE interrupts the seeded turns. On this capture-substrate
 // stack the flowed writes still pause the run at the REVIEW boundary
 // (apply-then-review; capture is deliberately gate-independent, so file review
@@ -32,7 +32,7 @@ import {
   toolRunGroup,
   fileDiff,
   fileDiffExpand,
-  type SeededGatedExecution,
+  type SeededGatedRun,
 } from "../../helpers/approval";
 
 const mockUrl = getMockControlUrl();
@@ -45,7 +45,7 @@ test.describe("tool-call disclosure timeline (deterministic mock LLM)", () => {
   test.describe.configure({ mode: "serial", timeout: 90_000 });
 
   const control = new MockControl(mockUrl ?? "");
-  let seeded: SeededGatedExecution | null = null;
+  let seeded: SeededGatedRun | null = null;
 
   test.afterEach(async () => {
     if (seeded) {

@@ -66,8 +66,8 @@ export interface InternalDeleteDeps {
 export type InternalDeleteReason = "run-end" | "recover";
 
 /**
- * Finds the ExecutionContext of the given execution (an AgentExecution or
- * WorkflowExecution id — the lookup uses the spec.executionId field) and
+ * Finds the ExecutionContext of the given execution (an AgentRun or
+ * WorkflowRun id — the lookup uses the spec.executionId field) and
  * deletes it through the context's delete chain. A run has one; if more
  * than one names it, every one is deleted, each through the chain.
  */

@@ -252,13 +252,13 @@ describe("hydrateWorkflowExecution", () => {
   });
 
   describe("gRPC NOT_FOUND errors", () => {
-    it("throws non-retryable error when WorkflowExecution not found", async () => {
+    it("throws non-retryable error when WorkflowRun not found", async () => {
       const client = makeMockClient({
         workflowExecutionError: { code: "not_found" },
       });
 
       await expect(hydrateWorkflowExecution(makeInput(), client))
-        .rejects.toThrow("WorkflowExecution 'wfx_test-123' not found");
+        .rejects.toThrow("WorkflowRun 'wfx_test-123' not found");
     });
 
     it("throws non-retryable error when Workflow not found", async () => {

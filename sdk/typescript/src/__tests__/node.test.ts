@@ -69,6 +69,6 @@ describe("createNodeClient", () => {
     });
     expect(client.agent).toBeDefined();
     expect(client.session).toBeDefined();
-    expect(client.agentExecution).toBeDefined();
+    expect(client.agentRun).toBeDefined();
   });
 });

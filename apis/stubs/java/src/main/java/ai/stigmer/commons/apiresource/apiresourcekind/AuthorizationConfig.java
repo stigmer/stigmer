@@ -24,20 +24,20 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
  * -&gt; Creates: organization#platform&#64;platform:stigmer
  * -&gt; Creates: organization#owner&#64;identity_account:&lt;creator_id&gt;
  *
- * Parent-bound resource (agent_execution):
+ * Parent-bound resource (agent_run):
  * scope_type: AUTHORIZATION_SCOPE_TYPE_PARENT
  * owner_type: OWNER_ATTRIBUTION_TYPE_INHERITED
  * parent: { kind: "session", relation: "session", spec_field: "session_id" }
- * -&gt; Creates: agent_execution#session&#64;session:&lt;session_id&gt;
+ * -&gt; Creates: agent_run#session&#64;session:&lt;session_id&gt;
  * -&gt; No owner tuple (inherited from session)
  *
- * Resource with additional parent (workflow_execution):
+ * Resource with additional parent (workflow_run):
  * scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
  * owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
  * additional_parents: [{ kind: "workflow", relation: "workflow", spec_field: "workflow_id" }]
- * -&gt; Creates: workflow_execution#organization&#64;organization:&lt;org_id&gt;
- * -&gt; Creates: workflow_execution#workflow&#64;workflow:&lt;workflow_id&gt;
- * -&gt; Creates: workflow_execution#owner&#64;identity_account:&lt;creator_id&gt;
+ * -&gt; Creates: workflow_run#organization&#64;organization:&lt;org_id&gt;
+ * -&gt; Creates: workflow_run#workflow&#64;workflow:&lt;workflow_id&gt;
+ * -&gt; Creates: workflow_run#owner&#64;identity_account:&lt;creator_id&gt;
  *
  * Personal resource with creator attribution (environment):
  * scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
@@ -207,7 +207,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: workflow_execution needs org link AND workflow link.
+   * Example: workflow_run needs org link AND workflow link.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -220,7 +220,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: workflow_execution needs org link AND workflow link.
+   * Example: workflow_run needs org link AND workflow link.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -234,7 +234,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: workflow_execution needs org link AND workflow link.
+   * Example: workflow_run needs org link AND workflow link.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -247,7 +247,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: workflow_execution needs org link AND workflow link.
+   * Example: workflow_run needs org link AND workflow link.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -260,7 +260,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: workflow_execution needs org link AND workflow link.
+   * Example: workflow_run needs org link AND workflow link.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -360,7 +360,7 @@ private static final long serialVersionUID = 0L;
    *
    * Empty means no user-grantable roles: the resource is either owner-only
    * (api_key, execution_context), inherits authorization from a parent
-   * (agent_execution), is self-owned (identity_account), or has no
+   * (agent_run), is self-owned (identity_account), or has no
    * authorization (platform, api_resource_version).
    * </pre>
    *
@@ -383,7 +383,7 @@ private static final long serialVersionUID = 0L;
    *
    * Empty means no user-grantable roles: the resource is either owner-only
    * (api_key, execution_context), inherits authorization from a parent
-   * (agent_execution), is self-owned (identity_account), or has no
+   * (agent_run), is self-owned (identity_account), or has no
    * authorization (platform, api_resource_version).
    * </pre>
    *
@@ -405,7 +405,7 @@ private static final long serialVersionUID = 0L;
    *
    * Empty means no user-grantable roles: the resource is either owner-only
    * (api_key, execution_context), inherits authorization from a parent
-   * (agent_execution), is self-owned (identity_account), or has no
+   * (agent_run), is self-owned (identity_account), or has no
    * authorization (platform, api_resource_version).
    * </pre>
    *
@@ -428,7 +428,7 @@ private static final long serialVersionUID = 0L;
    *
    * Empty means no user-grantable roles: the resource is either owner-only
    * (api_key, execution_context), inherits authorization from a parent
-   * (agent_execution), is self-owned (identity_account), or has no
+   * (agent_run), is self-owned (identity_account), or has no
    * authorization (platform, api_resource_version).
    * </pre>
    *
@@ -451,7 +451,7 @@ private static final long serialVersionUID = 0L;
    *
    * Empty means no user-grantable roles: the resource is either owner-only
    * (api_key, execution_context), inherits authorization from a parent
-   * (agent_execution), is self-owned (identity_account), or has no
+   * (agent_run), is self-owned (identity_account), or has no
    * authorization (platform, api_resource_version).
    * </pre>
    *
@@ -875,20 +875,20 @@ private static final long serialVersionUID = 0L;
    * -&gt; Creates: organization#platform&#64;platform:stigmer
    * -&gt; Creates: organization#owner&#64;identity_account:&lt;creator_id&gt;
    *
-   * Parent-bound resource (agent_execution):
+   * Parent-bound resource (agent_run):
    * scope_type: AUTHORIZATION_SCOPE_TYPE_PARENT
    * owner_type: OWNER_ATTRIBUTION_TYPE_INHERITED
    * parent: { kind: "session", relation: "session", spec_field: "session_id" }
-   * -&gt; Creates: agent_execution#session&#64;session:&lt;session_id&gt;
+   * -&gt; Creates: agent_run#session&#64;session:&lt;session_id&gt;
    * -&gt; No owner tuple (inherited from session)
    *
-   * Resource with additional parent (workflow_execution):
+   * Resource with additional parent (workflow_run):
    * scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
    * owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
    * additional_parents: [{ kind: "workflow", relation: "workflow", spec_field: "workflow_id" }]
-   * -&gt; Creates: workflow_execution#organization&#64;organization:&lt;org_id&gt;
-   * -&gt; Creates: workflow_execution#workflow&#64;workflow:&lt;workflow_id&gt;
-   * -&gt; Creates: workflow_execution#owner&#64;identity_account:&lt;creator_id&gt;
+   * -&gt; Creates: workflow_run#organization&#64;organization:&lt;org_id&gt;
+   * -&gt; Creates: workflow_run#workflow&#64;workflow:&lt;workflow_id&gt;
+   * -&gt; Creates: workflow_run#owner&#64;identity_account:&lt;creator_id&gt;
    *
    * Personal resource with creator attribution (environment):
    * scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
@@ -1570,7 +1570,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_execution needs org link AND workflow link.
+     * Example: workflow_run needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1586,7 +1586,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_execution needs org link AND workflow link.
+     * Example: workflow_run needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1602,7 +1602,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_execution needs org link AND workflow link.
+     * Example: workflow_run needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1618,7 +1618,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_execution needs org link AND workflow link.
+     * Example: workflow_run needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1641,7 +1641,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_execution needs org link AND workflow link.
+     * Example: workflow_run needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1661,7 +1661,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_execution needs org link AND workflow link.
+     * Example: workflow_run needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1683,7 +1683,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_execution needs org link AND workflow link.
+     * Example: workflow_run needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1706,7 +1706,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_execution needs org link AND workflow link.
+     * Example: workflow_run needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1726,7 +1726,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_execution needs org link AND workflow link.
+     * Example: workflow_run needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1746,7 +1746,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_execution needs org link AND workflow link.
+     * Example: workflow_run needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1767,7 +1767,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_execution needs org link AND workflow link.
+     * Example: workflow_run needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1786,7 +1786,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_execution needs org link AND workflow link.
+     * Example: workflow_run needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1805,7 +1805,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_execution needs org link AND workflow link.
+     * Example: workflow_run needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1818,7 +1818,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_execution needs org link AND workflow link.
+     * Example: workflow_run needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1834,7 +1834,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_execution needs org link AND workflow link.
+     * Example: workflow_run needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1851,7 +1851,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_execution needs org link AND workflow link.
+     * Example: workflow_run needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1864,7 +1864,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_execution needs org link AND workflow link.
+     * Example: workflow_run needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1878,7 +1878,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_execution needs org link AND workflow link.
+     * Example: workflow_run needs org link AND workflow link.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -2157,7 +2157,7 @@ private static final long serialVersionUID = 0L;
      *
      * Empty means no user-grantable roles: the resource is either owner-only
      * (api_key, execution_context), inherits authorization from a parent
-     * (agent_execution), is self-owned (identity_account), or has no
+     * (agent_run), is self-owned (identity_account), or has no
      * authorization (platform, api_resource_version).
      * </pre>
      *
@@ -2179,7 +2179,7 @@ private static final long serialVersionUID = 0L;
      *
      * Empty means no user-grantable roles: the resource is either owner-only
      * (api_key, execution_context), inherits authorization from a parent
-     * (agent_execution), is self-owned (identity_account), or has no
+     * (agent_run), is self-owned (identity_account), or has no
      * authorization (platform, api_resource_version).
      * </pre>
      *
@@ -2200,7 +2200,7 @@ private static final long serialVersionUID = 0L;
      *
      * Empty means no user-grantable roles: the resource is either owner-only
      * (api_key, execution_context), inherits authorization from a parent
-     * (agent_execution), is self-owned (identity_account), or has no
+     * (agent_run), is self-owned (identity_account), or has no
      * authorization (platform, api_resource_version).
      * </pre>
      *
@@ -2222,7 +2222,7 @@ private static final long serialVersionUID = 0L;
      *
      * Empty means no user-grantable roles: the resource is either owner-only
      * (api_key, execution_context), inherits authorization from a parent
-     * (agent_execution), is self-owned (identity_account), or has no
+     * (agent_run), is self-owned (identity_account), or has no
      * authorization (platform, api_resource_version).
      * </pre>
      *
@@ -2250,7 +2250,7 @@ private static final long serialVersionUID = 0L;
      *
      * Empty means no user-grantable roles: the resource is either owner-only
      * (api_key, execution_context), inherits authorization from a parent
-     * (agent_execution), is self-owned (identity_account), or has no
+     * (agent_run), is self-owned (identity_account), or has no
      * authorization (platform, api_resource_version).
      * </pre>
      *
@@ -2276,7 +2276,7 @@ private static final long serialVersionUID = 0L;
      *
      * Empty means no user-grantable roles: the resource is either owner-only
      * (api_key, execution_context), inherits authorization from a parent
-     * (agent_execution), is self-owned (identity_account), or has no
+     * (agent_run), is self-owned (identity_account), or has no
      * authorization (platform, api_resource_version).
      * </pre>
      *
@@ -2304,7 +2304,7 @@ private static final long serialVersionUID = 0L;
      *
      * Empty means no user-grantable roles: the resource is either owner-only
      * (api_key, execution_context), inherits authorization from a parent
-     * (agent_execution), is self-owned (identity_account), or has no
+     * (agent_run), is self-owned (identity_account), or has no
      * authorization (platform, api_resource_version).
      * </pre>
      *
@@ -2328,7 +2328,7 @@ private static final long serialVersionUID = 0L;
      *
      * Empty means no user-grantable roles: the resource is either owner-only
      * (api_key, execution_context), inherits authorization from a parent
-     * (agent_execution), is self-owned (identity_account), or has no
+     * (agent_run), is self-owned (identity_account), or has no
      * authorization (platform, api_resource_version).
      * </pre>
      *
@@ -2351,7 +2351,7 @@ private static final long serialVersionUID = 0L;
      *
      * Empty means no user-grantable roles: the resource is either owner-only
      * (api_key, execution_context), inherits authorization from a parent
-     * (agent_execution), is self-owned (identity_account), or has no
+     * (agent_run), is self-owned (identity_account), or has no
      * authorization (platform, api_resource_version).
      * </pre>
      *
@@ -2373,7 +2373,7 @@ private static final long serialVersionUID = 0L;
      *
      * Empty means no user-grantable roles: the resource is either owner-only
      * (api_key, execution_context), inherits authorization from a parent
-     * (agent_execution), is self-owned (identity_account), or has no
+     * (agent_run), is self-owned (identity_account), or has no
      * authorization (platform, api_resource_version).
      * </pre>
      *
@@ -2400,7 +2400,7 @@ private static final long serialVersionUID = 0L;
      *
      * Empty means no user-grantable roles: the resource is either owner-only
      * (api_key, execution_context), inherits authorization from a parent
-     * (agent_execution), is self-owned (identity_account), or has no
+     * (agent_run), is self-owned (identity_account), or has no
      * authorization (platform, api_resource_version).
      * </pre>
      *
@@ -2426,7 +2426,7 @@ private static final long serialVersionUID = 0L;
      *
      * Empty means no user-grantable roles: the resource is either owner-only
      * (api_key, execution_context), inherits authorization from a parent
-     * (agent_execution), is self-owned (identity_account), or has no
+     * (agent_run), is self-owned (identity_account), or has no
      * authorization (platform, api_resource_version).
      * </pre>
      *

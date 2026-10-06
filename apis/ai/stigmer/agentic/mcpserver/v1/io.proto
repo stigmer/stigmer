@@ -26,7 +26,7 @@ enum OAuthConnectionHealth {
   OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED = 2;
 
   // The access token is expired but a refresh token is available.
-  // The backend will attempt automatic refresh at execution time.
+  // The backend will attempt automatic refresh at run time.
   // If the refresh token is itself expired, the refresh will fail and
   // the user will need to re-authenticate.
   OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE = 3;
@@ -65,7 +65,7 @@ message McpServerId {
 // - Web console: calls connect after saving credentials to personal environment.
 // - CLI: calls connect with runtime_env populated from local env vars.
 // - Runner backfill: calls connect with runtime_env from execution context
-//   when status.discovered_capabilities is empty on first agent execution.
+//   when status.discovered_capabilities is empty on first agent run.
 //
 // Prerequisites:
 // - The MCP server must exist and have a valid server_type (stdio or http)

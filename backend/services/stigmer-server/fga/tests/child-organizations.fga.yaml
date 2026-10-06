@@ -124,7 +124,7 @@ tests:
           can_manage_billing: false
           can_create_session: false
           can_create_agent: false
-          can_create_execution_in: false
+          can_create_run_in: false
       - user: identity_account:pat
         object: agent:acme-helper
         assertions:

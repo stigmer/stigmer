@@ -68,8 +68,8 @@ export class MockControl {
  * per LLM call the caller is about to trigger. Resets the FIFO first so a
  * prior test's unconsumed turns can't leak into this script; the flip side of
  * that contract is that every test must DRAIN its script (wait for its
- * executions to complete) before ending, or the next test's reset races the
- * still-running execution (stigmer/stigmer#743).
+ * runs to complete) before ending, or the next test's reset races the
+ * still-running run (stigmer/stigmer#743).
  *
  * No-op returning false when the stack wasn't booted in mock mode — callers
  * running against a real provider key just let the live model answer.

@@ -50,7 +50,7 @@ type ChannelConversationQueryControllerClient interface {
 	//
 	// The timeline contains customer-visible items only: inbound customer
 	// messages (including non-text kinds the platform cannot render),
-	// delivered agent replies, and operator or platform sends. Execution
+	// delivered agent replies, and operator or platform sends. Run
 	// internals never appear.
 	GetTimeline(ctx context.Context, in *GetConversationTimelineInput, opts ...grpc.CallOption) (*ConversationTimeline, error)
 	// Mint a short-lived download URL for one inbound timeline item's
@@ -135,7 +135,7 @@ type ChannelConversationQueryControllerServer interface {
 	//
 	// The timeline contains customer-visible items only: inbound customer
 	// messages (including non-text kinds the platform cannot render),
-	// delivered agent replies, and operator or platform sends. Execution
+	// delivered agent replies, and operator or platform sends. Run
 	// internals never appear.
 	GetTimeline(context.Context, *GetConversationTimelineInput) (*ConversationTimeline, error)
 	// Mint a short-lived download URL for one inbound timeline item's

@@ -1,12 +1,12 @@
 {
   "name": "skip-vs-retract",
   "description": "SKIPPED (a user decision) and RETRACTED (a system withdrawal) are distinct terminal transitions that must never be conflated. One call is skipped by the user; another is superseded and retracted by the platform. Both resolve their requests, but the audit lifecycle records different event types.",
-  "execution_id": "exec-skip-retract",
+  "run_id": "exec-skip-retract",
   "steps": [
     {
       "name": "seed: tc-skip and tc-super gated",
       "status": {
-        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "phase": "RUN_WAITING_FOR_APPROVAL",
         "messages": [
           {
             "type": "MESSAGE_AI",
@@ -62,7 +62,7 @@
       "name": "user skips tc-skip",
       "description": "A SubmitApproval site with a SKIP decision; tc-super stays gated.",
       "status": {
-        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "phase": "RUN_WAITING_FOR_APPROVAL",
         "messages": [
           {
             "type": "MESSAGE_AI",
@@ -121,7 +121,7 @@
       "name": "supersede tc-super",
       "description": "tc-super advances off WAITING with no decision while the execution is live; the platform retracts it (SUPERSEDED). The ledger now carries one SKIPPED and one RETRACTED \u2014 distinct types.",
       "status": {
-        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "phase": "RUN_WAITING_FOR_APPROVAL",
         "messages": [
           {
             "type": "MESSAGE_AI",

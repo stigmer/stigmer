@@ -58,10 +58,10 @@ class BillingQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.PreviewAuthorizationInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.PreviewAuthorizationResponse.FromString,
                 _registered_method=True)
-        self.getExecutionBillingSignal = channel.unary_unary(
-                '/ai.stigmer.billing.v1.BillingQueryController/getExecutionBillingSignal',
-                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetExecutionBillingSignalInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetExecutionBillingSignalResponse.FromString,
+        self.getRunBillingSignal = channel.unary_unary(
+                '/ai.stigmer.billing.v1.BillingQueryController/getRunBillingSignal',
+                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetRunBillingSignalInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetRunBillingSignalResponse.FromString,
                 _registered_method=True)
 
 
@@ -131,9 +131,9 @@ class BillingQueryControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def previewAuthorization(self, request, context):
-        """Preview whether an organization can fund an execution, without writing
+        """Preview whether an organization can fund a run, without writing
         a reservation. The read-only twin of BillingCommandController's
-        authorizeExecution: both ride the same server-side affordability
+        authorizeRun: both ride the same server-side affordability
         predicate (start threshold, negative allowance, default cap), so a
         synchronous preflight refusal and the authoritative reservation can
         never drift.
@@ -142,9 +142,9 @@ class BillingQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def getExecutionBillingSignal(self, request, context):
-        """Retrieve the current billing control signal for a running execution
-        (continue / low-balance warning / stop), derived from the execution's
+    def getRunBillingSignal(self, request, context):
+        """Retrieve the current billing control signal for a run in progress
+        (continue / low-balance warning / stop), derived from the run's
         reservation headroom and the billing account's status.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -194,10 +194,10 @@ def add_BillingQueryControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.PreviewAuthorizationInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.PreviewAuthorizationResponse.SerializeToString,
             ),
-            'getExecutionBillingSignal': grpc.unary_unary_rpc_method_handler(
-                    servicer.getExecutionBillingSignal,
-                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetExecutionBillingSignalInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetExecutionBillingSignalResponse.SerializeToString,
+            'getRunBillingSignal': grpc.unary_unary_rpc_method_handler(
+                    servicer.getRunBillingSignal,
+                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetRunBillingSignalInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetRunBillingSignalResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -430,7 +430,7 @@ class BillingQueryController(object):
             _registered_method=True)
 
     @staticmethod
-    def getExecutionBillingSignal(request,
+    def getRunBillingSignal(request,
             target,
             options=(),
             channel_credentials=None,
@@ -443,9 +443,9 @@ class BillingQueryController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.billing.v1.BillingQueryController/getExecutionBillingSignal',
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetExecutionBillingSignalInput.SerializeToString,
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetExecutionBillingSignalResponse.FromString,
+            '/ai.stigmer.billing.v1.BillingQueryController/getRunBillingSignal',
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetRunBillingSignalInput.SerializeToString,
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetRunBillingSignalResponse.FromString,
             options,
             channel_credentials,
             insecure,

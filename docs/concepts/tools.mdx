@@ -106,8 +106,8 @@ MCP Servers support two transport modes:
 Stdio servers spawn a subprocess on the machine executing the agent, so they are
 supported only on sessions that run on a local runner (the desktop app or
 `stigmer server`). Sessions on Stigmer-managed cloud compute refuse stdio
-servers at execution create with a clear error naming the server and the
-remediation.
+servers when an Agent Run is created, with a clear error naming the server and
+the remediation.
 
 ### Environment declarations
 
@@ -208,9 +208,9 @@ three authentication patterns, each suited to a different type of integration:
 | **Vendor OAuth**          | The server requires credentials from a specific vendor (Slack, GitHub, Figma) | Stigmer uses a pre-registered OAuthApp with the vendor's client credentials to run the authorization flow |
 
 In both OAuth patterns, the acquired access token is stored in a system-managed
-Environment and refreshed automatically before each execution. If a token
-expires and cannot be refreshed, the user re-authenticates from the MCP Server's
-connect page.
+Environment and refreshed automatically before each run. If a token expires and
+cannot be refreshed, the user re-authenticates from the MCP Server's connect
+page.
 
 Organizations that need to use their own OAuth app credentials — instead of the
 platform defaults — can set up a Bring Your Own App (BYOA) override at the

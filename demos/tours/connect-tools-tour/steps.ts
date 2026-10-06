@@ -17,7 +17,7 @@
  * embed.
  *
  * Import discipline: `scenar narrate` loads this file in plain Node (tsx),
- * so it must only pull pure modules — the execution snapshots the thread
+ * so it must only pull pure modules — the run snapshots the thread
  * beats render live in `index.tsx` (a rendering concern); step data carries
  * only semantic tags.
  */
@@ -63,7 +63,7 @@ export const MCP_REFS_CODE = [
   `  mcpServerRefs: [{ org: "my-org", slug: "${ORDER_MGMT_MCP.slug}" }],`,
   "});",
   "",
-  "const execution = await stigmer.agentExecution.create({",
+  "const run = await stigmer.agentRun.create({",
   '  org: "my-org",',
   "  sessionId: session.metadata!.id,",
   '  message: "What\'s the status of order #ORD-4821?",',

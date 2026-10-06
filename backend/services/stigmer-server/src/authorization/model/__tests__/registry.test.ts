@@ -431,14 +431,14 @@ describe("the built-in model", () => {
     }
   });
 
-  it("carries a derived rule only where kind_meta cannot derive the relation: an organization's two edges, and execution_viewer on the workflow", () => {
+  it("carries a derived rule only where kind_meta cannot derive the relation: an organization's two edges, and run_viewer on the workflow", () => {
     const derived = builtInModel.declarations
       .flatMap((d) => [...d.derived.keys()].map((r) => `${d.type}#${r}`))
       .sort();
     expect(derived).toEqual([
       "organization#child_org",
       "organization#parent_org",
-      "workflow#execution_viewer",
+      "workflow#run_viewer",
     ]);
   });
 
@@ -454,13 +454,13 @@ describe("the built-in model", () => {
 });
 
 describe("the parent-inheritance walker refuses what would make asking the parent wrong", () => {
-  const execution = declared(declarationFor(ApiResourceKind.agent_execution), "agent_execution");
+  const execution = declared(declarationFor(ApiResourceKind.agent_run), "agent_run");
   const session = declared(builtInModel.byType("session"), "session");
 
-  /** agent_execution as the model has it, with one line rewritten. */
+  /** agent_run as the model has it, with one line rewritten. */
   function executionWith(relation: string, rewrite: Rewrite): KindDeclaration {
     return throwawayDeclaration({
-      kind: ApiResourceKind.agent_execution,
+      kind: ApiResourceKind.agent_run,
       relations: [...execution.relations].map(([name, current]) =>
         name === relation ? ([name, rewrite] as const) : ([name, current] as const),
       ),
@@ -474,12 +474,12 @@ describe("the parent-inheritance walker refuses what would make asking the paren
         "viewer",
         union(direct(objectOf("identity_account")), from("viewer", "session"), computed("owner")),
       ),
-      violation: "agent_execution#viewer admits a tuple on the child itself",
+      violation: "agent_run#viewer admits a tuple on the child itself",
     },
     {
       shape: "a can_view that no longer includes the session's",
       child: executionWith("can_view", computed("viewer")),
-      violation: "agent_execution#can_view does not include can_view from session",
+      violation: "agent_run#can_view does not include can_view from session",
     },
     {
       shape: "a can_view reaching a session relation its can_view does not include",
@@ -488,7 +488,7 @@ describe("the parent-inheritance walker refuses what would make asking the paren
         union(computed("viewer"), from("can_view", "session"), from("can_delete", "session")),
       ),
       violation:
-        "agent_execution#can_view reaches session#can_delete, which session#can_view does not include",
+        "agent_run#can_view reaches session#can_delete, which session#can_view does not include",
     },
   ])("$shape", ({ child, violation }) => {
     expect(inheritedWholeViolations(child, session, "session")).toEqual([violation]);

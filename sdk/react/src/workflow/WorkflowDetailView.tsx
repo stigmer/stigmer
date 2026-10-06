@@ -4,20 +4,20 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/serverless/validation_pb";
 import type { WorkflowInput } from "@stigmer/sdk";
 import { useWorkflow } from "./useWorkflow.js";
 import { useUpdateWorkflow } from "./useUpdateWorkflow.js";
 import { toWorkflowUpdateInput } from "@stigmer/sdk";
-import { useWorkflowExecutionList } from "./useWorkflowExecutionList.js";
+import { useWorkflowRunList } from "./useWorkflowRunList.js";
 import { useWorkflowDashboardSummary } from "./useWorkflowDashboardSummary.js";
 import { WorkflowOverviewGraph } from "./WorkflowOverviewGraph.js";
 import { WorkflowGraphFullscreenDialog } from "./WorkflowGraphFullscreenDialog.js";
 import { WorkflowOverviewSummary } from "./WorkflowOverviewSummary.js";
 import { WorkflowExplainDialog } from "./WorkflowExplainDialog.js";
 import { serializeWorkflowYaml } from "./serialize-workflow-yaml.js";
-import { WorkflowExecutionHistory } from "./execution-history/WorkflowExecutionHistory.js";
+import { WorkflowRunHistory } from "./run-history/WorkflowRunHistory.js";
 import { RunVisibilityControl } from "./RunVisibilityControl.js";
 import { WorkflowVersionsTab } from "./WorkflowVersionsTab.js";
 import { useWorkflowVersions } from "./useWorkflowVersions.js";
@@ -38,7 +38,7 @@ import type { AdditionalTab, DetailAction, ResourceHeaderMeta } from "../resourc
 import type { TabItem } from "../tabs/Tabs.js";
 
 const OVERVIEW_TAB: TabItem = { id: "overview", label: "Overview" };
-const EXECUTIONS_TAB: TabItem = { id: "executions", label: "Executions" };
+const RUNS_TAB: TabItem = { id: "runs", label: "Runs" };
 const VERSIONS_TAB: TabItem = { id: "versions", label: "Versions" };
 
 const DESCRIPTION_COLLAPSED_HEIGHT = "8rem";
@@ -73,10 +73,10 @@ export interface WorkflowDetailViewProps {
   /** Default active tab ID when in uncontrolled mode. @default "overview" */
   readonly defaultTab?: string;
   /**
-   * Called when a user clicks an execution row in the Executions tab.
-   * Receives the execution ID — use for navigation to the execution viewer.
+   * Called when a user clicks a run row in the Runs tab.
+   * Receives the run ID — use for navigation to the run viewer.
    */
-  readonly onExecutionClick?: (executionId: string) => void;
+  readonly onRunClick?: (executionId: string) => void;
   /**
    * When `true`, description and environment variables become click-to-edit.
    * Each field saves independently via `stigmer.workflow.update()`.
@@ -97,7 +97,7 @@ export interface WorkflowDetailViewProps {
   readonly onOpenInEditor?: (taskName: string) => void;
   /**
    * Called when the user clicks "View latest run" in the overview quick
-   * actions. Receives the execution ID of the most recent execution.
+   * actions. Receives the run ID of the most recent run.
    */
   readonly onViewLatestRun?: (executionId: string) => void;
   /** Additional CSS classes for the root container. */
@@ -111,7 +111,7 @@ export interface WorkflowDetailViewProps {
  * its full specification inside a {@link ResourceDetailShell}:
  *
  * - **Overview**: Description, budget, env vars, task flow DAG, document metadata
- * - **Executions**: Recent executions with phase badges and timing
+ * - **Runs**: Recent runs with phase badges and timing
  * - **Versions**: The workflow's saved versions
  *
  * The Manage access dialog (from the kebab) carries the workflow's run
@@ -137,7 +137,7 @@ export function WorkflowDetailView({
   activeTab,
   onTabChange,
   defaultTab,
-  onExecutionClick,
+  onRunClick,
   editable = false,
   onResourceUpdated,
   onOpenInEditor,
@@ -175,7 +175,7 @@ export function WorkflowDetailView({
   const builtInTabs = useMemo<readonly TabItem[]>(
     () => [
       OVERVIEW_TAB,
-      EXECUTIONS_TAB,
+      RUNS_TAB,
       {
         ...VERSIONS_TAB,
         ...(versionCount > 0 && { badge: versionCount }),
@@ -211,7 +211,7 @@ export function WorkflowDetailView({
 
   // Run visibility decides who sees every run of the workflow, so it is
   // offered only to those who may change who reaches the workflow
-  // (can_manage_audience, the server's bar on updateExecutionVisibility),
+  // (can_manage_audience, the server's bar on updateRunVisibility),
   // as the dialog's resource-specific section.
   const workflowResourceId = workflow?.metadata?.id ?? "";
   const { allowed: canManageAudience } = useCheckPermission(
@@ -219,7 +219,7 @@ export function WorkflowDetailView({
     "can_manage_audience",
   );
   const executionVisibility =
-    workflow?.spec?.executionVisibility ?? WorkflowExecutionVisibility.unspecified;
+    workflow?.spec?.runVisibility ?? WorkflowRunVisibility.unspecified;
   const runVisibilitySection = useMemo<AccessExtraSection | undefined>(
     () =>
       canManageAudience && workflowResourceId
@@ -230,7 +230,7 @@ export function WorkflowDetailView({
             content: (
               <RunVisibilityControl
                 workflowId={workflowResourceId}
-                executionVisibility={executionVisibility}
+                runVisibility={executionVisibility}
                 onChanged={(updated) => {
                   onResourceUpdated?.(updated);
                   refetch();
@@ -313,12 +313,12 @@ export function WorkflowDetailView({
   let tabContent: React.ReactNode;
   if (activeAdditionalTab) {
     tabContent = activeAdditionalTab.content;
-  } else if (effectiveActiveTab === "executions") {
+  } else if (effectiveActiveTab === "runs") {
     tabContent = (
-      <WorkflowExecutionHistory
+      <WorkflowRunHistory
         org={org}
         workflowId={meta?.id}
-        onExecutionClick={onExecutionClick}
+        onRunClick={onRunClick}
       />
     );
   } else if (effectiveActiveTab === "versions") {
@@ -333,7 +333,7 @@ export function WorkflowDetailView({
         saveField={saveField}
         onOpenInEditor={onOpenInEditor}
         onViewLatestRun={onViewLatestRun}
-        onExecutionClick={onExecutionClick}
+        onRunClick={onRunClick}
       />
     );
   }
@@ -371,7 +371,7 @@ function OverviewTab({
   saveField,
   onOpenInEditor,
   onViewLatestRun,
-  onExecutionClick,
+  onRunClick,
 }: {
   readonly workflow: Workflow;
   readonly org: string;
@@ -383,7 +383,7 @@ function OverviewTab({
   ) => Promise<boolean>;
   readonly onOpenInEditor?: (taskName: string) => void;
   readonly onViewLatestRun?: (executionId: string) => void;
-  readonly onExecutionClick?: (executionId: string) => void;
+  readonly onRunClick?: (executionId: string) => void;
 }) {
   const spec = workflow.spec;
   const doc = spec?.document;
@@ -411,7 +411,7 @@ function OverviewTab({
     workflowId: workflowId || undefined,
   });
 
-  const { executions } = useWorkflowExecutionList({
+  const { runs: executions } = useWorkflowRunList({
     workflowId,
     pageSize: 1,
   });
@@ -499,10 +499,10 @@ function OverviewTab({
             icon={<PlayIcon />}
           />
         )}
-        {latestExecId && !onViewLatestRun && onExecutionClick && (
+        {latestExecId && !onViewLatestRun && onRunClick && (
           <QuickActionButton
             label="View latest run"
-            onClick={() => onExecutionClick(latestExecId)}
+            onClick={() => onRunClick(latestExecId)}
             icon={<PlayIcon />}
           />
         )}

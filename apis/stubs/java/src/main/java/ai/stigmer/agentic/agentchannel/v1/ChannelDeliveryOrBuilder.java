@@ -74,27 +74,27 @@ public interface ChannelDeliveryOrBuilder extends
 
   /**
    * <pre>
-   * AgentExecution whose terminal result this delivery carries.
+   * AgentRun whose terminal result this delivery carries.
    * </pre>
    *
-   * <code>string execution_id = 4 [json_name = "executionId"];</code>
-   * @return The executionId.
+   * <code>string run_id = 4 [json_name = "runId"];</code>
+   * @return The runId.
    */
-  java.lang.String getExecutionId();
+  java.lang.String getRunId();
   /**
    * <pre>
-   * AgentExecution whose terminal result this delivery carries.
+   * AgentRun whose terminal result this delivery carries.
    * </pre>
    *
-   * <code>string execution_id = 4 [json_name = "executionId"];</code>
-   * @return The bytes for executionId.
+   * <code>string run_id = 4 [json_name = "runId"];</code>
+   * @return The bytes for runId.
    */
   com.google.protobuf.ByteString
-      getExecutionIdBytes();
+      getRunIdBytes();
 
   /**
    * <pre>
-   * Session the execution belongs to (conversation continuity + audit).
+   * Session the run belongs to (conversation continuity + audit).
    * </pre>
    *
    * <code>string session_id = 5 [json_name = "sessionId"];</code>
@@ -103,7 +103,7 @@ public interface ChannelDeliveryOrBuilder extends
   java.lang.String getSessionId();
   /**
    * <pre>
-   * Session the execution belongs to (conversation continuity + audit).
+   * Session the run belongs to (conversation continuity + audit).
    * </pre>
    *
    * <code>string session_id = 5 [json_name = "sessionId"];</code>

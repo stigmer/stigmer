@@ -1,10 +1,10 @@
 import { test, expect } from "../../fixtures";
 import {
-  navigateToExecution,
+  navigateToRun,
   waitForPhaseBadge,
   switchCenterView,
-  getExecutionGraph,
-} from "../../helpers/workflow-execution";
+  getRunGraph,
+} from "../../helpers/workflow-run";
 import { assertNoErrorBoundary } from "../../helpers/navigation";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 
@@ -159,7 +159,7 @@ test.describe("Branch and parallel execution highlighting", () => {
 
     try {
       const execName = `e2e-sw-exec-${Date.now()}`;
-      const execution = await stigmerClient.workflowExecution.create({
+      const execution = await stigmerClient.workflowRun.create({
         name: execName,
         org: DEFAULT_ORG,
         workflowId: workflow.id,
@@ -167,7 +167,7 @@ test.describe("Branch and parallel execution highlighting", () => {
       const execId = execution.metadata!.id;
 
       try {
-        await navigateToExecution(page, execId);
+        await navigateToRun(page, execId);
         await assertNoErrorBoundary(page);
         await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
         // Edge execution states render on the graph, which is CSS-hidden
@@ -179,7 +179,7 @@ test.describe("Branch and parallel execution highlighting", () => {
         // a straight vertical edge path has a zero-width client rect, which
         // Playwright reports as hidden — the graph container's visibility
         // is already asserted by switchCenterView.
-        const graph = getExecutionGraph(page);
+        const graph = getRunGraph(page);
         const takenEdges = graph.locator('[data-edge-execution-state="taken"]');
         const notTakenEdges = graph.locator('[data-edge-execution-state="not_taken"]');
 
@@ -191,7 +191,7 @@ test.describe("Branch and parallel execution highlighting", () => {
         const notTakenCount = await notTakenEdges.count();
         expect(notTakenCount).toBeGreaterThanOrEqual(1);
       } finally {
-        await stigmerClient.workflowExecution.delete(execution.metadata!.id).catch(() => {});
+        await stigmerClient.workflowRun.delete(execution.metadata!.id).catch(() => {});
       }
     } finally {
       await workflow.cleanup();
@@ -217,7 +217,7 @@ test.describe("Branch and parallel execution highlighting", () => {
     const wfId = workflow.metadata!.id;
 
     try {
-      const execution = await stigmerClient.workflowExecution.create({
+      const execution = await stigmerClient.workflowRun.create({
         name: `e2e-lin-exec-${Date.now()}`,
         org: DEFAULT_ORG,
         workflowId: wfId,
@@ -225,13 +225,13 @@ test.describe("Branch and parallel execution highlighting", () => {
       const execId = execution.metadata!.id;
 
       try {
-        await navigateToExecution(page, execId);
+        await navigateToRun(page, execId);
         await assertNoErrorBoundary(page);
         await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
         await switchCenterView(page, "graph");
 
         // Presence, not visibility — see the zero-width-path note above.
-        const takenEdges = getExecutionGraph(page).locator(
+        const takenEdges = getRunGraph(page).locator(
           '[data-edge-execution-state="taken"]',
         );
         await expect(takenEdges.first()).toBeAttached({ timeout: 10_000 });
@@ -239,7 +239,7 @@ test.describe("Branch and parallel execution highlighting", () => {
         const count = await takenEdges.count();
         expect(count).toBeGreaterThanOrEqual(2);
       } finally {
-        await stigmerClient.workflowExecution.delete(execution.metadata!.id).catch(() => {});
+        await stigmerClient.workflowRun.delete(execution.metadata!.id).catch(() => {});
       }
     } finally {
       await stigmerClient.workflow.delete(wfId).catch(() => {});
@@ -253,7 +253,7 @@ test.describe("Branch and parallel execution highlighting", () => {
     const workflow = await createForkWorkflow(stigmerClient);
 
     try {
-      const execution = await stigmerClient.workflowExecution.create({
+      const execution = await stigmerClient.workflowRun.create({
         name: `e2e-fork-exec-${Date.now()}`,
         org: DEFAULT_ORG,
         workflowId: workflow.id,
@@ -261,18 +261,18 @@ test.describe("Branch and parallel execution highlighting", () => {
       const execId = execution.metadata!.id;
 
       try {
-        await navigateToExecution(page, execId);
+        await navigateToRun(page, execId);
         await assertNoErrorBoundary(page);
         await waitForPhaseBadge(page, "Completed", { timeout: 30_000 });
         await switchCenterView(page, "graph");
 
         // The fork node should have completed status.
-        const forkNode = getExecutionGraph(page).locator(
+        const forkNode = getRunGraph(page).locator(
           '[data-task-kind="fork"][data-execution-status="completed"]',
         );
         await expect(forkNode).toBeVisible({ timeout: 10_000 });
       } finally {
-        await stigmerClient.workflowExecution.delete(execution.metadata!.id).catch(() => {});
+        await stigmerClient.workflowRun.delete(execution.metadata!.id).catch(() => {});
       }
     } finally {
       await workflow.cleanup();

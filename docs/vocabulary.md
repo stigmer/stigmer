@@ -81,10 +81,9 @@ IdentityProvider, `kind: identity_provider` | Identity Provider |
 | **Identity Account** | --- | --- | Identity Account | IdentityAccount,
 `kind: identity_account` | Identity Account | | **PlatformClient** | --- | --- |
 PlatformClient | PlatformClient, `kind: platform_client` | PlatformClient | |
-**Agent Execution** | --- | run, execution | Agent Execution | AgentExecution,
-`kind: AgentExecution` | Agent Execution | | **Workflow Execution** | --- | run,
-execution | Workflow Execution | WorkflowExecution, `kind: WorkflowExecution` |
-Workflow Execution | | **Sub-Agent** | --- | --- | Sub-Agent | SubAgent,
+**Agent Run** | --- | run | Agent Run | AgentRun, `kind: AgentRun` | Agent Run |
+| **Workflow Run** | --- | run | Workflow Run | WorkflowRun, `kind: WorkflowRun`
+| Workflow Run | | **Sub-Agent** | --- | --- | Sub-Agent | SubAgent,
 `sub_agents` | Sub-Agent | | **Agent Channel** | --- | --- | channel, Agent
 Channel | AgentChannel, `kind: AgentChannel` | Agent Channel | | **Channel App**
 | --- | --- | Channel App | ChannelApp, `kind: ChannelApp` | Channel App | |
@@ -353,11 +352,11 @@ An ongoing conversation with an Agent across multiple messages.
 - **Key fields**: `agent_ref` (the Agent the conversation runs; empty for the
   built-in assistant), `status.agent_version_hash` (the Agent version the
   conversation runs until someone updates it), `thread_id` (persists across
-  executions), `subject` (display title), `workspace_entries`, `sandbox_id`.
-  Sessions can add `mcp_server_usages` and `skill_refs` to the Agent's; the
-  Agent's tool lists still govern every tool.
-- **Related terms**: A Session contains multiple Agent Executions. Each message
-  exchange within a Session is one execution. The proto also uses `MessageType`
+  runs), `subject` (display title), `workspace_entries`, `sandbox_id`. Sessions
+  can add `mcp_server_usages` and `skill_refs` to the Agent's; the Agent's tool
+  lists still govern every tool.
+- **Related terms**: A Session contains multiple Agent Runs. Each message
+  exchange within a Session is one run. The proto also uses `MessageType`
   (HUMAN, AI, TOOL, SYSTEM) for individual messages.
 
 **Good examples**:
@@ -394,11 +393,11 @@ A process that connects to Stigmer and executes your Agents.
   `stigmer down`); the Docker Compose stack and the Helm chart each run one
   beside the server. (The Runner API resource that once existed, with its
   phases, heartbeats and runner picker, was removed from the OSS repo.)
-- **How work reaches it**: The server puts each execution on a Temporal task
-  queue (`stigmer_runner` by default) and whichever runner polls that queue
-  takes the work. Nothing selects a runner; the queue is the contract. A run
-  carries the Session's Harness and a credential minted for that run alone. See
-  the [Runners concept page](/docs/concepts/runners).
+- **How work reaches it**: The server puts each run on a Temporal task queue
+  (`stigmer_runner` by default) and whichever runner polls that queue takes the
+  work. Nothing selects a runner; the queue is the contract. A run carries the
+  Session's Harness and a credential minted for that run alone. See the
+  [Runners concept page](/docs/concepts/runners).
 - **Two postures**: One shared runner (the laptop, the all-in-one, Compose, the
   chart) or a runner per Session started by the server's sandbox provisioner
   (Stigmer Cloud; described, not taught, on the
@@ -412,7 +411,7 @@ A process that connects to Stigmer and executes your Agents.
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Sales site | "Run Agents on your machine or let the platform handle it."                                                                                                                 |
 | Quickstart | "Start a runner---the process that runs your Agent on your machine."                                                                                                        |
-| Concepts   | "A Runner is the process that picks up executions, calls the LLM, runs tools, and reports results back to the server."                                                      |
+| Concepts   | "A Runner is the process that picks up runs, calls the LLM, runs tools, and reports results back to the server."                                                            |
 | Reference  | "The runner polls the `stigmer_runner` task queue; set `STIGMER_TASK_QUEUE` on the runner and `TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE` on the server to the same name." |
 
 **Bad examples**:
@@ -441,20 +440,20 @@ The execution engine that processes agent activities for a Session.
   2. **Cursor** --- Uses the Cursor SDK as the execution engine. Access to
      Cursor-specific models and tooling. Ideal for developer-facing agents that
      need code-level capabilities.
-- **Immutability**: A Session's Harness cannot change after the first execution
-  runs. It determines which models are available and which runtime processes the
-  agent's turns.
+- **Immutability**: A Session's Harness cannot change after the first run
+  starts. It determines which models are available and which runtime processes
+  the agent's turns.
 - **Related terms**: Sessions bind to a Harness via `SessionSpec.harness`.
   Runners host workers for each Harness type on separate task queues.
 
 **Good examples**:
 
-| Context    | Copy                                                                                                                                                        |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sales site | "Choose an execution engine that fits your workload---Stigmer's built-in engine or Cursor for coding-focused capabilities."                                 |
-| Quickstart | "Pick a harness---the execution engine that powers your Agent's Session."                                                                                   |
-| Concepts   | "A Harness determines which runtime processes your Agent's turns. Stigmer supports two: Native and Cursor."                                                 |
-| Reference  | "`Harness`---enum on `SessionSpec`. `HARNESS_NATIVE` for the built-in engine, `HARNESS_CURSOR` for the Cursor SDK engine. Immutable after first execution." |
+| Context    | Copy                                                                                                                                                  |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sales site | "Choose an execution engine that fits your workload---Stigmer's built-in engine or Cursor for coding-focused capabilities."                           |
+| Quickstart | "Pick a harness---the execution engine that powers your Agent's Session."                                                                             |
+| Concepts   | "A Harness determines which runtime processes your Agent's turns. Stigmer supports two: Native and Cursor."                                           |
+| Reference  | "`Harness`---enum on `SessionSpec`. `HARNESS_NATIVE` for the built-in engine, `HARNESS_CURSOR` for the Cursor SDK engine. Immutable after first run." |
 
 **Bad examples**:
 
@@ -478,18 +477,18 @@ A step-by-step automation that runs tasks in a defined order.
 - **Key fields**: `spec.document` (contains the Workflow DSL definition),
   `spec.tasks` (the task list). Task kinds include `set_vars`, `http_call`,
   `agent_call`, `wait`, and control flow via `flow.then`.
-- **Pattern**: Workflow → Execution. A Workflow is the template; a
-  WorkflowExecution is one run of it, started on the Workflow itself
+- **Pattern**: Workflow → Workflow Run. A Workflow is the template; a
+  WorkflowRun is one run of it, started on the Workflow itself
   (`spec.workflow_id`) and pinned to the version the Workflow had when the run
   started. A version covers the whole spec (tasks, each step's Environments, the
   declared `env`, the budget, the description); run visibility is outside it.
 - **Run visibility**: who can see a Workflow's runs, a setting on the Workflow
-  (`spec.execution_visibility`): `workflow_execution_visibility_private` (the
-  default; each run is visible to the person who started it) or
-  `workflow_execution_visibility_organization` (every member of the Organization
-  sees every run, past runs included). Only the Workflow's owner changes it,
-  through `updateExecutionVisibility` or the Workflow's page. User-facing copy
-  says "who can see the runs", never "execution visibility".
+  (`spec.run_visibility`): `workflow_run_visibility_private` (the default; each
+  run is visible to the person who started it) or
+  `workflow_run_visibility_organization` (every member of the Organization sees
+  every run, past runs included). Only the Workflow's owner changes it, through
+  `updateRunVisibility` or the Workflow's page. User-facing copy says "who can
+  see the runs", never "execution visibility".
 - **DSL**: Based on CNCF Serverless Workflow specification. Only mention the
   spec name in reference docs---it adds no value for the general audience.
 
@@ -529,7 +528,7 @@ action before proceeding.
      them destructive (`destructive_hint`). An Agent's hooks (`hooks`) decide
      call by call: refuse, ask, or allow. Its `tools` and `disallowed_tools`
      lists decide which tools it has at all. Submitted via
-     `AgentExecutionCommandController.submitApproval`. Statuses:
+     `AgentRunCommandController.submitApproval`. Statuses:
      `TOOL_CALL_WAITING_APPROVAL`, `TOOL_CALL_SKIPPED`. Actions: `APPROVE`,
      `SKIP`, `REJECT`.
   2. **Workflow-task approval**---a dedicated task kind `WORKFLOW_TASK_APPROVAL`
@@ -541,12 +540,12 @@ action before proceeding.
 
 **Good examples**:
 
-| Context    | Copy                                                                                                                                                                                                                           |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Sales site | "Your Agent handles routine requests on its own. For anything risky, it asks a human first. You decide which tools it can use."                                                                                                |
-| Quickstart | "Your Agent asks before risky actions---shell commands, file changes, and any tool its server marks destructive."                                                                                                              |
-| Concepts   | "An approval flow is a checkpoint. The Agent pauses, presents what it wants to do and why, and waits for a human to approve or reject. The Agent's execution is durable---it waits indefinitely without losing state."         |
-| Reference  | "Tool-call approval is required for shell commands, file writes and deletes, and MCP tools with `destructive_hint`. `auto_approve_all` resolves every approval for one execution; `tools` and `disallowed_tools` still apply." |
+| Context    | Copy                                                                                                                                                                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Sales site | "Your Agent handles routine requests on its own. For anything risky, it asks a human first. You decide which tools it can use."                                                                                          |
+| Quickstart | "Your Agent asks before risky actions---shell commands, file changes, and any tool its server marks destructive."                                                                                                        |
+| Concepts   | "An approval flow is a checkpoint. The Agent pauses, presents what it wants to do and why, and waits for a human to approve or reject. The Agent's run is durable---it waits indefinitely without losing state."         |
+| Reference  | "Tool-call approval is required for shell commands, file writes and deletes, and MCP tools with `destructive_hint`. `auto_approve_all` resolves every approval for one run; `tools` and `disallowed_tools` still apply." |
 
 **Bad examples**:
 
@@ -770,15 +769,15 @@ different settings and secrets.
 - **Key fields**: Environments hold secrets and variables. The `getSecretValue`
   query retrieves secrets at runtime.
 - **Note**: Do not confuse with "Execution Context" (`kind: execution_context`,
-  prefix `ectx`), which provides ephemeral runtime secrets to a specific
-  execution. See [Execution Context](#execution-context).
+  prefix `ectx`), which provides ephemeral runtime secrets to a specific run.
+  See [Execution Context](#execution-context).
 
 ---
 
 #### Preference
 
 A standing default or free-text context a user or Organization declares once,
-applied to their Agent executions automatically, and always overridable where a
+applied to their Agent Runs automatically, and always overridable where a
 per-action control exists.
 
 - **Capitalize**: Yes, when referring to the Stigmer concept.
@@ -786,7 +785,7 @@ per-action control exists.
   `OrganizationSpec.preferences` (`OrganizationPreferences`) and
   `IdentityAccountSpec.preferences` (`IdentityAccountPreferences`), each with
   `standing_context`. The server snapshots the texts onto
-  `AgentExecutionStatus.declared_preferences` at execution create.
+  `AgentRunStatus.declared_preferences` when the run is created.
 - **Boundaries**: a Preference is not a **Skill** (Agent knowledge), not an
   **Environment** (workload config and secrets), not a **Session** (conversation
   state), and not a **Memory** (a learned fact an agent proposed and you
@@ -803,7 +802,7 @@ per-action control exists.
 
 A single fact the platform remembers about a person: an agent proposes it during
 a session, and it becomes active only after the person it is about confirms it.
-Confirmed Memories are recalled into that person's future Agent executions as
+Confirmed Memories are recalled into that person's future Agent Runs as
 background context.
 
 - **Capitalize**: Yes, when referring to the Stigmer concept. Lowercase when
@@ -989,41 +988,72 @@ engine.
 
 ---
 
-#### Agent Execution
+#### Agent Run
 
 One run of an Agent from start to finish.
 
-- **User-facing alternative**: "run" or "execution" in tutorials. Avoid the
-  compound "Agent Execution" until concept or reference pages.
+- **User-facing alternative**: "run" in tutorials. Avoid the compound "Agent
+  Run" until concept or reference pages.
 - **Capitalize**: Yes, as a compound proper noun.
-- **API surface**: `kind: AgentExecution`, prefix `aex`. proto:
-  `agentexecution/v1/api.proto`. CLI:
+- **API surface**: `kind: AgentRun`, prefix `aex`. proto:
+  `agentrun/v1/api.proto`. CLI:
 
   ```bash
   stigmer run <agent_name> "<prompt>"
+  stigmer get run <id>
+  stigmer runs logs <id>
   ```
 
 - **Message types**: `HUMAN`, `AI`, `TOOL`, `SYSTEM` (from
-  `agentexecution/v1/enum.proto`).
-- **Phases**: `EXECUTION_WAITING_FOR_APPROVAL` is a notable phase---the
-  execution pauses during an approval flow.
+  `agentrun/v1/enum.proto`).
+- **Phases**: `RUN_WAITING_FOR_APPROVAL` is a notable phase---the run pauses
+  during an approval flow.
+- **Engine words**: the engine underneath still says "execution": its logs, its
+  Temporal task queues (`agent_execution_stigmer`) and operator settings such as
+  `TEMPORAL_AGENT_EXECUTION_STIGMER_TASK_QUEUE` keep that word. Do not rename
+  them in docs; say "run" for what the user started.
+- **Former name**: `AgentExecution` (`kind: AgentExecution`). Do not use it in
+  new writing.
 
 ---
 
-#### Workflow Execution
+#### Workflow Run
 
 One run of a Workflow from start to finish.
 
-- **User-facing alternative**: "run" in tutorials, "Workflow Execution" in
-  concepts and reference.
+- **User-facing alternative**: "run" in tutorials, "Workflow Run" in concepts
+  and reference.
 - **Capitalize**: Yes, as a compound proper noun.
-- **API surface**: `kind: WorkflowExecution`, prefix `wex`. proto:
-  `workflowexecution/v1/api.proto`.
-- **Pattern**: Follows Workflow → WorkflowExecution. A run names its Workflow
+- **API surface**: `kind: WorkflowRun`, prefix `wex`. proto:
+  `workflowrun/v1/api.proto`. CLI: `stigmer get run <id>`, `stigmer list runs`,
+  `stigmer runs <cancel|pause|resume|logs|approve> <id>`.
+- **Pattern**: Follows Workflow → WorkflowRun. A run names its Workflow
   (`spec.workflow_id`, required) and records the version it runs
   (`status.workflow_version_hash`). Its keys come from the values passed with
   it, then, for declared keys still missing, from the personal Environment of
   the person who started it.
+- **Engine words**: the engine underneath still says "execution": its logs, its
+  Temporal task queues (`workflow_execution_stigmer`) and operator settings such
+  as `TEMPORAL_WORKFLOW_EXECUTION_STIGMER_TASK_QUEUE` keep that word.
+- **Former name**: `WorkflowExecution` (`kind: WorkflowExecution`). Do not use
+  it in new writing.
+
+---
+
+#### Run
+
+The word "run" means three different things across Stigmer. Say which one when a
+page touches more than one.
+
+1. **A Stigmer run**---what a user starts: an Agent Run or a Workflow Run, with
+   an id (`aex_...`, `wex_...`), a phase and a page in the console. This is the
+   meaning everywhere in user-facing docs.
+2. **A workflow's `run` task**---a step inside a Workflow that runs a script or
+   a container. It is a task kind, not a Stigmer run; one Workflow Run may
+   execute many `run` tasks.
+3. **Temporal's run of a workflow**---one attempt of a Temporal workflow
+   (`runId`). It appears only in engine code and engine operations pages, never
+   in user-facing docs.
 
 ---
 
@@ -1122,8 +1152,7 @@ subtask.
 - **Capitalize**: Yes, hyphenated: "Sub-Agent."
 - **API surface**: `SubAgent` message in `agent/v1/spec.proto`. Fields: `tools`,
   `disallowed_tools` (narrow the parent's tools, never widen them),
-  `skill_refs`, `model_override`. Execution tracking:
-  `agentexecution/v1/subagent.proto`.
+  `skill_refs`, `model_override`. Run tracking: `agentrun/v1/subagent.proto`.
 - **Context rule**: Concepts and reference only. Never on the sales site. In
   tutorials, if needed, describe as "an Agent that calls another Agent."
 
@@ -1131,7 +1160,7 @@ subtask.
 
 #### Durable Execution
 
-The ability for Agent and Workflow executions to survive crashes, restart
+The ability for Agent Runs and Workflow Runs to survive crashes, restart
 automatically, and resume exactly where they left off.
 
 - **Capitalize**: Yes, as a Stigmer concept.
@@ -1222,8 +1251,8 @@ The gRPC API server that powers the local development experience.
 #### Agent Runner
 
 The TypeScript Temporal worker (`stigmer-runner`, `backend/services/runner`)
-that executes agent sessions and workflow executions, driving both harnesses:
-Cursor and the native deep-agent (LangGraph.js).
+that executes agent sessions and Workflow Runs, driving both harnesses: Cursor
+and the native deep-agent (LangGraph.js).
 
 - **Capitalize**: Yes.
 - **Context rule**: Architecture docs only. Customers do not start or configure
@@ -1265,12 +1294,12 @@ Agent Runner) — there is no separate workflow worker.
 
 #### Execution Context
 
-Ephemeral runtime secrets and variables scoped to a specific execution.
+Ephemeral runtime secrets and variables scoped to a specific run.
 
 - **API surface**: `kind: execution_context`, prefix `ectx`. proto:
   `executioncontext/v1/api.proto`.
 - **Context rule**: Reference docs only. Do not confuse with Environment
-  (persistent, named) vs Execution Context (ephemeral, per-execution).
+  (persistent, named) vs Execution Context (ephemeral, per-run).
 
 ---
 
@@ -1477,10 +1506,10 @@ shorthand exists or is planned.
    human to approve. Required by default for shell commands, file writes and
    deletes, and MCP tools their server marks destructive; an Agent's hooks can
    refuse, ask about or allow any call. Submitted via
-   `AgentExecutionCommandController.submitApproval`.
+   `AgentRunCommandController.submitApproval`.
 
 2. **Workflow-task approval**---a dedicated Workflow task kind
-   (`WORKFLOW_TASK_APPROVAL`) that pauses Workflow Execution and waits for human
+   (`WORKFLOW_TASK_APPROVAL`) that pauses a Workflow Run and waits for human
    input. Has structured parameters: approvers, message, timeout.
 
 These are different mechanisms with different APIs, different configuration
@@ -1489,8 +1518,8 @@ both creates ambiguity in documentation.
 
 **Where**:
 
-- `agentexecution/v1/approval.proto`, `agentexecution/v1/command.proto`
-- `workflowexecution/v1/api.proto` (WorkflowTask with WORKFLOW_TASK_APPROVAL)
+- `agentrun/v1/approval.proto`, `agentrun/v1/command.proto`
+- `workflowrun/v1/api.proto` (WorkflowTask with WORKFLOW_TASK_APPROVAL)
 - `mcpserver/v1/status.proto` (`DiscoveredTool.destructive_hint`)
 - `agent/v1/spec.proto` (`tools`, `disallowed_tools`, `hooks`)
 

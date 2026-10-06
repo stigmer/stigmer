@@ -11,14 +11,14 @@ import { useCreateSession } from "../session/useCreateSession";
 function createMockAdapter(): RunnerAdapter & {
   onSessionOpened: ReturnType<typeof vi.fn>;
   onSessionClosed: ReturnType<typeof vi.fn>;
-  onWorkflowExecutionCreated: ReturnType<typeof vi.fn>;
-  onWorkflowExecutionTerminated: ReturnType<typeof vi.fn>;
+  onWorkflowRunCreated: ReturnType<typeof vi.fn>;
+  onWorkflowRunTerminated: ReturnType<typeof vi.fn>;
 } {
   return {
     onSessionOpened: vi.fn().mockResolvedValue(undefined),
     onSessionClosed: vi.fn().mockResolvedValue(undefined),
-    onWorkflowExecutionCreated: vi.fn().mockResolvedValue(undefined),
-    onWorkflowExecutionTerminated: vi.fn().mockResolvedValue(undefined),
+    onWorkflowRunCreated: vi.fn().mockResolvedValue(undefined),
+    onWorkflowRunTerminated: vi.fn().mockResolvedValue(undefined),
   };
 }
 

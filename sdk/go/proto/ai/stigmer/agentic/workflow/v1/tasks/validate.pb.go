@@ -32,7 +32,7 @@ const (
 	// Unspecified: defaults to VALIDATION_FAIL_RAISE behavior.
 	ValidationFailPolicy_VALIDATION_FAIL_POLICY_UNSPECIFIED ValidationFailPolicy = 0
 	// Task fails with a validation error.
-	// The workflow transitions to error handling (try_catch or EXECUTION_FAILED).
+	// The workflow transitions to error handling (try_catch or RUN_FAILED).
 	// The error includes detailed validation results (which rules/schema
 	// constraints failed and why).
 	ValidationFailPolicy_VALIDATION_FAIL_RAISE ValidationFailPolicy = 1

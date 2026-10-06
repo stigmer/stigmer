@@ -26,7 +26,7 @@
 // real minted user; on an unconfigured local OSS server it is the "system"
 // sentinel — both are correct outcomes of one contract, so the same assertion
 // pins both editions without a capability flag.
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import type { CapturedMcpRequest, McpToolFixture } from "../harness/mcp-server";
@@ -40,7 +40,7 @@ import {
   requireLlmProxy,
   requireMcpFixture,
   sessionIdOf,
-} from "../support/agentexecutions";
+} from "../support/agentruns";
 import { FixtureTracker } from "../harness/fixtures";
 import { makeHttpMcpServer, type HttpMcpServerOptions } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
@@ -141,8 +141,8 @@ async function runEchoAndCapture(options: {
   const final = await awaitTerminal(clients, executionId);
   expect(
     final.status?.phase,
-    `execution ${executionId} should complete; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
-  ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    `execution ${executionId} should complete; reached ${RunPhase[final.status?.phase ?? 0]}`,
+  ).toBe(RunPhase.RUN_COMPLETED);
 
   const toolCalls = mcp.capturedRequests().filter((r) => r.method === "tools/call");
   expect(toolCalls.length, "the echo dispatch reaches the fixture as a tools/call").toBeGreaterThan(0);

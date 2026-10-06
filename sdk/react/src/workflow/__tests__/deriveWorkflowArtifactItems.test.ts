@@ -9,7 +9,7 @@ function artifact(id: string, displayName: string, taskName = "") {
     spec: {
       displayName,
       contentType: "application/json",
-      source: { workflowExecutionId: "wex_1", taskName },
+      source: { workflowRunId: "wex_1", taskName },
     },
     status: { sizeBytes: 100n },
   });

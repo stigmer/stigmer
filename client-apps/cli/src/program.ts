@@ -17,7 +17,6 @@ import { registerDelete } from "./commands/delete.js";
 import { registerDiff } from "./commands/diff.js";
 import { registerDown } from "./commands/down.js";
 import { registerDownload } from "./commands/download.js";
-import { registerExecution } from "./commands/execution/index.js";
 import { registerGet } from "./commands/get.js";
 import { registerInstall } from "./commands/install.js";
 import { registerInternalDaemon } from "./commands/internal-daemon.js";
@@ -29,6 +28,7 @@ import { registerPush } from "./commands/push.js";
 import { registerReset } from "./commands/reset.js";
 import { registerResume } from "./commands/resume.js";
 import { registerRun } from "./commands/run.js";
+import { registerRuns } from "./commands/runs/index.js";
 import { registerSchedule } from "./commands/schedule.js";
 import { registerSearch } from "./commands/search.js";
 import { registerSetup } from "./commands/setup.js";
@@ -42,6 +42,23 @@ import { registerVersion } from "./commands/version.js";
 import { setDebug, setStandalone } from "./runtime.js";
 import { VERSION } from "./version.js";
 
+/**
+ * Top-level commands the CLI once had and no longer does. Typing one is an
+ * old habit, not a typo, so commander's unknown-command answer gains the one
+ * line here naming what replaced it. The old word is not an alias: it does
+ * nothing but fail with this pointer.
+ */
+export const RETIRED_COMMANDS: ReadonlyMap<string, string> = new Map([
+  ["execution", "`stigmer execution` is now `stigmer runs` (cancel, terminate, pause, resume, logs, trace, approve)."],
+]);
+
+// Append a retired command's pointer to commander's unknown-command error.
+function withRetiredCommandHint(message: string): string {
+  const match = /^error: unknown command '([^']+)'/.exec(message);
+  const hint = match === null ? undefined : RETIRED_COMMANDS.get(match[1]);
+  return hint === undefined ? message : `${message}${hint}\n`;
+}
+
 export function buildProgram(): Command {
   const program = new Command();
 
@@ -53,7 +70,8 @@ export function buildProgram(): Command {
     .option("--standalone", "ignore the config file; use flags and environment only")
     .option("--org <slug>", "organization, on servers that hold several")
     .option("--api-key <key>", "API key for authentication")
-    .enablePositionalOptions();
+    .enablePositionalOptions()
+    .configureOutput({ outputError: (message, write) => write(withRetiredCommandHint(message)) });
 
   // Capture global flags into process-global state before any command runs.
   // Bridging --api-key to the env mirrors the Go CLI's PersistentPreRun so the
@@ -89,7 +107,7 @@ export function buildProgram(): Command {
   registerApply(program);
   registerRun(program);
   registerResume(program);
-  registerExecution(program);
+  registerRuns(program);
   registerConnect(program);
   registerMcpServer(program);
   registerUp(program);

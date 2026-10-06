@@ -3,7 +3,7 @@
 A [Model Context Protocol](https://modelcontextprotocol.io) server for the
 Stigmer platform. It exposes Stigmer **agents, skills, MCP servers, workflows,
 and environments** as MCP tools and resources — covering both the
-authoring loop (create, read, update, delete, version) and the execution loop
+authoring loop (create, read, update, delete, version) and the run loop
 (run, observe, approve, cancel) — so any MCP-capable client (Claude Desktop,
 Cursor, the Stigmer CLI, etc.) can build on Stigmer through a uniform protocol.
 
@@ -79,22 +79,22 @@ MCP client ──JSON-RPC──▶ stdio | HTTP (stateless) ──▶ tool handl
 | `apply_environment` | Create or update an environment; echoing `***REDACTED***` preserves existing secrets. |
 | `delete_environment` | Delete an environment. |
 
-### Execution
+### Runs
 
-Runs are asynchronous: the `run_*` tools return immediately with the execution
-ID and the assistant polls the observation tools.
+Runs are asynchronous: the `run_*` tools return immediately with the run ID and
+the assistant polls the observation tools.
 
 | Tool | Description |
 | --- | --- |
-| `run_agent` | Start an agent execution (new session or `session_id` follow-up). |
-| `run_workflow` | Start a workflow execution. |
-| `get_agent_execution` | Poll an agent execution: phase, message tail (compact view) or full record, pending approvals. |
-| `get_workflow_execution` | Read a workflow execution by id. |
-| `get_workflow_execution_events` | Read the event stream for a workflow execution. |
+| `run_agent` | Start an agent run (new session or `session_id` follow-up). |
+| `run_workflow` | Start a workflow run. |
+| `get_agent_run` | Poll an agent run: phase, message tail (compact view) or full record, pending approvals. |
+| `get_workflow_run` | Read a workflow run by id. |
+| `get_workflow_run_events` | Read the event stream for a workflow run. |
 | `list_pending_approvals` | Org-wide inbox of workflow `human_input` tasks awaiting a decision. |
-| `submit_agent_execution_approval` | Approve / skip / reject a tool call an agent execution is waiting on. |
+| `submit_agent_run_approval` | Approve / skip / reject a tool call an agent run is waiting on. |
 | `submit_workflow_task_approval` | Submit a reviewer decision (outcome + optional form data) for a workflow task. |
-| `cancel_execution` | Gracefully cancel an agent (`aex_*`) or workflow (`wex_*`) execution by ID prefix. |
+| `cancel_run` | Gracefully cancel an agent (`aex_*`) or workflow (`wex_*`) run by ID prefix. |
 
 ## Resources (6)
 

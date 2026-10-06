@@ -8,7 +8,7 @@ package ai.stigmer.billing.v1;
 /**
  * <pre>
  * PreviewAuthorizationInput asks whether an organization could fund an
- * execution right now, without writing a reservation.
+ * run right now, without writing a reservation.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.v1.PreviewAuthorizationInput}
@@ -98,7 +98,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Expected maximum cost. 0 means use the server-configured default cap,
-   * exactly as authorizeExecution treats it.
+   * exactly as authorizeRun treats it.
    * </pre>
    *
    * <code>int64 expected_cost_cap_micros = 2 [json_name = "expectedCostCapMicros"];</code>
@@ -280,7 +280,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * PreviewAuthorizationInput asks whether an organization could fund an
-   * execution right now, without writing a reservation.
+   * run right now, without writing a reservation.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.v1.PreviewAuthorizationInput}
@@ -508,7 +508,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Expected maximum cost. 0 means use the server-configured default cap,
-     * exactly as authorizeExecution treats it.
+     * exactly as authorizeRun treats it.
      * </pre>
      *
      * <code>int64 expected_cost_cap_micros = 2 [json_name = "expectedCostCapMicros"];</code>
@@ -521,7 +521,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Expected maximum cost. 0 means use the server-configured default cap,
-     * exactly as authorizeExecution treats it.
+     * exactly as authorizeRun treats it.
      * </pre>
      *
      * <code>int64 expected_cost_cap_micros = 2 [json_name = "expectedCostCapMicros"];</code>
@@ -538,7 +538,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Expected maximum cost. 0 means use the server-configured default cap,
-     * exactly as authorizeExecution treats it.
+     * exactly as authorizeRun treats it.
      * </pre>
      *
      * <code>int64 expected_cost_cap_micros = 2 [json_name = "expectedCostCapMicros"];</code>

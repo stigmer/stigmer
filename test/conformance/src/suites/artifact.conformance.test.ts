@@ -127,7 +127,7 @@ describe("[rpc:ArtifactCommandController.create] Artifact conformance — create
 });
 
 describe("Artifact conformance — read surfaces", () => {
-  it.skipIf(multiTenant)("[rpc:ArtifactQueryController.get] [rpc:ArtifactQueryController.listByExecution] get and listByExecution resolve the artifact by id and by source", async () => {
+  it.skipIf(multiTenant)("[rpc:ArtifactQueryController.get] [rpc:ArtifactQueryController.listByRun] get and listByRun resolve the artifact by id and by source", async () => {
     const executionId = `wexec_01${uniqueName("run").replace(/-/g, "")}`.slice(0, 30);
     const created = await clients.artifactCommand.create(
       makeArtifactInput({ workflowExecutionId: executionId }),
@@ -137,24 +137,24 @@ describe("Artifact conformance — read surfaces", () => {
     expect(fetched.metadata?.id).toBe(created.metadata?.id);
     expect(fetched.status?.contentHash).toBe(created.status?.contentHash);
 
-    const listed = await clients.artifactQuery.listByExecution({
-      workflowExecutionId: executionId,
+    const listed = await clients.artifactQuery.listByRun({
+      workflowRunId: executionId,
     });
     expect(listed.entries).toHaveLength(1);
     expect(listed.entries[0]?.metadata?.id).toBe(created.metadata?.id);
 
     // The other source arm does not match.
-    const other = await clients.artifactQuery.listByExecution({
-      agentExecutionId: executionId,
+    const other = await clients.artifactQuery.listByRun({
+      agentRunId: executionId,
     });
     expect(other.entries).toHaveLength(0);
   });
 
-  it("[rpc:ArtifactQueryController.listByExecution] listByExecution requires an execution filter (InvalidArgument)", async () => {
+  it("[rpc:ArtifactQueryController.listByRun] listByRun requires an execution filter (InvalidArgument)", async () => {
     await expectGrpcCode(
-      () => clients.artifactQuery.listByExecution({}),
+      () => clients.artifactQuery.listByRun({}),
       Code.InvalidArgument,
-      "listByExecution without any filter",
+      "listByRun without any filter",
     );
   });
 

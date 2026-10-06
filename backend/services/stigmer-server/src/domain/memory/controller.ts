@@ -7,7 +7,7 @@
  * calls the create RPC), and it becomes recallable only
  * after the person it is about confirms it. There is deliberately no
  * apply RPC — nobody authors a memory manifest. The kind belongs to the
- * Session/AgentExecution/Artifact family: records the platform creates
+ * Session/AgentRun/Artifact family: records the platform creates
  * that users inspect and manage.
  *
  * Field ownership (provenance revised 2026-08-22): spec.content is the

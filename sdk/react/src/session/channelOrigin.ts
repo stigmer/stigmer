@@ -21,7 +21,7 @@ export const CHANNEL_SESSION_LABELS = {
  * conversation) rather than by a person in the console.
  *
  * Channel viewers hold read-only access (`can_view` without
- * `can_create_execution_in`), so session organisms use this to
+ * `can_create_run_in`), so session organisms use this to
  * self-select the `"observer"` audience — every entry point renders
  * read-only without host wiring.
  */

@@ -7,7 +7,7 @@
  * artifacts are write-once and never garbage-collected.
  *
  * Wiring mirrors Go's: the store and skill artifact storage are required;
- * execution artifact storage (pushFromExecutionArtifact) and the transfer
+ * execution artifact storage (pushFromRunArtifact) and the transfer
  * lane (createArtifactUploadUrl / getArtifactDownloadUrl / push-by-ref)
  * are OPTIONAL modeled states — Go injects them via setters, here they are
  * optional deps; every absent-surface answer is a deliberate arm, not an
@@ -50,7 +50,7 @@ import type {
   GetArtifactResponse,
   ListSkillVersionsInput,
   ListSkillVersionsResponse,
-  PushSkillFromExecutionArtifactRequest,
+  PushSkillFromRunArtifactRequest,
   PushSkillRequest,
   SkillArtifactDownloadUrl,
   SkillArtifactUploadUrl,
@@ -159,7 +159,7 @@ export interface SkillControllerDeps {
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   readonly artifactStorage: SkillArtifactStorage;
   /**
-   * Execution artifact storage for pushFromExecutionArtifact (Go
+   * Execution artifact storage for pushFromRunArtifact (Go
    * SetExecutionArtifactStorage). Optional — absent answers Internal
    * "execution artifact storage not configured".
    */
@@ -183,7 +183,7 @@ export function registerSkillServices(
       push(deps, req, ctx, SkillCommandController.method.push),
     createArtifactUploadUrl: (req, ctx) =>
       createArtifactUploadUrl(deps, req, ctx),
-    pushFromExecutionArtifact: (req, ctx) =>
+    pushFromRunArtifact: (req, ctx) =>
       pushFromExecutionArtifact(deps, req, ctx),
     updateVisibility: (input, ctx) => updateVisibility(deps, input, ctx),
     delete: (id, ctx) => deleteSkill(deps, id, ctx),
@@ -209,7 +209,7 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * pipeline's message type is the request, so the resource rides SKILL_KEY.
  *
  * `method` is the AUTHORIZING descriptor, passed by the caller because two
- * RPCs run this pipeline: push itself and pushFromExecutionArtifact (which
+ * RPCs run this pipeline: push itself and pushFromRunArtifact (which
  * delegates here after its artifact download). Each authorizes under its
  * OWN annotation — a hardcoded method.push would silently evaluate the
  * wrong config the day the two annotations diverge (the runLifecyclePipeline
@@ -338,7 +338,7 @@ async function createArtifactUploadUrl(
  */
 async function pushFromExecutionArtifact(
   deps: SkillControllerDeps,
-  req: PushSkillFromExecutionArtifactRequest,
+  req: PushSkillFromRunArtifactRequest,
   ctx: HandlerContext,
 ): Promise<Skill> {
   if (deps.executionArtifactStorage === undefined) {
@@ -351,8 +351,8 @@ async function pushFromExecutionArtifact(
     );
   }
 
-  if (req.executionId === "") {
-    throw invalidArgumentError("execution_id is required");
+  if (req.runId === "") {
+    throw invalidArgumentError("run_id is required");
   }
   if (req.storageKey === "") {
     throw invalidArgumentError("storage_key is required");
@@ -361,12 +361,12 @@ async function pushFromExecutionArtifact(
     throw invalidArgumentError("org is required");
   }
 
-  const expectedPrefix = `artifacts/${req.executionId}/`;
+  const expectedPrefix = `artifacts/${req.runId}/`;
   if (!req.storageKey.startsWith(expectedPrefix)) {
     deps.logger.warn(
       "Storage key does not belong to execution - potential path traversal attempt",
       {
-        executionId: req.executionId,
+        executionId: req.runId,
         storageKey: req.storageKey,
         expectedPrefix,
       },
@@ -375,7 +375,7 @@ async function pushFromExecutionArtifact(
   }
 
   deps.logger.info("Pushing skill from execution artifact", {
-    executionId: req.executionId,
+    executionId: req.runId,
     storageKey: req.storageKey,
     org: req.org,
     tag: req.tag,
@@ -389,7 +389,7 @@ async function pushFromExecutionArtifact(
     );
   } catch (error) {
     deps.logger.error("Failed to download execution artifact", {
-      executionId: req.executionId,
+      executionId: req.runId,
       storageKey: req.storageKey,
       error: error instanceof Error ? error.message : String(error),
     });
@@ -404,11 +404,11 @@ async function pushFromExecutionArtifact(
       tag: req.tag,
     }),
     ctx,
-    SkillCommandController.method.pushFromExecutionArtifact,
+    SkillCommandController.method.pushFromRunArtifact,
   );
 
   deps.logger.info("Successfully pushed skill from execution artifact", {
-    executionId: req.executionId,
+    executionId: req.runId,
     storageKey: req.storageKey,
     skillId: skill.metadata?.id ?? "",
     skillName: skill.metadata?.name ?? "",

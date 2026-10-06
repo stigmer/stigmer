@@ -26,7 +26,7 @@ schema.json            JSON Schema for a scenario file
   "description": "one gated tool call -> one pending approval",
   "input": {
     "messages": [ /* AgentMessage protos as protojson */ ],
-    "sub_agent_executions": [ /* SubAgentExecution protos as protojson */ ]
+    "sub_agent_runs": [ /* SubAgentRun protos as protojson */ ]
   },
   "expected": {
     "pending_approvals": [ /* PendingApproval protos as protojson */ ]
@@ -48,7 +48,7 @@ and the shadow event-stream projection must yield the same `pending_approvals`.
 The intermediate event-stream representation (event ids, actor strings) is an
 internal detail that will evolve, so pinning its exact JSON here would
 over-specify it. The event shape is the server's own
-(`backend/services/stigmer-server/src/domain/agentexecution/approval/emit.ts`),
+(`backend/services/stigmer-server/src/domain/agentrun/approval/emit.ts`),
 exercised by the corpus tests rather than pinned here. The schema keeps
 `approval_events` as an optional field for if the stream ever becomes the
 source of truth.

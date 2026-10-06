@@ -35,7 +35,7 @@
               "organization",
               "platform",
               "agent",
-              "agent_execution",
+              "agent_run",
               "session",
               "skill",
               "mcp_server",
@@ -43,7 +43,7 @@
               "agent_channel",
               "channel_app",
               "workflow",
-              "workflow_execution",
+              "workflow_run",
               "environment",
               "artifact",
               "execution_context",
@@ -83,7 +83,7 @@
       "type": "array"
     },
     "harness": {
-      "description": "Execution harness for the agent invocation. Determines which execution engine processes the agent call: - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph) - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor) The runner creates a Session with this harness before creating the AgentExecution. The harness is a session-level concern — it determines tool availability, state management, model access, and billing tier. When unspecified: native when run_config names a model (the engine the model was checked against at save), else the agent's own engine (AgentSpec.harness), else native. YAML Example: - code_review: call: agent with: agent: \"code-reviewer\" harness: cursor message: \"Review this PR\"",
+      "description": "Execution harness for the agent invocation. Determines which execution engine processes the agent call: - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph) - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor) The runner creates a Session with this harness before creating the AgentRun. The harness is a session-level concern — it determines tool availability, state management, model access, and billing tier. When unspecified: native when run_config names a model (the engine the model was checked against at save), else the agent's own engine (AgentSpec.harness), else native. YAML Example: - code_review: call: agent with: agent: \"code-reviewer\" harness: cursor message: \"Review this PR\"",
       "enum": [
         "HARNESS_NATIVE",
         "HARNESS_CURSOR"
@@ -133,7 +133,7 @@
       "description": "Per-call model choice and run bounds. Unset fields fall to the agent's defaults (RunConfig has the rule).",
       "properties": {
         "max_cost_usd": {
-          "description": "Maximum estimated cost in USD per run. When the run's estimated spend reaches this limit, the run stops with a \"send another message to continue\" prompt and ends TERMINATED; the work done so far is kept. The limit is checked each time the engine reports its spend, so a run can end somewhat above it. The native harness reports after every model call, counts a sub-agent's spend toward the limit, and advises the agent to wrap up at about 80% of the budget; the Cursor harness gives no warning. 0 = not set at this layer. The budget is per message: a follow-up message, or a run resuming after an approval, starts a fresh count. The spend is the runner's estimate, reported on AgentExecutionStatus.streaming_usage.estimated_cost_usd, not the billed amount.",
+          "description": "Maximum estimated cost in USD per run. When the run's estimated spend reaches this limit, the run stops with a \"send another message to continue\" prompt and ends TERMINATED; the work done so far is kept. The limit is checked each time the engine reports its spend, so a run can end somewhat above it. The native harness reports after every model call, counts a sub-agent's spend toward the limit, and advises the agent to wrap up at about 80% of the budget; the Cursor harness gives no warning. 0 = not set at this layer. The budget is per message: a follow-up message, or a run resuming after an approval, starts a fresh count. The spend is the runner's estimate, reported on AgentRunStatus.streaming_usage.estimated_cost_usd, not the billed amount.",
           "type": "number"
         },
         "max_tool_result_chars": {

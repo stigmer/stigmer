@@ -78,8 +78,8 @@ async function readOAuthServers(stigmer: Stigmer, org: string, agent: Agent): Pr
  *
  * The server's MergeMcpServerEnvSpecs step copies every referenced MCP
  * server's `env` onto the agent at save, the OAuth token variable included,
- * so the agent's schema is complete for execution. That variable is filled
- * by a grant: execution injects it from the server-managed OAuth
+ * so the agent's schema is complete for run. That variable is filled
+ * by a grant: run injects it from the server-managed OAuth
  * environment, never from a value the user owns. Without a grant it is a
  * Sign in row; with one it is satisfied. Either way it is not a form field,
  * and an agent whose only declarations are such variables is as ready as
@@ -115,7 +115,7 @@ export interface SubmitEnvVarsOptions {
    * reuse them without asking again.
    *
    * When `false`, the values are collected as `runtimeEnv` for this
-   * execution only — nothing is persisted. This path is instant (no
+   * run only — nothing is persisted. This path is instant (no
    * network calls).
    *
    * @default true
@@ -200,7 +200,7 @@ export interface UseAgentSetupReturn {
  *   where every run of an agent the user starts reads the keys the
  *   agent declares.
  * - **One-time** — secrets are returned as `runtimeEnv` for a single
- *   execution, with no data persisted.
+ *   run, with no data persisted.
  *
  * State is managed by a `useReducer` state machine with five phases:
  * `idle → resolving → needsEnvVars → submitting → ready`.

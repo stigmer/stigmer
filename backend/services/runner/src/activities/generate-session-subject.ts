@@ -53,7 +53,7 @@ import { checkDirectCredentials } from "../shared/llm-backend.js";
 import { tryInferProvider } from "../shared/llm-proxy.js";
 import type { Config } from "../config.js";
 import { sessionIdOf } from "../shared/execution-target.js";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 
@@ -89,7 +89,7 @@ Rules:
 
 /** The client surface this activity needs — StigmerClient satisfies it. */
 export interface SessionSubjectClient {
-  getExecution(executionId: string): Promise<AgentExecution>;
+  getExecution(executionId: string): Promise<AgentRun>;
   getSession(sessionId: string): Promise<Session>;
   getAgent(agentId: string): Promise<Agent>;
   updateSessionSubject(sessionId: string, subject: string): Promise<Session>;

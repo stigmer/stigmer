@@ -8,5 +8,5 @@
  */
 export const AGENT_DELETE_DESCRIPTION =
   "This permanently removes the agent. " +
-  "Past sessions and executions are preserved, but conversations on it cannot continue. " +
+  "Past sessions and runs are preserved, but conversations on it cannot continue. " +
   "This action cannot be undone.";

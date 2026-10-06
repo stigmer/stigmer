@@ -46,7 +46,7 @@
           "inputFullType": "ai.stigmer.agentic.session.v1.SessionId",
           "outputType": "Session",
           "outputFullType": "ai.stigmer.agentic.session.v1.Session",
-          "description": "Delete a session.\n\n Deletion cascades to the session's agent executions. Billing usage\n records are immutable and unaffected — they carry their own copies of\n the session and execution identifiers.\n\n Fails with FAILED_PRECONDITION while any agent execution in the\n session is still active (pending, in progress, waiting for approval,\n or paused); cancel it or wait for it to finish first."
+          "description": "Delete a session.\n\n Deletion cascades to the session's agent runs. Billing usage\n records are immutable and unaffected — they carry their own copies of\n the session and run identifiers.\n\n Fails with FAILED_PRECONDITION while any agent run in the\n session is still active (pending, in progress, waiting for approval,\n or paused); cancel it or wait for it to finish first."
         }
       ]
     },
@@ -317,12 +317,12 @@
         {
           "name": "visibility_org",
           "number": 3,
-          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role SSO auto-provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_execution_in); org visibility widens\n read, never spend.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)"
+          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role SSO auto-provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_run_in); org visibility widens\n read, never spend.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)"
         },
         {
           "name": "visibility_child_orgs",
           "number": 4,
-          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, executions and environments are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
+          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and environments are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
         }
       ]
     },
@@ -362,7 +362,7 @@
     },
     {
       "name": "ExecutionTarget",
-      "description": "ExecutionTarget specifies where session activities are executed.\n\n Determines whether the runner that processes agent activities lives on the\n client's machine (desktop app or CLI) or in a cloud-provisioned sandbox.\n Set at session creation time and immutable once an execution has run —\n workspace state may not be portable between local and cloud environments.",
+      "description": "ExecutionTarget specifies where session activities are executed.\n\n Determines whether the runner that processes agent activities lives on the\n client's machine (desktop app or CLI) or in a cloud-provisioned sandbox.\n Set at session creation time and immutable once a run has started —\n workspace state may not be portable between local and cloud environments.",
       "protoType": "ai.stigmer.agentic.session.v1.ExecutionTarget",
       "values": [
         {
@@ -443,7 +443,7 @@
           "description": "AI assistant with instructions, tools, skills, and a delegation model."
         },
         {
-          "name": "agent_execution",
+          "name": "agent_run",
           "number": 41,
           "description": "Single run of an agent within a session, tracking tool calls and responses."
         },
@@ -483,19 +483,19 @@
           "description": "Multi-step orchestration defining how agents collaborate on a task."
         },
         {
-          "name": "workflow_execution",
+          "name": "workflow_run",
           "number": 52,
           "description": "Single run of a workflow, tracking step progress and outcomes."
         },
         {
           "name": "environment",
           "number": 53,
-          "description": "Named set of variables and secrets for agent and workflow execution."
+          "description": "Named set of variables and secrets for agent and workflow run."
         },
         {
           "name": "artifact",
           "number": 55,
-          "description": "Persisted blob produced during workflow or agent execution."
+          "description": "Persisted blob produced during workflow or agent run."
         },
         {
           "name": "execution_context",
@@ -542,7 +542,7 @@
         {
           "name": "GIT_WRITE_BACK_BRANCH_AND_PR",
           "number": 1,
-          "description": "Create a branch and pull request from the agent's file changes after execution completes."
+          "description": "Create a branch and pull request from the agent's file changes after the run completes."
         }
       ]
     }

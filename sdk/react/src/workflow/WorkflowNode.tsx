@@ -15,7 +15,7 @@ const NESTED_TASK_KINDS = new Set(["fork", "for_each", "try_catch"]);
  * Unified workflow node component for the React Flow canvas.
  *
  * Composes single-responsibility sub-components and adapts rendering
- * based on the current graph mode (design / overview / execution):
+ * based on the current graph mode (design / overview / run):
  * - `NodeShell` — visual shape boundary (CSS or SVG based on visual class)
  * - `NodeContent` — task name + kind badge
  * - `NodeHandles` — connection ports driven by the visual registry

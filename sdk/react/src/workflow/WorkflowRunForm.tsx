@@ -73,7 +73,7 @@ const INPUT_CLASSES = cn(
 );
 
 /**
- * Form fields for running a workflow execution.
+ * Form fields for running a workflow run.
  *
  * Renders auto-generated environment variable fields from the workflow's
  * `spec.env` declarations, each marked with its source, and a

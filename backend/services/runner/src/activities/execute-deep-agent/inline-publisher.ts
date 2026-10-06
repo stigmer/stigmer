@@ -23,12 +23,12 @@
 import { createHash } from "node:crypto";
 import { basename } from "node:path";
 import { create } from "@bufbuild/protobuf";
-import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
 import {
-  ExecutionArtifactKind,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+  RunArtifactKind,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { ArtifactStorage } from "../../shared/artifact-storage.js";
-import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 import { utcTimestamp } from "../../shared/status.js";
 import { isSecretLikePath } from "../../shared/filereview/secret-paths.js";
@@ -41,7 +41,7 @@ import { isSecretLikePath } from "../../shared/filereview/secret-paths.js";
  * needs, never the whole builder — the `SessionProvisionConfig` rule.
  */
 export interface ArtifactSink {
-  addArtifact(artifact: ExecutionArtifact): void;
+  addArtifact(artifact: RunArtifact): void;
 }
 
 /**
@@ -51,7 +51,7 @@ export interface ArtifactSink {
  * Read, never copied, because the builder keeps writing it.
  */
 export interface ArtifactRecord {
-  readonly artifacts: readonly ExecutionArtifact[];
+  readonly artifacts: readonly RunArtifact[];
 }
 
 export class InlinePublisher {
@@ -115,7 +115,7 @@ export class InlinePublisher {
       // CAS capture gate and the transcript args scrub: under the global bypass
       // (spec.auto_approve_all) a secret write is not blocked up front, so it
       // would otherwise be uploaded here (keyed by basename) and registered as an
-      // ExecutionArtifact. Fail-closed and unconditional — the same name-based
+      // RunArtifact. Fail-closed and unconditional — the same name-based
       // gate the capture path uses, so the decision has one source of truth.
       if (isSecretLikePath(sandboxPath)) {
         console.log(
@@ -139,10 +139,10 @@ export class InlinePublisher {
 
       await this.artifactStorage.upload(storageKey, contentBuffer, guessContentType(fileName));
 
-      const artifact = create(ExecutionArtifactSchema, {
+      const artifact = create(RunArtifactSchema, {
         name: fileName,
         sandboxPath,
-        kind: ExecutionArtifactKind.FILE,
+        kind: RunArtifactKind.FILE,
         sizeBytes: BigInt(contentBuffer.length),
         storageKey,
         createdAt,

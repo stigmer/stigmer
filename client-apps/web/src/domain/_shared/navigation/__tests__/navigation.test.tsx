@@ -16,7 +16,7 @@ import {
   SessionNavigationProvider,
   useSessionNavigation,
 } from "@/domain/session/session-navigation";
-import { useExecutionNavigation } from "@/domain/workflow/execution-navigation";
+import { useRunNavigation } from "@/domain/workflow/run-navigation";
 
 function setBrowserPath(path: string) {
   window.history.pushState(null, "", path);
@@ -33,11 +33,11 @@ beforeEach(() => {
 
 describe("AppNavigationProvider", () => {
   it("seeds currentPath from the browser path on mount", () => {
-    setBrowserPath("/executions/wex_seed");
+    setBrowserPath("/runs/wex_seed");
     const { result } = renderHook(() => useAppNavigation(), {
       wrapper: AppNavigationProvider,
     });
-    expect(result.current.currentPath).toBe("/executions/wex_seed");
+    expect(result.current.currentPath).toBe("/runs/wex_seed");
   });
 
   it("navigate() updates currentPath and calls history.pushState (no reload)", () => {
@@ -46,11 +46,11 @@ describe("AppNavigationProvider", () => {
       wrapper: AppNavigationProvider,
     });
 
-    act(() => result.current.navigate("/executions/wex_1"));
+    act(() => result.current.navigate("/runs/wex_1"));
 
-    expect(result.current.currentPath).toBe("/executions/wex_1");
-    expect(window.location.pathname).toBe("/executions/wex_1");
-    expect(pushSpy).toHaveBeenCalledWith(null, "", "/executions/wex_1");
+    expect(result.current.currentPath).toBe("/runs/wex_1");
+    expect(window.location.pathname).toBe("/runs/wex_1");
+    expect(pushSpy).toHaveBeenCalledWith(null, "", "/runs/wex_1");
     pushSpy.mockRestore();
   });
 
@@ -108,7 +108,7 @@ function wrapper({ children }: { children: React.ReactNode }) {
 
 function useZones() {
   const session = useSessionNavigation();
-  const execution = useExecutionNavigation();
+  const execution = useRunNavigation();
   return { session, execution };
 }
 
@@ -118,7 +118,7 @@ describe("zone derivation", () => {
     expect(result.current.session.isSessionZone).toBe(true);
     expect(result.current.session.activeSessionId).toBeNull();
     expect(result.current.execution.isExecutionZone).toBe(false);
-    expect(result.current.execution.activeExecutionId).toBeNull();
+    expect(result.current.execution.activeRunId).toBeNull();
   });
 
   it("derives the active session id inside the session zone", () => {
@@ -134,10 +134,10 @@ describe("zone derivation", () => {
   it("derives the active execution id inside the execution zone", () => {
     const { result } = renderHook(useZones, { wrapper });
 
-    act(() => result.current.execution.navigateToExecution("wex_42"));
+    act(() => result.current.execution.navigateToRun("wex_42"));
 
     expect(result.current.execution.isExecutionZone).toBe(true);
-    expect(result.current.execution.activeExecutionId).toBe("wex_42");
+    expect(result.current.execution.activeRunId).toBe("wex_42");
     expect(result.current.session.isSessionZone).toBe(false);
     expect(result.current.session.activeSessionId).toBeNull();
   });
@@ -149,7 +149,7 @@ describe("zone derivation", () => {
     expect(result.current.session.isSessionZone).toBe(true);
     expect(result.current.execution.isExecutionZone).toBe(false);
 
-    act(() => result.current.execution.navigateToExecution("wex_1"));
+    act(() => result.current.execution.navigateToRun("wex_1"));
     // The cross-zone bug a naive two-provider design would cause: both zones
     // true at once. A single source of truth makes them mutually exclusive.
     expect(result.current.execution.isExecutionZone).toBe(true);
@@ -169,8 +169,8 @@ describe("zone derivation", () => {
     // navigateToHome stays in the session zone, so nothing captured yet.
     expect(result.current.session.lastSessionZonePath).toBeNull();
 
-    act(() => result.current.execution.navigateToExecution("wex_x"));
-    // Left the session zone (home) for the execution zone.
+    act(() => result.current.execution.navigateToRun("wex_x"));
+    // Left the session zone (home) for the run zone.
     expect(result.current.session.lastSessionZonePath).toBe("/");
   });
 });

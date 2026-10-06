@@ -23,7 +23,7 @@ export interface ManageAccessDialogProps {
   readonly resource: AccessResource;
   /**
    * General access (visibility) axis. Omit for resources without visibility
-   * (e.g. sessions, workflow executions).
+   * (e.g. sessions, workflow runs).
    */
   readonly visibility?: AccessVisibility;
   /**

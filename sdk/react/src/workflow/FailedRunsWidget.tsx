@@ -1,31 +1,31 @@
 "use client";
 
 import { memo } from "react";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
 
 export interface FailedRunsWidgetProps {
-  /** Recent failed executions to display. */
-  readonly executions: readonly WorkflowExecution[];
+  /** Recent failed runs to display. */
+  readonly runs: readonly WorkflowRun[];
   readonly isLoading: boolean;
-  /** Called when the user clicks "View" on a failed execution. */
+  /** Called when the user clicks "View" on a failed run. */
   readonly onViewClick?: (executionId: string) => void;
   readonly className?: string;
 }
 
 /**
- * Dashboard widget showing recent failed workflow executions.
+ * Dashboard widget showing recent failed workflow runs.
  *
- * Consumes data from `useWorkflowExecutionList({ phase: EXECUTION_FAILED })`.
- * Displays a compact list with execution name, error summary, and time of failure.
+ * Consumes data from `useWorkflowRunList({ phase: RUN_FAILED })`.
+ * Displays a compact list with run name, error summary, and time of failure.
  *
  * All visuals use `--stgm-*` tokens. No hardcoded colors.
  */
 export const FailedRunsWidget = memo(function FailedRunsWidget({
-  executions,
+  runs: executions,
   isLoading,
   onViewClick,
   className,

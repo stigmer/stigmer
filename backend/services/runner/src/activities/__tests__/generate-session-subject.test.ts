@@ -11,7 +11,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ConnectError, Code } from "@connectrpc/connect";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 
@@ -55,14 +55,14 @@ interface ExecutionShape {
 }
 
 /** A turn as the server dispatches it: its session on the target, its agent stamped in status. */
-function fakeExecution(shape: ExecutionShape = {}): AgentExecution {
+function fakeExecution(shape: ExecutionShape = {}): AgentRun {
   return {
     spec: {
       target: { case: "sessionId", value: shape.sessionId ?? SESSION_ID },
       message: shape.message ?? "Explain how database indexing works for PostgreSQL",
     },
     status: { agentId: shape.agentId ?? AGENT_ID },
-  } as unknown as AgentExecution;
+  } as unknown as AgentRun;
 }
 
 function fakeSession(subject: string = AUTO_CREATED_SUBJECT): Session {
@@ -83,7 +83,7 @@ function notFound(): ConnectError {
 }
 
 interface ClientBehavior {
-  execution?: AgentExecution | Error;
+  execution?: AgentRun | Error;
   session?: Session | Error;
   agent?: Agent | Error;
   updateError?: Error;

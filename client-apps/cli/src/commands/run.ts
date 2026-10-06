@@ -1,5 +1,5 @@
-// `stigmer run [agent-ref | <type> <reference>]` — execute an agent (or create a
-// workflow execution) and stream it. Thin handler: parse flags, resolve the
+// `stigmer run [agent-ref | <type> <reference>]` — run an agent (or start a
+// workflow run) and stream it. Thin handler: parse flags, resolve the
 // reference (smart 0/1/2-arg dispatch mirroring Go's run.go + run_picker.go),
 // then delegate to the shared run stack. Heavy modules (backend client, Ink,
 // the differ) load lazily inside the action so `--help` stays fast.
@@ -30,7 +30,7 @@ interface RunFlags extends AgentExecOptions {
 export function registerRun(program: Command): void {
   const run = program
     .command("run [type] [reference]")
-    .description("execute an agent or workflow by reference");
+    .description("run an agent or workflow by reference");
   addAgentExecFlags(run)
     .option("--json", "stream events as newline-delimited JSON")
     .option("--download <dir>", "download artifacts to directory when complete")
@@ -179,7 +179,7 @@ async function runAgent(
   await runResolvedAgent(agent, options, org, outputMode, client);
 }
 
-// `agent` undefined is the built-in assistant: the execution names no agent
+// `agent` undefined is the built-in assistant: the run names no agent
 // and the backend creates a session that names none.
 async function runResolvedAgent(
   agent: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb").Agent | undefined,
@@ -217,7 +217,7 @@ async function runResolvedAgent(
   });
 }
 
-// Workflow path: create the execution, then either detach (print IDs + return,
+// Workflow path: create the run, then either detach (print IDs + return,
 // Go parity) or stream it live over the canonical event stream. Mirrors Go's
 // routeRun workflow branch's guards. `--json` now produces a real NDJSON event
 // stream (Go silently ignored run workflow --json).
@@ -235,7 +235,7 @@ async function runWorkflow(
   }
   const [
     { resolveWorkflowRef },
-    { createWorkflowExecution },
+    { createWorkflowRun },
     { loadAndMergeEnv },
     { parseApprovalAction },
   ] = await Promise.all([
@@ -256,7 +256,7 @@ async function runWorkflow(
     runtimeEnv.STIGMER_ORG = { value: org, isSecret: false };
   }
 
-  const execution = await createWorkflowExecution(
+  const run = await createWorkflowRun(
     client.controller.bind(client),
     {
       workflowId: workflow.metadata?.id ?? "",
@@ -265,23 +265,23 @@ async function runWorkflow(
       runtimeEnv,
     },
   );
-  const id = execution.metadata?.id ?? "";
+  const id = run.metadata?.id ?? "";
 
   if (options.detach === true) {
-    process.stdout.write(`Workflow execution created: ${id}\n`);
+    process.stdout.write(`Workflow run created: ${id}\n`);
     process.stdout.write(
-      `Track it with: stigmer execution logs ${id} --follow\n`,
+      `Track it with: stigmer runs logs ${id} --follow\n`,
     );
     return;
   }
 
   const { ApprovalAction } =
-    await import("@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb");
-  const { streamWorkflowExecution } =
+    await import("@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb");
+  const { streamWorkflowRun } =
     await import("../resources/run/workflow-stream.js");
-  await streamWorkflowExecution({
+  await streamWorkflowRun({
     client: client.stigmer,
-    executionId: id,
+    runId: id,
     outputMode,
     defaultAction:
       options.autoApprove === true

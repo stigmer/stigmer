@@ -35,9 +35,9 @@ import {
   RunConfigSchema,
   type AgentInvocation,
   type RunConfig,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import {
   cadenceToCron,
@@ -94,11 +94,11 @@ export interface ScheduleDetailViewProps {
    */
   readonly onNavigateToAgent?: (org: string, slug: string) => void;
   /**
-   * Called when the user activates an execution reference (`aex_…`),
+   * Called when the user activates a run reference (`aex_…`),
    * from the status row or a run-history row. When omitted, ids render
    * as plain text.
    */
-  readonly onNavigateToExecution?: (executionId: string) => void;
+  readonly onNavigateToRun?: (executionId: string) => void;
   /** Called after a successful delete (navigate back to the list). */
   readonly onDeleted?: () => void;
   /** Called when the schedule loads or reloads (e.g. breadcrumb label sync). */
@@ -155,7 +155,7 @@ const MESSAGE_MAX_LEN = 8192;
  *   `status.paused_reason`) — banner showing the reason with a Resume
  *   action (the one path that clears the pause).
  *
- * Trigger ("Run now") starts a real, billable execution and is gated
+ * Trigger ("Run now") starts a real, billable run and is gated
  * behind a confirmation; it is disabled while the schedule cannot fire
  * (the banner names the remedy). With `editable`, the mutable spec
  * fields edit inline; Edit YAML, Export, and Delete round out the
@@ -169,7 +169,7 @@ export function ScheduleDetailView({
   org,
   slug,
   onNavigateToAgent,
-  onNavigateToExecution,
+  onNavigateToRun,
   onDeleted,
   onResourceLoad,
   editable = false,
@@ -304,7 +304,7 @@ export function ScheduleDetailView({
   };
 
   // One fire: trigger, refresh the schedule and its run history, and — on
-  // a started run — hand the execution to the host so it can navigate
+  // a started run — hand the run to the host so it can navigate
   // straight to it (the whole point of the synchronous trigger). A
   // refused run resolves too; its reason is toasted by the hook
   // and lands in the run history below.
@@ -315,10 +315,10 @@ export function ScheduleDetailView({
     setRunsVersion((v) => v + 1);
     if (
       result.outcome === ScheduleRunOutcome.STARTED &&
-      result.executionId &&
-      onNavigateToExecution
+      result.runId &&
+      onNavigateToRun
     ) {
-      onNavigateToExecution(result.executionId);
+      onNavigateToRun(result.runId);
     }
   };
 
@@ -326,7 +326,7 @@ export function ScheduleDetailView({
     const confirmed = await confirm({
       title: "Run this schedule now?",
       description:
-        "This starts a real agent execution immediately, outside the cron " +
+        "This starts a real agent run immediately, outside the cron " +
         "cadence. The run is recorded in this schedule's run history.",
       confirmLabel: "Start run",
       variant: "default",
@@ -360,7 +360,7 @@ export function ScheduleDetailView({
       title: "Delete this schedule?",
       description:
         `"${meta?.name ?? slug}" will stop firing and be permanently ` +
-        "removed. Past executions are not affected. This cannot be undone.",
+        "removed. Past runs are not affected. This cannot be undone.",
       confirmLabel: "Delete",
       variant: "destructive",
     });
@@ -667,14 +667,14 @@ export function ScheduleDetailView({
                 : "Never"}
             </span>
           </DetailRow>
-          <DetailRow label="Last execution">
-            {status?.lastExecutionId ? (
+          <DetailRow label="Last run">
+            {status?.lastRunId ? (
               <ReferenceLink
-                label={status.lastExecutionId}
+                label={status.lastRunId}
                 mono
                 onNavigate={
-                  onNavigateToExecution
-                    ? () => onNavigateToExecution(status.lastExecutionId)
+                  onNavigateToRun
+                    ? () => onNavigateToRun(status.lastRunId)
                     : undefined
                 }
               />
@@ -709,7 +709,7 @@ export function ScheduleDetailView({
           runs={recentRuns}
           isLoading={recentRunsLoading}
           now={renderNow}
-          onNavigateToExecution={onNavigateToExecution}
+          onNavigateToRun={onNavigateToRun}
         />
       </Section>
     </div>
@@ -724,7 +724,7 @@ export function ScheduleDetailView({
         key={runsVersion}
         scheduleId={scheduleId}
         now={now}
-        onNavigateToExecution={onNavigateToExecution}
+        onNavigateToRun={onNavigateToRun}
       />
     );
   } else {

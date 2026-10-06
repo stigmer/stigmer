@@ -37,7 +37,7 @@ private static final long serialVersionUID = 0L;
     origin_ = 0;
     outcome_ = 0;
     reason_ = "";
-    executionId_ = "";
+    runId_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -295,49 +295,49 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int EXECUTION_ID_FIELD_NUMBER = 7;
+  public static final int RUN_ID_FIELD_NUMBER = 7;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object executionId_ = "";
+  private volatile java.lang.Object runId_ = "";
   /**
    * <pre>
-   * ID of the created execution. Empty when no execution was created
+   * ID of the created run. Empty when no run was created
    * (refused, target missing, skipped).
    * </pre>
    *
-   * <code>string execution_id = 7 [json_name = "executionId"];</code>
-   * @return The executionId.
+   * <code>string run_id = 7 [json_name = "runId"];</code>
+   * @return The runId.
    */
   @java.lang.Override
-  public java.lang.String getExecutionId() {
-    java.lang.Object ref = executionId_;
+  public java.lang.String getRunId() {
+    java.lang.Object ref = runId_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      executionId_ = s;
+      runId_ = s;
       return s;
     }
   }
   /**
    * <pre>
-   * ID of the created execution. Empty when no execution was created
+   * ID of the created run. Empty when no run was created
    * (refused, target missing, skipped).
    * </pre>
    *
-   * <code>string execution_id = 7 [json_name = "executionId"];</code>
-   * @return The bytes for executionId.
+   * <code>string run_id = 7 [json_name = "runId"];</code>
+   * @return The bytes for runId.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getExecutionIdBytes() {
-    java.lang.Object ref = executionId_;
+      getRunIdBytes() {
+    java.lang.Object ref = runId_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      executionId_ = b;
+      runId_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -455,8 +455,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(reason_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 6, reason_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(executionId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 7, executionId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 7, runId_);
     }
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(8, getRecordedAt());
@@ -494,8 +494,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(reason_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(6, reason_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(executionId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(7, executionId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(7, runId_);
     }
     if (((bitField0_ & 0x00000002) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -533,8 +533,8 @@ private static final long serialVersionUID = 0L;
     if (outcome_ != other.outcome_) return false;
     if (!getReason()
         .equals(other.getReason())) return false;
-    if (!getExecutionId()
-        .equals(other.getExecutionId())) return false;
+    if (!getRunId()
+        .equals(other.getRunId())) return false;
     if (hasRecordedAt() != other.hasRecordedAt()) return false;
     if (hasRecordedAt()) {
       if (!getRecordedAt()
@@ -570,8 +570,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + outcome_;
     hash = (37 * hash) + REASON_FIELD_NUMBER;
     hash = (53 * hash) + getReason().hashCode();
-    hash = (37 * hash) + EXECUTION_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getExecutionId().hashCode();
+    hash = (37 * hash) + RUN_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getRunId().hashCode();
     if (hasRecordedAt()) {
       hash = (37 * hash) + RECORDED_AT_FIELD_NUMBER;
       hash = (53 * hash) + getRecordedAt().hashCode();
@@ -733,7 +733,7 @@ private static final long serialVersionUID = 0L;
       origin_ = 0;
       outcome_ = 0;
       reason_ = "";
-      executionId_ = "";
+      runId_ = "";
       recordedAt_ = null;
       if (recordedAtBuilder_ != null) {
         recordedAtBuilder_.dispose();
@@ -800,7 +800,7 @@ private static final long serialVersionUID = 0L;
         result.reason_ = reason_;
       }
       if (((from_bitField0_ & 0x00000040) != 0)) {
-        result.executionId_ = executionId_;
+        result.runId_ = runId_;
       }
       if (((from_bitField0_ & 0x00000080) != 0)) {
         result.recordedAt_ = recordedAtBuilder_ == null
@@ -853,8 +853,8 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000020;
         onChanged();
       }
-      if (!other.getExecutionId().isEmpty()) {
-        executionId_ = other.executionId_;
+      if (!other.getRunId().isEmpty()) {
+        runId_ = other.runId_;
         bitField0_ |= 0x00000040;
         onChanged();
       }
@@ -923,7 +923,7 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 50
             case 58: {
-              executionId_ = input.readStringRequireUtf8();
+              runId_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000040;
               break;
             } // case 58
@@ -1549,23 +1549,23 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object executionId_ = "";
+    private java.lang.Object runId_ = "";
     /**
      * <pre>
-     * ID of the created execution. Empty when no execution was created
+     * ID of the created run. Empty when no run was created
      * (refused, target missing, skipped).
      * </pre>
      *
-     * <code>string execution_id = 7 [json_name = "executionId"];</code>
-     * @return The executionId.
+     * <code>string run_id = 7 [json_name = "runId"];</code>
+     * @return The runId.
      */
-    public java.lang.String getExecutionId() {
-      java.lang.Object ref = executionId_;
+    public java.lang.String getRunId() {
+      java.lang.Object ref = runId_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        executionId_ = s;
+        runId_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -1573,21 +1573,21 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the created execution. Empty when no execution was created
+     * ID of the created run. Empty when no run was created
      * (refused, target missing, skipped).
      * </pre>
      *
-     * <code>string execution_id = 7 [json_name = "executionId"];</code>
-     * @return The bytes for executionId.
+     * <code>string run_id = 7 [json_name = "runId"];</code>
+     * @return The bytes for runId.
      */
     public com.google.protobuf.ByteString
-        getExecutionIdBytes() {
-      java.lang.Object ref = executionId_;
+        getRunIdBytes() {
+      java.lang.Object ref = runId_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        executionId_ = b;
+        runId_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -1595,52 +1595,52 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the created execution. Empty when no execution was created
+     * ID of the created run. Empty when no run was created
      * (refused, target missing, skipped).
      * </pre>
      *
-     * <code>string execution_id = 7 [json_name = "executionId"];</code>
-     * @param value The executionId to set.
+     * <code>string run_id = 7 [json_name = "runId"];</code>
+     * @param value The runId to set.
      * @return This builder for chaining.
      */
-    public Builder setExecutionId(
+    public Builder setRunId(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      executionId_ = value;
+      runId_ = value;
       bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * ID of the created execution. Empty when no execution was created
+     * ID of the created run. Empty when no run was created
      * (refused, target missing, skipped).
      * </pre>
      *
-     * <code>string execution_id = 7 [json_name = "executionId"];</code>
+     * <code>string run_id = 7 [json_name = "runId"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearExecutionId() {
-      executionId_ = getDefaultInstance().getExecutionId();
+    public Builder clearRunId() {
+      runId_ = getDefaultInstance().getRunId();
       bitField0_ = (bitField0_ & ~0x00000040);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * ID of the created execution. Empty when no execution was created
+     * ID of the created run. Empty when no run was created
      * (refused, target missing, skipped).
      * </pre>
      *
-     * <code>string execution_id = 7 [json_name = "executionId"];</code>
-     * @param value The bytes for executionId to set.
+     * <code>string run_id = 7 [json_name = "runId"];</code>
+     * @param value The bytes for runId to set.
      * @return This builder for chaining.
      */
-    public Builder setExecutionIdBytes(
+    public Builder setRunIdBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      executionId_ = value;
+      runId_ = value;
       bitField0_ |= 0x00000040;
       onChanged();
       return this;

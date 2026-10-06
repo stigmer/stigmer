@@ -41,14 +41,14 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
 import {
-  AgentExecutionStatusSchema,
-  type AgentExecutionStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunStatusSchema,
+  type AgentRunStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   ApprovalAction,
-  ExecutionPhase,
+  RunPhase,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -81,8 +81,8 @@ const USER_MESSAGE = "Run the command for me.";
 const DECIDED_A_AT = "2026-01-01T00:00:30.000Z";
 const DECIDED_B_AT = "2026-01-01T00:01:00.000Z";
 
-function statusJson(status: AgentExecutionStatus): string {
-  return JSON.stringify(toJson(AgentExecutionStatusSchema, status), null, 2) + "\n";
+function statusJson(status: AgentRunStatus): string {
+  return JSON.stringify(toJson(AgentRunStatusSchema, status), null, 2) + "\n";
 }
 
 describe("ExecuteDeepAgent hermetic — two sequential gates (sqlite)", () => {
@@ -130,7 +130,7 @@ describe("ExecuteDeepAgent hermetic — two sequential gates (sqlite)", () => {
     // ── Turn 2: A runs, gate B pauses ────────────────────────────────────────
     const turn2 = await runDeepAgentTurn(scenario, { turnSeq: 1 });
     expect(turn2.outcome.kind).toBe("returned");
-    expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_WAITING_FOR_APPROVAL");
+    expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_WAITING_FOR_APPROVAL");
     const atGateB = record.lastFullStatus!;
     const rowsAtB = atGateB.messages.flatMap((m) => m.toolCalls);
     expect(rowsAtB.map((tc) => [tc.id, tc.status]), "A committed and kept, B waiting").toEqual([
@@ -151,8 +151,8 @@ describe("ExecuteDeepAgent hermetic — two sequential gates (sqlite)", () => {
     // ── Turn 3: B runs, the run completes ────────────────────────────────────
     const turn3 = await runDeepAgentTurn(scenario, { turnSeq: 2 });
     expect(turn3.outcome.kind).toBe("returned");
-    expect((turn3.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
-    expect(record.persistedPhases.filter((p) => p === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL)).toHaveLength(2);
+    expect((turn3.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
+    expect(record.persistedPhases.filter((p) => p === RunPhase.RUN_WAITING_FOR_APPROVAL)).toHaveLength(2);
     const final = record.lastFullStatus!;
     const rows = final.messages.flatMap((m) => m.toolCalls);
     expect(rows.map((tc) => [tc.id, tc.status, tc.approvalAction, tc.approvalDecidedAt])).toEqual([

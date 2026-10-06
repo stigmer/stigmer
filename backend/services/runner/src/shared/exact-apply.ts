@@ -51,12 +51,12 @@ import { isAbsolute, relative, resolve } from "node:path";
 import {
   ApprovalAction,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type {
   AgentMessage,
   ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
 import { ELISION_MARKER } from "./status-offload.js";
 import { extractFilePath, extractWriteContent } from "./file-tools.js";
 import { resolveWorkspacePath } from "./file-change.js";

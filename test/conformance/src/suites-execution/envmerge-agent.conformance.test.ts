@@ -6,7 +6,7 @@
 // as two files.
 //
 // Domain: agentic — the env layering that populates an ExecutionContext at
-// run start, exercised through AgentExecution. A turn's value layers are the
+// run start, exercised through AgentRun. A turn's value layers are the
 // lane's (a PlatformClient's, a schedule's or a workflow task's
 // environment_refs) and its own runtime_env; the agent's declarations are
 // the key whitelist; and a declared key no layer carries is filled from the
@@ -27,9 +27,9 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { awaitTerminal, makeAgentExecution, requireLlmProxy, requireMcpFixture } from "../support/agentexecutions";
+import { awaitTerminal, makeAgentExecution, requireLlmProxy, requireMcpFixture } from "../support/agentruns";
 import { makeHttpMcpServer } from "../support/mcpservers";
 import { type EnvVarDeclarationInit, type EnvironmentValueInit, makePersonalEnvironment } from "../support/environments";
 import { type ExecutionValueInit } from "../support/executioncontexts";
@@ -79,7 +79,7 @@ interface MergeSetup {
 
 // Drives the AGENT env-merge path end to end: the caller's personal
 // Environment -> Agent (env whitelist) -> Session on the agent ->
-// AgentExecution (runtime_env) in the session. A held mock turn keeps the run
+// AgentRun (runtime_env) in the session. A held mock turn keeps the run
 // non-terminal for the read.
 async function runAgentMerge(org: string, setup: MergeSetup) {
   const personal = await clients.environmentCommand.create(
@@ -228,8 +228,8 @@ describe("envmerge conformance — the agent's shell", () => {
     const final = await awaitTerminal(clients, executionId);
     expect(
       final.status?.phase,
-      `execution ${executionId} should complete; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
-    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      `execution ${executionId} should complete; reached ${RunPhase[final.status?.phase ?? 0]}`,
+    ).toBe(RunPhase.RUN_COMPLETED);
 
     const scripted = mock.scriptedRequests();
     expect(scripted.length, "the tool round and the answer").toBeGreaterThanOrEqual(2);

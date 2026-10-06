@@ -25,7 +25,7 @@ export enum GitWriteBackMode {
   GIT_WRITE_BACK_MODE_UNSPECIFIED = 0,
 
   /**
-   * Create a branch and pull request from the agent's file changes after execution completes.
+   * Create a branch and pull request from the agent's file changes after the run completes.
    *
    * @generated from enum value: GIT_WRITE_BACK_BRANCH_AND_PR = 1;
    */
@@ -93,7 +93,7 @@ export const HarnessSchema: GenEnum<Harness> = /*@__PURE__*/
  *
  * Determines whether the runner that processes agent activities lives on the
  * client's machine (desktop app or CLI) or in a cloud-provisioned sandbox.
- * Set at session creation time and immutable once an execution has run —
+ * Set at session creation time and immutable once a run has started —
  * workspace state may not be portable between local and cloud environments.
  *
  * @generated from enum ai.stigmer.agentic.session.v1.ExecutionTarget

@@ -82,9 +82,9 @@ export interface CapabilityFlags {
   // environment suite — the flag that used to gate this
   // (executionContextSecretRedaction) was retired at convergence, the same
   // retirement the environment surface got in stigmer#405.
-  // A child agent's tool-approval gate surfaces at the parent WorkflowExecution
+  // A child agent's tool-approval gate surfaces at the parent WorkflowRun
   // (status.pending_approvals carries the child_agent_execution_id) so that
-  // WorkflowExecution.submitApproval can forward the decision to the child.
+  // WorkflowRun.submitApproval can forward the decision to the child.
   //
   // True for cloud and local-execution: the server's HITL loop emits the
   // upstream half — the `child_approval_required` signal the agent-execution

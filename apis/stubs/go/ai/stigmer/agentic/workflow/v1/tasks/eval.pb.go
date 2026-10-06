@@ -31,7 +31,7 @@ const (
 	// Unspecified: defaults to EVAL_FAIL_RAISE behavior.
 	EvalFailPolicy_EVAL_FAIL_POLICY_UNSPECIFIED EvalFailPolicy = 0
 	// Task fails with an evaluation error.
-	// The workflow transitions to error handling (try_catch or EXECUTION_FAILED).
+	// The workflow transitions to error handling (try_catch or RUN_FAILED).
 	// The error includes the judge's reasoning and score for diagnostics.
 	EvalFailPolicy_EVAL_FAIL_RAISE EvalFailPolicy = 1
 	// Branch to fallback_task instead of failing.

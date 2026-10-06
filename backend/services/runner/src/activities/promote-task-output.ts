@@ -96,7 +96,7 @@ export function createPromoteTaskOutputActivities(config: Config) {
           contentType,
           displayName: effectiveDisplayName,
           source: create(ArtifactSourceSchema, {
-            workflowExecutionId,
+            workflowRunId: workflowExecutionId,
             taskName,
           }),
         }),

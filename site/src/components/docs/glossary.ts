@@ -12,13 +12,13 @@
 export const glossary: Record<string, string> = {
   Agent:
     "A reusable definition of what an AI assistant knows and can do. Think of it as a recipe that describes the assistant's personality, tools, and knowledge.",
-  "Agent Execution":
-    "One run of an Agent from start to finish. Each time an Agent handles a request, that is one execution.",
+  "Agent Run":
+    "One run of an Agent from start to finish. Each time an Agent handles a request, that is one run.",
   Session:
     "An ongoing conversation with an Agent across multiple messages. A session remembers what was said earlier so the Agent can follow along.",
   Workflow:
     "A step-by-step automation that runs tasks in a defined order. Workflows keep running reliably even if something crashes.",
-  "Workflow Execution":
+  "Workflow Run":
     "One run of a Workflow from start to finish.",
   Skill:
     "A piece of knowledge you attach to an Agent so it has domain expertise. Skills let you give an Agent specialized information without rewriting its instructions.",

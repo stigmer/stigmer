@@ -5,7 +5,7 @@ import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/ap
 import {
   fromArtifact,
   type ArtifactRowItem,
-} from "../execution/artifact-row-item.js";
+} from "../run/artifact-row-item.js";
 
 /** One workflow artifact paired with its presentational row view-model. */
 export interface WorkflowArtifactEntry {
@@ -16,8 +16,8 @@ export interface WorkflowArtifactEntry {
 }
 
 /**
- * Derives the Artifacts facet's row list from a workflow execution's
- * artifacts (as returned by `useWorkflowExecutionArtifacts`).
+ * Derives the Artifacts facet's row list from a workflow run's
+ * artifacts (as returned by `useWorkflowRunArtifacts`).
  *
  * **Sorting:** alphabetical by display name (case-insensitive) — the
  * file-explorer mental model where users scan by filename, matching

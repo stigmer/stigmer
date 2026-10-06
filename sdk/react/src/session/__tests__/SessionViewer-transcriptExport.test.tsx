@@ -15,10 +15,10 @@ vi.mock("../../composer", async (importOriginal) => {
     SessionComposer: () => <div data-testid="composer-probe" />,
   };
 });
-vi.mock("../../execution/MessageThread", () => ({
+vi.mock("../../run/MessageThread", () => ({
   MessageThread: () => <div data-testid="thread-probe" />,
 }));
-vi.mock("../../execution/FileReviewDock", () => ({
+vi.mock("../../run/FileReviewDock", () => ({
   FileReviewDock: () => <div data-testid="file-review-dock-probe" />,
 }));
 
@@ -41,8 +41,8 @@ const stubConv = {
   session: { metadata: { id: "ses_1", org: "acme" }, spec: {} },
   isLoading: false,
   loadError: null,
-  completedExecutions: [],
-  activeStreamExecution: null,
+  completedRuns: [],
+  activeStreamRun: null,
   activePhase: null,
   isStreaming: false,
   isConnecting: false,
@@ -100,8 +100,8 @@ vi.mock("../useSessionPageFlow", () => ({
     submitApproval: vi.fn(),
     handleSubmit: vi.fn(),
     submitError: null as Error | null,
-    displayExecution: null,
-    allExecutions: [],
+    displayRun: null,
+    allRuns: [],
     sandboxWorkspaceRoot: undefined,
   }),
 }));
@@ -109,7 +109,7 @@ vi.mock("../useSessionPageFlow", () => ({
 vi.mock("../../hooks", () => ({
   useStigmer: () => ({
     session: { get: vi.fn() },
-    agentExecution: {
+    agentRun: {
       uploadAttachment: vi.fn(),
       getArtifactContent: vi.fn(),
       listBySession: vi.fn(),

@@ -38,8 +38,8 @@ func (a *ArtifactClient) Get(ctx context.Context, id string) (*artifactv1.Artifa
 	return resp, wrapErr(err)
 }
 
-func (a *ArtifactClient) ListByExecution(ctx context.Context, input *artifactv1.ListArtifactsByExecutionRequest) (*artifactv1.ArtifactList, error) {
-	resp, err := a.query.ListByExecution(ctx, input)
+func (a *ArtifactClient) ListByRun(ctx context.Context, input *artifactv1.ListArtifactsByRunRequest) (*artifactv1.ArtifactList, error) {
+	resp, err := a.query.ListByRun(ctx, input)
 	return resp, wrapErr(err)
 }
 
@@ -73,9 +73,9 @@ type ArtifactInput struct {
 
 // ArtifactSourceInput is the SDK input type for ArtifactSource.
 type ArtifactSourceInput struct {
-	WorkflowExecutionId string
-	AgentExecutionId    string
-	TaskName            string
+	WorkflowRunId string
+	AgentRunId    string
+	TaskName      string
 }
 
 // RetentionPolicyInput is the SDK input type for RetentionPolicy.
@@ -118,9 +118,9 @@ func (i *ArtifactInput) toProto() (*artifactv1.Artifact, error) {
 
 func (i *ArtifactSourceInput) toProto() (*artifactv1.ArtifactSource, error) {
 	return &artifactv1.ArtifactSource{
-		WorkflowExecutionId: i.WorkflowExecutionId,
-		AgentExecutionId:    i.AgentExecutionId,
-		TaskName:            i.TaskName,
+		WorkflowRunId: i.WorkflowRunId,
+		AgentRunId:    i.AgentRunId,
+		TaskName:      i.TaskName,
 	}, nil
 }
 
@@ -158,8 +158,8 @@ func artifactSourceInputFromProto(p *artifactv1.ArtifactSource) *ArtifactSourceI
 		return nil
 	}
 	input := &ArtifactSourceInput{}
-	input.WorkflowExecutionId = p.GetWorkflowExecutionId()
-	input.AgentExecutionId = p.GetAgentExecutionId()
+	input.WorkflowRunId = p.GetWorkflowRunId()
+	input.AgentRunId = p.GetAgentRunId()
 	input.TaskName = p.GetTaskName()
 	return input
 }

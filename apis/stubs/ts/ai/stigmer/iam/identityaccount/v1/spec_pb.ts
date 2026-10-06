@@ -131,14 +131,14 @@ export const IdentityAccountSpecSchema: GenMessage<IdentityAccountSpec> = /*@__P
 
 /**
  * IdentityAccountPreferences holds user-declared defaults that apply to the
- * user's own agent executions.
+ * user's own agent runs.
  *
  * @generated from message ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences
  */
 export type IdentityAccountPreferences = Message<"ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences"> & {
   /**
    * Free-text standing context injected into this user's eligible agent
-   * executions. Example: "Keep answers terse."
+   * runs. Example: "Keep answers terse."
    *
    * @generated from field: string standing_context = 1;
    */

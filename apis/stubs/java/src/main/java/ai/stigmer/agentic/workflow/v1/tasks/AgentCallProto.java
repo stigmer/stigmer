@@ -52,52 +52,52 @@ public final class AgentCallProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n5ai/stigmer/agentic/workflow/v1/tasks/a" +
       "gent_call.proto\022$ai.stigmer.agentic.work" +
-      "flow.v1.tasks\0325ai/stigmer/agentic/agente" +
-      "xecution/v1/invocation.proto\032(ai/stigmer" +
-      "/agentic/session/v1/enum.proto\032-ai/stigm" +
-      "er/agentic/session/v1/workspace.proto\0321a" +
-      "i/stigmer/agentic/workflow/v1/tasks/comm" +
-      "on.proto\0322ai/stigmer/commons/apiresource" +
-      "/field_options.proto\032\'ai/stigmer/commons" +
-      "/apiresource/io.proto\032\033buf/validate/vali" +
-      "date.proto\032\034google/protobuf/struct.proto" +
-      "\"\242\006\n\023AgentCallTaskConfig\022\"\n\005agent\030\001 \001(\tB" +
-      "\014\272H\tr\004\020\001\030\177\310\001\001R\005agent\022(\n\007message\030\002 \001(\tB\016\272" +
-      "H\007r\002\020\001\310\001\001\330\205,\001R\007message\022T\n\003env\030\003 \003(\0132B.ai" +
-      ".stigmer.agentic.workflow.v1.tasks.Agent" +
-      "CallTaskConfig.EnvEntryR\003env\022N\n\nrun_conf" +
-      "ig\030\004 \001(\0132/.ai.stigmer.agentic.agentexecu" +
-      "tion.v1.RunConfigR\trunConfig\022U\n\006output\030\005" +
-      " \001(\0132=.ai.stigmer.agentic.workflow.v1.ta" +
-      "sks.AgentCallOutputContractR\006output\022@\n\007h" +
-      "arness\030\006 \001(\0162&.ai.stigmer.agentic.sessio" +
-      "n.v1.HarnessR\007harness\022Z\n\021workspace_entri" +
-      "es\030\007 \003(\0132-.ai.stigmer.agentic.session.v1" +
-      ".WorkspaceEntryR\020workspaceEntries\022\331\001\n\020en" +
-      "vironment_refs\030\010 \003(\01324.ai.stigmer.common" +
-      "s.apiresource.ApiResourceReferenceBx\272Hq\222" +
-      "\001n\"l\272\001i\n\025environment_refs.kind\022?environm" +
-      "ent_refs must reference resources with k" +
-      "ind=environment\032\017this.kind == 53\340\205,5R\017en" +
-      "vironmentRefs\0326\n\010EnvEntry\022\020\n\003key\030\001 \001(\tR\003" +
-      "key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001:\016\352\213,\nagent" +
-      "_call\"\202\002\n\027AgentCallOutputContract\0227\n\006sch" +
-      "ema\030\001 \001(\0132\027.google.protobuf.StructB\006\272H\003\310" +
-      "\001\001R\006schema\022Z\n\non_invalid\030\002 \001(\0162;.ai.stig" +
-      "mer.agentic.workflow.v1.tasks.OnInvalidO" +
-      "utputPolicyR\tonInvalid\022-\n\013max_retries\030\003 " +
-      "\001(\005B\014\272H\t\032\004\030\005(\001\330\001\001R\nmaxRetries\022#\n\rfallbac" +
-      "k_task\030\004 \001(\tR\014fallbackTaskB\310\001B\016AgentCall" +
-      "ProtoP\001\242\002\006ASAWVT\252\002$Ai.Stigmer.Agentic.Wo" +
-      "rkflow.V1.Tasks\312\002$Ai\\Stigmer\\Agentic\\Wor" +
-      "kflow\\V1\\Tasks\342\0020Ai\\Stigmer\\Agentic\\Work" +
-      "flow\\V1\\Tasks\\GPBMetadata\352\002)Ai::Stigmer:" +
-      ":Agentic::Workflow::V1::Tasksb\006proto3"
+      "flow.v1.tasks\032/ai/stigmer/agentic/agentr" +
+      "un/v1/invocation.proto\032(ai/stigmer/agent" +
+      "ic/session/v1/enum.proto\032-ai/stigmer/age" +
+      "ntic/session/v1/workspace.proto\0321ai/stig" +
+      "mer/agentic/workflow/v1/tasks/common.pro" +
+      "to\0322ai/stigmer/commons/apiresource/field" +
+      "_options.proto\032\'ai/stigmer/commons/apire" +
+      "source/io.proto\032\033buf/validate/validate.p" +
+      "roto\032\034google/protobuf/struct.proto\"\234\006\n\023A" +
+      "gentCallTaskConfig\022\"\n\005agent\030\001 \001(\tB\014\272H\tr\004" +
+      "\020\001\030\177\310\001\001R\005agent\022(\n\007message\030\002 \001(\tB\016\272H\007r\002\020\001" +
+      "\310\001\001\330\205,\001R\007message\022T\n\003env\030\003 \003(\0132B.ai.stigm" +
+      "er.agentic.workflow.v1.tasks.AgentCallTa" +
+      "skConfig.EnvEntryR\003env\022H\n\nrun_config\030\004 \001" +
+      "(\0132).ai.stigmer.agentic.agentrun.v1.RunC" +
+      "onfigR\trunConfig\022U\n\006output\030\005 \001(\0132=.ai.st" +
+      "igmer.agentic.workflow.v1.tasks.AgentCal" +
+      "lOutputContractR\006output\022@\n\007harness\030\006 \001(\016" +
+      "2&.ai.stigmer.agentic.session.v1.Harness" +
+      "R\007harness\022Z\n\021workspace_entries\030\007 \003(\0132-.a" +
+      "i.stigmer.agentic.session.v1.WorkspaceEn" +
+      "tryR\020workspaceEntries\022\331\001\n\020environment_re" +
+      "fs\030\010 \003(\01324.ai.stigmer.commons.apiresourc" +
+      "e.ApiResourceReferenceBx\272Hq\222\001n\"l\272\001i\n\025env" +
+      "ironment_refs.kind\022?environment_refs mus" +
+      "t reference resources with kind=environm" +
+      "ent\032\017this.kind == 53\340\205,5R\017environmentRef" +
+      "s\0326\n\010EnvEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value" +
+      "\030\002 \001(\tR\005value:\0028\001:\016\352\213,\nagent_call\"\202\002\n\027Ag" +
+      "entCallOutputContract\0227\n\006schema\030\001 \001(\0132\027." +
+      "google.protobuf.StructB\006\272H\003\310\001\001R\006schema\022Z" +
+      "\n\non_invalid\030\002 \001(\0162;.ai.stigmer.agentic." +
+      "workflow.v1.tasks.OnInvalidOutputPolicyR" +
+      "\tonInvalid\022-\n\013max_retries\030\003 \001(\005B\014\272H\t\032\004\030\005" +
+      "(\001\330\001\001R\nmaxRetries\022#\n\rfallback_task\030\004 \001(\t" +
+      "R\014fallbackTaskB\310\001B\016AgentCallProtoP\001\242\002\006AS" +
+      "AWVT\252\002$Ai.Stigmer.Agentic.Workflow.V1.Ta" +
+      "sks\312\002$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tas" +
+      "ks\342\0020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Task" +
+      "s\\GPBMetadata\352\002)Ai::Stigmer::Agentic::Wo" +
+      "rkflow::V1::Tasksb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
-          ai.stigmer.agentic.agentexecution.v1.InvocationProto.getDescriptor(),
+          ai.stigmer.agentic.agentrun.v1.InvocationProto.getDescriptor(),
           ai.stigmer.agentic.session.v1.EnumProto.getDescriptor(),
           ai.stigmer.agentic.session.v1.WorkspaceProto.getDescriptor(),
           ai.stigmer.agentic.workflow.v1.tasks.CommonProto.getDescriptor(),
@@ -125,7 +125,7 @@ public final class AgentCallProto extends com.google.protobuf.GeneratedFile {
         internal_static_ai_stigmer_agentic_workflow_v1_tasks_AgentCallOutputContract_descriptor,
         new java.lang.String[] { "Schema", "OnInvalid", "MaxRetries", "FallbackTask", });
     descriptor.resolveAllFeaturesImmutable();
-    ai.stigmer.agentic.agentexecution.v1.InvocationProto.getDescriptor();
+    ai.stigmer.agentic.agentrun.v1.InvocationProto.getDescriptor();
     ai.stigmer.agentic.session.v1.EnumProto.getDescriptor();
     ai.stigmer.agentic.session.v1.WorkspaceProto.getDescriptor();
     ai.stigmer.agentic.workflow.v1.tasks.CommonProto.getDescriptor();

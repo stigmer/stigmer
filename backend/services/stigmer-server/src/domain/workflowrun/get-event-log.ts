@@ -1,0 +1,139 @@
+/**
+ * GetEventLog — ports get_event_log.go: cursor-paginated reads over the
+ * workflow_execution_events side table (sequence_number ascending,
+ * strictly after the cursor). The asymmetry the Class A suite pins: an
+ * empty execution_id refuses InvalidArgument, but an UNKNOWN id answers
+ * an empty page — there is deliberately no existence check (the opposite
+ * of the subscribe lanes).
+ *
+ * The store filters by at most one event type; multi-type requests fetch
+ * unfiltered and filter in memory — which can under-fill a page (Go
+ * accepts this: has_more is computed from the pre-filter fetch).
+ */
+import { create, fromBinary } from "@bufbuild/protobuf";
+
+import { WorkflowRunEventSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
+import type { WorkflowRunEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
+import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
+import { GetEventLogResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
+import type {
+  GetEventLogRequest,
+  GetEventLogResponse,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
+
+import { WorkflowRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/query_pb";
+
+import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
+import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
+import { authorizeDirect } from "../../pipeline/steps/authorize.js";
+import type { Store, WorkflowExecutionEventRecord } from "../../store/interface.js";
+
+import { DEFAULT_EVENT_PAGE_SIZE, MAX_EVENT_PAGE_SIZE } from "./constants.js";
+
+export interface EventLogDeps {
+  readonly store: Store;
+  readonly logger: Logger;
+  /** The composed authorization seam — the annotation check below. */
+  readonly authorizer: Authorizer;
+}
+
+/** The proto enum's value NAME — exactly Go's WorkflowEventType.String(). */
+export function eventTypeName(eventType: WorkflowEventType): string {
+  return WorkflowEventType[eventType] ?? "";
+}
+
+export async function getEventLog(
+  deps: EventLogDeps,
+  req: GetEventLogRequest,
+  identity: CallerIdentity,
+): Promise<GetEventLogResponse> {
+  if (req.runId === "") {
+    throw invalidArgumentError("run_id is required");
+  }
+  // The annotation's can_view check (validate → authorize, the Java
+  // WorkflowExecutionGetEventLogHandler order). The
+  // no-existence-check empty-page contract below is unchanged for
+  // authorized callers.
+  await authorizeDirect(
+    WorkflowRunQueryController.method.getEventLog,
+    deps.authorizer,
+    identity,
+    req,
+  );
+
+  let pageSize = req.pageSize;
+  if (pageSize <= 0) {
+    pageSize = DEFAULT_EVENT_PAGE_SIZE;
+  }
+  if (pageSize > MAX_EVENT_PAGE_SIZE) {
+    pageSize = MAX_EVENT_PAGE_SIZE;
+  }
+
+  // The store filters by one event type; multiple requested types fall
+  // back to in-memory filtering after an unfiltered fetch.
+  let eventTypeFilter = "";
+  if (req.eventTypes.length === 1) {
+    eventTypeFilter = eventTypeName(req.eventTypes[0]);
+  }
+
+  // Fetch one extra record to compute has_more.
+  let records: WorkflowExecutionEventRecord[];
+  try {
+    records = await deps.store.getWorkflowExecutionEvents(
+      req.runId,
+      Number(req.afterSequence),
+      eventTypeFilter,
+      req.taskName,
+      pageSize + 1,
+    );
+  } catch (error) {
+    deps.logger.error("Failed to query execution events", {
+      executionId: req.runId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw internalError(error, "failed to query execution events");
+  }
+
+  const hasMore = records.length > pageSize;
+  if (hasMore) {
+    records = records.slice(0, pageSize);
+  }
+
+  let typeFilter: Set<string> | undefined;
+  if (req.eventTypes.length > 1) {
+    typeFilter = new Set(req.eventTypes.map(eventTypeName));
+  }
+
+  const events: WorkflowRunEvent[] = [];
+  let latestSequence = 0n;
+
+  for (const record of records) {
+    if (typeFilter !== undefined && !typeFilter.has(record.eventType)) {
+      continue;
+    }
+
+    let event: WorkflowRunEvent;
+    try {
+      event = fromBinary(WorkflowRunEventSchema, record.data);
+    } catch {
+      deps.logger.warn("Skipping malformed event record", {
+        executionId: req.runId,
+        sequenceNumber: record.sequenceNumber,
+      });
+      continue;
+    }
+
+    events.push(event);
+    if (BigInt(record.sequenceNumber) > latestSequence) {
+      latestSequence = BigInt(record.sequenceNumber);
+    }
+  }
+
+  return create(GetEventLogResponseSchema, {
+    events,
+    hasMore,
+    latestSequence,
+  });
+}

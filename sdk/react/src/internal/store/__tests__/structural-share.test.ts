@@ -1,25 +1,25 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,
   type AgentMessage,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   MessageType,
   ToolCallStatus,
   SubAgentStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { structuralShare } from "../structural-share";
 
 // ---------------------------------------------------------------------------
@@ -66,7 +66,7 @@ function subAgent(
     output?: string;
   },
 ) {
-  const sa = create(SubAgentExecutionSchema);
+  const sa = create(SubAgentRunSchema);
   sa.id = id;
   sa.name = `agent-${id}`;
   sa.status = opts?.status ?? SubAgentStatus.SUB_AGENT_IN_PROGRESS;
@@ -84,21 +84,21 @@ function approval(toolCallId: string, toolName: string) {
 
 function exec(opts: {
   id?: string;
-  phase?: ExecutionPhase;
+  phase?: RunPhase;
   messages?: AgentMessage[];
   subAgents?: ReturnType<typeof subAgent>[];
   approvals?: ReturnType<typeof approval>[];
-}): AgentExecution {
-  const e = create(AgentExecutionSchema);
+}): AgentRun {
+  const e = create(AgentRunSchema);
   const meta = create(ApiResourceMetadataSchema);
   meta.id = opts.id ?? "exec-1";
   e.metadata = meta;
-  const spec = create(AgentExecutionSpecSchema);
+  const spec = create(AgentRunSpecSchema);
   e.spec = spec;
-  const status = create(AgentExecutionStatusSchema);
-  status.phase = opts.phase ?? ExecutionPhase.EXECUTION_IN_PROGRESS;
+  const status = create(AgentRunStatusSchema);
+  status.phase = opts.phase ?? RunPhase.RUN_IN_PROGRESS;
   if (opts.messages) status.messages = opts.messages;
-  if (opts.subAgents) status.subAgentExecutions = opts.subAgents;
+  if (opts.subAgents) status.subAgentRuns = opts.subAgents;
   if (opts.approvals) status.pendingApprovals = opts.approvals;
   e.status = status;
   return e;
@@ -294,7 +294,7 @@ describe("structuralShare", () => {
       });
 
       const result = structuralShare(prev, next);
-      expect(result.status!.subAgentExecutions[0]).toBe(sa1);
+      expect(result.status!.subAgentRuns[0]).toBe(sa1);
     });
 
     it("produces new reference for updated sub-agent but shares its inner messages", () => {
@@ -318,7 +318,7 @@ describe("structuralShare", () => {
       });
 
       const result = structuralShare(prev, next);
-      const resultSa = result.status!.subAgentExecutions[0];
+      const resultSa = result.status!.subAgentRuns[0];
       expect(resultSa).not.toBe(sa);
       expect(resultSa.messages[0]).toBe(innerMsg);
       expect(resultSa.messages.length).toBe(2);
@@ -342,8 +342,8 @@ describe("structuralShare", () => {
       });
 
       const result = structuralShare(prev, next);
-      expect(result.status!.subAgentExecutions[0]).toBe(sa1);
-      expect(result.status!.subAgentExecutions.length).toBe(2);
+      expect(result.status!.subAgentRuns[0]).toBe(sa1);
+      expect(result.status!.subAgentRuns.length).toBe(2);
     });
   });
 
@@ -389,12 +389,12 @@ describe("structuralShare", () => {
 
   describe("phase changes", () => {
     it("produces new reference when phase changes", () => {
-      const prev = exec({ phase: ExecutionPhase.EXECUTION_IN_PROGRESS });
-      const next = exec({ phase: ExecutionPhase.EXECUTION_COMPLETED });
+      const prev = exec({ phase: RunPhase.RUN_IN_PROGRESS });
+      const next = exec({ phase: RunPhase.RUN_COMPLETED });
 
       const result = structuralShare(prev, next);
       expect(result).not.toBe(prev);
-      expect(result.status!.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      expect(result.status!.phase).toBe(RunPhase.RUN_COMPLETED);
     });
   });
 
@@ -440,14 +440,14 @@ describe("structuralShare", () => {
 
   describe("missing status", () => {
     it("returns next when prev has no status", () => {
-      const prev = create(AgentExecutionSchema);
+      const prev = create(AgentRunSchema);
       const next = exec({ messages: [msg(MessageType.MESSAGE_AI, "hi")] });
       expect(structuralShare(prev, next)).toBe(next);
     });
 
     it("returns next when next has no status", () => {
       const prev = exec({ messages: [msg(MessageType.MESSAGE_AI, "hi")] });
-      const next = create(AgentExecutionSchema);
+      const next = create(AgentRunSchema);
       expect(structuralShare(prev, next)).toBe(next);
     });
   });

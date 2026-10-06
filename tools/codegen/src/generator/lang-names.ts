@@ -8,7 +8,7 @@ import { tsClientFieldName } from "./gen-common.js";
 const PY_CLIENT_FIELD_NAMES = new Map<string, string>([
   ["agent", "agents"],
   ["agentchannel", "agent_channels"],
-  ["agentexecution", "agent_executions"],
+  ["agentrun", "agent_runs"],
   ["agentshare", "agent_shares"],
   ["apikey", "api_keys"],
   ["environment", "environments"],
@@ -21,7 +21,7 @@ const PY_CLIENT_FIELD_NAMES = new Map<string, string>([
   ["session", "sessions"],
   ["skill", "skills"],
   ["workflow", "workflows"],
-  ["workflowexecution", "workflow_executions"],
+  ["workflowrun", "workflow_runs"],
 ]);
 
 export function pyClientFieldName(resource: string): string {

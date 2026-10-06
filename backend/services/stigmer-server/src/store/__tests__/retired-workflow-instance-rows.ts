@@ -4,7 +4,7 @@
  * the schemas that wrote them no longer exist — a WorkflowInstance row
  * (api_version 1, kind 2, metadata 3, spec 4 { workflow_id 1,
  * description 2, environment_refs 3, execution_visibility 4 }, status 5),
- * a WorkflowExecution row whose spec carries the retired
+ * a WorkflowRun row whose spec carries the retired
  * workflow_instance_id (field 1) and callback_token (field 7), and a
  * Workflow row whose status carries the retired default_instance_id
  * (field 1). Shared by the module's unit test, the frozen-envelope test
@@ -17,10 +17,10 @@ import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/status_pb";
 import {
-  WorkflowExecutionSchema,
-  WorkflowExecutionStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/spec_pb";
+  WorkflowRunSchema,
+  WorkflowRunStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { WorkflowRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/spec_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiResourceAuditStatusSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
@@ -35,7 +35,7 @@ export function retiredWorkflowInstanceRow(options: {
   readonly environmentRefs?: ReadonlyArray<
     MessageInitShape<typeof ApiResourceReferenceSchema>
   >;
-  /** The retired WorkflowExecutionVisibility number; 0 is not written. */
+  /** The retired WorkflowRunVisibility number; 0 is not written. */
   readonly executionVisibility?: number;
 }): Uint8Array {
   const spec = new BinaryWriter();
@@ -79,7 +79,7 @@ export function retiredWorkflowInstanceRow(options: {
 }
 
 /**
- * A WorkflowExecution row as an earlier release stored it: the retired
+ * A WorkflowRun row as an earlier release stored it: the retired
  * instance id written ahead of the given spec as field 1 (omitted when
  * empty, as proto3 omits an empty string), the retired callback token
  * after it as field 7 (when given), and the status it carried.
@@ -88,8 +88,8 @@ export function retiredWorkflowExecutionRow(options: {
   readonly metadata: MetadataInit;
   readonly instanceId: string;
   readonly callbackToken?: Uint8Array;
-  readonly spec?: MessageInitShape<typeof WorkflowExecutionSpecSchema>;
-  readonly status?: MessageInitShape<typeof WorkflowExecutionStatusSchema>;
+  readonly spec?: MessageInitShape<typeof WorkflowRunSpecSchema>;
+  readonly status?: MessageInitShape<typeof WorkflowRunStatusSchema>;
 }): Uint8Array {
   const spec = new BinaryWriter();
   if (options.instanceId !== "") {
@@ -97,8 +97,8 @@ export function retiredWorkflowExecutionRow(options: {
   }
   spec.raw(
     toBinary(
-      WorkflowExecutionSpecSchema,
-      create(WorkflowExecutionSpecSchema, options.spec ?? {}),
+      WorkflowRunSpecSchema,
+      create(WorkflowRunSpecSchema, options.spec ?? {}),
     ),
   );
   if (options.callbackToken !== undefined) {
@@ -118,8 +118,8 @@ export function retiredWorkflowExecutionRow(options: {
       .tag(5, WireType.LengthDelimited)
       .bytes(
         toBinary(
-          WorkflowExecutionStatusSchema,
-          create(WorkflowExecutionStatusSchema, options.status),
+          WorkflowRunStatusSchema,
+          create(WorkflowRunStatusSchema, options.status),
         ),
       );
   }
@@ -128,11 +128,11 @@ export function retiredWorkflowExecutionRow(options: {
 
 /** The current encoding of a run (the envelope retiredWorkflowExecutionRow writes), for byte comparisons. */
 export function workflowExecutionBytes(
-  init: MessageInitShape<typeof WorkflowExecutionSchema>,
+  init: MessageInitShape<typeof WorkflowRunSchema>,
 ): Uint8Array {
   return toBinary(
-    WorkflowExecutionSchema,
-    create(WorkflowExecutionSchema, {
+    WorkflowRunSchema,
+    create(WorkflowRunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "WorkflowExecution",
       ...init,

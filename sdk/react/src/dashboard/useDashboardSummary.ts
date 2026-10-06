@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { ExecutionPhase as WorkflowPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
-import { ExecutionPhase as AgentPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase as WorkflowPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
+import { RunPhase as AgentPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   useWorkflowDashboardSummary,
   type UseWorkflowDashboardSummaryOptions,
@@ -10,14 +10,14 @@ import {
 import { useOrgUsageReport } from "../usage/useOrgUsageReport.js";
 import { dateRangeFromPreset } from "../usage/date-range.js";
 import {
-  useAgentExecutionSummary,
-  AgentExecutionSummaryTimeWindow,
-} from "./useAgentExecutionSummary.js";
+  useAgentRunSummary,
+  AgentRunSummaryTimeWindow,
+} from "./useAgentRunSummary.js";
 import type { DashboardSummary } from "./types.js";
 
 /** Options for {@link useDashboardSummary}. */
 export interface UseDashboardSummaryOptions {
-  /** The organization whose execution summaries and usage report to read. */
+  /** The organization whose run summaries and usage report to read. */
   readonly org: string | null | undefined;
   /** Refetch interval in milliseconds. @default 60_000 */
   readonly refetchInterval?: number;
@@ -32,11 +32,11 @@ export interface UseDashboardSummaryReturn {
 }
 
 /**
- * Composition hook that merges agent execution summary, workflow execution
+ * Composition hook that merges agent run summary, workflow run
  * summary, and org usage report into a single {@link DashboardSummary}.
  *
- * - Execution counts (active, completed, failed) are added across both
- *   domains — safe because agent and workflow executions are distinct resources.
+ * - Run counts (active, completed, failed) are added across both
+ *   domains — safe because agent and workflow runs are distinct resources.
  * - Cost comes from `getOrgUsageReport` (billing source of truth). NOT from
  *   summing agent + workflow costs. See AD-DASH-005.
  *
@@ -54,9 +54,9 @@ export function useDashboardSummary(
     } satisfies UseWorkflowDashboardSummaryOptions);
 
   const { summary: agentSummary, isLoading: agLoading, error: agError, refetch: agRefetch } =
-    useAgentExecutionSummary({
+    useAgentRunSummary({
       org: options.org,
-      timeWindow: AgentExecutionSummaryTimeWindow.LAST_7D,
+      timeWindow: AgentRunSummaryTimeWindow.LAST_7D,
       refetchInterval,
     });
 
@@ -73,11 +73,11 @@ export function useDashboardSummary(
     const wfActive = workflowSummary?.activeCount ?? 0;
     const agActive = agentSummary?.activeCount ?? 0;
 
-    const wfCompleted = workflowSummary?.phaseCounts[WorkflowPhase.EXECUTION_COMPLETED] ?? 0;
-    const agCompleted = agentSummary?.phaseCounts[AgentPhase.EXECUTION_COMPLETED] ?? 0;
+    const wfCompleted = workflowSummary?.phaseCounts[WorkflowPhase.RUN_COMPLETED] ?? 0;
+    const agCompleted = agentSummary?.phaseCounts[AgentPhase.RUN_COMPLETED] ?? 0;
 
-    const wfFailed = workflowSummary?.phaseCounts[WorkflowPhase.EXECUTION_FAILED] ?? 0;
-    const agFailed = agentSummary?.phaseCounts[AgentPhase.EXECUTION_FAILED] ?? 0;
+    const wfFailed = workflowSummary?.phaseCounts[WorkflowPhase.RUN_FAILED] ?? 0;
+    const agFailed = agentSummary?.phaseCounts[AgentPhase.RUN_FAILED] ?? 0;
 
     const totalCostMicros = Number(orgUsage?.totalBillableCostMicros ?? BigInt(0));
     const totalCostUsd = totalCostMicros / 1_000_000;

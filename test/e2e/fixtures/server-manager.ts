@@ -2,7 +2,7 @@
 // test/support's spawns. Domain: e2e harness (web console against a live
 // backend stack).
 //
-// The spawns are the ones the conformance execution suites boot, so the
+// The spawns are the ones the conformance run suites boot, so the
 // console journeys run against the same stack posture conformance proves:
 // the runner in its production OSS posture (its durable checkpointer under a
 // harness-owned HOME, the model registry from the server, every LLM caller
@@ -86,7 +86,7 @@ let stack: RunningStack | undefined;
 export async function startBackendStack(opts: {
   apiPort: number;
   // When set, the runner is pointed at this mock LLM proxy base URL
-  // (STIGMER_PROXY_ENDPOINT), so agent executions stay hermetic and
+  // (STIGMER_PROXY_ENDPOINT), so agent runs stay hermetic and
   // deterministic.
   mockLlmEndpoint?: string;
   // When set (with mockLlmEndpoint), the RUNNER boots with no artifact store
@@ -120,7 +120,7 @@ export async function startBackendStack(opts: {
 
   // A free Temporal port, never the fixed 7233, so a developer's live dev stack
   // (its own Temporal and a runner polling the same queue) cannot poach this
-  // stack's executions.
+  // stack's runs.
   console.log("[e2e] Starting Temporal dev server...");
   const temporal = await spawnTemporal();
   console.log(`[e2e] Temporal ready on ${temporal.hostPort}`);

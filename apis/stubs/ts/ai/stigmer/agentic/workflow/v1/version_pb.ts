@@ -223,8 +223,8 @@ export const ListWorkflowVersionsResponseSchema: GenMessage<ListWorkflowVersions
 /**
  * GetWorkflowVersionInput requests a specific historical version of a workflow.
  *
- * Used by the runner (to hydrate execution from a pinned version) and the
- * execution viewer (to render the graph for historical executions).
+ * Used by the runner (to hydrate a run from a pinned version) and the
+ * run viewer (to render the graph for historical runs).
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput
  */

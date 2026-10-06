@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/artifact/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_artifact_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvYXJ0aWZhY3QvdjEvaW8ucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy5hcnRpZmFjdC52MSIjCgpBcnRpZmFjdElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiXgoMQXJ0aWZhY3RMaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEjkKB2VudHJpZXMYAiADKAsyKC5haS5zdGlnbWVyLmFnZW50aWMuYXJ0aWZhY3QudjEuQXJ0aWZhY3QieQoTQ3JlYXRlQXJ0aWZhY3RJbnB1dBJCCgRzcGVjGAEgASgLMiwuYWkuc3RpZ21lci5hZ2VudGljLmFydGlmYWN0LnYxLkFydGlmYWN0U3BlY0IGukgDyAEBEh4KB2NvbnRlbnQYAiABKAxCDbpICsgBAXoFGICAgBkiiwEKH0xpc3RBcnRpZmFjdHNCeUV4ZWN1dGlvblJlcXVlc3QSHQoVd29ya2Zsb3dfZXhlY3V0aW9uX2lkGAEgASgJEhoKEmFnZW50X2V4ZWN1dGlvbl9pZBgCIAEoCRIVCglwYWdlX3NpemUYAyABKAVCAhgBEhYKCnBhZ2VfdG9rZW4YBCABKAlCAhgBIkwKGUdldEFydGlmYWN0Q29udGVudFJlcXVlc3QSHAoLYXJ0aWZhY3RfaWQYASABKAlCB7pIBHICEAESEQoJbWF4X2J5dGVzGAIgASgDInAKGkdldEFydGlmYWN0Q29udGVudFJlc3BvbnNlEg8KB2NvbnRlbnQYASABKAwSFAoMY29udGVudF90eXBlGAIgASgJEhgKEHRvdGFsX3NpemVfYnl0ZXMYAyABKAMSEQoJdHJ1bmNhdGVkGAQgASgIImEKE0FydGlmYWN0RG93bmxvYWRVcmwSCwoDdXJsGAEgASgJEhMKC3R0bF9zZWNvbmRzGAIgASgFEhIKCnNpemVfYnl0ZXMYAyABKAMSFAoMY29udGVudF90eXBlGAQgASgJYgZwcm90bzM", [file_ai_stigmer_agentic_artifact_v1_api, file_ai_stigmer_agentic_artifact_v1_spec, file_buf_validate_validate]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvYXJ0aWZhY3QvdjEvaW8ucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy5hcnRpZmFjdC52MSIjCgpBcnRpZmFjdElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiXgoMQXJ0aWZhY3RMaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEjkKB2VudHJpZXMYAiADKAsyKC5haS5zdGlnbWVyLmFnZW50aWMuYXJ0aWZhY3QudjEuQXJ0aWZhY3QieQoTQ3JlYXRlQXJ0aWZhY3RJbnB1dBJCCgRzcGVjGAEgASgLMiwuYWkuc3RpZ21lci5hZ2VudGljLmFydGlmYWN0LnYxLkFydGlmYWN0U3BlY0IGukgDyAEBEh4KB2NvbnRlbnQYAiABKAxCDbpICsgBAXoFGICAgBkieQoZTGlzdEFydGlmYWN0c0J5UnVuUmVxdWVzdBIXCg93b3JrZmxvd19ydW5faWQYASABKAkSFAoMYWdlbnRfcnVuX2lkGAIgASgJEhUKCXBhZ2Vfc2l6ZRgDIAEoBUICGAESFgoKcGFnZV90b2tlbhgEIAEoCUICGAEiTAoZR2V0QXJ0aWZhY3RDb250ZW50UmVxdWVzdBIcCgthcnRpZmFjdF9pZBgBIAEoCUIHukgEcgIQARIRCgltYXhfYnl0ZXMYAiABKAMicAoaR2V0QXJ0aWZhY3RDb250ZW50UmVzcG9uc2USDwoHY29udGVudBgBIAEoDBIUCgxjb250ZW50X3R5cGUYAiABKAkSGAoQdG90YWxfc2l6ZV9ieXRlcxgDIAEoAxIRCgl0cnVuY2F0ZWQYBCABKAgiYQoTQXJ0aWZhY3REb3dubG9hZFVybBILCgN1cmwYASABKAkSEwoLdHRsX3NlY29uZHMYAiABKAUSEgoKc2l6ZV9ieXRlcxgDIAEoAxIUCgxjb250ZW50X3R5cGUYBCABKAliBnByb3RvMw", [file_ai_stigmer_agentic_artifact_v1_api, file_ai_stigmer_agentic_artifact_v1_spec, file_buf_validate_validate]);
 
 /**
  * ArtifactId wraps an artifact identifier.
@@ -46,14 +46,14 @@ export const ArtifactIdSchema: GenMessage<ArtifactId> = /*@__PURE__*/
  */
 export type ArtifactList = Message<"ai.stigmer.agentic.artifact.v1.ArtifactList"> & {
   /**
-   * Always 1: an execution's artifacts are returned whole.
+   * Always 1: a run's artifacts are returned whole.
    *
    * @generated from field: int32 total_pages = 1;
    */
   totalPages: number;
 
   /**
-   * The execution's artifacts, newest first.
+   * The run's artifacts, newest first.
    *
    * @generated from field: repeated ai.stigmer.agentic.artifact.v1.Artifact entries = 2;
    */
@@ -96,29 +96,29 @@ export const CreateArtifactInputSchema: GenMessage<CreateArtifactInput> = /*@__P
   messageDesc(file_ai_stigmer_agentic_artifact_v1_io, 2);
 
 /**
- * ListArtifactsByExecutionRequest lists artifacts produced by a specific execution.
+ * ListArtifactsByRunRequest lists artifacts produced by a specific run.
  *
- * @generated from message ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest
+ * @generated from message ai.stigmer.agentic.artifact.v1.ListArtifactsByRunRequest
  */
-export type ListArtifactsByExecutionRequest = Message<"ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest"> & {
+export type ListArtifactsByRunRequest = Message<"ai.stigmer.agentic.artifact.v1.ListArtifactsByRunRequest"> & {
   /**
-   * WorkflowExecution ID to list artifacts for.
+   * WorkflowRun ID to list artifacts for.
    * Format: "wex_{unique-suffix}"
    *
-   * @generated from field: string workflow_execution_id = 1;
+   * @generated from field: string workflow_run_id = 1;
    */
-  workflowExecutionId: string;
+  workflowRunId: string;
 
   /**
-   * AgentExecution ID to list artifacts for.
+   * AgentRun ID to list artifacts for.
    * Format: "aex_{unique-suffix}"
    *
-   * @generated from field: string agent_execution_id = 2;
+   * @generated from field: string agent_run_id = 2;
    */
-  agentExecutionId: string;
+  agentRunId: string;
 
   /**
-   * Not read: an execution's artifacts are returned whole.
+   * Not read: a run's artifacts are returned whole.
    *
    * @generated from field: int32 page_size = 3 [deprecated = true];
    * @deprecated
@@ -126,7 +126,7 @@ export type ListArtifactsByExecutionRequest = Message<"ai.stigmer.agentic.artifa
   pageSize: number;
 
   /**
-   * Not read: an execution's artifacts are returned whole.
+   * Not read: a run's artifacts are returned whole.
    *
    * @generated from field: string page_token = 4 [deprecated = true];
    * @deprecated
@@ -135,10 +135,10 @@ export type ListArtifactsByExecutionRequest = Message<"ai.stigmer.agentic.artifa
 };
 
 /**
- * Describes the message ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest.
- * Use `create(ListArtifactsByExecutionRequestSchema)` to create a new message.
+ * Describes the message ai.stigmer.agentic.artifact.v1.ListArtifactsByRunRequest.
+ * Use `create(ListArtifactsByRunRequestSchema)` to create a new message.
  */
-export const ListArtifactsByExecutionRequestSchema: GenMessage<ListArtifactsByExecutionRequest> = /*@__PURE__*/
+export const ListArtifactsByRunRequestSchema: GenMessage<ListArtifactsByRunRequest> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_artifact_v1_io, 3);
 
 /**

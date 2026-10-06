@@ -138,7 +138,7 @@ export function blueprintVisibilityLevels(
  * the kind's VisibilityConfig).
  *
  * Org sharing on an environment carries credential semantics, so the
- * copy names both effects: members get redacted view, and executions
+ * copy names both effects: members get redacted view, and runs
  * in the org (teammate-run agents AND shared-agent visitors) can use
  * the values at runtime. Secret reveal stays creator-only at every
  * level.

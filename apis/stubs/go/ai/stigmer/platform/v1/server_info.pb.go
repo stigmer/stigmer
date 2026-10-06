@@ -542,12 +542,12 @@ type GetRunnerScopedTokenInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The dispatched work the token will serve. The runner names only the id it
 	// was dispatched; the server derives the token's scope from the resource
-	// itself (an agent execution scopes to its parent session).
+	// itself (an agent run scopes to its parent session).
 	//
 	// Types that are valid to be assigned to Scope:
 	//
-	//	*GetRunnerScopedTokenInput_AgentExecutionId
-	//	*GetRunnerScopedTokenInput_WorkflowExecutionId
+	//	*GetRunnerScopedTokenInput_AgentRunId
+	//	*GetRunnerScopedTokenInput_WorkflowRunId
 	//	*GetRunnerScopedTokenInput_PoolClaim
 	//	*GetRunnerScopedTokenInput_Renewal
 	Scope         isGetRunnerScopedTokenInput_Scope `protobuf_oneof:"scope"`
@@ -592,19 +592,19 @@ func (x *GetRunnerScopedTokenInput) GetScope() isGetRunnerScopedTokenInput_Scope
 	return nil
 }
 
-func (x *GetRunnerScopedTokenInput) GetAgentExecutionId() string {
+func (x *GetRunnerScopedTokenInput) GetAgentRunId() string {
 	if x != nil {
-		if x, ok := x.Scope.(*GetRunnerScopedTokenInput_AgentExecutionId); ok {
-			return x.AgentExecutionId
+		if x, ok := x.Scope.(*GetRunnerScopedTokenInput_AgentRunId); ok {
+			return x.AgentRunId
 		}
 	}
 	return ""
 }
 
-func (x *GetRunnerScopedTokenInput) GetWorkflowExecutionId() string {
+func (x *GetRunnerScopedTokenInput) GetWorkflowRunId() string {
 	if x != nil {
-		if x, ok := x.Scope.(*GetRunnerScopedTokenInput_WorkflowExecutionId); ok {
-			return x.WorkflowExecutionId
+		if x, ok := x.Scope.(*GetRunnerScopedTokenInput_WorkflowRunId); ok {
+			return x.WorkflowRunId
 		}
 	}
 	return ""
@@ -632,16 +632,16 @@ type isGetRunnerScopedTokenInput_Scope interface {
 	isGetRunnerScopedTokenInput_Scope()
 }
 
-type GetRunnerScopedTokenInput_AgentExecutionId struct {
-	// AgentExecution id — yields a token scoped to the execution's parent
+type GetRunnerScopedTokenInput_AgentRunId struct {
+	// AgentRun id — yields a token scoped to the run's parent
 	// session, valid for every ExecutionContext in that session (multi-turn).
-	AgentExecutionId string `protobuf:"bytes,1,opt,name=agent_execution_id,json=agentExecutionId,proto3,oneof"`
+	AgentRunId string `protobuf:"bytes,1,opt,name=agent_run_id,json=agentRunId,proto3,oneof"`
 }
 
-type GetRunnerScopedTokenInput_WorkflowExecutionId struct {
-	// WorkflowExecution id — yields a token scoped to exactly that workflow
-	// execution's ExecutionContext.
-	WorkflowExecutionId string `protobuf:"bytes,2,opt,name=workflow_execution_id,json=workflowExecutionId,proto3,oneof"`
+type GetRunnerScopedTokenInput_WorkflowRunId struct {
+	// WorkflowRun id — yields a token scoped to exactly that workflow
+	// run's ExecutionContext.
+	WorkflowRunId string `protobuf:"bytes,2,opt,name=workflow_run_id,json=workflowRunId,proto3,oneof"`
 }
 
 type GetRunnerScopedTokenInput_PoolClaim struct {
@@ -658,9 +658,9 @@ type GetRunnerScopedTokenInput_Renewal struct {
 	Renewal *TokenRenewal `protobuf:"bytes,4,opt,name=renewal,proto3,oneof"`
 }
 
-func (*GetRunnerScopedTokenInput_AgentExecutionId) isGetRunnerScopedTokenInput_Scope() {}
+func (*GetRunnerScopedTokenInput_AgentRunId) isGetRunnerScopedTokenInput_Scope() {}
 
-func (*GetRunnerScopedTokenInput_WorkflowExecutionId) isGetRunnerScopedTokenInput_Scope() {}
+func (*GetRunnerScopedTokenInput_WorkflowRunId) isGetRunnerScopedTokenInput_Scope() {}
 
 func (*GetRunnerScopedTokenInput_PoolClaim) isGetRunnerScopedTokenInput_Scope() {}
 
@@ -730,7 +730,7 @@ func (x *PoolClaim) GetSessionId() string {
 // restart (which would wipe an ephemeral sandbox's workspace).
 //
 // Deliberately empty: every mint parameter (identity, org, session /
-// workflow-execution scope) comes from the presented credential's VERIFIED
+// workflow-run scope) comes from the presented credential's VERIFIED
 // claims, never from the client, so a renewed token is claim-identical to
 // the one it replaces.
 type TokenRenewal struct {
@@ -873,10 +873,11 @@ const file_ai_stigmer_platform_v1_server_info_proto_rawDesc = "" +
 	"\x16payload_encryption_key\x18\x06 \x01(\tR\x14payloadEncryptionKey\x129\n" +
 	"\x19payload_encryption_key_id\x18\a \x01(\tR\x16payloadEncryptionKeyId\x12G\n" +
 	" payload_encryption_secondary_key\x18\b \x01(\tR\x1dpayloadEncryptionSecondaryKey\x12L\n" +
-	"#payload_encryption_secondary_key_id\x18\t \x01(\tR\x1fpayloadEncryptionSecondaryKeyId\"\x97\x02\n" +
-	"\x19GetRunnerScopedTokenInput\x12.\n" +
-	"\x12agent_execution_id\x18\x01 \x01(\tH\x00R\x10agentExecutionId\x124\n" +
-	"\x15workflow_execution_id\x18\x02 \x01(\tH\x00R\x13workflowExecutionId\x12B\n" +
+	"#payload_encryption_secondary_key_id\x18\t \x01(\tR\x1fpayloadEncryptionSecondaryKeyId\"\xff\x01\n" +
+	"\x19GetRunnerScopedTokenInput\x12\"\n" +
+	"\fagent_run_id\x18\x01 \x01(\tH\x00R\n" +
+	"agentRunId\x12(\n" +
+	"\x0fworkflow_run_id\x18\x02 \x01(\tH\x00R\rworkflowRunId\x12B\n" +
 	"\n" +
 	"pool_claim\x18\x03 \x01(\v2!.ai.stigmer.platform.v1.PoolClaimH\x00R\tpoolClaim\x12@\n" +
 	"\arenewal\x18\x04 \x01(\v2$.ai.stigmer.platform.v1.TokenRenewalH\x00R\arenewalB\x0e\n" +
@@ -963,8 +964,8 @@ func file_ai_stigmer_platform_v1_server_info_proto_init() {
 	file_ai_stigmer_platform_v1_license_proto_init()
 	file_ai_stigmer_platform_v1_server_info_proto_msgTypes[1].OneofWrappers = []any{}
 	file_ai_stigmer_platform_v1_server_info_proto_msgTypes[6].OneofWrappers = []any{
-		(*GetRunnerScopedTokenInput_AgentExecutionId)(nil),
-		(*GetRunnerScopedTokenInput_WorkflowExecutionId)(nil),
+		(*GetRunnerScopedTokenInput_AgentRunId)(nil),
+		(*GetRunnerScopedTokenInput_WorkflowRunId)(nil),
 		(*GetRunnerScopedTokenInput_PoolClaim)(nil),
 		(*GetRunnerScopedTokenInput_Renewal)(nil),
 	}

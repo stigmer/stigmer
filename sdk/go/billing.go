@@ -175,8 +175,8 @@ type RetireModelPricingBaselineParams struct {
 // balance queries, ledger history, credit purchases via Stripe Checkout, and
 // the operator model-pricing surfaces.
 //
-// Internal execution-billing RPCs (authorizeExecution, recordLlmCallUsage,
-// finalizeExecution) are not exposed — they are called only by the Temporal
+// Internal run-billing RPCs (authorizeRun, recordLlmCallUsage,
+// finalizeRun) are not exposed — they are called only by the Temporal
 // workflow and the LLM proxy.
 type BillingClient struct {
 	command billingv1.BillingCommandControllerClient
@@ -289,7 +289,7 @@ func (b *BillingClient) GetCreditLedger(ctx context.Context, params *GetCreditLe
 }
 
 // GetBillingUsageReport retrieves an aggregated billing usage report for a
-// date range: total provider cost, total billable amount, execution and LLM
+// date range: total provider cost, total billable amount, run and LLM
 // call counts, and a per-model breakdown with cost tier attribution.
 func (b *BillingClient) GetBillingUsageReport(ctx context.Context, params *GetBillingUsageReportParams) (*BillingUsageReportResponse, error) {
 	resp, err := b.query.GetBillingUsageReport(ctx, &billingv1.GetBillingUsageReportInput{

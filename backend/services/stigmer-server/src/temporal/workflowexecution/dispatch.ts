@@ -24,7 +24,7 @@ import type { Logger } from "../../boot/logger.js";
 import {
   WORKFLOW_ROUTING_EXECUTION,
   type WorkflowExecutionTemporalConfig,
-} from "../../domain/workflowexecution/temporal/config.js";
+} from "../../domain/workflowrun/temporal/config.js";
 import { formatWfExecTaskQueue } from "./names.js";
 
 /**

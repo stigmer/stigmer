@@ -42,7 +42,7 @@ function mockStigmer() {
     .fn()
     .mockResolvedValue({ storageKey: "attachments/test/key" });
   vi.mocked(useStigmer).mockReturnValue({
-    agentExecution: { uploadAttachment },
+    agentRun: { uploadAttachment },
   } as unknown as ReturnType<typeof useStigmer>);
   return { uploadAttachment };
 }

@@ -18,8 +18,8 @@ import type { JsonObject } from "@bufbuild/protobuf";
 import type {
   ApprovalRequestedPayload,
   ApprovalResolvedPayload,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store.js";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
+import type { DerivedTaskState } from "../../internal/store/workflow-run-event-store.js";
 import { kindToDisplayName } from "../kind-metadata.js";
 import { taskKindToString } from "../workflow-graph-conversions.js";
 import {
@@ -57,7 +57,7 @@ export interface WorkflowThreadItem {
   readonly tokensUsed: bigint;
   readonly attemptNumber: number;
   readonly error: string;
-  readonly childExecutionId: string;
+  readonly childRunId: string;
   readonly agentSlug: string;
   readonly currentToolName: string;
   readonly messagesCount: number;
@@ -102,7 +102,7 @@ export interface WorkflowThreadProgress {
   readonly settledTasks: number;
   /** Tasks currently active (running, retrying, or waiting approval). */
   readonly activeTasks: number;
-  /** Total planned tasks from `execution_started`; `0` when unknown. */
+  /** Total planned tasks from `run_started`; `0` when unknown. */
   readonly totalTasks: number;
 }
 
@@ -171,7 +171,7 @@ export function projectThreadItems(
       tokensUsed: state.tokensUsed,
       attemptNumber: state.attemptNumber,
       error: state.error,
-      childExecutionId: state.childExecutionId,
+      childRunId: state.childRunId,
       agentSlug: state.agentSlug,
       currentToolName: state.currentToolName,
       messagesCount: state.messagesCount,
@@ -194,7 +194,7 @@ export function projectThreadItems(
       settledTasks,
       activeTasks,
       // The snapshot fallback path reports totalTasks as the map size; a
-      // stream that never saw execution_started reports 0 ("unknown").
+      // stream that never saw run_started reports 0 ("unknown").
       totalTasks: totalTasks > 0 ? totalTasks : 0,
     },
   };
@@ -214,7 +214,7 @@ function threadItemEqual(
     a.tokensUsed === b.tokensUsed &&
     a.attemptNumber === b.attemptNumber &&
     a.error === b.error &&
-    a.childExecutionId === b.childExecutionId &&
+    a.childRunId === b.childRunId &&
     a.agentSlug === b.agentSlug &&
     a.currentToolName === b.currentToolName &&
     a.messagesCount === b.messagesCount &&

@@ -6,21 +6,21 @@ import { MessageThread } from "../components/MessageThread.js";
 import { TodoList } from "../components/TodoList.js";
 import { FollowUpInput } from "../components/FollowUpInput.js";
 import { UsageWidget } from "../components/UsageWidget.js";
-import { ExecutionProgress } from "../components/ExecutionProgress.js";
+import { RunProgress } from "../components/RunProgress.js";
 import { FileChangeProgressBar } from "../components/FileChangeProgressBar.js";
 import { FileReviewPrompt } from "../components/FileReviewPrompt.js";
 
-/** Interaction mode type used for follow-up executions. */
+/** Interaction mode type used for follow-up runs. */
 export type InteractionMode = "agent" | "plan";
 
 /** Props for {@link SessionView}. */
 export interface SessionViewProps {
   /** Session ID to display and converse in. */
   readonly sessionId: string;
-  /** Organization slug for creating follow-up executions. */
+  /** Organization slug for creating follow-up runs. */
   readonly org: string;
   /**
-   * Initial interaction mode for follow-up executions.
+   * Initial interaction mode for follow-up runs.
    *
    * - `"agent"` (default): full tool access.
    * - `"plan"`: read-only analysis, no file mutations.
@@ -95,12 +95,12 @@ export function SessionView({ sessionId, org, mode }: SessionViewProps) {
     );
   }
 
-  const allExecutions = [
-    ...conv.completedExecutions,
-    ...(conv.activeStreamExecution ? [conv.activeStreamExecution] : []),
+  const allRuns = [
+    ...conv.completedRuns,
+    ...(conv.activeStreamRun ? [conv.activeStreamRun] : []),
   ];
 
-  const activeTodos = conv.activeStreamExecution?.status?.todos;
+  const activeTodos = conv.activeStreamRun?.status?.todos;
 
   const subject = resolvedSubject(conv.session?.spec?.subject);
 
@@ -140,16 +140,16 @@ export function SessionView({ sessionId, org, mode }: SessionViewProps) {
       {conv.activePhase != null &&
         conv.activePhase !== 0 &&
         conv.fileChangeSets.length === 0 && (
-          // Suppressed while a set awaits review: there is no execution phase
+          // Suppressed while a set awaits review: there is no run phase
           // for review (it lives on FileChangeSet.status), so the phase would
           // otherwise read as an active "Running" spinner while the agent is
           // idle awaiting the reviewer — the FileReviewPrompt is the honest cue.
-          <ExecutionProgress phase={conv.activePhase} />
+          <RunProgress phase={conv.activePhase} />
         )}
 
       <MessageThread
-        executions={conv.completedExecutions}
-        activeStreamExecution={conv.activeStreamExecution}
+        runs={conv.completedRuns}
+        activeStreamRun={conv.activeStreamRun}
         pendingUserMessage={conv.pendingUserMessage}
         onApprovalSubmit={conv.submitApproval}
         submittingApprovalIds={conv.submittingApprovalIds}
@@ -179,7 +179,7 @@ export function SessionView({ sessionId, org, mode }: SessionViewProps) {
         </Box>
       )}
 
-      <UsageWidget executions={allExecutions} />
+      <UsageWidget runs={allRuns} />
 
       {/* Mid-run live capture: the transient "N files changing…" strip
           for a still-running turn, covering shell-made changes with no tool row.

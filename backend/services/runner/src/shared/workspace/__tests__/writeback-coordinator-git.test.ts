@@ -15,8 +15,8 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { WorkspaceWriteBackPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { WorkspaceWriteBackPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/writeback_pb";
 import { GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { WriteBackCoordinator } from "../writeback-coordinator.js";
 import { LocalWorkspaceBackend } from "../local-backend.js";
@@ -137,7 +137,7 @@ describe("WriteBackCoordinator against real git", () => {
 
       // ── Turn 1: the agent created a file; the review kept it. ──
       writeFileSync(join(workDir, "notes.md"), "approved content\n");
-      const status1 = create(AgentExecutionStatusSchema, {});
+      const status1 = create(AgentRunStatusSchema, {});
       const coord1 = makeCoordinator("exec-turn-1", new TranscriptBuilder("exec-int", status1));
       await coord1.finalize();
 
@@ -161,7 +161,7 @@ describe("WriteBackCoordinator against real git", () => {
       writeFileSync(join(workDir, "rejected.md"), "discarded content\n");
       rmSync(join(workDir, "rejected.md")); // the reconcile's snap-back
 
-      const status2 = create(AgentExecutionStatusSchema, {});
+      const status2 = create(AgentRunStatusSchema, {});
       const coord2 = makeCoordinator("exec-turn-2", new TranscriptBuilder("exec-int", status2));
       await coord2.finalize();
 
@@ -199,7 +199,7 @@ describe("WriteBackCoordinator against real git", () => {
       writeFileSync(join(workDir, "notes.md"), "turn one\n");
       const coord1 = makeCoordinator(
         "exec-a",
-        new TranscriptBuilder("exec-int", create(AgentExecutionStatusSchema, {})),
+        new TranscriptBuilder("exec-int", create(AgentRunStatusSchema, {})),
       );
       await coord1.finalize();
 
@@ -212,7 +212,7 @@ describe("WriteBackCoordinator against real git", () => {
       // Turn 2 in the fresh clone must continue the SAME branch, not fork a
       // new one from main (which would orphan turn 1's commit).
       writeFileSync(join(workDir, "more.md"), "turn two\n");
-      const status2 = create(AgentExecutionStatusSchema, {});
+      const status2 = create(AgentRunStatusSchema, {});
       const coord2 = makeCoordinator("exec-b", new TranscriptBuilder("exec-int", status2));
       await coord2.finalize();
 

@@ -18,7 +18,7 @@ User ──► Organization ──► Members ──► Resources (Agents, Workf
 |---|---|
 | **Organization** | The root namespace for all resources. Created once, referenced everywhere. |
 | **Member** | A user granted access to an organization via the IAM subsystem. The creator automatically becomes the owner (a child organization's parent admins grant its first members instead). |
-| **Resources** | Agents, workflows, MCP servers, skills, sessions, and executions all live under an organization. |
+| **Resources** | Agents, workflows, MCP servers, skills, sessions, and runs all live under an organization. |
 
 ## Parent and Child Organizations
 

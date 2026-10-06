@@ -19,7 +19,7 @@ export function OrgPreferencesSection() {
         Organization Preferences
       </h2>
       <p className="stg:text-muted-foreground stg:mb-6 stg:text-xs">
-        Standing context shared with agents on every execution run by this
+        Standing context shared with agents on every run started by this
         organization&apos;s members.
       </p>
 

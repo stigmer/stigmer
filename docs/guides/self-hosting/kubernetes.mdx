@@ -32,14 +32,14 @@ as a StatefulSet with its own disk and Temporal as a Deployment, both bundled
 unless you point the chart at your own.
 
 For a release named `stigmer`, the chart creates four PersistentVolumeClaims.
-Three hold durable state: `data-stigmer-postgres-0` (every resource and
-execution record, and Temporal's own tables), `stigmer-artifacts` (files
-produced by executions) and `stigmer-server-data` (the Skill content store). The
-fourth, `stigmer-runner-data`, holds in-flight Session checkpoints so a paused
-run survives a pod restart; losing it abandons runs in flight but loses no
-durable data. Those three claims, the Secret you create below, and your values
-file are a complete backup. [Back up and upgrade your stack](./operations) has
-the procedures.
+Three hold durable state: `data-stigmer-postgres-0` (every resource and run
+record, and Temporal's own tables), `stigmer-artifacts` (files produced by runs)
+and `stigmer-server-data` (the Skill content store). The fourth,
+`stigmer-runner-data`, holds in-flight Session checkpoints so a paused run
+survives a pod restart; losing it abandons runs in flight but loses no durable
+data. Those three claims, the Secret you create below, and your values file are
+a complete backup. [Back up and upgrade your stack](./operations) has the
+procedures.
 
 ## What you need
 
@@ -89,8 +89,8 @@ kubectl -n stigmer create secret generic stigmer-llm-keys \
 ```
 
 Without it the stack still serves the console, the API and LLM-free Workflow
-executions; Agent runs fail at the LLM call. You can add the key later: create
-this Secret, add its line to your values file, and run the `helm upgrade` shown
+Runs; Agent Runs fail at the LLM call. You can add the key later: create this
+Secret, add its line to your values file, and run the `helm upgrade` shown
 further down this page.
 
 If your model traffic goes through an LLM gateway in front of Anthropic, give

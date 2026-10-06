@@ -1,11 +1,11 @@
 "use client";
 
 import { create } from "@bufbuild/protobuf";
-import type { ExecutionSummary } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+import type { RunSummary } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 import {
-  GetExecutionSummaryRequestSchema,
+  GetRunSummaryRequestSchema,
   SummaryTimeWindow,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 
@@ -17,7 +17,7 @@ export interface UseWorkflowDashboardSummaryOptions {
   /** Time window for aggregation. @default SUMMARY_TIME_WINDOW_LAST_7D */
   readonly timeWindow?: SummaryTimeWindow;
   /**
-   * When set, scopes the summary to executions of this workflow only.
+   * When set, scopes the summary to runs of this workflow only.
    * When omitted, aggregates across all workflows in the organization.
    */
   readonly workflowId?: string;
@@ -26,7 +26,7 @@ export interface UseWorkflowDashboardSummaryOptions {
 }
 
 export interface UseWorkflowDashboardSummaryReturn {
-  readonly summary: ExecutionSummary | null;
+  readonly summary: RunSummary | null;
   readonly isLoading: boolean;
   readonly isRefetching: boolean;
   readonly error: Error | null;
@@ -34,7 +34,7 @@ export interface UseWorkflowDashboardSummaryReturn {
 }
 
 /**
- * Data hook that fetches aggregated execution statistics for an organization,
+ * Data hook that fetches aggregated run statistics for an organization,
  * optionally scoped to a single workflow.
  *
  * Returns phase counts, cost totals, average duration, top failing workflows,
@@ -66,14 +66,14 @@ export function useWorkflowDashboardSummary(
     ? async () => {
         const req: Record<string, unknown> = { org, timeWindow };
         if (workflowId) req.workflowId = workflowId;
-        return await stigmer.workflowExecution.getExecutionSummary(
-          create(GetExecutionSummaryRequestSchema, req),
+        return await stigmer.workflowRun.getRunSummary(
+          create(GetRunSummaryRequestSchema, req),
         );
       }
     : null;
 
   const { data, isLoading, isRefetching, error, refetch } =
-    useFetch<ExecutionSummary | null>(
+    useFetch<RunSummary | null>(
       fetchFn,
       [stigmer, org, timeWindow, workflowId],
       null,

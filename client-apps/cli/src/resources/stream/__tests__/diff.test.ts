@@ -1,41 +1,41 @@
 // Scenario tests for the snapshot→event differ. Each test drives a sequence of
-// AgentExecution snapshots through a single SnapshotDiffer and asserts the
+// AgentRun snapshots through a single SnapshotDiffer and asserts the
 // resulting event sequence — the wire-parity contract with Go's streamToEvents.
 
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,
   type AgentMessage,
   type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
-  SubAgentExecutionSchema,
-  type SubAgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import { TodoItemSchema, type TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
+  SubAgentRunSchema,
+  type SubAgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import { TodoItemSchema, type TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/todo_pb";
 import {
   PendingApprovalSchema,
   type PendingApproval,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
 import {
   ContextInfoSchema,
   SummarizationEventSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/context_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/context_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   MessageType,
   SubAgentStatus,
   ToolCallStatus,
   TodoStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { SnapshotDiffer } from "../diff.js";
 import type { StreamEvent } from "../events.js";
 
@@ -43,16 +43,16 @@ import type { StreamEvent } from "../events.js";
 
 interface SnapshotOpts {
   message?: string;
-  phase?: ExecutionPhase;
+  phase?: RunPhase;
   messages?: AgentMessage[];
-  subAgents?: SubAgentExecution[];
+  subAgents?: SubAgentRun[];
   todos?: Record<string, TodoItem>;
   pendingApprovals?: PendingApproval[];
   summarizations?: Array<{ source?: number; tokensBefore?: number; tokensAfter?: number }>;
   error?: string;
 }
 
-function snapshot(opts: SnapshotOpts): AgentExecution {
+function snapshot(opts: SnapshotOpts): AgentRun {
   const contextInfo =
     opts.summarizations !== undefined
       ? create(ContextInfoSchema, {
@@ -65,12 +65,12 @@ function snapshot(opts: SnapshotOpts): AgentExecution {
         })
       : undefined;
 
-  return create(AgentExecutionSchema, {
-    spec: create(AgentExecutionSpecSchema, { message: opts.message ?? "" }),
-    status: create(AgentExecutionStatusSchema, {
-      phase: opts.phase ?? ExecutionPhase.EXECUTION_IN_PROGRESS,
+  return create(AgentRunSchema, {
+    spec: create(AgentRunSpecSchema, { message: opts.message ?? "" }),
+    status: create(AgentRunStatusSchema, {
+      phase: opts.phase ?? RunPhase.RUN_IN_PROGRESS,
       messages: opts.messages ?? [],
-      subAgentExecutions: opts.subAgents ?? [],
+      subAgentRuns: opts.subAgents ?? [],
       todos: opts.todos ?? {},
       pendingApprovals: opts.pendingApprovals ?? [],
       contextInfo,
@@ -108,8 +108,8 @@ function subAgent(
   id: string,
   status: SubAgentStatus,
   opts: { name?: string; subject?: string; input?: string; output?: string; messages?: AgentMessage[] } = {},
-): SubAgentExecution {
-  return create(SubAgentExecutionSchema, {
+): SubAgentRun {
+  return create(SubAgentRunSchema, {
     id,
     status,
     name: opts.name ?? "researcher",
@@ -129,7 +129,7 @@ function approval(toolCallId: string, toolName: string, message: string): Pendin
 }
 
 // Drive a snapshot sequence through one differ; return flattened event kinds.
-function kindsFor(snapshots: AgentExecution[]): string[] {
+function kindsFor(snapshots: AgentRun[]): string[] {
   const differ = new SnapshotDiffer();
   const out: string[] = [];
   for (const s of snapshots) out.push(...differ.next(s).map((e) => e.kind));
@@ -137,7 +137,7 @@ function kindsFor(snapshots: AgentExecution[]): string[] {
 }
 
 // Drive a sequence and return the full event objects.
-function eventsFor(snapshots: AgentExecution[]): StreamEvent[] {
+function eventsFor(snapshots: AgentRun[]): StreamEvent[] {
   const differ = new SnapshotDiffer();
   const out: StreamEvent[] = [];
   for (const s of snapshots) out.push(...differ.next(s));
@@ -239,7 +239,7 @@ describe("system messages", () => {
 describe("approval detection", () => {
   it("emits ApprovalNeeded from pending_approvals once", () => {
     const snap = snapshot({
-      phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
       messages: [aiMsg("", { toolCalls: [tool("t1", "delete", ToolCallStatus.TOOL_CALL_WAITING_APPROVAL)] })],
       pendingApprovals: [approval("t1", "delete", "Delete repo?")],
     });
@@ -252,7 +252,7 @@ describe("approval detection", () => {
 
   it("defense-in-depth: detects approval via tool status when pending_approvals is empty", () => {
     const snap = snapshot({
-      phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
       messages: [aiMsg("", { toolCalls: [tool("t1", "delete", ToolCallStatus.TOOL_CALL_WAITING_APPROVAL)] })],
       pendingApprovals: [],
     });
@@ -262,12 +262,12 @@ describe("approval detection", () => {
   it("re-prompts after an approval cycle (IN_PROGRESS → WAITING_FOR_APPROVAL)", () => {
     const waiting = () =>
       snapshot({
-        phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+        phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
         messages: [aiMsg("", { toolCalls: [tool("t1", "delete", ToolCallStatus.TOOL_CALL_WAITING_APPROVAL)] })],
         pendingApprovals: [approval("t1", "delete", "Delete?")],
       });
     const running = snapshot({
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       messages: [aiMsg("", { toolCalls: [tool("t1", "delete", ToolCallStatus.TOOL_CALL_RUNNING)] })],
     });
     const events = eventsFor([waiting(), running, waiting()]);
@@ -324,14 +324,14 @@ describe("sub-agents", () => {
 describe("terminal", () => {
   it("emits done and ignores all later snapshots", () => {
     const differ = new SnapshotDiffer();
-    const first = differ.next(snapshot({ phase: ExecutionPhase.EXECUTION_COMPLETED }));
+    const first = differ.next(snapshot({ phase: RunPhase.RUN_COMPLETED }));
     expect(first.map((e) => e.kind)).toContain("done");
-    const second = differ.next(snapshot({ phase: ExecutionPhase.EXECUTION_COMPLETED }));
+    const second = differ.next(snapshot({ phase: RunPhase.RUN_COMPLETED }));
     expect(second).toEqual([]);
   });
 
   it("carries the error message on failure", () => {
-    const events = eventsFor([snapshot({ phase: ExecutionPhase.EXECUTION_FAILED, error: "boom" })]);
+    const events = eventsFor([snapshot({ phase: RunPhase.RUN_FAILED, error: "boom" })]);
     const done = events.find((e) => e.kind === "done");
     expect(done?.kind === "done" && done.error).toBe("boom");
   });

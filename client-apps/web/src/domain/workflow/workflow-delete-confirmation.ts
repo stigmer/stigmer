@@ -6,5 +6,5 @@
  */
 export const WORKFLOW_DELETE_DESCRIPTION =
   "This permanently removes the workflow. " +
-  "Past executions are preserved in the execution history. " +
+  "Past runs are preserved in the run history. " +
   "This action cannot be undone.";

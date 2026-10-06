@@ -10,7 +10,7 @@
 // and only then releases the organization's slug, so a slug that comes free
 // is the purge's proof that the run was stopped and removed.
 import { Code } from "@connectrpc/connect";
-import { ApprovalAction, ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUses } from "@stigmer/test-support/mock-llm";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -26,7 +26,7 @@ import {
   makeAgentExecution,
   requireLlmProxy,
   requireMcpFixture,
-} from "../support/agentexecutions";
+} from "../support/agentruns";
 import { uniqueName } from "../support/naming";
 import { createOrganizationOnceReleased, organizationSlug } from "../support/organizations";
 import { createTarget, type TargetProfile } from "../targets";
@@ -55,7 +55,7 @@ afterAll(async () => {
 });
 
 describe("Organization purge with a live run", () => {
-  it("[rpc:OrganizationCommandController.delete] [rpc:AgentExecutionQueryController.get] [rpc:AgentExecutionCommandController.submitApproval] a run parked at a gate answers not found once its organization is deleted, and the purge stops and removes it before the slug comes free", async () => {
+  it("[rpc:OrganizationCommandController.delete] [rpc:AgentRunQueryController.get] [rpc:AgentRunCommandController.submitApproval] a run parked at a gate answers not found once its organization is deleted, and the purge stops and removes it before the slug comes free", async () => {
     const { org } = await target.provisionTenancy();
     const slug = await organizationSlug(clients.organizationQuery, org);
     const server = await createConnectedMcpServer(clients, mcp, fixtures, {
@@ -76,7 +76,7 @@ describe("Organization purge with a live run", () => {
       makeAgentExecution({ org, name: uniqueName("aex-purge"), agentRef: agentRefOf(agent) }),
     );
     const executionId = execution.metadata!.id;
-    const gated = await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL, {
+    const gated = await awaitPhase(clients, executionId, RunPhase.RUN_WAITING_FOR_APPROVAL, {
       label: "WAITING_FOR_APPROVAL",
     });
 
@@ -90,7 +90,7 @@ describe("Organization purge with a live run", () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitApproval({
-          agentExecutionId: executionId,
+          agentRunId: executionId,
           toolCallId: gated.status!.pendingApprovals[0]!.toolCallId,
           action: ApprovalAction.APPROVE,
         }),

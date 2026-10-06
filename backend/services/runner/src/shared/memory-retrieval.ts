@@ -47,11 +47,11 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import type { RecalledMemories } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import type { RecalledMemories } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import {
   RecalledMemoriesReportSchema,
   type RecalledMemoriesReport,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type { RecalledMemoriesContent } from "./recalled-memories.js";
 import { resolveProxyBaseUrl, buildProxyHeaders } from "./llm-proxy.js";
 import { checkDirectCredentials } from "./llm-backend.js";

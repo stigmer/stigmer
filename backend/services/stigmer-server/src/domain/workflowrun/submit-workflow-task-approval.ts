@@ -1,0 +1,240 @@
+/**
+ * SubmitWorkflowTaskApproval — ports submit_workflow_task_approval.go:
+ * a human reviewer's decision for a workflow-level human_input
+ * task. Constructs the runner's HumanInputResult signal payload, wraps it
+ * in the relaySignal envelope on the `human_input_{task}` channel, and
+ * delivers via SignalWithStart (the orchestrator forwards to the TS child
+ * where the task is blocking).
+ *
+ * Quirk ported faithfully: the SignalWithStart input's workflowId field
+ * carries status.temporal_workflow_id (NOT spec.workflow_id — every other
+ * sender passes the spec reference).
+ *
+ * Reviewer attribution (stigmer#1415): the decision names the principal
+ * the chain authorized, the id `auditActorFor` stamps as `created_by.id`,
+ * with that caller's display snapshot as `reviewer_actor`, in every
+ * edition and for every caller class. The client-supplied
+ * `SubmitWorkflowTaskApprovalInput.reviewer` is never read: a person's
+ * value is spoofable, and no caller in either edition decides on someone
+ * else's behalf, so delegated attribution waits for the lane that needs it
+ * and is keyed on that lane's own class (the io.proto field comment). On a
+ * laptop the reviewer is the trusted-local operator, exactly as every
+ * laptop resource's `created_by` is. The runner carries both keys opaquely
+ * into the task output and the approval_resolved event.
+ */
+import type { JsonValue } from "@bufbuild/protobuf";
+
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { WorkflowRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/command_pb";
+import {
+  RunPhase,
+  WorkflowTaskType,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
+import type { SubmitWorkflowTaskApprovalInput } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+
+import type { Logger } from "../../boot/logger.js";
+import {
+  failedPreconditionError,
+  internalError,
+  invalidArgumentError,
+  notFoundError,
+  unavailableError,
+} from "../../pipeline/errors.js";
+import { newPipeline } from "../../pipeline/pipeline.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
+import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import { auditActorFor } from "../../pipeline/steps/defaults.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
+import { RequestContext } from "../../pipeline/request-context.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
+import type { Store } from "../../store/interface.js";
+
+import {
+  HUMAN_INPUT_SIGNAL_PREFIX,
+  RELAY_SIGNAL_CHANNEL_NAME,
+} from "./constants.js";
+import type { WorkflowExecutionEngineStateProvider } from "./engine.js";
+
+export interface SubmitWorkflowTaskApprovalDeps {
+  readonly store: Store;
+  readonly logger: Logger;
+  /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
+  readonly authorizer: Authorizer;
+  readonly engineState: WorkflowExecutionEngineStateProvider;
+}
+
+type TaskApprovalDesc =
+  typeof WorkflowRunCommandController.method.submitWorkflowTaskApproval.input;
+
+const LOADED_EXECUTION_KEY = "loadedExecution";
+
+export async function submitWorkflowTaskApproval(
+  deps: SubmitWorkflowTaskApprovalDeps,
+  input: SubmitWorkflowTaskApprovalInput,
+  identity: CallerIdentity,
+): Promise<WorkflowRun> {
+  const reqCtx = new RequestContext(
+    WorkflowRunCommandController.method.submitWorkflowTaskApproval.input,
+    input,
+    identity,
+    ApiResourceKind.workflow_run,
+  );
+  await newPipeline<TaskApprovalDesc>(
+    "workflowexecution-submit-task-approval",
+    deps.logger,
+  )
+    .addStep(
+      newAuthorizeStep(
+        WorkflowRunCommandController.method.submitWorkflowTaskApproval,
+        deps.authorizer,
+      ),
+    )
+    .addStep({
+      name: "ValidateTaskApprovalInput",
+      execute(ctx) {
+        if (ctx.input.runId === "") {
+          throw invalidArgumentError("run_id is required");
+        }
+        if (ctx.input.taskName === "") {
+          throw invalidArgumentError("task_name is required");
+        }
+        if (ctx.input.outcome === "") {
+          throw invalidArgumentError("outcome is required");
+        }
+      },
+    })
+    .addStep({
+      name: "LoadExecutionForApproval",
+      async execute(ctx) {
+        let execution: WorkflowRun;
+        try {
+          execution = await deps.store.getResource(
+            ApiResourceKind.workflow_run,
+            ctx.input.runId,
+            WorkflowRunSchema,
+          );
+        } catch (error) {
+          if (error instanceof ResourceNotFoundError) {
+            throw notFoundError("WorkflowRun", ctx.input.runId);
+          }
+          throw internalError(error, "failed to load workflow execution");
+        }
+        ctx.set(LOADED_EXECUTION_KEY, execution);
+      },
+    })
+    .addStep({
+      name: "ValidateApprovalSignalable",
+      execute(ctx) {
+        const execution = ctx.get(LOADED_EXECUTION_KEY) as WorkflowRun;
+        const phase =
+          execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
+        if (
+          phase !== RunPhase.RUN_PENDING &&
+          phase !== RunPhase.RUN_IN_PROGRESS
+        ) {
+          throw failedPreconditionError(
+            `cannot submit task approval: execution is in ${RunPhase[phase]} phase`,
+          );
+        }
+      },
+    })
+    .addStep({
+      name: "ValidateHumanInputTask",
+      execute(ctx) {
+        const execution = ctx.get(LOADED_EXECUTION_KEY) as WorkflowRun;
+        const taskName = ctx.input.taskName;
+        const task = (execution.status?.tasks ?? []).find(
+          (candidate) => candidate.taskName === taskName,
+        );
+        if (task === undefined) {
+          throw invalidArgumentError(
+            `task '${taskName}' not found in execution status`,
+          );
+        }
+        if (task.taskType !== WorkflowTaskType.WORKFLOW_TASK_APPROVAL) {
+          throw invalidArgumentError(
+            `task '${taskName}' is not a human_input task (type: ${WorkflowTaskType[task.taskType]})`,
+          );
+        }
+      },
+    })
+    .addStep({
+      name: "SendTaskApprovalSignal",
+      async execute(ctx) {
+        const execution = ctx.get(LOADED_EXECUTION_KEY) as WorkflowRun;
+        const executionId = ctx.input.runId;
+        const humanInputSignalName =
+          HUMAN_INPUT_SIGNAL_PREFIX + ctx.input.taskName;
+
+        const reviewer = auditActorFor(ctx.callerIdentity);
+        const signalPayload: Record<string, JsonValue> = {
+          outcome: ctx.input.outcome,
+          reviewer: reviewer.id,
+          // The runner's HumanInputReviewerActor keys (snake_case, as the
+          // rest of the payload); the actor's platform_client_id has no slot.
+          reviewer_actor: {
+            id: reviewer.id,
+            display_name: reviewer.displayName,
+            email: reviewer.email,
+            avatar: reviewer.avatar,
+          },
+          // Go time.Now().UTC().Format(time.RFC3339): seconds precision.
+          responded_at: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
+        };
+        if (ctx.input.formData !== undefined) {
+          signalPayload["form_data"] = ctx.input.formData as JsonValue;
+        }
+        if (ctx.input.comment !== "") {
+          signalPayload["comment"] = ctx.input.comment;
+        }
+
+        const engineState = deps.engineState();
+        if (!engineState.connected) {
+          throw unavailableError(
+            `workflow creator not configured for task '${ctx.input.taskName}'`,
+          );
+        }
+        try {
+          await engineState.engine.signalWithStart(
+            {
+              executionId,
+              // Go's quirk: the temporal workflow id, not spec.workflow_id.
+              workflowId: execution.status?.temporalWorkflowId ?? "",
+              orgId: execution.metadata?.org ?? "",
+              recoveryMode: false,
+              executionTarget: execution.spec?.executionTarget ?? 0,
+            },
+            RELAY_SIGNAL_CHANNEL_NAME,
+            { signalName: humanInputSignalName, payload: signalPayload },
+          );
+        } catch (error) {
+          throw unavailableError(
+            `failed to send approval signal for task '${ctx.input.taskName}': ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+        deps.logger.info(
+          "AUDIT: Workflow task approval submitted via relaySignal",
+          {
+            executionId,
+            taskName: ctx.input.taskName,
+            outcome: ctx.input.outcome,
+            reviewer: reviewer.id,
+            signalName: humanInputSignalName,
+          },
+        );
+      },
+    })
+    .build()
+    .execute(reqCtx);
+
+  const execution = reqCtx.get(LOADED_EXECUTION_KEY);
+  if (execution === undefined) {
+    throw internalError(
+      new Error("execution not found in context after pipeline"),
+      "execution not found in context after pipeline",
+    );
+  }
+  return execution as WorkflowRun;
+}

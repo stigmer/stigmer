@@ -39,7 +39,7 @@
  */
 import type { DescMessage, Message } from "@bufbuild/protobuf";
 
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
@@ -54,8 +54,8 @@ import type {
 import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type {
-  ExecutionAudienceShape,
-  ExecutionVisibilityChangedEvent,
+  RunAudienceShape,
+  RunVisibilityChangedEvent,
   ResolvedParentLink,
   ResourceAuthorizationLifecycle,
   ResourceCreatedEvent,
@@ -65,7 +65,7 @@ import type {
 
 /**
  * Fires the driver's run-audience event for a workflow whose
- * `spec.execution_visibility` just persisted. No driver (or a driver
+ * `spec.run_visibility` just persisted. No driver (or a driver
  * without the optional method) = no-op — the OSS posture, where the
  * relation is derived from the row at check time. A driver throw fails
  * the request as Internal with `failureMessage`, after persist; the event
@@ -73,14 +73,14 @@ import type {
  */
 export async function notifyExecutionVisibilityChanged(
   lifecycle: ResourceAuthorizationLifecycle | undefined,
-  event: ExecutionVisibilityChangedEvent,
+  event: RunVisibilityChangedEvent,
   failureMessage: string,
 ): Promise<void> {
-  if (lifecycle?.onExecutionVisibilityChanged === undefined) {
+  if (lifecycle?.onRunVisibilityChanged === undefined) {
     return;
   }
   try {
-    await lifecycle.onExecutionVisibilityChanged(event);
+    await lifecycle.onRunVisibilityChanged(event);
   } catch (error) {
     throw internalError(error, failureMessage);
   }
@@ -169,20 +169,20 @@ export function diffVisibilityShapes(
 /**
  * The run audience a workflow's execution visibility names — the
  * one mapping both editions read: open source's check-time derivation
- * (authorization/model/execution-viewer.ts) turns it into the tuple the
+ * (authorization/model/run-viewer.ts) turns it into the tuple the
  * check walks, and the lifecycle event hands it to an edition that stores
  * tuples. ORGANIZATION names the organization's viewers; PRIVATE and the
  * unset level name nobody, so each run stays its starter's.
  */
-export function executionAudienceShapes(
-  level: WorkflowExecutionVisibility,
-): ReadonlySet<ExecutionAudienceShape> {
+export function runAudienceShapes(
+  level: WorkflowRunVisibility,
+): ReadonlySet<RunAudienceShape> {
   switch (level) {
-    case WorkflowExecutionVisibility.organization:
-      return new Set<ExecutionAudienceShape>(["org-viewer"]);
-    case WorkflowExecutionVisibility.private:
-    case WorkflowExecutionVisibility.unspecified:
-      return new Set<ExecutionAudienceShape>();
+    case WorkflowRunVisibility.organization:
+      return new Set<RunAudienceShape>(["org-viewer"]);
+    case WorkflowRunVisibility.private:
+    case WorkflowRunVisibility.unspecified:
+      return new Set<RunAudienceShape>();
     default: {
       const exhaustive: never = level;
       throw new Error(`unknown execution visibility: ${String(exhaustive)}`);

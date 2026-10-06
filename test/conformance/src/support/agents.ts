@@ -18,7 +18,7 @@
 // Negative cases (too-short instructions, missing name) are written inline in
 // the suite, not here: this module represents validity by construction, matching
 // the convention established by support/workflows.ts.
-import type { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
+import type { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
 import type { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import type { InitShape } from "./init-shape";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";

@@ -1,19 +1,19 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
-  AgentExecutionSpecSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+  AgentRunSpecSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   InteractionMode,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { findStreamingPlan } from "../detect-streaming-plan";
 
 function makeMessage(type: MessageType, content: string) {
@@ -24,20 +24,20 @@ function makeMessage(type: MessageType, content: string) {
 }
 
 function makeExecution(opts: {
-  phase?: ExecutionPhase;
+  phase?: RunPhase;
   interactionMode?: InteractionMode;
   messages?: ReturnType<typeof makeMessage>[];
-}): AgentExecution {
-  const exec = create(AgentExecutionSchema);
+}): AgentRun {
+  const exec = create(AgentRunSchema);
 
-  const spec = create(AgentExecutionSpecSchema);
+  const spec = create(AgentRunSpecSchema);
   if (opts.interactionMode !== undefined) {
     spec.interactionMode = opts.interactionMode;
   }
   exec.spec = spec;
 
-  const status = create(AgentExecutionStatusSchema);
-  status.phase = opts.phase ?? ExecutionPhase.EXECUTION_IN_PROGRESS;
+  const status = create(AgentRunStatusSchema);
+  status.phase = opts.phase ?? RunPhase.RUN_IN_PROGRESS;
   if (opts.messages) {
     status.messages = opts.messages;
   }
@@ -46,10 +46,10 @@ function makeExecution(opts: {
   return exec;
 }
 
-/** A live Plan-mode execution with the given messages — the common case. */
+/** A live Plan-mode run with the given messages — the common case. */
 function livePlanExecution(...messages: ReturnType<typeof makeMessage>[]) {
   return makeExecution({
-    phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+    phase: RunPhase.RUN_IN_PROGRESS,
     interactionMode: InteractionMode.PLAN,
     messages,
   });
@@ -72,7 +72,7 @@ describe("findStreamingPlan — mode and phase gating", () => {
 
   it("returns undefined for an Agent-mode execution, even with a plan-shaped message", () => {
     const exec = makeExecution({
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       interactionMode: InteractionMode.AGENT,
       messages: [planMessage],
     });
@@ -81,17 +81,17 @@ describe("findStreamingPlan — mode and phase gating", () => {
 
   it("returns undefined when no interaction mode is set", () => {
     const exec = makeExecution({
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       messages: [planMessage],
     });
     expect(findStreamingPlan(exec)).toBeUndefined();
   });
 
   it.each([
-    ExecutionPhase.EXECUTION_COMPLETED,
-    ExecutionPhase.EXECUTION_FAILED,
-    ExecutionPhase.EXECUTION_CANCELLED,
-    ExecutionPhase.EXECUTION_TERMINATED,
+    RunPhase.RUN_COMPLETED,
+    RunPhase.RUN_FAILED,
+    RunPhase.RUN_CANCELLED,
+    RunPhase.RUN_TERMINATED,
   ])("returns undefined for terminal phase %s", (phase) => {
     const exec = makeExecution({
       phase,
@@ -103,7 +103,7 @@ describe("findStreamingPlan — mode and phase gating", () => {
 
   it("detects during a non-terminal wait (approval gate mid-turn)", () => {
     const exec = makeExecution({
-      phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
       interactionMode: InteractionMode.PLAN,
       messages: [planMessage],
     });

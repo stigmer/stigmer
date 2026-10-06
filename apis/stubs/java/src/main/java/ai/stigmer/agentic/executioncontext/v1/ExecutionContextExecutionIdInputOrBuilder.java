@@ -12,7 +12,7 @@ public interface ExecutionContextExecutionIdInputOrBuilder extends
 
   /**
    * <pre>
-   * AgentExecution or WorkflowExecution ID to look up.
+   * AgentRun or WorkflowRun ID to look up.
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface ExecutionContextExecutionIdInputOrBuilder extends
   java.lang.String getExecutionId();
   /**
    * <pre>
-   * AgentExecution or WorkflowExecution ID to look up.
+   * AgentRun or WorkflowRun ID to look up.
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>

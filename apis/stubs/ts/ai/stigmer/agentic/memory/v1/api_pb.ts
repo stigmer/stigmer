@@ -24,7 +24,7 @@ export const file_ai_stigmer_agentic_memory_v1_api: GenFile = /*@__PURE__*/
  *
  * A memory is proposed by an agent during a session, and becomes active
  * only after the person it is about confirms it. Confirmed memories are
- * recalled into that person's future agent executions as background
+ * recalled into that person's future agent runs as background
  * context. Every memory is individually listable, editable, and
  * deletable — the record is the trust surface over the recall seam.
  *

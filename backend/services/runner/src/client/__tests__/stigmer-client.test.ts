@@ -21,7 +21,7 @@ vi.mock("@connectrpc/connect", () => ({
 
 import { StigmerClient } from "../stigmer-client.js";
 import { withRunCredential } from "../../shared/run-credential-store.js";
-import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
+import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
 import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
@@ -312,7 +312,7 @@ describe("StigmerClient", () => {
       for (const req of [
         makeExecutionContextRequest(),
         makeScopedTokenExchangeRequest(),
-        makeRequest(AgentExecutionCommandController.typeName, "create"),
+        makeRequest(AgentRunCommandController.typeName, "create"),
       ]) {
         await withRunCredential("run-cred", () => runInterceptor(req));
         expect(req.header.get("authorization")).toBe("Bearer run-cred");
@@ -500,7 +500,7 @@ describe("StigmerClient", () => {
       await client.getRunnerScopedToken({ agentExecutionId: "aex_1" });
 
       const input = rpc.mock.calls[0]![0];
-      expect(input.scope).toEqual({ case: "agentExecutionId", value: "aex_1" });
+      expect(input.scope).toEqual({ case: "agentRunId", value: "aex_1" });
     });
 
     it("maps workflowExecutionId onto its oneof arm", async () => {
@@ -509,7 +509,7 @@ describe("StigmerClient", () => {
       await client.getRunnerScopedToken({ workflowExecutionId: "wfx_1" });
 
       const input = rpc.mock.calls[0]![0];
-      expect(input.scope).toEqual({ case: "workflowExecutionId", value: "wfx_1" });
+      expect(input.scope).toEqual({ case: "workflowRunId", value: "wfx_1" });
     });
 
     it("maps poolClaimSessionId onto the pool_claim message arm", async () => {
@@ -594,7 +594,7 @@ describe("StigmerClient", () => {
       await client.sendWorkflowSignal("wfx_1", "approval_resolved", payload);
 
       const input = rpc.mock.calls[0]![0];
-      expect(input.executionId).toBe("wfx_1");
+      expect(input.runId).toBe("wfx_1");
       expect(input.signalName).toBe("approval_resolved");
       expect(input.payload).toEqual(payload);
     });

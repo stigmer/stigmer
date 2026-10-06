@@ -18,12 +18,12 @@ shape you run, so a backup taken on one shape restores onto the other.
 
 The stack keeps its durable state in three places, plus the keys that unlock it:
 
-| What                                                                         | On Docker Compose      | On Kubernetes                                         |
-| ---------------------------------------------------------------------------- | ---------------------- | ----------------------------------------------------- |
-| The database: every resource and execution record, and Temporal's own tables | `postgres-data` volume | `data-stigmer-postgres-0` claim, or your own database |
-| Artifacts: files produced by executions                                      | `artifacts` volume     | `stigmer-artifacts` claim                             |
-| The Skill content store                                                      | `server-data` volume   | `stigmer-server-data` claim                           |
-| The keys that unlock encrypted values                                        | your `.env` file       | the `stigmer-secrets` Secret and your `values.yaml`   |
+| What                                                                   | On Docker Compose      | On Kubernetes                                         |
+| ---------------------------------------------------------------------- | ---------------------- | ----------------------------------------------------- |
+| The database: every resource and run record, and Temporal's own tables | `postgres-data` volume | `data-stigmer-postgres-0` claim, or your own database |
+| Artifacts: files produced by runs                                      | `artifacts` volume     | `stigmer-artifacts` claim                             |
+| The Skill content store                                                | `server-data` volume   | `stigmer-server-data` claim                           |
+| The keys that unlock encrypted values                                  | your `.env` file       | the `stigmer-secrets` Secret and your `values.yaml`   |
 
 The database is one Postgres instance holding three databases: `stigmer`, the
 platform's own, and `temporal` and `temporal_visibility`, which hold Temporal's

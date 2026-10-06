@@ -7,7 +7,7 @@ title: Memory
 A Memory is a single fact the platform remembers about a person. An agent
 proposes it during a session with the `remember` tool; it becomes active only
 after the person it is about confirms it. Confirmed memories are recalled
-into that person's future agent executions as background context. Every
+into that person's future agent runs as background context. Every
 memory is individually listable, editable, and deletable.
 
 Memories are system-generated — you never author one as a manifest. The
@@ -25,7 +25,7 @@ spec:
   provenance:
     agent_id: agt_01j5q3k7m8r2s4tnz2hfp0q0d7
     session_id: ses_01j5q3k7m8r2s4tnz2hfp0q0e1
-    agent_execution_id: aex_01j5q3k7m8r2s4tnz2hfp0q0f5
+    agent_run_id: aex_01j5q3k7m8r2s4tnz2hfp0q0f5
     tool_call_id: call_9f2c1a
 status:
   lifecycle_state: lifecycle_state_confirmed
@@ -152,7 +152,7 @@ MemoryList result = client.memories().list(ListMemoriesRequest.builder()
 
 Create a memory in the proposed state.
 
-The memory starts its consent lifecycle as proposed: it is not recalled into any execution until the person it is about confirms it. The subject and provenance are derived by the server from the calling credential and request context — values supplied on the request are overwritten.
+The memory starts its consent lifecycle as proposed: it is not recalled into any run until the person it is about confirms it. The subject and provenance are derived by the server from the calling credential and request context — values supplied on the request are overwritten.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -282,7 +282,7 @@ Memory memory = client.memories().update(MemoryInput.builder()
 
 Delete a memory permanently, in any lifecycle state.
 
-Deletion is the retention mechanism: deleting a confirmed memory is how consent is revoked, and the fact stops reaching future executions immediately. Past executions that already recalled it keep their immutable snapshots.
+Deletion is the retention mechanism: deleting a confirmed memory is how consent is revoked, and the fact stops reaching future runs immediately. Past runs that already recalled it keep their immutable snapshots.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -319,7 +319,7 @@ Memory memory = client.memories().delete(id);
 
 Confirm a proposed memory, making it recallable.
 
-Confirmation is the consent act: from the next eligible execution on, the fact is injected as background context. Confirming an already-confirmed memory succeeds and changes nothing. Confirming a rejected memory is refused — delete it instead and let the agent propose again.
+Confirmation is the consent act: from the next eligible run on, the fact is injected as background context. Confirming an already-confirmed memory succeeds and changes nothing. Confirming a rejected memory is refused — delete it instead and let the agent propose again.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -415,7 +415,7 @@ MemoryProvenance records which agent proposed a memory and in which conversation
   type={{
     agentId: { type: "string", description: "ID of the agent that proposed this memory." },
     sessionId: { type: "string", description: "ID of the session in which this memory was proposed." },
-    agentExecutionId: { type: "string", description: "ID of the agent execution in which this memory was proposed." },
+    agentRunId: { type: "string", description: "ID of the agent run in which this memory was proposed." },
     toolCallId: { type: "string", description: "ID of the remember tool call that proposed this memory." },
   }}
 />

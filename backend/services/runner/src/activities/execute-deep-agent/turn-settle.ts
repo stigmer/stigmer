@@ -86,7 +86,7 @@ export async function settleDeepAgentTurn(deps: DeepAgentSettleDeps): Promise<Tu
     // delegated is no longer executing: CANCELLED through the one shared act
     // (the runtime marks them itself only on its thrown arms). There is no
     // review to open.
-    cancelInProgressSubAgentProtos(status.subAgentExecutions);
+    cancelInProgressSubAgentProtos(status.subAgentRuns);
     return { kind: "interrupted" };
   }
 

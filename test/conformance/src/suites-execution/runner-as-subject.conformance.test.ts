@@ -16,7 +16,7 @@
 //     completes, its status writes land, and the runner titles its session
 //     as the member (stigmer#1137 was every such run failing INTERNAL);
 //   - the rows the runner writes for a run — the `agent_call` child's
-//     Session and AgentExecution — carry the member's stamp, and an outsider
+//     Session and AgentRun — carry the member's stamp, and an outsider
 //     is refused them;
 //   - an API key alone is not a delegate: the operator's key on the member's
 //     run is refused;
@@ -103,16 +103,16 @@
 // cloud-execution target's runner is an embedded runner acting as the
 // primary user, a different shape whose proof is the composition's own.
 import { Code } from "@connectrpc/connect";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ConnectPhase } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import {
-  ExecutionPhase as WorkflowExecutionPhase,
+  RunPhase as WorkflowExecutionPhase,
   WorkflowTaskStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
@@ -132,10 +132,10 @@ import {
   makeAgentExecution,
   requireMcpFixture,
   sessionIdOf,
-} from "../support/agentexecutions";
+} from "../support/agentruns";
 import { makeApiKey, plaintextKeyOf } from "../support/apikeys";
 import { makePersonalEnvironment } from "../support/environments";
-import { pollUntil } from "../support/execution-poll";
+import { pollUntil } from "../support/run-poll";
 import { makeHttpMcpServer } from "../support/mcpservers";
 import {
   enableMyMemory,
@@ -151,7 +151,7 @@ import {
   awaitTaskStatus,
   awaitTerminal as awaitWorkflowTerminal,
   makeWorkflowExecution,
-} from "../support/workflowexecutions";
+} from "../support/workflowruns";
 import {
   createTarget,
   enforcingLaneOf,
@@ -279,7 +279,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       script: AnthropicMessageBody[] = [
         anthropicText(`Hello from the ${label} run.`),
       ],
-    ): Promise<AgentExecution> {
+    ): Promise<AgentRun> {
       for (const turn of script) mock.enqueue(turn);
       const created = await by.agentExecutionCommand.create(
         makeAgentExecution({
@@ -320,7 +320,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       executionId: string,
     ): Promise<string> {
       const minted = await by.platformQuery.getRunnerScopedToken({
-        scope: { case: "agentExecutionId", value: executionId },
+        scope: { case: "agentRunId", value: executionId },
       });
       expect(
         minted.runnerScopedToken,
@@ -362,7 +362,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       people: People,
       workflow: Workflow,
       label: string,
-    ): Promise<WorkflowExecution> {
+    ): Promise<WorkflowRun> {
       mock.enqueue(anthropicText(`Hello from the ${label} child.`));
       const execution = await people.member.workflowExecutionCommand.create(
         makeWorkflowExecution({
@@ -385,7 +385,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       people: People,
       agentSlug: string,
       label: string,
-    ): Promise<WorkflowExecution> {
+    ): Promise<WorkflowRun> {
       const workflow = await createAgentCallWorkflow(people, agentSlug, label);
       return dispatchWorkflow(mock, people, workflow, label);
     }
@@ -418,7 +418,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       expect(
         settled.status?.phase,
         `the ${label} workflow completes under enforcement`,
-      ).toBe(WorkflowExecutionPhase.EXECUTION_COMPLETED);
+      ).toBe(WorkflowExecutionPhase.RUN_COMPLETED);
       return settled;
     }
 
@@ -429,7 +429,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       by: ConformanceClients,
       org: string,
       workflowExecutionId: string,
-    ): Promise<AgentExecution> {
+    ): Promise<AgentRun> {
       const listed = await by.agentExecutionQuery.list({ org });
       const child = listed.entries.find(
         (entry) =>
@@ -479,7 +479,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       expect(
         memberFinal.status?.phase,
         `the member's run: ${memberFinal.status?.error}`,
-      ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      ).toBe(RunPhase.RUN_COMPLETED);
       expect(
         memberFinal.status?.completedAt,
         "the runner's terminal write stamps completed_at",
@@ -487,7 +487,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       expect(
         founderFinal.status?.phase,
         `the operator's run: ${founderFinal.status?.error}`,
-      ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      ).toBe(RunPhase.RUN_COMPLETED);
       expect(
         mock.consumed(),
         "both runs consumed exactly their scripted turn",
@@ -502,7 +502,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       expect(session.spec?.subject).not.toBe(UNTITLED_SESSION_SUBJECT);
     });
 
-    it("[rpc:AgentExecutionCommandController.updateStatus] an API key alone is not a delegate: the operator's key on the member's run is refused", async (ctx) => {
+    it("[rpc:AgentRunCommandController.updateStatus] an API key alone is not a delegate: the operator's key on the member's run is refused", async (ctx) => {
       const { lane, mock } = laneOrSkip(ctx);
       const people = await provisionPeople(lane);
       const agent = await createAgent(
@@ -529,8 +529,8 @@ describe.skipIf(!runnerActsAsRunCreator)(
       await expectGrpcCode(
         () =>
           keyClients.agentExecutionCommand.updateStatus({
-            executionId: run.metadata!.id,
-            status: { phase: ExecutionPhase.EXECUTION_IN_PROGRESS },
+            runId: run.metadata!.id,
+            status: { phase: RunPhase.RUN_IN_PROGRESS },
           }),
         Code.PermissionDenied,
         "the operator's API key writing status on the member's run",
@@ -566,7 +566,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
         () =>
           people.member.platformQuery.getRunnerScopedToken({
             scope: {
-              case: "agentExecutionId",
+              case: "agentRunId",
               value: `aex_${uniqueName("missing")}`,
             },
           }),
@@ -577,7 +577,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       const refused = await expectGrpcCode(
         () =>
           people.member.platformQuery.getRunnerScopedToken({
-            scope: { case: "agentExecutionId", value: founderRun.metadata!.id },
+            scope: { case: "agentRunId", value: founderRun.metadata!.id },
           }),
         Code.PermissionDenied,
         "the member asking for the operator's run credential",
@@ -714,7 +714,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
           lane
             .clientsPresenting(plaintextKeyOf(key))
             .platformQuery.getRunnerScopedToken({
-              scope: { case: "agentExecutionId", value: run.metadata!.id },
+              scope: { case: "agentRunId", value: run.metadata!.id },
             }),
         Code.PermissionDenied,
         "a key limited to another organization asking for the run's credential",
@@ -754,7 +754,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
         "the task name rides the second lineage label",
       ).toBeTruthy();
       expect(child.status?.phase, `the child: ${child.status?.error}`).toBe(
-        ExecutionPhase.EXECUTION_COMPLETED,
+        RunPhase.RUN_COMPLETED,
       );
 
       // The runner created the child AND its session as the member: the
@@ -858,7 +858,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       expect(
         settled.status?.phase,
         `the workflow: ${settled.status?.error}`,
-      ).toBe(WorkflowExecutionPhase.EXECUTION_FAILED);
+      ).toBe(WorkflowExecutionPhase.RUN_FAILED);
       expect(
         settled.status?.error,
         "the workflow failed at the callee's reference read, with the get copy",
@@ -917,7 +917,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       expect(
         settled.status?.phase,
         `the workflow: ${settled.status?.error}`,
-      ).toBe(WorkflowExecutionPhase.EXECUTION_FAILED);
+      ).toBe(WorkflowExecutionPhase.RUN_FAILED);
       expect(
         settled.status?.error,
         "the workflow failed at the resolved callee's reference read, with the get copy",
@@ -1076,7 +1076,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       expect(new Set(carried)).toEqual(new Set(["member-credential"]));
     });
 
-    it("[rpc:AgentExecutionCommandController.create] a key the agent declares and no layer carries is filled from the turn sender's personal environment, never the agent author's saved after it", async (ctx) => {
+    it("[rpc:AgentRunCommandController.create] a key the agent declares and no layer carries is filled from the turn sender's personal environment, never the agent author's saved after it", async (ctx) => {
       const { lane, mock } = laneOrSkip(ctx);
       const people = await provisionPeople(lane);
 
@@ -1178,7 +1178,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       expect(
         settled.status?.phase,
         `the remembering run: ${settled.status?.error}`,
-      ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      ).toBe(RunPhase.RUN_COMPLETED);
       expect(mock.consumed(), "the tool turn and the answer").toBe(2);
 
       // The memory model is subject-only: the person a memory is ABOUT is its
@@ -1196,7 +1196,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       );
       expect(memory.spec?.subjectIdentityAccountId).toBe(people.memberId);
       expect(memory.spec?.provenance?.sessionId).toBe(sessionIdOf(settled));
-      expect(memory.spec?.provenance?.agentExecutionId).toBe(run.metadata!.id);
+      expect(memory.spec?.provenance?.agentRunId).toBe(run.metadata!.id);
 
       // The operator — an organization owner, whose key the runner holds —
       // is not the memory's subject and sees nothing.

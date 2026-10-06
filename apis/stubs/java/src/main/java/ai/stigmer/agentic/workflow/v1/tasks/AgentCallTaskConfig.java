@@ -306,14 +306,14 @@ java.lang.String defaultValue) {
   }
 
   public static final int RUN_CONFIG_FIELD_NUMBER = 4;
-  private ai.stigmer.agentic.agentexecution.v1.RunConfig runConfig_;
+  private ai.stigmer.agentic.agentrun.v1.RunConfig runConfig_;
   /**
    * <pre>
    * Per-call model choice and run bounds. Unset fields fall to the agent's
    * defaults (RunConfig has the rule).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
    * @return Whether the runConfig field is set.
    */
   @java.lang.Override
@@ -326,12 +326,12 @@ java.lang.String defaultValue) {
    * defaults (RunConfig has the rule).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
    * @return The runConfig.
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.RunConfig getRunConfig() {
-    return runConfig_ == null ? ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance() : runConfig_;
+  public ai.stigmer.agentic.agentrun.v1.RunConfig getRunConfig() {
+    return runConfig_ == null ? ai.stigmer.agentic.agentrun.v1.RunConfig.getDefaultInstance() : runConfig_;
   }
   /**
    * <pre>
@@ -339,11 +339,11 @@ java.lang.String defaultValue) {
    * defaults (RunConfig has the rule).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder getRunConfigOrBuilder() {
-    return runConfig_ == null ? ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance() : runConfig_;
+  public ai.stigmer.agentic.agentrun.v1.RunConfigOrBuilder getRunConfigOrBuilder() {
+    return runConfig_ == null ? ai.stigmer.agentic.agentrun.v1.RunConfig.getDefaultInstance() : runConfig_;
   }
 
   public static final int OUTPUT_FIELD_NUMBER = 5;
@@ -416,7 +416,7 @@ java.lang.String defaultValue) {
    * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
    *
    * The runner creates a Session with this harness before creating
-   * the AgentExecution. The harness is a session-level concern — it determines
+   * the AgentRun. The harness is a session-level concern — it determines
    * tool availability, state management, model access, and billing tier.
    *
    * When unspecified: native when run_config names a model (the engine the
@@ -447,7 +447,7 @@ java.lang.String defaultValue) {
    * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
    *
    * The runner creates a Session with this harness before creating
-   * the AgentExecution. The harness is a session-level concern — it determines
+   * the AgentRun. The harness is a session-level concern — it determines
    * tool availability, state management, model access, and billing tier.
    *
    * When unspecified: native when run_config names a model (the engine the
@@ -1705,16 +1705,16 @@ java.lang.String defaultValue) {
       return this;
     }
 
-    private ai.stigmer.agentic.agentexecution.v1.RunConfig runConfig_;
+    private ai.stigmer.agentic.agentrun.v1.RunConfig runConfig_;
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.RunConfig, ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder, ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder> runConfigBuilder_;
+        ai.stigmer.agentic.agentrun.v1.RunConfig, ai.stigmer.agentic.agentrun.v1.RunConfig.Builder, ai.stigmer.agentic.agentrun.v1.RunConfigOrBuilder> runConfigBuilder_;
     /**
      * <pre>
      * Per-call model choice and run bounds. Unset fields fall to the agent's
      * defaults (RunConfig has the rule).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
      * @return Whether the runConfig field is set.
      */
     public boolean hasRunConfig() {
@@ -1726,12 +1726,12 @@ java.lang.String defaultValue) {
      * defaults (RunConfig has the rule).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
      * @return The runConfig.
      */
-    public ai.stigmer.agentic.agentexecution.v1.RunConfig getRunConfig() {
+    public ai.stigmer.agentic.agentrun.v1.RunConfig getRunConfig() {
       if (runConfigBuilder_ == null) {
-        return runConfig_ == null ? ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance() : runConfig_;
+        return runConfig_ == null ? ai.stigmer.agentic.agentrun.v1.RunConfig.getDefaultInstance() : runConfig_;
       } else {
         return runConfigBuilder_.getMessage();
       }
@@ -1742,9 +1742,9 @@ java.lang.String defaultValue) {
      * defaults (RunConfig has the rule).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
      */
-    public Builder setRunConfig(ai.stigmer.agentic.agentexecution.v1.RunConfig value) {
+    public Builder setRunConfig(ai.stigmer.agentic.agentrun.v1.RunConfig value) {
       if (runConfigBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
@@ -1763,10 +1763,10 @@ java.lang.String defaultValue) {
      * defaults (RunConfig has the rule).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
      */
     public Builder setRunConfig(
-        ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder builderForValue) {
+        ai.stigmer.agentic.agentrun.v1.RunConfig.Builder builderForValue) {
       if (runConfigBuilder_ == null) {
         runConfig_ = builderForValue.build();
       } else {
@@ -1782,13 +1782,13 @@ java.lang.String defaultValue) {
      * defaults (RunConfig has the rule).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
      */
-    public Builder mergeRunConfig(ai.stigmer.agentic.agentexecution.v1.RunConfig value) {
+    public Builder mergeRunConfig(ai.stigmer.agentic.agentrun.v1.RunConfig value) {
       if (runConfigBuilder_ == null) {
         if (((bitField0_ & 0x00000008) != 0) &&
           runConfig_ != null &&
-          runConfig_ != ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance()) {
+          runConfig_ != ai.stigmer.agentic.agentrun.v1.RunConfig.getDefaultInstance()) {
           getRunConfigBuilder().mergeFrom(value);
         } else {
           runConfig_ = value;
@@ -1808,7 +1808,7 @@ java.lang.String defaultValue) {
      * defaults (RunConfig has the rule).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
      */
     public Builder clearRunConfig() {
       bitField0_ = (bitField0_ & ~0x00000008);
@@ -1826,9 +1826,9 @@ java.lang.String defaultValue) {
      * defaults (RunConfig has the rule).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
      */
-    public ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder getRunConfigBuilder() {
+    public ai.stigmer.agentic.agentrun.v1.RunConfig.Builder getRunConfigBuilder() {
       bitField0_ |= 0x00000008;
       onChanged();
       return internalGetRunConfigFieldBuilder().getBuilder();
@@ -1839,14 +1839,14 @@ java.lang.String defaultValue) {
      * defaults (RunConfig has the rule).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
      */
-    public ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder getRunConfigOrBuilder() {
+    public ai.stigmer.agentic.agentrun.v1.RunConfigOrBuilder getRunConfigOrBuilder() {
       if (runConfigBuilder_ != null) {
         return runConfigBuilder_.getMessageOrBuilder();
       } else {
         return runConfig_ == null ?
-            ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance() : runConfig_;
+            ai.stigmer.agentic.agentrun.v1.RunConfig.getDefaultInstance() : runConfig_;
       }
     }
     /**
@@ -1855,14 +1855,14 @@ java.lang.String defaultValue) {
      * defaults (RunConfig has the rule).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 4 [json_name = "runConfig"];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.RunConfig, ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder, ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder> 
+        ai.stigmer.agentic.agentrun.v1.RunConfig, ai.stigmer.agentic.agentrun.v1.RunConfig.Builder, ai.stigmer.agentic.agentrun.v1.RunConfigOrBuilder> 
         internalGetRunConfigFieldBuilder() {
       if (runConfigBuilder_ == null) {
         runConfigBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.agentexecution.v1.RunConfig, ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder, ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder>(
+            ai.stigmer.agentic.agentrun.v1.RunConfig, ai.stigmer.agentic.agentrun.v1.RunConfig.Builder, ai.stigmer.agentic.agentrun.v1.RunConfigOrBuilder>(
                 getRunConfig(),
                 getParentForChildren(),
                 isClean());
@@ -2101,7 +2101,7 @@ java.lang.String defaultValue) {
      * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
      *
      * The runner creates a Session with this harness before creating
-     * the AgentExecution. The harness is a session-level concern — it determines
+     * the AgentRun. The harness is a session-level concern — it determines
      * tool availability, state management, model access, and billing tier.
      *
      * When unspecified: native when run_config names a model (the engine the
@@ -2132,7 +2132,7 @@ java.lang.String defaultValue) {
      * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
      *
      * The runner creates a Session with this harness before creating
-     * the AgentExecution. The harness is a session-level concern — it determines
+     * the AgentRun. The harness is a session-level concern — it determines
      * tool availability, state management, model access, and billing tier.
      *
      * When unspecified: native when run_config names a model (the engine the
@@ -2168,7 +2168,7 @@ java.lang.String defaultValue) {
      * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
      *
      * The runner creates a Session with this harness before creating
-     * the AgentExecution. The harness is a session-level concern — it determines
+     * the AgentRun. The harness is a session-level concern — it determines
      * tool availability, state management, model access, and billing tier.
      *
      * When unspecified: native when run_config names a model (the engine the
@@ -2201,7 +2201,7 @@ java.lang.String defaultValue) {
      * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
      *
      * The runner creates a Session with this harness before creating
-     * the AgentExecution. The harness is a session-level concern — it determines
+     * the AgentRun. The harness is a session-level concern — it determines
      * tool availability, state management, model access, and billing tier.
      *
      * When unspecified: native when run_config names a model (the engine the
@@ -2237,7 +2237,7 @@ java.lang.String defaultValue) {
      * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
      *
      * The runner creates a Session with this harness before creating
-     * the AgentExecution. The harness is a session-level concern — it determines
+     * the AgentRun. The harness is a session-level concern — it determines
      * tool availability, state management, model access, and billing tier.
      *
      * When unspecified: native when run_config names a model (the engine the

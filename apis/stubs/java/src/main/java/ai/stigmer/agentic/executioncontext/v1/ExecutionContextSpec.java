@@ -7,7 +7,7 @@ package ai.stigmer.agentic.executioncontext.v1;
 
 /**
  * <pre>
- * Runtime configuration and secrets for a single execution.
+ * Runtime configuration and secrets for a single run.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec}
@@ -70,7 +70,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object executionId_ = "";
   /**
    * <pre>
-   * ID of the parent AgentExecution or WorkflowExecution.
+   * ID of the parent AgentRun or WorkflowRun.
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -91,7 +91,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ID of the parent AgentExecution or WorkflowExecution.
+   * ID of the parent AgentRun or WorkflowRun.
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -387,7 +387,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   }
   /**
    * <pre>
-   * Runtime configuration and secrets for a single execution.
+   * Runtime configuration and secrets for a single run.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec}
@@ -568,7 +568,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     private java.lang.Object executionId_ = "";
     /**
      * <pre>
-     * ID of the parent AgentExecution or WorkflowExecution.
+     * ID of the parent AgentRun or WorkflowRun.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -588,7 +588,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * ID of the parent AgentExecution or WorkflowExecution.
+     * ID of the parent AgentRun or WorkflowRun.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -609,7 +609,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * ID of the parent AgentExecution or WorkflowExecution.
+     * ID of the parent AgentRun or WorkflowRun.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -626,7 +626,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * ID of the parent AgentExecution or WorkflowExecution.
+     * ID of the parent AgentRun or WorkflowRun.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -640,7 +640,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * ID of the parent AgentExecution or WorkflowExecution.
+     * ID of the parent AgentRun or WorkflowRun.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>

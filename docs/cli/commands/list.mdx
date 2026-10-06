@@ -36,13 +36,13 @@ stigmer list workflows --output json
 
 ## Options
 
-| Flag             | Type     | Default | Description                                                           |
-| ---------------- | -------- | ------- | --------------------------------------------------------------------- |
-| `--json`         | `bool`   |         | shorthand for --output json                                           |
-| `--limit`        | `string` | `50`    | maximum number of results                                             |
-| `--output`, `-o` | `string` |         | output format: table, json, or yaml                                   |
-| `--type`         | `string` |         | execution type filter: agent or workflow (only for 'list executions') |
-| `--verb`         | `string` |         | filter to types supporting this verb (only for 'list types')          |
+| Flag             | Type     | Default | Description                                                  |
+| ---------------- | -------- | ------- | ------------------------------------------------------------ |
+| `--json`         | `bool`   |         | shorthand for --output json                                  |
+| `--limit`        | `string` | `50`    | maximum number of results                                    |
+| `--output`, `-o` | `string` |         | output format: table, json, or yaml                          |
+| `--type`         | `string` |         | run type filter: agent or workflow (only for 'list runs')    |
+| `--verb`         | `string` |         | filter to types supporting this verb (only for 'list types') |
 
 ### Supported resource types
 
@@ -54,9 +54,9 @@ stigmer list workflows --output json
 | API Key        | `apikeys`, `apikey`, `key`               |
 | Channel App    | `channel-apps`, `channel-app`, `chapp`   |
 | Environment    | `environments`, `environment`, `env`     |
-| Execution      | `executions`, `execution`, `exec`        |
 | MCP Server     | `mcpservers`, `mcpserver`, `mcp`         |
 | Organization   | `organizations`, `organization`, `org`   |
+| Run            | `runs`, `run`                            |
 | Schedule       | `schedules`, `schedule`, `sch`           |
 | Session        | `sessions`, `session`, `ses`             |
 | Skill          | `skills`, `skill`                        |

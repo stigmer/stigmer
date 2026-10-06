@@ -2,7 +2,7 @@
 // Domain: agentic / schedule, agentshare, agentchannel — the save-time rule
 // every surface that stores a RunConfig shares.
 //
-// The contract under test (RunConfig in agentexecution/v1/invocation.proto):
+// The contract under test (RunConfig in agentrun/v1/invocation.proto):
 // saved settings are self-contained. A schedule's, a share's or a channel's
 // run_config that asks for the fast tier or for thinking names the model it
 // is for; only a live message may set either alone, to adjust the model a
@@ -15,8 +15,8 @@
 import { create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";

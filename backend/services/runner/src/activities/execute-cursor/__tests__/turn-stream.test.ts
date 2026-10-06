@@ -24,7 +24,7 @@ import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { SDKMessage } from "@cursor/sdk";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { RecordingTurnSink } from "../../../__test-utils__/harness-contract/recording-sink.js";
 import type { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import { sdkEvents } from "../__test-utils__/scripted-agent.js";
@@ -164,7 +164,7 @@ describe("consumeCursorTurnStream", () => {
 
     await consumeCursorTurnStream(mockRun([sdk.toolCall("t1", "task", "running", { subagentType: "helper", description: "Look", prompt: "Look at it" })]), deps);
 
-    expect(sink.status.subAgentExecutions.map((s) => [s.id, s.name])).toEqual([["t1", "helper"]]);
+    expect(sink.status.subAgentRuns.map((s) => [s.id, s.name])).toEqual([["t1", "helper"]]);
     expect(rows(sink).map((tc) => tc.id)).toEqual(["t1"]);
   });
 

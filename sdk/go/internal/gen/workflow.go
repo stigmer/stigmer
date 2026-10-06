@@ -64,8 +64,8 @@ func (w *WorkflowClient) UpdateVisibility(ctx context.Context, input *apiresourc
 	return resp, wrapErr(err)
 }
 
-func (w *WorkflowClient) UpdateExecutionVisibility(ctx context.Context, input *workflowv1.UpdateWorkflowExecutionVisibilityInput) (*workflowv1.Workflow, error) {
-	resp, err := w.command.UpdateExecutionVisibility(ctx, input)
+func (w *WorkflowClient) UpdateRunVisibility(ctx context.Context, input *workflowv1.UpdateWorkflowRunVisibilityInput) (*workflowv1.Workflow, error) {
+	resp, err := w.command.UpdateRunVisibility(ctx, input)
 	return resp, wrapErr(err)
 }
 
@@ -140,19 +140,19 @@ type WorkflowInput struct {
 	// set from a loaded resource. Required for updates to platform-scoped
 	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
 	// on create: the server assigns every new resource's id.
-	Id                  string
-	Name                string
-	Slug                string
-	Org                 string
-	Labels              map[string]string
-	Visibility          apiresource.ApiResourceVisibility
-	VersionMessage      string
-	Description         string
-	Document            *WorkflowDocumentInput
-	Tasks               []*WorkflowTaskInput
-	Env                 map[string]*EnvVarDeclarationInput
-	Budget              *WorkflowBudgetInput
-	ExecutionVisibility workflowv1.WorkflowExecutionVisibility
+	Id             string
+	Name           string
+	Slug           string
+	Org            string
+	Labels         map[string]string
+	Visibility     apiresource.ApiResourceVisibility
+	VersionMessage string
+	Description    string
+	Document       *WorkflowDocumentInput
+	Tasks          []*WorkflowTaskInput
+	Env            map[string]*EnvVarDeclarationInput
+	Budget         *WorkflowBudgetInput
+	RunVisibility  workflowv1.WorkflowRunVisibility
 }
 
 // WorkflowDocumentInput is the SDK input type for WorkflowDocument.
@@ -243,7 +243,7 @@ func (i *WorkflowInput) toProto() (*workflowv1.Workflow, error) {
 		}
 		resource.Spec.Budget = v
 	}
-	resource.Spec.ExecutionVisibility = i.ExecutionVisibility
+	resource.Spec.RunVisibility = i.RunVisibility
 	return resource, nil
 }
 
@@ -340,7 +340,7 @@ func WorkflowInputFromProto(p *workflowv1.Workflow) *WorkflowInput {
 			}
 		}
 		input.Budget = workflowBudgetInputFromProto(s.GetBudget())
-		input.ExecutionVisibility = s.GetExecutionVisibility()
+		input.RunVisibility = s.GetRunVisibility()
 	}
 	return input
 }

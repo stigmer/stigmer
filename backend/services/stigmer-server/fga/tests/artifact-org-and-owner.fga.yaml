@@ -1,11 +1,11 @@
-# Artifacts are org-scoped execution outputs with creator ownership on
+# Artifacts are org-scoped run outputs with creator ownership on
 # top (since 2026-08-11, when every artifact read gained an authorization
 # check). The two access arms these tests pin:
 #
 # 1. Org inheritance — anyone who is at least a viewer of the owning org
 #    can view its artifacts ("if you can view resources in the org, you
 #    can view its artifacts"). Editing stays org-admin-only.
-# 2. Creator ownership — the identity whose execution produced the
+# 2. Creator ownership — the identity whose run produced the
 #    artifact can view it WITHOUT any org role. This is the guest-share /
 #    embedded-user case: org guests are not org viewers, but their
 #    sessions render artifact-backed review payloads and artifact tabs.
@@ -50,7 +50,7 @@ tuples:
     relation: affiliated
     object: organization:acme
 
-  # Artifact produced by a signed-in member's execution.
+  # Artifact produced by a signed-in member's run.
   - user: organization:acme
     relation: organization
     object: artifact:art_report
@@ -58,7 +58,7 @@ tuples:
     relation: owner
     object: artifact:art_report
 
-  # Artifact produced by a guest-share execution: creator is the guest
+  # Artifact produced by a guest-share run: creator is the guest
   # identity account (runner tokens carry the acting identity as sub).
   - user: organization:acme
     relation: organization
@@ -89,7 +89,7 @@ tests:
           can_view: true
           can_edit: true
 
-  - name: guest creator reads own execution's artifact via ownership, never edits
+  - name: guest creator reads own run's artifact via ownership, never edits
     check:
       - user: identity_account:acme-guest
         object: artifact:art_guest_plan

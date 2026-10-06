@@ -8,10 +8,10 @@
 
 import { describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { ExecutionControlSignal, FileChangeKind, MessageType, ServiceTier, ThinkingMode, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { RunControlSignal, FileChangeKind, MessageType, ServiceTier, ThinkingMode, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { TurnProgress } from "../capture.js";
@@ -31,7 +31,7 @@ function gate(): Gate {
 }
 
 /** A client whose `updateStatus` answers through a gate the test opens, so writes can be held in flight. */
-function heldClient(answers: ExecutionControlSignal[] = []) {
+function heldClient(answers: RunControlSignal[] = []) {
   const gates: Gate[] = [];
   const writes: number[] = [];
   const client = {
@@ -40,7 +40,7 @@ function heldClient(answers: ExecutionControlSignal[] = []) {
       gates.push(g);
       writes.push(status.messages.length);
       await g.opened;
-      return create(UpdateStatusResponseSchema, { signal: answers.shift() ?? ExecutionControlSignal.UNSPECIFIED });
+      return create(UpdateStatusResponseSchema, { signal: answers.shift() ?? RunControlSignal.UNSPECIFIED });
     }),
   } as unknown as StigmerClient;
   return { client, gates, writes };
@@ -50,7 +50,7 @@ function chokepointOver(
   client: StigmerClient,
   options: { usage?: UsageAccumulator; progress?: TurnProgress; onPlatformStop?: () => void } = {},
 ) {
-  const status = create(AgentExecutionStatusSchema, {});
+  const status = create(AgentRunStatusSchema, {});
   const heartbeat = vi.fn();
   const onPlatformStop = options.onPlatformStop ?? vi.fn();
   const chokepoint = new PersistChokepoint({
@@ -68,7 +68,7 @@ function chokepointOver(
 
 describe("PersistChokepoint: one write", () => {
   it("withholds secret content, refreshes streaming_usage, writes, heartbeats, and relays STOP", async () => {
-    const { client, gates } = heldClient([ExecutionControlSignal.STOP]);
+    const { client, gates } = heldClient([RunControlSignal.STOP]);
     const usage = new UsageAccumulator(ServiceTier.STANDARD, ThinkingMode.DISABLED);
     usage.addTurn({ inputTokens: 10, estimatedCostUsd: 0.01, model: "m" });
     const onPlatformStop = vi.fn();

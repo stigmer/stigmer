@@ -5,7 +5,7 @@ import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath } from "@xyflow/react";
 import type { EdgeProps } from "@xyflow/react";
 import { cn } from "@stigmer/theme";
 import type { CanvasTransitionEdgeData } from "./workflow-graph-conversions.js";
-import type { EdgeExecutionState } from "./execution/index.js";
+import type { EdgeExecutionState } from "./run/index.js";
 import type { EdgeDiffStatus } from "./diff/types.js";
 import { CanvasActionsContext } from "./CanvasActionsContext.js";
 import { TaskPickerPopover } from "./TaskPickerPopover.js";
@@ -148,7 +148,7 @@ export const CanvasTransitionEdge = memo(function CanvasTransitionEdge({
     };
   }, [actions, id, source, target]);
 
-  // Resolve visual style: diff mode → diff styles, execution mode → execution styles, else defaults.
+  // Resolve visual style: diff mode → diff styles, execution mode → run styles, else defaults.
   const execVisual = isDiffMode && diffState
     ? EDGE_DIFF_STYLES[diffState]
     : isExecutionMode && execState

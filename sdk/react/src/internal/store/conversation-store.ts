@@ -1,4 +1,4 @@
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { structuralShare } from "./structural-share.js";
 
 // ---------------------------------------------------------------------------
@@ -38,7 +38,7 @@ const IDLE_STATE: StreamState = { stage: "idle" };
 type Listener = () => void;
 
 /**
- * Framework-agnostic store that holds the active execution snapshot
+ * Framework-agnostic store that holds the active run snapshot
  * with structural sharing. Implements the contract required by
  * React's `useSyncExternalStore`.
  *
@@ -49,7 +49,7 @@ type Listener = () => void;
  *   suitable as `useSyncExternalStore` snapshot selectors.
  */
 export class ConversationStore {
-  private _execution: AgentExecution | null = null;
+  private _execution: AgentRun | null = null;
   private _streamState: StreamState = IDLE_STATE;
   private _connectTimedOut = false;
   private _isSlow = false;
@@ -58,11 +58,11 @@ export class ConversationStore {
   // -- Ingestion -----------------------------------------------------------
 
   /**
-   * Ingest a new execution snapshot. Applies structural sharing
+   * Ingest a new run snapshot. Applies structural sharing
    * against the previous snapshot and notifies listeners only if
    * the resulting reference changed.
    */
-  ingestSnapshot(snapshot: AgentExecution): void {
+  ingestSnapshot(snapshot: AgentRun): void {
     const shared = structuralShare(this._execution, snapshot);
     if (shared === this._execution) return;
     this._execution = shared;
@@ -135,8 +135,8 @@ export class ConversationStore {
     };
   };
 
-  /** Stable snapshot selector for the current execution. */
-  getExecution = (): AgentExecution | null => {
+  /** Stable snapshot selector for the current run. */
+  getExecution = (): AgentRun | null => {
     return this._execution;
   };
 

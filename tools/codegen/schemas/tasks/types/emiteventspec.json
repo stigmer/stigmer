@@ -26,7 +26,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "CloudEvents source identifier.\n URI or URI-reference that identifies the context in which the event\n happened. Supports ${ } expression interpolation.\n When empty, the runtime defaults to the workflow execution URI\n (e.g., \"/workflows/{workflow_id}/executions/{execution_id}\").",
+      "description": "CloudEvents source identifier.\n URI or URI-reference that identifies the context in which the event\n happened. Supports ${ } expression interpolation.\n When empty, the runtime defaults to the workflow run URI\n (e.g., \"/workflows/runs/{run_id}\").",
       "required": false,
       "isExpression": true
     },

@@ -1,6 +1,6 @@
 /**
  * Mid-run live capture — the harness-agnostic glue that turns a per-turn
- * workspace delta into the transient `AgentExecutionStatus.file_change_progress`
+ * workspace delta into the transient `AgentRunStatus.file_change_progress`
  * snapshot the "N files changed so far" strip renders.
  *
  * THE MODEL
@@ -57,16 +57,16 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type {
   FileChangeProgress,
   FileChangeProgressEntry,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
 import {
   FileChangeProgressEntrySchema,
   FileChangeProgressSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
 import { utcTimestamp } from "../status.js";
 import { toFileChangeKind } from "./capture.js";
 import {
@@ -244,7 +244,7 @@ export function newProgressCaptureState(): ProgressCaptureState {
  * last capture that succeeded, so the next one converges.
  */
 export async function captureFileChangeProgress(opts: {
-  readonly status: AgentExecutionStatus;
+  readonly status: AgentRunStatus;
   readonly changeSetId: string;
   readonly substrate: ProgressSubstrate;
   readonly state: ProgressCaptureState;

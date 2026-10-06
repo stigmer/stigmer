@@ -98,7 +98,7 @@ const VIRTUAL_ENTRY_PREFIX = "\u0000virtual:";
 
 /**
  * Entry id for a virtual document — an editor tab whose content is not a
- * workspace file (e.g. the session's `plan.md`, an execution artifact).
+ * workspace file (e.g. the session's `plan.md`, a run artifact).
  * Virtual documents share the editor group with file tabs (same open / pin /
  * close / activate semantics); only their *content rendering* differs, via the
  * surface's `virtualDocuments` seam. `kind` names the document family

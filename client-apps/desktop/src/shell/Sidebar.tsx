@@ -32,7 +32,7 @@ export function Sidebar() {
     ? params.id ?? null
     : null;
 
-  const activeExecutionId = location.pathname.startsWith("/executions/")
+  const activeRunId = location.pathname.startsWith("/runs/")
     ? params.id ?? null
     : null;
 
@@ -48,7 +48,7 @@ export function Sidebar() {
 
   // Sessions whose runner worker is still alive but which are NOT the one being
   // viewed: with the deferred-teardown invariant in the runner, a worker stays
-  // up only while an execution is in flight, so this set is "running in the
+  // up only while a run is in flight, so this set is "running in the
   // background". Drives the pulse indicator in the recents list.
   const { activeSessions } = useRunner();
   const backgroundSessionIds = useMemo(
@@ -60,16 +60,16 @@ export function Sidebar() {
   entriesRef.current = recentActivity.entries;
 
   useEffect(() => {
-    if (activeExecutionId && !entriesRef.current.some((e) => e.id === activeExecutionId)) {
+    if (activeRunId && !entriesRef.current.some((e) => e.id === activeRunId)) {
       prependOptimistic({
-        id: activeExecutionId,
-        type: "workflow_execution",
+        id: activeRunId,
+        type: "workflow_run",
         subject: "Loading\u2026",
       });
     }
 
     refetch();
-    const activeId = activeSessionId ?? activeExecutionId;
+    const activeId = activeSessionId ?? activeRunId;
     if (!activeId) return;
 
     const t1 = setTimeout(refetch, 8_000);
@@ -78,7 +78,7 @@ export function Sidebar() {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, [activeSessionId, activeExecutionId, refetch, prependOptimistic]);
+  }, [activeSessionId, activeRunId, refetch, prependOptimistic]);
 
   const isDashboardActive =
     !isSessionZone && location.pathname.startsWith("/dashboard");
@@ -155,7 +155,7 @@ export function Sidebar() {
       renderLink={renderLink}
       recentActivity={recentActivity}
       activeSessionId={activeSessionId}
-      activeExecutionId={activeExecutionId}
+      activeRunId={activeRunId}
       renderEntryAccessory={renderEntryAccessory}
       conversationsBadgeCount={wantsHumanCount}
       footer={<UserMenu />}
@@ -167,7 +167,7 @@ export function Sidebar() {
 }
 
 /**
- * Pulsing dot shown on a recents row whose execution is still running in the
+ * Pulsing dot shown on a recents row whose run is still running in the
  * background (its session worker is kept alive by an in-flight activity even
  * though the user navigated away).
  *

@@ -13,7 +13,7 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 // @internal
 // No anonymous/public RPC by design (the AgentChannel posture): a
 // schedule has no public surface at all — its only runtime effect is the
-// executions its fires create.
+// runs its fires create.
 service ScheduleQueryController {
   option (ai.stigmer.commons.apiresource.api_resource_kind) = schedule;
 
@@ -59,7 +59,7 @@ service ScheduleQueryController {
 
   // List a schedule's run history, newest first.
   //
-  // Every fire leaves a row — including fires that created no execution
+  // Every fire leaves a row — including fires that created no run
   // (a refused launch gate, a missing target agent) — with the refusing
   // gate's copy verbatim. This is the surface that explains
   // status.consecutive_failures.
@@ -67,9 +67,9 @@ service ScheduleQueryController {
   // @internal
   // Backed by the fire ledger. Authorization:
   // can_view on the schedule — run history is the schedule's own
-  // operational record; the linked executions keep their own bars. Rows
-  // carrying an execution id but no terminal outcome are enriched with
-  // the execution's live phase at read time (one join), so manual fires
+  // operational record; the linked runs keep their own bars. Rows
+  // carrying a run id but no terminal outcome are enriched with
+  // the run's live phase at read time (one join), so manual fires
   // need no tracker and outcome columns never lie. OSS implements the
   // same contract against its store; the conformance suite holds both
   // editions to it.

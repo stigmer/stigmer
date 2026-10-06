@@ -44,14 +44,14 @@ schema.json        JSON Schema for a sequence file
 {
   "name": "approve-supersede-orphan-complete",
   "description": "...",
-  "execution_id": "exec-seq",
+  "run_id": "exec-seq",
   "steps": [
     {
       "name": "seed: root + sub-agent calls gated",
       "status": {
-        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "phase": "RUN_WAITING_FOR_APPROVAL",
         "messages": [ /* AgentMessage protos as protojson */ ],
-        "sub_agent_executions": [ /* SubAgentExecution protos as protojson */ ]
+        "sub_agent_runs": [ /* SubAgentRun protos as protojson */ ]
       },
       "expected": {
         "pending_approvals": [ /* PendingApproval protos as protojson */ ],
@@ -66,7 +66,7 @@ schema.json        JSON Schema for a sequence file
   their string constant, proto3 defaults omitted. Parsers use the generated types,
   so a malformed step is a contract error, not a silent skip.
 - The driver **owns the stream**: `status` carries only author-visible state
-  (`phase`, `messages`, `sub_agent_executions`) and never the
+  (`phase`, `messages`, `sub_agent_runs`) and never the
   `approval_event_stream`. The stream is the carried-forward output of the prior
   step.
 

@@ -1,0 +1,277 @@
+/**
+ * Pins the driver-neutral half of the rename of executions to runs
+ * (../run-rename.ts) over rows built the way the release before it wrote
+ * them (run-rename-rows.ts):
+ *   - an agent run's and a workflow run's kind string read as the
+ *     contract's const after the rewrite, so a fetched run passes its own
+ *     validation on the way back, and a run already current is left alone;
+ *   - a workflow run's task metadata and agent_call output name the child
+ *     run by the new key, every other key and value kept;
+ *   - a grant naming a run kind as resource or principal is re-keyed to the
+ *     id its renamed triple derives, and a grant on another kind is not;
+ *   - a workflow's emit_event signal target and its expressions name runs
+ *     by the new keys, nested steps included, its YAML regenerated from the
+ *     rewritten spec and its version hash untouched; a free-form string is
+ *     never rewritten, nor an `execution_id` that is not an emit_event
+ *     signal target; every field of a step is reached (its export, its
+ *     compensating steps, a bare jq condition), and the signal key in either
+ *     JSON spelling; a workflow already current is left alone;
+ *   - the event-type renames cover exactly the event log's run lifecycle
+ *     types, each the old name of a current WorkflowEventType value;
+ *   - bytes that do not decode throw (the step must not pass over them).
+ */
+import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
+import { createValidator } from "@bufbuild/protovalidate";
+import { describe, expect, it } from "vitest";
+
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
+import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { ExportSchema, WorkflowTaskSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
+import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+
+import { policyIdFor } from "../../domain/iampolicy/constants.js";
+import { protoToYaml } from "../../domain/workflow/converter/converter.js";
+import {
+  RUN_EVENT_TYPE_RENAMES,
+  rekeyedRunPolicy,
+  renamedAgentRunRow,
+  renamedWorkflowRow,
+  renamedWorkflowRunRow,
+} from "../run-rename.js";
+import { policyRow } from "./retired-instance-rows.js";
+import {
+  NEW_RUN_NAMES,
+  OLD_RUN_NAMES,
+  RUN_RENAME_HASH,
+  agentRunBytes,
+  workflowRunBytes,
+  workflowWithSteps,
+} from "./run-rename-rows.js";
+
+describe("RUN_EVENT_TYPE_RENAMES", () => {
+  it("renames exactly the run lifecycle event types, each from its old name to a current value", () => {
+    const runLifecycle = Object.keys(WorkflowEventType).filter((name) => name.startsWith("run_"));
+    expect(RUN_EVENT_TYPE_RENAMES.map(([, to]) => to).sort()).toEqual(runLifecycle.sort());
+    for (const [from, to] of RUN_EVENT_TYPE_RENAMES) {
+      expect(from).toBe(to.replace(/^run_/, "execution_"));
+    }
+  });
+});
+
+describe("renamedAgentRunRow", () => {
+  it("rewrites the kind string, and the fetched run then passes its own validation", () => {
+    const migrated = renamedAgentRunRow(agentRunBytes("aex_1", "ses_1", OLD_RUN_NAMES));
+    expect(migrated).toEqual(agentRunBytes("aex_1", "ses_1", NEW_RUN_NAMES));
+    const run = fromBinary(AgentRunSchema, migrated!);
+    const kindViolations = createValidator()
+      .validate(AgentRunSchema, run)
+      .violations?.filter((v) => v.toString().startsWith("kind:"));
+    expect(kindViolations ?? []).toEqual([]);
+  });
+
+  it("leaves a run that already reads current alone", () => {
+    expect(renamedAgentRunRow(agentRunBytes("aex_1", "ses_1", NEW_RUN_NAMES))).toBeUndefined();
+  });
+
+  it("throws on bytes that do not decode", () => {
+    expect(() => renamedAgentRunRow(new Uint8Array([0x22, 0xff]))).toThrow();
+  });
+});
+
+describe("renamedWorkflowRunRow", () => {
+  it("rewrites the kind string and the child run key in task metadata and outputs", () => {
+    const migrated = renamedWorkflowRunRow(workflowRunBytes("wex_1", "wfl_1", OLD_RUN_NAMES));
+    expect(migrated).toEqual(workflowRunBytes("wex_1", "wfl_1", NEW_RUN_NAMES));
+    const run = fromBinary(WorkflowRunSchema, migrated!);
+    expect(run.status?.workflowVersionHash).toBe(RUN_RENAME_HASH);
+    expect(Object.keys(run.status?.tasks[0]?.metadata ?? {})).toEqual([
+      "agent_run_id",
+      "token_attribution",
+    ]);
+  });
+
+  it("leaves a run that already reads current alone", () => {
+    expect(
+      renamedWorkflowRunRow(workflowRunBytes("wex_1", "wfl_1", NEW_RUN_NAMES)),
+    ).toBeUndefined();
+  });
+
+  it("throws on bytes that do not decode", () => {
+    expect(() => renamedWorkflowRunRow(new Uint8Array([0x22, 0xff]))).toThrow();
+  });
+});
+
+describe("rekeyedRunPolicy", () => {
+  it("re-keys a grant on a run to the id its renamed triple derives", () => {
+    const rekeyed = rekeyedRunPolicy(
+      policyRow({
+        id: "iamp_old",
+        principal: "identity_account:ida_1",
+        relation: "viewer",
+        resource: "workflow_execution:wex_1",
+      }),
+    );
+    expect(rekeyed).toBeDefined();
+    const migrated = fromBinary(IamPolicySchema, rekeyed!.data);
+    expect(migrated.spec?.resource).toMatchObject({ kind: "workflow_run", id: "wex_1" });
+    expect(rekeyed!.id).toBe(policyIdFor(migrated.spec!));
+    expect(migrated.metadata?.id).toBe(rekeyed!.id);
+    expect(rekeyed!.id).not.toBe("iamp_old");
+  });
+
+  it("re-keys a grant whose principal is a run", () => {
+    const rekeyed = rekeyedRunPolicy(
+      policyRow({
+        id: "iamp_old",
+        principal: "agent_execution:aex_1",
+        relation: "viewer",
+        resource: "session:ses_1",
+      }),
+    );
+    expect(fromBinary(IamPolicySchema, rekeyed!.data).spec?.principal?.kind).toBe("agent_run");
+  });
+
+  it("leaves a grant with no spec alone", () => {
+    expect(
+      rekeyedRunPolicy(toBinary(IamPolicySchema, create(IamPolicySchema, { metadata: { id: "iamp_bare" } }))),
+    ).toBeUndefined();
+  });
+
+  it("leaves a grant on another kind alone", () => {
+    expect(
+      rekeyedRunPolicy(
+        policyRow({
+          id: "iamp_wf",
+          principal: "identity_account:ida_1",
+          relation: "viewer",
+          resource: "workflow:wfl_1",
+        }),
+      ),
+    ).toBeUndefined();
+  });
+});
+
+describe("renamedWorkflowRow", () => {
+  it("names runs by the new keys in every step, regenerates the YAML and keeps the version hash", () => {
+    const migrated = fromBinary(
+      WorkflowSchema,
+      renamedWorkflowRow(toBinary(WorkflowSchema, workflowWithSteps("wfl_1", OLD_RUN_NAMES)))!,
+    );
+    const expected = workflowWithSteps("wfl_1", NEW_RUN_NAMES);
+    expect(migrated.spec).toEqual(expected.spec);
+    expect(migrated.status?.versionHash).toBe(RUN_RENAME_HASH);
+    expect(migrated.metadata?.version?.id).toBe(RUN_RENAME_HASH);
+    const yaml = migrated.status?.serverlessWorkflowValidation?.yaml ?? "";
+    expect(yaml).toBe(protoToYaml(migrated.spec));
+    expect(yaml).toContain("run_id:");
+    expect(yaml).not.toMatch(/\bexecution_id:/);
+  });
+
+  it("rewrites an expression held in a list, leaving the list's other strings", () => {
+    const workflow = workflowWithSteps("wfl_list", OLD_RUN_NAMES);
+    workflow.spec!.tasks[2]!.taskConfig = {
+      event: {
+        type: "ticket.done",
+        data: { refs: ["${ .triage.agent_execution_id }", "agent_execution_id is plain text", 3] },
+      },
+    };
+    const migrated = fromBinary(WorkflowSchema, renamedWorkflowRow(toBinary(WorkflowSchema, workflow))!);
+    const event = migrated.spec?.tasks[2]?.taskConfig?.["event"] as { data: { refs: unknown } };
+    expect(event.data.refs).toEqual([
+      "${ .triage.agent_run_id }",
+      "agent_execution_id is plain text",
+      3,
+    ]);
+  });
+
+  it("renames only an emit_event step's signal targets, nested ones in either config spelling", () => {
+    const workflow = workflowWithSteps("wfl_scoped", NEW_RUN_NAMES);
+    const payload = { signal: { execution_id: "kept as the event's own data" } };
+    workflow.spec!.tasks[2]!.taskConfig = {
+      event: { type: "ticket.done", data: payload },
+      delivery: [{ signal: { run_id: "${ .item.run }", signal_name: "done" } }],
+    };
+    workflow.spec!.tasks[1]!.taskConfig = {
+      each: "item",
+      in: "${ .items }",
+      do: [
+        {
+          name: "notify",
+          kind: "emit_event",
+          task_config: {
+            event: { type: "ticket.triaged", data: payload },
+            delivery: [{ signal: { execution_id: "${ .item.run }", signal_name: "done" } }],
+          },
+        },
+      ],
+    };
+    const migrated = fromBinary(WorkflowSchema, renamedWorkflowRow(toBinary(WorkflowSchema, workflow))!);
+    expect(migrated.spec?.tasks[1]?.taskConfig?.["do"]).toEqual([
+      {
+        name: "notify",
+        kind: "emit_event",
+        task_config: {
+          event: { type: "ticket.triaged", data: payload },
+          delivery: [{ signal: { run_id: "${ .item.run }", signal_name: "done" } }],
+        },
+      },
+    ]);
+    expect(migrated.spec?.tasks[2]?.taskConfig).toEqual(workflow.spec!.tasks[2]!.taskConfig);
+  });
+
+  it("reaches every field of a step: its export, its compensating steps and a bare jq condition", () => {
+    const workflow = workflowWithSteps("wfl_fields", NEW_RUN_NAMES);
+    const triage = workflow.spec!.tasks[0]!;
+    triage.export = create(ExportSchema, { as: "${ {child: .agent_execution_id} }" });
+    triage.compensate = [
+      create(WorkflowTaskSchema, {
+        name: "undo",
+        kind: WorkflowTaskKind.emit_event,
+        taskConfig: {
+          event: { type: "ticket.undone" },
+          delivery: [{ signal: { executionId: "${ .triage.agent_execution_id }", signal_name: "undo" } }],
+        },
+      }),
+    ];
+    workflow.spec!.tasks.push(
+      create(WorkflowTaskSchema, {
+        name: "route",
+        kind: WorkflowTaskKind.switch_case,
+        taskConfig: {
+          cases: [{ name: "has-child", when: ".triage.agent_execution_id != null", then: "emit" }],
+        },
+      }),
+    );
+
+    const migrated = fromBinary(WorkflowSchema, renamedWorkflowRow(toBinary(WorkflowSchema, workflow))!);
+    const [migratedTriage] = migrated.spec?.tasks ?? [];
+    expect(migratedTriage?.export?.as).toBe("${ {child: .agent_run_id} }");
+    expect(migratedTriage?.compensate[0]?.taskConfig?.["delivery"]).toEqual([
+      { signal: { run_id: "${ .triage.agent_run_id }", signal_name: "undo" } },
+    ]);
+    expect(migrated.spec?.tasks.at(-1)?.taskConfig?.["cases"]).toEqual([
+      { name: "has-child", when: ".triage.agent_run_id != null", then: "emit" },
+    ]);
+    // Every other step reads as the current fixture spells it.
+    expect(migrated.spec?.tasks.slice(1, 3)).toEqual(workflow.spec!.tasks.slice(1, 3));
+  });
+
+  it("passes over a step with no config, leaving its workflow alone", () => {
+    const workflow = workflowWithSteps("wfl_bare", NEW_RUN_NAMES);
+    workflow.spec!.tasks[0]!.taskConfig = undefined;
+    expect(renamedWorkflowRow(toBinary(WorkflowSchema, workflow))).toBeUndefined();
+  });
+
+  it("leaves a workflow whose steps already read current alone", () => {
+    expect(
+      renamedWorkflowRow(toBinary(WorkflowSchema, workflowWithSteps("wfl_1", NEW_RUN_NAMES))),
+    ).toBeUndefined();
+  });
+
+  it("throws on bytes that do not decode", () => {
+    expect(() => renamedWorkflowRow(new Uint8Array([0x22, 0xff]))).toThrow();
+  });
+});

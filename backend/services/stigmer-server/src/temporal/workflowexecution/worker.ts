@@ -24,8 +24,8 @@
  */
 import type { Logger } from "../../boot/logger.js";
 import type { ExecutionContextDeleter } from "../../domain/executioncontext/internal-delete.js";
-import type { WorkflowExecutionTemporalConfig } from "../../domain/workflowexecution/temporal/config.js";
-import type { StreamBroker } from "../../domain/workflowexecution/stream-broker.js";
+import type { WorkflowExecutionTemporalConfig } from "../../domain/workflowrun/temporal/config.js";
+import type { StreamBroker } from "../../domain/workflowrun/stream-broker.js";
 import type { WorkflowSandboxTerminalObserver } from "../../sandbox/steps.js";
 import type { Store } from "../../store/interface.js";
 import type { WorkerFactory } from "../manager.js";

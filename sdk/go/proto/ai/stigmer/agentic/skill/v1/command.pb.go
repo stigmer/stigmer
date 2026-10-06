@@ -26,33 +26,33 @@ var File_ai_stigmer_agentic_skill_v1_command_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_skill_v1_command_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/skill/v1/command.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a%ai/stigmer/agentic/skill/v1/api.proto\x1a$ai/stigmer/agentic/skill/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x87\a\n" +
+	")ai/stigmer/agentic/skill/v1/command.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a%ai/stigmer/agentic/skill/v1/api.proto\x1a$ai/stigmer/agentic/skill/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xfb\x06\n" +
 	"\x16SkillCommandController\x12\x99\x01\n" +
 	"\x04push\x12-.ai.stigmer.agentic.skill.v1.PushSkillRequest\x1a\".ai.stigmer.agentic.skill.v1.Skill\">¸\x18:\b\t\x10\x1e\"\x03org*/unauthorized to push skill in this organization\x12\xd0\x01\n" +
-	"\x17createArtifactUploadUrl\x12@.ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest\x1a3.ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl\">¸\x18:\b\t\x10\x1e\"\x03org*/unauthorized to push skill in this organization\x12\xc3\x01\n" +
-	"\x19pushFromExecutionArtifact\x12B.ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest\x1a\".ai.stigmer.agentic.skill.v1.Skill\">¸\x18:\b\t\x10\x1e\"\x03org*/unauthorized to push skill in this organization\x12\xad\x01\n" +
+	"\x17createArtifactUploadUrl\x12@.ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest\x1a3.ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl\">¸\x18:\b\t\x10\x1e\"\x03org*/unauthorized to push skill in this organization\x12\xb7\x01\n" +
+	"\x13pushFromRunArtifact\x12<.ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest\x1a\".ai.stigmer.agentic.skill.v1.Skill\">¸\x18:\b\t\x10\x1e\"\x03org*/unauthorized to push skill in this organization\x12\xad\x01\n" +
 	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a\".ai.stigmer.agentic.skill.v1.Skill\">¸\x18:\b0\x10+\"\vresource_id*'unauthorized to update skill visibility\x12\x81\x01\n" +
 	"\x06delete\x12$.ai.stigmer.agentic.skill.v1.SkillId\x1a\".ai.stigmer.agentic.skill.v1.Skill\"-¸\x18)\b\x03\x10+\"\x05value*\x1cunauthorized to delete skill\x1a\x04\xa0\xff++B\x90\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.skill.v1B\fCommandProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/skill/v1;skillv1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Skill.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Skill\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Skill::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_skill_v1_command_proto_goTypes = []any{
-	(*PushSkillRequest)(nil),                      // 0: ai.stigmer.agentic.skill.v1.PushSkillRequest
-	(*CreateSkillArtifactUploadUrlRequest)(nil),   // 1: ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest
-	(*PushSkillFromExecutionArtifactRequest)(nil), // 2: ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest
-	(*apiresource.UpdateVisibilityInput)(nil),     // 3: ai.stigmer.commons.apiresource.UpdateVisibilityInput
-	(*SkillId)(nil),                               // 4: ai.stigmer.agentic.skill.v1.SkillId
-	(*Skill)(nil),                                 // 5: ai.stigmer.agentic.skill.v1.Skill
-	(*SkillArtifactUploadUrl)(nil),                // 6: ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl
+	(*PushSkillRequest)(nil),                    // 0: ai.stigmer.agentic.skill.v1.PushSkillRequest
+	(*CreateSkillArtifactUploadUrlRequest)(nil), // 1: ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest
+	(*PushSkillFromRunArtifactRequest)(nil),     // 2: ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest
+	(*apiresource.UpdateVisibilityInput)(nil),   // 3: ai.stigmer.commons.apiresource.UpdateVisibilityInput
+	(*SkillId)(nil),                             // 4: ai.stigmer.agentic.skill.v1.SkillId
+	(*Skill)(nil),                               // 5: ai.stigmer.agentic.skill.v1.Skill
+	(*SkillArtifactUploadUrl)(nil),              // 6: ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl
 }
 var file_ai_stigmer_agentic_skill_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.skill.v1.SkillCommandController.push:input_type -> ai.stigmer.agentic.skill.v1.PushSkillRequest
 	1, // 1: ai.stigmer.agentic.skill.v1.SkillCommandController.createArtifactUploadUrl:input_type -> ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest
-	2, // 2: ai.stigmer.agentic.skill.v1.SkillCommandController.pushFromExecutionArtifact:input_type -> ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest
+	2, // 2: ai.stigmer.agentic.skill.v1.SkillCommandController.pushFromRunArtifact:input_type -> ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest
 	3, // 3: ai.stigmer.agentic.skill.v1.SkillCommandController.updateVisibility:input_type -> ai.stigmer.commons.apiresource.UpdateVisibilityInput
 	4, // 4: ai.stigmer.agentic.skill.v1.SkillCommandController.delete:input_type -> ai.stigmer.agentic.skill.v1.SkillId
 	5, // 5: ai.stigmer.agentic.skill.v1.SkillCommandController.push:output_type -> ai.stigmer.agentic.skill.v1.Skill
 	6, // 6: ai.stigmer.agentic.skill.v1.SkillCommandController.createArtifactUploadUrl:output_type -> ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl
-	5, // 7: ai.stigmer.agentic.skill.v1.SkillCommandController.pushFromExecutionArtifact:output_type -> ai.stigmer.agentic.skill.v1.Skill
+	5, // 7: ai.stigmer.agentic.skill.v1.SkillCommandController.pushFromRunArtifact:output_type -> ai.stigmer.agentic.skill.v1.Skill
 	5, // 8: ai.stigmer.agentic.skill.v1.SkillCommandController.updateVisibility:output_type -> ai.stigmer.agentic.skill.v1.Skill
 	5, // 9: ai.stigmer.agentic.skill.v1.SkillCommandController.delete:output_type -> ai.stigmer.agentic.skill.v1.Skill
 	5, // [5:10] is the sub-list for method output_type

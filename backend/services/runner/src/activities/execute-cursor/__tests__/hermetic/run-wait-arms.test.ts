@@ -10,7 +10,7 @@
  * poisoned-handle recovery on a RESUMED agent is `recovery-fresh-agent.test.ts`):
  *
  *  1. A NON-RETRYABLE error (auth class): the classifier files it as
- *     `auth`, neither recovery spine fires, the turn RETURNS EXECUTION_FAILED
+ *     `auth`, neither recovery spine fires, the turn RETURNS RUN_FAILED
  *     with the classified error verbatim, and the agent is PARKED (Phase 13's
  *     terminal parks the handle whatever the phase — a bad key is not a bad
  *     handle). Golden `goldens/run-error-non-retryable.status.json`.
@@ -27,7 +27,7 @@
  *  3. An SDK-SIDE CANCEL: the run is cancelled from outside the runner (no
  *     runner flag set — not a pause, stall, cost cap or denial), the stream
  *     ends, the boundary passes, and `run.wait()` answers `cancelled`. The turn
- *     RETURNS EXECUTION_CANCELLED with no error and no system message, and the
+ *     RETURNS RUN_CANCELLED with no error and no system message, and the
  *     agent is parked. Golden `goldens/run-cancelled.status.json`.
  *
  * All three are RETURN arms: a Temporal retry would re-run the identical
@@ -39,8 +39,8 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -126,10 +126,10 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     // ── Assert: outcome and phases ───────────────────────────────────────────
     expect(invocation.outcome.kind, "a classified failure RETURNS").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_FAILED");
+    expect(slim.phase).toBe("RUN_FAILED");
     expect(record.persistedPhases).toEqual([
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
-      ExecutionPhase.EXECUTION_FAILED,
+      RunPhase.RUN_IN_PROGRESS,
+      RunPhase.RUN_FAILED,
     ]);
     const final = record.lastFullStatus!;
     expect(final.error).toBe(`${AUTH_ERROR} [category=auth, source=sdk, retryable=false]`);
@@ -148,7 +148,7 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     expect(invocation.heartbeats.length).toBeGreaterThan(0);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/run-error-non-retryable.status.json");
   });
 
@@ -199,11 +199,11 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     // ── Assert: outcome ──────────────────────────────────────────────────────
     expect(invocation.outcome.kind, "a recovered turn RETURNS like any completion").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_COMPLETED");
+    expect(slim.phase).toBe("RUN_COMPLETED");
     expect(slim.final_text).toBe(FINAL_TEXT);
     expect(record.persistedPhases).toEqual([
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
-      ExecutionPhase.EXECUTION_COMPLETED,
+      RunPhase.RUN_IN_PROGRESS,
+      RunPhase.RUN_COMPLETED,
     ]);
     const final = record.lastFullStatus!;
     expect(final.error, "the primary failure is superseded by the recovery").toBe("");
@@ -228,7 +228,7 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/recovery-transport-timeout.status.json");
   });
 
@@ -263,10 +263,10 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     // ── Assert: outcome and phases ───────────────────────────────────────────
     expect(invocation.outcome.kind, "a cancelled run RETURNS").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_CANCELLED");
+    expect(slim.phase).toBe("RUN_CANCELLED");
     expect(record.persistedPhases).toEqual([
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
-      ExecutionPhase.EXECUTION_CANCELLED,
+      RunPhase.RUN_IN_PROGRESS,
+      RunPhase.RUN_CANCELLED,
     ]);
     const final = record.lastFullStatus!;
     expect(final.error, "a cancel is not an error").toBe("");
@@ -284,7 +284,7 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/run-cancelled.status.json");
   });
 });

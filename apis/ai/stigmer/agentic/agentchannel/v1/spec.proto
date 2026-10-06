@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.agentchannel.v1;
 
-import "ai/stigmer/agentic/agentexecution/v1/invocation.proto";
+import "ai/stigmer/agentic/agentrun/v1/invocation.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "buf/validate/validate.proto";
@@ -79,7 +79,7 @@ message AgentChannelSpec {
   //
   // This is how a tool-using agent becomes chattable over a channel: bind
   // an org-shared environment holding the needed credentials (for example
-  // a read-only API token), and channel executions receive its values at
+  // a read-only API token), and channel runs receive its values at
   // runtime. The agent itself stays untouched.
   //
   // @internal
@@ -164,7 +164,7 @@ message AgentChannelSpec {
   // message exists to end. Runtime enforcement is cloud-only (the edition's
   // run-lane driver hands these settings to the server's one resolution);
   // OSS has no channel serving runtime and stores/echoes the field.
-  ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8;
+  ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 8;
 }
 
 // SlackChannelConfig selects Slack as the channel provider.

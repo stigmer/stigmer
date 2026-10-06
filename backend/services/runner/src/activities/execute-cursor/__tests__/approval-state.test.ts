@@ -34,13 +34,13 @@ import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
   AgentMessageSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
   ApprovalAction,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 
 import { reconcileDeniedToolCalls } from "../boundary-rows.js";

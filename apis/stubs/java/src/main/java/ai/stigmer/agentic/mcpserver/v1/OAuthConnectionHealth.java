@@ -51,7 +51,7 @@ public enum OAuthConnectionHealth
   /**
    * <pre>
    * The access token is expired but a refresh token is available.
-   * The backend will attempt automatic refresh at execution time.
+   * The backend will attempt automatic refresh at run time.
    * If the refresh token is itself expired, the refresh will fail and
    * the user will need to re-authenticate.
    * </pre>
@@ -108,7 +108,7 @@ public enum OAuthConnectionHealth
   /**
    * <pre>
    * The access token is expired but a refresh token is available.
-   * The backend will attempt automatic refresh at execution time.
+   * The backend will attempt automatic refresh at run time.
    * If the refresh token is itself expired, the refresh will fail and
    * the user will need to re-authenticate.
    * </pre>

@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   useContextWindow,
   type ContextHealth,
@@ -10,10 +10,10 @@ import {
 /** Props for {@link ContextGauge}. */
 export interface ContextGaugeProps {
   /**
-   * The execution snapshot from the active stream, or `null`.
-   * The gauge extracts `context_info` from the execution status.
+   * The run snapshot from the active stream, or `null`.
+   * The gauge extracts `context_info` from the run status.
    */
-  readonly execution: AgentExecution | null;
+  readonly run: AgentRun | null;
 }
 
 const BAR_WIDTH = 20;
@@ -52,10 +52,10 @@ function formatDuration(ms: number): string {
  *
  * @example
  * ```tsx
- * <ContextGauge execution={activeStreamExecution} />
+ * <ContextGauge run={activeStreamRun} />
  * ```
  */
-export function ContextGauge({ execution }: ContextGaugeProps) {
+export function ContextGauge({ run: execution }: ContextGaugeProps) {
   const ctx = useContextWindow(execution);
 
   if (!ctx.hasContextInfo) return null;

@@ -7,9 +7,9 @@
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   collectSettledToolCallIds,
   collectSubAgentToolCallIds,
@@ -198,7 +198,7 @@ describe("withholdSecretContentFromMessages", () => {
 
   it("walks sub-agent transcripts", () => {
     const topMsg = create(AgentMessageSchema, { type: 1, toolCalls: [writeRow("tc-top", "notes.md")] });
-    const sa = create(SubAgentExecutionSchema, {
+    const sa = create(SubAgentRunSchema, {
       id: "sa-1",
       messages: [create(AgentMessageSchema, { type: 1, toolCalls: [writeRow("tc-sa", "credentials.json")] })],
     });
@@ -319,7 +319,7 @@ describe("isToolCallRowHidden", () => {
 
 describe("collectSubAgentToolCallIds", () => {
   function subAgent(id: string, ...toolCallIds: string[]) {
-    return create(SubAgentExecutionSchema, {
+    return create(SubAgentRunSchema, {
       id,
       messages: [
         create(AgentMessageSchema, {
@@ -345,7 +345,7 @@ describe("collectSubAgentToolCallIds", () => {
   });
 
   it("collects ids across multiple messages of one sub-agent", () => {
-    const sa = create(SubAgentExecutionSchema, {
+    const sa = create(SubAgentRunSchema, {
       id: "sa-1",
       messages: [
         create(AgentMessageSchema, { type: 1, toolCalls: [create(ToolCallSchema, { id: "tc-a", name: "edit" })] }),

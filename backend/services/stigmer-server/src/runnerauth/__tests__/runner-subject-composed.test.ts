@@ -55,9 +55,9 @@ import { SignJWT, exportJWK, generateKeyPair } from "jose";
 import type { GenerateKeyPairResult } from "jose";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
-import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
+import { WorkflowRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
@@ -249,13 +249,13 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
 
   async function seedWorkflowExecution(
     id: string,
-    phase: ExecutionPhase,
+    phase: RunPhase,
   ): Promise<void> {
     await server.store.saveResource(
-      ApiResourceKind.workflow_execution,
+      ApiResourceKind.workflow_run,
       id,
-      WorkflowExecutionSchema,
-      create(WorkflowExecutionSchema, {
+      WorkflowRunSchema,
+      create(WorkflowRunSchema, {
         metadata: { id, name: id, org: orgId },
         status: { phase, audit: { specAudit: { createdBy: { id: carolId } } } },
       }),
@@ -299,7 +299,7 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
   it("the run credential the server mints for a live run, presented on the run's own read, is ADMITTED as the person who created it", async () => {
     await seedWorkflowExecution(
       "wex_live",
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
+      RunPhase.RUN_IN_PROGRESS,
     );
     const credential = server.runnerAuthService.mintRunCredential("wex_live");
 
@@ -316,7 +316,7 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
     });
 
     const asRunner = createClient(
-      WorkflowExecutionQueryController,
+      WorkflowRunQueryController,
       transportFor(port, credential),
     );
     const row = await asRunner.get({ value: "wex_live" });
@@ -326,18 +326,18 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
   it("once the run is over, the same credential is UNAUTHENTICATED with the liveness sentence — validity is the row's", async () => {
     await seedWorkflowExecution(
       "wex_done",
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
+      RunPhase.RUN_IN_PROGRESS,
     );
     const credential = server.runnerAuthService.mintRunCredential("wex_done");
     const asRunner = createClient(
-      WorkflowExecutionQueryController,
+      WorkflowRunQueryController,
       transportFor(port, credential),
     );
     expect((await asRunner.get({ value: "wex_done" })).metadata?.id).toBe(
       "wex_done",
     );
 
-    await seedWorkflowExecution("wex_done", ExecutionPhase.EXECUTION_COMPLETED);
+    await seedWorkflowExecution("wex_done", RunPhase.RUN_COMPLETED);
     const failure = await failureOf(asRunner.get({ value: "wex_done" }));
     expect(failure.code).toBe(Code.Unauthenticated);
     expect(failure.rawMessage).toBe(RUNNER_CREDENTIAL_NOT_LIVE_MESSAGE);
@@ -346,15 +346,15 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
   it("a credential bound to one run does not open another — the binding is the capability", async () => {
     await seedWorkflowExecution(
       "wex_mine",
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
+      RunPhase.RUN_IN_PROGRESS,
     );
     await seedWorkflowExecution(
       "wex_other",
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
+      RunPhase.RUN_IN_PROGRESS,
     );
     const credential = server.runnerAuthService.mintRunCredential("wex_mine");
     const asRunner = createClient(
-      WorkflowExecutionQueryController,
+      WorkflowRunQueryController,
       transportFor(port, credential),
     );
     // Admitted as Carol, who created both rows — so the read of the OTHER
@@ -382,7 +382,7 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
       expect((await bruce.provisionMyAccount({})).metadata?.id).not.toBe("");
       await seedWorkflowExecution(
         "wex_carols",
-        ExecutionPhase.EXECUTION_IN_PROGRESS,
+        RunPhase.RUN_IN_PROGRESS,
       );
     });
 
@@ -393,7 +393,7 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
       );
       const failure = await failureOf(
         platform.getRunnerScopedToken({
-          scope: { case: "workflowExecutionId", value: "wex_carols" },
+          scope: { case: "workflowRunId", value: "wex_carols" },
         }),
       );
       expect(failure.code).toBe(Code.PermissionDenied);
@@ -409,7 +409,7 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
         ),
       );
       const minted = await platform.getRunnerScopedToken({
-        scope: { case: "workflowExecutionId", value: "wex_carols" },
+        scope: { case: "workflowRunId", value: "wex_carols" },
       });
       expect(minted.runnerScopedToken).not.toBe("");
       expect(minted.tokenType).toBe("Bearer");
@@ -435,12 +435,12 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
       );
       const failure = await failureOf(
         platform.getRunnerScopedToken({
-          scope: { case: "workflowExecutionId", value: "wex_nowhere" },
+          scope: { case: "workflowRunId", value: "wex_nowhere" },
         }),
       );
       expect(failure.code).toBe(Code.NotFound);
       expect(failure.rawMessage).toBe(
-        "WorkflowExecution not found: wex_nowhere",
+        "WorkflowRun not found: wex_nowhere",
       );
     });
   });

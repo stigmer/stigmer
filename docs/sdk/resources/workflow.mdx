@@ -74,7 +74,7 @@ Workflow workflow = client.workflows().get("wfl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`apply`](#apply) | Create or update a workflow. |
 | [`create`](#create) | Create a workflow. |
 | [`update`](#update) | Update an existing workflow. |
-| [`updateExecutionVisibility`](#updateexecutionvisibility) | Update who can observe the runs (executions) of this workflow. |
+| [`updateRunVisibility`](#updaterunvisibility) | Update who can observe the runs of this workflow. |
 | [`updateVisibility`](#updatevisibility) | Update the visibility of an existing workflow. |
 | [`delete`](#delete) | Delete a workflow. |
 | [`tagVersion`](#tagversion) | Assign or move a tag to a specific workflow version. |
@@ -207,7 +207,7 @@ GetTaskKindRegistryResponse getTaskKindRegistryResponse = client.workflows().get
 
 Get a specific historical version of a workflow by its content hash.
 
-Used by the runner (to hydrate execution from a pinned version) and the execution viewer (to render the graph for historical executions).
+Used by the runner (to hydrate a run from a pinned version) and the run viewer (to render the graph for historical runs).
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -318,23 +318,23 @@ const workflow = await stigmer.workflow.apply({
   tasks: [],
   env: {},
   budget: {},
-  executionVisibility: "...",
+  runVisibility: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 workflow, err := client.Workflow.Apply(ctx, &stigmer.WorkflowInput{
-  Name:                "my-workflow",
-  Org:                 "acme",
-  Slug:                "...",
-  Labels:              map[string]string{},
-  Description:         "...",
-  Document:            &stigmer.WorkflowDocumentInput{},
-  Tasks:               []stigmer.WorkflowTaskInput{},
-  Env:                 map[string]string{},
-  Budget:              &stigmer.WorkflowBudgetInput{},
-  ExecutionVisibility: "...",
+  Name:          "my-workflow",
+  Org:           "acme",
+  Slug:          "...",
+  Labels:        map[string]string{},
+  Description:   "...",
+  Document:      &stigmer.WorkflowDocumentInput{},
+  Tasks:         []stigmer.WorkflowTaskInput{},
+  Env:           map[string]string{},
+  Budget:        &stigmer.WorkflowBudgetInput{},
+  RunVisibility: "...",
 })
 ```
 </Tab>
@@ -350,7 +350,7 @@ workflow = client.workflows.apply(WorkflowInput(
     tasks=[],
     env={},
     budget=None,
-    execution_visibility="...",
+    run_visibility="...",
 ))
 ```
 </Tab>
@@ -366,7 +366,7 @@ Workflow workflow = client.workflows().apply(WorkflowInput.builder()
     .tasks(List.of())
     .env(Map.of())
     .budget(null)
-    .executionVisibility("...")
+    .runVisibility("...")
     .build());
 ```
 </Tab>
@@ -393,23 +393,23 @@ const workflow = await stigmer.workflow.create({
   tasks: [],
   env: {},
   budget: {},
-  executionVisibility: "...",
+  runVisibility: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 workflow, err := client.Workflow.Create(ctx, &stigmer.WorkflowInput{
-  Name:                "my-workflow",
-  Org:                 "acme",
-  Slug:                "...",
-  Labels:              map[string]string{},
-  Description:         "...",
-  Document:            &stigmer.WorkflowDocumentInput{},
-  Tasks:               []stigmer.WorkflowTaskInput{},
-  Env:                 map[string]string{},
-  Budget:              &stigmer.WorkflowBudgetInput{},
-  ExecutionVisibility: "...",
+  Name:          "my-workflow",
+  Org:           "acme",
+  Slug:          "...",
+  Labels:        map[string]string{},
+  Description:   "...",
+  Document:      &stigmer.WorkflowDocumentInput{},
+  Tasks:         []stigmer.WorkflowTaskInput{},
+  Env:           map[string]string{},
+  Budget:        &stigmer.WorkflowBudgetInput{},
+  RunVisibility: "...",
 })
 ```
 </Tab>
@@ -425,7 +425,7 @@ workflow = client.workflows.create(WorkflowInput(
     tasks=[],
     env={},
     budget=None,
-    execution_visibility="...",
+    run_visibility="...",
 ))
 ```
 </Tab>
@@ -441,7 +441,7 @@ Workflow workflow = client.workflows().create(WorkflowInput.builder()
     .tasks(List.of())
     .env(Map.of())
     .budget(null)
-    .executionVisibility("...")
+    .runVisibility("...")
     .build());
 ```
 </Tab>
@@ -468,23 +468,23 @@ const workflow = await stigmer.workflow.update({
   tasks: [],
   env: {},
   budget: {},
-  executionVisibility: "...",
+  runVisibility: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 workflow, err := client.Workflow.Update(ctx, &stigmer.WorkflowInput{
-  Name:                "my-workflow",
-  Org:                 "acme",
-  Slug:                "...",
-  Labels:              map[string]string{},
-  Description:         "...",
-  Document:            &stigmer.WorkflowDocumentInput{},
-  Tasks:               []stigmer.WorkflowTaskInput{},
-  Env:                 map[string]string{},
-  Budget:              &stigmer.WorkflowBudgetInput{},
-  ExecutionVisibility: "...",
+  Name:          "my-workflow",
+  Org:           "acme",
+  Slug:          "...",
+  Labels:        map[string]string{},
+  Description:   "...",
+  Document:      &stigmer.WorkflowDocumentInput{},
+  Tasks:         []stigmer.WorkflowTaskInput{},
+  Env:           map[string]string{},
+  Budget:        &stigmer.WorkflowBudgetInput{},
+  RunVisibility: "...",
 })
 ```
 </Tab>
@@ -500,7 +500,7 @@ workflow = client.workflows.update(WorkflowInput(
     tasks=[],
     env={},
     budget=None,
-    execution_visibility="...",
+    run_visibility="...",
 ))
 ```
 </Tab>
@@ -516,7 +516,7 @@ Workflow workflow = client.workflows().update(WorkflowInput.builder()
     .tasks(List.of())
     .env(Map.of())
     .budget(null)
-    .executionVisibility("...")
+    .runVisibility("...")
     .build());
 ```
 </Tab>
@@ -526,50 +526,50 @@ Workflow workflow = client.workflows().update(WorkflowInput.builder()
 
 **Returns**: [`Workflow`](#workflow)
 
-### updateExecutionVisibility
+### updateRunVisibility
 
-Update who can observe the runs (executions) of this workflow.
+Update who can observe the runs of this workflow.
 
-This is a SEPARATE axis from updateVisibility: it controls run observability (who sees execution inputs and outputs), not who can see or run the workflow itself. Making a workflow org-runnable does NOT expose other people's runs; that requires this opt-in. The setting covers every run of the workflow, past runs included.
+This is a SEPARATE axis from updateVisibility: it controls run observability (who sees run inputs and outputs), not who can see or run the workflow itself. Making a workflow org-runnable does NOT expose other people's runs; that requires this opt-in. The setting covers every run of the workflow, past runs included.
 
 Supported levels: PRIVATE (only the person who started each run) and ORGANIZATION (all org members). Platform is unsupported.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const workflow = await stigmer.workflow.updateExecutionVisibility({
+const workflow = await stigmer.workflow.updateRunVisibility({
   resourceId: "...",
-  executionVisibility: "...",
+  runVisibility: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
-workflow, err := client.Workflow.UpdateExecutionVisibility(ctx, &stigmer.UpdateWorkflowExecutionVisibilityInput{
-  ResourceId:          "...",
-  ExecutionVisibility: "...",
+workflow, err := client.Workflow.UpdateRunVisibility(ctx, &stigmer.UpdateWorkflowRunVisibilityInput{
+  ResourceId:    "...",
+  RunVisibility: "...",
 })
 ```
 </Tab>
 <Tab value="Python">
 ```python
-workflow = client.workflows.update_execution_visibility(UpdateWorkflowExecutionVisibilityInput(
+workflow = client.workflows.update_run_visibility(UpdateWorkflowRunVisibilityInput(
     resource_id="...",
-    execution_visibility="...",
+    run_visibility="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Workflow workflow = client.workflows().updateExecutionVisibility(UpdateWorkflowExecutionVisibilityInput.builder()
+Workflow workflow = client.workflows().updateRunVisibility(UpdateWorkflowRunVisibilityInput.builder()
     .resourceId("...")
-    .executionVisibility("...")
+    .runVisibility("...")
     .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`UpdateWorkflowExecutionVisibilityInput`](#updateworkflowexecutionvisibilityinput)
+**Parameters**: [`UpdateWorkflowRunVisibilityInput`](#updateworkflowrunvisibilityinput)
 
 **Returns**: [`Workflow`](#workflow)
 
@@ -727,23 +727,23 @@ const serverlessWorkflowValidation = await stigmer.workflow.validateSpec({
   tasks: [],
   env: {},
   budget: {},
-  executionVisibility: "...",
+  runVisibility: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 serverlessWorkflowValidation, err := client.Workflow.ValidateSpec(ctx, &stigmer.WorkflowInput{
-  Name:                "my-workflow",
-  Org:                 "acme",
-  Slug:                "...",
-  Labels:              map[string]string{},
-  Description:         "...",
-  Document:            &stigmer.WorkflowDocumentInput{},
-  Tasks:               []stigmer.WorkflowTaskInput{},
-  Env:                 map[string]string{},
-  Budget:              &stigmer.WorkflowBudgetInput{},
-  ExecutionVisibility: "...",
+  Name:          "my-workflow",
+  Org:           "acme",
+  Slug:          "...",
+  Labels:        map[string]string{},
+  Description:   "...",
+  Document:      &stigmer.WorkflowDocumentInput{},
+  Tasks:         []stigmer.WorkflowTaskInput{},
+  Env:           map[string]string{},
+  Budget:        &stigmer.WorkflowBudgetInput{},
+  RunVisibility: "...",
 })
 ```
 </Tab>
@@ -759,7 +759,7 @@ serverless_workflow_validation = client.workflows.validate_spec(WorkflowInput(
     tasks=[],
     env={},
     budget=None,
-    execution_visibility="...",
+    run_visibility="...",
 ))
 ```
 </Tab>
@@ -775,7 +775,7 @@ Workflow serverlessWorkflowValidation = client.workflows().validateSpec(Workflow
     .tasks(List.of())
     .env(Map.of())
     .budget(null)
-    .executionVisibility("...")
+    .runVisibility("...")
     .build());
 ```
 </Tab>
@@ -801,8 +801,8 @@ Input for creating or updating a Workflow.
     document: { type: "WorkflowDocumentInput", description: "Workflow document metadata including DSL version, namespace, name, and version.", typeDescriptionLink: "#workflowdocumentinput", required: true },
     tasks: { type: "WorkflowTaskInput[]", description: "Ordered list of tasks that make up this workflow.", typeDescriptionLink: "#workflowtaskinput" },
     env: { type: "Record<string, EnvVarDeclarationInput>", description: "Environment variable declarations for this workflow.", typeDescriptionLink: "#envvardeclarationinput" },
-    budget: { type: "WorkflowBudgetInput", description: "Budget limits for this workflow execution.", typeDescriptionLink: "#workflowbudgetinput" },
-    executionVisibility: { type: "WorkflowExecutionVisibility", description: "Who can observe the runs (executions) of this workflow.", typeDescriptionLink: "#workflowexecutionvisibility" },
+    budget: { type: "WorkflowBudgetInput", description: "Budget limits for this workflow run.", typeDescriptionLink: "#workflowbudgetinput" },
+    runVisibility: { type: "WorkflowRunVisibility", description: "Who can observe the runs of this workflow.", typeDescriptionLink: "#workflowrunvisibility" },
   }}
 />
 
@@ -869,13 +869,13 @@ EnvVarDeclaration declares an environment variable required (or optionally accep
 
 ### WorkflowBudgetInput
 
-WorkflowBudget declares cost, token, and duration limits for a workflow execution.
+WorkflowBudget declares cost, token, and duration limits for a workflow run.
 
 <TypeTable
   type={{
-    maxCostMicros: { type: "number", description: "Maximum total cost for this workflow execution in micro-USD." },
+    maxCostMicros: { type: "number", description: "Maximum total cost for this workflow run in micro-USD." },
     maxTotalTokens: { type: "number", description: "Maximum total tokens (input + output) across all LLM/agent tasks." },
-    maxDurationSeconds: { type: "number", description: "Maximum wall-clock duration for the entire workflow execution in seconds." },
+    maxDurationSeconds: { type: "number", description: "Maximum wall-clock duration for the entire workflow run in seconds." },
     onExceeded: { type: "BudgetExceededPolicy", description: "Policy when any budget limit is exceeded.", typeDescriptionLink: "#budgetexceededpolicy" },
   }}
 />
@@ -891,14 +891,14 @@ Input for updating the visibility of any API resource.
   }}
 />
 
-### UpdateWorkflowExecutionVisibilityInput
+### UpdateWorkflowRunVisibilityInput
 
-UpdateWorkflowExecutionVisibilityInput targets the run-observability setting of a single workflow.
+UpdateWorkflowRunVisibilityInput targets the run-observability setting of a single workflow.
 
 <TypeTable
   type={{
-    resourceId: { type: "string", description: "ID of the workflow whose execution visibility is being updated.", required: true },
-    executionVisibility: { type: "WorkflowExecutionVisibility", description: "The new execution-visibility setting.", typeDescriptionLink: "#workflowexecutionvisibility" },
+    resourceId: { type: "string", description: "ID of the workflow whose run visibility is being updated.", required: true },
+    runVisibility: { type: "WorkflowRunVisibility", description: "The new run-visibility setting.", typeDescriptionLink: "#workflowrunvisibility" },
   }}
 />
 
@@ -1050,14 +1050,14 @@ ServerlessWorkflowValidation contains the generated Serverless Workflow YAML and
   }}
 />
 
-### WorkflowExecutionVisibility
+### WorkflowRunVisibility
 
-WorkflowExecutionVisibility controls who can observe the runs (executions) of a workflow.
+WorkflowRunVisibility controls who can observe the runs of a workflow.
 
 | Value | Description |
 |-------|-------------|
-| `workflow_execution_visibility_private` | Each execution is visible only to the user who triggered it (its owner). |
-| `workflow_execution_visibility_organization` | Every member of the owning organization can observe all executions of this workflow. |
+| `workflow_run_visibility_private` | Each run is visible only to the user who triggered it (its owner). |
+| `workflow_run_visibility_organization` | Every member of the owning organization can observe all runs of this workflow. |
 
 ### ValidationState
 
@@ -1103,7 +1103,7 @@ BudgetExceededPolicy defines the runtime behavior when a workflow or per-task bu
 
 | Value | Description |
 |-------|-------------|
-| `budget_exceeded_terminate` | Terminate the workflow immediately with EXECUTION_FAILED status. |
+| `budget_exceeded_terminate` | Terminate the workflow immediately with RUN_FAILED status. |
 | `budget_exceeded_human_review` | Pause the workflow and request human review via a system-generated approval gate. |
 | `budget_exceeded_warn` | Log a warning but allow the workflow to continue executing. |
 

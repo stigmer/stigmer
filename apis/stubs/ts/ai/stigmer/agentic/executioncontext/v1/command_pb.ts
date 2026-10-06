@@ -34,7 +34,7 @@ export const ExecutionContextCommandController: GenService<{
     output: typeof ExecutionContextSchema;
   },
   /**
-   * Create a new ExecutionContext for an execution.
+   * Create a new ExecutionContext for a run.
    *
    * @generated from rpc ai.stigmer.agentic.executioncontext.v1.ExecutionContextCommandController.create
    */

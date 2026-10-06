@@ -36,19 +36,19 @@ import { join } from "node:path";
 import {
   AgentMessageSchema,
   ToolCallSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
 import type {
   AgentMessage,
   ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
   MessageType,
   ToolCallStatus,
   ApprovalAction,
   ApprovalPolicySource,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
 
 import {
   resetDenialLedger,
@@ -1779,7 +1779,7 @@ describe("watchDenialLedger", () => {
 // structured "denied by hook" signal, so the only stream trace is Cursor's
 // generic hook-block error text on the FAILED call. The detector matches this
 // turn's hook-blocked FAILED rows against the FULL ledger (all kinds) and
-// reports the leftovers — which the activity surfaces as EXECUTION_FAILED
+// reports the leftovers — which the activity surfaces as RUN_FAILED
 // instead of the silent completion the issue describes. These pin the whole
 // attribution matrix.
 describe("detectUnattributedHookBlocks (issue #205)", () => {
@@ -1987,7 +1987,7 @@ describe("stampUnattendedSkippedToolCalls", () => {
       id: "u3", name: "shell", status: ToolCallStatus.TOOL_CALL_PENDING,
       args: { command: "make" },
     });
-    const subAgents = [create(SubAgentExecutionSchema, { messages: [aiMessageWith([subRow])] })];
+    const subAgents = [create(SubAgentRunSchema, { messages: [aiMessageWith([subRow])] })];
 
     const stamped = stampUnattendedSkippedToolCalls(
       [aiMessageWith([parentRow])],

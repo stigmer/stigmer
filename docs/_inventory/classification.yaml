@@ -150,7 +150,7 @@ pages:
     diataxis: explanation
     teaches:
       An Agent is a secret-free, versioned YAML blueprint that a Session names
-      directly and each Execution runs.
+      directly and each Agent Run runs.
     medium: still
     why:
       The prose says "here's how this Agent looks in the console" — one frame
@@ -176,7 +176,7 @@ pages:
       every message, locks a Harness, and can override Skills and tools.
     medium: diagram
     why:
-      The lifecycle (Agent to Session to Executions) is structure; the existing
+      The lifecycle (Agent to Session to Agent Runs) is structure; the existing
       mermaid carries it.
 
   concepts/approval-flows:
@@ -474,11 +474,11 @@ pages:
       Each pattern is a flow shape; the per-pattern mermaid is the fastest way
       to recognize which one you need.
 
-  guides/workflows/execution:
+  guides/workflows/runs:
     fate: keep
     diataxis: how-to
     teaches:
-      The runtime side — creating executions, phase vocabulary, subscribing,
+      The runtime side — creating runs, phase vocabulary, subscribing,
       answering gates and signals, cancel and recover.
     medium: diagram
     why:
@@ -520,7 +520,7 @@ pages:
       task queue and what happens when none is polling.
     medium: diagram
     why:
-      The runner's place at the end of the Agent, Session, Execution chain is
+      The runner's place at the end of the Agent, Session, Agent Run chain is
       structure; the existing mermaid carries it.
 
   guides/runners/overview:
@@ -714,7 +714,7 @@ pages:
     diataxis: explanation
     teaches:
       Stigmer Cloud's prepaid credit model — how a call is priced, how
-      executions reserve and release credits, and what reduces spend.
+      runs reserve and release credits, and what reduces spend.
     medium: none
     why:
       Split because one page mixes the credit-model explanation with
@@ -857,7 +857,7 @@ pages:
     diataxis: how-to
     teaches:
       Consume subscribe snapshot streams in production — terminal phases,
-      transport vs execution failures, cancellation.
+      transport vs run failures, cancellation.
     medium: none
 
   sdk/typescript:

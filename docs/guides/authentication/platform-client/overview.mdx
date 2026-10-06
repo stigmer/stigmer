@@ -236,25 +236,24 @@ updates names the PlatformClient on its audit, beside the shared account.
 
 An embedded assistant often calls MCP servers that need a credential of your
 own, such as a shared API secret. Put that credential in an Environment and list
-the Environment in the PlatformClient's `environment_refs`. Every Agent
-execution a user signed in through that PlatformClient starts then receives the
-Environment's values, and so does a recovery of that execution. The Agent stays
-as it is.
+the Environment in the PlatformClient's `environment_refs`. Every Agent Run a
+user signed in through that PlatformClient starts then receives the
+Environment's values, and so does a recovery of that run. The Agent stays as it
+is.
 
 - **Lowest priority.** The values the request passes at run time win on a
   conflicting key, so a PlatformClient supplies defaults. Keys it leaves empty
   are filled from the signed-in user's own connections and personal Environment,
   as for any run.
 - **Same Organization.** The Environments must belong to the PlatformClient's
-  Organization, and they are delivered only to executions in that Organization.
-- **Kept up to date.** Stigmer reads the PlatformClient when each execution
-  starts, so an edit applies to the next execution.
-- **Kept valid.** If a listed Environment is deleted, executions fail to start
-  with `NOT_FOUND` until you remove it from `environment_refs` or create it
-  again.
+  Organization, and they are delivered only to runs in that Organization.
+- **Kept up to date.** Stigmer reads the PlatformClient when each run starts, so
+  an edit applies to the next run.
+- **Kept valid.** If a listed Environment is deleted, runs fail to start with
+  `NOT_FOUND` until you remove it from `environment_refs` or create it again.
 
-Executions started by a Schedule or by a Workflow's `agent_call` task receive
-their own Environments, not the PlatformClient's.
+Runs started by a Schedule or by a Workflow's `agent_call` task receive their
+own Environments, not the PlatformClient's.
 
 ## Error handling
 

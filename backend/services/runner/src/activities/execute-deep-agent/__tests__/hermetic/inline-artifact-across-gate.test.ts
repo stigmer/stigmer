@@ -7,7 +7,7 @@
  * Turn 1: the model writes a report (`write_file`; under capture mode in a
  * non-git session workspace the write FLOWS into the CAS ledger), and
  * `streaming-side-effects.ts` hands the path to `InlinePublisher`, which
- * uploads the bytes to artifact storage and appends an `ExecutionArtifact`
+ * uploads the bytes to artifact storage and appends an `RunArtifact`
  * (`storageKey = artifacts/<executionId>/<name>`, a content hash, the
  * scripted clock) to the status — a mid-turn publish the Cursor harness never
  * performs. The model then proposes a gated `execute`; WAITING_FOR_APPROVAL.
@@ -70,14 +70,14 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
 import {
-  AgentExecutionStatusSchema,
-  type AgentExecutionStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunStatusSchema,
+  type AgentRunStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   ApprovalAction,
-  ExecutionPhase,
+  RunPhase,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -106,8 +106,8 @@ const REPORT_BODY = "# Report\n\nAll fixtures nominal.\n";
 const WRITE_CALL_ID = "call-hermetic-write-0001";
 const DECIDED_AT = "2026-01-01T00:00:30.000Z";
 
-function statusJson(status: AgentExecutionStatus): string {
-  return JSON.stringify(toJson(AgentExecutionStatusSchema, status), null, 2) + "\n";
+function statusJson(status: AgentRunStatus): string {
+  return JSON.stringify(toJson(AgentRunStatusSchema, status), null, 2) + "\n";
 }
 
 describe("ExecuteDeepAgent hermetic — inline artifact across a gate (sqlite)", () => {
@@ -151,7 +151,7 @@ describe("ExecuteDeepAgent hermetic — inline artifact across a gate (sqlite)",
     // ── Turn 1 ───────────────────────────────────────────────────────────────
     const turn1 = await runDeepAgentTurn(scenario, { turnSeq: 0 });
     expect(turn1.outcome.kind).toBe("returned");
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
     const run1 = record.lastFullStatus!;
     expect(run1.artifacts.map((a) => [a.name, a.storageKey])).toEqual([
       [REPORT, `artifacts/${FIXTURE.executionId}/${REPORT}`],
@@ -173,7 +173,7 @@ describe("ExecuteDeepAgent hermetic — inline artifact across a gate (sqlite)",
     const turn2Keys = uploads.mock.calls.map(([key]) => key);
     uploads.mockRestore();
     expect(turn2.outcome.kind).toBe("returned");
-    expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
+    expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
     const final = record.lastFullStatus!;
     expect(final.artifacts.map((a) => [a.name, a.storageKey, a.contentHash]), "the seed carried the artifact").toEqual(
       run1.artifacts.map((a) => [a.name, a.storageKey, a.contentHash]),

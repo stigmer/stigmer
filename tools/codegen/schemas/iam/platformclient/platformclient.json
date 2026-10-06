@@ -79,7 +79,7 @@
           "messageType": "ApiResourceReference"
         }
       },
-      "description": "Environments whose values are delivered to every agent execution a\n user signed in through this PlatformClient creates. This is how an\n embedded assistant reaches secret-gated MCP servers: the client — the\n connection resource — carries the credentials (for example a shared\n API secret), and minted-user executions receive its values at\n runtime, at the lowest priority, so the request's runtime values win on\n a key conflict. The agent stays untouched.",
+      "description": "Environments whose values are delivered to every agent run a\n user signed in through this PlatformClient creates. This is how an\n embedded assistant reaches secret-gated MCP servers: the client — the\n connection resource — carries the credentials (for example a shared\n API secret), and minted-user runs receive its values at\n runtime, at the lowest priority, so the request's runtime values win on\n a key conflict. The agent stays untouched.",
       "required": false,
       "referenceKind": 53
     },

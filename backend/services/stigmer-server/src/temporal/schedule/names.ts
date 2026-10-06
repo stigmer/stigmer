@@ -93,8 +93,11 @@ export const RUN_SKIPPED = "SKIPPED" satisfies RunOutcome;
 export const RUN_TARGET_MISSING = "TARGET_MISSING" satisfies RunOutcome;
 export const RUN_REFUSED = "REFUSED" satisfies RunOutcome;
 
-/** The tracked execution's observed phase class (Go RunPhase). */
-export type RunPhase =
+/**
+ * The tracked run's observed phase class (Go RunPhase). Named apart from the
+ * contract's RunPhase, which it classifies.
+ */
+export type ObservedRunPhase =
   | "RUNNING"
   | "COMPLETED"
   | "FAILED"
@@ -102,12 +105,12 @@ export type RunPhase =
   | "TERMINATED"
   | "GONE";
 
-export const PHASE_RUNNING = "RUNNING" satisfies RunPhase;
-export const PHASE_COMPLETED = "COMPLETED" satisfies RunPhase;
-export const PHASE_FAILED = "FAILED" satisfies RunPhase;
-export const PHASE_CANCELLED = "CANCELLED" satisfies RunPhase;
-export const PHASE_TERMINATED = "TERMINATED" satisfies RunPhase;
-export const PHASE_GONE = "GONE" satisfies RunPhase;
+export const PHASE_RUNNING = "RUNNING" satisfies ObservedRunPhase;
+export const PHASE_COMPLETED = "COMPLETED" satisfies ObservedRunPhase;
+export const PHASE_FAILED = "FAILED" satisfies ObservedRunPhase;
+export const PHASE_CANCELLED = "CANCELLED" satisfies ObservedRunPhase;
+export const PHASE_TERMINATED = "TERMINATED" satisfies ObservedRunPhase;
+export const PHASE_GONE = "GONE" satisfies ObservedRunPhase;
 
 /** Which path fed the streak, for the log line (Go FailureKind). */
 export type FailureKind = "START_FAILED" | "RUN_FAILED" | "RUN_TIMED_OUT";
@@ -156,7 +159,7 @@ export interface ScheduleTickActivities {
   ) => Promise<RunStart>;
   [POLL_EXECUTION_PHASE_ACTIVITY_NAME]: (
     executionId: string,
-  ) => Promise<RunPhase>;
+  ) => Promise<ObservedRunPhase>;
   [RECORD_SUCCESSFUL_RUN_ACTIVITY_NAME]: (
     scheduleResourceId: string,
   ) => Promise<void>;

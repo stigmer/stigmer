@@ -76,7 +76,7 @@ Each section of the Workflow definition serves a purpose:
 | ---------- | ------------------------------------------------------------------------------------------------- |
 | `document` | Workflow metadata — DSL version, namespace, name, and version (semver)                            |
 | `env`      | Environment variable declarations the Workflow needs at runtime                                   |
-| `budget`   | Cost, token, and duration limits for the entire execution                                         |
+| `budget`   | Cost, token, and duration limits for the entire run                                               |
 | `tasks`    | Ordered list of steps — each with a `kind`, `task_config`, optional `export`, and optional `flow` |
 
 ## Blueprint vs. runtime
@@ -84,26 +84,26 @@ Each section of the Workflow definition serves a purpose:
 Like Agents, a Workflow definition is a **blueprint**. It contains no secrets,
 no environment-specific values, and no runtime state.
 
-You run the Workflow itself. Each run is a **Workflow Execution**:
+You run the Workflow itself. Each run is a **Workflow Run**:
 
 {/* prettier-ignore */}
 <Mermaid
   chart={`
 graph LR
-  W["Workflow<br/>(blueprint)"] --> WE["Workflow Execution<br/>(single run)"]
+  W["Workflow<br/>(blueprint)"] --> WE["Workflow Run"]
 `}
 />
 
-| Resource               | What it represents                                    | Analogy           |
-| ---------------------- | ----------------------------------------------------- | ----------------- |
-| **Workflow**           | The definition — tasks, flow, budgets                 | A recipe          |
-| **Workflow Execution** | One run of the Workflow, at the version it started on | Cooking one batch |
+| Resource         | What it represents                                    | Analogy           |
+| ---------------- | ----------------------------------------------------- | ----------------- |
+| **Workflow**     | The definition — tasks, flow, budgets                 | A recipe          |
+| **Workflow Run** | One run of the Workflow, at the version it started on | Cooking one batch |
 
 Start a run from the console, with `stigmer run workflow <name>`, with the MCP
-server's `run_workflow` tool, or from an SDK by creating a Workflow Execution
-whose `spec.workflow_id` names the Workflow. Then
-[subscribe](/docs/sdk/streaming#subscribe-to-a-workflow-execution) to track
-progress task by task.
+server's `run_workflow` tool, or from an SDK by creating a Workflow Run whose
+`spec.workflow_id` names the Workflow. Then
+[subscribe](/docs/sdk/streaming#subscribe-to-a-workflow-run) to track progress
+task by task.
 
 ## Versions
 
@@ -169,10 +169,10 @@ visibility setting does:
 
 The setting covers every run of the Workflow, past runs included. Only the
 Workflow's owner can change it, on the Workflow's page in the console or with
-the `updateExecutionVisibility` call on the Workflow. People who can edit the
-Workflow cannot change it, and saving or applying the Workflow keeps the stored
-setting. When a Workflow's runs are visible to the Organization, the run form
-says so before you start a run.
+the `updateRunVisibility` call on the Workflow. People who can edit the Workflow
+cannot change it, and saving or applying the Workflow keeps the stored setting.
+When a Workflow's runs are visible to the Organization, the run form says so
+before you start a run.
 
 ## Tasks
 
@@ -317,8 +317,8 @@ explicit routing.
     href="/docs/guides/workflows/task-types"
   />
   <Card
-    title="Workflow Execution"
-    description="SDK and CLI reference for running, monitoring, and interacting with executions."
-    href="/docs/guides/workflows/execution"
+    title="Workflow Runs"
+    description="SDK and CLI reference for running, monitoring, and interacting with runs."
+    href="/docs/guides/workflows/runs"
   />
 </Cards>

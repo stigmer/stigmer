@@ -7,7 +7,7 @@ vi.mock("../useWorkflowArchitectFlow", () => ({
   useWorkflowArchitectFlow: vi.fn(),
 }));
 
-vi.mock("../../execution/MessageThread", () => ({
+vi.mock("../../run/MessageThread", () => ({
   MessageThread: () => <div data-testid="message-thread" />,
 }));
 
@@ -17,7 +17,7 @@ const defaultFlow = {
   prompt: "",
   setPrompt: vi.fn(),
   phase: "idle" as const,
-  execution: null,
+  run: null,
   isStreaming: false,
   extractedYaml: null,
   explanation: null,
@@ -75,7 +75,7 @@ describe("WorkflowArchitectDialog", () => {
       ...defaultFlow,
       phase: "streaming",
       isStreaming: true,
-      execution: { id: "exec-1" } as any,
+      run: { id: "exec-1" } as any,
     } as ReturnType<typeof useWorkflowArchitectFlow>);
 
     render(<WorkflowArchitectDialog {...defaultProps} />);

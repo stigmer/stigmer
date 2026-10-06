@@ -8,8 +8,8 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 /**
  * <pre>
  * SignalDelivery routes the CloudEvents envelope to another workflow
- * execution as a signal, completing the emit/listen pairing: the target
- * execution receives the envelope on the listen task whose signal id
+ * run as a signal, completing the emit/listen pairing: the target
+ * run receives the envelope on the listen task whose signal id
  * matches signal_name.
  * </pre>
  *
@@ -35,7 +35,7 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private SignalDelivery() {
-    executionId_ = "";
+    runId_ = "";
     signalName_ = "";
   }
 
@@ -57,51 +57,51 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery.class, ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery.Builder.class);
   }
 
-  public static final int EXECUTION_ID_FIELD_NUMBER = 1;
+  public static final int RUN_ID_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object executionId_ = "";
+  private volatile java.lang.Object runId_ = "";
   /**
    * <pre>
-   * Target workflow execution id ("wfx_..."), as returned by run/create.
+   * Target workflow run id ("wex_..."), as returned by run/create.
    * Usually flows from a prior task's output:
-   * "${ .start_processor.execution_id }"
+   * "${ .start_processor.run_id }"
    * </pre>
    *
-   * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
-   * @return The executionId.
+   * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
+   * @return The runId.
    */
   @java.lang.Override
-  public java.lang.String getExecutionId() {
-    java.lang.Object ref = executionId_;
+  public java.lang.String getRunId() {
+    java.lang.Object ref = runId_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      executionId_ = s;
+      runId_ = s;
       return s;
     }
   }
   /**
    * <pre>
-   * Target workflow execution id ("wfx_..."), as returned by run/create.
+   * Target workflow run id ("wex_..."), as returned by run/create.
    * Usually flows from a prior task's output:
-   * "${ .start_processor.execution_id }"
+   * "${ .start_processor.run_id }"
    * </pre>
    *
-   * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for executionId.
+   * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for runId.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getExecutionIdBytes() {
-    java.lang.Object ref = executionId_;
+      getRunIdBytes() {
+    java.lang.Object ref = runId_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      executionId_ = b;
+      runId_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -169,8 +169,8 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(executionId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 1, executionId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 1, runId_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(signalName_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, signalName_);
@@ -184,8 +184,8 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(executionId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, executionId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, runId_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(signalName_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, signalName_);
@@ -205,8 +205,8 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery other = (ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery) obj;
 
-    if (!getExecutionId()
-        .equals(other.getExecutionId())) return false;
+    if (!getRunId()
+        .equals(other.getRunId())) return false;
     if (!getSignalName()
         .equals(other.getSignalName())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -220,8 +220,8 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + EXECUTION_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getExecutionId().hashCode();
+    hash = (37 * hash) + RUN_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getRunId().hashCode();
     hash = (37 * hash) + SIGNAL_NAME_FIELD_NUMBER;
     hash = (53 * hash) + getSignalName().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
@@ -324,8 +324,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * SignalDelivery routes the CloudEvents envelope to another workflow
-   * execution as a signal, completing the emit/listen pairing: the target
-   * execution receives the envelope on the listen task whose signal id
+   * run as a signal, completing the emit/listen pairing: the target
+   * run receives the envelope on the listen task whose signal id
    * matches signal_name.
    * </pre>
    *
@@ -362,7 +362,7 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      executionId_ = "";
+      runId_ = "";
       signalName_ = "";
       return this;
     }
@@ -398,7 +398,7 @@ private static final long serialVersionUID = 0L;
     private void buildPartial0(ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.executionId_ = executionId_;
+        result.runId_ = runId_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.signalName_ = signalName_;
@@ -417,8 +417,8 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery other) {
       if (other == ai.stigmer.agentic.workflow.v1.tasks.SignalDelivery.getDefaultInstance()) return this;
-      if (!other.getExecutionId().isEmpty()) {
-        executionId_ = other.executionId_;
+      if (!other.getRunId().isEmpty()) {
+        runId_ = other.runId_;
         bitField0_ |= 0x00000001;
         onChanged();
       }
@@ -454,7 +454,7 @@ private static final long serialVersionUID = 0L;
               done = true;
               break;
             case 10: {
-              executionId_ = input.readStringRequireUtf8();
+              runId_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000001;
               break;
             } // case 10
@@ -480,24 +480,24 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private java.lang.Object executionId_ = "";
+    private java.lang.Object runId_ = "";
     /**
      * <pre>
-     * Target workflow execution id ("wfx_..."), as returned by run/create.
+     * Target workflow run id ("wex_..."), as returned by run/create.
      * Usually flows from a prior task's output:
-     * "${ .start_processor.execution_id }"
+     * "${ .start_processor.run_id }"
      * </pre>
      *
-     * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
-     * @return The executionId.
+     * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
+     * @return The runId.
      */
-    public java.lang.String getExecutionId() {
-      java.lang.Object ref = executionId_;
+    public java.lang.String getRunId() {
+      java.lang.Object ref = runId_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        executionId_ = s;
+        runId_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -505,22 +505,22 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Target workflow execution id ("wfx_..."), as returned by run/create.
+     * Target workflow run id ("wex_..."), as returned by run/create.
      * Usually flows from a prior task's output:
-     * "${ .start_processor.execution_id }"
+     * "${ .start_processor.run_id }"
      * </pre>
      *
-     * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
-     * @return The bytes for executionId.
+     * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for runId.
      */
     public com.google.protobuf.ByteString
-        getExecutionIdBytes() {
-      java.lang.Object ref = executionId_;
+        getRunIdBytes() {
+      java.lang.Object ref = runId_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        executionId_ = b;
+        runId_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -528,55 +528,55 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Target workflow execution id ("wfx_..."), as returned by run/create.
+     * Target workflow run id ("wex_..."), as returned by run/create.
      * Usually flows from a prior task's output:
-     * "${ .start_processor.execution_id }"
+     * "${ .start_processor.run_id }"
      * </pre>
      *
-     * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
-     * @param value The executionId to set.
+     * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
+     * @param value The runId to set.
      * @return This builder for chaining.
      */
-    public Builder setExecutionId(
+    public Builder setRunId(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      executionId_ = value;
+      runId_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Target workflow execution id ("wfx_..."), as returned by run/create.
+     * Target workflow run id ("wex_..."), as returned by run/create.
      * Usually flows from a prior task's output:
-     * "${ .start_processor.execution_id }"
+     * "${ .start_processor.run_id }"
      * </pre>
      *
-     * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
+     * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
-    public Builder clearExecutionId() {
-      executionId_ = getDefaultInstance().getExecutionId();
+    public Builder clearRunId() {
+      runId_ = getDefaultInstance().getRunId();
       bitField0_ = (bitField0_ & ~0x00000001);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Target workflow execution id ("wfx_..."), as returned by run/create.
+     * Target workflow run id ("wex_..."), as returned by run/create.
      * Usually flows from a prior task's output:
-     * "${ .start_processor.execution_id }"
+     * "${ .start_processor.run_id }"
      * </pre>
      *
-     * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
-     * @param value The bytes for executionId to set.
+     * <code>string run_id = 1 [json_name = "runId", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for runId to set.
      * @return This builder for chaining.
      */
-    public Builder setExecutionIdBytes(
+    public Builder setRunIdBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      executionId_ = value;
+      runId_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;

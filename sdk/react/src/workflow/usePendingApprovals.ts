@@ -1,8 +1,8 @@
 "use client";
 
 import { create } from "@bufbuild/protobuf";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
-import { ListPendingApprovalsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
+import { ListPendingApprovalsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 
@@ -37,7 +37,7 @@ const INITIAL_DATA: PendingApprovalsData = {
 /**
  * Data hook that fetches pending human_input approvals for an organization.
  *
- * Returns workflow executions with active human_input tasks awaiting
+ * Returns workflow runs with active human_input tasks awaiting
  * reviewer decisions. Includes task name, requester, and timeout info.
  *
  * Auto-refreshes every 30 seconds by default since pending approvals
@@ -60,7 +60,7 @@ export function usePendingApprovals(
 
   const fetchFn = org
     ? async () => {
-        const resp = await stigmer.workflowExecution.listPendingApprovals(
+        const resp = await stigmer.workflowRun.listPendingApprovals(
           create(ListPendingApprovalsRequestSchema, { org, pageSize }),
         );
         return {

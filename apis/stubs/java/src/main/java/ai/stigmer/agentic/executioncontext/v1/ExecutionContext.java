@@ -7,7 +7,7 @@ package ai.stigmer.agentic.executioncontext.v1;
 
 /**
  * <pre>
- * Ephemeral runtime configuration and secrets scoped to a single execution.
+ * Ephemeral runtime configuration and secrets scoped to a single run.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.executioncontext.v1.ExecutionContext}
@@ -479,7 +479,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Ephemeral runtime configuration and secrets scoped to a single execution.
+   * Ephemeral runtime configuration and secrets scoped to a single run.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.executioncontext.v1.ExecutionContext}

@@ -6,7 +6,7 @@
  * The connected server is the shared `ORDER_MGMT_CONNECTED` snapshot,
  * injected through `McpServerDetailView`'s `mcpServerState` prop (no
  * `getByReference` fires). The approval story's two
- * `AgentExecution` snapshots are built once at module load, entirely from
+ * `AgentRun` snapshots are built once at module load, entirely from
  * frozen data:
  *
  * - The pending tool call and its approval share the literal id
@@ -33,13 +33,13 @@ import type { CSSProperties, ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { McpServerDetailView } from "@stigmer/react";
 import { samples, sampleInstant } from "@stigmer/react/test";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import { BrowserView, CodeEditorView, TerminalView } from "@scenar/react";
 import { AppShell } from "../_shared/AppShell";
 import { SessionView } from "../_shared/SessionView";
@@ -133,10 +133,10 @@ const approvedSummary = samples.aiMessage(
     "- **Estimated refund date**: April 7, 2026",
 );
 
-function buildWaitingExecution(): AgentExecution {
+function buildWaitingExecution(): AgentRun {
   const exec = snapshot(
     [returnRequest, samples.aiMessage("", [pendingToolCall])],
-    ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+    RunPhase.RUN_WAITING_FOR_APPROVAL,
   );
   exec.status!.pendingApprovals = [pendingApproval];
   return exec;
@@ -145,7 +145,7 @@ function buildWaitingExecution(): AgentExecution {
 const WAITING = buildWaitingExecution();
 const APPROVED = snapshot(
   [returnRequest, samples.aiMessage("", [completedToolCall]), approvedSummary],
-  ExecutionPhase.EXECUTION_COMPLETED,
+  RunPhase.RUN_COMPLETED,
 );
 
 // ---------------------------------------------------------------------------

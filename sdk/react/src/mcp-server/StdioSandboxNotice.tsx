@@ -12,7 +12,7 @@ type McpServerType = McpServerSpec["serverType"];
  * Whether an MCP server's transport is stdio while connected to Stigmer Cloud.
  *
  * stdio is local-runner-only: cloud-hosted sessions refuse stdio servers at
- * execution create, and the cloud connect flow refuses to spawn them. This
+ * run create, and the cloud connect flow refuses to spawn them. This
  * predicate identifies exactly that combination so the UI can explain the
  * policy and its remediation (run the session on a local runner). HTTP
  * servers and any transport outside Cloud return `false`.
@@ -44,7 +44,7 @@ export interface StdioSandboxNoticeProps {
  *
  * stdio servers spawn subprocesses on the machine that runs the agent, so
  * they run only on local runners — Stigmer-managed cloud compute refuses
- * them (at execution create, and in the connect flow). The server remains
+ * them (at run create, and in the connect flow). The server remains
  * fully usable on sessions that execute on a local runner (desktop app,
  * `stigmer server`), where tools are discovered automatically at session
  * start. This notice states that up front so the refusal never surprises.

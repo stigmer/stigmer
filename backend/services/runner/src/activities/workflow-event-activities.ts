@@ -2,7 +2,7 @@
  * Local activities for emitting workflow execution events.
  *
  * Converts plain event descriptors (safe for the Temporal deterministic
- * sandbox) into WorkflowExecutionEvent proto objects and sends them
+ * sandbox) into WorkflowRunEvent proto objects and sends them
  * alongside a status update via gRPC. Failures propagate so the local
  * activity's retry policy fires — safe because sequence numbers are
  * workflow-assigned (stable across attempts) and the store skips
@@ -19,12 +19,12 @@ import type { Config } from "../config.js";
 import { create, fromJson } from "@bufbuild/protobuf";
 import { ValueSchema } from "@bufbuild/protobuf/wkt";
 import {
-  WorkflowExecutionEventSchema,
-  type WorkflowExecutionEvent,
+  WorkflowRunEventSchema,
+  type WorkflowRunEvent,
   WorkflowEventType,
-  ExecutionStartedPayloadSchema,
-  ExecutionCompletedPayloadSchema,
-  ExecutionFailedPayloadSchema,
+  RunStartedPayloadSchema,
+  RunCompletedPayloadSchema,
+  RunFailedPayloadSchema,
   TaskStartedPayloadSchema,
   TaskCompletedPayloadSchema,
   TaskFailedPayloadSchema,
@@ -37,14 +37,14 @@ import {
   AgentCallCompletedPayloadSchema,
   ArtifactCreatedPayloadSchema,
   HumanInputOutcomeInfoSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 import { ApiResourceAuditActorSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
-import { WorkflowExecutionStatusSchema, WorkflowTaskSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { WorkflowRunStatusSchema, WorkflowTaskSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import {
-  WorkflowExecutionUpdateStatusInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
-import { ExecutionPhase, WorkflowTaskStatus, WorkflowTaskType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
-import { ExecutionPhase as AgentExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+  WorkflowRunUpdateStatusInputSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
+import { RunPhase, WorkflowTaskStatus, WorkflowTaskType } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
+import { RunPhase as AgentExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { JsonObject, JsonValue } from "@bufbuild/protobuf";
 import type { WorkflowEventDescriptor } from "../workflow-engine/types.js";
@@ -97,7 +97,7 @@ const TASK_KIND_MAP: Record<string, number> = {
 
 /**
  * Maps DSL task kind strings to the runtime WorkflowTaskType enum
- * for the per-task status snapshot on WorkflowExecutionStatus.tasks[].
+ * for the per-task status snapshot on WorkflowRunStatus.tasks[].
  */
 const TASK_KIND_TO_TYPE_MAP: Record<string, WorkflowTaskType> = {
   "call:agent": WorkflowTaskType.WORKFLOW_TASK_AGENT_INVOCATION,
@@ -184,8 +184,8 @@ export async function initSequenceFromEventLog(client: StigmerClient, executionI
 }
 
 /** @internal Exported for unit testing only. */
-export function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowExecutionEvent {
-  const base = create(WorkflowExecutionEventSchema, {
+export function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowRunEvent {
+  const base = create(WorkflowRunEventSchema, {
     eventId: crypto.randomUUID(),
     // Workflow-assigned sequence when present (stable across activity
     // retries); legacy activity-side assignment only for pre-patch replays.
@@ -198,10 +198,10 @@ export function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowExecutionEv
 
   switch (desc.type) {
     case "execution_started":
-      base.eventType = WorkflowEventType.execution_started;
+      base.eventType = WorkflowEventType.run_started;
       base.payload = {
-        case: "executionStarted",
-        value: create(ExecutionStartedPayloadSchema, {
+        case: "runStarted",
+        value: create(RunStartedPayloadSchema, {
           totalTasks: desc.totalTasks,
           workflowId: desc.workflowId,
         }),
@@ -209,10 +209,10 @@ export function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowExecutionEv
       break;
 
     case "execution_completed":
-      base.eventType = WorkflowEventType.execution_completed;
+      base.eventType = WorkflowEventType.run_completed;
       base.payload = {
-        case: "executionCompleted",
-        value: create(ExecutionCompletedPayloadSchema, {
+        case: "runCompleted",
+        value: create(RunCompletedPayloadSchema, {
           durationMs: BigInt(desc.durationMs),
           totalCostMicros: BigInt(desc.totalCostMicros),
           totalTokens: BigInt(desc.totalTokens),
@@ -221,10 +221,10 @@ export function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowExecutionEv
       break;
 
     case "execution_failed":
-      base.eventType = WorkflowEventType.execution_failed;
+      base.eventType = WorkflowEventType.run_failed;
       base.payload = {
-        case: "executionFailed",
-        value: create(ExecutionFailedPayloadSchema, {
+        case: "runFailed",
+        value: create(RunFailedPayloadSchema, {
           error: desc.error,
           failedTaskName: desc.failedTaskName,
           durationMs: BigInt(desc.durationMs),
@@ -347,7 +347,7 @@ export function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowExecutionEv
       base.payload = {
         case: "agentCallStarted",
         value: create(AgentCallStartedPayloadSchema, {
-          childExecutionId: desc.childExecutionId,
+          childRunId: desc.childExecutionId,
           agentSlug: desc.agentSlug,
           messageSummary: desc.messageSummary,
         }),
@@ -359,7 +359,7 @@ export function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowExecutionEv
       base.payload = {
         case: "agentCallProgress",
         value: create(AgentCallProgressPayloadSchema, {
-          childExecutionId: desc.childExecutionId,
+          childRunId: desc.childExecutionId,
           agentPhase: desc.agentPhase as AgentExecutionPhase,
           currentToolName: desc.currentToolName,
           tokensConsumed: BigInt(desc.tokensConsumed),
@@ -374,7 +374,7 @@ export function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowExecutionEv
       base.payload = {
         case: "agentCallCompleted",
         value: create(AgentCallCompletedPayloadSchema, {
-          childExecutionId: desc.childExecutionId,
+          childRunId: desc.childExecutionId,
           durationMs: BigInt(desc.durationMs),
           tokensConsumed: BigInt(desc.tokensConsumed),
           costMicros: BigInt(desc.costMicros),
@@ -444,25 +444,25 @@ export async function emitWorkflowEvents(
   const statusFields: Record<string, unknown> = { tasks: protoTasks };
 
   if (startedEvent) {
-    statusFields.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
+    statusFields.phase = RunPhase.RUN_IN_PROGRESS;
     statusFields.startedAt = startedEvent.occurredAt;
   }
   if (completedEvent && completedEvent.type === "execution_completed") {
-    statusFields.phase = ExecutionPhase.EXECUTION_COMPLETED;
+    statusFields.phase = RunPhase.RUN_COMPLETED;
     statusFields.completedAt = completedEvent.occurredAt;
     statusFields.totalCostMicros = BigInt(completedEvent.totalCostMicros);
     statusFields.totalInputTokens = BigInt(completedEvent.totalInputTokens ?? 0);
     statusFields.totalOutputTokens = BigInt(completedEvent.totalOutputTokens ?? 0);
   }
   if (failedEvent && failedEvent.type === "execution_failed") {
-    statusFields.phase = ExecutionPhase.EXECUTION_FAILED;
+    statusFields.phase = RunPhase.RUN_FAILED;
     statusFields.completedAt = failedEvent.occurredAt;
     statusFields.error = failedEvent.error;
   }
 
-  const input = create(WorkflowExecutionUpdateStatusInputSchema, {
-    executionId,
-    status: create(WorkflowExecutionStatusSchema, statusFields as Parameters<typeof create>[1]),
+  const input = create(WorkflowRunUpdateStatusInputSchema, {
+    runId: executionId,
+    status: create(WorkflowRunStatusSchema, statusFields as Parameters<typeof create>[1]),
     events: protoEvents,
   });
   await client.workflowExecutionCommand.updateStatus(input);
@@ -492,7 +492,7 @@ function structToPlain(value: JsonObject | undefined): unknown {
 /**
  * Loads recovery context data from the previous run's status snapshot.
  *
- * Fetches the WorkflowExecution and extracts status.tasks[] as plain
+ * Fetches the WorkflowRun and extracts status.tasks[] as plain
  * serializable objects. The workflow sandbox builds the RecoveryContext
  * from this data via buildRecoveryContext().
  *

@@ -107,7 +107,7 @@ function harness(
       spec: {
         displayName: "notes.md",
         contentType: "text/markdown",
-        source: { agentExecutionId },
+        source: { agentRunId: agentExecutionId },
       },
       content: new TextEncoder().encode("# notes"),
     });

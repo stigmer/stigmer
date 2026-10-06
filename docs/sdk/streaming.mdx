@@ -1,38 +1,36 @@
 ---
 title: Streaming
 description:
-  Consume real-time Agent Execution and Workflow Execution updates as they
-  arrive.
+  Consume real-time Agent Run and Workflow Run updates as they arrive.
 ---
 
-The `subscribe` method opens a server stream that pushes execution snapshots as
-the agent works. Each snapshot is the **complete** execution state at that point
-in time — not a diff or a delta. The stream closes when the execution reaches a
-terminal phase.
+The `subscribe` method opens a server stream that pushes run snapshots as the
+agent works. Each snapshot is the **complete** run state at that point in time —
+not a diff or a delta. The stream closes when the run reaches a terminal phase.
 
 If you are new to streaming, the
 [Quickstart](/docs/getting-started/quickstart) walks through a minimal subscribe
 loop. This guide covers the production patterns you need after that.
 
-## Subscribe to an Agent Execution
+## Subscribe to an Agent Run
 
-Call `subscribe` with the execution ID after creating an execution. Iterate the
-stream and check `status.phase` on each snapshot to decide what to do.
+Call `subscribe` with the run ID after creating a run. Iterate the stream and
+check `status.phase` on each snapshot to decide what to do.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-for await (const snapshot of stigmer.agentExecution.subscribe(executionId)) {
+for await (const snapshot of stigmer.agentRun.subscribe(runId)) {
   const phase = snapshot.status?.phase;
   const messages = snapshot.status?.messages ?? [];
 
-  if (phase === "EXECUTION_COMPLETED" || phase === "EXECUTION_FAILED") {
+  if (phase === "RUN_COMPLETED" || phase === "RUN_FAILED") {
     const last = messages[messages.length - 1];
     if (last?.content) {
       console.log(last.content);
     }
-    if (phase === "EXECUTION_FAILED") {
-      console.error("Execution failed:", snapshot.status?.error);
+    if (phase === "RUN_FAILED") {
+      console.error("Run failed:", snapshot.status?.error);
     }
     break;
   }
@@ -41,7 +39,7 @@ for await (const snapshot of stigmer.agentExecution.subscribe(executionId)) {
 </Tab>
 <Tab value="Go">
 ```go
-stream, err := client.AgentExecution.Subscribe(ctx, executionId)
+stream, err := client.AgentRun.Subscribe(ctx, runID)
 if err != nil {
     log.Fatal(err)
 }
@@ -58,13 +56,13 @@ for {
     status := snapshot.GetStatus()
     phase := status.GetPhase()
 
-    if phase == stigmer.ExecutionCompleted || phase == stigmer.ExecutionFailed {
+    if phase == agentrunv1.RunPhase_RUN_COMPLETED || phase == agentrunv1.RunPhase_RUN_FAILED {
         msgs := status.GetMessages()
         if len(msgs) > 0 {
             fmt.Println(msgs[len(msgs)-1].GetContent())
         }
-        if phase == stigmer.ExecutionFailed {
-            log.Fatalf("Execution failed: %s", status.GetError())
+        if phase == agentrunv1.RunPhase_RUN_FAILED {
+            log.Fatalf("Run failed: %s", status.GetError())
         }
         break
     }
@@ -73,34 +71,34 @@ for {
 </Tab>
 <Tab value="Python">
 ```python
-for snapshot in client.agent_executions.subscribe(execution_id):
+for snapshot in client.agent_runs.subscribe(run_id):
     phase = snapshot.status.phase
     messages = snapshot.status.messages
 
-    if phase in ("EXECUTION_COMPLETED", "EXECUTION_FAILED"):
+    if phase in ("RUN_COMPLETED", "RUN_FAILED"):
         if messages and messages[-1].content:
             print(messages[-1].content)
-        if phase == "EXECUTION_FAILED":
-            print(f"Execution failed: {snapshot.status.error}")
+        if phase == "RUN_FAILED":
+            print(f"Run failed: {snapshot.status.error}")
         break
 ```
 </Tab>
 <Tab value="Java">
 ```java
-var stream = client.agentExecutions().subscribe(executionId);
+var stream = client.agentRun.subscribe(runId);
 
 while (stream.hasNext()) {
     var snapshot = stream.next();
     var status = snapshot.getStatus();
     var phase = status.getPhase();
 
-    if (phase == ExecutionPhase.COMPLETED || phase == ExecutionPhase.FAILED) {
+    if (phase == RunPhase.RUN_COMPLETED || phase == RunPhase.RUN_FAILED) {
         var messages = status.getMessagesList();
         if (!messages.isEmpty()) {
             System.out.println(messages.get(messages.size() - 1).getContent());
         }
-        if (phase == ExecutionPhase.FAILED) {
-            System.err.println("Execution failed: " + status.getError());
+        if (phase == RunPhase.RUN_FAILED) {
+            System.err.println("Run failed: " + status.getError());
         }
         break;
     }
@@ -111,46 +109,46 @@ while (stream.hasNext()) {
 
 ## Read the snapshot
 
-Every snapshot is a full `AgentExecution` resource. The fields you inspect most
+Every snapshot is a full `AgentRun` resource. The fields you inspect most
 often are on `status`:
 
 | Field | What it contains |
 |-------|------------------|
 | `phase` | Current lifecycle phase. See [Detect completion](#detect-completion). |
 | `messages` | Conversation history — human messages, AI responses, tool results, and system notices. Each message has a `type`, `content`, and optional `toolCalls`. |
-| `error` | Failure reason. Populated when phase is `EXECUTION_FAILED` or `EXECUTION_TERMINATED`. |
+| `error` | Failure reason. Populated when phase is `RUN_FAILED` or `RUN_TERMINATED`. |
 | `pendingApprovals` | Tool calls waiting for human approval. See [Connect Tools](/docs/getting-started/connect-tools) for the full approval handling pattern. |
 | `todos` | Task list the agent maintains to track multi-step work. |
-| `subAgentExecutions` | Child agent invocations with their own messages and status. |
+| `subAgentRuns` | Child agent invocations with their own messages and status. |
 | `artifacts` | Files the agent published for download. |
-| `setupProgress` | Setup phase label, reported while phase is `EXECUTION_PENDING`. |
+| `setupProgress` | Setup phase label, reported while phase is `RUN_PENDING`. |
 
 <Callout type="info">
   For the complete field reference, see
-  [Agent Execution > AgentExecutionStatus](/docs/sdk/resources/agent-execution#agentexecutionstatus).
+  [Agent Run > AgentRunStatus](/docs/sdk/resources/agent-run#agentrunstatus).
 </Callout>
 
 ## Detect completion
 
-Execution phases fall into two categories:
+Run phases fall into two categories:
 
-**Terminal** — the execution is finished and the stream will close:
-
-| Phase | Meaning |
-|-------|---------|
-| `EXECUTION_COMPLETED` | Agent finished successfully. |
-| `EXECUTION_FAILED` | Agent encountered an error. |
-| `EXECUTION_CANCELLED` | User stopped the execution gracefully. |
-| `EXECUTION_TERMINATED` | Platform stopped the execution (timeout, budget, or force-kill). |
-
-**Non-terminal** — the execution is still active or paused:
+**Terminal** — the run is finished and the stream will close:
 
 | Phase | Meaning |
 |-------|---------|
-| `EXECUTION_PENDING` | Queued, waiting for a worker. |
-| `EXECUTION_IN_PROGRESS` | Agent is working. |
-| `EXECUTION_WAITING_FOR_APPROVAL` | Blocked on a human approval decision. |
-| `EXECUTION_PAUSED` | Paused by the user, can be resumed. |
+| `RUN_COMPLETED` | Agent finished successfully. |
+| `RUN_FAILED` | Agent encountered an error. |
+| `RUN_CANCELLED` | User stopped the run gracefully. |
+| `RUN_TERMINATED` | Platform stopped the run (timeout, budget, or force-kill). |
+
+**Non-terminal** — the run is still active or paused:
+
+| Phase | Meaning |
+|-------|---------|
+| `RUN_PENDING` | Queued, waiting for a worker. |
+| `RUN_IN_PROGRESS` | Agent is working. |
+| `RUN_WAITING_FOR_APPROVAL` | Blocked on a human approval decision. |
+| `RUN_PAUSED` | Paused by the user, can be resumed. |
 
 Check for any terminal phase to decide when to stop processing:
 
@@ -158,10 +156,10 @@ Check for any terminal phase to decide when to stop processing:
 <Tab value="TypeScript">
 ```typescript
 const TERMINAL_PHASES = new Set([
-  "EXECUTION_COMPLETED",
-  "EXECUTION_FAILED",
-  "EXECUTION_CANCELLED",
-  "EXECUTION_TERMINATED",
+  "RUN_COMPLETED",
+  "RUN_FAILED",
+  "RUN_CANCELLED",
+  "RUN_TERMINATED",
 ]);
 
 function isTerminal(phase: string | undefined): boolean {
@@ -171,12 +169,12 @@ function isTerminal(phase: string | undefined): boolean {
 </Tab>
 <Tab value="Go">
 ```go
-func isTerminal(phase stigmer.ExecutionPhase) bool {
+func isTerminal(phase agentrunv1.RunPhase) bool {
     switch phase {
-    case stigmer.ExecutionCompleted,
-        stigmer.ExecutionFailed,
-        stigmer.ExecutionCancelled,
-        stigmer.ExecutionTerminated:
+    case agentrunv1.RunPhase_RUN_COMPLETED,
+        agentrunv1.RunPhase_RUN_FAILED,
+        agentrunv1.RunPhase_RUN_CANCELLED,
+        agentrunv1.RunPhase_RUN_TERMINATED:
         return true
     }
     return false
@@ -186,10 +184,10 @@ func isTerminal(phase stigmer.ExecutionPhase) bool {
 <Tab value="Python">
 ```python
 TERMINAL_PHASES = {
-    "EXECUTION_COMPLETED",
-    "EXECUTION_FAILED",
-    "EXECUTION_CANCELLED",
-    "EXECUTION_TERMINATED",
+    "RUN_COMPLETED",
+    "RUN_FAILED",
+    "RUN_CANCELLED",
+    "RUN_TERMINATED",
 }
 
 def is_terminal(phase: str) -> bool:
@@ -198,11 +196,11 @@ def is_terminal(phase: str) -> bool:
 </Tab>
 <Tab value="Java">
 ```java
-static boolean isTerminal(ExecutionPhase phase) {
-    return phase == ExecutionPhase.COMPLETED
-        || phase == ExecutionPhase.FAILED
-        || phase == ExecutionPhase.CANCELLED
-        || phase == ExecutionPhase.TERMINATED;
+static boolean isTerminal(RunPhase phase) {
+    return phase == RunPhase.RUN_COMPLETED
+        || phase == RunPhase.RUN_FAILED
+        || phase == RunPhase.RUN_CANCELLED
+        || phase == RunPhase.RUN_TERMINATED;
 }
 ```
 </Tab>
@@ -212,7 +210,7 @@ static boolean isTerminal(ExecutionPhase phase) {
 
 Transport errors (network failures, server unavailability) surface as SDK
 exceptions during iteration. Wrap the subscribe loop to catch them separately
-from execution-level failures reported in `status.error`.
+from run-level failures reported in `status.error`.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -220,7 +218,7 @@ from execution-level failures reported in `status.error`.
 import { StigmerError, isRetryable } from "@stigmer/sdk";
 
 try {
-  for await (const snapshot of stigmer.agentExecution.subscribe(executionId)) {
+  for await (const snapshot of stigmer.agentRun.subscribe(runId)) {
     // process snapshot
   }
 } catch (err) {
@@ -233,7 +231,7 @@ try {
 </Tab>
 <Tab value="Go">
 ```go
-stream, err := client.AgentExecution.Subscribe(ctx, executionId)
+stream, err := client.AgentRun.Subscribe(ctx, runID)
 if err != nil {
     log.Fatal(err)
 }
@@ -259,7 +257,7 @@ for {
 from stigmer import StigmerError, is_retryable
 
 try:
-    for snapshot in client.agent_executions.subscribe(execution_id):
+    for snapshot in client.agent_runs.subscribe(run_id):
         # process snapshot
         pass
 except StigmerError as err:
@@ -271,7 +269,7 @@ except StigmerError as err:
 <Tab value="Java">
 ```java
 try {
-    var stream = client.agentExecutions().subscribe(executionId);
+    var stream = client.agentRun.subscribe(runId);
     while (stream.hasNext()) {
         var snapshot = stream.next();
         // process snapshot
@@ -286,8 +284,8 @@ try {
 </Tab>
 </SDKTabs>
 
-Execution failures are not transport errors. When an agent fails, the stream
-delivers a snapshot with `phase` set to `EXECUTION_FAILED` and `error`
+Run failures are not transport errors. When an agent fails, the stream
+delivers a snapshot with `phase` set to `RUN_FAILED` and `error`
 containing the failure reason. The stream then closes normally.
 
 For more on error classification, see
@@ -295,7 +293,7 @@ For more on error classification, see
 
 ## Cancel a stream
 
-To stop consuming updates before the execution finishes, cancel the stream from
+To stop consuming updates before the run finishes, cancel the stream from
 the client side.
 
 <SDKTabs>
@@ -307,8 +305,8 @@ Pass an `AbortSignal` to `subscribe`. Abort the controller to close the stream:
 const controller = new AbortController();
 setTimeout(() => controller.abort(), 30_000);
 
-for await (const snapshot of stigmer.agentExecution.subscribe(
-  executionId,
+for await (const snapshot of stigmer.agentRun.subscribe(
+  runId,
   controller.signal,
 )) {
   // process snapshot
@@ -324,7 +322,7 @@ Cancel the `context.Context` to close the stream:
 ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 defer cancel()
 
-stream, err := client.AgentExecution.Subscribe(ctx, executionId)
+stream, err := client.AgentRun.Subscribe(ctx, runID)
 if err != nil {
     log.Fatal(err)
 }
@@ -345,7 +343,7 @@ Break out of the iterator to stop reading. The underlying gRPC channel cleans
 up when the iterator is garbage collected:
 
 ```python
-for snapshot in client.agent_executions.subscribe(execution_id):
+for snapshot in client.agent_runs.subscribe(run_id):
     if should_stop():
         break
 ```
@@ -357,7 +355,7 @@ Break out of the iteration loop. The underlying gRPC stream cleans up when the
 `StigmerStream` is garbage collected:
 
 ```java
-var stream = client.agentExecutions().subscribe(executionId);
+var stream = client.agentRun.subscribe(runId);
 while (stream.hasNext()) {
     var snapshot = stream.next();
     if (shouldStop()) {
@@ -371,16 +369,16 @@ while (stream.hasNext()) {
 
 <Callout type="warn">
   Cancelling a stream stops your client from receiving updates. It does not
-  cancel the execution itself. To cancel the execution, call
-  [`cancel`](/docs/sdk/resources/agent-execution#cancel) or
-  [`terminate`](/docs/sdk/resources/agent-execution#terminate).
+  cancel the run itself. To cancel the run, call
+  [`cancel`](/docs/sdk/resources/agent-run#cancel) or
+  [`terminate`](/docs/sdk/resources/agent-run#terminate).
 </Callout>
 
-## Subscribe to a Workflow Execution
+## Subscribe to a Workflow Run
 
-Workflow Execution streams work the same way, with two differences:
+Workflow Run streams work the same way, with two differences:
 
-1. `subscribe` takes a request object with an `executionId` field instead of a
+1. `subscribe` takes a request object with a `runId` field instead of a
    bare string.
 2. Progress is tracked through `status.tasks` (a list of workflow tasks with
    individual status) rather than `status.messages`.
@@ -388,8 +386,8 @@ Workflow Execution streams work the same way, with two differences:
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-for await (const snapshot of stigmer.workflowExecution.subscribe(
-  { executionId: workflowExecutionId },
+for await (const snapshot of stigmer.workflowRun.subscribe(
+  { runId: workflowRunId },
 )) {
   const phase = snapshot.status?.phase;
   const tasks = snapshot.status?.tasks ?? [];
@@ -399,7 +397,7 @@ for await (const snapshot of stigmer.workflowExecution.subscribe(
   }
 
   if (isTerminal(phase)) {
-    if (phase === "EXECUTION_COMPLETED") {
+    if (phase === "RUN_COMPLETED") {
       console.log("Output:", snapshot.status?.output);
     }
     break;
@@ -409,9 +407,9 @@ for await (const snapshot of stigmer.workflowExecution.subscribe(
 </Tab>
 <Tab value="Go">
 ```go
-stream, err := client.WorkflowExecution.Subscribe(ctx,
-    &stigmer.SubscribeWorkflowExecutionRequest{
-        ExecutionId: workflowExecutionId,
+stream, err := client.WorkflowRun.Subscribe(ctx,
+    &workflowrunv1.SubscribeWorkflowRunRequest{
+        RunId: workflowRunID,
     })
 if err != nil {
     log.Fatal(err)
@@ -439,10 +437,10 @@ for {
 </Tab>
 <Tab value="Python">
 ```python
-from stigmer import SubscribeWorkflowExecutionRequest
+from ai.stigmer.agentic.workflowrun.v1.io_pb2 import SubscribeWorkflowRunRequest
 
-for snapshot in client.workflow_executions.subscribe(
-    SubscribeWorkflowExecutionRequest(execution_id=workflow_execution_id),
+for snapshot in client.workflow_runs.subscribe(
+    SubscribeWorkflowRunRequest(run_id=workflow_run_id),
 ):
     for task in snapshot.status.tasks:
         print(f"{task.task_name}: {task.status}")
@@ -455,9 +453,9 @@ for snapshot in client.workflow_executions.subscribe(
 </Tab>
 <Tab value="Java">
 ```java
-var stream = client.workflowExecutions().subscribe(
-    SubscribeWorkflowExecutionRequest.builder()
-        .executionId(workflowExecutionId)
+var stream = client.workflowRun.subscribe(
+    SubscribeWorkflowRunRequest.newBuilder()
+        .setRunId(workflowRunId)
         .build());
 
 while (stream.hasNext()) {
@@ -478,21 +476,21 @@ while (stream.hasNext()) {
 
 <Callout type="info">
   For the complete field reference, see
-  [Workflow Execution > WorkflowExecutionStatus](/docs/sdk/resources/workflow-execution#workflowexecutionstatus).
+  [Workflow Run > WorkflowRunStatus](/docs/sdk/resources/workflow-run#workflowrunstatus).
 </Callout>
 
 ## What's next
 
 <Cards>
   <Card
-    title="Agent Execution"
-    description="Full method and type reference for Agent Executions."
-    href="/docs/sdk/resources/agent-execution"
+    title="Agent Run"
+    description="Full method and type reference for Agent Runs."
+    href="/docs/sdk/resources/agent-run"
   />
   <Card
-    title="Workflow Execution"
-    description="Full method and type reference for Workflow Executions."
-    href="/docs/sdk/resources/workflow-execution"
+    title="Workflow Run"
+    description="Full method and type reference for Workflow Runs."
+    href="/docs/sdk/resources/workflow-run"
   />
   <Card
     title="Connect Tools"

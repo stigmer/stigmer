@@ -29,8 +29,8 @@ import { McpServerPicker } from "../mcp-server/McpServerPicker.js";
 import { useMcpServerSetup } from "../mcp-server/useMcpServerSetup.js";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { SkillPicker } from "../skill/SkillPicker.js";
-import { SessionVariablesInput } from "../execution/SessionVariablesInput.js";
-import type { UseSessionVariablesReturn } from "../execution/useSessionVariables.js";
+import { SessionVariablesInput } from "../run/SessionVariablesInput.js";
+import type { UseSessionVariablesReturn } from "../run/useSessionVariables.js";
 import type { UseWorkspaceEntriesReturn } from "../workspace/useWorkspaceEntries.js";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import { useAttachments } from "../attachment/useAttachments.js";
@@ -96,11 +96,11 @@ export interface SessionComposerHandle {
    *   submission, overriding the picker. Avoids the same-tick race when the
    *   caller also calls `onInteractionModeChange` just before submitting.
    * @param options.attachments - Pre-uploaded attachments (storage keys from
-   *   `agentExecution.uploadAttachment`) to include with this one submission,
+   *   `agentRun.uploadAttachment`) to include with this one submission,
    *   in addition to any files attached in the composer. Used by "Build from
-   *   plan" to deliver the approved `plan.md` to the implement execution.
+   *   plan" to deliver the approved `plan.md` to the implement run.
    * @param options.buildFromPlan - Marks this submission as the implement
-   *   turn of a Plan → Build handoff (`AgentExecutionSpec.build_from_plan`).
+   *   turn of a Plan → Build handoff (`AgentRunSpec.build_from_plan`).
    *   The runner injects the implement-plan directive and the thread hides
    *   the turn's message; the message stays a short label for surfaces
    *   without that treatment (the CLI, history).
@@ -120,7 +120,7 @@ export interface SessionComposerHandle {
  *
  * Contains aggregated one-time environment variables from all setup
  * flows managed by the composer (agent, MCP servers, manual secrets).
- * The consumer passes `context.runtimeEnv` directly to execution
+ * The consumer passes `context.runtimeEnv` directly to run
  * creation without needing to understand the individual sources.
  */
 export interface SessionComposerSubmitContext {
@@ -133,29 +133,29 @@ export interface SessionComposerSubmitContext {
    * 3. Manual session variables (from {@link SessionVariablesInput})
    *
    * `undefined` when no runtime env vars were collected from any source.
-   * Pass directly to execution creation as `runtimeEnv`.
+   * Pass directly to run creation as `runtimeEnv`.
    */
   readonly runtimeEnv?: Record<string, EnvVarInput>;
   /**
-   * Pre-uploaded file attachments for the execution.
+   * Pre-uploaded file attachments for the run.
    *
    * Each entry contains a `storageKey` obtained from
-   * `agentExecution.uploadAttachment()`. Only successfully uploaded
-   * attachments are included. Pass directly to execution creation
+   * `agentRun.uploadAttachment()`. Only successfully uploaded
+   * attachments are included. Pass directly to run creation
    * as `attachments`.
    *
    * `undefined` when no files were attached.
    */
   readonly attachments?: AttachmentInput[];
   /**
-   * Interaction mode selected by the user for this execution.
+   * Interaction mode selected by the user for this run.
    *
    * - `"agent"` (default): full tool access — read, write, create, delete.
    * - `"plan"`: read-only analysis — read, search, list only.
    *
    * `undefined` when no mode picker is shown (defaults to `"agent"`).
-   * Pass to execution creation as `interactionMode`
-   * (`AgentExecutionSpec.interaction_mode`).
+   * Pass to run creation as `interactionMode`
+   * (`AgentRunSpec.interaction_mode`).
    */
   readonly interactionMode?: InteractionModeOption;
   /**
@@ -163,7 +163,7 @@ export interface SessionComposerSubmitContext {
    * `"fast"` or `"standard"` once they touched the switch (an explicit
    * `"standard"` turns off a fast tier the agent's defaults would apply),
    * `undefined` while untouched, so the layer that chose the model keeps
-   * its own tier. Pass to execution creation as `serviceTier`
+   * its own tier. Pass to run creation as `serviceTier`
    * (`RunConfig.service_tier`).
    */
   readonly serviceTier?: ServiceTierOption;
@@ -173,7 +173,7 @@ export interface SessionComposerSubmitContext {
    * explicit `"disabled"` turns off thinking the agent's defaults would
    * apply), `undefined` while untouched. A model that always thinks is
    * sent as `"enabled"` whenever the message names it, what its locked
-   * switch shows. Pass to execution creation as `thinkingMode`
+   * switch shows. Pass to run creation as `thinkingMode`
    * (`RunConfig.thinking_mode`).
    */
   readonly thinkingMode?: ThinkingModeOption;
@@ -184,7 +184,7 @@ export interface SessionComposerSubmitContext {
    * directly from the workspace filesystem. No upload, no injection.
    *
    * `undefined` when no file references are present.
-   * Pass to execution creation as `workspaceFileRefs`.
+   * Pass to run creation as `workspaceFileRefs`.
    */
   readonly workspaceFileRefs?: string[];
   /**
@@ -192,7 +192,7 @@ export interface SessionComposerSubmitContext {
    *
    * Only ever set through {@link SessionComposerHandle.submit} (the thread
    * card / plan editor CTA) — there is no composer UI for it. Pass to
-   * execution creation as `buildFromPlan`; the runner
+   * run creation as `buildFromPlan`; the runner
    * injects the implement-plan directive and the thread hides the turn's
    * machine-written message (the plan card above it is the visible cause).
    *
@@ -200,17 +200,17 @@ export interface SessionComposerSubmitContext {
    */
   readonly buildFromPlan?: boolean;
   /**
-   * ID of the execution this submission supersedes (edit-and-resubmit).
+   * ID of the run this submission supersedes (edit-and-resubmit).
    *
    * Never set by the composer itself — the session viewer merges it into
    * the context when the user submits while the composer is in editing
-   * mode (see `SessionComposerProps.isEditing`). Pass to execution
-   * creation as `supersedesExecutionId`; chat threads hide the superseded
-   * execution so the edited message replaces the original in place.
+   * mode (see `SessionComposerProps.isEditing`). Pass to run
+   * creation as `supersedesRunId`; chat threads hide the superseded
+   * run so the edited message replaces the original in place.
    *
    * `undefined` for ordinary submissions.
    */
-  readonly supersedesExecutionId?: string;
+  readonly supersedesRunId?: string;
 }
 
 /** Props for {@link SessionComposer}. */
@@ -220,7 +220,7 @@ export interface SessionComposerProps {
    *
    * The optional `context` parameter carries aggregated runtime data
    * collected by the composer's setup flows. When present,
-   * `context.runtimeEnv` should be passed to execution creation.
+   * `context.runtimeEnv` should be passed to run creation.
    */
   readonly onSubmit: (
     message: string,
@@ -229,11 +229,11 @@ export interface SessionComposerProps {
   ) => void;
   /** Shows loading indicator on the send button. */
   readonly isSubmitting?: boolean;
-  /** Disables the entire composer (e.g., while an execution streams). */
+  /** Disables the entire composer (e.g., while a run streams). */
   readonly disabled?: boolean;
 
   /**
-   * When provided, the Send button becomes a Stop control while an execution
+   * When provided, the Send button becomes a Stop control while a run
    * is in flight — clicking it calls this handler (graceful cancel, escalating
    * to terminate on a repeat press). The textarea stays disabled, but the card
    * is not dimmed so Stop reads as live and clickable.
@@ -266,7 +266,7 @@ export interface SessionComposerProps {
   readonly onCancelEdit?: () => void;
 
   /**
-   * Currently selected execution harness.
+   * Currently selected run harness.
    *
    * Controls which models appear in the model selector and flows
    * through to session creation. When omitted, defaults to `"native"`.
@@ -373,7 +373,7 @@ export interface SessionComposerProps {
    * Every {@link AgentResolution} starts the session on `agentRef`; the
    * mode says where the agent's declared keys come from:
    * - `"saved"` — the user's personal environment holds them
-   * - `"oneTime"` — pass `runtimeEnv` to the execution
+   * - `"oneTime"` — pass `runtimeEnv` to the run
    * - `"direct"` — nothing is needed from the user
    *
    * Set to `null` when the agent is deselected.
@@ -485,7 +485,7 @@ export interface SessionComposerProps {
    * When provided, renders a "Session Variables" trigger in the toolbar
    * that opens a key-value editor for environment variables.
    *
-   * Variables are ephemeral by default (single execution). Individual
+   * Variables are ephemeral by default (single run). Individual
    * entries can be marked `saveForFuture: true` to persist them to
    * the user's personal environment. The consumer should call
    * `sessionVariables.clear()` after submission.
@@ -499,7 +499,7 @@ export interface SessionComposerProps {
    * drag-and-drop file upload plus clipboard paste on the textarea —
    * pasting a screenshot attaches it exactly like a picked file, with
    * a generated `pasted-image-*` filename. Attachments are uploaded
-   * immediately via `agentExecution.uploadAttachment()` and included
+   * immediately via `agentRun.uploadAttachment()` and included
    * in `context.attachments` on submit.
    *
    * @default true
@@ -680,7 +680,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   const userOverrodeModel = useRef(false);
 
   // Sync internal modelId when the external defaultModelId prop changes
-  // (e.g., the last pick resolves after executions load). Only sync if the
+  // (e.g., the last pick resolves after runs load). Only sync if the
   // user hasn't made a local selection in this composer instance. A seed
   // that goes away is followed too: a remembered model the host withdraws
   // once the agent's defaults load must not linger as a pick.
@@ -757,7 +757,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
 
   const isDisabled = disabled || isSubmitting;
 
-  // Stop-mode: an in-flight, stoppable execution. The textarea/config stay
+  // Stop-mode: an in-flight, stoppable run. The textarea/config stay
   // disabled, but the card is kept un-dimmed so the Stop button reads as live.
   const stopMode = onStop != null;
 
@@ -929,7 +929,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       effectiveModel = harnessGetModel(agentRunDefaults.modelName);
     } else if (showModelSelector && !isRegistryLoading && stateModel === undefined) {
       // Empty state, or an id the registry no longer lists (e.g. a retired
-      // model carried over from the last execution): the pill falls back to
+      // model carried over from the last run): the pill falls back to
       // the harness default, so the submission adopts it too. While the
       // registry is still loading nothing can be classified — pass the raw
       // id through unmodified rather than misadopting the default.
@@ -1141,7 +1141,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
             await personalEnv.addVariables(saveVars);
           } catch {
             // Best-effort: if persistence fails, the values still flow
-            // into runtimeEnv for this execution via the one-time path.
+            // into runtimeEnv for this run via the one-time path.
           }
         }
       }

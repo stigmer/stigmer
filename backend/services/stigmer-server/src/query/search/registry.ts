@@ -19,7 +19,7 @@
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { agentSearchExtractor } from "../../domain/agent/search-extractor.js";
-import { agentExecutionSearchExtractor } from "../../domain/agentexecution/search-extractor.js";
+import { agentExecutionSearchExtractor } from "../../domain/agentrun/search-extractor.js";
 import { environmentSearchExtractor } from "../../domain/environment/search-extractor.js";
 import { executionContextSearchExtractor } from "../../domain/executioncontext/search-extractor.js";
 import { mcpServerSearchExtractor } from "../../domain/mcpserver/search-extractor.js";
@@ -28,7 +28,7 @@ import { pluginSearchExtractor } from "../../domain/plugin/search-extractor.js";
 import { sessionSearchExtractor } from "../../domain/session/search-extractor.js";
 import { skillSearchExtractor } from "../../domain/skill/search-extractor.js";
 import { workflowSearchExtractor } from "../../domain/workflow/search-extractor.js";
-import { workflowExecutionSearchExtractor } from "../../domain/workflowexecution/search-extractor.js";
+import { workflowExecutionSearchExtractor } from "../../domain/workflowrun/search-extractor.js";
 import type { Logger } from "../../boot/logger.js";
 import { searchIndexedKinds } from "./criteria.js";
 import type { SearchableExtractor } from "./extractor.js";

@@ -31,7 +31,7 @@
 
 import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { classifyCasChange } from "./cas-substrate.js";
 import { LINE_COUNT_MAX_BYTES } from "./line-counts.js";
 import {

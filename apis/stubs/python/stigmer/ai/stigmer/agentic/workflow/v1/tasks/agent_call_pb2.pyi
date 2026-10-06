@@ -1,4 +1,4 @@
-from ai.stigmer.agentic.agentexecution.v1 import invocation_pb2 as _invocation_pb2
+from ai.stigmer.agentic.agentrun.v1 import invocation_pb2 as _invocation_pb2
 from ai.stigmer.agentic.session.v1 import enum_pb2 as _enum_pb2
 from ai.stigmer.agentic.session.v1 import workspace_pb2 as _workspace_pb2
 from ai.stigmer.agentic.workflow.v1.tasks import common_pb2 as _common_pb2

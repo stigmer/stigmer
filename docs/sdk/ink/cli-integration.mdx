@@ -100,16 +100,16 @@ func main() {
 		fmt.Fprintf(os.Stderr, "render failed: %v\n", err)
 	}
 
-	// Fetch the final execution state to set the CLI exit code.
-	execution, err := client.AgentExecution.Get(ctx, executionID)
+	// Fetch the run's final state to set the CLI exit code.
+	run, err := client.AgentRun.Get(ctx, runID)
 	if err != nil {
 		os.Exit(1)
 	}
 
-	switch execution.Status.Phase {
-	case "FAILED":
+	switch run.GetStatus().GetPhase().String() {
+	case "RUN_FAILED":
 		os.Exit(1)
-	case "CANCELLED":
+	case "RUN_CANCELLED":
 		os.Exit(2)
 	}
 }

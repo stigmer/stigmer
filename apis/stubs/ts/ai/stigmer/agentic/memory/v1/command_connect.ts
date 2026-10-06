@@ -19,7 +19,7 @@ export const MemoryCommandController = {
      * Create a memory in the proposed state.
      *
      * The memory starts its consent lifecycle as proposed: it is not
-     * recalled into any execution until the person it is about confirms
+     * recalled into any run until the person it is about confirms
      * it. The subject and provenance are derived by the server from the
      * calling credential and request context — values supplied on the
      * request are overwritten.
@@ -53,7 +53,7 @@ export const MemoryCommandController = {
      *
      * Deletion is the retention mechanism: deleting a confirmed memory is
      * how consent is revoked, and the fact stops reaching future
-     * executions immediately. Past executions that already recalled it
+     * runs immediately. Past runs that already recalled it
      * keep their immutable snapshots.
      *
      * @generated from rpc ai.stigmer.agentic.memory.v1.MemoryCommandController.delete
@@ -67,7 +67,7 @@ export const MemoryCommandController = {
     /**
      * Confirm a proposed memory, making it recallable.
      *
-     * Confirmation is the consent act: from the next eligible execution
+     * Confirmation is the consent act: from the next eligible run
      * on, the fact is injected as background context. Confirming an
      * already-confirmed memory succeeds and changes nothing. Confirming a
      * rejected memory is refused — delete it instead and let the agent

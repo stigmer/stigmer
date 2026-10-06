@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store.js";
+import type { DerivedTaskState } from "../internal/store/workflow-run-event-store.js";
 
 /**
  * Tasks that crossed the `waiting_approval` boundary in one commit of the
@@ -19,13 +19,13 @@ export interface ApprovalBoundaryCrossing {
  * when any task crosses the `waiting_approval` boundary — the client-side
  * mirror of the stream's `approval_requested` / `approval_resolved` events.
  *
- * Why this exists: the execution SNAPSHOT (`status.pending_approvals` /
+ * Why this exists: the run SNAPSHOT (`status.pending_approvals` /
  * `status.pending_file_reviews`) is fetched once and carries the gate
  * payloads, while the event STREAM is live but carries only task status.
  * A boundary crossing is precisely the moment the snapshot goes stale, so
  * consumers refetch it then — derived-over-stored: the stream is the
  * signal, the snapshot stays the single source for gate payloads. The
- * `WorkflowExecutionViewer` additionally auto-selects a newly gated task so
+ * `WorkflowRunViewer` additionally auto-selects a newly gated task so
  * the decision surface (the panel's Inspect Approval tab) is never hidden
  * while the run is blocked.
  *
@@ -36,7 +36,7 @@ export interface ApprovalBoundaryCrossing {
  *
  * `enabled` gates the CALLBACK, not the tracking: state is tracked even
  * while disabled so enabling later never replays stale crossings. Keep it
- * `false` for terminal executions — their event-history replay crosses the
+ * `false` for terminal runs — their event-history replay crosses the
  * boundary for long-decided gates.
  */
 export function useApprovalBoundary(

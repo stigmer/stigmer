@@ -48,7 +48,7 @@ interface AppShellProps {
    * - `undefined` — fades in without sliding
    */
   slideDirection?: "forward" | "backward";
-  /** Optional right sidebar (e.g. execution widgets). */
+  /** Optional right sidebar (e.g. run widgets). */
   aside?: ReactNode;
   children: ReactNode;
 }
@@ -168,7 +168,7 @@ export function AppShell({
       {aside && (
         <aside
           className="w-48 shrink-0 overflow-y-auto border-l border-border"
-          aria-label="Execution details"
+          aria-label="Run details"
         >
           {aside}
         </aside>

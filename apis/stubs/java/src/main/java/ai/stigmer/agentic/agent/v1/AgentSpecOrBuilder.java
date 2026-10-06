@@ -505,7 +505,7 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * the agent is saved.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
    * @return Whether the runConfig field is set.
    */
   boolean hasRunConfig();
@@ -526,10 +526,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * the agent is saved.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
    * @return The runConfig.
    */
-  ai.stigmer.agentic.agentexecution.v1.RunConfig getRunConfig();
+  ai.stigmer.agentic.agentrun.v1.RunConfig getRunConfig();
   /**
    * <pre>
    * The author's run defaults: the model, speed tier, thinking and run
@@ -547,9 +547,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * the agent is saved.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
+   * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
    */
-  ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder getRunConfigOrBuilder();
+  ai.stigmer.agentic.agentrun.v1.RunConfigOrBuilder getRunConfigOrBuilder();
 
   /**
    * <pre>

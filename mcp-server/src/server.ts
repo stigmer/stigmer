@@ -19,7 +19,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import type { Config } from "./config.js";
 import { createMcpHttpHandler, type McpHttpHandler } from "./http-handler.js";
 import { createReadinessCheck, type ReadinessResult } from "./readiness.js";
-import { registerAgentExecutionTools } from "./domains/agentexecutions/tools.js";
+import { registerAgentRunTools } from "./domains/agentruns/tools.js";
 import { registerAgentResources } from "./domains/agents/resources.js";
 import { registerAgentTools } from "./domains/agents/tools.js";
 import { registerChannelTools } from "./domains/channels/tools.js";
@@ -27,7 +27,6 @@ import type { BackendTarget } from "./domains/client.js";
 import { registerConversationTools } from "./domains/conversation/tools.js";
 import { registerEnvironmentResources } from "./domains/environments/resources.js";
 import { registerEnvironmentTools } from "./domains/environments/tools.js";
-import { registerExecutionControlTools } from "./domains/executions/tools.js";
 import { registerMcpServerResources } from "./domains/mcpservers/resources.js";
 import { registerMcpServerTools } from "./domains/mcpservers/tools.js";
 import {
@@ -35,10 +34,11 @@ import {
   type CaptureContext,
 } from "./domains/memory/context.js";
 import { registerMemoryTools } from "./domains/memory/tools.js";
+import { registerRunControlTools } from "./domains/runs/tools.js";
 import { registerSearchTools } from "./domains/search/tools.js";
 import { registerSkillResources } from "./domains/skills/resources.js";
 import { registerSkillTools } from "./domains/skills/tools.js";
-import { registerWorkflowExecutionTools } from "./domains/workflowexecutions/tools.js";
+import { registerWorkflowRunTools } from "./domains/workflowruns/tools.js";
 import { registerTaskKindTools } from "./domains/workflows/taskkinds.js";
 import { registerWorkflowResources } from "./domains/workflows/resources.js";
 import { registerWorkflowTools } from "./domains/workflows/tools.js";
@@ -175,14 +175,14 @@ function registerTools(server: McpServer, target: BackendTarget): string[] {
   return [
     ...registerSearchTools(server, target),
     ...registerAgentTools(server, target),
-    ...registerAgentExecutionTools(server, target),
+    ...registerAgentRunTools(server, target),
     ...registerMcpServerTools(server, target),
     ...registerSkillTools(server, target),
     ...registerWorkflowTools(server, target),
     ...registerValidateWorkflowYamlTool(server, target),
     ...registerTaskKindTools(server, target),
-    ...registerWorkflowExecutionTools(server, target),
-    ...registerExecutionControlTools(server, target),
+    ...registerWorkflowRunTools(server, target),
+    ...registerRunControlTools(server, target),
     ...registerEnvironmentTools(server, target),
   ];
 }

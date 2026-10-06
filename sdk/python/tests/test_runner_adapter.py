@@ -14,8 +14,8 @@ class MockRunnerAdapter:
     def __init__(self) -> None:
         self.sessions_opened: list[str] = []
         self.sessions_closed: list[str] = []
-        self.executions_created: list[str] = []
-        self.executions_terminated: list[str] = []
+        self.runs_created: list[str] = []
+        self.runs_terminated: list[str] = []
 
     async def on_session_opened(self, session_id: str) -> None:
         self.sessions_opened.append(session_id)
@@ -23,11 +23,11 @@ class MockRunnerAdapter:
     async def on_session_closed(self, session_id: str) -> None:
         self.sessions_closed.append(session_id)
 
-    async def on_workflow_execution_created(self, execution_id: str) -> None:
-        self.executions_created.append(execution_id)
+    async def on_workflow_run_created(self, run_id: str) -> None:
+        self.runs_created.append(run_id)
 
-    async def on_workflow_execution_terminated(self, execution_id: str) -> None:
-        self.executions_terminated.append(execution_id)
+    async def on_workflow_run_terminated(self, run_id: str) -> None:
+        self.runs_terminated.append(run_id)
 
 
 class TestRunnerAdapterProtocol:
@@ -96,11 +96,11 @@ class TestMockRunnerAdapterBehavior:
         assert adapter.sessions_opened == ["ses-1", "ses-2"]
         assert adapter.sessions_closed == ["ses-1"]
 
-    async def test_records_execution_lifecycle(self) -> None:
+    async def test_records_run_lifecycle(self) -> None:
         adapter = MockRunnerAdapter()
 
-        await adapter.on_workflow_execution_created("wfexec-1")
-        await adapter.on_workflow_execution_terminated("wfexec-1")
+        await adapter.on_workflow_run_created("wfexec-1")
+        await adapter.on_workflow_run_terminated("wfexec-1")
 
-        assert adapter.executions_created == ["wfexec-1"]
-        assert adapter.executions_terminated == ["wfexec-1"]
+        assert adapter.runs_created == ["wfexec-1"]
+        assert adapter.runs_terminated == ["wfexec-1"]

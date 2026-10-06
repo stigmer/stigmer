@@ -78,24 +78,24 @@ import {
   workflowInfo,
 } from "@temporalio/workflow";
 
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { decodeLoadedExecution } from "../execution-json.js";
 import {
-  ExecutionPhase,
+  RunPhase,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
 import {
   hasDecidedAwaitingReconcile,
   unresolvedGateCount,
-} from "../../../domain/agentexecution/filereview/gate.js";
+} from "../../../domain/agentrun/filereview/gate.js";
 import {
   CANCEL_STOP_ROW,
   PAUSE_STOP_ROW,
-} from "../../../domain/agentexecution/platform-rows.js";
+} from "../../../domain/agentrun/platform-rows.js";
 import {
   isWorkerShutdown,
   WORKER_SHUTDOWN_STATUS_ERROR,
@@ -483,7 +483,7 @@ export async function invokeAgentExecution(
     // complete). External cancellation mid-sequence takes the
     // cancellation-cleanup path exactly like a mid-flow cancel.
     try {
-      let execution: AgentExecution;
+      let execution: AgentRun;
       try {
         execution = await loadExecution(executionId);
       } catch (error) {
@@ -742,7 +742,7 @@ interface PauseRecoveryOptions {
  * pause monitor; pause → persist PAUSED, wait for resume, re-invoke;
  * recoverable interruption → persist IN_PROGRESS, linear backoff,
  * re-invoke; anything else → wrapped failure. On completion, an
- * EXECUTION_FAILED result persists the fallback FAILED status and
+ * RUN_FAILED result persists the fallback FAILED status and
  * propagates as an error.
  */
 async function runWithPauseAndRecovery(
@@ -784,8 +784,8 @@ async function runWithPauseAndRecovery(
       // the runner's settle write, whichever lands first (stigmer#980).
       await persistFinalStatus(
         executionId,
-        create(AgentExecutionStatusSchema, {
-          phase: ExecutionPhase.EXECUTION_PAUSED,
+        create(AgentRunStatusSchema, {
+          phase: RunPhase.RUN_PAUSED,
           messages: [{ type: MessageType.MESSAGE_SYSTEM, content: PAUSE_STOP_ROW }],
         }),
         "Failed to persist PAUSED status (non-fatal)",
@@ -848,11 +848,11 @@ async function runWithPauseAndRecovery(
   const finalPhase = getPhaseFromResult(finalResult);
   log.info("Agent execution completed - final slim status received", {
     executionId,
-    phase: ExecutionPhase[finalPhase],
+    phase: RunPhase[finalPhase],
     pauseCycles: pauseCycle,
   });
 
-  if (finalPhase === ExecutionPhase.EXECUTION_FAILED) {
+  if (finalPhase === RunPhase.RUN_FAILED) {
     const finalError = getErrorFromResult(finalResult);
     log.warn("Activity returned EXECUTION_FAILED -- propagating to parent workflow", {
       executionId,
@@ -860,8 +860,8 @@ async function runWithPauseAndRecovery(
     });
     await persistFinalStatus(
       executionId,
-      create(AgentExecutionStatusSchema, {
-        phase: ExecutionPhase.EXECUTION_FAILED,
+      create(AgentRunStatusSchema, {
+        phase: RunPhase.RUN_FAILED,
         error: finalError,
       }),
       "Failed to persist fallback FAILED status",
@@ -960,12 +960,12 @@ interface HitlLoopOptions {
  *
  * Fire-and-forget with the same posture as child_execution_started: a
  * completed/missing parent must never affect this run — the user can still
- * approve directly through AgentExecution.submitApproval.
+ * approve directly through AgentRun.submitApproval.
  */
 function signalParentApprovalRequired(
   parentWorkflowId: string,
   executionId: string,
-  loadedStatus: AgentExecutionStatus | undefined,
+  loadedStatus: AgentRunStatus | undefined,
 ): void {
   if (parentWorkflowId === "") {
     // Invoked directly (API/CLI/schedule) — no parent to notify.
@@ -1018,12 +1018,12 @@ async function executeWithHitlLoop(
   let phase = getPhaseFromResult(result);
   log.info("Activity returned slim status", {
     executionId,
-    phase: ExecutionPhase[phase],
+    phase: RunPhase[phase],
   });
 
   let approvalCycle = 0;
   let zeroGateCycles = 0;
-  while (phase === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL) {
+  while (phase === RunPhase.RUN_WAITING_FOR_APPROVAL) {
     approvalCycle++;
     if (approvalCycle > MAX_APPROVAL_CYCLES) {
       log.error("Max approval cycles reached", { executionId, cycles: approvalCycle });
@@ -1034,8 +1034,8 @@ async function executeWithHitlLoop(
 
     await persistFinalStatus(
       executionId,
-      create(AgentExecutionStatusSchema, {
-        phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+      create(AgentRunStatusSchema, {
+        phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
       }),
       "Failed to persist WAITING_FOR_APPROVAL status before signal wait (non-fatal)",
     );
@@ -1044,12 +1044,12 @@ async function executeWithHitlLoop(
     // defaults to 1 (wait for the signal — failing open would re-invoke
     // against an undecided gate).
     let gateCount: number;
-    let loadedStatus: AgentExecutionStatus | undefined;
+    let loadedStatus: AgentRunStatus | undefined;
     try {
       const execution = await loadExecution(executionId);
       loadedStatus = execution.status;
       gateCount = unresolvedGateCount(
-        execution.status ?? create(AgentExecutionStatusSchema),
+        execution.status ?? create(AgentRunStatusSchema),
       );
     } catch (error) {
       log.warn(
@@ -1130,7 +1130,7 @@ async function executeWithHitlLoop(
     phase = getPhaseFromResult(result);
     log.info("Activity returned slim status after approval", {
       executionId,
-      phase: ExecutionPhase[phase],
+      phase: RunPhase[phase],
       cycle: approvalCycle,
     });
   }
@@ -1161,8 +1161,8 @@ async function updateStatusOnFailure(
     ? WORKER_SHUTDOWN_STATUS_ERROR
     : errorMessage(originalError);
 
-  const failedStatus = create(AgentExecutionStatusSchema, {
-    phase: ExecutionPhase.EXECUTION_FAILED,
+  const failedStatus = create(AgentRunStatusSchema, {
+    phase: RunPhase.RUN_FAILED,
     error: statusError,
     messages:
       originalError instanceof RunnerReportedFailure
@@ -1182,7 +1182,7 @@ async function updateStatusOnFailure(
 
   await failurePathActivities[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME](
     executionId,
-    toJson(AgentExecutionStatusSchema, failedStatus),
+    toJson(AgentRunStatusSchema, failedStatus),
   );
   log.info("Updated execution status to FAILED", { executionId });
 }
@@ -1228,8 +1228,8 @@ async function handleCancellation(
  * replay-safety reasons as updateStatusOnFailure.
  */
 async function updateStatusOnCancellation(executionId: string): Promise<void> {
-  const cancelledStatus = create(AgentExecutionStatusSchema, {
-    phase: ExecutionPhase.EXECUTION_CANCELLED,
+  const cancelledStatus = create(AgentRunStatusSchema, {
+    phase: RunPhase.RUN_CANCELLED,
     messages: [
       {
         type: MessageType.MESSAGE_SYSTEM,
@@ -1241,7 +1241,7 @@ async function updateStatusOnCancellation(executionId: string): Promise<void> {
   try {
     await failurePathActivities[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME](
       executionId,
-      toJson(AgentExecutionStatusSchema, cancelledStatus),
+      toJson(AgentRunStatusSchema, cancelledStatus),
     );
     log.info("Updated execution status to CANCELLED", { executionId });
   } catch (error) {
@@ -1261,17 +1261,17 @@ async function updateStatusOnCancellation(executionId: string): Promise<void> {
  */
 async function persistFinalStatus(
   executionId: string,
-  status: AgentExecutionStatus,
+  status: AgentRunStatus,
   warnMessage: string,
 ): Promise<void> {
   try {
     await localActivities[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME](
       executionId,
-      toJson(AgentExecutionStatusSchema, status),
+      toJson(AgentRunStatusSchema, status),
     );
     log.info("Persisted final status via fallback", {
       executionId,
-      phase: ExecutionPhase[status.phase],
+      phase: RunPhase[status.phase],
     });
   } catch (error) {
     log.warn(warnMessage, { executionId, error: errorMessage(error) });
@@ -1287,8 +1287,8 @@ async function persistFinalStatus(
 async function persistInterruptedStatus(executionId: string): Promise<void> {
   await persistFinalStatus(
     executionId,
-    create(AgentExecutionStatusSchema, {
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+    create(AgentRunStatusSchema, {
+      phase: RunPhase.RUN_IN_PROGRESS,
     }),
     "Failed to persist interrupted/resuming status (non-fatal)",
   );
@@ -1305,8 +1305,8 @@ async function persistInterruptedStatus(executionId: string): Promise<void> {
 async function persistResumedStatus(executionId: string): Promise<void> {
   await persistFinalStatus(
     executionId,
-    create(AgentExecutionStatusSchema, {
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+    create(AgentRunStatusSchema, {
+      phase: RunPhase.RUN_IN_PROGRESS,
     }),
     "Failed to persist resumed status (non-fatal)",
   );
@@ -1317,7 +1317,7 @@ async function persistResumedStatus(executionId: string): Promise<void> {
  * input snapshot is stale by completion time). Proto-JSON at the payload
  * boundary; parsed to the typed message here.
  */
-async function loadExecution(executionId: string): Promise<AgentExecution> {
+async function loadExecution(executionId: string): Promise<AgentRun> {
   let raw: JsonValue;
   try {
     raw = await localActivities[LOAD_AGENT_EXECUTION_ACTIVITY_NAME](executionId);
@@ -1379,7 +1379,7 @@ async function deleteExecutionContext(executionId: string): Promise<void> {
  */
 function buildCallbackResult(
   activityResult: RunnerActivityResult | undefined,
-  execution: AgentExecution,
+  execution: AgentRun,
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {
     agent_execution_id: execution.metadata?.id ?? "",

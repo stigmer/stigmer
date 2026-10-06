@@ -12,7 +12,7 @@ module agentic
 # - ORG (visibility_org, opt-in): all org members can view — with secret
 #   values REDACTED — via the explicit org viewer tuple written by
 #   VisibilityTupleReconciler. Setting ORG also marks the environment as
-#   runtime-resolvable for executions in the owning org (see below).
+#   runtime-resolvable for runs in the owning org (see below).
 # - PUBLIC/PLATFORM are not supported for environments (kind
 #   VisibilityConfig: supports_org only) — secret values must never be
 #   resolvable across the org boundary.
@@ -29,11 +29,11 @@ module agentic
 # 2. RUNTIME RESOLUTION (execution-context creation) — NOT modeled in FGA.
 #    The execution engine resolves an org-shared environment's secrets
 #    server-side (EnvironmentRuntimeResolutionService) under one app-level
-#    policy: metadata.visibility == org AND environment org == execution
+#    policy: metadata.visibility == org AND environment org == run
 #    org. Private environments resolve as-caller (creator-only), unchanged.
 #    This is deliberately app-level, mirroring the sharing gates (decided
 #    2026-07-09 and 2026-07-12): no per-share tuples, and no FGA relation
-#    could allow an org member's *execution* to use a secret while denying
+#    could allow an org member's *run* to use a secret while denying
 #    the same member's *reveal*.
 #
 # FGA tuples on creation:

@@ -58,7 +58,7 @@ enum IamPermission {
   can_create_platform_client = 24;
 
   // Resource-level create permissions.
-  can_create_execution_in = 13;
+  can_create_run_in = 13;
 
   // Value 14 was the permission to create an agent instance from an agent,
   // removed with the instance kind.

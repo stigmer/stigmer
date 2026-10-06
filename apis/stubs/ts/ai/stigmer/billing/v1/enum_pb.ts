@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/billing/v1/enum.proto.
  */
 export const file_ai_stigmer_billing_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("CiBhaS9zdGlnbWVyL2JpbGxpbmcvdjEvZW51bS5wcm90bxIVYWkuc3RpZ21lci5iaWxsaW5nLnYxKrYCCg9MZWRnZXJFbnRyeVR5cGUSIQodbGVkZ2VyX2VudHJ5X3R5cGVfdW5zcGVjaWZpZWQQABITCg9wdXJjaGFzZV9jcmVkaXQQARIWChJwcm9tb3Rpb25hbF9jcmVkaXQQAhIPCgt1c2FnZV9kZWJpdBADEhQKEHJlc2VydmF0aW9uX2hvbGQQBBIXChNyZXNlcnZhdGlvbl9yZWxlYXNlEAUSFQoRYWRqdXN0bWVudF9jcmVkaXQQBhIUChBhZGp1c3RtZW50X2RlYml0EAcSEwoPcmVmdW5kX3JldmVyc2FsEAgSEAoMZGlzcHV0ZV9ob2xkEAkSEwoPZGlzcHV0ZV9yZWxlYXNlEAoSEAoMZXhwaXJ5X2RlYml0EAsSGAoUYXV0b19yZWNoYXJnZV9jcmVkaXQQDCpECgpMZWRnZXJWaWV3EhsKF2xlZGdlcl92aWV3X3Vuc3BlY2lmaWVkEAASGQoVbGVkZ2VyX3ZpZXdfc3RhdGVtZW50EAEqZAoPQ3JlZGl0R3JhbnRLaW5kEiEKHWNyZWRpdF9ncmFudF9raW5kX3Vuc3BlY2lmaWVkEAASDQoJcHVyY2hhc2VkEAESDwoLcHJvbW90aW9uYWwQAhIOCgphZGp1c3RtZW50EAMqlQEKFEJpbGxpbmdBY2NvdW50U3RhdHVzEiYKImJpbGxpbmdfYWNjb3VudF9zdGF0dXNfdW5zcGVjaWZpZWQQABIaChZiaWxsaW5nX2FjY291bnRfYWN0aXZlEAESHQoZYmlsbGluZ19hY2NvdW50X3N1c3BlbmRlZBACEhoKFmJpbGxpbmdfYWNjb3VudF9jbG9zZWQQAyqeAQoRUmVzZXJ2YXRpb25TdGF0dXMSIgoecmVzZXJ2YXRpb25fc3RhdHVzX3Vuc3BlY2lmaWVkEAASFgoScmVzZXJ2YXRpb25fYWN0aXZlEAESGQoVcmVzZXJ2YXRpb25fZmluYWxpemVkEAISFwoTcmVzZXJ2YXRpb25fZXhwaXJlZBADEhkKFXJlc2VydmF0aW9uX2NhbmNlbGxlZBAEKocBChZFeGVjdXRpb25CaWxsaW5nU2lnbmFsEigKJGV4ZWN1dGlvbl9iaWxsaW5nX3NpZ25hbF91bnNwZWNpZmllZBAAEhYKEmNvbnRpbnVlX2V4ZWN1dGlvbhABEhcKE2xvd19iYWxhbmNlX3dhcm5pbmcQAhISCg5zdG9wX2V4ZWN1dGlvbhADKrMBChRDcmVkaXRQdXJjaGFzZVN0YXR1cxImCiJjcmVkaXRfcHVyY2hhc2Vfc3RhdHVzX3Vuc3BlY2lmaWVkEAASGwoXY3JlZGl0X3B1cmNoYXNlX3BlbmRpbmcQARIdChljcmVkaXRfcHVyY2hhc2VfY29tcGxldGVkEAISGgoWY3JlZGl0X3B1cmNoYXNlX2ZhaWxlZBADEhsKF2NyZWRpdF9wdXJjaGFzZV9leHBpcmVkEAQqlwEKF0F1dG9SZWNoYXJnZUV2ZW50U3RhdHVzEioKJmF1dG9fcmVjaGFyZ2VfZXZlbnRfc3RhdHVzX3Vuc3BlY2lmaWVkEAASGQoVYXV0b19yZWNoYXJnZV9wZW5kaW5nEAESGwoXYXV0b19yZWNoYXJnZV9zdWNjZWVkZWQQAhIYChRhdXRvX3JlY2hhcmdlX2ZhaWxlZBADYgZwcm90bzM");
+  fileDesc("CiBhaS9zdGlnbWVyL2JpbGxpbmcvdjEvZW51bS5wcm90bxIVYWkuc3RpZ21lci5iaWxsaW5nLnYxKrYCCg9MZWRnZXJFbnRyeVR5cGUSIQodbGVkZ2VyX2VudHJ5X3R5cGVfdW5zcGVjaWZpZWQQABITCg9wdXJjaGFzZV9jcmVkaXQQARIWChJwcm9tb3Rpb25hbF9jcmVkaXQQAhIPCgt1c2FnZV9kZWJpdBADEhQKEHJlc2VydmF0aW9uX2hvbGQQBBIXChNyZXNlcnZhdGlvbl9yZWxlYXNlEAUSFQoRYWRqdXN0bWVudF9jcmVkaXQQBhIUChBhZGp1c3RtZW50X2RlYml0EAcSEwoPcmVmdW5kX3JldmVyc2FsEAgSEAoMZGlzcHV0ZV9ob2xkEAkSEwoPZGlzcHV0ZV9yZWxlYXNlEAoSEAoMZXhwaXJ5X2RlYml0EAsSGAoUYXV0b19yZWNoYXJnZV9jcmVkaXQQDCpECgpMZWRnZXJWaWV3EhsKF2xlZGdlcl92aWV3X3Vuc3BlY2lmaWVkEAASGQoVbGVkZ2VyX3ZpZXdfc3RhdGVtZW50EAEqZAoPQ3JlZGl0R3JhbnRLaW5kEiEKHWNyZWRpdF9ncmFudF9raW5kX3Vuc3BlY2lmaWVkEAASDQoJcHVyY2hhc2VkEAESDwoLcHJvbW90aW9uYWwQAhIOCgphZGp1c3RtZW50EAMqlQEKFEJpbGxpbmdBY2NvdW50U3RhdHVzEiYKImJpbGxpbmdfYWNjb3VudF9zdGF0dXNfdW5zcGVjaWZpZWQQABIaChZiaWxsaW5nX2FjY291bnRfYWN0aXZlEAESHQoZYmlsbGluZ19hY2NvdW50X3N1c3BlbmRlZBACEhoKFmJpbGxpbmdfYWNjb3VudF9jbG9zZWQQAyqeAQoRUmVzZXJ2YXRpb25TdGF0dXMSIgoecmVzZXJ2YXRpb25fc3RhdHVzX3Vuc3BlY2lmaWVkEAASFgoScmVzZXJ2YXRpb25fYWN0aXZlEAESGQoVcmVzZXJ2YXRpb25fZmluYWxpemVkEAISFwoTcmVzZXJ2YXRpb25fZXhwaXJlZBADEhkKFXJlc2VydmF0aW9uX2NhbmNlbGxlZBAEKm8KEFJ1bkJpbGxpbmdTaWduYWwSIgoecnVuX2JpbGxpbmdfc2lnbmFsX3Vuc3BlY2lmaWVkEAASEAoMY29udGludWVfcnVuEAESFwoTbG93X2JhbGFuY2Vfd2FybmluZxACEgwKCHN0b3BfcnVuEAMqswEKFENyZWRpdFB1cmNoYXNlU3RhdHVzEiYKImNyZWRpdF9wdXJjaGFzZV9zdGF0dXNfdW5zcGVjaWZpZWQQABIbChdjcmVkaXRfcHVyY2hhc2VfcGVuZGluZxABEh0KGWNyZWRpdF9wdXJjaGFzZV9jb21wbGV0ZWQQAhIaChZjcmVkaXRfcHVyY2hhc2VfZmFpbGVkEAMSGwoXY3JlZGl0X3B1cmNoYXNlX2V4cGlyZWQQBCqXAQoXQXV0b1JlY2hhcmdlRXZlbnRTdGF0dXMSKgomYXV0b19yZWNoYXJnZV9ldmVudF9zdGF0dXNfdW5zcGVjaWZpZWQQABIZChVhdXRvX3JlY2hhcmdlX3BlbmRpbmcQARIbChdhdXRvX3JlY2hhcmdlX3N1Y2NlZWRlZBACEhgKFGF1dG9fcmVjaGFyZ2VfZmFpbGVkEANiBnByb3RvMw");
 
 /**
  * LedgerEntryType classifies each row in the credit ledger.
@@ -40,21 +40,21 @@ export enum LedgerEntryType {
   promotional_credit = 2,
 
   /**
-   * Debit for a single LLM call during agent execution.
+   * Debit for a single LLM call during agent run.
    *
    * @generated from enum value: usage_debit = 3;
    */
   usage_debit = 3,
 
   /**
-   * Hold placed at execution start to reserve credits.
+   * Hold placed at run start to reserve credits.
    *
    * @generated from enum value: reservation_hold = 4;
    */
   reservation_hold = 4,
 
   /**
-   * Release of unused reservation after execution completes.
+   * Release of unused reservation after the run completes.
    *
    * @generated from enum value: reservation_release = 5;
    */
@@ -141,7 +141,7 @@ export enum LedgerView {
    * Customer-facing account statement: funding and money-movement events
    * only (purchases, auto-recharge, promotional credits, refunds, admin
    * adjustments, expirations, and disputes). Excludes routine internal
-   * mechanics — per-call usage debits and execution reservation
+   * mechanics — per-call usage debits and run reservation
    * holds/releases — which are surfaced as consumption analytics elsewhere.
    *
    * @generated from enum value: ledger_view_statement = 1;
@@ -215,7 +215,7 @@ export enum BillingAccountStatus {
   billing_account_active = 1,
 
   /**
-   * Account is frozen (e.g., dispute, compliance hold). Executions blocked.
+   * Account is frozen (e.g., dispute, compliance hold). Runs blocked.
    *
    * @generated from enum value: billing_account_suspended = 2;
    */
@@ -236,7 +236,7 @@ export const BillingAccountStatusSchema: GenEnum<BillingAccountStatus> = /*@__PU
   enumDesc(file_ai_stigmer_billing_v1_enum, 3);
 
 /**
- * ReservationStatus tracks the lifecycle of an execution credit reservation.
+ * ReservationStatus tracks the lifecycle of a run credit reservation.
  *
  * @generated from enum ai.stigmer.billing.v1.ReservationStatus
  */
@@ -247,14 +247,14 @@ export enum ReservationStatus {
   reservation_status_unspecified = 0,
 
   /**
-   * Reservation is active; execution is in progress.
+   * Reservation is active; run is in progress.
    *
    * @generated from enum value: reservation_active = 1;
    */
   reservation_active = 1,
 
   /**
-   * Execution completed; reservation settled and unused credits released.
+   * Run completed; reservation settled and unused credits released.
    *
    * @generated from enum value: reservation_finalized = 2;
    */
@@ -268,7 +268,7 @@ export enum ReservationStatus {
   reservation_expired = 3,
 
   /**
-   * Reservation cancelled before execution started.
+   * Reservation cancelled before the run started.
    *
    * @generated from enum value: reservation_cancelled = 4;
    */
@@ -282,43 +282,43 @@ export const ReservationStatusSchema: GenEnum<ReservationStatus> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_billing_v1_enum, 4);
 
 /**
- * ExecutionBillingSignal is returned after each usage debit to direct
+ * RunBillingSignal is returned after each usage debit to direct
  * the agent runner's behavior.
  *
- * @generated from enum ai.stigmer.billing.v1.ExecutionBillingSignal
+ * @generated from enum ai.stigmer.billing.v1.RunBillingSignal
  */
-export enum ExecutionBillingSignal {
+export enum RunBillingSignal {
   /**
-   * @generated from enum value: execution_billing_signal_unspecified = 0;
+   * @generated from enum value: run_billing_signal_unspecified = 0;
    */
-  execution_billing_signal_unspecified = 0,
+  run_billing_signal_unspecified = 0,
 
   /**
-   * Balance is healthy; execution may continue.
+   * Balance is healthy; run may continue.
    *
-   * @generated from enum value: continue_execution = 1;
+   * @generated from enum value: continue_run = 1;
    */
-  continue_execution = 1,
+  continue_run = 1,
 
   /**
-   * Balance is low; execution may continue but a warning should be shown.
+   * Balance is low; run may continue but a warning should be shown.
    *
    * @generated from enum value: low_balance_warning = 2;
    */
   low_balance_warning = 2,
 
   /**
-   * Balance is exhausted; execution must stop gracefully.
+   * Balance is exhausted; run must stop gracefully.
    *
-   * @generated from enum value: stop_execution = 3;
+   * @generated from enum value: stop_run = 3;
    */
-  stop_execution = 3,
+  stop_run = 3,
 }
 
 /**
- * Describes the enum ai.stigmer.billing.v1.ExecutionBillingSignal.
+ * Describes the enum ai.stigmer.billing.v1.RunBillingSignal.
  */
-export const ExecutionBillingSignalSchema: GenEnum<ExecutionBillingSignal> = /*@__PURE__*/
+export const RunBillingSignalSchema: GenEnum<RunBillingSignal> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_billing_v1_enum, 5);
 
 /**

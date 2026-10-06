@@ -73,13 +73,13 @@
  * the child on either side.
  *
  * One more structural relation rides the seam the same way: a workflow's
- * run audience, `execution_viewer`, which open source derives from
- * `spec.execution_visibility` when a check asks
- * (authorization/model/execution-viewer.ts) and an edition that stores
- * tuples must write. `onExecutionVisibilityChanged` hands the driver the
+ * run audience, `run_viewer`, which open source derives from
+ * `spec.run_visibility` when a check asks
+ * (authorization/model/run-viewer.ts) and an edition that stores
+ * tuples must write. `onRunVisibilityChanged` hands the driver the
  * audience the stored level names, from the two doors that may set it
- * (create, and updateExecutionVisibility; Update and Apply keep the
- * stored level, domain/workflow/execution-visibility.ts). Synchronous,
+ * (create, and updateRunVisibility; Update and Apply keep the
+ * stored level, domain/workflow/run-visibility.ts). Synchronous,
  * post-persist; a throw fails the request with the level persisted, and a
  * retry converges because the event is the whole target state.
  */
@@ -106,12 +106,12 @@ export type VisibilityTupleShape = "org-viewer" | "child-org-viewer";
 /**
  * The run-audience shapes of a workflow's execution visibility, named
  * edition-neutrally. The driver maps each to its tuple:
- *   - org-viewer: workflow:<id>#execution_viewer@organization:<org>#viewer
+ *   - org-viewer: workflow:<id>#run_viewer@organization:<org>#viewer
  * The same word as the resource visibility's org shape, a different
  * relation: making a workflow's RUNS observable never widens who can see
  * or run the workflow itself (fga/model/agentic/workflow.fga).
  */
-export type ExecutionAudienceShape = "org-viewer";
+export type RunAudienceShape = "org-viewer";
 
 /**
  * One resolved structural link from the created resource to a parent
@@ -226,19 +226,19 @@ export interface ChildOrganizationLinkedEvent {
 }
 
 /**
- * Fired synchronously after a workflow's `spec.execution_visibility` is
+ * Fired synchronously after a workflow's `spec.run_visibility` is
  * persisted at create (only when the level names an audience) or by
- * updateExecutionVisibility (always). `shapes` is the audience the stored
+ * updateRunVisibility (always). `shapes` is the audience the stored
  * level names — ["org-viewer"] for ORGANIZATION, [] for PRIVATE and unset
  * — never a diff: the driver makes its tuples on
- * `workflow:<workflowId>#execution_viewer` match it, so a retry, a repeat,
+ * `workflow:<workflowId>#run_viewer` match it, so a retry, a repeat,
  * or a transition whose old level it never saw all converge. The workflow
  * is the one kind that carries a run audience.
  */
-export interface ExecutionVisibilityChangedEvent {
+export interface RunVisibilityChangedEvent {
   readonly workflowId: string;
   readonly orgId: string;
-  readonly shapes: ReadonlyArray<ExecutionAudienceShape>;
+  readonly shapes: ReadonlyArray<RunAudienceShape>;
 }
 
 /**
@@ -307,8 +307,8 @@ export interface ResourceAuthorizationLifecycle {
    * target state). Absent method = no run-audience tuple is written (the
    * OSS posture: the relation is derived from the row at check time).
    */
-  onExecutionVisibilityChanged?(
-    event: ExecutionVisibilityChangedEvent,
+  onRunVisibilityChanged?(
+    event: RunVisibilityChangedEvent,
   ): Promise<void>;
   /**
    * OPTIONAL: synchronous, AFTER the row

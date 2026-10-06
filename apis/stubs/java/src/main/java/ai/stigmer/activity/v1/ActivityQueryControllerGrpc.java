@@ -6,9 +6,9 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * <pre>
  * ActivityQueryController provides cross-resource read queries for the
  * activity feed — the unified "recents" sidebar that merges sessions and
- * workflow executions into a single time-ordered list.
+ * workflow runs into a single time-ordered list.
  * This service exists because the recents list spans two bounded contexts
- * (session and workflow_execution). A cross-cutting query service avoids
+ * (session and workflow_run). A cross-cutting query service avoids
  * forcing the client to make two parallel calls and merge client-side.
  * </pre>
  */
@@ -114,9 +114,9 @@ public final class ActivityQueryControllerGrpc {
    * <pre>
    * ActivityQueryController provides cross-resource read queries for the
    * activity feed — the unified "recents" sidebar that merges sessions and
-   * workflow executions into a single time-ordered list.
+   * workflow runs into a single time-ordered list.
    * This service exists because the recents list spans two bounded contexts
-   * (session and workflow_execution). A cross-cutting query service avoids
+   * (session and workflow_run). A cross-cutting query service avoids
    * forcing the client to make two parallel calls and merge client-side.
    * </pre>
    */
@@ -124,9 +124,9 @@ public final class ActivityQueryControllerGrpc {
 
     /**
      * <pre>
-     * List recent activity across sessions and workflow executions.
+     * List recent activity across sessions and workflow runs.
      * Returns a merged, time-sorted list of the caller's most recent
-     * sessions and workflow executions. On the hosted edition, per-resource
+     * sessions and workflow runs. On the hosted edition, per-resource
      * authorization filtering is applied server-side (FGA `can_view`
      * enumeration for both kinds — the same permission the per-kind `get`
      * RPCs enforce, so every listed entry is openable by construction). On
@@ -146,9 +146,9 @@ public final class ActivityQueryControllerGrpc {
    * <pre>
    * ActivityQueryController provides cross-resource read queries for the
    * activity feed — the unified "recents" sidebar that merges sessions and
-   * workflow executions into a single time-ordered list.
+   * workflow runs into a single time-ordered list.
    * This service exists because the recents list spans two bounded contexts
-   * (session and workflow_execution). A cross-cutting query service avoids
+   * (session and workflow_run). A cross-cutting query service avoids
    * forcing the client to make two parallel calls and merge client-side.
    * </pre>
    */
@@ -165,9 +165,9 @@ public final class ActivityQueryControllerGrpc {
    * <pre>
    * ActivityQueryController provides cross-resource read queries for the
    * activity feed — the unified "recents" sidebar that merges sessions and
-   * workflow executions into a single time-ordered list.
+   * workflow runs into a single time-ordered list.
    * This service exists because the recents list spans two bounded contexts
-   * (session and workflow_execution). A cross-cutting query service avoids
+   * (session and workflow_run). A cross-cutting query service avoids
    * forcing the client to make two parallel calls and merge client-side.
    * </pre>
    */
@@ -186,9 +186,9 @@ public final class ActivityQueryControllerGrpc {
 
     /**
      * <pre>
-     * List recent activity across sessions and workflow executions.
+     * List recent activity across sessions and workflow runs.
      * Returns a merged, time-sorted list of the caller's most recent
-     * sessions and workflow executions. On the hosted edition, per-resource
+     * sessions and workflow runs. On the hosted edition, per-resource
      * authorization filtering is applied server-side (FGA `can_view`
      * enumeration for both kinds — the same permission the per-kind `get`
      * RPCs enforce, so every listed entry is openable by construction). On
@@ -209,9 +209,9 @@ public final class ActivityQueryControllerGrpc {
    * <pre>
    * ActivityQueryController provides cross-resource read queries for the
    * activity feed — the unified "recents" sidebar that merges sessions and
-   * workflow executions into a single time-ordered list.
+   * workflow runs into a single time-ordered list.
    * This service exists because the recents list spans two bounded contexts
-   * (session and workflow_execution). A cross-cutting query service avoids
+   * (session and workflow_run). A cross-cutting query service avoids
    * forcing the client to make two parallel calls and merge client-side.
    * </pre>
    */
@@ -230,9 +230,9 @@ public final class ActivityQueryControllerGrpc {
 
     /**
      * <pre>
-     * List recent activity across sessions and workflow executions.
+     * List recent activity across sessions and workflow runs.
      * Returns a merged, time-sorted list of the caller's most recent
-     * sessions and workflow executions. On the hosted edition, per-resource
+     * sessions and workflow runs. On the hosted edition, per-resource
      * authorization filtering is applied server-side (FGA `can_view`
      * enumeration for both kinds — the same permission the per-kind `get`
      * RPCs enforce, so every listed entry is openable by construction). On
@@ -252,9 +252,9 @@ public final class ActivityQueryControllerGrpc {
    * <pre>
    * ActivityQueryController provides cross-resource read queries for the
    * activity feed — the unified "recents" sidebar that merges sessions and
-   * workflow executions into a single time-ordered list.
+   * workflow runs into a single time-ordered list.
    * This service exists because the recents list spans two bounded contexts
-   * (session and workflow_execution). A cross-cutting query service avoids
+   * (session and workflow_run). A cross-cutting query service avoids
    * forcing the client to make two parallel calls and merge client-side.
    * </pre>
    */
@@ -273,9 +273,9 @@ public final class ActivityQueryControllerGrpc {
 
     /**
      * <pre>
-     * List recent activity across sessions and workflow executions.
+     * List recent activity across sessions and workflow runs.
      * Returns a merged, time-sorted list of the caller's most recent
-     * sessions and workflow executions. On the hosted edition, per-resource
+     * sessions and workflow runs. On the hosted edition, per-resource
      * authorization filtering is applied server-side (FGA `can_view`
      * enumeration for both kinds — the same permission the per-kind `get`
      * RPCs enforce, so every listed entry is openable by construction). On
@@ -295,9 +295,9 @@ public final class ActivityQueryControllerGrpc {
    * <pre>
    * ActivityQueryController provides cross-resource read queries for the
    * activity feed — the unified "recents" sidebar that merges sessions and
-   * workflow executions into a single time-ordered list.
+   * workflow runs into a single time-ordered list.
    * This service exists because the recents list spans two bounded contexts
-   * (session and workflow_execution). A cross-cutting query service avoids
+   * (session and workflow_run). A cross-cutting query service avoids
    * forcing the client to make two parallel calls and merge client-side.
    * </pre>
    */
@@ -316,9 +316,9 @@ public final class ActivityQueryControllerGrpc {
 
     /**
      * <pre>
-     * List recent activity across sessions and workflow executions.
+     * List recent activity across sessions and workflow runs.
      * Returns a merged, time-sorted list of the caller's most recent
-     * sessions and workflow executions. On the hosted edition, per-resource
+     * sessions and workflow runs. On the hosted edition, per-resource
      * authorization filtering is applied server-side (FGA `can_view`
      * enumeration for both kinds — the same permission the per-kind `get`
      * RPCs enforce, so every listed entry is openable by construction). On

@@ -1,6 +1,6 @@
 // Execution-engine harness smoke test for the MCP tool fixture (Class B).
 // Domain: agentic / agentexecution — proves the tool surface is wired, not the
-// HITL contract (that lives in agentexecution-approval.conformance.test.ts).
+// HITL contract (that lives in agentrun-approval.conformance.test.ts).
 //
 // This is the cheap, permanent guard that the local-execution target's MCP
 // machinery works end-to-end: an HTTP McpServer is registered (create only — no
@@ -12,8 +12,8 @@
 // If this is green, the deep-pass design holds: the runner reaches the tool
 // fixture and runs a tool without any discovery step. If it is red, stop and
 // confer before building the approval suite on top of it.
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -27,7 +27,7 @@ import {
   makeAgentExecution,
   requireLlmProxy,
   requireMcpFixture,
-} from "../support/agentexecutions";
+} from "../support/agentruns";
 import { makeHttpMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
@@ -92,8 +92,8 @@ describe("Execution harness smoke — MCP tool dispatch", () => {
     const final = await awaitTerminal(clients, executionId);
     expect(
       final.status?.phase,
-      `execution ${executionId} should complete; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
-    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      `execution ${executionId} should complete; reached ${RunPhase[final.status?.phase ?? 0]}`,
+    ).toBe(RunPhase.RUN_COMPLETED);
 
     // The echo tool actually ran: a completed tool call named `echo` is recorded.
     const toolCalls = (final.status?.messages ?? []).flatMap((m) => m.toolCalls);

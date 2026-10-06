@@ -12,7 +12,7 @@ import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import {
   ServiceTier,
   ThinkingMode,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { agentHarnessOf, agentRunDefaultsFor } from "../run-defaults";
 
 const spec = (fields: MessageInitShape<typeof AgentSpecSchema>) =>

@@ -1,8 +1,8 @@
 {
   "name": "binary-acknowledged-approve",
   "description": "A binary file (no text diff, is_binary=true, diff_complete=false) is the set's only blocker, so the runner rolls it up to BINARY_SUMMARY_ONLY. It is consciously KEPT via a FILE-scoped APPROVE carrying acknowledge_unreviewable=true. Projects to DECIDED with one decision that preserves the acknowledgment flag identically in every implementation that loads this corpus (protojson round-trip). No reconcile event here: this vector pins projection parity of the audit flag, not the byte-level reconcile (covered by the runner/offline tests).",
-  "execution_id": "aex_binary_ack",
-  "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+  "run_id": "aex_binary_ack",
+  "phase": "RUN_WAITING_FOR_APPROVAL",
   "events": [
     {
       "eventId": "cs1:cs1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",

@@ -9,12 +9,12 @@ description: Hooks and components for file upload handling and chip display.
 
 ### useAttachments
 
-Behavior hook that manages file attachments for agent executions.
+Behavior hook that manages file attachments for agent runs.
 
 Handles the full lifecycle: file validation, upload via
-`stigmer.agentExecution.uploadAttachment()`, progress tracking,
+`stigmer.agentRun.uploadAttachment()`, progress tracking,
 error handling, and retry. Produces `AttachmentInput[]` ready
-for execution creation.
+for run creation.
 
 Files are uploaded immediately on selection so the `storageKey`
 is available by the time the user submits their message.
@@ -49,7 +49,7 @@ function useAttachments(options?: UseAttachmentsOptions): UseAttachmentsReturn
     readyCount: { type: "number", description: "Number of entries that are ready for submission." },
     removeEntry: { type: "(id: string) => void", description: "Remove an entry by its stable ID. Aborts in-flight preparation and uploads." },
     retryEntry: { type: "(id: string) => void", description: "Retry a failed upload." },
-    toAttachmentInputs: { type: "() => AttachmentInput[]", description: "Produces the `AttachmentInput[]` suitable for execution creation. Only includes entries in the `\"ready\"` phase." },
+    toAttachmentInputs: { type: "() => AttachmentInput[]", description: "Produces the `AttachmentInput[]` suitable for run creation. Only includes entries in the `\"ready\"` phase." },
   }}
 />
 
@@ -264,7 +264,7 @@ browser's generic `image.png` name a unique, human-readable one
 
 Unique names are load-bearing, not cosmetic: attachments mount at
 `.stigmer/inputs/{filename}`, and two same-named attachments either fail
-the execution (deep-agent harness) or silently overwrite each other
+the run (deep-agent harness) or silently overwrite each other
 (Cursor harness). Files with real names (pasted from a file manager) are
 returned unchanged.
 
@@ -309,7 +309,7 @@ function fitToVisionResolution(width: number, height: number): VisionFitSize
 Formats a byte count as a human-readable string (e.g., `"2.3 MB"`).
 
 Uses base-1024 (binary) units with one decimal place, consistent
-with [`formatArtifactSize`](/docs/sdk/react/execution#formatartifactsize) in the artifact utilities.
+with [`formatArtifactSize`](/docs/sdk/react/run#formatartifactsize) in the artifact utilities.
 
 ```tsx
 function formatFileSize(bytes: number): string

@@ -7,7 +7,7 @@ vi.mock("../useRefineWorkflowFlow", () => ({
   useRefineWorkflowFlow: vi.fn(),
 }));
 
-vi.mock("../../execution/MessageThread", () => ({
+vi.mock("../../run/MessageThread", () => ({
   MessageThread: () => <div data-testid="message-thread" />,
 }));
 
@@ -22,8 +22,8 @@ const mockedUseRefineWorkflowFlow = vi.mocked(useRefineWorkflowFlow);
 
 const defaultFlow = {
   phase: "idle" as const,
-  completedExecutions: [] as unknown[],
-  activeExecution: null,
+  completedRuns: [] as unknown[],
+  activeRun: null,
   isStreaming: false,
   extractedYaml: null,
   explanation: null,
@@ -78,8 +78,8 @@ describe("WorkflowRefinePanel", () => {
       ...defaultFlow,
       phase: "streaming",
       isStreaming: true,
-      activeExecution: { id: "exec-1" } as any,
-      completedExecutions: [{ id: "exec-0" }] as any,
+      activeRun: { id: "exec-1" } as any,
+      completedRuns: [{ id: "exec-0" }] as any,
     } as ReturnType<typeof useRefineWorkflowFlow>);
 
     render(<WorkflowRefinePanel {...defaultProps} />);
@@ -93,7 +93,7 @@ describe("WorkflowRefinePanel", () => {
       ...defaultFlow,
       phase: "streaming",
       isStreaming: true,
-      activeExecution: { id: "exec-1" } as any,
+      activeRun: { id: "exec-1" } as any,
     } as ReturnType<typeof useRefineWorkflowFlow>);
 
     render(<WorkflowRefinePanel {...defaultProps} />);
@@ -108,7 +108,7 @@ describe("WorkflowRefinePanel", () => {
       phase: "complete",
       extractedYaml: "name: updated",
       explanation: "Changed the name",
-      completedExecutions: [{ id: "exec-0" }] as any,
+      completedRuns: [{ id: "exec-0" }] as any,
     } as ReturnType<typeof useRefineWorkflowFlow>);
 
     render(<WorkflowRefinePanel {...defaultProps} />);
@@ -151,7 +151,7 @@ describe("WorkflowRefinePanel", () => {
       ...defaultFlow,
       phase: "complete",
       extractedYaml: "yaml: content",
-      completedExecutions: [{ id: "exec-0" }] as any,
+      completedRuns: [{ id: "exec-0" }] as any,
       acceptResult,
     } as ReturnType<typeof useRefineWorkflowFlow>);
 

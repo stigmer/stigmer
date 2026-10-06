@@ -10,7 +10,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { screen } from "@testing-library/react";
 import { COLOR_MODES, auditA11y, renderAudited, resetAudit } from "../../../__tests__/helpers/a11y-audit.js";
-import { ThreadSkeleton } from "../../../execution/ThreadSkeleton.js";
+import { ThreadSkeleton } from "../../../run/ThreadSkeleton.js";
 import { LoadingRegion } from "../../LoadingRegion.js";
 
 const CANVAS = { width: 320, height: 400 } as const;

@@ -7,7 +7,7 @@ import "github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
 // Resource clients -- one per API resource.
 type AgentClient = gen.AgentClient
 type AgentChannelClient = gen.AgentChannelClient
-type AgentExecutionClient = gen.AgentExecutionClient
+type AgentRunClient = gen.AgentRunClient
 type AgentShareClient = gen.AgentShareClient
 type ApiKeyClient = gen.ApiKeyClient
 type ArtifactClient = gen.ArtifactClient
@@ -36,7 +36,7 @@ type SessionClient = gen.SessionClient
 type SubscriptionClient = gen.SubscriptionClient
 type TeamClient = gen.TeamClient
 type WorkflowClient = gen.WorkflowClient
-type WorkflowExecutionClient = gen.WorkflowExecutionClient
+type WorkflowRunClient = gen.WorkflowRunClient
 
 // Input types for resource mutation (Create, Update, Apply).
 type AgentInput = gen.AgentInput
@@ -51,7 +51,7 @@ type RunConfigInput = gen.RunConfigInput
 type AgentChannelInput = gen.AgentChannelInput
 type SlackChannelConfigInput = gen.SlackChannelConfigInput
 type WhatsAppChannelConfigInput = gen.WhatsAppChannelConfigInput
-type AgentExecutionInput = gen.AgentExecutionInput
+type AgentRunInput = gen.AgentRunInput
 type SessionSpecInput = gen.SessionSpecInput
 type WorkspaceEntryInput = gen.WorkspaceEntryInput
 type WorkspaceSourceInput = gen.WorkspaceSourceInput
@@ -107,12 +107,12 @@ type WorkflowTaskInput = gen.WorkflowTaskInput
 type ExportInput = gen.ExportInput
 type FlowControlInput = gen.FlowControlInput
 type WorkflowBudgetInput = gen.WorkflowBudgetInput
-type WorkflowExecutionInput = gen.WorkflowExecutionInput
+type WorkflowRunInput = gen.WorkflowRunInput
 
 // Streaming types.
-type AgentExecutionSubscribeStream = gen.AgentExecutionSubscribeStream
-type WorkflowExecutionSubscribeStream = gen.WorkflowExecutionSubscribeStream
-type WorkflowExecutionSubscribeEventsStream = gen.WorkflowExecutionSubscribeEventsStream
+type AgentRunSubscribeStream = gen.AgentRunSubscribeStream
+type WorkflowRunSubscribeStream = gen.WorkflowRunSubscribeStream
+type WorkflowRunSubscribeEventsStream = gen.WorkflowRunSubscribeEventsStream
 
 // Shared SDK types.
 type DeleteResourceInput = gen.DeleteResourceInput

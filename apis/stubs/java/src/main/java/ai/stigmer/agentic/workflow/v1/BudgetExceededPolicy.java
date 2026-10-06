@@ -31,8 +31,8 @@ public enum BudgetExceededPolicy
   budget_exceeded_policy_unspecified(0),
   /**
    * <pre>
-   * Terminate the workflow immediately with EXECUTION_FAILED status.
-   * The execution record includes the budget breach details for diagnostics.
+   * Terminate the workflow immediately with RUN_FAILED status.
+   * The run record includes the budget breach details for diagnostics.
    * </pre>
    *
    * <code>budget_exceeded_terminate = 1;</code>
@@ -41,7 +41,7 @@ public enum BudgetExceededPolicy
   /**
    * <pre>
    * Pause the workflow and request human review via a system-generated
-   * approval gate. The reviewer can approve continued execution (with
+   * approval gate. The reviewer can approve continuing the run (with
    * an increased budget) or confirm termination.
    * Depends on the human_input runtime. If human_input runtime
    * is not available, falls back to terminate with a descriptive error.
@@ -82,8 +82,8 @@ public enum BudgetExceededPolicy
   public static final int budget_exceeded_policy_unspecified_VALUE = 0;
   /**
    * <pre>
-   * Terminate the workflow immediately with EXECUTION_FAILED status.
-   * The execution record includes the budget breach details for diagnostics.
+   * Terminate the workflow immediately with RUN_FAILED status.
+   * The run record includes the budget breach details for diagnostics.
    * </pre>
    *
    * <code>budget_exceeded_terminate = 1;</code>
@@ -92,7 +92,7 @@ public enum BudgetExceededPolicy
   /**
    * <pre>
    * Pause the workflow and request human review via a system-generated
-   * approval gate. The reviewer can approve continued execution (with
+   * approval gate. The reviewer can approve continuing the run (with
    * an increased budget) or confirm termination.
    * Depends on the human_input runtime. If human_input runtime
    * is not available, falls back to terminate with a descriptive error.

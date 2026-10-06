@@ -49,7 +49,7 @@
 import { fromBinary, toBinary } from "@bufbuild/protobuf";
 import { BinaryReader, WireType } from "@bufbuild/protobuf/wire";
 
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 
 import { FrozenWorkflowInstanceEnvelopeSchema } from "./frozen-workflow-instance.js";
@@ -104,7 +104,7 @@ export function migrateWorkflowExecutionRow(
   data: Uint8Array,
   workflowOf: (instanceId: string) => string | undefined,
 ): MigratedRun | undefined {
-  const run = fromBinary(WorkflowExecutionSchema, data);
+  const run = fromBinary(WorkflowRunSchema, data);
   const spec = run.spec;
   const retired = (no: number): boolean =>
     no === RUN_SPEC_INSTANCE_FIELD || no === RUN_SPEC_CALLBACK_TOKEN_FIELD;
@@ -125,7 +125,7 @@ export function migrateWorkflowExecutionRow(
       workflowIdFilled = true;
     }
   }
-  return { data: toBinary(WorkflowExecutionSchema, run), workflowIdFilled };
+  return { data: toBinary(WorkflowRunSchema, run), workflowIdFilled };
 }
 
 /**

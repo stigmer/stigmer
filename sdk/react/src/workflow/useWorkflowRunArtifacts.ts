@@ -1,0 +1,57 @@
+"use client";
+
+import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
+import { create } from "@bufbuild/protobuf";
+import { ListArtifactsByRunRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/io_pb";
+import { useStigmer } from "../hooks.js";
+import { useFetch } from "../internal/useFetch.js";
+
+/** Return value of {@link useWorkflowRunArtifacts}. */
+export interface UseWorkflowRunArtifactsReturn {
+  /** Artifacts produced by this run. */
+  readonly artifacts: readonly Artifact[];
+  /** `true` while the initial fetch is in flight. */
+  readonly isLoading: boolean;
+  /** `true` while a background refetch is in flight and stale data is shown. */
+  readonly isRefetching: boolean;
+  /** Error from the last failed request, or `null` when healthy. */
+  readonly error: Error | null;
+  /** Discard cached data and re-fetch from the server. */
+  readonly refetch: () => void;
+}
+
+/**
+ * Data hook that fetches artifacts produced by a workflow run.
+ *
+ * Pass `null` for `executionId` to skip fetching.
+ *
+ * @example
+ * ```tsx
+ * const { artifacts, isLoading } = useWorkflowRunArtifacts(executionId);
+ * ```
+ */
+export function useWorkflowRunArtifacts(
+  executionId: string | null,
+): UseWorkflowRunArtifactsReturn {
+  const stigmer = useStigmer();
+
+  const fetchFn = executionId
+    ? async () => {
+        const resp = await stigmer.artifact.listByRun(
+          create(ListArtifactsByRunRequestSchema, {
+            workflowRunId: executionId,
+          }),
+        );
+        return [...resp.entries];
+      }
+    : null;
+
+  const { data: artifacts, isLoading, isRefetching, error, refetch } = useFetch(
+    fetchFn,
+    [executionId, stigmer],
+    [] as readonly Artifact[],
+    { cacheKey: executionId ? `workflow-execution-artifacts:${executionId}` : undefined },
+  );
+
+  return { artifacts, isLoading, isRefetching, error, refetch };
+}

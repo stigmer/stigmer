@@ -22,7 +22,7 @@ public interface CreditBalanceOrBuilder extends
 
   /**
    * <pre>
-   * Credits held by active execution reservations.
+   * Credits held by active run reservations.
    * </pre>
    *
    * <code>int64 reserved_micros = 2 [json_name = "reservedMicros"];</code>

@@ -6,7 +6,9 @@
  * not yet known (still being read, or unreadable) does not block the run,
  * a workflow of another organization than the run's reads no personal key,
  * and the flow says when the workflow's runs are visible to its
- * organization.
+ * organization. A run created on the local target is handed to the runner
+ * adapter before the host hears of it; a create that returns no id is an
+ * error, never a success.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
@@ -14,8 +16,10 @@ import type { ReactNode } from "react";
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerError } from "@stigmer/sdk";
 import { Code } from "@connectrpc/connect";
-import { WorkflowExecutionVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { StigmerContext } from "../../context";
+import { ExecutionTargetContext } from "../../execution-target-context";
+import { RunnerAdapterContext, type RunnerAdapter } from "../../runner-adapter";
 import { useRunWorkflowFlow } from "../useRunWorkflowFlow";
 import type { UseRunWorkflowFlowOptions } from "../useRunWorkflowFlow";
 
@@ -48,7 +52,7 @@ const mockListEnvironments = vi.fn();
 
 function makeMockClient(): Stigmer {
   return {
-    workflowExecution: { create: mockCreate },
+    workflowRun: { create: mockCreate },
     environment: { list: mockListEnvironments },
   } as unknown as Stigmer;
 }
@@ -275,6 +279,42 @@ describe("useRunWorkflowFlow", () => {
       expect(input.workflowId).toBe("wf-123");
       expect(Object.keys(input)).not.toContain("workflowInstanceId");
     });
+
+    it("hands a run created on the local target to the runner adapter before the host", async () => {
+      const order: string[] = [];
+      const adapter: RunnerAdapter = {
+        onSessionOpened: vi.fn(),
+        onSessionClosed: vi.fn(),
+        onWorkflowRunCreated: vi.fn(async (runId: string) => {
+          order.push(`adapter:${runId}`);
+        }),
+        onWorkflowRunTerminated: vi.fn(),
+      };
+      const onSuccess = vi.fn((runId: string) => {
+        order.push(`host:${runId}`);
+      });
+      const client = makeMockClient();
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <StigmerContext.Provider value={client}>
+          <ExecutionTargetContext.Provider value="local">
+            <RunnerAdapterContext.Provider value={adapter}>
+              {children}
+            </RunnerAdapterContext.Provider>
+          </ExecutionTargetContext.Provider>
+        </StigmerContext.Provider>
+      );
+      const { result } = renderHook(
+        () => useRunWorkflowFlow(defaultOptions({ onSuccess })),
+        { wrapper },
+      );
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(order).toEqual(["adapter:wex-001", "host:wex-001"]);
+      expect(mockCreate.mock.calls[0][0].executionTarget).toBeDefined();
+    });
   });
 
   // =========================================================================
@@ -313,6 +353,23 @@ describe("useRunWorkflowFlow", () => {
       });
 
       expect(result.current.error).toBeTruthy();
+    });
+
+    it("reports a create that returned no run id as an error, not a success", async () => {
+      mockCreate.mockResolvedValue({ metadata: {} });
+      const onSuccess = vi.fn();
+      const onError = vi.fn();
+      const { result } = renderWithClient(defaultOptions({ onSuccess, onError }));
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      const message =
+        "Run was created but no ID was returned. Please check the runs list.";
+      expect(result.current.error).toBe(message);
+      expect(onError).toHaveBeenCalledWith(message);
+      expect(onSuccess).not.toHaveBeenCalled();
     });
   });
 
@@ -513,7 +570,7 @@ describe("useRunWorkflowFlow", () => {
     it("is true when the workflow's runs are visible to its organization", () => {
       const opts = defaultOptions({
         workflow: makeWorkflow({
-          spec: { executionVisibility: WorkflowExecutionVisibility.organization },
+          spec: { runVisibility: WorkflowRunVisibility.organization },
         }),
       });
       const { result } = renderWithClient(opts);
@@ -521,11 +578,11 @@ describe("useRunWorkflowFlow", () => {
     });
 
     it.each([
-      WorkflowExecutionVisibility.private,
-      WorkflowExecutionVisibility.unspecified,
-    ])("is false for run visibility %s", (executionVisibility) => {
+      WorkflowRunVisibility.private,
+      WorkflowRunVisibility.unspecified,
+    ])("is false for run visibility %s", (runVisibility) => {
       const opts = defaultOptions({
-        workflow: makeWorkflow({ spec: { executionVisibility } }),
+        workflow: makeWorkflow({ spec: { runVisibility } }),
       });
       const { result } = renderWithClient(opts);
       expect(result.current.runsVisibleToOrganization).toBe(false);

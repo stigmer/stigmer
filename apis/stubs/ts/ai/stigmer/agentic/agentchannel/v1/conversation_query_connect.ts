@@ -52,7 +52,7 @@ export const ChannelConversationQueryController = {
      *
      * The timeline contains customer-visible items only: inbound customer
      * messages (including non-text kinds the platform cannot render),
-     * delivered agent replies, and operator or platform sends. Execution
+     * delivered agent replies, and operator or platform sends. Run
      * internals never appear.
      *
      * @generated from rpc ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.getTimeline

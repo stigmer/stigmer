@@ -16,7 +16,7 @@
  *
  * Recall is not driven here: an execution create needs an engine, and the
  * recall step runs after the engine check. Its gates are pinned
- * step-for-step in domain/agentexecution/__tests__/create-steps.test.ts,
+ * step-for-step in domain/agentrun/__tests__/create-steps.test.ts,
  * over the same identity-account reads this boot composes.
  */
 import { mkdtempSync, rmSync } from "node:fs";

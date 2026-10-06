@@ -9,27 +9,27 @@
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 
 import { parentIdOf } from "../shapes.js";
 
 describe("parentIdOf through a oneof", () => {
   it("reads the session a turn belongs to", () => {
-    const turn = create(AgentExecutionSchema, {
+    const turn = create(AgentRunSchema, {
       spec: { target: { case: "sessionId", value: "ses_1" } },
     });
     expect(parentIdOf(turn, "session_id")).toBe("ses_1");
   });
 
   it("reads no parent when the oneof holds a new session's spec", () => {
-    const turn = create(AgentExecutionSchema, {
+    const turn = create(AgentRunSchema, {
       spec: { target: { case: "sessionSpec", value: {} } },
     });
     expect(parentIdOf(turn, "session_id")).toBe("");
   });
 
   it("reads no parent when the oneof is unset", () => {
-    const turn = create(AgentExecutionSchema, { spec: {} });
+    const turn = create(AgentRunSchema, { spec: {} });
     expect(parentIdOf(turn, "session_id")).toBe("");
   });
 

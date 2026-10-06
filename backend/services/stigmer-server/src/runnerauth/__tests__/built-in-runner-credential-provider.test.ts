@@ -53,10 +53,10 @@ import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
@@ -96,33 +96,33 @@ function stampedBy(id: string) {
 }
 
 /** The one agent execution the capture arms read: Carol's run in `acme`, on session `ses_carol`. */
-const AGENT_RUN = create(AgentExecutionSchema, {
+const AGENT_RUN = create(AgentRunSchema, {
   metadata: { id: "aex_agent_run", name: "aex_agent_run", org: "acme" },
   spec: { target: { case: "sessionId", value: "ses_carol" } },
-  status: { phase: ExecutionPhase.EXECUTION_IN_PROGRESS, ...stampedBy(HUMAN) },
+  status: { phase: RunPhase.RUN_IN_PROGRESS, ...stampedBy(HUMAN) },
 });
 
 /** Carol's workflow execution — the exchange's workflow arm reads it. */
-const WORKFLOW_RUN = create(WorkflowExecutionSchema, {
+const WORKFLOW_RUN = create(WorkflowRunSchema, {
   metadata: { id: "wex_carols_flow", name: "wex_carols_flow", org: "acme" },
   status: { ...stampedBy(HUMAN) },
 });
 
 /** A run created before sign-in was on: its stamp names nobody the server recognizes. */
-const NOBODYS_RUN = create(AgentExecutionSchema, {
+const NOBODYS_RUN = create(AgentRunSchema, {
   metadata: { id: "aex_nobodys_run", name: "aex_nobodys_run", org: "acme" },
   spec: { target: { case: "sessionId", value: "ses_old" } },
   status: {
-    phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+    phase: RunPhase.RUN_IN_PROGRESS,
     ...stampedBy("system"),
   },
 });
 
 /** A run whose row names no organization: no credential may be bound to nothing. */
-const ORGLESS_RUN = create(AgentExecutionSchema, {
+const ORGLESS_RUN = create(AgentRunSchema, {
   metadata: { id: "aex_orgless_run", name: "aex_orgless_run", org: "" },
   spec: { target: { case: "sessionId", value: "ses_orgless" } },
-  status: { phase: ExecutionPhase.EXECUTION_IN_PROGRESS, ...stampedBy(HUMAN) },
+  status: { phase: RunPhase.RUN_IN_PROGRESS, ...stampedBy(HUMAN) },
 });
 
 const ROWS: Record<string, unknown> = {
@@ -333,7 +333,7 @@ describe("exchangeScopedToken — the mint gate", () => {
       exchange({ arm: "agent-execution", executionId: "aex_missing" }, carol),
     );
     expect(failure.code).toBe(Code.NotFound);
-    expect(failure.rawMessage).toBe("AgentExecution not found: aex_missing");
+    expect(failure.rawMessage).toBe("AgentRun not found: aex_missing");
 
     const workflowFailure = await refusal(
       exchange(
@@ -342,7 +342,7 @@ describe("exchangeScopedToken — the mint gate", () => {
       ),
     );
     expect(workflowFailure.rawMessage).toBe(
-      "WorkflowExecution not found: wex_missing",
+      "WorkflowRun not found: wex_missing",
     );
   });
 
@@ -351,7 +351,7 @@ describe("exchangeScopedToken — the mint gate", () => {
       exchange({ arm: "agent-execution", executionId: CONNECT_ID }, carol),
     );
     expect(failure.code).toBe(Code.NotFound);
-    expect(failure.rawMessage).toBe(`AgentExecution not found: ${CONNECT_ID}`);
+    expect(failure.rawMessage).toBe(`AgentRun not found: ${CONNECT_ID}`);
   });
 
   it("the id decides which execution is read, never the arm — an agent id under the workflow arm mints for the agent run", async () => {

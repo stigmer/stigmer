@@ -41,7 +41,7 @@ enum TransformEngine {
 // fields, joining objects, converting formats, or building API payloads.
 // Unlike set_vars (which mutates workflow state variables as a side effect),
 // transform produces an explicit output that flows through export like any
-// other task — visible and inspectable in the execution viewer.
+// other task — visible and inspectable in the run viewer.
 //
 // The distinction from set_vars:
 //   set_vars = imperative assignment ("set X to Y"), mutates workflow context

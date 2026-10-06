@@ -196,8 +196,8 @@ two components:
    tutorials.
 2. `onSessionCreated` handed the new Session's ID to your state, and your
    component swapped in `SessionViewer`.
-3. `SessionViewer` subscribed to the execution stream and rendered it live —
-   messages, tool calls, and approval gates, with a composer for follow-ups.
+3. `SessionViewer` subscribed to the run stream and rendered it live — messages,
+   tool calls, and approval gates, with a composer for follow-ups.
 
 Every piece is independently replaceable. Want your own UI? The same package
 exports the hooks these components are built on — start with
@@ -225,7 +225,7 @@ components.
 <Cards>
   <Card
     title="React SDK reference"
-    description="Every hook, component, and prop — session, execution, agent, and more."
+    description="Every hook, component, and prop — session, run, agent, and more."
     href="/docs/sdk/react"
   />
   <Card

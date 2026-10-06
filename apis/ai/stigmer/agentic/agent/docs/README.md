@@ -6,21 +6,21 @@ Comprehensive documentation for the `agentic.stigmer.ai/v1` Agent resource.
 
 An Agent is a Kubernetes-style API resource that defines the **template layer** of an AI agent. It declares the agent's identity, behavior, tool access, and knowledge — everything needed to describe _what_ an agent can do and _how_ it should behave.
 
-Agents do not run on their own. A session names an agent directly, and each execution in it runs that agent at the version the session pinned.
+Agents do not run on their own. A session names an agent directly, and each run in it runs that agent at the version the session pinned.
 
 ## Agent Lifecycle
 
 ```
-Agent ──► Session ──► AgentExecution
+Agent ──► Session ──► AgentRun
 ```
 
 | Resource | Analogy | Purpose |
 |---|---|---|
 | **Agent** | Docker image | Declares capabilities and configuration. Every change to the definition is kept as a version. |
-| **Session** | Container runtime | Names the agent (`agent_ref`) and pins the version it resolved. Groups related executions into a conversational context. Maintains state across multiple runs. |
-| **AgentExecution** | Container run (`docker run`) | A single run of the session's agent, at the pinned version. Produces messages, tool calls, and results. |
+| **Session** | Container runtime | Names the agent (`agent_ref`) and pins the version it resolved. Groups related runs into a conversational context. Maintains state across multiple runs. |
+| **AgentRun** | Container run (`docker run`) | A single run of the session's agent, at the pinned version. Produces messages, tool calls, and results. |
 
-The Agent resource is the only one users author directly in YAML. Sessions and AgentExecutions are created via the API or CLI at runtime. The agent declares the environment keys it needs (`env`); values come from the Environments bound to what starts a run (a schedule, a workflow task, a PlatformClient), from the execution's `runtime_env`, and, for keys still missing, from the personal environment of the person who sent the message.
+The Agent resource is the only one users author directly in YAML. Sessions and AgentRuns are created via the API or CLI at runtime. The agent declares the environment keys it needs (`env`); values come from the Environments bound to what starts a run (a schedule, a workflow task, a PlatformClient), from the run's `runtime_env`, and, for keys still missing, from the personal environment of the person who sent the message.
 
 ## Documentation Index
 

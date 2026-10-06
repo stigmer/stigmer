@@ -27,7 +27,7 @@ export const DAGRE_CONFIG = {
 } as const;
 
 /**
- * More generous dagre spacing for execution graphs. Execution nodes carry
+ * More generous dagre spacing for run graphs. Run nodes carry
  * status badges, duration chips, and fork-progress bars that need more
  * vertical and horizontal clearance than bare editor/overview nodes.
  */

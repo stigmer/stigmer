@@ -24,7 +24,7 @@
  *     through, so a driver that evaluates the model over a candidate
  *     needs no second read of the row;
  *   - a kind whose authorization is its parent's (kind_meta PARENT scope
- *     + INHERITED owner; agent_execution → session) carries
+ *     + INHERITED owner; agent_run → session) carries
  *     `authorizationParent` on every candidate whose spec names it, the
  *     same ResolvedParentLink the tuple lifecycle wrote and one of the
  *     candidate's own parent links; every other kind and every parentless
@@ -293,7 +293,7 @@ describe("restrictListByReadScope", () => {
     await restrictListByReadScope(
       recording,
       caller,
-      ApiResourceKind.workflow_execution,
+      ApiResourceKind.workflow_run,
       [
         {
           metadata: {
@@ -344,7 +344,7 @@ describe("restrictListByReadScope", () => {
       return { scope, seen };
     }
 
-    it("an agent_execution candidate carries its session as the ResolvedParentLink the tuple lifecycle wrote", async () => {
+    it("an agent_run candidate carries its session as the ResolvedParentLink the tuple lifecycle wrote", async () => {
       const executions = [
         {
           metadata: { id: "aex_1", org: "acme", labels: {} },
@@ -363,7 +363,7 @@ describe("restrictListByReadScope", () => {
       const kept = await restrictListByReadScope(
         scope,
         caller,
-        ApiResourceKind.agent_execution,
+        ApiResourceKind.agent_run,
         executions,
         "",
       );
@@ -396,7 +396,7 @@ describe("restrictListByReadScope", () => {
       const kept = await restrictListByReadScope(
         scope,
         caller,
-        ApiResourceKind.agent_execution,
+        ApiResourceKind.agent_run,
         executions,
         "",
       );
@@ -411,7 +411,7 @@ describe("restrictListByReadScope", () => {
     });
 
     it("a kind whose authorization is its own carries no parent even when its spec names one", async () => {
-      // A workflow_execution links its workflow (an additional parent,
+      // A workflow_run links its workflow (an additional parent,
       // partial opt-in inheritance) and owns itself: not the pair.
       const runs = [
         {
@@ -423,12 +423,12 @@ describe("restrictListByReadScope", () => {
       await restrictListByReadScope(
         scope,
         caller,
-        ApiResourceKind.workflow_execution,
+        ApiResourceKind.workflow_run,
         runs,
         "",
       );
       // The workflow IS a parent link (the derivation walks
-      // `execution_viewer from workflow` through it); it is not the parent
+      // `run_viewer from workflow` through it); it is not the parent
       // the kind's authorization is.
       expect(seen[0]).toEqual([
         bareFacts("wex_1", "acme", [
@@ -452,7 +452,7 @@ describe("restrictListByReadScope", () => {
       const kept = await restrictListByReadScope(
         undefined,
         caller,
-        ApiResourceKind.agent_execution,
+        ApiResourceKind.agent_run,
         executions,
         "acme",
       );

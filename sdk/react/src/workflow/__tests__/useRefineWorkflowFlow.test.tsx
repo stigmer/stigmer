@@ -4,11 +4,11 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 vi.mock("../../session/useCreateSession", () => ({
   useCreateSession: vi.fn(),
 }));
-vi.mock("../../execution/useCreateAgentExecution", () => ({
-  useCreateAgentExecution: vi.fn(),
+vi.mock("../../run/useCreateAgentRun", () => ({
+  useCreateAgentRun: vi.fn(),
 }));
-vi.mock("../../execution/useExecutionStream", () => ({
-  useExecutionStream: vi.fn(),
+vi.mock("../../run/useRunStream", () => ({
+  useRunStream: vi.fn(),
 }));
 vi.mock("../../internal/store", () => ({
   useConversationStoreRef: vi.fn(() => ({ current: null })),
@@ -16,8 +16,8 @@ vi.mock("../../internal/store", () => ({
 
 import { useRefineWorkflowFlow } from "../useRefineWorkflowFlow";
 import { useCreateSession } from "../../session/useCreateSession";
-import { useCreateAgentExecution } from "../../execution/useCreateAgentExecution";
-import { useExecutionStream } from "../../execution/useExecutionStream";
+import { useCreateAgentRun } from "../../run/useCreateAgentRun";
+import { useRunStream } from "../../run/useRunStream";
 
 const mockCreateSession = vi.fn();
 const mockCreateExecution = vi.fn();
@@ -40,7 +40,7 @@ function makeExecution(yamlContent?: string) {
 
 function defaultStreamReturn(overrides: Record<string, unknown> = {}) {
   return {
-    execution: null,
+    run: null,
     phase: 0,
     isStreaming: false,
     isConnecting: false,
@@ -62,7 +62,7 @@ describe("useRefineWorkflowFlow", () => {
     vi.clearAllMocks();
 
     mockCreateSession.mockResolvedValue({ sessionId: "sess-123" });
-    mockCreateExecution.mockResolvedValue({ executionId: "exec-456" });
+    mockCreateExecution.mockResolvedValue({ runId: "exec-456" });
 
     (useCreateSession as ReturnType<typeof vi.fn>).mockReturnValue({
       create: mockCreateSession,
@@ -70,13 +70,13 @@ describe("useRefineWorkflowFlow", () => {
       error: null,
       clearError: vi.fn(),
     });
-    (useCreateAgentExecution as ReturnType<typeof vi.fn>).mockReturnValue({
+    (useCreateAgentRun as ReturnType<typeof vi.fn>).mockReturnValue({
       create: mockCreateExecution,
       isCreating: false,
       error: null,
       clearError: vi.fn(),
     });
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue(
       defaultStreamReturn(),
     );
   });
@@ -88,7 +88,7 @@ describe("useRefineWorkflowFlow", () => {
     expect(result.current.extractedYaml).toBeNull();
     expect(result.current.error).toBeNull();
     expect(result.current.explanation).toBeNull();
-    expect(result.current.completedExecutions).toHaveLength(0);
+    expect(result.current.completedRuns).toHaveLength(0);
   });
 
   it("rejects instruction shorter than 5 characters", async () => {
@@ -128,10 +128,10 @@ describe("useRefineWorkflowFlow", () => {
 
     expect(result.current.phase).toBe("streaming");
 
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue(
       defaultStreamReturn({
         phase: 4,
-        execution: makeExecution(),
+        run: makeExecution(),
         isStreaming: false,
       }),
     );
@@ -141,10 +141,10 @@ describe("useRefineWorkflowFlow", () => {
       expect(result.current.phase).toBe("ready");
     });
 
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue(
       defaultStreamReturn(),
     );
-    mockCreateExecution.mockResolvedValueOnce({ executionId: "exec-789" });
+    mockCreateExecution.mockResolvedValueOnce({ runId: "exec-789" });
 
     await act(async () => {
       await result.current.sendInstruction("Add a timeout to the first step");
@@ -164,14 +164,14 @@ describe("useRefineWorkflowFlow", () => {
     await act(async () => {
       await result.current.sendInstruction("Refine the error handling step");
     });
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
-      defaultStreamReturn({ phase: 4, execution: makeExecution(), isStreaming: false }),
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue(
+      defaultStreamReturn({ phase: 4, run: makeExecution(), isStreaming: false }),
     );
     rerender({ options: { ...opts, org: "other-org" } });
     await waitFor(() => {
       expect(result.current.phase).toBe("ready");
     });
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(defaultStreamReturn());
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue(defaultStreamReturn());
 
     await act(async () => {
       await result.current.sendInstruction("Add a timeout to the first step");
@@ -205,10 +205,10 @@ describe("useRefineWorkflowFlow", () => {
     expect(result.current.phase).toBe("streaming");
 
     const yamlContent = "apiVersion: v1\nname: refined-workflow";
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue(
       defaultStreamReturn({
         phase: 4,
-        execution: makeExecution(yamlContent),
+        run: makeExecution(yamlContent),
         isStreaming: false,
       }),
     );
@@ -229,10 +229,10 @@ describe("useRefineWorkflowFlow", () => {
       await result.current.sendInstruction("Refine the error handling step");
     });
 
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue(
       defaultStreamReturn({
         phase: 4,
-        execution: makeExecution(),
+        run: makeExecution(),
         isStreaming: false,
       }),
     );
@@ -252,7 +252,7 @@ describe("useRefineWorkflowFlow", () => {
       await result.current.sendInstruction("Refine the error handling step");
     });
 
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue(
       defaultStreamReturn({
         error: new Error("Connection lost"),
       }),
@@ -290,10 +290,10 @@ describe("useRefineWorkflowFlow", () => {
       await result.current.sendInstruction("Add a retry mechanism");
     });
 
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue(
       defaultStreamReturn({
         phase: 4,
-        execution: makeExecution(),
+        run: makeExecution(),
         isStreaming: false,
       }),
     );
@@ -320,10 +320,10 @@ describe("useRefineWorkflowFlow", () => {
     });
 
     const yamlContent = "apiVersion: v1\nname: accepted";
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue(
       defaultStreamReturn({
         phase: 4,
-        execution: makeExecution(yamlContent),
+        run: makeExecution(yamlContent),
         isStreaming: false,
       }),
     );
@@ -351,10 +351,10 @@ describe("useRefineWorkflowFlow", () => {
     });
 
     const yamlContent = "apiVersion: v1\nname: discarded";
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue(
       defaultStreamReturn({
         phase: 4,
-        execution: makeExecution(yamlContent),
+        run: makeExecution(yamlContent),
         isStreaming: false,
       }),
     );
@@ -381,10 +381,10 @@ describe("useRefineWorkflowFlow", () => {
     });
 
     const yamlContent = "apiVersion: v1\nname: reset-test";
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue(
       defaultStreamReturn({
         phase: 4,
-        execution: makeExecution(yamlContent),
+        run: makeExecution(yamlContent),
         isStreaming: false,
       }),
     );
@@ -401,7 +401,7 @@ describe("useRefineWorkflowFlow", () => {
     expect(result.current.phase).toBe("idle");
     expect(result.current.extractedYaml).toBeNull();
     expect(result.current.error).toBeNull();
-    expect(result.current.completedExecutions).toHaveLength(0);
+    expect(result.current.completedRuns).toHaveLength(0);
   });
 
   it("no-op when sending during streaming phase", async () => {
@@ -449,10 +449,10 @@ describe("useRefineWorkflowFlow", () => {
     });
 
     const yamlContent = "apiVersion: v1\nname: from-structured";
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue(
       defaultStreamReturn({
         phase: 4,
-        execution: {
+        run: {
           status: {
             messages: [{ type: 2, content: "Done" }],
             phase: 4,
@@ -482,10 +482,10 @@ describe("useRefineWorkflowFlow", () => {
       await result.current.sendInstruction("Refine the error handling step");
     });
 
-    (useExecutionStream as ReturnType<typeof vi.fn>).mockReturnValue(
+    (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue(
       defaultStreamReturn({
         phase: 4,
-        execution: {
+        run: {
           status: {
             messages: [{ type: 2, content: "Need more info" }],
             phase: 4,

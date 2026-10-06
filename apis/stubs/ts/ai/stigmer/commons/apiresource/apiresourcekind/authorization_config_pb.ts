@@ -36,7 +36,7 @@ export const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_c
  * Kinds WITHOUT a visibility config accept only visibility_private (or
  * unspecified) — they are personal or org-structural resources whose access
  * is fully defined by their FGA model, never by per-resource visibility
- * tuples (session, environment, executions, etc.).
+ * tuples (session, environment, runs, etc.).
  *
  * Current classification:
  * - Blueprint kinds (agent, skill, workflow, mcp_server, plugin):
@@ -147,8 +147,8 @@ export type ParentRelationConfig = Message<"ai.stigmer.commons.apiresource.apire
   /**
    * Field name in the resource's spec message that contains the parent ID.
    * The service extracts this field from resource.spec to resolve the parent ID.
-   * Example: "session_id" for agent_execution, "workflow_id" for
-   * workflow_execution.
+   * Example: "session_id" for agent_run, "workflow_id" for
+   * workflow_run.
    * This eliminates hardcoded parent ID extraction logic in the service.
    *
    * @generated from field: string spec_field = 3;
@@ -181,20 +181,20 @@ export const ParentRelationConfigSchema: GenMessage<ParentRelationConfig> = /*@_
  *   -> Creates: organization#platform@platform:stigmer
  *   -> Creates: organization#owner@identity_account:<creator_id>
  *
- * Parent-bound resource (agent_execution):
+ * Parent-bound resource (agent_run):
  *   scope_type: AUTHORIZATION_SCOPE_TYPE_PARENT
  *   owner_type: OWNER_ATTRIBUTION_TYPE_INHERITED
  *   parent: { kind: "session", relation: "session", spec_field: "session_id" }
- *   -> Creates: agent_execution#session@session:<session_id>
+ *   -> Creates: agent_run#session@session:<session_id>
  *   -> No owner tuple (inherited from session)
  *
- * Resource with additional parent (workflow_execution):
+ * Resource with additional parent (workflow_run):
  *   scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
  *   owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
  *   additional_parents: [{ kind: "workflow", relation: "workflow", spec_field: "workflow_id" }]
- *   -> Creates: workflow_execution#organization@organization:<org_id>
- *   -> Creates: workflow_execution#workflow@workflow:<workflow_id>
- *   -> Creates: workflow_execution#owner@identity_account:<creator_id>
+ *   -> Creates: workflow_run#organization@organization:<org_id>
+ *   -> Creates: workflow_run#workflow@workflow:<workflow_id>
+ *   -> Creates: workflow_run#owner@identity_account:<creator_id>
  *
  * Personal resource with creator attribution (environment):
  *   scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
@@ -243,7 +243,7 @@ export type AuthorizationConfig = Message<"ai.stigmer.commons.apiresource.apires
   /**
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: workflow_execution needs org link AND workflow link.
+   * Example: workflow_run needs org link AND workflow link.
    *
    * @generated from field: repeated ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4;
    */
@@ -281,7 +281,7 @@ export type AuthorizationConfig = Message<"ai.stigmer.commons.apiresource.apires
    *
    * Empty means no user-grantable roles: the resource is either owner-only
    * (api_key, execution_context), inherits authorization from a parent
-   * (agent_execution), is self-owned (identity_account), or has no
+   * (agent_run), is self-owned (identity_account), or has no
    * authorization (platform, api_resource_version).
    *
    * @generated from field: repeated ai.stigmer.iam.v1.IamRole grantable_roles = 7;
@@ -342,7 +342,7 @@ export enum AuthorizationScopeType {
 
   /**
    * Links to a parent resource.
-   * Used for: agent_execution (links to session)
+   * Used for: agent_run (links to session)
    * FGA tuple: resource#<relation>@<parent_kind>:<parent_id>
    *
    * @generated from enum value: AUTHORIZATION_SCOPE_TYPE_PARENT = 3;
@@ -396,7 +396,7 @@ export enum OwnerAttributionType {
 
   /**
    * Owner is computed from parent - no tuple created.
-   * Used for: agent_execution (inherits owner from session)
+   * Used for: agent_run (inherits owner from session)
    * FGA: owner relation derived via "owner from session"
    *
    * @generated from enum value: OWNER_ATTRIBUTION_TYPE_INHERITED = 2;

@@ -24,12 +24,12 @@ import { create, toBinary } from "@bufbuild/protobuf";
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { describe, expect, it, vi } from "vitest";
 
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase as AgentPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase as AgentPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { ExecutionPhase as WorkflowPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { RunPhase as WorkflowPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { newConnectExecutionId } from "../../domain/mcpserver/connect-execution-id.js";
@@ -109,7 +109,7 @@ function agentRun(
   completedAt = "",
   extra: { createdBy?: string; sessionId?: string; org?: string } = {},
 ) {
-  return create(AgentExecutionSchema, {
+  return create(AgentRunSchema, {
     metadata: { id, name: id, org: extra.org ?? "acme" },
     spec: { target: { case: "sessionId", value: extra.sessionId ?? "" } },
     status: {
@@ -121,7 +121,7 @@ function agentRun(
 }
 
 function workflowRun(id: string, phase: WorkflowPhase, completedAt = "") {
-  return create(WorkflowExecutionSchema, {
+  return create(WorkflowRunSchema, {
     metadata: { id, name: id, org: "acme" },
     status: { phase, completedAt },
   });
@@ -157,7 +157,7 @@ describe("bindsARun — what a no-`exp` credential may name", () => {
 describe("loadBoundExecution", () => {
   it("reads the row's facts the lane needs and nothing else", async () => {
     const store = storeOf({
-      aex_1: agentRun("aex_1", AgentPhase.EXECUTION_IN_PROGRESS, "", {
+      aex_1: agentRun("aex_1", AgentPhase.RUN_IN_PROGRESS, "", {
         createdBy: "ida_carol",
         sessionId: "ses_carol",
         org: "acme",
@@ -247,20 +247,20 @@ describe("loadBoundExecution", () => {
 
   describe("liveness — the agent execution's own terminal set", () => {
     it.each([
-      ["PENDING", AgentPhase.EXECUTION_PENDING],
-      ["IN_PROGRESS", AgentPhase.EXECUTION_IN_PROGRESS],
-      ["WAITING_FOR_APPROVAL", AgentPhase.EXECUTION_WAITING_FOR_APPROVAL],
-      ["PAUSED", AgentPhase.EXECUTION_PAUSED],
+      ["PENDING", AgentPhase.RUN_PENDING],
+      ["IN_PROGRESS", AgentPhase.RUN_IN_PROGRESS],
+      ["WAITING_FOR_APPROVAL", AgentPhase.RUN_WAITING_FOR_APPROVAL],
+      ["PAUSED", AgentPhase.RUN_PAUSED],
     ])("%s is live", async (_name, phase) => {
       const store = storeOf({ aex_1: agentRun("aex_1", phase) });
       expect((await loadBoundExecution(store, "aex_1", NOW))?.live).toBe(true);
     });
 
     it.each([
-      ["COMPLETED", AgentPhase.EXECUTION_COMPLETED],
-      ["FAILED", AgentPhase.EXECUTION_FAILED],
-      ["CANCELLED", AgentPhase.EXECUTION_CANCELLED],
-      ["TERMINATED", AgentPhase.EXECUTION_TERMINATED],
+      ["COMPLETED", AgentPhase.RUN_COMPLETED],
+      ["FAILED", AgentPhase.RUN_FAILED],
+      ["CANCELLED", AgentPhase.RUN_CANCELLED],
+      ["TERMINATED", AgentPhase.RUN_TERMINATED],
     ])(
       "%s with no completed_at is dead at once — no grace without a timestamp",
       async (_name, phase) => {
@@ -273,7 +273,7 @@ describe("loadBoundExecution", () => {
 
     it("a row with no status has not started, which is live", async () => {
       const store = storeOf({
-        aex_1: create(AgentExecutionSchema, { metadata: { id: "aex_1" } }),
+        aex_1: create(AgentRunSchema, { metadata: { id: "aex_1" } }),
       });
       expect((await loadBoundExecution(store, "aex_1", NOW))?.live).toBe(true);
     });
@@ -281,19 +281,19 @@ describe("loadBoundExecution", () => {
 
   describe("liveness — the workflow execution's own terminal set", () => {
     it.each([
-      ["PENDING", WorkflowPhase.EXECUTION_PENDING],
-      ["IN_PROGRESS", WorkflowPhase.EXECUTION_IN_PROGRESS],
-      ["PAUSED", WorkflowPhase.EXECUTION_PAUSED],
+      ["PENDING", WorkflowPhase.RUN_PENDING],
+      ["IN_PROGRESS", WorkflowPhase.RUN_IN_PROGRESS],
+      ["PAUSED", WorkflowPhase.RUN_PAUSED],
     ])("%s is live", async (_name, phase) => {
       const store = storeOf({ wex_1: workflowRun("wex_1", phase) });
       expect((await loadBoundExecution(store, "wex_1", NOW))?.live).toBe(true);
     });
 
     it.each([
-      ["COMPLETED", WorkflowPhase.EXECUTION_COMPLETED],
-      ["FAILED", WorkflowPhase.EXECUTION_FAILED],
-      ["CANCELLED", WorkflowPhase.EXECUTION_CANCELLED],
-      ["TERMINATED", WorkflowPhase.EXECUTION_TERMINATED],
+      ["COMPLETED", WorkflowPhase.RUN_COMPLETED],
+      ["FAILED", WorkflowPhase.RUN_FAILED],
+      ["CANCELLED", WorkflowPhase.RUN_CANCELLED],
+      ["TERMINATED", WorkflowPhase.RUN_TERMINATED],
     ])("%s with no completed_at is dead at once", async (_name, phase) => {
       const store = storeOf({ wex_1: workflowRun("wex_1", phase) });
       expect((await loadBoundExecution(store, "wex_1", NOW))?.live).toBe(false);
@@ -301,7 +301,7 @@ describe("loadBoundExecution", () => {
 
     it("a workflow execution has no session — the field is empty, never a guess", async () => {
       const store = storeOf({
-        wex_1: workflowRun("wex_1", WorkflowPhase.EXECUTION_IN_PROGRESS),
+        wex_1: workflowRun("wex_1", WorkflowPhase.RUN_IN_PROGRESS),
       });
       expect((await loadBoundExecution(store, "wex_1", NOW))?.sessionId).toBe(
         "",
@@ -319,14 +319,14 @@ describe("loadBoundExecution", () => {
       ["long after", -(G * 10), false],
     ])("a run that ended %s → live=%s", async (_label, offset, live) => {
       const store = storeOf({
-        aex_1: agentRun("aex_1", AgentPhase.EXECUTION_COMPLETED, iso(offset)),
+        aex_1: agentRun("aex_1", AgentPhase.RUN_COMPLETED, iso(offset)),
       });
       expect((await loadBoundExecution(store, "aex_1", NOW))?.live).toBe(live);
     });
 
     it("a completed_at in the future (a skewed writer's clock) is inside the grace, not an error", async () => {
       const store = storeOf({
-        aex_1: agentRun("aex_1", AgentPhase.EXECUTION_COMPLETED, iso(60_000)),
+        aex_1: agentRun("aex_1", AgentPhase.RUN_COMPLETED, iso(60_000)),
       });
       expect((await loadBoundExecution(store, "aex_1", NOW))?.live).toBe(true);
     });
@@ -335,7 +335,7 @@ describe("loadBoundExecution", () => {
       const store = storeOf({
         aex_1: agentRun(
           "aex_1",
-          AgentPhase.EXECUTION_COMPLETED,
+          AgentPhase.RUN_COMPLETED,
           "yesterday-ish",
         ),
       });
@@ -344,8 +344,8 @@ describe("loadBoundExecution", () => {
 
     it("the same rule applies to a workflow execution", async () => {
       const store = storeOf({
-        wex_1: workflowRun("wex_1", WorkflowPhase.EXECUTION_FAILED, iso(-1000)),
-        wex_2: workflowRun("wex_2", WorkflowPhase.EXECUTION_FAILED, iso(-G)),
+        wex_1: workflowRun("wex_1", WorkflowPhase.RUN_FAILED, iso(-1000)),
+        wex_2: workflowRun("wex_2", WorkflowPhase.RUN_FAILED, iso(-G)),
       });
       expect((await loadBoundExecution(store, "wex_1", NOW))?.live).toBe(true);
       expect((await loadBoundExecution(store, "wex_2", NOW))?.live).toBe(false);

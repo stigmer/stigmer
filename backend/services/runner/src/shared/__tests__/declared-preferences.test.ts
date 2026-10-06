@@ -1,7 +1,7 @@
 /**
  * Unit tests for the declared-preferences module (stigmer/stigmer#293).
  * Like conversation-catchup there is no string key to mirror-guard —
- * the value rides the typed `AgentExecutionStatus.declared_preferences` proto
+ * the value rides the typed `AgentRunStatus.declared_preferences` proto
  * field, so codegen enforces the cross-repo contract. What IS pinned here:
  * the per-scope blank-is-absent read semantics (the server stamps the field
  * on EVERY eligible create, usually with blank scopes), the per-scope
@@ -10,7 +10,7 @@
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { DeclaredPreferencesSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { DeclaredPreferencesSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 
 import {
   formatDeclaredPreferencesText,

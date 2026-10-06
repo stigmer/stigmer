@@ -6,8 +6,8 @@
 // resume-style flows read sessions through these helpers instead.
 
 import { create } from "@bufbuild/protobuf";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ListAgentExecutionsBySessionRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { ListAgentRunsBySessionRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Stigmer } from "@stigmer/sdk";
 
@@ -17,12 +17,12 @@ export async function getSessionById(client: Stigmer, sessionId: string): Promis
 }
 
 /**
- * List a session's executions, newest-first (the backend's order). The RPC
- * returns a session's executions whole, so one call is the complete set.
+ * List a session's runs, newest-first (the backend's order). The RPC
+ * returns a session's runs whole, so one call is the complete set.
  * Returns the raw entries for resume to inspect.
  */
-export async function listExecutionsBySession(client: Stigmer, sessionId: string): Promise<AgentExecution[]> {
-  const list = await client.agentExecution.listBySession(create(ListAgentExecutionsBySessionRequestSchema, { sessionId }));
+export async function listRunsBySession(client: Stigmer, sessionId: string): Promise<AgentRun[]> {
+  const list = await client.agentRun.listBySession(create(ListAgentRunsBySessionRequestSchema, { sessionId }));
   return list.entries;
 }
 

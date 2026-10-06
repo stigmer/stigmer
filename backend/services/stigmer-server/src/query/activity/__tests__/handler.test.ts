@@ -13,8 +13,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ListRecentActivityRequestSchema } from "@stigmer/protos/ai/stigmer/activity/v1/io_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
@@ -95,14 +95,14 @@ async function seedExecution(
   id: string,
   opts?: {
     name?: string;
-    phase?: ExecutionPhase;
+    phase?: RunPhase;
     statusUpdatedAtSeconds?: number;
   },
 ): Promise<void> {
-  const execution = create(WorkflowExecutionSchema, {
+  const execution = create(WorkflowRunSchema, {
     metadata: { id, name: opts?.name ?? id, org: "acme" },
     status: {
-      phase: opts?.phase ?? ExecutionPhase.EXECUTION_COMPLETED,
+      phase: opts?.phase ?? RunPhase.RUN_COMPLETED,
       audit:
         opts?.statusUpdatedAtSeconds === undefined
           ? undefined
@@ -114,9 +114,9 @@ async function seedExecution(
     },
   });
   await temp.store.saveResource(
-    ApiResourceKind.workflow_execution,
+    ApiResourceKind.workflow_run,
     id,
-    WorkflowExecutionSchema,
+    WorkflowRunSchema,
     execution,
   );
 }
@@ -149,7 +149,7 @@ describe("listRecentActivity (Go handler_test.go)", () => {
     });
     await seedExecution("wfe_1", {
       name: "nightly-sync",
-      phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      phase: RunPhase.RUN_IN_PROGRESS,
       statusUpdatedAtSeconds: 200,
     });
 
@@ -162,7 +162,7 @@ describe("listRecentActivity (Go handler_test.go)", () => {
     expect(session?.updatedAt).toBeDefined();
 
     const execution = response.entries.find((entry) => entry.id === "wfe_1");
-    expect(execution?.type).toBe("workflow_execution");
+    expect(execution?.type).toBe("workflow_run");
     expect(execution?.subject).toBe("nightly-sync");
     expect(execution?.status).toBe("running");
   });
@@ -300,19 +300,19 @@ describe("resolveSubject", () => {
 
 describe("resolvePhase (Go's table)", () => {
   it("maps every phase to its badge token, unknowns to 'unknown'", () => {
-    expect(resolvePhase(ExecutionPhase.EXECUTION_PENDING)).toBe("pending");
-    expect(resolvePhase(ExecutionPhase.EXECUTION_IN_PROGRESS)).toBe("running");
-    expect(resolvePhase(ExecutionPhase.EXECUTION_COMPLETED)).toBe("completed");
-    expect(resolvePhase(ExecutionPhase.EXECUTION_FAILED)).toBe("failed");
-    expect(resolvePhase(ExecutionPhase.EXECUTION_CANCELLED)).toBe("cancelled");
-    expect(resolvePhase(ExecutionPhase.EXECUTION_TERMINATED)).toBe(
+    expect(resolvePhase(RunPhase.RUN_PENDING)).toBe("pending");
+    expect(resolvePhase(RunPhase.RUN_IN_PROGRESS)).toBe("running");
+    expect(resolvePhase(RunPhase.RUN_COMPLETED)).toBe("completed");
+    expect(resolvePhase(RunPhase.RUN_FAILED)).toBe("failed");
+    expect(resolvePhase(RunPhase.RUN_CANCELLED)).toBe("cancelled");
+    expect(resolvePhase(RunPhase.RUN_TERMINATED)).toBe(
       "terminated",
     );
-    expect(resolvePhase(ExecutionPhase.EXECUTION_PAUSED)).toBe("paused");
-    expect(resolvePhase(ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED)).toBe(
+    expect(resolvePhase(RunPhase.RUN_PAUSED)).toBe("paused");
+    expect(resolvePhase(RunPhase.RUN_PHASE_UNSPECIFIED)).toBe(
       "unknown",
     );
-    expect(resolvePhase(999 as ExecutionPhase)).toBe("unknown");
+    expect(resolvePhase(999 as RunPhase)).toBe("unknown");
   });
 });
 

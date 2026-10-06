@@ -46,8 +46,8 @@ message WorkflowVersionEntry {
   // The generated CNCF Serverless Workflow DSL 1.0.0 YAML for this version.
   //
   // @internal
-  // Used by the runner (to execute the workflow) and the execution viewer
-  // (to render the graph for historical executions). This is the exact YAML
+  // Used by the runner (to execute the workflow) and the run viewer
+  // (to render the graph for historical runs). This is the exact YAML
   // that was validated at the time this version was created.
   string validated_yaml = 7;
 
@@ -114,8 +114,8 @@ message ListWorkflowVersionsResponse {
 
 // GetWorkflowVersionInput requests a specific historical version of a workflow.
 //
-// Used by the runner (to hydrate execution from a pinned version) and the
-// execution viewer (to render the graph for historical executions).
+// Used by the runner (to hydrate a run from a pinned version) and the
+// run viewer (to render the graph for historical runs).
 message GetWorkflowVersionInput {
   // ID of the workflow resource.
   string workflow_id = 1 [(buf.validate.field).required = true];

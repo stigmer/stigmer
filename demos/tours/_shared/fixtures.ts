@@ -1,10 +1,10 @@
 import {
-  ExecutionPhase,
+  RunPhase,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
 import type { RecentActivityEntry, UserMenuProps } from "@stigmer/react";
 import type { UseWorkspaceEntriesReturn } from "@stigmer/react";
 import { samples, sampleDate } from "@stigmer/react/test";
@@ -70,21 +70,21 @@ export const DEMO_RECENT_ACTIVITY: readonly RecentActivityEntry[] = [
 ];
 
 /**
- * Build an execution snapshot where the first human message goes into
+ * Build a run snapshot where the first human message goes into
  * `spec.message` and the rest into `status.messages`. `MessageThread`
  * synthesizes the human bubble from `spec.message`, so this split avoids
  * rendering it twice.
  *
- * The default `EXECUTION_IN_PROGRESS` phase suits mid-conversation frames
- * (`MessageThread`/`ExecutionProgress` render it as a "working" indicator
+ * The default `RUN_IN_PROGRESS` phase suits mid-conversation frames
+ * (`MessageThread`/`RunProgress` render it as a "working" indicator
  * without fetching anything — they are presentational); pass
- * `EXECUTION_COMPLETED` for a finished conversation.
+ * `RUN_COMPLETED` for a finished conversation.
  */
 export function snapshot(
   msgs: AgentMessage[],
-  phase: ExecutionPhase = ExecutionPhase.EXECUTION_IN_PROGRESS,
-  artifacts?: ExecutionArtifact[],
-): AgentExecution {
+  phase: RunPhase = RunPhase.RUN_IN_PROGRESS,
+  artifacts?: RunArtifact[],
+): AgentRun {
   const firstHumanIdx = msgs.findIndex((m) => m.type === MessageType.MESSAGE_HUMAN);
   const specMessage = firstHumanIdx >= 0 ? msgs[firstHumanIdx].content : "";
   const statusMessages =
@@ -92,7 +92,7 @@ export function snapshot(
       ? [...msgs.slice(0, firstHumanIdx), ...msgs.slice(firstHumanIdx + 1)]
       : msgs;
 
-  const exec = samples.agentExecution({ phase, messages: statusMessages, artifacts });
+  const exec = samples.agentRun({ phase, messages: statusMessages, artifacts });
   exec.spec!.message = specMessage;
   return exec;
 }

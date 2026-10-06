@@ -18,7 +18,7 @@ export interface ScheduleRowActionsProps {
 
 /**
  * Compact per-row actions for a schedule list: **Run now** on an active
- * schedule (confirmation-gated — it starts a real, billable execution)
+ * schedule (confirmation-gated — it starts a real, billable run)
  * and **Resume** on a platform-paused one. Exactly one action renders
  * at a time — the one that is currently meaningful; an owner-disabled
  * schedule renders neither (its remedy lives on the detail page).
@@ -43,7 +43,7 @@ export function ScheduleRowActions({
     const confirmed = await confirm({
       title: "Run this schedule now?",
       description:
-        `"${name}" starts a real agent execution immediately, outside ` +
+        `"${name}" starts a real agent run immediately, outside ` +
         "the cron cadence.",
       confirmLabel: "Start run",
       variant: "default",

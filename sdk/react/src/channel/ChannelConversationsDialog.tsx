@@ -42,7 +42,7 @@ export interface ChannelConversationsDialogProps {
 
 /**
  * Lists the SESSIONS a channel created — the session-level forensics view
- * (which execution containers served the channel's traffic), visible to
+ * (which run containers served the channel's traffic), visible to
  * exactly the channel's viewers (the connector and org admins).
  *
  * Deliberately titled "Sessions", not "Conversations": the customer-facing
@@ -56,7 +56,7 @@ export interface ChannelConversationsDialogProps {
  * belongs to (an opaque provider id in v1), and the last activity time.
  * Rows link to the host's session route, where `SessionViewer` renders the
  * transcript read-only (the observer audience — channel viewers hold
- * `can_view` only, never `can_create_execution_in`).
+ * `can_view` only, never `can_create_run_in`).
  *
  * Built on the native `<dialog>` element, matching the SDK's modal
  * convention. Most hosts mount it via {@link AgentChannelsPanel}'s

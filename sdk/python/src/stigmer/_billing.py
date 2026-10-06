@@ -161,8 +161,8 @@ class BillingClient:
     operator model-pricing surfaces.  Responses are returned as proto
     messages — the proto types are the contract.
 
-    Internal execution-billing RPCs (``authorizeExecution``,
-    ``recordLlmCallUsage``, ``finalizeExecution``) are not exposed — they
+    Internal run-billing RPCs (``authorizeRun``,
+    ``recordLlmCallUsage``, ``finalizeRun``) are not exposed — they
     are called only by the Temporal workflow and the LLM proxy.
     """
 
@@ -277,7 +277,7 @@ class BillingClient:
     ) -> billing_io_pb2.BillingUsageReportResponse:
         """Retrieve an aggregated billing usage report for a date range.
 
-        Returns total provider cost, total billable amount, execution and
+        Returns total provider cost, total billable amount, run and
         LLM call counts, and a per-model breakdown with cost tier attribution.
         """
         req = billing_io_pb2.GetBillingUsageReportInput(org=params.org)

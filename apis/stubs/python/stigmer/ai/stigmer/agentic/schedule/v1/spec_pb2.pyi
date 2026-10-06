@@ -1,4 +1,4 @@
-from ai.stigmer.agentic.agentexecution.v1 import invocation_pb2 as _invocation_pb2
+from ai.stigmer.agentic.agentrun.v1 import invocation_pb2 as _invocation_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message

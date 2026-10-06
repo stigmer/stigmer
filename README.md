@@ -57,7 +57,7 @@ Stigmer turns domain knowledge and tools into AI agents you can call from any ap
 
 - **Skills** — Teach agents your domain. Upload versioned knowledge and the agent answers with expertise instead of generic responses.
 - **MCP Servers** — Give agents tools. Connect to your systems via the [Model Context Protocol](https://modelcontextprotocol.io). Agents discover available tools and Stigmer handles execution sandboxing.
-- **Approval flows** — Set rules for human oversight. Define which actions need approval before the agent proceeds. Executions are durable — they wait without losing state.
+- **Approval flows** — Set rules for human oversight. Define which actions need approval before the agent proceeds. Runs are durable — they wait without losing state.
 
 Every capability is exposed via gRPC with public protobuf contracts. Generate type-safe clients in Go, Python, Java, TypeScript, or Rust.
 

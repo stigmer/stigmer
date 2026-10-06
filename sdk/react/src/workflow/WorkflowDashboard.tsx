@@ -2,8 +2,8 @@
 
 import { memo, useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
-import { ListWorkflowExecutionsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
+import { ListWorkflowRunsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
 import { cn } from "@stigmer/theme";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
@@ -12,10 +12,10 @@ import {
   type UseWorkflowDashboardSummaryOptions,
 } from "./useWorkflowDashboardSummary.js";
 import { usePendingApprovals } from "./usePendingApprovals.js";
-import { ExecutionSummaryWidget } from "./ExecutionSummaryWidget.js";
+import { RunSummaryWidget } from "./RunSummaryWidget.js";
 import { PendingApprovalsWidget } from "./PendingApprovalsWidget.js";
 import { FailedRunsWidget } from "./FailedRunsWidget.js";
-import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 
 export interface WorkflowDashboardProps {
   /** Organization id for scoping the dashboard data (a slug is also accepted). */
@@ -24,21 +24,21 @@ export interface WorkflowDashboardProps {
   readonly timeWindow?: UseWorkflowDashboardSummaryOptions["timeWindow"];
   /** Called when the user clicks "Review" on a pending approval. */
   readonly onApprovalClick?: (executionId: string) => void;
-  /** Called when the user clicks "View" on a failed execution. */
+  /** Called when the user clicks "View" on a failed run. */
   readonly onFailedRunClick?: (executionId: string) => void;
   readonly className?: string;
 }
 
-const FAILED_LIST_INITIAL: readonly WorkflowExecution[] = [];
+const FAILED_LIST_INITIAL: readonly WorkflowRun[] = [];
 
 /**
- * Composed dashboard widget that aggregates execution KPIs,
+ * Composed dashboard widget that aggregates run KPIs,
  * pending approvals, and recent failures into a responsive layout.
  *
  * Composes three sub-widgets:
- * - **ExecutionSummaryWidget** — phase counts, cost, duration
+ * - **RunSummaryWidget** — phase counts, cost, duration
  * - **PendingApprovalsWidget** — human_input tasks awaiting decisions
- * - **FailedRunsWidget** — recent failed executions (from existing list API)
+ * - **FailedRunsWidget** — recent failed runs (from existing list API)
  *
  * All data fetching is internal. The consumer provides org context and
  * navigation callbacks.
@@ -47,8 +47,8 @@ const FAILED_LIST_INITIAL: readonly WorkflowExecution[] = [];
  * ```tsx
  * <WorkflowDashboard
  *   org="acme"
- *   onApprovalClick={(id) => navigate(`/workflows/executions/${id}`)}
- *   onFailedRunClick={(id) => navigate(`/workflows/executions/${id}`)}
+ *   onApprovalClick={(id) => navigate(`/runs/${id}`)}
+ *   onFailedRunClick={(id) => navigate(`/runs/${id}`)}
  * />
  * ```
  */
@@ -78,21 +78,21 @@ export const WorkflowDashboard = memo(function WorkflowDashboard({
     () =>
       org
         ? async () => {
-            const resp = await stigmer.workflowExecution.list(
-              create(ListWorkflowExecutionsRequestSchema, {
+            const resp = await stigmer.workflowRun.list(
+              create(ListWorkflowRunsRequestSchema, {
                 pageSize: 5,
-                phase: ExecutionPhase.EXECUTION_FAILED,
+                phase: RunPhase.RUN_FAILED,
                 org,
               }),
             );
-            return [...resp.entries] as readonly WorkflowExecution[];
+            return [...resp.entries] as readonly WorkflowRun[];
           }
         : null,
     [stigmer, org],
   );
 
   const { data: failedRuns, isLoading: failedLoading } = useFetch<
-    readonly WorkflowExecution[]
+    readonly WorkflowRun[]
   >(fetchFailedFn, [stigmer, org], FAILED_LIST_INITIAL, {
     refetchInterval: 60_000,
   });
@@ -102,7 +102,7 @@ export const WorkflowDashboard = memo(function WorkflowDashboard({
       aria-label="Workflow dashboard"
       className={cn("stg:space-y-6", className)}
     >
-      <ExecutionSummaryWidget
+      <RunSummaryWidget
         summary={summary}
         isLoading={summaryLoading}
       />
@@ -115,7 +115,7 @@ export const WorkflowDashboard = memo(function WorkflowDashboard({
           onReviewClick={onApprovalClick}
         />
         <FailedRunsWidget
-          executions={failedRuns}
+          runs={failedRuns}
           isLoading={failedLoading}
           onViewClick={onFailedRunClick}
         />

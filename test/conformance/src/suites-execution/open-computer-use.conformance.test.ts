@@ -15,15 +15,15 @@
 // a base64 PNG screenshot (image content block) — back into the loop without
 // crashing the pipeline, and reaches COMPLETED with the tool call recorded as
 // COMPLETED. Finder is always running on macOS, so the action is deterministic.
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentexecutions";
+import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentruns";
 import { makeMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
@@ -101,8 +101,8 @@ describe.skipIf(!ENABLED)("Open Computer Use — desktop tool dispatch (local-on
     const final = await awaitTerminal(clients, executionId, { timeoutMs: 180_000, pollMs: 1_000 });
     expect(
       final.status?.phase,
-      `execution ${executionId} should COMPLETE; reached ${ExecutionPhase[final.status?.phase ?? 0]}`,
-    ).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+      `execution ${executionId} should COMPLETE; reached ${RunPhase[final.status?.phase ?? 0]}`,
+    ).toBe(RunPhase.RUN_COMPLETED);
 
     const toolCalls = (final.status?.messages ?? []).flatMap((m) => m.toolCalls);
     const call = toolCalls.find((tc) => tc.name === "get_app_state");

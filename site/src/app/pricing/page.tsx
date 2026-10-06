@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: `Pricing | ${SITE_CONFIG.name}`,
     description:
-      "Stigmer Cloud pricing — prepaid credits for AI agent execution. Transparent per-model token pricing.",
+      "Stigmer Cloud pricing — prepaid credits for AI agent runs. Transparent per-model token pricing.",
   },
 };
 

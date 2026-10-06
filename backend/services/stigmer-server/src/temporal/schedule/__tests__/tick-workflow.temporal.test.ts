@@ -40,7 +40,7 @@ import {
   TICK_SKIPPED_DISABLED,
   TICK_WORKFLOW_TYPE,
   type FailureKind,
-  type RunPhase,
+  type ObservedRunPhase,
   type RunStart,
   type ScheduleTickActivities,
   type TickOutcome,
@@ -73,7 +73,7 @@ interface TickScript {
   recordTickArgs: Array<{ scheduleId: string; nominal: string }>;
   runStart: RunStart;
   /** Consumed per poll, in order; the last one sticks. */
-  pollResults: RunPhase[];
+  pollResults: ObservedRunPhase[];
   /** Thrown from poll when set. */
   pollError?: string;
   pollCount: number;

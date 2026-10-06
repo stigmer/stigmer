@@ -14,7 +14,7 @@ import {
   WORKFLOW_ROUTING_EXECUTION,
   WORKFLOW_ROUTING_GLOBAL,
   WorkflowExecutionTemporalConfig,
-} from "../../../domain/workflowexecution/temporal/config.js";
+} from "../../../domain/workflowrun/temporal/config.js";
 import { resolveWorkflowTaskQueue } from "../dispatch.js";
 import { formatWfExecTaskQueue } from "../names.js";
 

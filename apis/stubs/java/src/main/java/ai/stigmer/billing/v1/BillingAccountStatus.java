@@ -29,7 +29,7 @@ public enum BillingAccountStatus
   billing_account_active(1),
   /**
    * <pre>
-   * Account is frozen (e.g., dispute, compliance hold). Executions blocked.
+   * Account is frozen (e.g., dispute, compliance hold). Runs blocked.
    * </pre>
    *
    * <code>billing_account_suspended = 2;</code>
@@ -69,7 +69,7 @@ public enum BillingAccountStatus
   public static final int billing_account_active_VALUE = 1;
   /**
    * <pre>
-   * Account is frozen (e.g., dispute, compliance hold). Executions blocked.
+   * Account is frozen (e.g., dispute, compliance hold). Runs blocked.
    * </pre>
    *
    * <code>billing_account_suspended = 2;</code>

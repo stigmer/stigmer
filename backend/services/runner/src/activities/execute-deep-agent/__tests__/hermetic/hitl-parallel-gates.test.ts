@@ -24,9 +24,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   ApprovalAction,
-  ExecutionPhase,
+  RunPhase,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -104,7 +104,7 @@ describe("ExecuteDeepAgent hermetic — two gated calls in one round (sqlite)", 
       // ── Turn 1: one pause, both rows waiting, nothing run ──────────────────
       const turn1 = await runDeepAgentTurn(scenario, { turnSeq: 0 });
       expect(turn1.outcome.kind).toBe("returned");
-      expect((turn1.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_WAITING_FOR_APPROVAL");
+      expect((turn1.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_WAITING_FOR_APPROVAL");
       expect(record.waitingToolCalls().map((tc) => tc.id).sort()).toEqual([CALL_A.id, CALL_B.id]);
       expect(linesIn(env, "ran-a.log") + linesIn(env, "ran-b.log"), "nothing runs before a decision").toBe(0);
 
@@ -115,8 +115,8 @@ describe("ExecuteDeepAgent hermetic — two gated calls in one round (sqlite)", 
       // ── Turn 2: the resume carries both decisions ──────────────────────────
       const turn2 = await runDeepAgentTurn(scenario, { turnSeq: 1 });
       expect(turn2.outcome.kind).toBe("returned");
-      expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
-      expect(record.persistedPhases.filter((p) => p === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL)).toHaveLength(1);
+      expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
+      expect(record.persistedPhases.filter((p) => p === RunPhase.RUN_WAITING_FOR_APPROVAL)).toHaveLength(1);
 
       const rows = record.lastFullStatus!.messages.flatMap((m) => m.toolCalls);
       expect(rows.filter((tc) => tc.id === CALL_A.id), "one row per call, never duplicated").toHaveLength(1);

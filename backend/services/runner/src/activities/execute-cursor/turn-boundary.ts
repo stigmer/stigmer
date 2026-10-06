@@ -39,7 +39,7 @@
  * persist, and the terminal result mapping.
  */
 
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type { TranscriptBuilder } from "../../harness/transcript/builder.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import type { McpApprovalDefault } from "../../shared/approval-policy.js";
@@ -70,7 +70,7 @@ const FIRST_DENIAL_CANCEL_TIMEOUT_MS = 5_000;
 
 export interface TurnBoundaryOptions {
   /** Read, and AMENDED in place by identity: gate rows overlaid, twins collapsed, narration redacted. */
-  readonly status: AgentExecutionStatus;
+  readonly status: AgentRunStatus;
   /**
    * The turn's transcript builder over `status`: every row the boundary
    * CREATES — the gate it proposes for a denial no streamed call matched, the
@@ -118,7 +118,7 @@ export interface TurnBoundaryResult {
    * (issue #205): a foreign hook the set-aside missed — or our own hook with
    * a failed ledger append — denied them, and Stigmer cannot approve on its
    * behalf. When the turn is not otherwise pausing, the caller must surface an
-   * explicit EXECUTION_FAILED instead of completing with the work silently
+   * explicit RUN_FAILED instead of completing with the work silently
    * undone (a pausing turn is not silent — the caller logs and pauses as usual).
    */
   readonly unattributedHookBlocks: readonly UnattributedHookBlock[];
@@ -238,7 +238,7 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
   // either way).
   const stampedUnattended = stampUnattendedSkippedToolCalls(
     status.messages,
-    status.subAgentExecutions,
+    status.subAgentRuns,
     unattendedDenials(deniedLedger),
     primaryWorkspaceDir,
   );
@@ -255,7 +255,7 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
   // Before the #205 pass, so a refused call is never read as a foreign block.
   const stampedRefusals = stampScopeRefusedToolCalls(
     status.messages,
-    status.subAgentExecutions,
+    status.subAgentRuns,
     deniedLedger,
     turnStartMessageIndex,
     primaryWorkspaceDir,
@@ -273,7 +273,7 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
   // hook named. Before the #205 pass, for the same reason as the lists'.
   const hookRefusedToolCallIds = stampHookRefusedToolCalls(
     status.messages,
-    status.subAgentExecutions,
+    status.subAgentRuns,
     deniedLedger,
     turnStartMessageIndex,
     primaryWorkspaceDir,

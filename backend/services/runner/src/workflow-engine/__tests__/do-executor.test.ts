@@ -2,7 +2,9 @@ import { describe, it, expect, vi } from "vitest";
 import { executeDoTasks } from "../do-executor.js";
 import { createState } from "../state.js";
 import { evaluateExpressionBatch } from "../expression.js";
+import { TaskStatusAccumulator } from "../task-status-accumulator.js";
 import type { TaskList, WorkflowModel, TaskExecutionContext } from "../types.js";
+import { AgentCallError } from "../types.js";
 
 const doc: WorkflowModel = {
   document: { dsl: "1.0.0", name: "test-workflow" },
@@ -1114,5 +1116,67 @@ describe("executeDoTasks", () => {
       const started = events[startedIdx];
       expect(started.inputSummary).toBeUndefined();
     });
+  });
+});
+
+describe("executeDoTasks — a failed call:agent task links its child run", () => {
+  function agentCallCtx(callAgent: TaskExecutionContext["callAgent"], accumulator: TaskStatusAccumulator): TaskExecutionContext {
+    return {
+      evaluateExpressions: evaluateExpressionBatch,
+      doc,
+      sleep: async () => {},
+      listen: async () => ({}),
+      runCommand: async () => ({}),
+      runWorkflow: async () => ({}),
+      awaitHumanInput: async () => ({ outcome: "approve" }),
+      callHttp: async () => ({}),
+      callGrpc: async () => ({}),
+      callFunction: async () => ({}),
+      callAgent,
+      taskStatusAccumulator: accumulator,
+    };
+  }
+
+  const tasks: TaskList = [
+    { key: "review", task: { kind: "call:agent", call: "agent", with: { agent: "reviewer", message: "Review it" } } },
+  ];
+
+  it("records the child's run id as agent_run_id on the failed task, so the inspector links to it", async () => {
+    const accumulator = new TaskStatusAccumulator();
+    const ctx = agentCallCtx(async () => {
+      throw new AgentCallError("agent failed: timeout", "aex_child_7");
+    }, accumulator);
+
+    await expect(executeDoTasks(tasks, null, createState(), doc, evaluateExpressionBatch, ctx)).rejects.toThrow("agent failed: timeout");
+
+    const [entry] = accumulator.toArray();
+    expect(entry?.taskName).toBe("review");
+    expect(entry?.status).toBe("failed");
+    expect(entry?.metadata).toEqual({ agent_run_id: "aex_child_7" });
+  });
+
+  it("records the child's run id as agent_run_id on a completed task", async () => {
+    const accumulator = new TaskStatusAccumulator();
+    const ctx = agentCallCtx(async () => ({ final_text: "done", agent_execution_id: "aex_child_8" }), accumulator);
+
+    await executeDoTasks(tasks, null, createState(), doc, evaluateExpressionBatch, ctx);
+
+    expect(accumulator.toArray()[0]?.metadata).toEqual({
+      token_attribution: "total_only",
+      agent_run_id: "aex_child_8",
+    });
+  });
+
+  it("records no run id when the failure carries no child", async () => {
+    const accumulator = new TaskStatusAccumulator();
+    const ctx = agentCallCtx(async () => {
+      throw new Error("agent not found");
+    }, accumulator);
+
+    await expect(executeDoTasks(tasks, null, createState(), doc, evaluateExpressionBatch, ctx)).rejects.toThrow("agent not found");
+
+    const [entry] = accumulator.toArray();
+    expect(entry?.status).toBe("failed");
+    expect(entry?.metadata).toBeUndefined();
   });
 });

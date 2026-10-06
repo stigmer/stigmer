@@ -21,8 +21,8 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -102,7 +102,7 @@ describe("ExecuteCursor hermetic — the SDK's task event as a system note", () 
     const invocation = await runCursorTurn(scenario);
 
     expect(invocation.outcome.kind).toBe("returned");
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
 
     const messages = record.lastFullStatus!.messages;
     expect(messages.map((m) => m.type), "AI, the note, AI").toEqual([
@@ -116,7 +116,7 @@ describe("ExecuteCursor hermetic — the SDK's task event as a system note", () 
     expect(messages[2].content).toBe(TEXT_AFTER);
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, record.lastFullStatus!), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/sdk-task-note.status.json");
   });
 });

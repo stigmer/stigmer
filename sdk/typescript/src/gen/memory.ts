@@ -88,7 +88,7 @@ export interface MemoryInput {
 export interface MemoryProvenanceInput {
   agentId?: string;
   sessionId?: string;
-  agentExecutionId?: string;
+  agentRunId?: string;
   toolCallId?: string;
 }
 
@@ -96,7 +96,7 @@ function buildMemoryProvenanceProto(input: MemoryProvenanceInput) {
   return Object.assign(create(MemoryProvenanceSchema), stripUndefined({
     agentId: input.agentId,
     sessionId: input.sessionId,
-    agentExecutionId: input.agentExecutionId,
+    agentRunId: input.agentRunId,
     toolCallId: input.toolCallId,
   }));
 }
@@ -126,7 +126,7 @@ function toMemoryProvenanceInput(msg: MemoryProvenance): MemoryProvenanceInput {
   return {
     agentId: msg.agentId || undefined,
     sessionId: msg.sessionId || undefined,
-    agentExecutionId: msg.agentExecutionId || undefined,
+    agentRunId: msg.agentRunId || undefined,
     toolCallId: msg.toolCallId || undefined,
   };
 }

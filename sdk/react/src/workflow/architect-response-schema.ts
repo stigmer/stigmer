@@ -41,7 +41,7 @@ export const WORKFLOW_ARCHITECT_RESPONSE_SCHEMA: JsonObject = {
 };
 
 /**
- * Structured response schema for workflow execution diagnosis.
+ * Structured response schema for workflow run diagnosis.
  *
  * Actions:
  * - `diagnosis`: Runtime error explanation (no YAML fix)

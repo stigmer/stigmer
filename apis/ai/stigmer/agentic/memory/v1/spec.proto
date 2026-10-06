@@ -28,7 +28,7 @@ message MemorySpec {
   // truncates a fact's content (write-time caps, never compose-time —
   // the audit property outweighs pathological-case tokens). The semantic
   // retriever may inject a SELECTED SUBSET of whole facts, recorded on
-  // the execution's status.recalled_memories_report — never silent,
+  // the run's status.recalled_memories_report — never silent,
   // never a content truncation.
   string content = 1 [(buf.validate.field).string = {
     min_len: 1
@@ -54,7 +54,7 @@ message MemorySpec {
   // @internal
   // Capture-path-supplied at create (since 2026-08-22): the remember
   // tool threads the
-  // agent/session/execution triple from the runner-synthesized
+  // agent/session/run triple from the runner-synthesized
   // attachment's capture context; a direct API create supplies none and
   // the field stays empty. tool_call_id is force-cleared in v1 — MCP
   // cannot carry the harness's tool-call identity to the tool handler.
@@ -84,8 +84,8 @@ message MemoryProvenance {
   // ID of the session in which this memory was proposed.
   string session_id = 2;
 
-  // ID of the agent execution in which this memory was proposed.
-  string agent_execution_id = 3;
+  // ID of the agent run in which this memory was proposed.
+  string agent_run_id = 3;
 
   // ID of the remember tool call that proposed this memory.
   string tool_call_id = 4;

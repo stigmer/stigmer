@@ -8,13 +8,13 @@ A Schedule runs an agent on a recurring cron schedule. The spec declares
 the target agent and the prompt each run starts from, a cron expression in
 the classic 5-field form (or an `@daily`-style shorthand), the IANA time
 zone the expression is evaluated in, and whether the schedule is enabled.
-Each fire creates a fresh agent execution in a new session, with the fire
+Each fire creates a fresh agent run in a new session, with the fire
 time appended to the configured message so the agent knows the current
-date. Firing observations — next fire time, last execution, failure
+date. Firing observations — next fire time, last run, failure
 streak, and any platform pause reason — live in status; applying a
 manifest never touches them. Disabling a schedule pauses firing while
 preserving the schedule and its history; deleting it stops firing
-permanently without touching the referenced agent or past executions.
+permanently without touching the referenced agent or past runs.
 
 `trigger` fires a schedule once, immediately (`stigmer schedule trigger`).
 The manual fire runs through the schedule's own clock, so it records on
@@ -272,7 +272,7 @@ ScheduleList result = client.schedules().list(ListSchedulesRequest.builder()
 
 List a schedule's run history, newest first.
 
-Every fire leaves a row — including fires that created no execution (a refused launch gate, a missing target agent) — with the refusing gate's copy verbatim. This is the surface that explains status.consecutive_failures.
+Every fire leaves a row — including fires that created no run (a refused launch gate, a missing target agent) — with the refusing gate's copy verbatim. This is the surface that explains status.consecutive_failures.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -384,7 +384,7 @@ Schedule schedule = client.schedules().apply(ScheduleInput.builder()
 
 Create a schedule.
 
-Scheduling an agent is a billing-affecting decision: every fire creates an execution that consumes the schedule-owning organization's credits, unattended.
+Scheduling an agent is a billing-affecting decision: every fire creates a run that consumes the schedule-owning organization's credits, unattended.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -522,7 +522,7 @@ Schedule schedule = client.schedules().update(ScheduleInput.builder()
 
 Delete a schedule.
 
-Firing stops permanently. Executions created by past fires are untouched. To stop firing while keeping the schedule and its history, disable it (enabled=false) instead.
+Firing stops permanently. Runs created by past fires are untouched. To stop firing while keeping the schedule and its history, disable it (enabled=false) instead.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -596,7 +596,7 @@ Schedule schedule = client.schedules().resume(id);
 
 Trigger a schedule to fire once, immediately, and answer with the run's real outcome.
 
-The manual fire runs synchronously through the standard execution create pipeline — every launch gate runs — and the result names what happened: the created execution's id, or the refusing gate's own copy verbatim. status.last_fire_at and status.last_execution_id record a started run. Manual fires do NOT feed the failure streak — the streak is the unattended (cron) health signal, and a test fire of a broken schedule must not race its owner to the pause threshold.
+The manual fire runs synchronously through the standard run create pipeline — every launch gate runs — and the result names what happened: the created run's id, or the refusing gate's own copy verbatim. status.last_fire_at and status.last_run_id record a started run. Manual fires do NOT feed the failure streak — the streak is the unattended (cron) health signal, and a test fire of a broken schedule must not race its owner to the pause threshold.
 
 A disabled schedule refuses (enable it first). A platform-paused schedule MAY be triggered — a test fire is exactly how an owner verifies a fix before resuming; resume remains the one path that clears the pause.
 
@@ -747,7 +747,7 @@ Result of manually triggering a schedule.
   type={{
     schedule: { type: "ScheduleInput", description: "The schedule after the fire, status freshly stamped.", typeDescriptionLink: "#scheduleinput" },
     outcome: { type: "ScheduleRunOutcome", description: "What the fire produced: STARTED, REFUSED, or TARGET_MISSING (the terminal outcomes belong to run history — a manual fire answers at run start).", typeDescriptionLink: "#schedulerunoutcome" },
-    executionId: { type: "string", description: "ID of the created execution." },
+    runId: { type: "string", description: "ID of the created run." },
     refusalReason: { type: "string", description: "The refusing launch gate's copy, verbatim." },
   }}
 />
@@ -831,7 +831,7 @@ ScheduleStatus contains system-managed state for a schedule.
   type={{
     nextFireAt: { type: "string", description: "When the schedule next fires, in UTC." },
     lastFireAt: { type: "string", description: "When the schedule last fired, in UTC." },
-    lastExecutionId: { type: "string", description: "ID of the agent execution created by the most recent fire." },
+    lastRunId: { type: "string", description: "ID of the agent run created by the most recent fire." },
     consecutiveFailures: { type: "number", description: "Number of consecutive failed runs." },
     pausedReason: { type: "string", description: "Why the platform paused this schedule; empty when not paused." },
     audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
@@ -844,11 +844,11 @@ What one schedule fire produced.
 
 | Value | Description |
 |-------|-------------|
-| `SCHEDULE_RUN_OUTCOME_STARTED` | An execution was created (or idempotently re-found) and is running. |
+| `SCHEDULE_RUN_OUTCOME_STARTED` | A run was created (or idempotently re-found) and is running. |
 | `SCHEDULE_RUN_OUTCOME_REFUSED` | A launch gate refused the run deterministically; reason carries the gate's copy verbatim. |
 | `SCHEDULE_RUN_OUTCOME_TARGET_MISSING` | The schedule's agent_ref no longer resolves. |
 | `SCHEDULE_RUN_OUTCOME_SKIPPED` | The fire no-opped: the row was deleted, disabled, or paused between the fire being recorded and the run starting. |
-| `SCHEDULE_RUN_OUTCOME_COMPLETED` | The tracked run reached EXECUTION_COMPLETED. |
+| `SCHEDULE_RUN_OUTCOME_COMPLETED` | The tracked run reached RUN_COMPLETED. |
 | `SCHEDULE_RUN_OUTCOME_FAILED` | The tracked run ended terminal-but-not-completed (failed, cancelled, or terminated); reason names the terminal phase. |
 | `SCHEDULE_RUN_OUTCOME_TIMED_OUT` | The tracked run outlived the fire's tracking budget. |
 
@@ -867,11 +867,11 @@ GitWriteBackMode controls the platform's git workflow for a git-backed workspace
 
 | Value | Description |
 |-------|-------------|
-| `GIT_WRITE_BACK_BRANCH_AND_PR` | Create a branch and pull request from the agent's file changes after execution completes. |
+| `GIT_WRITE_BACK_BRANCH_AND_PR` | Create a branch and pull request from the agent's file changes after the run completes. |
 
 ### ServiceTier
 
-ServiceTier selects the provider-side speed/service tier for an execution's model calls.
+ServiceTier selects the provider-side speed/service tier for a run's model calls.
 
 | Value | Description |
 |-------|-------------|
@@ -880,7 +880,7 @@ ServiceTier selects the provider-side speed/service tier for an execution's mode
 
 ### ThinkingMode
 
-ThinkingMode selects the model's extended-reasoning ("thinking") variant for an execution's model calls — the second variant dimension alongside ServiceTier (stigmer/stigmer#772).
+ThinkingMode selects the model's extended-reasoning ("thinking") variant for a run's model calls — the second variant dimension alongside ServiceTier (stigmer/stigmer#772).
 
 | Value | Description |
 |-------|-------------|

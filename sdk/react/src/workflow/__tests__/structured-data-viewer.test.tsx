@@ -450,7 +450,7 @@ describe("StructuredDataViewer", () => {
       render(
         <StructuredDataViewer
           data={{
-            agent_execution_id: "aex_abc123",
+            agent_run_id: "aex_abc123",
             cost_micros: 1500,
             structured: {
               executive_summary: "overview text",
@@ -459,7 +459,7 @@ describe("StructuredDataViewer", () => {
         />,
       );
 
-      expect(screen.getByText("Agent Execution Id")).toBeTruthy();
+      expect(screen.getByText("Agent Run Id")).toBeTruthy();
       expect(screen.getByText("Cost Micros")).toBeTruthy();
       expect(screen.getByText("Structured")).toBeTruthy();
     });
@@ -577,7 +577,7 @@ describe("StructuredDataViewer", () => {
       render(
         <StructuredDataViewer
           data={{
-            agent_execution_id: "aex_test123",
+            agent_run_id: "aex_test123",
             structured: {
               campaigns: [
                 {
@@ -605,7 +605,7 @@ describe("StructuredDataViewer", () => {
         />,
       );
 
-      expect(screen.getByText("Agent Execution Id")).toBeTruthy();
+      expect(screen.getByText("Agent Run Id")).toBeTruthy();
       expect(screen.getByText("aex_test123")).toBeTruthy();
 
       expect(screen.getByText("Structured")).toBeTruthy();

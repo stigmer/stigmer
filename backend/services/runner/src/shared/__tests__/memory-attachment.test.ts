@@ -10,7 +10,7 @@
 
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
-import { RecalledMemoriesSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { RecalledMemoriesSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 
 import { buildMcpApprovalDefault, type ActiveLeases } from "../approval-policy.js";
 import { needsBackfill } from "../connect-backfill.js";

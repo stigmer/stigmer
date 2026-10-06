@@ -16,14 +16,14 @@ enum GitWriteBackMode {
   // setting. Set an explicit mode to override the platform default.
   GIT_WRITE_BACK_MODE_UNSPECIFIED = 0;
 
-  // Create a branch and pull request from the agent's file changes after execution completes.
+  // Create a branch and pull request from the agent's file changes after the run completes.
   //
   // @internal
   // The platform automatically detects uncommitted changes via git diff,
-  // creates a branch (stigmer/{execution_id_short}), commits all changes,
+  // creates a branch (stigmer/{run_id_short}), commits all changes,
   // pushes the branch to the remote, and creates a pull request targeting
   // the original branch. The write-back outcome is recorded in
-  // AgentExecutionStatus.workspace_write_backs.
+  // AgentRunStatus.workspace_write_backs.
   GIT_WRITE_BACK_BRANCH_AND_PR = 1;
 }
 
@@ -59,7 +59,7 @@ enum Harness {
 //
 // Determines whether the runner that processes agent activities lives on the
 // client's machine (desktop app or CLI) or in a cloud-provisioned sandbox.
-// Set at session creation time and immutable once an execution has run —
+// Set at session creation time and immutable once a run has started —
 // workspace state may not be portable between local and cloud environments.
 //
 // @internal

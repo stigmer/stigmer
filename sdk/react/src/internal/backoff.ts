@@ -30,7 +30,7 @@ export const DEFAULT_RECONNECT_FACTOR = 2;
  * defaults above this is ≈ several minutes of outage before the user sees
  * an error banner — long enough to ride out sleep/wake and network blips,
  * bounded enough to avoid an unbounded background loop against a stream
- * that will never recover (e.g. a deleted execution).
+ * that will never recover (e.g. a deleted run).
  */
 export const DEFAULT_RECONNECT_MAX_ATTEMPTS = 10;
 

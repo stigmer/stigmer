@@ -1,14 +1,14 @@
-// Plaintext renderer for workflow events (human + `execution logs` output).
+// Plaintext renderer for workflow events (human + `runs logs` output).
 //
 // Renders one line per event: `[HH:MM:SS] <glyph> <text>`, with the glyph tinted
 // by the event tone (color auto-disables off a TTY / under NO_COLOR, like the
 // rest of the CLI). Mirrors the layout of Go's renderWorkflowEvent. Output goes
 // to a caller-supplied sink so this composes into both the `run workflow` inline
-// stream and `execution logs`.
+// stream and `runs logs`.
 
 import { type Styler, styler } from "../../output/style.js";
 import { type EventTone, type WorkflowEventView, toWorkflowEventView } from "./workflow-event-view.js";
-import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+import type { WorkflowRunEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 
 /** A single-line writer (e.g. a wrapper over process.stdout). */
 export interface LineSink {
@@ -16,7 +16,7 @@ export interface LineSink {
 }
 
 /** Render a workflow event as one tinted line to `sink`. */
-export function renderWorkflowEventPlaintext(event: WorkflowExecutionEvent, sink: LineSink, colorize: boolean): void {
+export function renderWorkflowEventPlaintext(event: WorkflowRunEvent, sink: LineSink, colorize: boolean): void {
   const view = toWorkflowEventView(event);
   sink.write(formatLine(view, styler(colorize)));
 }

@@ -8,7 +8,7 @@ import { renderHook, act } from "@testing-library/react";
 // carries it — winning over the composer's selection, the persisted
 // Console preference, and the last execution's model — including retries,
 // which re-enter the same submit path. Guests never carry a pin: their
-// execution config is owned by the server-side share policy.
+// run config is owned by the server-side share policy.
 // ---------------------------------------------------------------------------
 
 const mockSendFollowUp = vi.fn();
@@ -16,8 +16,8 @@ const mockSendFollowUp = vi.fn();
 const mockConv = {
   session: { spec: {} },
   isLoading: false,
-  completedExecutions: [] as unknown[],
-  activeStreamExecution: null,
+  completedRuns: [] as unknown[],
+  activeStreamRun: null,
   workspaceEntries: [] as unknown[],
   submitApproval: vi.fn(),
   sendFollowUp: mockSendFollowUp,
@@ -47,7 +47,7 @@ vi.mock("../../workspace", () => ({
   useWorkspaceEntries: () => mockWorkspace,
 }));
 
-vi.mock("../../execution/useSessionVariables", () => ({
+vi.mock("../../run/useSessionVariables", () => ({
   useSessionVariables: () => ({ variables: [], isEmpty: true, clear: vi.fn() }),
 }));
 

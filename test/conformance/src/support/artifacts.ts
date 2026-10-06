@@ -34,8 +34,8 @@ export function makeArtifactInput(
 ): InitShape<typeof CreateArtifactInputSchema> {
   const source =
     options.workflowExecutionId !== undefined
-      ? { workflowExecutionId: options.workflowExecutionId }
-      : { agentExecutionId: options.agentExecutionId ?? "aexec_01conformancefixture" };
+      ? { workflowRunId: options.workflowExecutionId }
+      : { agentRunId: options.agentExecutionId ?? "aexec_01conformancefixture" };
   return {
     spec: {
       displayName: options.displayName ?? "conformance-artifact.txt",

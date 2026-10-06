@@ -11,7 +11,7 @@ description: Hooks for recent activity feeds and session history.
 
 Fetches recent activity via the unified `listRecentActivity` RPC,
 which returns a merged, time-sorted list of the caller's most
-recent sessions and workflow executions in a single call.
+recent sessions and workflow runs in a single call.
 
 The server handles:
 - Per-resource authorization filtering (hosted edition: FGA `can_view`
@@ -65,7 +65,7 @@ once "days ago" stops being how people think about it.
 
 Born on the recents list, where it renders the otherwise-invisible sort
 key: the list sorts by LAST ACTIVITY (`statusAudit.updatedAt`) while
-execution names embed their CREATION time, so an old run re-bumped by a
+run names embed their CREATION time, so an old run re-bumped by a
 late status change sorts above newer-named items and reads as "wrong
 order" unless the row says why it is there.
 
@@ -90,14 +90,14 @@ function groupRecentActivityByTime(entries: readonly RecentActivityEntry[], now?
 ### RecentActivityEntry
 
 A normalized entry representing either an agent session or a workflow
-execution. Used by [`useRecentActivity`](#userecentactivity) and rendered in the sidebar
+run. Used by [`useRecentActivity`](#userecentactivity) and rendered in the sidebar
 recents section.
 
 <TypeTable
   type={{
-    id: { type: "string", description: "Resource ID (session ID or workflow execution ID).", required: true },
-    status: { type: "string", description: "Execution phase for workflow executions (e.g. \"COMPLETED\", \"FAILED\"). `undefined` for sessions." },
-    subject: { type: "string", description: "Human-readable label: session subject or workflow execution name.", required: true },
+    id: { type: "string", description: "Resource ID (session ID or workflow run ID).", required: true },
+    status: { type: "string", description: "Run phase for workflow runs (e.g. \"COMPLETED\", \"FAILED\"). `undefined` for sessions." },
+    subject: { type: "string", description: "Human-readable label: session subject or workflow run name.", required: true },
     type: { type: "RecentActivityType", description: "Discriminator — determines which viewer to open on click.", required: true, typeDescriptionLink: "#recentactivitytype" },
     updatedAt: { type: "Date", description: "Last meaningful update timestamp, used for interleaved sort. Derived from `status.audit.statusAudit.updatedAt` (bumped on every meaningful status change), with fallback to `specAudit.createdAt` for resources that have never been independently updated.", required: true },
   }}
@@ -119,7 +119,7 @@ A time-based group of recent activity entries.
 ### recentActivityStatusBadge
 
 Resolves the status badge for a recent-activity entry. Returns `null`
-for sessions, completed executions, and unknown phases.
+for sessions, completed runs, and unknown phases.
 
 ```tsx
 function recentActivityStatusBadge(entry: RecentActivityEntry): RecentActivityStatusBadge | null
@@ -134,7 +134,7 @@ should stay clean.
 Only NOTEWORTHY execution states earn a badge: a completed run is the
 expected outcome (annotating every row would be noise), and sessions
 carry no phase at all. Paired with the relative-time stamp, the badge
-explains why an old-named execution sits high in a last-activity-sorted
+explains why an old-named run sits high in a last-activity-sorted
 list ("failed · 2h" — it just failed, that's the activity).
 
 <TypeTable
@@ -156,7 +156,7 @@ Options for [`useRecentActivity`](#userecentactivity).
 
 <TypeTable
   type={{
-    pageSize: { type: "number", description: "Maximum entries to return. The server merges sessions and workflow executions into a single sorted list and returns at most `pageSize`." },
+    pageSize: { type: "number", description: "Maximum entries to return. The server merges sessions and workflow runs into a single sorted list and returns at most `pageSize`." },
   }}
 />
 

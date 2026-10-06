@@ -32,8 +32,8 @@ import { create, toBinary } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -78,13 +78,13 @@ afterEach(async () => {
 function execution(
   id: string,
   sessionId: string,
-  phase: ExecutionPhase,
+  phase: RunPhase,
   createdAt: Date,
   completedAt?: Date,
 ) {
-  return create(AgentExecutionSchema, {
+  return create(AgentRunSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
-    kind: "AgentExecution",
+    kind: "AgentRun",
     metadata: { id, name: id, org: "org-a" },
     spec: { target: { case: "sessionId", value: sessionId }, message: "hi" },
     status: {
@@ -98,9 +98,9 @@ function execution(
 async function save(...executions: ReturnType<typeof execution>[]) {
   for (const e of executions) {
     await store.saveResource(
-      ApiResourceKind.agent_execution,
+      ApiResourceKind.agent_run,
       e.metadata?.id ?? "",
-      AgentExecutionSchema,
+      AgentRunSchema,
       e,
     );
   }
@@ -112,14 +112,14 @@ describe("activity(sessionId)", () => {
       execution(
         "aex_1",
         "ses_a",
-        ExecutionPhase.EXECUTION_COMPLETED,
+        RunPhase.RUN_COMPLETED,
         new Date("2026-10-03T10:00:00Z"),
         new Date("2026-10-03T10:05:00Z"),
       ),
       execution(
         "aex_2",
         "ses_a",
-        ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+        RunPhase.RUN_WAITING_FOR_APPROVAL,
         new Date("2026-10-01T09:00:00Z"),
       ),
     );
@@ -132,21 +132,21 @@ describe("activity(sessionId)", () => {
       execution(
         "aex_1",
         "ses_a",
-        ExecutionPhase.EXECUTION_COMPLETED,
+        RunPhase.RUN_COMPLETED,
         new Date("2026-10-03T10:00:00Z"),
         new Date("2026-10-03T10:05:00Z"),
       ),
       execution(
         "aex_2",
         "ses_a",
-        ExecutionPhase.EXECUTION_FAILED,
+        RunPhase.RUN_FAILED,
         new Date("2026-10-03T10:06:00Z"),
         new Date("2026-10-03T10:07:30Z"),
       ),
       execution(
         "aex_3",
         "ses_b",
-        ExecutionPhase.EXECUTION_COMPLETED,
+        RunPhase.RUN_COMPLETED,
         new Date("2026-10-03T12:00:00Z"),
         new Date("2026-10-03T12:01:00Z"),
       ),
@@ -179,7 +179,7 @@ describe("a row that does not decode", () => {
     const good = execution(
       "aex_1",
       "ses_a",
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
+      RunPhase.RUN_IN_PROGRESS,
       new Date("2026-10-03T10:00:00Z"),
     );
     const stub = {
@@ -187,7 +187,7 @@ describe("a row that does not decode", () => {
         { id: "aex_bad", data: new Uint8Array([0xff, 0xff, 0xff]), cursor: "" },
         {
           id: "aex_1",
-          data: toBinary(AgentExecutionSchema, good),
+          data: toBinary(AgentRunSchema, good),
           cursor: "",
         },
       ],
@@ -206,16 +206,16 @@ describe("sessionActivityOf", () => {
           execution(
             "aex_1",
             "s",
-            ExecutionPhase.EXECUTION_CANCELLED,
+            RunPhase.RUN_CANCELLED,
             new Date("2026-10-03T08:00:00Z"),
           ),
-          create(AgentExecutionSchema, {
+          create(AgentRunSchema, {
             status: {
-              phase: ExecutionPhase.EXECUTION_COMPLETED,
+              phase: RunPhase.RUN_COMPLETED,
               completedAt: "not a time",
             },
           }),
-          create(AgentExecutionSchema, {}),
+          create(AgentRunSchema, {}),
         ],
         NOW(),
       ),
@@ -250,7 +250,7 @@ describe("a stamp ahead of the server's clock", () => {
       execution(
         "aex_1",
         "ses_a",
-        ExecutionPhase.EXECUTION_COMPLETED,
+        RunPhase.RUN_COMPLETED,
         created,
         new Date("2026-10-04T12:00:00Z"),
       ),
@@ -269,7 +269,7 @@ describe("a stamp ahead of the server's clock", () => {
       execution(
         "aex_1",
         "ses_a",
-        ExecutionPhase.EXECUTION_COMPLETED,
+        RunPhase.RUN_COMPLETED,
         new Date(t - 10 * 60_000),
         new Date(t + ahead),
       ),
@@ -387,7 +387,7 @@ describe("recentActivity(sessionId)", () => {
             execution(
               "aex_1",
               "ses_a",
-              ExecutionPhase.EXECUTION_IN_PROGRESS,
+              RunPhase.RUN_IN_PROGRESS,
               at(0),
             ),
           ),
@@ -399,7 +399,7 @@ describe("recentActivity(sessionId)", () => {
             execution(
               "aex_1",
               "ses_a",
-              ExecutionPhase.EXECUTION_COMPLETED,
+              RunPhase.RUN_COMPLETED,
               at(0),
               at(40_000),
             ),
@@ -412,7 +412,7 @@ describe("recentActivity(sessionId)", () => {
             execution(
               "aex_x",
               "ses_b",
-              ExecutionPhase.EXECUTION_IN_PROGRESS,
+              RunPhase.RUN_IN_PROGRESS,
               at(60_000),
             ),
           ),
@@ -424,7 +424,7 @@ describe("recentActivity(sessionId)", () => {
             execution(
               "aex_2",
               "ses_a",
-              ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+              RunPhase.RUN_WAITING_FOR_APPROVAL,
               at(90_000),
             ),
           ),
@@ -440,7 +440,7 @@ describe("recentActivity(sessionId)", () => {
             execution(
               "aex_2",
               "ses_a",
-              ExecutionPhase.EXECUTION_FAILED,
+              RunPhase.RUN_FAILED,
               at(90_000),
               new Date(r.now() + 2 * 60_000),
             ),
@@ -454,7 +454,7 @@ describe("recentActivity(sessionId)", () => {
             execution(
               "aex_2",
               "ses_a",
-              ExecutionPhase.EXECUTION_FAILED,
+              RunPhase.RUN_FAILED,
               at(90_000),
               at(100_000),
             ),
@@ -467,7 +467,7 @@ describe("recentActivity(sessionId)", () => {
             execution(
               "aex_2",
               "ses_a",
-              ExecutionPhase.EXECUTION_IN_PROGRESS,
+              RunPhase.RUN_IN_PROGRESS,
               at(90_000),
             ),
           ),
@@ -479,7 +479,7 @@ describe("recentActivity(sessionId)", () => {
             execution(
               "aex_2",
               "ses_a",
-              ExecutionPhase.EXECUTION_FAILED,
+              RunPhase.RUN_FAILED,
               at(90_000),
               new Date(r.now()),
             ),
@@ -492,7 +492,7 @@ describe("recentActivity(sessionId)", () => {
             execution(
               "aex_3",
               "ses_a",
-              ExecutionPhase.EXECUTION_IN_PROGRESS,
+              RunPhase.RUN_IN_PROGRESS,
               new Date(r.now()),
             ),
           );
@@ -500,15 +500,15 @@ describe("recentActivity(sessionId)", () => {
       ],
       [
         "(deleted)",
-        () => store.deleteResource(ApiResourceKind.agent_execution, "aex_3"),
+        () => store.deleteResource(ApiResourceKind.agent_run, "aex_3"),
       ],
       [
         "the run holding the latest stamp is deleted",
-        () => store.deleteResource(ApiResourceKind.agent_execution, "aex_2"),
+        () => store.deleteResource(ApiResourceKind.agent_run, "aex_2"),
       ],
       [
         "the last run is deleted",
-        () => store.deleteResource(ApiResourceKind.agent_execution, "aex_1"),
+        () => store.deleteResource(ApiResourceKind.agent_run, "aex_1"),
       ],
     ];
     for (const [step, act] of steps) {
@@ -532,14 +532,14 @@ describe("recentActivity(sessionId)", () => {
       execution(
         "aex_x",
         "ses_a",
-        ExecutionPhase.EXECUTION_FAILED,
+        RunPhase.RUN_FAILED,
         at(-10_000),
         at(61_500),
       ),
       execution(
         "aex_y",
         "ses_a",
-        ExecutionPhase.EXECUTION_COMPLETED,
+        RunPhase.RUN_COMPLETED,
         at(-5_000),
         at(0),
       ),
@@ -551,7 +551,7 @@ describe("recentActivity(sessionId)", () => {
       execution(
         "aex_x",
         "ses_a",
-        ExecutionPhase.EXECUTION_IN_PROGRESS,
+        RunPhase.RUN_IN_PROGRESS,
         at(-10_000),
       ),
     );
@@ -561,7 +561,7 @@ describe("recentActivity(sessionId)", () => {
       execution(
         "aex_x",
         "ses_a",
-        ExecutionPhase.EXECUTION_FAILED,
+        RunPhase.RUN_FAILED,
         at(-10_000),
         at(40_000),
       ),
@@ -580,7 +580,7 @@ describe("recentActivity(sessionId)", () => {
         execution(
           `aex_${String(i).padStart(2, "0")}`,
           "ses_a",
-          ExecutionPhase.EXECUTION_COMPLETED,
+          RunPhase.RUN_COMPLETED,
           at(-60 * 60_000 + i * 60_000),
           at(-60 * 60_000 + i * 60_000 + 30_000),
         ),
@@ -590,7 +590,7 @@ describe("recentActivity(sessionId)", () => {
       execution(
         "aex_old",
         "ses_a",
-        ExecutionPhase.EXECUTION_PAUSED,
+        RunPhase.RUN_PAUSED,
         at(-90 * 60_000),
       ),
     );
@@ -610,7 +610,7 @@ describe("recentActivity(sessionId)", () => {
       execution(
         "aex_old",
         "ses_a",
-        ExecutionPhase.EXECUTION_COMPLETED,
+        RunPhase.RUN_COMPLETED,
         at(-90 * 60_000),
         at(-80 * 60_000),
       ),
@@ -628,7 +628,7 @@ describe("recentActivity(sessionId)", () => {
       execution(
         "aex_1",
         "ses_a",
-        ExecutionPhase.EXECUTION_COMPLETED,
+        RunPhase.RUN_COMPLETED,
         at(-60 * 60_000),
         at(-50 * 60_000),
       ),
@@ -649,7 +649,7 @@ describe("recentActivity(sessionId)", () => {
             execution(
               "aex_1",
               "ses_a",
-              ExecutionPhase.EXECUTION_IN_PROGRESS,
+              RunPhase.RUN_IN_PROGRESS,
               at(-60 * 60_000),
             ),
           ),
@@ -661,26 +661,26 @@ describe("recentActivity(sessionId)", () => {
             execution(
               "aex_2",
               "ses_a",
-              ExecutionPhase.EXECUTION_IN_PROGRESS,
+              RunPhase.RUN_IN_PROGRESS,
               at(-RECENT_LOOKBACK_MS - PASS_MS - 1_000),
             ),
           ),
       ],
     ];
     for (const [name, act] of cases) {
-      await store.deleteResourcesByKind(ApiResourceKind.agent_execution);
+      await store.deleteResourcesByKind(ApiResourceKind.agent_run);
       await save(
         execution(
           "aex_1",
           "ses_a",
-          ExecutionPhase.EXECUTION_FAILED,
+          RunPhase.RUN_FAILED,
           at(-60 * 60_000),
           at(-59 * 60_000),
         ),
         execution(
           "aex_9",
           "ses_a",
-          ExecutionPhase.EXECUTION_COMPLETED,
+          RunPhase.RUN_COMPLETED,
           at(-30 * 60_000),
           at(-29 * 60_000),
         ),
@@ -709,14 +709,14 @@ describe("recentActivity(sessionId)", () => {
       execution(
         "aex_1",
         "ses_a",
-        ExecutionPhase.EXECUTION_COMPLETED,
+        RunPhase.RUN_COMPLETED,
         at(0),
         at(10_000),
       ),
       execution(
         "aex_2",
         "ses_a",
-        ExecutionPhase.EXECUTION_COMPLETED,
+        RunPhase.RUN_COMPLETED,
         at(5_000),
         at(20_000),
       ),
@@ -728,7 +728,7 @@ describe("recentActivity(sessionId)", () => {
       execution(
         "aex_0",
         "ses_a",
-        ExecutionPhase.EXECUTION_IN_PROGRESS,
+        RunPhase.RUN_IN_PROGRESS,
         at(-60_000),
       ),
     );
@@ -752,7 +752,7 @@ describe("recentActivity(sessionId)", () => {
             execution(
               "aex_2",
               "ses_a",
-              ExecutionPhase.EXECUTION_COMPLETED,
+              RunPhase.RUN_COMPLETED,
               at(-20 * 60_000),
               at(-19 * 60_000),
             ),
@@ -760,16 +760,16 @@ describe("recentActivity(sessionId)", () => {
       ],
       [
         "the run was deleted",
-        () => store.deleteResource(ApiResourceKind.agent_execution, "aex_2"),
+        () => store.deleteResource(ApiResourceKind.agent_run, "aex_2"),
       ],
     ];
     for (const [name, act] of cases) {
-      await store.deleteResourcesByKind(ApiResourceKind.agent_execution);
+      await store.deleteResourcesByKind(ApiResourceKind.agent_run);
       await save(
         execution(
           "aex_1",
           "ses_a",
-          ExecutionPhase.EXECUTION_COMPLETED,
+          RunPhase.RUN_COMPLETED,
           at(-10 * 60_000),
           at(-9 * 60_000),
         ),
@@ -777,7 +777,7 @@ describe("recentActivity(sessionId)", () => {
         execution(
           "aex_2",
           "ses_a",
-          ExecutionPhase.EXECUTION_COMPLETED,
+          RunPhase.RUN_COMPLETED,
           at(-20 * 60_000),
           at(5 * 60_000),
         ),
@@ -808,7 +808,7 @@ describe("recentActivity(sessionId)", () => {
       execution(
         "aex_1",
         "ses_a",
-        ExecutionPhase.EXECUTION_IN_PROGRESS,
+        RunPhase.RUN_IN_PROGRESS,
         at(-60 * 60_000),
       ),
     );
@@ -866,7 +866,7 @@ describe("recentActivity(sessionId)", () => {
       execution(
         "aex_1",
         "ses_a",
-        ExecutionPhase.EXECUTION_COMPLETED,
+        RunPhase.RUN_COMPLETED,
         at(-60 * 60_000),
         at(-59 * 60_000),
       ),
@@ -877,7 +877,7 @@ describe("recentActivity(sessionId)", () => {
       execution(
         "aex_2",
         "ses_a",
-        ExecutionPhase.EXECUTION_IN_PROGRESS,
+        RunPhase.RUN_IN_PROGRESS,
         new Date(r.now()),
       ),
     );
@@ -895,7 +895,7 @@ describe("recentActivity(sessionId)", () => {
       execution(
         "aex_1",
         "ses_a",
-        ExecutionPhase.EXECUTION_IN_PROGRESS,
+        RunPhase.RUN_IN_PROGRESS,
         at(-10_000),
       ),
     );
@@ -916,14 +916,14 @@ describe("recentActivity(sessionId)", () => {
       execution(
         "aex_1",
         "ses_a",
-        ExecutionPhase.EXECUTION_FAILED,
+        RunPhase.RUN_FAILED,
         at(-60 * 60_000),
         at(-59 * 60_000),
       ),
       execution(
         "aex_9",
         "ses_a",
-        ExecutionPhase.EXECUTION_COMPLETED,
+        RunPhase.RUN_COMPLETED,
         at(-30 * 60_000),
         at(-29 * 60_000),
       ),
@@ -938,7 +938,7 @@ describe("recentActivity(sessionId)", () => {
       execution(
         "aex_1",
         "ses_a",
-        ExecutionPhase.EXECUTION_IN_PROGRESS,
+        RunPhase.RUN_IN_PROGRESS,
         at(-60 * 60_000),
       ),
     );

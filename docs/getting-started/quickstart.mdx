@@ -172,7 +172,7 @@ Create `ask_agent.py`:
 import os
 import time
 
-from stigmer import StigmerClient, SessionInput, AgentExecutionInput
+from stigmer import StigmerClient, SessionInput, AgentRunInput
 
 client = StigmerClient(os.environ["STIGMER_API_KEY"])
 ```
@@ -185,7 +185,7 @@ Create `src/main/java/AskAgent.java`:
 ```java
 import ai.stigmer.sdk.StigmerClient;
 import ai.stigmer.sdk.gen.SessionInput;
-import ai.stigmer.sdk.gen.AgentExecutionInput;
+import ai.stigmer.sdk.gen.AgentRunInput;
 
 public class AskAgent {
     public static void main(String[] args) {
@@ -203,8 +203,8 @@ public class AskAgent {
 ## Create a Session and send a message
 
 A Session is a conversation with your Agent. Create one, then send a message to
-start an execution. You don't specify which Agent to use — Stigmer's built-in
-assistant handles the request automatically.
+start a run. You don't specify which Agent to use — Stigmer's built-in assistant
+handles the request automatically.
 
 Add the following to the same file you created in the previous step.
 
@@ -220,7 +220,7 @@ async function main() {
     org: "my-org",
   });
 
-  const execution = await stigmer.agentExecution.create({
+  const run = await stigmer.agentRun.create({
     name: `run-${Date.now()}`,
     org: "my-org",
     sessionId: session.metadata!.id,
@@ -246,7 +246,7 @@ Add to `main.go`:
 		log.Fatal(err)
 	}
 
-	exec, err := client.AgentExecution.Create(ctx, &stigmer.AgentExecutionInput{
+	run, err := client.AgentRun.Create(ctx, &stigmer.AgentRunInput{
 		Name:      "run-" + ts,
 		Org:       "my-org",
 		SessionId: session.GetMetadata().GetId(),
@@ -270,7 +270,7 @@ session = client.sessions.create(SessionInput(
     org="my-org",
 ))
 
-execution = client.agent_executions.create(AgentExecutionInput(
+run = client.agent_runs.create(AgentRunInput(
     name=f"run-{ts}",
     org="my-org",
     session_id=session.metadata.id,
@@ -293,8 +293,8 @@ Add to `src/main/java/AskAgent.java`:
                 .build()
         );
 
-        var execution = client.agentExecutions().create(
-            AgentExecutionInput.builder()
+        var run = client.agentRun.create(
+            AgentRunInput.builder()
                 .name("run-" + ts)
                 .org("my-org")
                 .sessionId(session.getMetadata().getId())
@@ -313,7 +313,7 @@ Replace `my-org` with your Organization slug from the Stigmer dashboard.
 
 ## Stream the response
 
-Subscribe to the execution to receive the Agent's response as it arrives.
+Subscribe to the run to receive the Agent's response as it arrives.
 
 Add the following to the same file, right after the code from the previous step.
 
@@ -323,8 +323,8 @@ Add the following to the same file, right after the code from the previous step.
 Add to `ask-agent.ts`:
 
 ```typescript
-  for await (const snapshot of stigmer.agentExecution.subscribe(
-    execution.metadata!.id,
+  for await (const snapshot of stigmer.agentRun.subscribe(
+    run.metadata!.id,
   )) {
     const messages = snapshot.status?.messages ?? [];
     const last = messages[messages.length - 1];
@@ -344,7 +344,7 @@ main();
 Add to `main.go`:
 
 ```go
-	stream, err := client.AgentExecution.Subscribe(ctx, exec.GetMetadata().GetId())
+	stream, err := client.AgentRun.Subscribe(ctx, run.GetMetadata().GetId())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -375,7 +375,7 @@ Add to `main.go`:
 Add to `ask_agent.py`:
 
 ```python
-for snapshot in client.agent_executions.subscribe(execution.metadata.id):
+for snapshot in client.agent_runs.subscribe(run.metadata.id):
     messages = snapshot.status.messages
     if messages and messages[-1].content:
         print(messages[-1].content)
@@ -388,8 +388,8 @@ for snapshot in client.agent_executions.subscribe(execution.metadata.id):
 Add to `src/main/java/AskAgent.java`:
 
 ```java
-        var stream = client.agentExecutions().subscribe(
-            execution.getMetadata().getId()
+        var stream = client.agentRun.subscribe(
+            run.getMetadata().getId()
         );
 
         while (stream.hasNext()) {
@@ -434,16 +434,14 @@ async function main() {
     org: "my-org",
   });
 
-  const execution = await stigmer.agentExecution.create({
+  const run = await stigmer.agentRun.create({
     name: `run-${Date.now()}`,
     org: "my-org",
     sessionId: session.metadata!.id,
     message: "What are some best practices for handling customer complaints?",
   });
 
-  for await (const snapshot of stigmer.agentExecution.subscribe(
-    execution.metadata!.id,
-  )) {
+  for await (const snapshot of stigmer.agentRun.subscribe(run.metadata!.id)) {
     const messages = snapshot.status?.messages ?? [];
     const last = messages[messages.length - 1];
     if (last?.content) {
@@ -493,7 +491,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	exec, err := client.AgentExecution.Create(ctx, &stigmer.AgentExecutionInput{
+	run, err := client.AgentRun.Create(ctx, &stigmer.AgentRunInput{
 		Name:      "run-" + ts,
 		Org:       "my-org",
 		SessionId: session.GetMetadata().GetId(),
@@ -503,7 +501,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	stream, err := client.AgentExecution.Subscribe(ctx, exec.GetMetadata().GetId())
+	stream, err := client.AgentRun.Subscribe(ctx, run.GetMetadata().GetId())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -537,7 +535,7 @@ func main() {
 import os
 import time
 
-from stigmer import StigmerClient, SessionInput, AgentExecutionInput
+from stigmer import StigmerClient, SessionInput, AgentRunInput
 
 client = StigmerClient(os.environ["STIGMER_API_KEY"])
 
@@ -548,14 +546,14 @@ session = client.sessions.create(SessionInput(
     org="my-org",
 ))
 
-execution = client.agent_executions.create(AgentExecutionInput(
+run = client.agent_runs.create(AgentRunInput(
     name=f"run-{ts}",
     org="my-org",
     session_id=session.metadata.id,
     message="What are some best practices for handling customer complaints?",
 ))
 
-for snapshot in client.agent_executions.subscribe(execution.metadata.id):
+for snapshot in client.agent_runs.subscribe(run.metadata.id):
     messages = snapshot.status.messages
     if messages and messages[-1].content:
         print(messages[-1].content)
@@ -570,7 +568,7 @@ for snapshot in client.agent_executions.subscribe(execution.metadata.id):
 ```java
 import ai.stigmer.sdk.StigmerClient;
 import ai.stigmer.sdk.gen.SessionInput;
-import ai.stigmer.sdk.gen.AgentExecutionInput;
+import ai.stigmer.sdk.gen.AgentRunInput;
 
 public class AskAgent {
     public static void main(String[] args) {
@@ -587,8 +585,8 @@ public class AskAgent {
                 .build()
         );
 
-        var execution = client.agentExecutions().create(
-            AgentExecutionInput.builder()
+        var run = client.agentRun.create(
+            AgentRunInput.builder()
                 .name("run-" + ts)
                 .org("my-org")
                 .sessionId(session.getMetadata().getId())
@@ -596,8 +594,8 @@ public class AskAgent {
                 .build()
         );
 
-        var stream = client.agentExecutions().subscribe(
-            execution.getMetadata().getId()
+        var stream = client.agentRun.subscribe(
+            run.getMetadata().getId()
         );
 
         while (stream.hasNext()) {

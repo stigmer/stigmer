@@ -39,23 +39,23 @@ import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/sessi
 import { SessionIdSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import { WorkflowIdSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
-import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
+import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
 
 import type {
   AgentLoader,
   SessionCreator,
-} from "../domain/agentexecution/create-steps.js";
+} from "../domain/agentrun/create-steps.js";
 import type {
   EnvironmentReader,
   ExecutionContextCreator,
   SessionLoader,
-} from "../domain/agentexecution/create-execution-context-step.js";
+} from "../domain/agentrun/create-execution-context-step.js";
 import type { ExecutionContextDeleter } from "../domain/executioncontext/internal-delete.js";
 import type { ConnectExecutionContextClient } from "../domain/mcpserver/connect.js";
 import type { ManagedEnvironmentClient } from "../domain/mcpserver/oauth/managed-env.js";
-import type { WorkflowExecutionContextCreator } from "../domain/workflowexecution/create-execution-context-step.js";
-import type { AgentExecutionApprovalForwarder } from "../domain/workflowexecution/submit-approval.js";
-import type { AgentExecutionFileDecisionForwarder } from "../domain/workflowexecution/submit-file-decision.js";
+import type { WorkflowExecutionContextCreator } from "../domain/workflowrun/create-execution-context-step.js";
+import type { AgentExecutionApprovalForwarder } from "../domain/workflowrun/submit-approval.js";
+import type { AgentExecutionFileDecisionForwarder } from "../domain/workflowrun/submit-file-decision.js";
 import type { PluginMaterializer } from "../domain/plugin/materialize/ports.js";
 import { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -207,7 +207,7 @@ export function createInProcessClients(
   );
   const workflowQuery = createClient(WorkflowQueryController, transport);
   const agentExecutionCommand = createClient(
-    AgentExecutionCommandController,
+    AgentRunCommandController,
     transport,
   );
   const agentCommand = createClient(AgentCommandController, transport);

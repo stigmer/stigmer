@@ -142,7 +142,7 @@ enum WorkflowTaskKind {
   // Workflow-level approval gate for human input, review, or sign-off.
   //
   // @internal
-  // Pauses workflow execution to collect typed input or approval from a
+  // Pauses workflow run to collect typed input or approval from a
   // human reviewer. Supports custom outcomes, form schemas, approver
   // lists, timeouts, and notification channels.
   // Config: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...]}
@@ -196,12 +196,12 @@ enum BudgetExceededPolicy {
   // budget_exceeded_terminate (fail-safe behavior).
   budget_exceeded_policy_unspecified = 0;
 
-  // Terminate the workflow immediately with EXECUTION_FAILED status.
-  // The execution record includes the budget breach details for diagnostics.
+  // Terminate the workflow immediately with RUN_FAILED status.
+  // The run record includes the budget breach details for diagnostics.
   budget_exceeded_terminate = 1;
 
   // Pause the workflow and request human review via a system-generated
-  // approval gate. The reviewer can approve continued execution (with
+  // approval gate. The reviewer can approve continuing the run (with
   // an increased budget) or confirm termination.
   // Depends on the human_input runtime. If human_input runtime
   // is not available, falls back to terminate with a descriptive error.
@@ -212,28 +212,28 @@ enum BudgetExceededPolicy {
   budget_exceeded_warn = 3;
 }
 
-// WorkflowExecutionVisibility controls who can observe the runs (executions)
+// WorkflowRunVisibility controls who can observe the runs
 // of a workflow.
 //
 // This is a SEPARATE axis from the workflow's own visibility
 // (metadata.visibility, which governs who can SEE and RUN the workflow).
 // Keeping them separate means making a workflow org-runnable never exposes
-// other people's run inputs and outputs. See workflow_execution.fga and
-// workflow.fga (the `execution_viewer` relation) for how this maps to
+// other people's run inputs and outputs. See workflow_run.fga and
+// workflow.fga (the `run_viewer` relation) for how this maps to
 // authorization tuples.
 //
 // Only PRIVATE and ORGANIZATION are meaningful: a run is either visible to
 // just the person who started it, or to every member of the owning
 // organization. Public/platform run observability is deliberately unsupported.
-enum WorkflowExecutionVisibility {
-  // Unset. Treated as PRIVATE — each execution is visible only to the user
+enum WorkflowRunVisibility {
+  // Unset. Treated as PRIVATE — each run is visible only to the user
   // who triggered it.
-  workflow_execution_visibility_unspecified = 0;
+  workflow_run_visibility_unspecified = 0;
 
-  // Each execution is visible only to the user who triggered it (its owner).
-  workflow_execution_visibility_private = 1;
+  // Each run is visible only to the user who triggered it (its owner).
+  workflow_run_visibility_private = 1;
 
-  // Every member of the owning organization can observe all executions of
+  // Every member of the owning organization can observe all runs of
   // this workflow.
-  workflow_execution_visibility_organization = 2;
+  workflow_run_visibility_organization = 2;
 }

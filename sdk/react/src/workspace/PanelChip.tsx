@@ -1,7 +1,7 @@
 "use client";
 
 // The always-mounted toggle chip for a collapsible WorkspaceSurface panel.
-// Domain: workspace (shared by the session and workflow execution viewers).
+// Domain: workspace (shared by the session and workflow run viewers).
 
 import { useEffect, useRef } from "react";
 import { cn } from "@stigmer/theme";
@@ -27,7 +27,7 @@ export interface PanelChipProps {
  * "Show panel" chip. Collapsed, it carries the pending-item count; open, it
  * is the hide affordance. Being a small leaf, it is also the one place that
  * may safely carry per-arrival re-renders while the panel subtree is
- * unmounted. Execution status deliberately does not surface here (or
+ * unmounted. Run status deliberately does not surface here (or
  * anywhere else in viewer chrome) — the thread/graph itself communicates run
  * state.
  *

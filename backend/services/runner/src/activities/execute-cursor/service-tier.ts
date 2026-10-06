@@ -35,7 +35,7 @@
 
 import { Cursor } from "@cursor/sdk";
 import type { ModelListItem, ModelParameterValue } from "@cursor/sdk";
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 import { serviceTierLabel, type EffectiveServiceTier } from "../../shared/service-tier.js";
 import { thinkingModeLabel, type EffectiveThinkingMode } from "../../shared/thinking-mode.js";

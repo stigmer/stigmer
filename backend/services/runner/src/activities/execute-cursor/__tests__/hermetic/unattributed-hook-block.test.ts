@@ -8,7 +8,7 @@
  * denial ledger, so a FAILED tool call carrying Cursor's hook-block error text
  * with NO ledger entry was blocked by a hook Stigmer does not own. No approval
  * can unblock it (an approval grants a token only OUR hook reads), so the turn
- * boundary reports it and the activity RETURNS EXECUTION_FAILED with an error
+ * boundary reports it and the activity RETURNS RUN_FAILED with an error
  * that names the blocked tool. The golden
  * (`goldens/unattributed-hook-block.status.json`) pins that copy.
  *
@@ -47,12 +47,12 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -152,10 +152,10 @@ describe("ExecuteCursor hermetic — unattributed hook block (#205)", () => {
     // ── Assert: outcome and phases ───────────────────────────────────────────
     expect(invocation.outcome.kind, "an unattributed block RETURNS a terminal status").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_FAILED");
+    expect(slim.phase).toBe("RUN_FAILED");
     expect(record.persistedPhases).toEqual([
-      ExecutionPhase.EXECUTION_IN_PROGRESS,
-      ExecutionPhase.EXECUTION_FAILED,
+      RunPhase.RUN_IN_PROGRESS,
+      RunPhase.RUN_FAILED,
     ]);
 
     // ── Assert: the diagnosable reason ───────────────────────────────────────
@@ -192,7 +192,7 @@ describe("ExecuteCursor hermetic — unattributed hook block (#205)", () => {
     expect(invocation.heartbeats.length).toBeGreaterThan(0);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/unattributed-hook-block.status.json");
   });
 });

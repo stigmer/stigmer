@@ -52,7 +52,7 @@ public interface ArtifactSpecOrBuilder extends
 
   /**
    * <pre>
-   * Provenance: which execution and task produced this artifact.
+   * Provenance: which run and task produced this artifact.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -61,7 +61,7 @@ public interface ArtifactSpecOrBuilder extends
   boolean hasSource();
   /**
    * <pre>
-   * Provenance: which execution and task produced this artifact.
+   * Provenance: which run and task produced this artifact.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>
@@ -70,7 +70,7 @@ public interface ArtifactSpecOrBuilder extends
   ai.stigmer.agentic.artifact.v1.ArtifactSource getSource();
   /**
    * <pre>
-   * Provenance: which execution and task produced this artifact.
+   * Provenance: which run and task produced this artifact.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.artifact.v1.ArtifactSource source = 3 [json_name = "source", (.buf.validate.field) = { ... }</code>

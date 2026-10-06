@@ -189,7 +189,7 @@ describe("Memory conformance", () => {
         provenance: {
           agentId: "agt_1",
           sessionId: "ses_1",
-          agentExecutionId: "aex_1",
+          agentRunId: "aex_1",
           toolCallId: "call_invented",
         },
       },
@@ -198,7 +198,7 @@ describe("Memory conformance", () => {
 
     expect(created.spec?.provenance?.agentId).toBe("agt_1");
     expect(created.spec?.provenance?.sessionId).toBe("ses_1");
-    expect(created.spec?.provenance?.agentExecutionId).toBe("aex_1");
+    expect(created.spec?.provenance?.agentRunId).toBe("aex_1");
     expect(created.spec?.provenance?.toolCallId ?? "").toBe("");
   });
 

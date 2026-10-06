@@ -58,14 +58,14 @@ describe("useRecentActivity — optimistic prepend", () => {
     act(() => {
       result.current.prependOptimistic({
         id: "wfx_new",
-        type: "workflow_execution",
+        type: "workflow_run",
         subject: "New Execution",
       });
     });
 
     expect(result.current.entries).toHaveLength(1);
     expect(result.current.entries[0].id).toBe("wfx_new");
-    expect(result.current.entries[0].type).toBe("workflow_execution");
+    expect(result.current.entries[0].type).toBe("workflow_run");
     expect(result.current.entries[0].subject).toBe("New Execution");
     expect(result.current.entries[0].updatedAt.getTime()).toBeGreaterThan(0);
   });
@@ -73,7 +73,7 @@ describe("useRecentActivity — optimistic prepend", () => {
   it("optimistic entry appears above server entries", async () => {
     const serverEntries = [
       { id: "old_1", type: "session", subject: "Old session", updatedAt: { seconds: BigInt(1716800000), nanos: 0 }, status: "" },
-      { id: "old_2", type: "workflow_execution", subject: "Old exec", updatedAt: { seconds: BigInt(1716790000), nanos: 0 }, status: "completed" },
+      { id: "old_2", type: "workflow_run", subject: "Old exec", updatedAt: { seconds: BigInt(1716790000), nanos: 0 }, status: "completed" },
     ];
     const listRecentActivity = vi.fn().mockResolvedValue({ entries: serverEntries });
     const client = createMockStigmer({ listRecentActivity });
@@ -88,7 +88,7 @@ describe("useRecentActivity — optimistic prepend", () => {
     act(() => {
       result.current.prependOptimistic({
         id: "wfx_brand_new",
-        type: "workflow_execution",
+        type: "workflow_run",
         subject: "Brand New Execution",
       });
     });
@@ -108,7 +108,7 @@ describe("useRecentActivity — optimistic prepend", () => {
       }
       return {
         entries: [
-          { id: "wfx_new", type: "workflow_execution", subject: "Server-resolved name", updatedAt: { seconds: BigInt(1716810000), nanos: 0 }, status: "" },
+          { id: "wfx_new", type: "workflow_run", subject: "Server-resolved name", updatedAt: { seconds: BigInt(1716810000), nanos: 0 }, status: "" },
         ],
       };
     });
@@ -123,7 +123,7 @@ describe("useRecentActivity — optimistic prepend", () => {
     act(() => {
       result.current.prependOptimistic({
         id: "wfx_new",
-        type: "workflow_execution",
+        type: "workflow_run",
         subject: "Loading\u2026",
       });
     });
@@ -156,7 +156,7 @@ describe("useRecentActivity — optimistic prepend", () => {
     act(() => {
       result.current.prependOptimistic({
         id: "wfx_dup",
-        type: "workflow_execution",
+        type: "workflow_run",
         subject: "First call",
       });
     });
@@ -164,7 +164,7 @@ describe("useRecentActivity — optimistic prepend", () => {
     act(() => {
       result.current.prependOptimistic({
         id: "wfx_dup",
-        type: "workflow_execution",
+        type: "workflow_run",
         subject: "Second call",
       });
     });

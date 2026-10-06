@@ -34,8 +34,8 @@
 // an unattended fire that would run Cursor with no model is refused.
 import { create } from "@bufbuild/protobuf";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ApprovalMode, ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
+import { ApprovalMode, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import {
   ScheduleRunOrigin,
@@ -48,10 +48,10 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { anthropicText } from "@stigmer/test-support/mock-llm";
 import { makeAgent } from "../support/agents";
-import { sessionIdOf } from "../support/agentexecutions";
+import { sessionIdOf } from "../support/agentruns";
 import { uniqueName } from "../support/naming";
 import { makeSchedule, targetMissingReason } from "../support/schedules";
-import { pollUntil } from "../support/execution-poll";
+import { pollUntil } from "../support/run-poll";
 import { createTarget, type TargetProfile } from "../targets";
 
 // Read once at collection time to gate the describes (constructing a target is
@@ -112,7 +112,7 @@ describe.skipIf(!firingEnabled)("Schedule trigger contract (scheduleFiring targe
     // byte-identical in both editions.
     expect(result.outcome).toBe(ScheduleRunOutcome.TARGET_MISSING);
     expect(result.refusalReason).toBe(targetMissingReason(org, agentSlug));
-    expect(result.executionId).toBe("");
+    expect(result.runId).toBe("");
 
     // The handler stamps last_fire_at before answering — the fire is
     // observable in the result itself, no polling.
@@ -146,7 +146,7 @@ describe.skipIf(!firingEnabled)("Schedule trigger contract (scheduleFiring targe
     expect(run.origin).toBe(ScheduleRunOrigin.MANUAL);
     expect(run.outcome).toBe(ScheduleRunOutcome.TARGET_MISSING);
     expect(run.reason).toBe(targetMissingReason(org, agentSlug));
-    expect(run.executionId).toBe("");
+    expect(run.runId).toBe("");
     expect(run.completedAt, "a no-run fire is terminal at insert").toBeDefined();
   });
 
@@ -197,9 +197,9 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
     // last_execution_id (the asynchronous shape this replaced).
     const result = await clients.scheduleCommand.trigger({ value: id });
     expect(result.outcome).toBe(ScheduleRunOutcome.STARTED);
-    const executionId = result.executionId;
+    const executionId = result.runId;
     expect(executionId).not.toBe("");
-    expect(result.schedule?.status?.lastExecutionId).toBe(executionId);
+    expect(result.schedule?.status?.lastRunId).toBe(executionId);
 
     // A REAL execution shaped by the fire (the full create pipeline ran:
     // fresh session with the pinned subject, the fire-context line in
@@ -212,7 +212,7 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
     // ...that runs to completion.
     await pollUntil(
       () => clients.agentExecutionQuery.get({ value: executionId }),
-      (e) => e.status?.phase === ExecutionPhase.EXECUTION_COMPLETED,
+      (e) => e.status?.phase === RunPhase.RUN_COMPLETED,
       (last, timeoutMs) =>
         `execution ${executionId} did not complete within ${timeoutMs}ms; ` +
         `last phase: ${last?.status?.phase}`,
@@ -226,7 +226,7 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
     const run = history.items[0]!;
     expect(run.origin).toBe(ScheduleRunOrigin.MANUAL);
     expect(run.outcome).toBe(ScheduleRunOutcome.COMPLETED);
-    expect(run.executionId).toBe(executionId);
+    expect(run.runId).toBe(executionId);
 
     // The streak was never fed: manual fires are not the cron health
     // signal, completed or not.
@@ -259,16 +259,16 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
     const result = await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
     expect(result.outcome, `the fire's refusal: ${result.refusalReason}`).toBe(ScheduleRunOutcome.STARTED);
 
-    const execution = await clients.agentExecutionQuery.get({ value: result.executionId });
+    const execution = await clients.agentExecutionQuery.get({ value: result.runId });
     const session = await clients.sessionQuery.get({ value: sessionIdOf(execution) });
     expect(session.status?.agentVersionHash, "the fired conversation pins the version the schedule names").toBe(pinned);
     expect(execution.status?.agentVersionHash, "and the fired turn runs it").toBe(pinned);
 
     await pollUntil(
-      () => clients.agentExecutionQuery.get({ value: result.executionId }),
-      (e) => e.status?.phase === ExecutionPhase.EXECUTION_COMPLETED,
+      () => clients.agentExecutionQuery.get({ value: result.runId }),
+      (e) => e.status?.phase === RunPhase.RUN_COMPLETED,
       (last, timeoutMs) =>
-        `execution ${result.executionId} did not complete within ${timeoutMs}ms; ` +
+        `execution ${result.runId} did not complete within ${timeoutMs}ms; ` +
         `last phase: ${last?.status?.phase}`,
     );
   });
@@ -291,7 +291,7 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
     const result = await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
     expect(result.outcome, `the fire's refusal: ${result.refusalReason}`).toBe(ScheduleRunOutcome.STARTED);
 
-    const execution = await clients.agentExecutionQuery.get({ value: result.executionId });
+    const execution = await clients.agentExecutionQuery.get({ value: result.runId });
     expect(execution.spec?.runConfig?.maxToolRounds, "the turn asks for what the schedule saved").toBe(1000);
     expect(execution.status?.approvalMode, "nobody is present at a fire to approve").toBe(ApprovalMode.UNATTENDED);
     const rounds = execution.status?.runConfig?.maxToolRounds ?? 0;
@@ -299,10 +299,10 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
     expect(rounds).toBeLessThan(1000);
 
     await pollUntil(
-      () => clients.agentExecutionQuery.get({ value: result.executionId }),
-      (e) => e.status?.phase === ExecutionPhase.EXECUTION_COMPLETED,
+      () => clients.agentExecutionQuery.get({ value: result.runId }),
+      (e) => e.status?.phase === RunPhase.RUN_COMPLETED,
       (last, timeoutMs) =>
-        `execution ${result.executionId} did not complete within ${timeoutMs}ms; ` +
+        `execution ${result.runId} did not complete within ${timeoutMs}ms; ` +
         `last phase: ${last?.status?.phase}`,
     );
   });
@@ -327,16 +327,16 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
     target.llmProxy!().enqueue(anthropicText("Reminders sent."));
     const result = await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
     expect(result.outcome, `the fire's refusal: ${result.refusalReason}`).toBe(ScheduleRunOutcome.STARTED);
-    const execution = await clients.agentExecutionQuery.get({ value: result.executionId });
+    const execution = await clients.agentExecutionQuery.get({ value: result.runId });
     const session = await clients.sessionQuery.get({ value: sessionIdOf(execution) });
     expect(session.spec?.harness).toBe(Harness.NATIVE);
     expect(execution.status?.runConfig?.modelName).toBe("claude-haiku-4.5");
 
     await pollUntil(
-      () => clients.agentExecutionQuery.get({ value: result.executionId }),
-      (e) => e.status?.phase === ExecutionPhase.EXECUTION_COMPLETED,
+      () => clients.agentExecutionQuery.get({ value: result.runId }),
+      (e) => e.status?.phase === RunPhase.RUN_COMPLETED,
       (last, timeoutMs) =>
-        `execution ${result.executionId} did not complete within ${timeoutMs}ms; ` +
+        `execution ${result.runId} did not complete within ${timeoutMs}ms; ` +
         `last phase: ${last?.status?.phase}`,
     );
   });
@@ -359,6 +359,6 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
     expect(result.outcome).toBe(ScheduleRunOutcome.REFUSED);
     expect(result.refusalReason).toContain("must name a model");
     expect(result.refusalReason).toContain("stigmer/stigmer#362");
-    expect(result.executionId).toBe("");
+    expect(result.runId).toBe("");
   });
 });

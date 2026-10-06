@@ -5,8 +5,8 @@ import { stripUndefined, toResourceRefInput, toResourceRefInputs } from "./proto
 import { type ResourceRef } from "./types.js";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { RunConfigSchema, AgentInvocationSchema, type RunConfig, type AgentInvocation } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunConfigSchema, AgentInvocationSchema, type RunConfig, type AgentInvocation } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
 import { ScheduleSchema, type Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
 import { ScheduleIdSchema, ScheduleTriggerResultSchema, GetSchedulesByAgentRequestSchema, ScheduleListSchema, ListSchedulesRequestSchema, ListScheduleRunsRequestSchema, ScheduleRunListSchema, type ScheduleTriggerResult, type GetSchedulesByAgentRequest, type ScheduleList, type ListSchedulesRequest, type ListScheduleRunsRequest, type ScheduleRunList } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";

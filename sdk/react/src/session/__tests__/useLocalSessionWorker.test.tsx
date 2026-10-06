@@ -37,14 +37,14 @@ function makeOwnedSession(createdBy: string): Session {
 function createMockAdapter(): RunnerAdapter & {
   onSessionOpened: ReturnType<typeof vi.fn>;
   onSessionClosed: ReturnType<typeof vi.fn>;
-  onWorkflowExecutionCreated: ReturnType<typeof vi.fn>;
-  onWorkflowExecutionTerminated: ReturnType<typeof vi.fn>;
+  onWorkflowRunCreated: ReturnType<typeof vi.fn>;
+  onWorkflowRunTerminated: ReturnType<typeof vi.fn>;
 } {
   return {
     onSessionOpened: vi.fn().mockResolvedValue(undefined),
     onSessionClosed: vi.fn().mockResolvedValue(undefined),
-    onWorkflowExecutionCreated: vi.fn().mockResolvedValue(undefined),
-    onWorkflowExecutionTerminated: vi.fn().mockResolvedValue(undefined),
+    onWorkflowRunCreated: vi.fn().mockResolvedValue(undefined),
+    onWorkflowRunTerminated: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -234,7 +234,7 @@ describe("useLocalSessionWorker", () => {
   });
 
   // Reference-stability guard: useSessionConversation refetches the session
-  // constantly. A refetch that returns a new object with the same execution
+  // constantly. A refetch that returns a new object with the same run
   // target must NOT thrash the runner (no extra open/close).
   it("does not re-attach when a refetch returns a new session object with the same target", () => {
     const adapter = createMockAdapter();

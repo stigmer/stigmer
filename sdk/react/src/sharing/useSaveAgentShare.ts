@@ -58,7 +58,7 @@ export interface AgentShareDraft {
    */
   readonly environmentRefs: readonly ResourceRef[];
   /**
-   * The owner's per-share execution override (model / cost cap / tool
+   * The owner's per-share run override (model / cost cap / tool
    * rounds / service tier), merged over the platform guest profile at
    * run time — stigmer/stigmer#360. The console does not edit it (yet):
    * it rides through every save opaquely so a toggle never wipes an

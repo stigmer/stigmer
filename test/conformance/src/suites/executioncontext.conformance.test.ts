@@ -365,7 +365,7 @@ describe("[rpc:ExecutionContextCommandController.create] ExecutionContext confor
 
 describe("ExecutionContext conformance — cross-org authorization", () => {
   // A direct (external) caller may only create an ExecutionContext in an org
-  // where they hold can_create_execution_in (member or guest). Create never
+  // where they hold can_create_run_in (member or guest). Create never
   // skips authorization, so an outsider can no longer plant an EC — and thus poison
   // a runner's environment — in a victim's org. Internal execution pipelines
   // still create ECs on the caller's behalf over the in-process transport,

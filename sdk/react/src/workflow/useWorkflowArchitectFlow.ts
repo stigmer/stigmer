@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { getUserMessage } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { useCreateSession } from "../session/useCreateSession.js";
-import { useCreateAgentExecution } from "../execution/useCreateAgentExecution.js";
-import { useExecutionStream } from "../execution/useExecutionStream.js";
-import { isTerminalPhase } from "../execution/execution-phases.js";
+import { useCreateAgentRun } from "../run/useCreateAgentRun.js";
+import { useRunStream } from "../run/useRunStream.js";
+import { isTerminalPhase } from "../run/run-phases.js";
 import { useConversationStoreRef } from "../internal/store/index.js";
 import { parseWorkflowYaml } from "./serialize-workflow-yaml.js";
 import {
@@ -22,7 +22,7 @@ import { workflowArchitectRef } from "./workflow-architect.js";
  * Lifecycle phases for the Workflow Architect generate flow.
  *
  * - `idle` — waiting for user to submit a prompt
- * - `starting` — creating session + execution
+ * - `starting` — creating session + run
  * - `streaming` — agent is working (tool calls, validation, generation)
  * - `complete` — agent finished and YAML was extracted successfully
  * - `extraction-failed` — agent finished but no YAML block was found
@@ -40,7 +40,7 @@ export type ArchitectPhase =
 
 /** Options for {@link useWorkflowArchitectFlow}. */
 export interface UseWorkflowArchitectFlowOptions {
-  /** Organization id — used for session, execution, and workflow creation (a slug is also accepted). */
+  /** Organization id — used for session, run, and workflow creation (a slug is also accepted). */
   readonly org: string;
   /**
    * Called after the workflow is created successfully.
@@ -65,13 +65,13 @@ export interface UseWorkflowArchitectFlowReturn {
   readonly phase: ArchitectPhase;
 
   /**
-   * Latest execution snapshot from the agent stream.
+   * Latest run snapshot from the agent stream.
    *
    * Non-null during `streaming`, `complete`, and `extraction-failed`
    * phases. Pass to `MessageThread` for rendering agent messages.
    */
-  readonly execution: AgentExecution | null;
-  /** `true` while the agent execution is actively streaming. */
+  readonly run: AgentRun | null;
+  /** `true` while the agent run is actively streaming. */
   readonly isStreaming: boolean;
 
   /** Extracted YAML when phase is `complete`, otherwise `null`. */
@@ -86,7 +86,7 @@ export interface UseWorkflowArchitectFlowReturn {
    * Validate the prompt and launch the Workflow Architect agent.
    *
    * Creates a session with the Organization's Workflow Architect agent
-   * (`workflow-architect.ts`), starts an execution with the user's prompt,
+   * (`workflow-architect.ts`), starts a run with the user's prompt,
    * and begins streaming.
    * The stream phase transitions automatically when the agent finishes.
    */
@@ -112,8 +112,8 @@ const MIN_PROMPT_LENGTH = 10;
  *
  * Composes existing infrastructure:
  * - {@link useCreateSession} to create a session with the agent
- * - {@link useCreateAgentExecution} to start the generation execution
- * - {@link useExecutionStream} + `ConversationStore` for real-time streaming
+ * - {@link useCreateAgentRun} to start the generation run
+ * - {@link useRunStream} + `ConversationStore` for real-time streaming
  * - {@link extractWorkflowYaml} to parse YAML from agent messages
  * - `workflow.apply()` to persist the generated workflow
  *
@@ -158,9 +158,9 @@ export function useWorkflowArchitectFlow(
   onErrorRef.current = onError;
 
   const { create: createSession } = useCreateSession();
-  const { create: createExecution } = useCreateAgentExecution();
+  const { create: createExecution } = useCreateAgentRun();
   const conversationStore = useConversationStoreRef();
-  const stream = useExecutionStream(executionId, {
+  const stream = useRunStream(executionId, {
     store: conversationStore,
   });
 
@@ -170,14 +170,14 @@ export function useWorkflowArchitectFlow(
     if (phase !== "streaming") return;
 
     const isTerminal =
-      stream.phase !== ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED &&
+      stream.phase !== RunPhase.RUN_PHASE_UNSPECIFIED &&
       isTerminalPhase(stream.phase);
 
     if (isTerminal && !prevTerminalRef.current) {
       prevTerminalRef.current = true;
 
       // Primary: read from structured output (deterministic)
-      const structuredOutput = stream.execution?.status?.structuredOutput as
+      const structuredOutput = stream.run?.status?.structuredOutput as
         | Record<string, unknown>
         | undefined;
 
@@ -197,7 +197,7 @@ export function useWorkflowArchitectFlow(
         }
       } else {
         // Fallback: regex extraction (backward compat / extraction failure)
-        const result = extractWorkflowYaml(stream.execution);
+        const result = extractWorkflowYaml(stream.run);
         if (result) {
           setExtracted(result);
           setPhase("complete");
@@ -210,7 +210,7 @@ export function useWorkflowArchitectFlow(
         }
       }
     }
-  }, [phase, stream.phase, stream.execution]);
+  }, [phase, stream.phase, stream.run]);
 
   // Surface stream errors
   useEffect(() => {
@@ -249,7 +249,7 @@ export function useWorkflowArchitectFlow(
       });
       setSessionId(newSessionId);
 
-      const { executionId: newExecutionId } = await createExecution({
+      const { runId: newExecutionId } = await createExecution({
         org: sessionOrg,
         sessionId: newSessionId,
         message: trimmed,
@@ -311,7 +311,7 @@ export function useWorkflowArchitectFlow(
       prompt,
       setPrompt,
       phase,
-      execution: stream.execution,
+      run: stream.run,
       isStreaming: stream.isStreaming || stream.isConnecting,
       extractedYaml: extracted?.yaml ?? null,
       explanation: extracted?.explanation ?? null,
@@ -323,7 +323,7 @@ export function useWorkflowArchitectFlow(
     [
       prompt,
       phase,
-      stream.execution,
+      stream.run,
       stream.isStreaming,
       stream.isConnecting,
       extracted,

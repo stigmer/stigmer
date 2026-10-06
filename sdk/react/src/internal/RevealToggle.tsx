@@ -20,7 +20,7 @@ export interface RevealToggleProps {
 
 /**
  * The single "reveal more / less" control for every bounded block on the
- * execution surface — the diff/gate clamp ({@link BoundedContent}) and the
+ * run surface — the diff/gate clamp ({@link BoundedContent}) and the
  * line-count text/terminal blocks ({@link CollapsiblePre} / {@link
  * CollapsibleCode}).
  *

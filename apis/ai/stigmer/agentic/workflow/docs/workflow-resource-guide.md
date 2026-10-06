@@ -137,7 +137,7 @@ metadata:
 | `spec.document` | Yes | Workflow DSL metadata block. See [Document Fields](#document-fields) below. |
 | `spec.tasks` | Yes (≥1) | Ordered list of workflow tasks. See [task-reference.md](task-reference.md) for all task types. |
 | `spec.env_spec` | No | Environment variables declared for use in task configs. |
-| `spec.execution_visibility` | No | Who can see the workflow's runs. `workflow_execution_visibility_private` (the default): each run is visible to the person who started it. `workflow_execution_visibility_organization`: every member of the organization sees every run, past runs included, with its input and output. Read at create; afterwards it changes only through `updateExecutionVisibility`, which requires the workflow's owner (`can_manage_audience`). Update and apply keep the stored level, and changing it records no version. |
+| `spec.run_visibility` | No | Who can see the workflow's runs. `workflow_run_visibility_private` (the default): each run is visible to the person who started it. `workflow_run_visibility_organization`: every member of the organization sees every run, past runs included, with its input and output. Read at create; afterwards it changes only through `updateRunVisibility`, which requires the workflow's owner (`can_manage_audience`). Update and apply keep the stored level, and changing it records no version. |
 
 ### Document Fields
 
@@ -221,7 +221,7 @@ Declared variables are accessible in task configs via `${.env.VARIABLE_NAME}`.
 
 | Field | Description |
 |---|---|
-| `status.version_hash` | Hash of the workflow's current valid version: the whole spec with `execution_visibility` cleared. A run pins it at start (`WorkflowExecution.status.workflow_version_hash`) and every step reads that version. A workflow last saved before this rule holds the hash of its generated YAML until its next save. |
+| `status.version_hash` | Hash of the workflow's current valid version: the whole spec with `run_visibility` cleared. A run pins it at start (`WorkflowRun.status.workflow_version_hash`) and every step reads that version. A workflow last saved before this rule holds the hash of its generated YAML until its next save. |
 | `status.serverless_workflow_validation` | Asynchronous DSL validation result. See [Validation State](#validation-state) below. |
 | `status.audit` | Standard audit record: `created_by`, `created_at`, `updated_by`, `updated_at`. |
 

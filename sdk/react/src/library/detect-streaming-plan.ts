@@ -1,12 +1,12 @@
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   InteractionMode,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { isTerminalPhase } from "@stigmer/sdk";
 
 /**
- * A plan being written by a live Plan-mode execution, detected mid-stream so
+ * A plan being written by a live Plan-mode run, detected mid-stream so
  * the UI can promote it to a document surface (panel plan tab + compact thread
  * card) instead of letting it dump into the chat as a giant streaming bubble.
  */
@@ -58,8 +58,8 @@ function unwrapStreamingPlanFence(content: string): string {
 }
 
 /**
- * Detects the plan a live Plan-mode execution is currently writing, or
- * `undefined` when the execution has no recognizable plan in flight.
+ * Detects the plan a live Plan-mode run is currently writing, or
+ * `undefined` when the run has no recognizable plan in flight.
  *
  * This is the third leg of the plan convention, alongside the runner's prompt
  * directive ("your FINAL message IS the plan, starting with a single `#`
@@ -68,7 +68,7 @@ function unwrapStreamingPlanFence(content: string): string {
  * (the published `plan.md` artifact); mid-stream it must be inferred, and the
  * directive's mandated shape is the inference:
  *
- * - the execution runs in Plan mode and is **non-terminal** (a completed turn
+ * - the run runs in Plan mode and is **non-terminal** (a completed turn
  *   is owned by the artifact path; a stopped/failed turn has no live plan),
  * - the candidate is the **last content-bearing `MESSAGE_AI`** — the exact
  *   selection rule the runner's `extractFinalPlanText` and the thread's
@@ -84,7 +84,7 @@ function unwrapStreamingPlanFence(content: string): string {
  * back to it would promote the wrong text.
  */
 export function findStreamingPlan(
-  execution: AgentExecution | null | undefined,
+  execution: AgentRun | null | undefined,
 ): StreamingPlan | undefined {
   if (execution?.spec?.interactionMode !== InteractionMode.PLAN) {
     return undefined;

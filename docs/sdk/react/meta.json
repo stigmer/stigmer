@@ -3,9 +3,9 @@
   "pages": [
     "---Foundation---",
     "core",
-    "---Sessions & Execution---",
+    "---Sessions & Runs---",
     "session",
-    "execution",
+    "run",
     "composer",
     "---Agents & Workflows---",
     "agent",

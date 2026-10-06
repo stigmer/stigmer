@@ -3,7 +3,7 @@
   "pages": [
     "agent",
     "agent-channel",
-    "agent-execution",
+    "agent-run",
     "agent-share",
     "api-key",
     "artifact",
@@ -30,6 +30,6 @@
     "subscription",
     "team",
     "workflow",
-    "workflow-execution"
+    "workflow-run"
   ]
 }

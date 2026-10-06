@@ -27,7 +27,7 @@ message AgentShareStatus {
   // to kill a link that leaked without deleting the share. Enforced with the
   // allowed_origins pattern — validated at guest mint, stamped into the
   // guest JWT, and re-validated against this live value on every
-  // session/execution create, so rotation revokes live guest tokens on
+  // session/run create, so rotation revokes live guest tokens on
   // their next message. Not a security boundary: rate limits and the org
   // credit cap remain the abuse controls; this is a traffic lever for
   // over-shared links.

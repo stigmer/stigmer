@@ -49,8 +49,8 @@ pinned somewhere. Read a row across before searching for anything.
   harness folds its events through.
 - `harness/turn-timeline.ts` — `TurnTimeline`, the runtime's fold over that
   builder's events into the `turn_phases` timing line every harness gets for
-  free: first visible token, model rounds, tool and sub-agent spans, the
-  longest silence.
+  free: first visible token, model rounds, tool and sub-agent spans, the longest
+  silence.
 - `harness/capture.ts` — the file-review capture. The runtime owns all of it; an
   adapter supplies one fact, which CAS-owned paths its engine touched.
 - `harness/turn-context.ts` — the resolution phases that build the `TurnInput`
@@ -182,7 +182,7 @@ Every hit falls into one of three classes:
 | `apis/ai/stigmer/agentic/session/v1/spec.proto`                                                                                                                                | The `harness` field's comment lists each harness and its activity.                                                                                                                                                                                                                                                            |
 | `apis/ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto`                                                                                                                   | The `harness` field's comment lists each harness.                                                                                                                                                                                                                                                                             |
 | `apis/ai/stigmer/iam/identityaccount/v1/spec.proto`                                                                                                                            | `default_harness` names the allowed lowercase strings in its validation rule.                                                                                                                                                                                                                                                 |
-| `apis/ai/stigmer/agentic/agentexecution/v1/filereview.proto`                                                                                                                   | `harness_id` comments state the closed set of file-review ids.                                                                                                                                                                                                                                                                |
+| `apis/ai/stigmer/agentic/agentrun/v1/filereview.proto`                                                                                                                         | `harness_id` comments state the closed set of file-review ids.                                                                                                                                                                                                                                                                |
 | `apis/ai/stigmer/billing/v1/io.proto`, `apis/ai/stigmer/billing/v1/policy.proto`                                                                                               | Harness string fields whose comments state the set.                                                                                                                                                                                                                                                                           |
 | `backend/services/stigmer-server/src/temporal/agentexecution/names.ts`                                                                                                         | `EXECUTE_CURSOR_ACTIVITY_NAME`, `EXECUTE_DEEP_AGENT_ACTIVITY_NAME`: the server side of the runner's byte-pinned names.                                                                                                                                                                                                        |
 | `backend/services/stigmer-server/src/temporal/agentexecution/workflows/invoke-agent-execution.ts`                                                                              | The activity proxy typed per name, and a branch on the enum: `executeCursorFlow` for a harness whose engine mints the state id (the server reads it back), the deep-agent flow for one whose id the server mints first (`EnsureThread`). The largest site; a new harness needs an arm here, its own flow or one of these two. |
@@ -197,7 +197,7 @@ Every hit falls into one of three classes:
 | `client-apps/cli/src/resources/run/prepare.ts`                                                                                                                                 | `HarnessFlag` and its checks.                                                                                                                                                                                                                                                                                                 |
 | `client-apps/cli/src/resources/run/header.ts`                                                                                                                                  | The run header's harness label.                                                                                                                                                                                                                                                                                               |
 | `client-apps/cli/src/resources/task-configs.ts`                                                                                                                                | The YAML shorthand map.                                                                                                                                                                                                                                                                                                       |
-| `apis/ai/stigmer/agentic/agentexecution/v1/enum.proto`                                                                                                                         | A comment on tool-name casing per harness.                                                                                                                                                                                                                                                                                    |
+| `apis/ai/stigmer/agentic/agentrun/v1/enum.proto`                                                                                                                               | A comment on tool-name casing per harness.                                                                                                                                                                                                                                                                                    |
 | `backend/README.md`                                                                                                                                                            | Lists the harnesses and the SDK behind each.                                                                                                                                                                                                                                                                                  |
 | `client-apps/desktop/scripts/stage-runner-slim.sh`, `client-apps/desktop/scripts/macos-codesign-tree.sh`                                                                       | Stage and sign the vendor SDKs' native helpers for the desktop app; a harness whose SDK ships one touches both.                                                                                                                                                                                                               |
 | `sdk/react/src/models/harness.ts`                                                                                                                                              | The SDK hub: `HarnessOption`, `HARNESS_META`, `HARNESS_LABELS`, `HARNESS_OPTIONS`, `DEFAULT_HARNESS`, `isHarnessOption`, `toProtoHarness`, `fromProtoHarness`, all read from one option-to-enum table; its reverse is typed over the whole enum, so a new member fails the SDK's typecheck here.                              |
@@ -218,8 +218,8 @@ own model registry). A harness that must run there is a change on that side too.
 Nothing to touch. Listed so a probe's hit here is a stop, not a lead.
 
 - `apis/`: `apis/ai/stigmer/agentic/workflow/v1/tasks/meta/agent_call.yaml` (an
-  example value); `apis/ai/stigmer/agentic/agentexecution/v1/io.proto`,
-  `apis/ai/stigmer/agentic/agentexecution/v1/usage.proto`,
+  example value); `apis/ai/stigmer/agentic/agentrun/v1/io.proto`,
+  `apis/ai/stigmer/agentic/agentrun/v1/usage.proto`,
   `apis/ai/stigmer/billing/v1/model_pricing_baseline.proto`,
   `apis/ai/stigmer/billing/v1/pricing_override.proto` (free-form provider or
   harness strings with examples); the fixtures under
@@ -234,10 +234,10 @@ Nothing to touch. Listed so a probe's hit here is a stop, not a lead.
 - The React SDK: `sdk/react/src/models/registry.ts`,
   `sdk/react/src/models/useModelRegistry.ts`,
   `sdk/react/src/models/service-tier.ts`,
-  `sdk/react/src/identity-account/useAccountExecutionDefaults.ts`; everything under
-  `sdk/react/src/channel/`, `sdk/react/src/composer/`,
-  `sdk/react/src/execution/`, `sdk/react/src/schedule/`,
-  `sdk/react/src/session/` (typed by the option or defaulting to one value).
+  `sdk/react/src/identity-account/useAccountExecutionDefaults.ts`; everything
+  under `sdk/react/src/channel/`, `sdk/react/src/composer/`,
+  `sdk/react/src/run/`, `sdk/react/src/schedule/`, `sdk/react/src/session/`
+  (typed by the option or defaulting to one value).
 - Fixtures and clients: `test/e2e/helpers/approval.ts`,
   `test/extension-consumer/src/fake-extension.ts`, `test/fixtures/tool-view/`,
   `site/src/components/docs/demos/shared/StigmerPreviewProvider.tsx`,

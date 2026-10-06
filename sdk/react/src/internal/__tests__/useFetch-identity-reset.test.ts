@@ -28,8 +28,8 @@ function createCacheWrapper(cache: FetchCache) {
 // These tests verify the Layer 1 fix for the premature worker shutdown bug.
 // When deps change (e.g. executionId switches from A→B), useFetch must NOT
 // keep showing A's terminal-phase data while B's fetch is in flight — that
-// stale data caused useWorkflowExecution's termination effect to fire
-// onWorkflowExecutionTerminated(B) using A's completed phase.
+// stale data caused useWorkflowRun's termination effect to fire
+// onWorkflowRunTerminated(B) using A's completed phase.
 // ---------------------------------------------------------------------------
 
 describe("useFetch — identity reset on dep change (no cache)", () => {
@@ -49,7 +49,7 @@ describe("useFetch — identity reset on dep change (no cache)", () => {
     await flush();
     expect(result.current.data).toBe("data-A");
 
-    // Switch identity — simulate navigating from execution A to B
+    // Switch identity — simulate navigating from run A to B
     currentId = "exec-B";
     rerender();
     // Immediately after dep change, data should reset to initialData

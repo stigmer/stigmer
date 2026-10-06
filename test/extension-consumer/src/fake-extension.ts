@@ -27,8 +27,8 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter } from "@connectrpc/connect";
 
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
+import { ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
 import {
   ChannelConversationListSchema,
   ChannelConversationSchema,
@@ -128,9 +128,9 @@ import {
 import type { BindingVerdict, CredentialBinding } from "@stigmer/server";
 import type { RunLane, RunLanes } from "@stigmer/server";
 import type {
-  AgentExecutionResponseDecorator,
+  AgentRunResponseDecorator,
   AgentExecutionTemporalConfig,
-  AgentExecutionStatusObserver,
+  AgentRunStatusObserver,
   ArtifactStorage,
   ArtifactStorageDriverFactory,
   AuthorizationQueryEngine,
@@ -141,8 +141,8 @@ import type {
   ChildOrganizationLinkedEvent,
   ChildOrganizations,
   ComposedServer,
-  ExecutionAudienceShape,
-  ExecutionVisibilityChangedEvent,
+  RunAudienceShape,
+  RunVisibilityChangedEvent,
   GateSlotName,
   GuestTokenMinting,
   IamPolicyStore,
@@ -778,12 +778,12 @@ export function consumerCapacityGateStep(): PipelineStep<DescMessage> {
   };
 }
 
-const statusObserver: AgentExecutionStatusObserver = (transition) => {
-  void transition.execution.metadata?.id;
+const statusObserver: AgentRunStatusObserver = (transition) => {
+  void transition.run.metadata?.id;
   void transition.newPhase;
 };
 
-const responseDecorator: AgentExecutionResponseDecorator = (
+const responseDecorator: AgentRunResponseDecorator = (
   execution,
   response,
 ) => {
@@ -1356,8 +1356,8 @@ const authorizationLifecycle: ResourceAuthorizationLifecycle = {
     void event.shapesToDelete;
     return Promise.resolve();
   },
-  onExecutionVisibilityChanged: (event: ExecutionVisibilityChangedEvent) => {
-    const audience: ReadonlyArray<ExecutionAudienceShape> = event.shapes;
+  onRunVisibilityChanged: (event: RunVisibilityChangedEvent) => {
+    const audience: ReadonlyArray<RunAudienceShape> = event.shapes;
     void event.workflowId;
     void event.orgId;
     void audience;

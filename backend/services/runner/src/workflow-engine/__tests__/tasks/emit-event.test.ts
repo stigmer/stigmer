@@ -28,7 +28,7 @@ describe("emitEventAction", () => {
 
       expect(result.specversion).toBe("1.0");
       expect(result.type).toBe("workflow.step.completed");
-      expect(result.source).toBe("/workflows/executions/exec-123");
+      expect(result.source).toBe("/workflows/runs/exec-123");
       expect(result.datacontenttype).toBe("application/json");
       expect(result.id).toBeDefined();
       expect(typeof result.id).toBe("string");
@@ -253,12 +253,12 @@ describe("emitEventAction", () => {
       mockSendWorkflowSignal.mockResolvedValue({});
     });
 
-    it("routes through the client it is handed, addressed by execution_id", async () => {
+    it("routes through the client it is handed, addressed by run_id", async () => {
 
       const config: EmitEventConfig = {
         event: { type: "approval.granted" },
         delivery: [
-          { signal: { execution_id: "wfx_01ABC", signal_name: "approval_resolved" } },
+          { signal: { run_id: "wfx_01ABC", signal_name: "approval_resolved" } },
         ],
       };
 
@@ -289,7 +289,7 @@ describe("emitEventAction", () => {
       const config: EmitEventConfig = {
         event: { type: "test" },
         delivery: [
-          { signal: { execution_id: "wfx_done", signal_name: "ping" } },
+          { signal: { run_id: "wfx_done", signal_name: "ping" } },
         ],
       };
 
@@ -317,8 +317,31 @@ describe("emitEventAction", () => {
 
       expect(mockSendWorkflowSignal).not.toHaveBeenCalled();
       expect(result.delivery_errors).toHaveLength(1);
-      expect((result.delivery_errors as any)[0].error).toContain("'execution_id'");
+      expect((result.delivery_errors as any)[0].error).toContain("'run_id'");
       expect((result.delivery_errors as any)[0].error).toContain("'workflow_id' is not supported");
+    });
+
+    it("delivers to the run a definition recorded before the rename names by execution_id", async () => {
+      // A run started before the rename of executions to runs carries its
+      // workflow's definition, recorded at start, with the target keyed
+      // execution_id; the run must still reach its target after upgrading.
+      const config: EmitEventConfig = {
+        event: { type: "test" },
+        delivery: [
+          {
+            signal: {
+              execution_id: "wfx_recorded",
+              signal_name: "ping",
+            } as unknown as SignalDeliveryTarget,
+          },
+        ],
+      };
+
+      const result = await emitEventAction(config, "exec-1", undefined, client);
+
+      expect(mockSendWorkflowSignal).toHaveBeenCalledTimes(1);
+      expect(mockSendWorkflowSignal.mock.calls[0]?.[0]).toBe("wfx_recorded");
+      expect(result.delivery_errors).toBeUndefined();
     });
 
     it("refuses a signal target missing signal_name", async () => {
@@ -327,7 +350,7 @@ describe("emitEventAction", () => {
         delivery: [
           {
             signal: {
-              execution_id: "wfx_01ABC",
+              run_id: "wfx_01ABC",
             } as unknown as SignalDeliveryTarget,
           },
         ],
@@ -344,8 +367,8 @@ describe("emitEventAction", () => {
       const config: EmitEventConfig = {
         event: { type: "fanout" },
         delivery: [
-          { signal: { execution_id: "wfx_a", signal_name: "sig_a" } },
-          { signal: { execution_id: "wfx_b", signal_name: "sig_b" } },
+          { signal: { run_id: "wfx_a", signal_name: "sig_a" } },
+          { signal: { run_id: "wfx_b", signal_name: "sig_b" } },
         ],
       };
 

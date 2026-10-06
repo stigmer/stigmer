@@ -18,7 +18,7 @@ interface MermaidProps {
  * flowchart TB
  *     A[Agent] --> B[Agent Instance]
  *     B --> C[Session]
- *     C --> D[Agent Execution]
+ *     C --> D[Agent Run]
  * ```
  * ~~~
  *

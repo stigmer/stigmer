@@ -107,10 +107,10 @@ func (x *OrganizationSpec) GetParentOrg() string {
 }
 
 // OrganizationPreferences holds organization-declared defaults that apply to
-// every eligible agent execution in the organization.
+// every eligible agent run in the organization.
 type OrganizationPreferences struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Free-text standing context injected into eligible agent executions in
+	// Free-text standing context injected into eligible agent runs in
 	// this organization. Example: "We deploy to us-east-1."
 	StandingContext string `protobuf:"bytes,1,opt,name=standing_context,json=standingContext,proto3" json:"standing_context,omitempty"`
 	// Whether agents may retain learned facts about members of this

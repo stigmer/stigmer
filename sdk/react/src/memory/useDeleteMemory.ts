@@ -23,7 +23,7 @@ export interface UseDeleteMemoryReturn {
  * Deletion works in any lifecycle state — it is never refused on
  * lifecycle grounds — and is the revocation mechanism for
  * confirmed facts: the fact stops reaching future sessions immediately.
- * Past executions keep their immutable recall snapshots.
+ * Past runs keep their immutable recall snapshots.
  *
  * @example
  * ```tsx

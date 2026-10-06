@@ -41,12 +41,12 @@
           "description": "Update the visibility of an existing workflow.\n\n This is a targeted metadata update — it only modifies metadata.visibility,\n leaving spec, status, and other metadata fields untouched. Use this to\n widen or narrow who can read the workflow without sending the entire\n workflow resource (avoiding read-modify-write races).\n\n Raising the level is refused while an agent an agent_call task names is\n less visible than the requested level: what a person can run they must\n also be able to read."
         },
         {
-          "name": "UpdateExecutionVisibility",
-          "inputType": "UpdateWorkflowExecutionVisibilityInput",
-          "inputFullType": "ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput",
+          "name": "UpdateRunVisibility",
+          "inputType": "UpdateWorkflowRunVisibilityInput",
+          "inputFullType": "ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput",
           "outputType": "Workflow",
           "outputFullType": "ai.stigmer.agentic.workflow.v1.Workflow",
-          "description": "Update who can observe the runs (executions) of this workflow.\n\n This is a SEPARATE axis from updateVisibility: it controls run\n observability (who sees execution inputs and outputs), not who can see or\n run the workflow itself. Making a workflow org-runnable does NOT expose\n other people's runs; that requires this opt-in. The setting covers every\n run of the workflow, past runs included.\n\n Supported levels: PRIVATE (only the person who started each run) and\n ORGANIZATION (all org members). Platform is unsupported."
+          "description": "Update who can observe the runs of this workflow.\n\n This is a SEPARATE axis from updateVisibility: it controls run\n observability (who sees run inputs and outputs), not who can see or\n run the workflow itself. Making a workflow org-runnable does NOT expose\n other people's runs; that requires this opt-in. The setting covers every\n run of the workflow, past runs included.\n\n Supported levels: PRIVATE (only the person who started each run) and\n ORGANIZATION (all org members). Platform is unsupported."
         },
         {
           "name": "Delete",
@@ -109,7 +109,7 @@
           "inputFullType": "ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput",
           "outputType": "WorkflowVersionEntry",
           "outputFullType": "ai.stigmer.agentic.workflow.v1.WorkflowVersionEntry",
-          "description": "Get a specific historical version of a workflow by its content hash.\n\n Used by the runner (to hydrate execution from a pinned version) and\n the execution viewer (to render the graph for historical executions)."
+          "description": "Get a specific historical version of a workflow by its content hash.\n\n Used by the runner (to hydrate a run from a pinned version) and\n the run viewer (to render the graph for historical runs)."
         }
       ]
     },
@@ -170,9 +170,9 @@
       ]
     },
     {
-      "name": "UpdateWorkflowExecutionVisibilityInput",
-      "description": "UpdateWorkflowExecutionVisibilityInput targets the run-observability setting\n of a single workflow.\n\n Mirrors the shape of commons UpdateVisibilityInput, but for the SEPARATE\n execution-visibility axis (see WorkflowExecutionVisibility). A dedicated\n message keeps the two visibility concepts from being conflated.",
-      "protoType": "ai.stigmer.agentic.workflow.v1.UpdateWorkflowExecutionVisibilityInput",
+      "name": "UpdateWorkflowRunVisibilityInput",
+      "description": "UpdateWorkflowRunVisibilityInput targets the run-observability setting\n of a single workflow.\n\n Mirrors the shape of commons UpdateVisibilityInput, but for the SEPARATE\n run-visibility axis (see WorkflowRunVisibility). A dedicated\n message keeps the two visibility concepts from being conflated.",
+      "protoType": "ai.stigmer.agentic.workflow.v1.UpdateWorkflowRunVisibilityInput",
       "protoFile": "apis/ai/stigmer/agentic/workflow/v1/io.proto",
       "fields": [
         {
@@ -182,25 +182,25 @@
           "type": {
             "kind": "string"
           },
-          "description": "ID of the workflow whose execution visibility is being updated.",
+          "description": "ID of the workflow whose run visibility is being updated.",
           "required": true,
           "validation": {
             "required": true
           }
         },
         {
-          "name": "ExecutionVisibility",
-          "jsonName": "executionVisibility",
-          "protoField": "execution_visibility",
+          "name": "RunVisibility",
+          "jsonName": "runVisibility",
+          "protoField": "run_visibility",
           "type": {
             "kind": "string",
-            "enumType": "ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility",
+            "enumType": "ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility",
             "enumValues": [
-              "workflow_execution_visibility_private",
-              "workflow_execution_visibility_organization"
+              "workflow_run_visibility_private",
+              "workflow_run_visibility_organization"
             ]
           },
-          "description": "The new execution-visibility setting. Must not be unspecified (0).",
+          "description": "The new run-visibility setting. Must not be unspecified (0).",
           "required": false
         }
       ]
@@ -374,7 +374,7 @@
               "organization",
               "platform",
               "agent",
-              "agent_execution",
+              "agent_run",
               "session",
               "skill",
               "mcp_server",
@@ -382,7 +382,7 @@
               "agent_channel",
               "channel_app",
               "workflow",
-              "workflow_execution",
+              "workflow_run",
               "environment",
               "artifact",
               "execution_context",
@@ -526,7 +526,7 @@
     },
     {
       "name": "GetWorkflowVersionInput",
-      "description": "GetWorkflowVersionInput requests a specific historical version of a workflow.\n\n Used by the runner (to hydrate execution from a pinned version) and the\n execution viewer (to render the graph for historical executions).",
+      "description": "GetWorkflowVersionInput requests a specific historical version of a workflow.\n\n Used by the runner (to hydrate a run from a pinned version) and the\n run viewer (to render the graph for historical runs).",
       "protoType": "ai.stigmer.agentic.workflow.v1.GetWorkflowVersionInput",
       "protoFile": "apis/ai/stigmer/agentic/workflow/v1/version.proto",
       "fields": [
@@ -697,29 +697,29 @@
         {
           "name": "visibility_org",
           "number": 3,
-          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role SSO auto-provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_execution_in); org visibility widens\n read, never spend.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)"
+          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role SSO auto-provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_run_in); org visibility widens\n read, never spend.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)"
         },
         {
           "name": "visibility_child_orgs",
           "number": 4,
-          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, executions and environments are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
+          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and environments are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
         }
       ]
     },
     {
-      "name": "WorkflowExecutionVisibility",
-      "description": "WorkflowExecutionVisibility controls who can observe the runs (executions)\n of a workflow.\n\n This is a SEPARATE axis from the workflow's own visibility\n (metadata.visibility, which governs who can SEE and RUN the workflow).\n Keeping them separate means making a workflow org-runnable never exposes\n other people's run inputs and outputs. See workflow_execution.fga and\n workflow.fga (the `execution_viewer` relation) for how this maps to\n authorization tuples.\n\n Only PRIVATE and ORGANIZATION are meaningful: a run is either visible to\n just the person who started it, or to every member of the owning\n organization. Public/platform run observability is deliberately unsupported.",
-      "protoType": "ai.stigmer.agentic.workflow.v1.WorkflowExecutionVisibility",
+      "name": "WorkflowRunVisibility",
+      "description": "WorkflowRunVisibility controls who can observe the runs\n of a workflow.\n\n This is a SEPARATE axis from the workflow's own visibility\n (metadata.visibility, which governs who can SEE and RUN the workflow).\n Keeping them separate means making a workflow org-runnable never exposes\n other people's run inputs and outputs. See workflow_run.fga and\n workflow.fga (the `run_viewer` relation) for how this maps to\n authorization tuples.\n\n Only PRIVATE and ORGANIZATION are meaningful: a run is either visible to\n just the person who started it, or to every member of the owning\n organization. Public/platform run observability is deliberately unsupported.",
+      "protoType": "ai.stigmer.agentic.workflow.v1.WorkflowRunVisibility",
       "values": [
         {
-          "name": "workflow_execution_visibility_private",
+          "name": "workflow_run_visibility_private",
           "number": 1,
-          "description": "Each execution is visible only to the user who triggered it (its owner)."
+          "description": "Each run is visible only to the user who triggered it (its owner)."
         },
         {
-          "name": "workflow_execution_visibility_organization",
+          "name": "workflow_run_visibility_organization",
           "number": 2,
-          "description": "Every member of the owning organization can observe all executions of\n this workflow."
+          "description": "Every member of the owning organization can observe all runs of\n this workflow."
         }
       ]
     },
@@ -816,7 +816,7 @@
           "description": "AI assistant with instructions, tools, skills, and a delegation model."
         },
         {
-          "name": "agent_execution",
+          "name": "agent_run",
           "number": 41,
           "description": "Single run of an agent within a session, tracking tool calls and responses."
         },
@@ -856,19 +856,19 @@
           "description": "Multi-step orchestration defining how agents collaborate on a task."
         },
         {
-          "name": "workflow_execution",
+          "name": "workflow_run",
           "number": 52,
           "description": "Single run of a workflow, tracking step progress and outcomes."
         },
         {
           "name": "environment",
           "number": 53,
-          "description": "Named set of variables and secrets for agent and workflow execution."
+          "description": "Named set of variables and secrets for agent and workflow run."
         },
         {
           "name": "artifact",
           "number": 55,
-          "description": "Persisted blob produced during workflow or agent execution."
+          "description": "Persisted blob produced during workflow or agent run."
         },
         {
           "name": "execution_context",
@@ -1022,12 +1022,12 @@
         {
           "name": "budget_exceeded_terminate",
           "number": 1,
-          "description": "Terminate the workflow immediately with EXECUTION_FAILED status.\n The execution record includes the budget breach details for diagnostics."
+          "description": "Terminate the workflow immediately with RUN_FAILED status.\n The run record includes the budget breach details for diagnostics."
         },
         {
           "name": "budget_exceeded_human_review",
           "number": 2,
-          "description": "Pause the workflow and request human review via a system-generated\n approval gate. The reviewer can approve continued execution (with\n an increased budget) or confirm termination.\n Depends on the human_input runtime. If human_input runtime\n is not available, falls back to terminate with a descriptive error."
+          "description": "Pause the workflow and request human review via a system-generated\n approval gate. The reviewer can approve continuing the run (with\n an increased budget) or confirm termination.\n Depends on the human_input runtime. If human_input runtime\n is not available, falls back to terminate with a descriptive error."
         },
         {
           "name": "budget_exceeded_warn",

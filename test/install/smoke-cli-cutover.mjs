@@ -106,7 +106,7 @@ const APPROVED_GATE_WORKFLOW = "cutover-smoke-gate-approved";
 /** Long enough for the smoke to see the gate waiting before it times out. */
 const GATE_TIMEOUT_SECONDS = 20;
 const REVIEW_COMMENT = "approved by the CLI smoke's reviewer";
-const TERMINAL_PHASES = new Set(["EXECUTION_COMPLETED", "EXECUTION_FAILED", "EXECUTION_CANCELLED", "EXECUTION_TERMINATED"]);
+const TERMINAL_PHASES = new Set(["RUN_COMPLETED", "RUN_FAILED", "RUN_CANCELLED", "RUN_TERMINATED"]);
 
 function log(step) {
   console.log(`smoke-cli-cutover: ${step}`);
@@ -294,20 +294,20 @@ spec:
   const timedOutResult = await timedOutRun.done;
   const timedOutPhase = await pollUntil("the timed-out gate's run to end", RUN_TIMEOUT_MS, async () => {
     const phase = (
-      await connectJson(stack.baseUrl, "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/get", {
+      await connectJson(stack.baseUrl, "ai.stigmer.agentic.workflowrun.v1.WorkflowRunQueryController/get", {
         value: timedOut.executionId,
       })
     ).status?.phase;
     return TERMINAL_PHASES.has(phase) ? phase : false;
   });
-  if (timedOutPhase !== "EXECUTION_FAILED") {
+  if (timedOutPhase !== "RUN_FAILED") {
     throw new Error(
-      `the timed-out gate's run ended ${timedOutPhase}, expected EXECUTION_FAILED under the fail policy ` +
+      `the timed-out gate's run ended ${timedOutPhase}, expected RUN_FAILED under the fail policy ` +
         `(the CLI exited ${timedOutResult.status}${timedOutResult.error ? `: ${timedOutResult.error.message}` : ""})\n` +
         `stderr:\n${timedOutResult.stderr}`,
     );
   }
-  const timedOutLogs = await cli(["execution", "logs", timedOut.executionId]);
+  const timedOutLogs = await cli(["runs", "logs", timedOut.executionId]);
   const timedOutProblem = gateLogProblem(timedOutLogs.stdout, timedOut.taskName, "timed out");
   if (timedOutProblem !== undefined) throw new Error(`execution logs of the timed-out gate: ${timedOutProblem}`);
   log("execution logs: the timed-out gate decided nothing, then its task failed");
@@ -323,7 +323,7 @@ spec:
       timeoutMs: RUN_TIMEOUT_MS,
     });
     await cli([
-      "execution",
+      "runs",
       "approve",
       pending.executionId,
       "--task",
@@ -343,7 +343,7 @@ spec:
     );
   }
   const reviewer = await workflowExecutionCreator(stack.baseUrl, approved.executionId);
-  const approvedLogs = await cli(["execution", "logs", approved.executionId]);
+  const approvedLogs = await cli(["runs", "logs", approved.executionId]);
   const approvedProblem = gateLogProblem(approvedLogs.stdout, approved.taskName, { outcome: "approve", by: reviewer });
   if (approvedProblem !== undefined) throw new Error(`execution logs of the approved gate: ${approvedProblem}`);
   const resolved = (await approvalResolutions(stack.baseUrl, approved.executionId)).filter(

@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
-import type { HarnessCostSummary } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import { formatCost } from "../execution/UsageWidget.js";
+import type { HarnessCostSummary } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { formatCost } from "../run/UsageWidget.js";
 
 /** Props for {@link HarnessSplitCard}. */
 export interface HarnessSplitCardProps {
@@ -23,7 +23,7 @@ const HARNESS_COLORS: Record<string, string> = {
 };
 
 /**
- * Displays the cost split between execution harnesses as a segmented bar.
+ * Displays the cost split between run harnesses as a segmented bar.
  *
  * Renders a two-tone horizontal bar with labels showing cost and percentage
  * per harness. Designed for at-a-glance understanding of native vs cursor

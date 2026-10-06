@@ -4,17 +4,17 @@ import { useMemo } from "react";
 import {
   FileChangeSetStatus,
   type FileDecisionAction,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { WorkflowPendingFileReview } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { WorkflowPendingFileReview } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { displayFileChangeSets } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
-import { FileReviewCard } from "../execution/FileReviewCard.js";
-import type { FileDecisionOptions } from "../execution/useFileReview.js";
-import { useExecutionStream } from "../execution/useExecutionStream.js";
+import { FileReviewCard } from "../run/FileReviewCard.js";
+import type { FileDecisionOptions } from "../run/useFileReview.js";
+import { useRunStream } from "../run/useRunStream.js";
 
 /**
  * Submit handler for a workflow-level file decision, matching
- * `useWorkflowExecutionActions().submitFileDecision`. The child id is bound per
+ * `useWorkflowRunActions().submitFileDecision`. The child id is bound per
  * card so the surface only needs the card-level `(action, options)`.
  */
 export type WorkflowFileDecisionSubmit = (
@@ -28,7 +28,7 @@ export type WorkflowFileDecisionSubmit = (
 export interface WorkflowFileReviewListProps {
   /**
    * The parent workflow's surfaced file-review references
-   * (`status.pending_file_reviews`) — one entry per child agent execution.
+   * (`status.pending_file_reviews`) — one entry per child agent run.
    */
   readonly pendingFileReviews: readonly WorkflowPendingFileReview[];
   /** Forwards a decision to the child (see {@link WorkflowFileDecisionSubmit}). */
@@ -38,24 +38,24 @@ export interface WorkflowFileReviewListProps {
   /** Per-decision failures (pass `fileDecisionErrorsByKey` straight through). */
   readonly decisionErrors?: ReadonlyMap<string, Error>;
   /**
-   * Optional deep-link to open the child agent execution in its own view. When
-   * provided, each child's review renders a "View agent execution" affordance.
+   * Optional deep-link to open the child agent run in its own view. When
+   * provided, each child's review renders a "View agent run" affordance.
    * Routing is the host's responsibility.
    */
-  readonly onNavigateToAgentExecution?: (agentExecutionId: string) => void;
+  readonly onNavigateToAgentRun?: (agentExecutionId: string) => void;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 
 /**
- * Renders the child agent file reviews surfaced on a parent WorkflowExecution.
+ * Renders the child agent file reviews surfaced on a parent WorkflowRun.
  *
  * Reference-only, derive-from-child: the parent status carries only
  * {@link WorkflowPendingFileReview} references (child id + change set ids). This
  * list mounts one {@link WorkflowChildFileReview} per referenced child, which
- * streams that child's execution and reuses the agent-level {@link FileReviewCard}
+ * streams that child's run and reuses the agent-level {@link FileReviewCard}
  * to render the actual diff — the heavy content stays single-sourced on the child.
- * A decision is forwarded to the child via `WorkflowExecution.submitFileDecision`.
+ * A decision is forwarded to the child via `WorkflowRun.submitFileDecision`.
  *
  * This is the file-review sibling of the workflow tool-approval surface
  * (`WorkflowApprovalList`). Empty `pendingFileReviews` renders nothing.
@@ -65,7 +65,7 @@ export function WorkflowFileReviewList({
   onSubmitFileDecision,
   submittingDecisionKeys,
   decisionErrors,
-  onNavigateToAgentExecution,
+  onNavigateToAgentRun,
   className,
 }: WorkflowFileReviewListProps): React.ReactElement | null {
   if (pendingFileReviews.length === 0) return null;
@@ -74,12 +74,12 @@ export function WorkflowFileReviewList({
     <div className={cn("stgm stg:space-y-3", className)}>
       {pendingFileReviews.map((ref) => (
         <WorkflowChildFileReview
-          key={ref.childAgentExecutionId}
+          key={ref.childAgentRunId}
           reference={ref}
           onSubmitFileDecision={onSubmitFileDecision}
           submittingDecisionKeys={submittingDecisionKeys}
           decisionErrors={decisionErrors}
-          onNavigateToAgentExecution={onNavigateToAgentExecution}
+          onNavigateToAgentRun={onNavigateToAgentRun}
         />
       ))}
     </div>
@@ -91,11 +91,11 @@ interface WorkflowChildFileReviewProps {
   readonly onSubmitFileDecision: WorkflowFileDecisionSubmit;
   readonly submittingDecisionKeys?: ReadonlySet<string>;
   readonly decisionErrors?: ReadonlyMap<string, Error>;
-  readonly onNavigateToAgentExecution?: (agentExecutionId: string) => void;
+  readonly onNavigateToAgentRun?: (agentExecutionId: string) => void;
 }
 
 /**
- * Streams a single referenced child agent execution and renders its
+ * Streams a single referenced child agent run and renders its
  * AWAITING_REVIEW change sets (intersected with the parent's surfaced reference,
  * so a decision always targets a gate the workflow has actually surfaced).
  */
@@ -104,10 +104,10 @@ function WorkflowChildFileReview({
   onSubmitFileDecision,
   submittingDecisionKeys,
   decisionErrors,
-  onNavigateToAgentExecution,
+  onNavigateToAgentRun,
 }: WorkflowChildFileReviewProps): React.ReactElement | null {
-  const childId = reference.childAgentExecutionId;
-  const { execution } = useExecutionStream(childId);
+  const childId = reference.childAgentRunId;
+  const { run: execution } = useRunStream(childId);
 
   const changeSets = useMemo(() => {
     const referenced = new Set(reference.changeSetId);
@@ -126,13 +126,13 @@ function WorkflowChildFileReview({
 
   return (
     <div className="stg:space-y-2">
-      {onNavigateToAgentExecution && (
+      {onNavigateToAgentRun && (
         <button
           type="button"
-          onClick={() => onNavigateToAgentExecution(childId)}
+          onClick={() => onNavigateToAgentRun(childId)}
           className="stg:text-xs stg:text-muted-foreground stg:hover:text-foreground stg:underline stg:underline-offset-2"
         >
-          View agent execution
+          View agent run
         </button>
       )}
       {changeSets.map((changeSet) => (

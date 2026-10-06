@@ -23,7 +23,7 @@ class IamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     can_create_identity_account: _ClassVar[IamPermission]
     can_create_oauth_app: _ClassVar[IamPermission]
     can_create_platform_client: _ClassVar[IamPermission]
-    can_create_execution_in: _ClassVar[IamPermission]
+    can_create_run_in: _ClassVar[IamPermission]
     can_execute: _ClassVar[IamPermission]
     can_read_secrets: _ClassVar[IamPermission]
     can_bootstrap_iam: _ClassVar[IamPermission]
@@ -73,7 +73,7 @@ can_create_environment: IamPermission
 can_create_identity_account: IamPermission
 can_create_oauth_app: IamPermission
 can_create_platform_client: IamPermission
-can_create_execution_in: IamPermission
+can_create_run_in: IamPermission
 can_execute: IamPermission
 can_read_secrets: IamPermission
 can_bootstrap_iam: IamPermission

@@ -50,8 +50,8 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -130,14 +130,14 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
     // ── Assert ───────────────────────────────────────────────────────────────
     expect(invocation.outcome.kind).toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_COMPLETED");
+    expect(slim.phase).toBe("RUN_COMPLETED");
     expect(boundSchemaTools[0], "langchain bound the toolStrategy schema tool").toBe("extract-1");
-    expect(record.persistedPhases.at(-1)).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
     const final = record.lastFullStatus!;
     expect(final.structuredOutput, "the engine's structuredResponse reaches the status").toEqual(ANSWER);
     expect(slim.structured).toEqual(ANSWER);
 
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/structured-output.tool-strategy.status.json");
   });
 
@@ -165,14 +165,14 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
     // ── Assert ───────────────────────────────────────────────────────────────
     expect(invocation.outcome.kind).toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    expect(slim.phase).toBe("EXECUTION_COMPLETED");
+    expect(slim.phase).toBe("RUN_COMPLETED");
     const final = record.lastFullStatus!;
     expect(final.structuredOutput, "extracted from the final text").toEqual(ANSWER);
     expect(slim.structured).toEqual(ANSWER);
     expect(record.toolCalls(), "no tool was involved").toHaveLength(0);
 
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
-    const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/structured-output.text-fallback.status.json");
   });
 
@@ -207,7 +207,7 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
       // ── Assert ─────────────────────────────────────────────────────────────
       expect(invocation.outcome.kind).toBe("returned");
       const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-      expect(slim.phase).toBe("EXECUTION_COMPLETED");
+      expect(slim.phase).toBe("RUN_COMPLETED");
       const final = record.lastFullStatus!;
       expect(final.structuredOutput, "extracted by the second model").toEqual(ANSWER);
       expect(slim.structured).toEqual(ANSWER);
@@ -227,7 +227,7 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
       // falls back to the primary (its last resort).
       expect(extractorBuilds[0]!.modelName).toBe(FIXTURE_NATIVE_MODEL);
 
-      const json = JSON.stringify(toJson(AgentExecutionStatusSchema, final), null, 2) + "\n";
+      const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
       await expect(json).toMatchFileSnapshot("./goldens/structured-output.tier2.status.json");
     } finally {
       vi.unstubAllEnvs();

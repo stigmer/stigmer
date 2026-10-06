@@ -52,8 +52,8 @@ import {
   type StartWorkflowExecutionInput,
   type WorkflowExecutionEngineState,
   type WorkflowExecutionEngineStateProvider,
-} from "../../domain/workflowexecution/engine.js";
-import type { WorkflowExecutionTemporalConfig } from "../../domain/workflowexecution/temporal/config.js";
+} from "../../domain/workflowrun/engine.js";
+import type { WorkflowExecutionTemporalConfig } from "../../domain/workflowrun/temporal/config.js";
 import { runCredentialForDispatch } from "../../runnerauth/dispatch-credential.js";
 import type { RunCredentialMint } from "../../runnerauth/dispatch-credential.js";
 import type { TemporalManager } from "../manager.js";

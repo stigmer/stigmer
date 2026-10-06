@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, act, fireEvent } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
 import {
-  ExecutionArtifactKind,
-  ExecutionPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../../execution/artifact-document";
+  RunArtifactKind,
+  RunPhase,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../../run/artifact-document";
 import { artifactKey, type SessionArtifactEntry } from "../useSessionArtifacts";
 
 // ---------------------------------------------------------------------------
@@ -25,7 +25,7 @@ import { artifactKey, type SessionArtifactEntry } from "../useSessionArtifacts";
 type CapturedProps = Record<string, unknown>;
 
 const threadProps: CapturedProps[] = [];
-vi.mock("../../execution/MessageThread", () => ({
+vi.mock("../../run/MessageThread", () => ({
   MessageThread: (props: CapturedProps) => {
     threadProps.push(props);
     return <div data-testid="thread-probe" />;
@@ -48,25 +48,25 @@ vi.mock("../../composer", async (importOriginal) => {
   };
 });
 
-const artifact = create(ExecutionArtifactSchema, {
+const artifact = create(RunArtifactSchema, {
   name: "agent.yaml",
-  kind: ExecutionArtifactKind.FILE,
+  kind: RunArtifactKind.FILE,
   sizeBytes: 512n,
   sandboxPath: ".stigmer/agent.yaml",
   storageKey: "artifacts/aex_1/agent.yaml",
 });
 
-const artifactExecution = create(AgentExecutionSchema, {
+const artifactExecution = create(AgentRunSchema, {
   metadata: { id: "aex_1" },
   status: {
-    phase: ExecutionPhase.EXECUTION_COMPLETED,
+    phase: RunPhase.RUN_COMPLETED,
     artifacts: [artifact],
   },
 });
 
 const entry: SessionArtifactEntry = {
   artifact,
-  executionId: "aex_1",
+  runId: "aex_1",
   isTerminal: true,
   hasNameCollision: false,
 };
@@ -87,8 +87,8 @@ const stubConv = {
   session: { spec: {} },
   isLoading: false,
   loadError: null,
-  completedExecutions: [artifactExecution],
-  activeStreamExecution: null,
+  completedRuns: [artifactExecution],
+  activeStreamRun: null,
   pendingUserMessage: null,
   workspaceEntries: [],
   fileChangeSets: [],
@@ -142,8 +142,8 @@ const stubSessionPageFlow = {
   setAutoApproveAll: vi.fn(),
   handleSubmit: vi.fn(),
   submitError: null as Error | null,
-  displayExecution: artifactExecution,
-  allExecutions: [artifactExecution],
+  displayRun: artifactExecution,
+  allRuns: [artifactExecution],
   sandboxWorkspaceRoot: "/home/daytona/workspace",
 };
 vi.mock("../useSessionPageFlow", () => ({
@@ -152,7 +152,7 @@ vi.mock("../useSessionPageFlow", () => ({
 
 vi.mock("../../hooks", () => ({
   useStigmer: () => ({
-    agentExecution: {
+    agentRun: {
       uploadAttachment: vi.fn(),
       getArtifactContent: vi.fn(),
     },

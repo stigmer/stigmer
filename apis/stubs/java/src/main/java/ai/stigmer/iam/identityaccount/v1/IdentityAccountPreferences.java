@@ -8,7 +8,7 @@ package ai.stigmer.iam.identityaccount.v1;
 /**
  * <pre>
  * IdentityAccountPreferences holds user-declared defaults that apply to the
- * user's own agent executions.
+ * user's own agent runs.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences}
@@ -63,7 +63,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Free-text standing context injected into this user's eligible agent
-   * executions. Example: "Keep answers terse."
+   * runs. Example: "Keep answers terse."
    * </pre>
    *
    * <code>string standing_context = 1 [json_name = "standingContext", (.buf.validate.field) = { ... }</code>
@@ -85,7 +85,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Free-text standing context injected into this user's eligible agent
-   * executions. Example: "Keep answers terse."
+   * runs. Example: "Keep answers terse."
    * </pre>
    *
    * <code>string standing_context = 1 [json_name = "standingContext", (.buf.validate.field) = { ... }</code>
@@ -499,7 +499,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * IdentityAccountPreferences holds user-declared defaults that apply to the
-   * user's own agent executions.
+   * user's own agent runs.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences}
@@ -709,7 +709,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Free-text standing context injected into this user's eligible agent
-     * executions. Example: "Keep answers terse."
+     * runs. Example: "Keep answers terse."
      * </pre>
      *
      * <code>string standing_context = 1 [json_name = "standingContext", (.buf.validate.field) = { ... }</code>
@@ -730,7 +730,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Free-text standing context injected into this user's eligible agent
-     * executions. Example: "Keep answers terse."
+     * runs. Example: "Keep answers terse."
      * </pre>
      *
      * <code>string standing_context = 1 [json_name = "standingContext", (.buf.validate.field) = { ... }</code>
@@ -752,7 +752,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Free-text standing context injected into this user's eligible agent
-     * executions. Example: "Keep answers terse."
+     * runs. Example: "Keep answers terse."
      * </pre>
      *
      * <code>string standing_context = 1 [json_name = "standingContext", (.buf.validate.field) = { ... }</code>
@@ -770,7 +770,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Free-text standing context injected into this user's eligible agent
-     * executions. Example: "Keep answers terse."
+     * runs. Example: "Keep answers terse."
      * </pre>
      *
      * <code>string standing_context = 1 [json_name = "standingContext", (.buf.validate.field) = { ... }</code>
@@ -785,7 +785,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Free-text standing context injected into this user's eligible agent
-     * executions. Example: "Keep answers terse."
+     * runs. Example: "Keep answers terse."
      * </pre>
      *
      * <code>string standing_context = 1 [json_name = "standingContext", (.buf.validate.field) = { ... }</code>

@@ -6,7 +6,7 @@
 // `{type, payload}` and applies the headless approval policy.
 
 import { ndjsonEnvelope, writeNdjson } from "../../output/ndjson.js";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { ToolCallInfo, ApprovalNeededEvent, StreamEvent } from "./events.js";
 import type { HeadlessRenderer } from "./headless.js";
 

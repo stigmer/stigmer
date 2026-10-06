@@ -8,9 +8,9 @@
 # via `admin from organization` on schedule + explicit grantees) into
 # can_view ONLY — `viewer from schedule` is composed into session.can_view,
 # deliberately NOT into session.viewer, so schedule observers never gain
-# can_create_execution_in / can_edit / can_delete / can_grant_access
+# can_create_run_in / can_edit / can_delete / can_grant_access
 # (injecting a console message into an unattended run is not
-# observability). Executions follow through agent_execution's
+# observability). Runs follow through agent_run's
 # `can_view: viewer or can_view from session`.
 #
 # The personal-session invariant is untouched: console sessions never carry
@@ -96,10 +96,10 @@ tuples:
     relation: schedule
     object: session:scheduled-run
 
-  # --- An execution inside the schedule session ---
+  # --- A run inside the schedule session ---
   - user: session:scheduled-run
     relation: session
-    object: agent_execution:scheduled-run-1
+    object: agent_run:scheduled-run-1
 
   # --- bob's ordinary personal console session (NO schedule tuple) ---
   - user: organization:acme
@@ -110,7 +110,7 @@ tuples:
     object: session:bobs-chat
   - user: session:bobs-chat
     relation: session
-    object: agent_execution:bobs-run-1
+    object: agent_run:bobs-run-1
 
 tests:
   - name: schedule creator can view the run but only view it
@@ -119,7 +119,7 @@ tests:
         object: session:scheduled-run
         assertions:
           can_view: true
-          can_create_execution_in: false
+          can_create_run_in: false
           can_edit: false
           can_delete: false
           can_grant_access: false
@@ -131,7 +131,7 @@ tests:
         object: session:scheduled-run
         assertions:
           can_view: true
-          can_create_execution_in: false
+          can_create_run_in: false
           can_edit: false
           can_delete: false
           can_grant_access: false
@@ -142,7 +142,7 @@ tests:
         object: session:scheduled-run
         assertions:
           can_view: false
-          can_create_execution_in: false
+          can_create_run_in: false
 
   - name: another org's admin sees nothing
     check:
@@ -157,24 +157,24 @@ tests:
         object: session:scheduled-run
         assertions:
           can_view: true
-          can_create_execution_in: true
+          can_create_run_in: true
           can_edit: true
           can_delete: true
 
-  - name: executions inherit read-only schedule observability
+  - name: runs inherit read-only schedule observability
     check:
       - user: identity_account:bob
-        object: agent_execution:scheduled-run-1
+        object: agent_run:scheduled-run-1
         assertions:
           can_view: true
           can_edit: false
       - user: identity_account:alice
-        object: agent_execution:scheduled-run-1
+        object: agent_run:scheduled-run-1
         assertions:
           can_view: true
           can_edit: false
       - user: identity_account:carol
-        object: agent_execution:scheduled-run-1
+        object: agent_run:scheduled-run-1
         assertions:
           can_view: false
 
@@ -186,10 +186,10 @@ tests:
         object: session:scheduled-run
         assertions:
           can_view: true
-          can_create_execution_in: false
+          can_create_run_in: false
           can_edit: false
       - user: identity_account:dave
-        object: agent_execution:scheduled-run-1
+        object: agent_run:scheduled-run-1
         assertions:
           can_view: true
           can_edit: false
@@ -204,7 +204,7 @@ tests:
           can_edit: false
           can_delete: false
       - user: identity_account:alice
-        object: agent_execution:bobs-run-1
+        object: agent_run:bobs-run-1
         assertions:
           can_view: false
       # And the owner's own access is unchanged.
@@ -213,7 +213,7 @@ tests:
         assertions:
           can_view: true
           can_edit: true
-          can_create_execution_in: true
+          can_create_run_in: true
 
   - name: list viewable sessions resolves the schedule chain
     list_objects:

@@ -25,12 +25,12 @@
           "description": "Mint a short-lived, single-use upload URL for staging a skill artifact\n that exceeds the gRPC message-size cap (10MB). Flow:\n\n 1. createArtifactUploadUrl(org, size_bytes) → { url, artifact_upload_ref }\n 2. HTTP PUT the ZIP bytes to url\n 3. push(PushSkillRequest{ artifact_upload_ref }) — same pipeline,\n    validation, and versioning as an inline push\n\n The server refuses over-limit size_bytes here, before any bytes move."
         },
         {
-          "name": "PushFromExecutionArtifact",
-          "inputType": "PushSkillFromExecutionArtifactRequest",
-          "inputFullType": "ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest",
+          "name": "PushFromRunArtifact",
+          "inputType": "PushSkillFromRunArtifactRequest",
+          "inputFullType": "ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest",
           "outputType": "Skill",
           "outputFullType": "ai.stigmer.agentic.skill.v1.Skill",
-          "description": "Push a skill from an execution artifact already in storage.\n Use this when an agent execution has already produced a skill artifact\n and you want to publish it without downloading and re-uploading the ZIP."
+          "description": "Push a skill from a run artifact already in storage.\n Use this when an agent run has already produced a skill artifact\n and you want to publish it without downloading and re-uploading the ZIP."
         },
         {
           "name": "UpdateVisibility",
@@ -261,9 +261,9 @@
       ]
     },
     {
-      "name": "PushSkillFromExecutionArtifactRequest",
-      "description": "PushSkillFromExecutionArtifactRequest publishes a skill from an execution\n artifact already in storage, without downloading and re-uploading the ZIP.",
-      "protoType": "ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest",
+      "name": "PushSkillFromRunArtifactRequest",
+      "description": "PushSkillFromRunArtifactRequest publishes a skill from a run\n artifact already in storage, without downloading and re-uploading the ZIP.",
+      "protoType": "ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest",
       "protoFile": "apis/ai/stigmer/agentic/skill/v1/io.proto",
       "fields": [
         {
@@ -280,13 +280,13 @@
           }
         },
         {
-          "name": "ExecutionId",
-          "jsonName": "executionId",
-          "protoField": "execution_id",
+          "name": "RunId",
+          "jsonName": "runId",
+          "protoField": "run_id",
           "type": {
             "kind": "string"
           },
-          "description": "ID of the agent execution that produced the artifact (e.g., \"aex_abc123xyz456\").",
+          "description": "ID of the agent run that produced the artifact (e.g., \"aex_abc123xyz456\").",
           "required": false,
           "validation": {
             "minLength": 1
@@ -299,7 +299,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Storage key of the directory artifact (ZIP) to push as a skill.\n Obtain this from ExecutionArtifact.storage_key in the execution status.",
+          "description": "Storage key of the directory artifact (ZIP) to push as a skill.\n Obtain this from RunArtifact.storage_key in the run status.",
           "required": false,
           "validation": {
             "minLength": 1
@@ -398,7 +398,7 @@
               "organization",
               "platform",
               "agent",
-              "agent_execution",
+              "agent_run",
               "session",
               "skill",
               "mcp_server",
@@ -406,7 +406,7 @@
               "agent_channel",
               "channel_app",
               "workflow",
-              "workflow_execution",
+              "workflow_run",
               "environment",
               "artifact",
               "execution_context",
@@ -645,12 +645,12 @@
         {
           "name": "visibility_org",
           "number": 3,
-          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role SSO auto-provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_execution_in); org visibility widens\n read, never spend.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)"
+          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role SSO auto-provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_run_in); org visibility widens\n read, never spend.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)"
         },
         {
           "name": "visibility_child_orgs",
           "number": 4,
-          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, executions and environments are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
+          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and environments are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
         }
       ]
     },
@@ -720,7 +720,7 @@
           "description": "AI assistant with instructions, tools, skills, and a delegation model."
         },
         {
-          "name": "agent_execution",
+          "name": "agent_run",
           "number": 41,
           "description": "Single run of an agent within a session, tracking tool calls and responses."
         },
@@ -760,19 +760,19 @@
           "description": "Multi-step orchestration defining how agents collaborate on a task."
         },
         {
-          "name": "workflow_execution",
+          "name": "workflow_run",
           "number": 52,
           "description": "Single run of a workflow, tracking step progress and outcomes."
         },
         {
           "name": "environment",
           "number": 53,
-          "description": "Named set of variables and secrets for agent and workflow execution."
+          "description": "Named set of variables and secrets for agent and workflow run."
         },
         {
           "name": "artifact",
           "number": 55,
-          "description": "Persisted blob produced during workflow or agent execution."
+          "description": "Persisted blob produced during workflow or agent run."
         },
         {
           "name": "execution_context",

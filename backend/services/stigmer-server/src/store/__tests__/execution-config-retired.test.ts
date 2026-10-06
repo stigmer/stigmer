@@ -20,14 +20,14 @@ import { toBinary, create } from "@bufbuild/protobuf";
 import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 import { describe, expect, it } from "vitest";
 
-import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 
 import {
   ApprovalMode,
   InteractionMode,
   ServiceTier,
   ThinkingMode,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 import {
   migrateExecutionRow,
@@ -156,7 +156,7 @@ describe("migrateExecutionRow", () => {
       .tag(7, WireType.Varint).int32(1)
       .finish();
     const spec = new BinaryWriter()
-      .raw(toBinary(AgentExecutionSpecSchema, create(AgentExecutionSpecSchema, { message: "hello" })))
+      .raw(toBinary(AgentRunSpecSchema, create(AgentRunSpecSchema, { message: "hello" })))
       .tag(4, WireType.LengthDelimited)
       .bytes(config)
       .finish();

@@ -8,12 +8,12 @@ Read this before proposing a new concept, a new layer or a new copy of anything.
 - The resource model is declarative and Kubernetes-shaped. Every concept is a
   resource with `apiVersion`, `kind`, `metadata`, `spec` and `status`; a user
   applies a definition and the platform reconciles it. Names are the ubiquitous
-  language: an Agent is a blueprint, an AgentExecution is one run, a Session is
-  a conversation context. Never introduce a synonym.
+  language: an Agent is a blueprint, an AgentRun is one run, a Session is a
+  conversation context. Never introduce a synonym.
 - Blueprints and runtime are separated by a hard line. Agent, Workflow,
   McpServer and Skill definitions carry no secrets and no environment-specific
-  values; AgentInstance, Session and executions do. A design that bleeds runtime
-  state into a blueprint is wrong.
+  values; AgentInstance, Session and runs do. A design that bleeds runtime state
+  into a blueprint is wrong.
 - The contract comes first and is generated outward. `apis/` is the single
   source of truth; every change starts as a proto, passes `buf lint` and
   `buf breaking`, and reaches the SDKs, the CLI, the MCP server and the docs

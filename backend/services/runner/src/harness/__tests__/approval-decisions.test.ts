@@ -12,17 +12,17 @@
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { REJECTED_BY_USER_ERROR, terminalizeNonExecutingDecisions } from "../approval-decisions.js";
 
 describe("terminalizeNonExecutingDecisions", () => {
   function statusWith(
     toolCalls: Array<{ id: string; status: ToolCallStatus; approvalAction: ApprovalAction }>,
   ) {
-    return create(AgentExecutionStatusSchema, {
+    return create(AgentRunStatusSchema, {
       messages: [
         create(AgentMessageSchema, {
           toolCalls: toolCalls.map(tc =>
@@ -80,9 +80,9 @@ describe("terminalizeNonExecutingDecisions", () => {
   });
 
   it("settles sub-agent transcripts too", () => {
-    const status = create(AgentExecutionStatusSchema, {
-      subAgentExecutions: [
-        create(SubAgentExecutionSchema, {
+    const status = create(AgentRunStatusSchema, {
+      subAgentRuns: [
+        create(SubAgentRunSchema, {
           id: "sub-1",
           messages: [
             create(AgentMessageSchema, {
@@ -100,7 +100,7 @@ describe("terminalizeNonExecutingDecisions", () => {
 
     terminalizeNonExecutingDecisions(status);
 
-    expect(status.subAgentExecutions[0].messages[0].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+    expect(status.subAgentRuns[0].messages[0].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
   });
 
   it("is a no-op when there are no decided tool calls", () => {

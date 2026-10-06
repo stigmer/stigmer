@@ -63,22 +63,22 @@
  */
 import type { Message } from "@bufbuild/protobuf";
 
-import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
-import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import { isTerminalExecutionPhase } from "../domain/agentexecution/phases.js";
+import { isTerminalExecutionPhase } from "../domain/agentrun/phases.js";
 import { findExecutionContextsForExecution } from "../domain/executioncontext/contexts-for-execution.js";
 import type { ExecutionContextLookupStore } from "../domain/executioncontext/contexts-for-execution.js";
 import { isConnectExecutionId } from "../domain/mcpserver/connect-execution-id.js";
-import { isTerminalWorkflowExecutionPhase } from "../domain/workflowexecution/phases.js";
+import { isTerminalWorkflowExecutionPhase } from "../domain/workflowrun/phases.js";
 import { kindByIdPrefix } from "../pipeline/apiresource-meta.js";
 import { auditOf } from "../pipeline/steps/defaults.js";
 import type { Store } from "../store/interface.js";
 import { ResourceNotFoundError } from "../store/interface.js";
-import { sessionIdOf } from "../domain/agentexecution/target.js";
+import { sessionIdOf } from "../domain/agentrun/target.js";
 import { RUN_CREDENTIAL_GRACE_AFTER_TERMINAL_MS } from "./constants.js";
 
 /** The three things a runner credential can bind — the lane's own vocabulary, not the enum's. */
@@ -108,9 +108,9 @@ export function boundExecutionKindOf(
   executionId: string,
 ): BoundExecutionKind | undefined {
   switch (kindByIdPrefix(executionId)) {
-    case ApiResourceKind.agent_execution:
+    case ApiResourceKind.agent_run:
       return "agent-execution";
-    case ApiResourceKind.workflow_execution:
+    case ApiResourceKind.workflow_run:
       return "workflow-execution";
     default:
       return isConnectExecutionId(executionId) ? "mcp-connect" : undefined;
@@ -150,9 +150,9 @@ export async function loadBoundExecution(
     case "agent-execution": {
       const row = await getRow(
         store,
-        ApiResourceKind.agent_execution,
+        ApiResourceKind.agent_run,
         executionId,
-        AgentExecutionSchema,
+        AgentRunSchema,
       );
       if (row === undefined) {
         return undefined;
@@ -161,7 +161,7 @@ export async function loadBoundExecution(
         kind,
         executionId,
         org: row.metadata?.org ?? "",
-        createdBy: creatorStampOf(AgentExecutionSchema, row),
+        createdBy: creatorStampOf(AgentRunSchema, row),
         sessionId: sessionIdOf(row.spec),
         live: isLive(
           row.status !== undefined &&
@@ -174,9 +174,9 @@ export async function loadBoundExecution(
     case "workflow-execution": {
       const row = await getRow(
         store,
-        ApiResourceKind.workflow_execution,
+        ApiResourceKind.workflow_run,
         executionId,
-        WorkflowExecutionSchema,
+        WorkflowRunSchema,
       );
       if (row === undefined) {
         return undefined;
@@ -185,7 +185,7 @@ export async function loadBoundExecution(
         kind,
         executionId,
         org: row.metadata?.org ?? "",
-        createdBy: creatorStampOf(WorkflowExecutionSchema, row),
+        createdBy: creatorStampOf(WorkflowRunSchema, row),
         sessionId: "",
         live: isLive(
           row.status !== undefined &&
@@ -234,8 +234,8 @@ function isLive(terminal: boolean, completedAt: string, now: number): boolean {
 
 /** The schemas whose rows a binding can resolve to. */
 type BoundRowSchema =
-  | typeof AgentExecutionSchema
-  | typeof WorkflowExecutionSchema
+  | typeof AgentRunSchema
+  | typeof WorkflowRunSchema
   | typeof ExecutionContextSchema;
 
 function creatorStampOf(schema: BoundRowSchema, row: Message): string {
@@ -243,7 +243,7 @@ function creatorStampOf(schema: BoundRowSchema, row: Message): string {
 }
 
 async function getRow<
-  Desc extends typeof AgentExecutionSchema | typeof WorkflowExecutionSchema,
+  Desc extends typeof AgentRunSchema | typeof WorkflowRunSchema,
 >(store: BoundExecutionStore, kind: ApiResourceKind, id: string, schema: Desc) {
   try {
     return await store.getResource(kind, id, schema);

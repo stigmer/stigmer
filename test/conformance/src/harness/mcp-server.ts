@@ -4,7 +4,7 @@
 //
 // HITL/tool-approval is the first suite that needs a genuine tool: the runner's
 // approval gate keys off a tool name, and there is no built-in approval-gated
-// tool, so a conformance agent can only reach EXECUTION_WAITING_FOR_APPROVAL by
+// tool, so a conformance agent can only reach RUN_WAITING_FOR_APPROVAL by
 // referencing a real McpServer that exposes a real tool. This fixture is that
 // tool surface, and (like mock-llm.ts) it is TS-pure on purpose — no reuse of
 // the Go test/integration MCP servers — to preserve the suite's

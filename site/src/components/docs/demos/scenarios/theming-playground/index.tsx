@@ -5,12 +5,12 @@ import { create } from "@bufbuild/protobuf";
 import { MessageThread } from "@stigmer/react";
 import { samples } from "@stigmer/react/test";
 import { cn, THEME_PRESETS, resolvePresetClass, type ThemePresetId } from "@stigmer/theme";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
 import {
-  ExecutionPhase,
+  RunPhase,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { DEMO_SHELL_HEIGHT } from "../../shared/tokens";
 import { useDocsColorMode, type StigmerColorMode } from "../../../useDocsColorMode";
 
@@ -26,8 +26,8 @@ import "@stigmer/theme/presets/monochrome.css";
  * pending approval gate — the exact chrome issue #187 is about. Built once
  * at module level; only the theme scope around it changes.
  */
-const demoExecution = samples.agentExecution({
-  phase: ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+const demoExecution = samples.agentRun({
+  phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
   messages: [
     create(AgentMessageSchema, {
       type: MessageType.MESSAGE_THINKING,
@@ -41,7 +41,7 @@ const demoExecution = samples.agentExecution({
   ],
 });
 // The user's prompt lives in spec.message (MessageThread synthesizes the
-// bubble from it) — real executions never repeat it in status.messages.
+// bubble from it) — real runs never repeat it in status.messages.
 demoExecution.spec!.message =
   "Can you clean up the stale feature flags in the billing service?";
 
@@ -55,7 +55,7 @@ const demoApproval = create(PendingApprovalSchema, {
 demoExecution.status!.pendingApprovals = [demoApproval];
 
 const noopApprovalSubmit = () => {
-  // Playground only — there is no execution to approve.
+  // Playground only — there is no run to approve.
 };
 
 const COLOR_MODES = ["light", "dark"] as const;
@@ -129,7 +129,7 @@ export function ThemingPlayground() {
         style={{ height: DEMO_SHELL_HEIGHT }}
       >
         <MessageThread
-          executions={[demoExecution]}
+          runs={[demoExecution]}
           onApprovalSubmit={noopApprovalSubmit}
           className="h-full"
           contentColumn="center"

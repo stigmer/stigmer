@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/platform/v1/server_info.proto.
  */
 export const file_ai_stigmer_platform_v1_server_info: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL3NlcnZlcl9pbmZvLnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIhQKEkdldFNlcnZlckluZm9JbnB1dCLIAQoTR2V0U2VydmVySW5mb091dHB1dBI2CgdlZGl0aW9uGAEgASgOMiUuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5TZXJ2ZXJFZGl0aW9uEg8KB3ZlcnNpb24YAiABKAkSJAoXYXV0aGVudGljYXRpb25fcmVxdWlyZWQYAyABKAhIAIgBARIXCgpzaW5nbGVfb3JnGAQgASgISAGIAQFCGgoYX2F1dGhlbnRpY2F0aW9uX3JlcXVpcmVkQg0KC19zaW5nbGVfb3JnIhcKFUdldExpY2Vuc2VTdGF0dXNJbnB1dCLEAQoWR2V0TGljZW5zZVN0YXR1c091dHB1dBIzCgVzdGF0ZRgBIAEoDjIkLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuTGljZW5zZVN0YXRlEjUKBmNsYWltcxgCIAEoCzIlLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuTGljZW5zZUNsYWltcxIOCgZrZXlfaWQYAyABKAkSLgoKY2hlY2tlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiHwodR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnSW5wdXQi4wIKHkdldFJ1bm5lckJvb3RzdHJhcENvbmZpZ091dHB1dBIhChB0ZW1wb3JhbF9hZGRyZXNzGAEgASgJQge6SARyAhABEiMKEnRlbXBvcmFsX25hbWVzcGFjZRgCIAEoCUIHukgEcgIQARIbChNydW5uZXJfYWNjZXNzX3Rva2VuGAMgASgJEhIKCnRva2VuX3R5cGUYBCABKAkSLgomcnVubmVyX2FjY2Vzc190b2tlbl9leHBpcmVzX2luX3NlY29uZHMYBSABKAUSHgoWcGF5bG9hZF9lbmNyeXB0aW9uX2tleRgGIAEoCRIhChlwYXlsb2FkX2VuY3J5cHRpb25fa2V5X2lkGAcgASgJEigKIHBheWxvYWRfZW5jcnlwdGlvbl9zZWNvbmRhcnlfa2V5GAggASgJEisKI3BheWxvYWRfZW5jcnlwdGlvbl9zZWNvbmRhcnlfa2V5X2lkGAkgASgJItwBChlHZXRSdW5uZXJTY29wZWRUb2tlbklucHV0EhwKEmFnZW50X2V4ZWN1dGlvbl9pZBgBIAEoCUgAEh8KFXdvcmtmbG93X2V4ZWN1dGlvbl9pZBgCIAEoCUgAEjcKCnBvb2xfY2xhaW0YAyABKAsyIS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLlBvb2xDbGFpbUgAEjcKB3JlbmV3YWwYBCABKAsyJC5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLlRva2VuUmVuZXdhbEgAQg4KBXNjb3BlEgW6SAIIASIoCglQb29sQ2xhaW0SGwoKc2Vzc2lvbl9pZBgBIAEoCUIHukgEcgIQASIOCgxUb2tlblJlbmV3YWwiaQoaR2V0UnVubmVyU2NvcGVkVG9rZW5PdXRwdXQSGwoTcnVubmVyX3Njb3BlZF90b2tlbhgBIAEoCRISCgp0b2tlbl90eXBlGAIgASgJEhoKEmV4cGlyZXNfaW5fc2Vjb25kcxgDIAEoBSpTCg1TZXJ2ZXJFZGl0aW9uEh4KGnNlcnZlcl9lZGl0aW9uX3Vuc3BlY2lmaWVkEAASBwoDb3NzEAESCQoFY2xvdWQQAhIOCgplbnRlcnByaXNlEAMymgQKF1BsYXRmb3JtUXVlcnlDb250cm9sbGVyEm4KDWdldFNlcnZlckluZm8SKi5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFNlcnZlckluZm9JbnB1dBorLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0U2VydmVySW5mb091dHB1dCIEyLgYARJ3ChBnZXRMaWNlbnNlU3RhdHVzEi0uYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRMaWNlbnNlU3RhdHVzSW5wdXQaLi5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldExpY2Vuc2VTdGF0dXNPdXRwdXQiBNC4GAESjwEKGGdldFJ1bm5lckJvb3RzdHJhcENvbmZpZxI1LmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnSW5wdXQaNi5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lckJvb3RzdHJhcENvbmZpZ091dHB1dCIE0LgYARKDAQoUZ2V0UnVubmVyU2NvcGVkVG9rZW4SMS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lclNjb3BlZFRva2VuSW5wdXQaMi5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lclNjb3BlZFRva2VuT3V0cHV0IgTQuBgBQhFCD1NlcnZlckluZm9Qcm90b2IGcHJvdG8z", [file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_platform_v1_license, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL3NlcnZlcl9pbmZvLnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIhQKEkdldFNlcnZlckluZm9JbnB1dCLIAQoTR2V0U2VydmVySW5mb091dHB1dBI2CgdlZGl0aW9uGAEgASgOMiUuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5TZXJ2ZXJFZGl0aW9uEg8KB3ZlcnNpb24YAiABKAkSJAoXYXV0aGVudGljYXRpb25fcmVxdWlyZWQYAyABKAhIAIgBARIXCgpzaW5nbGVfb3JnGAQgASgISAGIAQFCGgoYX2F1dGhlbnRpY2F0aW9uX3JlcXVpcmVkQg0KC19zaW5nbGVfb3JnIhcKFUdldExpY2Vuc2VTdGF0dXNJbnB1dCLEAQoWR2V0TGljZW5zZVN0YXR1c091dHB1dBIzCgVzdGF0ZRgBIAEoDjIkLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuTGljZW5zZVN0YXRlEjUKBmNsYWltcxgCIAEoCzIlLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuTGljZW5zZUNsYWltcxIOCgZrZXlfaWQYAyABKAkSLgoKY2hlY2tlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiHwodR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnSW5wdXQi4wIKHkdldFJ1bm5lckJvb3RzdHJhcENvbmZpZ091dHB1dBIhChB0ZW1wb3JhbF9hZGRyZXNzGAEgASgJQge6SARyAhABEiMKEnRlbXBvcmFsX25hbWVzcGFjZRgCIAEoCUIHukgEcgIQARIbChNydW5uZXJfYWNjZXNzX3Rva2VuGAMgASgJEhIKCnRva2VuX3R5cGUYBCABKAkSLgomcnVubmVyX2FjY2Vzc190b2tlbl9leHBpcmVzX2luX3NlY29uZHMYBSABKAUSHgoWcGF5bG9hZF9lbmNyeXB0aW9uX2tleRgGIAEoCRIhChlwYXlsb2FkX2VuY3J5cHRpb25fa2V5X2lkGAcgASgJEigKIHBheWxvYWRfZW5jcnlwdGlvbl9zZWNvbmRhcnlfa2V5GAggASgJEisKI3BheWxvYWRfZW5jcnlwdGlvbl9zZWNvbmRhcnlfa2V5X2lkGAkgASgJItABChlHZXRSdW5uZXJTY29wZWRUb2tlbklucHV0EhYKDGFnZW50X3J1bl9pZBgBIAEoCUgAEhkKD3dvcmtmbG93X3J1bl9pZBgCIAEoCUgAEjcKCnBvb2xfY2xhaW0YAyABKAsyIS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLlBvb2xDbGFpbUgAEjcKB3JlbmV3YWwYBCABKAsyJC5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLlRva2VuUmVuZXdhbEgAQg4KBXNjb3BlEgW6SAIIASIoCglQb29sQ2xhaW0SGwoKc2Vzc2lvbl9pZBgBIAEoCUIHukgEcgIQASIOCgxUb2tlblJlbmV3YWwiaQoaR2V0UnVubmVyU2NvcGVkVG9rZW5PdXRwdXQSGwoTcnVubmVyX3Njb3BlZF90b2tlbhgBIAEoCRISCgp0b2tlbl90eXBlGAIgASgJEhoKEmV4cGlyZXNfaW5fc2Vjb25kcxgDIAEoBSpTCg1TZXJ2ZXJFZGl0aW9uEh4KGnNlcnZlcl9lZGl0aW9uX3Vuc3BlY2lmaWVkEAASBwoDb3NzEAESCQoFY2xvdWQQAhIOCgplbnRlcnByaXNlEAMymgQKF1BsYXRmb3JtUXVlcnlDb250cm9sbGVyEm4KDWdldFNlcnZlckluZm8SKi5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFNlcnZlckluZm9JbnB1dBorLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0U2VydmVySW5mb091dHB1dCIEyLgYARJ3ChBnZXRMaWNlbnNlU3RhdHVzEi0uYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRMaWNlbnNlU3RhdHVzSW5wdXQaLi5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldExpY2Vuc2VTdGF0dXNPdXRwdXQiBNC4GAESjwEKGGdldFJ1bm5lckJvb3RzdHJhcENvbmZpZxI1LmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnSW5wdXQaNi5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lckJvb3RzdHJhcENvbmZpZ091dHB1dCIE0LgYARKDAQoUZ2V0UnVubmVyU2NvcGVkVG9rZW4SMS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lclNjb3BlZFRva2VuSW5wdXQaMi5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lclNjb3BlZFRva2VuT3V0cHV0IgTQuBgBQhFCD1NlcnZlckluZm9Qcm90b2IGcHJvdG8z", [file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_platform_v1_license, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * Empty request — no parameters needed.
@@ -292,28 +292,28 @@ export type GetRunnerScopedTokenInput = Message<"ai.stigmer.platform.v1.GetRunne
   /**
    * The dispatched work the token will serve. The runner names only the id it
    * was dispatched; the server derives the token's scope from the resource
-   * itself (an agent execution scopes to its parent session).
+   * itself (an agent run scopes to its parent session).
    *
    * @generated from oneof ai.stigmer.platform.v1.GetRunnerScopedTokenInput.scope
    */
   scope: {
     /**
-     * AgentExecution id — yields a token scoped to the execution's parent
+     * AgentRun id — yields a token scoped to the run's parent
      * session, valid for every ExecutionContext in that session (multi-turn).
      *
-     * @generated from field: string agent_execution_id = 1;
+     * @generated from field: string agent_run_id = 1;
      */
     value: string;
-    case: "agentExecutionId";
+    case: "agentRunId";
   } | {
     /**
-     * WorkflowExecution id — yields a token scoped to exactly that workflow
-     * execution's ExecutionContext.
+     * WorkflowRun id — yields a token scoped to exactly that workflow
+     * run's ExecutionContext.
      *
-     * @generated from field: string workflow_execution_id = 2;
+     * @generated from field: string workflow_run_id = 2;
      */
     value: string;
-    case: "workflowExecutionId";
+    case: "workflowRunId";
   } | {
     /**
      * Warm-pool claim — a pool sandbox exchanging its pool credential for the
@@ -384,7 +384,7 @@ export const PoolClaimSchema: GenMessage<PoolClaim> = /*@__PURE__*/
  * restart (which would wipe an ephemeral sandbox's workspace).
  *
  * Deliberately empty: every mint parameter (identity, org, session /
- * workflow-execution scope) comes from the presented credential's VERIFIED
+ * workflow-run scope) comes from the presented credential's VERIFIED
  * claims, never from the client, so a renewed token is claim-identical to
  * the one it replaces.
  *
@@ -577,7 +577,7 @@ export const PlatformQueryController: GenService<{
    * coordinate and mints a token bound to the caller, so any valid token is
    * required, but no specific FGA permission is — every authenticated caller in
    * an environment shares one Temporal cluster, and task queues are
-   * per-session/execution and gated separately by control-plane session access.
+   * per-session/run and gated separately by control-plane session access.
    *
    * @generated from rpc ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig
    */
@@ -591,10 +591,10 @@ export const PlatformQueryController: GenService<{
    * one unit of dispatched work.
    *
    * The bootstrap token from getRunnerBootstrapConfig identifies a runner but
-   * is minted before any execution exists, so it carries no session or
-   * execution scope. Secrets are only released to runner credentials bound to
+   * is minted before any run exists, so it carries no session or
+   * run scope. Secrets are only released to runner credentials bound to
    * the exact work they serve. At task start the runner presents its bootstrap
-   * token and names the execution it was dispatched; the control plane verifies
+   * token and names the run it was dispatched; the control plane verifies
    * the caller and returns a short-lived token scoped to that work, which the
    * runner then uses for its ExecutionContext fetch. This makes a desktop
    * runner indistinguishable, at the secret-release gate, from a

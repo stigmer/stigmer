@@ -13,8 +13,8 @@ import { create } from "@bufbuild/protobuf";
 import {
   FileChangeProgressSchema,
   FileChangeProgressEntrySchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/filereview_pb";
-import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { UseSessionConversationReturn } from "@stigmer/react";
 import { SessionView } from "../app/SessionView.js";
@@ -26,8 +26,8 @@ vi.mock("@stigmer/react", async (importOriginal) => {
   return {
     ...actual,
     useSessionConversation: () => conversation,
-    // The usage widget prices executions through the client; with no
-    // executions in these fixtures it has nothing to show.
+    // The usage widget prices runs through the client; with no
+    // runs in these fixtures it has nothing to show.
     useSessionUsage: () => ({ hasUsage: false }) as unknown as ReturnType<typeof actual.useSessionUsage>,
   };
 });
@@ -37,8 +37,8 @@ function makeConversation(overrides: Partial<UseSessionConversationReturn> = {})
     session: create(SessionSchema, { spec: { subject: "Refactor the billing module" } }),
     isLoading: false,
     loadError: null,
-    completedExecutions: [],
-    activeStreamExecution: null,
+    completedRuns: [],
+    activeStreamRun: null,
     activePhase: undefined,
     isStreaming: false,
     isConnecting: false,

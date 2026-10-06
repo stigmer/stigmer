@@ -52,7 +52,7 @@ export const childApprovalRequired = defineSignal<[string | { executionId?: stri
   "child_approval_required",
 );
 
-/** Sent by the platform immediately after the child AgentExecution starts. */
+/** Sent by the platform immediately after the child AgentRun starts. */
 export const childExecutionStarted = defineSignal<[{ executionId: string }]>(
   "child_execution_started",
 );

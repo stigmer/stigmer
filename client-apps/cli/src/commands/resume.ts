@@ -18,7 +18,7 @@ export function registerResume(program: Command): void {
   program
     .command("resume [reference]")
     .description("resume an existing session by ID")
-    .option("-v, --verbose", "show all execution events")
+    .option("-v, --verbose", "show all run events")
     .option("--mode <mode>", 'follow-up interaction mode: "agent" (default) or "plan" (read-only)')
     .option("--json", "stream events as newline-delimited JSON")
     .action((reference: string | undefined, options: ResumeFlags) => runResume(reference, options));

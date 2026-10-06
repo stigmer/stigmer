@@ -7,13 +7,13 @@
 // cycle resets the dedup set.
 
 import { create } from "@bufbuild/protobuf";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
 import {
   type PendingApproval,
   PendingApprovalSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { ApprovalNeededEvent } from "./events.js";
 
 /** A tool call awaiting approval, with sub-agent provenance. Mirrors Go's unpromptedApproval. */
@@ -47,7 +47,7 @@ export function hasUsableApproval(approvals: readonly PendingApproval[], prompte
  */
 export function findAllUnpromptedApprovals(
   toolCalls: readonly ToolCall[],
-  subAgents: readonly SubAgentExecution[],
+  subAgents: readonly SubAgentRun[],
   promptedIds: ReadonlySet<string>,
 ): UnpromptedApproval[] {
   const result: UnpromptedApproval[] = [];

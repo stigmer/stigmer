@@ -11,10 +11,10 @@ McpServer supports two transport mechanisms for communicating with an MCP server
 | **Communication** | stdin/stdout (JSON-RPC) | HTTP POST + Server-Sent Events |
 | **Best for** | Tools that need your machine — local files, GUI apps, private-network services; local development | Managed/hosted MCP services; anything running on cloud sessions; servers shared across many concurrent agents |
 | **Credential delivery** | Environment variables passed to the subprocess | Environment variable substitution in headers/params |
-| **Startup cost** | New process per execution | No process startup — connects to existing service |
+| **Startup cost** | New process per run | No process startup — connects to existing service |
 | **Examples** | `npx @modelcontextprotocol/server-github`, `python -m mcp_server_sqlite` | `https://mcp.example.com/v1`, internal services behind a reverse proxy |
 
-Prefer `http` when the vendor offers a hosted MCP endpoint — it works on every execution target. Choose `stdio` when the tool must run on your own machine: stdio means "download a package and run it as a subprocess with your credentials in its environment", which is your trust decision on a local runner but is refused on Stigmer-managed cloud compute. Cloud-targeted sessions that reference a stdio server fail at execution create with a clear remediation.
+Prefer `http` when the vendor offers a hosted MCP endpoint — it works on every execution target. Choose `stdio` when the tool must run on your own machine: stdio means "download a package and run it as a subprocess with your credentials in its environment", which is your trust decision on a local runner but is refused on Stigmer-managed cloud compute. Cloud-targeted sessions that reference a stdio server fail at run create with a clear remediation.
 
 ---
 
@@ -24,7 +24,7 @@ Defined by `StdioServerConfig` in `ai/stigmer/agentic/mcpserver/v1/spec.proto`.
 
 The agent runner spawns the MCP server as a child process and communicates over its stdin/stdout. The keys the server declares, from the run's resolved environment (the Environments bound to what started the run, `runtime_env`, then OAuth tokens and the personal environment of the person who sent the message for keys still missing), are passed directly to the subprocess — this is the standard way credentials are injected.
 
-**Local runners only.** Stdio servers run where the runner runs, so they are supported only on sessions executing on a local runner (`execution_target: local`). Cloud-hosted sessions refuse them at execution create time, and cloud runners refuse to spawn them as defense-in-depth. This includes the hybrid setup — control plane in Stigmer Cloud, runner on your machine — where stdio works normally.
+**Local runners only.** Stdio servers run where the runner runs, so they are supported only on sessions executing on a local runner (`execution_target: local`). Cloud-hosted sessions refuse them at run create time, and cloud runners refuse to spawn them as defense-in-depth. This includes the hybrid setup — control plane in Stigmer Cloud, runner on your machine — where stdio works normally.
 
 ### Fields
 
@@ -84,7 +84,7 @@ spec:
       is_secret: true
 ```
 
-The subprocess receives exactly the declared variables plus a minimal base environment (`PATH`, `HOME`, and similar) — never the runner's own process environment, which carries runner-internal credentials. The MCP server process reads `GITHUB_TOKEN` from its environment exactly as it would if run locally; anything else the server needs must be declared the same way.
+The subprocess receives exactly the declared variables plus a minimal base environment (`PATH`, `HOME`, and similar) — never the runner's own process environment, which carries runner-internal credentials. The MCP server process reads `GITHUB_TOKEN` from its environment exactly as it would if the run locally; anything else the server needs must be declared the same way.
 
 ---
 

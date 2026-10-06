@@ -85,10 +85,10 @@ type MemoryInput struct {
 
 // MemoryProvenanceInput is the SDK input type for MemoryProvenance.
 type MemoryProvenanceInput struct {
-	AgentId          string
-	SessionId        string
-	AgentExecutionId string
-	ToolCallId       string
+	AgentId    string
+	SessionId  string
+	AgentRunId string
+	ToolCallId string
 }
 
 func (i *MemoryInput) toProto() (*memoryv1.Memory, error) {
@@ -119,10 +119,10 @@ func (i *MemoryInput) toProto() (*memoryv1.Memory, error) {
 
 func (i *MemoryProvenanceInput) toProto() (*memoryv1.MemoryProvenance, error) {
 	return &memoryv1.MemoryProvenance{
-		AgentId:          i.AgentId,
-		SessionId:        i.SessionId,
-		AgentExecutionId: i.AgentExecutionId,
-		ToolCallId:       i.ToolCallId,
+		AgentId:    i.AgentId,
+		SessionId:  i.SessionId,
+		AgentRunId: i.AgentRunId,
+		ToolCallId: i.ToolCallId,
 	}, nil
 }
 
@@ -155,7 +155,7 @@ func memoryProvenanceInputFromProto(p *memoryv1.MemoryProvenance) *MemoryProvena
 	input := &MemoryProvenanceInput{}
 	input.AgentId = p.GetAgentId()
 	input.SessionId = p.GetSessionId()
-	input.AgentExecutionId = p.GetAgentExecutionId()
+	input.AgentRunId = p.GetAgentRunId()
 	input.ToolCallId = p.GetToolCallId()
 	return input
 }

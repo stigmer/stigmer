@@ -3,31 +3,31 @@ import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
-  AgentExecutionSchema,
-  AgentExecutionStatusSchema,
-  type AgentExecution,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+  AgentRunSchema,
+  AgentRunStatusSchema,
+  type AgentRun,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
-  ExecutionArtifactSchema,
-  type ExecutionArtifact,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+  RunArtifactSchema,
+  type RunArtifact,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
 import {
-  ExecutionArtifactKind,
-  ExecutionPhase,
+  RunArtifactKind,
+  RunPhase,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
-  AgentExecutionListSchema,
-  type AgentExecutionList,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+  AgentRunListSchema,
+  type AgentRunList,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,
   type AgentMessage,
   type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import {
   EnvironmentSchema,
   type Environment,
@@ -174,13 +174,13 @@ export interface AgentOverrides {
   readonly instructions?: string;
 }
 
-export interface AgentExecutionOverrides {
+export interface AgentRunOverrides {
   readonly id?: string;
   readonly sessionId?: string;
   readonly agentId?: string;
-  readonly phase?: ExecutionPhase;
+  readonly phase?: RunPhase;
   readonly messages?: AgentMessage[];
-  readonly artifacts?: ExecutionArtifact[];
+  readonly artifacts?: RunArtifact[];
 }
 
 export interface SkillOverrides {
@@ -319,10 +319,10 @@ export const samples = {
   },
 
   /**
-   * An agent execution with status, messages, and optional artifacts.
-   * Default: completed execution with a short human/AI exchange.
+   * An agent run with status, messages, and optional artifacts.
+   * Default: completed run with a short human/AI exchange.
    */
-  agentExecution(o?: AgentExecutionOverrides): AgentExecution {
+  agentRun(o?: AgentRunOverrides): AgentRun {
     const msgs =
       o?.messages ?? [
         samples.humanMessage("Hello! Can you help me get started?"),
@@ -331,25 +331,25 @@ export const samples = {
         ),
       ];
 
-    return create(AgentExecutionSchema, {
+    return create(AgentRunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "AgentExecution",
+      kind: "AgentRun",
       metadata: create(ApiResourceMetadataSchema, {
         id: o?.id ?? "aex-00000000-0000-0000-0000-000000000001",
         name: "demo-execution",
         slug: "demo-execution",
         org: "demo",
       }),
-      spec: create(AgentExecutionSpecSchema, {
+      spec: create(AgentRunSpecSchema, {
         target: {
           case: "sessionId",
           value: o?.sessionId ?? "ses-00000000-0000-0000-0000-000000000001",
         },
         message: msgs[0]?.content ?? "",
       }),
-      status: create(AgentExecutionStatusSchema, {
+      status: create(AgentRunStatusSchema, {
         agentId: o?.agentId ?? "agt-00000000-0000-0000-0000-000000000001",
-        phase: o?.phase ?? ExecutionPhase.EXECUTION_COMPLETED,
+        phase: o?.phase ?? RunPhase.RUN_COMPLETED,
         messages: msgs,
         artifacts: o?.artifacts ?? [],
       }),
@@ -516,11 +516,11 @@ export const samples = {
     });
   },
 
-  /** A file artifact produced by an execution, stamped at {@link SAMPLE_INSTANT}. */
-  artifact(name: string, kind?: ExecutionArtifactKind): ExecutionArtifact {
-    return create(ExecutionArtifactSchema, {
+  /** A file artifact produced by a run, stamped at {@link SAMPLE_INSTANT}. */
+  artifact(name: string, kind?: RunArtifactKind): RunArtifact {
+    return create(RunArtifactSchema, {
       name,
-      kind: kind ?? ExecutionArtifactKind.FILE,
+      kind: kind ?? RunArtifactKind.FILE,
       storageKey: `demo-artifact-${name}`,
       createdAt: SAMPLE_INSTANT,
     });
@@ -537,10 +537,10 @@ export const samples = {
     });
   },
 
-  /** An agent execution list response. Defaults to one demo execution. */
-  agentExecutionList(entries?: AgentExecution[]): AgentExecutionList {
-    const items = entries ?? [samples.agentExecution()];
-    return create(AgentExecutionListSchema, {
+  /** An agent run list response. Defaults to one demo run. */
+  agentRunList(entries?: AgentRun[]): AgentRunList {
+    const items = entries ?? [samples.agentRun()];
+    return create(AgentRunListSchema, {
       entries: items,
       totalPages: 1,
     });

@@ -28,8 +28,8 @@ import {
 import type { ToolApprovalCategory } from "../tool-kind.js";
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionSchema, type AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ApprovalAction, ApprovalMode, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunSchema, type AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { ApprovalAction, ApprovalMode, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 /** No active leases. */
 const NO_LEASES: ActiveLeases = { global: false, categories: new Set(), servers: new Set(), hooks: new Set() };
@@ -58,7 +58,7 @@ interface TestToolCall {
 }
 
 /**
- * Builds a minimal AgentExecution shaped just enough for deriveActiveLeases,
+ * Builds a minimal AgentRun shaped just enough for deriveActiveLeases,
  * which reads each tool call's approval action plus its name / mcp_server_slug
  * (the scope inputs) on root and sub-agent messages, and spec.auto_approve_all.
  */
@@ -67,11 +67,11 @@ function makeExecution(opts: {
   subAgentCalls?: TestToolCall[];
   autoApproveAll?: boolean;
   hasStatus?: boolean;
-}): AgentExecution {
+}): AgentRun {
   const hasStatus = opts.hasStatus ?? true;
   const spec = { autoApproveAll: opts.autoApproveAll ?? false };
   if (!hasStatus) {
-    return { spec, status: undefined } as unknown as AgentExecution;
+    return { spec, status: undefined } as unknown as AgentRun;
   }
   const toCalls = (calls: TestToolCall[] = []) =>
     calls.map(c => ({
@@ -85,11 +85,11 @@ function makeExecution(opts: {
     spec,
     status: {
       messages: [{ toolCalls: toCalls(opts.rootCalls) }],
-      subAgentExecutions: [
+      subAgentRuns: [
         { messages: [{ toolCalls: toCalls(opts.subAgentCalls) }] },
       ],
     },
-  } as unknown as AgentExecution;
+  } as unknown as AgentRun;
 }
 
 function makeServer(slug: string, destructiveTools: string[] = []): ResolvedMcpServer {
@@ -477,8 +477,8 @@ describe("hookLeaseKey", () => {
 });
 
 describe("isUnattendedApprovalMode", () => {
-  const withMode = (approvalMode: ApprovalMode | undefined): AgentExecution =>
-    create(AgentExecutionSchema, {
+  const withMode = (approvalMode: ApprovalMode | undefined): AgentRun =>
+    create(AgentRunSchema, {
       spec: { message: "hi" },
       ...(approvalMode === undefined ? {} : { status: { approvalMode } }),
     });

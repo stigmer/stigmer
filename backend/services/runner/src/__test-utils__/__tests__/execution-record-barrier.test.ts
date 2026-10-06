@@ -7,8 +7,8 @@
  */
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ExecutionPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { deepAgentExecutionRecord } from "../../activities/execute-deep-agent/__test-utils__/hermetic-deep-agent.js";
 
 function statusWith(rows: Array<{ id: string; status: ToolCallStatus; subAgent?: boolean }>) {
@@ -17,10 +17,10 @@ function statusWith(rows: Array<{ id: string; status: ToolCallStatus; subAgent?:
     content: "",
     toolCalls: ids.map((r) => ({ id: r.id, name: "probe", status: r.status })),
   });
-  return create(AgentExecutionStatusSchema, {
-    phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+  return create(AgentRunStatusSchema, {
+    phase: RunPhase.RUN_IN_PROGRESS,
     messages: [message(rows.filter((r) => !r.subAgent))],
-    subAgentExecutions: rows.some((r) => r.subAgent)
+    subAgentRuns: rows.some((r) => r.subAgent)
       ? [{ id: "task-1", name: "helper", messages: [message(rows.filter((r) => r.subAgent))] }]
       : [],
   });

@@ -29,9 +29,9 @@ export function MemorySection() {
       <p className="stg:text-muted-foreground stg:mb-6 stg:text-xs">
         Facts agents proposed to remember about you in this organization.
         Confirmed memories are shared with agents in your future sessions
-        and appear in those executions&apos; records; once you have many,
+        and appear in those runs&apos; records; once you have many,
         each conversation recalls the most relevant ones, shown on the
-        execution. Only you can see them here, and you can edit or delete
+        run. Only you can see them here, and you can edit or delete
         any of them at any time.
       </p>
 

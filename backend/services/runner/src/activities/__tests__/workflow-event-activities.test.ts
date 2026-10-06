@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { toProtoEvent, initSequenceFromEventLog, emitWorkflowEvents, loadRecoveryContext } from "../workflow-event-activities.js";
 import { StigmerClient } from "../../client/stigmer-client.js";
-import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase, WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
+import { ApprovalAction, RunPhase as AgentRunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { WorkflowEventDescriptor } from "../../workflow-engine/types.js";
 
 const mockGetEventLogHighWaterMark = vi.fn<(executionId: string) => Promise<bigint>>();
@@ -220,9 +220,9 @@ describe("toProtoEvent", () => {
         workflowId: "wf-123",
       });
 
-      expect(evt.eventType).toBe(WorkflowEventType.execution_started);
-      expect(evt.payload.case).toBe("executionStarted");
-      if (evt.payload.case !== "executionStarted") throw new Error("unexpected");
+      expect(evt.eventType).toBe(WorkflowEventType.run_started);
+      expect(evt.payload.case).toBe("runStarted");
+      if (evt.payload.case !== "runStarted") throw new Error("unexpected");
       expect(evt.payload.value.totalTasks).toBe(5);
       expect(evt.payload.value.workflowId).toBe("wf-123");
     });
@@ -238,9 +238,9 @@ describe("toProtoEvent", () => {
         totalTokens: 1500,
       });
 
-      expect(evt.eventType).toBe(WorkflowEventType.execution_completed);
-      expect(evt.payload.case).toBe("executionCompleted");
-      if (evt.payload.case !== "executionCompleted") throw new Error("unexpected");
+      expect(evt.eventType).toBe(WorkflowEventType.run_completed);
+      expect(evt.payload.case).toBe("runCompleted");
+      if (evt.payload.case !== "runCompleted") throw new Error("unexpected");
       expect(evt.payload.value.durationMs).toBe(BigInt(12000));
       expect(evt.payload.value.totalCostMicros).toBe(BigInt(500000));
       expect(evt.payload.value.totalTokens).toBe(BigInt(1500));
@@ -257,9 +257,9 @@ describe("toProtoEvent", () => {
         durationMs: 3000,
       });
 
-      expect(evt.eventType).toBe(WorkflowEventType.execution_failed);
-      expect(evt.payload.case).toBe("executionFailed");
-      if (evt.payload.case !== "executionFailed") throw new Error("unexpected");
+      expect(evt.eventType).toBe(WorkflowEventType.run_failed);
+      expect(evt.payload.case).toBe("runFailed");
+      if (evt.payload.case !== "runFailed") throw new Error("unexpected");
       expect(evt.payload.value.error).toBe("API call failed");
       expect(evt.payload.value.failedTaskName).toBe("callApi");
       expect(evt.payload.value.durationMs).toBe(BigInt(3000));
@@ -702,9 +702,35 @@ describe("toProtoEvent", () => {
 
       expect(evt.eventType).toBe(WorkflowEventType.agent_call_started);
       if (evt.payload.case !== "agentCallStarted") throw new Error("unexpected");
-      expect(evt.payload.value.childExecutionId).toBe("exec-child-1");
+      expect(evt.payload.value.childRunId).toBe("exec-child-1");
       expect(evt.payload.value.agentSlug).toBe("my-agent");
       expect(evt.payload.value.messageSummary).toBe("Summarize the report");
+    });
+  });
+
+  describe("agent_call_progress", () => {
+    it("carries the child run id and the child's live counters", () => {
+      const evt = toProtoEvent({
+        type: "agent_call_progress",
+        taskName: "callAgent",
+        occurredAt: NOW,
+        childExecutionId: "exec-child-1",
+        agentSlug: "my-agent",
+        agentPhase: AgentRunPhase.RUN_IN_PROGRESS,
+        currentToolName: "read_file",
+        tokensConsumed: 1500,
+        messagesCount: 4,
+        toolCallsCount: 2,
+      });
+
+      expect(evt.eventType).toBe(WorkflowEventType.agent_call_progress);
+      if (evt.payload.case !== "agentCallProgress") throw new Error("unexpected");
+      expect(evt.payload.value.childRunId).toBe("exec-child-1");
+      expect(evt.payload.value.agentPhase).toBe(AgentRunPhase.RUN_IN_PROGRESS);
+      expect(evt.payload.value.currentToolName).toBe("read_file");
+      expect(evt.payload.value.tokensConsumed).toBe(BigInt(1500));
+      expect(evt.payload.value.messagesCount).toBe(4);
+      expect(evt.payload.value.toolCallsCount).toBe(2);
     });
   });
 
@@ -768,6 +794,68 @@ describe("emitWorkflowEvents", () => {
     const input = mockUpdateStatus.mock.calls[0][0] as { events: { sequenceNumber: bigint }[] };
     expect(input.events).toHaveLength(1);
     expect(input.events[0].sequenceNumber).toBe(BigInt(12));
+  });
+
+  it("an execution_started event moves the run to IN_PROGRESS with its start time", async () => {
+    mockUpdateStatus.mockResolvedValue({});
+
+    await emitWorkflowEvents(client, "exec-1", [{
+      type: "execution_started",
+      taskName: "",
+      occurredAt: NOW,
+      totalTasks: 3,
+      workflowId: "wfl_1",
+      sequenceNumber: 1,
+    }]);
+
+    const input = mockUpdateStatus.mock.calls[0][0] as { runId: string; status: { phase: RunPhase; startedAt: string } };
+    expect(input.runId).toBe("exec-1");
+    expect(input.status.phase).toBe(RunPhase.RUN_IN_PROGRESS);
+    expect(input.status.startedAt).toBe(NOW);
+  });
+
+  it("an execution_completed event moves the run to COMPLETED with its totals", async () => {
+    mockUpdateStatus.mockResolvedValue({});
+
+    await emitWorkflowEvents(client, "exec-1", [{
+      type: "execution_completed",
+      taskName: "",
+      occurredAt: NOW,
+      durationMs: 1200,
+      totalCostMicros: 4200,
+      totalTokens: 30,
+      totalInputTokens: 20,
+      totalOutputTokens: 10,
+      sequenceNumber: 9,
+    }]);
+
+    const input = mockUpdateStatus.mock.calls[0][0] as {
+      status: { phase: RunPhase; completedAt: string; totalCostMicros: bigint; totalInputTokens: bigint; totalOutputTokens: bigint };
+    };
+    expect(input.status.phase).toBe(RunPhase.RUN_COMPLETED);
+    expect(input.status.completedAt).toBe(NOW);
+    expect(input.status.totalCostMicros).toBe(BigInt(4200));
+    expect(input.status.totalInputTokens).toBe(BigInt(20));
+    expect(input.status.totalOutputTokens).toBe(BigInt(10));
+  });
+
+  it("an execution_failed event moves the run to FAILED with the failure copy", async () => {
+    mockUpdateStatus.mockResolvedValue({});
+
+    await emitWorkflowEvents(client, "exec-1", [{
+      type: "execution_failed",
+      taskName: "",
+      occurredAt: NOW,
+      error: "task fetch failed: HTTP 500",
+      failedTaskName: "fetch",
+      durationMs: 800,
+      sequenceNumber: 9,
+    }]);
+
+    const input = mockUpdateStatus.mock.calls[0][0] as { status: { phase: RunPhase; completedAt: string; error: string } };
+    expect(input.status.phase).toBe(RunPhase.RUN_FAILED);
+    expect(input.status.completedAt).toBe(NOW);
+    expect(input.status.error).toBe("task fetch failed: HTTP 500");
   });
 
   it("propagates RPC errors so the local activity retry policy fires", async () => {

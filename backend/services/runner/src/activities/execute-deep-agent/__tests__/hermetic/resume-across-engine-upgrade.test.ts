@@ -49,13 +49,13 @@ import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { fromJson, toJson, type JsonValue } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   ApprovalAction,
-  ExecutionPhase,
+  RunPhase,
   TodoStatus,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -290,7 +290,7 @@ describe("ExecuteDeepAgent hermetic — a paused session resumes across an engin
     const scenario = beginDeepAgentScenario({ env, clock, record, checkpointer: "sqlite", script: SCRIPT });
     const turn = await runDeepAgentTurn(scenario, { turnSeq: 0 });
     expect(turn.outcome.kind).toBe("returned");
-    expect(record.lastFullStatus?.phase).toBe(ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL);
+    expect(record.lastFullStatus?.phase).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
     expect(record.lastFullStatus?.todos).not.toEqual({});
 
     const fixture: PausedSessionFixture = {
@@ -302,7 +302,7 @@ describe("ExecuteDeepAgent hermetic — a paused session resumes across an engin
       },
       threadId: FIXTURE.threadId,
       ...readRows(getCheckpointDbPath(FIXTURE.sessionId)),
-      status: toJson(AgentExecutionStatusSchema, record.lastFullStatus!),
+      status: toJson(AgentRunStatusSchema, record.lastFullStatus!),
     };
     mkdirSync(FIXTURE_DIR, { recursive: true });
     writeFileSync(target, JSON.stringify(fixture, null, 2) + "\n");
@@ -317,7 +317,7 @@ describe("ExecuteDeepAgent hermetic — a paused session resumes across an engin
       const record = deepAgentExecutionRecord({ message: USER_MESSAGE });
       const scenario = beginDeepAgentScenario({ env, clock, record, checkpointer: "sqlite", script: SCRIPT });
       await loadRows(getCheckpointDbPath(FIXTURE.sessionId), fixture);
-      record.applyStatusUpdate(fromJson(AgentExecutionStatusSchema, fixture.status));
+      record.applyStatusUpdate(fromJson(AgentRunStatusSchema, fixture.status));
       // The approval arrives after the pause, as it does live. Checkpoint ids
       // are time-ordered, and the recorded turn ran on this same scripted
       // clock from its epoch, so the resumed turn starts a minute on: its new
@@ -333,7 +333,7 @@ describe("ExecuteDeepAgent hermetic — a paused session resumes across an engin
 
       // ── Assert ─────────────────────────────────────────────────────────────
       expect(turn.outcome.kind).toBe("returned");
-      expect((turn.outcome as { value: Record<string, unknown> }).value.phase).toBe("EXECUTION_COMPLETED");
+      expect((turn.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
       const final = record.lastFullStatus!;
       const rows = final.messages.flatMap((m) => m.toolCalls).filter((tc) => tc.id === EXECUTE_CALL_A.id);
       expect(rows, "exactly one copy of the gated call — a resume, not a replay").toHaveLength(1);

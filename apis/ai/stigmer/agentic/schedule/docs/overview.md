@@ -2,13 +2,13 @@ A Schedule runs an agent on a recurring cron schedule. The spec declares
 the target agent and the prompt each run starts from, a cron expression in
 the classic 5-field form (or an `@daily`-style shorthand), the IANA time
 zone the expression is evaluated in, and whether the schedule is enabled.
-Each fire creates a fresh agent execution in a new session, with the fire
+Each fire creates a fresh agent run in a new session, with the fire
 time appended to the configured message so the agent knows the current
-date. Firing observations — next fire time, last execution, failure
+date. Firing observations — next fire time, last run, failure
 streak, and any platform pause reason — live in status; applying a
 manifest never touches them. Disabling a schedule pauses firing while
 preserving the schedule and its history; deleting it stops firing
-permanently without touching the referenced agent or past executions.
+permanently without touching the referenced agent or past runs.
 
 `trigger` fires a schedule once, immediately (`stigmer schedule trigger`).
 The manual fire runs through the schedule's own clock, so it records on

@@ -346,7 +346,7 @@ ConversationMediaDownloadUrl conversationMediaDownloadUrl = client.agentChannels
 
 Get one conversation's timeline, newest first, cursor-paged.
 
-The timeline contains customer-visible items only: inbound customer messages (including non-text kinds the platform cannot render), delivered agent replies, and operator or platform sends. Execution internals never appear.
+The timeline contains customer-visible items only: inbound customer messages (including non-text kinds the platform cannot render), delivered agent replies, and operator or platform sends. Run internals never appear.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -1675,7 +1675,7 @@ AgentChannelInstallState tracks the provider install lifecycle.
 
 ### ServiceTier
 
-ServiceTier selects the provider-side speed/service tier for an execution's model calls.
+ServiceTier selects the provider-side speed/service tier for a run's model calls.
 
 | Value | Description |
 |-------|-------------|
@@ -1684,7 +1684,7 @@ ServiceTier selects the provider-side speed/service tier for an execution's mode
 
 ### ThinkingMode
 
-ThinkingMode selects the model's extended-reasoning ("thinking") variant for an execution's model calls — the second variant dimension alongside ServiceTier (stigmer/stigmer#772).
+ThinkingMode selects the model's extended-reasoning ("thinking") variant for a run's model calls — the second variant dimension alongside ServiceTier (stigmer/stigmer#772).
 
 | Value | Description |
 |-------|-------------|
@@ -1717,7 +1717,7 @@ ChannelDeliveryStatus is the delivery record lifecycle.
 
 | Value | Description |
 |-------|-------------|
-| `pending` | Awaiting the execution's terminal phase, or awaiting (re)claim. |
+| `pending` | Awaiting the run's terminal phase, or awaiting (re)claim. |
 | `delivering` | Claimed by a delivery worker; provider I/O in flight. |
 | `delivered` | Reply delivered to the provider. |
 | `failed` | Dead-lettered: attempts were exhausted, or the provider's verdict was known-terminal and retries were skipped (attempts can be 1); last_error records why. |
@@ -1753,5 +1753,5 @@ ChannelAttemptFailureKind classifies WHY a send attempt reached status failed �
 |-------|-------------|
 | `attempt_refused` | The provider terminally refused the send; attempt_detail carries the platform's mapped human explanation (e.g. the 24-hour customer-service-window copy for WhatsApp code 131047). |
 | `attempt_errored` | A technical failure (transport error, unexpected provider error, unresolvable credentials — exhausted retries or unattemptable at the first try). |
-| `attempt_withdrawn` | The platform withdrew the send for a structural reason; attempt_detail carries the short fact ("channel deleted", "execution no longer exists"). |
+| `attempt_withdrawn` | The platform withdrew the send for a structural reason; attempt_detail carries the short fact ("channel deleted", "run no longer exists"). |
 

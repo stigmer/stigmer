@@ -37,7 +37,7 @@ import { newIdentityAccountPurge } from "../domain/identityaccount/purge.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
 import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
 import { newAgentChannelPurge } from "../domain/agentchannel/purge.js";
-import { newAgentExecutionPurge } from "../domain/agentexecution/purge.js";
+import { newAgentExecutionPurge } from "../domain/agentrun/purge.js";
 import { newAgentSharePurge } from "../domain/agentshare/purge.js";
 import { newApiKeyPurge } from "../domain/apikey/purge.js";
 import { newArtifactPurge } from "../domain/artifact/purge.js";
@@ -56,7 +56,7 @@ import { newSchedulePurge } from "../domain/schedule/purge.js";
 import { newSessionPurge } from "../domain/session/purge.js";
 import { newSkillPurge } from "../domain/skill/purge.js";
 import { newWorkflowPurge } from "../domain/workflow/purge.js";
-import { newWorkflowExecutionPurge } from "../domain/workflowexecution/purge.js";
+import { newWorkflowExecutionPurge } from "../domain/workflowrun/purge.js";
 import type { SecretService } from "../encryption/encryption.js";
 import type {
   OrganizationPurgeStage,
@@ -149,9 +149,9 @@ export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
 export const CORE_PURGED_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.schedule,
   ApiResourceKind.artifact,
-  ApiResourceKind.agent_execution,
+  ApiResourceKind.agent_run,
   ApiResourceKind.session,
-  ApiResourceKind.workflow_execution,
+  ApiResourceKind.workflow_run,
   ApiResourceKind.agent_share,
   ApiResourceKind.agent_channel,
   ApiResourceKind.channel_app,

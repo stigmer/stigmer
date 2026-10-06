@@ -1,12 +1,12 @@
 {
   "name": "approve-all-co-pending",
   "description": "An APPROVE_ALL on one shell call also resolves a co-pending shell call (what the handler authors via a plain APPROVE on each same-class co-pending tool), while a different-class call (write_file) stays gated. Both decisions bucket to the coarse APPROVED event type; the precise APPROVE_ALL action survives on the payload (not asserted in the normalized view). Models the authoring result, not the controller's class-selection logic.",
-  "execution_id": "exec-approve-all",
+  "run_id": "exec-approve-all",
   "steps": [
     {
       "name": "seed: two shell calls and one write_file gated",
       "status": {
-        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "phase": "RUN_WAITING_FOR_APPROVAL",
         "messages": [
           {
             "type": "MESSAGE_AI",
@@ -80,7 +80,7 @@
       "name": "approve all shells (tc-a clicked, tc-b co-pending)",
       "description": "A SubmitApproval site: tc-a carries APPROVE_ALL (the opt-in), tc-b carries a plain APPROVE (the bulk-approved co-pending of the same class). tc-c (write_file) is a different class and stays gated.",
       "status": {
-        "phase": "EXECUTION_WAITING_FOR_APPROVAL",
+        "phase": "RUN_WAITING_FOR_APPROVAL",
         "messages": [
           {
             "type": "MESSAGE_AI",

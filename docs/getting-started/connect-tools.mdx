@@ -271,8 +271,8 @@ Now try a request that needs an approval. Update the message:
 "Process a return for order #ORD-4821 — the headphones are defective."
 ```
 
-The execution will pause when the Agent tries to call `process_return`. Your
-code needs to detect the pending approval and submit a decision. Update your
+The run will pause when the Agent tries to call `process_return`. Your code
+needs to detect the pending approval and submit a decision. Update your
 subscribe loop:
 
 <Tabs items={["TypeScript", "Go", "Python", "Java"]} groupId="sdk-language" persist>
@@ -281,9 +281,7 @@ subscribe loop:
 Replace the subscribe loop in `ask-agent.ts`:
 
 ```typescript
-for await (const snapshot of stigmer.agentExecution.subscribe(
-  execution.metadata!.id,
-)) {
+for await (const snapshot of stigmer.agentRun.subscribe(run.metadata!.id)) {
   const phase = snapshot.status?.phase;
   const messages = snapshot.status?.messages ?? [];
   const pendingApprovals = snapshot.status?.pendingApprovals ?? [];
@@ -293,16 +291,16 @@ for await (const snapshot of stigmer.agentExecution.subscribe(
       console.log(`\nApproval required: ${pending.approvalMessage}`);
       console.log(`  Tool: ${pending.toolCallId}`);
 
-      await stigmer.agentExecution.submitApproval({
-        agentExecutionId: snapshot.metadata!.id,
+      await stigmer.agentRun.submitApproval({
+        agentRunId: snapshot.metadata!.id,
         toolCallId: pending.toolCallId,
         action: "APPROVAL_ACTION_APPROVE",
       });
-      console.log("  Approved. Resuming execution...\n");
+      console.log("  Approved. Resuming run...\n");
     }
   }
 
-  if (phase === "EXECUTION_COMPLETED" || phase === "EXECUTION_FAILED") {
+  if (phase === "RUN_COMPLETED" || phase === "RUN_FAILED") {
     const last = messages[messages.length - 1];
     if (last?.content) console.log(last.content);
     break;
@@ -334,20 +332,20 @@ for {
         fmt.Printf("\nApproval required: %s\n", p.GetApprovalMessage())
         fmt.Printf("  Tool: %s\n", p.GetToolCallId())
 
-        _, err := client.AgentExecution.SubmitApproval(ctx,
+        _, err := client.AgentRun.SubmitApproval(ctx,
             &stigmer.SubmitApprovalInput{
-                AgentExecutionId: snapshot.GetMetadata().GetId(),
-                ToolCallId:       p.GetToolCallId(),
-                Action:           stigmer.ApprovalActionApprove,
+                AgentRunId: snapshot.GetMetadata().GetId(),
+                ToolCallId: p.GetToolCallId(),
+                Action:     stigmer.ApprovalActionApprove,
             })
         if err != nil {
             log.Fatal(err)
         }
-        fmt.Println("  Approved. Resuming execution...\n")
+        fmt.Println("  Approved. Resuming run...\n")
     }
 
     phase := status.GetPhase()
-    if phase == stigmer.ExecutionCompleted || phase == stigmer.ExecutionFailed {
+    if phase == agentrunv1.RunPhase_RUN_COMPLETED || phase == agentrunv1.RunPhase_RUN_FAILED {
         msgs := status.GetMessages()
         if len(msgs) > 0 {
             fmt.Println(msgs[len(msgs)-1].GetContent())
@@ -363,22 +361,22 @@ for {
 Replace the subscribe loop in `ask_agent.py`:
 
 ```python
-for snapshot in client.agent_executions.subscribe(execution.metadata.id):
+for snapshot in client.agent_runs.subscribe(run.metadata.id):
     pending = snapshot.status.pending_approvals
 
     for p in pending:
         print(f"\nApproval required: {p.approval_message}")
         print(f"  Tool: {p.tool_call_id}")
 
-        client.agent_executions.submit_approval(
-            agent_execution_id=snapshot.metadata.id,
+        client.agent_runs.submit_approval(
+            agent_run_id=snapshot.metadata.id,
             tool_call_id=p.tool_call_id,
             action="APPROVAL_ACTION_APPROVE",
         )
-        print("  Approved. Resuming execution...\n")
+        print("  Approved. Resuming run...\n")
 
     phase = snapshot.status.phase
-    if phase in ("EXECUTION_COMPLETED", "EXECUTION_FAILED"):
+    if phase in ("RUN_COMPLETED", "RUN_FAILED"):
         messages = snapshot.status.messages
         if messages and messages[-1].content:
             print(messages[-1].content)
@@ -400,18 +398,18 @@ while (stream.hasNext()) {
         System.out.printf("%nApproval required: %s%n", p.getApprovalMessage());
         System.out.printf("  Tool: %s%n", p.getToolCallId());
 
-        client.agentExecutions().submitApproval(
+        client.agentRun.submitApproval(
             SubmitApprovalInput.builder()
-                .agentExecutionId(snapshot.getMetadata().getId())
+                .agentRunId(snapshot.getMetadata().getId())
                 .toolCallId(p.getToolCallId())
                 .action(ApprovalAction.APPROVE)
                 .build()
         );
-        System.out.println("  Approved. Resuming execution...\n");
+        System.out.println("  Approved. Resuming run...\n");
     }
 
     var phase = status.getPhase();
-    if (phase == ExecutionPhase.COMPLETED || phase == ExecutionPhase.FAILED) {
+    if (phase == RunPhase.RUN_COMPLETED || phase == RunPhase.RUN_FAILED) {
         var messages = status.getMessagesList();
         if (!messages.isEmpty()) {
             System.out.println(messages.get(messages.size() - 1).getContent());
@@ -429,7 +427,7 @@ Run it again. You'll see the approval flow in your terminal:
 ```
 Approval required: Process return for order 'ORD-4821' — refund $79.99 to original payment method
   Tool: call_xK9m2R
-  Approved. Resuming execution...
+  Approved. Resuming run...
 
 The return has been processed.
 

@@ -42,10 +42,10 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_artifact_v1_CreateArtifactInput_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_artifact_v1_ListArtifactsByExecutionRequest_descriptor;
+    internal_static_ai_stigmer_agentic_artifact_v1_ListArtifactsByRunRequest_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_artifact_v1_ListArtifactsByExecutionRequest_fieldAccessorTable;
+      internal_static_ai_stigmer_agentic_artifact_v1_ListArtifactsByRunRequest_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_artifact_v1_GetArtifactContentRequest_descriptor;
   static final 
@@ -82,26 +82,26 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "rtifactInput\022H\n\004spec\030\001 \001(\0132,.ai.stigmer." +
       "agentic.artifact.v1.ArtifactSpecB\006\272H\003\310\001\001" +
       "R\004spec\022\'\n\007content\030\002 \001(\014B\r\272H\nz\005\030\200\200\200\031\310\001\001R\007" +
-      "content\"\307\001\n\037ListArtifactsByExecutionRequ" +
-      "est\0222\n\025workflow_execution_id\030\001 \001(\tR\023work" +
-      "flowExecutionId\022,\n\022agent_execution_id\030\002 " +
-      "\001(\tR\020agentExecutionId\022\037\n\tpage_size\030\003 \001(\005" +
-      "B\002\030\001R\010pageSize\022!\n\npage_token\030\004 \001(\tB\002\030\001R\t" +
-      "pageToken\"b\n\031GetArtifactContentRequest\022(" +
-      "\n\013artifact_id\030\001 \001(\tB\007\272H\004r\002\020\001R\nartifactId" +
-      "\022\033\n\tmax_bytes\030\002 \001(\003R\010maxBytes\"\241\001\n\032GetArt" +
-      "ifactContentResponse\022\030\n\007content\030\001 \001(\014R\007c" +
-      "ontent\022!\n\014content_type\030\002 \001(\tR\013contentTyp" +
-      "e\022(\n\020total_size_bytes\030\003 \001(\003R\016totalSizeBy" +
-      "tes\022\034\n\ttruncated\030\004 \001(\010R\ttruncated\"\212\001\n\023Ar" +
-      "tifactDownloadUrl\022\020\n\003url\030\001 \001(\tR\003url\022\037\n\013t" +
-      "tl_seconds\030\002 \001(\005R\nttlSeconds\022\035\n\nsize_byt" +
-      "es\030\003 \001(\003R\tsizeBytes\022!\n\014content_type\030\004 \001(" +
-      "\tR\013contentTypeB\246\001B\007IoProtoP\001\242\002\004ASAA\252\002\036Ai" +
-      ".Stigmer.Agentic.Artifact.V1\312\002\036Ai\\Stigme" +
-      "r\\Agentic\\Artifact\\V1\342\002*Ai\\Stigmer\\Agent" +
-      "ic\\Artifact\\V1\\GPBMetadata\352\002\"Ai::Stigmer" +
-      "::Agentic::Artifact::V1b\006proto3"
+      "content\"\251\001\n\031ListArtifactsByRunRequest\022&\n" +
+      "\017workflow_run_id\030\001 \001(\tR\rworkflowRunId\022 \n" +
+      "\014agent_run_id\030\002 \001(\tR\nagentRunId\022\037\n\tpage_" +
+      "size\030\003 \001(\005B\002\030\001R\010pageSize\022!\n\npage_token\030\004" +
+      " \001(\tB\002\030\001R\tpageToken\"b\n\031GetArtifactConten" +
+      "tRequest\022(\n\013artifact_id\030\001 \001(\tB\007\272H\004r\002\020\001R\n" +
+      "artifactId\022\033\n\tmax_bytes\030\002 \001(\003R\010maxBytes\"" +
+      "\241\001\n\032GetArtifactContentResponse\022\030\n\007conten" +
+      "t\030\001 \001(\014R\007content\022!\n\014content_type\030\002 \001(\tR\013" +
+      "contentType\022(\n\020total_size_bytes\030\003 \001(\003R\016t" +
+      "otalSizeBytes\022\034\n\ttruncated\030\004 \001(\010R\ttrunca" +
+      "ted\"\212\001\n\023ArtifactDownloadUrl\022\020\n\003url\030\001 \001(\t" +
+      "R\003url\022\037\n\013ttl_seconds\030\002 \001(\005R\nttlSeconds\022\035" +
+      "\n\nsize_bytes\030\003 \001(\003R\tsizeBytes\022!\n\014content" +
+      "_type\030\004 \001(\tR\013contentTypeB\246\001B\007IoProtoP\001\242\002" +
+      "\004ASAA\252\002\036Ai.Stigmer.Agentic.Artifact.V1\312\002" +
+      "\036Ai\\Stigmer\\Agentic\\Artifact\\V1\342\002*Ai\\Sti" +
+      "gmer\\Agentic\\Artifact\\V1\\GPBMetadata\352\002\"A" +
+      "i::Stigmer::Agentic::Artifact::V1b\006proto" +
+      "3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -128,12 +128,12 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_artifact_v1_CreateArtifactInput_descriptor,
         new java.lang.String[] { "Spec", "Content", });
-    internal_static_ai_stigmer_agentic_artifact_v1_ListArtifactsByExecutionRequest_descriptor =
+    internal_static_ai_stigmer_agentic_artifact_v1_ListArtifactsByRunRequest_descriptor =
       getDescriptor().getMessageType(3);
-    internal_static_ai_stigmer_agentic_artifact_v1_ListArtifactsByExecutionRequest_fieldAccessorTable = new
+    internal_static_ai_stigmer_agentic_artifact_v1_ListArtifactsByRunRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_artifact_v1_ListArtifactsByExecutionRequest_descriptor,
-        new java.lang.String[] { "WorkflowExecutionId", "AgentExecutionId", "PageSize", "PageToken", });
+        internal_static_ai_stigmer_agentic_artifact_v1_ListArtifactsByRunRequest_descriptor,
+        new java.lang.String[] { "WorkflowRunId", "AgentRunId", "PageSize", "PageToken", });
     internal_static_ai_stigmer_agentic_artifact_v1_GetArtifactContentRequest_descriptor =
       getDescriptor().getMessageType(4);
     internal_static_ai_stigmer_agentic_artifact_v1_GetArtifactContentRequest_fieldAccessorTable = new

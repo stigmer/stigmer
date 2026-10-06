@@ -23,7 +23,7 @@ vi.mock("@langchain/openai", () => ({
 
 import { buildChatModel } from "../model-client.js";
 import { _resetRegistryCache } from "../model-registry.js";
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 interface MockModel {
   id: string;

@@ -27,7 +27,7 @@ export enum OnInvalidOutputPolicy {
 
   /**
    * Task fails immediately with a schema validation error.
-   * The workflow transitions to error handling (try_catch or EXECUTION_FAILED).
+   * The workflow transitions to error handling (try_catch or RUN_FAILED).
    *
    * @generated from enum value: ON_INVALID_FAIL = 1;
    */

@@ -80,16 +80,16 @@ type PlatformQueryControllerClient interface {
 	// coordinate and mints a token bound to the caller, so any valid token is
 	// required, but no specific FGA permission is — every authenticated caller in
 	// an environment shares one Temporal cluster, and task queues are
-	// per-session/execution and gated separately by control-plane session access.
+	// per-session/run and gated separately by control-plane session access.
 	GetRunnerBootstrapConfig(ctx context.Context, in *GetRunnerBootstrapConfigInput, opts ...grpc.CallOption) (*GetRunnerBootstrapConfigOutput, error)
 	// Exchanges an embedded runner's bootstrap credential for a token scoped to
 	// one unit of dispatched work.
 	//
 	// The bootstrap token from getRunnerBootstrapConfig identifies a runner but
-	// is minted before any execution exists, so it carries no session or
-	// execution scope. Secrets are only released to runner credentials bound to
+	// is minted before any run exists, so it carries no session or
+	// run scope. Secrets are only released to runner credentials bound to
 	// the exact work they serve. At task start the runner presents its bootstrap
-	// token and names the execution it was dispatched; the control plane verifies
+	// token and names the run it was dispatched; the control plane verifies
 	// the caller and returns a short-lived token scoped to that work, which the
 	// runner then uses for its ExecutionContext fetch. This makes a desktop
 	// runner indistinguishable, at the secret-release gate, from a
@@ -203,16 +203,16 @@ type PlatformQueryControllerServer interface {
 	// coordinate and mints a token bound to the caller, so any valid token is
 	// required, but no specific FGA permission is — every authenticated caller in
 	// an environment shares one Temporal cluster, and task queues are
-	// per-session/execution and gated separately by control-plane session access.
+	// per-session/run and gated separately by control-plane session access.
 	GetRunnerBootstrapConfig(context.Context, *GetRunnerBootstrapConfigInput) (*GetRunnerBootstrapConfigOutput, error)
 	// Exchanges an embedded runner's bootstrap credential for a token scoped to
 	// one unit of dispatched work.
 	//
 	// The bootstrap token from getRunnerBootstrapConfig identifies a runner but
-	// is minted before any execution exists, so it carries no session or
-	// execution scope. Secrets are only released to runner credentials bound to
+	// is minted before any run exists, so it carries no session or
+	// run scope. Secrets are only released to runner credentials bound to
 	// the exact work they serve. At task start the runner presents its bootstrap
-	// token and names the execution it was dispatched; the control plane verifies
+	// token and names the run it was dispatched; the control plane verifies
 	// the caller and returns a short-lived token scoped to that work, which the
 	// runner then uses for its ExecutionContext fetch. This makes a desktop
 	// runner indistinguishable, at the secret-release gate, from a

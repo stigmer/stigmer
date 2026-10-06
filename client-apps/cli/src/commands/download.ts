@@ -1,5 +1,5 @@
-// `stigmer download <type> <id>` — download artifacts produced by an execution.
-// Only agent executions (`aex_`) are supported today. Heavy modules are
+// `stigmer download <type> <id>` — download artifacts produced by a run.
+// Only agent runs (`aex_`) are supported today. Heavy modules are
 // lazy-imported inside the action so `--help` stays fast.
 import type { Command } from "commander";
 import { ensureAuthenticated } from "../config/index.js";
@@ -14,31 +14,31 @@ interface DownloadFlags {
 export function registerDownload(program: Command): void {
   program
     .command("download <type> <id>")
-    .description("download artifacts from an execution")
+    .description("download artifacts from a run")
     .option("--artifact <name>", "specific artifact to download (by name)")
     .option("-o, --output-dir <dir>", "output directory for downloaded files", ".")
     .option("--all", "download all artifacts (default)", true)
     .action((type: string, id: string, options: DownloadFlags) => runDownload(type, id, options));
 }
 
-function isDownloadExecutionType(type: string): boolean {
+function isDownloadRunType(type: string): boolean {
   const normalized = type.trim().toLowerCase();
-  return normalized === "execution" || normalized === "executions" || normalized === "exec";
+  return normalized === "run" || normalized === "runs";
 }
 
 async function runDownload(type: string, id: string, options: DownloadFlags): Promise<void> {
-  if (!isDownloadExecutionType(type)) {
-    throw new UsageError(`download not supported for type: ${type}\n\nCurrently only 'execution' type supports download`);
+  if (!isDownloadRunType(type)) {
+    throw new UsageError(`download not supported for type: ${type}\n\nCurrently only 'run' type supports download`);
   }
 
-  const [{ connectBackend }, { isAgentExecutionId }, { downloadExecutionArtifacts }] = await Promise.all([
+  const [{ connectBackend }, { isAgentRunId }, { downloadRunArtifacts }] = await Promise.all([
     import("../backend.js"),
-    import("../resources/execution.js"),
+    import("../resources/runs.js"),
     import("../resources/download.js"),
   ]);
 
-  if (!isAgentExecutionId(id)) {
-    throw new UsageError(`invalid execution ID: ${id}\n\nExecutions must be referenced by ID (e.g., aex_01abc123)`);
+  if (!isAgentRunId(id)) {
+    throw new UsageError(`invalid run ID: ${id}\n\nRuns must be referenced by ID (e.g., aex_01abc123)`);
   }
 
   const client = connectBackend();
@@ -47,7 +47,7 @@ async function runDownload(type: string, id: string, options: DownloadFlags): Pr
   const sink = (line: string): void => {
     process.stderr.write(`${line}\n`);
   };
-  const outcome = await downloadExecutionArtifacts(
+  const outcome = await downloadRunArtifacts(
     client.stigmer,
     id,
     { artifactName: options.artifact ?? "", outputDir: options.outputDir ?? "." },
@@ -55,8 +55,8 @@ async function runDownload(type: string, id: string, options: DownloadFlags): Pr
   );
 
   if (outcome.noArtifacts) {
-    process.stdout.write(`\nNo artifacts found for execution: ${id}\n\n`);
-    process.stdout.write("Tip: Artifacts are files created by the agent during execution. Not all agents produce artifacts.\n\n");
+    process.stdout.write(`\nNo artifacts found for run: ${id}\n\n`);
+    process.stdout.write("Tip: Artifacts are files created by the agent during a run. Not all agents produce artifacts.\n\n");
     return;
   }
 

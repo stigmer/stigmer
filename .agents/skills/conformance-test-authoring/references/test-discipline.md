@@ -54,8 +54,8 @@ the integration proves it works in the system. A bug fix starts with the test
 that reproduces the bug.
 
 Where each lives in this repository: a cross-edition contract or a runner
-behaviour read through execution status in `test/conformance/`; a server or
-runner unit beside its module in a `__tests__` folder; a React unit under
+behaviour read through run status in `test/conformance/`; a server or runner
+unit beside its module in a `__tests__` folder; a React unit under
 `sdk/react/src/`; a browser journey under `test/e2e/tests/`; a repository
 script's test beside it in `scripts/`.
 

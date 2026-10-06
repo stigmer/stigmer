@@ -1,18 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
-import { FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
-// Mock the child execution stream: each child id maps to a canned execution.
+// Mock the child run stream: each child id maps to a canned run.
 const mockExecutions: Record<string, any> = {};
-vi.mock("../../execution/useExecutionStream", () => ({
-  useExecutionStream: (id: string | null) => ({
-    execution: id ? (mockExecutions[id] ?? null) : null,
+vi.mock("../../run/useRunStream", () => ({
+  useRunStream: (id: string | null) => ({
+    run: id ? (mockExecutions[id] ?? null) : null,
   }),
 }));
 
 // Stub FileReviewCard to a minimal control that surfaces its wiring, so the test
 // exercises the container's mapping/forwarding — not the card's diff rendering.
-vi.mock("../../execution/FileReviewCard", () => ({
+vi.mock("../../run/FileReviewCard", () => ({
   FileReviewCard: (props: any) => (
     <button
       data-testid={`card-${props.fileChangeSet.id}`}
@@ -51,7 +51,7 @@ describe("WorkflowFileReviewList", () => {
 
     render(
       <WorkflowFileReviewList
-        pendingFileReviews={[{ childAgentExecutionId: "aex-1", changeSetId: ["fcs-1"] } as any]}
+        pendingFileReviews={[{ childAgentRunId: "aex-1", changeSetId: ["fcs-1"] } as any]}
         onSubmitFileDecision={onSubmit}
       />,
     );
@@ -69,7 +69,7 @@ describe("WorkflowFileReviewList", () => {
 
     render(
       <WorkflowFileReviewList
-        pendingFileReviews={[{ childAgentExecutionId: "aex-1", changeSetId: ["fcs-1"] } as any]}
+        pendingFileReviews={[{ childAgentRunId: "aex-1", changeSetId: ["fcs-1"] } as any]}
         onSubmitFileDecision={vi.fn()}
       />,
     );
@@ -85,7 +85,7 @@ describe("WorkflowFileReviewList", () => {
 
     render(
       <WorkflowFileReviewList
-        pendingFileReviews={[{ childAgentExecutionId: "aex-1", changeSetId: ["fcs-1"] } as any]}
+        pendingFileReviews={[{ childAgentRunId: "aex-1", changeSetId: ["fcs-1"] } as any]}
         onSubmitFileDecision={vi.fn()}
       />,
     );
@@ -100,8 +100,8 @@ describe("WorkflowFileReviewList", () => {
     render(
       <WorkflowFileReviewList
         pendingFileReviews={[
-          { childAgentExecutionId: "aex-1", changeSetId: ["fcs-1"] } as any,
-          { childAgentExecutionId: "aex-2", changeSetId: ["fcs-2"] } as any,
+          { childAgentRunId: "aex-1", changeSetId: ["fcs-1"] } as any,
+          { childAgentRunId: "aex-2", changeSetId: ["fcs-2"] } as any,
         ]}
         onSubmitFileDecision={vi.fn()}
       />,
@@ -111,19 +111,19 @@ describe("WorkflowFileReviewList", () => {
     expect(screen.getByTestId("card-fcs-2")).toBeTruthy();
   });
 
-  it("shows a deep-link affordance when onNavigateToAgentExecution is provided", () => {
+  it("shows a deep-link affordance when onNavigateToAgentRun is provided", () => {
     mockExecutions["aex-1"] = { status: { fileChangeSets: [awaitingSet("fcs-1")] } };
     const onNavigate = vi.fn();
 
     render(
       <WorkflowFileReviewList
-        pendingFileReviews={[{ childAgentExecutionId: "aex-1", changeSetId: ["fcs-1"] } as any]}
+        pendingFileReviews={[{ childAgentRunId: "aex-1", changeSetId: ["fcs-1"] } as any]}
         onSubmitFileDecision={vi.fn()}
-        onNavigateToAgentExecution={onNavigate}
+        onNavigateToAgentRun={onNavigate}
       />,
     );
 
-    fireEvent.click(screen.getByText("View agent execution"));
+    fireEvent.click(screen.getByText("View agent run"));
     expect(onNavigate).toHaveBeenCalledWith("aex-1");
   });
 });

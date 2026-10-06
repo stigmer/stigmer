@@ -35,11 +35,11 @@ class BudgetExceededPolicy(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     budget_exceeded_human_review: _ClassVar[BudgetExceededPolicy]
     budget_exceeded_warn: _ClassVar[BudgetExceededPolicy]
 
-class WorkflowExecutionVisibility(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+class WorkflowRunVisibility(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
-    workflow_execution_visibility_unspecified: _ClassVar[WorkflowExecutionVisibility]
-    workflow_execution_visibility_private: _ClassVar[WorkflowExecutionVisibility]
-    workflow_execution_visibility_organization: _ClassVar[WorkflowExecutionVisibility]
+    workflow_run_visibility_unspecified: _ClassVar[WorkflowRunVisibility]
+    workflow_run_visibility_private: _ClassVar[WorkflowRunVisibility]
+    workflow_run_visibility_organization: _ClassVar[WorkflowRunVisibility]
 workflow_task_kind_unspecified: WorkflowTaskKind
 set_vars: WorkflowTaskKind
 http_call: WorkflowTaskKind
@@ -65,6 +65,6 @@ budget_exceeded_policy_unspecified: BudgetExceededPolicy
 budget_exceeded_terminate: BudgetExceededPolicy
 budget_exceeded_human_review: BudgetExceededPolicy
 budget_exceeded_warn: BudgetExceededPolicy
-workflow_execution_visibility_unspecified: WorkflowExecutionVisibility
-workflow_execution_visibility_private: WorkflowExecutionVisibility
-workflow_execution_visibility_organization: WorkflowExecutionVisibility
+workflow_run_visibility_unspecified: WorkflowRunVisibility
+workflow_run_visibility_private: WorkflowRunVisibility
+workflow_run_visibility_organization: WorkflowRunVisibility

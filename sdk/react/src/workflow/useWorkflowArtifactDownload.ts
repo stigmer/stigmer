@@ -29,7 +29,7 @@ export interface UseWorkflowArtifactDownloadReturn {
  * (short-TTL, presigned in Cloud) URL is always valid.
  *
  * Mirrors {@link useArtifactDownload}, which serves the session's
- * `ExecutionArtifact` model (addressed by `executionId` + `storageKey`);
+ * `RunArtifact` model (addressed by `executionId` + `storageKey`);
  * this one serves the workflow's first-class `Artifact` resource (addressed
  * by artifact id). The two models are deliberately unified only at the
  * presentational layer, so each keeps its own download mechanics.

@@ -52,7 +52,7 @@ service AgentQueryController {
   // Get a specific version of an agent by its content hash.
   //
   // Used by the runner and the server to run a turn on the version it
-  // recorded (AgentExecutionStatus.agent_version_hash), and by clients to
+  // recorded (AgentRunStatus.agent_version_hash), and by clients to
   // show what a past version said.
   //
   // @internal
@@ -64,7 +64,7 @@ service AgentQueryController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get agent version";
   }
 
-  // No rpc finds a stored "default agent": a Session or AgentExecution
+  // No rpc finds a stored "default agent": a Session or AgentRun
   // created with no agent runs the built-in assistant (session/v1/spec.proto,
   // agent_ref).
 }

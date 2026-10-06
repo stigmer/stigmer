@@ -25,7 +25,7 @@ export interface UseScheduleReturn {
  * Wraps `stigmer.schedule.getByReference()` with loading, error, and
  * not-found state management. The loaded resource carries the spec
  * (cron, time zone, enabled, target) and the platform-written status
- * (`next_fire_at`, `last_fire_at`, `last_execution_id`,
+ * (`next_fire_at`, `last_fire_at`, `last_run_id`,
  * `consecutive_failures`, `paused_reason`) — everything the detail view
  * renders, including the disabled-vs-paused distinction (see
  * {@link deriveScheduleState}).

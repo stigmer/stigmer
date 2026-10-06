@@ -25,13 +25,13 @@
       "required": false
     },
     {
-      "name": "AgentExecutionId",
-      "jsonName": "agentExecutionId",
-      "protoField": "agent_execution_id",
+      "name": "AgentRunId",
+      "jsonName": "agentRunId",
+      "protoField": "agent_run_id",
       "type": {
         "kind": "string"
       },
-      "description": "ID of the agent execution in which this memory was proposed.",
+      "description": "ID of the agent run in which this memory was proposed.",
       "required": false
     },
     {

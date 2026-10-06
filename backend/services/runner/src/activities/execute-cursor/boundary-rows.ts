@@ -29,9 +29,9 @@
  * `turn-boundary.ts`.
  */
 
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import { ApprovalPolicySource, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import { ApprovalPolicySource, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { TranscriptBuilder } from "../../harness/transcript/builder.js";
 import type { McpApprovalDefault } from "./approval-policy.js";
 import { resolveApprovalMessage, resolveBuiltInApprovalMessage } from "./approval-policy.js";
@@ -1125,7 +1125,7 @@ export function settleUnresolvedToolCalls(
  */
 export function stampUnattendedSkippedToolCalls(
   messages: readonly AgentMessage[],
-  subAgentExecutions: readonly SubAgentExecution[],
+  subAgentExecutions: readonly SubAgentRun[],
   unattendedLedger: readonly DeniedLedgerEntry[],
   workspaceRoot?: string,
 ): number {
@@ -1255,7 +1255,7 @@ function scopeRefusalOf(tc: ToolCall, refusals: readonly ScopeRefusal[], workspa
  */
 export function stampScopeRefusedToolCalls(
   messages: readonly AgentMessage[],
-  subAgentExecutions: readonly SubAgentExecution[],
+  subAgentExecutions: readonly SubAgentRun[],
   ledger: readonly DeniedLedgerEntry[],
   turnStartMessageIndex: number,
   workspaceRoot?: string,
@@ -1312,7 +1312,7 @@ export function stampScopeRefusedToolCalls(
  */
 export function stampHookRefusedToolCalls(
   messages: readonly AgentMessage[],
-  subAgentExecutions: readonly SubAgentExecution[],
+  subAgentExecutions: readonly SubAgentRun[],
   ledger: readonly DeniedLedgerEntry[],
   turnStartMessageIndex: number,
   workspaceRoot?: string,

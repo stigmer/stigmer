@@ -399,7 +399,7 @@ export class BillingClient {
   /**
    * Retrieve an aggregated billing usage report for a date range.
    *
-   * Returns total provider cost, total billable amount, execution
+   * Returns total provider cost, total billable amount, run
    * and LLM call counts, and a per-model breakdown with cost tier
    * attribution. Data is sourced from the `llm_call_usage_record`
    * collection (proxy-observed, tamper-proof).

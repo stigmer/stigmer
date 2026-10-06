@@ -125,7 +125,7 @@ export interface EnvVarFormProps {
  *
  * A "Save for future runs" toggle (on by default) lets the user
  * choose between persisting secrets to their personal environment
- * or using them for a single execution only. The toggle state is
+ * or using them for a single run only. The toggle state is
  * reported via `onSubmit` so the caller can route to the
  * appropriate codepath.
  *

@@ -2,7 +2,7 @@
 // confirmation prompt, then delete it. Mirrors the Go CLI's unified delete,
 // including its three special cases:
 //
-//   - execution  → maps to a *cancel* (agent executions only, by ID)
+//   - run        → maps to a *cancel* (agent runs only, by ID)
 //   - organization → not org-scoped; resolved via findMyOrganizations
 //   - api_key    → addressable by ID only (not slug)
 //
@@ -18,18 +18,18 @@
 // to delete and *how* to describe it.
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { omitsOrganization } from "../client/single-org.js";
 import { CliExitError, ExitCode, UsageError } from "../errors/index.js";
 import { CommandResult } from "../output/index.js";
 import { defaultRegistry, type TypeInfo, Verb } from "../registry/index.js";
 import {
-  cancelAgentExecution,
+  cancelAgentRun,
   formatAgentPhase,
-  isAgentExecutionId,
-  isExecutionAlias,
-} from "./execution.js";
+  isAgentRunId,
+  isRunAlias,
+} from "./runs.js";
 import { fetchResource } from "./get.js";
 import { getterFor } from "./get-bindings.js";
 import { parseReference } from "./reference.js";
@@ -108,7 +108,7 @@ function availableDeleteTypes(): string {
   const wired = [...DELETE_HANDLERS.keys()]
     .map((kind) => defaultRegistry().getByKind(kind)?.singular)
     .filter((singular): singular is string => singular !== undefined);
-  return [...wired, "execution", "organization"].join(", ");
+  return [...wired, "run", "organization"].join(", ");
 }
 
 /**
@@ -127,8 +127,8 @@ export async function planDelete(
   org: string,
   force = false,
 ): Promise<DeletePlan> {
-  if (isExecutionAlias(typeArg)) {
-    return planExecutionCancel(client, reference);
+  if (isRunAlias(typeArg)) {
+    return planRunCancel(client, reference);
   }
 
   const info = defaultRegistry().getByAlias(typeArg);
@@ -230,16 +230,16 @@ async function planOrganizationDelete(
   };
 }
 
-function planExecutionCancel(client: Stigmer, reference: string): DeletePlan {
-  if (!isAgentExecutionId(reference)) {
+function planRunCancel(client: Stigmer, reference: string): DeletePlan {
+  if (!isAgentRunId(reference)) {
     throw new CliExitError(
-      `invalid execution ID: ${reference}\n\nExecutions must be referenced by ID (e.g., aex_01abc123)`,
+      `invalid run ID: ${reference}\n\nRuns must be referenced by ID (e.g., aex_01abc123)`,
       ExitCode.Usage,
     );
   }
 
   const warning = CommandResult.warning(
-    `You are about to cancel execution: ${reference}`,
+    `You are about to cancel run: ${reference}`,
   );
   warning.hint("This will gracefully stop the running agent.");
 
@@ -247,19 +247,19 @@ function planExecutionCancel(client: Stigmer, reference: string): DeletePlan {
     warning,
     confirmPrompt: "Proceed with cancellation? [y/N]",
     perform: async () => {
-      const { execution, wasAlreadyTerminal } = await cancelAgentExecution(
+      const { run, wasAlreadyTerminal } = await cancelAgentRun(
         client,
         reference,
       );
-      const id = execution.metadata?.id ?? "";
+      const id = run.metadata?.id ?? "";
       const status = formatAgentPhase(
-        execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
+        run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED,
       );
 
       const out = wasAlreadyTerminal
-        ? CommandResult.warning("Execution was already in terminal state")
-        : CommandResult.success("Execution cancelled successfully");
-      out.addSection("Execution").field("ID", id).field("Status", status);
+        ? CommandResult.warning("Run was already in terminal state")
+        : CommandResult.success("Run cancelled successfully");
+      out.addSection("Run").field("ID", id).field("Status", status);
       return out;
     },
   };

@@ -4,7 +4,7 @@ import { useCallback, useEffect } from "react";
 import { cn } from "@stigmer/theme";
 import { DialogShell } from "../internal/DialogShell.js";
 import { useExplainWorkflowFlow, type ExplainPhase } from "./useExplainWorkflowFlow.js";
-import { MessageThread } from "../execution/MessageThread.js";
+import { MessageThread } from "../run/MessageThread.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
@@ -98,10 +98,10 @@ export function WorkflowExplainDialog({
           )}
 
           {/* Streaming: show the agent conversation */}
-          {flow.phase === "streaming" && flow.execution && (
+          {flow.phase === "streaming" && flow.run && (
             <MessageThread
-              executions={[]}
-              activeStreamExecution={flow.execution}
+              runs={[]}
+              activeStreamRun={flow.run}
               className="stg:min-h-[100px]"
             />
           )}
@@ -114,10 +114,10 @@ export function WorkflowExplainDialog({
           )}
 
           {/* Complete but no explanation from structured output — show message thread */}
-          {flow.phase === "complete" && !flow.explanation && flow.execution && (
+          {flow.phase === "complete" && !flow.explanation && flow.run && (
             <MessageThread
-              executions={[flow.execution]}
-              activeStreamExecution={null}
+              runs={[flow.run]}
+              activeStreamRun={null}
               className="stg:min-h-[100px]"
             />
           )}

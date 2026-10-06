@@ -10,11 +10,11 @@ import { createContext, useContext } from "react";
  * the adapter at the appropriate lifecycle points. The consumer never
  * needs to know about runner management — it is handled transparently.
  *
- * Sessions and workflow executions have different lifecycles. A session is
+ * Sessions and workflow runs have different lifecycles. A session is
  * a long-lived, multi-turn conversation with no terminal phase, so its
  * worker is tied to whether the session is open (in use): `onSessionOpened`
  * when the session viewer opens it, `onSessionClosed` when it closes. A
- * workflow execution runs to a terminal phase, so its worker is tied to
+ * workflow run runs to a terminal phase, so its worker is tied to
  * creation and completion.
  *
  * Each environment provides its own implementation:
@@ -36,10 +36,10 @@ export interface RunnerAdapter {
    * The adapter should tear down the session's runner worker.
    */
   onSessionClosed(sessionId: string): Promise<void>;
-  /** Called by SDK hooks after a workflow execution is created with executionTarget=LOCAL. */
-  onWorkflowExecutionCreated(executionId: string): Promise<void>;
-  /** Called by SDK hooks when a workflow execution reaches a terminal phase. */
-  onWorkflowExecutionTerminated(executionId: string): Promise<void>;
+  /** Called by SDK hooks after a workflow run is created with executionTarget=LOCAL. */
+  onWorkflowRunCreated(runId: string): Promise<void>;
+  /** Called by SDK hooks when a workflow run reaches a terminal phase. */
+  onWorkflowRunTerminated(runId: string): Promise<void>;
 }
 
 /**

@@ -1,0 +1,264 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentrun.v1;
+
+import "ai/stigmer/agentic/agentrun/v1/enum.proto";
+import "ai/stigmer/agentic/session/v1/enum.proto";
+import "ai/stigmer/agentic/session/v1/workspace.proto";
+import "ai/stigmer/commons/apiresource/field_options.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "buf/validate/validate.proto";
+
+// AgentInvocation is what a caller may ask an agent to do.
+//
+// It is the owner-settable subset of an agent run — the interactive
+// composer's vocabulary (agent, message, harness, workspace,
+// environments, run bounds) minus what an unattended surface makes
+// structurally impossible. Surfaces that trigger agents on someone's
+// behalf embed this message instead of re-deriving the shape:
+// schedules embed it whole; the workflow agent_call task adopts it at
+// the TYPE level (embedding RunConfig and documenting a field-by-field
+// correspondence) because its task config is a kind+Struct authoring
+// DSL whose field names are the YAML keys — see
+// workflow/v1/tasks/agent_call.proto; channels embed RunConfig.
+//
+// @internal
+// An ALLOWLIST by
+// construction: platform-owned run fields (approval_mode,
+// execution_target, the workflow parent link, harness_state_id,
+// auto_approve_all, org/labels/subject) cannot
+// appear here, so embedding surfaces never need a blocklist validator
+// — the rejected alternative was embedding AgentRunSpec /
+// SessionSpec and validating the illegal fields away. Exclusions,
+// each with its reason: runtime_env (plaintext secrets
+// in manifests leak; environments are the vehicle), attachments
+// (one-shot uploads don't recur), mcp_server_usages/skill_refs (the
+// agent blueprint owns its tool set), interaction_mode (Plan mode's
+// deliverable is a plan for a human who isn't there), cursor_mode
+// (runner-owned constant). Surface-specific constraints live in the
+// embedding surface's handlers, never here — e.g. schedules reject
+// local_path workspace sources and enforce agent_ref.org ==
+// metadata.org.
+message AgentInvocation {
+  // Reference to the agent to run.
+  //
+  // A version on the reference (a tag or a content hash) is the version
+  // each run starts on; none, or "latest", runs the agent's current version
+  // when the run starts.
+  //
+  // @internal
+  // Embedding surfaces own the referential invariants: the schedule
+  // requires agent_ref.org == metadata.org (the owning org is the
+  // billing org for every run) and can_edit on this agent at create.
+  // Deletion of the agent does not cascade (house
+  // convention): a dangling reference surfaces at run time as a
+  // failed start, never as a silent stall.
+  ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [
+    (ai.stigmer.commons.apiresource.reference_kind) = agent,
+    (buf.validate.field).required = true,
+    (buf.validate.field).cel = {
+      id: "agent_ref.kind"
+      message: "agent_ref must reference a resource with kind=agent"
+      expression: "this.kind == 40"
+    }
+  ];
+
+  // Prompt the run starts from.
+  //
+  // @internal
+  // The runner injects no current date into any prompt, so
+  // unattended surfaces compose this message plus a fire-context line.
+  // The bound applies to the stored prompt, not the composed message.
+  string message = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 8192
+  }];
+
+  // Execution engine for the run's session. Unspecified: native when
+  // run_config names a model (the engine the model was checked against at
+  // save), else the agent's own engine (AgentSpec.harness), else the
+  // embedding surface's platform default.
+  //
+  // @internal
+  // Graduates from surface platform config (e.g.
+  // stigmer.schedules.session-defaults.harness) to the invocation —
+  // the config demotes from "the only source" to "the default".
+  // Verified before deciding: unattended approval semantics are one
+  // shared contract across both harnesses (approval-policy.ts), so
+  // owner harness choice changes the engine, never the safety
+  // posture. cursor_mode stays runner-owned and is deliberately
+  // absent.
+  ai.stigmer.agentic.session.v1.Harness harness = 3;
+
+  // Workspace the run's session operates on. Empty means no workspace.
+  //
+  // @internal
+  // Maps onto SessionSpec.workspace_entries of the session each run
+  // creates. Unattended surfaces constrain sources in their handlers:
+  // schedules accept git_repo only (no client is connected at fire
+  // time to serve a local_path). Credentials: the
+  // provisioner resolves GITHUB_TOKEN from the merged environment;
+  // for surfaces with no interactive caller the one supported
+  // contract is an org-visibility Environment holding GITHUB_TOKEN
+  // bound via environment_refs — the personal-environment fallback
+  // resolves as-caller and is structurally closed to synthetic
+  // accounts. Public repos need no token.
+  repeated ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4;
+
+  // References to Environment resources whose values are provided to
+  // the runs this invocation creates.
+  //
+  // This is how a tool-using agent becomes runnable unattended: bind
+  // an org-shared environment holding the needed credentials (for
+  // example an MCP server's shared secret), and the runs receive its
+  // values at runtime. The agent itself stays untouched.
+  //
+  // @internal
+  // The AgentShare/AgentChannel/Schedule environment_refs lineage.
+  // Resolution stays with the embedding
+  // surface's pipeline (CreateExecutionContextStep branch, claim-
+  // driven, LOWEST merge priority — runtime_env overrides on key
+  // conflicts). No write-time existence or visibility
+  // check: enforcement lives solely at runtime resolution, which
+  // fails closed.
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [
+    (ai.stigmer.commons.apiresource.reference_kind) = environment,
+    (buf.validate.field).repeated.items.cel = {
+      id: "environment_refs.kind"
+      message: "environment_refs must reference resources with kind=environment"
+      expression: "this.kind == 53"
+    }
+  ];
+
+  // Per-invocation model choice and run bounds. Unset fields fall to the
+  // agent's defaults, then to the lane's operator profile (RunConfig has the
+  // rule).
+  RunConfig run_config = 6;
+}
+
+// RunConfig is the settings message for every run: a model, a speed tier,
+// thinking, and run bounds.
+//
+// The same message is a message's request (AgentRunSpec.run_config),
+// a surface's saved settings (a schedule's invocation, a channel, a share, a
+// workflow agent_call step), an agent author's defaults (AgentSpec.run_config,
+// versioned with the agent), and the settings a turn ran with
+// (AgentRunStatus.run_config). Zero or empty means "not set at this
+// layer".
+//
+// The server resolves a turn's settings once, at create, from three layers,
+// most specific first: the message (or the surface it came through), the
+// agent's defaults, and the lane's operator profile.
+//
+// - Choices. model_name comes from the first layer that names one. When no
+//   layer names one, the model is left to the engine (the native engine's
+//   registry default; Cursor's Auto). service_tier and thinking_mode each
+//   come from the first layer, at or above the model's layer, that sets
+//   them: a less specific layer's tier or thinking was chosen for another
+//   model, so it never lands on this one. Without a model, tier and thinking
+//   come only from the message.
+// - Bounds. max_cost_usd, max_tool_rounds and max_tool_result_chars each take
+//   the smallest positive value any layer sets. An operator profile is a
+//   ceiling the message, the surface and the agent can lower but never
+//   raise.
+// - The agent's choices apply only on the engine its defaults name
+//   (AgentSpec.harness). On a conversation running the other engine the
+//   agent layer gives its bounds alone.
+//
+// Saved settings are self-contained: a surface or an agent that sets
+// service_tier FAST or thinking_mode ENABLED names the model it is for. Only a
+// message may set them alone, to adjust the model it is given.
+//
+// @internal
+// The one resolution is resolveRunConfig in the server's agentrun
+// domain (resolve-run-config.ts); every lane goes through it. An allowlist
+// by construction: per-message intents (interaction_mode, build_from_plan,
+// structured_output_schema) and the lane-owned approval mode are not
+// settings and cannot appear here.
+message RunConfig {
+  // The model each run uses. Example: "claude-sonnet-4-6".
+  string model_name = 1;
+
+  // Maximum estimated cost in USD per run.
+  //
+  // When the run's estimated spend reaches this limit, the run stops with a
+  // "send another message to continue" prompt and ends TERMINATED; the work
+  // done so far is kept. The limit is checked each time the engine reports
+  // its spend, so a run can end somewhat above it. The native harness
+  // reports after every model call, counts a sub-agent's spend toward the
+  // limit, and advises the agent to wrap up at about 80% of the budget; the
+  // Cursor harness gives no warning.
+  //
+  // 0 = not set at this layer. The budget is per message: a follow-up
+  // message, or a run resuming after an approval, starts a fresh count. The
+  // spend is the runner's estimate, reported on
+  // AgentRunStatus.streaming_usage.estimated_cost_usd, not the billed
+  // amount.
+  //
+  // @internal
+  // The turn runtime is the one enforcement for every harness: each usage
+  // report moves its running estimate, and the check there stops the turn at
+  // the limit (backend/services/runner/src/harness/run-turn.ts over
+  // backend/services/runner/src/shared/cost-guard.ts). The native cost
+  // advisory middleware only warns
+  // (backend/services/runner/src/middleware/cost-advisory.ts).
+  double max_cost_usd = 2 [(buf.validate.field).double.gte = 0];
+
+  // Maximum model-to-tools reasoning cycles per message.
+  //
+  // A round is one model response that proposes one or more tool calls,
+  // followed by their execution; parallel tool calls in one response are one
+  // round. When the limit is reached the run stops with a "send another
+  // message to continue" prompt, and the work done so far is kept. The agent
+  // is advised to wrap up at about 80% of the budget.
+  //
+  // 0 = not set at this layer; with no layer setting it the agent runs until
+  // the task completes or loop detection stops a repetitive pattern. When
+  // set, the valid range is 10–1000; values outside it are clamped to the
+  // nearest bound. The budget is per message: a follow-up message, or a run
+  // resuming after an approval, starts a fresh count. Sub-agent rounds are
+  // not counted, and the Cursor harness does not enforce this field.
+  //
+  // @internal
+  // An implementation knob, not a user concept: API-reachable for
+  // operators, deliberately absent from creation forms. The native runner
+  // counts rounds in its execution budget middleware and stops in place of
+  // the next model call (backend/services/runner/src/shared/tool-rounds.ts).
+  int32 max_tool_rounds = 3 [(buf.validate.field).int32.gte = 0];
+
+  // Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
+  //
+  // In workflow YAML the shorthand spellings "standard"/"fast" are
+  // accepted alongside the canonical enum names.
+  //
+  // UNSPECIFIED is not set at this layer; with no layer setting it the run
+  // uses STANDARD, never the provider account default. FAST is valid only
+  // for a model whose registry entry declares a fast pricing variant on the
+  // engine that runs it; validated fail-closed on the resolved settings at
+  // create.
+  ServiceTier service_tier = 4 [(buf.validate.field).enum.defined_only = true];
+
+  // Thinking mode for each run's model calls: disabled (the default) or
+  // enabled, where enabled selects the model's extended-reasoning variant
+  // (billed at base per-token rates — reasoning tokens bill as output).
+  //
+  // In workflow YAML the shorthand spellings "disabled"/"enabled" are
+  // accepted alongside the canonical enum names.
+  //
+  // UNSPECIFIED is not set at this layer; with no layer setting it the run
+  // uses DISABLED, never the provider account default. ENABLED is valid only
+  // for a model whose registry entry declares the thinking capability on the
+  // engine that runs it; validated fail-closed on the resolved settings at
+  // create. Combines freely with service_tier.
+  ThinkingMode thinking_mode = 5 [(buf.validate.field).enum.defined_only = true];
+
+  // Maximum number of characters for a single tool result before truncation.
+  // When a tool result exceeds this limit, it is truncated and a marker is
+  // appended: "[truncated — result exceeded {limit} chars, ask for specific sections]"
+  //
+  // 0 = not set at this layer; with no layer setting it the platform default
+  // applies (30,000 chars, about 7,500 tokens). Applies to all tool results
+  // (shell, read, write, MCP tools), except built-in tools that already
+  // manage their output size.
+  int32 max_tool_result_chars = 6 [(buf.validate.field).int32.gte = 0];
+}

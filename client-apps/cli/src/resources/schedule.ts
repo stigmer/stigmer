@@ -61,8 +61,8 @@ async function loadSchedule(stigmer: Stigmer, ref: string, org: string): Promise
  * Resolve `ref` (a `sch_…` id, `org/slug`, or bare slug against `org`) and
  * fire it once, immediately.
  *
- * The fire is SYNCHRONOUS: the RPC runs the full execution create pipeline
- * and the result names the run's real outcome — the created execution's
+ * The fire is SYNCHRONOUS: the RPC runs the full run create pipeline
+ * and the result names the run's real outcome — the created run's
  * id, or the refusing gate's copy verbatim. A refused run renders as an
  * error result (non-zero exit) so a scripted test fire fails honestly,
  * but the trigger itself succeeded: the fire is recorded in the
@@ -85,8 +85,8 @@ export async function triggerSchedule(stigmer: Stigmer, ref: string, org: string
   if (triggered.outcome === ScheduleRunOutcome.STARTED) {
     const result = CommandResult.success(`Schedule '${name}' fired — run started`);
     const section = result.addSection();
-    section.field("Execution", triggered.executionId);
-    section.field("Watch it", `stigmer get agentexecution ${triggered.executionId}`);
+    section.field("Run", triggered.runId);
+    section.field("Watch it", `stigmer get run ${triggered.runId}`);
     if (schedule.status?.nextFireAt !== undefined) {
       section.field("Next cron fire", timestampDate(schedule.status.nextFireAt).toISOString());
     }

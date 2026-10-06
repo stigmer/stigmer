@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 import {
   BUDGET_THINKING_TOKENS,

@@ -2,14 +2,14 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://stigmer.ai/testdata/hitl/sequence.schema.json",
   "title": "HITL approval-stream sequence scenario",
-  "description": "A cross-edition fixture that replays the stateful, persisted-append approval path: an initial execution state followed by a series of write-site steps. After every step both editions must satisfy the equality-at-every-write-site property (the message-scan projection and the event-stream projection agree) and author the same approval-event lifecycle. Unlike the input->output scenarios/, this exercises the carried-forward stream the production reconciler mutates in place.",
+  "description": "A cross-edition fixture that replays the stateful, persisted-append approval path: an initial run state followed by a series of write-site steps. After every step both editions must satisfy the equality-at-every-write-site property (the message-scan projection and the event-stream projection agree) and author the same approval-event lifecycle. Unlike the input->output scenarios/, this exercises the carried-forward stream the production reconciler mutates in place.",
   "type": "object",
-  "required": ["name", "execution_id", "steps"],
+  "required": ["name", "run_id", "steps"],
   "additionalProperties": false,
   "properties": {
     "name": { "type": "string", "minLength": 1 },
     "description": { "type": "string" },
-    "execution_id": {
+    "run_id": {
       "type": "string",
       "minLength": 1,
       "description": "Stamped on the stream's identity at first seed (informational; never used for correlation). Passed to EnsureApprovalRequests at every step."
@@ -32,18 +32,18 @@
         "status": {
           "type": "object",
           "additionalProperties": false,
-          "description": "The execution state at this write site (protojson). The driver attaches the carried-forward stream before authoring.",
+          "description": "The run state at this write site (protojson). The driver attaches the carried-forward stream before authoring.",
           "properties": {
             "phase": {
               "type": "string",
-              "description": "ExecutionPhase enum constant, e.g. EXECUTION_WAITING_FOR_APPROVAL or EXECUTION_COMPLETED."
+              "description": "ExecutionPhase enum constant, e.g. RUN_WAITING_FOR_APPROVAL or RUN_COMPLETED."
             },
             "messages": {
               "type": "array",
               "description": "AgentMessage protos as protojson.",
               "items": { "type": "object" }
             },
-            "sub_agent_executions": {
+            "sub_agent_runs": {
               "type": "array",
               "description": "SubAgentExecution protos as protojson.",
               "items": { "type": "object" }

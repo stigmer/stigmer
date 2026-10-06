@@ -35,7 +35,7 @@ private static final long serialVersionUID = 0L;
   private MemoryProvenance() {
     agentId_ = "";
     sessionId_ = "";
-    agentExecutionId_ = "";
+    agentRunId_ = "";
     toolCallId_ = "";
   }
 
@@ -151,47 +151,47 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int AGENT_EXECUTION_ID_FIELD_NUMBER = 3;
+  public static final int AGENT_RUN_ID_FIELD_NUMBER = 3;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object agentExecutionId_ = "";
+  private volatile java.lang.Object agentRunId_ = "";
   /**
    * <pre>
-   * ID of the agent execution in which this memory was proposed.
+   * ID of the agent run in which this memory was proposed.
    * </pre>
    *
-   * <code>string agent_execution_id = 3 [json_name = "agentExecutionId"];</code>
-   * @return The agentExecutionId.
+   * <code>string agent_run_id = 3 [json_name = "agentRunId"];</code>
+   * @return The agentRunId.
    */
   @java.lang.Override
-  public java.lang.String getAgentExecutionId() {
-    java.lang.Object ref = agentExecutionId_;
+  public java.lang.String getAgentRunId() {
+    java.lang.Object ref = agentRunId_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      agentExecutionId_ = s;
+      agentRunId_ = s;
       return s;
     }
   }
   /**
    * <pre>
-   * ID of the agent execution in which this memory was proposed.
+   * ID of the agent run in which this memory was proposed.
    * </pre>
    *
-   * <code>string agent_execution_id = 3 [json_name = "agentExecutionId"];</code>
-   * @return The bytes for agentExecutionId.
+   * <code>string agent_run_id = 3 [json_name = "agentRunId"];</code>
+   * @return The bytes for agentRunId.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getAgentExecutionIdBytes() {
-    java.lang.Object ref = agentExecutionId_;
+      getAgentRunIdBytes() {
+    java.lang.Object ref = agentRunId_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      agentExecutionId_ = b;
+      agentRunId_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -265,8 +265,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(sessionId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, sessionId_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentExecutionId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 3, agentExecutionId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentRunId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 3, agentRunId_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(toolCallId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 4, toolCallId_);
@@ -286,8 +286,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(sessionId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, sessionId_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentExecutionId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, agentExecutionId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentRunId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, agentRunId_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(toolCallId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(4, toolCallId_);
@@ -311,8 +311,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getAgentId())) return false;
     if (!getSessionId()
         .equals(other.getSessionId())) return false;
-    if (!getAgentExecutionId()
-        .equals(other.getAgentExecutionId())) return false;
+    if (!getAgentRunId()
+        .equals(other.getAgentRunId())) return false;
     if (!getToolCallId()
         .equals(other.getToolCallId())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -330,8 +330,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getAgentId().hashCode();
     hash = (37 * hash) + SESSION_ID_FIELD_NUMBER;
     hash = (53 * hash) + getSessionId().hashCode();
-    hash = (37 * hash) + AGENT_EXECUTION_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getAgentExecutionId().hashCode();
+    hash = (37 * hash) + AGENT_RUN_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getAgentRunId().hashCode();
     hash = (37 * hash) + TOOL_CALL_ID_FIELD_NUMBER;
     hash = (53 * hash) + getToolCallId().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
@@ -472,7 +472,7 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       agentId_ = "";
       sessionId_ = "";
-      agentExecutionId_ = "";
+      agentRunId_ = "";
       toolCallId_ = "";
       return this;
     }
@@ -514,7 +514,7 @@ private static final long serialVersionUID = 0L;
         result.sessionId_ = sessionId_;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.agentExecutionId_ = agentExecutionId_;
+        result.agentRunId_ = agentRunId_;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.toolCallId_ = toolCallId_;
@@ -543,8 +543,8 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000002;
         onChanged();
       }
-      if (!other.getAgentExecutionId().isEmpty()) {
-        agentExecutionId_ = other.agentExecutionId_;
+      if (!other.getAgentRunId().isEmpty()) {
+        agentRunId_ = other.agentRunId_;
         bitField0_ |= 0x00000004;
         onChanged();
       }
@@ -590,7 +590,7 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 18
             case 26: {
-              agentExecutionId_ = input.readStringRequireUtf8();
+              agentRunId_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000004;
               break;
             } // case 26
@@ -800,22 +800,22 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object agentExecutionId_ = "";
+    private java.lang.Object agentRunId_ = "";
     /**
      * <pre>
-     * ID of the agent execution in which this memory was proposed.
+     * ID of the agent run in which this memory was proposed.
      * </pre>
      *
-     * <code>string agent_execution_id = 3 [json_name = "agentExecutionId"];</code>
-     * @return The agentExecutionId.
+     * <code>string agent_run_id = 3 [json_name = "agentRunId"];</code>
+     * @return The agentRunId.
      */
-    public java.lang.String getAgentExecutionId() {
-      java.lang.Object ref = agentExecutionId_;
+    public java.lang.String getAgentRunId() {
+      java.lang.Object ref = agentRunId_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        agentExecutionId_ = s;
+        agentRunId_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -823,20 +823,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the agent execution in which this memory was proposed.
+     * ID of the agent run in which this memory was proposed.
      * </pre>
      *
-     * <code>string agent_execution_id = 3 [json_name = "agentExecutionId"];</code>
-     * @return The bytes for agentExecutionId.
+     * <code>string agent_run_id = 3 [json_name = "agentRunId"];</code>
+     * @return The bytes for agentRunId.
      */
     public com.google.protobuf.ByteString
-        getAgentExecutionIdBytes() {
-      java.lang.Object ref = agentExecutionId_;
+        getAgentRunIdBytes() {
+      java.lang.Object ref = agentRunId_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        agentExecutionId_ = b;
+        agentRunId_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -844,49 +844,49 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the agent execution in which this memory was proposed.
+     * ID of the agent run in which this memory was proposed.
      * </pre>
      *
-     * <code>string agent_execution_id = 3 [json_name = "agentExecutionId"];</code>
-     * @param value The agentExecutionId to set.
+     * <code>string agent_run_id = 3 [json_name = "agentRunId"];</code>
+     * @param value The agentRunId to set.
      * @return This builder for chaining.
      */
-    public Builder setAgentExecutionId(
+    public Builder setAgentRunId(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      agentExecutionId_ = value;
+      agentRunId_ = value;
       bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * ID of the agent execution in which this memory was proposed.
+     * ID of the agent run in which this memory was proposed.
      * </pre>
      *
-     * <code>string agent_execution_id = 3 [json_name = "agentExecutionId"];</code>
+     * <code>string agent_run_id = 3 [json_name = "agentRunId"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearAgentExecutionId() {
-      agentExecutionId_ = getDefaultInstance().getAgentExecutionId();
+    public Builder clearAgentRunId() {
+      agentRunId_ = getDefaultInstance().getAgentRunId();
       bitField0_ = (bitField0_ & ~0x00000004);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * ID of the agent execution in which this memory was proposed.
+     * ID of the agent run in which this memory was proposed.
      * </pre>
      *
-     * <code>string agent_execution_id = 3 [json_name = "agentExecutionId"];</code>
-     * @param value The bytes for agentExecutionId to set.
+     * <code>string agent_run_id = 3 [json_name = "agentRunId"];</code>
+     * @param value The bytes for agentRunId to set.
      * @return This builder for chaining.
      */
-    public Builder setAgentExecutionIdBytes(
+    public Builder setAgentRunIdBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      agentExecutionId_ = value;
+      agentRunId_ = value;
       bitField0_ |= 0x00000004;
       onChanged();
       return this;

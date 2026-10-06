@@ -10,19 +10,19 @@ import {
 } from "react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 import { cn } from "@stigmer/theme";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   ThreadItemRenderer,
   threadContentColumnClass,
   type MessageThreadSlots,
   type ThreadItem,
   type ThreadContentColumn,
-} from "../execution/MessageThread.js";
-import { FilePathContext, type FilePathContextValue } from "../execution/FilePathContext.js";
-import { SandboxContext, type SandboxContextValue } from "../execution/SandboxContext.js";
-import { ApprovalContext, type ApprovalContextValue } from "../execution/ApprovalContext.js";
-import { FileReviewContext, type FileReviewContextValue } from "../execution/FileReviewContext.js";
+} from "../run/MessageThread.js";
+import { FilePathContext, type FilePathContextValue } from "../run/FilePathContext.js";
+import { SandboxContext, type SandboxContextValue } from "../run/SandboxContext.js";
+import { ApprovalContext, type ApprovalContextValue } from "../run/ApprovalContext.js";
+import { FileReviewContext, type FileReviewContextValue } from "../run/FileReviewContext.js";
 import { DevProfiler, useDomNodeCount } from "./dev/index.js";
 import { JumpToLatestButton } from "./JumpToLatestButton.js";
 import { usePinToLatestOnSignal } from "./useAutoScroll.js";
@@ -55,7 +55,7 @@ export interface VirtualizedThreadProps {
   readonly planBuildPending?: boolean;
   readonly contentColumn?: ThreadContentColumn;
   readonly onRetrySend?: () => void;
-  readonly onRetryExecution?: (message: string) => void;
+  readonly onRetryRun?: (message: string) => void;
   readonly onEditMessage?: (text: string) => void;
   readonly slots?: MessageThreadSlots;
   /** Scroll-on-send counter from `MessageThread` (see `usePinToLatestOnSignal`). */
@@ -127,7 +127,7 @@ export function VirtualizedThread({
   planBuildPending,
   contentColumn,
   onRetrySend,
-  onRetryExecution,
+  onRetryRun,
   onEditMessage,
   slots,
   pinToLatestSignal,
@@ -167,11 +167,11 @@ export function VirtualizedThread({
       planActionsDisabled,
       planBuildPending,
       onRetrySend,
-      onRetryExecution,
+      onRetryRun,
       onEditMessage,
       slots,
     }),
-    [formatToolCallSummary, onApprovalSubmit, submittingApprovalIds, approvalErrors, onBuildFromPlan, onOpenPlan, org, planActionsDisabled, planBuildPending, onRetrySend, onRetryExecution, onEditMessage, slots],
+    [formatToolCallSummary, onApprovalSubmit, submittingApprovalIds, approvalErrors, onBuildFromPlan, onOpenPlan, org, planActionsDisabled, planBuildPending, onRetrySend, onRetryRun, onEditMessage, slots],
   );
 
   return (

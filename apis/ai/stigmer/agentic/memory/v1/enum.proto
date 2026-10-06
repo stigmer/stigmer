@@ -28,7 +28,7 @@ enum MemoryLifecycleState {
   lifecycle_state_proposed = 1;
 
   // Confirmed by the subject. Recalled into the subject's future
-  // eligible executions.
+  // eligible runs.
   lifecycle_state_confirmed = 2;
 
   // Rejected by the subject. Kept for audit, never recalled.

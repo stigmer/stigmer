@@ -23,7 +23,7 @@
  * proxy, which records usage from the wire.
  */
 
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 import type { UsageDelta } from "./types.js";
 

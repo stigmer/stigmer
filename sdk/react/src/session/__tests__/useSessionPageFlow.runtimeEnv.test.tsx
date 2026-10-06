@@ -12,8 +12,8 @@ const mockSendFollowUp = vi.fn();
 const mockConv = {
   session: { spec: {} },
   isLoading: false,
-  completedExecutions: [] as unknown[],
-  activeStreamExecution: null,
+  completedRuns: [] as unknown[],
+  activeStreamRun: null,
   workspaceEntries: [] as unknown[],
   submitApproval: vi.fn(),
   sendFollowUp: mockSendFollowUp,
@@ -48,7 +48,7 @@ const mockSessionVariables = {
   isEmpty: true,
   clear: vi.fn(),
 };
-vi.mock("../../execution/useSessionVariables", () => ({
+vi.mock("../../run/useSessionVariables", () => ({
   useSessionVariables: () => mockSessionVariables,
 }));
 

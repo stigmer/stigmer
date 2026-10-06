@@ -34,14 +34,14 @@ import { createTransport, makeClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { anthropicText, openAiText } from "@stigmer/test-support/llm-wire";
 import { makeAgent, agentRefOf } from "../support/agents";
-import { makeAgentExecution } from "../support/agentexecutions";
+import { makeAgentExecution } from "../support/agentruns";
 import { requireCloudFixtures, type CloudFixturesClient } from "../support/cloud-fixtures-client";
 import { bidiHandshake, HTTP2_REFUSED_STREAM } from "../support/cursor-bidi";
 import { makeMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import { makeSession } from "../support/sessions";
 import { makeWorkflow } from "../support/workflows";
-import { makeWorkflowExecution } from "../support/workflowexecutions";
+import { makeWorkflowExecution } from "../support/workflowruns";
 import { createTarget, type TargetProfile } from "../targets";
 import type { ConformanceClients } from "../harness/clients";
 import type { TenancyContext } from "../targets/target";
@@ -261,7 +261,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
         after = await usageReport(org);
       }
       expect(after.llmCallCount).toBe(before.llmCallCount + 3);
-      expect(after.executionCount).toBe(1);
+      expect(after.runCount).toBe(1);
     });
 
     it("[proxy.llm.usage.mcp-scope-authorized-not-metered] an MCP-server scope is authorized but records no usage", async () => {

@@ -9,7 +9,7 @@ import {
 import type { AgentShareDraft } from "./useSaveAgentShare.js";
 
 /**
- * Readiness of a share's tool credentials for visitor executions.
+ * Readiness of a share's tool credentials for visitor runs.
  *
  * The shared vocabulary lives on {@link ToolCredentialsReadiness}; this
  * alias preserves the original share-scoped export.

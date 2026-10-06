@@ -89,7 +89,7 @@ message IdentityAccountSpec {
 }
 
 // IdentityAccountPreferences holds user-declared defaults that apply to the
-// user's own agent executions.
+// user's own agent runs.
 //
 // @internal
 // Self-service: mutable through the existing update RPC under FGA can_edit
@@ -101,16 +101,16 @@ message IdentityAccountSpec {
 // The structured default fields (default_harness, default_*_model) are
 // CLIENT-READ seeds: clients read them
 // to prefill the composer / fill an omitted CLI --model, and the chosen
-// value rides the execution spec explicitly. The server never substitutes
-// them at execution create. Precedence at the consuming client: explicit
+// value rides the run spec explicitly. The server never substitutes
+// them at run create. Precedence at the consuming client: explicit
 // device-local pick > these account defaults > platform default.
 message IdentityAccountPreferences {
   // Free-text standing context injected into this user's eligible agent
-  // executions. Example: "Keep answers terse."
+  // runs. Example: "Keep answers terse."
   //
   // @internal
   // Snapshotted verbatim into
-  // AgentExecutionStatus.declared_preferences.user_context at execution create
+  // AgentRunStatus.declared_preferences.user_context at run create
   // (first-party human operators only). The runner
   // frames it as context, not instructions that override the task.
   string standing_context = 1 [(buf.validate.field).string.max_len = 2000];
@@ -165,7 +165,7 @@ message IdentityAccountPreferences {
   // every edition); the single-operator posture (trusted-local) reads the
   // org flag alone, its one operator being the org's decider
   // (stigmer#1387). Toggling off stops capture and recall from the next
-  // execution on;
+  // run on;
   // existing records remain until the subject deletes them (deletion is
   // the retention mechanism).
   bool memory_enabled = 5;
@@ -176,9 +176,9 @@ message IdentityAccountPreferences {
   // @internal
   // A CLIENT-READ seed like default_harness/default_*_model: clients read
   // it to seed the session-scoped
-  // auto-approve state, and an armed session rides each execution spec
+  // auto-approve state, and an armed session rides each run spec
   // explicitly (spec.auto_approve_all). The server NEVER reads
-  // this field at execution create — it is a UI default, not a server-side
+  // this field at run create — it is a UI default, not a server-side
   // blanket grant. Client precedence: explicit in-session flip > this
   // account default > the host app's StigmerProvider approvalDefaults >
   // fail-closed (gated). Never applied to guest/observer surfaces.

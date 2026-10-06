@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useBreadcrumbLabel } from "@stigmer/react";
 
 const SEGMENT_LABELS: Record<string, string> = {
-  executions: "Executions",
+  runs: "Runs",
 };
 
 export function WorkflowBreadcrumb() {
