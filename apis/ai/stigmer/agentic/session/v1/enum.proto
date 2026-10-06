@@ -16,7 +16,7 @@ enum GitWriteBackMode {
   // setting. Set an explicit mode to override the platform default.
   GIT_WRITE_BACK_MODE_UNSPECIFIED = 0;
 
-  // Create a branch and pull request from the agent's file changes after execution completes.
+  // Create a branch and pull request from the agent's file changes after the run completes.
   //
   // @internal
   // The platform automatically detects uncommitted changes via git diff,
@@ -59,7 +59,7 @@ enum Harness {
 //
 // Determines whether the runner that processes agent activities lives on the
 // client's machine (desktop app or CLI) or in a cloud-provisioned sandbox.
-// Set at session creation time and immutable once an execution has run —
+// Set at session creation time and immutable once a run has started —
 // workspace state may not be portable between local and cloud environments.
 //
 // @internal
@@ -81,7 +81,7 @@ enum ExecutionTarget {
   // session's task queue. No server-side provisioning needed.
   EXECUTION_TARGET_LOCAL = 1;
 
-  // Server provisions a cloud sandbox for run.
+  // Server provisions a cloud sandbox for execution.
   //
   // The control plane triggers EnsureSessionSandbox to create an isolated
   // environment with a runner polling the session's task queue.

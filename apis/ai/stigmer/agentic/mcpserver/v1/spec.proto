@@ -56,7 +56,7 @@ message McpServerSpec {
   //   STIGMER_SESSION_ID            — the session the identity was
   //       resolved for; empty outside a session
   // Reserved keys MUST be declared `optional: true`: they have no value at
-  // execution-create time, and a required declaration fails the pipeline's
+  // run-create time, and a required declaration fails the pipeline's
   // env-completeness validation before the runner ever injects them.
   // Discovery (the connect workflow) runs with no session and injects the
   // anonymous sentinel — a server consuming these keys must answer
@@ -225,9 +225,9 @@ message HttpServerConfig {
 // is recorded on the OAuthGrant for all subsequent reads and refreshes.
 //
 // Token lifecycle:
-// - Pre-flight check before execution: if the access token is expired,
+// - Pre-flight check before a run: if the access token is expired,
 //   the backend uses the refresh token to obtain a new one automatically.
-// - If the refresh token is also expired: execution fails with a clear
+// - If the refresh token is also expired: run fails with a clear
 //   error, and the user re-authenticates from the MCP server Connect page.
 message McpServerAuth {
   // Reference to an OAuthApp for vendor-specific OAuth.

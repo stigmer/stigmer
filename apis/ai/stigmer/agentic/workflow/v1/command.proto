@@ -18,7 +18,7 @@ service WorkflowCommandController {
   //
   // @internal
   // The authorization and state-operation are determined depending on whether the workflow
-  // is going to be created or updated which is determined as part of the request run.
+  // is going to be created or updated which is determined as part of the request execution.
   rpc apply(Workflow) returns (Workflow);
 
   // Create a workflow.
@@ -70,10 +70,10 @@ service WorkflowCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update workflow visibility";
   }
 
-  // Update who can observe the runs (executions) of this workflow.
+  // Update who can observe the runs of this workflow.
   //
   // This is a SEPARATE axis from updateVisibility: it controls run
-  // observability (who sees execution inputs and outputs), not who can see or
+  // observability (who sees run inputs and outputs), not who can see or
   // run the workflow itself. Making a workflow org-runnable does NOT expose
   // other people's runs; that requires this opt-in. The setting covers every
   // run of the workflow, past runs included.

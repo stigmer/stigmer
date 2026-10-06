@@ -18,8 +18,8 @@ McpServer ──► Referenced by Agent or Session ──► Keys resolved per r
 |---|---|
 | **McpServer** | Declares server type, connection details and required env vars. The reusable template. |
 | **Agent** | References one or more McpServers via `mcp_server_usages`. Optionally narrows their tools with its `tools` and `disallowed_tools` lists. |
-| **Run (AgentExecution)** | Resolves the keys each referenced McpServer declares when it starts: from the Environments bound to the schedule, workflow task or PlatformClient that started it, from `runtime_env`, then OAuth tokens and the personal environment of the person who sent the message for keys still missing. |
-| **Agent Runner** | Resolves each McpServer reference at execution time, passes each server the keys it declares, and starts or connects to the server process. |
+| **Run (AgentRun)** | Resolves the keys each referenced McpServer declares when it starts: from the Environments bound to the schedule, workflow task or PlatformClient that started it, from `runtime_env`, then OAuth tokens and the personal environment of the person who sent the message for keys still missing. |
+| **Agent Runner** | Resolves each McpServer reference at run time, passes each server the keys it declares, and starts or connects to the server process. |
 
 The McpServer resource itself contains **no secrets** — only the schema of what credentials are needed (`env_spec`). Actual values are supplied when each run starts, from the sources above. This makes McpServer definitions safe to store in version control and to carry in a plugin.
 

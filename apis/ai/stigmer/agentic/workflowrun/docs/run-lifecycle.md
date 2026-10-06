@@ -1,22 +1,22 @@
-# Execution Lifecycle
+# Run Lifecycle
 
-The phase state machine for WorkflowExecution — all phases, transitions, and lifecycle control operations.
+The phase state machine for WorkflowRun — all phases, transitions, and lifecycle control operations.
 
 ---
 
 ## Phase State Machine
 
-Every WorkflowExecution moves through a defined set of phases. The phase is stored in `status.phase` and updated in real time by the workflow execution engine.
+Every WorkflowRun moves through a defined set of phases. The phase is stored in `status.phase` and updated in real time by the workflow execution engine.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         EXECUTION_PENDING                                    │
+│                         RUN_PENDING                                          │
 │                (created, queued, Temporal picks up)                          │
 └────────────────────────────┬────────────────────────────────────────────────┘
                               │ Temporal starts workflow
                               ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                       EXECUTION_IN_PROGRESS                   ◄─────────────┼──────┐
+│                       RUN_IN_PROGRESS                         ◄─────────────┼──────┐
 │             (tasks executing sequentially or in parallel)                    │      │
 └───────┬──────────────┬──────────────┬───────────────┬───────────────────────┘      │
         │              │              │               │                               │
@@ -24,14 +24,14 @@ Every WorkflowExecution moves through a defined set of phases. The phase is stor
         │              │      gate   │    complete   │                               │
         ▼              ▼      hit    ▼               ▼                               │
 ┌──────────────┐ ┌──────────────┐  ┌──────────────────────────────┐                 │
-│ EXECUTION_   │ │ EXECUTION_   │  │ EXECUTION_WAITING_APPROVAL   │─────────────────┘
+│ RUN_         │ │ RUN_         │  │ RUN_WAITING_APPROVAL         │─────────────────┘
 │ PAUSED       │ │ CANCELLED    │  │ (task waiting for child agent │
 │ (checkpoint  │ │ (graceful,   │  │  HITL approval; non-terminal) │
 │  saved;      │ │  terminal)   │  └──────────────────────────────┘
 │  resumable)  │ └──────────────┘             │ reject (child)
 └──────┬───────┘                              ▼
        │                           ┌──────────────────────────┐
-resume()│                          │    EXECUTION_FAILED      │◄─── terminate() gives
+resume()│                          │    RUN_FAILED            │◄─── terminate() gives
        │                           │ (error, rejection, crash) │       TERMINATED
        └──────────────────────────►│                          │
                 (back to           └────────────┬─────────────┘
@@ -41,12 +41,12 @@ resume()│                          │    EXECUTION_FAILED      │◄──�
                                      from last checkpoint)
 
      ┌────────────────────────────────────────────────────────────────────┐
-     │                    EXECUTION_TERMINATED                             │
+     │                    RUN_TERMINATED                                   │
      │  (force-killed via terminate(); no cleanup, no recovery)           │
      └────────────────────────────────────────────────────────────────────┘
 
      ┌────────────────────────────────────────────────────────────────────┐
-     │                    EXECUTION_COMPLETED                              │
+     │                    RUN_COMPLETED                                    │
      │         (all tasks succeeded, status.output populated)             │
      └────────────────────────────────────────────────────────────────────┘
 ```
@@ -57,21 +57,21 @@ resume()│                          │    EXECUTION_FAILED      │◄──�
 
 | Phase | Enum Value | Terminal? | Description |
 |---|---|---|---|
-| `EXECUTION_PENDING` | 1 | No | Created, queued, waiting for Temporal to pick up. Typical duration: < 1 second. |
-| `EXECUTION_IN_PROGRESS` | 2 | No | Tasks are actively executing. `status.tasks` is updated in real time. |
-| `EXECUTION_COMPLETED` | 3 | **Yes** | All tasks finished successfully. `status.output` is populated. |
-| `EXECUTION_FAILED` | 4 | **Yes** | One or more tasks failed or an unrecoverable error occurred. `status.error` is populated. Can be recovered. |
-| `EXECUTION_CANCELLED` | 5 | **Yes** | Stopped gracefully via `cancel`. Workflow had opportunity to clean up. Cannot be recovered. |
-| `EXECUTION_TERMINATED` | 6 | **Yes** | Force-killed via `terminate`. No cleanup executed. Cannot be recovered. |
-| `EXECUTION_PAUSED` | 7 | No | Temporarily stopped via `pause`. Checkpoint saved. Can be resumed from exact pause point. |
+| `RUN_PENDING` | 1 | No | Created, queued, waiting for Temporal to pick up. Typical duration: < 1 second. |
+| `RUN_IN_PROGRESS` | 2 | No | Tasks are actively executing. `status.tasks` is updated in real time. |
+| `RUN_COMPLETED` | 3 | **Yes** | All tasks finished successfully. `status.output` is populated. |
+| `RUN_FAILED` | 4 | **Yes** | One or more tasks failed or an unrecoverable error occurred. `status.error` is populated. Can be recovered. |
+| `RUN_CANCELLED` | 5 | **Yes** | Stopped gracefully via `cancel`. Workflow had opportunity to clean up. Cannot be recovered. |
+| `RUN_TERMINATED` | 6 | **Yes** | Force-killed via `terminate`. No cleanup executed. Cannot be recovered. |
+| `RUN_PAUSED` | 7 | No | Temporarily stopped via `pause`. Checkpoint saved. Can be resumed from exact pause point. |
 
 **Terminal states** — once reached, the phase does not change again:
 - `COMPLETED`, `FAILED`, `CANCELLED`, `TERMINATED`
 
-**Non-terminal states** — execution can continue from these:
+**Non-terminal states** — run can continue from these:
 - `PENDING`, `IN_PROGRESS`, `PAUSED`
 
-Note: Unlike AgentExecution, WorkflowExecution does not have an `EXECUTION_WAITING_FOR_APPROVAL` phase at the workflow level. Instead, the child agent's approval is surfaced via `status.pending_approvals` and the blocked task gets status `WORKFLOW_TASK_WAITING_APPROVAL`. The workflow phase remains `EXECUTION_IN_PROGRESS`.
+Note: Unlike AgentRun, WorkflowRun does not have an `RUN_WAITING_FOR_APPROVAL` phase at the workflow level. Instead, the child agent's approval is surfaced via `status.pending_approvals` and the blocked task gets status `WORKFLOW_TASK_WAITING_APPROVAL`. The workflow phase remains `RUN_IN_PROGRESS`.
 
 ---
 
@@ -107,32 +107,32 @@ WORKFLOW_TASK_IN_PROGRESS → WORKFLOW_TASK_WAITING_APPROVAL → WORKFLOW_TASK_I
 
 ## Lifecycle Control Operations
 
-Stigmer exposes seven control operations for managing running workflow executions. All operations are idempotent — calling an operation on an execution already in the target state succeeds as a no-op.
+Stigmer exposes seven control operations for managing running workflow runs. All operations are idempotent — calling an operation on a run already in the target state succeeds as a no-op.
 
 ### `cancel` — Graceful Stop
 
-Sends a cancellation signal to the Temporal workflow. The workflow code can handle the signal to perform cleanup (compensation logic, resource cleanup, notifications) before transitioning to `EXECUTION_CANCELLED`.
+Sends a cancellation signal to the Temporal workflow. The workflow code can handle the signal to perform cleanup (compensation logic, resource cleanup, notifications) before transitioning to `RUN_CANCELLED`.
 
 ```bash
-stigmer cancel workflow-execution wfx-abc123xyz456 \
+stigmer cancel workflow-run wfx-abc123xyz456 \
   --reason "Customer cancelled their order"
 ```
 
 **Preconditions:**
-- Execution must be in `EXECUTION_PENDING` or `EXECUTION_IN_PROGRESS`
-- Cannot cancel terminal executions
+- Run must be in `RUN_PENDING` or `RUN_IN_PROGRESS`
+- Cannot cancel terminal runs
 
 **What happens:**
 1. Temporal `CancelWorkflow` API is called
 2. Workflow code receives the cancellation context
 3. Workflow has opportunity to run cleanup/compensation logic
-4. `status.phase` → `EXECUTION_CANCELLED`
+4. `status.phase` → `RUN_CANCELLED`
 5. `status.completed_at` is set
 6. In-progress tasks may complete cleanup or be interrupted
 
 **After cancellation:**
-- Execution is terminal — it cannot be recovered
-- To re-run the work, create a new WorkflowExecution
+- Run is terminal — it cannot be recovered
+- To re-run the work, create a new WorkflowRun
 
 ---
 
@@ -141,24 +141,24 @@ stigmer cancel workflow-execution wfx-abc123xyz456 \
 Force-kills the Temporal workflow immediately via `TerminateWorkflow`. The workflow code receives no signal and cannot clean up. Use only for stuck or unresponsive workflows that do not respond to `cancel`.
 
 ```bash
-stigmer terminate workflow-execution wfx-abc123xyz456 \
+stigmer terminate workflow-run wfx-abc123xyz456 \
   --reason "Workflow stuck for 2 hours, not responding to cancel"
 ```
 
 **Preconditions:**
-- Execution must be in `EXECUTION_PENDING` or `EXECUTION_IN_PROGRESS`
-- Cannot terminate terminal executions
+- Run must be in `RUN_PENDING` or `RUN_IN_PROGRESS`
+- Cannot terminate terminal runs
 
 **What happens:**
 1. Temporal `TerminateWorkflow` API is called (no signal to workflow code)
 2. All in-progress tasks are stopped abruptly
 3. No cleanup callbacks or defer blocks execute
-4. `status.phase` → `EXECUTION_TERMINATED`
+4. `status.phase` → `RUN_TERMINATED`
 5. `status.completed_at` is set
 6. `status.error` may contain termination reason
 
 **After termination:**
-- `TERMINATED` executions cannot be recovered
+- `TERMINATED` runs cannot be recovered
 
 ---
 
@@ -185,21 +185,21 @@ stigmer terminate workflow-execution wfx-abc123xyz456 \
 Sends a "pause" signal to the Temporal workflow. Running activities are gracefully cancelled and checkpoints are saved. The workflow waits for a "resume" signal — no compute resources are consumed while paused.
 
 ```bash
-stigmer pause workflow-execution wfx-abc123xyz456 \
+stigmer pause workflow-run wfx-abc123xyz456 \
   --reason "Pausing for scheduled maintenance window"
 ```
 
 **Preconditions:**
-- Execution must be in `EXECUTION_PENDING` or `EXECUTION_IN_PROGRESS`
-- Cannot pause terminal or already-paused executions
+- Run must be in `RUN_PENDING` or `RUN_IN_PROGRESS`
+- Cannot pause terminal or already-paused runs
 
 **What happens:**
 1. "pause" signal is sent to the Temporal workflow
 2. Running activities are gracefully cancelled
 3. Checkpoints are saved (LangGraph `thread_id` preserved for agent activities)
-4. `status.phase` → `EXECUTION_PAUSED`
+4. `status.phase` → `RUN_PAUSED`
 5. Workflow enters a wait state (no resources consumed)
-6. `status.completed_at` is **not** set (execution is not finished)
+6. `status.completed_at` is **not** set (run is not finished)
 
 ---
 
@@ -208,19 +208,19 @@ stigmer pause workflow-execution wfx-abc123xyz456 \
 Sends a "resume" signal to the paused Temporal workflow. The workflow re-invokes activities with the same execution context; LangGraph loads the checkpoint automatically and continues from the exact pause point.
 
 ```bash
-stigmer resume workflow-execution wfx-abc123xyz456
+stigmer resume workflow-run wfx-abc123xyz456
 ```
 
 **Preconditions:**
-- Execution must be in `EXECUTION_PAUSED`
+- Run must be in `RUN_PAUSED`
 
 **What happens:**
 1. "resume" signal is sent to the waiting Temporal workflow
 2. Workflow unblocks from its wait state
 3. Activities are re-invoked with the same `thread_id`
 4. LangGraph loads checkpoint from saved state
-5. `status.phase` → `EXECUTION_IN_PROGRESS`
-6. Execution continues from exactly where it was paused
+5. `status.phase` → `RUN_IN_PROGRESS`
+6. Run continues from exactly where it was paused
 
 ---
 
@@ -238,22 +238,22 @@ stigmer resume workflow-execution wfx-abc123xyz456
 
 ### `recover` — Resume from Failure
 
-Uses Temporal's `ResetWorkflow` to resume a `FAILED` execution from its last successful checkpoint. Completed work is preserved — successful tasks are not re-executed.
+Uses Temporal's `ResetWorkflow` to resume a `FAILED` run from its last successful checkpoint. Completed work is preserved — successful tasks are not re-executed.
 
 ```bash
-stigmer recover workflow-execution wfx-abc123xyz456 \
+stigmer recover workflow-run wfx-abc123xyz456 \
   --reason "Stripe API recovered, resuming payment processing"
 ```
 
 **Preconditions:**
-- Execution must be in `EXECUTION_FAILED`
-- `TERMINATED` executions cannot be recovered (no clean checkpoint)
-- `CANCELLED` executions cannot be recovered (intentional user action)
+- Run must be in `RUN_FAILED`
+- `TERMINATED` runs cannot be recovered (no clean checkpoint)
+- `CANCELLED` runs cannot be recovered (intentional user action)
 
 **What happens:**
 1. Temporal `ResetWorkflow` is called from the last successful checkpoint
 2. New Temporal run is created in the same workflow ID chain
-3. `status.phase` → `EXECUTION_IN_PROGRESS`
+3. `status.phase` → `RUN_IN_PROGRESS`
 4. `status.completed_at` is cleared
 5. `status.error` is cleared
 6. Completed tasks are preserved — workflow continues from failure point
@@ -265,28 +265,28 @@ stigmer recover workflow-execution wfx-abc123xyz456 \
 
 ### Recovery vs. Restart
 
-| Aspect | `recover` | Create new execution |
+| Aspect | `recover` | Create new run |
 |---|---|---|
 | Completed work | Preserved | Lost (re-executed) |
 | Side effects | Not duplicated | May duplicate |
-| Execution ID | Same | New ID |
+| Run ID | Same | New ID |
 | Use case | Resume after fix | Start fresh |
 
 ---
 
 ### `sendSignal` — Deliver External Event
 
-Delivers a named signal to a running workflow execution. Used to unblock `LISTEN` tasks that are waiting for an external event. Uses Temporal's `SignalWithStart` API internally for race-proof delivery.
+Delivers a named signal to a running workflow run. Used to unblock `LISTEN` tasks that are waiting for an external event. Uses Temporal's `SignalWithStart` API internally for race-proof delivery.
 
 ```bash
-stigmer signal workflow-execution wfx-abc123xyz456 \
+stigmer signal workflow-run wfx-abc123xyz456 \
   --signal payment_confirmed \
   --payload '{"transaction_id": "txn_123", "amount": 99.99, "currency": "USD"}'
 ```
 
 **Preconditions:**
-- Execution must be in `EXECUTION_PENDING` or `EXECUTION_IN_PROGRESS`
-- Cannot signal terminal executions
+- Run must be in `RUN_PENDING` or `RUN_IN_PROGRESS`
+- Cannot signal terminal runs
 
 **Signal matching:** The `--signal` value must match the signal ID defined in the workflow's `LISTEN` task:
 
@@ -306,7 +306,7 @@ stigmer signal workflow-execution wfx-abc123xyz456 \
 **Idempotency:** Pass `--idempotency-key` to prevent duplicate signal delivery from webhook retries:
 
 ```bash
-stigmer signal workflow-execution wfx-abc123xyz456 \
+stigmer signal workflow-run wfx-abc123xyz456 \
   --signal payment_confirmed \
   --payload '{"transaction_id": "txn_123"}' \
   --idempotency-key "stripe:evt_1NqZP92eZvKYlo2CqOc7XYRT"
@@ -318,26 +318,26 @@ Duplicate signals with the same idempotency key (within 24 hours) return the ori
 
 ## Observability
 
-The execution phase is reflected in:
+The run phase is reflected in:
 
 - `status.phase` on every `get` or `list` response
-- Real-time streaming via the `subscribe` RPC — clients receive updated `WorkflowExecution` messages as the phase changes
+- Real-time streaming via the `subscribe` RPC — clients receive updated `WorkflowRun` messages as the phase changes
 - `status.started_at` and `status.completed_at` timestamps for duration measurement
 - `status.error` populated on `FAILED` and `TERMINATED` with the failure reason
 - `status.tasks[].status` for task-level granularity
 
 ### Real-Time Subscription
 
-Subscribe to live execution updates with the `subscribe` RPC:
+Subscribe to live run updates with the `subscribe` RPC:
 
 ```bash
-stigmer watch workflow-execution wfx-abc123xyz456
+stigmer watch workflow-run wfx-abc123xyz456
 ```
 
-The stream sends a complete `WorkflowExecution` resource on each state change:
+The stream sends a complete `WorkflowRun` resource on each state change:
 1. Initial message: current state when subscription is opened
 2. Subsequent messages: sent on every phase change, task status change, or output update
-3. Stream closes automatically when execution reaches a terminal state
+3. Stream closes automatically when the run reaches a terminal state
 
 Stream update types (for WebSocket/SSE clients):
 

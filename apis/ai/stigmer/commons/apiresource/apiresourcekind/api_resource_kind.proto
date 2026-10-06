@@ -644,7 +644,7 @@ enum ApiResourceKind {
       // The workflow link is REQUIRED, not cosmetic: a run inherits opt-in
       // org run observability via `run_viewer from workflow` (see
       // workflow_run.fga). Without this parent tuple the inheritance
-      // has nothing to traverse, so enabling a workflow's execution
+      // has nothing to traverse, so enabling a workflow's run
       // visibility would silently fail to expose its runs. Mirrors
       // agent_run's session parent (there via PARENT scope).
       additional_parents: [
@@ -677,7 +677,7 @@ enum ApiResourceKind {
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
       requires_creator_tuple: true
       // ORG is the ceiling: org visibility shares the environment with the
-      // owning org (members see redacted values; executions in the org may
+      // owning org (members see redacted values; runs in the org may
       // use the values at runtime). Secret reveal stays creator-only at
       // every level. public/platform are deliberately absent — secret
       // values must never be resolvable across the org boundary, and

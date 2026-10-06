@@ -1,12 +1,12 @@
-# WorkflowExecution Examples
+# WorkflowRun Examples
 
-Complete examples from minimal workflow triggers to multi-task pipeline monitoring, HITL approval flows, and signal-driven executions.
+Complete examples from minimal workflow triggers to multi-task pipeline monitoring, HITL approval flows, and signal-driven runs.
 
 ---
 
 ## Example 1: Minimal Workflow Trigger
 
-The simplest possible WorkflowExecution — trigger a workflow with no input message and let it run.
+The simplest possible WorkflowRun — trigger a workflow with no input message and let it run.
 
 ```bash
 # Run the workflow by slug; the run names its workflow and pins its current version
@@ -17,7 +17,7 @@ The resulting resource:
 
 ```yaml
 api_version: agentic.stigmer.ai/v1
-kind: WorkflowExecution
+kind: WorkflowRun
 metadata:
   id: wfx-1a2b3c4d5e6f
   name: customer-onboarding-20250111-143022
@@ -25,7 +25,7 @@ metadata:
 spec:
   workflow_id: wfl_01customeronboarding
 status:
-  phase: EXECUTION_PENDING
+  phase: RUN_PENDING
   workflow_version_hash: 3f9a1c...
   audit:
     created_at: "2025-01-11T14:30:22Z"
@@ -36,11 +36,11 @@ status:
 
 ## Example 2: API-Triggered Customer Onboarding
 
-A complete workflow execution triggered via API with a trigger message, metadata, and runtime environment overrides.
+A complete workflow run triggered via API with a trigger message, metadata, and runtime environment overrides.
 
 ```yaml
 api_version: agentic.stigmer.ai/v1
-kind: WorkflowExecution
+kind: WorkflowRun
 metadata:
   name: customer-onboarding-20250111-143022
   org: acme-corp
@@ -67,7 +67,7 @@ spec:
 Apply with:
 
 ```bash
-stigmer apply workflow-execution.yaml
+stigmer apply workflow-run.yaml
 ```
 
 Or trigger directly:
@@ -85,17 +85,17 @@ stigmer run workflow customer-onboarding \
 
 ```bash
 # Poll for status
-stigmer get workflow-execution wfx-1a2b3c4d5e6f --output yaml
+stigmer get workflow-run wfx-1a2b3c4d5e6f --output yaml
 
 # Subscribe to live updates
-stigmer watch workflow-execution wfx-1a2b3c4d5e6f
+stigmer watch workflow-run wfx-1a2b3c4d5e6f
 ```
 
-**Mid-execution state (task 1 complete, task 2 in progress):**
+**Mid-run state (task 1 complete, task 2 in progress):**
 
 ```yaml
 status:
-  phase: EXECUTION_IN_PROGRESS
+  phase: RUN_IN_PROGRESS
   tasks:
     - task_id: task-1
       task_name: Validate customer email
@@ -135,7 +135,7 @@ status:
 
 ```yaml
 status:
-  phase: EXECUTION_COMPLETED
+  phase: RUN_COMPLETED
   tasks:
     - task_id: task-1
       status: WORKFLOW_TASK_COMPLETED
@@ -168,13 +168,13 @@ status:
 
 ---
 
-## Example 3: Webhook-Triggered Execution
+## Example 3: Webhook-Triggered Run
 
 A Stripe webhook fires when a payment succeeds, triggering a workflow to process the order.
 
 ```yaml
 api_version: agentic.stigmer.ai/v1
-kind: WorkflowExecution
+kind: WorkflowRun
 metadata:
   name: order-fulfillment-20250111-143025
   org: acme-corp
@@ -211,11 +211,11 @@ stigmer run workflow content-analysis \
   --watch
 ```
 
-**Mid-execution — agent task in progress:**
+**Mid-run — agent task in progress:**
 
 ```yaml
 status:
-  phase: EXECUTION_IN_PROGRESS
+  phase: RUN_IN_PROGRESS
   tasks:
     - task_id: task-1
       task_name: Fetch feedback from Zendesk
@@ -238,7 +238,7 @@ status:
         agent: content-analyzer
         prompt: "Analyze sentiment of these 2 support tickets: ..."
       metadata:
-        agent_execution_id: agx-analyzer-001
+        agent_run_id: agx-analyzer-001
       started_at: "2025-01-11T14:30:25Z"
 ```
 
@@ -250,7 +250,7 @@ status:
       task_type: WORKFLOW_TASK_AGENT_INVOCATION
       status: WORKFLOW_TASK_COMPLETED
       output:
-        agent_execution_id: agx-analyzer-001
+        agent_run_id: agx-analyzer-001
         response: "Overall sentiment is positive (72%). Key themes: product quality (positive), response time (negative)."
         sentiment_score: 0.72
         themes:
@@ -261,7 +261,7 @@ status:
             sentiment: negative
             count: 1
       metadata:
-        agent_execution_id: agx-analyzer-001
+        agent_run_id: agx-analyzer-001
         tokens_used: 1240
         model: gpt-4o
       started_at: "2025-01-11T14:30:25Z"
@@ -274,11 +274,11 @@ status:
 
 A workflow with conditional logic — branches differently based on email validation result.
 
-**Execution where email is invalid:**
+**Run where email is invalid:**
 
 ```yaml
 status:
-  phase: EXECUTION_COMPLETED
+  phase: RUN_COMPLETED
   tasks:
     - task_id: task-1
       task_name: Validate email
@@ -338,11 +338,11 @@ stigmer run workflow multi-channel-notify \
   --env SLACK_CHANNEL="#ops-alerts"
 ```
 
-**Mid-execution — parallel tasks running:**
+**Mid-run — parallel tasks running:**
 
 ```yaml
 status:
-  phase: EXECUTION_IN_PROGRESS
+  phase: RUN_IN_PROGRESS
   tasks:
     - task_id: task-1
       task_name: Send notifications in parallel
@@ -413,7 +413,7 @@ stigmer run workflow deploy-to-production \
 
 ```yaml
 status:
-  phase: EXECUTION_IN_PROGRESS
+  phase: RUN_IN_PROGRESS
   tasks:
     - task_id: task-1
       task_name: Run test suite
@@ -428,7 +428,7 @@ status:
       task_type: WORKFLOW_TASK_AGENT_INVOCATION
       status: WORKFLOW_TASK_WAITING_APPROVAL
       metadata:
-        agent_execution_id: agx-deployer-001
+        agent_run_id: agx-deployer-001
       started_at: "2025-01-11T14:31:00Z"
   pending_approvals:
     - tool_call_id: call_deploy_production
@@ -436,13 +436,13 @@ status:
       message: "Apply deployment manifest for payment-service:v2.3.1 to cluster prod-us-east-1"
       args_preview: '{"manifest": "deployment.yaml", "cluster": "prod-us-east-1", "namespace": "payments"}'
       requested_at: "2025-01-11T14:31:15Z"
-      child_agent_execution_id: agx-deployer-001
+      child_agent_run_id: agx-deployer-001
 ```
 
 **Submit approval:**
 
 ```bash
-stigmer workflow-execution approve wfx-1a2b3c4d5e6f \
+stigmer workflow-run approve wfx-1a2b3c4d5e6f \
   --tool-call-id call_deploy_production \
   --comment "Tests pass, staging deploy verified — approved for prod"
 ```
@@ -451,7 +451,7 @@ stigmer workflow-execution approve wfx-1a2b3c4d5e6f \
 
 ```yaml
 status:
-  phase: EXECUTION_IN_PROGRESS
+  phase: RUN_IN_PROGRESS
   tasks:
     - task_id: task-2
       task_name: Invoke deployment agent
@@ -480,7 +480,7 @@ stigmer run workflow order-processing \
 
 ```yaml
 status:
-  phase: EXECUTION_IN_PROGRESS
+  phase: RUN_IN_PROGRESS
   tasks:
     - task_id: task-1
       task_name: Create order record
@@ -504,7 +504,7 @@ status:
 **Stripe webhook fires — send signal to unblock:**
 
 ```bash
-stigmer signal workflow-execution wfx-1a2b3c4d5e6f \
+stigmer signal workflow-run wfx-1a2b3c4d5e6f \
   --signal payment_confirmed \
   --payload '{"transaction_id": "txn_abc123", "amount": 9999, "currency": "usd"}' \
   --idempotency-key "stripe:evt_1NqZP92eZvKYlo2CqOc7XYRT"
@@ -514,7 +514,7 @@ stigmer signal workflow-execution wfx-1a2b3c4d5e6f \
 
 ```yaml
 status:
-  phase: EXECUTION_IN_PROGRESS
+  phase: RUN_IN_PROGRESS
   tasks:
     - task_id: task-2
       task_name: Wait for payment confirmation
@@ -544,7 +544,7 @@ A workflow fails partway through. After fixing the root cause, recover from the 
 
 ```yaml
 status:
-  phase: EXECUTION_FAILED
+  phase: RUN_FAILED
   tasks:
     - task_id: task-1
       task_name: Validate data
@@ -566,7 +566,7 @@ status:
 **After the rate limit has cleared — recover:**
 
 ```bash
-stigmer recover workflow-execution wfx-1a2b3c4d5e6f \
+stigmer recover workflow-run wfx-1a2b3c4d5e6f \
   --reason "Payment API rate limit cleared, resuming"
 ```
 
@@ -574,7 +574,7 @@ stigmer recover workflow-execution wfx-1a2b3c4d5e6f \
 
 ```yaml
 status:
-  phase: EXECUTION_IN_PROGRESS
+  phase: RUN_IN_PROGRESS
   tasks:
     - task_id: task-1
       status: WORKFLOW_TASK_COMPLETED  # preserved
@@ -590,27 +590,27 @@ status:
 
 ---
 
-## Example 10: Listing and Filtering Executions
+## Example 10: Listing and Filtering Runs
 
-**List all in-progress executions:**
+**List all in-progress runs:**
 
 ```bash
-stigmer list workflow-executions --phase in_progress
+stigmer list workflow-runs --phase in_progress
 ```
 
-**List failed executions for a specific workflow in production:**
+**List failed runs for a specific workflow in production:**
 
 ```bash
-stigmer list workflow-executions \
+stigmer list workflow-runs \
   --workflow customer-onboarding \
   --phase failed \
   --tag environment:production
 ```
 
-**List execution history for a specific Workflow:**
+**List run history for a specific Workflow:**
 
 ```bash
-stigmer list workflow-executions \
+stigmer list workflow-runs \
   --workflow customer-onboarding
 ```
 
@@ -624,7 +624,7 @@ entries:
       name: customer-onboarding-20250111-143022
       created_at: "2025-01-11T14:30:22Z"
     status:
-      phase: EXECUTION_COMPLETED
+      phase: RUN_COMPLETED
       started_at: "2025-01-11T14:30:22Z"
       completed_at: "2025-01-11T14:30:35Z"
   - metadata:
@@ -632,7 +632,7 @@ entries:
       name: customer-onboarding-20250111-103015
       created_at: "2025-01-11T10:30:15Z"
     status:
-      phase: EXECUTION_FAILED
+      phase: RUN_FAILED
       error: "Task 'create_account' failed: API timeout"
       started_at: "2025-01-11T10:30:15Z"
       completed_at: "2025-01-11T10:30:45Z"
@@ -641,7 +641,7 @@ entries:
       name: customer-onboarding-20250110-220510
       created_at: "2025-01-10T22:05:10Z"
     status:
-      phase: EXECUTION_COMPLETED
+      phase: RUN_COMPLETED
       started_at: "2025-01-10T22:05:10Z"
       completed_at: "2025-01-10T22:05:28Z"
 ```

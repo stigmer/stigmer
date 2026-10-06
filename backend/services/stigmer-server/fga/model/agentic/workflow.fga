@@ -26,7 +26,7 @@ module agentic
 #
 # Run observability (opt-in, separate from visibility):
 # - workflow:github-summary#run_viewer@organization:stigmer#viewer
-#   (if spec.execution_visibility=ORGANIZATION; see run_viewer below)
+#   (if spec.run_visibility=ORGANIZATION; see run_viewer below)
 #
 # Child-organization visibility (visibility_child_orgs):
 # - Grants view + execute to everyone in the owning organization's child
@@ -84,11 +84,11 @@ type workflow
     # other people's run inputs and outputs. Empty by default => each
     # workflow_run stays private to the person who started it (its
     # owner). Org-wide run history is the workflow's
-    # spec.execution_visibility=ORGANIZATION, which reads as
+    # spec.run_visibility=ORGANIZATION, which reads as
     # run_viewer@organization:<org>#viewer (the org's full read
     # audience). Consumed by workflow_run.viewer via
     # "run_viewer from workflow". Changed only by
-    # updateExecutionVisibility, which asks can_manage_audience.
+    # updateRunVisibility, which asks can_manage_audience.
     define run_viewer: [identity_account, organization#viewer] and affiliated from organization
     
     # ========================================

@@ -9,7 +9,7 @@ documentation_url: "/docs/guides/workflows/task-types/agent-call"
 
 output_schema:
   type: object
-  description: "Agent execution result with dual-channel output."
+  description: "Agent run result with dual-channel output."
   properties:
     structured:
       type: object
@@ -17,9 +17,9 @@ output_schema:
     final_text:
       type: string
       description: "Human-readable agent response."
-    agent_execution_id:
+    agent_run_id:
       type: string
-      description: "Execution ID for drill-down into agent trace."
+      description: "Agent run ID for drill-down into the agent trace."
     usage_summary:
       type: object
       properties:

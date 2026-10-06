@@ -53,7 +53,7 @@ message AgentShareSpec {
   // schedule and channel kinds apply to their agent reference. The sharing
   // org is the billing org and guest tool credentials
   // resolve in the share's org (secrets never cross orgs — org A's
-  // environments are structurally unreachable from org B's executions via
+  // environments are structurally unreachable from org B's runs via
   // OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
   // against slug-reuse rebind.
   ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [
@@ -101,7 +101,7 @@ message AgentShareSpec {
   // Enforced against the embed_origin the widget reports at
   // mintGuestToken time (stamped into the guest JWT as a claim) and
   // re-validated against this live list by the guest create-time gate
-  // (SharedSessionBlueprintAccess) on every session/execution create — the
+  // (SharedSessionBlueprintAccess) on every session/run create — the
   // same gate that re-checks enabled, so revocation latency is identical
   // (immediate). Unframed hosted-page visitors report no origin and are
   // exempt by construction. Both gates also cross-check
@@ -136,7 +136,7 @@ message AgentShareSpec {
   //
   // This is how a tool-using agent becomes chattable over a share link:
   // bind an org-shared environment holding the needed credentials (for
-  // example a read-only API token), and guest executions receive its
+  // example a read-only API token), and guest runs receive its
   // values at runtime. The agent itself stays untouched.
   // Valid on public-audience shares only.
   //

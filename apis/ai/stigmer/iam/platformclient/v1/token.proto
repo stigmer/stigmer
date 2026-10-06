@@ -83,7 +83,7 @@ service PlatformClientTokenController {
   // match, or its org is gone), counts the mint against that org's budget
   // only after the share itself admits the visitor, and stamps the resolved share's id into the guest JWT as the share_id
   // claim — the create-time gate re-reads the live share by that id on every
-  // session/execution create.
+  // session/run create.
   rpc mintGuestToken(MintGuestTokenRequest) returns (MintGuestTokenResponse) {
     option (ai.stigmer.commons.rpc.is_public) = true;
   }
@@ -216,7 +216,7 @@ message MintGuestTokenRequest {
   // so a killed link is indistinguishable from a nonexistent one). The
   // validated value is stamped into the guest JWT as the link_token claim
   // and re-validated against the live value by the guest create-time gate
-  // on every session/execution create — rotation therefore revokes live
+  // on every session/run create — rotation therefore revokes live
   // guest tokens on their next message, exactly like disabling the share.
   string link_token = 5 [(buf.validate.field).string.max_len = 128];
 }

@@ -1,21 +1,21 @@
 # Human-in-the-Loop (HITL) Approvals
 
-How AgentExecution gates destructive tool calls behind human approval — approve, skip, or reject per tool.
+How AgentRun gates destructive tool calls behind human approval — approve, skip, or reject per tool.
 
 ---
 
 ## What Is HITL?
 
-Human-in-the-Loop (HITL) is an approval mechanism that pauses an execution before a specific tool call executes and waits for a human decision. It prevents autonomous agents from taking irreversible actions — deleting repositories, sending emails, force-pushing branches — without explicit user consent.
+Human-in-the-Loop (HITL) is an approval mechanism that pauses a run before a specific tool call executes and waits for a human decision. It prevents autonomous agents from taking irreversible actions — deleting repositories, sending emails, force-pushing branches — without explicit user consent.
 
 When an agent is about to invoke a tool that requires approval:
 
 1. The tool call's status changes to `TOOL_CALL_WAITING_APPROVAL`
-2. The execution phase changes to `EXECUTION_WAITING_FOR_APPROVAL`
+2. The run phase changes to `RUN_WAITING_FOR_APPROVAL`
 3. `status.pending_approvals` is populated with details of every tool awaiting a decision
-4. Execution pauses — no further processing occurs
+4. Run pauses — no further processing occurs
 5. A human submits a decision via the `submitApproval` RPC
-6. Once all pending approvals have decisions, execution resumes
+6. Once all pending approvals have decisions, run resumes
 
 ---
 
@@ -33,7 +33,7 @@ To keep an agent away from a tool rather than asking about it, leave the tool ou
 
 An agent's hooks also decide which tools ask (`AgentSpec.hooks`, a plugin's hooks or a block written in the agent, in Claude Code's or Cursor's format). Before a call runs, a `PreToolUse` hook can refuse it, ask a person first, or let it run; whichever it answers replaces the default for that call. A hook that gives no answer leaves the call to the default. When several hooks answer, a refusal wins over an ask, and an ask over an allow. Both engines run hooks in both formats; on the Cursor engine a hook sees no sub-agent identity, and web fetch and web search, which reach no hook there, are left out of an agent whose `PreToolUse` hooks would match them (a `PostToolUse` hook on them does not run there). Hooks are the agent author's policy: a hook that lets a call run skips the approval the default would have asked of whoever runs the agent, so an agent shared with others carries that choice to them, and a hook's command runs in that person's workspace with their run values, without a prompt. An allow from a handler whose condition the runner cannot read for sure is not honoured; the call falls to the default.
 
-`AgentExecution.auto_approve_all`, a lease, and the unattended mode decide only how a required approval is resolved, never which tools ask. None of them opens a call a hook refuses.
+`AgentRun.auto_approve_all`, a lease, and the unattended mode decide only how a required approval is resolved, never which tools ask. None of them opens a call a hook refuses.
 
 ---
 
@@ -51,7 +51,7 @@ Agent is IN_PROGRESS
     ├── the github server marks delete_repository destructive
     │
     ├── ToolCall.status → TOOL_CALL_WAITING_APPROVAL
-    ├── AgentExecution.status.phase → EXECUTION_WAITING_FOR_APPROVAL
+    ├── AgentRun.status.phase → RUN_WAITING_FOR_APPROVAL
     ├── status.pending_approvals populated with:
     │   - tool_call_id: "call_abc123"
     │   - tool_name: "delete_repository"
@@ -102,7 +102,7 @@ Each entry in `status.pending_approvals` is a `PendingApproval` message:
 | `approval_policy_source` | `ApprovalPolicySource` | **Why-gated provenance:** what is holding this call for approval. Projected from the tool call so a client can explain the gate (e.g. "required: marked destructive by the server") while the tool is still waiting. See [Why a Tool Is Gated](#why-a-tool-is-gated-authorization-provenance). |
 | `approval_policy_hook` | `string` | The plugin whose hook asked for this approval; empty when no hook asked, or when the agent's own hooks block did. |
 | `interrupt_id` | `string` | LangGraph interrupt ID for targeted resume. Used internally — do not modify. |
-| `child_agent_execution_id` | `string` | Set when this `PendingApproval` is surfaced at a `WorkflowExecution` level, enabling approval forwarding. |
+| `child_agent_run_id` | `string` | Set when this `PendingApproval` is surfaced at a `WorkflowRun` level, enabling approval forwarding. |
 
 ---
 
@@ -122,59 +122,59 @@ Every tool call the approval gate evaluates carries its **authorization provenan
 
 | Value | Meaning |
 |---|---|
-| `UNSPECIFIED` | Legacy execution, or no approval was required (a read-only built-in, or an MCP tool its server does not mark destructive). Clients render no provenance. |
-| `AUTO_APPROVE_ALL` | The pre-armed `AgentExecutionSpec.auto_approve_all` whole-run bypass cleared the call. |
+| `UNSPECIFIED` | Legacy run, or no approval was required (a read-only built-in, or an MCP tool its server does not mark destructive). Clients render no provenance. |
+| `AUTO_APPROVE_ALL` | The pre-armed `AgentRunSpec.auto_approve_all` whole-run bypass cleared the call. |
 | `APPROVAL_LEASE` | A run-lifetime scoped lease (the successor to a global "approve all") cleared the call. |
 | `BUILTIN_CATEGORY` | The default asked for a built-in tool of the write / delete / shell categories. |
 | `ANNOTATION_DESTRUCTIVE_TIGHTEN` | The default asked for an MCP tool because its server marks it destructive (`destructiveHint: true`). |
 | `UNATTENDED_SKIP` | The unattended approval mode auto-skipped this gated call — no approver exists on the creating surface (a channel, a guest share). See [Unattended Surfaces](#unattended-surfaces-channels-and-guest-shares). |
 | `HOOK` | A hook decided this call: it refused it, asked a person first, or let it run without the approval the default would have asked. `approval_policy_hook` names the plugin. |
 
-Values 1 to 3 are reserved and never reused. The field is data-compatible: old executions carry `UNSPECIFIED`, and clients fall back exactly as they do for `tool_kind`.
+Values 1 to 3 are reserved and never reused. The field is data-compatible: old runs carry `UNSPECIFIED`, and clients fall back exactly as they do for `tool_kind`.
 
 ---
 
 ## Submitting a Decision
 
-Call the `submitApproval` RPC with the execution ID, the tool call ID, and your decision.
+Call the `submitApproval` RPC with the run ID, the tool call ID, and your decision.
 
 ```bash
 # Approve — tool executes normally
-stigmer agent execution approve aex_abc123 \
-  --tool-call-id call_abc123 \
+stigmer runs approve aex_abc123 \
+  --tool-call call_abc123 \
   --comment "Verified the target repository is safe to delete"
 
 # Skip — tool is skipped, LLM adapts its plan
-stigmer agent execution skip aex_abc123 \
+stigmer runs skip aex_abc123 \
   --tool-call-id call_abc123 \
   --comment "Will handle this operation manually"
 
-# Reject — execution fails immediately
-stigmer agent execution reject aex_abc123 \
+# Reject — run fails immediately
+stigmer runs reject aex_abc123 \
   --tool-call-id call_abc123 \
   --comment "Wrong repository — this looks like a mistake"
 ```
 
 ### Four Possible Decisions
 
-| Decision | `ApprovalAction` | Effect on ToolCall | Effect on Execution |
+| Decision | `ApprovalAction` | Effect on ToolCall | Effect on Run |
 |---|---|---|---|
-| Approve | `APPROVAL_ACTION_APPROVE` | `TOOL_CALL_RUNNING` → `TOOL_CALL_COMPLETED` | Phase returns to `EXECUTION_IN_PROGRESS` |
-| Skip | `APPROVAL_ACTION_SKIP` | `TOOL_CALL_SKIPPED` (terminal) | Phase returns to `EXECUTION_IN_PROGRESS`. LLM receives: "Tool was skipped by user." |
-| Reject | `APPROVAL_ACTION_REJECT` | `TOOL_CALL_SKIPPED` (terminal, with the objection recorded) | Phase returns to `EXECUTION_IN_PROGRESS` — the run continues |
-| Approve all | `APPROVAL_ACTION_APPROVE_ALL` | `TOOL_CALL_RUNNING` → `TOOL_CALL_COMPLETED`; every co-pending tool of the same lease scope resolves to APPROVE | Phase returns to `EXECUTION_IN_PROGRESS`; the rest of this execution does not ask again for that scope |
+| Approve | `APPROVAL_ACTION_APPROVE` | `TOOL_CALL_RUNNING` → `TOOL_CALL_COMPLETED` | Phase returns to `RUN_IN_PROGRESS` |
+| Skip | `APPROVAL_ACTION_SKIP` | `TOOL_CALL_SKIPPED` (terminal) | Phase returns to `RUN_IN_PROGRESS`. LLM receives: "Tool was skipped by user." |
+| Reject | `APPROVAL_ACTION_REJECT` | `TOOL_CALL_SKIPPED` (terminal, with the objection recorded) | Phase returns to `RUN_IN_PROGRESS` — the run continues |
+| Approve all | `APPROVAL_ACTION_APPROVE_ALL` | `TOOL_CALL_RUNNING` → `TOOL_CALL_COMPLETED`; every co-pending tool of the same lease scope resolves to APPROVE | Phase returns to `RUN_IN_PROGRESS`; the rest of this run does not ask again for that scope |
 
-**On Skip:** The LLM receives a message: `"Tool '{name}' was skipped by user. Please proceed without this operation."` This allows the agent to adapt its plan and continue execution without the skipped tool's result.
+**On Skip:** The LLM receives a message: `"Tool '{name}' was skipped by user. Please proceed without this operation."` This allows the agent to adapt its plan and continue the run without the skipped tool's result.
 
-**On Reject:** The tool is denied and the user's objection (the optional `comment`) is fed back to the model as the tool result, so it adapts rather than retrying. REJECT denies a SINGLE tool call — it does NOT fail the run, mirroring how interactive agent tools treat a denied tool. To stop the entire execution, use `cancel` (graceful) or `terminate` (force) — the dedicated hard-stop verbs. The distinction from SKIP is the strength of the signal, not the outcome.
+**On Reject:** The tool is denied and the user's objection (the optional `comment`) is fed back to the model as the tool result, so it adapts rather than retrying. REJECT denies a SINGLE tool call — it does NOT fail the run, mirroring how interactive agent tools treat a denied tool. To stop the entire run, use `cancel` (graceful) or `terminate` (force) — the dedicated hard-stop verbs. The distinction from SKIP is the strength of the signal, not the outcome.
 
-**On Approve all ("approve all of this kind"):** The clicked tool is approved, and it grants a lease for the rest of this execution scoped to ONE class of call, derived from the clicked call:
+**On Approve all ("approve all of this kind"):** The clicked tool is approved, and it grants a lease for the rest of this run scoped to ONE class of call, derived from the clicked call:
 
 - when a hook asked (`approval_policy_source = HOOK`), that hook's asks on that one tool: a later ask from the same hook on the same tool counts as the hook's allow, so the call runs without asking, where the hook's condition names the call for sure (an ask behind a condition the runner cannot read for sure still asks). Nothing else is cleared: the default keeps asking wherever the hook does not answer, another hook's ask still asks, and a hook's refusal still binds;
 - otherwise, for a built-in tool, its approval category (shell commands, file edits and writes, or deletions);
 - otherwise, for an MCP tool, every tool of its server.
 
-Every co-pending call currently in `TOOL_CALL_WAITING_APPROVAL` with the same scope is resolved to APPROVE so the gate clears in one action; calls of another scope keep waiting. A category or server lease never clears a hook's ask. The lease covers sub-agent tool calls too. The scope is the current execution only; it is not persisted to the session or agent. Interactive clients may carry a session-scoped preference forward in-memory (reset on reload), but the server persists no such state.
+Every co-pending call currently in `TOOL_CALL_WAITING_APPROVAL` with the same scope is resolved to APPROVE so the gate clears in one action; calls of another scope keep waiting. A category or server lease never clears a hook's ask. The lease covers sub-agent tool calls too. The scope is the current run only; it is not persisted to the session or agent. Interactive clients may carry a session-scoped preference forward in-memory (reset on reload), but the server persists no such state.
 
 ---
 
@@ -193,13 +193,13 @@ Every approval decision is recorded in the `ToolCall` fields:
 
 When a user chooses **Approve all**, the co-pending tool calls that are auto-resolved carry `approval_action = APPROVAL_ACTION_APPROVE`, while the tool the user actually clicked carries `APPROVAL_ACTION_APPROVE_ALL`. This keeps the trail honest: every executed tool shows an explicit decision, and the single APPROVE_ALL entry marks where the user opted into trusting that class of call for the rest of the run.
 
-This provides a complete audit trail: who approved or rejected what tool call, when, and on which execution.
+This provides a complete audit trail: who approved or rejected what tool call, when, and on which run.
 
 ---
 
 ## Bypassing Approvals for Automation
 
-For CI/CD pipelines and trusted batch jobs where human approval is impractical, set `auto_approve_all: true` in the `AgentExecutionSpec`:
+For CI/CD pipelines and trusted batch jobs where human approval is impractical, set `auto_approve_all: true` in the `AgentRunSpec`:
 
 ```yaml
 spec:
@@ -222,7 +222,7 @@ When `auto_approve_all` is set, all tools that would normally pause for approval
 
 **Security considerations:**
 - Restrict access to `auto_approve_all` with appropriate IAM policies
-- Audit executions where this flag is used — they bypass every approval prompt (a hook's refusal and the tool lists still hold)
+- Audit runs where this flag is used — they bypass every approval prompt (a hook's refusal and the tool lists still hold)
 - In interactive sessions, the platform's own surfaces never pre-arm it: the
   gate defaults are fail-closed, and users opt in per session at a gate
   ("Approve & don't ask again")
@@ -243,7 +243,7 @@ shared or sensitive surfaces should simply not set the prop.
 
 ## Sub-Agent Approvals
 
-When a sub-agent's tool requires approval, the approval is surfaced in the **parent** AgentExecution's `status.pending_approvals`, with `from_sub_agent: true` and the sub-agent's name in `sub_agent_name`.
+When a sub-agent's tool requires approval, the approval is surfaced in the **parent** AgentRun's `status.pending_approvals`, with `from_sub_agent: true` and the sub-agent's name in `sub_agent_name`.
 
 This allows a single approval UI to handle both parent and sub-agent approvals uniformly. The user does not need to know where in the agent hierarchy the approval originates.
 
@@ -261,7 +261,7 @@ PendingApproval {
 
 ## Approval Timeout
 
-Stigmer does not automatically reject pending approvals after a timeout — executions remain in `EXECUTION_WAITING_FOR_APPROVAL` indefinitely until a decision is submitted. This is intentional: approval requests may legitimately wait for hours while reviewers are offline.
+Stigmer does not automatically reject pending approvals after a timeout — runs remain in `RUN_WAITING_FOR_APPROVAL` indefinitely until a decision is submitted. This is intentional: approval requests may legitimately wait for hours while reviewers are offline.
 
 To enforce a timeout in your workflows, implement external monitoring and call `cancel` (or `terminate`) if the approval exceeds your acceptable wait window.
 
@@ -269,7 +269,7 @@ To enforce a timeout in your workflows, implement external monitoring and call `
 
 ## Unattended Surfaces (Channels and Guest Shares)
 
-Some surfaces have **no approver present at the conversation**: a WhatsApp or Slack channel user is a customer, not an org member, and a guest visiting a shared agent link is anonymous. An interactive pause would park the execution in `EXECUTION_WAITING_FOR_APPROVAL` forever — nobody on that surface is authorized to decide.
+Some surfaces have **no approver present at the conversation**: a WhatsApp or Slack channel user is a customer, not an org member, and a guest visiting a shared agent link is anonymous. An interactive pause would park the run in `RUN_WAITING_FOR_APPROVAL` forever — nobody on that surface is authorized to decide.
 
 The server records `status.approval_mode = APPROVAL_MODE_UNATTENDED` on these turns (the hosted edition's channel and shared-agent guest turns), and on every schedule fire, where nobody is present either. The mode is a fact of the lane the turn came through: no request field sets it, so neither the external user nor any other caller can choose it. Every other turn is `APPROVAL_MODE_INTERACTIVE`, a workflow step's included (its workflow takes the approval request). In unattended mode:
 

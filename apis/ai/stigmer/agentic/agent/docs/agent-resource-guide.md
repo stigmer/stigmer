@@ -108,7 +108,7 @@ All spec fields are defined by `AgentSpec` in `ai/stigmer/agentic/agent/v1/spec.
 
 ## Hooks
 
-`spec.hooks` lists where the agent's hooks come from. A hook is a command that runs before or after a tool call, in Claude Code's hooks format: before a call (`PreToolUse`) it can refuse it, ask a person first, or let it run without the approval it would otherwise need; after a call succeeds (`PostToolUse`) it can add to what the agent reads. A hook that answers nothing leaves the call to the default (see the AgentExecution resource's `hitl-approvals.md`).
+`spec.hooks` lists where the agent's hooks come from. A hook is a command that runs before or after a tool call, in Claude Code's hooks format: before a call (`PreToolUse`) it can refuse it, ask a person first, or let it run without the approval it would otherwise need; after a call succeeds (`PostToolUse`) it can add to what the agent reads. A hook that answers nothing leaves the call to the default (see the AgentRun resource's `hitl-approvals.md`).
 
 Each entry is one of two sources. A plugin reference applies the hooks that plugin recorded at install:
 
@@ -155,7 +155,7 @@ What holds:
 
 ## Environment Specification
 
-Agents can declare required environment variables via `env_spec`. This defines the **schema** — actual values are provided at runtime: from the Environments bound to the schedule, workflow task or PlatformClient that started the run, from the execution's `runtime_env`, and, for keys still missing, from the personal environment of the person who sent the message. Those keys reach the agent's tools and shell; the console names the keys an agent will read from a person's personal environment before their first message.
+Agents can declare required environment variables via `env_spec`. This defines the **schema** — actual values are provided at runtime: from the Environments bound to the schedule, workflow task or PlatformClient that started the run, from the run's `runtime_env`, and, for keys still missing, from the personal environment of the person who sent the message. Those keys reach the agent's tools and shell; the console names the keys an agent will read from a person's personal environment before their first message.
 
 ```yaml
 spec:
@@ -181,7 +181,7 @@ The shared `EnvironmentSpec` and `EnvironmentValue` types are defined in `ai/sti
 
 ## Run Defaults
 
-`spec.run_config` is a `RunConfig` (`ai/stigmer/agentic/agentexecution/v1/invocation.proto`), the same settings message a message, a schedule, a channel, a share and a workflow `agent_call` step carry. A turn uses the agent's defaults wherever the message or the surface it came through sets nothing; the field table and the full precedence rule are in [RunConfig Fields](../../agentexecution/docs/agent-execution-resource-guide.md#runconfig-fields).
+`spec.run_config` is a `RunConfig` (`ai/stigmer/agentic/agentrun/v1/invocation.proto`), the same settings message a message, a schedule, a channel, a share and a workflow `agent_call` step carry. A turn uses the agent's defaults wherever the message or the surface it came through sets nothing; the field table and the full precedence rule are in [RunConfig Fields](../../agentrun/docs/agent-run-resource-guide.md#runconfig-fields).
 
 ```yaml
 spec:

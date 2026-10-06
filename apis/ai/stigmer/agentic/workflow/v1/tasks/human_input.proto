@@ -90,7 +90,7 @@ message HumanInputOutcome {
 //
 // This is a workflow-level approval gate — distinct from agent-level HITL
 // (tool approval inside an agent session). Workflow-level gates are visible
-// in the execution viewer as explicit tasks with input/output/timing, and
+// in the run viewer as explicit tasks with input/output/timing, and
 // they can route to different branches based on the reviewer's decision.
 //
 // Runtime implementation will use Temporal signals for workflow

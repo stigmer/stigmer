@@ -20,9 +20,9 @@ module agentic
 #   published, or granted (the kind has no visibility block and an empty
 #   grantable_roles list).
 # - The ONE deliberate visibility exception lives elsewhere: the
-#   recalled_memories snapshot on an AgentExecution spec is readable by
-#   whoever can read that execution (snapshot transparency).
-#   That is the execution's contract, not this type's.
+#   recalled_memories snapshot on an AgentRun spec is readable by
+#   whoever can read that run (snapshot transparency).
+#   That is the run's contract, not this type's.
 #
 # FGA tuples on creation (config-driven from the kind's proto
 # authorization block — organization scope + the subject

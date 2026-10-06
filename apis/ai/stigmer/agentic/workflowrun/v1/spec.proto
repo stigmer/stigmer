@@ -66,7 +66,7 @@ message WorkflowRunSpec {
   // - "timestamp": When was it triggered? (ISO 8601)
   map<string, string> trigger_metadata = 4;
 
-  // Execution-scoped environment variables and secrets, available only to this
+  // Run-scoped environment variables and secrets, available only to this
   // run. Values here take the highest merge priority. A key must be
   // declared in Workflow.spec.env to survive the merge: the workflow env map is
   // a declaration whitelist (name + is_secret + optional), never a value source
@@ -88,8 +88,8 @@ message WorkflowRunSpec {
   //
   // Security:
   // - runtime_env values are consumed into the ExecutionContext at create time
-  //   and cleared from the persisted execution (never in Temporal history)
-  // - ExecutionContext is deleted when execution completes (ephemeral secrets)
+  //   and cleared from the persisted run (never in Temporal history)
+  // - ExecutionContext is deleted when the run completes (ephemeral secrets)
   // - Values with is_secret=true are encrypted at rest and redacted in logs
   //
   // Tasks can access these values using: {{env.VARIABLE_NAME}}
@@ -98,10 +98,10 @@ message WorkflowRunSpec {
   // Where workflow activities are executed — shared runner pool or dedicated sandbox.
   //
   // @internal
-  // Determines dispatch routing for the workflow and all child executions:
+  // Determines dispatch routing for the workflow and all child runs:
   // - UNSPECIFIED: server defaults (LOCAL for OSS, CLOUD for managed)
   // - LOCAL: workflow runs on global queue (stigmer_runner)
-  // - CLOUD: server provisions a dedicated sandbox with per-execution queue
+  // - CLOUD: server provisions a dedicated sandbox with per-run queue
   //
   // When CLOUD: all call:agent tasks within this workflow share the same sandbox.
   // Child agent runs inherit this sandbox: the server routes each child

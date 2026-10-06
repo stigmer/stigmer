@@ -16,7 +16,7 @@ service ScheduleCommandController {
   // @internal
   // The authorization and state-operation are determined depending on
   // whether the schedule is going to be created or updated, resolved as
-  // part of request run. Status is preserved verbatim across
+  // part of request execution. Status is preserved verbatim across
   // apply-as-update (the AgentChannel posture): status is
   // written only by the scheduling runtime and by the explicit resume
   // command, and a routine manifest apply must never reset the failure
@@ -26,7 +26,7 @@ service ScheduleCommandController {
   // Create a schedule.
   //
   // Scheduling an agent is a billing-affecting decision: every fire
-  // creates an execution that consumes the schedule-owning
+  // creates a run that consumes the schedule-owning
   // organization's credits, unattended.
   //
   // @internal
@@ -72,7 +72,7 @@ service ScheduleCommandController {
 
   // Delete a schedule.
   //
-  // Firing stops permanently. Executions created by past fires are
+  // Firing stops permanently. Runs created by past fires are
   // untouched. To stop firing while keeping the schedule and its
   // history, disable it (enabled=false) instead.
   //
@@ -119,9 +119,9 @@ service ScheduleCommandController {
   // Trigger a schedule to fire once, immediately, and answer with the
   // run's real outcome.
   //
-  // The manual fire runs synchronously through the standard execution
+  // The manual fire runs synchronously through the standard run
   // create pipeline — every launch gate runs — and the result names what
-  // happened: the created execution's id, or the refusing gate's own
+  // happened: the created run's id, or the refusing gate's own
   // copy verbatim. status.last_fire_at and status.last_run_id
   // record a started run. Manual fires do NOT feed the failure streak —
   // the streak is the unattended (cron) health signal, and a test fire
@@ -141,7 +141,7 @@ service ScheduleCommandController {
   // stays for this reason:
   // ScheduleBlueprintAccess requires spec.enabled at the create gate AND
   // the mid-run sandbox read predicate, so a disabled-schedule run would
-  // die mid-execution after billing side effects (consoles offer
+  // die mid-run after billing side effects (consoles offer
   // "Enable & run now" instead; a fire-legitimacy model would be needed
   // to lift this). Two-level contract: a gRPC
   // error means the trigger itself was refused (disabled →

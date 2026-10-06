@@ -24,7 +24,7 @@ service OAuthAppCommandController {
   // @internal
   // The authorization and state-operation are determined depending on whether the
   // OAuth app is going to be created or updated, which is determined as
-  // part of the request run.
+  // part of the request execution.
   rpc apply(OAuthApp) returns (OAuthApp);
 
   // Create an OAuth app.

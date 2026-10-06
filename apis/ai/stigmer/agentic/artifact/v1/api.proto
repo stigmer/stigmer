@@ -3,12 +3,12 @@ syntax = "proto3";
 // Package ai.stigmer.agentic.artifact.v1 contains the API definition for Artifact.
 //
 // An Artifact is a persisted blob produced during workflow or agent run.
-// It externalizes large task outputs that would otherwise bloat the execution
+// It externalizes large task outputs that would otherwise bloat the run's
 // status snapshot and Temporal workflow history.
 //
 // Artifacts are a shared, first-class resource reusable by both workflow
-// executions and agent runs. They have their own identity, lifecycle,
-// and access control — independent of the execution that produced them.
+// runs and agent runs. They have their own identity, lifecycle,
+// and access control — independent of the run that produced them.
 //
 // This package belongs to the "agentic" bounded context, which encompasses
 // all AI agent systems and workflow orchestration capabilities.
@@ -16,7 +16,7 @@ syntax = "proto3";
 // Key concepts:
 // - Content-addressable: blobs are stored by SHA-256 hash (deduplication)
 // - Immutable: artifact content cannot be modified after creation
-// - Lifecycle-independent: artifact retention is separate from execution retention
+// - Lifecycle-independent: artifact retention is separate from run retention
 // - Auto-promoted: the runtime transparently externalizes outputs exceeding
 //   the size threshold (default: 256KB), replacing inline data with artifact refs
 package ai.stigmer.agentic.artifact.v1;
@@ -27,7 +27,7 @@ import "ai/stigmer/commons/apiresource/metadata.proto";
 import "ai/stigmer/commons/apiresource/status.proto";
 import "buf/validate/validate.proto";
 
-// Artifact represents a persisted blob produced during run.
+// Artifact represents a persisted blob produced during a run.
 //
 // @internal
 // Follows the standard Stigmer resource pattern:
@@ -60,11 +60,11 @@ message Artifact {
   // Naming Pattern:
   // - ID Format: "art_{unique-suffix}" (auto-generated)
   // - Name Format: display_name from spec (e.g., "analyze_code — output.json")
-  // - Org: inherited from the producing execution's organization
+  // - Org: inherited from the producing run's organization
   //
   // Labels:
   // - source_type: "workflow_run" or "agent_run"
-  // - source_id: the execution ID that produced this artifact
+  // - source_id: the run ID that produced this artifact
   // - task_name: the task that produced this artifact (if applicable)
   ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
 

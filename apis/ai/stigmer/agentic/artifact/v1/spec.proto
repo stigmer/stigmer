@@ -8,7 +8,7 @@ import "buf/validate/validate.proto";
 //
 // @internal
 // Artifacts are created by the runner when a task
-// produces output that should be persisted outside the execution status
+// produces output that should be persisted outside the run status
 // snapshot (either because it exceeds the size threshold or because the
 // workflow author explicitly requested artifact persistence).
 //
@@ -37,7 +37,7 @@ message ArtifactSpec {
   // Human-readable display name for the artifact.
   //
   // @internal
-  // Shown in the execution viewer's artifact list and download dialogs.
+  // Shown in the run viewer's artifact list and download dialogs.
   // When auto-promoted, this is derived from the task name and output field
   // (e.g., "analyze_code — output.json"). When explicitly created by a
   // workflow author, this is user-provided.
@@ -50,13 +50,13 @@ message ArtifactSpec {
     (buf.validate.field).string.max_len = 255
   ];
 
-  // Provenance: which execution and task produced this artifact.
+  // Provenance: which run and task produced this artifact.
   //
   // @internal
   // Used for:
-  // - Listing artifacts by execution (listByRun RPC)
-  // - Linking artifacts back to their source in the execution viewer
-  // - Access control inheritance (artifact access follows execution access)
+  // - Listing artifacts by run (listByRun RPC)
+  // - Linking artifacts back to their source in the run viewer
+  // - Access control inheritance (artifact access follows run access)
   ArtifactSource source = 3 [(buf.validate.field).required = true];
 
   // Retention policy for this artifact.
@@ -68,7 +68,7 @@ message ArtifactSpec {
   RetentionPolicy retention = 4;
 }
 
-// ArtifactSource identifies the execution context that produced an artifact.
+// ArtifactSource identifies the run and task that produced an artifact.
 //
 // @internal
 // Exactly one of workflow_run_id or agent_run_id should be set,
@@ -87,8 +87,8 @@ message ArtifactSource {
   string agent_run_id = 2;
 
   // Name of the task that produced this artifact.
-  // Matches WorkflowTask.task_name in the execution status.
-  // Empty for execution-level artifacts (e.g., final workflow output).
+  // Matches WorkflowTask.task_name in the run status.
+  // Empty for run-level artifacts (e.g., final workflow output).
   string task_name = 3;
 }
 

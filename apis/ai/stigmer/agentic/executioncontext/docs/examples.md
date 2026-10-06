@@ -8,7 +8,7 @@ Example ExecutionContext payloads and runner lookup patterns. All YAML reflects 
 
 ## Minimal — Single Non-Secret Value
 
-The simplest ExecutionContext, carrying one non-secret configuration value for a single execution.
+The simplest ExecutionContext, carrying one non-secret configuration value for a single run.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -77,7 +77,7 @@ spec:
 
 ## B2B Runtime Injection — Planton Integration
 
-In B2B scenarios, a calling platform (e.g., Planton) injects credentials at execution time rather than storing them in a persistent Environment. The execution engine creates the ExecutionContext from the caller-supplied payload and deletes it on completion.
+In B2B scenarios, a calling platform (e.g., Planton) injects credentials at run time rather than storing them in a persistent Environment. The execution engine creates the ExecutionContext from the caller-supplied payload and deletes it on completion.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -151,7 +151,7 @@ spec:
 
 ## Workflow Execution Context
 
-ExecutionContexts are not limited to `AgentExecution` — they also serve `WorkflowExecution` runs. The `execution_id` field accepts either ID type; the runner uses `getByExecutionId` with whichever ID it holds.
+ExecutionContexts are not limited to `AgentRun` — they also serve `WorkflowRun` runs. The `execution_id` field accepts either ID type; the runner uses `getByExecutionId` with whichever ID it holds.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -186,7 +186,7 @@ spec:
 
 ## Runner Lookup Pattern
 
-Runners retrieve the ExecutionContext for their execution using `getByExecutionId`. This is the only operation that can return **decrypted** secret values — and on cloud it does so only when the caller presents a platform-minted runner credential whose scope claim binds it to this execution (`token_type` of `sandbox`, `workflow_sandbox`, or `connect_sandbox`). The unscoped `embedded_runner` bootstrap credential is refused; desktop runners exchange it for a scoped token via `getRunnerScopedToken` before reading. User-class callers receive redacted values, same as `get`.
+Runners retrieve the ExecutionContext for their run using `getByExecutionId`. This is the only operation that can return **decrypted** secret values — and on cloud it does so only when the caller presents a platform-minted runner credential whose scope claim binds it to this run (`token_type` of `sandbox`, `workflow_sandbox`, or `connect_sandbox`). The unscoped `embedded_runner` bootstrap credential is refused; desktop runners exchange it for a scoped token via `getRunnerScopedToken` before reading. User-class callers receive redacted values, same as `get`.
 
 ```
 # Pseudo-code: what the agent runner does at startup
@@ -202,7 +202,7 @@ for key, execValue in ctx.spec.data:
     os.environ[key] = execValue.value  # decrypted by the server before returning
 ```
 
-All other query paths (`get`, `getByReference`) redact secret values and are used for audit or debug purposes, not for runtime execution.
+All other query paths (`get`, `getByReference`) redact secret values and are used for audit or debug purposes, not for runtime run.
 
 ---
 
@@ -225,7 +225,7 @@ metadata:
     triggered-by: "workflow-run-wex_xyz"
   tags:
     - production
-    - agent-execution
+    - agent-run
     - platform-team
 spec:
   execution_id: "aex_stu901"

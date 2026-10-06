@@ -8,26 +8,26 @@ import "ai/stigmer/commons/apiresource/status.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 
-// WorkflowRunEvent represents a single timestamped event in the execution
+// WorkflowRunEvent represents a single timestamped event in the run
 // timeline of a workflow run.
 //
 // @internal
-// Events form an append-only log that captures the full history of an execution:
+// Events form an append-only log that captures the full history of a run:
 // what happened, when, and in what order. This complements the existing
 // WorkflowRunStatus snapshot model (which answers "what is the current state?")
 // by adding the temporal dimension ("what happened?").
 //
 // The event log enables:
-// - Execution viewer timeline — ordered sequence of task transitions
+// - Run viewer timeline — ordered sequence of task transitions
 // - Retry visibility — task_started + task_failed + task_retrying + task_started
 //   tells the full story that a point-in-time snapshot cannot
 // - Cost attribution — per-task cost/token breakdown over time
 // - Audit trail — who approved what, when, with what decision
-// - Agent subtrace context — lightweight progress summaries with child execution
+// - Agent subtrace context — lightweight progress summaries with child run
 //   references for drill-down (full agent stream fetched separately)
 //
 // Ordering:
-// Events are ordered by sequence_number (monotonic per execution, assigned by
+// Events are ordered by sequence_number (monotonic per run, assigned by
 // the runner). Wall-clock occurred_at is informational; sequence_number
 // is the authoritative ordering key.
 //
@@ -36,7 +36,7 @@ import "google/protobuf/struct.proto";
 // updateStatus RPC. Events are persisted atomically with the status update.
 //
 // Consumption:
-// - getEventLog RPC: paginated fetch for completed or in-progress executions
+// - getEventLog RPC: paginated fetch for completed or in-progress runs
 // - subscribeEvents RPC: real-time server-stream of incremental events
 message WorkflowRunEvent {
   // Unique event identifier.
@@ -57,7 +57,7 @@ message WorkflowRunEvent {
   //
   // @internal
   // Assigned by the runner, starting at 1 for the first event.
-  // Provides total ordering within a single execution without relying on
+  // Provides total ordering within a single run without relying on
   // clock synchronization. Used as the cursor for paginated event queries
   // (getEventLog) and live-tail positioning (subscribeEvents).
   //
@@ -70,7 +70,7 @@ message WorkflowRunEvent {
   // @internal
   // Wall-clock time from the runner. Informational — do not use
   // for ordering (use sequence_number instead). Useful for:
-  // - Displaying human-readable timestamps in the execution viewer
+  // - Displaying human-readable timestamps in the run viewer
   // - Calculating task durations (task_completed.occurred_at - task_started.occurred_at)
   // - Correlating with external system logs
   //
@@ -80,7 +80,7 @@ message WorkflowRunEvent {
   // Name of the task this event relates to, if applicable.
   //
   // @internal
-  // Empty for execution-level events (run_started, run_completed, etc.).
+  // Empty for run-level events (run_started, run_completed, etc.).
   // Populated for task-level events (task_started, task_completed, agent_call_progress, etc.).
   // Matches WorkflowTask.task_name in the status snapshot.
   //
@@ -124,11 +124,11 @@ message WorkflowRunEvent {
   }
 }
 
-// WorkflowEventType categorizes execution events for filtering and dispatch.
+// WorkflowEventType categorizes run events for filtering and dispatch.
 //
 // @internal
 // Values are grouped by concern with numeric gaps for future additions:
-// - 1–9: Execution lifecycle
+// - 1–9: Run lifecycle
 // - 11–19: Task lifecycle
 // - 21–29: Agent call
 // - 31–39: Human input / approval
@@ -137,7 +137,7 @@ message WorkflowRunEvent {
 enum WorkflowEventType {
   workflow_event_type_unspecified = 0;
 
-  // ── Execution lifecycle ──────────────────────────────────────────────
+  // ── Run lifecycle ──────────────────────────────────────────────
 
   // Workflow run began processing.
   // Emitted when phase transitions from PENDING to IN_PROGRESS.
@@ -155,7 +155,7 @@ enum WorkflowEventType {
   run_failed = 3;
 
   // Workflow run was paused by user or system.
-  // Non-terminal — execution can be resumed.
+  // Non-terminal — run can be resumed.
   // Payload: RunPausedPayload.
   run_paused = 4;
 
@@ -175,7 +175,7 @@ enum WorkflowEventType {
 
   // ── Task lifecycle ───────────────────────────────────────────────────
 
-  // A workflow task began run.
+  // A workflow task began execution.
   // Payload: TaskStartedPayload.
   task_started = 11;
 
@@ -243,20 +243,20 @@ enum WorkflowEventType {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Execution Lifecycle Payloads
+// Run Lifecycle Payloads
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Payload for run_started events.
 //
 // @internal
-// Emitted once per execution when the runner picks up the workflow and
+// Emitted once per run when the runner picks up the workflow and
 // transitions phase from PENDING to IN_PROGRESS.
 message RunStartedPayload {
   // Total number of top-level tasks in the workflow definition.
   // Enables progress calculation (completed_count / total_tasks).
   int32 total_tasks = 1;
 
-  // Workflow ID the execution runs.
+  // ID of the workflow being run.
   string workflow_id = 2;
 
   // Field 3 named the workflow instance until the instance kind was removed.
@@ -274,7 +274,7 @@ message RunCompletedPayload {
   // The full output is available on WorkflowRunStatus.output.
   google.protobuf.Struct output_summary = 1;
 
-  // Total wall-clock duration of the execution in milliseconds.
+  // Total wall-clock duration of the run in milliseconds.
   int64 duration_ms = 2;
 
   // Aggregate cost across all tasks in micro-USD (1 USD = 1,000,000 micros).
@@ -466,7 +466,7 @@ message TaskRetryingPayload {
 // drill-down stream into the agent's run.
 message AgentCallStartedPayload {
   // ID of the child AgentRun (format: "aex_{ulid}").
-  // Use this to subscribe to the agent's execution stream for full detail.
+  // Use this to subscribe to the agent's run stream for full detail.
   string child_run_id = 1;
 
   // Agent slug being invoked (e.g., "customer-support-agent").
@@ -609,7 +609,7 @@ message ApprovalRequestedPayload {
   // @internal
   // Populated from HumanInputTaskConfig.payload after the runner resolves
   // its ${ } expressions — the event carries the materialized value, not
-  // the expression, so the execution history records exactly what the
+  // the expression, so the run's history records exactly what the
   // reviewer saw. Empty for agent tool approvals, for human_input tasks
   // without a payload, and when the resolved payload was promoted to the
   // artifact store (payload_artifact_id is set instead — the two fields
@@ -710,7 +710,7 @@ message ApprovalResolvedPayload {
 //
 // @internal
 // Periodic snapshot of budget consumption emitted at task boundaries
-// (after each cost-incurring task completes). Enables the execution viewer
+// (after each cost-incurring task completes). Enables the run viewer
 // to render a cost timeline and budget utilization gauge.
 //
 // Emission frequency is a runtime decision. Typical triggers:
@@ -751,7 +751,7 @@ message BudgetCheckpointPayload {
 // @internal
 // Emitted when a listen task receives an external signal (via the sendSignal
 // RPC or from another workflow's emit_event). Documents the signal arrival
-// in the execution timeline.
+// in the run timeline.
 message SignalReceivedPayload {
   // Signal name matching the listen task's signal ID.
   string signal_name = 1;
@@ -764,7 +764,7 @@ message SignalReceivedPayload {
 //
 // @internal
 // Emitted when an emit_event task publishes a CloudEvent. Documents the
-// emission in the execution timeline. The full CloudEvents envelope is
+// emission in the run timeline. The full CloudEvents envelope is
 // available in the task output.
 message EventEmittedPayload {
   // CloudEvents type identifier from the EmitEventSpec.

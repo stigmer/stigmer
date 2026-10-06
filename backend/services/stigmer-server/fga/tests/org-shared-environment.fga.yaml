@@ -5,9 +5,9 @@
 # org's full read audience, stigmer#465) that grants everyone in the org
 # REDACTED view only. The creator-only secret-reveal
 # invariant holds at every level: can_read_secrets never widens with
-# sharing. Runtime resolution for executions is app-level (server-side
+# sharing. Runtime resolution for runs is app-level (server-side
 # policy on metadata.visibility), deliberately NOT modeled here — no FGA
-# relation could allow a member's execution to use a secret while denying
+# relation could allow a member's run to use a secret while denying
 # the same member's reveal.
 #
 # Run with:

@@ -22,12 +22,12 @@ imports are the truth for every shape named here.
 ## 1. Place the kind before writing it
 
 A resource lives in a bounded context, a directory under `apis/ai/stigmer/`:
-`agentic` (agents, executions, sessions, workflows, MCP servers, skills and
-their supporting kinds), `iam` (identity, keys, policies, invitations),
-`tenancy` (organizations, projects), `platform`, `billing`, `search`,
-`activity`. Name its aggregate and its owner (which organization or parent it
-belongs to, who may grant roles on it) before a field is written; the
-authorization metadata in step 3 asks for both.
+`agentic` (agents, runs, sessions, workflows, MCP servers, skills and their
+supporting kinds), `iam` (identity, keys, policies, invitations), `tenancy`
+(organizations, projects), `platform`, `billing`, `search`, `activity`. Name its
+aggregate and its owner (which organization or parent it belongs to, who may
+grant roles on it) before a field is written; the authorization metadata in step
+3 asks for both.
 
 ## 2. The files
 
@@ -44,10 +44,9 @@ is the convention, not a fixed count of files:
   message, list inputs, and so on).
 - Further files as the kind needs them: an `enum.proto` for shared enums, a
   `version.proto` for versioned kinds, topic files for large sub-shapes
-  (`apis/ai/stigmer/agentic/agentexecution/v1/` has `approval.proto`,
-  `message.proto`, `usage.proto`), the overview file of step 7, and for kinds
-  with a curl walkthrough a folder of scripts
-  (`apis/ai/stigmer/iam/apikey/v1/curl/`).
+  (`apis/ai/stigmer/agentic/agentrun/v1/` has `approval.proto`, `message.proto`,
+  `usage.proto`), the overview file of step 7, and for kinds with a curl
+  walkthrough a folder of scripts (`apis/ai/stigmer/iam/apikey/v1/curl/`).
 
 Messages never live in the service files; services never live in the message
 files. A request message belongs in `io.proto`, not beside the RPC that takes

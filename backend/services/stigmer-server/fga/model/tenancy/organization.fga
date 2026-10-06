@@ -44,7 +44,7 @@ type organization
     define viewer: [identity_account] or member
 
     # Anonymous shared-agent visitors (one identity account per org).
-    # Grants session/execution creation only — not member/viewer inheritance.
+    # Grants session/run creation only — not member/viewer inheritance.
     # FGA tuple: organization:<org_id>#guest@identity_account:<guest_account_id>
     define guest: [identity_account]
     # Anyone who holds a role in the organization, a guest included: the

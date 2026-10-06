@@ -57,7 +57,7 @@ message CreditBalance {
   // Credits available for new reservations and immediate use.
   int64 available_micros = 1;
 
-  // Credits held by active execution reservations.
+  // Credits held by active run reservations.
   int64 reserved_micros = 2;
 
   // Subset of total from promotional grants (free trial, campaigns).

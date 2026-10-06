@@ -27,7 +27,7 @@ message ScheduleStatus {
   //
   // @internal
   // The reverse pointer of the stigmer.ai/schedule-id label stamped on
-  // every schedule-created execution — the audit link is
+  // every schedule-created run — the audit link is
   // queryable from either end.
   string last_run_id = 3;
 

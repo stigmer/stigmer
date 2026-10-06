@@ -34,9 +34,9 @@ message WorkflowId {
 //
 // @internal
 // Returned by list operations (list, list_by_workflow).
-// Includes pagination metadata and the execution entries for the current page.
+// Includes pagination metadata and the run entries for the current page.
 message WorkflowRunList {
-  // Not computed for this list: 1 when the response holds every execution,
+  // Not computed for this list: 1 when the response holds every run,
   // 0 when next_page_token is set. Follow next_page_token instead.
   int32 total_pages = 1;
 
@@ -44,8 +44,8 @@ message WorkflowRunList {
   // sort field was requested.
   repeated WorkflowRun entries = 2;
 
-  // Set when more executions may follow: pass it as page_token to
-  // continue. A page may hold fewer executions than page_size, even none,
+  // Set when more runs may follow: pass it as page_token to
+  // continue. A page may hold fewer runs than page_size, even none,
   // and still carry a token. Empty when the list is complete, and always
   // empty under a sort field other than the default.
   string next_page_token = 3;
@@ -56,14 +56,14 @@ message WorkflowRunList {
 // @internal
 // Supports pagination and filtering by phase and tags.
 message ListWorkflowRunsRequest {
-  // The most executions to return, at most 100; zero returns them all.
+  // The most runs to return, at most 100; zero returns them all.
   int32 page_size = 1 [(buf.validate.field).int32.gte = 0];
 
   // The previous response's next_page_token, to continue that list; every
   // other field must equal that request's, or the call is refused.
   string page_token = 2;
 
-  // Filter by execution phase.
+  // Filter by run phase.
   //
   // @internal
   // If not specified (or RUN_PHASE_UNSPECIFIED), all phases are included.
@@ -72,7 +72,7 @@ message ListWorkflowRunsRequest {
   // Filter by resource tags (AND logic).
   //
   // @internal
-  // Limits results to executions that have ALL specified tags.
+  // Limits results to runs that have ALL specified tags.
   // Tag format: "key:value" or "key" (for boolean tags).
   repeated string tags = 4;
 
@@ -93,7 +93,7 @@ message ListWorkflowRunsRequest {
 
   // Organization slug to scope the results to.
   //
-  // When set, only executions whose metadata.org matches are returned — the
+  // When set, only runs whose metadata.org matches are returned — the
   // org-context view a console tab needs. When empty, results are bounded
   // only by the caller's view permissions, which for a member of several
   // organizations spans all of them.
@@ -105,16 +105,16 @@ message ListWorkflowRunsRequest {
   string org = 8;
 }
 
-// ListWorkflowRunsByWorkflowRequest lists executions for a specific workflow.
+// ListWorkflowRunsByWorkflowRequest lists runs for a specific workflow.
 //
 // @internal
-// Filters executions by Workflow ID.
+// Filters runs by Workflow ID.
 // Unlike ListWorkflowRunsRequest (cross-workflow), this scopes to one workflow.
 message ListWorkflowRunsByWorkflowRequest {
   // Workflow ID to filter by.
   string workflow_id = 1 [(buf.validate.field).required = true];
 
-  // The most executions to return, at most 100; zero returns them all.
+  // The most runs to return, at most 100; zero returns them all.
   int32 page_size = 2 [(buf.validate.field).int32.gte = 0];
 
   // The previous response's next_page_token, to continue that list; every
@@ -137,7 +137,7 @@ message ListWorkflowRunsByWorkflowRequest {
 // Input for the updateStatus RPC.
 //
 // @internal
-// Contains only the execution ID and the status fields to be updated.
+// Contains only the run ID and the status fields to be updated.
 // This avoids validation errors on incomplete metadata/spec fields.
 message WorkflowRunUpdateStatusInput {
   // ID of the workflow run to update.
@@ -146,13 +146,13 @@ message WorkflowRunUpdateStatusInput {
   // Format: "wex_abc123xyz456"
   string run_id = 1 [(buf.validate.field).string.min_len = 1];
 
-  // Status fields to merge into the existing execution status.
+  // Status fields to merge into the existing run status.
   //
   // @internal
   // Only the fields present in this status object will be updated.
   WorkflowRunStatus status = 2 [(buf.validate.field).required = true];
 
-  // Execution events to append to the event log alongside this status update.
+  // Run events to append to the event log alongside this status update.
   //
   // @internal
   // Append-only: events are added to the persistent event log, never replaced.
@@ -211,7 +211,7 @@ message WorkflowRunUpdateStatusInput {
 //
 // @internal
 // Forwards an approval decision to a child AgentRun that is waiting for
-// approval. The child execution ID is resolved from
+// approval. The child run ID is resolved from
 // status.pending_approval.child_agent_run_id.
 //
 // Validation:
@@ -322,7 +322,7 @@ message SubmitWorkflowFileDecisionInput {
 // Unlike submitApproval (which forwards agent-level tool approvals to a child
 // AgentRun), this RPC resolves workflow-level human_input tasks. The handler:
 //
-// 1. Validates that the named task exists in the execution and is a human_input task
+// 1. Validates that the named task exists in the run and is a human_input task
 // 2. Validates the outcome against the task's configured outcomes (if any)
 // 3. Constructs the Temporal signal name ("human_input_{task_name}")
 // 4. Builds the signal payload matching HumanInputSignalPayload
@@ -381,13 +381,13 @@ message SubmitWorkflowTaskApprovalInput {
   string comment = 6;
 }
 
-// SubscribeWorkflowRunRequest subscribes to real-time execution updates.
+// SubscribeWorkflowRunRequest subscribes to real-time run updates.
 //
 // @internal
 // Opens a server-side streaming RPC that pushes WorkflowRun updates
-// as the execution progresses. Stream closes when execution reaches a terminal state.
+// as the run progresses. Stream closes when the run reaches a terminal state.
 message SubscribeWorkflowRunRequest {
-  // Execution ID to subscribe to.
+  // Run ID to subscribe to.
   //
   // @internal
   // Format: "wfx_{unique-suffix}"
@@ -401,7 +401,7 @@ message SubscribeWorkflowRunRequest {
 // to perform cleanup before transitioning to RUN_CANCELLED phase.
 //
 // Preconditions:
-// - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
+// - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
 // - User must have can_edit permission
 //
 // Idempotent: if already cancelled, returns current state as a no-op.
@@ -423,7 +423,7 @@ message CancelWorkflowRunInput {
 // the workflow code cannot respond to termination.
 //
 // Preconditions:
-// - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
+// - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
 // - User must have can_edit permission
 //
 // Idempotent: if already terminated, returns current state as a no-op.
@@ -441,7 +441,7 @@ message TerminateWorkflowRunInput {
 // RecoverWorkflowRunInput requests recovery of a failed workflow run.
 //
 // Recovery preserves completed work: tasks that succeeded in the failed run are
-// skipped (their outputs restored into workflow context), and execution resumes
+// skipped (their outputs restored into workflow context), and run resumes
 // from the first incomplete or failed task.
 //
 // @internal
@@ -449,12 +449,12 @@ message TerminateWorkflowRunInput {
 // the ExecutionContext with freshly resolved environment variables, and starts a
 // new orchestrator with recoveryMode enabled. The workflow engine reads completed
 // task outputs from the persisted event log, skips those tasks (emitting
-// task_skipped events), and begins execution at the first non-completed task.
+// task_skipped events), and resumes at the first non-completed task.
 // Event sequence numbers continue from the high-water mark of the previous run.
 //
 // Preconditions:
-// - Execution must be in RUN_FAILED phase
-// - TERMINATED and CANCELLED executions cannot be recovered
+// - Run must be in RUN_FAILED phase
+// - TERMINATED and CANCELLED runs cannot be recovered
 // - User must have can_edit permission
 //
 // Idempotent: if recovery is already in progress, returns current state as a no-op.
@@ -472,7 +472,7 @@ message RecoverWorkflowRunInput {
 // PauseWorkflowRunInput requests temporarily pausing a workflow run.
 //
 // @internal
-// Pauses the workflow at its current checkpoint. The execution is NOT terminal
+// Pauses the workflow at its current checkpoint. The run is NOT terminal
 // and can be resumed later via the resume RPC.
 message PauseWorkflowRunInput {
   // Workflow run ID to pause (must be in PENDING or IN_PROGRESS phase).
@@ -488,8 +488,8 @@ message PauseWorkflowRunInput {
 // ResumeWorkflowRunInput requests resuming a paused workflow run.
 //
 // @internal
-// Continues execution from the checkpoint where it was paused.
-// Execution must be in RUN_PAUSED phase.
+// Continues the run from the checkpoint where it was paused.
+// Run must be in RUN_PAUSED phase.
 message ResumeWorkflowRunInput {
   // Workflow run ID to resume (must be in PAUSED phase).
   //
@@ -505,7 +505,7 @@ message ResumeWorkflowRunInput {
 // a LISTEN task. Uses race-proof delivery internally (SignalWithStart).
 //
 // Preconditions:
-// - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
+// - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
 // - User must have can_edit permission
 message SendSignalInput {
   // Workflow run ID to send the signal to.
@@ -547,8 +547,8 @@ message SendSignalInput {
 //
 // Use Cases:
 //
-// 1. Execution Viewer Timeline:
-//    - UI loads execution state via get(), then fetches event log for timeline
+// 1. Run Viewer Timeline:
+//    - UI loads run state via get(), then fetches event log for timeline
 //    - Initial load: after_sequence = 0, page_size = 100
 //    - Subsequent pages: after_sequence = latest_sequence from previous response
 //
@@ -559,7 +559,7 @@ message SendSignalInput {
 // 3. Cost Analysis:
 //    - Filter by budget_checkpoint events to chart cost over time
 message GetEventLogRequest {
-  // Execution ID to fetch events for.
+  // Run ID to fetch events for.
   //
   // @internal
   // Format: "wfx_{unique-suffix}"
@@ -584,9 +584,9 @@ message GetEventLogRequest {
   // Optional filter: return only events for this task.
   //
   // @internal
-  // When empty, events for all tasks (and execution-level events) are returned.
+  // When empty, events for all tasks (and run-level events) are returned.
   // When populated, only events where task_name matches are included.
-  // Execution-level events (empty task_name) are excluded when this filter is set.
+  // Run-level events (empty task_name) are excluded when this filter is set.
   string task_name = 4;
 
   // Maximum number of events to return per page.
@@ -597,7 +597,7 @@ message GetEventLogRequest {
   int32 page_size = 5;
 }
 
-// GetEventLogResponse contains a page of execution events.
+// GetEventLogResponse contains a page of run events.
 //
 // @internal
 message GetEventLogResponse {
@@ -606,7 +606,7 @@ message GetEventLogResponse {
 
   // Whether more events exist after the last event in this response.
   // When false, the client has reached the end of the current event log.
-  // For in-progress executions, more events may appear later.
+  // For in-progress runs, more events may appear later.
   bool has_more = 2;
 
   // Highest sequence_number returned in this response.
@@ -620,7 +620,7 @@ message GetEventLogResponse {
 // @internal
 // Unlike subscribe() which streams full WorkflowRun snapshots, this
 // streams individual WorkflowRunEvent messages as they occur.
-// Lightweight and incremental — suitable for the execution viewer timeline.
+// Lightweight and incremental — suitable for the run viewer timeline.
 //
 // Replay + Live Tail:
 // When after_sequence is set, the server first replays persisted events
@@ -632,10 +632,10 @@ message GetEventLogResponse {
 // 2. Server validates authorization
 // 3. If after_sequence > 0: Server replays missed events
 // 4. Server streams new events in real-time as they occur
-// 5. Server closes stream when execution reaches a terminal phase
+// 5. Server closes stream when the run reaches a terminal phase
 // 6. Client can close stream early (e.g., user navigates away)
 message SubscribeEventsRequest {
-  // Execution ID to subscribe to.
+  // Run ID to subscribe to.
   //
   // @internal
   // Format: "wfx_{unique-suffix}"
@@ -660,31 +660,31 @@ message SubscribeEventsRequest {
 }
 
 // ---------------------------------------------------------------------------
-// Execution list filter and sort types
+// Run list filter and sort types
 // ---------------------------------------------------------------------------
 
 // RunFilterCriteria defines structured filter conditions for listing
 // workflow runs. All specified conditions are combined with AND logic.
 message RunFilterCriteria {
-  // Filter by execution phases. Empty means all phases.
+  // Filter by run phases. Empty means all phases.
   //
   // Supersedes the top-level `phase` field on ListWorkflowRunsRequest
   // when both are set.
   repeated RunPhase phases = 1;
 
-  // Include only executions started at or after this timestamp.
+  // Include only runs started at or after this timestamp.
   google.protobuf.Timestamp started_after = 2;
 
-  // Include only executions started at or before this timestamp.
+  // Include only runs started at or before this timestamp.
   google.protobuf.Timestamp started_before = 3;
 
-  // Minimum execution duration (completed executions only).
+  // Minimum run duration (completed runs only).
   //
-  // Executions still in progress or without timestamps are excluded
+  // Runs still in progress or without timestamps are excluded
   // when this filter is set.
   google.protobuf.Duration min_duration = 4;
 
-  // Maximum execution duration (completed executions only).
+  // Maximum run duration (completed runs only).
   google.protobuf.Duration max_duration = 5;
 
   // Minimum cost in micro-USD.
@@ -693,35 +693,35 @@ message RunFilterCriteria {
   // Maximum cost in micro-USD.
   int64 max_cost_micros = 7;
 
-  // Filter to executions containing a failed task with this exact name.
+  // Filter to runs containing a failed task with this exact name.
   //
   // Matches against any task in status.tasks where
   // task.status == WORKFLOW_TASK_FAILED AND task.task_name == this value.
   string failed_task_name = 8;
 
-  // When true, include only executions that contain at least one retried task.
+  // When true, include only runs that contain at least one retried task.
   //
   // A task is considered retried when its metadata contains a retry_count > 0.
   bool has_retries = 9;
 }
 
-// RunSortField defines the column to sort execution lists by.
+// RunSortField defines the column to sort run lists by.
 enum RunSortField {
   // Default: newest created first, the one order that pages.
   RUN_SORT_FIELD_UNSPECIFIED = 0;
 
-  // Sort by execution start time.
+  // Sort by run start time.
   RUN_SORT_FIELD_STARTED_AT = 1;
 
-  // Sort by execution duration (completed_at - started_at).
+  // Sort by run duration (completed_at - started_at).
   //
-  // Executions without both timestamps sort last.
+  // Runs without both timestamps sort last.
   RUN_SORT_FIELD_DURATION = 2;
 
   // Sort by total cost (status.total_cost_micros).
   RUN_SORT_FIELD_COST = 3;
 
-  // Sort by execution phase enum value.
+  // Sort by run phase enum value.
   RUN_SORT_FIELD_STATUS = 4;
 }
 
@@ -738,7 +738,7 @@ enum SummaryTimeWindow {
   SUMMARY_TIME_WINDOW_ALL_TIME = 4;
 }
 
-// GetRunSummaryRequest fetches aggregated execution statistics for an organization,
+// GetRunSummaryRequest fetches aggregated run statistics for an organization,
 // optionally scoped to a single workflow.
 message GetRunSummaryRequest {
   // Organization slug to scope the summary.
@@ -749,7 +749,7 @@ message GetRunSummaryRequest {
   // Defaults to LAST_7D when unspecified.
   SummaryTimeWindow time_window = 2;
 
-  // When set, scopes the summary to executions of this workflow only.
+  // When set, scopes the summary to runs of this workflow only.
   // When empty, aggregates across all workflows in the organization.
   string workflow_id = 3;
 }
@@ -758,21 +758,21 @@ message GetRunSummaryRequest {
 //
 // All counts, costs, and durations are scoped to the requested time window.
 message RunSummary {
-  // Number of executions currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED).
+  // Number of runs currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED).
   int32 active_count = 1;
 
-  // Execution counts broken down by phase.
+  // Run counts broken down by phase.
   //
   // Keys are RunPhase enum values (as int32).
-  // Only phases with at least one execution are included.
+  // Only phases with at least one run are included.
   map<int32, int32> phase_counts = 2;
 
-  // Aggregate cost across all executions in the time window.
+  // Aggregate cost across all runs in the time window.
   WorkflowCostSummary total_cost = 3;
 
-  // Mean execution duration (from started_at to completed_at) for completed runs.
+  // Mean run duration (from started_at to completed_at) for completed runs.
   //
-  // Zero when no completed executions exist in the window.
+  // Zero when no completed runs exist in the window.
   google.protobuf.Duration avg_duration = 4;
 
   // Workflows with the highest failure count in the time window, ranked descending.
@@ -785,12 +785,12 @@ message RunSummary {
   // Capped at 10 entries.
   repeated WorkflowCostBreakdown cost_by_workflow = 6;
 
-  // Total number of executions in the time window (sum of all phase_counts values).
+  // Total number of runs in the time window (sum of all phase_counts values).
   int32 total_count = 7;
 
   // Success rate as a ratio (0.0 to 1.0).
   // Computed as completed / (completed + failed). Returns -1.0 when no
-  // completed or failed executions exist in the time window.
+  // completed or failed runs exist in the time window.
   double success_rate = 8;
 }
 
@@ -866,15 +866,15 @@ message PendingApproval {
   // group pending approvals by review type. The full review payload is
   // deliberately not carried here — it belongs on the gate detail
   // (approval_requested event), read when the reviewer opens the gate.
-  // Empty when the task declares no hint or the execution predates the
+  // Empty when the task declares no hint or the run predates the
   // field — consumers treat empty as a generic review.
   string ui_hint = 8;
 }
 
 // PendingApprovalsList contains one page of pending approvals.
 message PendingApprovalsList {
-  // Pending approvals in this page: the newest execution's first, and an
-  // execution's waiting tasks in their order.
+  // Pending approvals in this page: the newest run's first, and an
+  // run's waiting tasks in their order.
   repeated PendingApproval entries = 1;
 
   // Total number of pending approvals matching the query (across all pages).

@@ -37,7 +37,7 @@ message WorkflowStatus {
   // holds the hash of its generated YAML until its next save.
   //
   // Consumers:
-  // - Execution create pipeline reads this to pin executions to a specific version
+  // - Run create pipeline reads this to pin runs to a specific version
   // - getByReference resolves ApiResourceReference.version against this and audit entries
   // - UI displays this as the current version identifier
   string version_hash = 3;

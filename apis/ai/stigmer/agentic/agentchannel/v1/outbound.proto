@@ -39,7 +39,7 @@ message ChannelOutboundMessage {
   //
   // @internal
   // The per-run cap keys on session (the sandbox token carries
-  // session_id, never an execution id), so there is no run_id
+  // session_id, never a run id), so there is no run_id
   // field.
   string session_id = 4;
 

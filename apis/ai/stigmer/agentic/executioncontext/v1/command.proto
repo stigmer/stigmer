@@ -19,7 +19,7 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 //     run against its session-or-org, and the EC is created before that parent
 //     is persisted, so it carries no resource to re-check. External callers
 //     must hold can_create_run_in on metadata.org (the same bar that
-//     gates creating an execution in the org; held by members and guests).
+//     gates creating a run in the org; held by members and guests).
 //     A declarative org option cannot encode the internal/external split.
 //   - apply: intentionally unannotated router — it delegates to create
 //     (create-or-fail; ExecutionContext has no update RPC) and the delegated
@@ -38,7 +38,7 @@ service ExecutionContextCommandController {
   // inherited from the delegated create pipeline.
   rpc apply(ExecutionContext) returns (ExecutionContext);
 
-  // Create a new ExecutionContext for an run.
+  // Create a new ExecutionContext for a run.
   //
   // @internal
   // Called by the execution pipelines (agent run, workflow run,

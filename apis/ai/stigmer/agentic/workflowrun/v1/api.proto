@@ -3,7 +3,7 @@ syntax = "proto3";
 // Package ai.stigmer.agentic.workflowrun.v1 contains the API definition for WorkflowRun.
 //
 // WorkflowRun represents a single runtime invocation of a Workflow, capturing the complete
-// execution lifecycle from trigger to completion.
+// run lifecycle from trigger to completion.
 //
 // This package belongs to the "agentic" bounded context, which encompasses all AI agent
 // systems and workflow orchestration capabilities.
@@ -28,10 +28,10 @@ import "google/protobuf/struct.proto";
 // - Is triggered by a user action, API call, webhook, or scheduled event
 // - Executes tasks sequentially or in parallel based on the workflow definition
 // - Tracks real-time progress through tasks and phases
-// - Captures outputs, errors, and execution metadata
+// - Captures outputs, errors, and run metadata
 // - Is ephemeral - deleted after completion based on retention policies
 //
-// Execution Pattern:
+// Run Pattern:
 // Workflow "customer-onboarding"
 //   → WorkflowRun "customer-onboarding-20250111-143022" (specific run)
 //     - Phase: IN_PROGRESS
@@ -44,8 +44,8 @@ import "google/protobuf/struct.proto";
 //
 // This separation ensures:
 // - Clear boundary between what users control (spec) and what the system manages (status)
-// - Status can be updated independently during execution without modifying user inputs
-// - Execution can be retried by creating a new WorkflowRun with the same spec
+// - Status can be updated independently during the run without modifying user inputs
+// - Run can be retried by creating a new WorkflowRun with the same spec
 message WorkflowRun {
   // API version for this resource type.
   //
@@ -65,7 +65,7 @@ message WorkflowRun {
   //
   // @internal
   // All workflow runs belong to an organization. Visibility (public/private)
-  // is typically PRIVATE for executions since they contain runtime data.
+  // is typically PRIVATE for runs since they contain runtime data.
   //
   // Naming Pattern:
   // - ID Format: "wfx_abc123xyz456" (auto-generated, unique)
@@ -74,7 +74,7 @@ message WorkflowRun {
   //
   // Labels and Tags:
   // - Labels: workflow_id, trigger_source
-  // - Tags: environment names, team names, execution metadata
+  // - Tags: environment names, team names, run metadata
   ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
 
   // User-provided inputs and configuration for this workflow run.
@@ -83,8 +83,8 @@ message WorkflowRun {
   // Contains:
   // - workflow_id: Which Workflow to run (required)
   // - trigger_message: Input message or payload for the workflow (optional)
-  // - trigger_metadata: Metadata about who/what triggered the execution (optional)
-  // - runtime_env: Execution-specific environment variables and secrets (optional)
+  // - trigger_metadata: Metadata about who/what triggered the run (optional)
+  // - runtime_env: Run-specific environment variables and secrets (optional)
   //
   // The spec is immutable after creation - it represents the "inputs" for this run.
   // To retry with different inputs, create a new WorkflowRun with updated spec.
@@ -105,27 +105,27 @@ message WorkflowRun {
   // }
   WorkflowRunSpec spec = 4;
 
-  // System-managed execution state and results.
+  // System-managed run state and results.
   //
   // @internal
   // Contains:
   // - phase: Current lifecycle phase (PENDING → IN_PROGRESS → COMPLETED/FAILED/CANCELLED)
   // - tasks: List of workflow tasks with their execution state (source of truth for progress)
-  // - output: Final workflow output (JSON structure, only for COMPLETED executions)
-  // - error: Error message (only for FAILED executions)
-  // - started_at: Timestamp when execution started
-  // - completed_at: Timestamp when execution finished (COMPLETED/FAILED/CANCELLED)
+  // - output: Final workflow output (JSON structure, only for COMPLETED runs)
+  // - error: Error message (only for FAILED runs)
+  // - started_at: Timestamp when the run started
+  // - completed_at: Timestamp when the run finished (COMPLETED/FAILED/CANCELLED)
   // - temporal_workflow_id: Correlation ID for workflow engine
   //
   // The status is continuously updated by the workflow run engine as the workflow progresses.
-  // Users can read status but cannot modify it - it reflects the actual execution state.
+  // Users can read status but cannot modify it - it reflects the actual run state.
   //
   // Progress Tracking:
   // - Total tasks: tasks.length
   // - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
   // - Progress percentage: (completed_tasks / total_tasks) * 100
   //
-  // Example (in-progress execution):
+  // Example (in-progress run):
   // status {
   //   phase: RUN_IN_PROGRESS
   //   tasks: [
@@ -138,10 +138,10 @@ message WorkflowRun {
   WorkflowRunStatus status = 5;
 }
 
-// WorkflowRunStatus contains all system-managed execution state and results.
+// WorkflowRunStatus contains all system-managed run state and results.
 //
 // @internal
-// Everything populated during or after execution goes here, not in spec.
+// Everything populated during or after the run goes here, not in spec.
 // This message follows the standard pattern: audit information at field 99, custom fields at 1-98.
 //
 // Status Lifecycle:
@@ -158,7 +158,7 @@ message WorkflowRun {
 // - Agent run: messages[], tool_calls[], sub_agent_runs[] (transformed from LLM streaming events)
 // - Workflow run: tasks[] (transformed from workflow task execution)
 // - Both store structured state, not raw streaming events
-// - Both use updateStatus RPC for progressive updates during execution
+// - Both use updateStatus RPC for progressive updates during the run
 message WorkflowRunStatus {
   // Standard audit information including timestamps and created-by identity.
   //
@@ -166,12 +166,12 @@ message WorkflowRunStatus {
   // Always at field 99 for consistency across all Stigmer API resources.
   //
   // Contains:
-  // - created_at: When this execution was created (ISO 8601 timestamp)
+  // - created_at: When this run was created (ISO 8601 timestamp)
   // - updated_at: Last time status was updated (ISO 8601 timestamp)
-  // - created_by: User or system that created this execution
+  // - created_by: User or system that created this run
   ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
 
-  // Current execution lifecycle phase.
+  // Current run lifecycle phase.
   //
   // @internal
   // Phase Transitions:
@@ -181,9 +181,9 @@ message WorkflowRunStatus {
   //
   // The phase is used for:
   // - UI status indicators (progress bars, badges)
-  // - Filtering executions (show only failed, show only in-progress)
+  // - Filtering runs (show only failed, show only in-progress)
   // - Alerting and notifications (notify on failure)
-  // - Retry logic (retry failed executions)
+  // - Retry logic (retry failed runs)
   //
   // Validation: Must be a defined enum value (no unspecified/unknown).
   RunPhase phase = 1 [(buf.validate.field).enum.defined_only = true];
@@ -193,7 +193,7 @@ message WorkflowRunStatus {
   // @internal
   // Tasks represent the atomic units of work within the workflow.
   // Each task has:
-  // - task_id: Unique identifier within this execution
+  // - task_id: Unique identifier within this run
   // - task_name: Human-readable name (e.g., "validate_email", "send_notification")
   // - task_type: Type of task (agent_invocation, api_call, approval, etc.)
   // - status: Current task status (PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED)
@@ -237,19 +237,19 @@ message WorkflowRunStatus {
   // For detailed debugging, inspect tasks[].error for task-specific error messages.
   string error = 4;
 
-  // ISO 8601 timestamp when execution started processing.
+  // ISO 8601 timestamp when the run started processing.
   //
   // @internal
   // Set when phase transitions from PENDING to IN_PROGRESS.
   // Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
   string started_at = 5;
 
-  // ISO 8601 timestamp when execution reached a terminal state.
+  // ISO 8601 timestamp when the run reached a terminal state.
   //
   // @internal
   // Set when the workflow reaches a terminal state:
   // - RUN_COMPLETED: Successfully finished
-  // - RUN_FAILED: Failed during execution
+  // - RUN_FAILED: Failed during the run
   // - RUN_CANCELLED: Cancelled by user or system
   //
   // Not set for PENDING or IN_PROGRESS runs.
@@ -271,7 +271,7 @@ message WorkflowRunStatus {
   // Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.
   string temporal_workflow_id = 7;
 
-  // Pending approvals from child agent tool runs.
+  // Pending approvals from child agent tool executions.
   //
   // @internal
   // Populated when workflow tasks invoke agents that enter
@@ -322,18 +322,18 @@ message WorkflowRunStatus {
   // SHA-256 hash identifying which workflow version was used for this run.
   //
   // @internal
-  // Pinned at execution creation time from Workflow.status.version_hash.
+  // Pinned at run creation time from Workflow.status.version_hash.
   // Immutable after creation — represents the exact workflow definition this
-  // execution ran (or will run, if still pending).
+  // run ran (or will run, if still pending).
   //
   // Consumers:
   // - Runner: fetches the version-specific CNCF YAML via getVersion() during
-  //   hydration, ensuring the execution runs the intended definition even if
+  //   hydration, ensuring the run executes the intended definition even if
   //   the workflow has been updated since creation.
-  // - Execution viewer: fetches the version entry to render the correct graph
-  //   for historical executions, eliminating the version mismatch problem.
+  // - Run viewer: fetches the version entry to render the correct graph
+  //   for historical runs, eliminating the version mismatch problem.
   //
-  // Empty for executions created before workflow versioning was introduced.
+  // Empty for runs created before workflow versioning was introduced.
   // In that case, consumers fall back to fetching the current workflow
   // definition (legacy behavior with mismatch warning).
   string workflow_version_hash = 13;
@@ -432,7 +432,7 @@ message WorkflowTask {
   // Examples: "task-1", "task-validate-email", "task-send-notification"
   //
   // The task_id is unique within this WorkflowRun but may repeat across
-  // different executions of the same Workflow (same task, different run).
+  // different runs of the same Workflow (same task, different run).
   string task_id = 1;
 
   // Human-readable task name.
@@ -474,7 +474,7 @@ message WorkflowTask {
   // Task output results, populated only when status is WORKFLOW_TASK_COMPLETED.
   //
   // @internal
-  // Contains the data produced by this task after successful run.
+  // Contains the data produced by this task after successful execution.
   // Output can be referenced by subsequent tasks using: {{tasks.this-task-id.output.field_name}}
   google.protobuf.Struct output = 5;
 
@@ -540,7 +540,7 @@ message WorkflowTask {
   //
   // When artifact_ids is non-empty, the task's output field contains
   // artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
-  // the original inline data. Consumers (execution viewer, SDK hooks)
+  // the original inline data. Consumers (run viewer, SDK hooks)
   // detect these references and resolve them via the Artifact APIs.
   repeated string artifact_ids = 11;
 
@@ -569,7 +569,7 @@ message WorkflowTask {
   // Copied from the human_input task's ui_hint config when the gate
   // activates, so approval surfaces (dashboards, listPendingApprovals)
   // can badge or group review requests by type without reading the
-  // event log. Empty for non-human_input tasks and for executions
+  // event log. Empty for non-human_input tasks and for runs
   // persisted before this field existed — consumers treat empty as a
   // generic review.
   //

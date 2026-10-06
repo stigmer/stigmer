@@ -3,7 +3,7 @@ module agentic
 # ========================================
 # AGENT RUN TYPE (Session-bound)
 # ========================================
-# Runtime execution of an agent within a session.
+# A single run of an agent within a session.
 # Inherits all permissions from parent session.
 #
 # Lifecycle:
@@ -16,7 +16,7 @@ type agent_run
     # ========================================
     # PARENT SESSION
     # ========================================
-    # Every execution belongs to a session
+    # Every run belongs to a session
     # FGA tuple: agent_run:<exec_id>#session@session:<session_id>
     define session: [session]
     
@@ -31,7 +31,7 @@ type agent_run
     # ========================================
     # can_view tracks the session's COMPUTED can_view (not just its viewer
     # relation) so channel observers — who reach the session via
-    # `viewer from channel` on can_view only — can read its executions too.
+    # `viewer from channel` on can_view only — can read its runs too.
     # For ordinary sessions the two clauses are equivalent; can_edit stays
     # owner-only either way.
     define can_view: viewer or can_view from session

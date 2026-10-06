@@ -37,7 +37,7 @@ All metadata fields are defined by `ApiResourceMetadata` in `ai/stigmer/commons/
 
 | Field | Required | Description |
 |---|---|---|
-| `metadata.name` | Yes | Human-readable name. Typically matches the execution ID or a derived slug. |
+| `metadata.name` | Yes | Human-readable name. Typically matches the run ID or a derived slug. |
 | `metadata.slug` | No | URL-friendly identifier. Auto-generated from `name` if omitted. |
 | `metadata.id` | No | System-generated unique identifier. Never set by users. |
 | `metadata.org` | Depends | Organization that owns this resource. Required in cloud mode. |
@@ -55,7 +55,7 @@ Defined in `ai/stigmer/agentic/executioncontext/v1/spec.proto`.
 
 | Field | Required | Description |
 |---|---|---|
-| `spec.execution_id` | Yes | The ID of the `AgentExecution` or `WorkflowExecution` this context belongs to. Must be a non-empty string. Used as the primary lookup key by runners via `getByExecutionId`. |
+| `spec.execution_id` | Yes | The ID of the `AgentRun` or `WorkflowRun` this context belongs to. Must be a non-empty string. Used as the primary lookup key by runners via `getByExecutionId`. |
 | `spec.data` | No | Map of key-value pairs. Each key is a string (e.g., `"AWS_ACCESS_KEY_ID"`); each value is an `ExecutionValue` message. |
 
 ---
@@ -67,7 +67,7 @@ Each entry in `spec.data` is an `ExecutionValue`:
 | Field | Required | Description |
 |---|---|---|
 | `value` | Yes | The actual string value. Must be non-empty. If `is_secret: true`, encrypted at rest and redacted in logs. If `is_secret: false`, stored as plaintext and visible in audit logs. |
-| `is_secret` | No | When `true`: value is encrypted at rest, redacted in logs, and deleted when the execution completes. When `false`: value is stored as plaintext and visible in audit logs. Defaults to `false`. |
+| `is_secret` | No | When `true`: value is encrypted at rest, redacted in logs, and deleted when the run completes. When `false`: value is stored as plaintext and visible in audit logs. Defaults to `false`. |
 
 ### Secret vs. Non-Secret
 
@@ -76,10 +76,10 @@ Each entry in `spec.data` is an `ExecutionValue`:
 | Storage | Plaintext | Encrypted at rest |
 | Audit logs | Value visible | Value redacted |
 | API reads | Value returned | Value redacted |
-| On execution complete | Deleted | Deleted (encrypted form) |
+| On run complete | Deleted | Deleted (encrypted form) |
 | Use cases | Region names, feature flags, log levels | API tokens, passwords, private keys |
 
-Both secret and non-secret values are deleted when the execution completes — ExecutionContext is ephemeral regardless of `is_secret`.
+Both secret and non-secret values are deleted when the run completes — ExecutionContext is ephemeral regardless of `is_secret`.
 
 ---
 
@@ -98,27 +98,27 @@ Status is system-managed and must never be set by users.
 
 ## Authorization Model
 
-ExecutionContexts are owner-scoped: the create pipeline writes an FGA owner tuple for the caller's identity, and reads check `can_view` on the ExecutionContext resource itself (owner-only). Secret access is gated one level deeper, by **caller credential class** — because runners authenticate *as the user who owns the execution*, no permission can tell a runner apart from the user, so the decrypt path keys off the `token_type` claim on platform-minted JWTs instead. OSS enforces no authorization (single-user local).
+ExecutionContexts are owner-scoped: the create pipeline writes an FGA owner tuple for the caller's identity, and reads check `can_view` on the ExecutionContext resource itself (owner-only). Secret access is gated one level deeper, by **caller credential class** — because runners authenticate *as the user who owns the run*, no permission can tell a runner apart from the user, so the decrypt path keys off the `token_type` claim on platform-minted JWTs instead. OSS enforces no authorization (single-user local).
 
 | Operation | Authorization (cloud) | Notes |
 |---|---|---|
 | `apply` | delegates to `create` | Create-or-fail — applying over an existing slug returns `AlreadyExists`. |
-| `create` | owner tuple written for the caller | Called by the execution engine within the execution create pipeline. |
-| `delete` | execution-engine internal | Called when execution completes or is cancelled. |
+| `create` | owner tuple written for the caller | Called by the execution engine within the run create pipeline. |
+| `delete` | execution-engine internal | Called when the run completes or is cancelled. |
 | `get` | `can_view` on the ExecutionContext | Secret values redacted. |
 | `getByReference` | `can_view` on the ExecutionContext | Secret values redacted. |
-| `getByExecutionId` | `can_view` on the ExecutionContext | Primary runner lookup. Secret values decrypted **only** for scope-bound runner credentials (`token_type` of `sandbox`, `workflow_sandbox`, or `connect_sandbox` whose scope claim binds the token to this execution); the unscoped `embedded_runner` bootstrap credential is refused — desktop runners exchange it for a scoped token via `getRunnerScopedToken` first. Redacted for every other caller, same as `get`. |
+| `getByExecutionId` | `can_view` on the ExecutionContext | Primary runner lookup. Secret values decrypted **only** for scope-bound runner credentials (`token_type` of `sandbox`, `workflow_sandbox`, or `connect_sandbox` whose scope claim binds the token to this run); the unscoped `embedded_runner` bootstrap credential is refused — desktop runners exchange it for a scoped token via `getRunnerScopedToken` first. Redacted for every other caller, same as `get`. |
 
 ### Why Credential Class, Not a Permission?
 
-ExecutionContexts contain the **merged secrets** a runner needs at execution time, but the runner presents the execution owner's identity (sandbox tokens carry the user as `sub`). Any FGA permission granted so the runner can decrypt would equally be held by the user's own token — so the server distinguishes callers by *what kind of credential* they present, not *who* they are. User-facing reads (console, SDK, API) therefore always see redacted values, matching the `Environment` redaction contract, while platform-minted runner credentials receive usable plaintext.
+ExecutionContexts contain the **merged secrets** a runner needs at run time, but the runner presents the run owner's identity (sandbox tokens carry the user as `sub`). Any FGA permission granted so the runner can decrypt would equally be held by the user's own token — so the server distinguishes callers by *what kind of credential* they present, not *who* they are. User-facing reads (console, SDK, API) therefore always see redacted values, matching the `Environment` redaction contract, while platform-minted runner credentials receive usable plaintext.
 
 ---
 
 ## Lifecycle
 
 ```
-Execution starts
+Run starts
     │
     ▼
 Execution engine resolves environment_refs from what started the run
@@ -141,7 +141,7 @@ Runner calls ExecutionContextQueryController.getByExecutionId(execution_id)
 Agent / workflow logic executes using the injected values
     │
     ▼
-Execution completes (success, failure, or cancellation)
+Run completes (success, failure, or cancellation)
     │
     ▼
 Execution engine calls ExecutionContextCommandController.delete(executionContext.id)
@@ -156,9 +156,9 @@ ExecutionContext and Environment solve different problems in the same value-inje
 
 | Aspect | Environment | ExecutionContext |
 |---|---|---|
-| Lifecycle | Persistent | Ephemeral — one execution |
+| Lifecycle | Persistent | Ephemeral — one run |
 | Created by | Users (via CLI or API) | Execution engine (operator) |
-| Reusable | Yes — many schedules, workflow tasks and PlatformClients can reference it | No — 1:1 with one execution |
+| Reusable | Yes — many schedules, workflow tasks and PlatformClients can reference it | No — 1:1 with one run |
 | Primary key | Resource ID or name | `execution_id` |
 | Secret reads | Redacted in all API responses | Decrypted for runner via `getByExecutionId` |
 | User-visible | Yes | No |

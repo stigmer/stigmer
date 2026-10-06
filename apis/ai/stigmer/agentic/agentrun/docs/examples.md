@@ -1,12 +1,12 @@
-# AgentExecution Examples
+# AgentRun Examples
 
-Complete examples from minimal trigger to full-featured execution spec. All CLI commands and YAML fragments reflect actual field names and enum values.
+Complete examples from minimal trigger to full-featured run spec. All CLI commands and YAML fragments reflect actual field names and enum values.
 
 ---
 
-## Minimal Execution — Just a Message
+## Minimal Run — Just a Message
 
-The simplest way to trigger an execution. Name the agent in `session_spec.agent_ref` and provide a `message`. A session is created on the agent's current version; omit `session_spec` and the built-in assistant answers.
+The simplest way to trigger a run. Name the agent in `session_spec.agent_ref` and provide a `message`. A session is created on the agent's current version; omit `session_spec` and the built-in assistant answers.
 
 **CLI:**
 
@@ -18,7 +18,7 @@ stigmer run my-agent "What files are in the current directory?"
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
-kind: AgentExecution
+kind: AgentRun
 metadata:
   org: acme
 spec:
@@ -34,7 +34,7 @@ spec:
 
 ## Continue an Existing Session
 
-Append a new execution to an existing session, preserving conversation history.
+Append a new run to an existing session, preserving conversation history.
 
 **CLI:**
 
@@ -177,7 +177,7 @@ spec:
 
 ## Runtime Environment Variables
 
-Inject secrets or configuration at execution time. These are available only for this execution and are deleted when it completes.
+Inject secrets or configuration at run time. These are available only for this run and are deleted when it completes.
 
 ```yaml
 spec:
@@ -246,13 +246,13 @@ Context summarization needs no settings: it follows the model's Model Registry e
 
 ---
 
-## Full-Featured Execution Spec
+## Full-Featured Run Spec
 
-An execution with all optional fields populated — run settings, runtime secrets, attachments, and workspace refs.
+A run with all optional fields populated — run settings, runtime secrets, attachments, and workspace refs.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
-kind: AgentExecution
+kind: AgentRun
 metadata:
   org: acme-corp
   name: migration-run-1
@@ -298,29 +298,29 @@ spec:
 
 ---
 
-## Watching and Controlling a Running Execution
+## Watching and Controlling a Running Run
 
 ```bash
-# Trigger the execution
+# Trigger the run
 EX_ID=$(stigmer run my-agent "Long analysis task" --output id)
 
 # Watch streaming output in real time
-stigmer agent execution watch "$EX_ID"
+stigmer runs logs "$EX_ID" --follow
 
 # Pause it to review progress
-stigmer agent execution pause "$EX_ID" --reason "Reviewing intermediate results"
+stigmer runs pause "$EX_ID" --reason "Reviewing intermediate results"
 
 # Resume when ready
-stigmer agent execution resume "$EX_ID"
+stigmer runs resume "$EX_ID"
 
 # If it gets stuck, cancel gracefully
-stigmer agent execution cancel "$EX_ID" --reason "Task definition was incorrect"
+stigmer runs cancel "$EX_ID" --reason "Task definition was incorrect"
 
 # If cancel doesn't work, force terminate
-stigmer agent execution terminate "$EX_ID" --reason "Not responding to cancel"
+stigmer runs terminate "$EX_ID" --reason "Not responding to cancel"
 
 # If it fails, recover from last checkpoint
-stigmer agent execution recover "$EX_ID"
+stigmer runs recover "$EX_ID"
 ```
 
 ---
@@ -328,16 +328,16 @@ stigmer agent execution recover "$EX_ID"
 ## Handling HITL Approval in a Script
 
 ```bash
-# Trigger an execution that may require approval
+# Trigger a run that may require approval
 EX_ID=$(stigmer run deployment-agent "Deploy to production" --output id)
 
-# Poll until approval is needed (or execution completes)
+# Poll until approval is needed (or run completes)
 while true; do
-  PHASE=$(stigmer agent execution get "$EX_ID" --output json | jq -r '.status.phase')
+  PHASE=$(stigmer runs get "$EX_ID" --output json | jq -r '.status.phase')
 
-  if [ "$PHASE" = "EXECUTION_WAITING_FOR_APPROVAL" ]; then
+  if [ "$PHASE" = "RUN_WAITING_FOR_APPROVAL" ]; then
     # Get the pending approval details
-    PENDING=$(stigmer agent execution get "$EX_ID" --output json | \
+    PENDING=$(stigmer runs get "$EX_ID" --output json | \
       jq -r '.status.pending_approvals[0]')
     TOOL_CALL_ID=$(echo "$PENDING" | jq -r '.tool_call_id')
     MESSAGE=$(echo "$PENDING" | jq -r '.message')
@@ -346,17 +346,17 @@ while true; do
     read -p "Approve? [y/n/s(kip)] " decision
 
     case "$decision" in
-      y) stigmer agent execution approve "$EX_ID" --tool-call-id "$TOOL_CALL_ID" ;;
-      s) stigmer agent execution skip "$EX_ID" --tool-call-id "$TOOL_CALL_ID" ;;
-      *) stigmer agent execution reject "$EX_ID" --tool-call-id "$TOOL_CALL_ID"; break ;;
+      y) stigmer runs approve "$EX_ID" --tool-call "$TOOL_CALL_ID" ;;
+      s) stigmer runs skip "$EX_ID" --tool-call-id "$TOOL_CALL_ID" ;;
+      *) stigmer runs reject "$EX_ID" --tool-call-id "$TOOL_CALL_ID"; break ;;
     esac
 
-  elif [ "$PHASE" = "EXECUTION_COMPLETED" ]; then
-    echo "Execution completed successfully."
+  elif [ "$PHASE" = "RUN_COMPLETED" ]; then
+    echo "Run completed successfully."
     break
 
-  elif [ "$PHASE" = "EXECUTION_FAILED" ]; then
-    echo "Execution failed."
+  elif [ "$PHASE" = "RUN_FAILED" ]; then
+    echo "Run failed."
     break
   fi
 
@@ -373,12 +373,12 @@ done
 EX_ID=$(stigmer run report-generator "Generate quarterly analysis report" --output id)
 
 # Wait for completion, then list artifacts
-stigmer agent execution get "$EX_ID" --output json | jq '.status.artifacts[]'
+stigmer runs get "$EX_ID" --output json | jq '.status.artifacts[]'
 
 # Download a specific artifact
-stigmer agent execution download "$EX_ID" --artifact quarterly-report
+stigmer download run "$EX_ID" --artifact quarterly-report
 
 # Refresh an expired URL
-stigmer agent execution get-artifact-url "$EX_ID" \
+stigmer runs get-artifact-url "$EX_ID" \
   --storage-key "artifacts/${EX_ID}/quarterly-report.pdf"
 ```

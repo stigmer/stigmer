@@ -146,7 +146,7 @@ message TaskFieldDescriptor {
 // - Generate configuration forms (fields, field_groups)
 // - Power YAML editor autocomplete (config_json_schema)
 // - Validate task configs client-side (config_json_schema)
-// - Display task output shapes in the execution viewer (output_json_schema)
+// - Display task output shapes in the run viewer (output_json_schema)
 // - Generate documentation (description, yaml_examples, documentation_url)
 message TaskKindDescriptor {
   // The task kind this descriptor describes.
@@ -183,7 +183,7 @@ message TaskKindDescriptor {
   string config_json_schema = 9;
 
   // JSON Schema describing the task's output shape.
-  // Serialized as a JSON string. Used by the execution viewer to
+  // Serialized as a JSON string. Used by the run viewer to
   // render typed output inspection panels.
   string output_json_schema = 10;
 

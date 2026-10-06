@@ -38,17 +38,17 @@ enum RunPhase {
   // Exists only for proto3 zero-value semantics.
   RUN_PHASE_UNSPECIFIED = 0;
 
-  // Execution created, waiting to start.
+  // Run created, waiting to start.
   //
   // @internal
   // The WorkflowRun resource has been created but the workflow runner
-  // has not yet picked it up for run.
+  // has not yet picked it up for execution.
   //
   // Typical duration: < 1 second (unless workflow runner is overloaded)
   // Next phases: RUN_IN_PROGRESS, RUN_CANCELLED, RUN_TERMINATED
   RUN_PENDING = 1;
 
-  // Execution is actively running tasks.
+  // Run is in progress, running its tasks.
   //
   // @internal
   // The workflow runner is processing tasks in the workflow definition.
@@ -58,10 +58,10 @@ enum RunPhase {
   // Next phases: RUN_COMPLETED, RUN_FAILED, RUN_CANCELLED, RUN_TERMINATED
   RUN_IN_PROGRESS = 2;
 
-  // Execution completed successfully.
+  // Run completed successfully.
   //
   // @internal
-  // Terminal state - execution will not change phases again.
+  // Terminal state - run will not change phases again.
   //
   // When this phase is reached:
   // - completed_at timestamp is set
@@ -69,10 +69,10 @@ enum RunPhase {
   // - All tasks have status WORKFLOW_TASK_COMPLETED or WORKFLOW_TASK_SKIPPED
   RUN_COMPLETED = 3;
 
-  // Execution failed with an error.
+  // Run failed with an error.
   //
   // @internal
-  // Terminal state - execution will not change phases again.
+  // Terminal state - run will not change phases again.
   //
   // When this phase is reached:
   // - completed_at timestamp is set
@@ -80,10 +80,10 @@ enum RunPhase {
   // - At least one task has status WORKFLOW_TASK_FAILED
   RUN_FAILED = 4;
 
-  // Execution was cancelled by user or system.
+  // Run was cancelled by user or system.
   //
   // @internal
-  // Terminal state - execution will not change phases again.
+  // Terminal state - run will not change phases again.
   //
   // When this phase is reached:
   // - completed_at timestamp is set
@@ -91,10 +91,10 @@ enum RunPhase {
   // - Pending tasks remain in WORKFLOW_TASK_PENDING state
   RUN_CANCELLED = 5;
 
-  // Execution was force-stopped immediately without cleanup.
+  // Run was force-stopped immediately without cleanup.
   //
   // @internal
-  // Terminal state - execution will not change phases again.
+  // Terminal state - run will not change phases again.
   // Unlike CANCELLED, the workflow code cannot clean up.
   //
   // When this phase is reached:
@@ -103,23 +103,23 @@ enum RunPhase {
   // - In-progress tasks are stopped abruptly
   // - No cleanup callbacks are executed
   //
-  // Terminated executions CANNOT be recovered (unlike FAILED).
+  // Terminated runs CANNOT be recovered (unlike FAILED).
   RUN_TERMINATED = 6;
 
-  // Execution was paused by user and can be resumed.
+  // Run was paused by user and can be resumed.
   //
   // @internal
-  // NOT a terminal state - execution can be resumed via the resume RPC.
+  // NOT a terminal state - run can be resumed via the resume RPC.
   //
   // When this phase is reached:
   // - Running activities are gracefully cancelled
   // - Checkpoints are saved (LangGraph thread_id preserved)
-  // - No completed_at timestamp (execution is not finished)
+  // - No completed_at timestamp (run is not finished)
   //
   // Resume behavior:
   // - Workflow re-invokes activity with same thread_id
   // - Activity loads from LangGraph checkpoint
-  // - Execution continues from where it was paused
+  // - Run continues from where it was paused
   RUN_PAUSED = 7;
 }
 
@@ -223,7 +223,7 @@ enum WorkflowTaskStatus {
   // Terminal state for this task. Output is populated with results.
   WORKFLOW_TASK_COMPLETED = 3;
 
-  // Task failed during run.
+  // Task failed during execution.
   //
   // @internal
   // Terminal state for this task. The error field is populated with failure description.

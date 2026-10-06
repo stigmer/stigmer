@@ -1,18 +1,18 @@
 # Attachments and Artifacts
 
-How to pass input files to agent executions (attachments) and download files created by agents (artifacts).
+How to pass input files to agent runs (attachments) and download files created by agents (artifacts).
 
 ---
 
 ## Overview
 
-AgentExecution supports a complete file lifecycle:
+AgentRun supports a complete file lifecycle:
 
-- **Attachments** — input files you provide *before* execution starts. The agent reads them from the sandbox.
-- **Artifacts** — output files the agent *creates during* execution and publishes for download.
+- **Attachments** — input files you provide *before* run starts. The agent reads them from the sandbox.
+- **Artifacts** — output files the agent *creates during* run and publishes for download.
 
 ```
-You ──► uploadAttachment ──► storage_key ──► AgentExecution.spec.attachments
+You ──► uploadAttachment ──► storage_key ──► AgentRun.spec.attachments
                                                          │
                                                  sandbox: /inputs/...
                                                          │
@@ -20,7 +20,7 @@ You ──► uploadAttachment ──► storage_key ──► AgentExecution.sp
                                                          │
                                               Agent calls publish_artifact
                                                          │
-                                         AgentExecution.status.artifacts ──► download URL
+                                         AgentRun.status.artifacts ──► download URL
 ```
 
 ---
@@ -29,7 +29,7 @@ You ──► uploadAttachment ──► storage_key ──► AgentExecution.sp
 
 ### How Attachments Work
 
-Attachments are a two-step process: upload first, then reference in the execution.
+Attachments are a two-step process: upload first, then reference in the run.
 
 **Step 1 — Upload the file:**
 
@@ -38,7 +38,7 @@ Attachments are a two-step process: upload first, then reference in the executio
 # The server returns a storage_key.
 ```
 
-**Step 2 — Reference the storage key when triggering the execution:**
+**Step 2 — Reference the storage key when triggering the run:**
 
 ```yaml
 spec:
@@ -149,7 +149,7 @@ stigmer run reviewer --workspace . --attach ./src/config.yaml -m "Review this"
 
 ## `uploadAttachment` RPC
 
-Pre-upload files before creating an AgentExecution. The returned `storage_key` is used in `Attachment.storage_key`.
+Pre-upload files before creating an AgentRun. The returned `storage_key` is used in `Attachment.storage_key`.
 
 **Request — `UploadAttachmentRequest`:**
 
@@ -173,25 +173,25 @@ Pre-upload files before creating an AgentExecution. The returned `storage_key` i
 
 ### How Artifacts Work
 
-During execution, an agent can publish files or directories for users to download by calling the `publish_artifact` tool. Stigmer stores each artifact in R2 and generates a pre-signed download URL.
+During run, an agent can publish files or directories for users to download by calling the `publish_artifact` tool. Stigmer stores each artifact in R2 and generates a pre-signed download URL.
 
 When the agent publishes an artifact:
 
-1. The file (or zipped directory) is stored in R2 at `artifacts/{execution_id}/{filename}`
+1. The file (or zipped directory) is stored in R2 at `artifacts/{run_id}/{filename}`
 2. A pre-signed download URL is generated (expires in 7 days by default)
-3. An `ExecutionArtifact` entry is appended to `status.artifacts`
+3. An `RunArtifact` entry is appended to `status.artifacts`
 
-### ExecutionArtifact Fields
+### RunArtifact Fields
 
-Defined by `ExecutionArtifact` in `api.proto`.
+Defined by `RunArtifact` in `api.proto`.
 
 | Field | Type | Description |
 |---|---|---|
 | `name` | `string` | Display name for the artifact. Example: `"generated-skill"`, `"analysis-report"`. |
 | `sandbox_path` | `string` | Original path in the sandbox where the artifact was created. Example: `"/workspace/my-skill"`. |
-| `kind` | `ExecutionArtifactKind` | `EXECUTION_ARTIFACT_KIND_FILE` or `EXECUTION_ARTIFACT_KIND_DIRECTORY`. Directories are stored as ZIP archives. |
+| `kind` | `RunArtifactKind` | `RUN_ARTIFACT_KIND_FILE` or `RUN_ARTIFACT_KIND_DIRECTORY`. Directories are stored as ZIP archives. |
 | `size_bytes` | `int64` | Total size in bytes. For directories, this is the ZIP size. |
-| `storage_key` | `string` | Storage location in R2. Format: `"artifacts/{execution_id}/{filename}"`. |
+| `storage_key` | `string` | Storage location in R2. Format: `"artifacts/{run_id}/{filename}"`. |
 | `download_url` | `string` | Pre-signed URL for HTTP download. No authentication header needed. |
 | `created_at` | `string` | ISO 8601 timestamp when the artifact was created. |
 | `expires_at` | `string` | ISO 8601 timestamp when the download URL expires. |
@@ -202,10 +202,10 @@ Defined by `ExecutionArtifact` in `api.proto`.
 
 ```bash
 # Download a specific artifact
-stigmer agent execution download aex_abc123 --artifact generated-skill
+stigmer download run aex_abc123 --artifact generated-skill
 
-# List all artifacts from an execution
-stigmer agent execution get aex_abc123 --output yaml | grep -A5 artifacts
+# List all artifacts from a run
+stigmer runs get aex_abc123 --output yaml | grep -A5 artifacts
 ```
 
 **Direct HTTP:**
@@ -220,7 +220,7 @@ curl -L "https://r2.cloudflarestorage.com/.../artifacts/..." -o output.zip
 Download URLs expire after 7 days. If a URL has expired, call `getArtifactDownloadUrl` to get a fresh one:
 
 ```bash
-stigmer agent execution get-artifact-url aex_abc123 \
+stigmer runs get-artifact-url aex_abc123 \
   --storage-key "artifacts/aex_abc123/generated-skill.zip"
 ```
 
@@ -228,8 +228,8 @@ stigmer agent execution get-artifact-url aex_abc123 \
 
 | Field | Type | Description |
 |---|---|---|
-| `execution_id` | `string` | ID of the execution that produced the artifact (or received the attachment). |
-| `storage_key` | `string` | Storage key from `ExecutionArtifact.storage_key` or `Attachment.storage_key`. |
+| `run_id` | `string` | ID of the run that produced the artifact (or received the attachment). |
+| `storage_key` | `string` | Storage key from `RunArtifact.storage_key` or `Attachment.storage_key`. |
 
 **Response:**
 
@@ -238,9 +238,9 @@ stigmer agent execution get-artifact-url aex_abc123 \
 | `download_url` | `string` | Fresh pre-signed URL valid for HTTP GET without authentication. |
 | `expires_at` | `string` | ISO 8601 timestamp when the new URL expires. |
 
-**Security:** The `storage_key` must belong to the specified execution. Two key forms are accepted: an artifact key starting with `"artifacts/{execution_id}/"` (the embedded execution id is the ownership proof), or a key listed verbatim in the execution's `spec.attachments` (attachment keys are `"attachments/{ulid}/{filename}"` and carry no execution id, so ownership is the spec reference). Anything else is rejected — users cannot request download URLs for other executions' files. The attachment arm is what lets clients render submitted attachments in the message thread after the composer's local file handles are gone.
+**Security:** The `storage_key` must belong to the specified run. Two key forms are accepted: an artifact key starting with `"artifacts/{run_id}/"` (the embedded run id is the ownership proof), or a key listed verbatim in the run's `spec.attachments` (attachment keys are `"attachments/{ulid}/{filename}"` and carry no run id, so ownership is the spec reference). Anything else is rejected — users cannot request download URLs for other runs' files. The attachment arm is what lets clients render submitted attachments in the message thread after the composer's local file handles are gone.
 
-**Authorization:** Requires `can_view` permission on the execution.
+**Authorization:** Requires `can_view` permission on the run.
 
 ---
 
@@ -280,6 +280,6 @@ The agent finds all files under `/inputs/src/` (extracted from the ZIP).
 # Ask the agent to create a skill, then download it
 stigmer run skill-creator "Create a skill for Kubernetes operations" -m "Generate SKILL.md"
 
-# Find the execution ID from output, then download
-stigmer agent execution download aex_abc123 --artifact kubernetes-skill
+# Find the run ID from output, then download
+stigmer download run aex_abc123 --artifact kubernetes-skill
 ```

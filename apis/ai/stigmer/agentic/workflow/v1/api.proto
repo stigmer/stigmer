@@ -7,7 +7,7 @@ import "ai/stigmer/agentic/workflow/v1/status.proto";
 import "ai/stigmer/commons/apiresource/metadata.proto";
 import "buf/validate/validate.proto";
 
-// Workflow defines a multi-step task orchestration with sequential, parallel, and conditional run.
+// Workflow defines a multi-step task orchestration with sequential, parallel, and conditional execution.
 //
 // @internal
 message Workflow {

@@ -8,7 +8,7 @@ separate control-plane language); the shape of each lesson is what carries.
 
 ## Six sources of truth became two
 
-Tool calls had copies in a root-level flat list on the execution record, in the
+Tool calls had copies in a root-level flat list on the run record, in the
 messages that carried them, in a pending-approvals projection, in the runtime's
 own shadow state, in the framework's checkpoints and in Temporal signal
 payloads. Every bug in the approval flow was a sync drift between two of those

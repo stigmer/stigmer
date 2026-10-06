@@ -1,14 +1,14 @@
-# WorkflowExecution API Resource Reference
+# WorkflowRun API Resource Reference
 
-Schema reference for the `agentic.stigmer.ai/v1` WorkflowExecution resource. For conceptual overview and lifecycle, see [README.md](README.md).
+Schema reference for the `agentic.stigmer.ai/v1` WorkflowRun resource. For conceptual overview and lifecycle, see [README.md](README.md).
 
 ## Resource Shape
 
-A WorkflowExecution resource as returned by `stigmer get workflow-execution <id> --output yaml`:
+A WorkflowRun resource as returned by `stigmer get workflow-run <id> --output yaml`:
 
 ```yaml
 api_version: agentic.stigmer.ai/v1
-kind: WorkflowExecution
+kind: WorkflowRun
 metadata:
   id: wfx-abc123xyz456
   name: customer-onboarding-20250111-143022
@@ -26,7 +26,7 @@ spec:
     STRIPE_API_KEY:
       secret_ref: sec-stripe-prod
 status:
-  phase: EXECUTION_IN_PROGRESS
+  phase: RUN_IN_PROGRESS
   workflow_version_hash: 3f9a1c...
   tasks:
     - task_id: task-1
@@ -68,7 +68,7 @@ status:
 | Field | Set By | Value |
 |---|---|---|
 | `api_version` | System | Always `agentic.stigmer.ai/v1` |
-| `kind` | System | Always `WorkflowExecution` |
+| `kind` | System | Always `WorkflowRun` |
 | `metadata` | System + author | See [Metadata Fields](#metadata-fields) |
 | `spec` | Author | See [Spec Fields](#spec-fields) |
 | `status` | System-managed | See [Status Fields](#status-fields) |
@@ -79,20 +79,20 @@ status:
 |---|---|
 | `metadata.id` | System-generated unique identifier. Format: `wfx-{ulid}`. Example: `wfx-abc123xyz456`. |
 | `metadata.name` | Display name. Typically `{workflow-slug}-{timestamp}`. Example: `prod-deploy-20250111-143022`. |
-| `metadata.org` | Organization that owns this execution. |
+| `metadata.org` | Organization that owns this run. |
 | `metadata.labels` | Key-value pairs. Common labels: `workflow_id`, `trigger_source`. |
 | `metadata.tags` | String tags for filtering. Common tags: environment names, team names. |
 
 ## Spec Fields
 
-`WorkflowExecutionSpec` is defined in `spec.proto`. The spec is **immutable after creation** — it represents the inputs for this specific run. To retry with different inputs, create a new WorkflowExecution.
+`WorkflowRunSpec` is defined in `spec.proto`. The spec is **immutable after creation** — it represents the inputs for this specific run. To retry with different inputs, create a new WorkflowRun.
 
 | Field | Required | Description |
 |---|---|---|
 | `spec.workflow_id` | Yes | ID of the Workflow to run (`wfl_...`). The caller needs `can_execute` on the workflow. The run is pinned to the workflow's current version at create. |
 | `spec.trigger_message` | No | Input message or payload for the workflow. Accessible as `{{workflow.input.trigger_message}}` in task configs. |
-| `spec.trigger_metadata` | No | Key-value metadata about who/what triggered this execution. For audit and analytics — not visible to workflow logic. |
-| `spec.runtime_env` | No | Execution-scoped environment variables and secrets. Highest merge priority. |
+| `spec.trigger_metadata` | No | Key-value metadata about who/what triggered this run. For audit and analytics — not visible to workflow logic. |
+| `spec.runtime_env` | No | Run-scoped environment variables and secrets. Highest merge priority. |
 
 Fields 1 (`workflow_instance_id`) and 7 (`callback_token`) are reserved.
 
@@ -100,7 +100,7 @@ Fields 1 (`workflow_instance_id`) and 7 (`callback_token`) are reserved.
 
 A run names its workflow by id. At create the server pins the workflow's current version (`status.workflow_version_hash`), and every later read of the run's workflow reads that version: the runner's task list and each `agent_call` step's `environment_refs`. Saving the workflow while the run is in progress never changes a step of that run. A version covers the whole workflow spec except who can see the runs; a workflow saved before versioning has no pin, and its runs read the current definition.
 
-Who can see the run is the workflow's `spec.execution_visibility`: the person who started it (the default), or every member of the organization when the workflow's owner has set it to `workflow_execution_visibility_organization`.
+Who can see the run is the workflow's `spec.run_visibility`: the person who started it (the default), or every member of the organization when the workflow's owner has set it to `workflow_run_visibility_organization`.
 
 ### trigger_message
 
@@ -153,7 +153,7 @@ spec:
 
 ### runtime_env
 
-Execution-scoped environment variables, for this run only.
+Run-scoped environment variables, for this run only.
 
 **Where a run's values come from:**
 1. `runtime_env` (this field)
@@ -171,7 +171,7 @@ spec:
     # Reference to a Secret resource
     STRIPE_API_KEY:
       secret_ref: sec-stripe-prod
-    # Dynamic per-execution config
+    # Dynamic per-run config
     DEPLOYMENT_REGION:
       value: us-west-2
     ENABLE_BETA_FEATURES:
@@ -182,19 +182,19 @@ Tasks access these values as `{{env.VARIABLE_NAME}}`.
 
 ## Status Fields
 
-`WorkflowExecutionStatus` is system-managed. Never set these fields when creating an execution.
+`WorkflowRunStatus` is system-managed. Never set these fields when creating a run.
 
 | Field | Description |
 |---|---|
-| `status.phase` | Current lifecycle phase. See [Execution Lifecycle](execution-lifecycle.md). |
+| `status.phase` | Current lifecycle phase. See [Run Lifecycle](run-lifecycle.md). |
 | `status.tasks` | List of workflow tasks with real-time execution state. Source of truth for progress. |
-| `status.output` | Final workflow output (JSON). Only populated when `phase == EXECUTION_COMPLETED`. |
-| `status.error` | Error description. Only populated when `phase == EXECUTION_FAILED`. |
-| `status.started_at` | ISO 8601 timestamp when execution started (PENDING → IN_PROGRESS transition). |
-| `status.completed_at` | ISO 8601 timestamp when execution reached a terminal state. |
+| `status.output` | Final workflow output (JSON). Only populated when `phase == RUN_COMPLETED`. |
+| `status.error` | Error description. Only populated when `phase == RUN_FAILED`. |
+| `status.started_at` | ISO 8601 timestamp when the run started (PENDING → IN_PROGRESS transition). |
+| `status.completed_at` | ISO 8601 timestamp when the run reached a terminal state. |
 | `status.workflow_version_hash` | The workflow version this run was pinned to at create. Empty for a workflow saved before versioning. |
 | `status.temporal_workflow_id` | Correlation ID for the Temporal workflow engine. Useful for advanced debugging. |
-| `status.pending_approvals` | Approval requests from child agent executions. See [HITL Approvals](hitl-approvals.md). |
+| `status.pending_approvals` | Approval requests from child agent runs. See [HITL Approvals](hitl-approvals.md). |
 | `status.audit` | Standard audit record: `created_at`, `updated_at`, `created_by`. |
 
 ### Progress Calculation
@@ -210,11 +210,11 @@ current_task     = tasks.find(status == IN_PROGRESS)
 
 ## Task Fields
 
-Each entry in `status.tasks` is a `WorkflowTask` — the atomic unit of work in a workflow execution.
+Each entry in `status.tasks` is a `WorkflowTask` — the atomic unit of work in a workflow run.
 
 | Field | Description |
 |---|---|
-| `task_id` | Unique identifier within this execution. Format: `task-{number}` or a descriptive slug. |
+| `task_id` | Unique identifier within this run. Format: `task-{number}` or a descriptive slug. |
 | `task_name` | Human-readable task name. Example: `"Validate customer email"`. |
 | `task_type` | Type of task. Determines execution behavior. See [Task Types](#task-types). |
 | `status` | Current task status. See [Task Status](#task-status). |
@@ -223,13 +223,13 @@ Each entry in `status.tasks` is a `WorkflowTask` — the atomic unit of work in 
 | `error` | Error description. Only populated when `status == WORKFLOW_TASK_FAILED`. |
 | `started_at` | ISO 8601 timestamp when task started (PENDING → IN_PROGRESS transition). |
 | `completed_at` | ISO 8601 timestamp when task reached a terminal state. |
-| `metadata` | Task-specific metadata (retry count, agent execution ID, response headers, approval history). |
+| `metadata` | Task-specific metadata (retry count, agent run ID, response headers, approval history). |
 
 ### Task Types
 
 | Type | Enum Value | Description |
 |---|---|---|
-| `WORKFLOW_TASK_AGENT_INVOCATION` | 1 | Invoke an Agent with a prompt, in a new session on the agent the task names. Waits for agent execution to complete. |
+| `WORKFLOW_TASK_AGENT_INVOCATION` | 1 | Invoke an Agent with a prompt, in a new session on the agent the task names. Waits for agent run to complete. |
 | `WORKFLOW_TASK_APPROVAL` | 2 | Pause workflow and wait for human approval from designated approvers. |
 | `WORKFLOW_TASK_API_CALL` | 3 | Make an HTTP or gRPC API call to an external service. |
 | `WORKFLOW_TASK_CONDITIONAL` | 4 | Evaluate a boolean expression and branch to different task paths. |
@@ -258,7 +258,7 @@ input:
   prompt: "Analyze this feedback: {{workflow.input.trigger_message}}"
   max_tokens: 500
 output:
-  agent_execution_id: agx-abc123
+  agent_run_id: agx-abc123
   response: "The customer feedback indicates overall satisfaction..."
   metadata:
     tokens_used: 450
@@ -364,57 +364,57 @@ output:
 ## CLI Commands
 
 ```bash
-# Trigger a workflow execution
+# Trigger a workflow run
 stigmer run workflow customer-onboarding \
   --message "New signup: john.doe@example.com" \
   --env CUSTOMER_EMAIL=john.doe@example.com
 
-# Get execution details
-stigmer get workflow-execution wfx-abc123xyz456
-stigmer get workflow-execution wfx-abc123xyz456 --output yaml
-stigmer get workflow-execution wfx-abc123xyz456 --output json
+# Get the run details
+stigmer get workflow-run wfx-abc123xyz456
+stigmer get workflow-run wfx-abc123xyz456 --output yaml
+stigmer get workflow-run wfx-abc123xyz456 --output json
 
-# List all executions (most recent first)
-stigmer list workflow-executions
+# List all runs (most recent first)
+stigmer list workflow-runs
 
-# List only in-progress executions
-stigmer list workflow-executions --phase in_progress
+# List only in-progress runs
+stigmer list workflow-runs --phase in_progress
 
-# List only failed executions
-stigmer list workflow-executions --phase failed
+# List only failed runs
+stigmer list workflow-runs --phase failed
 
-# List executions for a specific workflow
-stigmer list workflow-executions --workflow customer-onboarding
+# List runs for a specific workflow
+stigmer list workflow-runs --workflow customer-onboarding
 
 # Watch real-time updates
-stigmer watch workflow-execution wfx-abc123xyz456
+stigmer watch workflow-run wfx-abc123xyz456
 
-# Cancel an execution gracefully
-stigmer cancel workflow-execution wfx-abc123xyz456 \
+# Cancel a run gracefully
+stigmer cancel workflow-run wfx-abc123xyz456 \
   --reason "Customer cancelled their order"
 
-# Terminate an execution immediately (use only for stuck workflows)
-stigmer terminate workflow-execution wfx-abc123xyz456 \
+# Terminate a run immediately (use only for stuck workflows)
+stigmer terminate workflow-run wfx-abc123xyz456 \
   --reason "Workflow unresponsive for 2 hours"
 
-# Recover a failed execution from last checkpoint
-stigmer recover workflow-execution wfx-abc123xyz456 \
+# Recover a failed run from last checkpoint
+stigmer recover workflow-run wfx-abc123xyz456 \
   --reason "External API recovered, resuming"
 
-# Pause an execution
-stigmer pause workflow-execution wfx-abc123xyz456 \
+# Pause a run
+stigmer pause workflow-run wfx-abc123xyz456 \
   --reason "Maintenance window starting"
 
-# Resume a paused execution
-stigmer resume workflow-execution wfx-abc123xyz456
+# Resume a paused run
+stigmer resume workflow-run wfx-abc123xyz456
 
 # Send a signal to unblock a LISTEN task
-stigmer signal workflow-execution wfx-abc123xyz456 \
+stigmer signal workflow-run wfx-abc123xyz456 \
   --signal payment_confirmed \
   --payload '{"transaction_id": "txn_123", "amount": 99.99}'
 
-# Delete a completed or failed execution
-stigmer delete workflow-execution wfx-abc123xyz456
+# Delete a completed or failed run
+stigmer delete workflow-run wfx-abc123xyz456
 ```
 
 ### Run Flags Reference
@@ -425,13 +425,13 @@ stigmer delete workflow-execution wfx-abc123xyz456
 | `--env KEY=VALUE` | — | Runtime environment variable. Repeatable. Plain-text values only. |
 | `--secret KEY=secret-ref` | — | Runtime secret reference. Repeatable. |
 | `--org <org>` | CLI context | Organization to run in. |
-| `--dry-run` | `false` | Validate inputs without creating the execution. |
-| `--watch` | `false` | Subscribe to live updates after creating the execution. |
-| `--auto-approve` | `false` | Bypass all HITL approval gates for this execution. |
+| `--dry-run` | `false` | Validate inputs without creating the run. |
+| `--watch` | `false` | Subscribe to live updates after creating the run. |
+| `--auto-approve` | `false` | Bypass all HITL approval gates for this run. |
 
 ## Related Documentation
 
 - [README.md](README.md) — Overview, trigger sources, and documentation index
-- [execution-lifecycle.md](execution-lifecycle.md) — Phase state machine, lifecycle control operations
+- [run-lifecycle.md](run-lifecycle.md) — Phase state machine, lifecycle control operations
 - [hitl-approvals.md](hitl-approvals.md) — Human-in-the-Loop approval forwarding
 - [examples.md](examples.md) — Complete end-to-end examples

@@ -31,7 +31,7 @@ message AgentMessage {
   bool is_streaming = 6;
 }
 
-// Represents a tool call made by the agent during run.
+// Represents a tool call made by the agent during a run.
 message ToolCall {
   // Unique identifier for this tool call.
   string id = 1;
@@ -55,7 +55,7 @@ message ToolCall {
   // Result returned by the tool (optional, populated after execution).
   string result = 4;
 
-  // Status of the tool call run.
+  // Status of the tool call execution.
   ToolCallStatus status = 5 [(buf.validate.field).enum.defined_only = true];
 
   // ISO 8601 timestamp when the tool call started.
@@ -71,7 +71,7 @@ message ToolCall {
   // Approval Fields
   //
   // These fields track the approval state for tools that require user consent
-  // before run. Populated only for tools where approval is configured.
+  // before execution. Populated only for tools where approval is configured.
   // ─────────────────────────────────────────────────────────────────────────────
 
   // True when this tool call was held for a person's decision instead of
@@ -119,8 +119,8 @@ message ToolCall {
   // Only populated after approval decision is made (approval_decided_at is set).
   // Determines how the tool execution proceeds:
   //   - APPROVE: Tool executes normally
-  //   - SKIP: Tool returns skip message, execution continues
-  //   - REJECT: Execution fails with rejection error
+  //   - SKIP: Tool returns skip message, run continues
+  //   - REJECT: Run fails with rejection error
   ApprovalAction approval_action = 15;
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -198,7 +198,7 @@ message ToolCall {
   // Cursor harnesses use different tool-name conventions; tool_kind erases that
   // difference at the source.
   //
-  // TOOL_KIND_UNSPECIFIED means unclassified — either the execution predates this
+  // TOOL_KIND_UNSPECIFIED means unclassified — either the run predates this
   // field or the tool has no known kind. Clients fall back to a name-based
   // lookup in that case. See ToolKind.
   //
@@ -235,7 +235,7 @@ message ToolCall {
   // Authorization Provenance (HITL)
   //
   // Which policy layer decided this tool call's approval requirement, recorded so
-  // an execution's authorizations are auditable. Runner-written and carried
+  // a run's authorizations are auditable. Runner-written and carried
   // through update_status exactly like tool_kind — not owned by SubmitApproval,
   // so no preserve logic is needed.
   // ─────────────────────────────────────────────────────────────────────────────
@@ -245,7 +245,7 @@ message ToolCall {
   // auto-approved?".
   //
   // APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
-  // or an execution that predates this field (clients fall back to no provenance,
+  // or a run that predates this field (clients fall back to no provenance,
   // exactly as for an unset tool_kind). See ApprovalPolicySource.
   //
   // Field 23: appended after file_changes (22), the prior maximum.
@@ -280,7 +280,7 @@ message ToolCall {
   // drop `args`/`file_changes` for large edits — a recompute-from-args identity
   // would be unrecoverable in that case. Empty for tools whose other identity is
   // already content-exact (shell command, delete path), for read-only tools, and
-  // for executions that predate this field (the runner then degrades to the
+  // for runs that predate this field (the runner then degrades to the
   // coarse (category, path) identity).
   //
   // @internal
@@ -310,7 +310,7 @@ message ToolCall {
   // reconcile identity is digest-gated (see filereview.proto's identity rule).
   //
   // Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
-  // those rows), rows from executions that predate this field, and turns whose
+  // those rows), rows from runs that predate this field, and turns whose
   // edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
   // so there is no change set to reference).
   //
@@ -338,7 +338,7 @@ message ToolCall {
 // publishes for the user to download via publish_artifact): an output ref is
 // internal spillover of a tool's result, not a user-facing deliverable. The
 // bytes live in artifact storage (R2 in the cloud, locally served in dev);
-// only this reference is persisted in the execution status.
+// only this reference is persisted in the run status.
 message ToolCallOutputRef {
   // Storage location of the full output bytes.
   // Format: "artifacts/{run_id}/toolcalls/{tool_call_id}.{ext}"

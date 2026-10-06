@@ -24,7 +24,7 @@ import "buf/validate/validate.proto";
 //
 // @internal
 // An ALLOWLIST by
-// construction: platform-owned execution fields (approval_mode,
+// construction: platform-owned run fields (approval_mode,
 // execution_target, the workflow parent link, harness_state_id,
 // auto_approve_all, org/labels/subject) cannot
 // appear here, so embedding surfaces never need a blocklist validator

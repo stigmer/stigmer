@@ -75,7 +75,7 @@ message ApiResourceAuditActor {
   // per organization whichever of its clients they came through, so this
   // is the one durable record of which client a resource was written
   // through. The execution-context builder keys the PlatformClient
-  // environment layer on the execution's created_by value (spec.proto,
+  // environment layer on the run's created_by value (spec.proto,
   // PlatformClientSpec.environment_refs).
   string platform_client_id = 5;
 }

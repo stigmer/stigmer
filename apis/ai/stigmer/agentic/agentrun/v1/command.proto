@@ -20,7 +20,7 @@ service AgentRunCommandController {
   // Authorization is handled in the handler, in two run-gate checks
   // (AuthorizeRunTarget, then AuthorizeRunAgent):
   //   - session_id provided: can_create_run_in on the session, before
-  //     anything about it is read; the execution then belongs to the
+  //     anything about it is read; the run then belongs to the
   //     session's organization (ValidateSessionOrganization)
   //   - then can_execute on the agent the turn runs (the session's pinned
   //     agent, or the new session's agent_ref), or no check for the built-in
@@ -33,7 +33,7 @@ service AgentRunCommandController {
   // Update an agent run.
   //
   // @internal
-  // Used by users to update execution configuration (spec fields).
+  // Used by users to update run configuration (spec fields).
   // No individual field updates - always provide complete state.
   rpc update(AgentRun) returns (AgentRun) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
@@ -47,7 +47,7 @@ service AgentRunCommandController {
   // @internal
   // Used by the runner to send progressive status updates (messages,
   // tool_calls, phase, etc.). The runner authenticates as the triggering user,
-  // who owns the execution through the session ownership chain.
+  // who owns the run through the session ownership chain.
   // Optimized for frequent status updates and merges status fields with
   // existing state.
   rpc updateStatus(AgentRunUpdateStatusInput) returns (UpdateStatusResponse) {
@@ -69,16 +69,16 @@ service AgentRunCommandController {
   //
   // ## Preconditions
   //
-  // - Execution must be in RUN_WAITING_FOR_APPROVAL phase
+  // - Run must be in RUN_WAITING_FOR_APPROVAL phase
   // - tool_call_id must match status.pending_approval.tool_call_id
-  // - User must have can_edit permission on the execution
+  // - User must have can_edit permission on the run
   //
   // ## Behavior by Action
   //
-  // - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
-  // - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
+  // - APPROVE: Tool executes normally, run resumes to IN_PROGRESS
+  // - SKIP: Tool returns skip message to LLM, run continues to IN_PROGRESS
   // - REJECT: Tool is denied and the user's objection is fed back to the LLM;
-  //   the execution CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
+  //   the run CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
   //   stop the whole run, use cancel/terminate)
   //
   // @internal
@@ -94,14 +94,14 @@ service AgentRunCommandController {
   //
   // ## Error Conditions
   //
-  // - NOT_FOUND: Execution doesn't exist
-  // - FAILED_PRECONDITION: Execution not in WAITING_FOR_APPROVAL phase
+  // - NOT_FOUND: Run doesn't exist
+  // - FAILED_PRECONDITION: Run not in WAITING_FOR_APPROVAL phase
   // - INVALID_ARGUMENT: tool_call_id doesn't match pending approval, or action is UNSPECIFIED
   // - PERMISSION_DENIED: User lacks can_edit permission
   //
   // ## Idempotency
   //
-  // If the same approval is submitted twice (same execution, tool_call, action),
+  // If the same approval is submitted twice (same run, tool_call, action),
   // the second call is a no-op and returns the current state.
   rpc submitApproval(SubmitApprovalInput) returns (AgentRun) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
@@ -119,18 +119,18 @@ service AgentRunCommandController {
   //
   // ## Preconditions
   //
-  // - Execution must exist and be non-terminal
+  // - Run must exist and be non-terminal
   // - change_set_id must match a status.file_change_sets[].id; for FILE scope,
   //   file_change_id must match a CapturedFileChange.id within it
   // - expected_digest must match the target's current digest
-  // - User must have can_edit permission on the execution
+  // - User must have can_edit permission on the run
   //
   // @internal
   //
   // ## Error Conditions
   //
-  // - NOT_FOUND: Execution doesn't exist
-  // - FAILED_PRECONDITION: Execution terminal, or change set/file not found
+  // - NOT_FOUND: Run doesn't exist
+  // - FAILED_PRECONDITION: Run terminal, or change set/file not found
   // - INVALID_ARGUMENT: scope/action UNSPECIFIED, missing file_change_id for
   //   FILE scope, or expected_digest mismatch
   // - PERMISSION_DENIED: User lacks can_edit permission
@@ -165,16 +165,16 @@ service AgentRunCommandController {
   //
   // ## Behavior
   //
-  // 1. Validates execution exists and is in a cancellable phase
+  // 1. Validates run exists and is in a cancellable phase
   // 2. Sends cancellation signal to Temporal workflow
   // 3. Python activity receives cancellation and saves LangGraph checkpoint
-  // 4. Execution transitions to RUN_CANCELLED phase
+  // 4. Run transitions to RUN_CANCELLED phase
   // 5. Returns updated AgentRun with new phase
   //
   // ## Preconditions
   //
-  // - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
-  // - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+  // - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
+  // - Cannot cancel already-terminal runs (COMPLETED, FAILED, CANCELLED, TERMINATED)
   //
   // ## State Transitions
   //
@@ -184,14 +184,14 @@ service AgentRunCommandController {
   //
   // ## Idempotency
   //
-  // Cancelling an already-cancelled execution succeeds as a no-op.
-  // The call returns the current execution state without side effects.
+  // Cancelling an already-cancelled run succeeds as a no-op.
+  // The call returns the current run state without side effects.
   //
   // ## Error Cases
   //
-  // - NOT_FOUND: Execution with given ID doesn't exist
-  // - PERMISSION_DENIED: User lacks can_edit permission on the execution
-  // - FAILED_PRECONDITION: Execution is in a terminal phase
+  // - NOT_FOUND: Run with given ID doesn't exist
+  // - PERMISSION_DENIED: User lacks can_edit permission on the run
+  // - FAILED_PRECONDITION: Run is in a terminal phase
   // - INVALID_ARGUMENT: ID is empty or malformed
   rpc cancel(CancelAgentRunInput) returns (AgentRun) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
@@ -211,16 +211,16 @@ service AgentRunCommandController {
   //
   // ## Behavior
   //
-  // 1. Validates execution exists and is in a terminable phase
+  // 1. Validates run exists and is in a terminable phase
   // 2. Force-kills workflow via Temporal (no signal sent to agent)
-  // 3. Execution transitions to RUN_TERMINATED phase immediately
+  // 3. Run transitions to RUN_TERMINATED phase immediately
   // 4. No cleanup callbacks or checkpoint saves occur
   // 5. Returns updated AgentRun with TERMINATED phase
   //
   // ## Preconditions
   //
-  // - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
-  // - Cannot terminate already-terminal executions
+  // - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
+  // - Cannot terminate already-terminal runs
   //
   // ## State Transitions
   //
@@ -239,13 +239,13 @@ service AgentRunCommandController {
   //
   // ## Idempotency
   //
-  // Terminating an already-terminated execution succeeds as a no-op.
+  // Terminating an already-terminated run succeeds as a no-op.
   //
   // ## Error Cases
   //
-  // - NOT_FOUND: Execution with given ID doesn't exist
-  // - PERMISSION_DENIED: User lacks can_edit permission on the execution
-  // - FAILED_PRECONDITION: Execution is in a terminal phase
+  // - NOT_FOUND: Run with given ID doesn't exist
+  // - PERMISSION_DENIED: User lacks can_edit permission on the run
+  // - FAILED_PRECONDITION: Run is in a terminal phase
   // - INVALID_ARGUMENT: ID is empty or malformed
   rpc terminate(TerminateAgentRunInput) returns (AgentRun) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
@@ -268,18 +268,18 @@ service AgentRunCommandController {
   //
   // ## Behavior
   //
-  // 1. Validates execution is in FAILED phase (recoverable)
+  // 1. Validates run is in FAILED phase (recoverable)
   // 2. Terminates the previous workflow and recreates the execution environment
   // 3. Starts a fresh workflow; the activity is re-invoked with the same thread_id
   // 4. LangGraph loads from checkpoint automatically
-  // 5. Execution transitions from FAILED to IN_PROGRESS phase
+  // 5. Run transitions from FAILED to IN_PROGRESS phase
   // 6. Agent retries from where it failed
   //
   // ## Preconditions
   //
-  // - Execution must be in RUN_FAILED phase
-  // - TERMINATED executions cannot be recovered (incomplete checkpoint)
-  // - CANCELLED executions cannot be recovered (intentional user action)
+  // - Run must be in RUN_FAILED phase
+  // - TERMINATED runs cannot be recovered (incomplete checkpoint)
+  // - CANCELLED runs cannot be recovered (intentional user action)
   //
   // ## State Transitions
   //
@@ -290,14 +290,14 @@ service AgentRunCommandController {
   //
   // ## Idempotency
   //
-  // If recovery already succeeded (execution is now IN_PROGRESS),
+  // If recovery already succeeded (run is now IN_PROGRESS),
   // the call succeeds as a no-op.
   //
   // ## Error Cases
   //
-  // - NOT_FOUND: Execution with given ID doesn't exist
+  // - NOT_FOUND: Run with given ID doesn't exist
   // - PERMISSION_DENIED: User lacks can_edit permission
-  // - FAILED_PRECONDITION: Execution is not in FAILED phase
+  // - FAILED_PRECONDITION: Run is not in FAILED phase
   // - INVALID_ARGUMENT: ID is empty or malformed
   rpc recover(RecoverAgentRunInput) returns (AgentRun) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
@@ -309,28 +309,28 @@ service AgentRunCommandController {
   // Pause a running agent run.
   //
   // Temporarily stops the agent at its current checkpoint. Unlike cancel,
-  // the execution is NOT terminal and can be resumed later from where it left off.
+  // the run is NOT terminal and can be resumed later from where it left off.
   //
   // @internal
   //
   // ## Behavior
   //
-  // 1. Validates execution exists and is in a pausable phase
+  // 1. Validates run exists and is in a pausable phase
   // 2. Sends "pause" signal to Temporal workflow
   // 3. Workflow cancels running activity gracefully
   // 4. Python activity saves LangGraph checkpoint on cancellation
-  // 5. Execution transitions to RUN_PAUSED phase
+  // 5. Run transitions to RUN_PAUSED phase
   // 6. Workflow waits for resume signal (no resources consumed)
   //
   // ## Preconditions
   //
-  // - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
-  // - Cannot pause already-terminal or already-paused executions
+  // - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
+  // - Cannot pause already-terminal or already-paused runs
   //
   // ## State Transitions
   //
   // - status.phase: PENDING/IN_PROGRESS → PAUSED
-  // - status.completed_at: NOT set (execution is not finished)
+  // - status.completed_at: NOT set (run is not finished)
   // - LangGraph checkpoint: Saved via thread_id
   //
   // ## Paused vs Cancelled
@@ -344,13 +344,13 @@ service AgentRunCommandController {
   //
   // ## Idempotency
   //
-  // Pausing an already-paused execution succeeds as a no-op.
+  // Pausing an already-paused run succeeds as a no-op.
   //
   // ## Error Cases
   //
-  // - NOT_FOUND: Execution with given ID doesn't exist
+  // - NOT_FOUND: Run with given ID doesn't exist
   // - PERMISSION_DENIED: User lacks can_edit permission
-  // - FAILED_PRECONDITION: Execution is in a terminal phase
+  // - FAILED_PRECONDITION: Run is in a terminal phase
   // - INVALID_ARGUMENT: ID is empty or malformed
   rpc pause(PauseAgentRunInput) returns (AgentRun) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
@@ -361,7 +361,7 @@ service AgentRunCommandController {
 
   // Resume a paused agent run.
   //
-  // Continues execution from the checkpoint where it was paused. The agent
+  // Continues the run from the checkpoint where it was paused. The agent
   // re-invokes with the same thread_id, loading from LangGraph checkpoint
   // and continuing from where it left off.
   //
@@ -369,17 +369,17 @@ service AgentRunCommandController {
   //
   // ## Behavior
   //
-  // 1. Validates execution is in RUN_PAUSED phase
+  // 1. Validates run is in RUN_PAUSED phase
   // 2. Sends "resume" signal to Temporal workflow
   // 3. Workflow unblocks and re-invokes activity
   // 4. Activity loads from LangGraph checkpoint using thread_id
-  // 5. Execution transitions back to RUN_IN_PROGRESS phase
+  // 5. Run transitions back to RUN_IN_PROGRESS phase
   // 6. Agent continues from exact pause point
   //
   // ## Preconditions
   //
-  // - Execution must be in RUN_PAUSED phase
-  // - Cannot resume non-paused executions
+  // - Run must be in RUN_PAUSED phase
+  // - Cannot resume non-paused runs
   //
   // ## State Transitions
   //
@@ -389,13 +389,13 @@ service AgentRunCommandController {
   //
   // ## Idempotency
   //
-  // Resuming an already-running execution succeeds as a no-op.
+  // Resuming a run that is already running succeeds as a no-op.
   //
   // ## Error Cases
   //
-  // - NOT_FOUND: Execution with given ID doesn't exist
+  // - NOT_FOUND: Run with given ID doesn't exist
   // - PERMISSION_DENIED: User lacks can_edit permission
-  // - FAILED_PRECONDITION: Execution is not in PAUSED phase
+  // - FAILED_PRECONDITION: Run is not in PAUSED phase
   // - INVALID_ARGUMENT: ID is empty or malformed
   rpc resume(ResumeAgentRunInput) returns (AgentRun) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
@@ -408,13 +408,13 @@ service AgentRunCommandController {
   // Artifact Lifecycle Operations
   //
   // These RPCs support file attachments and artifacts for agent runs.
-  // Attachments are input files provided before execution; artifacts are
-  // output files created during run.
+  // Attachments are input files provided before the run; artifacts are
+  // output files created during the run.
   // ─────────────────────────────────────────────────────────────────────────────
 
   // Upload a file attachment for use in an agent run.
   //
-  // Pre-uploads files to artifact storage before creating an run.
+  // Pre-uploads files to artifact storage before creating a run.
   // The returned storage_key can be used in Attachment.storage_key when
   // creating the run.
   //
@@ -442,7 +442,7 @@ service AgentRunCommandController {
   // 1. Client calls uploadAttachment with file content
   // 2. Server uploads to storage, returns storage_key
   // 3. Client creates AgentRun with Attachment using storage_key
-  // 4. The runner downloads attachment content when execution starts
+  // 4. The runner downloads attachment content when the run starts
   rpc uploadAttachment(UploadAttachmentRequest) returns (UploadAttachmentResponse) {
     // No authorization - storage_key acts as capability token
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;

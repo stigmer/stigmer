@@ -13,7 +13,7 @@ module agentic
 # agent_channel template): the creator owns the schedule; view/edit/delete
 # require ownership or an explicit grant. Plain org members get NO implicit
 # access: a schedule carries billing-affecting levers (enabled, the cron
-# itself — every fire creates an execution that consumes the owning org's
+# itself — every fire creates a run that consumes the owning org's
 # credits, unattended) whose consent bar is can_edit on the referenced
 # agent at creation time, and ownership after (settled 2026-08-02). There is
 # deliberately no organization.can_create_schedule: creation is
@@ -22,7 +22,7 @@ module agentic
 # agent can also manage its schedules.
 #
 # A schedule writes NO visitor-facing visibility tuples: it has no public
-# surface at all. Its runtime effect is the executions its fires create —
+# surface at all. Its runtime effect is the runs its fires create —
 # and each fire's session carries a session#schedule@schedule:<id> link
 # tuple (written by ScheduleSessionLinkStep since 2026-08-02) that
 # composes THIS type's viewer set into the session's can_view, read-only.

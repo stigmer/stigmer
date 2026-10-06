@@ -10,8 +10,8 @@ import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 
-// AgentRunSpec contains only user-provided inputs for triggering an run.
-// All execution results and state live in AgentRunStatus (in api.proto).
+// AgentRunSpec contains only user-provided inputs for triggering a run.
+// All run results and state live in AgentRunStatus (in api.proto).
 message AgentRunSpec {
   option (buf.validate.message).cel = {
     id: "agent_run.session_spec_harness_state"
@@ -57,10 +57,10 @@ message AgentRunSpec {
   oneof target {
     // ID of the existing session this turn continues.
     //
-    // An execution in an existing session belongs to that session's
+    // A run in an existing session belongs to that session's
     // organization: metadata.org, when set, must be the session's
     // (FAILED_PRECONDITION otherwise), and when left empty it is taken from
-    // the session. An execution stays in the session it was created in:
+    // the session. A run stays in the session it was created in:
     // update refuses a different session_id (FAILED_PRECONDITION), and an
     // empty one keeps the stored session.
     string session_id = 1;
@@ -72,11 +72,11 @@ message AgentRunSpec {
     // execution_target, MCP servers, skills) together with the first
     // message, so embedders do not need to orchestrate session.create
     // followed by agentRun.create. The created session's ID is
-    // returned on the persisted execution's session_id.
+    // returned on the persisted run's session_id.
     //
     // session_spec.agent_ref names the agent the conversation runs (empty:
     // the built-in assistant). Fields that must be set at session-creation
-    // time and are immutable once an execution has run — harness and
+    // time and are immutable once a run has started — harness and
     // execution_target — can only reach an auto-created session through
     // this field. session_spec.harness_state_id must be empty — it is
     // server-owned harness continuity state, created by the runner after
@@ -85,7 +85,7 @@ message AgentRunSpec {
     // @internal
     // The Session resource created from this spec is the single source of
     // truth for session configuration. The handler replaces this field with
-    // the created session's id before persist, so the execution record never
+    // the created session's id before persist, so the run record never
     // carries a second copy of session config that could drift as the
     // session evolves. Extends the existing auto-create path in
     // createSessionIfNeededStep rather than adding a parallel one
@@ -94,7 +94,7 @@ message AgentRunSpec {
   }
 
   // User input message that triggers this run.
-  // Each execution represents one user message and the agent's response.
+  // Each run represents one user message and the agent's response.
   string message = 3 [(buf.validate.field).string.min_len = 1];
 
   // The settings this message asks for (optional): a model, a speed tier,
@@ -134,7 +134,7 @@ message AgentRunSpec {
   InteractionMode interaction_mode = 19 [(buf.validate.field).enum.defined_only = true];
 
   // Marks this message as a "Build from plan" turn: the user approved a plan
-  // produced by a prior Plan-mode execution and asked the agent to implement it.
+  // produced by a prior Plan-mode run and asked the agent to implement it.
   //
   // When set, the runner injects the implement-plan directive into the agent's
   // prompt (see runner shared/implement-plan-prompt.ts). If the approved plan
@@ -161,15 +161,15 @@ message AgentRunSpec {
   // and passed back to the parent workflow as `structured`.
   google.protobuf.Struct structured_output_schema = 21;
 
-  // Runtime environment variables and secrets (execution-scoped).
-  // These values are only available for this specific execution and take the
+  // Runtime environment variables and secrets (run-scoped).
+  // These values are only available for this specific run and take the
   // highest merge priority, overriding values from Environments bound via
   // environment_refs. A key must be declared in Agent.spec.env to survive the
   // merge: the agent env map is a declaration whitelist (name + is_secret +
   // optional), never a value source — undeclared keys are dropped.
   // Use case: B2B integrations where secrets are injected at runtime per call.
   // These values are consumed into the ExecutionContext (deleted when the
-  // execution completes) and cleared from the persisted run.
+  // run completes) and cleared from the persisted run.
   //
   // @internal
   // Merge priority (lowest to highest): resolved Environment values — from the
@@ -202,7 +202,7 @@ message AgentRunSpec {
   //
   // Security consideration: This flag bypasses all approval checks.
   // Ensure appropriate access controls on who can set this flag.
-  // Consider auditing executions where this flag is used.
+  // Consider auditing runs where this flag is used.
   //
   // Default: false (approvals required as configured in policies)
   bool auto_approve_all = 7;
@@ -210,12 +210,12 @@ message AgentRunSpec {
   // ─────────────────────────────────────────────────────────────────────────────
   // File Attachments (Artifact Lifecycle)
   //
-  // Files to inject into the sandbox before execution begins.
+  // Files to inject into the sandbox before the run begins.
   // ─────────────────────────────────────────────────────────────────────────────
 
   // Files attached to this run.
   //
-  // Attachments are injected into the sandbox before execution begins.
+  // Attachments are injected into the sandbox before the run begins.
   // The agent can read these files from the specified mount paths.
   //
   // Use cases:
@@ -260,23 +260,23 @@ message AgentRunSpec {
   // ─────────────────────────────────────────────────────────────────────────────
   // Edit-and-Resubmit (Supersede Link)
   //
-  // Marks this execution as the corrected replacement of an earlier turn.
+  // Marks this run as the corrected replacement of an earlier turn.
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // ID of the execution this one supersedes via edit-and-resubmit (optional).
+  // ID of the run this one supersedes via edit-and-resubmit (optional).
   //
   // When a user stops an in-flight turn, edits the message, and resubmits,
-  // the client sets this field on the NEW execution to point at the stopped
-  // one. Chat-thread consumers hide the superseded execution so the edited
-  // message replaces the original in place; history surfaces (CLI, execution
+  // the client sets this field on the NEW run to point at the stopped
+  // one. Chat-thread consumers hide the superseded run so the edited
+  // message replaces the original in place; history surfaces (CLI, run
   // lists) keep showing the full record.
   //
-  // Empty means this execution is not an edit of another turn.
+  // Empty means this run is not an edit of another turn.
   //
   // @internal
   //
   // The link always lives on the successor — the superseded record is never
-  // mutated (append-only execution log, single writer). Chained edits form a
+  // mutated (append-only run log, single writer). Chained edits form a
   // chain of links (A <- B <- C), each persisted on its own successor.
   //
   // Display-level semantics only: the runner does NOT rewind model context.
@@ -292,7 +292,7 @@ message AgentRunSpec {
   // Set on live channel-conversation turns (WhatsApp, Slack): when a human
   // teammate handled the conversation or messages otherwise landed while the
   // agent was not watching, the digest carries what happened so the agent
-  // re-enters informed. Absent on every other execution surface.
+  // re-enters informed. Absent on every other run surface.
   //
   // @internal
   // Composed per turn by the cloud channel runtime — ChannelSessionBroker
@@ -339,12 +339,12 @@ message WorkflowParent {
 
   // Temporal workflow ID the agent-execution workflow signals about
   // approval requests ("child_approval_required", carrying only this
-  // execution's id): the workflow run's engine workflow, which for a nested
+  // run's id): the workflow run's engine workflow, which for a nested
   // workflow is a child workflow with its own id, so it is named rather
   // than derived.
   //
   // @internal
-  // The receiver derives the pending approvals by reading this execution
+  // The receiver derives the pending approvals by reading this run
   // (identity-only signals; a proto payload poisoned the receiving workflow
   // task).
   string signal_workflow_id = 2;
@@ -375,7 +375,7 @@ message WorkflowParent {
 //
 // 1. Client calls uploadAttachment RPC with file content
 // 2. Server returns a storage_key
-// 3. Client creates execution with Attachment containing that storage_key
+// 3. Client creates run with Attachment containing that storage_key
 // 4. The runner downloads file from storage and injects into sandbox
 //
 // ## Mount Path
@@ -434,7 +434,7 @@ message Attachment {
   //
   // The CLI sets this unconditionally to the resolved absolute path of
   // the attached file.  storage_key remains required -- the upload still
-  // happens for execution history and replay support.
+  // happens for run history and replay support.
   string local_path = 6;
 }
 
@@ -463,7 +463,7 @@ message ConversationCatchup {
   // @internal
   // Cloud bookkeeping, NEVER read by the runner. The delivery settle path
   // advances the conversation's agent_witnessed_through watermark to this
-  // instant when the execution COMPLETED and the settle won. Set on every
+  // instant when the run COMPLETED and the settle won. Set on every
   // channel turn, digest or not; its
   // value is the broker's compose instant, which is strictly later than the
   // turn's own inbound message.
@@ -471,7 +471,7 @@ message ConversationCatchup {
 }
 
 // DeclaredPreferences carries the standing preference texts injected into
-// this execution's prompt, one field per declaring scope.
+// this run's prompt, one field per declaring scope.
 //
 // @internal
 // Verbatim copies of Organization.spec.preferences.standing_context and the
@@ -485,7 +485,7 @@ message DeclaredPreferences {
   // The organization's standing context, verbatim.
   //
   // @internal
-  // Never set on a visitor's execution (stigmer#1401): the edition names
+  // Never set on a visitor's run (stigmer#1401): the edition names
   // its visitors, and open source has none.
   string org_context = 1;
 
@@ -500,7 +500,7 @@ message DeclaredPreferences {
 }
 
 // RecalledMemories is the server-composed snapshot of the caller's
-// confirmed memories for one execution — the candidate set for prompt
+// confirmed memories for one run — the candidate set for prompt
 // injection.
 //
 // @internal
@@ -510,7 +510,7 @@ message DeclaredPreferences {
 // zero facts is a meaningful state: memory is on for this caller, nothing
 // is stored yet — the runner still offers the remember tool.
 message RecalledMemories {
-  // Whether memory is enabled for this execution's caller.
+  // Whether memory is enabled for this run's caller.
   bool enabled = 1;
 
   // The confirmed facts — every confirmed memory of the caller in this
@@ -536,7 +536,7 @@ message RecalledMemoryFact {
   // ID of the memory record this fact came from.
   //
   // @internal
-  // The transparency link: the execution status shows exactly
+  // The transparency link: the run status shows exactly
   // which records the model saw, and each links back to the
   // addressable, deletable memory.
   string memory_id = 1;

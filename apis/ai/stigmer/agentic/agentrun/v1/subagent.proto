@@ -8,7 +8,7 @@ import "ai/stigmer/agentic/agentrun/v1/todo.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 
-// Represents a sub-agent invocation within an run.
+// Represents a sub-agent invocation within a run.
 // When the main agent delegates work to a specialized sub-agent, this message
 // tracks the complete lifecycle of that delegation including input, output, and timing.
 message SubAgentRun {
@@ -48,7 +48,7 @@ message SubAgentRun {
   google.protobuf.Struct metadata = 9;
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Internal Execution Visibility
+  // Internal Run Visibility
   //
   // These fields capture what happened inside the sub-agent run,
   // enabling debugging when sub-agents fail mid-run.

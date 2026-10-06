@@ -110,7 +110,7 @@ service PlatformQueryController {
   // coordinate and mints a token bound to the caller, so any valid token is
   // required, but no specific FGA permission is — every authenticated caller in
   // an environment shares one Temporal cluster, and task queues are
-  // per-session/execution and gated separately by control-plane session access.
+  // per-session/run and gated separately by control-plane session access.
   //
   // @internal
   // The minted runner access token (iss=stigmer, sub=caller identity account)
@@ -126,10 +126,10 @@ service PlatformQueryController {
   // one unit of dispatched work.
   //
   // The bootstrap token from getRunnerBootstrapConfig identifies a runner but
-  // is minted before any execution exists, so it carries no session or
-  // execution scope. Secrets are only released to runner credentials bound to
+  // is minted before any run exists, so it carries no session or
+  // run scope. Secrets are only released to runner credentials bound to
   // the exact work they serve. At task start the runner presents its bootstrap
-  // token and names the execution it was dispatched; the control plane verifies
+  // token and names the run it was dispatched; the control plane verifies
   // the caller and returns a short-lived token scoped to that work, which the
   // runner then uses for its ExecutionContext fetch. This makes a desktop
   // runner indistinguishable, at the secret-release gate, from a
@@ -140,8 +140,8 @@ service PlatformQueryController {
   //
   // @internal
   // Cloud mints via SandboxTokenService: an agent_run_id yields a
-  // token_type=sandbox token carrying the execution's parent session_id (one
-  // session sandbox serves multi-turn executions); a workflow_run_id
+  // token_type=sandbox token carrying the run's parent session_id (one
+  // session sandbox serves multi-turn runs); a workflow_run_id
   // yields token_type=workflow_sandbox carrying that id. Both are then bound by
   // RunnerScopeVerifier on the getByExecutionId decrypt path exactly like
   // cloud-sandbox-injected tokens.
@@ -155,7 +155,7 @@ service PlatformQueryController {
   //
   // Two arms are exceptions to the embedded_runner rule, each gated on its
   // own credential class and authorized against a control-plane record
-  // instead of an execution: pool_claim (token_type=pool_sandbox, authorized
+  // instead of a run: pool_claim (token_type=pool_sandbox, authorized
   // against the pool claim record) and renewal (token_type=sandbox /
   // workflow_sandbox, authorized against the live sandbox record). See each
   // arm's own doc.
@@ -312,12 +312,12 @@ message GetRunnerScopedTokenInput {
   oneof scope {
     option (buf.validate.oneof).required = true;
 
-    // AgentRun id — yields a token scoped to the execution's parent
+    // AgentRun id — yields a token scoped to the run's parent
     // session, valid for every ExecutionContext in that session (multi-turn).
     string agent_run_id = 1;
 
     // WorkflowRun id — yields a token scoped to exactly that workflow
-    // execution's ExecutionContext.
+    // run's ExecutionContext.
     string workflow_run_id = 2;
 
     // Warm-pool claim — a pool sandbox exchanging its pool credential for the
@@ -365,7 +365,7 @@ message PoolClaim {
 // restart (which would wipe an ephemeral sandbox's workspace).
 //
 // Deliberately empty: every mint parameter (identity, org, session /
-// workflow-execution scope) comes from the presented credential's VERIFIED
+// workflow-run scope) comes from the presented credential's VERIFIED
 // claims, never from the client, so a renewed token is claim-identical to
 // the one it replaces.
 //

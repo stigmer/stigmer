@@ -354,7 +354,7 @@ spec:
 
 ## Human-in-the-Loop Approval
 
-Pause execution, wait for an external approval signal, then continue or abort.
+Pause the run, wait for an external approval signal, then continue or abort.
 
 ```yaml
 api_version: agentic.stigmer.ai/v1

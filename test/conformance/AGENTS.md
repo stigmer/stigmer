@@ -3,8 +3,8 @@
 The cross-edition gRPC contract suite: one set of tests run against every
 edition of the control plane, and the one instrument that turns a behavioural
 difference between editions into a failing test. Runner behaviour is proven here
-too, read through execution status against a scripted LLM. This guide is an
-index; `README.md` is the reference.
+too, read through run status against a scripted LLM. This guide is an index;
+`README.md` is the reference.
 
 ## Read in this order
 
@@ -37,17 +37,17 @@ index; `README.md` is the reference.
 - The suite asserts the intended contract. A server answer that disagrees is a
   server bug or a contract question, never something the test is bent to accept.
 - Where a test lives: a cross-edition contract or a runner behaviour read
-  through execution status is here; a server or runner unit sits beside its
-  module in a `__tests__` folder; React units under `sdk/react/src/`; Playwright
-  under `test/e2e/tests/`.
+  through run status is here; a server or runner unit sits beside its module in
+  a `__tests__` folder; React units under `sdk/react/src/`; Playwright under
+  `test/e2e/tests/`.
 - Facet files, not new files. A behaviour extends the existing
   `<domain>-<facet>.conformance.test.ts`; a new facet opens with an intent
   header stating the contract it pins and what is deliberately out of scope.
 - The three shapes: a runner behaviour is scripted on the mock LLM and read from
-  the terminal execution status; every approval goes through
-  `submitApprovalPerContract` in `src/support/agentexecutions.ts`, never a bare
-  submit followed by an expectation on pending approvals; a file-review turn
-  attaches a `GitWorkspace` and decides through `src/support/file-review.ts`.
+  the terminal run status; every approval goes through
+  `submitApprovalPerContract` in `src/support/agentruns.ts`, never a bare submit
+  followed by an expectation on pending approvals; a file-review turn attaches a
+  `GitWorkspace` and decides through `src/support/file-review.ts`.
 - Determinism: poll with a timeout, never sleep; unique resource names per test
   (`src/support/naming.ts`); no order dependence; temp dirs only; LLM-dependent
   assertions on structure and side effects, never on prose.

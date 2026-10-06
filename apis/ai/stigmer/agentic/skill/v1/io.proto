@@ -160,7 +160,7 @@ message SkillArtifactDownloadUrl {
   int64 size_bytes = 3;
 }
 
-// PushSkillFromRunArtifactRequest publishes a skill from an execution
+// PushSkillFromRunArtifactRequest publishes a skill from a run
 // artifact already in storage, without downloading and re-uploading the ZIP.
 //
 // @internal
@@ -173,7 +173,7 @@ message SkillArtifactDownloadUrl {
 //
 // Security:
 // The storage_key is validated to start with "artifacts/{run_id}/"
-// to prevent access to other executions' artifacts.
+// to prevent access to other runs' artifacts.
 message PushSkillFromRunArtifactRequest {
   // Organization that will own the skill.
   string org = 1 [(buf.validate.field).required = true];
@@ -186,7 +186,7 @@ message PushSkillFromRunArtifactRequest {
   string run_id = 2 [(buf.validate.field).string.min_len = 1];
 
   // Storage key of the directory artifact (ZIP) to push as a skill.
-  // Obtain this from RunArtifact.storage_key in the execution status.
+  // Obtain this from RunArtifact.storage_key in the run status.
   //
   // @internal
   // Must start with "artifacts/{run_id}/" for security.

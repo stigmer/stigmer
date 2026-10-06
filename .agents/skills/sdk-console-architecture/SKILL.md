@@ -92,8 +92,8 @@ coalescing (buffer the latest, commit at most once per frame), structural
 sharing (walk the tree by natural keys and keep unchanged references),
 `startTransition`, `useSyncExternalStore`, and `React.memo` on the leaves. Never
 `useState(snapshot)` for a high-frequency stream: it re-renders the whole tree
-on every frame. Completion is phase-driven (a terminal execution phase or an
-explicit signal), never inferred from the stream ending.
+on every frame. Completion is phase-driven (a terminal run phase or an explicit
+signal), never inferred from the stream ending.
 
 **Reference stability is architectural.** A hook that returns an object literal
 wraps it in `useMemo`; a callback's dependencies name the specific method used

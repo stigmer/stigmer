@@ -28,7 +28,7 @@ module agentic
 # a single session#channel@agent_channel:<id> tuple and inherit the parent
 # channel's viewer set (connector + org admins) into can_view ONLY. The
 # channel link deliberately bypasses `viewer` so channel observers never gain can_create_run_in (injecting a console
-# message into a live external conversation would run an execution whose
+# message into a live external conversation would start a run whose
 # reply never reaches the channel). Console sessions never get a channel
 # tuple, so the personal-resource invariant above is untouched.
 #
@@ -68,7 +68,7 @@ type session
     # JWT's channel_id claim, never derived from the client-suppliable
     # stigmer.ai/channel-id label. Composes the channel's viewer set
     # (connector + org admins) into can_view below — and ONLY can_view, so
-    # channel observers cannot inject executions, edit, delete, or manage
+    # channel observers cannot inject runs, edit, delete, or manage
     # grants. Console sessions never carry this tuple.
     define channel: [agent_channel]
 
@@ -80,7 +80,7 @@ type session
     # JWT's schedule_id claim, never derived from the client-suppliable
     # stigmer.ai/schedule-id label. Composes the schedule's viewer set
     # (creator + org admins + grantees) into can_view below — and ONLY
-    # can_view, so schedule observers cannot inject executions into an
+    # can_view, so schedule observers cannot inject runs into an
     # unattended run. Console sessions never carry this tuple.
     define schedule: [schedule]
 

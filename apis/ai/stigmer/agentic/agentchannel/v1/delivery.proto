@@ -13,7 +13,7 @@ import "google/protobuf/timestamp.proto";
 // Stored by the serving edition's channel runtime; the reply lane's
 // correctness backbone. Created at webhook time in the same motion as the
 // Session/AgentRun; claimed atomically by the delivery worker with a
-// status-guarded update; swept for executions whose terminal write raced or
+// status-guarded update; swept for runs whose terminal write raced or
 // bypassed the hook.
 message ChannelDelivery {
   // Unique delivery identifier.
@@ -29,7 +29,7 @@ message ChannelDelivery {
   // AgentRun whose terminal result this delivery carries.
   string run_id = 4;
 
-  // Session the execution belongs to (conversation continuity + audit).
+  // Session the run belongs to (conversation continuity + audit).
   string session_id = 5;
 
   // Provider-neutral conversation key (the DM thread
@@ -120,7 +120,7 @@ enum ChannelDeliveryStatus {
   // Default value when no status is set.
   channel_delivery_status_unspecified = 0;
 
-  // Awaiting the execution's terminal phase, or awaiting (re)claim.
+  // Awaiting the run's terminal phase, or awaiting (re)claim.
   pending = 1;
 
   // Claimed by a delivery worker; provider I/O in flight.
@@ -176,7 +176,7 @@ enum ChannelAttemptFailureKind {
 
   // The platform withdrew the send for a structural reason;
   // attempt_detail carries the short fact ("channel deleted",
-  // "execution no longer exists").
+  // "run no longer exists").
   attempt_withdrawn = 3;
 }
 

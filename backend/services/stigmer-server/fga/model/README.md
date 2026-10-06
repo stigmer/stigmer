@@ -14,8 +14,8 @@ Workflows follow a three-tier hierarchy; agents have two, because a conversation
 
 ```
 Blueprint (Agent, Workflow)       ← discoverability and usability
-  └── Execution (WorkflowExecution)  ← who can observe runs (the workflow's run visibility)
-  └── Session → AgentExecution    ← a person's conversation and its turns
+  └── Run (WorkflowRun)           ← who can observe runs (the workflow's run visibility)
+  └── Session → AgentRun          ← a person's conversation and its turns
 ```
 
 Each tier has independent but composable visibility:
@@ -23,7 +23,7 @@ Each tier has independent but composable visibility:
 | Tier | Default Visibility | Supports Child Orgs | Inheritance |
 |------|-------------------|-------------------|-------------|
 | **Blueprint** | Org members | Yes (`child_org_viewer`) | — |
-| **Execution** | Owner only, widened by its parent | No (inherited) | Workflow: the workflow's opt-in `run_viewer`. Agent: from session |
+| **Run** | Owner only, widened by its parent | No (inherited) | Workflow: the workflow's opt-in `run_viewer`. Agent: from session |
 
 ## The Visibility Spectrum
 
@@ -47,17 +47,17 @@ A blueprint (`agent`, `workflow`, `mcp_server`) is granted to a person or a team
 | `editor` | everything a viewer can, and change its definition (`can_edit`): update, tag a version, schedule an agent | delete it, or decide who else reaches it |
 | `owner` | everything (the creator, and the organization's admins by inheritance) | |
 
-Who else reaches a resource is the owner's, through two permissions. `can_grant_access` is granting and revoking. `can_manage_audience` is every act that changes the audience without a grant: `updateVisibility` on every kind, `updateExecutionVisibility` on a workflow, publishing an agent on a share link and binding it to a channel. They are two permissions because the self-check answers `can_grant_access` false wherever the edition grants no roles on the kind (the console then hides grant controls), while every edition lets an owner change an audience. An editor is a viewer (`viewer: ... or editor`), so the model's invariant "you can run what you can read" holds for editors too. The open-source server grants no per-resource role (its policy grant scope is the organization only); the hosted edition and Enterprise grant these.
+Who else reaches a resource is the owner's, through two permissions. `can_grant_access` is granting and revoking. `can_manage_audience` is every act that changes the audience without a grant: `updateVisibility` on every kind, `updateRunVisibility` on a workflow, publishing an agent on a share link and binding it to a channel. They are two permissions because the self-check answers `can_grant_access` false wherever the edition grants no roles on the kind (the console then hides grant controls), while every edition lets an owner change an audience. An editor is a viewer (`viewer: ... or editor`), so the model's invariant "you can run what you can read" holds for editors too. The open-source server grants no per-resource role (its policy grant scope is the organization only); the hosted edition and Enterprise grant these.
 
 ## Agent vs Workflow Asymmetry
 
 ```
-Agent Path:     Agent → Session (personal) → AgentExecution
-Workflow Path:  Workflow → WorkflowExecution
+Agent Path:     Agent → Session (personal) → AgentRun
+Workflow Path:  Workflow → WorkflowRun
 ```
 
 - **Agent runs** inherit from sessions. Sessions are always personal — even if the agent is org-visible, conversations remain private. Sharing a session requires explicit viewer grants. The agent a session names is not a relation: the server asks `can_execute` on it when a session names or changes it, and on every turn.
-- **Workflow runs** are private to the person who started each one, and inherit the workflow's opt-in `run_viewer`: a workflow whose run visibility is ORGANIZATION shows every run, past runs included, to the whole organization. Zero per-execution tuples needed. A workflow's own visibility never exposes its runs.
+- **Workflow runs** are private to the person who started each one, and inherit the workflow's opt-in `run_viewer`: a workflow whose run visibility is ORGANIZATION shows every run, past runs included, to the whole organization. Zero per-run tuples needed. A workflow's own visibility never exposes its runs.
 
 This asymmetry is intentional: agents are conversational (privacy always), workflows are operational (observability is the workflow owner's opt-in).
 
@@ -98,7 +98,7 @@ define viewer: ([identity_account, organization#viewer] and affiliated from orga
 
 Resources: `environment`. It is personal by default and shared with the organization by its visibility, and its owner arm keeps the organization's admins out of a personal one's secrets.
 
-### Inherited Visibility (Executions)
+### Inherited Visibility (Runs)
 
 Permissions inherited from parent resource:
 
@@ -112,7 +112,7 @@ define viewer: viewer from session or owner
 
 Resources: `workflow_run`, `agent_run`
 
-An agent run holds nothing of its own: its one direct relation is the `session` link, every other relation is read through it, and its `can_view` answers exactly what the session's does. That is what lets a list ask about the session in the execution's place, and `src/authorization/model/__tests__/registry.test.ts` holds it for every kind whose `kind_meta` makes its authorization its parent's. A relation that would give an execution something of its own is a design change of the list read scope first. A workflow run is not such a kind, because its opt-in `run_viewer` is its own.
+An agent run holds nothing of its own: its one direct relation is the `session` link, every other relation is read through it, and its `can_view` answers exactly what the session's does. That is what lets a list ask about the session in the run's place, and `src/authorization/model/__tests__/registry.test.ts` holds it for every kind whose `kind_meta` makes its authorization its parent's. A relation that would give a run something of its own is a design change of the list read scope first. A workflow run is not such a kind, because its opt-in `run_viewer` is its own.
 
 ### Bounded by the Organization (every direct grant)
 
@@ -224,7 +224,7 @@ workflow:support-triage#viewer@organization:acme#viewer            ← ORG visib
 workflow:support-triage#run_viewer@organization:acme#viewer  ← ORG run visibility
 ```
 
-### Execution (Inherits the Workflow's Run Visibility)
+### Run (Inherits the Workflow's Run Visibility)
 
 ```
 workflow_run:ticket-4567#organization@organization:acme

@@ -2,11 +2,11 @@
 #
 # Two independent axes govern who can read a run's inputs/outputs:
 #
-#   1. Per-execution sharing — the person who started a run (its owner)
+#   1. Per-run sharing — the person who started a run (its owner)
 #      grants viewer on a single workflow_run (can_grant_access /
 #      can_view_access, mirroring session.fga).
 #   2. Workflow-level run observability — opt-in via the workflow's
-#      `run_viewer` relation, inherited by every execution through
+#      `run_viewer` relation, inherited by every run through
 #      `viewer = ... or run_viewer from workflow`.
 #
 # The critical invariant: making a workflow org-RUNNABLE (workflow#viewer for
@@ -82,7 +82,7 @@ tuples:
     relation: owner
     object: workflow_run:run1
 
-  # run1b: alice's run of wf1, explicitly shared with bob (per-execution).
+  # run1b: alice's run of wf1, explicitly shared with bob (per-run).
   - user: organization:acme
     relation: organization
     object: workflow_run:run1b
@@ -145,7 +145,7 @@ tests:
         assertions:
           can_view: false
 
-  - name: per-execution share grants exactly the named teammate
+  - name: per-run share grants exactly the named teammate
     check:
       - user: identity_account:bob
         object: workflow_run:run1b

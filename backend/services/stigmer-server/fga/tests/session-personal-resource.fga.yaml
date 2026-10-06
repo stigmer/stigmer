@@ -9,7 +9,7 @@
 # the billing trail; usage records are immutable and denormalized).
 #
 # Agent runs inherit ALL access from their parent session
-# (`owner from session`), so the execution assertions here pin the
+# (`owner from session`), so the run assertions here pin the
 # inheritance that session cascade-delete relies on.
 #
 # Run with:
@@ -59,7 +59,7 @@ tuples:
     relation: viewer
     object: session:bobs-chat
 
-  # --- an execution inside the session ---
+  # --- a run inside the session ---
   - user: session:bobs-chat
     relation: session
     object: agent_run:run-1
@@ -104,7 +104,7 @@ tests:
           can_view: false
           can_delete: false
 
-  - name: execution access is inherited from the parent session
+  - name: run access is inherited from the parent session
     check:
       - user: identity_account:bob
         object: agent_run:run-1

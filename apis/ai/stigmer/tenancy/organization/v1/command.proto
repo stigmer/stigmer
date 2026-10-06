@@ -19,7 +19,7 @@ service OrganizationCommandController {
   //
   // @internal
   // The authorization and state-operation are determined depending on whether the organization
-  // is going to be created or updated which is determined as part of the request run.
+  // is going to be created or updated which is determined as part of the request execution.
   rpc apply(Organization) returns (Organization);
 
   // Create an organization.

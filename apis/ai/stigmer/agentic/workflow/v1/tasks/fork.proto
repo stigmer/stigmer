@@ -36,7 +36,7 @@ message ForkTaskConfig {
   bool compete = 2;
 }
 
-// ForkBranch defines a single branch in parallel run.
+// ForkBranch defines a single branch in parallel execution.
 message ForkBranch {
   // Branch name/identifier.
   string name = 1 [

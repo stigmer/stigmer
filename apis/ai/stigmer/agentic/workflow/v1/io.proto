@@ -14,13 +14,13 @@ message WorkflowId {
 // of a single workflow.
 //
 // Mirrors the shape of commons UpdateVisibilityInput, but for the SEPARATE
-// execution-visibility axis (see WorkflowRunVisibility). A dedicated
+// run-visibility axis (see WorkflowRunVisibility). A dedicated
 // message keeps the two visibility concepts from being conflated.
 message UpdateWorkflowRunVisibilityInput {
-  // ID of the workflow whose execution visibility is being updated.
+  // ID of the workflow whose run visibility is being updated.
   string resource_id = 1 [(buf.validate.field).required = true];
 
-  // The new execution-visibility setting. Must not be unspecified (0).
+  // The new run-visibility setting. Must not be unspecified (0).
   WorkflowRunVisibility run_visibility = 2 [(buf.validate.field).enum = {
     defined_only: true
     not_in: [0]

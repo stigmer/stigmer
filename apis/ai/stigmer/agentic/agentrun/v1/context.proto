@@ -17,7 +17,7 @@ import "ai/stigmer/agentic/agentrun/v1/enum.proto";
 // automatic summarization for long-running agent conversations.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// SummarizationEvent records a single summarization occurrence during run.
+// SummarizationEvent records a single summarization occurrence during the run.
 //
 // Each time the context window approaches the model's limit and summarization
 // is triggered, an event is recorded with before/after metrics.
@@ -107,7 +107,7 @@ message SummarizationEvent {
   int32 summarization_output_tokens = 11;
 
   // Cost in USD of this summarization call.
-  // Computed using the summarization model's pricing rates at execution time.
+  // Computed using the summarization model's pricing rates at run time.
   double summarization_cost_usd = 12;
 }
 
@@ -119,7 +119,7 @@ message SummarizationEvent {
 //
 // ## Real-Time Updates
 //
-// Fields are updated progressively during execution:
+// Fields are updated progressively during the run:
 // - current_token_count: Updated after each LLM call
 // - utilization_percent: Recalculated when token count changes
 // - summarization_events: Appended when summarization occurs
@@ -177,13 +177,13 @@ message ContextInfo {
   // Whether summarization is enabled for this run.
   //
   // When false, no summarization events will occur regardless of
-  // token count. The execution may fail if context exceeds limits.
+  // token count. The run may fail if context exceeds limits.
   bool summarization_enabled = 5;
 
   // Summarization events that occurred during this run.
   //
   // Ordered chronologically (oldest first).
-  // Empty if no summarization was triggered during run.
+  // Empty if no summarization was triggered during the run.
   //
   // Multiple events indicate a very long-running conversation that
   // required multiple rounds of summarization.

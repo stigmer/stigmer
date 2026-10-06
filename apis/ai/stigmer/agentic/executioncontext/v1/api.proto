@@ -10,7 +10,7 @@ import "buf/validate/validate.proto";
 // Ephemeral runtime configuration and secrets scoped to a single run.
 //
 // @internal
-// Created by the execution engine at start, deleted when execution completes.
+// Created by the execution engine at start, deleted when the run completes.
 // Used for B2B scenarios where secrets are injected at runtime.
 message ExecutionContext {
   // API version for this resource type.

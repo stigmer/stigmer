@@ -1,6 +1,6 @@
-# AgentExecution Resource Guide
+# AgentRun Resource Guide
 
-Complete spec and status schema reference for the `agentic.stigmer.ai/v1` AgentExecution resource.
+Complete spec and status schema reference for the `agentic.stigmer.ai/v1` AgentRun resource.
 
 For conceptual overview, lifecycle, and documentation index, see [README.md](README.md).
 
@@ -8,16 +8,16 @@ For conceptual overview, lifecycle, and documentation index, see [README.md](REA
 
 ## Resource Structure
 
-An AgentExecution follows the standard Stigmer resource pattern:
+An AgentRun follows the standard Stigmer resource pattern:
 
 ```
-AgentExecution
+AgentRun
 ├── metadata    — system-managed identity and audit fields
 ├── spec        — user-provided inputs (what you supply when triggering)
-└── status      — system-managed outputs (what the system records during/after execution)
+└── status      — system-managed outputs (what the system records during/after the run)
 ```
 
-You never write `status` fields. They are populated by the agent runner and updated progressively during execution.
+You never write `status` fields. They are populated by the agent runner and updated progressively during the run.
 
 ---
 
@@ -26,16 +26,16 @@ You never write `status` fields. They are populated by the agent runner and upda
 | Field | Required | Value |
 |---|---|---|
 | `apiVersion` | Yes | Must be exactly `agentic.stigmer.ai/v1` |
-| `kind` | Yes | Must be exactly `AgentExecution` |
+| `kind` | Yes | Must be exactly `AgentRun` |
 | `metadata` | Yes | Standard API resource metadata |
-| `spec` | Yes | User-provided execution inputs |
+| `spec` | Yes | User-provided run inputs |
 | `status` | No | System-managed; never set by users |
 
 ---
 
-## Spec Fields (`AgentExecutionSpec`)
+## Spec Fields (`AgentRunSpec`)
 
-Defined in `ai/stigmer/agentic/agentexecution/v1/spec.proto`.
+Defined in `ai/stigmer/agentic/agentrun/v1/spec.proto`.
 
 ### Session and Agent Targeting
 
@@ -43,20 +43,20 @@ Defined in `ai/stigmer/agentic/agentexecution/v1/spec.proto`.
 
 | Field | Type | Description |
 |---|---|---|
-| `session_id` | `string` | The session this execution continues. The execution is appended to the session's conversation history and runs the agent version the session records. |
-| `session_spec` | `SessionSpec` | A new session to create with this first message. `session_spec.agent_ref` names the agent the conversation runs (`org/slug`, with an optional tag or hash version); the created session's ID is returned on the execution's `session_id`. |
+| `session_id` | `string` | The session this run continues. The run is appended to the session's conversation history and runs the agent version the session records. |
+| `session_spec` | `SessionSpec` | A new session to create with this first message. `session_spec.agent_ref` names the agent the conversation runs (`org/slug`, with an optional tag or hash version); the created session's ID is returned on the run's `session_id`. |
 
 **Targeting rules:**
 - Provide `session_id` to continue an existing conversation.
 - Provide `session_spec` with `agent_ref` to start a new conversation on an agent, at its current version unless the reference names one.
 - Provide neither to start a new conversation with the built-in assistant.
-- Every execution is refused unless the caller may add a turn to the session (`can_create_execution_in`) and may still run the session's agent (`can_execute`). An agent deleted behind the session fails the execution with `FAILED_PRECONDITION` naming the agent.
+- Every run is refused unless the caller may add a turn to the session (`can_create_run_in`) and may still run the session's agent (`can_execute`). An agent deleted behind the session fails the run with `FAILED_PRECONDITION` naming the agent.
 
 ### Message
 
 | Field | Type | Validation | Description |
 |---|---|---|---|
-| `message` | `string` | min_len: 1 (required) | The user input that triggers this execution. Each execution represents one user message and the agent's full response to it. |
+| `message` | `string` | min_len: 1 (required) | The user input that triggers this run. Each run represents one user message and the agent's full response to it. |
 
 ### Run Settings (`run_config`)
 
@@ -82,7 +82,7 @@ No request sets an approval mode: it is a fact of the lane the turn came through
 
 | Field | Type | Description |
 |---|---|---|
-| `runtime_env` | `map<string, ExecutionValue>` | Execution-scoped secrets and environment variables. Available only for this execution. Deleted when execution completes. Highest merge priority: Environment values (the creating schedule's, `agent_call` task's or PlatformClient's `environment_refs`) < `runtime_env`; declared keys still missing are filled from the run's person's personal environment. Keys must be declared in `Agent.spec.env` (a declaration whitelist, not a value source) or they are dropped. |
+| `runtime_env` | `map<string, ExecutionValue>` | Run-scoped secrets and environment variables. Available only for this run. Deleted when the run completes. Highest merge priority: Environment values (the creating schedule's, `agent_call` task's or PlatformClient's `environment_refs`) < `runtime_env`; declared keys still missing are filled from the run's person's personal environment. Keys must be declared in `Agent.spec.env` (a declaration whitelist, not a value source) or they are dropped. |
 
 Use `runtime_env` for B2B integrations where secrets must be injected at runtime per-caller, not stored in the agent configuration.
 
@@ -90,28 +90,28 @@ Use `runtime_env` for B2B integrations where secrets must be injected at runtime
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `auto_approve_all` | `bool` | `false` | When `true`, bypasses all HITL approval gates for this execution. Use in trusted CI/CD pipelines. See [hitl-approvals.md](hitl-approvals.md). |
+| `auto_approve_all` | `bool` | `false` | When `true`, bypasses all HITL approval gates for this run. Use in trusted CI/CD pipelines. See [hitl-approvals.md](hitl-approvals.md). |
 
 ### File Attachments
 
 | Field | Type | Description |
 |---|---|---|
-| `attachments` | `repeated Attachment` | Files to inject into the agent sandbox before execution begins. See [attachments-and-artifacts.md](attachments-and-artifacts.md). |
+| `attachments` | `repeated Attachment` | Files to inject into the agent sandbox before the run begins. See [attachments-and-artifacts.md](attachments-and-artifacts.md). |
 | `workspace_file_refs` | `repeated string` | Workspace-relative paths for files already inside the session's workspace. The agent reads these directly — no upload, no injection. |
 
 ### Async Workflow Integration
 
 | Field | Type | Description |
 |---|---|---|
-| `parent` | `WorkflowParent` | The workflow run whose `agent_call` step started this turn: `workflow_execution_id`, `signal_workflow_id` (the workflow told about approval requests) and `callback_token` (the Temporal task token the turn completes). Honoured only from the workflow run it names: a server-composed request, a runner whose credential is bound to that run, or a holder of `can_write_reserved_labels`. Anyone else who sets it is refused with `INVALID_ARGUMENT`. See [async-workflow-integration.md](async-workflow-integration.md). |
+| `parent` | `WorkflowParent` | The workflow run whose `agent_call` step started this turn: `workflow_run_id`, `signal_workflow_id` (the workflow told about approval requests) and `callback_token` (the Temporal task token the turn completes). Honoured only from the workflow run it names: a server-composed request, a runner whose credential is bound to that run, or a holder of `can_write_reserved_labels`. Anyone else who sets it is refused with `INVALID_ARGUMENT`. See [async-workflow-integration.md](async-workflow-integration.md). |
 
 ---
 
 ## Attachment Fields (`Attachment`)
 
-Defined in `ai/stigmer/agentic/agentexecution/v1/spec.proto`.
+Defined in `ai/stigmer/agentic/agentrun/v1/spec.proto`.
 
-Files must be pre-uploaded via `uploadAttachment` RPC before creating the execution. The returned `storage_key` is then referenced here.
+Files must be pre-uploaded via `uploadAttachment` RPC before creating the run. The returned `storage_key` is then referenced here.
 
 | Field | Type | Validation | Description |
 |---|---|---|---|
@@ -126,7 +126,7 @@ Files must be pre-uploaded via `uploadAttachment` RPC before creating the execut
 
 ## RunConfig Fields
 
-Defined in `ai/stigmer/agentic/agentexecution/v1/invocation.proto`. The same message is a message's request (`spec.run_config`), a surface's saved settings (a schedule's invocation, a channel, a share, a workflow `agent_call` step), an agent's defaults (`Agent.spec.run_config`, versioned with the agent), and the settings a turn ran with (`status.run_config`). Zero or empty means "not set at this layer".
+Defined in `ai/stigmer/agentic/agentrun/v1/invocation.proto`. The same message is a message's request (`spec.run_config`), a surface's saved settings (a schedule's invocation, a channel, a share, a workflow `agent_call` step), an agent's defaults (`Agent.spec.run_config`, versioned with the agent), and the settings a turn ran with (`status.run_config`). Zero or empty means "not set at this layer".
 
 | Field | Type | Description |
 |---|---|---|
@@ -148,18 +148,18 @@ The proto comment on `RunConfig` is the normative rule. The user-facing explanat
 
 ---
 
-## Status Fields (`AgentExecutionStatus`)
+## Status Fields (`AgentRunStatus`)
 
-Defined in `ai/stigmer/agentic/agentexecution/v1/api.proto`. All fields are system-managed.
+Defined in `ai/stigmer/agentic/agentrun/v1/api.proto`. All fields are system-managed.
 
 ### Core Status
 
 | Field | Type | Description |
 |---|---|---|
-| `phase` | `ExecutionPhase` | Current lifecycle phase. See [execution-lifecycle.md](execution-lifecycle.md) for all phases and transitions. |
-| `error` | `string` | Error message when `phase == EXECUTION_FAILED`. Empty otherwise. |
-| `started_at` | `string` | ISO 8601 timestamp when execution began processing. |
-| `completed_at` | `string` | ISO 8601 timestamp when execution reached a terminal state. Empty for non-terminal phases. |
+| `phase` | `RunPhase` | Current lifecycle phase. See [run-lifecycle.md](run-lifecycle.md) for all phases and transitions. |
+| `error` | `string` | Error message when `phase == RUN_FAILED`. Empty otherwise. |
+| `started_at` | `string` | ISO 8601 timestamp when the run began processing. |
+| `completed_at` | `string` | ISO 8601 timestamp when the run reached a terminal state. Empty for non-terminal phases. |
 | `agent_id` | `string` | The agent this turn ran, from its session; empty for the built-in assistant. |
 | `agent_version_hash` | `string` | The agent version this turn ran, from its session. |
 | `declared_preferences` | `DeclaredPreferences` | The organization's and the person's standing context, snapshotted when the turn was created. |
@@ -171,7 +171,7 @@ Defined in `ai/stigmer/agentic/agentexecution/v1/api.proto`. All fields are syst
 
 | Field | Type | Description |
 |---|---|---|
-| `messages` | `repeated AgentMessage` | Chronological stream of execution events: human input, AI responses, tool results, and system notifications. |
+| `messages` | `repeated AgentMessage` | Chronological stream of run events: human input, AI responses, tool results, and system notifications. |
 
 **AgentMessage fields:**
 
@@ -189,7 +189,7 @@ Defined in `ai/stigmer/agentic/agentexecution/v1/api.proto`. All fields are syst
 
 | Field | Type | Description |
 |---|---|---|
-| `tool_calls` | `repeated ToolCall` | All tool calls made during this execution, tracked separately for querying and display. |
+| `tool_calls` | `repeated ToolCall` | All tool calls made during this run, tracked separately for querying and display. |
 
 **ToolCall fields:**
 
@@ -211,13 +211,13 @@ Defined in `ai/stigmer/agentic/agentexecution/v1/api.proto`. All fields are syst
 | `approved_by` | `string` | User ID of the person who made the approval decision. |
 | `approval_action` | `ApprovalAction` | `APPROVAL_ACTION_APPROVE`, `APPROVAL_ACTION_SKIP`, or `APPROVAL_ACTION_REJECT`. |
 
-### Sub-Agent Executions
+### Sub-Agent Runs
 
 | Field | Type | Description |
 |---|---|---|
-| `sub_agent_executions` | `repeated SubAgentExecution` | Sub-agent invocations during this execution, ordered chronologically. |
+| `sub_agent_runs` | `repeated SubAgentRun` | Sub-agent invocations during this run, ordered chronologically. |
 
-**SubAgentExecution fields:**
+**SubAgentRun fields:**
 
 | Field | Type | Description |
 |---|---|---|
@@ -253,7 +253,7 @@ Defined in `ai/stigmer/agentic/agentexecution/v1/api.proto`. All fields are syst
 
 | Field | Type | Description |
 |---|---|---|
-| `pending_approvals` | `repeated PendingApproval` | All tool calls currently awaiting approval. Populated when `phase == EXECUTION_WAITING_FOR_APPROVAL`. See [hitl-approvals.md](hitl-approvals.md). |
+| `pending_approvals` | `repeated PendingApproval` | All tool calls currently awaiting approval. Populated when `phase == RUN_WAITING_FOR_APPROVAL`. See [hitl-approvals.md](hitl-approvals.md). |
 
 ### Usage Metrics
 
@@ -271,7 +271,7 @@ Defined in `ai/stigmer/agentic/agentexecution/v1/api.proto`. All fields are syst
 | `llm_call_count` | `int32` | Number of LLM API calls made. |
 | `primary_model` | `string` | Primary model used. Example: `"claude-sonnet-4.5"`. |
 
-To calculate total execution cost, sum `status.usage` with `usage` from each entry in `sub_agent_executions`.
+To calculate total run cost, sum `status.usage` with `usage` from each entry in `sub_agent_runs`.
 
 ### Context Info
 
@@ -283,16 +283,16 @@ To calculate total execution cost, sum `status.usage` with `usage` from each ent
 
 | Field | Type | Description |
 |---|---|---|
-| `artifacts` | `repeated ExecutionArtifact` | Files and directories published by the agent during execution. See [attachments-and-artifacts.md](attachments-and-artifacts.md). |
+| `artifacts` | `repeated RunArtifact` | Files and directories published by the agent during the run. See [attachments-and-artifacts.md](attachments-and-artifacts.md). |
 
 ---
 
 ## CLI Commands
 
-### Triggering Executions
+### Triggering Runs
 
 ```bash
-# Run an agent — auto-creates a session and execution
+# Run an agent — auto-creates a session and run
 stigmer run my-agent "Your message here"
 
 # Continue an existing session
@@ -308,54 +308,54 @@ stigmer run my-agent "Process this config" --attach ./config.yaml
 stigmer run my-agent "Automated task" --auto-approve
 ```
 
-### Inspecting Executions
+### Inspecting Runs
 
 ```bash
-# Get a single execution by ID
-stigmer agent execution get aex_abc123
+# Get a single run by ID
+stigmer runs get aex_abc123
 
-# List executions in a session
-stigmer agent execution list --session ses_abc123
+# List runs in a session
+stigmer runs list --session ses_abc123
 
 # Watch real-time streaming updates
-stigmer agent execution watch aex_abc123
+stigmer runs logs aex_abc123 --follow
 ```
 
 ### Lifecycle Control
 
 ```bash
-# Pause a running execution
-stigmer agent execution pause aex_abc123
+# Pause a run in progress
+stigmer runs pause aex_abc123
 
-# Resume a paused execution
-stigmer agent execution resume aex_abc123
+# Resume a paused run
+stigmer runs resume aex_abc123
 
 # Cancel gracefully
-stigmer agent execution cancel aex_abc123 --reason "Task no longer needed"
+stigmer runs cancel aex_abc123 --reason "Task no longer needed"
 
 # Terminate immediately (stuck agents)
-stigmer agent execution terminate aex_abc123 --reason "Not responding to cancel"
+stigmer runs terminate aex_abc123 --reason "Not responding to cancel"
 
-# Recover a failed execution from last checkpoint
-stigmer agent execution recover aex_abc123
+# Recover a failed run from last checkpoint
+stigmer runs recover aex_abc123
 ```
 
 ### HITL Approvals
 
 ```bash
 # Approve a pending tool call
-stigmer agent execution approve aex_abc123 --tool-call-id call_def789
+stigmer runs approve aex_abc123 --tool-call call_def789
 
 # Skip a pending tool call
-stigmer agent execution skip aex_abc123 --tool-call-id call_def789
+stigmer runs skip aex_abc123 --tool-call-id call_def789
 
-# Reject — fails the execution
-stigmer agent execution reject aex_abc123 --tool-call-id call_def789
+# Reject — fails the run
+stigmer runs reject aex_abc123 --tool-call-id call_def789
 ```
 
 ### Artifacts
 
 ```bash
 # Download an artifact
-stigmer agent execution download aex_abc123 --artifact generated-report
+stigmer download run aex_abc123 --artifact generated-report
 ```

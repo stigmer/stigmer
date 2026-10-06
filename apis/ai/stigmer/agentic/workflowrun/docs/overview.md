@@ -1,11 +1,11 @@
-A WorkflowExecution represents a single run of a Workflow, pinned to the version
+A WorkflowRun represents a single run of a Workflow, pinned to the version
 the Workflow had when the run started. It captures the full lifecycle of a workflow run — from trigger through task-by-task
-execution to completion or failure. Create a WorkflowExecution to start a workflow,
+run to completion or failure. Create a WorkflowRun to start a workflow,
 then read its status to track progress.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
-kind: WorkflowExecution
+kind: WorkflowRun
 metadata:
   name: onboarding-20250111-143022
 spec:

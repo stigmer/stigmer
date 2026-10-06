@@ -79,7 +79,7 @@ enum ScheduleRunOrigin {
 enum ScheduleRunOutcome {
   SCHEDULE_RUN_OUTCOME_UNSPECIFIED = 0;
 
-  // An execution was created (or idempotently re-found) and is running.
+  // A run was created (or idempotently re-found) and is running.
   SCHEDULE_RUN_OUTCOME_STARTED = 1;
 
   // A launch gate refused the run deterministically; reason carries the
@@ -130,10 +130,10 @@ message ScheduleTriggerResult {
 //
 // @internal
 // Backed by the fire ledger: every fire leaves a
-// row, INCLUDING fires that created no execution — the ledger is the
+// row, INCLUDING fires that created no run — the ledger is the
 // one place a refused fire's reason survives below the pause threshold.
-// Rows carrying an execution id but no terminal outcome are enriched
-// with the execution's live phase at read time, so outcome never lies
+// Rows carrying a run id but no terminal outcome are enriched
+// with the run's live phase at read time, so outcome never lies
 // while a run is in flight.
 message ScheduleRun {
   // Schedule this fire belongs to.
@@ -156,7 +156,7 @@ message ScheduleRun {
   // healthy outcomes.
   string reason = 6;
 
-  // ID of the created run. Empty when no execution was created
+  // ID of the created run. Empty when no run was created
   // (refused, target missing, skipped).
   string run_id = 7;
 

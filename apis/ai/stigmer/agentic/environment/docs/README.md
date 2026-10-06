@@ -7,14 +7,14 @@ Comprehensive documentation for the `agentic.stigmer.ai/v1` Environment resource
 An Environment is a **named collection of configuration and secrets**. It stores the key-value pairs that agents, MCP servers and workflows need at runtime — credentials, API tokens, feature flags, and other configuration that must not be hard-coded into an Agent definition.
 
 ```
-Environment ──► Schedule / agent_call task / PlatformClient (via environment_refs) ──► execution
+Environment ──► Schedule / agent_call task / PlatformClient (via environment_refs) ──► run
 ```
 
 | Resource | Analogy | Purpose |
 |---|---|---|
 | **Environment** | `.env` file | Stores named key-value pairs, each optionally marked as secret. Encrypted at rest when secret. |
 | **Schedule, agent_call task, PlatformClient** | Container config | References one or more Environments to supply runtime values to the agent runs it starts. |
-| **AgentExecution** | `docker run` | Resolves the referenced Environments at start time, then `runtime_env`, then the personal environment of the person who sent the message for declared keys still missing, and injects the agent's declared keys into the sandbox. |
+| **AgentRun** | `docker run` | Resolves the referenced Environments at start time, then `runtime_env`, then the personal environment of the person who sent the message for declared keys still missing, and injects the agent's declared keys into the sandbox. |
 
 Environments are created independently of agents — the same Environment can be referenced by many schedules, workflow tasks and PlatformClients, enabling shared credential sets across teams and agents. A personal environment holds one person's own keys; a run reads it only for the person who started it (who sent the message, or who started the workflow run), and only for the keys the agent and its MCP servers, or the workflow, declare. A workflow run binds no environments of its own: its declared keys come from `runtime_env`, then from the personal environment of the person who started it, for a workflow of the run's own organization.
 

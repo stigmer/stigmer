@@ -10,7 +10,7 @@
 # deliberately NOT into session.viewer, so schedule observers never gain
 # can_create_run_in / can_edit / can_delete / can_grant_access
 # (injecting a console message into an unattended run is not
-# observability). Executions follow through agent_run's
+# observability). Runs follow through agent_run's
 # `can_view: viewer or can_view from session`.
 #
 # The personal-session invariant is untouched: console sessions never carry
@@ -96,7 +96,7 @@ tuples:
     relation: schedule
     object: session:scheduled-run
 
-  # --- An execution inside the schedule session ---
+  # --- A run inside the schedule session ---
   - user: session:scheduled-run
     relation: session
     object: agent_run:scheduled-run-1
@@ -161,7 +161,7 @@ tests:
           can_edit: true
           can_delete: true
 
-  - name: executions inherit read-only schedule observability
+  - name: runs inherit read-only schedule observability
     check:
       - user: identity_account:bob
         object: agent_run:scheduled-run-1

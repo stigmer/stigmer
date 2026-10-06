@@ -13,12 +13,12 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 // Follows the Command-Query Separation (CQS) pattern.
 //
 // These RPCs are exposed to the SDK and consumed by:
-// - Execution viewer: lists artifacts per execution, provides download links
-// - CLI: `stigmer workflow artifacts <execution-id>`
+// - Run viewer: lists artifacts per run, provides download links
+// - CLI: `stigmer workflow artifacts <run-id>`
 // - React SDK: useArtifact() hook for artifact metadata and download
 //
-// Authorization follows the parent execution's access model:
-// if a user can view an execution, they can view its artifacts.
+// Authorization follows the parent run's access model:
+// if a user can view a run, they can view its artifacts.
 service ArtifactQueryController {
   option (ai.stigmer.commons.apiresource.api_resource_kind) = artifact;
 
@@ -33,7 +33,7 @@ service ArtifactQueryController {
   // Use Cases:
   //
   // 1. Artifact Detail View:
-  //    - User clicks an artifact in the execution viewer
+  //    - User clicks an artifact in the run viewer
   //    - UI calls get() to fetch full metadata
   //    - UI displays content type, size, source task, expiration
   //
@@ -45,7 +45,7 @@ service ArtifactQueryController {
   // Error Cases:
   //
   // - NOT_FOUND: No Artifact exists with the given ID
-  // - PERMISSION_DENIED: User doesn't have view access to the parent execution
+  // - PERMISSION_DENIED: User doesn't have view access to the parent run
   rpc get(ArtifactId) returns (Artifact) {
     option (ai.stigmer.commons.rpc.config).resource_kind = artifact;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
@@ -60,8 +60,8 @@ service ArtifactQueryController {
   //
   // Use Cases:
   //
-  // 1. Execution Viewer Artifact Panel:
-  //    - User views a workflow run in the execution viewer
+  // 1. Run Viewer Artifact Panel:
+  //    - User views a workflow run in the run viewer
   //    - UI calls listByRun() to populate the artifact sidebar
   //    - Each artifact shows display name, content type, size, source task
   //
@@ -72,7 +72,7 @@ service ArtifactQueryController {
   // Error Cases:
   //
   // - INVALID_ARGUMENT: Neither workflow_run_id nor agent_run_id provided
-  // - PERMISSION_DENIED: User doesn't have view access to the parent execution
+  // - PERMISSION_DENIED: User doesn't have view access to the parent run
   rpc listByRun(ListArtifactsByRunRequest) returns (ArtifactList) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
@@ -89,7 +89,7 @@ service ArtifactQueryController {
   // Use Cases:
   //
   // 1. Download Artifact:
-  //    - User clicks "Download" in the execution viewer
+  //    - User clicks "Download" in the run viewer
   //    - UI calls getDownloadUrl() to get a URL
   //    - Browser opens the URL in a new tab or triggers a download
   //
@@ -105,7 +105,7 @@ service ArtifactQueryController {
   // Error Cases:
   //
   // - NOT_FOUND: No Artifact exists with the given ID
-  // - PERMISSION_DENIED: User doesn't have view access to the parent execution
+  // - PERMISSION_DENIED: User doesn't have view access to the parent run
   // - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
   rpc getDownloadUrl(ArtifactId) returns (ArtifactDownloadUrl) {
     option (ai.stigmer.commons.rpc.config).resource_kind = artifact;
@@ -133,7 +133,7 @@ service ArtifactQueryController {
   // Error Cases:
   //
   // - NOT_FOUND: No Artifact exists with the given ID
-  // - PERMISSION_DENIED: User doesn't have view access to the parent execution
+  // - PERMISSION_DENIED: User doesn't have view access to the parent run
   // - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
   rpc getContent(GetArtifactContentRequest) returns (GetArtifactContentResponse) {
     option (ai.stigmer.commons.rpc.config).resource_kind = artifact;

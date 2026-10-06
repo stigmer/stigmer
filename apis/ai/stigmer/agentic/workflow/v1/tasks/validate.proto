@@ -91,7 +91,7 @@ message ValidationRule {
 //
 // While switch_case + raise_error can approximate validation, a dedicated
 // validate task makes the intent explicit, the error messages richer, and
-// the execution trace clearer. In the execution viewer, a validate
+// the execution trace clearer. In the run viewer, a validate
 // task shows exactly what was checked, what passed, and what failed —
 // visible as a distinct verification step.
 //

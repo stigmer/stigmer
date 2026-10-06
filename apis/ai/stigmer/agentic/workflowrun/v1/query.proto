@@ -29,38 +29,38 @@ service WorkflowRunQueryController {
   //
   // Retrieves the complete WorkflowRun resource including:
   // - spec: User inputs (workflow_id, trigger_message, etc.)
-  // - status: Current execution state (phase, tasks, progress_events, output/error)
+  // - status: Current run state (phase, tasks, progress_events, output/error)
   // - metadata: Resource identification (id, name, labels, tags)
   //
   // @internal
   // Authorization:
   // Standard authorization checks that user has "get" permission on the WorkflowRun.
   // Permission is granted if:
-  // - User created the execution (metadata.audit.created_by matches user)
+  // - User created the run (metadata.audit.created_by matches user)
   // - User has organization-level "workflow_run:get" permission
   // - User has explicit permission via IamPolicy
   //
   // Use Cases:
   //
-  // 1. View Execution Details:
-  // - User clicks on an execution in the UI
+  // 1. View Run Details:
+  // - User clicks on a run in the UI
   // - UI calls get() to fetch full details
-  // - UI displays execution status, tasks, progress, output/error
+  // - UI displays run status, tasks, progress, output/error
   //
   // 2. Poll for Completion:
-  // - Client triggers execution via create()
+  // - Client triggers the run via create()
   // - Client periodically calls get() to check if phase is terminal
   // - Client retrieves output when phase == RUN_COMPLETED
   //
-  // 3. Debug Failed Execution:
-  // - User sees execution failed
+  // 3. Debug Failed Run:
+  // - User sees run failed
   // - User calls get() to inspect status.error and status.tasks
   // - User checks status.tasks[] for task-level execution details
   //
-  // 4. Retry Failed Execution:
-  // - User calls get() to retrieve failed execution's spec
-  // - User creates new execution with same spec values
-  // - New execution retries with identical inputs
+  // 4. Retry Failed Run:
+  // - User calls get() to retrieve failed run's spec
+  // - User creates new run with same spec values
+  // - New run retries with identical inputs
   //
   // Error Cases:
   //
@@ -111,19 +111,19 @@ service WorkflowRunQueryController {
   //
   // @internal
   // Authorization:
-  // Custom authorization filters results to only include executions the user
-  // can access: the executions in their organization the parent workflow's
-  // execution visibility and their own runs admit.
+  // Custom authorization filters results to only include runs the user
+  // can access: the runs in their organization the parent workflow's
+  // run visibility and their own runs admit.
   //
   // Pagination:
-  // - page_size: zero returns every execution; a positive size at most that
+  // - page_size: zero returns every run; a positive size at most that
   //   many, and at most 100
   // - page_token: the previous response's next_page_token, the other
   //   fields unchanged
   // - next_page_token: set while more may follow; a page may be short
   //
   // Filtering:
-  // - phase: Filter by execution phase (PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED)
+  // - phase: Filter by run phase (PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED)
   // - tags: Filter by resource tags (AND logic - must match all tags)
   //
   // Sorting:
@@ -132,23 +132,23 @@ service WorkflowRunQueryController {
   //
   // Use Cases:
   //
-  // 1. Execution History Dashboard:
-  // - UI displays list of all recent executions
+  // 1. Run History Dashboard:
+  // - UI displays list of all recent runs
   // - User can filter by status (show only failed, show only in-progress)
-  // - User can page through historical executions
+  // - User can page through historical runs
   //
-  // 2. Monitor Active Executions:
-  // - UI calls list(phase=RUN_IN_PROGRESS) to show running executions
-  // - UI displays progress for each execution (completed_tasks / total_tasks)
+  // 2. Monitor Active Runs:
+  // - UI calls list(phase=RUN_IN_PROGRESS) to show runs in progress
+  // - UI displays progress for each run (completed_tasks / total_tasks)
   // - UI refreshes list periodically to show updates
   //
   // 3. Audit and Compliance:
-  // - Admin lists all executions for a time period
+  // - Admin lists all runs for a time period
   // - Admin filters by tags (environment, team, project)
-  // - Admin exports execution history for audit logs
+  // - Admin exports run history for audit logs
   //
   // 4. Debug and Troubleshooting:
-  // - Developer lists failed executions (phase=RUN_FAILED)
+  // - Developer lists failed runs (phase=RUN_FAILED)
   // - Developer inspects error messages and retry patterns
   // - Developer identifies systematic failures
   //
@@ -158,7 +158,7 @@ service WorkflowRunQueryController {
   //   - page_size is negative
   //   - page_token is malformed, or was issued for a different request
   //
-  // Example Request (Filter for failed executions):
+  // Example Request (Filter for failed runs):
   // {
   //   "page_size": 20,
   //   "phase": 4,  // RUN_FAILED
@@ -183,19 +183,19 @@ service WorkflowRunQueryController {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
-  // List all executions for a specific Workflow.
+  // List all runs for a specific Workflow.
   //
-  // Returns executions filtered by a specific Workflow ID.
-  // This is useful for viewing execution history of a particular workflow.
+  // Returns runs filtered by a specific Workflow ID.
+  // This is useful for viewing the run history of a particular workflow.
   //
   // @internal
   // Authorization:
   // Custom authorization verifies:
   // 1. User has access to the referenced Workflow
-  // 2. Results are filtered to only include executions user can access
+  // 2. Results are filtered to only include runs user can access
   //
   // Pagination:
-  // - page_size: zero returns every execution; a positive size at most that
+  // - page_size: zero returns every run; a positive size at most that
   //   many, and at most 100
   // - page_token: the previous response's next_page_token, the other
   //   fields unchanged
@@ -208,23 +208,23 @@ service WorkflowRunQueryController {
   //
   // 1. Workflow Run History:
   // - User views a Workflow in the UI
-  // - UI calls listByWorkflow(workflow_id) to show all executions
-  // - UI displays timeline of executions with success/failure indicators
+  // - UI calls listByWorkflow(workflow_id) to show all runs
+  // - UI displays timeline of runs with success/failure indicators
   //
   // 2. Performance Analysis:
   // - Developer wants to analyze workflow performance over time
-  // - Developer calls listByWorkflow() to get all executions
+  // - Developer calls listByWorkflow() to get all runs
   // - Developer calculates average duration, success rate, failure patterns
   //
   // 3. Retry Analysis:
-  // - User sees failed execution
-  // - User calls listByWorkflow() to see if other executions also failed
+  // - User sees failed run
+  // - User calls listByWorkflow() to see if other runs also failed
   // - User determines if failure is systematic or one-off
   //
   // 4. Workflow Testing:
-  // - Developer tests a workflow with multiple executions
+  // - Developer tests a workflow with multiple runs
   // - Developer calls listByWorkflow() to see all test runs
-  // - Developer compares outputs across executions
+  // - Developer compares outputs across runs
   //
   // Error Cases:
   //
@@ -267,7 +267,7 @@ service WorkflowRunQueryController {
   //
   // Opens a bidirectional stream that pushes WorkflowRun updates as they occur.
   // Client receives updates when:
-  // - Execution phase changes (PENDING → IN_PROGRESS → COMPLETED)
+  // - Run phase changes (PENDING → IN_PROGRESS → COMPLETED)
   // - Tasks start or complete
   // - Progress events are appended
   // - Output or error fields are set
@@ -281,37 +281,37 @@ service WorkflowRunQueryController {
   // 1. Client sends SubscribeWorkflowRunRequest with run_id
   // 2. Server validates authorization
   // 3. Server sends initial WorkflowRun (current state)
-  // 4. Server streams updates as execution progresses
-  // 5. Server closes stream when execution reaches terminal state (COMPLETED/FAILED/CANCELLED)
+  // 4. Server streams updates as run progresses
+  // 5. Server closes stream when the run reaches terminal state (COMPLETED/FAILED/CANCELLED)
   // 6. Client can close stream early (e.g., user navigates away from page)
   //
   // Update Frequency:
-  // - Updates are sent immediately when execution state changes
+  // - Updates are sent immediately when run state changes
   // - No polling necessary (server pushes updates)
   // - Typical update latency: < 100ms
   //
   // Use Cases:
   //
   // 1. Real-Time Progress Monitoring:
-  // - User triggers an execution from UI
-  // - UI subscribes to execution updates
+  // - User triggers a run from UI
+  // - UI subscribes to run updates
   // - UI displays live progress: tasks completing, progress bar updating
-  // - UI shows final output when execution completes
+  // - UI shows final output when the run completes
   //
   // 2. Long-Running Workflow Monitoring:
   // - Workflow takes hours to complete (e.g., data processing)
   // - UI subscribes and shows live progress
-  // - User can leave page, come back, and reconnect to same execution
+  // - User can leave page, come back, and reconnect to same run
   //
   // 3. Debugging with Live Updates:
-  // - Developer triggers test execution
-  // - Developer subscribes to watch execution progress
+  // - Developer triggers test run
+  // - Developer subscribes to watch run progress
   // - Developer sees exactly which task is running and when failures occur
   //
   // 4. Multi-User Collaboration:
-  // - Multiple users watching same execution
+  // - Multiple users watching same run
   // - All users receive same updates simultaneously
-  // - All users see consistent view of execution state
+  // - All users see consistent view of run state
   //
   // Stream Message Format:
   // Each message is a complete WorkflowRun resource with updated status.
@@ -347,7 +347,7 @@ service WorkflowRunQueryController {
   //   }
   // }
   //
-  // Message 2 (execution started):
+  // Message 2 (run started):
   // {
   //   "metadata": { "id": "wfx_abc123xyz456" },
   //   "status": {
@@ -368,7 +368,7 @@ service WorkflowRunQueryController {
   //   }
   // }
   //
-  // Message 4 (execution completed):
+  // Message 4 (run completed):
   // {
   //   "metadata": { "id": "wfx_abc123xyz456" },
   //   "status": {
@@ -388,7 +388,7 @@ service WorkflowRunQueryController {
 
   // Fetch the paginated event log for a workflow run.
   //
-  // Returns execution events ordered by sequence_number ascending, with
+  // Returns run events ordered by sequence_number ascending, with
   // cursor-based pagination and optional filtering by event type or task name.
   //
   // @internal
@@ -401,8 +401,8 @@ service WorkflowRunQueryController {
   //
   // Use Cases:
   //
-  // 1. Execution Viewer Timeline:
-  //    - Load full event history for a completed execution
+  // 1. Run Viewer Timeline:
+  //    - Load full event history for a completed run
   //    - Render timeline with task transitions, retries, approvals, cost
   //
   // 2. Task Drill-Down:
@@ -429,10 +429,10 @@ service WorkflowRunQueryController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get workflow run event log";
   }
 
-  // Subscribe to real-time execution events (incremental event stream).
+  // Subscribe to real-time run events (incremental event stream).
   //
   // Opens a server-side streaming RPC that pushes individual
-  // WorkflowRunEvent messages as they occur during run.
+  // WorkflowRunEvent messages as they occur during the run.
   // Unlike subscribe() which streams full WorkflowRun snapshots,
   // this streams lightweight incremental events for the timeline view.
   //
@@ -446,7 +446,7 @@ service WorkflowRunQueryController {
   // 2. Server validates authorization
   // 3. If after_sequence > 0: Server replays missed events from persistence
   // 4. Server streams new events in real-time as the runner emits them
-  // 5. Server closes stream when execution reaches a terminal phase
+  // 5. Server closes stream when the run reaches a terminal phase
   //    (COMPLETED, FAILED, CANCELLED, TERMINATED)
   // 6. Client can close stream early
   //
@@ -458,13 +458,13 @@ service WorkflowRunQueryController {
   //
   // Complementary Streams:
   // - subscribe(): Full snapshots for current-state views (progress bars, dashboards)
-  // - subscribeEvents(): Incremental events for timeline views (execution viewer)
+  // - subscribeEvents(): Incremental events for timeline views (run viewer)
   // Both streams can be used simultaneously for different UI concerns.
   //
   // Use Cases:
   //
-  // 1. Live Execution Timeline:
-  //    - User watches a running execution in the execution viewer
+  // 1. Live Run Timeline:
+  //    - User watches a run in progress in the run viewer
   //    - Events stream in real-time, building the timeline as tasks progress
   //    - Each event adds a row: "task X started", "task X completed (2.3s, $0.05)"
   //
@@ -489,7 +489,7 @@ service WorkflowRunQueryController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to subscribe to workflow run events";
   }
 
-  // Get aggregated execution statistics for an organization's workflows.
+  // Get aggregated run statistics for an organization's workflows.
   //
   // Returns counts by phase, total cost, average duration, top failing
   // workflows, and per-workflow cost breakdown — scoped to a configurable
@@ -519,7 +519,7 @@ service WorkflowRunQueryController {
 
   // List workflow runs with pending human_input tasks awaiting reviewer decisions.
   //
-  // Returns a paginated list of executions where at least one human_input
+  // Returns a paginated list of runs where at least one human_input
   // task is actively waiting for a response. Each entry includes the
   // execution context, task details, requester, and timeout information.
   //
@@ -533,11 +533,11 @@ service WorkflowRunQueryController {
   // 1. Pending Approvals Dashboard Widget:
   //    - Display a list of items requiring human attention
   //    - Show time waiting and timeout countdown
-  //    - Link to execution viewer for review action
+  //    - Link to run viewer for review action
   //
   // 2. Approval Queue:
   //    - Reviewers see all pending approvals in one view
-  //    - The newest execution's approvals first, paged by page_token
+  //    - The newest run's approvals first, paged by page_token
   rpc listPendingApprovals(ListPendingApprovalsRequest) returns (PendingApprovalsList) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }

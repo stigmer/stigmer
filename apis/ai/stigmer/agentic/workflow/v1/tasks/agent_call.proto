@@ -36,7 +36,7 @@ import "google/protobuf/struct.proto";
 //                sources only (no client is connected to serve a
 //                local_path when a workflow task fires).
 // - environment_refs ↔ environment_refs — same shared type; resolved
-//                server-side at execution create, never carried in the
+//                server-side at run create, never carried in the
 //                create request (the schedule/channel/share posture).
 //
 // Surface-specific fields with their reasons:
@@ -61,7 +61,7 @@ import "google/protobuf/struct.proto";
 // runner resolves it in two phases, jq expressions on the workflow side
 // and ${.secrets.*} / ${.env_vars.*} placeholders in the CallAgent
 // activity, then reads "org/slug" in that organization and a bare slug
-// in the organization the execution runs in.
+// in the organization the run belongs to.
 //
 // YAML Example (without structured output):
 //   - analyze:
@@ -123,7 +123,7 @@ message AgentCallTaskConfig {
   // authoring surface is YAML written by hand, and "org/slug" is its
   // idiom.
   //
-  // A bare slug is relative: the runner resolves it in the execution's
+  // A bare slug is relative: the runner resolves it in the run's
   // organization (`__stigmer_org_id`), which is not the workflow's when a
   // person runs the workflow from another organization by id. The
   // server's reference rule judges a bare slug in the workflow's own
@@ -224,7 +224,7 @@ message AgentCallTaskConfig {
   //
   // @internal
   // The AgentShare/AgentChannel/Schedule environment_refs lineage.
-  // Never carried in the execution create request and never emitted
+  // Never carried in the run create request and never emitted
   // into execution YAML: CreateExecutionContextStep resolves them from
   // the Workflow row, gated on the trusted runner caller identity and
   // keyed by parent_workflow_id + task label — prepended at LOWEST
@@ -259,7 +259,7 @@ message AgentCallTaskConfig {
 //   {
 //     "structured": { <validated JSON matching the schema> },
 //     "final_text": "<the agent's human-readable response>",
-//     "agent_run_id": "<execution ID for drill-down>",
+//     "agent_run_id": "<run ID for drill-down>",
 //     "usage_summary": {
 //       "total_tokens": 4523,
 //       "estimated_cost_usd": 0.045,

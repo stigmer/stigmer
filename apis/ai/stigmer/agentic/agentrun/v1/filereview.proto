@@ -49,7 +49,7 @@ import "buf/validate/validate.proto";
 //
 // Server-authored: the runner never sends this; it is derived server-side in
 // both editions through one projection seam. status and decisions are DERIVED
-// folds over the ledger, not stored-mutable state. A terminal execution
+// folds over the ledger, not stored-mutable state. A terminal run
 // projects no actionable review (the workflow that would reconcile is gone),
 // mirroring the phase-aware pending_approvals rule.
 message FileChangeSet {
@@ -201,7 +201,7 @@ message GitTreeRef {
   string tree_oid = 1;
 
   // The ref the snapshot is pinned under, e.g.
-  // "refs/stigmer/{execution}/{baseline|candidate|approved}". Keeps the
+  // "refs/stigmer/{run}/{baseline|candidate|approved}". Keeps the
   // snapshot reachable (un-GC'd) without a commit on any user branch.
   string ref = 2;
 }

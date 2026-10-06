@@ -1,22 +1,22 @@
-# Execution Lifecycle
+# Run Lifecycle
 
-The phase state machine for AgentExecution — all phases, transitions, and lifecycle control operations.
+The phase state machine for AgentRun — all phases, transitions, and lifecycle control operations.
 
 ---
 
 ## Phase State Machine
 
-Every AgentExecution moves through a defined set of phases. The phase is stored in `status.phase` and updated in real time.
+Every AgentRun moves through a defined set of phases. The phase is stored in `status.phase` and updated in real time.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                          EXECUTION_PENDING                                    │
+│                          RUN_PENDING                                          │
 │              (created, queued, waiting for a worker to pick up)               │
 └─────────────────────────────────┬────────────────────────────────────────────┘
                                    │ worker picks up
                                    ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                         EXECUTION_IN_PROGRESS                  ◄─────────────┼──────────────────┐
+│                         RUN_IN_PROGRESS                        ◄─────────────┼──────────────────┐
 │                    (agent is actively processing)                             │                  │
 └──────────┬─────────────────┬────────────────┬──────────────────┬─────────────┘                  │
            │                 │                │                  │                                 │
@@ -24,7 +24,7 @@ Every AgentExecution moves through a defined set of phases. The phase is stored 
            │                 │        gate    │                  │                      or skip()  │
            ▼                 ▼        hit     ▼                  ▼                                 │
 ┌──────────────────┐  ┌──────────────┐  ┌──────────────────────────────┐                         │
-│ EXECUTION_PAUSED │  │EXECUTION_    │  │ EXECUTION_WAITING_FOR_       │─────────────────────────┘
+│ RUN_PAUSED       │  │RUN_          │  │ RUN_WAITING_FOR_             │─────────────────────────┘
 │ (checkpoint      │  │CANCELLED     │  │ APPROVAL                     │
 │  saved, resumable│  │(graceful,    │  │ (paused at HITL gate;        │
 │  via resume())   │  │ terminal)    │  │  non-terminal)               │
@@ -32,7 +32,7 @@ Every AgentExecution moves through a defined set of phases. The phase is stored 
            │                                          │ reject()
     resume()│                                         ▼
            │                             ┌────────────────────────────────┐
-           └──────────────────────────►  │       EXECUTION_FAILED         │
+           └──────────────────────────►  │       RUN_FAILED               │
                     (back to IN_PROGRESS) │  (error, rejection, or crash)  │
                                           └───────────────┬────────────────┘
                                                           │ recover()
@@ -41,12 +41,12 @@ Every AgentExecution moves through a defined set of phases. The phase is stored 
                                               from last checkpoint)
 
           ┌────────────────────────────────────────────────────────────────┐
-          │                    EXECUTION_TERMINATED                         │
+          │                    RUN_TERMINATED                               │
           │  (force-killed, no signal, no checkpoint — unresponsive agents) │
           └────────────────────────────────────────────────────────────────┘
 
           ┌────────────────────────────────────────────────────────────────┐
-          │                    EXECUTION_COMPLETED                          │
+          │                    RUN_COMPLETED                                │
           │            (agent finished successfully, terminal)              │
           └────────────────────────────────────────────────────────────────┘
 ```
@@ -57,49 +57,49 @@ Every AgentExecution moves through a defined set of phases. The phase is stored 
 
 | Phase | Enum Value | Terminal? | Description |
 |---|---|---|---|
-| `EXECUTION_PENDING` | 1 | No | Created, waiting for a worker to start processing. |
-| `EXECUTION_IN_PROGRESS` | 2 | No | Agent is actively processing the message. |
-| `EXECUTION_COMPLETED` | 3 | **Yes** | Agent finished successfully. |
-| `EXECUTION_FAILED` | 4 | **Yes** | Agent encountered an error. Can be recovered (unless terminated). |
-| `EXECUTION_CANCELLED` | 5 | **Yes** | Stopped gracefully by user via `cancel`. Checkpoint preserved. Cannot be recovered. |
-| `EXECUTION_WAITING_FOR_APPROVAL` | 6 | No | Paused at a HITL gate. Waiting for human approval decision. |
-| `EXECUTION_PAUSED` | 7 | No | Temporarily stopped via `pause`. Checkpoint saved. Can be resumed. |
-| `EXECUTION_TERMINATED` | 8 | **Yes** | Force-killed via `terminate`. No checkpoint. Cannot be recovered. |
+| `RUN_PENDING` | 1 | No | Created, waiting for a worker to start processing. |
+| `RUN_IN_PROGRESS` | 2 | No | Agent is actively processing the message. |
+| `RUN_COMPLETED` | 3 | **Yes** | Agent finished successfully. |
+| `RUN_FAILED` | 4 | **Yes** | Agent encountered an error. Can be recovered (unless terminated). |
+| `RUN_CANCELLED` | 5 | **Yes** | Stopped gracefully by user via `cancel`. Checkpoint preserved. Cannot be recovered. |
+| `RUN_WAITING_FOR_APPROVAL` | 6 | No | Paused at a HITL gate. Waiting for human approval decision. |
+| `RUN_PAUSED` | 7 | No | Temporarily stopped via `pause`. Checkpoint saved. Can be resumed. |
+| `RUN_TERMINATED` | 8 | **Yes** | Force-killed via `terminate`. No checkpoint. Cannot be recovered. |
 
 **Terminal states** — once reached, the phase does not change again:
 - `COMPLETED`, `FAILED`, `CANCELLED`, `TERMINATED`
 
-**Non-terminal states** — execution can continue from these:
+**Non-terminal states** — run can continue from these:
 - `PENDING`, `IN_PROGRESS`, `WAITING_FOR_APPROVAL`, `PAUSED`
 
 ---
 
 ## Lifecycle Control Operations
 
-Stigmer exposes five control operations for managing running executions. Each operation is idempotent — calling it on an execution already in the target state succeeds as a no-op.
+Stigmer exposes five control operations for managing runs in progress. Each operation is idempotent — calling it on a run already in the target state succeeds as a no-op.
 
 ### `cancel` — Graceful Stop
 
-Sends a cancellation signal to the running Temporal workflow. The agent activity receives the signal, saves its LangGraph checkpoint, and transitions to `EXECUTION_CANCELLED`.
+Sends a cancellation signal to the running Temporal workflow. The agent activity receives the signal, saves its LangGraph checkpoint, and transitions to `RUN_CANCELLED`.
 
 ```bash
-stigmer agent execution cancel aex_abc123 --reason "Task no longer needed"
+stigmer runs cancel aex_abc123 --reason "Task no longer needed"
 ```
 
 **Preconditions:**
-- Execution must be in `EXECUTION_PENDING` or `EXECUTION_IN_PROGRESS`
-- Cannot cancel terminal executions
+- Run must be in `RUN_PENDING` or `RUN_IN_PROGRESS`
+- Cannot cancel terminal runs
 
 **What happens:**
 1. Temporal `CancelWorkflow` API is called
 2. The Python activity receives the cancellation context
 3. LangGraph checkpoint is saved with current `thread_id`
-4. `status.phase` → `EXECUTION_CANCELLED`
+4. `status.phase` → `RUN_CANCELLED`
 5. `status.completed_at` is set
 
 **After cancellation:**
-- Checkpoint is preserved but the execution is terminal — it cannot be recovered
-- If you need to re-run the work, create a new AgentExecution
+- Checkpoint is preserved but the run is terminal — it cannot be recovered
+- If you need to re-run the work, create a new AgentRun
 
 ---
 
@@ -108,23 +108,23 @@ stigmer agent execution cancel aex_abc123 --reason "Task no longer needed"
 Force-kills the Temporal workflow immediately via `TerminateWorkflow`. The agent activity receives no signal and cannot clean up. Use this only for stuck or unresponsive agents.
 
 ```bash
-stigmer agent execution terminate aex_abc123 --reason "Stuck for 30 min, not responding to cancel"
+stigmer runs terminate aex_abc123 --reason "Stuck for 30 min, not responding to cancel"
 ```
 
 **Preconditions:**
-- Execution must be in `EXECUTION_PENDING` or `EXECUTION_IN_PROGRESS`
-- Cannot terminate terminal executions
+- Run must be in `RUN_PENDING` or `RUN_IN_PROGRESS`
+- Cannot terminate terminal runs
 
 **What happens:**
 1. Temporal `TerminateWorkflow` API is called (no signal to agent)
 2. All in-progress tool calls are stopped abruptly
 3. LangGraph checkpoint may be incomplete
-4. `status.phase` → `EXECUTION_TERMINATED`
+4. `status.phase` → `RUN_TERMINATED`
 5. `status.completed_at` is set
 
 **After termination:**
 - Checkpoint is potentially incomplete — recovery is not possible
-- `TERMINATED` executions cannot be recovered
+- `TERMINATED` runs cannot be recovered
 
 ---
 
@@ -151,20 +151,20 @@ stigmer agent execution terminate aex_abc123 --reason "Stuck for 30 min, not res
 Sends a "pause" signal to the Temporal workflow. The workflow gracefully cancels the running activity; LangGraph auto-saves the checkpoint on cancellation. The workflow then waits for a "resume" signal — no compute resources are consumed while paused.
 
 ```bash
-stigmer agent execution pause aex_abc123 --reason "Reviewing progress before continuing"
+stigmer runs pause aex_abc123 --reason "Reviewing progress before continuing"
 ```
 
 **Preconditions:**
-- Execution must be in `EXECUTION_PENDING` or `EXECUTION_IN_PROGRESS`
-- Cannot pause terminal or already-paused executions
+- Run must be in `RUN_PENDING` or `RUN_IN_PROGRESS`
+- Cannot pause terminal or already-paused runs
 
 **What happens:**
 1. "pause" signal is sent to the Temporal workflow
 2. Running activity is cancelled gracefully
 3. LangGraph saves checkpoint using `thread_id`
-4. `status.phase` → `EXECUTION_PAUSED`
+4. `status.phase` → `RUN_PAUSED`
 5. Workflow enters a wait state (no resources consumed)
-6. `status.completed_at` is **not** set (execution is not finished)
+6. `status.completed_at` is **not** set (run is not finished)
 
 ---
 
@@ -173,17 +173,17 @@ stigmer agent execution pause aex_abc123 --reason "Reviewing progress before con
 Sends a "resume" signal to the paused Temporal workflow. The workflow re-invokes the activity with the same execution context; LangGraph loads the checkpoint automatically and continues from the exact pause point.
 
 ```bash
-stigmer agent execution resume aex_abc123
+stigmer runs resume aex_abc123
 ```
 
 **Preconditions:**
-- Execution must be in `EXECUTION_PAUSED`
+- Run must be in `RUN_PAUSED`
 
 **What happens:**
 1. "resume" signal is sent to the waiting workflow
 2. Activity is re-invoked with the same `thread_id`
 3. LangGraph loads the checkpoint automatically
-4. `status.phase` → `EXECUTION_IN_PROGRESS`
+4. `status.phase` → `RUN_IN_PROGRESS`
 5. Agent continues from exactly where it was paused
 
 ---
@@ -202,22 +202,22 @@ stigmer agent execution resume aex_abc123
 
 ### `recover` — Resume from Failure
 
-Uses Temporal's `ResetWorkflow` to resume a `FAILED` execution from its last checkpoint. Completed work is preserved — successful tool calls are not re-executed.
+Uses Temporal's `ResetWorkflow` to resume a `FAILED` run from its last checkpoint. Completed work is preserved — successful tool calls are not re-executed.
 
 ```bash
-stigmer agent execution recover aex_abc123
+stigmer runs recover aex_abc123
 ```
 
 **Preconditions:**
-- Execution must be in `EXECUTION_FAILED`
-- `TERMINATED` executions cannot be recovered (incomplete checkpoint)
-- `CANCELLED` executions cannot be recovered (intentional user action)
+- Run must be in `RUN_FAILED`
+- `TERMINATED` runs cannot be recovered (incomplete checkpoint)
+- `CANCELLED` runs cannot be recovered (intentional user action)
 
 **What happens:**
 1. Temporal `ResetWorkflow` is called from the last successful task
 2. The activity is re-invoked with the same `thread_id`
 3. LangGraph loads the checkpoint automatically
-4. `status.phase` → `EXECUTION_IN_PROGRESS`
+4. `status.phase` → `RUN_IN_PROGRESS`
 5. `status.completed_at` is cleared
 6. `status.error` is cleared
 7. Agent continues from where it failed — completed tool calls not re-executed
@@ -258,9 +258,9 @@ TOOL_CALL_PENDING → TOOL_CALL_WAITING_APPROVAL → TOOL_CALL_RUNNING → TOOL_
 
 ## Observability
 
-The execution phase is reflected in:
+The run phase is reflected in:
 
 - `status.phase` on every `get` or `subscribe` response
-- Real-time streaming via the `subscribe` RPC — clients receive updated `AgentExecution` messages as the phase changes
+- Real-time streaming via the `subscribe` RPC — clients receive updated `AgentRun` messages as the phase changes
 - `status.started_at` and `status.completed_at` timestamps for duration measurement
 - `status.error` populated on `FAILED` and `TERMINATED` with the failure reason

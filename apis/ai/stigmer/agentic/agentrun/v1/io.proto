@@ -20,30 +20,30 @@ message SessionId {
 
 // AgentRunList contains one page of agent runs, newest first.
 message AgentRunList {
-  // Not computed for this list: 1 when the response holds every execution,
+  // Not computed for this list: 1 when the response holds every run,
   // 0 when next_page_token is set. Follow next_page_token instead.
   int32 total_pages = 1;
 
   // Agent runs in this page, newest first.
   repeated AgentRun entries = 2;
 
-  // Set when more executions may follow: pass it as page_token to
-  // continue. A page may hold fewer executions than page_size, even none,
+  // Set when more runs may follow: pass it as page_token to
+  // continue. A page may hold fewer runs than page_size, even none,
   // and still carry a token. Empty when the list is complete, and always
-  // empty from listBySession, which returns a session's executions whole.
+  // empty from listBySession, which returns a session's runs whole.
   string next_page_token = 3;
 }
 
 // ListAgentRunsRequest specifies parameters for listing runs.
 message ListAgentRunsRequest {
-  // The most executions to return, at most 100; zero returns them all.
+  // The most runs to return, at most 100; zero returns them all.
   int32 page_size = 1 [(buf.validate.field).int32.gte = 0];
 
   // The previous response's next_page_token, to continue that list; every
   // other field must equal that request's, or the call is refused.
   string page_token = 2;
 
-  // Filter by execution phase (optional).
+  // Filter by run phase (optional).
   RunPhase phase = 3;
 
   // Filter by tags (optional).
@@ -51,7 +51,7 @@ message ListAgentRunsRequest {
 
   // Organization slug to scope the results to.
   //
-  // When set, only executions whose metadata.org matches are returned — the
+  // When set, only runs whose metadata.org matches are returned — the
   // org-context view a console tab needs. When empty, results are bounded
   // only by the caller's view permissions, which for a member of several
   // organizations spans all of them.
@@ -63,23 +63,23 @@ message ListAgentRunsRequest {
   string org = 5;
 }
 
-// ListAgentRunsBySessionRequest lists all executions in a session.
+// ListAgentRunsBySessionRequest lists all runs in a session.
 //
-// A session's executions are returned whole, newest first: a conversation
+// A session's runs are returned whole, newest first: a conversation
 // is read as one, and every consumer of this list needs all of it.
 message ListAgentRunsBySessionRequest {
   // Session ID to filter by.
   string session_id = 1 [(buf.validate.field).required = true];
 
-  // Not read: a session's executions are returned whole.
+  // Not read: a session's runs are returned whole.
   int32 page_size = 2 [deprecated = true];
 
-  // Not read: a session's executions are returned whole.
+  // Not read: a session's runs are returned whole.
   string page_token = 3 [deprecated = true];
 }
 
 // Input message for updateStatus RPC.
-// Contains only the execution ID and the status fields to be updated.
+// Contains only the run ID and the status fields to be updated.
 // This avoids validation errors on incomplete metadata/spec fields and makes the API contract clearer.
 message AgentRunUpdateStatusInput {
   // ID of the agent run to update (required).
@@ -87,7 +87,7 @@ message AgentRunUpdateStatusInput {
   string run_id = 1 [(buf.validate.field).string.min_len = 1];
 
   // Status fields to update.
-  // The handler will merge these status fields with the existing execution's status.
+  // The handler will merge these status fields with the existing run's status.
   // Only the fields present in this status object will be updated.
   AgentRunStatus status = 2 [(buf.validate.field).required = true];
 }
@@ -97,7 +97,7 @@ message AgentRunUpdateStatusInput {
 // to avoid serializing the full resource on every progressive update
 // (~every 2-3 seconds during streaming).
 //
-// The response carries an optional execution control signal from the
+// The response carries an optional run control signal from the
 // platform back to the runner. The signal is generic — the runner acts
 // on STOP / WARNING without knowing the source (billing, admin, budget).
 message UpdateStatusResponse {
@@ -112,7 +112,7 @@ message UpdateStatusResponse {
 // Input for submitting an approval decision.
 //
 // All required fields must be provided. The handler validates:
-// 1. The execution exists and is in RUN_WAITING_FOR_APPROVAL phase
+// 1. The run exists and is in RUN_WAITING_FOR_APPROVAL phase
 // 2. The tool_call_id matches status.pending_approval.tool_call_id
 // 3. The action is a valid non-UNSPECIFIED enum value
 //
@@ -236,24 +236,24 @@ message SubmitFileDecisionInput {
 //
 // Cancellation sends a signal to the agent run, allowing it to clean up
 // gracefully. The agent can handle the cancellation signal (e.g., save checkpoint,
-// report status) before the execution transitions to CANCELLED phase.
+// report status) before the run transitions to CANCELLED phase.
 //
 // ## Behavior
 //
 // - Sends cancellation signal to Temporal via CancelWorkflow API
 // - Agent activity receives cancellation and saves checkpoint
-// - Execution transitions to RUN_CANCELLED phase after cleanup
+// - Run transitions to RUN_CANCELLED phase after cleanup
 // - LangGraph checkpoint is preserved for potential future recovery
 //
 // ## Preconditions
 //
-// - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
+// - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
 // - User must have can_edit permission on the agent run
 //
 // ## Idempotency
 //
-// If the execution is already cancelled (phase == RUN_CANCELLED),
-// the call succeeds as a no-op and returns the current execution state.
+// If the run is already cancelled (phase == RUN_CANCELLED),
+// the call succeeds as a no-op and returns the current run state.
 //
 // ## Use Cases
 //
@@ -285,7 +285,7 @@ message CancelAgentRunInput {
   // Examples:
   // - "User requested cancellation"
   // - "Incorrect input provided to agent"
-  // - "Superseded by newer execution"
+  // - "Superseded by newer run"
   // - "Pre-maintenance shutdown"
   string reason = 2;
 }
@@ -300,19 +300,19 @@ message CancelAgentRunInput {
 //
 // - Force-kills workflow via Temporal TerminateWorkflow API
 // - Agent activity does NOT receive any signal (cannot clean up)
-// - Execution transitions to RUN_TERMINATED phase immediately
+// - Run transitions to RUN_TERMINATED phase immediately
 // - All in-progress tool calls are stopped abruptly
 // - LangGraph checkpoint may be incomplete
 //
 // ## Preconditions
 //
-// - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
+// - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
 // - User must have can_edit permission on the agent run
 //
 // ## Idempotency
 //
-// If the execution is already terminated (phase == RUN_TERMINATED),
-// the call succeeds as a no-op and returns the current execution state.
+// If the run is already terminated (phase == RUN_TERMINATED),
+// the call succeeds as a no-op and returns the current run state.
 //
 // ## Terminated vs Cancelled
 //
@@ -370,19 +370,19 @@ message TerminateAgentRunInput {
 // - The LangGraph checkpoint is loaded using the preserved thread_id, so
 //   completed work carries over from the session's harness state
 // - Completed tool calls are NOT re-executed
-// - Execution transitions from FAILED back to IN_PROGRESS phase
+// - Run transitions from FAILED back to IN_PROGRESS phase
 // - Agent retries from where it failed
 //
 // ## Preconditions
 //
-// - Execution must be in RUN_FAILED phase
-// - TERMINATED executions cannot be recovered (incomplete checkpoint)
-// - CANCELLED executions cannot be recovered (intentional user action)
+// - Run must be in RUN_FAILED phase
+// - TERMINATED runs cannot be recovered (incomplete checkpoint)
+// - CANCELLED runs cannot be recovered (intentional user action)
 // - User must have can_edit permission on the agent run
 //
 // ## Idempotency
 //
-// If recovery is already in progress (execution moved to IN_PROGRESS after
+// If recovery is already in progress (run moved to IN_PROGRESS after
 // a previous recover call), the call succeeds as a no-op and returns current state.
 //
 // ## Use Cases
@@ -400,7 +400,7 @@ message TerminateAgentRunInput {
 message RecoverAgentRunInput {
   // Agent run ID to recover.
   //
-  // Must be in FAILED phase. TERMINATED and CANCELLED executions
+  // Must be in FAILED phase. TERMINATED and CANCELLED runs
   // cannot be recovered.
   //
   // Format: "aex_{ulid}" (auto-generated unique identifier)
@@ -412,7 +412,7 @@ message RecoverAgentRunInput {
 
 // PauseAgentRunInput requests temporarily pausing an agent run.
 //
-// Pauses the agent at its current checkpoint. Unlike cancel, the execution
+// Pauses the agent at its current checkpoint. Unlike cancel, the run
 // is NOT terminal and can be resumed later from where it left off.
 //
 // ## Behavior
@@ -421,7 +421,7 @@ message RecoverAgentRunInput {
 // 1. A "pause" signal is sent to the Temporal workflow
 // 2. Running activity is gracefully cancelled (checkpoint saved)
 // 3. LangGraph auto-saves checkpoint on cancellation
-// 4. Execution transitions to RUN_PAUSED phase
+// 4. Run transitions to RUN_PAUSED phase
 // 5. Workflow waits for resume signal (no resources consumed)
 //
 // ## Resume Flow
@@ -434,8 +434,8 @@ message RecoverAgentRunInput {
 //
 // ## Preconditions
 //
-// - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
-// - Cannot pause already paused or terminal executions
+// - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
+// - Cannot pause already paused or terminal runs
 //
 // ## Use Cases
 //
@@ -454,7 +454,7 @@ message PauseAgentRunInput {
   // Agent run ID to pause.
   //
   // Must be in PENDING or IN_PROGRESS phase. Cannot pause
-  // executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
+  // runs that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
   //
   // Format: "aex_{ulid}" (auto-generated unique identifier)
   // Example: "aex_abc123xyz456"
@@ -477,7 +477,7 @@ message PauseAgentRunInput {
 
 // ResumeAgentRunInput requests resuming a paused agent run.
 //
-// Continues execution from the checkpoint where it was paused. The agent
+// Continues the run from the checkpoint where it was paused. The agent
 // re-invokes activities with the same thread_id, which loads from checkpoint
 // and continues from where it left off.
 //
@@ -492,13 +492,13 @@ message PauseAgentRunInput {
 //
 // ## Preconditions
 //
-// - Execution must be in RUN_PAUSED phase
-// - Cannot resume non-paused executions
+// - Run must be in RUN_PAUSED phase
+// - Cannot resume non-paused runs
 //
 // ## Idempotency
 //
-// If the execution is not paused (already IN_PROGRESS),
-// the call succeeds as a no-op and returns the current execution state.
+// If the run is not paused (already IN_PROGRESS),
+// the call succeeds as a no-op and returns the current run state.
 //
 // ## Example
 //
@@ -508,7 +508,7 @@ message PauseAgentRunInput {
 message ResumeAgentRunInput {
   // Agent run ID to resume.
   //
-  // Must be in PAUSED phase. Cannot resume executions
+  // Must be in PAUSED phase. Cannot resume runs
   // that are not paused.
   //
   // Format: "aex_{ulid}" (auto-generated unique identifier)
@@ -523,7 +523,7 @@ message ResumeAgentRunInput {
 //
 // These messages support file attachments (inputs) and artifacts (outputs)
 // for agent runs. Attachments are files provided to agents before
-// execution; artifacts are files created by agents during run.
+// run; artifacts are files created by agents during the run.
 // ─────────────────────────────────────────────────────────────────────────────
 
 // UploadAttachmentRequest uploads a file attachment for use in an agent run.
@@ -609,7 +609,7 @@ message UploadAttachmentRequest {
 message UploadAttachmentResponse {
   // Storage key for the uploaded attachment.
   //
-  // Use this key in Attachment.storage_key when creating an run.
+  // Use this key in Attachment.storage_key when creating a run.
   // The key includes a unique identifier and the filename.
   //
   // Format: "attachments/{ulid}/{filename}"
@@ -617,22 +617,22 @@ message UploadAttachmentResponse {
   string storage_key = 1;
 }
 
-// GetArtifactDownloadUrlRequest requests a download URL for an execution artifact.
+// GetArtifactDownloadUrlRequest requests a download URL for a run artifact.
 //
 // This endpoint generates presigned URLs for artifacts published by agents
-// during run. The URLs are time-limited and can be used for direct
+// during the run. The URLs are time-limited and can be used for direct
 // HTTP download without authentication.
 //
 // ## Authorization
 //
 // Requires can_view permission on the run. This ensures users can only
-// access artifacts from executions they have access to.
+// access artifacts from runs they have access to.
 //
 // ## Security
 //
 // The storage_key is validated to ensure it belongs to the specified run.
 // Storage keys must start with "artifacts/{run_id}/" to prevent path
-// traversal attacks where a user could request URLs for other executions'
+// traversal attacks where a user could request URLs for other runs'
 // artifacts.
 //
 // ## Use Cases
@@ -669,9 +669,9 @@ message GetArtifactDownloadUrlRequest {
   //
   // Must be an artifact from the specified run. The storage_key
   // is validated to start with "artifacts/{run_id}/" to prevent
-  // access to other executions' artifacts.
+  // access to other runs' artifacts.
   //
-  // Obtain this value from RunArtifact.storage_key in the execution status.
+  // Obtain this value from RunArtifact.storage_key in the run status.
   //
   // Format: "artifacts/{run_id}/{filename}"
   // Example: "artifacts/aex_abc123xyz456/generated-skill.zip"
@@ -722,7 +722,7 @@ message GetArtifactDownloadUrlResponse {
   string expires_at = 2;
 }
 
-// GetArtifactContentRequest reads the raw content of an execution artifact.
+// GetArtifactContentRequest reads the raw content of a run artifact.
 //
 // Unlike getArtifactDownloadUrl (which returns a presigned URL for direct
 // browser download), this endpoint returns the artifact bytes through the
@@ -733,13 +733,13 @@ message GetArtifactDownloadUrlResponse {
 // ## Authorization
 //
 // Requires can_view permission on the run. This ensures users can only
-// read artifacts from executions they have access to.
+// read artifacts from runs they have access to.
 //
 // ## Security
 //
 // The storage_key is validated to ensure it belongs to the specified run.
 // Storage keys must start with "artifacts/{run_id}/" to prevent path
-// traversal attacks where a user could request content from other executions'
+// traversal attacks where a user could request content from other runs'
 // artifacts.
 //
 // ## Size Limit
@@ -785,9 +785,9 @@ message GetArtifactContentRequest {
   //
   // Must be an artifact from the specified run. The storage_key
   // is validated to start with "artifacts/{run_id}/" to prevent
-  // access to other executions' artifacts.
+  // access to other runs' artifacts.
   //
-  // Obtain this value from RunArtifact.storage_key in the execution status.
+  // Obtain this value from RunArtifact.storage_key in the run status.
   //
   // Format: "artifacts/{run_id}/{filename}"
   // Example: "artifacts/aex_abc123xyz456/pr-review-agent.yaml"
@@ -819,7 +819,7 @@ message GetArtifactContentRequest {
   string entry_path = 4;
 }
 
-// GetArtifactContentResponse returns the raw content of an execution artifact.
+// GetArtifactContentResponse returns the raw content of a run artifact.
 //
 // The content field contains the artifact bytes (up to max_bytes). For text
 // artifacts, clients decode via TextDecoder or equivalent. The content_type
@@ -858,7 +858,7 @@ message GetArtifactContentResponse {
 // Usage Report Types
 //
 // Request/response messages for usage reporting RPCs that provide cost and
-// token consumption visibility at execution, session, agent, and organization
+// token consumption visibility at run, session, agent, and organization
 // levels. All data is sourced from the llm_call_usage_record collection.
 //
 // Token counts are int64. Cost amounts are int64 micro-USD
@@ -867,7 +867,7 @@ message GetArtifactContentResponse {
 
 // GetRunUsageReportInput requests a usage report for a single run.
 message GetRunUsageReportInput {
-  // Execution ID to get usage report for.
+  // Run ID to get usage report for.
   string run_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
@@ -881,7 +881,7 @@ message GetRunUsageReportOutput {
 }
 
 // GetSessionUsageReportInput requests a usage report for a single session.
-// Aggregates cost and token data across all executions in the session.
+// Aggregates cost and token data across all runs in the session.
 message GetSessionUsageReportInput {
   // Session ID to get usage report for.
   string session_id = 1 [(buf.validate.field).string.min_len = 1];
@@ -889,33 +889,33 @@ message GetSessionUsageReportInput {
 
 // GetSessionUsageReportOutput returns aggregated usage for a session.
 //
-// Provides both the session-level totals and per-execution breakdown,
-// enabling drill-down from "this session cost $0.90" to "execution #3
+// Provides both the session-level totals and per-run breakdown,
+// enabling drill-down from "this session cost $0.90" to "run #3
 // cost $0.12 because it used claude-sonnet-4."
 message GetSessionUsageReportOutput {
   // Session identifier.
   string session_id = 1;
 
-  // Total number of executions in this session.
+  // Total number of runs in this session.
   int32 run_count = 2;
 
-  // Aggregated usage across all executions in this session.
+  // Aggregated usage across all runs in this session.
   UsageReportAggregate total_usage = 3;
 
-  // Per-execution breakdown (ordered chronologically).
+  // Per-run breakdown (ordered chronologically).
   repeated RunUsageSummary runs = 4;
 
   // Per-model breakdown across the entire session.
   repeated ModelUsage model_breakdown = 5;
 
-  // ISO 8601 timestamp of the first execution in this session.
+  // ISO 8601 timestamp of the first run in this session.
   string first_run_at = 6;
 
-  // ISO 8601 timestamp of the most recent execution in this session.
+  // ISO 8601 timestamp of the most recent run in this session.
   string last_run_at = 7;
 
   // Whether any record in this session is still estimated (not yet proxy-metered).
-  // True when execution is in-flight and only streaming usage data is available.
+  // True when the run is in flight and only streaming usage data is available.
   // False once proxy billing records have been written.
   bool is_estimated = 8;
 }
@@ -942,7 +942,7 @@ message GetAgentUsageReportInput {
   string page_token = 5;
 
   // Organization scope for the report: usage of this agent within this
-  // organization. Only executions belonging to this organization are
+  // organization. Only runs belonging to this organization are
   // aggregated. The caller must hold can_view on the organization.
   string org = 6 [(buf.validate.field).string.min_len = 1];
 }
@@ -970,7 +970,7 @@ message GetAgentUsageReportOutput {
   // Total number of sessions within the time range.
   int32 total_sessions = 6;
 
-  // Total number of executions within the time range.
+  // Total number of runs within the time range.
   int32 total_runs = 7;
 
   // Total billable cost in micro-USD within the time range.
@@ -1004,13 +1004,13 @@ message GetOrgUsageReportOutput {
   // Organization identifier.
   string org = 1;
 
-  // Total distinct agents with executions in the time range.
+  // Total distinct agents with runs in the time range.
   int32 total_agents = 2;
 
   // Total sessions across all agents in the time range.
   int32 total_sessions = 3;
 
-  // Total executions across all agents in the time range.
+  // Total runs across all agents in the time range.
   int32 total_runs = 4;
 
   // Total billable cost in micro-USD across the organization in the time range.
@@ -1036,15 +1036,15 @@ message GetOrgUsageReportOutput {
 // All token counts are int64. All cost amounts are int64 micro-USD.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Lightweight view of a single execution's usage within a session report.
+// Lightweight view of a single run's usage within a session report.
 message RunUsageSummary {
-  // Execution identifier.
+  // Run identifier.
   string run_id = 1;
 
-  // ISO 8601 timestamp when execution started.
+  // ISO 8601 timestamp when the run started.
   string started_at = 2;
 
-  // ISO 8601 timestamp when execution completed.
+  // ISO 8601 timestamp when the run completed.
   string completed_at = 3;
 
   // Input tokens for this run.
@@ -1068,7 +1068,7 @@ message RunUsageSummary {
   // Terminal phase of this run.
   RunPhase phase = 10;
 
-  // Whether this execution's cost is estimated (in-flight, no billing records yet).
+  // Whether this run's cost is estimated (in-flight, no billing records yet).
   bool is_estimated = 11;
 }
 
@@ -1077,20 +1077,20 @@ message SessionUsageSummary {
   // Session identifier.
   string session_id = 1;
 
-  // Number of executions in this session.
+  // Number of runs in this session.
   int32 run_count = 2;
 
-  // Total tokens across all executions (cache-inclusive: the sum of each
+  // Total tokens across all runs (cache-inclusive: the sum of each
   // call's provider-reported total, including cached input tokens).
   int64 total_tokens = 3;
 
   // Total billable cost in micro-USD for this session.
   int64 billable_cost_micros = 4;
 
-  // ISO 8601 timestamp of the first execution in this session.
+  // ISO 8601 timestamp of the first run in this session.
   string first_run_at = 5;
 
-  // ISO 8601 timestamp of the most recent execution in this session.
+  // ISO 8601 timestamp of the most recent run in this session.
   string last_run_at = 6;
 }
 
@@ -1102,10 +1102,10 @@ message AgentUsageSummary {
   // Human-readable agent name for display.
   string agent_name = 2;
 
-  // Total executions for this agent in the time range.
+  // Total runs for this agent in the time range.
   int32 run_count = 3;
 
-  // Total tokens across all executions (cache-inclusive: the sum of each
+  // Total tokens across all runs (cache-inclusive: the sum of each
   // call's provider-reported total, including cached input tokens).
   int64 total_tokens = 4;
 
@@ -1118,7 +1118,7 @@ message DailyCostEntry {
   // Date in YYYY-MM-DD format.
   string date = 1;
 
-  // Number of executions on this date.
+  // Number of runs on this date.
   int32 run_count = 2;
 
   // Total tokens consumed on this date.
@@ -1131,7 +1131,7 @@ message DailyCostEntry {
 // Cost split by execution harness within an org report.
 //
 // Each entry represents one harness (e.g., "native" or "cursor") and
-// aggregates cost, call count, and execution count for that harness
+// aggregates cost, call count, and run count for that harness
 // within the report's time range.
 message HarnessCostSummary {
   // Harness identifier (e.g., "native", "cursor").
@@ -1143,15 +1143,15 @@ message HarnessCostSummary {
   // Number of LLM API calls through this harness.
   int32 call_count = 3;
 
-  // Number of distinct executions that used this harness.
+  // Number of distinct runs that used this harness.
   int32 run_count = 4;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// EXECUTION SUMMARY (Dashboard Aggregation)
+// RUN SUMMARY (Dashboard Aggregation)
 //
 // Operational summary of agent runs scoped to an organization and time
-// window. Used by the platform dashboard to show execution health alongside
+// window. Used by the platform dashboard to show run health alongside
 // workflow run metrics. Cost is intentionally excluded — the dashboard
 // sources cost from getOrgUsageReport to avoid double-counting when workflows
 // delegate to agents (see AD-DASH-005).
@@ -1167,7 +1167,7 @@ enum AgentRunSummaryTimeWindow {
   AGENT_RUN_SUMMARY_TIME_WINDOW_ALL_TIME = 4;
 }
 
-// GetAgentRunSummaryRequest fetches aggregated execution statistics
+// GetAgentRunSummaryRequest fetches aggregated run statistics
 // for an organization's agent runs.
 message GetAgentRunSummaryRequest {
   // Organization slug to scope the summary.
@@ -1186,20 +1186,20 @@ message GetAgentRunSummaryRequest {
 // getOrgUsageReport (billing source of truth) to prevent double-counting
 // when workflows delegate to agents. See AD-DASH-005.
 message AgentRunSummary {
-  // Number of executions currently in a non-terminal phase
+  // Number of runs currently in a non-terminal phase
   // (PENDING, IN_PROGRESS, WAITING_FOR_APPROVAL, PAUSED).
   int32 active_count = 1;
 
-  // Execution counts broken down by RunPhase enum value.
+  // Run counts broken down by RunPhase enum value.
   //
   // Keys are RunPhase enum values (as int32).
-  // Only phases with at least one execution are included.
+  // Only phases with at least one run are included.
   map<int32, int32> phase_counts = 2;
 
-  // Mean execution duration (from started_at to completed_at) for completed
-  // executions in the time window.
+  // Mean run duration (from started_at to completed_at) for completed
+  // runs in the time window.
   //
-  // Zero when no completed executions exist.
+  // Zero when no completed runs exist.
   google.protobuf.Duration avg_duration = 3;
 
   // Agents with the highest failure count in the time window, ranked descending.
@@ -1217,6 +1217,6 @@ message AgentFailureRank {
   // Human-readable agent name for display.
   string agent_name = 2;
 
-  // Number of failed executions in the time window.
+  // Number of failed runs in the time window.
   int32 failure_count = 3;
 }

@@ -33,7 +33,7 @@ message EmitEventSpec {
   // URI or URI-reference that identifies the context in which the event
   // happened. Supports ${ } expression interpolation.
   // When empty, the runtime defaults to the workflow run URI
-  // (e.g., "/workflows/{workflow_id}/executions/{run_id}").
+  // (e.g., "/workflows/runs/{run_id}").
   string source = 2 [(ai.stigmer.commons.apiresource.is_expression) = true];
 
   // Event payload data.
@@ -74,7 +74,7 @@ message EmitEventSpec {
 //     "id": "<generated UUID>",
 //     "specversion": "1.0",
 //     "type": "stigmer.workflow.ticket.classified",
-//     "source": "/workflows/triage/executions/abc-123",
+//     "source": "/workflows/runs/abc-123",
 //     "time": "2026-05-12T14:30:00Z",
 //     "subject": "TICKET-456",
 //     "datacontenttype": "application/json",
@@ -150,7 +150,7 @@ message EmitEventTaskConfig {
 // Two delivery mechanisms are supported:
 // - webhook: HTTP POST the CloudEvents envelope to an external endpoint.
 // - signal: deliver the envelope as a signal to another workflow
-//   execution's listen task (the emit/listen pairing).
+//   run's listen task (the emit/listen pairing).
 message EmitDeliveryTarget {
   oneof target {
     option (buf.validate.oneof).required = true;
@@ -190,16 +190,16 @@ message WebhookDelivery {
 }
 
 // SignalDelivery routes the CloudEvents envelope to another workflow
-// execution as a signal, completing the emit/listen pairing: the target
-// execution receives the envelope on the listen task whose signal id
+// run as a signal, completing the emit/listen pairing: the target
+// run receives the envelope on the listen task whose signal id
 // matches signal_name.
 //
 // @internal
 // Delivery is server-mediated via the workflowrun sendSignal RPC —
 // the only sanctioned path for runner-originated signals (oss#517:
-// authorization boundary, phase gate, execution-id addressing). sendSignal
-// enforces can_edit on the TARGET execution, which resolves to its owner:
-// cross-execution signals therefore work only between executions triggered
+// authorization boundary, phase gate, run-id addressing). sendSignal
+// enforces can_edit on the TARGET run, which resolves to its owner:
+// cross-run signals therefore work only between runs triggered
 // by the same principal. Deliberate conservative posture, ruled at
 // oss#530; a scoped can_signal relation is the named follow-up if
 // cross-principal pipelines get demand.

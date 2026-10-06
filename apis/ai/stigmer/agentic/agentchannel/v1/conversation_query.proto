@@ -73,13 +73,13 @@ service ChannelConversationQueryController {
   //
   // The timeline contains customer-visible items only: inbound customer
   // messages (including non-text kinds the platform cannot render),
-  // delivered agent replies, and operator or platform sends. Execution
+  // delivered agent replies, and operator or platform sends. Run
   // internals never appear.
   //
   // @internal
   // Stitched on read from the webhook
   // event store, the delivery store (via the same last-AI-message
-  // extraction the delivery posted — never execution transcripts), and
+  // extraction the delivery posted — never run transcripts), and
   // the outbound ledger; internal-lane events join as the fourth source.
   // Authorization is declarative on the channel: conversations
   // carry no per-conversation FGA tuples — the channel is

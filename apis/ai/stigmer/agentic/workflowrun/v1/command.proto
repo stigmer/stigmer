@@ -18,7 +18,7 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 // All RPCs use custom authorization logic implemented in middleware.
 // Custom authorization is needed because:
 // - create: Must verify user has "execute" permission on the referenced Workflow
-// - update: Only the workflow runner (system) can update execution status, not users
+// - update: Only the workflow runner (system) can update run status, not users
 //
 // Service Options:
 // - api_resource_kind: workflow_run - Links this service to the WorkflowRun resource
@@ -27,8 +27,8 @@ service WorkflowRunCommandController {
 
   // Create and trigger a new workflow run.
   //
-  // This RPC creates a WorkflowRun resource and immediately triggers it for run.
-  // The workflow run engine picks up the execution and begins processing tasks.
+  // This RPC creates a WorkflowRun resource and immediately triggers it for execution.
+  // The workflow run engine picks up the run and begins processing tasks.
   //
   // @internal
   // Input Validation:
@@ -42,7 +42,7 @@ service WorkflowRunCommandController {
   // 1. User has "execute" permission on the referenced Workflow
   //    (workflow#can_execute: the workflow's viewers)
   //
-  // Execution Flow:
+  // Run Flow:
   // 1. Validate input (proto validation + business rules)
   // 2. Check authorization (user can execute the Workflow)
   // 3. Pin the workflow's current version (status.workflow_version_hash) and
@@ -59,21 +59,21 @@ service WorkflowRunCommandController {
   //
   // Use Cases:
   //
-  // 1. API-Triggered Execution:
+  // 1. API-Triggered Run:
   // - User calls API to execute a workflow
   // - Input: WorkflowRun with spec.workflow_id and spec.trigger_message
   // - Output: WorkflowRun with generated ID and PENDING status
   //
-  // 2. Webhook-Triggered Execution:
+  // 2. Webhook-Triggered Run:
   // - External system (Stripe, GitHub, etc.) sends webhook
   // - Webhook handler creates WorkflowRun with webhook payload in spec.trigger_message
   // - spec.trigger_metadata captures webhook source, event type, timestamp
   //
-  // 3. Scheduled Execution:
+  // 3. Scheduled Run:
   // - Scheduler service creates WorkflowRun at scheduled time
   // - spec.trigger_metadata includes schedule ID and cron expression
   //
-  // 4. UI-Triggered Execution:
+  // 4. UI-Triggered Run:
   // - User clicks "Execute" button in web console
   // - UI creates WorkflowRun with user-provided inputs
   //
@@ -98,7 +98,7 @@ service WorkflowRunCommandController {
   //     answer first)
   //
   // - FAILED_PRECONDITION:
-  //   - Too many concurrent executions (quota exceeded)
+  //   - Too many concurrent runs (quota exceeded)
   //
   // Example Request:
   // {
@@ -147,7 +147,7 @@ service WorkflowRunCommandController {
   // Update an existing workflow run with full state.
   //
   // @internal
-  // Used by users to update execution configuration (spec fields).
+  // Used by users to update run configuration (spec fields).
   // No individual field updates - always provide complete state.
   rpc update(WorkflowRun) returns (WorkflowRun) {
     option (ai.stigmer.commons.rpc.config).resource_kind = workflow_run;
@@ -156,7 +156,7 @@ service WorkflowRunCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update workflow run";
   }
 
-  // Update execution status during workflow run.
+  // Update run status during workflow run.
   //
   // @internal
   // System-level RPC used by the runner to send progressive status updates
@@ -171,8 +171,8 @@ service WorkflowRunCommandController {
   // - status.tasks (update task statuses, outputs, errors)
   // - status.output (set final workflow output when COMPLETED)
   // - status.error (set error message when FAILED)
-  // - status.started_at (set when execution starts)
-  // - status.completed_at (set when execution finishes)
+  // - status.started_at (set when the run starts)
+  // - status.completed_at (set when the run finishes)
   //
   // What Cannot Be Updated:
   // - spec.* (user inputs are immutable after creation)
@@ -263,7 +263,7 @@ service WorkflowRunCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update workflow run status";
   }
 
-  // Submit an approval decision for a child agent's tool run.
+  // Submit an approval decision for a child agent's tool execution.
   //
   // This RPC forwards the approval decision to the child AgentRun that
   // is waiting for approval. The child is identified by the child_agent_run_id
@@ -287,7 +287,7 @@ service WorkflowRunCommandController {
   //
   // After successful approval:
   // - Approval is forwarded to child AgentRun
-  // - Child agent resumes execution based on action (APPROVE/SKIP/REJECT)
+  // - Child agent resumes the run based on action (APPROVE/SKIP/REJECT)
   // - Child agent clears its pending_approval, which triggers signal to parent
   // - WorkflowRun.status.pending_approval is eventually cleared
   // - Workflow task status returns from WAITING_APPROVAL to IN_PROGRESS
@@ -375,13 +375,13 @@ service WorkflowRunCommandController {
   //
   // @internal
   // This RPC is specifically for workflow-level human_input tasks — the approval
-  // gates defined in workflow YAML that pause execution until a human responds.
+  // gates defined in workflow YAML that pause the run until a human responds.
   // It is distinct from submitApproval, which forwards agent-level tool call
   // approvals to child AgentRuns.
   //
   // Behavior
   //
-  // 1. Validates execution exists and is in progress
+  // 1. Validates run exists and is in progress
   // 2. Validates that task_name references a human_input task in the workflow
   // 3. Validates outcome against configured outcomes (if any)
   // 4. Constructs signal name: "human_input_{task_name}"
@@ -391,7 +391,7 @@ service WorkflowRunCommandController {
   //
   // Preconditions
   //
-  // - Execution must be in RUN_IN_PROGRESS phase
+  // - Run must be in RUN_IN_PROGRESS phase
   // - task_name must reference a human_input task in the workflow
   // - outcome must be valid for the task's configured outcomes
   // - User must have can_edit permission on the workflow run
@@ -402,7 +402,7 @@ service WorkflowRunCommandController {
   // - PERMISSION_DENIED: User doesn't have can_edit permission
   // - INVALID_ARGUMENT: task_name is not a human_input task, or outcome
   //   doesn't match configured outcomes
-  // - FAILED_PRECONDITION: Execution is not in a signalable phase
+  // - FAILED_PRECONDITION: Run is not in a signalable phase
   rpc submitWorkflowTaskApproval(SubmitWorkflowTaskApprovalInput) returns (WorkflowRun) {
     option (ai.stigmer.commons.rpc.config).resource_kind = workflow_run;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
@@ -429,7 +429,7 @@ service WorkflowRunCommandController {
   //
   // Behavior
   //
-  // 1. Validates execution exists and is in a signalable phase
+  // 1. Validates run exists and is in a signalable phase
   // 2. Uses Temporal SignalWithStart for atomic delivery:
   //    - If workflow exists → sends signal immediately
   //    - If workflow not started yet → starts workflow, then sends signal
@@ -439,8 +439,8 @@ service WorkflowRunCommandController {
   //
   // Preconditions
   //
-  // - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
-  // - Cannot signal terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+  // - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
+  // - Cannot signal terminal runs (COMPLETED, FAILED, CANCELLED, TERMINATED)
   // - User must have can_edit permission on the workflow run
   //
   // Race-Proof Delivery (SignalWithStart)
@@ -471,7 +471,7 @@ service WorkflowRunCommandController {
   //
   // - NOT_FOUND: Workflow run doesn't exist
   // - PERMISSION_DENIED: User doesn't have can_edit permission
-  // - FAILED_PRECONDITION: Execution is in a terminal phase
+  // - FAILED_PRECONDITION: Run is in a terminal phase
   // - INVALID_ARGUMENT: run_id or signal_name is empty
   //
   // Example Request
@@ -508,16 +508,16 @@ service WorkflowRunCommandController {
   //
   // Behavior
   //
-  // 1. Validates execution exists and is in a cancellable phase
+  // 1. Validates run exists and is in a cancellable phase
   // 2. Sends cancellation signal to Temporal workflow
   // 3. Workflow code receives the signal and can perform cleanup
-  // 4. Execution transitions to RUN_CANCELLED phase
+  // 4. Run transitions to RUN_CANCELLED phase
   // 5. Returns updated WorkflowRun with new phase
   //
   // Preconditions
   //
-  // - Execution must be in RUN_PENDING, RUN_IN_PROGRESS, or RUN_PAUSED phase
-  // - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+  // - Run must be in RUN_PENDING, RUN_IN_PROGRESS, or RUN_PAUSED phase
+  // - Cannot cancel already-terminal runs (COMPLETED, FAILED, CANCELLED, TERMINATED)
   //
   // State Transitions
   //
@@ -527,15 +527,15 @@ service WorkflowRunCommandController {
   //
   // Idempotency
   //
-  // Cancelling an already-cancelled execution succeeds as a no-op.
-  // The call returns the current execution state without side effects.
+  // Cancelling an already-cancelled run succeeds as a no-op.
+  // The call returns the current run state without side effects.
   // This ensures safe retry of cancel requests.
   //
   // Error Cases
   //
-  // - NOT_FOUND: Execution with given ID doesn't exist
-  // - PERMISSION_DENIED: User lacks can_edit permission on the execution
-  // - FAILED_PRECONDITION: Execution is in a terminal phase (COMPLETED, FAILED, TERMINATED)
+  // - NOT_FOUND: Run with given ID doesn't exist
+  // - PERMISSION_DENIED: User lacks can_edit permission on the run
+  // - FAILED_PRECONDITION: Run is in a terminal phase (COMPLETED, FAILED, TERMINATED)
   // - INVALID_ARGUMENT: ID is empty or malformed
   //
   // Example Request
@@ -574,16 +574,16 @@ service WorkflowRunCommandController {
   //
   // Behavior
   //
-  // 1. Validates execution exists and is in a terminable phase
+  // 1. Validates run exists and is in a terminable phase
   // 2. Force-kills workflow via Temporal (no signal sent to workflow)
-  // 3. Execution transitions to RUN_TERMINATED phase immediately
+  // 3. Run transitions to RUN_TERMINATED phase immediately
   // 4. No cleanup callbacks or defer blocks are executed
   // 5. Returns updated WorkflowRun with TERMINATED phase
   //
   // Preconditions
   //
-  // - Execution must be in RUN_PENDING, RUN_IN_PROGRESS, or RUN_PAUSED phase
-  // - Cannot terminate already-terminal executions
+  // - Run must be in RUN_PENDING, RUN_IN_PROGRESS, or RUN_PAUSED phase
+  // - Cannot terminate already-terminal runs
   //
   // State Transitions
   //
@@ -603,14 +603,14 @@ service WorkflowRunCommandController {
   //
   // Idempotency
   //
-  // Terminating an already-terminated execution succeeds as a no-op.
-  // The call returns the current execution state without side effects.
+  // Terminating an already-terminated run succeeds as a no-op.
+  // The call returns the current run state without side effects.
   //
   // Error Cases
   //
-  // - NOT_FOUND: Execution with given ID doesn't exist
-  // - PERMISSION_DENIED: User lacks can_edit permission on the execution
-  // - FAILED_PRECONDITION: Execution is in a terminal phase
+  // - NOT_FOUND: Run with given ID doesn't exist
+  // - PERMISSION_DENIED: User lacks can_edit permission on the run
+  // - FAILED_PRECONDITION: Run is in a terminal phase
   // - INVALID_ARGUMENT: ID is empty or malformed
   //
   // Example Request
@@ -645,7 +645,7 @@ service WorkflowRunCommandController {
   // workflows, recreates the ExecutionContext with freshly resolved environment
   // variables, and starts a new Temporal workflow with recovery mode enabled.
   // The workflow engine reads completed task outputs from the persisted event
-  // log, skips those tasks, and resumes execution from the first incomplete or
+  // log, skips those tasks, and resumes the run from the first incomplete or
   // failed task — preserving all previously completed work.
   //
   // @internal
@@ -655,7 +655,7 @@ service WorkflowRunCommandController {
   //
   // Behavior
   //
-  // 1. Validates execution is in FAILED phase (recoverable)
+  // 1. Validates run is in FAILED phase (recoverable)
   // 2. Terminates the existing Temporal orchestrator workflow and its child
   //    TS runner workflow (handles stuck Workflow-Task-Failed loops and
   //    already-completed workflows gracefully)
@@ -668,7 +668,7 @@ service WorkflowRunCommandController {
   //    first non-completed task
   // 5. Event sequence continues from the persisted high-water mark (no
   //    duplicate keys, no gaps)
-  // 6. Execution transitions from FAILED to IN_PROGRESS phase
+  // 6. Run transitions from FAILED to IN_PROGRESS phase
   // 7. Returns updated WorkflowRun with IN_PROGRESS phase
   //
   // Environment Resolution
@@ -677,28 +677,28 @@ service WorkflowRunCommandController {
   // and the personal environment of the person who started the run (the run's
   // creator, read from the stored row). This is desirable: if the person fixed
   // a value (e.g., rotated an API key), recovery picks up the fix. Runtime env overrides (runtime_env) provided at original
-  // execution time are not preserved — they were stripped before persist.
+  // run time are not preserved — they were stripped before persist.
   //
   // Preconditions
   //
-  // - Execution must be in RUN_FAILED phase
-  // - TERMINATED executions cannot be recovered (intentional hard stop)
-  // - CANCELLED executions cannot be recovered (intentional user action)
-  // - COMPLETED executions don't need recovery
+  // - Run must be in RUN_FAILED phase
+  // - TERMINATED runs cannot be recovered (intentional hard stop)
+  // - CANCELLED runs cannot be recovered (intentional user action)
+  // - COMPLETED runs don't need recovery
   //
   // State Transitions
   //
   // - status.phase: FAILED → IN_PROGRESS
-  // - status.completed_at: Cleared (execution is running again)
+  // - status.completed_at: Cleared (run is running again)
   // - status.error: Cleared (no longer failed)
   // - Completed tasks: Skipped (outputs restored from event log into $context)
   // - Failed/pending tasks: Re-executed from the failure point
   //
   // Recovery vs Restart
   //
-  // | Aspect | recover | Create new execution |
+  // | Aspect | recover | Create new run |
   // |--------|---------|----------------------|
-  // | Execution ID | Same | New ID |
+  // | Run ID | Same | New ID |
   // | Environment | Re-resolved (current) | From request |
   // | Completed tasks | Skipped (outputs preserved) | All tasks run fresh |
   // | Failed task | Re-executed | All tasks run fresh |
@@ -707,18 +707,18 @@ service WorkflowRunCommandController {
   //
   // Idempotency
   //
-  // If recovery already succeeded (execution is now IN_PROGRESS from a
+  // If recovery already succeeded (run is now IN_PROGRESS from a
   // previous recover call), the call succeeds as a no-op and returns
-  // the current execution state.
+  // the current run state.
   //
   // Error Cases
   //
-  // - NOT_FOUND: Execution with given ID doesn't exist
-  // - PERMISSION_DENIED: User lacks can_edit permission on the execution
+  // - NOT_FOUND: Run with given ID doesn't exist
+  // - PERMISSION_DENIED: User lacks can_edit permission on the run
   // - FAILED_PRECONDITION:
-  //   - Execution is not in FAILED phase
-  //   - Execution is TERMINATED (cannot recover)
-  //   - Execution is CANCELLED (cannot recover)
+  //   - Run is not in FAILED phase
+  //   - Run is TERMINATED (cannot recover)
+  //   - Run is CANCELLED (cannot recover)
   // - INVALID_ARGUMENT: ID is empty or malformed
   //
   // Example Request
@@ -749,30 +749,30 @@ service WorkflowRunCommandController {
   // Pause a running workflow run.
   //
   // Temporarily stops the workflow at its current checkpoint. Unlike cancel,
-  // the execution is NOT terminal and can be resumed later from where it left off.
+  // the run is NOT terminal and can be resumed later from where it left off.
   // The workflow gracefully checkpoints and exits, preserving all progress.
   //
   // @internal
   //
   // Behavior
   //
-  // 1. Validates execution exists and is in a pausable phase
+  // 1. Validates run exists and is in a pausable phase
   // 2. Sends "pause" signal to Temporal workflow
   // 3. Workflow receives signal and sets pauseRequested flag
   // 4. Running activities are gracefully cancelled (checkpoints saved)
-  // 5. Execution transitions to RUN_PAUSED phase
+  // 5. Run transitions to RUN_PAUSED phase
   // 6. Workflow waits for resume signal (no resources consumed)
   // 7. Returns updated WorkflowRun with PAUSED phase
   //
   // Preconditions
   //
-  // - Execution must be in RUN_PENDING or RUN_IN_PROGRESS phase
-  // - Cannot pause already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+  // - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
+  // - Cannot pause already-terminal runs (COMPLETED, FAILED, CANCELLED, TERMINATED)
   //
   // State Transitions
   //
   // - status.phase: PENDING/IN_PROGRESS → PAUSED
-  // - status.completed_at: NOT set (execution is not finished)
+  // - status.completed_at: NOT set (run is not finished)
   // - Running activities: Gracefully cancelled, checkpoint saved
   // - LangGraph state: Preserved via thread_id checkpoint
   //
@@ -797,14 +797,14 @@ service WorkflowRunCommandController {
   //
   // Idempotency
   //
-  // Pausing an already-paused execution succeeds as a no-op.
-  // The call returns the current execution state without side effects.
+  // Pausing an already-paused run succeeds as a no-op.
+  // The call returns the current run state without side effects.
   //
   // Error Cases
   //
-  // - NOT_FOUND: Execution with given ID doesn't exist
-  // - PERMISSION_DENIED: User lacks can_edit permission on the execution
-  // - FAILED_PRECONDITION: Execution is in a terminal phase
+  // - NOT_FOUND: Run with given ID doesn't exist
+  // - PERMISSION_DENIED: User lacks can_edit permission on the run
+  // - FAILED_PRECONDITION: Run is in a terminal phase
   // - INVALID_ARGUMENT: ID is empty or malformed
   //
   // Example Request
@@ -823,7 +823,7 @@ service WorkflowRunCommandController {
   //   "status": {
   //     "phase": 7,  // RUN_PAUSED
   //     "started_at": "2026-02-07T10:00:00Z"
-  //     // Note: completed_at is NOT set (execution can be resumed)
+  //     // Note: completed_at is NOT set (run can be resumed)
   //   }
   // }
   rpc pause(PauseWorkflowRunInput) returns (WorkflowRun) {
@@ -835,7 +835,7 @@ service WorkflowRunCommandController {
 
   // Resume a paused workflow run.
   //
-  // Continues execution from the checkpoint where it was paused. The workflow
+  // Continues the run from the checkpoint where it was paused. The workflow
   // re-invokes activities with the same thread_id, which loads from checkpoint
   // and continues from where it left off.
   //
@@ -843,18 +843,18 @@ service WorkflowRunCommandController {
   //
   // Behavior
   //
-  // 1. Validates execution is in RUN_PAUSED phase
+  // 1. Validates run is in RUN_PAUSED phase
   // 2. Sends "resume" signal to Temporal workflow
   // 3. Workflow receives signal and sets resumeSignalReceived flag
   // 4. Workflow re-invokes activity with same execution context
   // 5. Activity detects resume and loads from LangGraph checkpoint
-  // 6. Execution transitions back to RUN_IN_PROGRESS phase
+  // 6. Run transitions back to RUN_IN_PROGRESS phase
   // 7. Returns updated WorkflowRun with IN_PROGRESS phase
   //
   // Preconditions
   //
-  // - Execution must be in RUN_PAUSED phase
-  // - Cannot resume non-paused executions
+  // - Run must be in RUN_PAUSED phase
+  // - Cannot resume non-paused runs
   //
   // State Transitions
   //
@@ -873,14 +873,14 @@ service WorkflowRunCommandController {
   //
   // Idempotency
   //
-  // Resuming an already-running execution succeeds as a no-op.
-  // The call returns the current execution state without side effects.
+  // Resuming a run that is already running succeeds as a no-op.
+  // The call returns the current run state without side effects.
   //
   // Error Cases
   //
-  // - NOT_FOUND: Execution with given ID doesn't exist
-  // - PERMISSION_DENIED: User lacks can_edit permission on the execution
-  // - FAILED_PRECONDITION: Execution is not in PAUSED phase
+  // - NOT_FOUND: Run with given ID doesn't exist
+  // - PERMISSION_DENIED: User lacks can_edit permission on the run
+  // - FAILED_PRECONDITION: Run is not in PAUSED phase
   // - INVALID_ARGUMENT: ID is empty or malformed
   //
   // Example Request

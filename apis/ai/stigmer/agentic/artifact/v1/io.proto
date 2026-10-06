@@ -22,10 +22,10 @@ message ArtifactId {
 // @internal
 // Returned by list operations (listByRun).
 message ArtifactList {
-  // Always 1: an execution's artifacts are returned whole.
+  // Always 1: a run's artifacts are returned whole.
   int32 total_pages = 1;
 
-  // The execution's artifacts, newest first.
+  // The run's artifacts, newest first.
   repeated Artifact entries = 2;
 }
 
@@ -75,10 +75,10 @@ message ListArtifactsByRunRequest {
   // Format: "aex_{unique-suffix}"
   string agent_run_id = 2;
 
-  // Not read: an execution's artifacts are returned whole.
+  // Not read: a run's artifacts are returned whole.
   int32 page_size = 3 [deprecated = true];
 
-  // Not read: an execution's artifacts are returned whole.
+  // Not read: a run's artifacts are returned whole.
   string page_token = 4 [deprecated = true];
 }
 
@@ -92,7 +92,7 @@ message ListArtifactsByRunRequest {
 //
 // @internal
 // Mirrors AgentRunQueryController.getArtifactContent, which was added
-// for the same reason on the agent-execution side. Artifacts are addressed
+// for the same reason on the agent-run side. Artifacts are addressed
 // by artifact ID here (the artifact store's identity) rather than by
 // run_id + storage_key.
 //

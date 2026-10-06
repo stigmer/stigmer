@@ -17,7 +17,7 @@ service EnvironmentCommandController {
   // @internal
   // The authorization and state-operation are determined depending on whether the
   // environment is going to be created or updated, which is resolved as part of
-  // the request run.
+  // the request execution.
   rpc apply(Environment) returns (Environment);
 
   // Create an environment.
@@ -52,7 +52,7 @@ service EnvironmentCommandController {
   // metadata fields untouched. Environments support two levels: private
   // (the default) and org. Setting org shares the environment with the
   // owning organization: members can view it with secret values redacted,
-  // and any execution in the organization may use its values at runtime.
+  // and any run in the organization may use its values at runtime.
   // Secret values are revealed only to the environment's creator, at
   // every visibility level.
   //

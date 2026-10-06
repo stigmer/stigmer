@@ -17,7 +17,7 @@ service AgentCommandController {
   //
   // @internal
   // The authorization and state-operation are determined depending on whether the agent
-  // is going to be created or updated which is determined as part of the request run.
+  // is going to be created or updated which is determined as part of the request execution.
   rpc apply(Agent) returns (Agent);
 
   // Create an agent.

@@ -18,14 +18,14 @@ message RecentActivityEntry {
 
   // Human-readable label for display.
   // For sessions: the conversation subject.
-  // For workflow runs: the execution name.
+  // For workflow runs: the run name.
   string subject = 3;
 
   // When this entry was last meaningfully updated.
   // Used for interleaved sort (newest first).
   google.protobuf.Timestamp updated_at = 4;
 
-  // Execution phase label for workflow runs (e.g., "completed", "failed").
+  // Run phase label for workflow runs (e.g., "completed", "failed").
   // Empty for sessions.
   string status = 5;
 }

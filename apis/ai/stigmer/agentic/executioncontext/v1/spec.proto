@@ -7,7 +7,7 @@ import "buf/validate/validate.proto";
 // Runtime configuration and secrets for a single run.
 //
 // @internal
-// Created by the execution engine, deleted when execution completes.
+// Created by the execution engine, deleted when the run completes.
 message ExecutionContextSpec {
   // ID of the parent AgentRun or WorkflowRun.
   string execution_id = 1 [(buf.validate.field).string.min_len = 1];
@@ -35,7 +35,7 @@ message ExecutionValue {
   //
   // @internal
   // When true: value is encrypted at rest, redacted in logs, and deleted
-  // when execution completes.
+  // when the run completes.
   // When false: value is stored as plaintext and visible in audit logs.
   bool is_secret = 2;
 }

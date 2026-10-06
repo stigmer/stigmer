@@ -157,7 +157,7 @@ enum ConversationItemAuthor {
 // @internal
 // Computed on read by stitching four
 // stores — inbound webhook events, reply deliveries (rendered from the
-// same extraction the delivery posted, never from execution transcripts),
+// same extraction the delivery posted, never from run transcripts),
 // the outbound ledger, and the internal-lane event store. item_id is
 // source-prefixed ("wa:", "dl:", "ob:", "ev:"),
 // which makes cross-store collisions structurally impossible and gives

@@ -8,7 +8,7 @@
 # `viewer from channel` is composed into session.can_view, deliberately NOT
 # into session.viewer, so channel observers never gain
 # can_create_run_in / can_edit / can_delete / can_grant_access.
-# Executions follow through agent_run's
+# Runs follow through agent_run's
 # `can_view: viewer or can_view from session`.
 #
 # The personal-session invariant is untouched: console sessions never carry
@@ -82,7 +82,7 @@ tuples:
     relation: channel
     object: session:channel-chat
 
-  # --- An execution inside the channel session ---
+  # --- A run inside the channel session ---
   - user: session:channel-chat
     relation: session
     object: agent_run:channel-run-1
@@ -147,7 +147,7 @@ tests:
           can_edit: true
           can_delete: true
 
-  - name: executions inherit read-only channel observability
+  - name: runs inherit read-only channel observability
     check:
       - user: identity_account:bob
         object: agent_run:channel-run-1
