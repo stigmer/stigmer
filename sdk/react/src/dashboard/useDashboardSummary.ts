@@ -33,7 +33,8 @@ export interface UseDashboardSummaryReturn {
  * - Run counts (active, completed, failed) come from the agent run
  *   summary over the last seven days.
  * - Cost comes from `getOrgUsageReport` (billing source of truth), not
- *   from summing per-run costs. See AD-DASH-005.
+ *   from summing per-run costs, so the dashboard shows what billing
+ *   recorded.
  */
 export function useDashboardSummary(
   options: UseDashboardSummaryOptions,

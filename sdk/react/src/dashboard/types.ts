@@ -5,7 +5,8 @@ import type { GetOrgUsageReportOutput } from "@stigmer/protos/ai/stigmer/agentic
  *
  * Run counts (active, completed, failed) come from the agent run summary.
  * Cost comes from {@link GetOrgUsageReportOutput} (billing source of truth),
- * not from summing per-run costs. See AD-DASH-005.
+ * not from summing per-run costs, so the dashboard shows what billing
+ * recorded.
  */
 export interface DashboardSummary {
   /** Active agent run count. */

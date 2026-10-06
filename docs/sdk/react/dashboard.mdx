@@ -14,8 +14,8 @@ organization. Returns phase counts, active count, average duration,
 and top failing agents.
 
 Cost is intentionally excluded from this response — the dashboard
-sources cost from `useOrgUsageReport` (billing source of truth) to
-prevent double-counting. See AD-DASH-005.
+sources cost from `useOrgUsageReport` (billing source of truth), so
+cost is never counted from two sources.
 
 **Signature**
 
@@ -81,7 +81,8 @@ report into a single [`DashboardSummary`](#dashboardsummary).
 - Run counts (active, completed, failed) come from the agent run
   summary over the last seven days.
 - Cost comes from `getOrgUsageReport` (billing source of truth), not
-  from summing per-run costs. See AD-DASH-005.
+  from summing per-run costs, so the dashboard shows what billing
+  recorded.
 
 **Signature**
 
@@ -150,7 +151,7 @@ Stat cards showing an organization's agent run KPIs: active,
 completed and failed runs, and total cost.
 
 Cost comes from the billing source of truth (getOrgUsageReport),
-not from summing per-run costs. See AD-DASH-005.
+not from summing per-run costs, so the card shows what billing recorded.
 
 
 ### DashboardKPICardsProps
@@ -170,7 +171,8 @@ Dashboard summary of an organization's agent runs.
 
 Run counts (active, completed, failed) come from the agent run summary.
 Cost comes from `GetOrgUsageReportOutput` (billing source of truth),
-not from summing per-run costs. See AD-DASH-005.
+not from summing per-run costs, so the dashboard shows what billing
+recorded.
 
 <TypeTable
   type={{
@@ -193,7 +195,8 @@ Layout:
 - Row 2: Recent Failures
 
 Cost comes from the billing source of truth (`getOrgUsageReport`),
-not from summing per-run costs. See AD-DASH-005.
+not from summing per-run costs, so the dashboard shows what billing
+recorded.
 
 ```tsx
 <OperationalDashboard

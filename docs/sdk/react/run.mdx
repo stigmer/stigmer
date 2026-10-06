@@ -702,9 +702,10 @@ function useResolveAgentRunSession(agentExecutionId: string | null): UseResolveA
 
 <TypeTable
   type={{
-    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    error: { type: "Error | null", description: "A failure to read the run, or `null`. A run that does not exist or that the caller cannot see is not an error: it resolves to no session." },
     isLoading: { type: "boolean", description: "`true` while the fetch is in flight." },
-    sessionId: { type: "string | null", description: "The resolved session ID, or `null` while loading or on error." },
+    refetch: { type: "() => void", description: "Reads the run again (after an error, for a retry)." },
+    sessionId: { type: "string | null", description: "The resolved session ID; `null` while loading, on error, and when no session resolves (the run does not exist, the caller cannot see it, or its target names no session)." },
   }}
 />
 

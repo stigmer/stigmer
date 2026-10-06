@@ -24,7 +24,8 @@ export interface OperationalDashboardProps {
  * - Row 2: Recent Failures
  *
  * Cost comes from the billing source of truth (`getOrgUsageReport`),
- * not from summing per-run costs. See AD-DASH-005.
+ * not from summing per-run costs, so the dashboard shows what billing
+ * recorded.
  *
  * @example
  * ```tsx

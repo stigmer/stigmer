@@ -51,7 +51,7 @@ const STAT_CARDS: readonly StatCardDef[] = [
  * completed and failed runs, and total cost.
  *
  * Cost comes from the billing source of truth (getOrgUsageReport),
- * not from summing per-run costs. See AD-DASH-005.
+ * not from summing per-run costs, so the card shows what billing recorded.
  */
 export const DashboardKPICards = memo(function DashboardKPICards({
   summary,
