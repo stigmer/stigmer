@@ -396,20 +396,6 @@ describe("the hooks summary", () => {
     return lines.join("");
   }
 
-  it("counts handlers per event in first-seen order, in either format", async () => {
-    const { hooksSummary } = await import("../plugin.js");
-    expect(
-      hooksSummary("claude-code", [
-        { event: "PreToolUse", handlers: [1, 2] },
-        { event: "PostToolUse", handlers: [1] },
-        { event: "PreToolUse", handlers: [1] },
-      ]),
-    ).toBe("Claude Code format: PreToolUse 3, PostToolUse 1");
-    expect(hooksSummary("cursor", [{ event: "preToolUse", handlers: [1] }])).toBe(
-      "Cursor format: preToolUse 1",
-    );
-  });
-
   it("names the hooks and the main agent a package would install, offline", async () => {
     const { describePackageOn } = await import("../plugin.js");
     const { CommandResult } = await import("../../output/command-result.js");

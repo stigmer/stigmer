@@ -5,7 +5,8 @@
  * against the manifests, what is carried in each format and what is named
  * as not run, one format per plugin, the matcher and `if` checks, and
  * `${user_config.KEY}` in exec-form arguments counting as a reference, read
- * the same way off a read plugin's hooks by `hookVariableReferences`.
+ * the same way off a read plugin's hooks by `hookVariableReferences`, and
+ * `HOOK_WARNING_KINDS`, the warnings a surface lists as hooks not run.
  *
  * The vendored Claude plugins are pinned in `claude-fixtures.test.ts`; the
  * cases here are the shapes no vendorable plugin carries, among them a
@@ -17,6 +18,8 @@
 import { describe, expect, it } from "vitest";
 
 import { PLUGIN_DOCUMENT_LIMITS } from "../files.js";
+import { warningMessage } from "../messages.js";
+import { HOOK_WARNING_KINDS } from "../outcome.js";
 import { hookVariableReferences, isValidMatcher } from "../normalise/hooks.js";
 import { claudePlugin, codexPlugin, cursorPlugin, openPlugin, withFile } from "../testing.js";
 import { accepted, findingOf, kindsOf, read, refused } from "../__test-utils__/read.js";
@@ -240,9 +243,9 @@ describe("sources", () => {
     expect(kindsOf(read(files))).toEqual({ errors: ["document-too-large"], warnings: [] });
   });
 
-  it("leaves hooks/ unread and ignored under the open manifest alone", () => {
+  it("leaves hooks/ unread under the open manifest alone, naming it as a hook not read", () => {
     const files = withFile(openPlugin(), "hooks/hooks.json", "{ not even json");
-    expect(kindsOf(read(files))).toEqual({ errors: [], warnings: [] });
+    expect(kindsOf(read(files))).toEqual({ errors: [], warnings: ["hooks-not-read"] });
   });
 });
 
@@ -409,5 +412,55 @@ describe("variables a hook references", () => {
       ),
     );
     expect(plugin.hooks && hookVariableReferences(plugin.hooks)).toEqual(["WEBHOOK", "CHANNEL"]);
+  });
+
+  it("reads the same references off a stored hook set, which is not a read plugin's", () => {
+    // The shape a plugin's recorded hooks and an agent's inline hooks have on
+    // the wire: the console declares these names on an agent it switches a
+    // plugin's hooks on for, by the rule install uses.
+    const stored = {
+      format: 1,
+      groups: [
+        {
+          event: "PreToolUse",
+          matcher: "",
+          handlers: [
+            { command: "python3", args: ["check.py", "${user_config.API_TOKEN}"], timeoutSeconds: 0, condition: "" },
+            { command: "echo ${user_config.SHELL_ONLY}", args: [], timeoutSeconds: 0, condition: "" },
+          ],
+        },
+      ],
+    };
+    expect(hookVariableReferences(stored)).toEqual(["API_TOKEN"]);
+  });
+});
+
+describe("HOOK_WARNING_KINDS", () => {
+  it("holds exactly the warnings that name hooks Stigmer does not run", () => {
+    expect([...HOOK_WARNING_KINDS].sort()).toEqual([
+      "hook-event-not-run",
+      "hook-handler-not-run",
+      "hooks-format-not-run",
+      "hooks-not-read",
+      "skill-hooks-not-run",
+    ]);
+    for (const kind of HOOK_WARNING_KINDS) {
+      expect(warningMessage(kind, { path: "hooks/hooks.json", subject: "Stop" }), kind).toMatch(/hook/);
+    }
+    // Its hook runs, with one field unread, so it stays among the other warnings.
+    expect(HOOK_WARNING_KINDS.has("hook-field-ignored")).toBe(false);
+  });
+
+  it("classes a plugin's every hook finding as one, so a surface lists none of them twice", () => {
+    const outcome = read(
+      claudePlugin({
+        hooks: { PreToolUse: [{ hooks: [command("node check.js")] }], Stop: [{ hooks: [command("node stop.js")] }] },
+        skills: [{ name: "s", description: "d", frontmatter: { hooks: { PreToolUse: [] } } }],
+      }),
+    );
+    const warnings = kindsOf(outcome).warnings;
+    expect(warnings).toEqual(["hook-event-not-run", "skill-hooks-not-run"]);
+    const hookKinds: ReadonlySet<string> = HOOK_WARNING_KINDS;
+    expect(warnings.every((kind) => hookKinds.has(kind))).toBe(true);
   });
 });

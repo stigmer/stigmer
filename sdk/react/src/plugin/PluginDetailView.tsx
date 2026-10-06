@@ -8,13 +8,17 @@
  * agents, or both. So this view shows what the install produced (the
  * members, by kind, each a link into its own detail page) and, for each
  * MCP server, what stands between it and its first tool call (signed in,
- * Sign in, a key to give, nothing: `McpServerReadiness`); what the manifest
- * said (version, format, author); what the server warned about at install;
- * and the version history. When the plugin carries an agent, the primary
- * action is to start a session on it; when it carries tools and no agent,
- * "Use these tools" leads to an agent that will. Nothing here edits a
- * member: a plugin's resources are changed by pushing the plugin again,
- * never one by one, and the members' own pages say so.
+ * Sign in, a key to give, nothing: `McpServerReadiness`); its hooks, every
+ * command each runs (`HookConfigList`), beside the hooks Stigmer does not
+ * run (the install warnings of `HOOK_WARNING_KINDS`, listed here rather
+ * than among the other warnings); what the manifest said (version, format,
+ * author); what else the server warned about at install; and the version
+ * history. When the plugin carries an agent, the primary action is to start
+ * a session on it; "Use with an agent" adds the plugin to one of the
+ * organization's agents: its tools when it carries tools and no agent, its
+ * hooks whenever it has hooks that run. Nothing here edits a member: a
+ * plugin's resources are changed by pushing the plugin again, never one by
+ * one, and the members' own pages say so.
  *
  * The shape is `SkillDetailView`'s: the resource fetched inside, rendered
  * in `ResourceDetailShell` with Manage access folded into the kebab, the
@@ -27,9 +31,10 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { PluginMember } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
 import { PluginDialect, type PluginSpec } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/spec_pb";
-import { PluginState, type PluginStatus } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+import { PluginState, type PluginStatus, type PluginWarning } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { McpServerUsageInput } from "@stigmer/sdk";
+import { HOOK_WARNING_KINDS } from "@stigmer/plugin-package";
 import { DIALECT_LABELS } from "@stigmer/plugin-package/client";
 import { useManageAccess } from "../access/useManageAccess.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
@@ -43,7 +48,8 @@ import type { StatusPhase } from "../resource-workbench/types.js";
 import type { TabItem } from "../tabs/Tabs.js";
 import { VersionTimeline } from "../version-history/VersionTimeline.js";
 import { Button } from "../button/Button.js";
-import { AddToolsToAgentDialog } from "./AddToolsToAgentDialog.js";
+import { AddPluginToAgentDialog } from "./AddPluginToAgentDialog.js";
+import { HookConfigList } from "./HookConfigList.js";
 import { McpServerReadiness } from "./McpServerReadiness.js";
 import { PluginIcon } from "./PluginIcon.js";
 import { usePlugin } from "./usePlugin.js";
@@ -84,6 +90,8 @@ export interface PluginDetailViewProps {
    * creation wizard preselects, for a plugin that installed MCP servers and
    * no agent. The host owns the route to its wizard; the link is hidden when
    * omitted, and "Add to an agent" still offers the organization's agents.
+   * A new agent gets the servers only; its hooks are switched on from its
+   * own page or from "Add to an agent".
    */
   readonly onCreateAgent?: (usages: readonly McpServerUsageInput[]) => void;
   /** Secondary actions rendered in the kebab overflow menu (remove lives here). */
@@ -99,8 +107,9 @@ export interface PluginDetailViewProps {
 }
 
 /**
- * Operational detail hub for an installed Plugin: what it installed, what
- * its manifest declares, what the server warned about, and its versions.
+ * Operational detail hub for an installed Plugin: what it installed, its
+ * hooks and the ones Stigmer does not run, what its manifest declares, what
+ * the server warned about, and its versions.
  *
  * @example
  * ```tsx
@@ -275,16 +284,25 @@ function PluginOverview({
   readonly onCreateAgent?: (usages: readonly McpServerUsageInput[]) => void;
 }) {
   const org = plugin.metadata?.org ?? "";
+  const slug = plugin.metadata?.slug ?? "";
   const spec = plugin.spec;
   const status = plugin.status;
-  const warnings = status?.warnings ?? [];
+  const hookConfig = status?.hooks !== undefined && status.hooks.groups.length > 0 ? status.hooks : undefined;
+  const hookWarnings = (status?.warnings ?? []).filter((warning) => isHookWarning(warning.kind));
+  const warnings = (status?.warnings ?? []).filter((warning) => !isHookWarning(warning.kind));
   const hasAgent = members.some((member) => member.kind === ApiResourceKind.agent);
   const servers = useMemo(
     () =>
-      members
-        .filter((member) => member.kind === ApiResourceKind.mcp_server)
-        .map((member) => ({ ref: { org, slug: member.slug }, name: member.name || member.slug })),
-    [members, org],
+      hasAgent
+        ? []
+        : members
+            .filter((member) => member.kind === ApiResourceKind.mcp_server)
+            .map((member) => ({ ref: { org, slug: member.slug }, name: member.name || member.slug })),
+    [members, org, hasAgent],
+  );
+  const offer = useMemo(
+    () => ({ servers, ...(hookConfig !== undefined && { hooks: { plugin: { org, slug }, config: hookConfig } }) }),
+    [servers, hookConfig, org, slug],
   );
   const [adding, setAdding] = useState(false);
 
@@ -316,19 +334,33 @@ function PluginOverview({
         )}
       </Section>
 
-      {!hasAgent && servers.length > 0 && (
-        <Section title="Use these tools">
+      {(hookConfig !== undefined || hookWarnings.length > 0) && (
+        <Section title="Hooks" count={hookConfig?.groups.length}>
+          {hookConfig !== undefined ? (
+            <HookConfigList config={hookConfig} />
+          ) : (
+            <p className="stg:px-3 stg:py-2.5 stg:text-sm stg:text-muted-foreground">None of this plugin&apos;s hooks run on Stigmer.</p>
+          )}
+          {hookWarnings.length > 0 && (
+            <div className="stg:border-t stg:border-border">
+              <h4 className="stg:px-3 stg:pt-2.5 stg:text-xs stg:font-medium stg:text-muted-foreground">Not run on Stigmer</h4>
+              <WarningList warnings={hookWarnings} label="Hooks not run on Stigmer" />
+            </div>
+          )}
+        </Section>
+      )}
+
+      {(servers.length > 0 || hookConfig !== undefined) && (
+        <Section title="Use with an agent">
           <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-3 stg:px-3 stg:py-2.5">
-            <p className="stg:text-sm stg:text-muted-foreground">
-              This plugin installed tools and no agent. Add them to an agent to use them in a session.
-            </p>
+            <p className="stg:text-sm stg:text-muted-foreground">{useSentence(servers.length > 0, hookConfig !== undefined)}</p>
             <Button variant="primary" size="sm" onClick={() => setAdding(true)}>
               Add to an agent
             </Button>
           </div>
-          <AddToolsToAgentDialog
+          <AddPluginToAgentDialog
             org={org}
-            servers={servers}
+            offer={offer}
             open={adding}
             onClose={() => setAdding(false)}
             onAgentClick={onAgentClick}
@@ -341,17 +373,36 @@ function PluginOverview({
 
       {warnings.length > 0 && (
         <Section title="Install warnings" count={warnings.length}>
-          <ul className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:divide-y stg:divide-border")}>
-            {warnings.map((warning, index) => (
-              <li key={`${warning.kind}:${warning.path}:${index}`} className="stg:px-3 stg:py-2 stg:text-sm stg:text-foreground">
-                {warning.message}
-                {warning.path && <span className="stg:ml-2 stg:font-mono stg:text-xs stg:text-muted-foreground">{warning.path}</span>}
-              </li>
-            ))}
-          </ul>
+          <WarningList warnings={warnings} />
         </Section>
       )}
     </div>
+  );
+}
+
+/** Whether an install warning names a hook Stigmer does not run; the wire carries the library's kind verbatim. */
+function isHookWarning(kind: string): boolean {
+  const hookKinds: ReadonlySet<string> = HOOK_WARNING_KINDS;
+  return hookKinds.has(kind);
+}
+
+/** The "Use with an agent" sentence, for what the plugin brings an agent. */
+function useSentence(tools: boolean, hooks: boolean): string {
+  if (tools && hooks) return "This plugin installed tools and hooks and no agent. Add them to an agent to use them in a session.";
+  if (hooks) return "Switch this plugin's hooks on for an agent, and they run on its tool calls.";
+  return "This plugin installed tools and no agent. Add them to an agent to use them in a session.";
+}
+
+function WarningList({ warnings, label }: { readonly warnings: readonly PluginWarning[]; readonly label?: string }) {
+  return (
+    <ul className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:divide-y stg:divide-border")} aria-label={label}>
+      {warnings.map((warning, index) => (
+        <li key={`${warning.kind}:${warning.path}:${index}`} className="stg:px-3 stg:py-2 stg:text-sm stg:text-foreground">
+          {warning.message}
+          {warning.path && <span className="stg:ml-2 stg:font-mono stg:text-xs stg:text-muted-foreground">{warning.path}</span>}
+        </li>
+      ))}
+    </ul>
   );
 }
 

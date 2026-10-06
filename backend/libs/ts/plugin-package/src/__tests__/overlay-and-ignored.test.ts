@@ -62,12 +62,12 @@ describe("ignored components", () => {
     ]);
   });
 
-  it("keeps hooks/ and settings.json ignored for a plugin with only the open manifest", () => {
+  it("names hooks/ as a hook warning and keeps settings.json ignored for a plugin with only the open manifest", () => {
     const files = openPlugin({ files: { "hooks/hooks.json": '{"hooks":{}}', "settings.json": "{}" } });
-    expect(accepted(read(files)).ignored).toEqual([
-      { kind: "hooks", path: "hooks/" },
-      { kind: "settings", path: "settings.json" },
-    ]);
+    const outcome = read(files);
+    expect(kindsOf(outcome)).toEqual({ errors: [], warnings: ["hooks-not-read"] });
+    expect(accepted(outcome).hooks).toBeUndefined();
+    expect(accepted(outcome).ignored).toEqual([{ kind: "settings", path: "settings.json" }]);
   });
 
   it("reads settings.json for a Claude plugin instead of ignoring it", () => {

@@ -23,7 +23,9 @@
  * (`hook-handler-not-run`), and a field Stigmer does not read
  * (`hook-field-ignored`; `once` among them, which Claude Code itself honours
  * only in skill frontmatter). The stored hooks therefore hold only what
- * runs, and the runner needs no table of its own.
+ * runs, and the runner needs no table of its own. A `hooks/` folder in a
+ * plugin with no vendor manifest is named too (`hooks-not-read`): the open
+ * format defines no hooks.
  *
  * A plugin runs one format. When both formats carry tool-call hooks
  * Stigmer reads, Claude Code's win (the reader's detection precedence, and
@@ -102,6 +104,11 @@ interface SourceRead {
 }
 
 export function normaliseHooks(index: PluginFileIndex, set: ManifestSet, findings: Findings): HooksResult {
+  // The open format defines no hooks: with no vendor manifest, a hooks/
+  // folder is named rather than given a format's semantics.
+  if (!set.readsAgents && index.childDirectories("").includes("hooks")) {
+    findings.warn("hooks-not-read", { path: "hooks/" });
+  }
   const reads: SourceRead[] = [];
   for (const source of set.hookSources) {
     const read = readSource(index, source, findings);
@@ -401,8 +408,15 @@ function handlerVariableReferences(command: string, args: readonly string[]): st
   return [command, ...args].flatMap((value) => [...userConfigReferences(value)]);
 }
 
-/** Every `${user_config.KEY}` name a read plugin's hooks reference, in first-seen order. */
-export function hookVariableReferences(hooks: PluginHooks): readonly string[] {
+/**
+ * Every `${user_config.KEY}` name a hook set references, in first-seen
+ * order. It takes the shape it reads, so a read plugin's hooks and a stored
+ * `HookConfig` give the same names: install declares them on the agent it
+ * composes, and the console on an agent a person switches the hooks on for.
+ */
+export function hookVariableReferences(hooks: {
+  readonly groups: readonly { readonly handlers: readonly { readonly command: string; readonly args: readonly string[] }[] }[];
+}): readonly string[] {
   const names = new Set<string>();
   for (const group of hooks.groups) {
     for (const handler of group.handlers) {

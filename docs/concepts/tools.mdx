@@ -41,9 +41,9 @@ Not every capability needs an MCP server. Every Agent can fetch a public URL out
 of the box — the native harness ships a built-in `web_fetch` tool, and the
 [Cursor harness](/docs/concepts/harnesses) has its own `WebFetch`. Fetched HTML
 is converted to Markdown, large pages are paginated, and the tool is read-only
-and never prompts for approval, so it works in unattended contexts like shared
-and embedded Agents. On managed cloud runners, fetches to private and internal
-addresses are refused.
+and asks for no approval unless the Agent's hooks ask about it, so it works in
+unattended contexts like shared and embedded Agents. On managed cloud runners,
+fetches to private and internal addresses are refused.
 
 Reach for an MCP server when you need more than retrieval of a public page —
 authenticated APIs, site-specific extraction, or write operations.
@@ -173,7 +173,7 @@ This design means you define the tool server once and reference it from multiple
 Agents. Each Agent can keep a different subset — the read-only Agent above only
 gets `get_order` and `list_orders`, while a full-access Agent also gets
 `process_return`. [Approval Flows](/docs/concepts/approval-flows) covers what
-the lists guarantee.
+the lists guarantee, and how an Agent's `hooks` decide a call the lists allow.
 
 ## Connecting a tool
 
@@ -188,11 +188,13 @@ When you connect an MCP Server, Stigmer performs two steps in a single action:
    status, each marked destructive or not, ready for any Agent that references
    it
 
-A tool asks for human approval before it runs when its server marks it
-destructive, with the MCP annotation `destructiveHint: true`. Every other tool
-runs without asking. The server's author makes that call, not Stigmer:
+By default, a tool asks for human approval before it runs when its server marks
+it destructive, with the MCP annotation `destructiveHint: true`, and every other
+tool runs without asking. The server's author makes that call, not Stigmer:
 `process_return` asks if the order server annotates it, and `get_order` does
-not.
+not. An Agent's hooks can change that call by call: a hook can refuse a tool,
+ask about it, or let it run
+([Guard an agent's tools with hooks](/docs/guides/plugins/use-hooks)).
 
 ## Authentication for tools
 

@@ -194,6 +194,7 @@ export {
   type McpServerUsageInput,
   type SubAgentInput,
   type EnvVarDeclarationInput,
+  type HookSourceInput,
 } from "./gen/agent.js";
 export {
   AgentChannelClient,
@@ -361,6 +362,14 @@ export {
   hookApproveAllLabel,
   isInformativePolicySource,
 } from "./run/approval-provenance.js";
+export {
+  HOOK_FORMAT_LABELS,
+  hookEventLabel,
+  hookFormatName,
+  hookMatcherLabel,
+  hooksSummary,
+  type HookFormatName,
+} from "./hook-words.js";
 export { isTerminalPhase } from "./run/run-phases.js";
 export {
   sortChronologically,

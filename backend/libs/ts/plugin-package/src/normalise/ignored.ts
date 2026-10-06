@@ -10,10 +10,12 @@
  * components are recorded by the dialect readers; the two lists are merged
  * and deduplicated by kind and path in `read-plugin-package.ts`.
  *
- * `agents/` and `hooks/` join the list only when no vendor manifest is
- * present: the open format defines neither component, so a
- * root-manifest-only plugin with such a folder is told it is not read
- * rather than having semantics assigned to it. `settings.json` is read
+ * `agents/` joins the list only when no vendor manifest is present: the
+ * open format defines no such component, so a root-manifest-only plugin
+ * with that folder is told it is not read rather than having semantics
+ * assigned to it. A `hooks/` folder in the same plugin is a hook warning
+ * (`hooks-not-read`, `normalise/hooks.ts`), so every surface lists it with
+ * the plugin's other hooks that do not run. `settings.json` is read
  * for a Claude plugin (`normalise/settings.ts`) and ignored otherwise. `README`, `CHANGELOG`, `LICENSE`
  * and dotfiles are not components and pass silently.
  */
@@ -41,8 +43,8 @@ const IGNORED_FILES: Readonly<Record<string, IgnoredComponentKind>> = {
 };
 
 /**
- * `readsVendorComponents`: a vendor manifest is present, so `agents/` and
- * `hooks/` are read. `readsSettings`: a Claude manifest is present, so
+ * `readsVendorComponents`: a vendor manifest is present, so `agents/` is
+ * read. `readsSettings`: a Claude manifest is present, so
  * `settings.json` is read.
  */
 export function ignoredOnDisk(index: PluginFileIndex, readsVendorComponents: boolean, readsSettings: boolean): readonly IgnoredComponent[] {
@@ -51,7 +53,6 @@ export function ignoredOnDisk(index: PluginFileIndex, readsVendorComponents: boo
     const kind = IGNORED_DIRECTORIES[dir];
     if (kind !== undefined) ignored.push({ kind, path: `${dir}/` });
     if (dir === "agents" && !readsVendorComponents) ignored.push({ kind: "agents", path: `${dir}/` });
-    if (dir === "hooks" && !readsVendorComponents) ignored.push({ kind: "hooks", path: `${dir}/` });
   }
   for (const file of index.childFiles("")) {
     const kind = IGNORED_FILES[file];

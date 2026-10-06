@@ -44,8 +44,8 @@ names none.
   scoped to the Session's Workspace — the Agent cannot read paths outside it.
 - Built-in web retrieval through the `web_fetch` tool — every native Session can
   fetch a public URL and read it as Markdown, with no MCP server to configure.
-  The tool is read-only and never prompts for approval; on managed cloud runners
-  it refuses private and internal addresses.
+  The tool is read-only and asks for no approval unless an Agent's hooks ask
+  about it; on managed cloud runners it refuses private and internal addresses.
 
 The native Harness is the right choice for most workloads. It gives you the
 widest model catalog and the deepest platform integration.

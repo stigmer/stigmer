@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { getUserMessage } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { toast } from "../feedback/toast.js";
@@ -17,7 +18,9 @@ export type DeletableResourceKind =
 export interface UseDeleteResourceReturn {
   /**
    * Delete the resource. Resolves on success, rejects on failure.
-   * Shows a success toast on completion and an error toast on failure.
+   * Shows a success toast on completion and an error toast on failure,
+   * whose description is the server's sentence (a refusal says what still
+   * uses the resource and what to undo).
    */
   readonly deleteResource: () => Promise<void>;
   /** `true` while the delete request is in flight. */
@@ -97,7 +100,7 @@ export function useDeleteResource(
     } catch (err) {
       const wrapped = toError(err);
       setError(wrapped);
-      toast.error(`Failed to delete ${kindLabel(kind)}`);
+      toast.error(`Failed to delete ${kindLabel(kind)}`, { description: getUserMessage(wrapped) });
       throw wrapped;
     } finally {
       setIsDeleting(false);

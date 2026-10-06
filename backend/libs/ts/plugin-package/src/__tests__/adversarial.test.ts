@@ -460,6 +460,11 @@ const WARNING_CASES: Record<PluginWarningKind, Case> = {
     kinds: warnings("skill-hooks-not-run"),
     message: "skill 's' in 'skills/s/SKILL.md' declares hooks in its frontmatter, which Stigmer does not run",
   },
+  "hooks-not-read": {
+    files: openPlugin({ files: { "hooks/hooks.json": JSON.stringify({ hooks: { PreToolUse: [{ hooks: [COMMAND] }] } }) } }),
+    kinds: warnings("hooks-not-read"),
+    message: "hooks/ is not read: Stigmer reads hooks in the Claude Code, Codex and Cursor layouts",
+  },
   "settings-agent-unknown": {
     files: claudePlugin({ settings: { agent: "ghost" } }),
     kinds: warnings("settings-agent-unknown"),

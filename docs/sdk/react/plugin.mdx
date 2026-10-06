@@ -6,37 +6,37 @@ title: plugin
 
 ## Hooks
 
-### useAddToolsToAgent
+### useAddPluginToAgent
 
-Behaviour hook behind [`AddToolsToAgentDialog`](#addtoolstoagentdialog).
+Behaviour hook behind [`AddPluginToAgentDialog`](#addplugintoagentdialog).
 
 **Signature**
 
 ```tsx
-function useAddToolsToAgent(servers: readonly AddableServer[]): UseAddToolsToAgentReturn
+function useAddPluginToAgent(offer: PluginOffer): UseAddPluginToAgentReturn
 ```
 
 <TypeTable
   type={{
-    servers: { type: "readonly AddableServer[]", description: "", required: true },
+    offer: { type: "PluginOffer", description: "", required: true },
   }}
 />
 
-**Returns** — `UseAddToolsToAgentReturn`
+**Returns** — `UseAddPluginToAgentReturn`
 
 <TypeTable
   type={{
-    add: { type: "() => Promise<number>", description: "Append the servers not already listed and save. Resolves to the number added." },
+    add: { type: "() => Promise<AddPluginOutcome>", description: "Add what the agent does not have yet and save. Resolves to what changed." },
     clearError: { type: "() => void", description: "" },
     error: { type: "Error | null", description: "" },
-    phase: { type: "AddToolsPhase", description: "", typeDescriptionLink: "#addtoolsphase" },
+    phase: { type: "AddPluginPhase", description: "", typeDescriptionLink: "#addpluginphase" },
     pick: { type: "(ref: ResourceRef | null) => void", description: "The pick from the agent picker; `null` returns to picking." },
     reset: { type: "() => void", description: "" },
   }}
 />
 
 ```tsx
-const flow = useAddToolsToAgent(servers);
+const flow = useAddPluginToAgent({ servers, hooks: { plugin: ref, config: plugin.status.hooks } });
 <AgentPicker org={org} value={picked} onChange={flow.pick} />
 ```
 
@@ -574,34 +574,53 @@ function usePreparePluginInstall(opened: OpenedMarketplace | null, entryName: st
 
 ## Components
 
-### AddToolsToAgentDialog
+### AddPluginToAgentDialog
 
-Adds a plugin's MCP servers to an existing agent, or hands the host the
-servers for a new one.
+Adds a plugin's MCP servers and hooks to an existing agent, or hands the
+host the servers for a new one.
 
-**Props** — `AddToolsToAgentDialogProps`
+**Props** — `AddPluginToAgentDialogProps`
 
 <TypeTable
   type={{
     className: { type: "string", description: "" },
+    offer: { type: "PluginOffer", description: "What the add brings: the plugin's servers as it installed them, and its hooks when it has hooks that run.", required: true, typeDescriptionLink: "#pluginoffer" },
     onAgentClick: { type: "(ref: ResourceRef) => void", description: "Called with the updated agent's reference after a successful add, from \"Open agent\". The host owns the route." },
     onClose: { type: "() => void", description: "", required: true },
-    onCreateAgent: { type: "(usages: readonly McpServerUsageInput[]) => void", description: "Called from \"Create a new agent with these tools\" with the usages a wizard preselects. The host owns the route; the link is hidden when omitted." },
+    onCreateAgent: { type: "(usages: readonly McpServerUsageInput[]) => void", description: "Called from \"Create a new agent with these tools\" with the usages a wizard preselects. The host owns the route; the link is hidden when omitted or when the plugin brings no servers." },
     open: { type: "boolean", description: "", required: true },
     org: { type: "string", description: "The organization whose agents are offered.", required: true },
-    servers: { type: "readonly AddableServer[]", description: "The servers to add, as the plugin installed them.", required: true },
   }}
 />
 
 ```tsx
-<AddToolsToAgentDialog
+<AddPluginToAgentDialog
   org={org}
-  servers={servers}
+  offer={{ servers, hooks: plugin.status?.hooks && { plugin: { org, slug }, config: plugin.status.hooks } }}
   open={adding}
   onClose={() => setAdding(false)}
   onAgentClick={({ org, slug }) => navigateToDetail("agents", org, slug)}
   onCreateAgent={(usages) => router.push(`/library/agents/new?mcp=${usages.map((u) => u.mcpServerRef.slug).join(",")}`)}
 />
+```
+
+
+### HookConfigList
+
+Lists every hook in a hook set: each event, its matcher, and every
+command it runs, verbatim.
+
+**Props** — `HookConfigListProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root list." },
+    config: { type: "HookConfig", description: "The hook set to show.", required: true },
+  }}
+/>
+
+```tsx
+{plugin.status?.hooks && <HookConfigList config={plugin.status.hooks} />}
 ```
 
 
@@ -713,8 +732,9 @@ Renders [`useMcpServerReadiness`](#usemcpserverreadiness) for one server.
 
 ### PluginDetailView
 
-Operational detail hub for an installed Plugin: what it installed, what
-its manifest declares, what the server warned about, and its versions.
+Operational detail hub for an installed Plugin: what it installed, its
+hooks and the ones Stigmer does not run, what its manifest declares, what
+the server warned about, and its versions.
 
 **Props** — `PluginDetailViewProps`
 
@@ -726,7 +746,7 @@ its manifest declares, what the server warned about, and its versions.
     className: { type: "string", description: "Additional CSS classes for the root container." },
     defaultTab: { type: "string", description: "" },
     onAgentClick: { type: "(ref: PluginMemberRef) => void", description: "" },
-    onCreateAgent: { type: "(usages: readonly McpServerUsageInput[]) => void", description: "Called from \"Create a new agent with these tools\" with the usages the creation wizard preselects, for a plugin that installed MCP servers and no agent. The host owns the route to its wizard; the link is hidden when omitted, and \"Add to an agent\" still offers the organization's agents." },
+    onCreateAgent: { type: "(usages: readonly McpServerUsageInput[]) => void", description: "Called from \"Create a new agent with these tools\" with the usages the creation wizard preselects, for a plugin that installed MCP servers and no agent. The host owns the route to its wizard; the link is hidden when omitted, and \"Add to an agent\" still offers the organization's agents. A new agent gets the servers only; its hooks are switched on from its own page or from \"Add to an agent\"." },
     onMcpServerClick: { type: "(ref: PluginMemberRef) => void", description: "" },
     onResourceLoad: { type: "(meta: { id: string; name: string }) => void", description: "Called once when the plugin has been fetched, for breadcrumbs and titles. Not called on error or not-found." },
     onSkillClick: { type: "(ref: PluginMemberRef) => void", description: "Called when a member row is selected; the host owns the route to each kind's page." },
@@ -872,6 +892,18 @@ The reader's refusal with every sentence, the way `validate -f` prints it; any o
 
 ## Types
 
+### AddableHooks
+
+A plugin's hooks the dialog offers: the plugin by reference, and the hooks it recorded at install.
+
+<TypeTable
+  type={{
+    config: { type: "HookConfig", description: "", required: true },
+    plugin: { type: "ResourceRef", description: "", required: true },
+  }}
+/>
+
+
 ### AddableServer
 
 A server the dialog offers, by reference and by the name the user reads.
@@ -884,14 +916,27 @@ A server the dialog offers, by reference and by the name the user reads.
 />
 
 
+### AddPluginOutcome
+
+What an add changed on the agent.
+
+<TypeTable
+  type={{
+    hooks: { type: "boolean", description: "Whether the plugin's hooks were switched on (`false` when the agent already named the plugin).", required: true },
+    servers: { type: "number", description: "How many servers were appended.", required: true },
+    variables: { type: "readonly string[]", description: "The variables declared on the agent for the hooks; the agent asks for each when a session starts.", required: true },
+  }}
+/>
+
+
+### AddPluginPhase
+
+Where the flow stands.
+
+
 ### AddSourceOutcome
 
 What `add` comes to: the source recorded under `name`, or the sentence refusing it.
-
-
-### AddToolsPhase
-
-Where the flow stands.
 
 
 ### BUILT_IN_SOURCES
@@ -1030,6 +1075,16 @@ function githubOwner(repo: string): string
 ```
 
 
+### hookVariablesToDeclare
+
+The variables a plugin's hooks read that the agent does not declare yet,
+in first-seen order: what switching the hooks on adds to its `env`.
+
+```tsx
+function hookVariablesToDeclare(input: AgentInput, config: HookConfig | undefined): readonly string[]
+```
+
+
 ### InstallOrigin
 
 Where a prepared install came from: a source's entry, or something the
@@ -1089,6 +1144,15 @@ A marketplace the console can read, named as the user sees it.
     source: { type: "MarketplaceSource", description: "", required: true, typeDescriptionLink: "#marketplacesource" },
   }}
 />
+
+
+### listsPluginHooks
+
+Whether the agent's hooks already name this plugin, compared by org and slug.
+
+```tsx
+function listsPluginHooks(input: AgentInput, ref: ResourceRef): boolean
+```
 
 
 ### LocalFile
@@ -1327,6 +1391,18 @@ The members of a plugin grouped by kind, in the order the server materialises th
 />
 
 
+### PluginOffer
+
+What adding a plugin to an agent offers: its servers, its hooks, or both.
+
+<TypeTable
+  type={{
+    hooks: { type: "AddableHooks", description: "", typeDescriptionLink: "#addablehooks" },
+    servers: { type: "readonly AddableServer[]", description: "", required: true },
+  }}
+/>
+
+
 ### PluginUploadPhase
 
 
@@ -1503,6 +1579,18 @@ Options for [`usePluginList`](#usepluginlist).
     query: { type: "string", description: "Text query to filter plugins by name, description or keywords." },
   }}
 />
+
+
+### withPluginHooks
+
+The agent's input with the plugin's hooks switched on: the plugin
+appended to `hooks` unless listed, and the variables its hooks read
+declared as required secrets unless declared. Everything else, the
+inline block and other plugins included, is kept as it is.
+
+```tsx
+function withPluginHooks(input: AgentInput, ref: ResourceRef, config: HookConfig | undefined): AgentInput
+```
 
 
 ### zipPick

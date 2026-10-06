@@ -13,6 +13,8 @@
  * the way OFF plus the disclosure. Shared by `SessionViewer` and
  * `NewSessionViewer` — a persisted account preference can arm the
  * launcher before the first message, so both surfaces need the disclosure.
+ * It says what still holds: a hook's refusal and the agent's tool lists bind
+ * under auto-approve too.
  */
 export function AutoApproveIndicator({ onTurnOff }: { readonly onTurnOff: () => void }) {
   return (
@@ -22,7 +24,8 @@ export function AutoApproveIndicator({ onTurnOff }: { readonly onTurnOff: () => 
     >
       <ShieldCheckIcon />
       <span className="stg:min-w-0 stg:flex-1 stg:truncate">
-        Auto-approving tool calls for this session
+        <span>Auto-approving tool calls for this session</span>
+        <span>; hooks and tool lists still apply</span>
       </span>
       <button
         type="button"

@@ -233,15 +233,25 @@ pages:
       Find a plugin in the Marketplace (the official catalogue and one you add)
       or upload a plugin folder or zip from your computer, in the web console
       or the desktop app; understand what the preview states before the act
-      (what installs, already installed, upgrade); sign in to the tools it
-      brought from the plugin's page; put the tools on an agent or start a
-      session on the agent it installs, which asks for the variables its tools
-      need.
+      (what installs, its hooks, already installed, upgrade); sign in to the
+      tools it brought from the plugin's page; read its hooks; put the tools
+      and hooks on an agent or start a session on the agent it installs, which
+      asks for the variables its tools need.
     medium: none
     why:
       A console how-to is a screenshot journey; the tour follows when the
       Marketplace and the upload path have settled, and the words here already
       match the CLI's.
+
+  guides/plugins/use-hooks:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Install a plugin whose hooks guard tool calls, read every command its
+      hooks run and the ones Stigmer does not run, switch the hooks on for an
+      agent from the console or YAML, write hooks in an agent, remove a plugin
+      an agent uses, and what differs from Claude Code.
+    medium: none
 
   guides/plugins/marketplace-file:
     fate: keep
@@ -358,11 +368,11 @@ pages:
     diataxis: how-to
     teaches:
       How to find an MCP Server in the Library, whichever way it arrived, and
-      what the single Connect action does — discovery, approval classification,
-      storage.
+      what the single Connect action does — discovery, recording each tool's
+      annotations, storage.
     medium: animated-tour
     why:
-      One click triggers discovery and approval classification —
+      One click triggers discovery and records the tools' annotations —
       cause-and-effect the reader must see firing to trust.
     embeds:
       DemoMarketplaceConnectTour: replace

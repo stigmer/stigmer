@@ -372,7 +372,8 @@ export function AccountPreferencesPanel({
             </span>
             <p className="stg:text-[0.65rem] stg:text-muted-foreground">
               Start your sessions with tool calls running unattended — no
-              approval prompts. Each conversation can turn this off (or on)
+              approval prompts. A plugin&apos;s hooks and an agent&apos;s tool
+              lists still apply. Each conversation can turn this off (or on)
               in its session panel.
             </p>
           </div>
