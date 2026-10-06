@@ -538,6 +538,7 @@ export type {
   ListPage,
   ListPageRequest,
   ListPageSource,
+  ReadPageParams,
 } from "./pipeline/steps/list-page.js";
 // The maintenance-surface row shape:
 // what findResourcesRawOrderedAfter pages and what

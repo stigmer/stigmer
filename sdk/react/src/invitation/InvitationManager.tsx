@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useId, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useId, useMemo, useState, type FormEvent } from "react";
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import {
@@ -93,7 +93,7 @@ export function InvitationManager({
   className,
 }: InvitationManagerProps) {
   const {
-    invitations,
+    invitations: loaded,
     hasMore,
     loadMore,
     isLoadingMore,
@@ -104,6 +104,15 @@ export function InvitationManager({
   } = useOrgInvitations(org);
   const [flow, setFlow] = useState<FlowState>({ phase: "idle" });
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  // A refetch re-reads only the first page, so a link revoked from a page
+  // loaded later would keep its stale copy: the revoke's own answer stands
+  // in for that row until the list starts again.
+  const [revoked, setRevoked] = useState<ReadonlyMap<string, Invitation>>(new Map());
+  useEffect(() => setRevoked(new Map()), [org]);
+  const invitations = useMemo(
+    () => loaded.map((inv) => revoked.get(inv.metadata?.id ?? "") ?? inv),
+    [loaded, revoked],
+  );
 
   const activeCount = invitations.filter(
     (inv) => inv.status?.state === InvitationState.active,
@@ -119,10 +128,14 @@ export function InvitationManager({
     [buildInviteUrl, refetch],
   );
 
-  const handleRevoked = useCallback(() => {
-    setRevokingId(null);
-    refetch();
-  }, [refetch]);
+  const handleRevoked = useCallback(
+    (invitation: Invitation) => {
+      setRevokingId(null);
+      setRevoked((previous) => new Map(previous).set(invitation.metadata?.id ?? "", invitation));
+      refetch();
+    },
+    [refetch],
+  );
 
   if (isLoading) {
     return (
@@ -439,7 +452,7 @@ function InvitationRow({
   isRevoking: boolean;
   onStartRevoke: () => void;
   onCancelRevoke: () => void;
-  onRevoked: () => void;
+  onRevoked: (invitation: Invitation) => void;
 }) {
   const { copy, copied } = useCopyFeedback();
 
@@ -567,15 +580,14 @@ function RevokeConfirmation({
 }: {
   invitationId: string;
   label: string;
-  onRevoked: () => void;
+  onRevoked: (invitation: Invitation) => void;
   onCancel: () => void;
 }) {
   const { revoke, isRevoking, error } = useRevokeInvitation();
 
   const handleConfirm = useCallback(async () => {
     try {
-      await revoke(invitationId);
-      onRevoked();
+      onRevoked(await revoke(invitationId));
     } catch {
       // error state is surfaced via the hook
     }

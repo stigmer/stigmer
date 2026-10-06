@@ -13,7 +13,9 @@
  *     and the server never receives a list request for them;
  *   - an allowed caller gets the manager, which lists once, a page at a
  *     time: the first page, then "Load more" continues from the page's
- *     token until the server says the list is complete;
+ *     token until the server says the list is complete; a link revoked
+ *     from a later page reads as revoked, though the refetch after it
+ *     re-reads only the first page;
  *   - while the check is in flight neither answer shows;
  *   - a failed check leaves the manager in place (fail-open: the server
  *     re-checks every call, and an admin is never told they are not one).
@@ -33,7 +35,12 @@ import {
   type CheckMyPermissionInput,
 } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
-import { InvitationSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
+import {
+  InvitationSchema,
+  InvitationStatusSchema,
+} from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
+import { InvitationCommandController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/command_pb";
+import { InvitationState } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/enum_pb";
 import { InvitationsSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/io_pb";
 import { InvitationSpecSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/spec_pb";
 import { InvitationQueryController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/query_pb";
@@ -82,11 +89,12 @@ function newServer(
   };
 }
 
-/** An invitation as the list answers one, identified and labelled by `label`. */
-function invitation(label: string) {
+/** An active invitation as the list answers one, identified and labelled by `label`. */
+function invitation(label: string, state = InvitationState.active) {
   return create(InvitationSchema, {
     metadata: create(ApiResourceMetadataSchema, { id: `inv_${label}`, name: label, org: "org_acme" }),
     spec: create(InvitationSpecSchema, { label }),
+    status: create(InvitationStatusSchema, { state }),
   });
 }
 
@@ -116,13 +124,16 @@ function renderSection(mode: DeploymentMode, server: Server) {
           });
         },
       });
+      router.service(InvitationCommandController, {
+        revoke: (input) => invitation(input.value.replace(/^inv_/, ""), InvitationState.revoked),
+      });
       router.service(InvitationQueryController, {
         listByOrg: (input) => {
           server.listedOrgs.push(input.org);
           server.listedPages.push({ pageSize: input.pageSize, pageToken: input.pageToken });
           const page = server.pages?.[input.pageToken];
           return create(InvitationsSchema, {
-            entries: (page?.labels ?? []).map(invitation),
+            entries: (page?.labels ?? []).map((label) => invitation(label)),
             nextPageToken: page?.next ?? "",
           });
         },
@@ -224,6 +235,34 @@ describe("InvitationsSection", () => {
       { pageSize: 25, pageToken: "after-newer" },
     ]);
     expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
+  });
+
+  it("shows a link revoked from a later page as revoked, though the refetch re-reads only the first page", async () => {
+    const server = newServer(answerLater(true), [ACME], {
+      "": { labels: ["Newest"], next: "after-newest" },
+      "after-newest": { labels: ["Oldest"], next: "" },
+    });
+    renderSection("cloud", server);
+
+    expect(await screen.findByText("Newest")).toBeTruthy();
+    await act(async () => {
+      screen.getByRole("button", { name: "Load more" }).click();
+    });
+    expect(await screen.findByText("Oldest")).toBeTruthy();
+    expect(screen.getByText("2 active")).toBeTruthy();
+
+    await act(async () => {
+      screen.getByRole("button", { name: "Revoke Oldest" }).click();
+    });
+    await act(async () => {
+      screen.getByRole("button", { name: "Revoke" }).click();
+    });
+    await settle();
+
+    expect(server.listedPages.at(-1)).toEqual({ pageSize: 25, pageToken: "" });
+    expect(screen.queryByRole("button", { name: "Revoke Oldest" })).toBeNull();
+    expect(screen.getByText("Revoked")).toBeTruthy();
+    expect(screen.getByText("1 active")).toBeTruthy();
   });
 
   it("shows neither answer while the check is in flight", async () => {
