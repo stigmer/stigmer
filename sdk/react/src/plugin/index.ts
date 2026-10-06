@@ -10,9 +10,11 @@
  * surfaces (`PluginDetailView`, `MarketplaceCatalog`, `PluginUploader`,
  * `PluginInstallDialog`, `InstallPreview`, `ManagedByPluginNotice`), what
  * ends an install (`McpServerReadiness` over `useMcpServerReadiness`, the
- * sign-in a server needs before its first tool call; `AddToolsToAgentDialog`
- * over `useAddToolsToAgent`, tools onto an agent) and the
- * label rule the member detail views apply (`useManagingPlugin`). Remove goes through
+ * sign-in a server needs before its first tool call; `AddPluginToAgentDialog`
+ * over `useAddPluginToAgent`, a plugin's tools and hooks onto an agent, the
+ * spec edit in `plugin-on-agent.ts`), a hook set as both the plugin and the
+ * agent page show it (`HookConfigList`) and the label rule the member
+ * detail views apply (`useManagingPlugin`). Remove goes through
  * `useDeleteResource("plugin", id)`; visibility through
  * `useUpdateVisibility("plugin", id)`, the one home each already has.
  */
@@ -113,10 +115,20 @@ export { McpServerReadiness } from "./McpServerReadiness.js";
 export type { McpServerReadinessProps } from "./McpServerReadiness.js";
 export { useMcpServerReadiness } from "./useMcpServerReadiness.js";
 export type { McpServerReadinessKind, UseMcpServerReadinessReturn } from "./useMcpServerReadiness.js";
-export { AddToolsToAgentDialog } from "./AddToolsToAgentDialog.js";
-export type { AddToolsToAgentDialogProps } from "./AddToolsToAgentDialog.js";
-export { useAddToolsToAgent } from "./useAddToolsToAgent.js";
-export type { AddableServer, AddToolsPhase, UseAddToolsToAgentReturn } from "./useAddToolsToAgent.js";
+export { AddPluginToAgentDialog } from "./AddPluginToAgentDialog.js";
+export type { AddPluginToAgentDialogProps } from "./AddPluginToAgentDialog.js";
+export { useAddPluginToAgent } from "./useAddPluginToAgent.js";
+export type {
+  AddableHooks,
+  AddableServer,
+  AddPluginOutcome,
+  AddPluginPhase,
+  PluginOffer,
+  UseAddPluginToAgentReturn,
+} from "./useAddPluginToAgent.js";
+export { hookVariablesToDeclare, listsPluginHooks, withPluginHooks } from "./plugin-on-agent.js";
+export { HookConfigList } from "./HookConfigList.js";
+export type { HookConfigListProps } from "./HookConfigList.js";
 export { ManagedByPluginNotice } from "./ManagedByPluginNotice.js";
 export type { ManagedByPluginNoticeProps } from "./ManagedByPluginNotice.js";
 export { PluginIcon } from "./PluginIcon.js";

@@ -194,6 +194,7 @@ export {
   type McpServerUsageInput,
   type SubAgentInput,
   type EnvVarDeclarationInput,
+  type HookSourceInput,
 } from "./gen/agent.js";
 export {
   AgentChannelClient,
