@@ -15,6 +15,7 @@ The test machinery two or more suites share, in one place (`test/README.md`, "Th
 | `fake-llm-upstream` | `FakeLlmUpstream`: a provider the proxy dials, scripted per request; in default-reply mode every unscripted request gets `DEFAULT_REPLY_TEXT`, in default-error mode a non-retryable 400; it listens on `host` and reports its `port()` (the install journeys' fake, `test/install/lib/fake-model.mjs`) |
 | `jwt`, `local-oidc-issuer`, `local-oidc-issuer-main` | A hermetic OIDC issuer, in process or as a process |
 | `oauth-authorization-server` | A hermetic OAuth authorization server |
+| `real-plugins` | Real Claude Code plugins vendored whole under `fixtures/claude-plugins/` (hookify), scripts included: a plugin's files as a push's archive input, the manifest of upstream's git blob SHAs a test holds them to, and a rule from the plugin's own examples |
 
 ## The rule
 

@@ -18,6 +18,11 @@ backend/services/stigmer-server/src/authorization/model/data/
 backend/libs/ts/plugin-package/src/__tests__/fixtures/cursor-plugins/
 backend/libs/ts/plugin-package/src/__tests__/fixtures/claude-plugins/
 
+# Real plugins vendored whole, scripts included, so the suites can run their
+# hooks; test/support/fixtures/claude-plugins/NOTICE names the source and
+# commit, and a test holds every file to upstream's blob SHA.
+test/support/fixtures/claude-plugins/
+
 # The Cursor hook configuration is rendered by `make agents-sync` and compared
 # byte for byte by `make agents-check`, so formatting must not touch it.
 .cursor/hooks.json

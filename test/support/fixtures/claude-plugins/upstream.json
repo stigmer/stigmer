@@ -1,0 +1,111 @@
+{
+  "repository": "https://github.com/anthropics/claude-plugins-official",
+  "commit": "d182ca456ca09d31d139f7d3818d1d333b103cce",
+  "plugins": {
+    "hookify": {
+      "path": "plugins/hookify",
+      "files": {
+        ".claude-plugin/plugin.json": {
+          "blob": "657f3d8d2227162ec2d757a41751ed31b3e29fb0",
+          "mode": "100644"
+        },
+        ".gitignore": {
+          "blob": "6d5f8af5db0888ee53137f37be6f170298daf497",
+          "mode": "100644"
+        },
+        "LICENSE": {
+          "blob": "d645695673349e3947e8e5ae42332d0ac3164cd7",
+          "mode": "100644"
+        },
+        "README.md": {
+          "blob": "1aca6cdfb71bbf67da11074f22b53c00d2ef4452",
+          "mode": "100644"
+        },
+        "agents/conversation-analyzer.md": {
+          "blob": "83aa9d062d8aff1b818682ec7ca6f5b8e4d80e77",
+          "mode": "100644"
+        },
+        "commands/configure.md": {
+          "blob": "ccc7e472b39b4a84c06d86735bf86dec4f5aa340",
+          "mode": "100644"
+        },
+        "commands/help.md": {
+          "blob": "ae6e94b1d714b05d728405fb5e496dd57f8bd6ba",
+          "mode": "100644"
+        },
+        "commands/hookify.md": {
+          "blob": "e5fc645a80f97014645fd91c04772af21a238c58",
+          "mode": "100644"
+        },
+        "commands/list.md": {
+          "blob": "d6f810fb5368ee6623afd427314e13db50bb7841",
+          "mode": "100644"
+        },
+        "core/__init__.py": {
+          "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+          "mode": "100644"
+        },
+        "core/config_loader.py": {
+          "blob": "fa2fc3e36fee0d886902d118a55ab12b08a0a876",
+          "mode": "100644"
+        },
+        "core/rule_engine.py": {
+          "blob": "51561c39e927ef53cabe56a2fa55054165e90d19",
+          "mode": "100644"
+        },
+        "examples/console-log-warning.local.md": {
+          "blob": "c9352e7530c11635a990df827185e07fac681b57",
+          "mode": "100644"
+        },
+        "examples/dangerous-rm.local.md": {
+          "blob": "8226eb197a7b498aeb1ef113ef38a155e683363a",
+          "mode": "100644"
+        },
+        "examples/require-tests-stop.local.md": {
+          "blob": "87039186caa4a0ebf27ddddc83881b5355001f50",
+          "mode": "100644"
+        },
+        "examples/sensitive-files-warning.local.md": {
+          "blob": "ae92971d8edd561096814b7f98ef181b8169a997",
+          "mode": "100644"
+        },
+        "hooks/__init__.py": {
+          "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+          "mode": "100755"
+        },
+        "hooks/hooks.json": {
+          "blob": "4aa457a28f4ee8db29aa4dfce4cd7b6b32098ab5",
+          "mode": "100644"
+        },
+        "hooks/posttooluse.py": {
+          "blob": "9c6ccd92f7ce9eaee64aad64f89e4cc96a4a501c",
+          "mode": "100755"
+        },
+        "hooks/pretooluse.py": {
+          "blob": "9aff51975f4eb014b91aa20f2ff6a07f21513304",
+          "mode": "100755"
+        },
+        "hooks/stop.py": {
+          "blob": "b922a883d21bcbc825c4ddc17019f2545ed54d3f",
+          "mode": "100755"
+        },
+        "hooks/userpromptsubmit.py": {
+          "blob": "6f54585b8f04489abb759e5e82f056a1b46998eb",
+          "mode": "100755"
+        },
+        "matchers/__init__.py": {
+          "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+          "mode": "100644"
+        },
+        "skills/writing-rules/SKILL.md": {
+          "blob": "58f9e6d1b4f37f52f936372ba0c65ab627fcf4e0",
+          "mode": "100644"
+        },
+        "utils/__init__.py": {
+          "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+          "mode": "100644"
+        }
+      }
+    }
+  }
+}
