@@ -44,7 +44,7 @@ message Duration {
   uint32 milliseconds = 5;
 }
 
-// WaitTaskConfig defines the configuration for wait tasks that pause workflow run.
+// WaitTaskConfig defines the configuration for wait tasks that pause a workflow run.
 //
 // Supports both relative durations and absolute timestamps.
 //

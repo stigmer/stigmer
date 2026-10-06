@@ -204,7 +204,7 @@ message WebhookDelivery {
 // oss#530; a scoped can_signal relation is the named follow-up if
 // cross-principal pipelines get demand.
 message SignalDelivery {
-  // Target workflow run id ("wfx_..."), as returned by run/create.
+  // Target workflow run id ("wex_..."), as returned by run/create.
   // Usually flows from a prior task's output:
   // "${ .start_processor.run_id }"
   string run_id = 1 [
