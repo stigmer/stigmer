@@ -10,7 +10,7 @@ import { useSessionNavigation } from "@/domain/session/session-navigation";
 import { useRunNavigation } from "@/domain/runs/run-navigation";
 import { SessionLauncher } from "@/domain/session/SessionLauncher";
 import { SessionPageInner } from "@/domain/session/SessionPage";
-import NotFound from "@/app/not-found";
+import { RunNotFound } from "@/domain/runs/RunNotFound";
 import { DesktopAppBanner, useDesktopBannerState } from "./DesktopAppBanner";
 import { ManagementSidebar } from "./ManagementSidebar";
 import { Sidebar } from "./Sidebar";
@@ -137,8 +137,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
  * `/runs/<id>` is the address of a run; a run is viewed in its session.
  * The zone resolves the run's session and hands off to the session zone
  * via `navigateToSession`, rendering nothing meanwhile. When no run
- * resolves (an unknown id, or a run without a session), it shows the
- * not-found page.
+ * resolves (an unknown id, or a run without a session), it says the run
+ * was not found.
  *
  * The `/runs/[id]` route is a no-op placeholder (like `/sessions/[id]`)
  * that only exists so static export emits an nginx fallback for deep links and
@@ -157,7 +157,7 @@ function RunZoneContent({ runId }: { runId: string }) {
 
   if (isLoading || sessionId) return null;
 
-  return <NotFound />;
+  return <RunNotFound />;
 }
 
 /**

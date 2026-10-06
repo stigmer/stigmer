@@ -1,10 +1,10 @@
 /**
  * Pins the web app shell's run zone: a /runs/<id> path shows nothing of its
  * own and hands the run off to the session it ran in, once that session is
- * resolved, without a page load. A run that resolves to no session shows the
- * not-found page. Off the run zone, the page's own content renders. The
- * not-found page, the sidebars and the session zone are stubbed; their wiring
- * is pinned in their own suites.
+ * resolved, without a page load. A run that resolves to no session says the
+ * run was not found. Off the run zone, the page's own content renders. The
+ * run-not-found state, the sidebars and the session zone are stubbed; their
+ * wiring is pinned in their own suites.
  */
 import type { ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -44,7 +44,7 @@ vi.mock("@stigmer/react", () => ({
   },
 }));
 
-vi.mock("@/app/not-found", () => ({ default: () => <p>not found</p> }));
+vi.mock("@/domain/runs/RunNotFound", () => ({ RunNotFound: () => <p>not found</p> }));
 vi.mock("@/domain/session/SessionLauncher", () => ({ SessionLauncher: () => null }));
 vi.mock("@/domain/session/SessionPage", () => ({ SessionPageInner: () => null }));
 vi.mock("../Sidebar", () => ({ Sidebar: () => null }));
@@ -92,7 +92,7 @@ describe("web AppShell — the run zone", () => {
     expect(screen.queryByText("page content")).toBeNull();
   });
 
-  it("shows the not-found page when no run resolves", () => {
+  it("says the run was not found when no run resolves", () => {
     renderShell("/runs/aex_missing");
 
     expect(shell.resolving.at(-1)).toBe("aex_missing");
