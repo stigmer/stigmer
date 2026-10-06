@@ -42,6 +42,5 @@ export const SHUTDOWN_DRAIN_TIMEOUT_MS = 10_000;
  * (pkg/server/server.go:812-826) and asserted by the conformance suite
  * test/conformance/src/suites/registry-proxy.conformance.test.ts.
  */
-export const TASK_KIND_REGISTRY_PATH = "/v1/proxy/task-kind-registry";
 export const MODEL_REGISTRY_PATH = "/v1/proxy/model-registry";
 export const SKILL_ARTIFACTS_PATH_PREFIX = "/v1/skill-artifacts";

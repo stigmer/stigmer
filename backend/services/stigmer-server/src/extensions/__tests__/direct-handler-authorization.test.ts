@@ -1,8 +1,7 @@
 /**
  * Pins the direct-handler authorization END TO END for the handlers whose
  * domain suites run through full composed servers (session updateSubject,
- * workflow getVersion, artifact delete/getDownloadUrl/getContent, and the
- * channel install pair): one
+ * the channel install pair, and the resolved skill version history): one
  * composed server with a DENYING extension Authorizer, probed over the
  * wire. This proves the whole path — transport → registered handler →
  * authorizeDirect → the composed Authorizer — not just the handler
@@ -11,7 +10,7 @@
  * denied writes leave the stored rows untouched.
  *
  * The streaming/connect lanes' enforcement is pinned in their domain
- * suites (workflowexecution/agentexecution read-authorization.test.ts,
+ * suites (agentexecution read-authorization.test.ts,
  * mcpserver connect-authorization.test.ts); the decision mapping itself
  * in pipeline/steps/__tests__/authorize.test.ts.
  */
@@ -27,17 +26,11 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
-import { ArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
-import { ArtifactCommandController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/command_pb";
-import { ArtifactStorageState } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/enum_pb";
-import { ArtifactQueryController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/query_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
-import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { loadConfig } from "../../boot/config.js";
@@ -96,20 +89,6 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
       }),
     );
     await server.store.saveResource(
-      ApiResourceKind.artifact,
-      "art_01authztarget",
-      ArtifactSchema,
-      create(ArtifactSchema, {
-        apiVersion: "agentic.stigmer.ai/v1",
-        kind: "Artifact",
-        metadata: { id: "art_01authztarget", name: "target", org: "acme" },
-        status: {
-          contentHash: "0".repeat(64),
-          storageState: ArtifactStorageState.storage_state_stored,
-        },
-      }),
-    );
-    await server.store.saveResource(
       ApiResourceKind.agent_channel,
       "ach_01authztarget",
       AgentChannelSchema,
@@ -119,23 +98,8 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
         metadata: { id: "ach_01authztarget", name: "target", org: "acme" },
       }),
     );
-    // The mid-chain-check targets: the two listVersions
-    // lanes resolve by org+slug before their can_view checks.
-    await server.store.saveResource(
-      ApiResourceKind.workflow,
-      "wfl_01authztarget",
-      WorkflowSchema,
-      create(WorkflowSchema, {
-        apiVersion: "agentic.stigmer.ai/v1",
-        kind: "Workflow",
-        metadata: {
-          id: "wfl_01authztarget",
-          name: "target",
-          slug: "authz-target",
-          org: "acme",
-        },
-      }),
-    );
+    // The mid-chain-check target: listVersions resolves by org+slug
+    // before its can_view check.
     await server.store.saveResource(
       ApiResourceKind.skill,
       "skl_01authztarget",
@@ -191,46 +155,6 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
     );
   });
 
-  it("workflow getVersion denies with its annotation copy (a deliberate divergence from Java)", async () => {
-    const query = createClient(WorkflowQueryController, transport);
-    await expectDenied(
-      () =>
-        query.getVersion({
-          workflowId: "wfl_01any",
-          versionHash: "a".repeat(64),
-        }),
-      "unauthorized to get workflow version",
-    );
-  });
-
-  it("artifact delete denies with its annotation copy and leaves the storage state unchanged", async () => {
-    const command = createClient(ArtifactCommandController, transport);
-    await expectDenied(
-      () => command.delete({ value: "art_01authztarget" }),
-      "unauthorized to delete artifact",
-    );
-    const stored = await server.store.getResource(
-      ApiResourceKind.artifact,
-      "art_01authztarget",
-      ArtifactSchema,
-    );
-    expect(stored.status?.storageState).toBe(
-      ArtifactStorageState.storage_state_stored,
-    );
-  });
-
-  it("artifact getDownloadUrl and getContent deny with their annotation copies", async () => {
-    const query = createClient(ArtifactQueryController, transport);
-    await expectDenied(
-      () => query.getDownloadUrl({ value: "art_01authztarget" }),
-      "unauthorized to download artifact",
-    );
-    await expectDenied(
-      () => query.getContent({ artifactId: "art_01authztarget" }),
-      "unauthorized to read artifact content",
-    );
-  });
-
   it("channel initiateInstall and completeInstall deny with their annotation copy", async () => {
     const command = createClient(AgentChannelCommandController, transport);
     // PermissionDenied — NOT the storing edition's FailedPrecondition —
@@ -257,34 +181,6 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
       () => query.listByChannel({ channelId: "ach_01authztarget" }),
       "unauthorized to list channel conversations",
     );
-  });
-
-  it("artifact listByRun denies on the PARENT execution with the Java handler's copy", async () => {
-    const query = createClient(ArtifactQueryController, transport);
-    await expectDenied(
-      () => query.listByRun({ workflowRunId: "wfe_01any" }),
-      "unauthorized to list artifacts for this execution",
-    );
-    await expectDenied(
-      () => query.listByRun({ agentRunId: "aex_01any" }),
-      "unauthorized to list artifacts for this execution",
-    );
-  });
-
-  it("workflow listVersions denies on the RESOLVED workflow with the Java handler's copy", async () => {
-    const query = createClient(WorkflowQueryController, transport);
-    await expectDenied(
-      () => query.listVersions({ slug: "authz-target", org: "acme" }),
-      "unauthorized to view workflow version history",
-    );
-  });
-
-  it("workflow listVersions on an UNKNOWN slug answers NotFound even under denial (resolve-first)", async () => {
-    const query = createClient(WorkflowQueryController, transport);
-    const error = await query
-      .listVersions({ slug: "no-such-workflow", org: "acme" })
-      .catch((e: unknown) => e);
-    expect((error as ConnectError).code).toBe(Code.NotFound);
   });
 
   it("skill listVersions denies on the RESOLVED skill with the Java handler's copy", async () => {

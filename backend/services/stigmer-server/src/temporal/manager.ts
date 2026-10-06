@@ -154,8 +154,8 @@ export interface WorkerFactoryDeps {
 }
 
 /**
- * Creates one domain worker (agent-execution here; workflow-execution and
- * the schedule clock append theirs — Go createWorkers' list;
+ * Creates one domain worker (agent-execution here; the schedule clock
+ * appends its own — Go createWorkers' list;
  * extension workers append after the OSS set via the registry).
  */
 export type WorkerFactory = (deps: WorkerFactoryDeps) => Promise<Worker>;

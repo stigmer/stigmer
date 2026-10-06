@@ -163,7 +163,6 @@ import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environmen
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
@@ -221,7 +220,6 @@ export const CREATOR_SCAN_SCHEMAS: ReadonlyMap<ApiResourceKind, DescMessage> =
   new Map<ApiResourceKind, DescMessage>([
     [ApiResourceKind.organization, OrganizationSchema],
     [ApiResourceKind.agent, AgentSchema],
-    [ApiResourceKind.workflow, WorkflowSchema],
     [ApiResourceKind.skill, SkillSchema],
     [ApiResourceKind.mcp_server, McpServerSchema],
     [ApiResourceKind.environment, EnvironmentSchema],

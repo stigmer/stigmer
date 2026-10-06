@@ -25,8 +25,8 @@
  *
  * Merge priority (lowest to highest): the minting PlatformClient's
  * environment_refs, for an execution a PlatformClient-minted user created
- * (#1256) → schedule/workflow-task environment_refs (the
- * share/channel/schedule/agent_call layering; resolved through the
+ * (#1256) → the schedule's environment_refs (the
+ * share/channel/schedule layering; resolved through the
  * environment RuntimeResolutionService — decrypted, the RPC surface
  * redacts, oss#405) → spec.runtime_env. Every layer is keyed on the
  * persisted execution alone (its labels, its audit), never on the
@@ -78,15 +78,12 @@ import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 
-import { Code, ConnectError } from "@connectrpc/connect";
+import { ConnectError } from "@connectrpc/connect";
 
 import type { Logger } from "../../boot/logger.js";
 import type { ExecutionContextDeleter } from "../executioncontext/internal-delete.js";
@@ -98,14 +95,9 @@ import {
 import {
   failedPreconditionError,
   goWrappedStatusError,
-  internalError,
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
-import {
-  loadVersion,
-  truncateHash,
-} from "../../pipeline/steps/version-history.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { OAuthGrant, Store } from "../../store/interface.js";
 import {
@@ -117,25 +109,12 @@ import type { RuntimeResolutionService } from "../environment/resolution/resolut
 import type { ManagedEnvironmentService } from "../mcpserver/oauth/managed-env.js";
 import { refreshTokenIfExpired } from "../mcpserver/oauth/refresh.js";
 import type { PlatformClientStore } from "../platformclient/store.js";
-import { findAgentCallStep } from "../workflow/validation/agent-call-steps.js";
-import { workflowVersionBinding } from "../workflow/version-resolution.js";
 
 import type { AgentLoader } from "./create-steps.js";
 import { runPersonOf, SCHEDULE_ID_LABEL_KEY } from "./run-person.js";
 import { sessionIdOf } from "./target.js";
 
 export { SCHEDULE_ID_LABEL_KEY };
-
-/**
- * Workflow provenance labels, stamped by the workflow runner's CallAgent
- * activity on every execution it creates. Consumed as the
- * environment-resolution key — OSS has no caller tokens to carry a claim,
- * and this single-user edition has no trust boundary the labels could
- * widen.
- */
-export const WORKFLOW_EXECUTION_ID_LABEL_KEY =
-  "stigmer.ai/workflow-execution-id";
-export const WORKFLOW_TASK_LABEL_KEY = "stigmer.ai/workflow-task";
 
 /**
  * Environment variable keys the agent-runner needs for workspace
@@ -270,27 +249,13 @@ export async function buildAndPersistExecutionContext(
   // unattended runs need without touching the agent.
   let environments = await resolveScheduleEnvironments(deps, execution);
 
-  // 4. Workflow-created executions (agent_call): the task's own
-  // environment_refs, the same layering — fourth in the
-  // share/channel/schedule lineage (issue #358). At most one of 3 and 4
-  // applies: an execution is created by a schedule fire or by a workflow
-  // task, never both.
-  const workflowEnvironments = await resolveWorkflowTaskEnvironments(
-    deps,
-    execution,
-  );
-  if (workflowEnvironments.length > 0) {
-    environments = [...workflowEnvironments, ...environments];
-  }
-
-  // 4.5 PlatformClient-minted executions: the minting client's own
-  // environment_refs, BELOW every other layer — the fifth application of
+  // 4. PlatformClient-minted executions: the minting client's own
+  // environment_refs, BELOW every other layer — another application of
   // the connection-resource mechanism (#381, restored by #1256). The key
   // is the execution's audit created_by, which the server stamped from
   // the verified token, so it holds on recover, where no minted caller
-  // exists. Independent of 4.5/4.6: a minted user's own turn carries no
-  // schedule or workflow provenance, and a fire or a workflow task stamps
-  // no minted actor.
+  // exists. Independent of 3: a minted user's own turn carries no
+  // schedule provenance, and a fire stamps no minted actor.
   const platformClientEnvironments = await resolvePlatformClientEnvironments(
     deps,
     execution,
@@ -833,187 +798,6 @@ async function resolvePlatformClientEnvironments(
       error,
     );
   }
-}
-
-/**
- * Resolves the environment_refs of the agent_call step that created this
- * execution (the workflow-provenance labels), read from the workflow
- * version the workflow run pinned (`status.workflow_version_hash`), never
- * the head, so an author's edit after the run started never changes what
- * a running step receives (stigmer#1906). A version covers every step's
- * environment_refs (the workflow's version hash is its whole spec's), and
- * the step is found at any depth by its name, which save keeps unique
- * across the workflow (domain/workflow/validation/agent-call-steps.ts). A
- * run with no pin (a workflow saved before versioning) reads the head, as
- * the runner's hydrate does.
- *
- * Missing labels — every non-workflow execution — answer empty; a deleted
- * workflow execution or workflow, or a step the version does not hold,
- * degrades to no workflow environments. A pinned version the workflow no
- * longer holds fails the create naming it, as the runner fails the run:
- * the step is never handed another version's keys. An unresolvable REF
- * fails the create.
- */
-export async function resolveWorkflowTaskEnvironments(
-  deps: ExecutionContextBuilderDeps,
-  execution: AgentRun,
-): Promise<Environment[]> {
-  const labels = execution.metadata?.labels ?? {};
-  const workflowExecutionId = labels[WORKFLOW_EXECUTION_ID_LABEL_KEY] ?? "";
-  const taskName = labels[WORKFLOW_TASK_LABEL_KEY] ?? "";
-  if (workflowExecutionId === "" || taskName === "") {
-    return [];
-  }
-  const executionId = execution.metadata?.id ?? "";
-
-  let workflowExecution;
-  try {
-    workflowExecution = await deps.store.getResource(
-      ApiResourceKind.workflow_run,
-      workflowExecutionId,
-      WorkflowRunSchema,
-    );
-  } catch (error) {
-    if (error instanceof ResourceNotFoundError) {
-      deps.logger.warn(
-        "Workflow-labeled execution's workflow execution row is gone — running without workflow environments",
-        { workflowExecutionId, executionId },
-      );
-      return [];
-    }
-    throw new Error(
-      `load workflow execution ${workflowExecutionId} for environment resolution: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
-
-  const workflowId = workflowExecution.spec?.workflowId ?? "";
-  if (workflowId === "") {
-    return [];
-  }
-  const workflow = await loadPinnedWorkflow(
-    deps,
-    workflowId,
-    workflowExecution.status?.workflowVersionHash ?? "",
-    executionId,
-  );
-  if (workflow === undefined) {
-    return [];
-  }
-
-  const refs = agentCallTaskEnvironmentRefs(deps.logger, workflow, taskName);
-  if (refs.length === 0) {
-    return [];
-  }
-
-  // A ref may omit the org (relative form); resolution follows the
-  // workflow's org — also the execution's billing org.
-  const resolved = refs.map((ref) =>
-    ref.org === ""
-      ? create(ApiResourceReferenceSchema, {
-          kind: ref.kind,
-          org: workflow.metadata?.org ?? "",
-          slug: ref.slug,
-        })
-      : ref,
-  );
-
-  try {
-    return await resolveEnvironments(deps, resolved);
-  } catch (error) {
-    chainError(
-      `resolve workflow ${workflowId} task "${taskName}" environment_refs`,
-      error,
-    );
-  }
-}
-
-/**
- * The workflow as the run pinned it: the version `versionHash` names
- * (version-history.ts `loadVersion`, getVersion's own reader), or the head
- * when the run pinned none. Undefined when the workflow is gone (the
- * degrade case); a pinned version the live workflow no longer holds is
- * FAILED_PRECONDITION naming it; a store fault is Internal.
- */
-export async function loadPinnedWorkflow(
-  deps: Pick<ExecutionContextBuilderDeps, "store" | "logger">,
-  workflowId: string,
-  versionHash: string,
-  executionId: string,
-): Promise<Workflow | undefined> {
-  try {
-    if (versionHash === "") {
-      return await deps.store.getResource(
-        ApiResourceKind.workflow,
-        workflowId,
-        WorkflowSchema,
-      );
-    }
-    return (
-      await loadVersion(deps.store, workflowVersionBinding, workflowId, versionHash)
-    ).resource;
-  } catch (error) {
-    const notFound =
-      error instanceof ResourceNotFoundError ||
-      (error instanceof ConnectError && error.code === Code.NotFound);
-    if (!notFound) {
-      throw new Error(
-        `load workflow ${workflowId} for environment resolution: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
-    if (versionHash !== "" && (await workflowExists(deps, workflowId))) {
-      throw failedPreconditionError(
-        `workflow ${workflowId} no longer holds version ${truncateHash(versionHash)}, the version its run started on`,
-      );
-    }
-    deps.logger.warn(
-      "Workflow-labeled execution's workflow row is gone — running without workflow environments",
-      { workflowId, executionId },
-    );
-    return undefined;
-  }
-}
-
-/** Whether the workflow's row exists; a store fault is Internal. */
-async function workflowExists(
-  deps: Pick<ExecutionContextBuilderDeps, "store">,
-  workflowId: string,
-): Promise<boolean> {
-  try {
-    await deps.store.getResource(
-      ApiResourceKind.workflow,
-      workflowId,
-      WorkflowSchema,
-    );
-    return true;
-  } catch (error) {
-    if (error instanceof ResourceNotFoundError) {
-      return false;
-    }
-    throw internalError(error, `failed to load workflow ${workflowId}`);
-  }
-}
-
-/**
- * The environment_refs of the agent_call step named `taskName`, found at
- * any depth of the workflow (nested lists and compensate included). A
- * missing or renamed step answers empty: the binding no longer exists in
- * this version, the degrade-not-fail case. A version saved before step
- * names were unique may hold several: the first in walk order answers,
- * and the duplicate is logged.
- */
-export function agentCallTaskEnvironmentRefs(
-  logger: Logger,
-  workflow: Workflow,
-  taskName: string,
-): ApiResourceReference[] {
-  const { step, matches } = findAgentCallStep(workflow.spec, taskName);
-  if (matches > 1) {
-    logger.warn(
-      "Workflow version holds several agent_call steps of one name — reading the first",
-      { workflowId: workflow.metadata?.id ?? "", taskName, matches },
-    );
-  }
-  return step?.config.environmentRefs ?? [];
 }
 
 /**

@@ -38,10 +38,13 @@ import {
   Health,
   HealthCheckResponse_ServingStatus as ServingStatus,
 } from "@stigmer/protos/grpc/health/v1/health_pb";
-import { ArtifactCommandController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/command_pb";
+import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
+import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { create } from "@bufbuild/protobuf";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
-import { ArtifactQueryController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/query_pb";
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
 import {
   createServer as netCreateServer,
@@ -184,26 +187,38 @@ describe("the artifact download lane", () => {
       const transport = createGrpcTransport({
         baseUrl: `http://127.0.0.1:${port}`,
       });
-      const command = createClient(ArtifactCommandController, transport);
-      const query = createClient(ArtifactQueryController, transport);
+      // A run's attachment: uploaded through the run's own lane, named on
+      // a stored run, and handed back as a minted download URL.
+      const command = createClient(AgentRunCommandController, transport);
+      const query = createClient(AgentRunQueryController, transport);
       const content = new TextEncoder().encode("ephemeral lane body\n");
-      const created = await command.create({
-        spec: {
-          displayName: "ephemeral-lane.txt",
-          contentType: "text/plain",
-          source: { agentRunId: "aexec_01ephemerallane" },
-        },
+      const { storageKey } = await command.uploadAttachment({
+        filename: "ephemeral-lane.txt",
         content,
+        contentType: "text/plain",
       });
-      const download = await query.getDownloadUrl({
-        value: created.metadata!.id,
+      const runId = "aex_01ephemerallane";
+      await server.store.saveResource(
+        ApiResourceKind.agent_run,
+        runId,
+        AgentRunSchema,
+        create(AgentRunSchema, {
+          metadata: { id: runId, name: runId },
+          spec: {
+            attachments: [{ filename: "ephemeral-lane.txt", storageKey }],
+          },
+        }),
+      );
+      const download = await query.getArtifactDownloadUrl({
+        runId,
+        storageKey,
       });
 
       // An OS-assigned port, never the privileged port 1 that +1 derived
       // from 0; the bytes coming back prove it is THIS server's lane.
-      expect(Number(new URL(download.url).port)).toBeGreaterThan(1024);
-      expect(Number(new URL(download.url).port)).toBe(bound?.artifactHttp);
-      const served = await fetch(download.url);
+      expect(Number(new URL(download.downloadUrl).port)).toBeGreaterThan(1024);
+      expect(Number(new URL(download.downloadUrl).port)).toBe(bound?.artifactHttp);
+      const served = await fetch(download.downloadUrl);
       expect(served.status).toBe(200);
       expect(new Uint8Array(await served.arrayBuffer())).toEqual(content);
     } finally {

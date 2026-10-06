@@ -387,7 +387,7 @@ export interface ResolvedExtensionDrivers {
   readonly visitorClassifier: VisitorClassifier | undefined;
   /**
    * The run lanes — undefined = no edition lanes, so every turn is placed
-   * on a core lane (schedule, workflow step, interactive).
+   * on a core lane (schedule, interactive).
    */
   readonly runLanes: RunLanes | undefined;
   /**

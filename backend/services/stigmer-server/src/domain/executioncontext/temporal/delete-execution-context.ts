@@ -3,12 +3,12 @@
  * constant of
  * pkg/domain/executioncontext/temporal/activities/delete_execution_context.go.
  *
- * The agent-execution and workflow-execution workers register the activity
- * under this name, and both workflows call it when a run ends; its body is
- * the server's own delete of the run's context
- * (domain/executioncontext/internal-delete.ts), shared exactly as in Go.
+ * The agent-execution worker registers the activity under this name, and
+ * its workflow calls it when a run ends; its body is the server's own
+ * delete of the run's context (domain/executioncontext/internal-delete.ts),
+ * as in Go.
  *
- * This module holds the name alone because the workflows import it: it is
+ * This module holds the name alone because the workflow imports it: it is
  * part of the deterministic sandbox bundle (temporal/README.md, the
  * workflow-bundle import discipline), so it carries no store, proto or RPC
  * import.

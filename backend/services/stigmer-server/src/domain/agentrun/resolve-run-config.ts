@@ -35,8 +35,6 @@
  *   - schedule: the reserved schedule label (guard-reserved-labels.ts lets
  *     only the platform write it). The schedule profile, UNATTENDED: nobody
  *     is present at a fire to approve;
- *   - workflow step: a vouched parent link (VouchWorkflowParent). No
- *     profile, INTERACTIVE: the parent workflow takes the approval request;
  *   - interactive: everything else. No profile, INTERACTIVE.
  *
  * The step runs right after AuthorizeRunAgent, so the agent read is the
@@ -231,8 +229,8 @@ export interface PlacedLane {
   /** Whether the lane replaced the request's settings with its surface's. */
   readonly replacesRequest: boolean;
   /**
-   * Whether the turn's layer is a surface's saved settings (a schedule's, a
-   * workflow step's, an edition lane's) rather than a live message's: saved
+   * Whether the turn's layer is a surface's saved settings (a schedule's
+   * or an edition lane's) rather than a live message's: saved
    * settings name the model their tier or thinking is for.
    */
   readonly saved: boolean;
@@ -390,15 +388,14 @@ function stampRunConfig(execution: AgentRun, placement: RunConfigPlacement): voi
  * they are for (RunConfig's contract): a tier or thinking saved alone would
  * otherwise land on whatever model a less specific layer chose. The surfaces
  * refuse this at save (modelcatalog/run-config-checks.ts); this catches rows
- * saved before that rule, and a workflow step's settings composed at run
- * time. Only a live message may set either alone.
+ * saved before that rule. Only a live message may set either alone.
  */
 export function savedChoiceRefusal(placement: RunConfigPlacement): string {
   if (!placement.lane.saved) {
     return "";
   }
   const reason = savedChoiceWithoutModelRefusal(
-    { prefix: "", fieldPath: "run_config" },
+    { fieldPath: "run_config" },
     placement.lane.turn,
   );
   return reason === ""
@@ -430,7 +427,7 @@ export function unattendedPinRefusal(placement: RunConfigPlacement): string {
 /**
  * A new conversation whose turn names a model but no engine starts on
  * native: a model name belongs to an engine, and every save-time check
- * (a schedule's, a workflow step's, a message's own) reads an unset engine
+ * (a schedule's, a message's own) reads an unset engine
  * as native, so that is the engine the name was judged on. Written onto
  * the new session's spec before its session exists, so the agent's engine
  * (ResolveSessionAgent) applies only to a turn naming neither, and a
@@ -477,16 +474,6 @@ async function placeLane(
       turnName: "the schedule's run_config",
       profile: deps.scheduleProfile,
       approvalMode: ApprovalMode.UNATTENDED,
-      replacesRequest: false,
-      saved: true,
-    };
-  }
-  if (execution.spec?.parent !== undefined) {
-    return {
-      turn,
-      turnName: "the workflow step's run_config",
-      profile: undefined,
-      approvalMode: ApprovalMode.INTERACTIVE,
       replacesRequest: false,
       saved: true,
     };

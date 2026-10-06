@@ -29,11 +29,6 @@
  * answer is a permission, not a token verdict: only the person whose run
  * it is may hold its credential. A run whose creator stamp names nobody
  * gets the same sentence — no one is its person.
- *
- * The lineage mismatch copy is the cloud edition's, transcribed byte for
- * byte (credentials/provider.ts in the composition; the Java
- * RecordRunnerLineageLabelsStep before it) so the two editions refuse a
- * mis-stamped lineage label with one sentence.
  */
 
 /** The verifier's name in the boot log and in auth failures (the `oidc` / `apikey` precedent). */
@@ -50,10 +45,6 @@ export const RUNNER_CREDENTIAL_NOT_LIVE_MESSAGE =
 /** The exchange's refusal under the built-in posture: the caller is not the run's person (PERMISSION_DENIED). */
 export const RUN_CREDENTIAL_NOT_RUNS_PERSON_MESSAGE =
   "a run credential is minted only for the person whose run it is";
-
-/** The cloud's byte-pinned lineage refusal (the Java step's copy). */
-export const WORKFLOW_LINEAGE_BINDING_MISMATCH_MESSAGE =
-  "workflow lineage label names a workflow execution this runner credential is not bound to";
 
 /** The cloud's byte-pinned org-mismatch refusal (MemoryPolicy.MEMORY_CAPTURE_ORG_MISMATCH_MESSAGE). */
 export const MEMORY_CAPTURE_ORG_MISMATCH_MESSAGE =

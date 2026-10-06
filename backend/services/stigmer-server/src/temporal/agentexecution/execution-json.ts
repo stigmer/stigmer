@@ -12,8 +12,8 @@
  *   names (`EXECUTION_COMPLETED` became `RUN_COMPLETED`) and the kind
  *   string (`AgentExecution` became `AgentRun`) without moving a field or
  *   value number. The tables below map each old name to its new one, for
- *   the messages that cross Temporal: AgentRun, AgentRunStatus and
- *   WorkflowRunStatus with everything nested in them. They were computed
+ *   the messages that cross Temporal: AgentRun and AgentRunStatus with
+ *   everything nested in them. They were computed
  *   from that rename by pairing the old and new descriptor sets element by
  *   element, never typed by hand. A rewrite is guided by the schema, so a
  *   name is only rewritten where the old contract had it: a free-form
@@ -44,16 +44,12 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 
 export const RETIRED_FIELD_NAMES: ReadonlyMap<string, string> = new Map([
-  ["childAgentExecutionId", "childAgentRunId"],
-  ["child_agent_execution_id", "child_agent_run_id"],
   ["executionId", "runId"],
   ["execution_id", "run_id"],
   ["subAgentExecutions", "subAgentRuns"],
   ["sub_agent_executions", "sub_agent_runs"],
   ["supersedesExecutionId", "supersedesRunId"],
   ["supersedes_execution_id", "supersedes_run_id"],
-  ["workflowExecutionId", "workflowRunId"],
-  ["workflow_execution_id", "workflow_run_id"],
 ]);
 
 export const RETIRED_ENUM_VALUE_NAMES: ReadonlyMap<string, string> = new Map([
@@ -71,13 +67,11 @@ export const RETIRED_ENUM_VALUE_NAMES: ReadonlyMap<string, string> = new Map([
   ["EXECUTION_WAITING_FOR_APPROVAL", "RUN_WAITING_FOR_APPROVAL"],
   ["agent_execution", "agent_run"],
   ["mid_execution", "mid_run"],
-  ["workflow_execution", "workflow_run"],
 ]);
 
 /** The kind strings a run's `kind` field carried before the rename. */
 const RETIRED_KIND_NAMES: ReadonlyMap<string, string> = new Map([
   ["AgentExecution", "AgentRun"],
-  ["WorkflowExecution", "WorkflowRun"],
 ]);
 
 function retiredEnumValue(value: JsonValue, desc: DescEnum): JsonValue {

@@ -5,8 +5,8 @@
  *   - startInvokeWorkflow: the byte-pinned workflow type + workflow-ID
  *     format, the stigmer task queue, the ONE memo key with the
  *     dispatch-resolved value, the slim snake_case input with Go's
- *     omitempty shape (base64 callback token; harness/execution_target
- *     from dispatch), and NO run timeout;
+ *     omitempty shape (harness/execution_target from dispatch), and NO
+ *     run timeout;
  *   - dispatch failures throw EngineDispatchError with the resolver's
  *     message VERBATIM (the create step surfaces it as
  *     FailedPrecondition — Go's boundary);
@@ -169,10 +169,7 @@ function startInput(overrides: Partial<Parameters<TemporalExecutionEngine["start
     executionId: "aex_1",
     sessionId: "",
     agentId: "agt_1",
-    callbackToken: new Uint8Array(),
     autoApproveAll: false,
-    parentWorkflowId: "",
-    activityTaskQueueOverride: "",
     ...overrides,
   };
 }
@@ -182,9 +179,7 @@ describe("TemporalExecutionEngine.startInvokeWorkflow", () => {
     const { client, startCalls } = stubClient();
     const engine = newEngine(client);
 
-    await engine.startInvokeWorkflow(
-      startInput({ callbackToken: Buffer.from("tok"), parentWorkflowId: "parent-wf" }),
-    );
+    await engine.startInvokeWorkflow(startInput());
 
     expect(startCalls).toHaveLength(1);
     const call = startCalls[0]!;
@@ -201,8 +196,6 @@ describe("TemporalExecutionEngine.startInvokeWorkflow", () => {
         execution_id: "aex_1",
         session_id: "",
         agent_id: "agt_1",
-        callback_token: Buffer.from("tok").toString("base64"),
-        parent_workflow_id: "parent-wf",
         // Dispatch defaults: harness NATIVE (nonzero — Go's omitempty
         // keeps it, so the wire carries it) and target resolved LOCAL.
         harness: Harness.NATIVE,
@@ -292,9 +285,8 @@ describe("TemporalExecutionEngine.startInvokeWorkflow", () => {
     const input = dispatchedInput(startCalls);
     expect(input["harness"]).toBe(Harness.CURSOR);
     expect(input["execution_target"]).toBe(ExecutionTarget.CLOUD);
-    // Omitempty shape: empty callback token and parent id carry NO keys.
-    expect("callback_token" in input).toBe(false);
-    expect("parent_workflow_id" in input).toBe(false);
+    // Omitempty shape: a false auto_approve_all carries NO key.
+    expect("auto_approve_all" in input).toBe(false);
   });
 
   it("wraps dispatch-resolution failures in EngineDispatchError with the message verbatim", async () => {

@@ -102,7 +102,7 @@ export interface ResolveValuesDeps {
  *
  * With the authorizeExecutionContextRead capability composed, the provider owns
  * the ENTIRE trust decision — its lane set
- * and scope bindings (the cloud's session/workflow/connect rules) replace
+ * and scope bindings (the cloud's session/connect rules) replace
  * the OSS execution-scoped check below. Redaction-as-success stays the
  * contract on every arm.
  */

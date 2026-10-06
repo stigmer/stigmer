@@ -6,10 +6,9 @@
  */
 
 /**
- * create's engine-gate refusal (create.go engineUnavailableMessage) —
- * kept identical across AgentRun and WorkflowRun so both
- * domains present one symmetric create-boundary contract. Pinned by the
- * conformance engine-gate tests (agentrun.conformance.test.ts).
+ * create's engine-gate refusal (create.go engineUnavailableMessage).
+ * Pinned by the conformance engine-gate tests
+ * (agentrun.conformance.test.ts).
  */
 export const ENGINE_UNAVAILABLE_MESSAGE =
   "The execution engine is temporarily unavailable. Please try again shortly.";
@@ -39,35 +38,6 @@ export function sessionAgentGoneMessage(
 ): string {
   return `session '${sessionId}' runs agent '${agentId}', which no longer exists; update the session to another agent, or start a new conversation`;
 }
-
-/**
- * create's refusal of a `parent` link the request may not set: only the
- * workflow run it names (its runner, vouched by the composed credential
- * provider), the server itself, or a holder of the platform's
- * can_write_reserved_labels may link a turn to a workflow run.
- * INVALID_ARGUMENT, the reserved-label guard's code for the same rule.
- */
-export const WORKFLOW_PARENT_NOT_VOUCHED_MESSAGE =
-  "parent links this execution to a workflow run, which only that workflow run's runner may do; remove parent";
-
-/**
- * create's refusal of a `parent` link that names another workflow run than
- * the execution's stigmer.ai/workflow-execution-id label: a turn belongs
- * to one workflow run.
- */
-export function workflowParentMismatchMessage(
-  parentId: string,
-  labelId: string,
-): string {
-  return `parent.workflow_run_id '${parentId}' differs from the stigmer.ai/workflow-execution-id label '${labelId}'; a turn belongs to one workflow run`;
-}
-
-/**
- * update's refusal of a changed `parent` link: the workflow run a turn was
- * started by is a fact of its creation, as its session is.
- */
-export const WORKFLOW_PARENT_IMMUTABLE_MESSAGE =
-  "parent cannot be changed — an execution keeps the workflow run it was started by";
 
 export function addExecutionToSessionDeniedMessage(sessionId: string): string {
   return `unauthorized to add an execution to session '${sessionId}'`;

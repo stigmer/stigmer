@@ -76,8 +76,7 @@ export function getKindMeta(kind: ApiResourceKind): ApiResourceKindMeta {
  * (the one structural link is to that parent) AND INHERITED owner (no
  * owner tuple of its own; `owner from <parent>` in the FGA model).
  * Undefined for every other kind, including kinds with additional parents
- * whose inheritance is partial (a workflow_execution's opt-in
- * `run_viewer from workflow` sits beside its own owner).
+ * whose inheritance is partial (a memory's subject sits beside it).
  *
  * Today exactly one kind answers: agent_execution → session (its
  * `can_view` is `viewer or can_view from session`, and `viewer` is the

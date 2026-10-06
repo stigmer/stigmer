@@ -1,12 +1,11 @@
 /**
  * Pins the reference rule (pipeline/steps/references.ts): the table is
  * exactly the set of kinds the contract lets a spec reference (walked from
- * the schemas of every kind whose chain runs the rule, plus the agent_call
- * task config, through the `reference_kind` field option); each clause on
- * each kind — no org refused, a same-organization target must exist, the
- * floor applies to the kinds the run reads as the person and to no other,
- * a relative reference's floor is capped at org and its target must still
- * exist in the resource's organization, a version on a reference is never
+ * the schemas of every kind whose chain runs the rule, through the
+ * `reference_kind` field option); each clause on each kind — no org
+ * refused, a same-organization target must exist, the floor applies to
+ * the kinds the run reads as the person and to no other, a version on a
+ * reference is never
  * the rule's to judge (an agent's included), a cross-organization target
  * is admitted only when the writer's own parent shares it with its child
  * organizations, with ONE sentence whether it is missing, merely not
@@ -41,9 +40,6 @@ import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_p
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { AgentCallTaskConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/agent_call_pb";
-import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { reference_kind } from "@stigmer/protos/ai/stigmer/commons/apiresource/field_options_pb";
@@ -100,21 +96,18 @@ async function failureOf(run: () => void | Promise<void>): Promise<unknown> {
 // The table against the contract.
 // ---------------------------------------------------------------------------
 
-/** The schemas of every kind whose create or update chain runs the rule, plus the Struct-borne task config. */
+/** The schemas of every kind whose create or update chain runs the rule. */
 const SCHEMAS_UNDER_THE_RULE: ReadonlyArray<DescMessage> = [
   AgentSchema,
   McpServerSchema,
-  WorkflowSchema,
   EnvironmentSchema,
   ScheduleSchema,
   AgentChannelSchema,
   AgentShareSchema,
   SessionSchema,
   AgentRunSchema,
-  WorkflowRunSchema,
   ExecutionContextSchema,
   PlatformClientSchema,
-  AgentCallTaskConfigSchema,
 ];
 
 /** Every `reference_kind` declared on a field reachable from `schema`, recursively. */
@@ -364,39 +357,6 @@ describe("checkReference", () => {
         ref(K.mcp_server, "acme", "github"),
       ),
     ).toEqual({ kind: "below-floor", targetVisibility: V.visibility_org });
-  });
-
-  it("(ii) a relative reference's floor is capped at org: a resource shared with child organizations may run with its organization's org-visible target, never a private one, and the target must exist", () => {
-    const relative = (slug: string): SpecReference => ({
-      ...ref(K.mcp_server, "acme", slug),
-      resolvesIn: "running-organization",
-    });
-    const privateTarget: SpecReference = {
-      ...ref(K.skill, "acme", "my-skill"),
-      resolvesIn: "running-organization",
-    };
-    const ACME_PLATFORM: ReferenceParent = {
-      org: "acme",
-      visibility: V.visibility_child_orgs,
-    };
-    expect(checkReference(targets, ACME_PLATFORM, relative("github"))).toEqual({
-      kind: "ok",
-    });
-    expect(checkReference(targets, ACME_PLATFORM, privateTarget)).toEqual({
-      kind: "below-floor",
-      targetVisibility: V.visibility_private,
-    });
-    expect(checkReference(targets, ACME_PLATFORM, relative("ghost"))).toEqual({
-      kind: "missing",
-    });
-    // Below the cap the resource's own level decides, as for any reference.
-    expect(checkReference(targets, ACME_ORG, privateTarget)).toEqual({
-      kind: "below-floor",
-      targetVisibility: V.visibility_private,
-    });
-    expect(checkReference(targets, ACME_PRIVATE, privateTarget)).toEqual({
-      kind: "ok",
-    });
   });
 
   it("(ii) the floor does not apply to what the server resolves on the run's behalf", () => {

@@ -22,20 +22,16 @@
  * them (domain/organization/list-index.ts).
  */
 import { agentExecutionListIndex } from "../domain/agentrun/list-index.js";
-import { artifactListIndex } from "../domain/artifact/list-index.js";
 import { iamPolicyListIndex } from "../domain/iampolicy/list-index.js";
 import { memoryListIndex } from "../domain/memory/list-index.js";
 import { organizationListIndex } from "../domain/organization/list-index.js";
 import { sessionListIndex } from "../domain/session/list-index.js";
-import { workflowExecutionListIndex } from "../domain/workflowrun/list-index.js";
 import type { ListIndexDeclaration } from "../store/list-index.js";
 
 export const LIST_INDEXES: ReadonlyArray<ListIndexDeclaration> = [
   agentExecutionListIndex,
-  artifactListIndex,
   iamPolicyListIndex,
   memoryListIndex,
   organizationListIndex,
   sessionListIndex,
-  workflowExecutionListIndex,
 ];

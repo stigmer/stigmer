@@ -5,8 +5,8 @@ The two cross-aggregate query services (Go `pkg/query/`):
 - `search/` — the SearchService over the store's search index: criteria value object, the
   searchable-extractor registry (14 kinds, `kind_meta`-derived set), the
   query store over `Store.querySearchIndex`, and boot-time RebuildIndex.
-- `activity/` — the ActivityQueryController recents feed: sessions +
-  workflow executions merged newest-first (stigmer#461).
+- `activity/` — the ActivityQueryController recents feed: the caller's
+  sessions, newest first (stigmer#461).
 
 Neither is a domain: no `api_resource_kind` service option, no pipeline
 lifecycle — plain CQRS handlers over the store, registered in

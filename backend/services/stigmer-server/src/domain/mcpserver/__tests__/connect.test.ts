@@ -168,8 +168,6 @@ function fakeConnectProvisioner(options: { createError?: Error } = {}): FakeConn
     deprovisioned,
     ensureSessionSandbox: unreachable,
     deprovisionSessionSandbox: unreachable,
-    ensureWorkflowSandbox: unreachable,
-    deprovisionWorkflowSandbox: unreachable,
     async createConnectSandbox(id, env) {
       if (options.createError !== undefined) {
         throw options.createError;

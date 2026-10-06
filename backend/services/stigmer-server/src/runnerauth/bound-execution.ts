@@ -5,11 +5,11 @@
  * this run's?) and the ExecutionContext decrypt lane (may a run
  * credential still decrypt?) cannot answer "is this run live" three ways.
  *
- * A credential binds exactly THREE things, and the lane's vocabulary
+ * A credential binds exactly TWO things, and the lane's vocabulary
  * names them (`BoundExecutionKind`):
  *
- *   - an agent execution or a workflow execution — a RUN, whose row is
- *     the person's run and whose liveness is its phase;
+ *   - an agent execution — a RUN, whose row is the person's run and whose
+ *     liveness is its phase;
  *   - an MCP connect (`mcp-connect`) — not an execution at all, but the
  *     ephemeral ExecutionContext the connect lane creates for one
  *     discovery (domain/mcpserver/connect.ts), named by the synthetic id
@@ -25,12 +25,11 @@
  *
  *   - `boundExecutionKindOf(id)`: which kind the binding names, read off
  *     the id alone — the contract's own `kind_meta` prefix table
- *     (pipeline/apiresource-meta.ts `kindByIdPrefix`) for the two runs,
- *     the connect predicate for the third — with no store read. A
- *     session's or an agent's id, a foreign prefix, or garbage is
- *     `undefined`, and the caller refuses with its own sentence. The
- *     lineage vouch asks only this, synchronously, so it must stay free
- *     of I/O.
+ *     (pipeline/apiresource-meta.ts `kindByIdPrefix`) for the run, the
+ *     connect predicate for the other — with no store read. A session's
+ *     or an agent's id, a foreign prefix, or garbage is `undefined`, and
+ *     the caller refuses with its own sentence. The context write guard
+ *     asks only this, synchronously, so it must stay free of I/O.
  *   - `loadBoundExecution(store, id)`: the row's facts the lane needs and
  *     nothing else — the creator stamp the verifier resolves a person
  *     from, the org and session the capture capability scopes with, and
@@ -48,9 +47,8 @@
  * moment the row says it finished (`status.completed_at`), because two
  * legitimate runner writes trail the terminal stamp (constants.ts). A
  * terminal row that does not say when it finished gets no grace: fail
- * closed. Each kind's terminal set is its own domain's predicate
- * (agentexecution/phases.ts, workflowexecution/phases.ts), never restated
- * here. A RECOVERED execution is live again, and so is its credential —
+ * closed. The terminal set is the run domain's own predicate
+ * (agentrun/phases.ts), never restated here. A RECOVERED execution is live again, and so is its credential —
  * the same principal set as the token in Temporal history (the operator
  * who runs the engine and holds the signing key).
  *
@@ -66,14 +64,12 @@ import type { Message } from "@bufbuild/protobuf";
 import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
-import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { isTerminalExecutionPhase } from "../domain/agentrun/phases.js";
 import { findExecutionContextsForExecution } from "../domain/executioncontext/contexts-for-execution.js";
 import type { ExecutionContextLookupStore } from "../domain/executioncontext/contexts-for-execution.js";
 import { isConnectExecutionId } from "../domain/mcpserver/connect-execution-id.js";
-import { isTerminalWorkflowExecutionPhase } from "../domain/workflowrun/phases.js";
 import { kindByIdPrefix } from "../pipeline/apiresource-meta.js";
 import { auditOf } from "../pipeline/steps/defaults.js";
 import type { Store } from "../store/interface.js";
@@ -81,11 +77,8 @@ import { ResourceNotFoundError } from "../store/interface.js";
 import { sessionIdOf } from "../domain/agentrun/target.js";
 import { RUN_CREDENTIAL_GRACE_AFTER_TERMINAL_MS } from "./constants.js";
 
-/** The three things a runner credential can bind — the lane's own vocabulary, not the enum's. */
-export type BoundExecutionKind =
-  | "agent-execution"
-  | "workflow-execution"
-  | "mcp-connect";
+/** The two things a runner credential can bind — the lane's own vocabulary, not the enum's. */
+export type BoundExecutionKind = "agent-execution" | "mcp-connect";
 
 /** The facts the lane reads off a bound execution's row. */
 export interface BoundExecution {
@@ -95,7 +88,7 @@ export interface BoundExecution {
   readonly org: string;
   /** The creator stamp as written: an account id since 3.15.0, a raw issuer subject before. */
   readonly createdBy: string;
-  /** The agent execution's session; empty for a workflow execution or a connect, which have none. */
+  /** The agent execution's session; empty for a connect, which has none. */
   readonly sessionId: string;
   /** Not terminal, or terminal within the grace (see the header); a connect's row exists. */
   readonly live: boolean;
@@ -110,8 +103,6 @@ export function boundExecutionKindOf(
   switch (kindByIdPrefix(executionId)) {
     case ApiResourceKind.agent_run:
       return "agent-execution";
-    case ApiResourceKind.workflow_run:
-      return "workflow-execution";
     default:
       return isConnectExecutionId(executionId) ? "mcp-connect" : undefined;
   }
@@ -121,7 +112,6 @@ export function boundExecutionKindOf(
 export function bindsARun(kind: BoundExecutionKind): boolean {
   switch (kind) {
     case "agent-execution":
-    case "workflow-execution":
       return true;
     case "mcp-connect":
       return false;
@@ -171,30 +161,6 @@ export async function loadBoundExecution(
         ),
       };
     }
-    case "workflow-execution": {
-      const row = await getRow(
-        store,
-        ApiResourceKind.workflow_run,
-        executionId,
-        WorkflowRunSchema,
-      );
-      if (row === undefined) {
-        return undefined;
-      }
-      return {
-        kind,
-        executionId,
-        org: row.metadata?.org ?? "",
-        createdBy: creatorStampOf(WorkflowRunSchema, row),
-        sessionId: "",
-        live: isLive(
-          row.status !== undefined &&
-            isTerminalWorkflowExecutionPhase(row.status.phase),
-          row.status?.completedAt ?? "",
-          now,
-        ),
-      };
-    }
     case "mcp-connect": {
       // The connect's ExecutionContext, by the execution id it was
       // created for — the same indexed read getByExecutionId makes. The
@@ -233,18 +199,18 @@ function isLive(terminal: boolean, completedAt: string, now: number): boolean {
 }
 
 /** The schemas whose rows a binding can resolve to. */
-type BoundRowSchema =
-  | typeof AgentRunSchema
-  | typeof WorkflowRunSchema
-  | typeof ExecutionContextSchema;
+type BoundRowSchema = typeof AgentRunSchema | typeof ExecutionContextSchema;
 
 function creatorStampOf(schema: BoundRowSchema, row: Message): string {
   return auditOf(schema, row)?.specAudit?.createdBy?.id ?? "";
 }
 
-async function getRow<
-  Desc extends typeof AgentRunSchema | typeof WorkflowRunSchema,
->(store: BoundExecutionStore, kind: ApiResourceKind, id: string, schema: Desc) {
+async function getRow<Desc extends typeof AgentRunSchema>(
+  store: BoundExecutionStore,
+  kind: ApiResourceKind,
+  id: string,
+  schema: Desc,
+) {
   try {
     return await store.getResource(kind, id, schema);
   } catch (error) {

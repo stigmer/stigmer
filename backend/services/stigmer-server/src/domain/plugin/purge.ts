@@ -9,7 +9,7 @@
  * deletes each member through the plugin materializer, which calls the
  * members' delete RPCs, and a purge never calls the RPC surface (every RPC
  * naming the organization answers not-found by then). A plugin's members
- * are the organization's agents, skills, MCP servers and workflows, which
+ * are the organization's agents, skills and MCP servers, which
  * their own purges remove before this one runs (boot/organization-purge.ts
  * orders them first).
  */

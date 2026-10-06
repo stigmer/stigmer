@@ -14,7 +14,8 @@
  *     existence is never re-judged at run time, oss#774);
  *   - service_tier FAST and thinking_mode ENABLED need a model the engine
  *     prices fast or marks able to think, and saved settings name their own
- *     model (modelcatalog/run-config-checks.ts, the workflow step's checks).
+ *     model (modelcatalog/run-config-checks.ts, the checks every saved
+ *     surface shares).
  * An engine with no model is valid: "new conversations on this agent start
  * on Cursor". Bounds are proto-validated (non-negative) and need no engine.
  *
@@ -40,7 +41,7 @@ import {
   savedThinkingModeRefusal,
 } from "../../modelcatalog/run-config-checks.js";
 
-const SITE = { prefix: "", fieldPath: "spec.run_config" } as const;
+const SITE = { fieldPath: "spec.run_config" } as const;
 
 export function newValidateAgentRunConfigStep(
   models: ModelCatalogProvider,

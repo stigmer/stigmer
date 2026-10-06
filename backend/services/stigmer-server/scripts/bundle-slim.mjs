@@ -27,8 +27,8 @@
  *      main.js                                ← esbuild CJS bundle of the server
  *      main.js.map                            ← external sourcemap
  *      workflow-bundle-agent-execution.js     ← pre-built Temporal workflow
- *      workflow-bundle-workflow-execution.js    bundles, one per domain worker,
- *      workflow-bundle-schedule.js              discovered as siblings by
+ *      workflow-bundle-schedule.js              bundles, one per domain worker,
+ *                                               discovered as siblings by
  *                                               src/temporal/workflow-source.ts
  *      workflow-worker-thread.cjs             ← Temporal's sandbox thread entry;
  *                                               worker_threads needs a real file
@@ -111,11 +111,6 @@ const WORKFLOW_BUNDLES = [
     entry: "temporal/agentexecution/workflows/index.js",
     worker: "temporal/agentexecution/worker.js",
     sibling: "workflow-bundle-agent-execution.js",
-  },
-  {
-    entry: "temporal/workflowexecution/workflows/index.js",
-    worker: "temporal/workflowexecution/worker.js",
-    sibling: "workflow-bundle-workflow-execution.js",
   },
   {
     entry: "temporal/schedule/workflows/index.js",

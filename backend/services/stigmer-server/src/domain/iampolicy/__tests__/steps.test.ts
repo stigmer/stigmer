@@ -352,11 +352,10 @@ describe("ValidateGrantableRole", () => {
     const team = { kind: "team", id: "tm_sre", relation: "member" };
     const blueprints = [
       ["agent", "agt_1"],
-      ["workflow", "wfl_1"],
       ["mcp_server", "mcp_1"],
     ] as const;
 
-    it("is granted on an agent, a workflow and an MCP server, to a person and to a team", () => {
+    it("is granted on an agent and an MCP server, to a person and to a team", () => {
       for (const [kind, id] of blueprints) {
         for (const principal of [person, team]) {
           expect(

@@ -293,16 +293,16 @@ describe("restrictListByReadScope", () => {
     await restrictListByReadScope(
       recording,
       caller,
-      ApiResourceKind.workflow_run,
+      ApiResourceKind.memory,
       [
         {
           metadata: {
-            id: "wex_1",
+            id: "mem_1",
             org: "acme",
             labels: {},
             visibility: ApiResourceVisibility.visibility_private,
           },
-          spec: { workflowId: "wfl_1" },
+          spec: { subjectIdentityAccountId: "ida_dana" },
           status: {
             audit: create(ApiResourceAuditSchema, {
               specAudit: { createdBy: { id: "ida_carol" } },
@@ -314,7 +314,7 @@ describe("restrictListByReadScope", () => {
     );
     expect(seen).toEqual([
       {
-        id: "wex_1",
+        id: "mem_1",
         org: "acme",
         labels: {},
         createdBy: "ida_carol",
@@ -322,9 +322,9 @@ describe("restrictListByReadScope", () => {
         parentLinks: [
           organizationLink("acme"),
           {
-            relation: "workflow",
-            parentKind: ApiResourceKind.workflow,
-            parentId: "wfl_1",
+            relation: "subject",
+            parentKind: ApiResourceKind.identity_account,
+            parentId: "ida_dana",
           },
         ],
       },
@@ -411,32 +411,31 @@ describe("restrictListByReadScope", () => {
     });
 
     it("a kind whose authorization is its own carries no parent even when its spec names one", async () => {
-      // A workflow_run links its workflow (an additional parent,
-      // partial opt-in inheritance) and owns itself: not the pair.
-      const runs = [
+      // A memory links its subject (an additional parent) and owns
+      // itself: not the pair.
+      const memories = [
         {
-          metadata: { id: "wex_1", org: "acme", labels: {} },
-          spec: { workflowId: "wfl_1" },
+          metadata: { id: "mem_1", org: "acme", labels: {} },
+          spec: { subjectIdentityAccountId: "ida_dana" },
         },
       ];
-      const { scope, seen } = recordingScope(["wex_1"]);
+      const { scope, seen } = recordingScope(["mem_1"]);
       await restrictListByReadScope(
         scope,
         caller,
-        ApiResourceKind.workflow_run,
-        runs,
+        ApiResourceKind.memory,
+        memories,
         "",
       );
-      // The workflow IS a parent link (the derivation walks
-      // `run_viewer from workflow` through it); it is not the parent
-      // the kind's authorization is.
+      // The subject IS a parent link; it is not the parent the kind's
+      // authorization is.
       expect(seen[0]).toEqual([
-        bareFacts("wex_1", "acme", [
+        bareFacts("mem_1", "acme", [
           organizationLink("acme"),
           {
-            relation: "workflow",
-            parentKind: ApiResourceKind.workflow,
-            parentId: "wfl_1",
+            relation: "subject",
+            parentKind: ApiResourceKind.identity_account,
+            parentId: "ida_dana",
           },
         ]),
       ]);

@@ -12,8 +12,8 @@
  * as their own chains wrote them; every other kind the core purges is
  * stored directly with the organization in `metadata.org` (an API key with
  * it in `spec.bound_org`), with the side-table records a run or a schedule
- * leaves (the fire ledger, a signal hold, a workflow run's events, an OAuth
- * grant and a pending OAuth state), and an access row on the agent. A
+ * leaves (the fire ledger, an OAuth grant and a pending OAuth state), and
+ * an access row on the agent. A
  * second organization holds the same shapes and must keep all of them.
  *
  * A unit's stage runs twice: in its place and again in the final stage's
@@ -66,7 +66,7 @@ import { triple } from "../../iampolicy/__tests__/support.js";
 
 const API_VERSION = "agentic.stigmer.ai/v1";
 
-/** RUN_COMPLETED, the same number in both execution kinds' phase enums. */
+/** A run stored by the seed has finished. */
 const FINISHED_PHASE = RunPhase.RUN_COMPLETED;
 
 /** How the suite reaches the database the composed server writes. */
@@ -263,8 +263,7 @@ export function describeOrganizationPurge(
         // A run stored here has finished: a server with no engine holds no
         // live run, and the purge needs the engine only for one that may be.
         const finished =
-          kind === ApiResourceKind.agent_run ||
-          kind === ApiResourceKind.workflow_run
+          kind === ApiResourceKind.agent_run
             ? { status: { phase: FINISHED_PHASE } }
             : {};
         const row = create(schema, {
@@ -275,17 +274,6 @@ export function describeOrganizationPurge(
         await store.saveResource(kind, id, schema, row as never);
         ids.add(id);
       }
-      const workflowRun = `workflow_execution_${slug}`;
-      await store.appendWorkflowExecutionEvents(workflowRun, [
-        {
-          executionId: workflowRun,
-          sequenceNumber: 1,
-          eventType: "task_started",
-          taskName: "t",
-          data: new Uint8Array([1]),
-          createdAt: "",
-        },
-      ]);
       await store.upsertScheduleRun({
         scheduleId: `schedule_${slug}`,
         org,
@@ -297,7 +285,6 @@ export function describeOrganizationPurge(
         recordedAt: new Date().toISOString(),
         completedAt: "",
       });
-      await store.signalDedupe.claim(org, "key", workflowRun, "resume", 60_000);
       await store.oauthGrants.upsert({
         identityAccountId: "ida_purge_reader",
         resourceId: `mcp_server_${slug}`,

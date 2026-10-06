@@ -71,17 +71,6 @@
  * child's row is first stored; the edges never change (`spec.parent_org` is fixed at create)
  * and die with the child's delete cleanup, which removes tuples naming
  * the child on either side.
- *
- * One more structural relation rides the seam the same way: a workflow's
- * run audience, `run_viewer`, which open source derives from
- * `spec.run_visibility` when a check asks
- * (authorization/model/run-viewer.ts) and an edition that stores
- * tuples must write. `onRunVisibilityChanged` hands the driver the
- * audience the stored level names, from the two doors that may set it
- * (create, and updateRunVisibility; Update and Apply keep the
- * stored level, domain/workflow/run-visibility.ts). Synchronous,
- * post-persist; a throw fails the request with the level persisted, and a
- * retry converges because the event is the whole target state.
  */
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { OwnerAttributionType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
@@ -102,16 +91,6 @@ import type { CallerIdentity } from "./identity.js";
  * reaches every account.
  */
 export type VisibilityTupleShape = "org-viewer" | "child-org-viewer";
-
-/**
- * The run-audience shapes of a workflow's execution visibility, named
- * edition-neutrally. The driver maps each to its tuple:
- *   - org-viewer: workflow:<id>#run_viewer@organization:<org>#viewer
- * The same word as the resource visibility's org shape, a different
- * relation: making a workflow's RUNS observable never widens who can see
- * or run the workflow itself (fga/model/agentic/workflow.fga).
- */
-export type RunAudienceShape = "org-viewer";
 
 /**
  * One resolved structural link from the created resource to a parent
@@ -226,22 +205,6 @@ export interface ChildOrganizationLinkedEvent {
 }
 
 /**
- * Fired synchronously after a workflow's `spec.run_visibility` is
- * persisted at create (only when the level names an audience) or by
- * updateRunVisibility (always). `shapes` is the audience the stored
- * level names — ["org-viewer"] for ORGANIZATION, [] for PRIVATE and unset
- * — never a diff: the driver makes its tuples on
- * `workflow:<workflowId>#run_viewer` match it, so a retry, a repeat,
- * or a transition whose old level it never saw all converge. The workflow
- * is the one kind that carries a run audience.
- */
-export interface RunVisibilityChangedEvent {
-  readonly workflowId: string;
-  readonly orgId: string;
-  readonly shapes: ReadonlyArray<RunAudienceShape>;
-}
-
-/**
  * Fired synchronously AFTER an IamPolicy row is persisted by the domain's
  * grant path — and on the duplicate arm, when the triple was already held
  * and no row was written, so a composition heals a row whose tuple never
@@ -301,15 +264,6 @@ export interface ResourceAuthorizationLifecycle {
    * check time).
    */
   onChildOrganizationLinked?(event: ChildOrganizationLinkedEvent): Promise<void>;
-  /**
-   * OPTIONAL: synchronous, post-persist; a throw fails
-   * the request (the level survives — retry converges, the event is the
-   * target state). Absent method = no run-audience tuple is written (the
-   * OSS posture: the relation is derived from the row at check time).
-   */
-  onRunVisibilityChanged?(
-    event: RunVisibilityChangedEvent,
-  ): Promise<void>;
   /**
    * OPTIONAL: synchronous, AFTER the row
    * persist, on the duplicate arm too; a throw fails the grant with the

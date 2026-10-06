@@ -1,8 +1,8 @@
 /**
  * The one reader of the provider's `mintRunCredential` capability for the
- * two dispatch paths (temporal/agentexecution/engine-client.ts and
- * temporal/workflowexecution/engine-client.ts). Both engines put the
- * answer on the invoke workflow input as `execution_context_token` — the
+ * agent run's dispatch path (temporal/agentexecution/engine-client.ts),
+ * which puts the answer on the invoke workflow input as
+ * `execution_context_token` — the
  * connect lane's key for the same token type (domain/mcpserver/engine.ts)
  * — and omit the key when the answer is "".
  *
@@ -25,7 +25,7 @@
  *     error), so this arm exists to be pinned, not expected.
  *
  * The credential is never logged: the warning carries the execution id
- * and the error's message, and the engines' own "Started …" lines carry
+ * and the error's message, and the engine's own "Started …" line carries
  * ids and queues (a test pins the field names). A run credential in a log
  * line would let anyone who reads the log act as the run's human for as
  * long as the run lives.

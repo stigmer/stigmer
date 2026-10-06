@@ -170,8 +170,7 @@ export function newFireDirectRunStep<Desc extends DescMessage>(
         // The in-process client's error instance carries the INNER
         // response's metadata; echoing it corrupts the serving HTTP/2
         // trailers (NGHTTP2_PROTOCOL_ERROR).
-        // Re-mint code + message, exactly the workflowexecution
-        // forwarding posture.
+        // Re-mint code + message (rethrownStatusError).
         throw error instanceof ConnectError
           ? rethrownStatusError(error)
           : error;

@@ -17,7 +17,7 @@
  * agent version the turn is stamped with (an archived version, not the
  * head); places the turn on its lane (an edition lane first, replacing the
  * request's settings; the schedule label with its profile and UNATTENDED;
- * a workflow parent INTERACTIVE; everything else INTERACTIVE); stamps
+ * everything else INTERACTIVE); stamps
  * status.run_config and status.approval_mode, overwriting anything there;
  * and refuses an unattended Cursor turn that would run with no model, while
  * passing an attended one. reResolveRunConfig resolves again over another
@@ -399,21 +399,6 @@ describe("ResolveRunConfig over a real store", () => {
     );
     expect(ctx.newState.status?.runConfig).toEqual(rc({ maxToolRounds: 20, maxCostUsd: 0.25 }));
     expect(ctx.newState.status?.approvalMode).toBe(ApprovalMode.UNATTENDED);
-  });
-
-  it("a workflow step's turn takes its agent's caps and stays interactive", async () => {
-    const ctx = await resolve(
-      execution({
-        spec: {
-          message: "hi",
-          parent: { workflowRunId: "wfx_1" },
-          runConfig: { maxCostUsd: 5 },
-        },
-        status: { agentId: AGENT, agentVersionHash: PINNED },
-      }),
-    );
-    expect(ctx.newState.status?.runConfig?.maxCostUsd).toBe(2);
-    expect(ctx.newState.status?.approvalMode).toBe(ApprovalMode.INTERACTIVE);
   });
 
   it("an edition lane replaces the request's settings and supplies the profile and approval mode", async () => {

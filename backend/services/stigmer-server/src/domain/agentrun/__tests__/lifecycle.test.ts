@@ -412,7 +412,7 @@ async function seedExecution(init: {
 /**
  * The EC-builder deps recover consumes, stubbed at the in-process edges
  * (the builder logic itself is real). The store is the shared SQLite
- * store, so schedule/workflow label lookups run for real (and find
+ * store, so schedule label lookups run for real (and find
  * nothing here).
  */
 function stubBuilderDeps(overrides?: {

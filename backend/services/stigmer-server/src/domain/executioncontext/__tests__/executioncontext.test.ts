@@ -589,7 +589,7 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
       const present = await grpcError(() =>
         ts.command.create(ecInput({ executionId: "aex_bound_present" })),
       );
-      for (const absent of ["aex_bound_absent", "wex_bound_absent"]) {
+      for (const absent of ["aex_bound_absent"]) {
         const error = await grpcError(() =>
           ts.command.create(ecInput({ executionId: absent })),
         );

@@ -5,19 +5,15 @@
  * composition. Slot names are PROTECTED VOCABULARY (never renamed,
  * byte-stable), scoped `<chain-name>:<position>`.
  *
- * The first five slots sit at their Java-verified semantic positions.
- * `sandbox-acquisition:gate` was declared only once its splice sites
- * existed (a declared slot whose steps can never run would be a silent
- * no-op, the exact failure the boot-time slot check exists to prevent):
- * the workflow-execution chains have no
- * generic pre-side-effect slot, and their Java-verified capacity-gate
- * position (post-authorize, before any side effect, pre-provision)
- * is where the cloud's sandbox-capacity gate rides on
- * BOTH the create and recover chains. The session lane needs no sixth
- * splice — its capacity gates ride the two declared agent-execution
- * slots, whose positions coincide exactly with the Java session gate.
+ * The first five slots sit at their Java-verified semantic positions. A
+ * slot is declared only once its splice sites exist (a declared slot whose
+ * steps can never run would be a silent no-op, the exact failure the
+ * boot-time slot check exists to prevent). The session sandbox lane needs
+ * no slot of its own — its capacity gates ride the two declared
+ * agent-execution slots, whose positions coincide exactly with the Java
+ * session gate.
  *
- * The seventh is
+ * The sixth is
  * `identity-account-provision:post-persist`: inside provisionMyAccount,
  * after the provisioner has answered the caller's row — created on this
  * call or found by the idempotent early return — and before the reply,
@@ -33,7 +29,7 @@
  * Non-transactional in the `org-create:post-persist` sense: a gate
  * failure fails the request, the row survives, the next call heals.
  *
- * The eighth, `iam-policy-create:pre-side-effect-gate`: the IamPolicy
+ * The seventh, `iam-policy-create:pre-side-effect-gate`: the IamPolicy
  * `create` chain (the user grant lane), after ValidateGrantableRole and
  * before Grant, so nothing is written when a gate refuses. It exists for
  * the checks a grant needs that take a read, which the synchronous grant
@@ -42,7 +38,7 @@
  * resource, and a team member who is not one of the organization's
  * viewers. Never on `bootstrapPolicy`, the platform's structural lane.
  *
- * The ninth, `org-create:pre-side-effect-gate`: the organization create
+ * The eighth, `org-create:pre-side-effect-gate`: the organization create
  * chain after its last pure step (GuardReservedLabels) and before Persist, the
  * position the session chain's slot holds. It exists for a refusal that
  * must leave nothing behind: `org-create:post-persist` runs after the row
@@ -56,7 +52,7 @@
  * (domain/organization/limit.ts). `apply`
  * delegates to create on its create arm, so the slot fires there as well.
  *
- * The tenth, `org-delete:pre-delete`: the organization delete chain after
+ * The ninth, `org-delete:pre-delete`: the organization delete chain after
  * LoadExistingForDelete and before any write, so the organization exists
  * and is loaded (EXISTING_RESOURCE_KEY) while its steps run. Whatever an
  * edition keeps for the organization must go before the row does, or be
@@ -114,7 +110,6 @@ export const GATE_SLOT_NAMES = [
   "agent-execution-submit-approval:gate",
   "session-create:pre-side-effect-gate",
   "org-create:post-persist",
-  "sandbox-acquisition:gate",
   "identity-account-provision:post-persist",
   "iam-policy-create:pre-side-effect-gate",
   "org-create:pre-side-effect-gate",

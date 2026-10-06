@@ -143,7 +143,7 @@ describe("planMaterialization", () => {
   const plan = planMaterialization(
     pkg,
     inMemoryPluginFiles(thermos),
-    { workflows: [], mcpServers: [] },
+    { mcpServers: [] },
     IDENTITY,
     "first",
   );
@@ -219,7 +219,7 @@ describe("planMaterialization", () => {
     const onlyPlan = planMaterialization(
       read(mcpOnly),
       inMemoryPluginFiles(mcpOnly),
-      { workflows: [], mcpServers: [] },
+      { mcpServers: [] },
       IDENTITY,
       "",
     );
@@ -238,7 +238,7 @@ describe("planMaterialization", () => {
     const builtPlan = planMaterialization(
       read(built),
       inMemoryPluginFiles(built),
-      { workflows: [], mcpServers: [] },
+      { mcpServers: [] },
       IDENTITY,
       "",
     );
@@ -268,7 +268,6 @@ describe("planMaterialization", () => {
       pkg,
       inMemoryPluginFiles(thermos),
       {
-        workflows: [],
         mcpServers: [
           {
             path: "ai.stigmer/mcp-servers/my_github.yaml",
@@ -299,7 +298,6 @@ describe("planMaterialization", () => {
       inMemoryPluginFiles(thermos),
       {
         agent: { path: "ai.stigmer/agent.yaml", resource: authored },
-        workflows: [],
         mcpServers: [],
       },
       IDENTITY,
@@ -322,7 +320,6 @@ describe("planMaterialization", () => {
         pkg,
         inMemoryPluginFiles(thermos),
         {
-          workflows: [],
           mcpServers: [
             {
               path: "ai.stigmer/mcp-servers/my_github.yaml",
@@ -351,7 +348,6 @@ describe("planned members: the system flag", () => {
       inMemoryPluginFiles(thermos),
       {
         agent: { path: "ai.stigmer/agent.yaml", resource: authored },
-        workflows: [],
         mcpServers: [],
       },
       IDENTITY,
@@ -367,7 +363,7 @@ describe("planned members: the system flag", () => {
     const plan = planMaterialization(
       pkg,
       inMemoryPluginFiles(thermos),
-      { workflows: [], mcpServers: [] },
+      { mcpServers: [] },
       IDENTITY,
       "",
     );
@@ -380,7 +376,7 @@ describe("a Claude plugin's tool lists, main agent and hooks", () => {
     planMaterialization(
       read(fixture),
       inMemoryPluginFiles(fixture),
-      { workflows: [], mcpServers: [] },
+      { mcpServers: [] },
       IDENTITY,
       "",
     );
@@ -566,7 +562,6 @@ describe("a Claude plugin's tool lists, main agent and hooks", () => {
       read(fixture),
       inMemoryPluginFiles(fixture),
       {
-        workflows: [],
         mcpServers: [],
         agent: { path: "ai.stigmer/agent.yaml", resource: authored },
       },

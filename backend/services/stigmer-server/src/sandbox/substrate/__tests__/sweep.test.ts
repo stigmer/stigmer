@@ -3,8 +3,8 @@
  * fake session reader, with no real time:
  *
  *   - an idle running session sandbox is paused, an idle paused one
- *     suspended, a busy one left running; workflow and connect sandboxes
- *     are never touched;
+ *     suspended, a busy one left running; connect sandboxes are never
+ *     touched;
  *   - a turn that arrives while the pause is in flight resumes the
  *     sandbox at once;
  *   - each action is re-decided from fresh reads inside the actor's queue;
@@ -195,12 +195,12 @@ describe("the ladder", () => {
     expect(h.substrate.actors.get(fresh)?.state).toBe(ActorState.RUNNING);
   });
 
-  it("never touches workflow or connect sandboxes", async () => {
+  it("never touches connect sandboxes", async () => {
     const h = harness();
-    const wfx = sandboxBaseName("workflow", "wex_1");
+    const running = sandboxBaseName("connect", "mcx_2");
     const mcp = sandboxBaseName("connect", "mcx_1");
     h.substrate.put({
-      name: wfx,
+      name: running,
       state: ActorState.RUNNING,
       template: "t",
       createTime: new Date(h.t() - 600 * MIN),
@@ -212,7 +212,7 @@ describe("the ladder", () => {
       createTime: new Date(h.t() - 600 * MIN),
     });
     await h.pass();
-    expect(h.substrate.actors.get(wfx)?.state).toBe(ActorState.RUNNING);
+    expect(h.substrate.actors.get(running)?.state).toBe(ActorState.RUNNING);
     expect(h.substrate.actors.get(mcp)?.state).toBe(ActorState.PAUSED);
     expect(
       h.substrate.calls.filter(
@@ -398,9 +398,9 @@ describe("sandboxes this process never ensured", () => {
 describe("housekeeping", () => {
   it("makes every awake sandbox's egress policy this configuration's, once per process", async () => {
     const h = harness();
-    const wfx = sandboxBaseName("workflow", "wex_1");
+    const awake = sandboxBaseName("connect", "mcx_1");
     h.substrate.put({
-      name: wfx,
+      name: awake,
       state: ActorState.RUNNING,
       template: "t",
       policy: [],
@@ -415,16 +415,16 @@ describe("housekeeping", () => {
     await h.pass();
     await h.pass();
     expect(
-      h.substrate.calls.filter((c) => c === `ensureEgressPolicy ${wfx}`),
+      h.substrate.calls.filter((c) => c === `ensureEgressPolicy ${awake}`),
     ).toHaveLength(1);
-    expect(h.substrate.actors.get(wfx)?.policy?.length).toBeGreaterThan(0);
+    expect(h.substrate.actors.get(awake)?.policy?.length).toBeGreaterThan(0);
     // A suspended sandbox reaches nothing until it wakes, which reconciles it.
     expect(h.substrate.calls).not.toContain(`ensureEgressPolicy ${asleep}`);
   });
 
   it("deletes a sandbox left DELETING again", async () => {
     const h = harness();
-    const name = sandboxBaseName("workflow", "wex_1");
+    const name = sandboxBaseName("connect", "mcx_1");
     h.substrate.put({ name, state: ActorState.DELETING, template: "t" });
     await h.pass();
     expect(h.substrate.actors.has(name)).toBe(false);

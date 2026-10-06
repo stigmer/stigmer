@@ -1,6 +1,6 @@
 /**
  * Strict YAML → proto for the documents under a plugin's `ai.stigmer/`
- * folder: `agent.yaml`, `workflows/<name>.yaml`, `mcp-servers/<server>.yaml`.
+ * folder: `agent.yaml` and `mcp-servers/<server>.yaml`.
  * The library (`@stigmer/plugin-package`) hands them over as bytes because
  * it is proto-free; this module is where they become resources.
  *
@@ -8,12 +8,12 @@
  * (sdk/typescript/src/manifest/parse.ts), which is the strictness contract
  * every `stigmer apply` document already meets and which the server cannot
  * import (the dependency direction runs the other way). The twin makes the
- * same core call — `fromJson(schema, value, { ignoreUnknownFields: false })`,
- * the call the workflow converter's unmarshal.ts makes too — so a document
+ * same core call — `fromJson(schema, value, { ignoreUnknownFields: false })`
+ * — so a document
  * the CLI accepts is one the server accepts, and a typo the CLI refuses is
  * refused here with the document's path in the sentence. Two rules are
  * stricter than the SDK's, on purpose: the document's `kind` must be the
- * one its location promises (an `agent.yaml` holding a Workflow is a
+ * one its location promises (an `agent.yaml` holding an McpServer is a
  * mistake, not a choice), and a `metadata.org` other than the installing
  * organization is refused rather than honoured with a warning
  * (`checkOverlayOrg`, judged once the document's organization names are
@@ -46,7 +46,7 @@ export class OverlayParseError extends Error {
 
 export interface OverlayExpectation<Desc extends DescMessage> {
   readonly schema: Desc;
-  /** The YAML `kind` the location promises: "Agent", "Workflow", "McpServer". */
+  /** The YAML `kind` the location promises: "Agent" or "McpServer". */
   readonly yamlKind: string;
 }
 

@@ -685,25 +685,17 @@ describe("deprovision, probe, lifecycle", () => {
     }
   });
 
-  it("workflow and connect sandboxes follow the same machine under their own names", async () => {
+  it("a connect sandbox follows the same machine under its own name", async () => {
     const h = harness();
-    await h.driver.provisioner.ensureWorkflowSandbox("wex_1", {
-      ...env,
-      taskQueue: "wfexec:wex_1",
-    });
     expect(
       await h.driver.provisioner.createConnectSandbox("mcx_1", {
         ...env,
         taskQueue: "mcpconnect:mcx_1",
       }),
     ).toBe("mcx_1");
-    expect(h.substrate.actors.has(sandboxBaseName("workflow", "wex_1"))).toBe(
-      true,
-    );
     expect(h.substrate.actors.has(sandboxBaseName("connect", "mcx_1"))).toBe(
       true,
     );
-    await h.driver.provisioner.deprovisionWorkflowSandbox("wex_1");
     await h.driver.provisioner.deprovisionConnectSandbox("mcx_1");
     expect(h.substrate.actors.size).toBe(0);
   });
@@ -1013,7 +1005,7 @@ describe("the lifecycle a composition's own sweep calls", () => {
       template: current,
     });
     h.substrate.put({
-      name: "sbx-wfx-000000000004",
+      name: "sbx-mcp-000000000004",
       state: ActorState.RUNNING,
       template: current,
       policy: [],
@@ -1044,7 +1036,7 @@ describe("the lifecycle a composition's own sweep calls", () => {
       "moveActor sbx-ses-000000000002",
     ]);
     expect(
-      h.substrate.actors.get("sbx-wfx-000000000004")?.policy?.length,
+      h.substrate.actors.get("sbx-mcp-000000000004")?.policy?.length,
     ).toBeGreaterThan(0);
     expect(h.substrate.templates.has("stigmer-runner-aaaaaaaaaaaa")).toBe(
       false,

@@ -1,6 +1,6 @@
 /**
  * The read side of content-addressed versioning, shared by every versioned
- * kind (workflows, agents, skills, plugins): the getByReference version
+ * kind (agents, skills, plugins): the getByReference version
  * ladder, the paginated version history, one version by hash, and the tag
  * move. One copy, because two ladders drift: the steps take a
  * `VersionedResourceBinding` that names what differs per kind (the schema,
@@ -66,7 +66,7 @@ export function isVersionHash(version: string): boolean {
 export interface VersionedResourceBinding<Desc extends DescMessage> {
   readonly kind: ApiResourceKind;
   readonly schema: Desc;
-  /** The noun in sentences: "workflow", "agent", "skill", "plugin". */
+  /** The noun in sentences: "agent", "skill", "plugin". */
   readonly noun: string;
   /** The head's content hash (status.version_hash, status.digest). */
   headHashOf(resource: MessageShape<Desc>): string;

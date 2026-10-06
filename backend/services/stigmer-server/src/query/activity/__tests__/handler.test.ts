@@ -1,11 +1,10 @@
 /**
  * Pins the activity handler against Go's
- * pkg/query/activity/handler/handler_test.go, case-for-case: the two-kind
- * newest-first merge, the projection fields, the subject sentinels, the
- * runtime-origin exclusions, the page-size table (default 30 / cap 100 —
- * the constants conformance deliberately does not drive over the wire),
- * the timestamp fallback + tie ordering (sessions before executions), the
- * empty store, and the resolvePhase / timestampAfter tables.
+ * pkg/query/activity/handler/handler_test.go: the newest-first order, the
+ * projection fields, the subject sentinels, the runtime-origin
+ * exclusions, the page-size table (default 30 / cap 100 — the constants
+ * conformance deliberately does not drive over the wire), the timestamp
+ * fallback, the empty store, and the timestampAfter table.
  */
 import { create } from "@bufbuild/protobuf";
 import { TimestampSchema } from "@bufbuild/protobuf/wkt";
@@ -13,8 +12,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ListRecentActivityRequestSchema } from "@stigmer/protos/ai/stigmer/activity/v1/io_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
@@ -28,7 +25,6 @@ import {
   DEFAULT_PAGE_SIZE,
   MAX_PAGE_SIZE,
   normalizePageSize,
-  resolvePhase,
   resolveSubject,
   timestampAfter,
 } from "../handler.js";
@@ -91,43 +87,16 @@ async function seedSession(
   );
 }
 
-async function seedExecution(
-  id: string,
-  opts?: {
-    name?: string;
-    phase?: RunPhase;
-    statusUpdatedAtSeconds?: number;
-  },
-): Promise<void> {
-  const execution = create(WorkflowRunSchema, {
-    metadata: { id, name: opts?.name ?? id, org: "acme" },
-    status: {
-      phase: opts?.phase ?? RunPhase.RUN_COMPLETED,
-      audit:
-        opts?.statusUpdatedAtSeconds === undefined
-          ? undefined
-          : {
-              statusAudit: {
-                updatedAt: { seconds: BigInt(opts.statusUpdatedAtSeconds) },
-              },
-            },
-    },
-  });
-  await temp.store.saveResource(
-    ApiResourceKind.workflow_run,
-    id,
-    WorkflowRunSchema,
-    execution,
-  );
-}
-
 describe("listRecentActivity (Go handler_test.go)", () => {
-  it("merges both kinds newest-first", async () => {
+  it("lists the sessions newest-first", async () => {
     await seedSession("ses_old", {
       subject: "oldest",
       statusUpdatedAtSeconds: 100,
     });
-    await seedExecution("wfe_mid", { statusUpdatedAtSeconds: 200 });
+    await seedSession("ses_mid", {
+      subject: "middle",
+      statusUpdatedAtSeconds: 200,
+    });
     await seedSession("ses_new", {
       subject: "newest",
       statusUpdatedAtSeconds: 300,
@@ -137,34 +106,22 @@ describe("listRecentActivity (Go handler_test.go)", () => {
 
     expect(response.entries.map((entry) => entry.id)).toEqual([
       "ses_new",
-      "wfe_mid",
+      "ses_mid",
       "ses_old",
     ]);
   });
 
-  it("projects the sidebar fields per kind", async () => {
+  it("projects the sidebar fields", async () => {
     await seedSession("ses_1", {
       subject: "Plan the migration",
       statusUpdatedAtSeconds: 100,
-    });
-    await seedExecution("wfe_1", {
-      name: "nightly-sync",
-      phase: RunPhase.RUN_IN_PROGRESS,
-      statusUpdatedAtSeconds: 200,
     });
 
     const response = await handler.listRecentActivity(request(100), testCallerIdentity());
 
     const session = response.entries.find((entry) => entry.id === "ses_1");
-    expect(session?.type).toBe("session");
     expect(session?.subject).toBe("Plan the migration");
-    expect(session?.status).toBe("");
     expect(session?.updatedAt).toBeDefined();
-
-    const execution = response.entries.find((entry) => entry.id === "wfe_1");
-    expect(execution?.type).toBe("workflow_run");
-    expect(execution?.subject).toBe("nightly-sync");
-    expect(execution?.status).toBe("running");
   });
 
   it("maps the subject sentinels to display placeholders", async () => {
@@ -176,17 +133,12 @@ describe("listRecentActivity (Go handler_test.go)", () => {
       subject: "",
       statusUpdatedAtSeconds: 200,
     });
-    await seedExecution("wfe_unnamed", {
-      name: "",
-      statusUpdatedAtSeconds: 300,
-    });
 
     const response = await handler.listRecentActivity(request(100), testCallerIdentity());
     const byId = new Map(response.entries.map((entry) => [entry.id, entry]));
 
     expect(byId.get("ses_auto")?.subject).toBe("Untitled session");
     expect(byId.get("ses_empty")?.subject).toBe("Untitled session");
-    expect(byId.get("wfe_unnamed")?.subject).toBe("Untitled execution");
   });
 
   it("excludes runtime-origin sessions for every label key", async () => {
@@ -255,23 +207,6 @@ describe("listRecentActivity (Go handler_test.go)", () => {
     ]);
   });
 
-  it("keeps sessions before executions on equal timestamps (stable sort)", async () => {
-    await seedExecution("wfe_tie", { statusUpdatedAtSeconds: 100 });
-    await seedSession("ses_tie", {
-      subject: "tie",
-      statusUpdatedAtSeconds: 100,
-    });
-
-    const response = await handler.listRecentActivity(request(100), testCallerIdentity());
-
-    // Sessions load first (Go's append order), and the stable sort keeps
-    // insertion order on ties.
-    expect(response.entries.map((entry) => entry.id)).toEqual([
-      "ses_tie",
-      "wfe_tie",
-    ]);
-  });
-
   it("answers an empty store with an empty page", async () => {
     const response = await handler.listRecentActivity(request(10), testCallerIdentity());
     expect(response.entries).toEqual([]);
@@ -295,24 +230,6 @@ describe("resolveSubject", () => {
     expect(resolveSubject("")).toBe("Untitled session");
     expect(resolveSubject("Auto-created session")).toBe("Untitled session");
     expect(resolveSubject("Real title")).toBe("Real title");
-  });
-});
-
-describe("resolvePhase (Go's table)", () => {
-  it("maps every phase to its badge token, unknowns to 'unknown'", () => {
-    expect(resolvePhase(RunPhase.RUN_PENDING)).toBe("pending");
-    expect(resolvePhase(RunPhase.RUN_IN_PROGRESS)).toBe("running");
-    expect(resolvePhase(RunPhase.RUN_COMPLETED)).toBe("completed");
-    expect(resolvePhase(RunPhase.RUN_FAILED)).toBe("failed");
-    expect(resolvePhase(RunPhase.RUN_CANCELLED)).toBe("cancelled");
-    expect(resolvePhase(RunPhase.RUN_TERMINATED)).toBe(
-      "terminated",
-    );
-    expect(resolvePhase(RunPhase.RUN_PAUSED)).toBe("paused");
-    expect(resolvePhase(RunPhase.RUN_PHASE_UNSPECIFIED)).toBe(
-      "unknown",
-    );
-    expect(resolvePhase(999 as RunPhase)).toBe("unknown");
   });
 });
 

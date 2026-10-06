@@ -80,8 +80,8 @@
  *     driver's cost is proportional to the candidates offered (the cloud
  *     checks each one against its authorization engine), and the whole
  *     kind across every tenant is what rolled back on 2026-09-14; the
- *     request's org is tens of rows. The lanes over the session, execution
- *     and artifact kinds narrow by the request's org or parent in the
+ *     request's org is tens of rows. The lanes over the session and run
+ *     kinds narrow by the request's org or parent in the
  *     store's indexed read (store/list-index.ts; every posture honours the
  *     request) and page there (pipeline/steps/list-page.ts, one batch per
  *     scope call), passing `""`; the small org-scoped lists (environment,

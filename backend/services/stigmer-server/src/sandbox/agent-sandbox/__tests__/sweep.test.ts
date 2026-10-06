@@ -2,8 +2,8 @@
  * Pins the agent-sandbox idle sweep over the in-memory cluster and a fake
  * session reader, no cluster:
  *
- *   - it lists this server's session Sandboxes by label, so workflow and
- *     connect Sandboxes are never touched;
+ *   - it lists this server's session Sandboxes by label, so connect
+ *     Sandboxes are never touched;
  *   - a Running Sandbox whose session has been idle for the window is
  *     suspended (its pod goes, nothing is deleted), and one inside the
  *     window, busy, Suspended or being deleted is not;
@@ -250,7 +250,7 @@ describe("the idle sweep", () => {
     expect(modeOf(h.cluster, "ses_1")).toBe("Running");
   });
 
-  it("never touches a Suspended, a deleted, a workflow or a connect Sandbox", async () => {
+  it("never touches a Suspended, a deleted or a connect Sandbox", async () => {
     const h = harness();
     h.cluster.seed(
       buildAgentSandbox(
@@ -270,10 +270,6 @@ describe("the idle sweep", () => {
       ),
       "Running",
     ).deletingReads = 5;
-    h.cluster.seed(
-      buildAgentSandbox("workflow", "wex_1", env("wfexec:wex_1"), config),
-      "Running",
-    );
     h.cluster.seed(
       buildAgentSandbox("connect", "mcp_1", env("mcpconnect:mcp_1"), config),
       "Running",

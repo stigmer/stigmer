@@ -52,7 +52,6 @@ const activities = {
     loadResults.length > 1 ? loadResults.shift()! : loadResults[0]!,
   ReadHarnessStateId: async () => "",
   DeleteExecutionContext: async () => {},
-  "stigmer/system/complete-external-activity": async () => {},
 };
 
 function slim(phase: string): Record<string, unknown> {
@@ -174,34 +173,7 @@ async function main(): Promise<void> {
     },
   );
 
-  // 4. Parented HITL cycle: same gate as scenario 2 but with a
-  //    parent_workflow_id, so the history carries the two parent
-  //    notifications (child_execution_started at start,
-  //    child_approval_required from the HITL loop) — the child-approval sender
-  //    pinned in the replay gate. The parent id is deliberately
-  //    nonexistent: the sends fail non-fatally, which is itself part of
-  //    the recorded command shape.
-  executeBehaviors = [
-    async () => slim("EXECUTION_WAITING_FOR_APPROVAL"),
-    async () => slim("EXECUTION_COMPLETED"),
-  ];
-  loadResults = [executionWithPendingApproval()];
-  await capture(
-    "hitl-approval-parented",
-    {
-      execution_id: "exec-replay",
-      session_id: "ses-1",
-      agent_id: "agt-1",
-      parent_workflow_id: "replay-parent-probe",
-    },
-    async (handle) => {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      await handle.signal("approvalGateResolved");
-      await handle.result();
-    },
-  );
-
-  // 5. Runner-reported failure: the turn RETURNS a FAILED slim result,
+  // 4. Runner-reported failure: the turn RETURNS a FAILED slim result,
   //    so the workflow persists the phase-only FAILED fallback, throws,
   //    and runs the failure-path status write. Pins the command shape of
   //    that path, whose status payload (not its command sequence) is
@@ -218,7 +190,7 @@ async function main(): Promise<void> {
     },
   );
 
-  // 6. User cancel while the turn runs: the workflow's cancellation
+  // 5. User cancel while the turn runs: the workflow's cancellation
   //    cleanup (the CANCELLED status write, then the ExecutionContext
   //    delete) on a non-cancellable scope, without waiting for the
   //    runner activity to acknowledge (the proxy's default TRY_CANCEL).

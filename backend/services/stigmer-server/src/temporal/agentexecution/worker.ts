@@ -50,13 +50,12 @@ export interface AgentExecutionWorkerDeps {
 export function newAgentExecutionWorkerFactory(
   deps: AgentExecutionWorkerDeps,
 ): WorkerFactory {
-  return async ({ createWorker, client }) => {
+  return async ({ createWorker }) => {
     const activities = createAgentExecutionActivities({
       store: deps.store,
       logger: deps.logger,
       statusWriter: deps.statusWriter,
       executionContextDeleter: deps.executionContextDeleter,
-      client,
     });
 
     const workflowSource = resolveWorkflowSource({

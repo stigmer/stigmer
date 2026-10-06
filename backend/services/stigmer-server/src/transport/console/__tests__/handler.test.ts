@@ -76,10 +76,6 @@ async function startServer(
     logger: silentLogger,
     routes: (router) => registerHealthService(router, healthState),
     interceptors: [],
-    taskKindRegistryLane: (_request, response) => {
-      response.setHeader("x-lane", "task-kind");
-      response.end("{}");
-    },
     modelRegistryLane: (_request, response) => {
       response.setHeader("x-lane", "model");
       response.end("{}");

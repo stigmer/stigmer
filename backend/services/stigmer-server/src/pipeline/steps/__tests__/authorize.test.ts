@@ -514,8 +514,8 @@ describe("mid-chain resolved-id checks (the ListVersions pattern)", () => {
 describe("authorizeResolvedResource (the mid-chain resolved-id pattern)", () => {
   const check: AuthzCheck = {
     permission: IamPermission.can_view,
-    resourceKind: ApiResourceKind.workflow,
-    resourceId: "wf_123",
+    resourceKind: ApiResourceKind.agent,
+    resourceId: "agt_123",
   };
 
   it("allows and passes the handler-resolved check through verbatim", async () => {
@@ -524,7 +524,7 @@ describe("authorizeResolvedResource (the mid-chain resolved-id pattern)", () => 
       authorizer,
       testCallerIdentity(),
       check,
-      "unauthorized to view workflow version history",
+      "unauthorized to view agent version history",
     );
     expect(checks).toEqual([check]);
   });
@@ -535,7 +535,7 @@ describe("authorizeResolvedResource (the mid-chain resolved-id pattern)", () => 
       authorizer,
       testCallerIdentity({ callerClass: "internal" }),
       check,
-      "unauthorized to view workflow version history",
+      "unauthorized to view agent version history",
     );
     expect(checks).toEqual([]);
   });
@@ -547,13 +547,11 @@ describe("authorizeResolvedResource (the mid-chain resolved-id pattern)", () => 
         authorizer,
         testCallerIdentity(),
         check,
-        "unauthorized to view workflow version history",
+        "unauthorized to view agent version history",
       ),
     );
     expect(err.code).toBe(Code.PermissionDenied);
-    expect(err.rawMessage).toBe(
-      "unauthorized to view workflow version history",
-    );
+    expect(err.rawMessage).toBe("unauthorized to view agent version history");
   });
 
   it("deny without lane copy falls back to the reason, then the shared fallback", async () => {
@@ -585,7 +583,7 @@ describe("authorizeResolvedResource (the mid-chain resolved-id pattern)", () => 
       authorizeResolvedResource(authorizer, testCallerIdentity(), check, ""),
     );
     expect(err.code).toBe(Code.NotFound);
-    expect(err.rawMessage).toContain("wf_123");
+    expect(err.rawMessage).toContain("agt_123");
   });
 
   it("not-found on a non-resource-scoped check is an authorizer contract bug — INTERNAL", async () => {

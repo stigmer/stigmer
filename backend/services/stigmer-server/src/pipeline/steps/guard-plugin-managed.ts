@@ -1,6 +1,6 @@
 /**
  * GuardPluginManaged — the write boundary for resources a plugin
- * materialised. A plugin's skills, MCP servers, agent and workflows are
+ * materialised. A plugin's skills, MCP servers and agent are
  * ordinary resources in the organization, labelled `stigmer.ai/plugin:
  * <plugin id>` by the controller that installed them; the plugin owns
  * their definition, so a client edit would be silently overwritten by the
@@ -55,7 +55,6 @@ const MANAGED_KIND_NOUNS: ReadonlyMap<ApiResourceKind, string> = new Map([
   [ApiResourceKind.skill, "skill"],
   [ApiResourceKind.mcp_server, "MCP server"],
   [ApiResourceKind.agent, "agent"],
-  [ApiResourceKind.workflow, "workflow"],
 ]);
 
 /** The one sentence a refused mutation carries; the CLI and console render it as is. */

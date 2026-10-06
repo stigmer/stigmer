@@ -788,14 +788,16 @@ function requireReport<T>(value: unknown, message: string): T {
 // ---------------------------------------------------------------------------
 // getRunSummary — the dashboard aggregate (get_execution_summary.go,
 // a direct handler in Go as well — no pipeline). Cost is deliberately
-// absent from this shape (AD-DASH-005: the dashboard sources cost from
-// getOrgUsageReport to prevent double-counting).
+// absent from this shape: the dashboard sources cost from
+// getOrgUsageReport, so carrying it here too would count it twice.
 //
 // The rows are the requested org's within the time window, read through
-// the list index; with a composed ListReadScope they are offered to its
-// restrict verb, and none visible answers the default instance — the Java
-// AgentExecutionGetExecutionSummaryHandler baseline; see the twin's header
-// (workflowexecution/get-execution-summary.ts) for the full rationale.
+// the list index, so a member of several organizations never sees every
+// org's numbers on every dashboard; with a composed ListReadScope they are
+// offered to its restrict verb (exact, one read of the kind), and none
+// visible answers the proto default instance — the Java
+// AgentExecutionGetExecutionSummaryHandler baseline, whose multi-tenant
+// zero shape falls out of the scoping, never a special case.
 // ---------------------------------------------------------------------------
 
 export async function getRunSummary(

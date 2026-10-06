@@ -327,7 +327,7 @@ const ERROR_CASES: Record<PluginErrorKind, Case> = {
   "overlay-document-unknown": {
     files: openPlugin({ files: { "ai.stigmer/agent.yml": "kind: Agent\n" } }),
     kinds: errors("overlay-document-unknown"),
-    message: "'ai.stigmer/agent.yml' is not a document Stigmer reads; the 'ai.stigmer/' folder holds 'agent.yaml', 'workflows/<name>.yaml' and 'mcp-servers/<server>.yaml'",
+    message: "'ai.stigmer/agent.yml' is not a document Stigmer reads; the 'ai.stigmer/' folder holds 'agent.yaml' and 'mcp-servers/<server>.yaml'",
   },
 };
 

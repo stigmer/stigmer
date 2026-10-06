@@ -155,27 +155,6 @@ Rows read `| Service.method | org |`, `| Service.method | metadata.org |` or `| 
 | SkillQueryController.getByReference | org |
 | SkillQueryController.listVersions | org |
 
-## `ai.stigmer.agentic.workflow.v1`
-
-| Method | Fills |
-|---|---|
-| WorkflowCommandController.apply | metadata.org |
-| WorkflowCommandController.create | metadata.org |
-| WorkflowCommandController.update | metadata.org |
-| WorkflowCommandController.validateSpec | metadata.org |
-| WorkflowQueryController.getByReference | org |
-| WorkflowQueryController.listVersions | org |
-
-## `ai.stigmer.agentic.workflowrun.v1`
-
-| Method | Fills |
-|---|---|
-| WorkflowRunCommandController.create | metadata.org |
-| WorkflowRunCommandController.update | metadata.org |
-| WorkflowRunQueryController.getRunSummary | org |
-| WorkflowRunQueryController.list | org |
-| WorkflowRunQueryController.listPendingApprovals | org |
-
 ## `ai.stigmer.iam.iampolicy.v1`
 
 | Method | Fills |
@@ -224,7 +203,7 @@ These kinds are owned by a person, not an organization, yet these methods take a
 
 ## Not filled
 
-One of these still needs its organization named. An execution context belongs to no organization, but an outside caller's `create` or `apply` of one is permitted by the organization it will run in, read from `metadata.org` (`AuthorizeCreate`, `src/domain/executioncontext/steps.ts`), so on this server too a request that names none is refused. No shipped client makes that call: the agent and workflow run machinery creates execution contexts in-process, authorized by the run it serves.
+One of these still needs its organization named. An execution context belongs to no organization, but an outside caller's `create` or `apply` of one is permitted by the organization it will run in, read from `metadata.org` (`AuthorizeCreate`, `src/domain/executioncontext/steps.ts`), so on this server too a request that names none is refused. No shipped client makes that call: the agent run machinery creates execution contexts in-process, authorized by the run it serves.
 
 | Method | Fills |
 |---|---|

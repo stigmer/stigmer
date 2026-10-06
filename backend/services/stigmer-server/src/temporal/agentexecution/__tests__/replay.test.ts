@@ -31,11 +31,10 @@ const historyFiles = readdirSync(HISTORY_DIR).filter((name) =>
 
 describe("invoke-agent-execution replay determinism", () => {
   it("has committed histories to replay (the gate cannot be empty)", () => {
-    // 3 originals (happy, HITL, pause/resume) + the parented HITL history
-    // that pins the child_approval_required sender + the runner-failed
-    // and user-cancel histories captured before stigmer#980 changed the
+    // 3 originals (happy, HITL, pause/resume) + the runner-failed and
+    // user-cancel histories captured before stigmer#980 changed the
     // payloads (never the command sequence) of those two paths.
-    expect(historyFiles.length).toBeGreaterThanOrEqual(6);
+    expect(historyFiles.length).toBeGreaterThanOrEqual(5);
   });
 
   it("replays every committed history deterministically", async () => {

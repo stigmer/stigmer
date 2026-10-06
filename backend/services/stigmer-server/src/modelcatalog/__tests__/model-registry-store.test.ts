@@ -4,7 +4,7 @@
  * id and harness both present, the applyDocument rule), keep-current-on-
  * failure, warn-then-debug failure logging with reset on success, the size
  * cap, the fail-loud bundled-snapshot guard, and the catalog indexes the
- * workflow validators query (harness/variant/capability, canonical
+ * validators query (harness/variant/capability, canonical
  * suggestion pools, api-id acceptance).
  */
 import { describe, expect, it } from "vitest";

@@ -50,8 +50,6 @@ becomes %20, the encoding a URL's user and path segments read.
 # The ONE runner task queue, set on both sides (compose's anchor).
 - name: TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE
   value: stigmer_runner
-- name: TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE
-  value: stigmer_runner
 - name: ARTIFACT_STORAGE_TYPE
   value: local
 - name: ARTIFACT_LOCAL_BASE_PATH

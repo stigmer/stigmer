@@ -7,8 +7,8 @@
  * (domain/agentrun/resolve-run-config.ts) from three layers: the
  * turn's own (the request, or the surface it came through), the defaults of
  * the agent it runs, and the lane's operator profile. The core knows its own
- * lanes: a schedule's fire (the reserved schedule label), a workflow's step
- * (the vouched parent link) and everything else (interactive). An edition
+ * lanes: a schedule's fire (the reserved schedule label) and everything
+ * else (interactive). An edition
  * that admits outsiders (the cloud's shared-agent guests and channel
  * senders) composes their turns on lanes the core never names: OSS never
  * learns the lane names (the visitor classifier's doctrine,

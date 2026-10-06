@@ -12,7 +12,7 @@
 #   temporal        a real Temporal server (temporalio/auto-setup), NOT the
 #                   CLI's dev-server binary.
 #   stigmer-server  the control plane + web console + artifact file server.
-#   stigmer-runner  the execution worker (agents + workflows). stdio MCP
+#   stigmer-runner  the execution worker (agent runs). stdio MCP
 #                   servers spawn INSIDE this container — they can reach this
 #                   container's filesystem and network, not your host's.
 #
@@ -131,7 +131,6 @@ services:
       TEMPORAL_HOST_PORT: temporal:7233
       TEMPORAL_NAMESPACE: default
       TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE: *runner-task-queue
-      TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE: *runner-task-queue
       ARTIFACT_STORAGE_TYPE: local
       ARTIFACT_LOCAL_BASE_PATH: *artifacts-path
       ARTIFACT_LOCAL_SERVE_URL: *artifact-serve-url
@@ -200,8 +199,7 @@ services:
       LOCAL_ARTIFACT_PATH: *artifacts-path
       LOCAL_ARTIFACT_SERVE_URL: *artifact-serve-url
       # LLM provider keys (optional at boot; agent executions need one —
-      # see .env.example). Workflow executions without agent tasks run
-      # key-free. ANTHROPIC_BASE_URL sends Anthropic calls to a gateway in
+      # see .env.example). ANTHROPIC_BASE_URL sends Anthropic calls to a gateway in
       # front of Anthropic instead; empty means Anthropic's own address.
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}

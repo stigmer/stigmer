@@ -19,9 +19,10 @@
  *     verifiers), and open source must not stamp identities beside it.
  *
  * The wire arms under the built-in posture prove the whole lane with no
- * engine: a live WORKFLOW execution row (its owner is DIRECT — the
- * creator stamp — so no session is needed) is seeded in the composed
- * server's store, stamped by a person who provisioned over the wire; the
+ * engine: a live agent run row and the session it belongs to (the
+ * session's owner is DIRECT — the creator stamp — and the run inherits
+ * it) are seeded in the composed server's store, stamped by a person who
+ * provisioned over the wire; the
  * server's own key mints the run credential; presenting it on the
  * execution's own `get` is ADMITTED (the runner acts as the person who
  * created the run), and once the row is terminal the same credential is
@@ -55,9 +56,10 @@ import { SignJWT, exportJWK, generateKeyPair } from "jose";
 import type { GenerateKeyPairResult } from "jose";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
-import { WorkflowRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/query_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
+import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
@@ -247,17 +249,27 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
     rmSync(dir, { recursive: true, force: true });
   });
 
-  async function seedWorkflowExecution(
-    id: string,
-    phase: RunPhase,
-  ): Promise<void> {
+  /** Carol's agent run and the session it belongs to, written straight to the store. */
+  async function seedAgentRun(id: string, phase: RunPhase): Promise<void> {
+    const sessionId = `ses_${id}`;
+    const stamp = { audit: { specAudit: { createdBy: { id: carolId } } } };
     await server.store.saveResource(
-      ApiResourceKind.workflow_run,
+      ApiResourceKind.session,
+      sessionId,
+      SessionSchema,
+      create(SessionSchema, {
+        metadata: { id: sessionId, name: sessionId, org: orgId },
+        status: stamp,
+      }),
+    );
+    await server.store.saveResource(
+      ApiResourceKind.agent_run,
       id,
-      WorkflowRunSchema,
-      create(WorkflowRunSchema, {
+      AgentRunSchema,
+      create(AgentRunSchema, {
         metadata: { id, name: id, org: orgId },
-        status: { phase, audit: { specAudit: { createdBy: { id: carolId } } } },
+        spec: { target: { case: "sessionId", value: sessionId } },
+        status: { phase, ...stamp },
       }),
     );
   }
@@ -278,7 +290,7 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
     const failure = await failureOf(
       authenticateBearerToken(
         server.identityVerifiers,
-        forgedRunnerToken("wex_forged"),
+        forgedRunnerToken("aex_forged"),
         silentLogger,
       ),
     );
@@ -297,11 +309,11 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
   });
 
   it("the run credential the server mints for a live run, presented on the run's own read, is ADMITTED as the person who created it", async () => {
-    await seedWorkflowExecution(
-      "wex_live",
+    await seedAgentRun(
+      "aex_live",
       RunPhase.RUN_IN_PROGRESS,
     );
-    const credential = server.runnerAuthService.mintRunCredential("wex_live");
+    const credential = server.runnerAuthService.mintRunCredential("aex_live");
 
     const identity = await authenticateBearerToken(
       server.identityVerifiers,
@@ -316,53 +328,53 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
     });
 
     const asRunner = createClient(
-      WorkflowRunQueryController,
+      AgentRunQueryController,
       transportFor(port, credential),
     );
-    const row = await asRunner.get({ value: "wex_live" });
-    expect(row.metadata?.id).toBe("wex_live");
+    const row = await asRunner.get({ value: "aex_live" });
+    expect(row.metadata?.id).toBe("aex_live");
   });
 
   it("once the run is over, the same credential is UNAUTHENTICATED with the liveness sentence — validity is the row's", async () => {
-    await seedWorkflowExecution(
-      "wex_done",
+    await seedAgentRun(
+      "aex_done",
       RunPhase.RUN_IN_PROGRESS,
     );
-    const credential = server.runnerAuthService.mintRunCredential("wex_done");
+    const credential = server.runnerAuthService.mintRunCredential("aex_done");
     const asRunner = createClient(
-      WorkflowRunQueryController,
+      AgentRunQueryController,
       transportFor(port, credential),
     );
-    expect((await asRunner.get({ value: "wex_done" })).metadata?.id).toBe(
-      "wex_done",
+    expect((await asRunner.get({ value: "aex_done" })).metadata?.id).toBe(
+      "aex_done",
     );
 
-    await seedWorkflowExecution("wex_done", RunPhase.RUN_COMPLETED);
-    const failure = await failureOf(asRunner.get({ value: "wex_done" }));
+    await seedAgentRun("aex_done", RunPhase.RUN_COMPLETED);
+    const failure = await failureOf(asRunner.get({ value: "aex_done" }));
     expect(failure.code).toBe(Code.Unauthenticated);
     expect(failure.rawMessage).toBe(RUNNER_CREDENTIAL_NOT_LIVE_MESSAGE);
   });
 
   it("a credential bound to one run does not open another — the binding is the capability", async () => {
-    await seedWorkflowExecution(
-      "wex_mine",
+    await seedAgentRun(
+      "aex_mine",
       RunPhase.RUN_IN_PROGRESS,
     );
-    await seedWorkflowExecution(
-      "wex_other",
+    await seedAgentRun(
+      "aex_other",
       RunPhase.RUN_IN_PROGRESS,
     );
-    const credential = server.runnerAuthService.mintRunCredential("wex_mine");
+    const credential = server.runnerAuthService.mintRunCredential("aex_mine");
     const asRunner = createClient(
-      WorkflowRunQueryController,
+      AgentRunQueryController,
       transportFor(port, credential),
     );
     // Admitted as Carol, who created both rows — so the read of the OTHER
     // run succeeds AS CAROL: the credential narrows WHO the runner is,
     // not WHICH rows that person may read. Pinned so the reach is stated,
     // not discovered (the cloud's sandbox token has the same reach).
-    expect((await asRunner.get({ value: "wex_other" })).metadata?.id).toBe(
-      "wex_other",
+    expect((await asRunner.get({ value: "aex_other" })).metadata?.id).toBe(
+      "aex_other",
     );
   });
 
@@ -380,8 +392,8 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
         transportFor(port, bruceToken),
       );
       expect((await bruce.provisionMyAccount({})).metadata?.id).not.toBe("");
-      await seedWorkflowExecution(
-        "wex_carols",
+      await seedAgentRun(
+        "aex_carols",
         RunPhase.RUN_IN_PROGRESS,
       );
     });
@@ -393,7 +405,7 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
       );
       const failure = await failureOf(
         platform.getRunnerScopedToken({
-          scope: { case: "workflowRunId", value: "wex_carols" },
+          scope: { case: "agentRunId", value: "aex_carols" },
         }),
       );
       expect(failure.code).toBe(Code.PermissionDenied);
@@ -409,7 +421,7 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
         ),
       );
       const minted = await platform.getRunnerScopedToken({
-        scope: { case: "workflowRunId", value: "wex_carols" },
+        scope: { case: "agentRunId", value: "aex_carols" },
       });
       expect(minted.runnerScopedToken).not.toBe("");
       expect(minted.tokenType).toBe("Bearer");
@@ -435,13 +447,11 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
       );
       const failure = await failureOf(
         platform.getRunnerScopedToken({
-          scope: { case: "workflowRunId", value: "wex_nowhere" },
+          scope: { case: "agentRunId", value: "aex_nowhere" },
         }),
       );
       expect(failure.code).toBe(Code.NotFound);
-      expect(failure.rawMessage).toBe(
-        "WorkflowRun not found: wex_nowhere",
-      );
+      expect(failure.rawMessage).toBe("AgentRun not found: aex_nowhere");
     });
   });
 });
@@ -473,7 +483,7 @@ describe("trusted-local: no runner verifier is composed", () => {
   });
 
   it("the server's run credential is an UNCLAIMED bearer here — the exchange token stays the decrypt-lane discriminator it is today", async () => {
-    const credential = server.runnerAuthService.mintRunCredential("wex_local");
+    const credential = server.runnerAuthService.mintRunCredential("aex_local");
     expect(
       await authenticateBearerToken(
         server.identityVerifiers,

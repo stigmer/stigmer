@@ -22,11 +22,6 @@ const PINNED: Readonly<
     revision: 1,
     fingerprint: "agent_run{session=field:spec.session_id}",
   },
-  artifact: {
-    revision: 3,
-    fingerprint:
-      "artifact{agent_execution=field:spec.source.agent_run_id,blob=field:status.content_hash,workflow_execution=field:spec.source.workflow_run_id}",
-  },
   iam_policy: {
     revision: 1,
     fingerprint: "iam_policy{principal=field:spec.principal.id}",
@@ -43,10 +38,6 @@ const PINNED: Readonly<
     revision: 2,
     fingerprint:
       "session{agent=field:status.agent_id,channel=label:stigmer.ai/channel-id}",
-  },
-  workflow_run: {
-    revision: 2,
-    fingerprint: "workflow_run{workflow=field:spec.workflow_id}",
   },
 };
 
