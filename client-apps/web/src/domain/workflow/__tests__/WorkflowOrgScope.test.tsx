@@ -122,7 +122,7 @@ vi.mock("@stigmer/react", () => {
     useWorkflowRunList: ({ org }: { org: string | null }) => {
       page.executionListOrg.push(org);
       return {
-        executions: [],
+        runs: [],
         isLoading: false,
         error: null,
         hasMore: false,

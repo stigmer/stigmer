@@ -13,7 +13,7 @@ import { act, render } from "@testing-library/react";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 interface ViewerProps {
-  executionId: string;
+  runId: string;
   org?: string;
   nodesDraggable?: boolean;
   headerActions?: ReactNode;
@@ -35,7 +35,7 @@ vi.mock("@stigmer/react", async () => {
     WorkflowRunViewer: (props: ViewerProps) => {
       page.viewer.push(props);
       // A state initializer runs once per mount: the remount probe.
-      useState(() => page.mounts.push(props.executionId));
+      useState(() => page.mounts.push(props.runId));
       return <>{props.headerActions}</>;
     },
     ManageAccessButton: (props: Record<string, unknown>) => {
@@ -76,7 +76,7 @@ describe("web WorkflowRunDetailPage", () => {
   it("shows the execution in the active org, with that execution's access dialog", () => {
     render(<WorkflowRunDetailPage executionId="wfe_1" />);
 
-    expect(page.viewer.at(-1)).toMatchObject({ executionId: "wfe_1", org: "org_acme", nodesDraggable: true });
+    expect(page.viewer.at(-1)).toMatchObject({ runId: "wfe_1", org: "org_acme", nodesDraggable: true });
     expect(page.access.at(-1)?.resource).toEqual({
       kind: ApiResourceKind.workflow_run,
       kindString: "workflow_run",

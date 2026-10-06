@@ -37,7 +37,7 @@ vi.mock("@stigmer/react", () => ({
   useWorkflowRunList: ({ org }: { org: string }) => {
     record("useWorkflowRunList", org);
     return {
-      executions: [],
+      runs: [],
       isLoading: false,
       error: null,
       hasMore: false,

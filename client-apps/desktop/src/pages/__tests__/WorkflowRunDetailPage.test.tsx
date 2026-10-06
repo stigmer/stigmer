@@ -13,7 +13,7 @@ import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-rou
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 interface ViewerProps {
-  executionId: string;
+  runId: string;
   org?: string;
   nodesDraggable?: boolean;
   headerActions?: ReactNode;
@@ -35,7 +35,7 @@ vi.mock("@stigmer/react", async () => {
     WorkflowRunViewer: (props: ViewerProps) => {
       page.viewer.push(props);
       // A state initializer runs once per mount: the remount probe.
-      useState(() => page.mounts.push(props.executionId));
+      useState(() => page.mounts.push(props.runId));
       return <>{props.headerActions}</>;
     },
     ManageAccessButton: (props: Record<string, unknown>) => {
@@ -85,7 +85,7 @@ describe("desktop WorkflowRunDetailPage", () => {
   it("shows the execution its route names, with that execution's access dialog", () => {
     renderAt("/runs/wfe_1?org=acme");
 
-    expect(page.viewer.at(-1)).toMatchObject({ executionId: "wfe_1", org: "acme", nodesDraggable: true });
+    expect(page.viewer.at(-1)).toMatchObject({ runId: "wfe_1", org: "acme", nodesDraggable: true });
     expect(page.access.at(-1)?.resource).toEqual({
       kind: ApiResourceKind.workflow_run,
       kindString: "workflow_run",
