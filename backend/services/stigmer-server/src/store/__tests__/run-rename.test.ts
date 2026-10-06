@@ -218,6 +218,12 @@ describe("renamedWorkflowRow", () => {
     expect(migrated.spec?.tasks[2]?.taskConfig).toEqual(workflow.spec!.tasks[2]!.taskConfig);
   });
 
+  it("passes over a step with no config, leaving its workflow alone", () => {
+    const workflow = workflowWithSteps("wfl_bare", NEW_RUN_NAMES);
+    workflow.spec!.tasks[0]!.taskConfig = undefined;
+    expect(renamedWorkflowRow(toBinary(WorkflowSchema, workflow))).toBeUndefined();
+  });
+
   it("leaves a workflow whose steps already read current alone", () => {
     expect(
       renamedWorkflowRow(toBinary(WorkflowSchema, workflowWithSteps("wfl_1", NEW_RUN_NAMES))),
