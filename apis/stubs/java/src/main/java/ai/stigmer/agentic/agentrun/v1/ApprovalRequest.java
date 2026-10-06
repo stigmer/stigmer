@@ -12,8 +12,7 @@ package ai.stigmer.agentic.agentrun.v1;
  *
  * Carries the same display-facing field set as PendingApproval so a REQUESTED
  * event can fully reconstruct the pending-approval projection without joining
- * back to the originating ToolCall (which, for workflow-parent approvals, is not
- * co-located with the approval).
+ * back to the originating ToolCall.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentrun.v1.ApprovalRequest}
@@ -912,8 +911,7 @@ private static final long serialVersionUID = 0L;
    *
    * Carries the same display-facing field set as PendingApproval so a REQUESTED
    * event can fully reconstruct the pending-approval projection without joining
-   * back to the originating ToolCall (which, for workflow-parent approvals, is not
-   * co-located with the approval).
+   * back to the originating ToolCall.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentrun.v1.ApprovalRequest}

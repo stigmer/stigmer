@@ -33,7 +33,7 @@ import { deriveResourceConfig, loadSpecSchemaWithTypes, META_FIELD_NAMES } from 
 import { generateTSBidiStream, generateTSErrors, generateTSProtoUtils, generateTSTypes } from "./sdk-client-ts-static.js";
 import { generateTSUpdateInputMapper, tsHasUpdateRPC } from "./sdk-client-ts-update.js";
 import { generateTSKindMeta } from "./sdk-kind-meta-ts.js";
-import type { FieldSchema, TaskConfigSchema, TypeSchema, TypeSpec } from "./schema.js";
+import type { FieldSchema, SpecSchema, TypeSchema, TypeSpec } from "./schema.js";
 import { readDirSorted } from "./schema.js";
 
 /** Port of runSDKClientTSGeneration. */
@@ -57,7 +57,7 @@ export function runSDKClientTSGeneration(schemaDir: string, outputDir: string): 
     const schema = JSON.parse(fs.readFileSync(path.join(servicesDir, entry.name), "utf8")) as ServiceSchemaFile;
     const cfg = deriveResourceConfig(schema, schemaDir);
 
-    let specSchema: TaskConfigSchema | null = null;
+    let specSchema: SpecSchema | null = null;
     let specTypes: TypeSchema[] = [];
     if (cfg.specSchema !== "") {
       [specSchema, specTypes] = loadSpecSchemaWithTypes(path.join(schemaDir, cfg.specSchema));
@@ -82,7 +82,7 @@ export function runSDKClientTSGeneration(schemaDir: string, outputDir: string): 
 function generateTSResourceClient(
   schema: ServiceSchemaFile,
   cfg: SdkResourceConfig,
-  specSchema: TaskConfigSchema | null,
+  specSchema: SpecSchema | null,
   specTypes: TypeSchema[],
 ): [string, ResourceGenInfo] {
   const importBase = deriveTSImportBase(schema.package);
@@ -560,7 +560,7 @@ function generateTSInputTypes(
   buf: string[],
   schema: ServiceSchemaFile,
   cfg: SdkResourceConfig,
-  spec: TaskConfigSchema,
+  spec: SpecSchema,
   typeMap: Map<string, TypeSchema>,
   imports: TsImportSet,
 ): string[] {
@@ -766,7 +766,7 @@ function generateTSBuildProto(
   buf: string[],
   schema: ServiceSchemaFile,
   cfg: SdkResourceConfig,
-  spec: TaskConfigSchema,
+  spec: SpecSchema,
   typeMap: Map<string, TypeSchema>,
   imports: TsImportSet,
 ): void {

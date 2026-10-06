@@ -353,9 +353,8 @@ public interface PendingApprovalOrBuilder extends
    * <pre>
    * Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the
    * server-side projection (exactly as mcp_server_slug above is). Lets approval
-   * surfaces — including workflow-parent approvals, where the originating
-   * ToolCall is not co-located with the approval — classify and render the tool
-   * without a client-side lookup. See ToolKind.
+   * surfaces classify and render the tool without a client-side lookup. See
+   * ToolKind.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.ToolKind tool_kind = 13 [json_name = "toolKind"];</code>
@@ -366,9 +365,8 @@ public interface PendingApprovalOrBuilder extends
    * <pre>
    * Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the
    * server-side projection (exactly as mcp_server_slug above is). Lets approval
-   * surfaces — including workflow-parent approvals, where the originating
-   * ToolCall is not co-located with the approval — classify and render the tool
-   * without a client-side lookup. See ToolKind.
+   * surfaces classify and render the tool without a client-side lookup. See
+   * ToolKind.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.ToolKind tool_kind = 13 [json_name = "toolKind"];</code>

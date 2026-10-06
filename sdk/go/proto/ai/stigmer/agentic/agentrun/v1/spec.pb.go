@@ -64,8 +64,8 @@ type AgentRunSpec struct {
 	// specific layer chose (for example, thinking off for one message on an
 	// agent whose default turns it on).
 	//
-	// A lane that composes the turn for a surface (a schedule, a workflow
-	// step) writes that surface's saved settings here. On a lane where the
+	// A lane that composes the turn for a surface (a schedule, a channel)
+	// writes that surface's saved settings here. On a lane where the
 	// caller is a visitor (the hosted edition's shared-agent guests and
 	// channel senders), the surface's saved settings replace this field; the
 	// per-message intents below are the edition's to allow or clear for a
@@ -105,8 +105,8 @@ type AgentRunSpec struct {
 	// - Native harness: uses deepagents responseFormat/ToolStrategy
 	// - Cursor harness: prompt instruction + extraction fallback
 	//
-	// The validated structured data is returned in the activity result
-	// and passed back to the parent workflow as `structured`.
+	// The validated structured data lands on the run's
+	// status.structured_output.
 	StructuredOutputSchema *structpb.Struct `protobuf:"bytes,21,opt,name=structured_output_schema,json=structuredOutputSchema,proto3" json:"structured_output_schema,omitempty"`
 	// Runtime environment variables and secrets (run-scoped).
 	// These values are only available for this specific run and take the
@@ -192,20 +192,8 @@ type AgentRunSpec struct {
 	// agent was not watching, the digest carries what happened so the agent
 	// re-enters informed. Absent on every other run surface.
 	ConversationCatchup *ConversationCatchup `protobuf:"bytes,14,opt,name=conversation_catchup,json=conversationCatchup,proto3" json:"conversation_catchup,omitempty"`
-	// The workflow run this turn was started by (optional): set only by a
-	// workflow's agent_call step, which waits for the turn to finish.
-	//
-	// The server honours it only from the workflow run it names: a request
-	// the server composes itself, a runner whose credential is bound to that
-	// workflow run, or a caller holding the platform's
-	// can_write_reserved_labels. Any other caller that sets it is refused with
-	// INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-	// runs where the workflow run's own activities run (its sandbox, when the
-	// deployment gives each run one), the parent is told about approval
-	// requests, and the waiting step is completed when the turn finishes.
-	Parent        *WorkflowParent `protobuf:"bytes,17,opt,name=parent,proto3" json:"parent,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *AgentRunSpec) Reset() {
@@ -340,13 +328,6 @@ func (x *AgentRunSpec) GetConversationCatchup() *ConversationCatchup {
 	return nil
 }
 
-func (x *AgentRunSpec) GetParent() *WorkflowParent {
-	if x != nil {
-		return x.Parent
-	}
-	return nil
-}
-
 type isAgentRunSpec_Target interface {
 	isAgentRunSpec_Target()
 }
@@ -386,78 +367,6 @@ type AgentRunSpec_SessionSpec struct {
 func (*AgentRunSpec_SessionId) isAgentRunSpec_Target() {}
 
 func (*AgentRunSpec_SessionSpec) isAgentRunSpec_Target() {}
-
-// WorkflowParent links a turn to the workflow run whose agent_call step
-// started it.
-type WorkflowParent struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// ID of the workflow run whose step started this turn. The turn's
-	// activities run where that workflow run's own activities run.
-	WorkflowRunId string `protobuf:"bytes,1,opt,name=workflow_run_id,json=workflowRunId,proto3" json:"workflow_run_id,omitempty"`
-	// Temporal workflow ID the agent-execution workflow signals about
-	// approval requests ("child_approval_required", carrying only this
-	// run's id): the workflow run's engine workflow, which for a nested
-	// workflow is a child workflow with its own id, so it is named rather
-	// than derived.
-	SignalWorkflowId string `protobuf:"bytes,2,opt,name=signal_workflow_id,json=signalWorkflowId,proto3" json:"signal_workflow_id,omitempty"`
-	// Temporal task token of the agent_call activity waiting for this turn
-	// (asynchronous activity completion). The agent-execution workflow
-	// completes that activity with the turn's result when the turn finishes.
-	CallbackToken []byte `protobuf:"bytes,3,opt,name=callback_token,json=callbackToken,proto3" json:"callback_token,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *WorkflowParent) Reset() {
-	*x = WorkflowParent{}
-	mi := &file_ai_stigmer_agentic_agentrun_v1_spec_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *WorkflowParent) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*WorkflowParent) ProtoMessage() {}
-
-func (x *WorkflowParent) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentrun_v1_spec_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use WorkflowParent.ProtoReflect.Descriptor instead.
-func (*WorkflowParent) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentrun_v1_spec_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *WorkflowParent) GetWorkflowRunId() string {
-	if x != nil {
-		return x.WorkflowRunId
-	}
-	return ""
-}
-
-func (x *WorkflowParent) GetSignalWorkflowId() string {
-	if x != nil {
-		return x.SignalWorkflowId
-	}
-	return ""
-}
-
-func (x *WorkflowParent) GetCallbackToken() []byte {
-	if x != nil {
-		return x.CallbackToken
-	}
-	return nil
-}
 
 // Attachment represents a file attached to an agent run.
 //
@@ -524,7 +433,7 @@ type Attachment struct {
 
 func (x *Attachment) Reset() {
 	*x = Attachment{}
-	mi := &file_ai_stigmer_agentic_agentrun_v1_spec_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_agentrun_v1_spec_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -536,7 +445,7 @@ func (x *Attachment) String() string {
 func (*Attachment) ProtoMessage() {}
 
 func (x *Attachment) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentrun_v1_spec_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_agentrun_v1_spec_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -549,7 +458,7 @@ func (x *Attachment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Attachment.ProtoReflect.Descriptor instead.
 func (*Attachment) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentrun_v1_spec_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_agentic_agentrun_v1_spec_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Attachment) GetFilename() string {
@@ -609,7 +518,7 @@ type ConversationCatchup struct {
 
 func (x *ConversationCatchup) Reset() {
 	*x = ConversationCatchup{}
-	mi := &file_ai_stigmer_agentic_agentrun_v1_spec_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_agentrun_v1_spec_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -621,7 +530,7 @@ func (x *ConversationCatchup) String() string {
 func (*ConversationCatchup) ProtoMessage() {}
 
 func (x *ConversationCatchup) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentrun_v1_spec_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_agentrun_v1_spec_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -634,7 +543,7 @@ func (x *ConversationCatchup) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConversationCatchup.ProtoReflect.Descriptor instead.
 func (*ConversationCatchup) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentrun_v1_spec_proto_rawDescGZIP(), []int{3}
+	return file_ai_stigmer_agentic_agentrun_v1_spec_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ConversationCatchup) GetDigest() string {
@@ -665,7 +574,7 @@ type DeclaredPreferences struct {
 
 func (x *DeclaredPreferences) Reset() {
 	*x = DeclaredPreferences{}
-	mi := &file_ai_stigmer_agentic_agentrun_v1_spec_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_agentrun_v1_spec_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -677,7 +586,7 @@ func (x *DeclaredPreferences) String() string {
 func (*DeclaredPreferences) ProtoMessage() {}
 
 func (x *DeclaredPreferences) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentrun_v1_spec_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_agentrun_v1_spec_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -690,7 +599,7 @@ func (x *DeclaredPreferences) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeclaredPreferences.ProtoReflect.Descriptor instead.
 func (*DeclaredPreferences) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentrun_v1_spec_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_agentic_agentrun_v1_spec_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *DeclaredPreferences) GetOrgContext() string {
@@ -723,7 +632,7 @@ type RecalledMemories struct {
 
 func (x *RecalledMemories) Reset() {
 	*x = RecalledMemories{}
-	mi := &file_ai_stigmer_agentic_agentrun_v1_spec_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_agentrun_v1_spec_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -735,7 +644,7 @@ func (x *RecalledMemories) String() string {
 func (*RecalledMemories) ProtoMessage() {}
 
 func (x *RecalledMemories) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentrun_v1_spec_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_agentrun_v1_spec_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -748,7 +657,7 @@ func (x *RecalledMemories) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecalledMemories.ProtoReflect.Descriptor instead.
 func (*RecalledMemories) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentrun_v1_spec_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_agentic_agentrun_v1_spec_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *RecalledMemories) GetEnabled() bool {
@@ -779,7 +688,7 @@ type RecalledMemoryFact struct {
 
 func (x *RecalledMemoryFact) Reset() {
 	*x = RecalledMemoryFact{}
-	mi := &file_ai_stigmer_agentic_agentrun_v1_spec_proto_msgTypes[6]
+	mi := &file_ai_stigmer_agentic_agentrun_v1_spec_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -791,7 +700,7 @@ func (x *RecalledMemoryFact) String() string {
 func (*RecalledMemoryFact) ProtoMessage() {}
 
 func (x *RecalledMemoryFact) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentrun_v1_spec_proto_msgTypes[6]
+	mi := &file_ai_stigmer_agentic_agentrun_v1_spec_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -804,7 +713,7 @@ func (x *RecalledMemoryFact) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecalledMemoryFact.ProtoReflect.Descriptor instead.
 func (*RecalledMemoryFact) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentrun_v1_spec_proto_rawDescGZIP(), []int{6}
+	return file_ai_stigmer_agentic_agentrun_v1_spec_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *RecalledMemoryFact) GetMemoryId() string {
@@ -825,7 +734,7 @@ var File_ai_stigmer_agentic_agentrun_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentrun_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/agentrun/v1/spec.proto\x12\x1eai.stigmer.agentic.agentrun.v1\x1a)ai/stigmer/agentic/agentrun/v1/enum.proto\x1a/ai/stigmer/agentic/agentrun/v1/invocation.proto\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xbb\v\n" +
+	")ai/stigmer/agentic/agentrun/v1/spec.proto\x12\x1eai.stigmer.agentic.agentrun.v1\x1a)ai/stigmer/agentic/agentrun/v1/enum.proto\x1a/ai/stigmer/agentic/agentrun/v1/invocation.proto\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x81\v\n" +
 	"\fAgentRunSpec\x12\x1f\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tH\x00R\tsessionId\x12O\n" +
@@ -843,17 +752,12 @@ const file_ai_stigmer_agentic_agentrun_v1_spec_proto_rawDesc = "" +
 	"\x13workspace_file_refs\x18\n" +
 	" \x03(\tR\x11workspaceFileRefs\x12*\n" +
 	"\x11supersedes_run_id\x18\f \x01(\tR\x0fsupersedesRunId\x12f\n" +
-	"\x14conversation_catchup\x18\x0e \x01(\v23.ai.stigmer.agentic.agentrun.v1.ConversationCatchupR\x13conversationCatchup\x12F\n" +
-	"\x06parent\x18\x11 \x01(\v2..ai.stigmer.agentic.agentrun.v1.WorkflowParentR\x06parent\x1au\n" +
+	"\x14conversation_catchup\x18\x0e \x01(\v23.ai.stigmer.agentic.agentrun.v1.ConversationCatchupR\x13conversationCatchup\x1au\n" +
 	"\x0fRuntimeEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
 	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01:\xde\x01\xbaH\xda\x01\x1a\xd7\x01\n" +
 	"$agent_run.session_spec_harness_state\x12jsession_spec.harness_state_id must be empty — harness state is created by the runner after the first run\x1aC!has(this.session_spec) || this.session_spec.harness_state_id == ''B\b\n" +
-	"\x06targetJ\x04\b\x02\x10\x03J\x04\b\x06\x10\aJ\x04\b\b\x10\tJ\x04\b\v\x10\fJ\x04\b\x0f\x10\x10J\x04\b\x10\x10\x11J\x04\b\x04\x10\x05R\bagent_idR\x0ecallback_tokenR\x12parent_workflow_idR\x13activity_task_queueR\x14declared_preferencesR\x11recalled_memoriesR\x10execution_config\"\x96\x01\n" +
-	"\x0eWorkflowParent\x12/\n" +
-	"\x0fworkflow_run_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\rworkflowRunId\x12,\n" +
-	"\x12signal_workflow_id\x18\x02 \x01(\tR\x10signalWorkflowId\x12%\n" +
-	"\x0ecallback_token\x18\x03 \x01(\fR\rcallbackToken\"\x96\x03\n" +
+	"\x06targetJ\x04\b\x02\x10\x03J\x04\b\x06\x10\aJ\x04\b\b\x10\tJ\x04\b\v\x10\fJ\x04\b\x11\x10\x12J\x04\b\x0f\x10\x10J\x04\b\x10\x10\x11J\x04\b\x04\x10\x05R\bagent_idR\x0ecallback_tokenR\x12parent_workflow_idR\x13activity_task_queueR\x06parentR\x14declared_preferencesR\x11recalled_memoriesR\x10execution_config\"\x96\x03\n" +
 	"\n" +
 	"Attachment\x12\xe2\x01\n" +
 	"\bfilename\x18\x01 \x01(\tB\xc5\x01\xbaH\xc1\x01\xba\x01\xb9\x01\n" +
@@ -894,40 +798,38 @@ func file_ai_stigmer_agentic_agentrun_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentrun_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentrun_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_ai_stigmer_agentic_agentrun_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_ai_stigmer_agentic_agentrun_v1_spec_proto_goTypes = []any{
 	(*AgentRunSpec)(nil),          // 0: ai.stigmer.agentic.agentrun.v1.AgentRunSpec
-	(*WorkflowParent)(nil),        // 1: ai.stigmer.agentic.agentrun.v1.WorkflowParent
-	(*Attachment)(nil),            // 2: ai.stigmer.agentic.agentrun.v1.Attachment
-	(*ConversationCatchup)(nil),   // 3: ai.stigmer.agentic.agentrun.v1.ConversationCatchup
-	(*DeclaredPreferences)(nil),   // 4: ai.stigmer.agentic.agentrun.v1.DeclaredPreferences
-	(*RecalledMemories)(nil),      // 5: ai.stigmer.agentic.agentrun.v1.RecalledMemories
-	(*RecalledMemoryFact)(nil),    // 6: ai.stigmer.agentic.agentrun.v1.RecalledMemoryFact
-	nil,                           // 7: ai.stigmer.agentic.agentrun.v1.AgentRunSpec.RuntimeEnvEntry
-	(*v11.SessionSpec)(nil),       // 8: ai.stigmer.agentic.session.v1.SessionSpec
-	(*RunConfig)(nil),             // 9: ai.stigmer.agentic.agentrun.v1.RunConfig
-	(InteractionMode)(0),          // 10: ai.stigmer.agentic.agentrun.v1.InteractionMode
-	(*structpb.Struct)(nil),       // 11: google.protobuf.Struct
-	(*timestamppb.Timestamp)(nil), // 12: google.protobuf.Timestamp
-	(*v1.ExecutionValue)(nil),     // 13: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	(*Attachment)(nil),            // 1: ai.stigmer.agentic.agentrun.v1.Attachment
+	(*ConversationCatchup)(nil),   // 2: ai.stigmer.agentic.agentrun.v1.ConversationCatchup
+	(*DeclaredPreferences)(nil),   // 3: ai.stigmer.agentic.agentrun.v1.DeclaredPreferences
+	(*RecalledMemories)(nil),      // 4: ai.stigmer.agentic.agentrun.v1.RecalledMemories
+	(*RecalledMemoryFact)(nil),    // 5: ai.stigmer.agentic.agentrun.v1.RecalledMemoryFact
+	nil,                           // 6: ai.stigmer.agentic.agentrun.v1.AgentRunSpec.RuntimeEnvEntry
+	(*v11.SessionSpec)(nil),       // 7: ai.stigmer.agentic.session.v1.SessionSpec
+	(*RunConfig)(nil),             // 8: ai.stigmer.agentic.agentrun.v1.RunConfig
+	(InteractionMode)(0),          // 9: ai.stigmer.agentic.agentrun.v1.InteractionMode
+	(*structpb.Struct)(nil),       // 10: google.protobuf.Struct
+	(*timestamppb.Timestamp)(nil), // 11: google.protobuf.Timestamp
+	(*v1.ExecutionValue)(nil),     // 12: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
 }
 var file_ai_stigmer_agentic_agentrun_v1_spec_proto_depIdxs = []int32{
-	8,  // 0: ai.stigmer.agentic.agentrun.v1.AgentRunSpec.session_spec:type_name -> ai.stigmer.agentic.session.v1.SessionSpec
-	9,  // 1: ai.stigmer.agentic.agentrun.v1.AgentRunSpec.run_config:type_name -> ai.stigmer.agentic.agentrun.v1.RunConfig
-	10, // 2: ai.stigmer.agentic.agentrun.v1.AgentRunSpec.interaction_mode:type_name -> ai.stigmer.agentic.agentrun.v1.InteractionMode
-	11, // 3: ai.stigmer.agentic.agentrun.v1.AgentRunSpec.structured_output_schema:type_name -> google.protobuf.Struct
-	7,  // 4: ai.stigmer.agentic.agentrun.v1.AgentRunSpec.runtime_env:type_name -> ai.stigmer.agentic.agentrun.v1.AgentRunSpec.RuntimeEnvEntry
-	2,  // 5: ai.stigmer.agentic.agentrun.v1.AgentRunSpec.attachments:type_name -> ai.stigmer.agentic.agentrun.v1.Attachment
-	3,  // 6: ai.stigmer.agentic.agentrun.v1.AgentRunSpec.conversation_catchup:type_name -> ai.stigmer.agentic.agentrun.v1.ConversationCatchup
-	1,  // 7: ai.stigmer.agentic.agentrun.v1.AgentRunSpec.parent:type_name -> ai.stigmer.agentic.agentrun.v1.WorkflowParent
-	12, // 8: ai.stigmer.agentic.agentrun.v1.ConversationCatchup.window_end:type_name -> google.protobuf.Timestamp
-	6,  // 9: ai.stigmer.agentic.agentrun.v1.RecalledMemories.facts:type_name -> ai.stigmer.agentic.agentrun.v1.RecalledMemoryFact
-	13, // 10: ai.stigmer.agentic.agentrun.v1.AgentRunSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
-	11, // [11:11] is the sub-list for method output_type
-	11, // [11:11] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	7,  // 0: ai.stigmer.agentic.agentrun.v1.AgentRunSpec.session_spec:type_name -> ai.stigmer.agentic.session.v1.SessionSpec
+	8,  // 1: ai.stigmer.agentic.agentrun.v1.AgentRunSpec.run_config:type_name -> ai.stigmer.agentic.agentrun.v1.RunConfig
+	9,  // 2: ai.stigmer.agentic.agentrun.v1.AgentRunSpec.interaction_mode:type_name -> ai.stigmer.agentic.agentrun.v1.InteractionMode
+	10, // 3: ai.stigmer.agentic.agentrun.v1.AgentRunSpec.structured_output_schema:type_name -> google.protobuf.Struct
+	6,  // 4: ai.stigmer.agentic.agentrun.v1.AgentRunSpec.runtime_env:type_name -> ai.stigmer.agentic.agentrun.v1.AgentRunSpec.RuntimeEnvEntry
+	1,  // 5: ai.stigmer.agentic.agentrun.v1.AgentRunSpec.attachments:type_name -> ai.stigmer.agentic.agentrun.v1.Attachment
+	2,  // 6: ai.stigmer.agentic.agentrun.v1.AgentRunSpec.conversation_catchup:type_name -> ai.stigmer.agentic.agentrun.v1.ConversationCatchup
+	11, // 7: ai.stigmer.agentic.agentrun.v1.ConversationCatchup.window_end:type_name -> google.protobuf.Timestamp
+	5,  // 8: ai.stigmer.agentic.agentrun.v1.RecalledMemories.facts:type_name -> ai.stigmer.agentic.agentrun.v1.RecalledMemoryFact
+	12, // 9: ai.stigmer.agentic.agentrun.v1.AgentRunSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	10, // [10:10] is the sub-list for method output_type
+	10, // [10:10] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentrun_v1_spec_proto_init() }
@@ -947,7 +849,7 @@ func file_ai_stigmer_agentic_agentrun_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentrun_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_agentrun_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

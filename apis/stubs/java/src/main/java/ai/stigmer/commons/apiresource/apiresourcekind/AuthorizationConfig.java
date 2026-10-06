@@ -12,7 +12,7 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
  *
  * Example configurations:
  *
- * Standard org-scoped resource (agent, skill, workflow):
+ * Standard org-scoped resource (agent, skill):
  * scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
  * owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
  * -&gt; Creates: resource#organization&#64;organization:&lt;org_id&gt;
@@ -31,13 +31,13 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
  * -&gt; Creates: agent_run#session&#64;session:&lt;session_id&gt;
  * -&gt; No owner tuple (inherited from session)
  *
- * Resource with additional parent (workflow_run):
+ * Resource with additional parent (memory):
  * scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
- * owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
- * additional_parents: [{ kind: "workflow", relation: "workflow", spec_field: "workflow_id" }]
- * -&gt; Creates: workflow_run#organization&#64;organization:&lt;org_id&gt;
- * -&gt; Creates: workflow_run#workflow&#64;workflow:&lt;workflow_id&gt;
- * -&gt; Creates: workflow_run#owner&#64;identity_account:&lt;creator_id&gt;
+ * owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+ * additional_parents: [{ kind: "identity_account", relation: "subject", spec_field: "subject_identity_account_id" }]
+ * -&gt; Creates: memory#organization&#64;organization:&lt;org_id&gt;
+ * -&gt; Creates: memory#subject&#64;identity_account:&lt;subject_identity_account_id&gt;
+ * -&gt; No owner tuple
  *
  * Personal resource with creator attribution (environment):
  * scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
@@ -207,7 +207,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: workflow_run needs org link AND workflow link.
+   * Example: memory needs an org link AND a subject link to the person the
+   * memory is about.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -220,7 +221,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: workflow_run needs org link AND workflow link.
+   * Example: memory needs an org link AND a subject link to the person the
+   * memory is about.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -234,7 +236,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: workflow_run needs org link AND workflow link.
+   * Example: memory needs an org link AND a subject link to the person the
+   * memory is about.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -247,7 +250,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: workflow_run needs org link AND workflow link.
+   * Example: memory needs an org link AND a subject link to the person the
+   * memory is about.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -260,7 +264,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: workflow_run needs org link AND workflow link.
+   * Example: memory needs an org link AND a subject link to the person the
+   * memory is about.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -863,7 +868,7 @@ private static final long serialVersionUID = 0L;
    *
    * Example configurations:
    *
-   * Standard org-scoped resource (agent, skill, workflow):
+   * Standard org-scoped resource (agent, skill):
    * scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
    * owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
    * -&gt; Creates: resource#organization&#64;organization:&lt;org_id&gt;
@@ -882,13 +887,13 @@ private static final long serialVersionUID = 0L;
    * -&gt; Creates: agent_run#session&#64;session:&lt;session_id&gt;
    * -&gt; No owner tuple (inherited from session)
    *
-   * Resource with additional parent (workflow_run):
+   * Resource with additional parent (memory):
    * scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
-   * owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-   * additional_parents: [{ kind: "workflow", relation: "workflow", spec_field: "workflow_id" }]
-   * -&gt; Creates: workflow_run#organization&#64;organization:&lt;org_id&gt;
-   * -&gt; Creates: workflow_run#workflow&#64;workflow:&lt;workflow_id&gt;
-   * -&gt; Creates: workflow_run#owner&#64;identity_account:&lt;creator_id&gt;
+   * owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+   * additional_parents: [{ kind: "identity_account", relation: "subject", spec_field: "subject_identity_account_id" }]
+   * -&gt; Creates: memory#organization&#64;organization:&lt;org_id&gt;
+   * -&gt; Creates: memory#subject&#64;identity_account:&lt;subject_identity_account_id&gt;
+   * -&gt; No owner tuple
    *
    * Personal resource with creator attribution (environment):
    * scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
@@ -1570,7 +1575,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_run needs org link AND workflow link.
+     * Example: memory needs an org link AND a subject link to the person the
+     * memory is about.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1586,7 +1592,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_run needs org link AND workflow link.
+     * Example: memory needs an org link AND a subject link to the person the
+     * memory is about.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1602,7 +1609,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_run needs org link AND workflow link.
+     * Example: memory needs an org link AND a subject link to the person the
+     * memory is about.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1618,7 +1626,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_run needs org link AND workflow link.
+     * Example: memory needs an org link AND a subject link to the person the
+     * memory is about.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1641,7 +1650,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_run needs org link AND workflow link.
+     * Example: memory needs an org link AND a subject link to the person the
+     * memory is about.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1661,7 +1671,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_run needs org link AND workflow link.
+     * Example: memory needs an org link AND a subject link to the person the
+     * memory is about.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1683,7 +1694,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_run needs org link AND workflow link.
+     * Example: memory needs an org link AND a subject link to the person the
+     * memory is about.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1706,7 +1718,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_run needs org link AND workflow link.
+     * Example: memory needs an org link AND a subject link to the person the
+     * memory is about.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1726,7 +1739,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_run needs org link AND workflow link.
+     * Example: memory needs an org link AND a subject link to the person the
+     * memory is about.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1746,7 +1760,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_run needs org link AND workflow link.
+     * Example: memory needs an org link AND a subject link to the person the
+     * memory is about.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1767,7 +1782,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_run needs org link AND workflow link.
+     * Example: memory needs an org link AND a subject link to the person the
+     * memory is about.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1786,7 +1802,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_run needs org link AND workflow link.
+     * Example: memory needs an org link AND a subject link to the person the
+     * memory is about.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1805,7 +1822,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_run needs org link AND workflow link.
+     * Example: memory needs an org link AND a subject link to the person the
+     * memory is about.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1818,7 +1836,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_run needs org link AND workflow link.
+     * Example: memory needs an org link AND a subject link to the person the
+     * memory is about.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1834,7 +1853,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_run needs org link AND workflow link.
+     * Example: memory needs an org link AND a subject link to the person the
+     * memory is about.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1851,7 +1871,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_run needs org link AND workflow link.
+     * Example: memory needs an org link AND a subject link to the person the
+     * memory is about.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1864,7 +1885,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_run needs org link AND workflow link.
+     * Example: memory needs an org link AND a subject link to the person the
+     * memory is about.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -1878,7 +1900,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Additional parent relations beyond the primary scope.
      * Used for resources that need multiple parent links.
-     * Example: workflow_run needs org link AND workflow link.
+     * Example: memory needs an org link AND a subject link to the person the
+     * memory is about.
      * </pre>
      *
      * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>

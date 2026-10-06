@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentrun/v1/approval.proto.
  */
 export const file_ai_stigmer_agentic_agentrun_v1_approval: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRydW4vdjEvYXBwcm92YWwucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHJ1bi52MSLdAwoPUGVuZGluZ0FwcHJvdmFsEhQKDHRvb2xfY2FsbF9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIUCgxhcmdzX3ByZXZpZXcYBCABKAkSFAoMcmVxdWVzdGVkX2F0GAUgASgJEhYKDmZyb21fc3ViX2FnZW50GAYgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAcgASgJEhcKD21jcF9zZXJ2ZXJfc2x1ZxgIIAEoCRIZChFzdWJfYWdlbnRfc3ViamVjdBgJIAEoCRIXCg9hZ2VudF9yYXRpb25hbGUYCiABKAkSFgoOYnJhbmNoX2F0X2RlbnkYCyABKAkSGAoQaGVhZF9zaGFfYXRfZGVueRgMIAEoCRI7Cgl0b29sX2tpbmQYDSABKA4yKC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRydW4udjEuVG9vbEtpbmQSVAoWYXBwcm92YWxfcG9saWN5X3NvdXJjZRgPIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHJ1bi52MS5BcHByb3ZhbFBvbGljeVNvdXJjZRIcChRhcHByb3ZhbF9wb2xpY3lfaG9vaxgQIAEoCUoECA4QDyJ3ChlDaGlsZEFwcHJvdmFsTm90aWZpY2F0aW9uEg4KBnJ1bl9pZBgBIAEoCRJKChFwZW5kaW5nX2FwcHJvdmFscxgCIAMoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHJ1bi52MS5QZW5kaW5nQXBwcm92YWwirwMKD0FwcHJvdmFsUmVxdWVzdBIbChNhcHByb3ZhbF9yZXF1ZXN0X2lkGAEgASgJEhQKDHRvb2xfY2FsbF9pZBgCIAEoCRIUCgxyZXF1ZXN0ZWRfYXQYAyABKAkSEQoJdG9vbF9uYW1lGAQgASgJEg8KB21lc3NhZ2UYBSABKAkSFAoMYXJnc19wcmV2aWV3GAYgASgJEhYKDmZyb21fc3ViX2FnZW50GAcgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAggASgJEhkKEXN1Yl9hZ2VudF9zdWJqZWN0GAkgASgJEhcKD21jcF9zZXJ2ZXJfc2x1ZxgKIAEoCRI7Cgl0b29sX2tpbmQYCyABKA4yKC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRydW4udjEuVG9vbEtpbmQSVAoWYXBwcm92YWxfcG9saWN5X3NvdXJjZRgNIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHJ1bi52MS5BcHByb3ZhbFBvbGljeVNvdXJjZRIcChRhcHByb3ZhbF9wb2xpY3lfaG9vaxgOIAEoCUoECAwQDSKRAQoSQXBwcm92YWxSZXRyYWN0aW9uEhsKE2FwcHJvdmFsX3JlcXVlc3RfaWQYASABKAkSSAoGcmVhc29uGAIgASgOMjguYWkuc3RpZ21lci5hZ2VudGljLmFnZW50cnVuLnYxLkFwcHJvdmFsUmV0cmFjdGlvblJlYXNvbhIUCgxyZXRyYWN0ZWRfYXQYAyABKAkiqAEKEEFwcHJvdmFsRGVjaXNpb24SGwoTYXBwcm92YWxfcmVxdWVzdF9pZBgBIAEoCRI+CgZhY3Rpb24YAiABKA4yLi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRydW4udjEuQXBwcm92YWxBY3Rpb24SEgoKZGVjaWRlZF9hdBgDIAEoCRISCgpkZWNpZGVkX2J5GAQgASgJEg8KB2NvbW1lbnQYBSABKAkihgMKDUFwcHJvdmFsRXZlbnQSEAoIZXZlbnRfaWQYASABKAkSGwoTYXBwcm92YWxfcmVxdWVzdF9pZBgCIAEoCRJFCgpldmVudF90eXBlGAMgASgOMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50cnVuLnYxLkFwcHJvdmFsRXZlbnRUeXBlEhEKCXRpbWVzdGFtcBgEIAEoCRINCgVhY3RvchgFIAEoCRJECglyZXF1ZXN0ZWQYBiABKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRydW4udjEuQXBwcm92YWxSZXF1ZXN0SAASQwoHZGVjaWRlZBgHIAEoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHJ1bi52MS5BcHByb3ZhbERlY2lzaW9uSAASRwoJcmV0cmFjdGVkGAggASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50cnVuLnYxLkFwcHJvdmFsUmV0cmFjdGlvbkgAQgkKB3BheWxvYWQiZAoTQXBwcm92YWxFdmVudFN0cmVhbRIOCgZydW5faWQYASABKAkSPQoGZXZlbnRzGAIgAygLMi0uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50cnVuLnYxLkFwcHJvdmFsRXZlbnRiBnByb3RvMw", [file_ai_stigmer_agentic_agentrun_v1_enum]);
+  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRydW4vdjEvYXBwcm92YWwucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHJ1bi52MSLdAwoPUGVuZGluZ0FwcHJvdmFsEhQKDHRvb2xfY2FsbF9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIUCgxhcmdzX3ByZXZpZXcYBCABKAkSFAoMcmVxdWVzdGVkX2F0GAUgASgJEhYKDmZyb21fc3ViX2FnZW50GAYgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAcgASgJEhcKD21jcF9zZXJ2ZXJfc2x1ZxgIIAEoCRIZChFzdWJfYWdlbnRfc3ViamVjdBgJIAEoCRIXCg9hZ2VudF9yYXRpb25hbGUYCiABKAkSFgoOYnJhbmNoX2F0X2RlbnkYCyABKAkSGAoQaGVhZF9zaGFfYXRfZGVueRgMIAEoCRI7Cgl0b29sX2tpbmQYDSABKA4yKC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRydW4udjEuVG9vbEtpbmQSVAoWYXBwcm92YWxfcG9saWN5X3NvdXJjZRgPIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHJ1bi52MS5BcHByb3ZhbFBvbGljeVNvdXJjZRIcChRhcHByb3ZhbF9wb2xpY3lfaG9vaxgQIAEoCUoECA4QDyKvAwoPQXBwcm92YWxSZXF1ZXN0EhsKE2FwcHJvdmFsX3JlcXVlc3RfaWQYASABKAkSFAoMdG9vbF9jYWxsX2lkGAIgASgJEhQKDHJlcXVlc3RlZF9hdBgDIAEoCRIRCgl0b29sX25hbWUYBCABKAkSDwoHbWVzc2FnZRgFIAEoCRIUCgxhcmdzX3ByZXZpZXcYBiABKAkSFgoOZnJvbV9zdWJfYWdlbnQYByABKAgSFgoOc3ViX2FnZW50X25hbWUYCCABKAkSGQoRc3ViX2FnZW50X3N1YmplY3QYCSABKAkSFwoPbWNwX3NlcnZlcl9zbHVnGAogASgJEjsKCXRvb2xfa2luZBgLIAEoDjIoLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHJ1bi52MS5Ub29sS2luZBJUChZhcHByb3ZhbF9wb2xpY3lfc291cmNlGA0gASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50cnVuLnYxLkFwcHJvdmFsUG9saWN5U291cmNlEhwKFGFwcHJvdmFsX3BvbGljeV9ob29rGA4gASgJSgQIDBANIpEBChJBcHByb3ZhbFJldHJhY3Rpb24SGwoTYXBwcm92YWxfcmVxdWVzdF9pZBgBIAEoCRJICgZyZWFzb24YAiABKA4yOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRydW4udjEuQXBwcm92YWxSZXRyYWN0aW9uUmVhc29uEhQKDHJldHJhY3RlZF9hdBgDIAEoCSKoAQoQQXBwcm92YWxEZWNpc2lvbhIbChNhcHByb3ZhbF9yZXF1ZXN0X2lkGAEgASgJEj4KBmFjdGlvbhgCIAEoDjIuLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHJ1bi52MS5BcHByb3ZhbEFjdGlvbhISCgpkZWNpZGVkX2F0GAMgASgJEhIKCmRlY2lkZWRfYnkYBCABKAkSDwoHY29tbWVudBgFIAEoCSKGAwoNQXBwcm92YWxFdmVudBIQCghldmVudF9pZBgBIAEoCRIbChNhcHByb3ZhbF9yZXF1ZXN0X2lkGAIgASgJEkUKCmV2ZW50X3R5cGUYAyABKA4yMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRydW4udjEuQXBwcm92YWxFdmVudFR5cGUSEQoJdGltZXN0YW1wGAQgASgJEg0KBWFjdG9yGAUgASgJEkQKCXJlcXVlc3RlZBgGIAEoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHJ1bi52MS5BcHByb3ZhbFJlcXVlc3RIABJDCgdkZWNpZGVkGAcgASgLMjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50cnVuLnYxLkFwcHJvdmFsRGVjaXNpb25IABJHCglyZXRyYWN0ZWQYCCABKAsyMi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRydW4udjEuQXBwcm92YWxSZXRyYWN0aW9uSABCCQoHcGF5bG9hZCJkChNBcHByb3ZhbEV2ZW50U3RyZWFtEg4KBnJ1bl9pZBgBIAEoCRI9CgZldmVudHMYAiADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRydW4udjEuQXBwcm92YWxFdmVudGIGcHJvdG8z", [file_ai_stigmer_agentic_agentrun_v1_enum]);
 
 /**
  * A pending approval request for a tool call that requires user consent before execution.
@@ -167,9 +167,8 @@ export type PendingApproval = Message<"ai.stigmer.agentic.agentrun.v1.PendingApp
   /**
    * Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the
    * server-side projection (exactly as mcp_server_slug above is). Lets approval
-   * surfaces — including workflow-parent approvals, where the originating
-   * ToolCall is not co-located with the approval — classify and render the tool
-   * without a client-side lookup. See ToolKind.
+   * surfaces classify and render the tool without a client-side lookup. See
+   * ToolKind.
    *
    * @generated from field: ai.stigmer.agentic.agentrun.v1.ToolKind tool_kind = 13;
    */
@@ -204,58 +203,12 @@ export const PendingApprovalSchema: GenMessage<PendingApproval> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentrun_v1_approval, 0);
 
 /**
- * Legacy full-payload notification for a child agent needing tool approval.
- *
- * Retained for wire compatibility; the platform no longer produces or
- * consumes it. The live "child_approval_required" signal is identity-only —
- * a bare-string child run id — and the parent side derives pending
- * approvals by reading the child run record (a single source of truth
- * instead of a payload copy that can drift).
- *
- * @generated from message ai.stigmer.agentic.agentrun.v1.ChildApprovalNotification
- */
-export type ChildApprovalNotification = Message<"ai.stigmer.agentic.agentrun.v1.ChildApprovalNotification"> & {
-  /**
-   * Child agent run ID that requires approval.
-   * Format: AgentRun.metadata.id (e.g., "agx-abc123xyz456")
-   * Used by parent to track which child needs approval.
-   *
-   * @generated from field: string run_id = 1;
-   */
-  runId: string;
-
-  /**
-   * All pending approvals from this child agent run.
-   *
-   * Contains one entry per tool call requiring approval. Each entry carries
-   * the full PendingApproval details (tool_call_id, tool_name, message,
-   * args_preview, requested_at).
-   *
-   * The parent workflow wraps each entry in a WorkflowPendingApproval with
-   * run_id above as the child_agent_run_id for routing.
-   *
-   * One signal, complete picture, no partial states.
-   *
-   * @generated from field: repeated ai.stigmer.agentic.agentrun.v1.PendingApproval pending_approvals = 2;
-   */
-  pendingApprovals: PendingApproval[];
-};
-
-/**
- * Describes the message ai.stigmer.agentic.agentrun.v1.ChildApprovalNotification.
- * Use `create(ChildApprovalNotificationSchema)` to create a new message.
- */
-export const ChildApprovalNotificationSchema: GenMessage<ChildApprovalNotification> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentrun_v1_approval, 1);
-
-/**
  * A tool call requesting approval — the "ask" recorded when a gated tool call
  * enters WAITING_APPROVAL.
  *
  * Carries the same display-facing field set as PendingApproval so a REQUESTED
  * event can fully reconstruct the pending-approval projection without joining
- * back to the originating ToolCall (which, for workflow-parent approvals, is not
- * co-located with the approval).
+ * back to the originating ToolCall.
  *
  * @generated from message ai.stigmer.agentic.agentrun.v1.ApprovalRequest
  */
@@ -367,7 +320,7 @@ export type ApprovalRequest = Message<"ai.stigmer.agentic.agentrun.v1.ApprovalRe
  * Use `create(ApprovalRequestSchema)` to create a new message.
  */
 export const ApprovalRequestSchema: GenMessage<ApprovalRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentrun_v1_approval, 2);
+  messageDesc(file_ai_stigmer_agentic_agentrun_v1_approval, 1);
 
 /**
  * The platform's withdrawal of an in-flight approval request — the system-actored
@@ -411,7 +364,7 @@ export type ApprovalRetraction = Message<"ai.stigmer.agentic.agentrun.v1.Approva
  * Use `create(ApprovalRetractionSchema)` to create a new message.
  */
 export const ApprovalRetractionSchema: GenMessage<ApprovalRetraction> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentrun_v1_approval, 3);
+  messageDesc(file_ai_stigmer_agentic_agentrun_v1_approval, 2);
 
 /**
  * A user's decision on an approval request.
@@ -462,7 +415,7 @@ export type ApprovalDecision = Message<"ai.stigmer.agentic.agentrun.v1.ApprovalD
  * Use `create(ApprovalDecisionSchema)` to create a new message.
  */
 export const ApprovalDecisionSchema: GenMessage<ApprovalDecision> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentrun_v1_approval, 4);
+  messageDesc(file_ai_stigmer_agentic_agentrun_v1_approval, 3);
 
 /**
  * An immutable event in the approval lifecycle.
@@ -550,7 +503,7 @@ export type ApprovalEvent = Message<"ai.stigmer.agentic.agentrun.v1.ApprovalEven
  * Use `create(ApprovalEventSchema)` to create a new message.
  */
 export const ApprovalEventSchema: GenMessage<ApprovalEvent> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentrun_v1_approval, 5);
+  messageDesc(file_ai_stigmer_agentic_agentrun_v1_approval, 4);
 
 /**
  * The ordered sequence of approval events for a single agent run.
@@ -603,5 +556,5 @@ export type ApprovalEventStream = Message<"ai.stigmer.agentic.agentrun.v1.Approv
  * Use `create(ApprovalEventStreamSchema)` to create a new message.
  */
 export const ApprovalEventStreamSchema: GenMessage<ApprovalEventStream> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentrun_v1_approval, 6);
+  messageDesc(file_ai_stigmer_agentic_agentrun_v1_approval, 5);
 

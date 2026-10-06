@@ -97,7 +97,7 @@ public enum ApiResourceKind
   team(24),
   /**
    * <pre>
-   * The boundary that holds people, Agents, Workflows, Sessions and secrets
+   * The boundary that holds people, Agents, Sessions and secrets
    * together; nothing outside it sees them.
    *
    * Its id is a minted org_&lt;ulid&gt; that never changes; every organization-scoped
@@ -184,36 +184,12 @@ public enum ApiResourceKind
   channel_app(48),
   /**
    * <pre>
-   * Multi-step orchestration defining how agents collaborate on a task.
-   * </pre>
-   *
-   * <code>workflow = 50 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
-   */
-  workflow(50),
-  /**
-   * <pre>
-   * Single run of a workflow, tracking step progress and outcomes.
-   * </pre>
-   *
-   * <code>workflow_run = 52 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
-   */
-  workflow_run(52),
-  /**
-   * <pre>
-   * Named set of variables and secrets for agent and workflow run.
+   * Named set of variables and secrets for an agent run.
    * </pre>
    *
    * <code>environment = 53 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   environment(53),
-  /**
-   * <pre>
-   * Persisted blob produced during workflow or agent run.
-   * </pre>
-   *
-   * <code>artifact = 55 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
-   */
-  artifact(55),
   /**
    * <pre>
    * User-owned runtime context for managing execution state.
@@ -241,7 +217,7 @@ public enum ApiResourceKind
   /**
    * <pre>
    * An installed Agent Plugins package: the archive Stigmer materialised into
-   * skills, MCP servers, an agent and workflows, and the handle that upgrades
+   * skills, MCP servers and an agent, and the handle that upgrades
    * and removes them together. A plugin is what you install; an agent is what
    * runs. Members are the resources labelled with the plugin's id.
    * </pre>
@@ -381,7 +357,7 @@ public enum ApiResourceKind
   public static final int team_VALUE = 24;
   /**
    * <pre>
-   * The boundary that holds people, Agents, Workflows, Sessions and secrets
+   * The boundary that holds people, Agents, Sessions and secrets
    * together; nothing outside it sees them.
    *
    * Its id is a minted org_&lt;ulid&gt; that never changes; every organization-scoped
@@ -468,36 +444,12 @@ public enum ApiResourceKind
   public static final int channel_app_VALUE = 48;
   /**
    * <pre>
-   * Multi-step orchestration defining how agents collaborate on a task.
-   * </pre>
-   *
-   * <code>workflow = 50 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
-   */
-  public static final int workflow_VALUE = 50;
-  /**
-   * <pre>
-   * Single run of a workflow, tracking step progress and outcomes.
-   * </pre>
-   *
-   * <code>workflow_run = 52 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
-   */
-  public static final int workflow_run_VALUE = 52;
-  /**
-   * <pre>
-   * Named set of variables and secrets for agent and workflow run.
+   * Named set of variables and secrets for an agent run.
    * </pre>
    *
    * <code>environment = 53 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
   public static final int environment_VALUE = 53;
-  /**
-   * <pre>
-   * Persisted blob produced during workflow or agent run.
-   * </pre>
-   *
-   * <code>artifact = 55 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
-   */
-  public static final int artifact_VALUE = 55;
   /**
    * <pre>
    * User-owned runtime context for managing execution state.
@@ -525,7 +477,7 @@ public enum ApiResourceKind
   /**
    * <pre>
    * An installed Agent Plugins package: the archive Stigmer materialised into
-   * skills, MCP servers, an agent and workflows, and the handle that upgrades
+   * skills, MCP servers and an agent, and the handle that upgrades
    * and removes them together. A plugin is what you install; an agent is what
    * runs. Members are the resources labelled with the plugin's id.
    * </pre>
@@ -617,10 +569,7 @@ public enum ApiResourceKind
       case 46: return agent_share;
       case 47: return agent_channel;
       case 48: return channel_app;
-      case 50: return workflow;
-      case 52: return workflow_run;
       case 53: return environment;
-      case 55: return artifact;
       case 54: return execution_context;
       case 56: return schedule;
       case 57: return memory;

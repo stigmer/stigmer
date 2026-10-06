@@ -294,7 +294,7 @@ public final class PluginQueryControllerGrpc {
     /**
      * <pre>
      * List the resources an installed plugin materialised.
-     * Returns every skill, MCP server, agent and workflow the plugin owns, in
+     * Returns every skill, MCP server and agent the plugin owns, in
      * materialisation order.
      * </pre>
      */
@@ -402,7 +402,7 @@ public final class PluginQueryControllerGrpc {
     /**
      * <pre>
      * List the resources an installed plugin materialised.
-     * Returns every skill, MCP server, agent and workflow the plugin owns, in
+     * Returns every skill, MCP server and agent the plugin owns, in
      * materialisation order.
      * </pre>
      */
@@ -498,7 +498,7 @@ public final class PluginQueryControllerGrpc {
     /**
      * <pre>
      * List the resources an installed plugin materialised.
-     * Returns every skill, MCP server, agent and workflow the plugin owns, in
+     * Returns every skill, MCP server and agent the plugin owns, in
      * materialisation order.
      * </pre>
      */
@@ -590,7 +590,7 @@ public final class PluginQueryControllerGrpc {
     /**
      * <pre>
      * List the resources an installed plugin materialised.
-     * Returns every skill, MCP server, agent and workflow the plugin owns, in
+     * Returns every skill, MCP server and agent the plugin owns, in
      * materialisation order.
      * </pre>
      */
@@ -684,7 +684,7 @@ public final class PluginQueryControllerGrpc {
     /**
      * <pre>
      * List the resources an installed plugin materialised.
-     * Returns every skill, MCP server, agent and workflow the plugin owns, in
+     * Returns every skill, MCP server and agent the plugin owns, in
      * materialisation order.
      * </pre>
      */

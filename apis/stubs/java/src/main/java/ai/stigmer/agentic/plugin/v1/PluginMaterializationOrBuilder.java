@@ -40,14 +40,4 @@ public interface PluginMaterializationOrBuilder extends
    * @return The agents.
    */
   int getAgents();
-
-  /**
-   * <pre>
-   * Workflows materialised from the plugin's Stigmer overlay.
-   * </pre>
-   *
-   * <code>int32 workflows = 4 [json_name = "workflows"];</code>
-   * @return The workflows.
-   */
-  int getWorkflows();
 }

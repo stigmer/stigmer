@@ -21,7 +21,7 @@ public enum ApiResourceGroup
   api_resource_group_unspecified(0),
   /**
    * <pre>
-   * Agentic - AI agents, workflows, runs, sessions, skills, and orchestration
+   * Agentic - AI agents, runs, sessions, skills, and orchestration
    * </pre>
    *
    * <code>agentic = 1 [(.ai.stigmer.commons.apiresource.apiresourcekind.group_meta) = { ... }</code>
@@ -74,7 +74,7 @@ public enum ApiResourceGroup
   public static final int api_resource_group_unspecified_VALUE = 0;
   /**
    * <pre>
-   * Agentic - AI agents, workflows, runs, sessions, skills, and orchestration
+   * Agentic - AI agents, runs, sessions, skills, and orchestration
    * </pre>
    *
    * <code>agentic = 1 [(.ai.stigmer.commons.apiresource.apiresourcekind.group_meta) = { ... }</code>

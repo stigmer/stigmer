@@ -8,7 +8,6 @@ import (
 	agentchannelv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentchannel/v1"
 	agentrunv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentrun/v1"
 	agentsharev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentshare/v1"
-	artifactv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/artifact/v1"
 	channelappv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channelapp/v1"
 	environmentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/executioncontext/v1"
@@ -18,8 +17,6 @@ import (
 	schedulev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/schedule/v1"
 	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
 	skillv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/skill/v1"
-	workflowv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1"
-	workflowrunv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflowrun/v1"
 	licensev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/license/v1"
 	planv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/plan/v1"
 	subscriptionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/subscription/v1"
@@ -57,11 +54,6 @@ func AgentShareInputFromProto(p *agentsharev1.AgentShare) *AgentShareInput {
 // ApiKeyInputFromProto creates a ApiKeyInput from a proto ApiKey resource.
 func ApiKeyInputFromProto(p *apikeyv1.ApiKey) *ApiKeyInput {
 	return gen.ApiKeyInputFromProto(p)
-}
-
-// ArtifactInputFromProto creates a ArtifactInput from a proto Artifact resource.
-func ArtifactInputFromProto(p *artifactv1.Artifact) *ArtifactInput {
-	return gen.ArtifactInputFromProto(p)
 }
 
 // ChannelAppInputFromProto creates a ChannelAppInput from a proto ChannelApp resource.
@@ -162,14 +154,4 @@ func SubscriptionInputFromProto(p *subscriptionv1.Subscription) *SubscriptionInp
 // TeamInputFromProto creates a TeamInput from a proto Team resource.
 func TeamInputFromProto(p *teamv1.Team) *TeamInput {
 	return gen.TeamInputFromProto(p)
-}
-
-// WorkflowInputFromProto creates a WorkflowInput from a proto Workflow resource.
-func WorkflowInputFromProto(p *workflowv1.Workflow) *WorkflowInput {
-	return gen.WorkflowInputFromProto(p)
-}
-
-// WorkflowRunInputFromProto creates a WorkflowRunInput from a proto WorkflowRun resource.
-func WorkflowRunInputFromProto(p *workflowrunv1.WorkflowRun) *WorkflowRunInput {
-	return gen.WorkflowRunInputFromProto(p)
 }

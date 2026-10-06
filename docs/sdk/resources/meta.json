@@ -6,7 +6,6 @@
     "agent-run",
     "agent-share",
     "api-key",
-    "artifact",
     "channel-app",
     "commons",
     "environment",
@@ -28,8 +27,6 @@
     "session",
     "skill",
     "subscription",
-    "team",
-    "workflow",
-    "workflow-run"
+    "team"
   ]
 }

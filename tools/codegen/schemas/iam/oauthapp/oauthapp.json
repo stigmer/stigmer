@@ -1,6 +1,5 @@
 {
   "name": "OAuthAppSpec",
-  "kind": "O_AUTH_APP_SPEC",
   "description": "OAuthAppSpec defines a registered OAuth application with an external vendor.",
   "protoType": "ai.stigmer.iam.oauthapp.v1.OAuthAppSpec",
   "protoFile": "apis/ai/stigmer/iam/oauthapp/v1/spec.proto",

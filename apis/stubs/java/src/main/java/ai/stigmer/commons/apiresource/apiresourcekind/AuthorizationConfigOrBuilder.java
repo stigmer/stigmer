@@ -82,7 +82,8 @@ public interface AuthorizationConfigOrBuilder extends
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: workflow_run needs org link AND workflow link.
+   * Example: memory needs an org link AND a subject link to the person the
+   * memory is about.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -93,7 +94,8 @@ public interface AuthorizationConfigOrBuilder extends
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: workflow_run needs org link AND workflow link.
+   * Example: memory needs an org link AND a subject link to the person the
+   * memory is about.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -103,7 +105,8 @@ public interface AuthorizationConfigOrBuilder extends
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: workflow_run needs org link AND workflow link.
+   * Example: memory needs an org link AND a subject link to the person the
+   * memory is about.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -113,7 +116,8 @@ public interface AuthorizationConfigOrBuilder extends
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: workflow_run needs org link AND workflow link.
+   * Example: memory needs an org link AND a subject link to the person the
+   * memory is about.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>
@@ -124,7 +128,8 @@ public interface AuthorizationConfigOrBuilder extends
    * <pre>
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: workflow_run needs org link AND workflow link.
+   * Example: memory needs an org link AND a subject link to the person the
+   * memory is about.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4 [json_name = "additionalParents"];</code>

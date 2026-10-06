@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/platform/v1/server_info.proto.
  */
 export const file_ai_stigmer_platform_v1_server_info: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL3NlcnZlcl9pbmZvLnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIhQKEkdldFNlcnZlckluZm9JbnB1dCLIAQoTR2V0U2VydmVySW5mb091dHB1dBI2CgdlZGl0aW9uGAEgASgOMiUuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5TZXJ2ZXJFZGl0aW9uEg8KB3ZlcnNpb24YAiABKAkSJAoXYXV0aGVudGljYXRpb25fcmVxdWlyZWQYAyABKAhIAIgBARIXCgpzaW5nbGVfb3JnGAQgASgISAGIAQFCGgoYX2F1dGhlbnRpY2F0aW9uX3JlcXVpcmVkQg0KC19zaW5nbGVfb3JnIhcKFUdldExpY2Vuc2VTdGF0dXNJbnB1dCLEAQoWR2V0TGljZW5zZVN0YXR1c091dHB1dBIzCgVzdGF0ZRgBIAEoDjIkLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuTGljZW5zZVN0YXRlEjUKBmNsYWltcxgCIAEoCzIlLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuTGljZW5zZUNsYWltcxIOCgZrZXlfaWQYAyABKAkSLgoKY2hlY2tlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiHwodR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnSW5wdXQi4wIKHkdldFJ1bm5lckJvb3RzdHJhcENvbmZpZ091dHB1dBIhChB0ZW1wb3JhbF9hZGRyZXNzGAEgASgJQge6SARyAhABEiMKEnRlbXBvcmFsX25hbWVzcGFjZRgCIAEoCUIHukgEcgIQARIbChNydW5uZXJfYWNjZXNzX3Rva2VuGAMgASgJEhIKCnRva2VuX3R5cGUYBCABKAkSLgomcnVubmVyX2FjY2Vzc190b2tlbl9leHBpcmVzX2luX3NlY29uZHMYBSABKAUSHgoWcGF5bG9hZF9lbmNyeXB0aW9uX2tleRgGIAEoCRIhChlwYXlsb2FkX2VuY3J5cHRpb25fa2V5X2lkGAcgASgJEigKIHBheWxvYWRfZW5jcnlwdGlvbl9zZWNvbmRhcnlfa2V5GAggASgJEisKI3BheWxvYWRfZW5jcnlwdGlvbl9zZWNvbmRhcnlfa2V5X2lkGAkgASgJItABChlHZXRSdW5uZXJTY29wZWRUb2tlbklucHV0EhYKDGFnZW50X3J1bl9pZBgBIAEoCUgAEhkKD3dvcmtmbG93X3J1bl9pZBgCIAEoCUgAEjcKCnBvb2xfY2xhaW0YAyABKAsyIS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLlBvb2xDbGFpbUgAEjcKB3JlbmV3YWwYBCABKAsyJC5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLlRva2VuUmVuZXdhbEgAQg4KBXNjb3BlEgW6SAIIASIoCglQb29sQ2xhaW0SGwoKc2Vzc2lvbl9pZBgBIAEoCUIHukgEcgIQASIOCgxUb2tlblJlbmV3YWwiaQoaR2V0UnVubmVyU2NvcGVkVG9rZW5PdXRwdXQSGwoTcnVubmVyX3Njb3BlZF90b2tlbhgBIAEoCRISCgp0b2tlbl90eXBlGAIgASgJEhoKEmV4cGlyZXNfaW5fc2Vjb25kcxgDIAEoBSpTCg1TZXJ2ZXJFZGl0aW9uEh4KGnNlcnZlcl9lZGl0aW9uX3Vuc3BlY2lmaWVkEAASBwoDb3NzEAESCQoFY2xvdWQQAhIOCgplbnRlcnByaXNlEAMymgQKF1BsYXRmb3JtUXVlcnlDb250cm9sbGVyEm4KDWdldFNlcnZlckluZm8SKi5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFNlcnZlckluZm9JbnB1dBorLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0U2VydmVySW5mb091dHB1dCIEyLgYARJ3ChBnZXRMaWNlbnNlU3RhdHVzEi0uYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRMaWNlbnNlU3RhdHVzSW5wdXQaLi5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldExpY2Vuc2VTdGF0dXNPdXRwdXQiBNC4GAESjwEKGGdldFJ1bm5lckJvb3RzdHJhcENvbmZpZxI1LmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnSW5wdXQaNi5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lckJvb3RzdHJhcENvbmZpZ091dHB1dCIE0LgYARKDAQoUZ2V0UnVubmVyU2NvcGVkVG9rZW4SMS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lclNjb3BlZFRva2VuSW5wdXQaMi5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lclNjb3BlZFRva2VuT3V0cHV0IgTQuBgBQhFCD1NlcnZlckluZm9Qcm90b2IGcHJvdG8z", [file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_platform_v1_license, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL3NlcnZlcl9pbmZvLnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIhQKEkdldFNlcnZlckluZm9JbnB1dCLIAQoTR2V0U2VydmVySW5mb091dHB1dBI2CgdlZGl0aW9uGAEgASgOMiUuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5TZXJ2ZXJFZGl0aW9uEg8KB3ZlcnNpb24YAiABKAkSJAoXYXV0aGVudGljYXRpb25fcmVxdWlyZWQYAyABKAhIAIgBARIXCgpzaW5nbGVfb3JnGAQgASgISAGIAQFCGgoYX2F1dGhlbnRpY2F0aW9uX3JlcXVpcmVkQg0KC19zaW5nbGVfb3JnIhcKFUdldExpY2Vuc2VTdGF0dXNJbnB1dCLEAQoWR2V0TGljZW5zZVN0YXR1c091dHB1dBIzCgVzdGF0ZRgBIAEoDjIkLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuTGljZW5zZVN0YXRlEjUKBmNsYWltcxgCIAEoCzIlLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuTGljZW5zZUNsYWltcxIOCgZrZXlfaWQYAyABKAkSLgoKY2hlY2tlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiHwodR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnSW5wdXQi4wIKHkdldFJ1bm5lckJvb3RzdHJhcENvbmZpZ091dHB1dBIhChB0ZW1wb3JhbF9hZGRyZXNzGAEgASgJQge6SARyAhABEiMKEnRlbXBvcmFsX25hbWVzcGFjZRgCIAEoCUIHukgEcgIQARIbChNydW5uZXJfYWNjZXNzX3Rva2VuGAMgASgJEhIKCnRva2VuX3R5cGUYBCABKAkSLgomcnVubmVyX2FjY2Vzc190b2tlbl9leHBpcmVzX2luX3NlY29uZHMYBSABKAUSHgoWcGF5bG9hZF9lbmNyeXB0aW9uX2tleRgGIAEoCRIhChlwYXlsb2FkX2VuY3J5cHRpb25fa2V5X2lkGAcgASgJEigKIHBheWxvYWRfZW5jcnlwdGlvbl9zZWNvbmRhcnlfa2V5GAggASgJEisKI3BheWxvYWRfZW5jcnlwdGlvbl9zZWNvbmRhcnlfa2V5X2lkGAkgASgJIswBChlHZXRSdW5uZXJTY29wZWRUb2tlbklucHV0EhYKDGFnZW50X3J1bl9pZBgBIAEoCUgAEjcKCnBvb2xfY2xhaW0YAyABKAsyIS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLlBvb2xDbGFpbUgAEjcKB3JlbmV3YWwYBCABKAsyJC5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLlRva2VuUmVuZXdhbEgAQg4KBXNjb3BlEgW6SAIIAUoECAIQA1IPd29ya2Zsb3dfcnVuX2lkIigKCVBvb2xDbGFpbRIbCgpzZXNzaW9uX2lkGAEgASgJQge6SARyAhABIg4KDFRva2VuUmVuZXdhbCJpChpHZXRSdW5uZXJTY29wZWRUb2tlbk91dHB1dBIbChNydW5uZXJfc2NvcGVkX3Rva2VuGAEgASgJEhIKCnRva2VuX3R5cGUYAiABKAkSGgoSZXhwaXJlc19pbl9zZWNvbmRzGAMgASgFKlMKDVNlcnZlckVkaXRpb24SHgoac2VydmVyX2VkaXRpb25fdW5zcGVjaWZpZWQQABIHCgNvc3MQARIJCgVjbG91ZBACEg4KCmVudGVycHJpc2UQAzKaBAoXUGxhdGZvcm1RdWVyeUNvbnRyb2xsZXISbgoNZ2V0U2VydmVySW5mbxIqLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0U2VydmVySW5mb0lucHV0GisuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRTZXJ2ZXJJbmZvT3V0cHV0IgTIuBgBEncKEGdldExpY2Vuc2VTdGF0dXMSLS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldExpY2Vuc2VTdGF0dXNJbnB1dBouLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0TGljZW5zZVN0YXR1c091dHB1dCIE0LgYARKPAQoYZ2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnEjUuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJCb290c3RyYXBDb25maWdJbnB1dBo2LmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnT3V0cHV0IgTQuBgBEoMBChRnZXRSdW5uZXJTY29wZWRUb2tlbhIxLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0UnVubmVyU2NvcGVkVG9rZW5JbnB1dBoyLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0UnVubmVyU2NvcGVkVG9rZW5PdXRwdXQiBNC4GAFCEUIPU2VydmVySW5mb1Byb3RvYgZwcm90bzM", [file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_platform_v1_license, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * Empty request — no parameters needed.
@@ -290,10 +290,6 @@ export const GetRunnerBootstrapConfigOutputSchema: GenMessage<GetRunnerBootstrap
  */
 export type GetRunnerScopedTokenInput = Message<"ai.stigmer.platform.v1.GetRunnerScopedTokenInput"> & {
   /**
-   * The dispatched work the token will serve. The runner names only the id it
-   * was dispatched; the server derives the token's scope from the resource
-   * itself (an agent run scopes to its parent session).
-   *
    * @generated from oneof ai.stigmer.platform.v1.GetRunnerScopedTokenInput.scope
    */
   scope: {
@@ -307,15 +303,6 @@ export type GetRunnerScopedTokenInput = Message<"ai.stigmer.platform.v1.GetRunne
     case: "agentRunId";
   } | {
     /**
-     * WorkflowRun id — yields a token scoped to exactly that workflow
-     * run's ExecutionContext.
-     *
-     * @generated from field: string workflow_run_id = 2;
-     */
-    value: string;
-    case: "workflowRunId";
-  } | {
-    /**
      * Warm-pool claim — a pool sandbox exchanging its pool credential for the
      * session token of the session it has just been claimed for. Presented
      * with a token_type=pool_sandbox credential (not embedded_runner).
@@ -327,8 +314,8 @@ export type GetRunnerScopedTokenInput = Message<"ai.stigmer.platform.v1.GetRunne
   } | {
     /**
      * Credential renewal — a live sandbox extending its own lifetime.
-     * Presented with the still-valid token_type=sandbox or workflow_sandbox
-     * credential being renewed (not embedded_runner).
+     * Presented with the still-valid token_type=sandbox credential being
+     * renewed (not embedded_runner).
      *
      * @generated from field: ai.stigmer.platform.v1.TokenRenewal renewal = 4;
      */
@@ -376,17 +363,16 @@ export const PoolClaimSchema: GenMessage<PoolClaim> = /*@__PURE__*/
  *
  * A sandbox token is minted with a fixed TTL, but the sandbox it serves has
  * no fixed lifetime: an active conversation extends a session sandbox
- * indefinitely, and a long workflow run can outlast any TTL chosen at
- * provisioning (the 2026-08-05 incident: a WhatsApp conversation outlived
- * its 25h token and a user turn died UNAUTHENTICATED). Renewal decouples
- * the two — the runner re-mints on a timer before expiry and applies the
- * fresh token in-process, so credential freshness never requires a pod
- * restart (which would wipe an ephemeral sandbox's workspace).
+ * indefinitely, so it can outlast any TTL chosen at provisioning (the
+ * 2026-08-05 incident: a WhatsApp conversation outlived its 25h token and a
+ * user turn died UNAUTHENTICATED). Renewal decouples the two — the runner
+ * re-mints on a timer before expiry and applies the fresh token in-process,
+ * so credential freshness never requires a pod restart (which would wipe an
+ * ephemeral sandbox's workspace).
  *
- * Deliberately empty: every mint parameter (identity, org, session /
- * workflow-run scope) comes from the presented credential's VERIFIED
- * claims, never from the client, so a renewed token is claim-identical to
- * the one it replaces.
+ * Deliberately empty: every mint parameter (identity, org, session scope)
+ * comes from the presented credential's VERIFIED claims, never from the
+ * client, so a renewed token is claim-identical to the one it replaces.
  *
  * @generated from message ai.stigmer.platform.v1.TokenRenewal
  */

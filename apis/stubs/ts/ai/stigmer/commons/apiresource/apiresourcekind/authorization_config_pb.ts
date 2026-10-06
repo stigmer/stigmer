@@ -39,7 +39,7 @@ export const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_c
  * tuples (session, environment, runs, etc.).
  *
  * Current classification:
- * - Blueprint kinds (agent, skill, workflow, mcp_server, plugin):
+ * - Blueprint kinds (agent, skill, mcp_server, plugin):
  *     private, org, child_orgs
  * - Org-only kinds (environment):
  *     private, org — child_orgs is deliberately excluded to preserve
@@ -58,8 +58,8 @@ export type VisibilityConfig = Message<"ai.stigmer.commons.apiresource.apiresour
    * Whether resources of this kind can be set to visibility_child_orgs.
    * FGA tuple: resource#child_org_viewer@organization:<org>#child_org_viewer
    *
-   * Reserved for blueprint kinds (agent, skill, workflow, mcp_server,
-   * plugin). Instance kinds are deliberately excluded to preserve tenant
+   * Reserved for blueprint kinds (agent, skill, mcp_server, plugin).
+   * Instance kinds are deliberately excluded to preserve tenant
    * isolation.
    *
    * @generated from field: bool supports_child_orgs = 2;
@@ -83,7 +83,7 @@ export type VisibilityConfig = Message<"ai.stigmer.commons.apiresource.apiresour
    * with unspecified visibility. When false (or when no visibility config
    * is declared), unspecified visibility defaults to visibility_private.
    *
-   * Set on blueprint kinds (agent, skill, workflow, mcp_server): blueprints
+   * Set on blueprint kinds (agent, skill, mcp_server): blueprints
    * are shared org assets, and before private visibility became real (the
    * unconditional `viewer from organization` FGA grant was removed) every
    * blueprint was effectively org-visible regardless of its enum value.
@@ -127,7 +127,7 @@ export const VisibilityConfigSchema: GenMessage<VisibilityConfig> = /*@__PURE__*
  */
 export type ParentRelationConfig = Message<"ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig"> & {
   /**
-   * Parent resource kind name (e.g., "session", "agent", "workflow").
+   * Parent resource kind name (e.g., "session", "identity_account").
    * Uses string instead of ApiResourceKind enum to avoid circular imports.
    * Validated at runtime against known resource kinds.
    *
@@ -136,7 +136,7 @@ export type ParentRelationConfig = Message<"ai.stigmer.commons.apiresource.apire
   kind: string;
 
   /**
-   * Relation name in FGA model (e.g., "session", "agent", "workflow").
+   * Relation name in FGA model (e.g., "session", "subject").
    * This is the relation that will be used in the FGA tuple.
    * FGA tuple: resource#<relation>@<kind>:<parent_id>
    *
@@ -147,8 +147,8 @@ export type ParentRelationConfig = Message<"ai.stigmer.commons.apiresource.apire
   /**
    * Field name in the resource's spec message that contains the parent ID.
    * The service extracts this field from resource.spec to resolve the parent ID.
-   * Example: "session_id" for agent_run, "workflow_id" for
-   * workflow_run.
+   * Example: "session_id" for agent_run, "subject_identity_account_id" for
+   * memory.
    * This eliminates hardcoded parent ID extraction logic in the service.
    *
    * @generated from field: string spec_field = 3;
@@ -169,7 +169,7 @@ export const ParentRelationConfigSchema: GenMessage<ParentRelationConfig> = /*@_
  *
  * Example configurations:
  *
- * Standard org-scoped resource (agent, skill, workflow):
+ * Standard org-scoped resource (agent, skill):
  *   scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
  *   owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
  *   -> Creates: resource#organization@organization:<org_id>
@@ -188,13 +188,13 @@ export const ParentRelationConfigSchema: GenMessage<ParentRelationConfig> = /*@_
  *   -> Creates: agent_run#session@session:<session_id>
  *   -> No owner tuple (inherited from session)
  *
- * Resource with additional parent (workflow_run):
+ * Resource with additional parent (memory):
  *   scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
- *   owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
- *   additional_parents: [{ kind: "workflow", relation: "workflow", spec_field: "workflow_id" }]
- *   -> Creates: workflow_run#organization@organization:<org_id>
- *   -> Creates: workflow_run#workflow@workflow:<workflow_id>
- *   -> Creates: workflow_run#owner@identity_account:<creator_id>
+ *   owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+ *   additional_parents: [{ kind: "identity_account", relation: "subject", spec_field: "subject_identity_account_id" }]
+ *   -> Creates: memory#organization@organization:<org_id>
+ *   -> Creates: memory#subject@identity_account:<subject_identity_account_id>
+ *   -> No owner tuple
  *
  * Personal resource with creator attribution (environment):
  *   scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
@@ -243,7 +243,8 @@ export type AuthorizationConfig = Message<"ai.stigmer.commons.apiresource.apires
   /**
    * Additional parent relations beyond the primary scope.
    * Used for resources that need multiple parent links.
-   * Example: workflow_run needs org link AND workflow link.
+   * Example: memory needs an org link AND a subject link to the person the
+   * memory is about.
    *
    * @generated from field: repeated ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig additional_parents = 4;
    */
@@ -333,7 +334,7 @@ export enum AuthorizationScopeType {
 
   /**
    * Links to an organization.
-   * Used for: agent, skill, workflow, environment, session, mcp_server, etc.
+   * Used for: agent, skill, environment, session, mcp_server, etc.
    * FGA tuple: resource#organization@organization:<org_id>
    *
    * @generated from enum value: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION = 2;

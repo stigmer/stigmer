@@ -524,7 +524,7 @@ func (x *PluginMember) GetName() string {
 // ListPluginMembersResponse lists the resources an installed plugin owns.
 type ListPluginMembersResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Members in materialisation order: skills, MCP servers, agents, workflows.
+	// Members in materialisation order: skills, MCP servers, agents.
 	Members       []*PluginMember `protobuf:"bytes,1,rep,name=members,proto3" json:"members,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

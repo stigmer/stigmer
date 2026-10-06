@@ -161,7 +161,7 @@ type SearchResponse struct {
 	// (not just the current page).
 	//
 	// Useful for rendering UI tabs or filter badges showing counts.
-	// Example: {"agent": 5, "skill": 12, "mcp_server": 3, "workflow": 2}
+	// Example: {"agent": 5, "skill": 12, "mcp_server": 3}
 	CountsByKind map[string]int32 `protobuf:"bytes,2,rep,name=counts_by_kind,json=countsByKind,proto3" json:"counts_by_kind,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
 	// Total count of matching resources across all kinds.
 	//

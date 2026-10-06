@@ -142,7 +142,7 @@ func (x *EnvironmentValue) GetDescription() string {
 }
 
 // EnvVarDeclaration declares an environment variable required (or optionally
-// accepted) by a blueprint resource (McpServer, Agent, Workflow).
+// accepted) by a blueprint resource (McpServer, Agent).
 //
 // Unlike EnvironmentValue (which stores actual values), this message describes
 // what a blueprint *needs* — its schema, not its data. This separation keeps

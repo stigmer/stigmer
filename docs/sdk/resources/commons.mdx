@@ -96,7 +96,7 @@ API resource kinds for Stigmer.
 | `oauth_app` | Registered OAuth application with an external vendor for outbound authentication. |
 | `platform_client` | OAuth2 client credential for platform builders embedding Stigmer into their products. |
 | `team` | Named group of an organization's people that access is shared with as one. |
-| `organization` | The boundary that holds people, Agents, Workflows, Sessions and secrets together; nothing outside it sees them. |
+| `organization` | The boundary that holds people, Agents, Sessions and secrets together; nothing outside it sees them. |
 | `platform` | Singleton platform instance representing the Stigmer deployment. |
 | `agent` | AI assistant with instructions, tools, skills, and a delegation model. |
 | `agent_run` | Single run of an agent within a session, tracking tool calls and responses. |
@@ -106,14 +106,11 @@ API resource kinds for Stigmer.
 | `agent_share` | Hosted chat link for an agent with its own audience, origins, and credentials. |
 | `agent_channel` | Connection binding an agent to an external messaging platform workspace. |
 | `channel_app` | Customer-owned messaging-platform app (e.g. a Slack app) that agent channels can install through instead of the shared platform app. |
-| `workflow` | Multi-step orchestration defining how agents collaborate on a task. |
-| `workflow_run` | Single run of a workflow, tracking step progress and outcomes. |
-| `environment` | Named set of variables and secrets for agent and workflow run. |
-| `artifact` | Persisted blob produced during workflow or agent run. |
+| `environment` | Named set of variables and secrets for an agent run. |
 | `execution_context` | User-owned runtime context for managing execution state. |
 | `schedule` | Recurring trigger that runs an agent on a cron schedule. |
 | `memory` | Agent-proposed, user-confirmed fact the platform remembers about a person. |
-| `plugin` | An installed Agent Plugins package: the archive Stigmer materialised into skills, MCP servers, an agent and workflows, and the handle that upgrades and removes them together. |
+| `plugin` | An installed Agent Plugins package: the archive Stigmer materialised into skills, MCP servers and an agent, and the handle that upgrades and removes them together. |
 | `plan` | Catalog entry naming a bundle of entitlements and the terms that buy it. |
 | `subscription` | An organization's binding to a Plan; at most one active per organization. |
 | `license` | A signed grant of entitlements to a self-hosting customer for a term. |

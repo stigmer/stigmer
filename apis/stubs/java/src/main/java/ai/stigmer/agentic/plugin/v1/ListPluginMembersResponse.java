@@ -58,7 +58,7 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.agentic.plugin.v1.PluginMember> members_;
   /**
    * <pre>
-   * Members in materialisation order: skills, MCP servers, agents, workflows.
+   * Members in materialisation order: skills, MCP servers, agents.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -69,7 +69,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Members in materialisation order: skills, MCP servers, agents, workflows.
+   * Members in materialisation order: skills, MCP servers, agents.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -81,7 +81,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Members in materialisation order: skills, MCP servers, agents, workflows.
+   * Members in materialisation order: skills, MCP servers, agents.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -92,7 +92,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Members in materialisation order: skills, MCP servers, agents, workflows.
+   * Members in materialisation order: skills, MCP servers, agents.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -103,7 +103,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Members in materialisation order: skills, MCP servers, agents, workflows.
+   * Members in materialisation order: skills, MCP servers, agents.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -479,7 +479,7 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * Members in materialisation order: skills, MCP servers, agents, workflows.
+     * Members in materialisation order: skills, MCP servers, agents.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -493,7 +493,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Members in materialisation order: skills, MCP servers, agents, workflows.
+     * Members in materialisation order: skills, MCP servers, agents.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -507,7 +507,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Members in materialisation order: skills, MCP servers, agents, workflows.
+     * Members in materialisation order: skills, MCP servers, agents.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -521,7 +521,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Members in materialisation order: skills, MCP servers, agents, workflows.
+     * Members in materialisation order: skills, MCP servers, agents.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -542,7 +542,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Members in materialisation order: skills, MCP servers, agents, workflows.
+     * Members in materialisation order: skills, MCP servers, agents.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -560,7 +560,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Members in materialisation order: skills, MCP servers, agents, workflows.
+     * Members in materialisation order: skills, MCP servers, agents.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -580,7 +580,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Members in materialisation order: skills, MCP servers, agents, workflows.
+     * Members in materialisation order: skills, MCP servers, agents.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -601,7 +601,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Members in materialisation order: skills, MCP servers, agents, workflows.
+     * Members in materialisation order: skills, MCP servers, agents.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -619,7 +619,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Members in materialisation order: skills, MCP servers, agents, workflows.
+     * Members in materialisation order: skills, MCP servers, agents.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -637,7 +637,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Members in materialisation order: skills, MCP servers, agents, workflows.
+     * Members in materialisation order: skills, MCP servers, agents.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -656,7 +656,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Members in materialisation order: skills, MCP servers, agents, workflows.
+     * Members in materialisation order: skills, MCP servers, agents.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -673,7 +673,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Members in materialisation order: skills, MCP servers, agents, workflows.
+     * Members in materialisation order: skills, MCP servers, agents.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -690,7 +690,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Members in materialisation order: skills, MCP servers, agents, workflows.
+     * Members in materialisation order: skills, MCP servers, agents.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -701,7 +701,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Members in materialisation order: skills, MCP servers, agents, workflows.
+     * Members in materialisation order: skills, MCP servers, agents.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -715,7 +715,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Members in materialisation order: skills, MCP servers, agents, workflows.
+     * Members in materialisation order: skills, MCP servers, agents.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -730,7 +730,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Members in materialisation order: skills, MCP servers, agents, workflows.
+     * Members in materialisation order: skills, MCP servers, agents.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -741,7 +741,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Members in materialisation order: skills, MCP servers, agents, workflows.
+     * Members in materialisation order: skills, MCP servers, agents.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -753,7 +753,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Members in materialisation order: skills, MCP servers, agents, workflows.
+     * Members in materialisation order: skills, MCP servers, agents.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>

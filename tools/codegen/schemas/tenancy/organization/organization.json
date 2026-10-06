@@ -1,6 +1,5 @@
 {
   "name": "OrganizationSpec",
-  "kind": "ORGANIZATION_SPEC",
   "description": "OrganizationSpec defines the configurable properties of an organization.",
   "protoType": "ai.stigmer.tenancy.organization.v1.OrganizationSpec",
   "protoFile": "apis/ai/stigmer/tenancy/organization/v1/spec.proto",

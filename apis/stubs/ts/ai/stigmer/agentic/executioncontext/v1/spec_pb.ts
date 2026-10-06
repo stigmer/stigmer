@@ -20,7 +20,7 @@ export const file_ai_stigmer_agentic_executioncontext_v1_spec: GenFile = /*@__PU
  */
 export type ExecutionContextSpec = Message<"ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec"> & {
   /**
-   * ID of the parent AgentRun or WorkflowRun.
+   * ID of the parent AgentRun (or an MCP connect's execution id).
    *
    * @generated from field: string execution_id = 1;
    */
@@ -48,9 +48,8 @@ export const ExecutionContextSpecSchema: GenMessage<ExecutionContextSpec> = /*@_
  */
 export type ExecutionValue = Message<"ai.stigmer.agentic.executioncontext.v1.ExecutionValue"> & {
   /**
-   * String content of this entry. Empty strings are valid — optional
-   * workflow env vars may be provided with no value, and the workflow
-   * engine resolves them to "" in expression interpolation.
+   * String content of this entry. Empty strings are valid — an optional
+   * env var may be provided with no value.
    *
    * @generated from field: string value = 1;
    */

@@ -10,7 +10,6 @@ type AgentChannelClient = gen.AgentChannelClient
 type AgentRunClient = gen.AgentRunClient
 type AgentShareClient = gen.AgentShareClient
 type ApiKeyClient = gen.ApiKeyClient
-type ArtifactClient = gen.ArtifactClient
 type ChannelAppClient = gen.ChannelAppClient
 type EnvironmentClient = gen.EnvironmentClient
 type ExecutionContextClient = gen.ExecutionContextClient
@@ -35,8 +34,6 @@ type SessionClient = gen.SessionClient
 // client.Skill and the exported type agree.
 type SubscriptionClient = gen.SubscriptionClient
 type TeamClient = gen.TeamClient
-type WorkflowClient = gen.WorkflowClient
-type WorkflowRunClient = gen.WorkflowRunClient
 
 // Input types for resource mutation (Create, Update, Apply).
 type AgentInput = gen.AgentInput
@@ -59,13 +56,9 @@ type GitRepoSourceInput = gen.GitRepoSourceInput
 type LocalPathSourceInput = gen.LocalPathSourceInput
 type AttachmentInput = gen.AttachmentInput
 type ConversationCatchupInput = gen.ConversationCatchupInput
-type WorkflowParentInput = gen.WorkflowParentInput
 type AgentShareInput = gen.AgentShareInput
 type AgentShareMessagesInput = gen.AgentShareMessagesInput
 type ApiKeyInput = gen.ApiKeyInput
-type ArtifactInput = gen.ArtifactInput
-type ArtifactSourceInput = gen.ArtifactSourceInput
-type RetentionPolicyInput = gen.RetentionPolicyInput
 type ChannelAppInput = gen.ChannelAppInput
 type SlackChannelAppConfigInput = gen.SlackChannelAppConfigInput
 type WhatsAppChannelAppConfigInput = gen.WhatsAppChannelAppConfigInput
@@ -101,18 +94,9 @@ type SessionInput = gen.SessionInput
 type SkillInput = gen.SkillInput
 type SubscriptionInput = gen.SubscriptionInput
 type TeamInput = gen.TeamInput
-type WorkflowInput = gen.WorkflowInput
-type WorkflowDocumentInput = gen.WorkflowDocumentInput
-type WorkflowTaskInput = gen.WorkflowTaskInput
-type ExportInput = gen.ExportInput
-type FlowControlInput = gen.FlowControlInput
-type WorkflowBudgetInput = gen.WorkflowBudgetInput
-type WorkflowRunInput = gen.WorkflowRunInput
 
 // Streaming types.
 type AgentRunSubscribeStream = gen.AgentRunSubscribeStream
-type WorkflowRunSubscribeStream = gen.WorkflowRunSubscribeStream
-type WorkflowRunSubscribeEventsStream = gen.WorkflowRunSubscribeEventsStream
 
 // Shared SDK types.
 type DeleteResourceInput = gen.DeleteResourceInput

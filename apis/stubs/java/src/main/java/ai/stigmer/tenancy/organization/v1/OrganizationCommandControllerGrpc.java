@@ -336,7 +336,7 @@ public final class OrganizationCommandControllerGrpc {
      * of its resources, answers NOT_FOUND, a second delete included, and
      * nothing new can start inside it. A purge then removes, in the
      * background, everything the organization owned: its agents, sessions,
-     * workflows, runs and their files, skills, MCP servers, plugins,
+     * runs and their files, skills, MCP servers, plugins,
      * environments and their secrets, sandboxes, channels and their
      * conversations, and every permission naming it or its resources. Its
      * slug stays held until the purge finishes, then is released: a later
@@ -502,7 +502,7 @@ public final class OrganizationCommandControllerGrpc {
      * of its resources, answers NOT_FOUND, a second delete included, and
      * nothing new can start inside it. A purge then removes, in the
      * background, everything the organization owned: its agents, sessions,
-     * workflows, runs and their files, skills, MCP servers, plugins,
+     * runs and their files, skills, MCP servers, plugins,
      * environments and their secrets, sandboxes, channels and their
      * conversations, and every permission naming it or its resources. Its
      * slug stays held until the purge finishes, then is released: a later
@@ -651,7 +651,7 @@ public final class OrganizationCommandControllerGrpc {
      * of its resources, answers NOT_FOUND, a second delete included, and
      * nothing new can start inside it. A purge then removes, in the
      * background, everything the organization owned: its agents, sessions,
-     * workflows, runs and their files, skills, MCP servers, plugins,
+     * runs and their files, skills, MCP servers, plugins,
      * environments and their secrets, sandboxes, channels and their
      * conversations, and every permission naming it or its resources. Its
      * slug stays held until the purge finishes, then is released: a later
@@ -799,7 +799,7 @@ public final class OrganizationCommandControllerGrpc {
      * of its resources, answers NOT_FOUND, a second delete included, and
      * nothing new can start inside it. A purge then removes, in the
      * background, everything the organization owned: its agents, sessions,
-     * workflows, runs and their files, skills, MCP servers, plugins,
+     * runs and their files, skills, MCP servers, plugins,
      * environments and their secrets, sandboxes, channels and their
      * conversations, and every permission naming it or its resources. Its
      * slug stays held until the purge finishes, then is released: a later
@@ -951,7 +951,7 @@ public final class OrganizationCommandControllerGrpc {
      * of its resources, answers NOT_FOUND, a second delete included, and
      * nothing new can start inside it. A purge then removes, in the
      * background, everything the organization owned: its agents, sessions,
-     * workflows, runs and their files, skills, MCP servers, plugins,
+     * runs and their files, skills, MCP servers, plugins,
      * environments and their secrets, sandboxes, channels and their
      * conversations, and every permission naming it or its resources. Its
      * slug stays held until the purge finishes, then is released: a later

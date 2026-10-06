@@ -14,7 +14,7 @@ import { javaCamel, javaCapCamel } from "./lang-names.js";
 import { apiResourceKindEnumNames } from "./resource-kind.js";
 import type { ResourceGenInfo, SdkResourceConfig } from "./sdk-resource-config.js";
 import { deriveResourceConfig, loadSpecSchemaWithTypes, META_FIELD_NAMES } from "./sdk-resource-config.js";
-import type { FieldSchema, TaskConfigSchema, TypeSchema, TypeSpec } from "./schema.js";
+import type { FieldSchema, SpecSchema, TypeSchema, TypeSpec } from "./schema.js";
 import { readDirSorted } from "./schema.js";
 
 const JAVA_GEN_PACKAGE = "ai.stigmer.sdk.gen";
@@ -212,7 +212,7 @@ export function runSDKClientJavaGeneration(schemaDir: string, outputDir: string)
     const schema = JSON.parse(fs.readFileSync(path.join(servicesDir, entry.name), "utf8")) as ServiceSchemaFile;
     const cfg = deriveResourceConfig(schema, schemaDir);
 
-    let specSchema: TaskConfigSchema | null = null;
+    let specSchema: SpecSchema | null = null;
     let specTypes: TypeSchema[] = [];
     if (cfg.specSchema !== "") {
       [specSchema, specTypes] = loadSpecSchemaWithTypes(path.join(schemaDir, cfg.specSchema));
@@ -700,7 +700,7 @@ function generateJavaProtoConvert(outputDir: string): void {
 // objectToValue accepts only values with an exact protobuf Struct
 // representation: String, Number, Boolean, String-keyed Map, Iterable,
 // array, and null. Anything else used to be silently coerced to its
-// String.valueOf — a POJO in a task config arrived on the wire as
+// String.valueOf — a POJO in a Struct field arrived on the wire as
 // "com.example.Outcome@1a2b3c4d" with no failure until a human
 // inspected the degraded resource (stigmer/stigmer#448; the Go twin of
 // the class was #342). Unsupported values now throw StigmerException
@@ -1067,7 +1067,7 @@ function generateJavaSearchList(buf: string[], cfg: SdkResourceConfig): void {
 function generateJavaInputClass(
   schema: ServiceSchemaFile,
   cfg: SdkResourceConfig,
-  spec: TaskConfigSchema,
+  spec: SpecSchema,
   specTypes: TypeSchema[],
   typeMap: Map<string, TypeSchema>,
 ): [string, string[]] {
@@ -1304,7 +1304,7 @@ function emitJavaNestedTypes(
 // toProto() generation
 // =========================================================================
 
-function emitJavaToProto(buf: string[], cfg: SdkResourceConfig, spec: TaskConfigSchema, specFields: FieldSchema[]): void {
+function emitJavaToProto(buf: string[], cfg: SdkResourceConfig, spec: SpecSchema, specFields: FieldSchema[]): void {
   const resType = cfg.protoResType;
   const specType = spec.name;
 

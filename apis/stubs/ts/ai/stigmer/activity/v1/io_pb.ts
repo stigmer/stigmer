@@ -12,56 +12,39 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/activity/v1/io.proto.
  */
 export const file_ai_stigmer_activity_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("Ch9haS9zdGlnbWVyL2FjdGl2aXR5L3YxL2lvLnByb3RvEhZhaS5zdGlnbWVyLmFjdGl2aXR5LnYxIoABChNSZWNlbnRBY3Rpdml0eUVudHJ5EgoKAmlkGAEgASgJEgwKBHR5cGUYAiABKAkSDwoHc3ViamVjdBgDIAEoCRIuCgp1cGRhdGVkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIOCgZzdGF0dXMYBSABKAkiOwoZTGlzdFJlY2VudEFjdGl2aXR5UmVxdWVzdBIRCglwYWdlX3NpemUYASABKAUSCwoDb3JnGAIgASgJIloKGkxpc3RSZWNlbnRBY3Rpdml0eVJlc3BvbnNlEjwKB2VudHJpZXMYASADKAsyKy5haS5zdGlnbWVyLmFjdGl2aXR5LnYxLlJlY2VudEFjdGl2aXR5RW50cnliBnByb3RvMw", [file_google_protobuf_timestamp]);
+  fileDesc("Ch9haS9zdGlnbWVyL2FjdGl2aXR5L3YxL2lvLnByb3RvEhZhaS5zdGlnbWVyLmFjdGl2aXR5LnYxInwKE1JlY2VudEFjdGl2aXR5RW50cnkSCgoCaWQYASABKAkSDwoHc3ViamVjdBgDIAEoCRIuCgp1cGRhdGVkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEoECAIQA0oECAUQBlIEdHlwZVIGc3RhdHVzIjsKGUxpc3RSZWNlbnRBY3Rpdml0eVJlcXVlc3QSEQoJcGFnZV9zaXplGAEgASgFEgsKA29yZxgCIAEoCSJaChpMaXN0UmVjZW50QWN0aXZpdHlSZXNwb25zZRI8CgdlbnRyaWVzGAEgAygLMisuYWkuc3RpZ21lci5hY3Rpdml0eS52MS5SZWNlbnRBY3Rpdml0eUVudHJ5YgZwcm90bzM", [file_google_protobuf_timestamp]);
 
 /**
- * RecentActivityEntry is a lightweight summary of either an agent session
- * or a workflow run, used for the sidebar "recents" list.
+ * RecentActivityEntry is a lightweight summary of one agent session, used
+ * for the sidebar "recents" list.
  *
  * This is a projection — not the full resource. Clients that need the
- * complete resource should call the specific get() RPC for the resource kind.
+ * complete session should call the session's get() RPC.
  *
  * @generated from message ai.stigmer.activity.v1.RecentActivityEntry
  */
 export type RecentActivityEntry = Message<"ai.stigmer.activity.v1.RecentActivityEntry"> & {
   /**
-   * Resource ID (session ID or workflow run ID).
+   * Session ID.
    *
    * @generated from field: string id = 1;
    */
   id: string;
 
   /**
-   * Discriminator: "session" or "workflow_run".
-   *
-   * @generated from field: string type = 2;
-   */
-  type: string;
-
-  /**
-   * Human-readable label for display.
-   * For sessions: the conversation subject.
-   * For workflow runs: the run name.
+   * Human-readable label for display: the conversation subject.
    *
    * @generated from field: string subject = 3;
    */
   subject: string;
 
   /**
-   * When this entry was last meaningfully updated.
-   * Used for interleaved sort (newest first).
+   * When this session last saw meaningful activity.
+   * Used for the sort (newest first).
    *
    * @generated from field: google.protobuf.Timestamp updated_at = 4;
    */
   updatedAt?: Timestamp;
-
-  /**
-   * Run phase label for workflow runs (e.g., "completed", "failed").
-   * Empty for sessions.
-   *
-   * @generated from field: string status = 5;
-   */
-  status: string;
 };
 
 /**
@@ -72,7 +55,7 @@ export const RecentActivityEntrySchema: GenMessage<RecentActivityEntry> = /*@__P
   messageDesc(file_ai_stigmer_activity_v1_io, 0);
 
 /**
- * ListRecentActivityRequest specifies parameters for the unified recents query.
+ * ListRecentActivityRequest specifies parameters for the recents query.
  *
  * @generated from message ai.stigmer.activity.v1.ListRecentActivityRequest
  */
@@ -87,22 +70,20 @@ export type ListRecentActivityRequest = Message<"ai.stigmer.activity.v1.ListRece
   /**
    * Organization slug to scope the query.
    *
-   * When provided, results are narrowed to resources in this organization.
+   * When provided, results are narrowed to sessions in this organization.
    * The org NEVER widens visibility: per-resource read authority is always
-   * enforced (on the hosted edition, FGA `can_view` enumeration per kind),
-   * and the org filter only intersects that authorized set. Both recents
-   * kinds are private by default — sessions are personal resources and
-   * workflow runs opt in to org observability per workflow — so org
-   * membership alone must never substitute for the per-resource check. An
-   * earlier "org member = query by org directly" fast path leaked session
-   * titles to every org member.
+   * enforced (on the hosted edition, FGA `can_view` enumeration), and the
+   * org filter only intersects that authorized set. Sessions are personal
+   * resources, so org membership alone must never substitute for the
+   * per-resource check. An earlier "org member = query by org directly" fast
+   * path leaked session titles to every org member.
    *
    * When empty, results span every organization the caller has resource
    * access in.
    *
    * On the OSS edition the filter is a no-op: the server is single-tenant,
-   * so org scoping has nothing to narrow — matching the per-kind OSS list
-   * RPCs this feed summarizes.
+   * so org scoping has nothing to narrow — matching the session list RPC
+   * this feed summarizes.
    *
    * @generated from field: string org = 2;
    */
@@ -117,14 +98,13 @@ export const ListRecentActivityRequestSchema: GenMessage<ListRecentActivityReque
   messageDesc(file_ai_stigmer_activity_v1_io, 1);
 
 /**
- * ListRecentActivityResponse contains merged, sorted recent activity.
+ * ListRecentActivityResponse contains the caller's recent sessions.
  *
  * @generated from message ai.stigmer.activity.v1.ListRecentActivityResponse
  */
 export type ListRecentActivityResponse = Message<"ai.stigmer.activity.v1.ListRecentActivityResponse"> & {
   /**
-   * Entries sorted by updated_at descending, interleaving sessions
-   * and workflow runs.
+   * Entries sorted by updated_at descending.
    *
    * @generated from field: repeated ai.stigmer.activity.v1.RecentActivityEntry entries = 1;
    */

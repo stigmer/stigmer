@@ -8,7 +8,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import { goTrimSpace } from "../internalcomment/internalcomment.js";
-import type { FieldSchema, TaskConfigSchema, TypeSchema } from "./schema.js";
+import type { FieldSchema, SpecSchema, TypeSchema } from "./schema.js";
 import { readDirSorted } from "./schema.js";
 
 // ---------------------------------------------------------------------
@@ -262,7 +262,6 @@ const TS_CLIENT_FIELD_NAMES = new Map<string, string>([
   ["agentshare", "agentShare"],
   ["executioncontext", "executionContext"],
   ["mcpserver", "mcpServer"],
-  ["workflowrun", "workflowRun"],
   ["identityaccount", "identityAccount"],
   ["identityprovider", "identityProvider"],
   ["iampolicy", "iamPolicy"],
@@ -311,8 +310,8 @@ export function tsResolveEnumImport(enumFullType: string): [importFrom: string, 
 }
 
 // Root of the generated protobuf-es TypeScript stubs, scanned to find an
-// enum's actual _pb file (e.g. the workflow task enums live in common_pb,
-// which the package heuristic cannot infer).
+// enum's actual _pb file when it lives in a file the package heuristic
+// cannot infer.
 export const tsStubsDir = "apis/stubs/ts";
 
 /**
@@ -512,97 +511,14 @@ export function tsModuleSpecifier(from: string): string {
 }
 
 // ---------------------------------------------------------------------
-// Schema-directory discovery (ports of discoverDomains / indexSatellites /
-// Generator.loadSchemas / detectExpandStructFromSchema)
+// Schema-directory loading (the port of Generator.loadSchemas)
 // ---------------------------------------------------------------------
-
-export interface SatelliteDir {
-  path: string;
-  schemas: TaskConfigSchema[];
-  types: TypeSchema[];
-}
-
-export interface DomainInfo {
-  name: string;
-  resources: string[];
-}
-
-export function discoverDomains(schemaDir: string): [DomainInfo[], string[]] {
-  const domains: DomainInfo[] = [];
-  const satellites: string[] = [];
-  for (const entry of readDirSorted(schemaDir)) {
-    if (!entry.isDirectory()) continue;
-    const dirPath = path.join(schemaDir, entry.name);
-    let subs: fs.Dirent[];
-    try {
-      subs = readDirSorted(dirPath);
-    } catch {
-      continue;
-    }
-    const resources: string[] = [];
-    for (const sub of subs) {
-      if (!sub.isDirectory()) continue;
-      if (fs.existsSync(path.join(dirPath, sub.name, sub.name + ".json"))) {
-        resources.push(sub.name);
-      }
-    }
-    if (resources.length > 0) {
-      resources.sort();
-      domains.push({ name: entry.name, resources });
-    } else {
-      satellites.push(dirPath);
-    }
-  }
-  domains.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
-  return [domains, satellites];
-}
-
-export function indexSatellites(dirs: string[]): SatelliteDir[] {
-  const result: SatelliteDir[] = [];
-  for (const dir of dirs) {
-    const sat: SatelliteDir = { path: dir, schemas: [], types: [] };
-    for (const entry of readDirSorted(dir)) {
-      if (entry.isDirectory() || !entry.name.endsWith(".json")) continue;
-      try {
-        sat.schemas.push(JSON.parse(fs.readFileSync(path.join(dir, entry.name), "utf8")) as TaskConfigSchema);
-      } catch {
-        continue;
-      }
-    }
-    const typesDir = path.join(dir, "types");
-    try {
-      for (const entry of readDirSorted(typesDir)) {
-        if (entry.isDirectory() || !entry.name.endsWith(".json")) continue;
-        try {
-          sat.types.push(JSON.parse(fs.readFileSync(path.join(typesDir, entry.name), "utf8")) as TypeSchema);
-        } catch {
-          continue;
-        }
-      }
-    } catch {
-      // types dir is optional
-    }
-    result.push(sat);
-  }
-  return result;
-}
-
-/** Port of expandStructConfig. */
-export interface ExpandStructConfig {
-  structField: string;
-  discriminatorField: string;
-  configSchemaDir: string;
-  configs: TaskConfigSchema[];
-  configTypes: TypeSchema[];
-  kindToEnum: Map<string, string>;
-}
 
 /** Port of the Generator schema loader for one resource directory. */
 export interface LoadedSchemas {
   schemaDir: string;
-  taskConfigs: TaskConfigSchema[];
+  specs: SpecSchema[];
   sharedTypes: TypeSchema[];
-  expandStruct: ExpandStructConfig | null;
 }
 
 function extractDomainFromProtoType(protoType: string): string {
@@ -614,20 +530,16 @@ function extractDomainFromProtoType(protoType: string): string {
 }
 
 export function loadResourceSchemas(schemaDir: string): LoadedSchemas {
-  const loaded: LoadedSchemas = { schemaDir, taskConfigs: [], sharedTypes: [], expandStruct: null };
+  const loaded: LoadedSchemas = { schemaDir, specs: [], sharedTypes: [] };
 
-  const tasksDir = path.join(schemaDir, "tasks");
-  const configDir = fs.existsSync(tasksDir) ? tasksDir : schemaDir;
-  for (const entry of readDirSorted(configDir)) {
+  for (const entry of readDirSorted(schemaDir)) {
     if (entry.isDirectory() || !entry.name.endsWith(".json")) continue;
-    loaded.taskConfigs.push(
-      JSON.parse(fs.readFileSync(path.join(configDir, entry.name), "utf8")) as TaskConfigSchema,
-    );
+    loaded.specs.push(JSON.parse(fs.readFileSync(path.join(schemaDir, entry.name), "utf8")) as SpecSchema);
   }
 
   const loadedTypes = new Set<string>();
-  for (const typesDir of [path.join(schemaDir, "types"), path.join(schemaDir, "tasks", "types")]) {
-    if (!fs.existsSync(typesDir)) continue;
+  const typesDir = path.join(schemaDir, "types");
+  if (fs.existsSync(typesDir)) {
     for (const entry of readDirSorted(typesDir)) {
       if (entry.isDirectory() || !entry.name.endsWith(".json")) continue;
       const schema = JSON.parse(fs.readFileSync(path.join(typesDir, entry.name), "utf8")) as TypeSchema;
@@ -638,54 +550,8 @@ export function loadResourceSchemas(schemaDir: string): LoadedSchemas {
     }
   }
 
-  if (loaded.taskConfigs.length === 0 && loaded.sharedTypes.length === 0) {
+  if (loaded.specs.length === 0 && loaded.sharedTypes.length === 0) {
     throw new Error(`no schemas found in ${schemaDir}`);
   }
   return loaded;
-}
-
-/** Port of detectExpandStructFromSchema. */
-export function detectExpandStructFromSchema(gen: LoadedSchemas, satellites: SatelliteDir[]): void {
-  for (const typ of gen.sharedTypes) {
-    let structField: FieldSchema | undefined;
-    let discriminatorField: FieldSchema | undefined;
-    for (const f of typ.fields) {
-      if (f.discriminatedBy !== undefined && f.discriminatedBy !== "") {
-        structField = f;
-      }
-      if (f.type.kind === "string" && (f.type.enumValues?.length ?? 0) > 0) {
-        discriminatorField = f;
-      }
-    }
-    if (structField === undefined || discriminatorField === undefined) continue;
-    if (structField.discriminatedBy !== discriminatorField.protoField) continue;
-
-    const enumSet = new Set(discriminatorField.type.enumValues ?? []);
-
-    for (const sat of satellites) {
-      let matchCount = 0;
-      for (const s of sat.schemas) {
-        if (s.discriminatorValue !== undefined && s.discriminatorValue !== "" && enumSet.has(s.discriminatorValue)) {
-          matchCount++;
-        }
-      }
-      if (matchCount === 0) continue;
-
-      const kindToEnum = new Map<string, string>();
-      for (const s of sat.schemas) {
-        if (s.discriminatorValue !== undefined && s.discriminatorValue !== "") {
-          kindToEnum.set(s.kind ?? "", s.discriminatorValue);
-        }
-      }
-      gen.expandStruct = {
-        structField: structField.protoField,
-        discriminatorField: discriminatorField.protoField,
-        configSchemaDir: sat.path,
-        configs: sat.schemas,
-        configTypes: sat.types,
-        kindToEnum,
-      };
-      return;
-    }
-  }
 }

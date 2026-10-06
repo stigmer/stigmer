@@ -15,28 +15,21 @@ export const file_ai_stigmer_activity_v1_query: GenFile = /*@__PURE__*/
   fileDesc("CiJhaS9zdGlnbWVyL2FjdGl2aXR5L3YxL3F1ZXJ5LnByb3RvEhZhaS5zdGlnbWVyLmFjdGl2aXR5LnYxMp0BChdBY3Rpdml0eVF1ZXJ5Q29udHJvbGxlchKBAQoSbGlzdFJlY2VudEFjdGl2aXR5EjEuYWkuc3RpZ21lci5hY3Rpdml0eS52MS5MaXN0UmVjZW50QWN0aXZpdHlSZXF1ZXN0GjIuYWkuc3RpZ21lci5hY3Rpdml0eS52MS5MaXN0UmVjZW50QWN0aXZpdHlSZXNwb25zZSIE0LgYAWIGcHJvdG8z", [file_ai_stigmer_activity_v1_io, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
- * ActivityQueryController provides cross-resource read queries for the
- * activity feed — the unified "recents" sidebar that merges sessions and
- * workflow runs into a single time-ordered list.
- *
- * This service exists because the recents list spans two bounded contexts
- * (session and workflow_run). A cross-cutting query service avoids
- * forcing the client to make two parallel calls and merge client-side.
+ * ActivityQueryController provides the read query behind the "recents"
+ * sidebar: the caller's most recent sessions, newest first.
  *
  * @generated from service ai.stigmer.activity.v1.ActivityQueryController
  */
 export const ActivityQueryController: GenService<{
   /**
-   * List recent activity across sessions and workflow runs.
+   * List the caller's most recent sessions by last activity.
    *
-   * Returns a merged, time-sorted list of the caller's most recent
-   * sessions and workflow runs. On the hosted edition, per-resource
-   * authorization filtering is applied server-side (FGA `can_view`
-   * enumeration for both kinds — the same permission the per-kind `get`
-   * RPCs enforce, so every listed entry is openable by construction). On
-   * the OSS edition the server is single-tenant: the caller owns every
-   * stored resource, so there is no authorization set to enumerate and the
-   * request's org is a no-op (stigmer#461).
+   * On the hosted edition, per-resource authorization filtering is applied
+   * server-side (FGA `can_view` enumeration — the same permission the
+   * session `get` RPC enforces, so every listed entry is openable by
+   * construction). On the OSS edition the server is single-tenant: the
+   * caller owns every stored resource, so there is no authorization set to
+   * enumerate and the request's org is a no-op (stigmer#461).
    *
    * @generated from rpc ai.stigmer.activity.v1.ActivityQueryController.listRecentActivity
    */

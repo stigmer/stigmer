@@ -227,7 +227,7 @@ export type TagAgentVersionInput = Message<"ai.stigmer.agentic.agent.v1.TagAgent
 
   /**
    * Tag to assign. Must be a non-empty alphanumeric string with dots,
-   * hyphens, or underscores (the pattern workflow and skill tags use).
+   * hyphens, or underscores (the pattern skill tags use).
    *
    * @generated from field: string tag = 3;
    */

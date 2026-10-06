@@ -1,6 +1,5 @@
 {
   "name": "McpServerSpec",
-  "kind": "MCP_SERVER_SPEC",
   "description": "McpServerSpec defines the configurable properties of an MCP server.",
   "protoType": "ai.stigmer.agentic.mcpserver.v1.McpServerSpec",
   "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/spec.proto",

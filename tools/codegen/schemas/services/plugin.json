@@ -69,7 +69,7 @@
           "inputFullType": "ai.stigmer.agentic.plugin.v1.PluginId",
           "outputType": "ListPluginMembersResponse",
           "outputFullType": "ai.stigmer.agentic.plugin.v1.ListPluginMembersResponse",
-          "description": "List the resources an installed plugin materialised.\n\n Returns every skill, MCP server, agent and workflow the plugin owns, in\n materialisation order."
+          "description": "List the resources an installed plugin materialised.\n\n Returns every skill, MCP server and agent the plugin owns, in\n materialisation order."
         },
         {
           "name": "GetArtifact",
@@ -239,7 +239,7 @@
     },
     {
       "name": "UpdateVisibilityInput",
-      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to change visibility.\n Each controller's updateVisibility RPC accepts this shared input\n and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode. Each\n level maps to exactly one tuple shape; on a transition the tuple for the\n old level is removed and the tuple for the new level is created:\n - PRIVATE:  no visibility tuple (owner + explicit grants only)\n - ORG:      resource#viewer@organization:\u003corg\u003e#viewer\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n\n Not all resources support all visibility levels — the supported set is\n declared per kind via VisibilityConfig in kind_meta:\n - Blueprints (agent, workflow, skill, mcp_server, plugin):\n     PRIVATE, ORG, or CHILD_ORGS\n - Org-only kinds (environment):\n     PRIVATE or ORG (never CHILD_ORGS — tenant isolation)\n\n visibility_public is refused for every kind (INVALID_ARGUMENT naming the\n supported levels); the level is retired.",
+      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to change visibility.\n Each controller's updateVisibility RPC accepts this shared input\n and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode. Each\n level maps to exactly one tuple shape; on a transition the tuple for the\n old level is removed and the tuple for the new level is created:\n - PRIVATE:  no visibility tuple (owner + explicit grants only)\n - ORG:      resource#viewer@organization:\u003corg\u003e#viewer\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n\n Not all resources support all visibility levels — the supported set is\n declared per kind via VisibilityConfig in kind_meta:\n - Blueprints (agent, skill, mcp_server, plugin):\n     PRIVATE, ORG, or CHILD_ORGS\n - Org-only kinds (environment):\n     PRIVATE or ORG (never CHILD_ORGS — tenant isolation)\n\n visibility_public is refused for every kind (INVALID_ARGUMENT naming the\n supported levels); the level is retired.",
       "protoType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
       "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
       "fields": [
@@ -322,10 +322,7 @@
               "agent_share",
               "agent_channel",
               "channel_app",
-              "workflow",
-              "workflow_run",
               "environment",
-              "artifact",
               "execution_context",
               "schedule",
               "memory",
@@ -386,7 +383,7 @@
               "messageType": "PluginMember"
             }
           },
-          "description": "Members in materialisation order: skills, MCP servers, agents, workflows.",
+          "description": "Members in materialisation order: skills, MCP servers, agents.",
           "required": false
         }
       ]
@@ -574,7 +571,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (environments, sessions) stay creator-only."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -646,7 +643,7 @@
         {
           "name": "organization",
           "number": 30,
-          "description": "The boundary that holds people, Agents, Workflows, Sessions and secrets\n together; nothing outside it sees them.\n\n Its id is a minted org_\u003culid\u003e that never changes; every organization-scoped\n resource names it by that id (metadata.org). Its slug is unique across the\n server and may change through rename; requests may name the organization\n by either."
+          "description": "The boundary that holds people, Agents, Sessions and secrets\n together; nothing outside it sees them.\n\n Its id is a minted org_\u003culid\u003e that never changes; every organization-scoped\n resource names it by that id (metadata.org). Its slug is unique across the\n server and may change through rename; requests may name the organization\n by either."
         },
         {
           "name": "platform",
@@ -694,24 +691,9 @@
           "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
         },
         {
-          "name": "workflow",
-          "number": 50,
-          "description": "Multi-step orchestration defining how agents collaborate on a task."
-        },
-        {
-          "name": "workflow_run",
-          "number": 52,
-          "description": "Single run of a workflow, tracking step progress and outcomes."
-        },
-        {
           "name": "environment",
           "number": 53,
-          "description": "Named set of variables and secrets for agent and workflow run."
-        },
-        {
-          "name": "artifact",
-          "number": 55,
-          "description": "Persisted blob produced during workflow or agent run."
+          "description": "Named set of variables and secrets for an agent run."
         },
         {
           "name": "execution_context",
@@ -731,7 +713,7 @@
         {
           "name": "plugin",
           "number": 58,
-          "description": "An installed Agent Plugins package: the archive Stigmer materialised into\n skills, MCP servers, an agent and workflows, and the handle that upgrades\n and removes them together. A plugin is what you install; an agent is what\n runs. Members are the resources labelled with the plugin's id."
+          "description": "An installed Agent Plugins package: the archive Stigmer materialised into\n skills, MCP servers and an agent, and the handle that upgrades\n and removes them together. A plugin is what you install; an agent is what\n runs. Members are the resources labelled with the plugin's id."
         },
         {
           "name": "plan",
@@ -817,7 +799,7 @@
       ]
     }
   ],
-  "resourceDescription": "Plugin is an installed Agent Plugins package: the unit of install, upgrade\n and removal for a set of skills, MCP servers, an agent and workflows.\n\n A plugin is what you install; an agent is what runs. Installing a plugin\n materialises ordinary Stigmer resources in the organization, each labelled\n with the plugin's id; the plugin owns their grouping, version and removal\n while execution, authorization and sharing stay on the resources.",
+  "resourceDescription": "Plugin is an installed Agent Plugins package: the unit of install, upgrade\n and removal for a set of skills, MCP servers and an agent.\n\n A plugin is what you install; an agent is what runs. Installing a plugin\n materialises ordinary Stigmer resources in the organization, each labelled\n with the plugin's id; the plugin owns their grouping, version and removal\n while execution, authorization and sharing stay on the resources.",
   "statusType": {
     "name": "PluginStatus",
     "description": "PluginStatus is the system-managed state of an installed plugin: the\n archive identity and the receipt of the last push.",
@@ -1251,16 +1233,6 @@
             "kind": "int32"
           },
           "description": "Agents materialised: one when the plugin carries a skill, a sub-agent or\n an agent overlay; zero for an MCP-only plugin.",
-          "required": false
-        },
-        {
-          "name": "Workflows",
-          "jsonName": "workflows",
-          "protoField": "workflows",
-          "type": {
-            "kind": "int32"
-          },
-          "description": "Workflows materialised from the plugin's Stigmer overlay.",
           "required": false
         }
       ]

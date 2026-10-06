@@ -7,7 +7,7 @@ package ai.stigmer.agentic.environment.v1;
 
 /**
  * <pre>
- * Environment stores configuration and secrets as key-value pairs for runtime use by agents and workflows.
+ * Environment stores configuration and secrets as key-value pairs for runtime use by agents.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.environment.v1.Environment}
@@ -479,7 +479,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Environment stores configuration and secrets as key-value pairs for runtime use by agents and workflows.
+   * Environment stores configuration and secrets as key-value pairs for runtime use by agents.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.environment.v1.Environment}

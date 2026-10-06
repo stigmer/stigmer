@@ -61,7 +61,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object kind_ = "";
   /**
    * <pre>
-   * Parent resource kind name (e.g., "session", "agent", "workflow").
+   * Parent resource kind name (e.g., "session", "identity_account").
    * Uses string instead of ApiResourceKind enum to avoid circular imports.
    * Validated at runtime against known resource kinds.
    * </pre>
@@ -84,7 +84,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Parent resource kind name (e.g., "session", "agent", "workflow").
+   * Parent resource kind name (e.g., "session", "identity_account").
    * Uses string instead of ApiResourceKind enum to avoid circular imports.
    * Validated at runtime against known resource kinds.
    * </pre>
@@ -112,7 +112,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object relation_ = "";
   /**
    * <pre>
-   * Relation name in FGA model (e.g., "session", "agent", "workflow").
+   * Relation name in FGA model (e.g., "session", "subject").
    * This is the relation that will be used in the FGA tuple.
    * FGA tuple: resource#&lt;relation&gt;&#64;&lt;kind&gt;:&lt;parent_id&gt;
    * </pre>
@@ -135,7 +135,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Relation name in FGA model (e.g., "session", "agent", "workflow").
+   * Relation name in FGA model (e.g., "session", "subject").
    * This is the relation that will be used in the FGA tuple.
    * FGA tuple: resource#&lt;relation&gt;&#64;&lt;kind&gt;:&lt;parent_id&gt;
    * </pre>
@@ -165,8 +165,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Field name in the resource's spec message that contains the parent ID.
    * The service extracts this field from resource.spec to resolve the parent ID.
-   * Example: "session_id" for agent_run, "workflow_id" for
-   * workflow_run.
+   * Example: "session_id" for agent_run, "subject_identity_account_id" for
+   * memory.
    * This eliminates hardcoded parent ID extraction logic in the service.
    * </pre>
    *
@@ -190,8 +190,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Field name in the resource's spec message that contains the parent ID.
    * The service extracts this field from resource.spec to resolve the parent ID.
-   * Example: "session_id" for agent_run, "workflow_id" for
-   * workflow_run.
+   * Example: "session_id" for agent_run, "subject_identity_account_id" for
+   * memory.
    * This eliminates hardcoded parent ID extraction logic in the service.
    * </pre>
    *
@@ -563,7 +563,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object kind_ = "";
     /**
      * <pre>
-     * Parent resource kind name (e.g., "session", "agent", "workflow").
+     * Parent resource kind name (e.g., "session", "identity_account").
      * Uses string instead of ApiResourceKind enum to avoid circular imports.
      * Validated at runtime against known resource kinds.
      * </pre>
@@ -585,7 +585,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Parent resource kind name (e.g., "session", "agent", "workflow").
+     * Parent resource kind name (e.g., "session", "identity_account").
      * Uses string instead of ApiResourceKind enum to avoid circular imports.
      * Validated at runtime against known resource kinds.
      * </pre>
@@ -608,7 +608,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Parent resource kind name (e.g., "session", "agent", "workflow").
+     * Parent resource kind name (e.g., "session", "identity_account").
      * Uses string instead of ApiResourceKind enum to avoid circular imports.
      * Validated at runtime against known resource kinds.
      * </pre>
@@ -627,7 +627,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Parent resource kind name (e.g., "session", "agent", "workflow").
+     * Parent resource kind name (e.g., "session", "identity_account").
      * Uses string instead of ApiResourceKind enum to avoid circular imports.
      * Validated at runtime against known resource kinds.
      * </pre>
@@ -643,7 +643,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Parent resource kind name (e.g., "session", "agent", "workflow").
+     * Parent resource kind name (e.g., "session", "identity_account").
      * Uses string instead of ApiResourceKind enum to avoid circular imports.
      * Validated at runtime against known resource kinds.
      * </pre>
@@ -665,7 +665,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object relation_ = "";
     /**
      * <pre>
-     * Relation name in FGA model (e.g., "session", "agent", "workflow").
+     * Relation name in FGA model (e.g., "session", "subject").
      * This is the relation that will be used in the FGA tuple.
      * FGA tuple: resource#&lt;relation&gt;&#64;&lt;kind&gt;:&lt;parent_id&gt;
      * </pre>
@@ -687,7 +687,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Relation name in FGA model (e.g., "session", "agent", "workflow").
+     * Relation name in FGA model (e.g., "session", "subject").
      * This is the relation that will be used in the FGA tuple.
      * FGA tuple: resource#&lt;relation&gt;&#64;&lt;kind&gt;:&lt;parent_id&gt;
      * </pre>
@@ -710,7 +710,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Relation name in FGA model (e.g., "session", "agent", "workflow").
+     * Relation name in FGA model (e.g., "session", "subject").
      * This is the relation that will be used in the FGA tuple.
      * FGA tuple: resource#&lt;relation&gt;&#64;&lt;kind&gt;:&lt;parent_id&gt;
      * </pre>
@@ -729,7 +729,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Relation name in FGA model (e.g., "session", "agent", "workflow").
+     * Relation name in FGA model (e.g., "session", "subject").
      * This is the relation that will be used in the FGA tuple.
      * FGA tuple: resource#&lt;relation&gt;&#64;&lt;kind&gt;:&lt;parent_id&gt;
      * </pre>
@@ -745,7 +745,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Relation name in FGA model (e.g., "session", "agent", "workflow").
+     * Relation name in FGA model (e.g., "session", "subject").
      * This is the relation that will be used in the FGA tuple.
      * FGA tuple: resource#&lt;relation&gt;&#64;&lt;kind&gt;:&lt;parent_id&gt;
      * </pre>
@@ -769,8 +769,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Field name in the resource's spec message that contains the parent ID.
      * The service extracts this field from resource.spec to resolve the parent ID.
-     * Example: "session_id" for agent_run, "workflow_id" for
-     * workflow_run.
+     * Example: "session_id" for agent_run, "subject_identity_account_id" for
+     * memory.
      * This eliminates hardcoded parent ID extraction logic in the service.
      * </pre>
      *
@@ -793,8 +793,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Field name in the resource's spec message that contains the parent ID.
      * The service extracts this field from resource.spec to resolve the parent ID.
-     * Example: "session_id" for agent_run, "workflow_id" for
-     * workflow_run.
+     * Example: "session_id" for agent_run, "subject_identity_account_id" for
+     * memory.
      * This eliminates hardcoded parent ID extraction logic in the service.
      * </pre>
      *
@@ -818,8 +818,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Field name in the resource's spec message that contains the parent ID.
      * The service extracts this field from resource.spec to resolve the parent ID.
-     * Example: "session_id" for agent_run, "workflow_id" for
-     * workflow_run.
+     * Example: "session_id" for agent_run, "subject_identity_account_id" for
+     * memory.
      * This eliminates hardcoded parent ID extraction logic in the service.
      * </pre>
      *
@@ -839,8 +839,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Field name in the resource's spec message that contains the parent ID.
      * The service extracts this field from resource.spec to resolve the parent ID.
-     * Example: "session_id" for agent_run, "workflow_id" for
-     * workflow_run.
+     * Example: "session_id" for agent_run, "subject_identity_account_id" for
+     * memory.
      * This eliminates hardcoded parent ID extraction logic in the service.
      * </pre>
      *
@@ -857,8 +857,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Field name in the resource's spec message that contains the parent ID.
      * The service extracts this field from resource.spec to resolve the parent ID.
-     * Example: "session_id" for agent_run, "workflow_id" for
-     * workflow_run.
+     * Example: "session_id" for agent_run, "subject_identity_account_id" for
+     * memory.
      * This eliminates hardcoded parent ID extraction logic in the service.
      * </pre>
      *

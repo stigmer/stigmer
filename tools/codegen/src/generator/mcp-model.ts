@@ -1,16 +1,16 @@
 // Shared MCP apply-input model — the port of mcp_model.go's buildMcpGen and
 // its type-collection pass. The model resolves the flattened ergonomic
 // projection (metadata hoist, enum→string, reference flattening with kind
-// injection, oneof flattening, workflow task_config expansion) exactly once;
+// injection, oneof flattening) exactly once;
 // the emitter consumes it. Field representations keep the Go-typed strings
 // ("[]FooInput", "map[string]*BarInput") because the TS emitter's
 // classification logic — ported byte-for-byte — interprets those prefixes.
 
 import { goTrimSpace } from "../internalcomment/internalcomment.js";
-import type { ExpandStructConfig, LoadedSchemas } from "./gen-common.js";
-import { sanitizeDescription, singularize, toPascalCase } from "./gen-common.js";
+import type { LoadedSchemas } from "./gen-common.js";
+import { sanitizeDescription, singularize } from "./gen-common.js";
 import { versionedKinds } from "./resource-kind.js";
-import type { FieldSchema, TaskConfigSchema, TypeSchema } from "./schema.js";
+import type { FieldSchema, SpecSchema, TypeSchema } from "./schema.js";
 
 export interface McpInputType {
   name: string;
@@ -36,23 +36,20 @@ export interface McpInputField {
   isStruct: boolean;
   isValue: boolean;
   isTimestamp: boolean;
-  isExpandedConfig: boolean;
   useExportedToProto: boolean;
 }
 
 export class McpGen {
-  spec: TaskConfigSchema;
+  spec: SpecSchema;
   types: Map<string, TypeSchema>;
   inputTypes: McpInputType[] = [];
   private seenTypes = new Set<string>();
   outputDir: string;
-  expandStruct: ExpandStructConfig | null;
 
-  constructor(spec: TaskConfigSchema, types: Map<string, TypeSchema>, outputDir: string, expandStruct: ExpandStructConfig | null) {
+  constructor(spec: SpecSchema, types: Map<string, TypeSchema>, outputDir: string) {
     this.spec = spec;
     this.types = types;
     this.outputDir = outputDir;
-    this.expandStruct = expandStruct;
   }
 
   collectInputTypes(): void {
@@ -90,7 +87,6 @@ export class McpGen {
       isStruct: false,
       isValue: false,
       isTimestamp: false,
-      isExpandedConfig: false,
       useExportedToProto: false,
     };
     const t = f.type;
@@ -223,13 +219,9 @@ export class McpGen {
     const ts = this.types.get(messageName);
     if (ts === undefined) return;
 
-    const hasExpansion = this.expandStruct !== null && this.typeHasExpandableField(ts);
-
     const it: McpInputType = {
       name: inputName,
-      description: hasExpansion
-        ? "A single workflow task. Set kind to the task type and populate exactly one matching config field (e.g. kind='http_call' -> set the http_call field)."
-        : sanitizeDescription(ts.description),
+      description: sanitizeDescription(ts.description),
       isTopLevel: false,
       isReference: false,
       refKindVal: 0,
@@ -239,77 +231,10 @@ export class McpGen {
     };
 
     for (const f of ts.fields) {
-      if (hasExpansion && f.protoField === this.expandStruct!.structField) {
-        for (const cfg of this.expandStruct!.configs) {
-          it.fields.push(this.expandedConfigField(cfg));
-        }
-        continue;
-      }
-      if (hasExpansion && f.protoField === this.expandStruct!.discriminatorField) {
-        f.description = "Task type. Set the matching config field (e.g. kind='http_call' -> populate http_call).";
-      }
       it.fields.push(this.resolveField(f));
     }
 
     this.inputTypes.push(it);
-  }
-
-  private typeHasExpandableField(ts: TypeSchema): boolean {
-    return ts.fields.some(
-      (f) => f.protoField === this.expandStruct!.structField && f.type.kind === "struct",
-    );
-  }
-
-  private expandedConfigField(cfg: TaskConfigSchema): McpInputField {
-    let fieldName = this.expandStruct!.kindToEnum.get(cfg.kind ?? "") ?? "";
-    if (fieldName === "") {
-      fieldName = (cfg.kind ?? "").toLowerCase();
-    }
-    const inputName = this.messageInputTypeName(cfg.name);
-
-    this.ensureConfigInputType(cfg, inputName);
-
-    const desc = sanitizeDescription(cfg.description);
-    const shortDesc = `Required when kind='${fieldName}'. ${desc}`;
-    const schemaTag = shortDesc.replaceAll("`", "'").replaceAll('"', "'");
-
-    return {
-      goName: toPascalCase(fieldName),
-      protoField: fieldName,
-      goType: "*" + inputName,
-      jsonTag: fieldName + ",omitempty",
-      schemaTag,
-      description: shortDesc,
-      inputTypeName: inputName,
-      oneofGroup: "",
-      enumType: "",
-      isStruct: false,
-      isValue: false,
-      isTimestamp: false,
-      isExpandedConfig: true,
-      useExportedToProto: false,
-    };
-  }
-
-  private ensureConfigInputType(cfg: TaskConfigSchema, inputName: string): void {
-    if (this.seenTypes.has(inputName)) return;
-    this.seenTypes.add(inputName);
-
-    const it: McpInputType = {
-      name: inputName,
-      description: sanitizeDescription(cfg.description),
-      isTopLevel: false,
-      isReference: false,
-      refKindVal: 0,
-      protoType: cfg.protoType,
-      protoFile: cfg.protoFile,
-      fields: cfg.fields.map((f) => this.resolveField(f)),
-    };
-    this.inputTypes.push(it);
-  }
-
-  hasExpandedConfigFields(it: McpInputType): boolean {
-    return it.fields.some((f) => f.isExpandedConfig);
   }
 
   // Standard API resource envelope: api_version, kind, metadata
@@ -374,33 +299,16 @@ const IDENTITY_FIELD_NAMES = new Set(["name", "slug", "org", "visibility", "labe
 
 /** Port of buildMcpGen: promote the resource spec and build the model. */
 export function buildMcpGen(gen: LoadedSchemas, outputDir: string): McpGen {
-  // When --schema-dir points directly at a resource directory, the loader
-  // categorises the spec JSON as a taskConfig. Promote it.
-  let resourceSpecs: TaskConfigSchema[] = [];
-  let taskConfigs = gen.taskConfigs;
-  if (taskConfigs.length > 0) {
-    const dirBase = baseName(gen.schemaDir).toLowerCase();
-    let promoted: TaskConfigSchema | null = null;
-    const remaining: TaskConfigSchema[] = [];
-    for (const tc of taskConfigs) {
-      const nameLower = trimSuffix(tc.name, "Spec").toLowerCase();
-      if (promoted === null && nameLower === dirBase) {
-        promoted = tc;
-      } else {
-        remaining.push(tc);
-      }
-    }
-    if (promoted === null && taskConfigs.length === 1) {
-      promoted = taskConfigs[0];
-      remaining.length = 0;
-    }
-    if (promoted !== null) {
-      resourceSpecs = [promoted];
-      taskConfigs = remaining;
-    }
+  // The resource's own spec is the one whose name, less "Spec", is the
+  // schema directory's name; a directory holding a single spec uses it.
+  const dirBase = baseName(gen.schemaDir).toLowerCase();
+  let resourceSpec: SpecSchema | undefined = gen.specs.find(
+    (spec) => trimSuffix(spec.name, "Spec").toLowerCase() === dirBase,
+  );
+  if (resourceSpec === undefined && gen.specs.length === 1) {
+    resourceSpec = gen.specs[0];
   }
-
-  if (resourceSpecs.length === 0) {
+  if (resourceSpec === undefined) {
     throw new Error(`no resource spec found; expected one *Spec schema in ${gen.schemaDir}`);
   }
 
@@ -408,15 +316,8 @@ export function buildMcpGen(gen: LoadedSchemas, outputDir: string): McpGen {
   for (const t of gen.sharedTypes) {
     typesMap.set(t.name, t);
   }
-  if (gen.expandStruct !== null) {
-    for (const t of gen.expandStruct.configTypes) {
-      if (!typesMap.has(t.name)) {
-        typesMap.set(t.name, t);
-      }
-    }
-  }
 
-  const m = new McpGen(resourceSpecs[0], typesMap, outputDir, gen.expandStruct);
+  const m = new McpGen(resourceSpec, typesMap, outputDir);
   m.collectInputTypes();
   return m;
 }

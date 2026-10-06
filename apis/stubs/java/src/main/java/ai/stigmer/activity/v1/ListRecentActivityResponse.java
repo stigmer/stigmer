@@ -7,7 +7,7 @@ package ai.stigmer.activity.v1;
 
 /**
  * <pre>
- * ListRecentActivityResponse contains merged, sorted recent activity.
+ * ListRecentActivityResponse contains the caller's recent sessions.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.activity.v1.ListRecentActivityResponse}
@@ -58,8 +58,7 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.activity.v1.RecentActivityEntry> entries_;
   /**
    * <pre>
-   * Entries sorted by updated_at descending, interleaving sessions
-   * and workflow runs.
+   * Entries sorted by updated_at descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -70,8 +69,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Entries sorted by updated_at descending, interleaving sessions
-   * and workflow runs.
+   * Entries sorted by updated_at descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -83,8 +81,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Entries sorted by updated_at descending, interleaving sessions
-   * and workflow runs.
+   * Entries sorted by updated_at descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -95,8 +92,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Entries sorted by updated_at descending, interleaving sessions
-   * and workflow runs.
+   * Entries sorted by updated_at descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -107,8 +103,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Entries sorted by updated_at descending, interleaving sessions
-   * and workflow runs.
+   * Entries sorted by updated_at descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -285,7 +280,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ListRecentActivityResponse contains merged, sorted recent activity.
+   * ListRecentActivityResponse contains the caller's recent sessions.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.activity.v1.ListRecentActivityResponse}
@@ -484,8 +479,7 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * Entries sorted by updated_at descending, interleaving sessions
-     * and workflow runs.
+     * Entries sorted by updated_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -499,8 +493,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Entries sorted by updated_at descending, interleaving sessions
-     * and workflow runs.
+     * Entries sorted by updated_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -514,8 +507,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Entries sorted by updated_at descending, interleaving sessions
-     * and workflow runs.
+     * Entries sorted by updated_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -529,8 +521,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Entries sorted by updated_at descending, interleaving sessions
-     * and workflow runs.
+     * Entries sorted by updated_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -551,8 +542,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Entries sorted by updated_at descending, interleaving sessions
-     * and workflow runs.
+     * Entries sorted by updated_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -570,8 +560,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Entries sorted by updated_at descending, interleaving sessions
-     * and workflow runs.
+     * Entries sorted by updated_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -591,8 +580,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Entries sorted by updated_at descending, interleaving sessions
-     * and workflow runs.
+     * Entries sorted by updated_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -613,8 +601,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Entries sorted by updated_at descending, interleaving sessions
-     * and workflow runs.
+     * Entries sorted by updated_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -632,8 +619,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Entries sorted by updated_at descending, interleaving sessions
-     * and workflow runs.
+     * Entries sorted by updated_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -651,8 +637,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Entries sorted by updated_at descending, interleaving sessions
-     * and workflow runs.
+     * Entries sorted by updated_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -671,8 +656,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Entries sorted by updated_at descending, interleaving sessions
-     * and workflow runs.
+     * Entries sorted by updated_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -689,8 +673,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Entries sorted by updated_at descending, interleaving sessions
-     * and workflow runs.
+     * Entries sorted by updated_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -707,8 +690,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Entries sorted by updated_at descending, interleaving sessions
-     * and workflow runs.
+     * Entries sorted by updated_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -719,8 +701,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Entries sorted by updated_at descending, interleaving sessions
-     * and workflow runs.
+     * Entries sorted by updated_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -734,8 +715,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Entries sorted by updated_at descending, interleaving sessions
-     * and workflow runs.
+     * Entries sorted by updated_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -750,8 +730,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Entries sorted by updated_at descending, interleaving sessions
-     * and workflow runs.
+     * Entries sorted by updated_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -762,8 +741,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Entries sorted by updated_at descending, interleaving sessions
-     * and workflow runs.
+     * Entries sorted by updated_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>
@@ -775,8 +753,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Entries sorted by updated_at descending, interleaving sessions
-     * and workflow runs.
+     * Entries sorted by updated_at descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.activity.v1.RecentActivityEntry entries = 1 [json_name = "entries"];</code>

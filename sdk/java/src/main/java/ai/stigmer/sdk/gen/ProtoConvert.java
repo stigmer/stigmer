@@ -12,7 +12,7 @@ import io.grpc.Status;
 // objectToValue accepts only values with an exact protobuf Struct
 // representation: String, Number, Boolean, String-keyed Map, Iterable,
 // array, and null. Anything else used to be silently coerced to its
-// String.valueOf — a POJO in a task config arrived on the wire as
+// String.valueOf — a POJO in a Struct field arrived on the wire as
 // "com.example.Outcome@1a2b3c4d" with no failure until a human
 // inspected the degraded resource (stigmer/stigmer#448; the Go twin of
 // the class was #342). Unsupported values now throw StigmerException

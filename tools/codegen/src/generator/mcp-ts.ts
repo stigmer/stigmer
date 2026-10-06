@@ -6,13 +6,9 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import type { SatelliteDir } from "./gen-common.js";
 import {
-  detectExpandStructFromSchema,
   deriveTSImportBase,
-  discoverDomains,
   goQuote,
-  indexSatellites,
   loadResourceSchemas,
   lowerFirst,
   protoTypeName,
@@ -31,7 +27,7 @@ import { apiResourceKindEnumNames, versionedKinds } from "./resource-kind.js";
 
 // Resources the TS MCP server exposes an apply_* tool for; each entry is a
 // "<domain>/<resource>" schema directory.
-const MCP_TS_APPLY_RESOURCES = ["agentic/agent", "agentic/environment", "agentic/mcpserver", "agentic/workflow"];
+const MCP_TS_APPLY_RESOURCES = ["agentic/agent", "agentic/environment", "agentic/mcpserver"];
 
 /** Port of runMCPTSGeneration. */
 export function runMCPTSGeneration(schemaDir: string, outputDir: string): void {
@@ -39,19 +35,14 @@ export function runMCPTSGeneration(schemaDir: string, outputDir: string): void {
 
   writeApplyRuntime(outputDir);
 
-  const [, satellitePaths] = discoverDomains(schemaDir);
-  const satellites = indexSatellites(satellitePaths);
-
   for (const rel of MCP_TS_APPLY_RESOURCES) {
-    const resourceSchemaDir = path.join(schemaDir, rel);
-    generateOne(resourceSchemaDir, outputDir, satellites);
+    generateOne(path.join(schemaDir, rel), outputDir);
   }
   process.stderr.write(`mcp-ts: generated ${MCP_TS_APPLY_RESOURCES.length} TS apply modules\n`);
 }
 
-function generateOne(resourceSchemaDir: string, outputDir: string, satellites: SatelliteDir[]): void {
+function generateOne(resourceSchemaDir: string, outputDir: string): void {
   const gen = loadResourceSchemas(resourceSchemaDir);
-  detectExpandStructFromSchema(gen, satellites);
   const m = buildMcpGen(gen, outputDir);
   generateTSFile(m);
 }
@@ -68,7 +59,6 @@ interface TsField {
   required: boolean;
   desc: string;
   coll: TsCollection;
-  expanded: boolean;
   nested: McpInputType | null;
   isRef: boolean;
   refEnum: string;
@@ -89,7 +79,6 @@ function classifyField(m: McpGen, f: McpInputField): TsField {
     required: !f.jsonTag.includes("omitempty"),
     desc: f.schemaTag,
     coll: "singular",
-    expanded: f.isExpandedConfig,
     nested: null,
     isRef: false,
     refEnum: "",
@@ -459,12 +448,7 @@ function genTSNestedToProto(m: McpGen, w: string[], it: McpInputType, imports: T
 
 function genTSSpecAssignments(m: McpGen, w: string[], it: McpInputType, dst: string, imports: TsImportSet): void {
   for (const f of it.fields) {
-    const tf = classifyField(m, f);
-    if (tf.expanded) continue; // handled by the task_config switch
-    genTSFieldAssign(w, tf, dst, imports);
-  }
-  if (m.hasExpandedConfigFields(it)) {
-    genTSConfigSwitch(m, w, it, dst, imports);
+    genTSFieldAssign(w, classifyField(m, f), dst, imports);
   }
 }
 
@@ -542,35 +526,6 @@ function tsLeafValueExpr(tf: TsField, inExpr: string, imports: TsImportSet): str
     return `enumFromString(${enumName}, ${inExpr}) as ${enumName}`;
   }
   return inExpr;
-}
-
-// The workflow task_config discriminated-union switch: each kind sets the
-// google.protobuf.Struct task_config from the typed per-kind config proto.
-function genTSConfigSwitch(m: McpGen, w: string[], it: McpInputType, dst: string, imports: TsImportSet): void {
-  imports.addValue("@bufbuild/protobuf", "toJson");
-  imports.addType("@bufbuild/protobuf", "JsonObject");
-  const structFieldCamel = tsProtoFieldName(m.expandStruct!.structField);
-
-  w.push("  switch (input.kind) {\n");
-  for (const f of it.fields) {
-    if (!f.isExpandedConfig) continue;
-    const cfgType = m.findInputType(f.inputTypeName);
-    if (cfgType === null) continue;
-    const cfgProtoName = protoTypeName(cfgType.protoType);
-    const cfgSuffix = tsProtoFileToSuffix(cfgType.protoFile);
-    const cfgBase = deriveTSImportBase(tsProtoPkg(cfgType.protoType));
-    imports.addValue(cfgBase + "/" + cfgSuffix, cfgProtoName + "Schema");
-
-    const inExpr = "input." + tsMemberAccess(f.protoField);
-    w.push(`    case ${goQuote(f.protoField)}:\n`);
-    w.push(`      if (${inExpr} !== undefined) ${dst}.${structFieldCamel} = toJson(${cfgProtoName}Schema, ${tsToProtoFn(cfgType)}(${inExpr})) as JsonObject;\n`);
-    w.push("      break;\n");
-  }
-  w.push("    default:\n");
-  w.push('      if (input.kind !== undefined && input.kind !== "") {\n');
-  w.push("        throw new Error(`unknown task kind: ${input.kind}`);\n");
-  w.push("      }\n");
-  w.push("  }\n");
 }
 
 // --------------------------------------------------------------------

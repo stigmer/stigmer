@@ -7,11 +7,11 @@ package ai.stigmer.activity.v1;
 
 /**
  * <pre>
- * RecentActivityEntry is a lightweight summary of either an agent session
- * or a workflow run, used for the sidebar "recents" list.
+ * RecentActivityEntry is a lightweight summary of one agent session, used
+ * for the sidebar "recents" list.
  *
  * This is a projection — not the full resource. Clients that need the
- * complete resource should call the specific get() RPC for the resource kind.
+ * complete session should call the session's get() RPC.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.activity.v1.RecentActivityEntry}
@@ -37,9 +37,7 @@ private static final long serialVersionUID = 0L;
   }
   private RecentActivityEntry() {
     id_ = "";
-    type_ = "";
     subject_ = "";
-    status_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -66,7 +64,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object id_ = "";
   /**
    * <pre>
-   * Resource ID (session ID or workflow run ID).
+   * Session ID.
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -87,7 +85,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Resource ID (session ID or workflow run ID).
+   * Session ID.
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -108,61 +106,12 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int TYPE_FIELD_NUMBER = 2;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object type_ = "";
-  /**
-   * <pre>
-   * Discriminator: "session" or "workflow_run".
-   * </pre>
-   *
-   * <code>string type = 2 [json_name = "type"];</code>
-   * @return The type.
-   */
-  @java.lang.Override
-  public java.lang.String getType() {
-    java.lang.Object ref = type_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      type_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * Discriminator: "session" or "workflow_run".
-   * </pre>
-   *
-   * <code>string type = 2 [json_name = "type"];</code>
-   * @return The bytes for type.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getTypeBytes() {
-    java.lang.Object ref = type_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      type_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
   public static final int SUBJECT_FIELD_NUMBER = 3;
   @SuppressWarnings("serial")
   private volatile java.lang.Object subject_ = "";
   /**
    * <pre>
-   * Human-readable label for display.
-   * For sessions: the conversation subject.
-   * For workflow runs: the run name.
+   * Human-readable label for display: the conversation subject.
    * </pre>
    *
    * <code>string subject = 3 [json_name = "subject"];</code>
@@ -183,9 +132,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Human-readable label for display.
-   * For sessions: the conversation subject.
-   * For workflow runs: the run name.
+   * Human-readable label for display: the conversation subject.
    * </pre>
    *
    * <code>string subject = 3 [json_name = "subject"];</code>
@@ -210,8 +157,8 @@ private static final long serialVersionUID = 0L;
   private com.google.protobuf.Timestamp updatedAt_;
   /**
    * <pre>
-   * When this entry was last meaningfully updated.
-   * Used for interleaved sort (newest first).
+   * When this session last saw meaningful activity.
+   * Used for the sort (newest first).
    * </pre>
    *
    * <code>.google.protobuf.Timestamp updated_at = 4 [json_name = "updatedAt"];</code>
@@ -223,8 +170,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * When this entry was last meaningfully updated.
-   * Used for interleaved sort (newest first).
+   * When this session last saw meaningful activity.
+   * Used for the sort (newest first).
    * </pre>
    *
    * <code>.google.protobuf.Timestamp updated_at = 4 [json_name = "updatedAt"];</code>
@@ -236,8 +183,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * When this entry was last meaningfully updated.
-   * Used for interleaved sort (newest first).
+   * When this session last saw meaningful activity.
+   * Used for the sort (newest first).
    * </pre>
    *
    * <code>.google.protobuf.Timestamp updated_at = 4 [json_name = "updatedAt"];</code>
@@ -245,55 +192,6 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public com.google.protobuf.TimestampOrBuilder getUpdatedAtOrBuilder() {
     return updatedAt_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : updatedAt_;
-  }
-
-  public static final int STATUS_FIELD_NUMBER = 5;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object status_ = "";
-  /**
-   * <pre>
-   * Run phase label for workflow runs (e.g., "completed", "failed").
-   * Empty for sessions.
-   * </pre>
-   *
-   * <code>string status = 5 [json_name = "status"];</code>
-   * @return The status.
-   */
-  @java.lang.Override
-  public java.lang.String getStatus() {
-    java.lang.Object ref = status_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      status_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * Run phase label for workflow runs (e.g., "completed", "failed").
-   * Empty for sessions.
-   * </pre>
-   *
-   * <code>string status = 5 [json_name = "status"];</code>
-   * @return The bytes for status.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getStatusBytes() {
-    java.lang.Object ref = status_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      status_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
   }
 
   private byte memoizedIsInitialized = -1;
@@ -313,17 +211,11 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(id_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 1, id_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(type_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 2, type_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(subject_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, subject_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(4, getUpdatedAt());
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(status_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 5, status_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -337,18 +229,12 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(id_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(1, id_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(type_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, type_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(subject_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, subject_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(4, getUpdatedAt());
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(status_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(5, status_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -367,8 +253,6 @@ private static final long serialVersionUID = 0L;
 
     if (!getId()
         .equals(other.getId())) return false;
-    if (!getType()
-        .equals(other.getType())) return false;
     if (!getSubject()
         .equals(other.getSubject())) return false;
     if (hasUpdatedAt() != other.hasUpdatedAt()) return false;
@@ -376,8 +260,6 @@ private static final long serialVersionUID = 0L;
       if (!getUpdatedAt()
           .equals(other.getUpdatedAt())) return false;
     }
-    if (!getStatus()
-        .equals(other.getStatus())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -391,16 +273,12 @@ private static final long serialVersionUID = 0L;
     hash = (19 * hash) + getDescriptor().hashCode();
     hash = (37 * hash) + ID_FIELD_NUMBER;
     hash = (53 * hash) + getId().hashCode();
-    hash = (37 * hash) + TYPE_FIELD_NUMBER;
-    hash = (53 * hash) + getType().hashCode();
     hash = (37 * hash) + SUBJECT_FIELD_NUMBER;
     hash = (53 * hash) + getSubject().hashCode();
     if (hasUpdatedAt()) {
       hash = (37 * hash) + UPDATED_AT_FIELD_NUMBER;
       hash = (53 * hash) + getUpdatedAt().hashCode();
     }
-    hash = (37 * hash) + STATUS_FIELD_NUMBER;
-    hash = (53 * hash) + getStatus().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -500,11 +378,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * RecentActivityEntry is a lightweight summary of either an agent session
-   * or a workflow run, used for the sidebar "recents" list.
+   * RecentActivityEntry is a lightweight summary of one agent session, used
+   * for the sidebar "recents" list.
    *
    * This is a projection — not the full resource. Clients that need the
-   * complete resource should call the specific get() RPC for the resource kind.
+   * complete session should call the session's get() RPC.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.activity.v1.RecentActivityEntry}
@@ -547,14 +425,12 @@ private static final long serialVersionUID = 0L;
       super.clear();
       bitField0_ = 0;
       id_ = "";
-      type_ = "";
       subject_ = "";
       updatedAt_ = null;
       if (updatedAtBuilder_ != null) {
         updatedAtBuilder_.dispose();
         updatedAtBuilder_ = null;
       }
-      status_ = "";
       return this;
     }
 
@@ -592,20 +468,14 @@ private static final long serialVersionUID = 0L;
         result.id_ = id_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
-        result.type_ = type_;
-      }
-      if (((from_bitField0_ & 0x00000004) != 0)) {
         result.subject_ = subject_;
       }
       int to_bitField0_ = 0;
-      if (((from_bitField0_ & 0x00000008) != 0)) {
+      if (((from_bitField0_ & 0x00000004) != 0)) {
         result.updatedAt_ = updatedAtBuilder_ == null
             ? updatedAt_
             : updatedAtBuilder_.build();
         to_bitField0_ |= 0x00000001;
-      }
-      if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.status_ = status_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -627,23 +497,13 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000001;
         onChanged();
       }
-      if (!other.getType().isEmpty()) {
-        type_ = other.type_;
-        bitField0_ |= 0x00000002;
-        onChanged();
-      }
       if (!other.getSubject().isEmpty()) {
         subject_ = other.subject_;
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000002;
         onChanged();
       }
       if (other.hasUpdatedAt()) {
         mergeUpdatedAt(other.getUpdatedAt());
-      }
-      if (!other.getStatus().isEmpty()) {
-        status_ = other.status_;
-        bitField0_ |= 0x00000010;
-        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -676,28 +536,18 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000001;
               break;
             } // case 10
-            case 18: {
-              type_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000002;
-              break;
-            } // case 18
             case 26: {
               subject_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000002;
               break;
             } // case 26
             case 34: {
               input.readMessage(
                   internalGetUpdatedAtFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000008;
+              bitField0_ |= 0x00000004;
               break;
             } // case 34
-            case 42: {
-              status_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000010;
-              break;
-            } // case 42
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -718,7 +568,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object id_ = "";
     /**
      * <pre>
-     * Resource ID (session ID or workflow run ID).
+     * Session ID.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -738,7 +588,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource ID (session ID or workflow run ID).
+     * Session ID.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -759,7 +609,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource ID (session ID or workflow run ID).
+     * Session ID.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -776,7 +626,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource ID (session ID or workflow run ID).
+     * Session ID.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -790,7 +640,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resource ID (session ID or workflow run ID).
+     * Session ID.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -807,104 +657,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object type_ = "";
-    /**
-     * <pre>
-     * Discriminator: "session" or "workflow_run".
-     * </pre>
-     *
-     * <code>string type = 2 [json_name = "type"];</code>
-     * @return The type.
-     */
-    public java.lang.String getType() {
-      java.lang.Object ref = type_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        type_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Discriminator: "session" or "workflow_run".
-     * </pre>
-     *
-     * <code>string type = 2 [json_name = "type"];</code>
-     * @return The bytes for type.
-     */
-    public com.google.protobuf.ByteString
-        getTypeBytes() {
-      java.lang.Object ref = type_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        type_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Discriminator: "session" or "workflow_run".
-     * </pre>
-     *
-     * <code>string type = 2 [json_name = "type"];</code>
-     * @param value The type to set.
-     * @return This builder for chaining.
-     */
-    public Builder setType(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      type_ = value;
-      bitField0_ |= 0x00000002;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Discriminator: "session" or "workflow_run".
-     * </pre>
-     *
-     * <code>string type = 2 [json_name = "type"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearType() {
-      type_ = getDefaultInstance().getType();
-      bitField0_ = (bitField0_ & ~0x00000002);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Discriminator: "session" or "workflow_run".
-     * </pre>
-     *
-     * <code>string type = 2 [json_name = "type"];</code>
-     * @param value The bytes for type to set.
-     * @return This builder for chaining.
-     */
-    public Builder setTypeBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      type_ = value;
-      bitField0_ |= 0x00000002;
-      onChanged();
-      return this;
-    }
-
     private java.lang.Object subject_ = "";
     /**
      * <pre>
-     * Human-readable label for display.
-     * For sessions: the conversation subject.
-     * For workflow runs: the run name.
+     * Human-readable label for display: the conversation subject.
      * </pre>
      *
      * <code>string subject = 3 [json_name = "subject"];</code>
@@ -924,9 +680,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable label for display.
-     * For sessions: the conversation subject.
-     * For workflow runs: the run name.
+     * Human-readable label for display: the conversation subject.
      * </pre>
      *
      * <code>string subject = 3 [json_name = "subject"];</code>
@@ -947,9 +701,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable label for display.
-     * For sessions: the conversation subject.
-     * For workflow runs: the run name.
+     * Human-readable label for display: the conversation subject.
      * </pre>
      *
      * <code>string subject = 3 [json_name = "subject"];</code>
@@ -960,15 +712,13 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       subject_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Human-readable label for display.
-     * For sessions: the conversation subject.
-     * For workflow runs: the run name.
+     * Human-readable label for display: the conversation subject.
      * </pre>
      *
      * <code>string subject = 3 [json_name = "subject"];</code>
@@ -976,15 +726,13 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearSubject() {
       subject_ = getDefaultInstance().getSubject();
-      bitField0_ = (bitField0_ & ~0x00000004);
+      bitField0_ = (bitField0_ & ~0x00000002);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Human-readable label for display.
-     * For sessions: the conversation subject.
-     * For workflow runs: the run name.
+     * Human-readable label for display: the conversation subject.
      * </pre>
      *
      * <code>string subject = 3 [json_name = "subject"];</code>
@@ -996,7 +744,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       subject_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
@@ -1006,20 +754,20 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> updatedAtBuilder_;
     /**
      * <pre>
-     * When this entry was last meaningfully updated.
-     * Used for interleaved sort (newest first).
+     * When this session last saw meaningful activity.
+     * Used for the sort (newest first).
      * </pre>
      *
      * <code>.google.protobuf.Timestamp updated_at = 4 [json_name = "updatedAt"];</code>
      * @return Whether the updatedAt field is set.
      */
     public boolean hasUpdatedAt() {
-      return ((bitField0_ & 0x00000008) != 0);
+      return ((bitField0_ & 0x00000004) != 0);
     }
     /**
      * <pre>
-     * When this entry was last meaningfully updated.
-     * Used for interleaved sort (newest first).
+     * When this session last saw meaningful activity.
+     * Used for the sort (newest first).
      * </pre>
      *
      * <code>.google.protobuf.Timestamp updated_at = 4 [json_name = "updatedAt"];</code>
@@ -1034,8 +782,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When this entry was last meaningfully updated.
-     * Used for interleaved sort (newest first).
+     * When this session last saw meaningful activity.
+     * Used for the sort (newest first).
      * </pre>
      *
      * <code>.google.protobuf.Timestamp updated_at = 4 [json_name = "updatedAt"];</code>
@@ -1049,14 +797,14 @@ private static final long serialVersionUID = 0L;
       } else {
         updatedAtBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * When this entry was last meaningfully updated.
-     * Used for interleaved sort (newest first).
+     * When this session last saw meaningful activity.
+     * Used for the sort (newest first).
      * </pre>
      *
      * <code>.google.protobuf.Timestamp updated_at = 4 [json_name = "updatedAt"];</code>
@@ -1068,21 +816,21 @@ private static final long serialVersionUID = 0L;
       } else {
         updatedAtBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * When this entry was last meaningfully updated.
-     * Used for interleaved sort (newest first).
+     * When this session last saw meaningful activity.
+     * Used for the sort (newest first).
      * </pre>
      *
      * <code>.google.protobuf.Timestamp updated_at = 4 [json_name = "updatedAt"];</code>
      */
     public Builder mergeUpdatedAt(com.google.protobuf.Timestamp value) {
       if (updatedAtBuilder_ == null) {
-        if (((bitField0_ & 0x00000008) != 0) &&
+        if (((bitField0_ & 0x00000004) != 0) &&
           updatedAt_ != null &&
           updatedAt_ != com.google.protobuf.Timestamp.getDefaultInstance()) {
           getUpdatedAtBuilder().mergeFrom(value);
@@ -1093,21 +841,21 @@ private static final long serialVersionUID = 0L;
         updatedAtBuilder_.mergeFrom(value);
       }
       if (updatedAt_ != null) {
-        bitField0_ |= 0x00000008;
+        bitField0_ |= 0x00000004;
         onChanged();
       }
       return this;
     }
     /**
      * <pre>
-     * When this entry was last meaningfully updated.
-     * Used for interleaved sort (newest first).
+     * When this session last saw meaningful activity.
+     * Used for the sort (newest first).
      * </pre>
      *
      * <code>.google.protobuf.Timestamp updated_at = 4 [json_name = "updatedAt"];</code>
      */
     public Builder clearUpdatedAt() {
-      bitField0_ = (bitField0_ & ~0x00000008);
+      bitField0_ = (bitField0_ & ~0x00000004);
       updatedAt_ = null;
       if (updatedAtBuilder_ != null) {
         updatedAtBuilder_.dispose();
@@ -1118,21 +866,21 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When this entry was last meaningfully updated.
-     * Used for interleaved sort (newest first).
+     * When this session last saw meaningful activity.
+     * Used for the sort (newest first).
      * </pre>
      *
      * <code>.google.protobuf.Timestamp updated_at = 4 [json_name = "updatedAt"];</code>
      */
     public com.google.protobuf.Timestamp.Builder getUpdatedAtBuilder() {
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000004;
       onChanged();
       return internalGetUpdatedAtFieldBuilder().getBuilder();
     }
     /**
      * <pre>
-     * When this entry was last meaningfully updated.
-     * Used for interleaved sort (newest first).
+     * When this session last saw meaningful activity.
+     * Used for the sort (newest first).
      * </pre>
      *
      * <code>.google.protobuf.Timestamp updated_at = 4 [json_name = "updatedAt"];</code>
@@ -1147,8 +895,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When this entry was last meaningfully updated.
-     * Used for interleaved sort (newest first).
+     * When this session last saw meaningful activity.
+     * Used for the sort (newest first).
      * </pre>
      *
      * <code>.google.protobuf.Timestamp updated_at = 4 [json_name = "updatedAt"];</code>
@@ -1165,103 +913,6 @@ private static final long serialVersionUID = 0L;
         updatedAt_ = null;
       }
       return updatedAtBuilder_;
-    }
-
-    private java.lang.Object status_ = "";
-    /**
-     * <pre>
-     * Run phase label for workflow runs (e.g., "completed", "failed").
-     * Empty for sessions.
-     * </pre>
-     *
-     * <code>string status = 5 [json_name = "status"];</code>
-     * @return The status.
-     */
-    public java.lang.String getStatus() {
-      java.lang.Object ref = status_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        status_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Run phase label for workflow runs (e.g., "completed", "failed").
-     * Empty for sessions.
-     * </pre>
-     *
-     * <code>string status = 5 [json_name = "status"];</code>
-     * @return The bytes for status.
-     */
-    public com.google.protobuf.ByteString
-        getStatusBytes() {
-      java.lang.Object ref = status_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        status_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Run phase label for workflow runs (e.g., "completed", "failed").
-     * Empty for sessions.
-     * </pre>
-     *
-     * <code>string status = 5 [json_name = "status"];</code>
-     * @param value The status to set.
-     * @return This builder for chaining.
-     */
-    public Builder setStatus(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      status_ = value;
-      bitField0_ |= 0x00000010;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Run phase label for workflow runs (e.g., "completed", "failed").
-     * Empty for sessions.
-     * </pre>
-     *
-     * <code>string status = 5 [json_name = "status"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearStatus() {
-      status_ = getDefaultInstance().getStatus();
-      bitField0_ = (bitField0_ & ~0x00000010);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Run phase label for workflow runs (e.g., "completed", "failed").
-     * Empty for sessions.
-     * </pre>
-     *
-     * <code>string status = 5 [json_name = "status"];</code>
-     * @param value The bytes for status to set.
-     * @return This builder for chaining.
-     */
-    public Builder setStatusBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      status_ = value;
-      bitField0_ |= 0x00000010;
-      onChanged();
-      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.activity.v1.RecentActivityEntry)

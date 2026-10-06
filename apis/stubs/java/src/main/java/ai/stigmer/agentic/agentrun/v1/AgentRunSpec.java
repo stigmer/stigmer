@@ -352,8 +352,8 @@ private static final long serialVersionUID = 0L;
    * specific layer chose (for example, thinking off for one message on an
    * agent whose default turns it on).
    *
-   * A lane that composes the turn for a surface (a schedule, a workflow
-   * step) writes that surface's saved settings here. On a lane where the
+   * A lane that composes the turn for a surface (a schedule, a channel)
+   * writes that surface's saved settings here. On a lane where the
    * caller is a visitor (the hosted edition's shared-agent guests and
    * channel senders), the surface's saved settings replace this field; the
    * per-message intents below are the edition's to allow or clear for a
@@ -385,8 +385,8 @@ private static final long serialVersionUID = 0L;
    * specific layer chose (for example, thinking off for one message on an
    * agent whose default turns it on).
    *
-   * A lane that composes the turn for a surface (a schedule, a workflow
-   * step) writes that surface's saved settings here. On a lane where the
+   * A lane that composes the turn for a surface (a schedule, a channel)
+   * writes that surface's saved settings here. On a lane where the
    * caller is a visitor (the hosted edition's shared-agent guests and
    * channel senders), the surface's saved settings replace this field; the
    * per-message intents below are the edition's to allow or clear for a
@@ -418,8 +418,8 @@ private static final long serialVersionUID = 0L;
    * specific layer chose (for example, thinking off for one message on an
    * agent whose default turns it on).
    *
-   * A lane that composes the turn for a surface (a schedule, a workflow
-   * step) writes that surface's saved settings here. On a lane where the
+   * A lane that composes the turn for a surface (a schedule, a channel)
+   * writes that surface's saved settings here. On a lane where the
    * caller is a visitor (the hosted edition's shared-agent guests and
    * channel senders), the surface's saved settings replace this field; the
    * per-message intents below are the edition's to allow or clear for a
@@ -517,8 +517,8 @@ private static final long serialVersionUID = 0L;
    * - Native harness: uses deepagents responseFormat/ToolStrategy
    * - Cursor harness: prompt instruction + extraction fallback
    *
-   * The validated structured data is returned in the activity result
-   * and passed back to the parent workflow as `structured`.
+   * The validated structured data lands on the run's
+   * status.structured_output.
    * </pre>
    *
    * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -536,8 +536,8 @@ private static final long serialVersionUID = 0L;
    * - Native harness: uses deepagents responseFormat/ToolStrategy
    * - Cursor harness: prompt instruction + extraction fallback
    *
-   * The validated structured data is returned in the activity result
-   * and passed back to the parent workflow as `structured`.
+   * The validated structured data lands on the run's
+   * status.structured_output.
    * </pre>
    *
    * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -555,8 +555,8 @@ private static final long serialVersionUID = 0L;
    * - Native harness: uses deepagents responseFormat/ToolStrategy
    * - Cursor harness: prompt instruction + extraction fallback
    *
-   * The validated structured data is returned in the activity result
-   * and passed back to the parent workflow as `structured`.
+   * The validated structured data lands on the run's
+   * status.structured_output.
    * </pre>
    *
    * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -1096,74 +1096,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     return conversationCatchup_ == null ? ai.stigmer.agentic.agentrun.v1.ConversationCatchup.getDefaultInstance() : conversationCatchup_;
   }
 
-  public static final int PARENT_FIELD_NUMBER = 17;
-  private ai.stigmer.agentic.agentrun.v1.WorkflowParent parent_;
-  /**
-   * <pre>
-   * The workflow run this turn was started by (optional): set only by a
-   * workflow's agent_call step, which waits for the turn to finish.
-   *
-   * The server honours it only from the workflow run it names: a request
-   * the server composes itself, a runner whose credential is bound to that
-   * workflow run, or a caller holding the platform's
-   * can_write_reserved_labels. Any other caller that sets it is refused with
-   * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-   * runs where the workflow run's own activities run (its sandbox, when the
-   * deployment gives each run one), the parent is told about approval
-   * requests, and the waiting step is completed when the turn finishes.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentrun.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
-   * @return Whether the parent field is set.
-   */
-  @java.lang.Override
-  public boolean hasParent() {
-    return ((bitField0_ & 0x00000008) != 0);
-  }
-  /**
-   * <pre>
-   * The workflow run this turn was started by (optional): set only by a
-   * workflow's agent_call step, which waits for the turn to finish.
-   *
-   * The server honours it only from the workflow run it names: a request
-   * the server composes itself, a runner whose credential is bound to that
-   * workflow run, or a caller holding the platform's
-   * can_write_reserved_labels. Any other caller that sets it is refused with
-   * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-   * runs where the workflow run's own activities run (its sandbox, when the
-   * deployment gives each run one), the parent is told about approval
-   * requests, and the waiting step is completed when the turn finishes.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentrun.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
-   * @return The parent.
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agentrun.v1.WorkflowParent getParent() {
-    return parent_ == null ? ai.stigmer.agentic.agentrun.v1.WorkflowParent.getDefaultInstance() : parent_;
-  }
-  /**
-   * <pre>
-   * The workflow run this turn was started by (optional): set only by a
-   * workflow's agent_call step, which waits for the turn to finish.
-   *
-   * The server honours it only from the workflow run it names: a request
-   * the server composes itself, a runner whose credential is bound to that
-   * workflow run, or a caller holding the platform's
-   * can_write_reserved_labels. Any other caller that sets it is refused with
-   * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-   * runs where the workflow run's own activities run (its sandbox, when the
-   * deployment gives each run one), the parent is told about approval
-   * requests, and the waiting step is completed when the turn finishes.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentrun.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agentrun.v1.WorkflowParentOrBuilder getParentOrBuilder() {
-    return parent_ == null ? ai.stigmer.agentic.agentrun.v1.WorkflowParent.getDefaultInstance() : parent_;
-  }
-
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1207,9 +1139,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     if (((bitField0_ & 0x00000004) != 0)) {
       output.writeMessage(14, getConversationCatchup());
-    }
-    if (((bitField0_ & 0x00000008) != 0)) {
-      output.writeMessage(17, getParent());
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(18, getRunConfig());
@@ -1280,10 +1209,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(14, getConversationCatchup());
     }
-    if (((bitField0_ & 0x00000008) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(17, getParent());
-    }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(18, getRunConfig());
@@ -1345,11 +1270,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (!getConversationCatchup()
           .equals(other.getConversationCatchup())) return false;
     }
-    if (hasParent() != other.hasParent()) return false;
-    if (hasParent()) {
-      if (!getParent()
-          .equals(other.getParent())) return false;
-    }
     if (!getTargetCase().equals(other.getTargetCase())) return false;
     switch (targetCase_) {
       case 1:
@@ -1409,10 +1329,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     if (hasConversationCatchup()) {
       hash = (37 * hash) + CONVERSATION_CATCHUP_FIELD_NUMBER;
       hash = (53 * hash) + getConversationCatchup().hashCode();
-    }
-    if (hasParent()) {
-      hash = (37 * hash) + PARENT_FIELD_NUMBER;
-      hash = (53 * hash) + getParent().hashCode();
     }
     switch (targetCase_) {
       case 1:
@@ -1587,7 +1503,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         internalGetStructuredOutputSchemaFieldBuilder();
         internalGetAttachmentsFieldBuilder();
         internalGetConversationCatchupFieldBuilder();
-        internalGetParentFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1626,11 +1541,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (conversationCatchupBuilder_ != null) {
         conversationCatchupBuilder_.dispose();
         conversationCatchupBuilder_ = null;
-      }
-      parent_ = null;
-      if (parentBuilder_ != null) {
-        parentBuilder_.dispose();
-        parentBuilder_ = null;
       }
       targetCase_ = 0;
       target_ = null;
@@ -1722,12 +1632,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
             : conversationCatchupBuilder_.build();
         to_bitField0_ |= 0x00000004;
       }
-      if (((from_bitField0_ & 0x00002000) != 0)) {
-        result.parent_ = parentBuilder_ == null
-            ? parent_
-            : parentBuilder_.build();
-        to_bitField0_ |= 0x00000008;
-      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -1818,9 +1722,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       }
       if (other.hasConversationCatchup()) {
         mergeConversationCatchup(other.getConversationCatchup());
-      }
-      if (other.hasParent()) {
-        mergeParent(other.getParent());
       }
       switch (other.getTargetCase()) {
         case SESSION_ID: {
@@ -1924,13 +1825,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
               bitField0_ |= 0x00001000;
               break;
             } // case 114
-            case 138: {
-              input.readMessage(
-                  internalGetParentFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              bitField0_ |= 0x00002000;
-              break;
-            } // case 138
             case 146: {
               input.readMessage(
                   internalGetRunConfigFieldBuilder().getBuilder(),
@@ -2573,8 +2467,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * specific layer chose (for example, thinking off for one message on an
      * agent whose default turns it on).
      *
-     * A lane that composes the turn for a surface (a schedule, a workflow
-     * step) writes that surface's saved settings here. On a lane where the
+     * A lane that composes the turn for a surface (a schedule, a channel)
+     * writes that surface's saved settings here. On a lane where the
      * caller is a visitor (the hosted edition's shared-agent guests and
      * channel senders), the surface's saved settings replace this field; the
      * per-message intents below are the edition's to allow or clear for a
@@ -2605,8 +2499,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * specific layer chose (for example, thinking off for one message on an
      * agent whose default turns it on).
      *
-     * A lane that composes the turn for a surface (a schedule, a workflow
-     * step) writes that surface's saved settings here. On a lane where the
+     * A lane that composes the turn for a surface (a schedule, a channel)
+     * writes that surface's saved settings here. On a lane where the
      * caller is a visitor (the hosted edition's shared-agent guests and
      * channel senders), the surface's saved settings replace this field; the
      * per-message intents below are the edition's to allow or clear for a
@@ -2641,8 +2535,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * specific layer chose (for example, thinking off for one message on an
      * agent whose default turns it on).
      *
-     * A lane that composes the turn for a surface (a schedule, a workflow
-     * step) writes that surface's saved settings here. On a lane where the
+     * A lane that composes the turn for a surface (a schedule, a channel)
+     * writes that surface's saved settings here. On a lane where the
      * caller is a visitor (the hosted edition's shared-agent guests and
      * channel senders), the surface's saved settings replace this field; the
      * per-message intents below are the edition's to allow or clear for a
@@ -2682,8 +2576,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * specific layer chose (for example, thinking off for one message on an
      * agent whose default turns it on).
      *
-     * A lane that composes the turn for a surface (a schedule, a workflow
-     * step) writes that surface's saved settings here. On a lane where the
+     * A lane that composes the turn for a surface (a schedule, a channel)
+     * writes that surface's saved settings here. On a lane where the
      * caller is a visitor (the hosted edition's shared-agent guests and
      * channel senders), the surface's saved settings replace this field; the
      * per-message intents below are the edition's to allow or clear for a
@@ -2721,8 +2615,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * specific layer chose (for example, thinking off for one message on an
      * agent whose default turns it on).
      *
-     * A lane that composes the turn for a surface (a schedule, a workflow
-     * step) writes that surface's saved settings here. On a lane where the
+     * A lane that composes the turn for a surface (a schedule, a channel)
+     * writes that surface's saved settings here. On a lane where the
      * caller is a visitor (the hosted edition's shared-agent guests and
      * channel senders), the surface's saved settings replace this field; the
      * per-message intents below are the edition's to allow or clear for a
@@ -2767,8 +2661,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * specific layer chose (for example, thinking off for one message on an
      * agent whose default turns it on).
      *
-     * A lane that composes the turn for a surface (a schedule, a workflow
-     * step) writes that surface's saved settings here. On a lane where the
+     * A lane that composes the turn for a surface (a schedule, a channel)
+     * writes that surface's saved settings here. On a lane where the
      * caller is a visitor (the hosted edition's shared-agent guests and
      * channel senders), the surface's saved settings replace this field; the
      * per-message intents below are the edition's to allow or clear for a
@@ -2805,8 +2699,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * specific layer chose (for example, thinking off for one message on an
      * agent whose default turns it on).
      *
-     * A lane that composes the turn for a surface (a schedule, a workflow
-     * step) writes that surface's saved settings here. On a lane where the
+     * A lane that composes the turn for a surface (a schedule, a channel)
+     * writes that surface's saved settings here. On a lane where the
      * caller is a visitor (the hosted edition's shared-agent guests and
      * channel senders), the surface's saved settings replace this field; the
      * per-message intents below are the edition's to allow or clear for a
@@ -2838,8 +2732,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * specific layer chose (for example, thinking off for one message on an
      * agent whose default turns it on).
      *
-     * A lane that composes the turn for a surface (a schedule, a workflow
-     * step) writes that surface's saved settings here. On a lane where the
+     * A lane that composes the turn for a surface (a schedule, a channel)
+     * writes that surface's saved settings here. On a lane where the
      * caller is a visitor (the hosted edition's shared-agent guests and
      * channel senders), the surface's saved settings replace this field; the
      * per-message intents below are the edition's to allow or clear for a
@@ -2874,8 +2768,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * specific layer chose (for example, thinking off for one message on an
      * agent whose default turns it on).
      *
-     * A lane that composes the turn for a surface (a schedule, a workflow
-     * step) writes that surface's saved settings here. On a lane where the
+     * A lane that composes the turn for a surface (a schedule, a channel)
+     * writes that surface's saved settings here. On a lane where the
      * caller is a visitor (the hosted edition's shared-agent guests and
      * channel senders), the surface's saved settings replace this field; the
      * per-message intents below are the edition's to allow or clear for a
@@ -3115,8 +3009,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * - Native harness: uses deepagents responseFormat/ToolStrategy
      * - Cursor harness: prompt instruction + extraction fallback
      *
-     * The validated structured data is returned in the activity result
-     * and passed back to the parent workflow as `structured`.
+     * The validated structured data lands on the run's
+     * status.structured_output.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -3133,8 +3027,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * - Native harness: uses deepagents responseFormat/ToolStrategy
      * - Cursor harness: prompt instruction + extraction fallback
      *
-     * The validated structured data is returned in the activity result
-     * and passed back to the parent workflow as `structured`.
+     * The validated structured data lands on the run's
+     * status.structured_output.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -3155,8 +3049,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * - Native harness: uses deepagents responseFormat/ToolStrategy
      * - Cursor harness: prompt instruction + extraction fallback
      *
-     * The validated structured data is returned in the activity result
-     * and passed back to the parent workflow as `structured`.
+     * The validated structured data lands on the run's
+     * status.structured_output.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -3182,8 +3076,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * - Native harness: uses deepagents responseFormat/ToolStrategy
      * - Cursor harness: prompt instruction + extraction fallback
      *
-     * The validated structured data is returned in the activity result
-     * and passed back to the parent workflow as `structured`.
+     * The validated structured data lands on the run's
+     * status.structured_output.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -3207,8 +3101,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * - Native harness: uses deepagents responseFormat/ToolStrategy
      * - Cursor harness: prompt instruction + extraction fallback
      *
-     * The validated structured data is returned in the activity result
-     * and passed back to the parent workflow as `structured`.
+     * The validated structured data lands on the run's
+     * status.structured_output.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -3239,8 +3133,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * - Native harness: uses deepagents responseFormat/ToolStrategy
      * - Cursor harness: prompt instruction + extraction fallback
      *
-     * The validated structured data is returned in the activity result
-     * and passed back to the parent workflow as `structured`.
+     * The validated structured data lands on the run's
+     * status.structured_output.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -3263,8 +3157,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * - Native harness: uses deepagents responseFormat/ToolStrategy
      * - Cursor harness: prompt instruction + extraction fallback
      *
-     * The validated structured data is returned in the activity result
-     * and passed back to the parent workflow as `structured`.
+     * The validated structured data lands on the run's
+     * status.structured_output.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -3282,8 +3176,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * - Native harness: uses deepagents responseFormat/ToolStrategy
      * - Cursor harness: prompt instruction + extraction fallback
      *
-     * The validated structured data is returned in the activity result
-     * and passed back to the parent workflow as `structured`.
+     * The validated structured data lands on the run's
+     * status.structured_output.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -3304,8 +3198,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * - Native harness: uses deepagents responseFormat/ToolStrategy
      * - Cursor harness: prompt instruction + extraction fallback
      *
-     * The validated structured data is returned in the activity result
-     * and passed back to the parent workflow as `structured`.
+     * The validated structured data lands on the run's
+     * status.structured_output.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output_schema = 21 [json_name = "structuredOutputSchema"];</code>
@@ -4854,253 +4748,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         conversationCatchup_ = null;
       }
       return conversationCatchupBuilder_;
-    }
-
-    private ai.stigmer.agentic.agentrun.v1.WorkflowParent parent_;
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentrun.v1.WorkflowParent, ai.stigmer.agentic.agentrun.v1.WorkflowParent.Builder, ai.stigmer.agentic.agentrun.v1.WorkflowParentOrBuilder> parentBuilder_;
-    /**
-     * <pre>
-     * The workflow run this turn was started by (optional): set only by a
-     * workflow's agent_call step, which waits for the turn to finish.
-     *
-     * The server honours it only from the workflow run it names: a request
-     * the server composes itself, a runner whose credential is bound to that
-     * workflow run, or a caller holding the platform's
-     * can_write_reserved_labels. Any other caller that sets it is refused with
-     * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-     * runs where the workflow run's own activities run (its sandbox, when the
-     * deployment gives each run one), the parent is told about approval
-     * requests, and the waiting step is completed when the turn finishes.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentrun.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
-     * @return Whether the parent field is set.
-     */
-    public boolean hasParent() {
-      return ((bitField0_ & 0x00002000) != 0);
-    }
-    /**
-     * <pre>
-     * The workflow run this turn was started by (optional): set only by a
-     * workflow's agent_call step, which waits for the turn to finish.
-     *
-     * The server honours it only from the workflow run it names: a request
-     * the server composes itself, a runner whose credential is bound to that
-     * workflow run, or a caller holding the platform's
-     * can_write_reserved_labels. Any other caller that sets it is refused with
-     * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-     * runs where the workflow run's own activities run (its sandbox, when the
-     * deployment gives each run one), the parent is told about approval
-     * requests, and the waiting step is completed when the turn finishes.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentrun.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
-     * @return The parent.
-     */
-    public ai.stigmer.agentic.agentrun.v1.WorkflowParent getParent() {
-      if (parentBuilder_ == null) {
-        return parent_ == null ? ai.stigmer.agentic.agentrun.v1.WorkflowParent.getDefaultInstance() : parent_;
-      } else {
-        return parentBuilder_.getMessage();
-      }
-    }
-    /**
-     * <pre>
-     * The workflow run this turn was started by (optional): set only by a
-     * workflow's agent_call step, which waits for the turn to finish.
-     *
-     * The server honours it only from the workflow run it names: a request
-     * the server composes itself, a runner whose credential is bound to that
-     * workflow run, or a caller holding the platform's
-     * can_write_reserved_labels. Any other caller that sets it is refused with
-     * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-     * runs where the workflow run's own activities run (its sandbox, when the
-     * deployment gives each run one), the parent is told about approval
-     * requests, and the waiting step is completed when the turn finishes.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentrun.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
-     */
-    public Builder setParent(ai.stigmer.agentic.agentrun.v1.WorkflowParent value) {
-      if (parentBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        parent_ = value;
-      } else {
-        parentBuilder_.setMessage(value);
-      }
-      bitField0_ |= 0x00002000;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * The workflow run this turn was started by (optional): set only by a
-     * workflow's agent_call step, which waits for the turn to finish.
-     *
-     * The server honours it only from the workflow run it names: a request
-     * the server composes itself, a runner whose credential is bound to that
-     * workflow run, or a caller holding the platform's
-     * can_write_reserved_labels. Any other caller that sets it is refused with
-     * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-     * runs where the workflow run's own activities run (its sandbox, when the
-     * deployment gives each run one), the parent is told about approval
-     * requests, and the waiting step is completed when the turn finishes.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentrun.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
-     */
-    public Builder setParent(
-        ai.stigmer.agentic.agentrun.v1.WorkflowParent.Builder builderForValue) {
-      if (parentBuilder_ == null) {
-        parent_ = builderForValue.build();
-      } else {
-        parentBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00002000;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * The workflow run this turn was started by (optional): set only by a
-     * workflow's agent_call step, which waits for the turn to finish.
-     *
-     * The server honours it only from the workflow run it names: a request
-     * the server composes itself, a runner whose credential is bound to that
-     * workflow run, or a caller holding the platform's
-     * can_write_reserved_labels. Any other caller that sets it is refused with
-     * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-     * runs where the workflow run's own activities run (its sandbox, when the
-     * deployment gives each run one), the parent is told about approval
-     * requests, and the waiting step is completed when the turn finishes.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentrun.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
-     */
-    public Builder mergeParent(ai.stigmer.agentic.agentrun.v1.WorkflowParent value) {
-      if (parentBuilder_ == null) {
-        if (((bitField0_ & 0x00002000) != 0) &&
-          parent_ != null &&
-          parent_ != ai.stigmer.agentic.agentrun.v1.WorkflowParent.getDefaultInstance()) {
-          getParentBuilder().mergeFrom(value);
-        } else {
-          parent_ = value;
-        }
-      } else {
-        parentBuilder_.mergeFrom(value);
-      }
-      if (parent_ != null) {
-        bitField0_ |= 0x00002000;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * The workflow run this turn was started by (optional): set only by a
-     * workflow's agent_call step, which waits for the turn to finish.
-     *
-     * The server honours it only from the workflow run it names: a request
-     * the server composes itself, a runner whose credential is bound to that
-     * workflow run, or a caller holding the platform's
-     * can_write_reserved_labels. Any other caller that sets it is refused with
-     * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-     * runs where the workflow run's own activities run (its sandbox, when the
-     * deployment gives each run one), the parent is told about approval
-     * requests, and the waiting step is completed when the turn finishes.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentrun.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
-     */
-    public Builder clearParent() {
-      bitField0_ = (bitField0_ & ~0x00002000);
-      parent_ = null;
-      if (parentBuilder_ != null) {
-        parentBuilder_.dispose();
-        parentBuilder_ = null;
-      }
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * The workflow run this turn was started by (optional): set only by a
-     * workflow's agent_call step, which waits for the turn to finish.
-     *
-     * The server honours it only from the workflow run it names: a request
-     * the server composes itself, a runner whose credential is bound to that
-     * workflow run, or a caller holding the platform's
-     * can_write_reserved_labels. Any other caller that sets it is refused with
-     * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-     * runs where the workflow run's own activities run (its sandbox, when the
-     * deployment gives each run one), the parent is told about approval
-     * requests, and the waiting step is completed when the turn finishes.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentrun.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
-     */
-    public ai.stigmer.agentic.agentrun.v1.WorkflowParent.Builder getParentBuilder() {
-      bitField0_ |= 0x00002000;
-      onChanged();
-      return internalGetParentFieldBuilder().getBuilder();
-    }
-    /**
-     * <pre>
-     * The workflow run this turn was started by (optional): set only by a
-     * workflow's agent_call step, which waits for the turn to finish.
-     *
-     * The server honours it only from the workflow run it names: a request
-     * the server composes itself, a runner whose credential is bound to that
-     * workflow run, or a caller holding the platform's
-     * can_write_reserved_labels. Any other caller that sets it is refused with
-     * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-     * runs where the workflow run's own activities run (its sandbox, when the
-     * deployment gives each run one), the parent is told about approval
-     * requests, and the waiting step is completed when the turn finishes.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentrun.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
-     */
-    public ai.stigmer.agentic.agentrun.v1.WorkflowParentOrBuilder getParentOrBuilder() {
-      if (parentBuilder_ != null) {
-        return parentBuilder_.getMessageOrBuilder();
-      } else {
-        return parent_ == null ?
-            ai.stigmer.agentic.agentrun.v1.WorkflowParent.getDefaultInstance() : parent_;
-      }
-    }
-    /**
-     * <pre>
-     * The workflow run this turn was started by (optional): set only by a
-     * workflow's agent_call step, which waits for the turn to finish.
-     *
-     * The server honours it only from the workflow run it names: a request
-     * the server composes itself, a runner whose credential is bound to that
-     * workflow run, or a caller holding the platform's
-     * can_write_reserved_labels. Any other caller that sets it is refused with
-     * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-     * runs where the workflow run's own activities run (its sandbox, when the
-     * deployment gives each run one), the parent is told about approval
-     * requests, and the waiting step is completed when the turn finishes.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentrun.v1.WorkflowParent parent = 17 [json_name = "parent"];</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentrun.v1.WorkflowParent, ai.stigmer.agentic.agentrun.v1.WorkflowParent.Builder, ai.stigmer.agentic.agentrun.v1.WorkflowParentOrBuilder> 
-        internalGetParentFieldBuilder() {
-      if (parentBuilder_ == null) {
-        parentBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.agentrun.v1.WorkflowParent, ai.stigmer.agentic.agentrun.v1.WorkflowParent.Builder, ai.stigmer.agentic.agentrun.v1.WorkflowParentOrBuilder>(
-                getParent(),
-                getParentForChildren(),
-                isClean());
-        parent_ = null;
-      }
-      return parentBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentrun.v1.AgentRunSpec)

@@ -2011,8 +2011,8 @@ export const GetAgentRunSummaryRequestSchema: GenMessage<GetAgentRunSummaryReque
  * runs. Designed for the platform dashboard's unified health view.
  *
  * Cost is intentionally omitted. The dashboard sources cost from
- * getOrgUsageReport (billing source of truth) to prevent double-counting
- * when workflows delegate to agents. See AD-DASH-005.
+ * getOrgUsageReport (billing source of truth), so it shows what billing
+ * recorded and cost is never counted from two sources.
  *
  * @generated from message ai.stigmer.agentic.agentrun.v1.AgentRunSummary
  */

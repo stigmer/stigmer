@@ -114,31 +114,6 @@ public interface EntitlementLimitsOrBuilder extends
 
   /**
    * <pre>
-   * The most workflow-run sandboxes an organization may hold
-   * provisioning or running at once. A workflow launch that would need a
-   * new sandbox past it is refused. Read by a subscription. A license
-   * ignores it until a self-hosted capacity gate reads it.
-   * </pre>
-   *
-   * <code>optional int32 max_active_workflow_sandboxes = 5 [json_name = "maxActiveWorkflowSandboxes", (.buf.validate.field) = { ... }</code>
-   * @return Whether the maxActiveWorkflowSandboxes field is set.
-   */
-  boolean hasMaxActiveWorkflowSandboxes();
-  /**
-   * <pre>
-   * The most workflow-run sandboxes an organization may hold
-   * provisioning or running at once. A workflow launch that would need a
-   * new sandbox past it is refused. Read by a subscription. A license
-   * ignores it until a self-hosted capacity gate reads it.
-   * </pre>
-   *
-   * <code>optional int32 max_active_workflow_sandboxes = 5 [json_name = "maxActiveWorkflowSandboxes", (.buf.validate.field) = { ... }</code>
-   * @return The maxActiveWorkflowSandboxes.
-   */
-  int getMaxActiveWorkflowSandboxes();
-
-  /**
-   * <pre>
    * How many days an archived session workspace is kept before it is
    * deleted, its files and snapshot included. Absent keeps it for as long
    * as the session exists. Read by a subscription. A license ignores it

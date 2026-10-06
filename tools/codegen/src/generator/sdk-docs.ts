@@ -26,7 +26,7 @@ import { javaAccessorName, javaCamel, pyClientFieldName, pyFieldName } from "./l
 import { idPrefixByMetaName } from "./resource-kind.js";
 import type { SdkResourceConfig } from "./sdk-resource-config.js";
 import { deriveResourceConfig, loadSpecSchemaWithTypes, META_FIELD_NAMES } from "./sdk-resource-config.js";
-import type { FieldSchema, TaskConfigSchema, TypeSchema, TypeSpec } from "./schema.js";
+import type { FieldSchema, SpecSchema, TypeSchema, TypeSpec } from "./schema.js";
 import { readDirSorted } from "./schema.js";
 
 const MD_FENCE = "```";
@@ -67,7 +67,7 @@ export function runSDKDocsGeneration(schemaDir: string, outputDir: string, apisD
     const cfg = deriveResourceConfig(schema, schemaDir);
     cfg.idPrefix = idPrefixByMetaName.get(cfg.protoResType) ?? "";
 
-    let specSchema: TaskConfigSchema | null = null;
+    let specSchema: SpecSchema | null = null;
     let specTypes: TypeSchema[] = [];
     if (cfg.specSchema !== "") {
       [specSchema, specTypes] = loadSpecSchemaWithTypes(path.join(schemaDir, cfg.specSchema));
@@ -183,7 +183,7 @@ interface DocLangNames {
 function generateSDKDocPage(
   schema: ServiceSchemaFile,
   cfg: SdkResourceConfig,
-  specSchema: TaskConfigSchema | null,
+  specSchema: SpecSchema | null,
   specTypes: TypeSchema[],
   apisDir: string,
   commonsTypes: Set<string>,
@@ -306,7 +306,7 @@ function docWriteMethodsWithCommons(
   names: DocLangNames,
   hasInputType: boolean,
   documentedTypes: Set<string>,
-  specSchema: TaskConfigSchema | null,
+  specSchema: SpecSchema | null,
   methodTypeMap: Map<string, TypeSchema>,
   commonsTypes: Set<string>,
 ): void {
@@ -328,7 +328,7 @@ function docWriteMethodWithCommons(
   names: DocLangNames,
   hasInputType: boolean,
   documentedTypes: Set<string>,
-  specSchema: TaskConfigSchema | null,
+  specSchema: SpecSchema | null,
   methodTypeMap: Map<string, TypeSchema>,
   commonsTypes: Set<string>,
 ): void {
@@ -405,7 +405,7 @@ function docWriteMethodSigs(
   resourceInput: boolean,
   deleteInput: boolean,
   hasInputType: boolean,
-  specSchema: TaskConfigSchema | null,
+  specSchema: SpecSchema | null,
   methodTypeMap: Map<string, TypeSchema>,
 ): void {
   const exampleName = docExampleResourceName(cfg.protoResType);
@@ -485,7 +485,7 @@ interface DocFieldEntry {
 // An org-less kind's example shows no org: its metadata.org is always empty,
 // and the server refuses one.
 function docInputFields(
-  specSchema: TaskConfigSchema | null,
+  specSchema: SpecSchema | null,
   lang: string,
   exampleName: string,
   isOrgless: boolean,
@@ -710,7 +710,7 @@ function docWriteMethodOverview(buf: string[], methods: MethodSchema[]): void {
 function docWriteTypesWithCommons(
   buf: string[],
   cfg: SdkResourceConfig,
-  specSchema: TaskConfigSchema,
+  specSchema: SpecSchema,
   typeMap: Map<string, TypeSchema>,
   documentedTypes: Set<string>,
   emitted: Set<string>,
@@ -809,7 +809,7 @@ function docWriteNestedTypeWithCommons(
 function docBuildDocumentedTypeSet(
   cfg: SdkResourceConfig,
   schema: ServiceSchemaFile,
-  specSchema: TaskConfigSchema | null,
+  specSchema: SpecSchema | null,
   specTypes: TypeSchema[],
 ): Set<string> {
   const set = new Set<string>();

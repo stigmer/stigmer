@@ -1,6 +1,5 @@
 {
   "name": "ApiKeySpec",
-  "kind": "API_KEY_SPEC",
   "description": "ApiKeySpec defines the configuration for an API key.\n\n API keys provide programmatic access to the Stigmer API. Each key speaks for\n the identity account that created it and can have an optional expiration\n time. A key may be limited to one organization (bound_org).",
   "protoType": "ai.stigmer.iam.apikey.v1.ApiKeySpec",
   "protoFile": "apis/ai/stigmer/iam/apikey/v1/spec.proto",

@@ -11,8 +11,8 @@ package ai.stigmer.agentic.agentrun.v1;
  * thinking, and run bounds.
  *
  * The same message is a message's request (AgentRunSpec.run_config),
- * a surface's saved settings (a schedule's invocation, a channel, a share, a
- * workflow agent_call step), an agent author's defaults (AgentSpec.run_config,
+ * a surface's saved settings (a schedule's invocation, a channel, a share),
+ * an agent author's defaults (AgentSpec.run_config,
  * versioned with the agent), and the settings a turn ran with
  * (AgentRunStatus.run_config). Zero or empty means "not set at this
  * layer".
@@ -196,9 +196,6 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
    *
-   * In workflow YAML the shorthand spellings "standard"/"fast" are
-   * accepted alongside the canonical enum names.
-   *
    * UNSPECIFIED is not set at this layer; with no layer setting it the run
    * uses STANDARD, never the provider account default. FAST is valid only
    * for a model whose registry entry declares a fast pricing variant on the
@@ -215,9 +212,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
-   *
-   * In workflow YAML the shorthand spellings "standard"/"fast" are
-   * accepted alongside the canonical enum names.
    *
    * UNSPECIFIED is not set at this layer; with no layer setting it the run
    * uses STANDARD, never the provider account default. FAST is valid only
@@ -242,9 +236,6 @@ private static final long serialVersionUID = 0L;
    * enabled, where enabled selects the model's extended-reasoning variant
    * (billed at base per-token rates — reasoning tokens bill as output).
    *
-   * In workflow YAML the shorthand spellings "disabled"/"enabled" are
-   * accepted alongside the canonical enum names.
-   *
    * UNSPECIFIED is not set at this layer; with no layer setting it the run
    * uses DISABLED, never the provider account default. ENABLED is valid only
    * for a model whose registry entry declares the thinking capability on the
@@ -263,9 +254,6 @@ private static final long serialVersionUID = 0L;
    * Thinking mode for each run's model calls: disabled (the default) or
    * enabled, where enabled selects the model's extended-reasoning variant
    * (billed at base per-token rates — reasoning tokens bill as output).
-   *
-   * In workflow YAML the shorthand spellings "disabled"/"enabled" are
-   * accepted alongside the canonical enum names.
    *
    * UNSPECIFIED is not set at this layer; with no layer setting it the run
    * uses DISABLED, never the provider account default. ENABLED is valid only
@@ -521,8 +509,8 @@ private static final long serialVersionUID = 0L;
    * thinking, and run bounds.
    *
    * The same message is a message's request (AgentRunSpec.run_config),
-   * a surface's saved settings (a schedule's invocation, a channel, a share, a
-   * workflow agent_call step), an agent author's defaults (AgentSpec.run_config,
+   * a surface's saved settings (a schedule's invocation, a channel, a share),
+   * an agent author's defaults (AgentSpec.run_config,
    * versioned with the agent), and the settings a turn ran with
    * (AgentRunStatus.run_config). Zero or empty means "not set at this
    * layer".
@@ -1014,9 +1002,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
      *
-     * In workflow YAML the shorthand spellings "standard"/"fast" are
-     * accepted alongside the canonical enum names.
-     *
      * UNSPECIFIED is not set at this layer; with no layer setting it the run
      * uses STANDARD, never the provider account default. FAST is valid only
      * for a model whose registry entry declares a fast pricing variant on the
@@ -1033,9 +1018,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
-     *
-     * In workflow YAML the shorthand spellings "standard"/"fast" are
-     * accepted alongside the canonical enum names.
      *
      * UNSPECIFIED is not set at this layer; with no layer setting it the run
      * uses STANDARD, never the provider account default. FAST is valid only
@@ -1059,9 +1041,6 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
      *
-     * In workflow YAML the shorthand spellings "standard"/"fast" are
-     * accepted alongside the canonical enum names.
-     *
      * UNSPECIFIED is not set at this layer; with no layer setting it the run
      * uses STANDARD, never the provider account default. FAST is valid only
      * for a model whose registry entry declares a fast pricing variant on the
@@ -1080,9 +1059,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
-     *
-     * In workflow YAML the shorthand spellings "standard"/"fast" are
-     * accepted alongside the canonical enum names.
      *
      * UNSPECIFIED is not set at this layer; with no layer setting it the run
      * uses STANDARD, never the provider account default. FAST is valid only
@@ -1105,9 +1081,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
-     *
-     * In workflow YAML the shorthand spellings "standard"/"fast" are
-     * accepted alongside the canonical enum names.
      *
      * UNSPECIFIED is not set at this layer; with no layer setting it the run
      * uses STANDARD, never the provider account default. FAST is valid only
@@ -1133,9 +1106,6 @@ private static final long serialVersionUID = 0L;
      * enabled, where enabled selects the model's extended-reasoning variant
      * (billed at base per-token rates — reasoning tokens bill as output).
      *
-     * In workflow YAML the shorthand spellings "disabled"/"enabled" are
-     * accepted alongside the canonical enum names.
-     *
      * UNSPECIFIED is not set at this layer; with no layer setting it the run
      * uses DISABLED, never the provider account default. ENABLED is valid only
      * for a model whose registry entry declares the thinking capability on the
@@ -1154,9 +1124,6 @@ private static final long serialVersionUID = 0L;
      * Thinking mode for each run's model calls: disabled (the default) or
      * enabled, where enabled selects the model's extended-reasoning variant
      * (billed at base per-token rates — reasoning tokens bill as output).
-     *
-     * In workflow YAML the shorthand spellings "disabled"/"enabled" are
-     * accepted alongside the canonical enum names.
      *
      * UNSPECIFIED is not set at this layer; with no layer setting it the run
      * uses DISABLED, never the provider account default. ENABLED is valid only
@@ -1182,9 +1149,6 @@ private static final long serialVersionUID = 0L;
      * enabled, where enabled selects the model's extended-reasoning variant
      * (billed at base per-token rates — reasoning tokens bill as output).
      *
-     * In workflow YAML the shorthand spellings "disabled"/"enabled" are
-     * accepted alongside the canonical enum names.
-     *
      * UNSPECIFIED is not set at this layer; with no layer setting it the run
      * uses DISABLED, never the provider account default. ENABLED is valid only
      * for a model whose registry entry declares the thinking capability on the
@@ -1205,9 +1169,6 @@ private static final long serialVersionUID = 0L;
      * Thinking mode for each run's model calls: disabled (the default) or
      * enabled, where enabled selects the model's extended-reasoning variant
      * (billed at base per-token rates — reasoning tokens bill as output).
-     *
-     * In workflow YAML the shorthand spellings "disabled"/"enabled" are
-     * accepted alongside the canonical enum names.
      *
      * UNSPECIFIED is not set at this layer; with no layer setting it the run
      * uses DISABLED, never the provider account default. ENABLED is valid only
@@ -1232,9 +1193,6 @@ private static final long serialVersionUID = 0L;
      * Thinking mode for each run's model calls: disabled (the default) or
      * enabled, where enabled selects the model's extended-reasoning variant
      * (billed at base per-token rates — reasoning tokens bill as output).
-     *
-     * In workflow YAML the shorthand spellings "disabled"/"enabled" are
-     * accepted alongside the canonical enum names.
      *
      * UNSPECIFIED is not set at this layer; with no layer setting it the run
      * uses DISABLED, never the provider account default. ENABLED is valid only

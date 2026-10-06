@@ -21,10 +21,7 @@ public final class FieldOptionsProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.ExtensionRegistryLite registry) {
     registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.computed);
     registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.immutable);
-    registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.isExpression);
     registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.referenceKind);
-    registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.discriminatedBy);
-    registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.discriminatorValue);
   }
 
   public static void registerAllExtensions(
@@ -62,21 +59,6 @@ public final class FieldOptionsProto extends com.google.protobuf.GeneratedFile {
           .newFileScopedGeneratedExtension(
         java.lang.Boolean.class,
         null);
-  public static final int IS_EXPRESSION_FIELD_NUMBER = 90203;
-  /**
-   * <pre>
-   * Marks a field as accepting JQ expressions (enables smart type conversion in SDK)
-   * </pre>
-   *
-   * <code>extend .google.protobuf.FieldOptions { ... }</code>
-   */
-  public static final
-    com.google.protobuf.GeneratedMessage.GeneratedExtension<
-      com.google.protobuf.DescriptorProtos.FieldOptions,
-      java.lang.Boolean> isExpression = com.google.protobuf.GeneratedMessage
-          .newFileScopedGeneratedExtension(
-        java.lang.Boolean.class,
-        null);
   public static final int REFERENCE_KIND_FIELD_NUMBER = 90204;
   /**
    * <pre>
@@ -92,40 +74,6 @@ public final class FieldOptionsProto extends com.google.protobuf.GeneratedFile {
       ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind> referenceKind = com.google.protobuf.GeneratedMessage
           .newFileScopedGeneratedExtension(
         ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind.class,
-        null);
-  public static final int DISCRIMINATED_BY_FIELD_NUMBER = 90205;
-  /**
-   * <pre>
-   * Marks a google.protobuf.Struct field as a discriminated union.
-   * Value is the name of the sibling field that acts as the kind/discriminator.
-   * Used by codegen to expand the Struct into typed variant fields.
-   * </pre>
-   *
-   * <code>extend .google.protobuf.FieldOptions { ... }</code>
-   */
-  public static final
-    com.google.protobuf.GeneratedMessage.GeneratedExtension<
-      com.google.protobuf.DescriptorProtos.FieldOptions,
-      java.lang.String> discriminatedBy = com.google.protobuf.GeneratedMessage
-          .newFileScopedGeneratedExtension(
-        java.lang.String.class,
-        null);
-  public static final int DISCRIMINATOR_VALUE_FIELD_NUMBER = 90301;
-  /**
-   * <pre>
-   * Marks a message as a typed variant of a discriminated union.
-   * Value is the enum string value this message corresponds to.
-   * Used together with discriminated_by on the parent Struct field.
-   * </pre>
-   *
-   * <code>extend .google.protobuf.MessageOptions { ... }</code>
-   */
-  public static final
-    com.google.protobuf.GeneratedMessage.GeneratedExtension<
-      com.google.protobuf.DescriptorProtos.MessageOptions,
-      java.lang.String> discriminatorValue = com.google.protobuf.GeneratedMessage
-          .newFileScopedGeneratedExtension(
-        java.lang.String.class,
         null);
 
   public static com.google.protobuf.Descriptors.FileDescriptor
@@ -143,21 +91,15 @@ public final class FieldOptionsProto extends com.google.protobuf.GeneratedFile {
       "ogle/protobuf/descriptor.proto:;\n\010comput" +
       "ed\022\035.google.protobuf.FieldOptions\030\331\300\005 \001(" +
       "\010R\010computed:=\n\timmutable\022\035.google.protob" +
-      "uf.FieldOptions\030\332\300\005 \001(\010R\timmutable:D\n\ris" +
-      "_expression\022\035.google.protobuf.FieldOptio" +
-      "ns\030\333\300\005 \001(\010R\014isExpression:\207\001\n\016reference_k" +
-      "ind\022\035.google.protobuf.FieldOptions\030\334\300\005 \001" +
-      "(\0162?.ai.stigmer.commons.apiresource.apir" +
-      "esourcekind.ApiResourceKindR\rreferenceKi" +
-      "nd:M\n\020discriminated_by\022\035.google.protobuf" +
-      ".FieldOptions\030\335\300\005 \001(\tR\017discriminatedBy\210\001" +
-      "\001:U\n\023discriminator_value\022\037.google.protob" +
-      "uf.MessageOptions\030\275\301\005 \001(\tR\022discriminator" +
-      "Value\210\001\001B\257\001B\021FieldOptionsProtoP\001\242\002\004ASCA\252" +
-      "\002\036Ai.Stigmer.Commons.Apiresource\312\002\036Ai\\St" +
-      "igmer\\Commons\\Apiresource\342\002*Ai\\Stigmer\\C" +
-      "ommons\\Apiresource\\GPBMetadata\352\002!Ai::Sti" +
-      "gmer::Commons::Apiresourceb\006proto3"
+      "uf.FieldOptions\030\332\300\005 \001(\010R\timmutable:\207\001\n\016r" +
+      "eference_kind\022\035.google.protobuf.FieldOpt" +
+      "ions\030\334\300\005 \001(\0162?.ai.stigmer.commons.apires" +
+      "ource.apiresourcekind.ApiResourceKindR\rr" +
+      "eferenceKindB\257\001B\021FieldOptionsProtoP\001\242\002\004A" +
+      "SCA\252\002\036Ai.Stigmer.Commons.Apiresource\312\002\036A" +
+      "i\\Stigmer\\Commons\\Apiresource\342\002*Ai\\Stigm" +
+      "er\\Commons\\Apiresource\\GPBMetadata\352\002!Ai:" +
+      ":Stigmer::Commons::Apiresourceb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -167,10 +109,7 @@ public final class FieldOptionsProto extends com.google.protobuf.GeneratedFile {
         });
     computed.internalInit(descriptor.getExtension(0));
     immutable.internalInit(descriptor.getExtension(1));
-    isExpression.internalInit(descriptor.getExtension(2));
-    referenceKind.internalInit(descriptor.getExtension(3));
-    discriminatedBy.internalInit(descriptor.getExtension(4));
-    discriminatorValue.internalInit(descriptor.getExtension(5));
+    referenceKind.internalInit(descriptor.getExtension(2));
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindProto.getDescriptor();
     com.google.protobuf.DescriptorProtos.getDescriptor();

@@ -12,7 +12,7 @@ public interface ListPluginMembersResponseOrBuilder extends
 
   /**
    * <pre>
-   * Members in materialisation order: skills, MCP servers, agents, workflows.
+   * Members in materialisation order: skills, MCP servers, agents.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -21,7 +21,7 @@ public interface ListPluginMembersResponseOrBuilder extends
       getMembersList();
   /**
    * <pre>
-   * Members in materialisation order: skills, MCP servers, agents, workflows.
+   * Members in materialisation order: skills, MCP servers, agents.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -29,7 +29,7 @@ public interface ListPluginMembersResponseOrBuilder extends
   ai.stigmer.agentic.plugin.v1.PluginMember getMembers(int index);
   /**
    * <pre>
-   * Members in materialisation order: skills, MCP servers, agents, workflows.
+   * Members in materialisation order: skills, MCP servers, agents.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -37,7 +37,7 @@ public interface ListPluginMembersResponseOrBuilder extends
   int getMembersCount();
   /**
    * <pre>
-   * Members in materialisation order: skills, MCP servers, agents, workflows.
+   * Members in materialisation order: skills, MCP servers, agents.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>
@@ -46,7 +46,7 @@ public interface ListPluginMembersResponseOrBuilder extends
       getMembersOrBuilderList();
   /**
    * <pre>
-   * Members in materialisation order: skills, MCP servers, agents, workflows.
+   * Members in materialisation order: skills, MCP servers, agents.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.plugin.v1.PluginMember members = 1 [json_name = "members"];</code>

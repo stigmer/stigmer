@@ -11,7 +11,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "String content of this entry. Empty strings are valid — optional\n workflow env vars may be provided with no value, and the workflow\n engine resolves them to \"\" in expression interpolation.",
+      "description": "String content of this entry. Empty strings are valid — an optional\n env var may be provided with no value.",
       "required": false
     },
     {

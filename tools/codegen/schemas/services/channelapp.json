@@ -122,10 +122,7 @@
               "agent_share",
               "agent_channel",
               "channel_app",
-              "workflow",
-              "workflow_run",
               "environment",
-              "artifact",
               "execution_context",
               "schedule",
               "memory",
@@ -267,7 +264,7 @@
         {
           "name": "organization",
           "number": 30,
-          "description": "The boundary that holds people, Agents, Workflows, Sessions and secrets\n together; nothing outside it sees them.\n\n Its id is a minted org_\u003culid\u003e that never changes; every organization-scoped\n resource names it by that id (metadata.org). Its slug is unique across the\n server and may change through rename; requests may name the organization\n by either."
+          "description": "The boundary that holds people, Agents, Sessions and secrets\n together; nothing outside it sees them.\n\n Its id is a minted org_\u003culid\u003e that never changes; every organization-scoped\n resource names it by that id (metadata.org). Its slug is unique across the\n server and may change through rename; requests may name the organization\n by either."
         },
         {
           "name": "platform",
@@ -315,24 +312,9 @@
           "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
         },
         {
-          "name": "workflow",
-          "number": 50,
-          "description": "Multi-step orchestration defining how agents collaborate on a task."
-        },
-        {
-          "name": "workflow_run",
-          "number": 52,
-          "description": "Single run of a workflow, tracking step progress and outcomes."
-        },
-        {
           "name": "environment",
           "number": 53,
-          "description": "Named set of variables and secrets for agent and workflow run."
-        },
-        {
-          "name": "artifact",
-          "number": 55,
-          "description": "Persisted blob produced during workflow or agent run."
+          "description": "Named set of variables and secrets for an agent run."
         },
         {
           "name": "execution_context",
@@ -352,7 +334,7 @@
         {
           "name": "plugin",
           "number": 58,
-          "description": "An installed Agent Plugins package: the archive Stigmer materialised into\n skills, MCP servers, an agent and workflows, and the handle that upgrades\n and removes them together. A plugin is what you install; an agent is what\n runs. Members are the resources labelled with the plugin's id."
+          "description": "An installed Agent Plugins package: the archive Stigmer materialised into\n skills, MCP servers and an agent, and the handle that upgrades\n and removes them together. A plugin is what you install; an agent is what\n runs. Members are the resources labelled with the plugin's id."
         },
         {
           "name": "plan",
@@ -379,7 +361,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (environments, sessions) stay creator-only."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",

@@ -11,7 +11,7 @@ import { deriveTSImportBase, isSpecialType, isSyntheticOneof, tsProtoFieldName, 
 import type { TsImportSet } from "./gen-common.js";
 import type { SdkResourceConfig } from "./sdk-resource-config.js";
 import { META_FIELD_NAMES } from "./sdk-resource-config.js";
-import type { FieldSchema, TaskConfigSchema, TypeSchema, TypeSpec } from "./schema.js";
+import type { FieldSchema, SpecSchema, TypeSchema, TypeSpec } from "./schema.js";
 
 /** True when a command controller exposes Update taking the resource. */
 export function tsHasUpdateRPC(schema: ServiceSchemaFile, cfg: SdkResourceConfig): boolean {
@@ -47,7 +47,7 @@ export function generateTSUpdateInputMapper(
   buf: string[],
   schema: ServiceSchemaFile,
   cfg: SdkResourceConfig,
-  spec: TaskConfigSchema,
+  spec: SpecSchema,
   typeMap: Map<string, TypeSchema>,
   imports: TsImportSet,
 ): void {

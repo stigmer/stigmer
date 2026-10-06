@@ -167,7 +167,7 @@ export const FindApiResourcesRequestSchema: GenMessage<FindApiResourcesRequest> 
  *
  * Not all resources support all visibility levels — the supported set is
  * declared per kind via VisibilityConfig in kind_meta:
- * - Blueprints (agent, workflow, skill, mcp_server, plugin):
+ * - Blueprints (agent, skill, mcp_server, plugin):
  *     PRIVATE, ORG, or CHILD_ORGS
  * - Org-only kinds (environment):
  *     PRIVATE or ORG (never CHILD_ORGS — tenant isolation)

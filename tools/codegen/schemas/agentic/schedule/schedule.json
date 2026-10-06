@@ -1,6 +1,5 @@
 {
   "name": "ScheduleSpec",
-  "kind": "SCHEDULE_SPEC",
   "description": "ScheduleSpec defines when a schedule fires and what it runs.\n\n The spec is deliberately small: a cron expression, the IANA time zone\n it is evaluated in, the owner's enablement switch, and the target each\n fire runs. Everything the platform observes about firing lives in\n status — a declarative apply can never clobber it.",
   "protoType": "ai.stigmer.agentic.schedule.v1.ScheduleSpec",
   "protoFile": "apis/ai/stigmer/agentic/schedule/v1/spec.proto",

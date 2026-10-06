@@ -13,7 +13,6 @@ import { file_ai_stigmer_agentic_agent_v1_api } from "@stigmer/protos/ai/stigmer
 import { file_ai_stigmer_agentic_agentchannel_v1_api } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { file_ai_stigmer_agentic_agentrun_v1_api } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { file_ai_stigmer_agentic_agentshare_v1_api } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
-import { file_ai_stigmer_agentic_artifact_v1_api } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import { file_ai_stigmer_agentic_channelapp_v1_api } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { file_ai_stigmer_agentic_environment_v1_api } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { file_ai_stigmer_agentic_executioncontext_v1_api } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
@@ -23,31 +22,6 @@ import { file_ai_stigmer_agentic_plugin_v1_api } from "@stigmer/protos/ai/stigme
 import { file_ai_stigmer_agentic_schedule_v1_api } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { file_ai_stigmer_agentic_session_v1_api } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { file_ai_stigmer_agentic_skill_v1_api } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { file_ai_stigmer_agentic_workflow_v1_enum } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import { file_ai_stigmer_agentic_workflow_v1_spec } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
-import { file_ai_stigmer_agentic_workflow_v1_api } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { file_ai_stigmer_agentic_workflow_v1_tasks_agent_call } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/agent_call_pb";
-import { file_ai_stigmer_agentic_workflow_v1_tasks_call_activity } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/call_activity_pb";
-import { file_ai_stigmer_agentic_workflow_v1_tasks_common } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/common_pb";
-import { file_ai_stigmer_agentic_workflow_v1_tasks_emit_event } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/emit_event_pb";
-import { file_ai_stigmer_agentic_workflow_v1_tasks_eval } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/eval_pb";
-import { file_ai_stigmer_agentic_workflow_v1_tasks_for } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/for_pb";
-import { file_ai_stigmer_agentic_workflow_v1_tasks_fork } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/fork_pb";
-import { file_ai_stigmer_agentic_workflow_v1_tasks_grpc_call } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/grpc_call_pb";
-import { file_ai_stigmer_agentic_workflow_v1_tasks_http_call } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/http_call_pb";
-import { file_ai_stigmer_agentic_workflow_v1_tasks_human_input } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/human_input_pb";
-import { file_ai_stigmer_agentic_workflow_v1_tasks_listen } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/listen_pb";
-import { file_ai_stigmer_agentic_workflow_v1_tasks_llm_call } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/llm_call_pb";
-import { file_ai_stigmer_agentic_workflow_v1_tasks_notification } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/notification_pb";
-import { file_ai_stigmer_agentic_workflow_v1_tasks_raise } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/raise_pb";
-import { file_ai_stigmer_agentic_workflow_v1_tasks_run } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/run_pb";
-import { file_ai_stigmer_agentic_workflow_v1_tasks_set } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/set_pb";
-import { file_ai_stigmer_agentic_workflow_v1_tasks_switch } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/switch_pb";
-import { file_ai_stigmer_agentic_workflow_v1_tasks_transform } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/transform_pb";
-import { file_ai_stigmer_agentic_workflow_v1_tasks_try } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/try_pb";
-import { file_ai_stigmer_agentic_workflow_v1_tasks_validate } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/validate_pb";
-import { file_ai_stigmer_agentic_workflow_v1_tasks_wait } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/tasks/wait_pb";
-import { file_ai_stigmer_agentic_workflowrun_v1_api } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { file_ai_stigmer_billing_license_v1_api } from "@stigmer/protos/ai/stigmer/billing/license/v1/api_pb";
 import { file_ai_stigmer_billing_plan_v1_api } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
 import { file_ai_stigmer_billing_subscription_v1_api } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/api_pb";
@@ -66,7 +40,6 @@ const ROOT_FILES: DescFile[] = [
   file_ai_stigmer_agentic_agentchannel_v1_api,
   file_ai_stigmer_agentic_agentrun_v1_api,
   file_ai_stigmer_agentic_agentshare_v1_api,
-  file_ai_stigmer_agentic_artifact_v1_api,
   file_ai_stigmer_agentic_channelapp_v1_api,
   file_ai_stigmer_agentic_environment_v1_api,
   file_ai_stigmer_agentic_executioncontext_v1_api,
@@ -76,31 +49,6 @@ const ROOT_FILES: DescFile[] = [
   file_ai_stigmer_agentic_schedule_v1_api,
   file_ai_stigmer_agentic_session_v1_api,
   file_ai_stigmer_agentic_skill_v1_api,
-  file_ai_stigmer_agentic_workflow_v1_enum,
-  file_ai_stigmer_agentic_workflow_v1_spec,
-  file_ai_stigmer_agentic_workflow_v1_api,
-  file_ai_stigmer_agentic_workflow_v1_tasks_agent_call,
-  file_ai_stigmer_agentic_workflow_v1_tasks_call_activity,
-  file_ai_stigmer_agentic_workflow_v1_tasks_common,
-  file_ai_stigmer_agentic_workflow_v1_tasks_emit_event,
-  file_ai_stigmer_agentic_workflow_v1_tasks_eval,
-  file_ai_stigmer_agentic_workflow_v1_tasks_for,
-  file_ai_stigmer_agentic_workflow_v1_tasks_fork,
-  file_ai_stigmer_agentic_workflow_v1_tasks_grpc_call,
-  file_ai_stigmer_agentic_workflow_v1_tasks_http_call,
-  file_ai_stigmer_agentic_workflow_v1_tasks_human_input,
-  file_ai_stigmer_agentic_workflow_v1_tasks_listen,
-  file_ai_stigmer_agentic_workflow_v1_tasks_llm_call,
-  file_ai_stigmer_agentic_workflow_v1_tasks_notification,
-  file_ai_stigmer_agentic_workflow_v1_tasks_raise,
-  file_ai_stigmer_agentic_workflow_v1_tasks_run,
-  file_ai_stigmer_agentic_workflow_v1_tasks_set,
-  file_ai_stigmer_agentic_workflow_v1_tasks_switch,
-  file_ai_stigmer_agentic_workflow_v1_tasks_transform,
-  file_ai_stigmer_agentic_workflow_v1_tasks_try,
-  file_ai_stigmer_agentic_workflow_v1_tasks_validate,
-  file_ai_stigmer_agentic_workflow_v1_tasks_wait,
-  file_ai_stigmer_agentic_workflowrun_v1_api,
   file_ai_stigmer_billing_license_v1_api,
   file_ai_stigmer_billing_plan_v1_api,
   file_ai_stigmer_billing_subscription_v1_api,

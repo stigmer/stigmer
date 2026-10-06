@@ -21,7 +21,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentrun/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agentrun_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRydW4vdjEvc3BlYy5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLmFnZW50cnVuLnYxIuEJCgxBZ2VudFJ1blNwZWMSFAoKc2Vzc2lvbl9pZBgBIAEoCUgAEkIKDHNlc3Npb25fc3BlYxgNIAEoCzIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TcGVjSAASGAoHbWVzc2FnZRgDIAEoCUIHukgEcgIQARI9CgpydW5fY29uZmlnGBIgASgLMikuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50cnVuLnYxLlJ1bkNvbmZpZxJTChBpbnRlcmFjdGlvbl9tb2RlGBMgASgOMi8uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50cnVuLnYxLkludGVyYWN0aW9uTW9kZUIIukgFggECEAESFwoPYnVpbGRfZnJvbV9wbGFuGBQgASgIEjkKGHN0cnVjdHVyZWRfb3V0cHV0X3NjaGVtYRgVIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSUQoLcnVudGltZV9lbnYYBSADKAsyPC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRydW4udjEuQWdlbnRSdW5TcGVjLlJ1bnRpbWVFbnZFbnRyeRIYChBhdXRvX2FwcHJvdmVfYWxsGAcgASgIEj8KC2F0dGFjaG1lbnRzGAkgAygLMiouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50cnVuLnYxLkF0dGFjaG1lbnQSGwoTd29ya3NwYWNlX2ZpbGVfcmVmcxgKIAMoCRIZChFzdXBlcnNlZGVzX3J1bl9pZBgMIAEoCRJRChRjb252ZXJzYXRpb25fY2F0Y2h1cBgOIAEoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHJ1bi52MS5Db252ZXJzYXRpb25DYXRjaHVwEj4KBnBhcmVudBgRIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHJ1bi52MS5Xb3JrZmxvd1BhcmVudBppCg9SdW50aW1lRW52RW50cnkSCwoDa2V5GAEgASgJEkUKBXZhbHVlGAIgASgLMjYuYWkuc3RpZ21lci5hZ2VudGljLmV4ZWN1dGlvbmNvbnRleHQudjEuRXhlY3V0aW9uVmFsdWU6AjgBOt4BukjaARrXAQokYWdlbnRfcnVuLnNlc3Npb25fc3BlY19oYXJuZXNzX3N0YXRlEmpzZXNzaW9uX3NwZWMuaGFybmVzc19zdGF0ZV9pZCBtdXN0IGJlIGVtcHR5IOKAlCBoYXJuZXNzIHN0YXRlIGlzIGNyZWF0ZWQgYnkgdGhlIHJ1bm5lciBhZnRlciB0aGUgZmlyc3QgcnVuGkMhaGFzKHRoaXMuc2Vzc2lvbl9zcGVjKSB8fCB0aGlzLnNlc3Npb25fc3BlYy5oYXJuZXNzX3N0YXRlX2lkID09ICcnQggKBnRhcmdldEoECAIQA0oECAYQB0oECAgQCUoECAsQDEoECA8QEEoECBAQEUoECAQQBVIIYWdlbnRfaWRSDmNhbGxiYWNrX3Rva2VuUhJwYXJlbnRfd29ya2Zsb3dfaWRSE2FjdGl2aXR5X3Rhc2tfcXVldWVSFGRlY2xhcmVkX3ByZWZlcmVuY2VzUhFyZWNhbGxlZF9tZW1vcmllc1IQZXhlY3V0aW9uX2NvbmZpZyJmCg5Xb3JrZmxvd1BhcmVudBIgCg93b3JrZmxvd19ydW5faWQYASABKAlCB7pIBHICEAESGgoSc2lnbmFsX3dvcmtmbG93X2lkGAIgASgJEhYKDmNhbGxiYWNrX3Rva2VuGAMgASgMItQCCgpBdHRhY2htZW50EtgBCghmaWxlbmFtZRgBIAEoCULFAbpIwQG6AbkBChthdHRhY2htZW50LmZpbGVuYW1lLm5vX3BhdGgSTmZpbGVuYW1lIG11c3QgYmUgYSBiYXJlIGZpbGVuYW1lIHdpdGhvdXQgcGF0aCBzZXBhcmF0b3JzIG9yIHRyYXZlcnNhbCBzZWdtZW50cxpKIXRoaXMuY29udGFpbnMoJy8nKSAmJiAhdGhpcy5jb250YWlucygnXFwnKSAmJiB0aGlzICE9ICcuJyAmJiB0aGlzICE9ICcuLidyAhABEhwKC3N0b3JhZ2Vfa2V5GAIgASgJQge6SARyAhABEhIKCm1vdW50X3BhdGgYAyABKAkSFAoMY29udGVudF90eXBlGAQgASgJEg8KB2V4dHJhY3QYBSABKAgSEgoKbG9jYWxfcGF0aBgGIAEoCSJVChNDb252ZXJzYXRpb25DYXRjaHVwEg4KBmRpZ2VzdBgBIAEoCRIuCgp3aW5kb3dfZW5kGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJAChNEZWNsYXJlZFByZWZlcmVuY2VzEhMKC29yZ19jb250ZXh0GAEgASgJEhQKDHVzZXJfY29udGV4dBgCIAEoCSJmChBSZWNhbGxlZE1lbW9yaWVzEg8KB2VuYWJsZWQYASABKAgSQQoFZmFjdHMYAiADKAsyMi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRydW4udjEuUmVjYWxsZWRNZW1vcnlGYWN0IjgKElJlY2FsbGVkTWVtb3J5RmFjdBIRCgltZW1vcnlfaWQYASABKAkSDwoHY29udGVudBgCIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_agentrun_v1_enum, file_ai_stigmer_agentic_agentrun_v1_invocation, file_ai_stigmer_agentic_executioncontext_v1_spec, file_ai_stigmer_agentic_session_v1_spec, file_buf_validate_validate, file_google_protobuf_struct, file_google_protobuf_timestamp]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRydW4vdjEvc3BlYy5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLmFnZW50cnVuLnYxIq8JCgxBZ2VudFJ1blNwZWMSFAoKc2Vzc2lvbl9pZBgBIAEoCUgAEkIKDHNlc3Npb25fc3BlYxgNIAEoCzIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TcGVjSAASGAoHbWVzc2FnZRgDIAEoCUIHukgEcgIQARI9CgpydW5fY29uZmlnGBIgASgLMikuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50cnVuLnYxLlJ1bkNvbmZpZxJTChBpbnRlcmFjdGlvbl9tb2RlGBMgASgOMi8uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50cnVuLnYxLkludGVyYWN0aW9uTW9kZUIIukgFggECEAESFwoPYnVpbGRfZnJvbV9wbGFuGBQgASgIEjkKGHN0cnVjdHVyZWRfb3V0cHV0X3NjaGVtYRgVIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSUQoLcnVudGltZV9lbnYYBSADKAsyPC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRydW4udjEuQWdlbnRSdW5TcGVjLlJ1bnRpbWVFbnZFbnRyeRIYChBhdXRvX2FwcHJvdmVfYWxsGAcgASgIEj8KC2F0dGFjaG1lbnRzGAkgAygLMiouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50cnVuLnYxLkF0dGFjaG1lbnQSGwoTd29ya3NwYWNlX2ZpbGVfcmVmcxgKIAMoCRIZChFzdXBlcnNlZGVzX3J1bl9pZBgMIAEoCRJRChRjb252ZXJzYXRpb25fY2F0Y2h1cBgOIAEoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHJ1bi52MS5Db252ZXJzYXRpb25DYXRjaHVwGmkKD1J1bnRpbWVFbnZFbnRyeRILCgNrZXkYASABKAkSRQoFdmFsdWUYAiABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MS5FeGVjdXRpb25WYWx1ZToCOAE63gG6SNoBGtcBCiRhZ2VudF9ydW4uc2Vzc2lvbl9zcGVjX2hhcm5lc3Nfc3RhdGUSanNlc3Npb25fc3BlYy5oYXJuZXNzX3N0YXRlX2lkIG11c3QgYmUgZW1wdHkg4oCUIGhhcm5lc3Mgc3RhdGUgaXMgY3JlYXRlZCBieSB0aGUgcnVubmVyIGFmdGVyIHRoZSBmaXJzdCBydW4aQyFoYXModGhpcy5zZXNzaW9uX3NwZWMpIHx8IHRoaXMuc2Vzc2lvbl9zcGVjLmhhcm5lc3Nfc3RhdGVfaWQgPT0gJydCCAoGdGFyZ2V0SgQIAhADSgQIBhAHSgQICBAJSgQICxAMSgQIERASSgQIDxAQSgQIEBARSgQIBBAFUghhZ2VudF9pZFIOY2FsbGJhY2tfdG9rZW5SEnBhcmVudF93b3JrZmxvd19pZFITYWN0aXZpdHlfdGFza19xdWV1ZVIGcGFyZW50UhRkZWNsYXJlZF9wcmVmZXJlbmNlc1IRcmVjYWxsZWRfbWVtb3JpZXNSEGV4ZWN1dGlvbl9jb25maWci1AIKCkF0dGFjaG1lbnQS2AEKCGZpbGVuYW1lGAEgASgJQsUBukjBAboBuQEKG2F0dGFjaG1lbnQuZmlsZW5hbWUubm9fcGF0aBJOZmlsZW5hbWUgbXVzdCBiZSBhIGJhcmUgZmlsZW5hbWUgd2l0aG91dCBwYXRoIHNlcGFyYXRvcnMgb3IgdHJhdmVyc2FsIHNlZ21lbnRzGkohdGhpcy5jb250YWlucygnLycpICYmICF0aGlzLmNvbnRhaW5zKCdcXCcpICYmIHRoaXMgIT0gJy4nICYmIHRoaXMgIT0gJy4uJ3ICEAESHAoLc3RvcmFnZV9rZXkYAiABKAlCB7pIBHICEAESEgoKbW91bnRfcGF0aBgDIAEoCRIUCgxjb250ZW50X3R5cGUYBCABKAkSDwoHZXh0cmFjdBgFIAEoCBISCgpsb2NhbF9wYXRoGAYgASgJIlUKE0NvbnZlcnNhdGlvbkNhdGNodXASDgoGZGlnZXN0GAEgASgJEi4KCndpbmRvd19lbmQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIkAKE0RlY2xhcmVkUHJlZmVyZW5jZXMSEwoLb3JnX2NvbnRleHQYASABKAkSFAoMdXNlcl9jb250ZXh0GAIgASgJImYKEFJlY2FsbGVkTWVtb3JpZXMSDwoHZW5hYmxlZBgBIAEoCBJBCgVmYWN0cxgCIAMoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHJ1bi52MS5SZWNhbGxlZE1lbW9yeUZhY3QiOAoSUmVjYWxsZWRNZW1vcnlGYWN0EhEKCW1lbW9yeV9pZBgBIAEoCRIPCgdjb250ZW50GAIgASgJYgZwcm90bzM", [file_ai_stigmer_agentic_agentrun_v1_enum, file_ai_stigmer_agentic_agentrun_v1_invocation, file_ai_stigmer_agentic_executioncontext_v1_spec, file_ai_stigmer_agentic_session_v1_spec, file_buf_validate_validate, file_google_protobuf_struct, file_google_protobuf_timestamp]);
 
 /**
  * AgentRunSpec contains only user-provided inputs for triggering a run.
@@ -108,8 +108,8 @@ export type AgentRunSpec = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSpec"
    * specific layer chose (for example, thinking off for one message on an
    * agent whose default turns it on).
    *
-   * A lane that composes the turn for a surface (a schedule, a workflow
-   * step) writes that surface's saved settings here. On a lane where the
+   * A lane that composes the turn for a surface (a schedule, a channel)
+   * writes that surface's saved settings here. On a lane where the
    * caller is a visitor (the hosted edition's shared-agent guests and
    * channel senders), the surface's saved settings replace this field; the
    * per-message intents below are the edition's to allow or clear for a
@@ -164,8 +164,8 @@ export type AgentRunSpec = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSpec"
    * - Native harness: uses deepagents responseFormat/ToolStrategy
    * - Cursor harness: prompt instruction + extraction fallback
    *
-   * The validated structured data is returned in the activity result
-   * and passed back to the parent workflow as `structured`.
+   * The validated structured data lands on the run's
+   * status.structured_output.
    *
    * @generated from field: google.protobuf.Struct structured_output_schema = 21;
    */
@@ -282,23 +282,6 @@ export type AgentRunSpec = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSpec"
    * @generated from field: ai.stigmer.agentic.agentrun.v1.ConversationCatchup conversation_catchup = 14;
    */
   conversationCatchup?: ConversationCatchup;
-
-  /**
-   * The workflow run this turn was started by (optional): set only by a
-   * workflow's agent_call step, which waits for the turn to finish.
-   *
-   * The server honours it only from the workflow run it names: a request
-   * the server composes itself, a runner whose credential is bound to that
-   * workflow run, or a caller holding the platform's
-   * can_write_reserved_labels. Any other caller that sets it is refused with
-   * INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-   * runs where the workflow run's own activities run (its sandbox, when the
-   * deployment gives each run one), the parent is told about approval
-   * requests, and the waiting step is completed when the turn finishes.
-   *
-   * @generated from field: ai.stigmer.agentic.agentrun.v1.WorkflowParent parent = 17;
-   */
-  parent?: WorkflowParent;
 };
 
 /**
@@ -307,49 +290,6 @@ export type AgentRunSpec = Message<"ai.stigmer.agentic.agentrun.v1.AgentRunSpec"
  */
 export const AgentRunSpecSchema: GenMessage<AgentRunSpec> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentrun_v1_spec, 0);
-
-/**
- * WorkflowParent links a turn to the workflow run whose agent_call step
- * started it.
- *
- * @generated from message ai.stigmer.agentic.agentrun.v1.WorkflowParent
- */
-export type WorkflowParent = Message<"ai.stigmer.agentic.agentrun.v1.WorkflowParent"> & {
-  /**
-   * ID of the workflow run whose step started this turn. The turn's
-   * activities run where that workflow run's own activities run.
-   *
-   * @generated from field: string workflow_run_id = 1;
-   */
-  workflowRunId: string;
-
-  /**
-   * Temporal workflow ID the agent-execution workflow signals about
-   * approval requests ("child_approval_required", carrying only this
-   * run's id): the workflow run's engine workflow, which for a nested
-   * workflow is a child workflow with its own id, so it is named rather
-   * than derived.
-   *
-   * @generated from field: string signal_workflow_id = 2;
-   */
-  signalWorkflowId: string;
-
-  /**
-   * Temporal task token of the agent_call activity waiting for this turn
-   * (asynchronous activity completion). The agent-execution workflow
-   * completes that activity with the turn's result when the turn finishes.
-   *
-   * @generated from field: bytes callback_token = 3;
-   */
-  callbackToken: Uint8Array;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.agentrun.v1.WorkflowParent.
- * Use `create(WorkflowParentSchema)` to create a new message.
- */
-export const WorkflowParentSchema: GenMessage<WorkflowParent> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentrun_v1_spec, 1);
 
 /**
  * Attachment represents a file attached to an agent run.
@@ -449,7 +389,7 @@ export type Attachment = Message<"ai.stigmer.agentic.agentrun.v1.Attachment"> & 
  * Use `create(AttachmentSchema)` to create a new message.
  */
 export const AttachmentSchema: GenMessage<Attachment> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentrun_v1_spec, 2);
+  messageDesc(file_ai_stigmer_agentic_agentrun_v1_spec, 1);
 
 /**
  * ConversationCatchup carries the channel-conversation events an agent
@@ -479,7 +419,7 @@ export type ConversationCatchup = Message<"ai.stigmer.agentic.agentrun.v1.Conver
  * Use `create(ConversationCatchupSchema)` to create a new message.
  */
 export const ConversationCatchupSchema: GenMessage<ConversationCatchup> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentrun_v1_spec, 3);
+  messageDesc(file_ai_stigmer_agentic_agentrun_v1_spec, 2);
 
 /**
  * DeclaredPreferences carries the standing preference texts injected into
@@ -508,7 +448,7 @@ export type DeclaredPreferences = Message<"ai.stigmer.agentic.agentrun.v1.Declar
  * Use `create(DeclaredPreferencesSchema)` to create a new message.
  */
 export const DeclaredPreferencesSchema: GenMessage<DeclaredPreferences> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentrun_v1_spec, 4);
+  messageDesc(file_ai_stigmer_agentic_agentrun_v1_spec, 3);
 
 /**
  * RecalledMemories is the server-composed snapshot of the caller's
@@ -539,7 +479,7 @@ export type RecalledMemories = Message<"ai.stigmer.agentic.agentrun.v1.RecalledM
  * Use `create(RecalledMemoriesSchema)` to create a new message.
  */
 export const RecalledMemoriesSchema: GenMessage<RecalledMemories> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentrun_v1_spec, 5);
+  messageDesc(file_ai_stigmer_agentic_agentrun_v1_spec, 4);
 
 /**
  * RecalledMemoryFact is one confirmed memory as injected into an
@@ -568,5 +508,5 @@ export type RecalledMemoryFact = Message<"ai.stigmer.agentic.agentrun.v1.Recalle
  * Use `create(RecalledMemoryFactSchema)` to create a new message.
  */
 export const RecalledMemoryFactSchema: GenMessage<RecalledMemoryFact> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentrun_v1_spec, 6);
+  messageDesc(file_ai_stigmer_agentic_agentrun_v1_spec, 5);
 
