@@ -22,8 +22,16 @@
  *   of the request's other fields (a mismatch is refused), and carries no
  *   authority: every page re-runs the scope.
  *
+ * The loop reads its rows from a source, so it does not depend on where
+ * the rows live. `readListPage` is the loop over this server's own store
+ * (the list index); `readPage` takes any source that answers the same
+ * contract (the rows after a cursor, newest first, at most a limit), so an
+ * extension that keeps its own table pages by these same rules instead of
+ * writing a second loop, and both are on the package's barrel.
+ *
  * Proven by __tests__/list-page.test.ts (the loop, the budget, the cut,
- * the token) and end-to-end by the paging arms of the conformance suites.
+ * the token, a function source) and end-to-end by the paging arms of the
+ * conformance suites.
  */
 import { createHash } from "node:crypto";
 
@@ -55,11 +63,20 @@ export interface ListPageRequest {
   readonly pageToken: string;
 }
 
-export interface ListPageParams<T, K extends string> {
-  readonly store: Store;
-  readonly declaration: ListIndexDeclaration<K>;
-  /** The request's own predicates, pushed into the store's indexed read. */
-  readonly query: Omit<ListIndexQuery<K>, "after" | "limit">;
+/**
+ * Where a page's rows come from: the rows after `after` (from the start
+ * when undefined) in the list index's order, newest first, ties broken by
+ * id in byte order, at most `limit` of them (every one when undefined).
+ * Each row carries the cursor a later read continues after.
+ */
+export type ListPageSource = (
+  after: ListIndexCursor | undefined,
+  limit: number | undefined,
+) => Promise<ReadonlyArray<ListIndexRow>>;
+
+/** What one page needs, whatever its rows' source. */
+export interface ReadPageParams<T> {
+  readonly source: ListPageSource;
   readonly request: ListPageRequest;
   /**
    * The request's other fields, as text: a token is valid only for the
@@ -72,8 +89,18 @@ export interface ListPageParams<T, K extends string> {
   readonly keep?: (row: T) => boolean;
   /** The read scope, bound by the lane to its caller and kind. */
   readonly scope: (rows: T[]) => Promise<T[]>;
-  /** The failure copy for a store fault. */
+  /** The failure copy for a source fault. */
   readonly failure: string;
+}
+
+export interface ListPageParams<T, K extends string> extends Omit<
+  ReadPageParams<T>,
+  "source"
+> {
+  readonly store: Store;
+  readonly declaration: ListIndexDeclaration<K>;
+  /** The request's own predicates, pushed into the store's indexed read. */
+  readonly query: Omit<ListIndexQuery<K>, "after" | "limit">;
 }
 
 export interface ListPage<T> {
@@ -83,8 +110,24 @@ export interface ListPage<T> {
 }
 
 /** Reads one page (or, at `page_size` 0, the whole list) through the list index. */
-export async function readListPage<T, K extends string>(
+export function readListPage<T, K extends string>(
   params: ListPageParams<T, K>,
+): Promise<ListPage<T>> {
+  const { store, declaration, query, ...rest } = params;
+  return readPage({
+    ...rest,
+    source: (after, limit) =>
+      store.queryResources(declaration, {
+        ...query,
+        ...(after === undefined ? {} : { after }),
+        ...(limit === undefined ? {} : { limit }),
+      }),
+  });
+}
+
+/** Reads one page (or, at `page_size` 0, the whole list) from `source`. */
+export async function readPage<T>(
+  params: ReadPageParams<T>,
 ): Promise<ListPage<T>> {
   const { request } = params;
   if (request.pageSize < 0) {
@@ -152,25 +195,21 @@ interface Admitted<T> {
   readonly cursor: ListIndexCursor;
 }
 
-async function queryOrFail<T, K extends string>(
-  params: ListPageParams<T, K>,
+async function queryOrFail<T>(
+  params: ReadPageParams<T>,
   after: ListIndexCursor | undefined,
   limit: number | undefined,
-): Promise<ListIndexRow[]> {
+): Promise<ReadonlyArray<ListIndexRow>> {
   try {
-    return await params.store.queryResources(params.declaration, {
-      ...params.query,
-      ...(after === undefined ? {} : { after }),
-      ...(limit === undefined ? {} : { limit }),
-    });
+    return await params.source(after, limit);
   } catch (error) {
     throw internalError(error, params.failure);
   }
 }
 
 /** A batch through the lane's filter and the scope, each row keeping its cursor. */
-async function admit<T, K extends string>(
-  params: ListPageParams<T, K>,
+async function admit<T>(
+  params: ReadPageParams<T>,
   rows: ReadonlyArray<ListIndexRow>,
 ): Promise<Array<Admitted<T>>> {
   const decoded: Array<Admitted<T>> = [];

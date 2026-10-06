@@ -115,26 +115,28 @@ return <p>Join {preview.orgName} as {preview.role}</p>;
 
 ### useOrgInvitations
 
-Data hook that fetches all `Invitation` entries for an
-organization.
+Data hook that pages an organization's `Invitation` entries
+through `InvitationQueryController.listByOrg`, newest first.
 
-Pass `null` to skip fetching (stable no-op). When the `org` slug
-changes, the previous in-flight request is discarded and a fresh
-fetch begins. Call `refetch()` to re-query after mutations
-(create / revoke).
+Pass `null` to skip fetching (stable no-op). When the `org` changes,
+the list starts again from its first page. Call `refetch()` after a
+create or a revoke: it re-reads the first page and keeps the older
+pages already loaded.
 
-Requires `can_view_access` permission on the organization —
-only admins and owners can list invitation links.
+The server lists an organization's invitations only to callers who hold
+`can_grant_access` on it (its admins); gate the hook on that permission
+and pass `null` otherwise.
 
 **Signature**
 
 ```tsx
-function useOrgInvitations(org: string | null): UseOrgInvitationsReturn
+function useOrgInvitations(org: string | null, options: UseOrgInvitationsOptions): UseOrgInvitationsReturn
 ```
 
 <TypeTable
   type={{
     org: { type: "string | null", description: "Organization id (a slug is also accepted), or `null` to skip fetching.", required: true },
+    options: { type: "UseOrgInvitationsOptions", description: "", required: true },
   }}
 />
 
@@ -142,19 +144,20 @@ function useOrgInvitations(org: string | null): UseOrgInvitationsReturn
 
 <TypeTable
   type={{
-    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
-    invitations: { type: "readonly Invitation[]", description: "All invitations for the organization. Empty while loading or on error." },
-    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
-    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
-    refetch: { type: "() => void", description: "Discard cached data and re-fetch the invitation list from the server." },
+    error: { type: "Error | null", description: "Error from the last failed first-page read, or `null` when healthy." },
+    hasMore: { type: "boolean", description: "`true` while more invitations exist beyond what is loaded." },
+    invitations: { type: "readonly Invitation[]", description: "The organization's invitations, newest first: the first page, then every page loaded since. Empty while loading or on error." },
+    isLoading: { type: "boolean", description: "`true` only during the first load." },
+    isLoadingMore: { type: "boolean", description: "`true` while a `loadMore` page is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while the first page refreshes in the background and stale data is shown." },
+    loadMore: { type: "() => void", description: "Load the next page. No-op while one is loading or when nothing follows." },
+    loadMoreError: { type: "Error | null", description: "Error from the last failed `loadMore`, or `null`." },
+    refetch: { type: "() => void", description: "Re-read the first page (after a create or a revoke); loaded older pages stay." },
   }}
 />
 
 ```tsx
-const { invitations, isLoading, error, refetch } = useOrgInvitations("acme");
-
-if (isLoading) return <Spinner />;
-invitations.map((inv) => inv.spec?.label);
+const { invitations, hasMore, loadMore } = useOrgInvitations("acme");
 ```
 
 
@@ -280,7 +283,8 @@ All visual properties flow through `--stgm-*` design tokens.
 
 Self-contained panel for managing organization invitation links.
 
-Displays all invitations for the organization with inline actions
+Displays the organization's invitations, newest first, a page at a
+time with "Load more" while the server holds more, with inline actions
 (copy link, revoke) and a create form for generating new invite
 links. Follows the same pattern as [`OrgMembersPanel`](/docs/sdk/react/iam-policy#orgmemberspanel): a
 single embeddable component that handles the full management flow.
@@ -368,4 +372,17 @@ All visual properties flow through `--stgm-*` design tokens.
   onAuthRequired={() => redirectToLogin()}
 />
 ```
+
+
+## Types
+
+### UseOrgInvitationsOptions
+
+Options for [`useOrgInvitations`](#useorginvitations).
+
+<TypeTable
+  type={{
+    pageSize: { type: "number", description: "Invitations per page, the first and each `loadMore`; the server caps it at 100." },
+  }}
+/>
 

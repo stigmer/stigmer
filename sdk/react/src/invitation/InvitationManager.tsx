@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useId, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useId, useMemo, useState, type FormEvent } from "react";
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import {
@@ -60,7 +60,8 @@ type FlowState =
 /**
  * Self-contained panel for managing organization invitation links.
  *
- * Displays all invitations for the organization with inline actions
+ * Displays the organization's invitations, newest first, a page at a
+ * time with "Load more" while the server holds more, with inline actions
  * (copy link, revoke) and a create form for generating new invite
  * links. Follows the same pattern as {@link OrgMembersPanel}: a
  * single embeddable component that handles the full management flow.
@@ -91,9 +92,27 @@ export function InvitationManager({
   buildInviteUrl = defaultBuildInviteUrl,
   className,
 }: InvitationManagerProps) {
-  const { invitations, isLoading, error, refetch } = useOrgInvitations(org);
+  const {
+    invitations: loaded,
+    hasMore,
+    loadMore,
+    isLoadingMore,
+    loadMoreError,
+    isLoading,
+    error,
+    refetch,
+  } = useOrgInvitations(org);
   const [flow, setFlow] = useState<FlowState>({ phase: "idle" });
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  // A refetch re-reads only the first page, so a link revoked from a page
+  // loaded later would keep its stale copy: the revoke's own answer stands
+  // in for that row until the list starts again.
+  const [revoked, setRevoked] = useState<ReadonlyMap<string, Invitation>>(new Map());
+  useEffect(() => setRevoked(new Map()), [org]);
+  const invitations = useMemo(
+    () => loaded.map((inv) => revoked.get(inv.metadata?.id ?? "") ?? inv),
+    [loaded, revoked],
+  );
 
   const activeCount = invitations.filter(
     (inv) => inv.status?.state === InvitationState.active,
@@ -109,10 +128,14 @@ export function InvitationManager({
     [buildInviteUrl, refetch],
   );
 
-  const handleRevoked = useCallback(() => {
-    setRevokingId(null);
-    refetch();
-  }, [refetch]);
+  const handleRevoked = useCallback(
+    (invitation: Invitation) => {
+      setRevokingId(null);
+      setRevoked((previous) => new Map(previous).set(invitation.metadata?.id ?? "", invitation));
+      refetch();
+    },
+    [refetch],
+  );
 
   if (isLoading) {
     return (
@@ -146,7 +169,9 @@ export function InvitationManager({
           <span className="stg:text-sm stg:font-semibold stg:text-foreground">
             Invite Links
           </span>
-          {activeCount > 0 && (
+          {/* The count covers the loaded pages only, so it is shown once
+              they are all loaded rather than undercount. */}
+          {activeCount > 0 && !hasMore && (
             <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
               {activeCount} active
             </span>
@@ -209,6 +234,21 @@ export function InvitationManager({
             );
           })}
         </div>
+      )}
+      {loadMoreError !== null && (
+        <p className="stg:text-destructive stg:text-xs" role="alert">
+          {getUserMessage(loadMoreError)}
+        </p>
+      )}
+      {hasMore && (
+        <button
+          type="button"
+          onClick={loadMore}
+          disabled={isLoadingMore}
+          className="stg:text-primary stg:text-xs stg:font-medium stg:hover:underline stg:disabled:opacity-50"
+        >
+          {isLoadingMore ? "Loading…" : "Load more"}
+        </button>
       )}
     </div>
   );
@@ -414,7 +454,7 @@ function InvitationRow({
   isRevoking: boolean;
   onStartRevoke: () => void;
   onCancelRevoke: () => void;
-  onRevoked: () => void;
+  onRevoked: (invitation: Invitation) => void;
 }) {
   const { copy, copied } = useCopyFeedback();
 
@@ -542,15 +582,14 @@ function RevokeConfirmation({
 }: {
   invitationId: string;
   label: string;
-  onRevoked: () => void;
+  onRevoked: (invitation: Invitation) => void;
   onCancel: () => void;
 }) {
   const { revoke, isRevoking, error } = useRevokeInvitation();
 
   const handleConfirm = useCallback(async () => {
     try {
-      await revoke(invitationId);
-      onRevoked();
+      onRevoked(await revoke(invitationId));
     } catch {
       // error state is surfaced via the hook
     }

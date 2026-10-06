@@ -29,4 +29,35 @@ public interface ListInvitationsByOrgInputOrBuilder extends
    */
   com.google.protobuf.ByteString
       getOrgBytes();
+
+  /**
+   * <pre>
+   * The most invitations to return; 0 returns every invitation and no
+   * token. A positive size is capped at 100.
+   * </pre>
+   *
+   * <code>int32 page_size = 2 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>
+   * @return The pageSize.
+   */
+  int getPageSize();
+
+  /**
+   * <pre>
+   * The previous response's next_page_token, to continue that list.
+   * </pre>
+   *
+   * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
+   * @return The pageToken.
+   */
+  java.lang.String getPageToken();
+  /**
+   * <pre>
+   * The previous response's next_page_token, to continue that list.
+   * </pre>
+   *
+   * <code>string page_token = 3 [json_name = "pageToken", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for pageToken.
+   */
+  com.google.protobuf.ByteString
+      getPageTokenBytes();
 }

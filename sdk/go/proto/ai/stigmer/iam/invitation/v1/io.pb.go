@@ -70,11 +70,15 @@ func (x *InvitationId) GetValue() string {
 	return ""
 }
 
-// Invitations contains a list of invitation resources.
+// Invitations contains a list of invitation resources: one page of an
+// organization's invitations, newest first.
 type Invitations struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Invitation entries.
-	Entries       []*Invitation `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	Entries []*Invitation `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Set when more invitations may follow: pass it as page_token to
+	// continue. A page may be short, even empty, and still carry a token.
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -116,12 +120,24 @@ func (x *Invitations) GetEntries() []*Invitation {
 	return nil
 }
 
+func (x *Invitations) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
 // ListInvitationsByOrgInput specifies the organization whose invitations
-// should be returned.
+// should be returned, newest first.
 type ListInvitationsByOrgInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization slug to list invitations for.
-	Org           string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// The most invitations to return; 0 returns every invitation and no
+	// token. A positive size is capped at 100.
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list.
+	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -159,6 +175,20 @@ func (*ListInvitationsByOrgInput) Descriptor() ([]byte, []int) {
 func (x *ListInvitationsByOrgInput) GetOrg() string {
 	if x != nil {
 		return x.Org
+	}
+	return ""
+}
+
+func (x *ListInvitationsByOrgInput) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListInvitationsByOrgInput) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
 	}
 	return ""
 }
@@ -383,11 +413,15 @@ const file_ai_stigmer_iam_invitation_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"%ai/stigmer/iam/invitation/v1/io.proto\x12\x1cai.stigmer.iam.invitation.v1\x1a&ai/stigmer/iam/invitation/v1/api.proto\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\",\n" +
 	"\fInvitationId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"Q\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"y\n" +
 	"\vInvitations\x12B\n" +
-	"\aentries\x18\x01 \x03(\v2(.ai.stigmer.iam.invitation.v1.InvitationR\aentries\"6\n" +
+	"\aentries\x18\x01 \x03(\v2(.ai.stigmer.iam.invitation.v1.InvitationR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x85\x01\n" +
 	"\x19ListInvitationsByOrgInput\x12\x19\n" +
-	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"5\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
+	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"5\n" +
 	"\x14InvitationTokenInput\x12\x1d\n" +
 	"\x05token\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05token\"6\n" +
 	"\x15RedeemInvitationInput\x12\x1d\n" +

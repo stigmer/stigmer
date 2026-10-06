@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/invitation/v1/io.proto.
  */
 export const file_ai_stigmer_iam_invitation_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiVhaS9zdGlnbWVyL2lhbS9pbnZpdGF0aW9uL3YxL2lvLnByb3RvEhxhaS5zdGlnbWVyLmlhbS5pbnZpdGF0aW9uLnYxIiUKDEludml0YXRpb25JZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIkgKC0ludml0YXRpb25zEjkKB2VudHJpZXMYASADKAsyKC5haS5zdGlnbWVyLmlhbS5pbnZpdGF0aW9uLnYxLkludml0YXRpb24iMQoZTGlzdEludml0YXRpb25zQnlPcmdJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAEiLgoUSW52aXRhdGlvblRva2VuSW5wdXQSFgoFdG9rZW4YASABKAlCB7pIBHICEAEiLwoVUmVkZWVtSW52aXRhdGlvbklucHV0EhYKBXRva2VuGAEgASgJQge6SARyAhABIuABChFJbnZpdGF0aW9uUHJldmlldxIQCghvcmdfbmFtZRgBIAEoCRIQCghvcmdfc2x1ZxgCIAEoCRIUCgxvcmdfbG9nb191cmwYAyABKAkSKAoEcm9sZRgEIAEoDjIaLmFpLnN0aWdtZXIuaWFtLnYxLklhbVJvbGUSLgoKZXhwaXJlc19hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDQoFbGFiZWwYBiABKAkSEAoIaXNfdmFsaWQYByABKAgSFgoOaW52YWxpZF9yZWFzb24YCCABKAliBnByb3RvMw", [file_ai_stigmer_iam_invitation_v1_api, file_ai_stigmer_iam_v1_enum, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CiVhaS9zdGlnbWVyL2lhbS9pbnZpdGF0aW9uL3YxL2lvLnByb3RvEhxhaS5zdGlnbWVyLmlhbS5pbnZpdGF0aW9uLnYxIiUKDEludml0YXRpb25JZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBImEKC0ludml0YXRpb25zEjkKB2VudHJpZXMYASADKAsyKC5haS5zdGlnbWVyLmlhbS5pbnZpdGF0aW9uLnYxLkludml0YXRpb24SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJImsKGUxpc3RJbnZpdGF0aW9uc0J5T3JnSW5wdXQSFAoDb3JnGAEgASgJQge6SARyAhABEhoKCXBhZ2Vfc2l6ZRgCIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACCIuChRJbnZpdGF0aW9uVG9rZW5JbnB1dBIWCgV0b2tlbhgBIAEoCUIHukgEcgIQASIvChVSZWRlZW1JbnZpdGF0aW9uSW5wdXQSFgoFdG9rZW4YASABKAlCB7pIBHICEAEi4AEKEUludml0YXRpb25QcmV2aWV3EhAKCG9yZ19uYW1lGAEgASgJEhAKCG9yZ19zbHVnGAIgASgJEhQKDG9yZ19sb2dvX3VybBgDIAEoCRIoCgRyb2xlGAQgASgOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZRIuCgpleHBpcmVzX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBINCgVsYWJlbBgGIAEoCRIQCghpc192YWxpZBgHIAEoCBIWCg5pbnZhbGlkX3JlYXNvbhgIIAEoCWIGcHJvdG8z", [file_ai_stigmer_iam_invitation_v1_api, file_ai_stigmer_iam_v1_enum, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * InvitationId identifies an invitation by its unique identifier.
@@ -41,7 +41,8 @@ export const InvitationIdSchema: GenMessage<InvitationId> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_invitation_v1_io, 0);
 
 /**
- * Invitations contains a list of invitation resources.
+ * Invitations contains a list of invitation resources: one page of an
+ * organization's invitations, newest first.
  *
  * @generated from message ai.stigmer.iam.invitation.v1.Invitations
  */
@@ -52,6 +53,14 @@ export type Invitations = Message<"ai.stigmer.iam.invitation.v1.Invitations"> & 
    * @generated from field: repeated ai.stigmer.iam.invitation.v1.Invitation entries = 1;
    */
   entries: Invitation[];
+
+  /**
+   * Set when more invitations may follow: pass it as page_token to
+   * continue. A page may be short, even empty, and still carry a token.
+   *
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
 };
 
 /**
@@ -63,7 +72,7 @@ export const InvitationsSchema: GenMessage<Invitations> = /*@__PURE__*/
 
 /**
  * ListInvitationsByOrgInput specifies the organization whose invitations
- * should be returned.
+ * should be returned, newest first.
  *
  * @generated from message ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput
  */
@@ -74,6 +83,21 @@ export type ListInvitationsByOrgInput = Message<"ai.stigmer.iam.invitation.v1.Li
    * @generated from field: string org = 1;
    */
   org: string;
+
+  /**
+   * The most invitations to return; 0 returns every invitation and no
+   * token. A positive size is capped at 100.
+   *
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list.
+   *
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
 };
 
 /**

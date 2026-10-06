@@ -71,10 +71,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "r/iam/v1/enum.proto\032\033buf/validate/valida" +
       "te.proto\032\037google/protobuf/timestamp.prot" +
       "o\",\n\014InvitationId\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001" +
-      "R\005value\"Q\n\013Invitations\022B\n\007entries\030\001 \003(\0132" +
+      "R\005value\"y\n\013Invitations\022B\n\007entries\030\001 \003(\0132" +
       "(.ai.stigmer.iam.invitation.v1.Invitatio" +
-      "nR\007entries\"6\n\031ListInvitationsByOrgInput\022" +
-      "\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\"5\n\024Invitation" +
+      "nR\007entries\022&\n\017next_page_token\030\002 \001(\tR\rnex" +
+      "tPageToken\"\205\001\n\031ListInvitationsByOrgInput" +
+      "\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022$\n\tpage_size" +
+      "\030\002 \001(\005B\007\272H\004\032\002(\000R\010pageSize\022\'\n\npage_token\030" +
+      "\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageToken\"5\n\024Invitation" +
       "TokenInput\022\035\n\005token\030\001 \001(\tB\007\272H\004r\002\020\001R\005toke" +
       "n\"6\n\025RedeemInvitationInput\022\035\n\005token\030\001 \001(" +
       "\tB\007\272H\004r\002\020\001R\005token\"\256\002\n\021InvitationPreview\022" +
@@ -110,13 +113,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_invitation_v1_Invitations_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_invitation_v1_Invitations_descriptor,
-        new java.lang.String[] { "Entries", });
+        new java.lang.String[] { "Entries", "NextPageToken", });
     internal_static_ai_stigmer_iam_invitation_v1_ListInvitationsByOrgInput_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_iam_invitation_v1_ListInvitationsByOrgInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_invitation_v1_ListInvitationsByOrgInput_descriptor,
-        new java.lang.String[] { "Org", });
+        new java.lang.String[] { "Org", "PageSize", "PageToken", });
     internal_static_ai_stigmer_iam_invitation_v1_InvitationTokenInput_descriptor =
       getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_iam_invitation_v1_InvitationTokenInput_fieldAccessorTable = new

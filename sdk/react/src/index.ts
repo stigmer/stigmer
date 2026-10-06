@@ -1586,6 +1586,7 @@ export {
   InvitationRedemption,
 } from "./invitation/index.js";
 export type {
+  UseOrgInvitationsOptions,
   UseOrgInvitationsReturn,
   UseCreateInvitationReturn,
   UseRevokeInvitationReturn,

@@ -9,6 +9,12 @@
  * by the examine budget, each with a token, until the rows run out; a size
  * above the contract's maximum is capped; and the token's refusals — a
  * negative size, malformed text, a token issued for another request.
+ *
+ * `readPage` is the same loop over a function source, the way an extension
+ * that keeps its own table calls it: it pages a source's rows with no gap
+ * and no duplicate, asks the source for the rows after the last one it
+ * handed out with one row past the batch, and answers a source fault as
+ * INTERNAL with the lane's copy.
  */
 import { create } from "@bufbuild/protobuf";
 import { ConnectError, Code } from "@connectrpc/connect";
@@ -27,8 +33,10 @@ import {
   examineBudgetOf,
   listPageFingerprint,
   readListPage,
+  readPage,
 } from "../list-page.js";
-import type { ListPageParams } from "../list-page.js";
+import type { ListIndexCursor, ListIndexRow } from "../../../store/list-index.js";
+import type { ListPageParams, ListPageSource } from "../list-page.js";
 
 let temp: TempStore;
 
@@ -181,6 +189,76 @@ describe("readListPage", () => {
     expect([other.code, other.rawMessage]).toEqual([
       Code.InvalidArgument,
       "page_token was issued for a different request",
+    ]);
+  });
+});
+
+describe("readPage", () => {
+  /** Rows a host keeps itself, newest first, as a source answers them. */
+  function hostRows(count: number): ListIndexRow[] {
+    return Array.from({ length: count }, (_, i) => {
+      const n = count - 1 - i;
+      const id = `row_${String(n).padStart(3, "0")}`;
+      return {
+        id,
+        data: new TextEncoder().encode(id),
+        cursor: { createdAt: `2026-10-07T00:00:${String(n).padStart(2, "0")}.000000Z`, id },
+      };
+    });
+  }
+
+  /** A source over `rows`, recording each call's cursor id and limit. */
+  function sourceOver(
+    rows: ReadonlyArray<ListIndexRow>,
+    calls: Array<[string | undefined, number | undefined]>,
+  ): ListPageSource {
+    return (after: ListIndexCursor | undefined, limit: number | undefined) => {
+      calls.push([after?.id, limit]);
+      const start = after === undefined ? 0 : rows.findIndex((row) => row.id === after.id) + 1;
+      const rest = rows.slice(start);
+      return Promise.resolve(limit === undefined ? rest : rest.slice(0, limit));
+    };
+  }
+
+  function pageOf(source: ListPageSource, pageSize: number, pageToken: string) {
+    return readPage({
+      source,
+      request: { pageSize, pageToken },
+      fingerprint: listPageFingerprint({ lane: "host", org: "acme" }),
+      decode: (data) => new TextDecoder().decode(data),
+      scope: (rows) => Promise.resolve(rows),
+      failure: "failed to list host rows",
+    });
+  }
+
+  it("pages a function source with no gap and no duplicate, asking for the rows after the last one handed out", async () => {
+    const rows = hostRows(5);
+    const calls: Array<[string | undefined, number | undefined]> = [];
+    const source = sourceOver(rows, calls);
+
+    const ids: string[] = [];
+    let token = "";
+    do {
+      const page = await pageOf(source, 2, token);
+      ids.push(...page.entries);
+      token = page.nextPageToken;
+    } while (token !== "");
+
+    expect(ids).toEqual(rows.map((row) => row.id));
+    expect(calls).toEqual([
+      [undefined, 3],
+      ["row_003", 3],
+      ["row_001", 3],
+    ]);
+    expect((await pageOf(source, 0, "")).entries).toEqual(rows.map((row) => row.id));
+  });
+
+  it("answers a source fault INTERNAL with the lane's copy", async () => {
+    const failing: ListPageSource = () => Promise.reject(new Error("connection refused"));
+    const fault = await refusal(pageOf(failing, 2, ""));
+    expect([fault.code, fault.rawMessage]).toEqual([
+      Code.Internal,
+      "failed to list host rows",
     ]);
   });
 });
