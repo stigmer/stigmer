@@ -367,7 +367,7 @@ describe("AgentRun conformance — the workflow parent link", () => {
       "a parent link whose workflow run differs from the lineage label",
     );
     expect(refused.rawMessage).toBe(
-      "parent.workflow_execution_id 'wfx_linked' differs from the stigmer.ai/workflow-execution-id label 'wfx_labelled'; a turn belongs to one workflow run",
+      "parent.workflow_run_id 'wfx_linked' differs from the stigmer.ai/workflow-execution-id label 'wfx_labelled'; a turn belongs to one workflow run",
     );
   });
 
