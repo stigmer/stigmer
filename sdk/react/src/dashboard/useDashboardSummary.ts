@@ -1,12 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { RunPhase as WorkflowPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
-import { RunPhase as AgentPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import {
-  useWorkflowDashboardSummary,
-  type UseWorkflowDashboardSummaryOptions,
-} from "../workflow/useWorkflowDashboardSummary.js";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { useOrgUsageReport } from "../usage/useOrgUsageReport.js";
 import { dateRangeFromPreset } from "../usage/date-range.js";
 import {
@@ -17,7 +12,7 @@ import type { DashboardSummary } from "./types.js";
 
 /** Options for {@link useDashboardSummary}. */
 export interface UseDashboardSummaryOptions {
-  /** The organization whose run summaries and usage report to read. */
+  /** The organization whose run summary and usage report to read. */
   readonly org: string | null | undefined;
   /** Refetch interval in milliseconds. @default 60_000 */
   readonly refetchInterval?: number;
@@ -32,26 +27,18 @@ export interface UseDashboardSummaryReturn {
 }
 
 /**
- * Composition hook that merges agent run summary, workflow run
- * summary, and org usage report into a single {@link DashboardSummary}.
+ * Composition hook that merges the agent run summary and the org usage
+ * report into a single {@link DashboardSummary}.
  *
- * - Run counts (active, completed, failed) are added across both
- *   domains — safe because agent and workflow runs are distinct resources.
- * - Cost comes from `getOrgUsageReport` (billing source of truth). NOT from
- *   summing agent + workflow costs. See AD-DASH-005.
- *
- * Follows the same client-side merge pattern as `useRecentActivity`.
+ * - Run counts (active, completed, failed) come from the agent run
+ *   summary over the last seven days.
+ * - Cost comes from `getOrgUsageReport` (billing source of truth), not
+ *   from summing per-run costs. See AD-DASH-005.
  */
 export function useDashboardSummary(
   options: UseDashboardSummaryOptions,
 ): UseDashboardSummaryReturn {
   const refetchInterval = options.refetchInterval ?? 60_000;
-
-  const { summary: workflowSummary, isLoading: wfLoading, error: wfError, refetch: wfRefetch } =
-    useWorkflowDashboardSummary({
-      org: options.org,
-      refetchInterval,
-    } satisfies UseWorkflowDashboardSummaryOptions);
 
   const { summary: agentSummary, isLoading: agLoading, error: agError, refetch: agRefetch } =
     useAgentRunSummary({
@@ -64,42 +51,30 @@ export function useDashboardSummary(
   const { report: orgUsage, isLoading: usageLoading, error: usageError, refetch: usageRefetch } =
     useOrgUsageReport(options.org ?? null, dateRange);
 
-  const isLoading = wfLoading || agLoading || usageLoading;
-  const error = wfError ?? agError ?? usageError;
+  const isLoading = agLoading || usageLoading;
+  const error = agError ?? usageError;
 
   const summary = useMemo<DashboardSummary | null>(() => {
-    if (isLoading && !workflowSummary && !agentSummary) return null;
-
-    const wfActive = workflowSummary?.activeCount ?? 0;
-    const agActive = agentSummary?.activeCount ?? 0;
-
-    const wfCompleted = workflowSummary?.phaseCounts[WorkflowPhase.RUN_COMPLETED] ?? 0;
-    const agCompleted = agentSummary?.phaseCounts[AgentPhase.RUN_COMPLETED] ?? 0;
-
-    const wfFailed = workflowSummary?.phaseCounts[WorkflowPhase.RUN_FAILED] ?? 0;
-    const agFailed = agentSummary?.phaseCounts[AgentPhase.RUN_FAILED] ?? 0;
+    if (isLoading && !agentSummary) return null;
 
     const totalCostMicros = Number(orgUsage?.totalBillableCostMicros ?? BigInt(0));
     const totalCostUsd = totalCostMicros / 1_000_000;
 
     return {
-      activeCount: wfActive + agActive,
-      completedCount: wfCompleted + agCompleted,
-      failedCount: wfFailed + agFailed,
+      activeCount: agentSummary?.activeCount ?? 0,
+      completedCount: agentSummary?.phaseCounts[RunPhase.RUN_COMPLETED] ?? 0,
+      failedCount: agentSummary?.phaseCounts[RunPhase.RUN_FAILED] ?? 0,
       totalCostUsd,
-      agent: agentSummary,
-      workflow: workflowSummary,
       orgUsage: orgUsage,
     };
-  }, [workflowSummary, agentSummary, orgUsage, isLoading]);
+  }, [agentSummary, orgUsage, isLoading]);
 
   const refetch = useMemo(() => {
     return () => {
-      wfRefetch();
       agRefetch();
       usageRefetch();
     };
-  }, [wfRefetch, agRefetch, usageRefetch]);
+  }, [agRefetch, usageRefetch]);
 
   return { summary, isLoading, error, refetch };
 }

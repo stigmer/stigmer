@@ -270,7 +270,7 @@ export function useRunStream(
 
   // Tracks the run the store currently holds, so we reset the store on
   // a genuine identity change (A → B) but preserve it across reconnects of the
-  // SAME run. Mirrors useWorkflowRunEventStream / useFetch.
+  // SAME run. Mirrors useFetch.
   const prevExecutionIdRef = useRef<string | null>(null);
 
   // -- Subscription effect --------------------------------------------------

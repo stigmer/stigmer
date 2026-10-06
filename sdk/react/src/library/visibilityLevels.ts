@@ -118,7 +118,7 @@ export interface BlueprintVisibilityLevelsContext {
 }
 
 /**
- * The levels a blueprint (agent, skill, workflow, mcp_server, plugin)
+ * The levels a blueprint (agent, skill, mcp_server, plugin)
  * selector offers, in escalation order: Private / Organization
  * [/ Child organizations]. Organization is the creation default
  * (blueprints are shared org assets; Private is an explicit opt-in).

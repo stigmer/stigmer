@@ -353,8 +353,7 @@ export interface SessionViewerProps {
 }
 
 /**
- * Full-featured agent session viewer — the graph-less analog of
- * `WorkflowRunViewer`.
+ * Full-featured agent session viewer.
  *
  * Owns `useSessionPageFlow` internally and composes:
  * - **Conversation column** (primary): `MessageThread` + error

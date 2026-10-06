@@ -2,10 +2,8 @@ import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
 import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { ArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import {
   fromRunArtifact,
-  fromArtifact,
   parentDirectory,
 } from "../artifact-row-item";
 
@@ -54,59 +52,6 @@ describe("fromRunArtifact", () => {
   it("omits the subtitle on collision when there is no sandbox path to derive from", () => {
     const artifact = create(RunArtifactSchema, { name: "agent.yaml" });
     expect(fromRunArtifact(artifact, true).subtitlePath).toBeNull();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// fromArtifact — the workflow Artifact-resource adapter
-// ---------------------------------------------------------------------------
-
-describe("fromArtifact", () => {
-  it("maps displayName, status size, and is never a directory", () => {
-    const artifact = create(ArtifactSchema, {
-      metadata: { id: "art_1", name: "fallback" },
-      spec: { displayName: "report.json", contentType: "application/json" },
-      status: { sizeBytes: 4096n },
-    });
-    const item = fromArtifact(artifact);
-    expect(item.name).toBe("report.json");
-    expect(item.tooltip).toBe("report.json");
-    expect(item.sizeBytes).toBe(4096n);
-    // The Artifact resource model has no directory concept.
-    expect(item.isDirectory).toBe(false);
-  });
-
-  it("falls back to metadata name, then 'Unnamed'", () => {
-    const withMeta = create(ArtifactSchema, {
-      metadata: { id: "art_2", name: "meta-name" },
-    });
-    expect(fromArtifact(withMeta).name).toBe("meta-name");
-    expect(fromArtifact(create(ArtifactSchema, {})).name).toBe("Unnamed");
-  });
-
-  it("defaults size to zero when status is absent", () => {
-    const artifact = create(ArtifactSchema, {
-      spec: { displayName: "x.txt" },
-    });
-    expect(fromArtifact(artifact).sizeBytes).toBe(0n);
-  });
-
-  it("carries the producing task as subtitle only on a name collision", () => {
-    const artifact = create(ArtifactSchema, {
-      spec: {
-        displayName: "output.json",
-        source: { workflowRunId: "wex_1", taskName: "analyze_code" },
-      },
-    });
-    expect(fromArtifact(artifact, true).subtitlePath).toBe("analyze_code");
-    expect(fromArtifact(artifact, false).subtitlePath).toBeNull();
-  });
-
-  it("omits the subtitle on collision when the artifact has no source task", () => {
-    const artifact = create(ArtifactSchema, {
-      spec: { displayName: "output.json" },
-    });
-    expect(fromArtifact(artifact, true).subtitlePath).toBeNull();
   });
 });
 

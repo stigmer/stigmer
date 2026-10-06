@@ -70,9 +70,8 @@ const VARIANT: Record<DecisionVariant, string> = {
 
 /**
  * The shared decision-action button for every approval surface — the agent
- * tool gate ({@link ApprovalCard}, which workflow surfaces reuse via
- * `WorkflowApprovalList`) and the workflow human_input card
- * ({@link WorkflowTaskApprovalCard}).
+ * tool gate ({@link ApprovalCard}) and the file-review card
+ * ({@link FileReviewCard}).
  *
  * One source of truth for the quiet, Cursor-grade button system so the
  * surfaces can never visually drift, and so the spinner and base chrome live in

@@ -11,7 +11,7 @@ description: The unified Manage access experience — one dialog composing visib
 
 Wires the unified Manage access dialog to a kebab/overflow menu — the
 trigger shape used by static resource detail views (agent, skill,
-mcp_server, workflow), whose actions live in [`ResourceActionBar`](/docs/sdk/react/resource-detail#resourceactionbar)'s
+mcp_server, plugin), whose actions live in [`ResourceActionBar`](/docs/sdk/react/resource-detail#resourceactionbar)'s
 menu rather than as a standalone button.
 
 Owns the open-state and the `can_view_access` gate (a viewer may open the
@@ -61,9 +61,8 @@ const access = useManageAccess({
 ### ManageAccessButton
 
 The single drop-in, visible trigger for the unified Manage access dialog —
-used by surfaces that render a button in a header or panel (session and
-workflow-execution viewers) rather than a kebab menu (those
-use [`useManageAccess`](#usemanageaccess)).
+used by surfaces that render a button in a header or panel (the session
+viewer) rather than a kebab menu (those use [`useManageAccess`](#usemanageaccess)).
 
 Self-gates on `can_view_access`: the button renders only for users who may
 see the access list, and the dialog's sections gate editing further. Because
@@ -77,7 +76,6 @@ All visual properties flow through `--stgm-*` design tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS classes for the trigger button." },
-    extraSection: { type: "AccessExtraSection", description: "Optional resource-specific section (e.g. run observability).", typeDescriptionLink: "#accessextrasection" },
     label: { type: "string", description: "Button label." },
     resource: { type: "AccessResource", description: "The resource whose access is managed.", required: true, typeDescriptionLink: "#accessresource" },
     visibility: { type: "AccessVisibility", description: "General access (visibility) axis; omit for resources without visibility.", typeDescriptionLink: "#accessvisibility" },
@@ -134,11 +132,10 @@ only when you own the open-state.
 
 <TypeTable
   type={{
-    extraSection: { type: "AccessExtraSection", description: "An optional resource-specific section appended below People (e.g. a workflow's run visibility).", typeDescriptionLink: "#accessextrasection" },
     onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog should open or close.", required: true },
     open: { type: "boolean", description: "Whether the dialog is open.", required: true },
     resource: { type: "AccessResource", description: "The resource whose access is managed.", required: true, typeDescriptionLink: "#accessresource" },
-    visibility: { type: "AccessVisibility", description: "General access (visibility) axis. Omit for resources without visibility (e.g. sessions, workflow runs).", typeDescriptionLink: "#accessvisibility" },
+    visibility: { type: "AccessVisibility", description: "General access (visibility) axis. Omit for resources without visibility (e.g. sessions).", typeDescriptionLink: "#accessvisibility" },
   }}
 />
 
@@ -157,21 +154,6 @@ const [open, setOpen] = useState(false);
 
 ## Types
 
-### AccessExtraSection
-
-A generic, resource-specific access section appended below People — the
-escape hatch for the rare per-kind axis (today: a workflow's run
-visibility) without baking that knowledge into a generic dialog.
-
-<TypeTable
-  type={{
-    content: { type: "ReactNode", description: "The section body (e.g. a `<RunVisibilityControl />`).", required: true },
-    description: { type: "string", description: "Optional one-line explanation under the heading." },
-    title: { type: "string", description: "Section heading.", required: true },
-  }}
-/>
-
-
 ### AccessResource
 
 The resource whose access is being managed. Carries everything the People
@@ -183,7 +165,7 @@ the owning org (drives the org-member typeahead).
   type={{
     id: { type: "string", description: "Resource id.", required: true },
     kind: { type: "ApiResourceKind", description: "ApiResourceKind enum — drives grantable-role lookup and capability.", required: true },
-    kindString: { type: "string", description: "FGA/API kind string (e.g. \"mcp_server\", \"session\", \"workflow_run\").", required: true },
+    kindString: { type: "string", description: "FGA/API kind string (e.g. \"mcp_server\", \"session\", \"agent\").", required: true },
     name: { type: "string", description: "Optional display name, shown as the dialog subtitle for context." },
     org: { type: "string", description: "Slug of the owning organization (`metadata.org`).", required: true },
   }}
@@ -194,7 +176,7 @@ the owning org (drives the org-member typeahead).
 
 Describes the "General access" (visibility) axis for the Manage access
 dialog. Optional because not every resource has visibility (e.g. sessions
-and workflow runs do not). When present, the dialog renders the
+do not). When present, the dialog renders the
 shared `ResourceVisibilityControl`, which owns level selection and
 the `can_manage_audience` gate.
 
@@ -214,7 +196,6 @@ Arguments for [`useManageAccess`](#usemanageaccess).
 
 <TypeTable
   type={{
-    extraSection: { type: "AccessExtraSection", description: "Optional resource-specific section (e.g. run observability).", typeDescriptionLink: "#accessextrasection" },
     label: { type: "string", description: "Menu-item label." },
     resource: { type: "AccessResource | null", description: "The resource whose access is managed, or `null` while it is still loading. When `null`, UseManageAccessReturn.action is `null` and the dialog renders nothing — safe to call before the resource is ready.", required: true },
     visibility: { type: "AccessVisibility", description: "General access (visibility) axis; omit for resources without visibility.", typeDescriptionLink: "#accessvisibility" },

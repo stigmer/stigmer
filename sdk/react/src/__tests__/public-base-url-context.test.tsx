@@ -54,8 +54,8 @@ describe("resolvePublicBaseUrl", () => {
   });
 });
 
-// A minimal client: the provider eagerly fetches the model/task-kind
-// registries on mount; a null credential keeps that work non-blocking.
+// A minimal client: the provider eagerly fetches the model registry on
+// mount; a null credential keeps that work non-blocking.
 function makeClient(baseUrl: string): Stigmer {
   return {
     baseUrl,

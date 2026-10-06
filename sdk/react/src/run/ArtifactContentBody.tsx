@@ -56,8 +56,7 @@ export function ArtifactContentBody({
       {isDirectory ? (
         <DirectoryContentView artifact={artifact} skillDetection={skillDetection} />
       ) : (
-        // File states delegate to the shared, model-agnostic component so the
-        // workflow's Artifact-resource document renders content identically.
+        // File states delegate to the shared, model-agnostic component.
         <ArtifactFileContent
           fileName={artifact.name}
           content={content}

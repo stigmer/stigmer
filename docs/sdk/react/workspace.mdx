@@ -357,7 +357,7 @@ All visual properties flow through `--stgm-*` tokens.
 
 <TypeTable
   type={{
-    badgeCount: { type: "number", description: "Aggregate count of panel items awaiting the user (write-backs + artifacts on the session side; artifacts on the workflow side). Rendered as a dot-count while collapsed — the panel's only \"something arrived\" signal, since arrivals never auto-open the panel." },
+    badgeCount: { type: "number", description: "Aggregate count of panel items awaiting the user (write-backs + artifacts). Rendered as a dot-count while collapsed — the panel's only \"something arrived\" signal, since arrivals never auto-open the panel." },
     isOpen: { type: "boolean", description: "Whether the panel is currently expanded.", required: true },
     onToggle: { type: "() => void", description: "Toggles the panel open/collapsed.", required: true },
   }}
@@ -521,7 +521,7 @@ All visual properties flow through `--stgm-*` tokens.
 
 <TypeTable
   type={{
-    builtInViews: { type: "readonly (\"search\" | \"files\")[]", description: "Which built-in rail views the surface offers, in rail order. Defaults to all of them; hosts without a workspace file source pass `[]` so the rail carries only their injected `extraViews` — an honest facet-only surface instead of inert Explorer/Search icons (an opt-in behavior change with a backward-compatible default). The workflow run panel does this until a workspace source wires a lister." },
+    builtInViews: { type: "readonly (\"search\" | \"files\")[]", description: "Which built-in rail views the surface offers, in rail order. Defaults to all of them; hosts without a workspace file source pass `[]` so the rail carries only their injected `extraViews` — an honest facet-only surface instead of inert Explorer/Search icons (an opt-in behavior change with a backward-compatible default)." },
     change: { type: "FileChange", description: "The session FileChange that touched the open file, when it was changed this session. When present the editor defaults to the authoritative `baseline→candidate` diff, matching the inspector's Viewer tab." },
     className: { type: "string", description: "Additional CSS classes for the root element." },
     editors: { type: "readonly OpenEditor[]", description: "Open editor tabs in order (VS Code open-editors model).", required: true },
@@ -647,7 +647,6 @@ hosts extend its rail.
   type={{
     badge: { type: "number", description: "Optional count badge rendered over the rail icon (hidden when 0)." },
     content: { type: "ReactNode", description: "Sidebar content rendered while this view is active.", required: true },
-    fitted: { type: "boolean", description: "The content OWNS its chrome: render it in a bare full-height slot with no sidebar header and no padded scroll wrapper. For self-managing views — a header + fixed tab strip + internally-scrolling body (the workflow Inspect facet) — where the default envelope would double the header and nest scroll containers. Flat, single-scroll facets (Config, Changes, Artifacts, Usage) omit it and keep the shared envelope." },
     icon: { type: "ReactNode", description: "Monochrome rail icon (tinted via `currentColor`).", required: true },
     id: { type: "string", description: "Unique view id. Must not collide with the built-in `\"files\"`/`\"search\"`.", required: true },
     label: { type: "string", description: "Accessible label; also rendered as the sidebar heading.", required: true },

@@ -327,6 +327,4 @@ function Notice({
   );
 }
 
-// countHunks / toFileDiffEntry moved to deriveRunFileChanges.ts — shared
-// with the workflow panel's Changes facet, which projects the same net
-// FileChange list into its rail file list.
+// countHunks / toFileDiffEntry live in deriveRunFileChanges.ts.

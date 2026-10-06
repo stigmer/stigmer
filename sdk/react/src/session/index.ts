@@ -154,9 +154,8 @@ export {
   PLAN_DOCUMENT_PATH,
 } from "./plan-document.js";
 
-// Artifact document tab identity — promoted to execution/ (shared with the
-// workflow panel); re-exported here so `@stigmer/react`'s public export and
-// existing session-path importers are unchanged.
+// Artifact document tab identity — lives in run/; re-exported here so
+// session-path importers reach it beside the plan document identity.
 export { ARTIFACT_DOCUMENT_ENTRY_ID } from "../run/artifact-document.js";
 
 // Session facet components — the panel's rail views (Config et al.), also

@@ -10,7 +10,6 @@ import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl.
 import type {
   AccessResource,
   AccessVisibility,
-  AccessExtraSection,
 } from "./types.js";
 
 /** Props for {@link ManageAccessDialog}. */
@@ -23,14 +22,9 @@ export interface ManageAccessDialogProps {
   readonly resource: AccessResource;
   /**
    * General access (visibility) axis. Omit for resources without visibility
-   * (e.g. sessions, workflow runs).
+   * (e.g. sessions).
    */
   readonly visibility?: AccessVisibility;
-  /**
-   * An optional resource-specific section appended below People (e.g.
-   * a workflow's run visibility).
-   */
-  readonly extraSection?: AccessExtraSection;
 }
 
 /**
@@ -78,7 +72,6 @@ export function ManageAccessDialog({
   onOpenChange,
   resource,
   visibility,
-  extraSection,
 }: ManageAccessDialogProps) {
   // Instance-scoped title id (oss#593): a reusable component must not
   // hardcode DOM ids — hosts legitimately mount this dialog more than once
@@ -165,15 +158,6 @@ export function ManageAccessDialog({
                   resourceKind={resource.kind}
                   org={resource.org}
                 />
-              </AccessSection>
-            )}
-
-            {extraSection && (
-              <AccessSection
-                title={extraSection.title}
-                description={extraSection.description}
-              >
-                {extraSection.content}
               </AccessSection>
             )}
           </div>

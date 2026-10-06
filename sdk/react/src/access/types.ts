@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import type { VisibilityResourceKind } from "../library/useUpdateVisibility.js";
@@ -12,7 +11,7 @@ import type { VisibilityResourceKind } from "../library/useUpdateVisibility.js";
 export interface AccessResource {
   /** ApiResourceKind enum — drives grantable-role lookup and capability. */
   readonly kind: ApiResourceKind;
-  /** FGA/API kind string (e.g. "mcp_server", "session", "workflow_run"). */
+  /** FGA/API kind string (e.g. "mcp_server", "session", "agent"). */
   readonly kindString: string;
   /** Resource id. */
   readonly id: string;
@@ -25,7 +24,7 @@ export interface AccessResource {
 /**
  * Describes the "General access" (visibility) axis for the Manage access
  * dialog. Optional because not every resource has visibility (e.g. sessions
- * and workflow runs do not). When present, the dialog renders the
+ * do not). When present, the dialog renders the
  * shared `ResourceVisibilityControl`, which owns level selection and
  * the `can_manage_audience` gate.
  */
@@ -41,18 +40,4 @@ export interface AccessVisibility {
   readonly org?: string;
   /** Called after a successful visibility change so the host can refetch. */
   readonly onChanged?: () => void;
-}
-
-/**
- * A generic, resource-specific access section appended below People — the
- * escape hatch for the rare per-kind axis (today: a workflow's run
- * visibility) without baking that knowledge into a generic dialog.
- */
-export interface AccessExtraSection {
-  /** Section heading. */
-  readonly title: string;
-  /** Optional one-line explanation under the heading. */
-  readonly description?: string;
-  /** The section body (e.g. a `<RunVisibilityControl />`). */
-  readonly content: ReactNode;
 }

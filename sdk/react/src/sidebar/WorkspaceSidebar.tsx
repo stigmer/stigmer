@@ -8,14 +8,12 @@ import {
   MessageSquare,
   MessagesSquare,
   Store,
-  Workflow,
   type LucideIcon,
 } from "lucide-react";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { RecentActivityEntry, RecentActivityGroup } from "../activity/types.js";
 import { groupRecentActivityByTime } from "../activity/group-activity.js";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
-import { recentActivityStatusBadge } from "../activity/entry-status-badge.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { ScrollArea } from "../internal/scroll-area.js";
 import {
@@ -72,8 +70,6 @@ export interface WorkspaceSidebarProps {
   readonly recentActivity: WorkspaceSidebarActivity;
   /** Session id highlighted in Recents, if a session is open. */
   readonly activeSessionId?: string | null;
-  /** Workflow-execution id highlighted in Recents, if one is open. */
-  readonly activeRunId?: string | null;
   /**
    * Optional trailing accessory per recents row — e.g. the desktop
    * app's "running in background" pulse dot. Rendered after the
@@ -137,7 +133,6 @@ export function WorkspaceSidebar({
   renderLink,
   recentActivity,
   activeSessionId = null,
-  activeRunId = null,
   renderEntryAccessory,
   conversationsBadgeCount,
   footer,
@@ -232,7 +227,6 @@ export function WorkspaceSidebar({
             <ActivityGroupList
               groups={groups}
               activeSessionId={activeSessionId}
-              activeRunId={activeRunId}
               renderLink={renderLink}
               renderEntryAccessory={renderEntryAccessory}
               now={now}
@@ -310,14 +304,12 @@ function WantsHumanBadge({ count }: { readonly count: number }) {
 function ActivityGroupList({
   groups,
   activeSessionId,
-  activeRunId,
   renderLink,
   renderEntryAccessory,
   now,
 }: {
   readonly groups: readonly RecentActivityGroup[];
   readonly activeSessionId: string | null;
-  readonly activeRunId: string | null;
   readonly renderLink: RenderSidebarLink;
   readonly renderEntryAccessory?: (entry: RecentActivityEntry) => ReactNode;
   readonly now?: Date;
@@ -337,7 +329,6 @@ function ActivityGroupList({
                   key={entry.id}
                   entry={entry}
                   activeSessionId={activeSessionId}
-                  activeRunId={activeRunId}
                   renderLink={renderLink}
                   renderEntryAccessory={renderEntryAccessory}
                   now={now}
@@ -354,55 +345,33 @@ function ActivityGroupList({
 const ActivityEntry = memo(function ActivityEntry({
   entry,
   activeSessionId,
-  activeRunId,
   renderLink,
   renderEntryAccessory,
   now,
 }: {
   readonly entry: RecentActivityEntry;
   readonly activeSessionId: string | null;
-  readonly activeRunId: string | null;
   readonly renderLink: RenderSidebarLink;
   readonly renderEntryAccessory?: (entry: RecentActivityEntry) => ReactNode;
   readonly now?: Date;
 }) {
-  const isSession = entry.type === "session";
-  const isActive = isSession
-    ? entry.id === activeSessionId
-    : entry.id === activeRunId;
-  const href = isSession ? `/sessions/${entry.id}` : `/runs/${entry.id}`;
-  const TypeIcon = isSession ? MessageSquare : Workflow;
-  const statusBadge = recentActivityStatusBadge(entry);
+  const isActive = entry.id === activeSessionId;
 
   const row = renderLink({
     id: entry.id,
-    href,
+    href: `/sessions/${entry.id}`,
     active: isActive,
     "aria-current": isActive ? "page" : undefined,
     entry,
     className: cnActivityRow(isActive),
     children: (
       <>
-        <TypeIcon className="stg:mt-0.5 stg:size-3 stg:shrink-0 stg:opacity-50" aria-hidden="true" />
+        <MessageSquare className="stg:mt-0.5 stg:size-3 stg:shrink-0 stg:opacity-50" aria-hidden="true" />
         <span className="stg:line-clamp-2 stg:flex-1">{entry.subject}</span>
-        {/* Last-activity stamp + noteworthy status: the list sorts by
-            activity while run names embed creation time, so the row
-            must say WHY it is here ("failed · 2h"). */}
-        <span className="stg:flex stg:shrink-0 stg:flex-col stg:items-end stg:gap-0.5 stg:text-[10px] stg:leading-tight">
-          <span className="stg:text-sidebar-muted-foreground stg:tabular-nums">
-            {formatRelativeTime(entry.updatedAt, now)}
-          </span>
-          {statusBadge && (
-            <span
-              className={
-                statusBadge.tone === "destructive"
-                  ? "stg:text-destructive"
-                  : "stg:text-sidebar-muted-foreground"
-              }
-            >
-              {statusBadge.label}
-            </span>
-          )}
+        {/* Last-activity stamp: the list sorts by activity, so the row
+            says when it last moved ("2h"). */}
+        <span className="stg:shrink-0 stg:text-[10px] stg:leading-tight stg:text-sidebar-muted-foreground stg:tabular-nums">
+          {formatRelativeTime(entry.updatedAt, now)}
         </span>
         {renderEntryAccessory?.(entry)}
       </>

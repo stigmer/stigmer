@@ -1,30 +1,19 @@
-/** Discriminator for items in the unified recents list. */
-export type RecentActivityType = "session" | "workflow_run";
-
 /**
- * A normalized entry representing either an agent session or a workflow
- * run. Used by {@link useRecentActivity} and rendered in the sidebar
- * recents section.
+ * A normalized recent session, as listed by {@link useRecentActivity}
+ * and rendered in the sidebar recents section.
  */
 export interface RecentActivityEntry {
-  /** Resource ID (session ID or workflow run ID). */
+  /** Session ID. */
   readonly id: string;
-  /** Discriminator — determines which viewer to open on click. */
-  readonly type: RecentActivityType;
-  /** Human-readable label: session subject or workflow run name. */
+  /** Human-readable label: the session subject. */
   readonly subject: string;
   /**
-   * Last meaningful update timestamp, used for interleaved sort.
+   * Last meaningful update timestamp, used for the recency sort.
    * Derived from `status.audit.statusAudit.updatedAt` (bumped on every
    * meaningful status change), with fallback to `specAudit.createdAt`
-   * for resources that have never been independently updated.
+   * for sessions that have never been independently updated.
    */
   readonly updatedAt: Date;
-  /**
-   * Run phase for workflow runs (e.g. "COMPLETED", "FAILED").
-   * `undefined` for sessions.
-   */
-  readonly status?: string;
 }
 
 /** A time-based group of recent activity entries. */

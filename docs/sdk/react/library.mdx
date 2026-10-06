@@ -192,18 +192,16 @@ if (detection.detected) {
 ### useExportResource
 
 Headless export hook for Stigmer resources (Agent, McpServer,
-Workflow, Schedule).
+Schedule).
 
 Serializes the resource into YAML and JSON formats and provides
 stable callbacks for copying to clipboard or triggering a file
 download. All operations are client-side — no additional API calls.
 
-Non-workflow kinds serialize through the SDK manifest engine
+Every kind serializes through the SDK manifest engine
 (`serializeManifest`) — the canonical Stigmer resource format
 (`apiVersion`, `kind`, `metadata`, `spec`, snake_case fields) that
-round-trips through `parseManifest` and `stigmer apply -f`. Workflows
-use their own canonical serializer, shared with the workflow Editor
-tab, so one workflow has exactly one YAML shape across the product.
+round-trips through `parseManifest` and `stigmer apply -f`.
 
 **Signature**
 
@@ -213,7 +211,7 @@ function useExportResource(options: UseExportResourceOptions): UseExportResource
 
 <TypeTable
   type={{
-    options: { type: "UseExportResourceOptions", description: "Resource kind and the proto resource object.", required: true },
+    options: { type: "UseExportResourceOptions", description: "The proto resource object.", required: true },
   }}
 />
 
@@ -233,7 +231,6 @@ function useExportResource(options: UseExportResourceOptions): UseExportResource
 ```tsx
 const { agent } = useAgent(org, slug);
 const { copyYaml, downloadYaml } = useExportResource({
-  kind: "Agent",
   resource: agent,
 });
 
@@ -246,7 +243,7 @@ const { copyYaml, downloadYaml } = useExportResource({
 
 Behavior hook that updates the visibility of a resource.
 
-Supports blueprints (Agent, Workflow, Skill, MCP Server, Plugin) with
+Supports blueprints (Agent, Skill, MCP Server, Plugin) with
 the full private/org/child-organizations spectrum (a plugin's change reaches
 every resource it installed, by the server's contract), and environments
 with private/org (secret values never leave the org boundary, so the
@@ -285,10 +282,10 @@ function useUpdateVisibility(kind: VisibilityResourceKind, resourceId: string | 
 />
 
 ```tsx
-const { updateVisibility, isPending } = useUpdateVisibility("workflow", workflow.metadata.id);
+const { updateVisibility, isPending } = useUpdateVisibility("agent", agent.metadata.id);
 
 <VisibilitySelector
-  visibility={workflow.metadata.visibility}
+  visibility={agent.metadata.visibility}
   options={options}
   onVisibilityChange={updateVisibility}
   isPending={isPending}
@@ -470,7 +467,7 @@ link to the resource in the Library (e.g., `/library/agents`).
 
 ### blueprintVisibilityLevels
 
-The levels a blueprint (agent, skill, workflow, mcp_server, plugin)
+The levels a blueprint (agent, skill, mcp_server, plugin)
 selector offers, in escalation order: Private / Organization
 [/ Child organizations]. Organization is the creation default
 (blueprints are shared org assets; Private is an explicit opt-in).
@@ -767,8 +764,7 @@ Options for [`useExportResource`](#useexportresource).
 
 <TypeTable
   type={{
-    kind: { type: "\"Agent\" | \"McpServer\" | \"Schedule\" | \"Workflow\"", description: "The resource kind — determines which serializer is used.", required: true },
-    resource: { type: "Agent | McpServer | Schedule | Workflow | null", description: "The proto resource to export, or `null` when not yet loaded.", required: true },
+    resource: { type: "Agent | McpServer | Schedule | null", description: "The proto resource to export, or `null` when not yet loaded.", required: true },
   }}
 />
 

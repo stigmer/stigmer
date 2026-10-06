@@ -5,9 +5,10 @@
  * Two populations get a zero-specificity `:where(.stgm, .stgm *)` guard on
  * their subject compound:
  *
- * - **Unlayered rules** — the xyflow stylesheet tail. Its `.react-flow*`
- *   classes are vendor-namespaced, but unlayered CSS beats ALL layered CSS,
- *   so an unscoped copy would override a host's own react-flow styling.
+ * - **Unlayered rules** — a vendor stylesheet imported without a layer. Its
+ *   classes may be vendor-namespaced, but unlayered CSS beats ALL layered
+ *   CSS, so an unscoped copy would override a host's own styling for the
+ *   same vendor.
  * - **`@layer properties` rules** — Tailwind and tw-animate-css set universal
  *   (`*, ::before, ::after, ::backdrop`) initial values for UNPREFIXED
  *   internal variables (`--tw-translate-x`, `--tw-enter-opacity`; `prefix()`
@@ -34,8 +35,8 @@ const guardTemplate = selectorParser().astSync(SCOPE_GUARD).nodes[0].nodes[0];
 
 /**
  * Attach the scope guard to the subject (rightmost) compound of each
- * selector, before any pseudo-element — `.react-flow__node` becomes
- * `.react-flow__node:where(.stgm, .stgm *)`, and `*::before` becomes
+ * selector, before any pseudo-element — `.vendor__node` becomes
+ * `.vendor__node:where(.stgm, .stgm *)`, and `*::before` becomes
  * `*:where(.stgm, .stgm *)::before`.
  */
 const addScopeGuard = selectorParser((selectors) => {

@@ -323,13 +323,6 @@
       "components": 6
     },
     {
-      "slug": "workflow",
-      "title": "Workflow",
-      "description": "Hooks and components for workflow definitions, runs, and the visual builder.",
-      "hooks": 36,
-      "components": 16
-    },
-    {
       "slug": "workspace",
       "title": "Workspace",
       "description": "Hooks and components for file entries, folder browsing, and code editing.",

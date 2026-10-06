@@ -89,13 +89,6 @@ export interface ResizableSplitProps {
    * Accessible label for the drag separator. @default "Resize panel"
    */
   readonly ariaLabel?: string;
-  /**
-   * Called whenever the resizable pane width changes (during drag
-   * and on initial mount from persisted state). Consumers use this
-   * to thread the width into layout-dependent calculations like
-   * `WorkflowRunGraph.panelOffsetPx`.
-   */
-  readonly onResize?: (widthPx: number) => void;
   /** Additional CSS class names for the root flex container. */
   readonly className?: string;
 }
@@ -182,7 +175,6 @@ export function ResizableSplit({
   responsiveCollapse = "none",
   collapsedPane = "none",
   ariaLabel = "Resize panel",
-  onResize,
   className,
 }: ResizableSplitProps) {
   const isPrimaryResizable = resizablePane === "primary";
@@ -207,13 +199,6 @@ export function ResizableSplit({
   const containerRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef(0);
   const isDraggingRef = useRef(false);
-
-  // Notify consumer of the current width whenever it changes (incl. on re-init).
-  const onResizeRef = useRef(onResize);
-  onResizeRef.current = onResize;
-  useEffect(() => {
-    onResizeRef.current?.(panelWidth);
-  }, [panelWidth]);
 
   const clampWidth = useCallback(
     (raw: number) => Math.round(Math.max(minSize, Math.min(maxSize, raw))),
@@ -323,9 +308,8 @@ export function ResizableSplit({
         // must be a CSS container (stigmer/stigmer#301). Applied ONLY while a
         // collapse is requested: `container-type: inline-size` imposes layout
         // containment, which re-parents `position: fixed` descendants and
-        // creates a stacking context — the workflow inspector's in-tree
-        // viewport-covering backdrop (InspectorHeader) lives inside a split
-        // pane and must not be captured. The one `responsiveCollapse`
+        // creates a stacking context, so an in-tree viewport-covering
+        // backdrop inside a split pane would be captured. The one `responsiveCollapse`
         // consumer (the session layout) has no in-tree fixed descendants:
         // its dialogs are native <dialog> (top layer) and its floating UI
         // portals out.

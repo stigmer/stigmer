@@ -2,9 +2,8 @@ import { cn } from "@stigmer/theme";
 
 /**
  * The shared glyph vocabulary for thread cards (session tool-call rows and
- * workflow task cards). One set of status/affordance icons so the two
- * threads cannot drift apart visually — extracted from `ToolCallItem`,
- * which previously owned them and which the workflow card had copied.
+ * the approval and review surfaces). One set of status/affordance icons so
+ * the rows cannot drift apart visually — extracted from `ToolCallItem`.
  *
  * All glyphs inherit `currentColor`; the consumer colors them with status
  * token classes (`text-success`, `text-warning`, …) — never hardcoded

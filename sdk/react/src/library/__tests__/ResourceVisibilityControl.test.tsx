@@ -94,7 +94,6 @@ afterEach(() => {
 
 const KINDS: ReadonlyArray<[VisibilityResourceKind, string]> = [
   ["agent", "agent"],
-  ["workflow", "workflow"],
   ["mcpServer", "mcp_server"],
   ["skill", "skill"],
   ["plugin", "plugin"],

@@ -269,7 +269,6 @@ export function ScheduleDetailView({
   });
 
   const { copyYaml, downloadYaml } = useExportResource({
-    kind: "Schedule",
     resource: schedule,
   });
 

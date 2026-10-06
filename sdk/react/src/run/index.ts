@@ -24,6 +24,9 @@ export type {
   UseAgentRunActionsReturn,
 } from "./useAgentRunActions.js";
 
+export { useResolveAgentRunSession } from "./useResolveAgentRunSession.js";
+export type { UseResolveAgentRunSessionReturn } from "./useResolveAgentRunSession.js";
+
 export { UsageWidget, formatCost, formatTokenCount } from "./UsageWidget.js";
 export type { UsageWidgetProps } from "./UsageWidget.js";
 
@@ -63,8 +66,6 @@ export type { UseRunArtifactsReturn } from "./useRunArtifacts.js";
 export { useArtifactContent } from "./useArtifactContent.js";
 export type { UseArtifactContentReturn } from "./useArtifactContent.js";
 
-export { useArtifactContentById } from "./useArtifactContentById.js";
-export type { UseArtifactContentByIdReturn } from "./useArtifactContentById.js";
 
 export { useArtifactDownloadUrl } from "./useArtifactDownloadUrl.js";
 export type {
@@ -295,18 +296,10 @@ export type { ArtifactRowProps } from "./ArtifactRow.js";
 export { ArtifactRowView } from "./ArtifactRowView.js";
 export type { ArtifactRowViewProps } from "./ArtifactRowView.js";
 
-export {
-  fromRunArtifact,
-  fromArtifact,
-} from "./artifact-row-item.js";
+export { fromRunArtifact } from "./artifact-row-item.js";
 export type { ArtifactRowItem } from "./artifact-row-item.js";
 
 export { ARTIFACT_DOCUMENT_ENTRY_ID } from "./artifact-document.js";
-
-export {
-  FILE_CHANGE_DOCUMENT_ENTRY_ID,
-  fileChangeTabPath,
-} from "./file-change-document.js";
 
 export { ArtifactContentRenderer } from "./ArtifactContentRenderer.js";
 export type { ArtifactContentRendererProps } from "./ArtifactContentRenderer.js";

@@ -33,7 +33,7 @@ export interface EditResourceYamlDialogProps {
  * Modal dialog for editing a resource as YAML and applying the changes —
  * the kind-agnostic "Edit YAML" experience for detail pages and panels.
  *
- * Workflow:
+ * Steps:
  * 1. The resource is serialized to canonical YAML (system-managed state
  *    stripped) and seeded into a CodeMirror editor
  * 2. Every edit is validated against the kind's generated proto schema;

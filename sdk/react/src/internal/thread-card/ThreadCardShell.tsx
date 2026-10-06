@@ -5,11 +5,10 @@ import { cn } from "@stigmer/theme";
 import { ChevronIcon } from "./glyphs.js";
 
 /**
- * The shared card shell for thread rows — session tool-call cards and
- * workflow task cards compose the SAME chrome, header gestures, and body
- * contract, so the two threads read as one visual language by
- * construction. Extracted from `ToolCallItem`, whose DOM is the
- * canonical anatomy; the workflow card adopted it in the same change.
+ * The shared card shell for thread rows — session tool-call cards compose
+ * the chrome, header gestures, and body contract from it, so every row
+ * reads as one visual language by construction. Extracted from
+ * `ToolCallItem`, whose DOM is the canonical anatomy.
  *
  * Three pieces, composed via children (slots-as-children, never a
  * mega-prop card — each thread's composition stays explicit):

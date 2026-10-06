@@ -52,8 +52,8 @@ afterEach(() => {
   recipeStyle = null;
 });
 
-// A minimal client: the provider eagerly fetches the model/task-kind
-// registries on mount. Returning a null credential keeps that work
+// A minimal client: the provider eagerly fetches the model registry on
+// mount. Returning a null credential keeps that work
 // non-blocking (it polls for a token) so rendering is synchronous and
 // never touches the network during the test.
 function makeClient(): Stigmer {

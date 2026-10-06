@@ -1,20 +1,12 @@
 /**
- * useDashboardSummary reads one organization for all three of its sources:
- * the workflow and agent summaries and the usage report the cost comes from.
- * The three source hooks are stubbed; each records the organization it was
- * asked for.
+ * useDashboardSummary reads one organization for both of its sources: the
+ * agent run summary and the usage report the cost comes from. The two
+ * source hooks are stubbed; each records the organization it was asked for.
  */
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-const asked = vi.hoisted(() => ({ workflow: [] as unknown[], agent: [] as unknown[], usage: [] as unknown[] }));
-
-vi.mock("../../workflow/useWorkflowDashboardSummary.js", () => ({
-  useWorkflowDashboardSummary: (options: { org: unknown }) => {
-    asked.workflow.push(options.org);
-    return { summary: null, isLoading: false, error: null, refetch: () => {} };
-  },
-}));
+const asked = vi.hoisted(() => ({ agent: [] as unknown[], usage: [] as unknown[] }));
 
 vi.mock("../useAgentRunSummary.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../useAgentRunSummary.js")>();
@@ -39,7 +31,6 @@ import { useDashboardSummary } from "../useDashboardSummary";
 describe("useDashboardSummary", () => {
   it("asks every source for the one organization it was given", () => {
     renderHook(() => useDashboardSummary({ org: "acme" }));
-    expect(asked.workflow.at(-1)).toBe("acme");
     expect(asked.agent.at(-1)).toBe("acme");
     expect(asked.usage.at(-1)).toBe("acme");
   });

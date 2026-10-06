@@ -37,8 +37,6 @@ export type { StreamingPlan } from "./detect-streaming-plan.js";
 export { useDetectSkillPackage } from "./useDetectSkillPackage.js";
 export type { UseDetectSkillPackageReturn } from "./useDetectSkillPackage.js";
 
-export { serializeWorkflowYaml, parseWorkflowYaml } from "../workflow/serialize-workflow-yaml.js";
-
 export { useApplyResource } from "./useApplyResource.js";
 export type {
   UseApplyResourceReturn,

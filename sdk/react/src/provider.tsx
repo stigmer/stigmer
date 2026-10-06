@@ -26,11 +26,6 @@ import { PortalContainerContext } from "./portal-container.js";
 import { ModelRegistryContext } from "./models/ModelRegistryContext.js";
 import type { ModelRegistryState } from "./models/ModelRegistryContext.js";
 import { fetchModelRegistryDocument } from "./models/registry.js";
-import { TaskKindRegistryContext } from "./workflow/TaskKindRegistryContext.js";
-import type { TaskKindRegistryState } from "./workflow/TaskKindRegistryContext.js";
-import type { TaskKindDescriptor } from "./workflow/types.js";
-import { ReviewRendererContext } from "./workflow/ReviewRendererContext.js";
-import type { ReviewRenderers } from "./workflow/ReviewRendererContext.js";
 
 /** Props for {@link StigmerProvider}. */
 export interface StigmerProviderProps {
@@ -73,9 +68,8 @@ export interface StigmerProviderProps {
    *
    * When `executionTarget` is `"local"`, SDK hooks automatically drive
    * the adapter at the right lifecycle points: sessions on open/close
-   * (the session view attaches a worker while open and detaches on close)
-   * and workflow runs on create/terminal. Cloud consumers omit this
-   * prop entirely.
+   * (the session view attaches a worker while open and detaches on
+   * close). Cloud consumers omit this prop entirely.
    *
    * Desktop apps provide a Tauri-based adapter; self-hosted customers
    * provide their own implementation of the {@link RunnerAdapter}
@@ -102,10 +96,9 @@ export interface StigmerProviderProps {
    * from the first render with its "Turn off" affordance.
    *
    * Consumed by the interactive-session surface only (`useNewSessionFlow`,
-   * `useSessionPageFlow` and the organisms composing them). Specialized
-   * flows (workflow architect/explain/diagnose) and headless creation are
-   * deliberately unaffected — those callers pass `autoApproveAll`
-   * explicitly when they mean it.
+   * `useSessionPageFlow` and the organisms composing them). Headless
+   * creation is deliberately unaffected — those callers pass
+   * `autoApproveAll` explicitly when they mean it.
    *
    * Omit on shared or sensitive surfaces — everything stays fail-closed
    * exactly as today. Pass a referentially stable object (module constant
@@ -207,40 +200,7 @@ export interface StigmerProviderProps {
    * ```
    */
   readonly colorMode?: ColorMode;
-  /**
-   * Custom renderers for human_input review payloads, keyed by the task
-   * config's `ui_hint`.
-   *
-   * When a pending approval gate carries a `ui_hint` that matches a key
-   * here, the registered component presents the review material instead
-   * of the built-in approval card — the host application owns how its
-   * domain objects look while being reviewed, while Stigmer keeps owning
-   * the approval mechanics (outcomes, submission, timeline, audit).
-   *
-   * Hints with no registered renderer fall back to the built-in card
-   * with the payload shown as structured data, so workflows stay portable
-   * across surfaces that register nothing.
-   *
-   * Pass a referentially stable object (module constant or `useMemo`) —
-   * a new object every render re-renders every mounted gate.
-   *
-   * @example
-   * ```tsx
-   * const reviewRenderers: ReviewRenderers = {
-   *   "article-diff": ({ payload, submit }) => (
-   *     <ArticleDiffView revision={payload} onDecision={submit} />
-   *   ),
-   * };
-   *
-   * <StigmerProvider client={client} reviewRenderers={reviewRenderers}>
-   *   <App />
-   * </StigmerProvider>
-   * ```
-   */
-  readonly reviewRenderers?: ReviewRenderers;
 }
-
-const EMPTY_REVIEW_RENDERERS: ReviewRenderers = {};
 
 /**
  * React provider that distributes a {@link Stigmer} SDK client to
@@ -322,7 +282,6 @@ export function StigmerProvider({
   preset,
   className,
   colorMode = "light",
-  reviewRenderers,
 }: StigmerProviderProps) {
   const systemMode = useSystemColorMode();
   const resolvedMode: ResolvedColorMode =
@@ -333,7 +292,6 @@ export function StigmerProvider({
   const scope = useThemeScope(resolvedMode, presetClass, className);
   const portalContainer = usePortalContainer(scope);
   const registryState = useModelRegistryFetch(client);
-  const taskKindRegistryState = useTaskKindRegistryFetch(client);
 
   return (
     <StigmerContext.Provider value={client}>
@@ -344,28 +302,24 @@ export function StigmerProvider({
               <PublicBaseUrlContext.Provider value={publicBaseUrl}>
                 <ColorModeContext.Provider value={resolvedMode}>
                   <ModelRegistryContext.Provider value={registryState}>
-                    <TaskKindRegistryContext.Provider value={taskKindRegistryState}>
-                      <ReviewRendererContext.Provider value={reviewRenderers ?? EMPTY_REVIEW_RENDERERS}>
-                        <PortalContainerContext.Provider value={portalContainer}>
-                          {/*
-                            The in-tree scoping container. `data-stgm-root` is a
-                            stable public selector — the documented seam for hosts
-                            to style THIS element only (e.g. the fixed-height
-                            embedding recipe, #260). It must never be mirrored
-                            onto the portal container, whose own `data-stgm-portal`
-                            marker keeps host in-tree-only CSS away from the
-                            off-tree element.
-                          */}
-                          <div
-                            className={scope.className}
-                            data-stgm-root=""
-                            data-stgm-color-mode={scope.colorMode}
-                          >
-                            {children}
-                          </div>
-                        </PortalContainerContext.Provider>
-                      </ReviewRendererContext.Provider>
-                    </TaskKindRegistryContext.Provider>
+                    <PortalContainerContext.Provider value={portalContainer}>
+                      {/*
+                        The in-tree scoping container. `data-stgm-root` is a
+                        stable public selector — the documented seam for hosts
+                        to style THIS element only (e.g. the fixed-height
+                        embedding recipe, #260). It must never be mirrored
+                        onto the portal container, whose own `data-stgm-portal`
+                        marker keeps host in-tree-only CSS away from the
+                        off-tree element.
+                      */}
+                      <div
+                        className={scope.className}
+                        data-stgm-root=""
+                        data-stgm-color-mode={scope.colorMode}
+                      >
+                        {children}
+                      </div>
+                    </PortalContainerContext.Provider>
                   </ModelRegistryContext.Provider>
                 </ColorModeContext.Provider>
               </PublicBaseUrlContext.Provider>
@@ -455,187 +409,6 @@ function useModelRegistryFetch(client: Stigmer): ModelRegistryState {
         } else {
           setState({
             models: [],
-            isLoading: false,
-            error: err instanceof Error ? err : new Error(String(err)),
-          });
-        }
-      }
-    };
-
-    attempt();
-
-    return () => { controller.abort(); };
-  }, [doFetch, version]);
-
-  const refetch = useCallback(() => {
-    setState((prev) => {
-      if (prev.isLoading) return prev;
-      return { ...prev, isLoading: true, error: null };
-    });
-    setVersion((v) => v + 1);
-  }, []);
-
-  return { ...state, refetch };
-}
-
-// ---------------------------------------------------------------------------
-// Task Kind Registry fetch
-// ---------------------------------------------------------------------------
-
-/**
- * Fetch the task kind registry from the authenticated API endpoint.
- *
- * The endpoint returns `{ version, generatedAt, descriptors: [...] }`.
- * Each descriptor maps directly to the `TaskKindDescriptor` interface
- * used by the React SDK's task palette, inspector, and YAML validation.
- */
-async function fetchTaskKindRegistry(
-  apiUrl: string,
-  token: string | null,
-  customFetch?: typeof globalThis.fetch,
-): Promise<TaskKindDescriptor[]> {
-  const doFetch = customFetch ?? globalThis.fetch;
-  const headers: Record<string, string> = {};
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-  const res = await doFetch(`${apiUrl}/v1/proxy/task-kind-registry`, { headers });
-  if (!res.ok) throw new Error(`Task kind registry fetch failed: ${res.status}`);
-  const data: unknown = await res.json();
-  return parseTaskKindRegistryJson(data);
-}
-
-const VALID_CATEGORIES = new Set([
-  "control_flow", "invocation", "ai", "data", "governance", "event", "unspecified",
-]);
-
-const VALID_FIELD_TYPES = new Set([
-  "string", "int32", "float", "bool", "enum", "struct", "repeated", "map", "message",
-]);
-
-function parseTaskKindRegistryJson(data: unknown): TaskKindDescriptor[] {
-  if (!data || typeof data !== "object") return [];
-  const descriptors = (data as Record<string, unknown>).descriptors;
-  if (!Array.isArray(descriptors)) return [];
-
-  return descriptors
-    .filter((d): d is Record<string, unknown> =>
-      d != null && typeof d === "object" && typeof (d as Record<string, unknown>).kind === "string",
-    )
-    .map((d) => ({
-      kind: d.kind as string,
-      displayName: (d.displayName as string) ?? "",
-      description: (d.description as string) ?? "",
-      category: VALID_CATEGORIES.has(d.category as string)
-        ? (d.category as TaskKindDescriptor["category"])
-        : "unspecified",
-      icon: (d.icon as string) ?? "",
-      configProtoType: (d.configProtoType as string) ?? "",
-      fields: Array.isArray(d.fields)
-        ? (d.fields as Record<string, unknown>[]).map((f) => ({
-            name: (f.name as string) ?? "",
-            displayName: (f.displayName as string) ?? "",
-            description: (f.description as string) ?? "",
-            type: VALID_FIELD_TYPES.has(f.type as string)
-              ? (f.type as TaskKindDescriptor["fields"][number]["type"])
-              : ("string" as const),
-            required: f.required === true,
-            isExpression: f.isExpression === true ? true : undefined,
-            defaultValue: typeof f.defaultValue === "string" ? f.defaultValue : undefined,
-            enumValues: Array.isArray(f.enumValues) ? (f.enumValues as string[]) : undefined,
-            groupId: typeof f.groupId === "string" ? f.groupId : undefined,
-            fieldNumber: typeof f.fieldNumber === "number" ? f.fieldNumber : 0,
-            elementType: typeof f.elementType === "string" ? f.elementType : undefined,
-            validationHints: Array.isArray(f.validationHints) ? (f.validationHints as string[]) : undefined,
-          }))
-        : [],
-      fieldGroups: Array.isArray(d.fieldGroups)
-        ? (d.fieldGroups as Record<string, unknown>[]).map((g) => ({
-            id: (g.id as string) ?? "",
-            displayName: (g.displayName as string) ?? "",
-            description: typeof g.description === "string" ? g.description : undefined,
-          }))
-        : [],
-      configJsonSchema:
-        d.configJsonSchema != null && typeof d.configJsonSchema === "object"
-          ? (d.configJsonSchema as Record<string, unknown>)
-          : {},
-      outputJsonSchema:
-        d.outputJsonSchema != null && typeof d.outputJsonSchema === "object"
-          ? (d.outputJsonSchema as Record<string, unknown>)
-          : undefined,
-      yamlExamples: Array.isArray(d.yamlExamples) ? (d.yamlExamples as string[]) : undefined,
-      documentationUrl: (d.documentationUrl as string) ?? "",
-      isAiNative: d.isAiNative === true,
-      requiresExternalService: d.requiresExternalService === true,
-    }));
-}
-
-/**
- * Fetches the task kind registry from the authenticated API and caches
- * the result for the lifetime of the provider.
- *
- * Follows the same pattern as {@link useModelRegistryFetch}: auth token
- * polling, exponential backoff retries, and `refetch` for manual retry.
- */
-function useTaskKindRegistryFetch(client: Stigmer): TaskKindRegistryState {
-  const [version, setVersion] = useState(0);
-  const [state, setState] = useState<Omit<TaskKindRegistryState, "refetch">>({
-    descriptors: [],
-    isLoading: true,
-    error: null,
-  });
-
-  const clientRef = useRef(client);
-  clientRef.current = client;
-
-  const fetchAttemptRef = useRef(0);
-
-  const doFetch = useCallback(async (signal: AbortSignal) => {
-    const c = clientRef.current;
-    let token = await c.getAuthCredential();
-
-    if (!token) {
-      const start = Date.now();
-      while (!token && Date.now() - start < TOKEN_POLL_MAX_MS) {
-        if (signal.aborted) return;
-        await new Promise((r) => setTimeout(r, TOKEN_POLL_INTERVAL_MS));
-        if (signal.aborted) return;
-        token = await c.getAuthCredential();
-      }
-    }
-
-    return fetchTaskKindRegistry(c.baseUrl, token, c.fetch);
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    const { signal } = controller;
-
-    fetchAttemptRef.current = 0;
-
-    const attempt = async () => {
-      if (signal.aborted) return;
-
-      setState((prev) => (prev.isLoading ? prev : { ...prev, isLoading: true }));
-
-      try {
-        const descriptors = await doFetch(signal);
-        if (!signal.aborted && descriptors) {
-          setState({ descriptors, isLoading: false, error: null });
-          fetchAttemptRef.current = 0;
-        }
-      } catch (err: unknown) {
-        if (signal.aborted) return;
-
-        const retryIdx = fetchAttemptRef.current;
-        fetchAttemptRef.current = retryIdx + 1;
-
-        if (retryIdx < RETRY_DELAYS_MS.length) {
-          setTimeout(() => { if (!signal.aborted) attempt(); }, RETRY_DELAYS_MS[retryIdx]);
-        } else {
-          setState({
-            descriptors: [],
             isLoading: false,
             error: err instanceof Error ? err : new Error(String(err)),
           });

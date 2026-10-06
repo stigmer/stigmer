@@ -7,7 +7,6 @@ import { ManageAccessDialog } from "./ManageAccessDialog.js";
 import type {
   AccessResource,
   AccessVisibility,
-  AccessExtraSection,
 } from "./types.js";
 
 /** Arguments for {@link useManageAccess}. */
@@ -20,8 +19,6 @@ export interface UseManageAccessArgs {
   readonly resource: AccessResource | null;
   /** General access (visibility) axis; omit for resources without visibility. */
   readonly visibility?: AccessVisibility;
-  /** Optional resource-specific section (e.g. run observability). */
-  readonly extraSection?: AccessExtraSection;
   /** Menu-item label. @default "Manage access" */
   readonly label?: string;
 }
@@ -45,7 +42,7 @@ export interface UseManageAccessReturn {
 /**
  * Wires the unified Manage access dialog to a kebab/overflow menu — the
  * trigger shape used by static resource detail views (agent, skill,
- * mcp_server, workflow), whose actions live in {@link ResourceActionBar}'s
+ * mcp_server, plugin), whose actions live in {@link ResourceActionBar}'s
  * menu rather than as a standalone button.
  *
  * Owns the open-state and the `can_view_access` gate (a viewer may open the
@@ -70,7 +67,6 @@ export interface UseManageAccessReturn {
 export function useManageAccess({
   resource,
   visibility,
-  extraSection,
   label = "Manage access",
 }: UseManageAccessArgs): UseManageAccessReturn {
   const [isOpen, setIsOpen] = useState(false);
@@ -93,7 +89,6 @@ export function useManageAccess({
       onOpenChange={setIsOpen}
       resource={resource}
       visibility={visibility}
-      extraSection={extraSection}
     />
   ) : null;
 

@@ -250,8 +250,8 @@ describe("FileReviewCard", () => {
 
   describe("multi-file set (per-file controls)", () => {
     it("starts a complete multi-file set collapsed in diff mode — auto-expansion is list-mode only", () => {
-      // Diff mode's expanded body is every full diff with NO height cap (the
-      // workflow file-review list); auto-expanding a multi-file set there
+      // Diff mode's expanded body is every full diff with NO height cap (a
+      // standalone embed); auto-expanding a multi-file set there
       // would dump every diff open on mount. Only the compact list mode
       // (showDiffs=false, the dock) starts multi-file sets expanded.
       render(<FileReviewCard fileChangeSet={multiChangeSet()} onSubmit={noop} />);

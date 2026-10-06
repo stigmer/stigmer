@@ -232,31 +232,7 @@ describe("WorkspaceSurface extraViews", () => {
     expect(screen.getByRole("tab", { name: /main\.go/ })).toBeTruthy();
   });
 
-  it("hands a fitted view a bare slot — no sidebar heading, no padded scroll wrapper", () => {
-    // A fitted view (the workflow Inspect facet) owns its header, tab strip,
-    // and scroll; the shared envelope would double the header and nest
-    // scroll containers.
-    const fittedView = {
-      id: "inspect",
-      label: "Inspect",
-      icon: <span />,
-      fitted: true,
-      content: <div data-testid="fitted-probe" />,
-    };
-    renderSurface({ extraViews: [fittedView] });
-    fireEvent.click(screen.getByRole("radio", { name: "Inspect" }));
-
-    const probe = screen.getByTestId("fitted-probe");
-    // No SidebarHeader (the rail button carries the label as a title
-    // attribute, not text — so any "Inspect" text would be the heading).
-    expect(screen.queryByText("Inspect")).toBeNull();
-    // The content's wrapper is the bare sidebar column, not the padded
-    // scroll envelope the default path applies.
-    expect(probe.parentElement!.className).not.toContain("stg:overflow-y-auto");
-    expect(probe.parentElement!.className).not.toContain("stg:px-3");
-  });
-
-  it("keeps the shared envelope (heading + padded scroll) for unfitted views", () => {
+  it("wraps an extra view in the shared envelope (heading + padded scroll)", () => {
     renderSurface({ extraViews: [configView] });
     fireEvent.click(screen.getByRole("radio", { name: "Config" }));
     const probe = screen.getByTestId("config-probe");
@@ -351,7 +327,7 @@ describe("WorkspaceSurface extraViews", () => {
 
 // ---------------------------------------------------------------------------
 // builtInViews opt-in — hosts without a workspace file source scope
-// the rail to their injected facets (the workflow run panel today).
+// the rail to their injected facets.
 // ---------------------------------------------------------------------------
 
 describe("WorkspaceSurface builtInViews", () => {
@@ -475,8 +451,8 @@ describe("WorkspaceSurface virtualDocuments", () => {
   });
 
   it("mounts ONLY the active virtual document — inactive tabs stay unmounted", () => {
-    // Load-bearing for streaming documents (the workflow's agent-execution
-    // transcripts): an inactive tab's content must not exist in the tree at
+    // Load-bearing for streaming documents (a live run transcript): an
+    // inactive tab's content must not exist in the tree at
     // all, so its fetch/stream hooks never run (only the visible surface
     // streams). A hidden-but-mounted body would keep every
     // open transcript's subscription alive.

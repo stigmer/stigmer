@@ -8,7 +8,7 @@
  *    on the Tailwind imports makes every utility class and theme variable
  *    collision-free by NAME (`.stg\:flex`, `--stg-color-*`).
  * 2. `scripts/lib/scope-unprefixed.ts` scopes what the prefix cannot cover
- *    (the unlayered xyflow stylesheet and the `@layer properties` `--tw-*`
+ *    (unlayered rules and the `@layer properties` `--tw-*`
  *    initial-value block) under `:where(.stgm, .stgm *)` — see that module
  *    for the full rationale.
  *
@@ -17,7 +17,7 @@
  * `src/__tests__/styles-dist-isolation.test.ts`.
  *
  * Dev note: `npm run build:css:watch` runs the raw Tailwind CLI without
- * stage 2 (fine for iteration: stage 2 only affects xyflow edge cascade and
+ * stage 2 (fine for iteration: stage 2 only affects unlayered-rule cascade and
  * cross-version `--tw-*` hygiene). Run `npm run build:css` for the shippable
  * artifact.
  */

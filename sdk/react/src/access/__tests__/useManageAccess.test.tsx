@@ -37,7 +37,7 @@ const RESOURCE: AccessResource = {
 };
 
 /**
- * Mirrors how the blueprint detail views (agent/skill/mcp_server/workflow)
+ * Mirrors how the blueprint detail views (agent/skill/mcp_server/plugin)
  * wire the header visibility chip: clickable into the Manage access dialog
  * only when the user can view access, a static badge otherwise.
  */

@@ -7,7 +7,6 @@ import { ManageAccessDialog } from "./ManageAccessDialog.js";
 import type {
   AccessResource,
   AccessVisibility,
-  AccessExtraSection,
 } from "./types.js";
 
 /** Props for {@link ManageAccessButton}. */
@@ -16,8 +15,6 @@ export interface ManageAccessButtonProps {
   readonly resource: AccessResource;
   /** General access (visibility) axis; omit for resources without visibility. */
   readonly visibility?: AccessVisibility;
-  /** Optional resource-specific section (e.g. run observability). */
-  readonly extraSection?: AccessExtraSection;
   /** Button label. @default "Manage access" */
   readonly label?: string;
   /** Additional CSS classes for the trigger button. */
@@ -26,9 +23,8 @@ export interface ManageAccessButtonProps {
 
 /**
  * The single drop-in, visible trigger for the unified Manage access dialog —
- * used by surfaces that render a button in a header or panel (session and
- * workflow-execution viewers) rather than a kebab menu (those
- * use {@link useManageAccess}).
+ * used by surfaces that render a button in a header or panel (the session
+ * viewer) rather than a kebab menu (those use {@link useManageAccess}).
  *
  * Self-gates on `can_view_access`: the button renders only for users who may
  * see the access list, and the dialog's sections gate editing further. Because
@@ -58,7 +54,6 @@ export interface ManageAccessButtonProps {
 export function ManageAccessButton({
   resource,
   visibility,
-  extraSection,
   label = "Manage access",
   className,
 }: ManageAccessButtonProps) {
@@ -87,7 +82,6 @@ export function ManageAccessButton({
         onOpenChange={setOpen}
         resource={resource}
         visibility={visibility}
-        extraSection={extraSection}
       />
     </PermissionGate>
   );

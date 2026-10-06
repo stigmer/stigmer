@@ -84,7 +84,6 @@ export interface PluginDetailViewProps {
   readonly onSkillClick?: (ref: PluginMemberRef) => void;
   readonly onMcpServerClick?: (ref: PluginMemberRef) => void;
   readonly onAgentClick?: (ref: PluginMemberRef) => void;
-  readonly onWorkflowClick?: (ref: PluginMemberRef) => void;
   /**
    * Called from "Create a new agent with these tools" with the usages the
    * creation wizard preselects, for a plugin that installed MCP servers and
@@ -132,7 +131,6 @@ export function PluginDetailView({
   onSkillClick,
   onMcpServerClick,
   onAgentClick,
-  onWorkflowClick,
   onCreateAgent,
   actions,
   additionalTabs,
@@ -234,7 +232,6 @@ export function PluginDetailView({
         onSkillClick={onSkillClick}
         onMcpServerClick={onMcpServerClick}
         onAgentClick={onAgentClick}
-        onWorkflowClick={onWorkflowClick}
         onCreateAgent={onCreateAgent}
       />
     );
@@ -271,7 +268,6 @@ function PluginOverview({
   onSkillClick,
   onMcpServerClick,
   onAgentClick,
-  onWorkflowClick,
   onCreateAgent,
 }: {
   readonly plugin: Plugin;
@@ -280,7 +276,6 @@ function PluginOverview({
   readonly onSkillClick?: (ref: PluginMemberRef) => void;
   readonly onMcpServerClick?: (ref: PluginMemberRef) => void;
   readonly onAgentClick?: (ref: PluginMemberRef) => void;
-  readonly onWorkflowClick?: (ref: PluginMemberRef) => void;
   readonly onCreateAgent?: (usages: readonly McpServerUsageInput[]) => void;
 }) {
   const org = plugin.metadata?.org ?? "";
@@ -325,7 +320,7 @@ function PluginOverview({
               <MemberRow
                 key={`${member.kind}:${member.id}`}
                 member={member}
-                onClick={clickFor(member.kind, { onSkillClick, onMcpServerClick, onAgentClick, onWorkflowClick })}
+                onClick={clickFor(member.kind, { onSkillClick, onMcpServerClick, onAgentClick })}
                 org={org}
                 keysAskedAt={hasAgent ? "agent" : "connect"}
               />
@@ -490,7 +485,6 @@ function clickFor(
     readonly onSkillClick?: (ref: PluginMemberRef) => void;
     readonly onMcpServerClick?: (ref: PluginMemberRef) => void;
     readonly onAgentClick?: (ref: PluginMemberRef) => void;
-    readonly onWorkflowClick?: (ref: PluginMemberRef) => void;
   },
 ): ((ref: PluginMemberRef) => void) | undefined {
   switch (kind) {
@@ -500,8 +494,6 @@ function clickFor(
       return handlers.onMcpServerClick;
     case ApiResourceKind.agent:
       return handlers.onAgentClick;
-    case ApiResourceKind.workflow:
-      return handlers.onWorkflowClick;
     default:
       return undefined;
   }
@@ -516,8 +508,6 @@ export function kindLabel(kind: ApiResourceKind): string {
       return "MCP server";
     case ApiResourceKind.agent:
       return "Agent";
-    case ApiResourceKind.workflow:
-      return "Workflow";
     default:
       return ApiResourceKind[kind] ?? String(kind);
   }

@@ -70,7 +70,6 @@ width — the console's app shell owns the `w-60` (240px) column.
 <TypeTable
   type={{
     activeNav: { type: "WorkspaceNavId | null", description: "Which primary nav row is the current location, or `null`/omitted when none is (e.g. inside a session). The sidebar renders state only — the host decides what \"active\" means for its routes." },
-    activeRunId: { type: "string | null", description: "Workflow-execution id highlighted in Recents, if one is open." },
     activeSessionId: { type: "string | null", description: "Session id highlighted in Recents, if a session is open." },
     conversationsBadgeCount: { type: "number", description: "Count for the Conversations row's badge: how many conversations want a human right now (`useConversationsWantsHumanCount`). Data as props per the chrome contract — hosts fetch, deterministic hosts (tours) pass a fixture or omit. Hidden at `0`/omitted; the display caps at \"99+\" while the accessible name keeps the real number." },
     footer: { type: "ReactNode", description: "Footer content — typically the host app's `UserMenu` wrapper.", required: true },
@@ -126,7 +125,7 @@ return inert rows decorated with capture markers.
     "aria-current": { type: "\"page\" | undefined", description: "`\"page\"` when active, for assistive tech. Spread onto the element.", required: true },
     children: { type: "ReactNode", description: "Row content (icon, label, timestamps). Render inside the element.", required: true },
     className: { type: "string", description: "Fully-styled row classes computed by the sidebar. Apply verbatim — the row's geometry and type scale are the product surface tours and embeds depict, so consumers must not restyle them.", required: true },
-    entry: { type: "RecentActivityEntry", description: "The recent-activity entry behind this row. Present only for recents rows in the workspace sidebar — consumers use it to pick the right navigation flow (session viewer vs. run viewer) without parsing `href`.", typeDescriptionLink: "/docs/sdk/react/activity#recentactivityentry" },
+    entry: { type: "RecentActivityEntry", description: "The recent-activity entry behind this row. Present only for recents rows in the workspace sidebar — consumers use it to open the session through their own navigation flow without parsing `href`.", typeDescriptionLink: "/docs/sdk/react/activity#recentactivityentry" },
     href: { type: "string", description: "Console route this row targets (e.g. `/library`, `/sessions/<id>`).", required: true },
     id: { type: "string", description: "Stable row identifier, for consumers that vary behavior per row: `\"new-session\"` / `\"dashboard\"` / `\"library\"` in the workspace sidebar, `\"back-to-sessions\"` or the settings route basename (e.g. `\"api-keys\"`) in the settings sidebar, and the entry id for recent activity rows.", required: true },
   }}

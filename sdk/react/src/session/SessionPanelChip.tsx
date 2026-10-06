@@ -1,7 +1,7 @@
 "use client";
 
 // The session viewer's panel toggle chip — a session-named alias of the
-// shared workspace PanelChip (the workflow viewer mounts the same chip).
+// shared workspace PanelChip.
 
 import { PanelChip, type PanelChipProps } from "../workspace/PanelChip.js";
 

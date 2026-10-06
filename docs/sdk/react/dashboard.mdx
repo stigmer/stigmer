@@ -44,11 +44,11 @@ function useAgentRunSummary(options: UseAgentRunSummaryOptions): UseAgentRunSumm
 
 ### useDashboardFailedRuns
 
-Composition hook that fetches recent failed runs from both
-agent and workflow domains, normalizes them into [`DashboardFailedRun`](#dashboardfailedrun)
-entries, and interleaves them by timestamp (newest first).
+Data hook that fetches an organization's recent failed agent runs,
+normalizes them into [`DashboardFailedRun`](#dashboardfailedrun) entries, and orders
+them newest first.
 
-Returns at most 5 total entries to keep the widget compact.
+Returns at most 5 entries to keep the widget compact.
 
 **Signature**
 
@@ -75,15 +75,13 @@ function useDashboardFailedRuns(org: string | null | undefined): UseDashboardFai
 
 ### useDashboardSummary
 
-Composition hook that merges agent run summary, workflow run
-summary, and org usage report into a single [`DashboardSummary`](#dashboardsummary).
+Composition hook that merges the agent run summary and the org usage
+report into a single [`DashboardSummary`](#dashboardsummary).
 
-- Run counts (active, completed, failed) are added across both
-  domains — safe because agent and workflow runs are distinct resources.
-- Cost comes from `getOrgUsageReport` (billing source of truth). NOT from
-  summing agent + workflow costs. See AD-DASH-005.
-
-Follows the same client-side merge pattern as `useRecentActivity`.
+- Run counts (active, completed, failed) come from the agent run
+  summary over the last seven days.
+- Cost comes from `getOrgUsageReport` (billing source of truth), not
+  from summing per-run costs. See AD-DASH-005.
 
 **Signature**
 
@@ -113,27 +111,25 @@ function useDashboardSummary(options: UseDashboardSummaryOptions): UseDashboardS
 
 ### DashboardFailedRun
 
-A normalized entry representing a failed run from either domain.
+A normalized entry representing a failed agent run.
 
 <TypeTable
   type={{
     error: { type: "string", description: "Error message from the failed run.", required: true },
     failedAt: { type: "Date", description: "When the run failed.", required: true },
-    id: { type: "string", description: "Run ID (`aex_*` or `wex_*`).", required: true },
+    id: { type: "string", description: "Agent run ID (`aex_*`).", required: true },
     name: { type: "string", description: "Run name or subject.", required: true },
-    resourceName: { type: "string", description: "The agent or workflow name associated with this run.", required: true },
-    type: { type: "\"workflow_run\" | \"agent_run\"", description: "Discriminator for routing navigation.", required: true },
+    resourceName: { type: "string", description: "The agent the run ran.", required: true },
   }}
 />
 
 
 ### DashboardFailedRuns
 
-Widget showing recent failed runs from both agent and workflow
-domains, interleaved by timestamp.
+Widget showing recent failed agent runs, newest first.
 
-Each row includes a type badge (Agent / Workflow), the run name,
-a truncated error, and a relative timestamp.
+Each row includes the run name, a truncated error, and a relative
+timestamp.
 
 
 ### DashboardFailedRunsProps
@@ -143,20 +139,18 @@ a truncated error, and a relative timestamp.
     className: { type: "string", description: "" },
     failedRuns: { type: "readonly DashboardFailedRun[]", description: "", required: true },
     isLoading: { type: "boolean", description: "", required: true },
-    onViewClick: { type: "(id: string, type: \"workflow_run\" | \"agent_run\") => void", description: "Called when the user clicks \"View\" on a failed run." },
+    onViewClick: { type: "(id: string) => void", description: "Called when the user clicks \"View\" on a failed run." },
   }}
 />
 
 
 ### DashboardKPICards
 
-Unified stat cards showing combined agent + workflow run KPIs.
-
-Each card shows the combined count with a breakdown tooltip showing
-per-source values (e.g., "2 agent, 1 workflow").
+Stat cards showing an organization's agent run KPIs: active,
+completed and failed runs, and total cost.
 
 Cost comes from the billing source of truth (getOrgUsageReport),
-not from summing per-domain costs. See AD-DASH-005.
+not from summing per-run costs. See AD-DASH-005.
 
 
 ### DashboardKPICardsProps
@@ -172,46 +166,39 @@ not from summing per-domain costs. See AD-DASH-005.
 
 ### DashboardSummary
 
-Unified dashboard summary combining operational metrics from both
-agent and workflow run domains.
+Dashboard summary of an organization's agent runs.
 
-Run counts (active, completed, failed) are safe to add because
-agent runs and workflow runs are distinct resources.
-
+Run counts (active, completed, failed) come from the agent run summary.
 Cost comes from `GetOrgUsageReportOutput` (billing source of truth),
-NOT from summing agent + workflow costs. This prevents double-counting
-when workflows delegate to agents. See AD-DASH-005.
+not from summing per-run costs. See AD-DASH-005.
 
 <TypeTable
   type={{
-    activeCount: { type: "number", description: "Combined agent + workflow active run count.", required: true },
-    agent: { type: "AgentRunSummary | null", description: "Agent-side run summary for per-source breakdown in tooltips.", required: true },
-    completedCount: { type: "number", description: "Combined agent + workflow completed count.", required: true },
-    failedCount: { type: "number", description: "Combined agent + workflow failed count.", required: true },
+    activeCount: { type: "number", description: "Active agent run count.", required: true },
+    completedCount: { type: "number", description: "Completed agent run count.", required: true },
+    failedCount: { type: "number", description: "Failed agent run count.", required: true },
     orgUsage: { type: "GetOrgUsageReportOutput | null", description: "Org-level usage report for cost details.", required: true },
     totalCostUsd: { type: "number", description: "Total platform cost in USD from the billing source of truth. Sourced from `getOrgUsageReport.total_billable_cost_micros`.", required: true },
-    workflow: { type: "RunSummary | null", description: "Workflow-side run summary for per-source breakdown in tooltips.", required: true },
   }}
 />
 
 
 ### OperationalDashboard
 
-Composed dashboard widget that aggregates operational metrics from both
-agent and workflow domains into a unified platform view.
+Composed dashboard widget showing an organization's agent run
+operational metrics.
 
 Layout:
 - Row 1: KPI stat cards (Active | Completed | Failed | Total Cost)
-- Row 2: Pending Approvals | Recent Failures (2-column grid)
+- Row 2: Recent Failures
 
 Cost comes from the billing source of truth (`getOrgUsageReport`),
-not from summing agent + workflow costs. See AD-DASH-005.
+not from summing per-run costs. See AD-DASH-005.
 
 ```tsx
 <OperationalDashboard
   org="acme"
-  onApprovalClick={(id) => navigate(`/runs/${id}`)}
-  onFailedRunClick={(id, type) => navigate(`/runs/${id}`)}
+  onFailedRunClick={(id) => navigate(`/runs/${id}`)}
 />
 ```
 
@@ -221,9 +208,8 @@ not from summing agent + workflow costs. See AD-DASH-005.
 <TypeTable
   type={{
     className: { type: "string", description: "" },
-    onApprovalClick: { type: "(executionId: string) => void", description: "Called when the user clicks \"Review\" on a pending approval." },
-    onFailedRunClick: { type: "(id: string, type: \"workflow_run\" | \"agent_run\") => void", description: "Called when the user clicks \"View\" on a failed run." },
-    org: { type: "string | null | undefined", description: "The organization whose runs, approvals and usage the dashboard shows.", required: true },
+    onFailedRunClick: { type: "(id: string) => void", description: "Called with the agent run's ID when the user clicks \"View\" on a failed run." },
+    org: { type: "string | null | undefined", description: "The organization whose runs and usage the dashboard shows.", required: true },
   }}
 />
 
@@ -247,7 +233,7 @@ Options for [`useDashboardSummary`](#usedashboardsummary).
 
 <TypeTable
   type={{
-    org: { type: "string | null | undefined", description: "The organization whose run summaries and usage report to read.", required: true },
+    org: { type: "string | null | undefined", description: "The organization whose run summary and usage report to read.", required: true },
     refetchInterval: { type: "number", description: "Refetch interval in milliseconds." },
   }}
 />

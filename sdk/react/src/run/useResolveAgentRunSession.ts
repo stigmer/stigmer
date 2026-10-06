@@ -17,9 +17,9 @@ export interface UseResolveAgentRunSessionReturn {
  * Resolves an AgentRun ID (`aex_*`) to its parent Session ID.
  *
  * This hook fetches the AgentRun resource and extracts
- * `spec.sessionId`. Use it when navigating from a workflow run
- * context (which knows the child agent run ID) to the session
- * page (which requires the session ID).
+ * `spec.sessionId`. Use it when navigating from a context that
+ * knows only the agent run ID (a schedule's run history, a run
+ * link) to the session page (which requires the session ID).
  *
  * Pass `null` to skip fetching (stable no-op).
  *

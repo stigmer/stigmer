@@ -66,7 +66,7 @@ const MESSAGE_COUNTER_THRESHOLD = 500;
  *
  * Enabled defaults to OFF, deliberately: it matches the proto/YAML
  * default (an omitted `enabled` is false) and the platform's
- * recommended workflow — create staged-disabled, validate with
+ * recommended practice — create staged-disabled, validate with
  * "Run now" on the detail page, then enable.
  *
  * Creation only. Editing an existing schedule must not flow through

@@ -17,8 +17,8 @@ export interface UseLiveAgentRunOptions {
    * When `false`, the snapshot fetch still runs (so consumers always have
    * something to render) but no subscription is opened — the
    * visibility-gating seam for surfaces that mount many runs at once
-   * (e.g. inline agent-call transcripts in the workflow task thread, where
-   * only on-screen cards stream). A `false → true` transition attaches the
+   * (e.g. a list of inline run transcripts, where only on-screen cards
+   * stream). A `false → true` transition attaches the
    * stream in place; a `true → false` transition pauses it while the
    * last-streamed snapshot stays visible (the view never rewinds to the
    * mount-time snapshot).
@@ -51,7 +51,7 @@ export interface UseLiveAgentRunReturn {
   /**
    * Snapshot-fetch error, or the stream's terminal error (auto-reconnect
    * exhausted). `null` when healthy. Not-found is NOT an error — it yields
-   * `execution: null` with no error, matching `useWorkflowRun`.
+   * `execution: null` with no error.
    */
   readonly error: Error | null;
   /**

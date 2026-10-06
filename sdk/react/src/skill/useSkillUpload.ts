@@ -61,7 +61,7 @@ const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
 // ---------------------------------------------------------------------------
 
 /**
- * Behavior hook for the skill upload workflow.
+ * Behavior hook for the skill upload flow.
  *
  * Handles file reading, ZIP unpacking, structure validation, and
  * metadata extraction. Produces a {@link SkillUploadPreview} that

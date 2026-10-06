@@ -46,8 +46,7 @@ export const ApprovalDefaultsContext = createContext<
  * Consumed by the interactive-session surface only: `useNewSessionFlow`
  * (bootstrap run create) and `useSessionPageFlow` (session-scoped
  * preference initializer). Deliberately NOT consumed by the lower-level
- * `useCreateSession` / `useCreateAgentRun` primitives — those are
- * shared by specialized flows (workflow architect/explain/diagnose) and by
+ * `useCreateSession` / `useCreateAgentRun` primitives — those serve
  * headless callers, which pass `autoApproveAll` explicitly when they mean
  * it.
  */

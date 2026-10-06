@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { ResizableSplit } from "../ResizableSplit";
 
@@ -89,7 +89,7 @@ describe("ResizableSplit", () => {
 
       // Without a collapse to decide, the container marker must be absent —
       // `container-type` imposes layout containment (re-parents fixed
-      // descendants, adds a stacking context), which the workflow splits'
+      // descendants, adds a stacking context), which a non-collapsing split's
       // pane content must never inherit.
       rerender(
         <ResizableSplit
@@ -224,25 +224,6 @@ describe("ResizableSplit", () => {
       fireEvent.keyDown(separator, { key: "ArrowLeft" });
 
       expect(localStorage.getItem("kb-test")).toBe("420");
-    });
-  });
-
-  describe("onResize callback", () => {
-    it("fires onResize with initial width on mount", () => {
-      const onResize = vi.fn();
-      renderSplit({ defaultSize: 350, onResize });
-      expect(onResize).toHaveBeenCalledWith(350);
-    });
-
-    it("fires onResize on keyboard resize", () => {
-      const onResize = vi.fn();
-      renderSplit({ defaultSize: 400, onResize });
-      onResize.mockClear();
-
-      const separator = screen.getByRole("separator");
-      fireEvent.keyDown(separator, { key: "ArrowLeft" });
-
-      expect(onResize).toHaveBeenCalledWith(420);
     });
   });
 

@@ -118,9 +118,9 @@ describe("ResizableSplit responsive collapse keys on its container (#301)", () =
 
     // The containment invariant: without a collapse to decide, the root must
     // NOT be a CSS container — `container-type: inline-size` would re-parent
-    // `position: fixed` descendants (the workflow inspector's click-away
-    // backdrop renders in-tree inside a split pane) and add a stacking
-    // context. See the conditional in ResizableSplit.
+    // `position: fixed` descendants (an in-tree click-away backdrop inside a
+    // split pane) and add a stacking context. See the conditional in
+    // ResizableSplit.
     const root = paneOf("primary").parentElement!;
     expect(getComputedStyle(root).containerType).toBe("normal");
   });

@@ -1,7 +1,7 @@
 "use client";
 
 // The always-mounted toggle chip for a collapsible WorkspaceSurface panel.
-// Domain: workspace (shared by the session and workflow run viewers).
+// Domain: workspace (mounted by the session viewer).
 
 import { useEffect, useRef } from "react";
 import { cn } from "@stigmer/theme";
@@ -15,7 +15,7 @@ export interface PanelChipProps {
   readonly onToggle: () => void;
   /**
    * Aggregate count of panel items awaiting the user (write-backs +
-   * artifacts on the session side; artifacts on the workflow side). Rendered
+   * artifacts). Rendered
    * as a dot-count while collapsed — the panel's only "something arrived"
    * signal, since arrivals never auto-open the panel.
    */

@@ -138,7 +138,7 @@ describe("deriveRunFileChanges", () => {
   });
 
   it("net-diffs the same path ACROSS executions: first execution's before -> last execution's after", () => {
-    // The workflow case: two agent-call children touching one file.
+    // A session's follow-up turns: two runs touching one file.
     const r = deriveRunFileChanges([
       execWithLedger("aex_1", [
         captured({ id: "fc1", pathAfter: "src/shared.ts", before: "v0", after: "v1" }),

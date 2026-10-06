@@ -11,7 +11,6 @@ export type DeletableResourceKind =
   | "agent"
   | "skill"
   | "mcpServer"
-  | "workflow"
   | "schedule"
   | "plugin";
 
@@ -80,9 +79,6 @@ export function useDeleteResource(
         case "mcpServer":
           await stigmer.mcpServer.delete({ resourceId });
           break;
-        case "workflow":
-          await stigmer.workflow.delete(resourceId);
-          break;
         case "schedule":
           await stigmer.schedule.delete(resourceId);
           break;
@@ -91,6 +87,10 @@ export function useDeleteResource(
           // refuses when something outside the plugin still references one.
           await stigmer.plugin.delete(resourceId);
           break;
+        default: {
+          const unreachable: never = kind;
+          throw new Error(`Unsupported resource kind: ${String(unreachable)}`);
+        }
       }
       toast.success(
         resourceName
@@ -121,11 +121,13 @@ function kindLabel(kind: DeletableResourceKind): string {
       return "skill";
     case "mcpServer":
       return "MCP server";
-    case "workflow":
-      return "workflow";
     case "schedule":
       return "schedule";
     case "plugin":
       return "plugin";
+    default: {
+      const unreachable: never = kind;
+      return String(unreachable);
+    }
   }
 }
