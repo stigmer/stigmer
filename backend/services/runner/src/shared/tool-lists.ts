@@ -30,9 +30,9 @@
  *  - An engine tool with no Claude name (Cursor's `readLints`, `askQuestion`,
  *    …) is the engine's, not the platform's: an allow-list hides it, because
  *    "only these" is exact; a deny-list leaves it alone.
- * The platform's own tools (`think`, and the synthesized channel,
- * conversation and memory attachments) are outside both lists: no plugin can
- * name them, and an agent without them cannot answer its channel.
+ * The platform's own tools (the synthesized channel, conversation and memory
+ * attachments) are outside both lists: no plugin can name them, and an agent
+ * without them cannot answer its channel.
  */
 
 /** Claude Code's built-in tool names a list may carry. */
@@ -137,9 +137,6 @@ export const CURSOR_SDK_EXTRA_TOOLS: readonly string[] = [
   "generateImage",
   "applyAgentDiff",
 ];
-
-/** Tools the platform owns on every engine; never governed by a list. */
-export const PLATFORM_TOOLS: ReadonlySet<string> = new Set(["think"]);
 
 /** One parsed list entry. */
 export type ToolListEntry =
@@ -350,12 +347,10 @@ export class ToolScope {
   }
 
   /**
-   * Whether an engine tool, named in its engine's table, is in scope. A
-   * platform tool always is; a name the table does not carry is an engine
-   * extra.
+   * Whether an engine tool, named in its engine's table, is in scope. A name
+   * the table does not carry is an engine extra.
    */
   allowsEngineTool(name: string, table: ReadonlyMap<string, readonly ClaudeTool[]>): boolean {
-    if (PLATFORM_TOOLS.has(name)) return true;
     return this.allowsCovering(table.get(name) ?? []);
   }
 

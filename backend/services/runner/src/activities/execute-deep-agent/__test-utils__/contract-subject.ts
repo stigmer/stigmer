@@ -33,9 +33,17 @@
  *
  * ── The translation, one rule per word ──────────────────────────────────────
  *  - `say(text)`      → the turn's text. A second `say` before any tool step
- *                       inserts an ungated `think` call as the step boundary:
- *                       a LangGraph agent cannot speak twice without acting
- *                       (only the cost-cap arm's `[say, usage, say]` needs it).
+ *                       inserts the neutral step, an `ls` of the workspace
+ *                       root, as the step boundary: a LangGraph agent cannot
+ *                       speak twice without acting (only the cost-cap arm's
+ *                       `[say, usage, say]` needs it). `ls` is chosen as
+ *                       `read` chooses `read_file`: it needs no approval and
+ *                       changes nothing. Unlike the platform tool it replaces
+ *                       (#1976), an allow-list without `Glob` hides it, so
+ *                       the boundary and `limit` hold only for a turn with no
+ *                       tool lists, which is every turn this subject arranges
+ *                       (`inputOverrides` names none). An arm that adds lists
+ *                       and plays either step must keep `Glob` in them.
  *  - `propose(id, a)` → ONE gated built-in whose execution is counted by a
  *                       REAL side effect the subject reads back:
  *                       `write r` → `edit_file` appending `id` as a line to a
@@ -65,8 +73,9 @@
  *                       `internal` are one act here: the native adapter has
  *                       ONE failure surface (`turn.ts` classifies every
  *                       escaped error `internal`); `actionable` is refused.
- *  - `limit`          → a `think` call under a fresh id on every model call,
- *                       until the graph's recursion limit stops the run.
+ *  - `limit`          → the neutral step under a fresh id on every model
+ *                       call, the same arguments each time, until the
+ *                       graph's recursion limit stops the run.
  *  - `cancelled`      → refused: this harness has no engine-side cancel (the
  *                       runtime arm is declared off for it).
  */
@@ -88,6 +97,7 @@ import type {
 import type { HermeticEnvironment } from "../../../__test-utils__/hermetic-activity.js";
 import { resolveWorkspacePath } from "../../../shared/file-change.js";
 import { createDeepAgentAdapter } from "../adapter.js";
+import { ENGINE_TOOL } from "../engine-tools.js";
 import { hermeticDeepAgentConfig } from "./hermetic-deep-agent.js";
 import { ScriptedModel, type ScriptedToolCall, type ScriptedTurn, type ScriptedUsage } from "./scripted-model.js";
 import { bindScriptedModel } from "./scripted-model-module.js";
@@ -284,7 +294,7 @@ class DeepAgentSubject implements DeepAgentContractSubject {
       switch (step.kind) {
         case "say":
           if (spoken.has(step.text)) break;
-          if (text !== undefined) return close({ toolCalls: [this.thinkCall("boundary")] });
+          if (text !== undefined) return close({ toolCalls: [this.neutralCall("boundary")] });
           text = step.text;
           break;
         case "propose":
@@ -302,7 +312,7 @@ class DeepAgentSubject implements DeepAgentContractSubject {
         case "fail":
           return close({ ends: { kind: "fail", error: new Error(step.message) } });
         case "limit":
-          return close({ toolCalls: [this.thinkCall("limit")] });
+          return close({ toolCalls: [this.neutralCall("limit")] });
         case "cancelled":
           // Refused at `arrange`; unreachable in a plan that got this far.
           throw new Error(`${this.name}: cancelled() reached the engine (arrange should have refused it)`);
@@ -316,8 +326,8 @@ class DeepAgentSubject implements DeepAgentContractSubject {
   }
 
   /** An ungated, effect-free tool call: the step boundary a LangGraph agent needs between two texts, and the loop a `limit` spins. */
-  private thinkCall(why: "boundary" | "limit"): ScriptedToolCall {
-    return { id: `kit-think-${why}-${++this.mintCounter}`, name: "think", args: { thought: `kit: ${why}` } };
+  private neutralCall(why: "boundary" | "limit"): ScriptedToolCall {
+    return { id: `kit-${why}-${++this.mintCounter}`, name: ENGINE_TOOL.ls, args: { path: "/" } };
   }
 
   private gatedCall(toolCallId: string, action: ProposedAction, view: EngineView): ScriptedToolCall {

@@ -15,8 +15,8 @@
  * The file tools, `execute` and `task` are deepagents' (1.14: the
  * filesystem and sub-agent middleware); `write_todos` is langchain's
  * `todoListMiddleware`, which this harness installs on the parent
- * (`turn-setup.ts`). The runner's own tools (`think`, `web_fetch`) carry
- * their names in `tools/`.
+ * (`turn-setup.ts`). The runner's own tool, `web_fetch`, carries its name
+ * in `tools/`.
  */
 export const ENGINE_TOOL = {
   ls: "ls",

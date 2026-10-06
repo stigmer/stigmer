@@ -50,9 +50,9 @@
  * server, `mcp__plugin_<plugin>_<server>__<tool>` with `source: "plugin"`,
  * so a plugin's matchers find its tools unchanged. To Cursor's hooks it is
  * `MCP:<tool>` on `preToolUse`, and the bare tool with its server's slug on
- * `beforeMCPExecution`. Stigmer's own tools (`think`, and the channel,
- * conversation and memory attachments) have no view and never reach a
- * hook: no plugin can name them, as no tool list can.
+ * `beforeMCPExecution`. Stigmer's own tools (the channel, conversation and
+ * memory attachments) have no view and never reach a hook: no plugin can
+ * name them, as no tool list can.
  *
  * The inverse of each row restores the native call, so view-then-inverse is
  * the identity on what the engine binds (pinned by the module's test).

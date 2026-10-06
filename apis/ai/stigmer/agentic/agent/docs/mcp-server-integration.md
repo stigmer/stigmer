@@ -70,8 +70,8 @@ Rules that follow from the lists:
 - A sub-agent starts from the parent's tools and can narrow them, never widen
   them. See [sub-agents.md](sub-agents.md).
 - With `Read` excluded, the agent still reads its own skills, inputs and plan.
-- The platform's own tools (channel messaging, conversation participation,
-  memory, and `think`) are outside the lists.
+- The platform's own tools (channel messaging, conversation participation and
+  memory) are outside the lists.
 - The shape of each entry is checked at apply. Names are resolved at run time:
   an entry that names no tool the run has is ignored, and a `tools` list in
   which no entry resolves refuses the run, naming the entries.

@@ -60,7 +60,7 @@ import { resolveWorkspacePath } from "../../shared/file-change.js";
 import { buildPlanModePermissions } from "../../shared/plan-mode-permissions.js";
 import { buildMiddlewareStack } from "../../middleware/index.js";
 import type { ApprovalGateConfig } from "../../middleware/approval-gate.js";
-import { WEB_FETCH_TOOL_NAME, createThinkTool, createWebFetchTool, resolveGuardPosture } from "../../tools/index.js";
+import { WEB_FETCH_TOOL_NAME, createWebFetchTool, resolveGuardPosture } from "../../tools/index.js";
 import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
 import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
 import { getModelPricing, ensureLoaded as ensurePricingLoaded, type ModelPricing } from "../../shared/model-pricing.js";
@@ -423,8 +423,8 @@ export async function buildEngine(
   };
   const model = await buildModelFor(modelName);
   // Whether this graph reasons natively, derived from the same mapping the
-  // request carries: it decides the `think` tool and the structured-output
-  // strategy below, so neither can disagree with the wire.
+  // request carries: it decides the structured-output strategy below, so the
+  // strategy cannot disagree with the wire.
   const parentThinks = graphThinks(input.model.thinkingMode, (await getNativeRequestProfile(modelName))?.thinking);
   sink.setupTiming.mark("build_model");
 
@@ -522,13 +522,9 @@ export async function buildEngine(
   // Cursor harness); its URL guard posture — strict on managed cloud runners,
   // relaxed on user-owned machines — is derived from the runner mode.
   const webFetchPosture = resolveGuardPosture(config.mode);
-  // `think` is a reasoning aid for a graph that does not reason natively;
-  // a graph that thinks has no use for it.
-  const graphTools = [
-    ...tools.mcpTools,
-    ...(parentThinks ? [] : [createThinkTool()]),
-    createWebFetchTool({ posture: webFetchPosture }),
-  ];
+  // No tool stands in for reasoning: a graph reasons before it acts through
+  // its thinking mode, which every native row supports (#1976).
+  const graphTools = [...tools.mcpTools, createWebFetchTool({ posture: webFetchPosture })];
 
   await sink.reportProgress("Configuring sub-agents…");
   const compiledSubagents = await transformAndCompileSubagents({
@@ -543,8 +539,6 @@ export async function buildEngine(
     // to the SAME per-turn observer as the parent.
     casObserver: workspace.casObserver,
     parentModelName: modelName,
-    parentThinks,
-    thinkingMode: input.model.thinkingMode,
     webFetchPosture,
     costAdvisory: costAdvisory ?? undefined,
     modelFactory: buildModelFor,
@@ -640,8 +634,7 @@ export async function buildEngine(
 /**
  * The native built-ins a graph of this turn binds, by their engine names: the
  * filesystem tools and `task` on every graph, `execute` on a shell-capable
- * one, the parent's to-do list, and the runner's own `web_fetch`. `think` is
- * left out: it is the platform's, and no list can name it.
+ * one, the parent's to-do list, and the runner's own `web_fetch`.
  */
 function nativeBoundToolNames(options: { readonly shellCapable: boolean; readonly todos: boolean }): string[] {
   return [

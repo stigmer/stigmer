@@ -7,7 +7,7 @@
  *    allow-list is exact, a sub-agent narrows and never widens;
  *  - `Agent(type, …)`: case-insensitive, and ignored in a sub-agent's layer;
  *  - engine tools: the covering rule ("any allowed and none denied"), engine
- *    extras hidden only by an allow-list, `think` the platform's;
+ *    extras hidden only by an allow-list;
  *  - the run-time check: an entry naming nothing is logged, a list resolving
  *    to nothing (or fully denied by its own deny-list) throws;
  *  - the Cursor SDK options keep `read` and `mcp`.
@@ -268,13 +268,8 @@ describe("engine tools", () => {
     expect(scopeOf(["Read"]).allowsCovering([])).toBe(false);
   });
 
-  it("think is the platform's: in scope under any list", () => {
-    expect(scopeOf(["Read"]).allowsEngineTool("think", NATIVE_TOOL_COVERS)).toBe(true);
-    expect(scopeOf([], ["Bash", "Read"]).allowsEngineTool("think", NATIVE_TOOL_COVERS)).toBe(true);
-  });
-
   it("claudeToolsOf reads the Claude tools an engine binds", () => {
-    expect([...claudeToolsOf(["read_file", "ls", "execute", "think"], NATIVE_TOOL_COVERS)].sort()).toEqual([
+    expect([...claudeToolsOf(["read_file", "ls", "execute"], NATIVE_TOOL_COVERS)].sort()).toEqual([
       "Bash",
       "Glob",
       "Read",

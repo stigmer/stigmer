@@ -1,27 +1,4 @@
-<<< tool 1 of 11: think >>>
-
-Record your reasoning when a decision is genuinely hard: choosing between approaches, or working out why something failed. It reads nothing and changes nothing. Do not use it to restate a tool result or to announce your next step; take the step.
-
-input_schema:
-
-```json
-{
-  "type": "object",
-  "properties": {
-    "thought": {
-      "type": "string",
-      "description": "Your reasoning, analysis, or plan."
-    }
-  },
-  "required": [
-    "thought"
-  ],
-  "additionalProperties": false,
-  "$schema": "http://json-schema.org/draft-07/schema#"
-}
-```
-
-<<< tool 2 of 11: web_fetch >>>
+<<< tool 1 of 10: web_fetch >>>
 
 Fetch the contents of a URL over http(s). HTML pages are converted to Markdown; plain text, Markdown, JSON, and other text formats are returned as-is. Binary content is not supported.
 
@@ -57,7 +34,7 @@ input_schema:
 }
 ```
 
-<<< tool 3 of 11: ls >>>
+<<< tool 2 of 10: ls >>>
 
 Lists all files in a directory.
 
@@ -83,7 +60,7 @@ input_schema:
 }
 ```
 
-<<< tool 4 of 11: read_file >>>
+<<< tool 3 of 10: read_file >>>
 
 Reads a file from the filesystem. Assume any path the user provides is valid; reading a missing file returns an error.
 
@@ -125,7 +102,7 @@ input_schema:
 }
 ```
 
-<<< tool 5 of 11: write_file >>>
+<<< tool 4 of 10: write_file >>>
 
 Writes content to a file. Creates the file if it does not exist; replaces it entirely if it does.
 
@@ -155,7 +132,7 @@ input_schema:
 }
 ```
 
-<<< tool 6 of 11: edit_file >>>
+<<< tool 5 of 10: edit_file >>>
 
 Performs exact string replacements in files.
 
@@ -196,7 +173,7 @@ input_schema:
 }
 ```
 
-<<< tool 7 of 11: glob >>>
+<<< tool 6 of 10: glob >>>
 
 Find files matching a glob pattern, returning absolute paths.
 
@@ -223,7 +200,7 @@ input_schema:
 }
 ```
 
-<<< tool 8 of 11: grep >>>
+<<< tool 7 of 10: grep >>>
 
 Search for a LITERAL text pattern across files (NOT regex).
 
@@ -289,7 +266,7 @@ input_schema:
 }
 ```
 
-<<< tool 9 of 11: execute >>>
+<<< tool 8 of 10: execute >>>
 
 Executes a shell command in an isolated sandbox and returns combined stdout/stderr with the exit code (truncated if very large).
 
@@ -325,7 +302,7 @@ input_schema:
 }
 ```
 
-<<< tool 10 of 11: task >>>
+<<< tool 9 of 10: task >>>
 
 Launch an ephemeral subagent to handle a complex, multi-step task.
 
@@ -364,7 +341,7 @@ input_schema:
 }
 ```
 
-<<< tool 11 of 11: write_todos >>>
+<<< tool 10 of 10: write_todos >>>
 
 Your to-do list, shown to the user as your progress. Use it when a request has several separate parts, or when the user asks for one. Skip it for a single change, however many steps it takes, and for questions.
 - Send the whole list each time. Each item is pending, in_progress or completed; keep exactly one in_progress while you work.

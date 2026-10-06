@@ -15,9 +15,8 @@
  *  - round 1: the model proposes a gated `execute`; the gate's `interrupt()`
  *    pauses the graph and the activity persists WAITING_FOR_APPROVAL.
  *
- * A fixture carries the sqlite rows (`checkpoints`, `writes`) with each blob
- * as UTF-8 text when it is JSON (the serializer's `json` tag) and base64
- * otherwise, and the status the server held when the turn returned.
+ * A fixture's shape, and the reading and writing of its rows, are
+ * `__test-utils__/paused-session-fixture.ts`'s.
  *
  * What each fixture proves on the CURRENT engine:
  *  - sqlite, end to end: the rows are loaded into the session's checkpoint
@@ -43,12 +42,10 @@
  */
 
 import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { DatabaseSync } from "node:sqlite";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { fromJson, toJson, type JsonValue } from "@bufbuild/protobuf";
+import { fromJson, toJson } from "@bufbuild/protobuf";
 import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   ApprovalAction,
@@ -81,6 +78,16 @@ import {
 } from "../../__test-utils__/hermetic-deep-agent.js";
 import type { ScriptedTurn } from "../../__test-utils__/scripted-model.js";
 import { CLOSING_TURN, EXECUTE_CALL_A, GATED_OPENING_TURN } from "../../__test-utils__/hitl-script.js";
+import {
+  engineVersions,
+  installedVersion,
+  loadBlob,
+  loadRows,
+  readRows,
+  type CheckpointRow,
+  type PausedSessionFixture,
+  type StoredBlob,
+} from "../../__test-utils__/paused-session-fixture.js";
 
 const USER_MESSAGE = "Plan it, then run the command for me.";
 const DECIDED_AT = "2026-01-01T00:00:30.000Z";
@@ -102,119 +109,6 @@ const TODO_TURN: ScriptedTurn = {
 };
 
 const SCRIPT = () => ({ turns: [TODO_TURN, GATED_OPENING_TURN, CLOSING_TURN] });
-
-/** A blob as the fixture stores it: readable when the serializer wrote JSON. */
-interface StoredBlob {
-  readonly encoding: "utf8" | "base64";
-  readonly data: string;
-}
-
-interface CheckpointRow {
-  readonly thread_id: string;
-  readonly checkpoint_ns: string;
-  readonly checkpoint_id: string;
-  readonly parent_checkpoint_id: string | null;
-  readonly type: string | null;
-  readonly checkpoint: StoredBlob;
-  readonly metadata: StoredBlob;
-}
-
-interface WriteRow {
-  readonly thread_id: string;
-  readonly checkpoint_ns: string;
-  readonly checkpoint_id: string;
-  readonly task_id: string;
-  readonly idx: number;
-  readonly channel: string;
-  readonly type: string | null;
-  readonly value: StoredBlob;
-}
-
-interface PausedSessionFixture {
-  /** The engine that wrote the rows. */
-  readonly recordedWith: Readonly<Record<string, string>>;
-  readonly threadId: string;
-  readonly checkpoints: readonly CheckpointRow[];
-  readonly writes: readonly WriteRow[];
-  /** The status the server held when the paused turn returned (`toJson` form). */
-  readonly status: JsonValue;
-}
-
-function installedVersion(pkg: string): string {
-  const require = createRequire(import.meta.url);
-  let dir = dirname(require.resolve(pkg));
-  while (!existsSync(join(dir, "package.json")) || readPackageName(dir) !== pkg) {
-    const parent = dirname(dir);
-    if (parent === dir) throw new Error(`no package.json found for ${pkg}`);
-    dir = parent;
-  }
-  return (JSON.parse(readFileSync(join(dir, "package.json"), "utf8")) as { version: string }).version;
-}
-
-function readPackageName(dir: string): string | undefined {
-  return (JSON.parse(readFileSync(join(dir, "package.json"), "utf8")) as { name?: string }).name;
-}
-
-function storeBlob(type: string | null, bytes: Uint8Array): StoredBlob {
-  return type === "json"
-    ? { encoding: "utf8", data: Buffer.from(bytes).toString("utf8") }
-    : { encoding: "base64", data: Buffer.from(bytes).toString("base64") };
-}
-
-function loadBlob(blob: StoredBlob): Uint8Array {
-  return new Uint8Array(Buffer.from(blob.data, blob.encoding));
-}
-
-function readRows(dbPath: string): Pick<PausedSessionFixture, "checkpoints" | "writes"> {
-  const db = new DatabaseSync(dbPath, { readOnly: true });
-  try {
-    const checkpoints = (
-      db
-        .prepare(
-          `SELECT thread_id, checkpoint_ns, checkpoint_id, parent_checkpoint_id, type, checkpoint, metadata
-           FROM checkpoints ORDER BY checkpoint_ns, checkpoint_id`,
-        )
-        .all() as unknown as Array<Omit<CheckpointRow, "checkpoint" | "metadata"> & { checkpoint: Uint8Array; metadata: Uint8Array }>
-    ).map((r) => ({ ...r, checkpoint: storeBlob(r.type, r.checkpoint), metadata: storeBlob(r.type, r.metadata) }));
-    const writes = (
-      db
-        .prepare(
-          `SELECT thread_id, checkpoint_ns, checkpoint_id, task_id, idx, channel, type, value
-           FROM writes ORDER BY checkpoint_ns, checkpoint_id, task_id, idx`,
-        )
-        .all() as unknown as Array<Omit<WriteRow, "value"> & { value: Uint8Array }>
-    ).map((r) => ({ ...r, value: storeBlob(r.type, r.value) }));
-    return { checkpoints, writes };
-  } finally {
-    db.close();
-  }
-}
-
-/** Write a fixture's rows into a checkpoint file whose schema the saver itself created. */
-async function loadRows(dbPath: string, fixture: PausedSessionFixture): Promise<void> {
-  mkdirSync(dirname(dbPath), { recursive: true });
-  const saver = new SqliteCheckpointSaver(dbPath);
-  expect(await saver.getTuple({ configurable: { thread_id: fixture.threadId } }), "a fresh file").toBeUndefined();
-  const db = new DatabaseSync(dbPath);
-  try {
-    const cp = db.prepare(
-      `INSERT INTO checkpoints (thread_id, checkpoint_ns, checkpoint_id, parent_checkpoint_id, type, checkpoint, metadata)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    );
-    for (const r of fixture.checkpoints) {
-      cp.run(r.thread_id, r.checkpoint_ns, r.checkpoint_id, r.parent_checkpoint_id, r.type, loadBlob(r.checkpoint), loadBlob(r.metadata));
-    }
-    const w = db.prepare(
-      `INSERT INTO writes (thread_id, checkpoint_ns, checkpoint_id, task_id, idx, channel, type, value)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    );
-    for (const r of fixture.writes) {
-      w.run(r.thread_id, r.checkpoint_ns, r.checkpoint_id, r.task_id, r.idx, r.channel, r.type, loadBlob(r.value));
-    }
-  } finally {
-    db.close();
-  }
-}
 
 /**
  * The proxy's checkpoint API over a fixture's rows, as `fetch` sees it: the
@@ -294,12 +188,7 @@ describe("ExecuteDeepAgent hermetic — a paused session resumes across an engin
     expect(record.lastFullStatus?.todos).not.toEqual({});
 
     const fixture: PausedSessionFixture = {
-      recordedWith: {
-        deepagents: version,
-        "@langchain/langgraph": installedVersion("@langchain/langgraph"),
-        "@langchain/langgraph-checkpoint": installedVersion("@langchain/langgraph-checkpoint"),
-        "@langchain/core": installedVersion("@langchain/core"),
-      },
+      recordedWith: engineVersions(),
       threadId: FIXTURE.threadId,
       ...readRows(getCheckpointDbPath(FIXTURE.sessionId)),
       status: toJson(AgentRunStatusSchema, record.lastFullStatus!),

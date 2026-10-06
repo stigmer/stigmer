@@ -9,9 +9,9 @@
  * names up in the tables, so the two engines cannot read a list differently.
  *
  * What the table answers, and how each lookup stays exact:
- *  - Built-ins, by the hook's own names (`CURSOR_HOOK_TOOL_COVERS`, plus the
- *    platform's `think`); a name the table lacks is an engine extra, refused
- *    only under an allow-list (`ToolScope.allowsCovering([])`).
+ *  - Built-ins, by the hook's own names (`CURSOR_HOOK_TOOL_COVERS`); a name
+ *    the table lacks is an engine extra, refused only under an allow-list
+ *    (`ToolScope.allowsCovering([])`).
  *  - `Read` when the lists exclude it: still allowed for a file whose real
  *    path lies inside the platform dir (the agent's skills, attached inputs
  *    and approved plan, the platform's content and not the workspace's), on a
@@ -41,7 +41,6 @@ import { approvalCategory } from "./approval-policy.js";
 import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
 import {
   CURSOR_HOOK_TOOL_COVERS,
-  PLATFORM_TOOLS,
   outOfScopeMessage,
   type ClaudeTool,
   type McpScopeTable,
@@ -169,7 +168,7 @@ export function compileHookToolScope(input: HookToolScopeInput): HookToolScope {
   if (!scope.restricted) return UNRESTRICTED_HOOK_SCOPE;
 
   const builtins = Object.fromEntries(
-    [...CURSOR_HOOK_TOOL_COVERS.keys(), ...PLATFORM_TOOLS].map((name): [string, HookBuiltinScope] => [
+    [...CURSOR_HOOK_TOOL_COVERS.keys()].map((name): [string, HookBuiltinScope] => [
       name,
       { allowed: scope.allowsEngineTool(name, CURSOR_HOOK_TOOL_COVERS), key: scopeKey(name, CURSOR_HOOK_TOOL_COVERS) },
     ]),

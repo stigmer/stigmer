@@ -47,10 +47,11 @@
 //   `thinking` in the form the row declares for the execution's mode — an
 //   explicit `{type: "disabled"}` where the row says the model may turn it
 //   off, the adaptive or budget form when the execution asks for thinking,
-//   the enabled form always on a model that requires it — with the `think`
-//   tool bound only on a graph that does not think, and structured output
-//   through the provider's JSON output (no forced tool) when it does
-//   (runner shared/thinking-mode.ts).
+//   the enabled form always on a model that requires it — with no `think`
+//   tool bound in either mode (reasoning before acting is the thinking
+//   mode's, stigmer/stigmer#1976), and structured output through the
+//   provider's JSON output (no forced tool) when the graph thinks (runner
+//   shared/thinking-mode.ts).
 // - Byte-stability: a second turn in the same session sends `system` and
 //   `tools` byte-identical to the first's when the standing facts have not
 //   changed. The system prompt is a function of the session, never of the
@@ -342,7 +343,7 @@ describe("AgentRun request shape — the system prompt is the session's, the pay
 });
 
 describe("AgentRun request shape — thinking, per the model's native registry row", () => {
-  it("ENABLED on an adaptive row sends adaptive thinking with summarized display, and drops the think tool", async () => {
+  it("ENABLED on an adaptive row sends adaptive thinking with summarized display, and binds no think tool", async () => {
     const row = requireNativeRow(await registry(), ADAPTIVE_MODEL);
     expect(row.thinkingForm, `${ADAPTIVE_MODEL} is the adaptive row this arm pins`).toBe("adaptive");
     const { org, agentRef } = await createBareAgent();
@@ -353,7 +354,7 @@ describe("AgentRun request shape — thinking, per the model's native registry r
 
     expect(request.thinking).toEqual({ type: "adaptive", display: "summarized" });
     expect(request.max_tokens).toBe(row.maxOutputTokens);
-    expect(toolNames(request), "a graph that thinks has no use for the think tool").not.toContain("think");
+    expect(toolNames(request), "no native graph binds a think tool").not.toContain("think");
   });
 
   it("ENABLED on a budget row sends the fixed budget below the row's ceiling", async () => {
@@ -370,7 +371,7 @@ describe("AgentRun request shape — thinking, per the model's native registry r
     expect(toolNames(request)).not.toContain("think");
   });
 
-  it("DISABLED binds the think tool: a graph that does not think keeps its reasoning aid", async () => {
+  it("DISABLED binds no think tool: reasoning before acting is the thinking mode's, not a tool round's", async () => {
     const { org, agentRef } = await createBareAgent();
 
     const { request } = await runAgentTurn(org, agentRef, undefined, {
@@ -378,7 +379,7 @@ describe("AgentRun request shape — thinking, per the model's native registry r
     });
 
     expect(request.thinking).toEqual({ type: "disabled" });
-    expect(toolNames(request)).toContain("think");
+    expect(toolNames(request), "with thinking off the agent reads and answers; no tool stands in for reasoning").not.toContain("think");
   });
 
   it("a model that requires thinking gets its thinking form when the execution names no mode", async () => {

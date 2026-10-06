@@ -7,7 +7,7 @@
  * CAS-capture backend, `compileSubagents`):
  *  - an out-of-scope tool is hidden from what the model is bound with, the
  *    filesystem middleware's tools included, while a platform server's tools
- *    and `think` stay;
+ *    stay;
  *  - a call to one is refused with an error `ToolMessage` carrying
  *    `outOfScopeMessage`, and its handler never runs;
  *  - the refusal binds with no approval gate installed (auto-approve-all), and
@@ -37,7 +37,6 @@ import { createToolScopeMiddleware, type ToolScopeConfig } from "../../../middle
 import type { ApprovalGateConfig } from "../../../middleware/approval-gate.js";
 import type { ModelCallRequest, ToolCallRequest } from "../../../middleware/types.js";
 import { ToolScope, outOfScopeMessage, type ToolLists } from "../../../shared/tool-lists.js";
-import { createThinkTool } from "../../../tools/index.js";
 import { createCasCaptureBackend } from "../cas-capture-backend.js";
 import { CasCaptureObserver } from "../cas-capture-observer.js";
 import { compileSubagents } from "../subagent-transformer.js";
@@ -121,7 +120,7 @@ describe("tool scope on a real deepagents graph", () => {
       model: new ScriptedModel(script),
       checkpointer: new MemorySaver() as never,
       backend,
-      tools: [...github, ...platform, createThinkTool()],
+      tools: [...github, ...platform],
       middleware,
     } as unknown as Parameters<typeof createDeepAgent>[0]);
     const config = { configurable: { thread_id: "scope" }, recursionLimit: 50 };
@@ -144,7 +143,6 @@ describe("tool scope on a real deepagents graph", () => {
     expect(run.bound).toContain("grep");
     expect(run.bound).toContain("search_code");
     expect(run.bound, "a platform server is outside every list").toContain("send_channel_message");
-    expect(run.bound, "think is the platform's").toContain("think");
     expect(run.bound, "read_file stays bound when Read is excluded").toContain("read_file");
     for (const hidden of ["execute", "write_file", "edit_file", "glob", "ls", "task", "delete_repo"]) {
       expect(run.bound, hidden).not.toContain(hidden);

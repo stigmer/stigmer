@@ -1,6 +1,6 @@
 /**
  * Pins the sub-agent transformer: the built-in types and their prompts, the
- * proto-to-spec transform (model override, think, web_fetch), each
+ * proto-to-spec transform (model override, web_fetch, no think), each
  * sub-agent's tool scope (narrowed from the parent's, never widened; a
  * built-in runs under the parent's), the main agent's `Agent(type, …)`
  * filter, skills prompts, and compilation (a stack per invocation, a refused
@@ -8,8 +8,6 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { StructuredTool } from "@langchain/core/tools";
-import { ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { EffectiveThinkingMode } from "../../../shared/thinking-mode.js";
 
 import {
   BUILTIN_SUBAGENT_TYPES,
@@ -38,7 +36,6 @@ import { join } from "node:path";
 // Test helpers
 // =========================================================================
 
-const NOT_THINKING: EffectiveThinkingMode = ThinkingMode.DISABLED;
 const UNRESTRICTED = ToolScope.unrestricted();
 const SCOPE_BASE: SubagentScopeBase = {
   serverToolMap: new Map(),
@@ -181,8 +178,6 @@ describe("createBuiltinSubagents", () => {
 describe("transformSingleSubagent", () => {
   const baseOpts = {
     parentScope: UNRESTRICTED,
-    parentThinks: true,
-    thinkingMode: NOT_THINKING,
     parentModelName: "claude-sonnet-4-6",
     webFetchPosture: "strict" as const,
   };
@@ -234,41 +229,12 @@ describe("transformSingleSubagent", () => {
     expect(result!.systemPrompt).toContain("## Response rules");
   });
 
-  it("does not inject think tool when it inherits a parent that thinks", async () => {
-    const proto = mockSubAgentProto();
-    const result = await transformSingleSubagent(proto, {
-      ...baseOpts,
-      parentThinks: true,
-    });
-
-    const hasThinkTool = result!.tools.some(
-      (t) => t.name === "think" || (t as { name?: string }).name === "think",
-    );
-    expect(hasThinkTool).toBe(false);
+  it("always injects web_fetch", async () => {
+    const result = await transformSingleSubagent(mockSubAgentProto(), baseOpts);
+    expect(result!.tools.some((t) => t.name === "web_fetch")).toBe(true);
   });
 
-  it("always injects web_fetch, regardless of thinking support", async () => {
-    for (const parentThinks of [true, false]) {
-      const result = await transformSingleSubagent(mockSubAgentProto(), {
-        ...baseOpts,
-        parentThinks,
-      });
-      const hasWebFetch = result!.tools.some((t) => t.name === "web_fetch");
-      expect(hasWebFetch).toBe(true);
-    }
-  });
-
-  it("injects think tool when it inherits a parent that does not think", async () => {
-    const proto = mockSubAgentProto();
-    const result = await transformSingleSubagent(proto, {
-      ...baseOpts,
-      parentThinks: false,
-    });
-
-    expect(result!.tools.map((t) => t.name)).toContain("think");
-  });
-
-  describe("a sub-agent with its own model answers from its own native row", () => {
+  describe("no sub-agent binds a think tool (#1976)", () => {
     beforeEach(() => {
       _resetRegistryCache();
       vi.restoreAllMocks();
@@ -276,7 +242,7 @@ describe("transformSingleSubagent", () => {
         ok: true,
         json: () => Promise.resolve({
           models: [
-            { id: "claude-sonnet-5", provider: "anthropic", harness: "native", capabilities: { adaptiveThinking: true, thinkingRequired: false } },
+            { id: "claude-sonnet-4-6", provider: "anthropic", harness: "native", capabilities: { adaptiveThinking: true, thinkingRequired: false } },
             { id: "claude-haiku-4.5", provider: "anthropic", harness: "native", capabilities: { thinking: true, thinkingRequired: false } },
             { id: "claude-fable-5", provider: "anthropic", harness: "native", capabilities: { adaptiveThinking: true, thinkingRequired: true } },
             { id: "composer-2.5", provider: "cursor", harness: "cursor" },
@@ -289,23 +255,12 @@ describe("transformSingleSubagent", () => {
       _resetRegistryCache();
     });
 
-    const thinkBound = async (modelOverride: string, thinkingMode: ThinkingMode.DISABLED | ThinkingMode.ENABLED, parentThinks: boolean) => {
-      const result = await transformSingleSubagent(mockSubAgentProto({ modelOverride }), { ...baseOpts, thinkingMode, parentThinks });
-      return result!.tools.some((t) => t.name === "think");
-    };
-
-    it("a thinking execution drops think on a model that can think, whatever the parent does", async () => {
-      expect(await thinkBound("claude-sonnet-5", ThinkingMode.ENABLED, false)).toBe(false);
-      expect(await thinkBound("claude-haiku-4.5", ThinkingMode.ENABLED, false)).toBe(false);
-    });
-
-    it("a non-thinking execution binds think, unless the sub-agent's model always thinks", async () => {
-      expect(await thinkBound("claude-sonnet-5", ThinkingMode.DISABLED, true)).toBe(true);
-      expect(await thinkBound("claude-fable-5", ThinkingMode.DISABLED, false)).toBe(false);
-    });
-
-    it("a model with no native row binds think: its request carries no thinking", async () => {
-      expect(await thinkBound("composer-2.5", ThinkingMode.ENABLED, true)).toBe(true);
+    it("on the parent's model or its own, adaptive, budget, required or with no native row: reasoning is the thinking mode's", async () => {
+      for (const modelOverride of ["", "claude-sonnet-4-6", "claude-haiku-4.5", "claude-fable-5", "composer-2.5"]) {
+        const result = await transformSingleSubagent(mockSubAgentProto({ modelOverride }), baseOpts);
+        expect(result, modelOverride || "no override").not.toBeNull();
+        expect(result!.tools.map((t) => t.name), modelOverride || "no override").toEqual(["web_fetch"]);
+      }
     });
   });
 
@@ -518,8 +473,6 @@ describe("transformAndCompileSubagents", () => {
     workspaceBackend: mockWorkspaceBackend(),
     approvalGate: null,
     parentModelName: "claude-sonnet-4-6",
-    parentThinks: true,
-    thinkingMode: NOT_THINKING,
     webFetchPosture: "strict" as const,
     costCap: undefined,
   };
@@ -743,8 +696,6 @@ describe("subagent-transformer edge cases", () => {
     const proto = mockSubAgentProto({ name: "", description: "" });
     const result = await transformSingleSubagent(proto, {
       parentScope: UNRESTRICTED,
-      parentThinks: true,
-      thinkingMode: NOT_THINKING,
       parentModelName: "claude-sonnet-4-6",
       webFetchPosture: "strict",
     });
@@ -771,8 +722,6 @@ describe("subagent-transformer edge cases", () => {
       workspaceBackend: mockWorkspaceBackend({ rootDir: "" }),
       approvalGate: null,
       parentModelName: "claude-sonnet-4-6",
-      parentThinks: true,
-      thinkingMode: NOT_THINKING,
       webFetchPosture: "strict",
       costCap: undefined,
     } as Parameters<typeof transformAndCompileSubagents>[0]);
@@ -796,8 +745,6 @@ describe("subagent-transformer edge cases", () => {
       workspaceBackend: mockWorkspaceBackend(),
       approvalGate: null,
       parentModelName: "claude-sonnet-4-6",
-      parentThinks: true,
-      thinkingMode: NOT_THINKING,
       webFetchPosture: "strict",
       costCap: undefined,
     } as Parameters<typeof transformAndCompileSubagents>[0]);
