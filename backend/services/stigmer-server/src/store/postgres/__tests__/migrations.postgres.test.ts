@@ -2131,6 +2131,71 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           await client.end();
         }
       });
+
+      /** Archives a workflow version the way the release before stored it. */
+      async function insertVersion(client: pg.Client, data: Uint8Array): Promise<string> {
+        const result = await client.query<{ id: string }>(
+          `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('workflow', 'wfl_1', $1, $2, '') RETURNING id::text AS id`,
+          [Buffer.from(data), RUN_RENAME_HASH],
+        );
+        return result.rows[0]!.id;
+      }
+
+      it("a grant that does not decode fails the step, names the row, and leaves the database at v12", async () => {
+        const client = await v12Client();
+        try {
+          await insertPlain(client, "iam_policy", runGrant.id, policyRow(runGrant));
+          await insertPlain(client, "iam_policy", "iamp_bad", new Uint8Array([0x22, 0xff]));
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_13)).rejects.toThrow(
+            /the iam_policy row iamp_bad cannot be read for the rename of executions to runs/,
+          );
+          expect(await version(client)).toBe(SCHEMA_VERSION_12);
+          expect((await row(client, "iam_policy", runGrant.id))?.data).toEqual(policyRow(runGrant));
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("an archived workflow version that does not decode fails the step, names the version, and leaves the database at v12", async () => {
+        const client = await v12Client();
+        try {
+          const goodId = await insertVersion(client, oldWorkflow);
+          const badId = await insertVersion(client, new Uint8Array([0x22, 0xff]));
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_13)).rejects.toThrow(
+            `the workflow version row ${badId} cannot be read for the rename of executions to runs`,
+          );
+          expect(await version(client)).toBe(SCHEMA_VERSION_12);
+          const kept = await client.query<{ data: Buffer }>(
+            `SELECT data FROM resource_audit WHERE id = $1::bigint`,
+            [goodId],
+          );
+          expect(new Uint8Array(kept.rows[0]!.data)).toEqual(oldWorkflow);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("reads archived workflow versions across keyset pages, missing none past the first page", async () => {
+        const client = await v12Client();
+        try {
+          for (let i = 0; i <= RUN_RENAME_PAGE_SIZE; i++) {
+            await insertVersion(client, oldWorkflow);
+          }
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_13);
+
+          const versions = await client.query<{ data: Buffer }>(
+            `SELECT data FROM resource_audit WHERE kind = 'workflow' ORDER BY id`,
+          );
+          const migratedWorkflow = renamedWorkflowRow(oldWorkflow)!;
+          expect(versions.rowCount).toBe(RUN_RENAME_PAGE_SIZE + 1);
+          for (const r of versions.rows) {
+            expect(new Uint8Array(r.data)).toEqual(migratedWorkflow);
+          }
+        } finally {
+          await client.end();
+        }
+      });
     });
   },
 );

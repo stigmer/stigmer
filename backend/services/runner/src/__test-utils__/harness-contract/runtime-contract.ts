@@ -589,7 +589,7 @@ function plantPriorTurnFacts(held: AgentRunStatus, label: string) {
 
 // ── Arms: the stop controller's producers ───────────────────────────────────
 
-/** A hanging scenario with the never-seen text after the hang; the arms below stop it in three different ways. */
+/** A hanging scenario with the never-seen text after the hang; the arms below stop it in four different ways. */
 function hangingTurn(before: string): TurnScenario {
   return [scenario.say(before), scenario.hang(), scenario.say(NEVER_SEEN)];
 }
@@ -655,6 +655,36 @@ export async function assertWorkerShutdownPersistsAndThrows(harness: RuntimeCont
   expect(final.error).toBe(TERMINAL_COPY.workerShutdown.error);
   expect(final.completedAt).not.toBe("");
   expect(systemMessages(final), `${subject.name}: the shutdown row, exactly once`).toEqual([TERMINAL_COPY.workerShutdown.row]);
+  expect(aiMessages(final)).not.toContain(NEVER_SEEN);
+  return { driver, invocations: [invocation], final };
+}
+
+/**
+ * An infrastructure cancel: Temporal cancels for its own reason (a heartbeat
+ * timeout, `TIMED_OUT`), neither the workflow's stop nor the runner's drain.
+ * FAILED with the unresponsive copy, the row exactly once, stamped, and the
+ * heartbeat-timeout `CancelledFailure` thrown so the workflow sees the
+ * activity cancelled.
+ */
+export async function assertInfrastructureCancelPersistsAndThrows(
+  harness: RuntimeContractHarness,
+  label = "rt-infrastructure-cancel",
+): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const driver = new RuntimeExecutionDriver(harness, label);
+  let controls: InvocationControls | undefined;
+  void subject.whenHanging().then(() => controls!.cancelTimedOut());
+
+  const invocation = await driver.turn(hangingTurn("Starting on the parser."), { onControls: (c) => (controls = c) });
+
+  expect(threwCancelledFailure(invocation.outcome), `${subject.name}: an infrastructure cancel THROWS a CancelledFailure`).toBe(true);
+  if (!threwCancelledFailure(invocation.outcome)) throw new Error("unreachable");
+  expect(invocation.outcome.error.message).toBe(TERMINAL_COPY.infrastructureCancel.throwMessage);
+  expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_FAILED);
+  const final = finalStatusOf(harness, driver);
+  expect(final.error).toBe(TERMINAL_COPY.infrastructureCancel.error);
+  expect(final.completedAt).not.toBe("");
+  expect(systemMessages(final), `${subject.name}: the unresponsive row, exactly once`).toEqual([TERMINAL_COPY.infrastructureCancel.row]);
   expect(aiMessages(final)).not.toContain(NEVER_SEEN);
   return { driver, invocations: [invocation], final };
 }
@@ -996,6 +1026,10 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
     it("a worker shutdown persists FAILED with the shutdown copy once and throws the shutdown CancelledFailure", async () => {
       clock.reset();
       await assertWorkerShutdownPersistsAndThrows(harness);
+    });
+    it("an infrastructure cancel persists FAILED with the unresponsive copy once and throws the heartbeat-timeout CancelledFailure", async () => {
+      clock.reset();
+      await assertInfrastructureCancelPersistsAndThrows(harness);
     });
     it("a stall fails the turn with the watchdog's idle time", async () => {
       clock.reset();

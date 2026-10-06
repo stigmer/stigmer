@@ -3,7 +3,9 @@
  * session and its one turn are created in the organization read when the
  * explanation starts, so an `org` change while the session create is in
  * flight never files the turn under another organization than its
- * session's.
+ * session's. Also pins the ending: when the run's stream reaches a terminal
+ * phase, the explanation is read from the run's structured output and the
+ * flow completes.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
@@ -25,6 +27,7 @@ import { useExplainWorkflowFlow } from "../useExplainWorkflowFlow";
 import { useCreateSession } from "../../session/useCreateSession";
 import { useCreateAgentRun } from "../../run/useCreateAgentRun";
 import { useRunStream } from "../../run/useRunStream";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 const mockCreateSession = vi.fn();
 const mockCreateExecution = vi.fn();
@@ -32,7 +35,7 @@ const mockCreateExecution = vi.fn();
 describe("useExplainWorkflowFlow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockCreateExecution.mockResolvedValue({ executionId: "exec-1" });
+    mockCreateExecution.mockResolvedValue({ runId: "run-1" });
     (useCreateSession as ReturnType<typeof vi.fn>).mockReturnValue({
       create: mockCreateSession,
       isCreating: false,
@@ -46,7 +49,7 @@ describe("useExplainWorkflowFlow", () => {
       clearError: vi.fn(),
     });
     (useRunStream as ReturnType<typeof vi.fn>).mockReturnValue({
-      execution: null,
+      run: null,
       phase: 0,
       isStreaming: false,
       isConnecting: false,
@@ -87,5 +90,38 @@ describe("useExplainWorkflowFlow", () => {
     expect(mockCreateExecution).toHaveBeenCalledWith(
       expect.objectContaining({ org: "test-org", sessionId: "sess-1" }),
     );
+  });
+
+  it("streams the run it started and completes with the explanation from its structured output", async () => {
+    mockCreateSession.mockResolvedValue({ sessionId: "sess-1" });
+    const { result, rerender } = renderHook(
+      ({ options }) => useExplainWorkflowFlow(options),
+      {
+        initialProps: {
+          options: { org: "test-org", currentYaml: "name: my-workflow" },
+        },
+      },
+    );
+
+    await act(async () => {
+      await result.current.explain();
+    });
+    expect(result.current.phase).toBe("streaming");
+    expect(vi.mocked(useRunStream)).toHaveBeenLastCalledWith("run-1", expect.anything());
+
+    const run = {
+      status: { structuredOutput: { explanation: "It triages the inbox nightly." } },
+    };
+    vi.mocked(useRunStream).mockReturnValue({
+      run,
+      phase: RunPhase.RUN_COMPLETED,
+      isStreaming: false,
+      isConnecting: false,
+      error: null,
+    } as unknown as ReturnType<typeof useRunStream>);
+    rerender({ options: { org: "test-org", currentYaml: "name: my-workflow" } });
+
+    expect(result.current.phase).toBe("complete");
+    expect(result.current.explanation).toBe("It triages the inbox nightly.");
   });
 });

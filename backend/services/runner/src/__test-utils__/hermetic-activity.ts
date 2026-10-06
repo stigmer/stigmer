@@ -634,11 +634,14 @@ export interface ActivityInvocation {
  * never from a timer. `cancel()` aborts the activity's `cancellationSignal`
  * (a user pause, as the workflow delivers it). `signalWorkerShutdown()` aborts
  * the queue's shutdown signal first, which the activity reads to tell a worker
- * drain from a user pause (`classifyTurnInterruption`).
+ * drain from a user pause (`classifyTurnInterruption`). `cancelTimedOut()`
+ * aborts it with Temporal's own reason, `TIMED_OUT` (a heartbeat timeout),
+ * the cancellation the turn reads as infrastructure.
  */
 export interface InvocationControls {
   cancel(): void;
   signalWorkerShutdown(): void;
+  cancelTimedOut(): void;
 }
 
 export interface RunActivityOptions {
@@ -672,6 +675,7 @@ export async function runActivityHermetically<A extends unknown[]>(
   options.onControls?.({
     cancel: () => env.cancel(),
     signalWorkerShutdown: () => signalWorkerShutdown(taskQueue),
+    cancelTimedOut: () => env.cancel("TIMED_OUT"),
   });
 
   try {

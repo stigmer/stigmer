@@ -3,8 +3,8 @@ import { toProtoEvent, initSequenceFromEventLog, emitWorkflowEvents, loadRecover
 import { StigmerClient } from "../../client/stigmer-client.js";
 import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import { WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase, WorkflowTaskStatus } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
+import { ApprovalAction, RunPhase as AgentRunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { WorkflowEventDescriptor } from "../../workflow-engine/types.js";
 
 const mockGetEventLogHighWaterMark = vi.fn<(executionId: string) => Promise<bigint>>();
@@ -708,6 +708,32 @@ describe("toProtoEvent", () => {
     });
   });
 
+  describe("agent_call_progress", () => {
+    it("carries the child run id and the child's live counters", () => {
+      const evt = toProtoEvent({
+        type: "agent_call_progress",
+        taskName: "callAgent",
+        occurredAt: NOW,
+        childExecutionId: "exec-child-1",
+        agentSlug: "my-agent",
+        agentPhase: AgentRunPhase.RUN_IN_PROGRESS,
+        currentToolName: "read_file",
+        tokensConsumed: 1500,
+        messagesCount: 4,
+        toolCallsCount: 2,
+      });
+
+      expect(evt.eventType).toBe(WorkflowEventType.agent_call_progress);
+      if (evt.payload.case !== "agentCallProgress") throw new Error("unexpected");
+      expect(evt.payload.value.childRunId).toBe("exec-child-1");
+      expect(evt.payload.value.agentPhase).toBe(AgentRunPhase.RUN_IN_PROGRESS);
+      expect(evt.payload.value.currentToolName).toBe("read_file");
+      expect(evt.payload.value.tokensConsumed).toBe(BigInt(1500));
+      expect(evt.payload.value.messagesCount).toBe(4);
+      expect(evt.payload.value.toolCallsCount).toBe(2);
+    });
+  });
+
   describe("agent_call_completed", () => {
     it("converts with cost and token data", () => {
       const evt = toProtoEvent({
@@ -768,6 +794,68 @@ describe("emitWorkflowEvents", () => {
     const input = mockUpdateStatus.mock.calls[0][0] as { events: { sequenceNumber: bigint }[] };
     expect(input.events).toHaveLength(1);
     expect(input.events[0].sequenceNumber).toBe(BigInt(12));
+  });
+
+  it("an execution_started event moves the run to IN_PROGRESS with its start time", async () => {
+    mockUpdateStatus.mockResolvedValue({});
+
+    await emitWorkflowEvents(client, "exec-1", [{
+      type: "execution_started",
+      taskName: "",
+      occurredAt: NOW,
+      totalTasks: 3,
+      workflowId: "wfl_1",
+      sequenceNumber: 1,
+    }]);
+
+    const input = mockUpdateStatus.mock.calls[0][0] as { runId: string; status: { phase: RunPhase; startedAt: string } };
+    expect(input.runId).toBe("exec-1");
+    expect(input.status.phase).toBe(RunPhase.RUN_IN_PROGRESS);
+    expect(input.status.startedAt).toBe(NOW);
+  });
+
+  it("an execution_completed event moves the run to COMPLETED with its totals", async () => {
+    mockUpdateStatus.mockResolvedValue({});
+
+    await emitWorkflowEvents(client, "exec-1", [{
+      type: "execution_completed",
+      taskName: "",
+      occurredAt: NOW,
+      durationMs: 1200,
+      totalCostMicros: 4200,
+      totalTokens: 30,
+      totalInputTokens: 20,
+      totalOutputTokens: 10,
+      sequenceNumber: 9,
+    }]);
+
+    const input = mockUpdateStatus.mock.calls[0][0] as {
+      status: { phase: RunPhase; completedAt: string; totalCostMicros: bigint; totalInputTokens: bigint; totalOutputTokens: bigint };
+    };
+    expect(input.status.phase).toBe(RunPhase.RUN_COMPLETED);
+    expect(input.status.completedAt).toBe(NOW);
+    expect(input.status.totalCostMicros).toBe(BigInt(4200));
+    expect(input.status.totalInputTokens).toBe(BigInt(20));
+    expect(input.status.totalOutputTokens).toBe(BigInt(10));
+  });
+
+  it("an execution_failed event moves the run to FAILED with the failure copy", async () => {
+    mockUpdateStatus.mockResolvedValue({});
+
+    await emitWorkflowEvents(client, "exec-1", [{
+      type: "execution_failed",
+      taskName: "",
+      occurredAt: NOW,
+      error: "task fetch failed: HTTP 500",
+      failedTaskName: "fetch",
+      durationMs: 800,
+      sequenceNumber: 9,
+    }]);
+
+    const input = mockUpdateStatus.mock.calls[0][0] as { status: { phase: RunPhase; completedAt: string; error: string } };
+    expect(input.status.phase).toBe(RunPhase.RUN_FAILED);
+    expect(input.status.completedAt).toBe(NOW);
+    expect(input.status.error).toBe("task fetch failed: HTTP 500");
   });
 
   it("propagates RPC errors so the local activity retry policy fires", async () => {

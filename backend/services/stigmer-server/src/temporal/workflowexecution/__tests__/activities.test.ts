@@ -82,6 +82,24 @@ describe("applyActivityStatusMerge (the activity's own merge, not the RPC's)", (
     expect(result.status?.totalCostMicros).toBe(5n);
   });
 
+  it("gives a run with no status yet one built from the update, its audit stamped", () => {
+    const execution = create(WorkflowRunSchema, { metadata: { id: "wfe-1" } });
+    expect(execution.status).toBeUndefined();
+
+    applyActivityStatusMerge(
+      execution,
+      create(WorkflowRunStatusSchema, {
+        phase: RunPhase.RUN_IN_PROGRESS,
+        startedAt: "2026-10-01T09:00:00Z",
+      }),
+    );
+
+    expect(execution.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
+    expect(execution.status?.startedAt).toBe("2026-10-01T09:00:00Z");
+    expect(execution.status?.tasks).toEqual([]);
+    expect(execution.status?.audit?.statusAudit?.event).toBe("updated");
+  });
+
   it("bumps statusAudit.updatedAt UNCONDITIONALLY — even without a phase transition", () => {
     // The RPC merge would NOT bump here (same phase re-asserted); the
     // activity always does (update_status_impl.go's unconditional bump).

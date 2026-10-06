@@ -2089,4 +2089,68 @@ describe("v18: agent and workflow executions are runs", () => {
       agentRunBytes("aex_good", "ses_1", OLD_RUN_NAMES),
     );
   });
+
+  /** Archives a workflow version the way the release before stored it. */
+  function insertVersion(db: DatabaseSync, data: Uint8Array): void {
+    db.prepare(
+      `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('workflow', 'wfl_1', ?, ?, '')`,
+    ).run(data, RUN_RENAME_HASH);
+  }
+
+  it("a grant that does not decode fails the step, names the row, and leaves the database at v17", () => {
+    const { dbPath, db: setup } = v17Database();
+    insertPlain(setup, "iam_policy", runGrant.id, policyRow(runGrant));
+    insertPlain(setup, "iam_policy", "iamp_bad", new Uint8Array([0x22, 0xff]));
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    expect(() => runMigrations(db, SCHEMA_VERSION_18)).toThrow(
+      /the iam_policy row iamp_bad cannot be read for the rename of executions to runs/,
+    );
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_17);
+    expect(row(db, "iam_policy", runGrant.id)?.data).toEqual(policyRow(runGrant));
+  });
+
+  it("an archived workflow version that does not decode fails the step, names the version, and leaves the database at v17", () => {
+    const { dbPath, db: setup } = v17Database();
+    insertVersion(setup, oldWorkflow);
+    insertVersion(setup, new Uint8Array([0x22, 0xff]));
+    const badId = (
+      setup.prepare(`SELECT MAX(id) AS id FROM resource_audit WHERE kind = 'workflow'`).get() as {
+        id: number;
+      }
+    ).id;
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    expect(() => runMigrations(db, SCHEMA_VERSION_18)).toThrow(
+      `the workflow version row ${badId} cannot be read for the rename of executions to runs`,
+    );
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_17);
+    expect(
+      db.prepare(`SELECT data FROM resource_audit WHERE kind = 'workflow' AND id < ?`).all(badId),
+    ).toEqual([{ data: oldWorkflow }]);
+  });
+
+  it("reads archived workflow versions across keyset pages, missing none past the first page", () => {
+    const { dbPath, db: setup } = v17Database();
+    for (let i = 0; i <= RUN_RENAME_PAGE_SIZE; i++) {
+      insertVersion(setup, oldWorkflow);
+    }
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_18);
+    const versions = db
+      .prepare(`SELECT data FROM resource_audit WHERE kind = 'workflow' ORDER BY id`)
+      .all() as Array<{ data: Uint8Array }>;
+    const migratedWorkflow = renamedWorkflowRow(oldWorkflow)!;
+    expect(versions).toHaveLength(RUN_RENAME_PAGE_SIZE + 1);
+    for (const version of versions) {
+      expect(version.data).toEqual(migratedWorkflow);
+    }
+  });
 });

@@ -4,8 +4,9 @@
  * ExecutionContext build, leaves the pin empty for a workflow with no
  * hash, and refuses an unknown workflow NOT_FOUND naming it), and
  * StartWorkflow's failure posture (execution marked FAILED with the error
- * text and persisted — recoverable via Recover) and its slim input, which
- * carries no instance key.
+ * text and persisted — recoverable via Recover, a run with no status given
+ * one) and its slim input, which carries no instance key; and
+ * SetInitialPhase's PENDING stamp, on a run with or without a status.
  */
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -28,7 +29,10 @@ import { createLogger } from "../../../boot/logger.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 
-import { newStartWorkflowStep } from "../create-steps.js";
+import {
+  newSetInitialPhaseStep,
+  newStartWorkflowStep,
+} from "../create-steps.js";
 import {
   PINNED_WORKFLOW_KEY,
   newPinWorkflowVersionStep,
@@ -128,6 +132,28 @@ describe("PinWorkflowVersion", () => {
   });
 });
 
+describe("SetInitialPhase", () => {
+  it("gives a run with no status a PENDING one", async () => {
+    const ctx = executionCtx({ metadata: { id: "wfx_phase" } });
+
+    await newSetInitialPhaseStep().execute(ctx);
+
+    expect(ctx.newState.status?.phase).toBe(RunPhase.RUN_PENDING);
+  });
+
+  it("stamps PENDING over a caller's phase and keeps the rest of the status", async () => {
+    const ctx = executionCtx({
+      metadata: { id: "wfx_phase" },
+      status: { phase: RunPhase.RUN_COMPLETED, error: "kept" },
+    });
+
+    await newSetInitialPhaseStep().execute(ctx);
+
+    expect(ctx.newState.status?.phase).toBe(RunPhase.RUN_PENDING);
+    expect(ctx.newState.status?.error).toBe("kept");
+  });
+});
+
 describe("StartWorkflow failure posture (create.go startWorkflowStep)", () => {
   it("marks the execution FAILED with the error text, persists, and answers Internal", async () => {
     counter += 1;
@@ -176,6 +202,45 @@ describe("StartWorkflow failure posture (create.go startWorkflowStep)", () => {
     expect(stored.status?.phase).toBe(RunPhase.RUN_FAILED);
     expect(stored.status?.error).toBe(
       "Failed to start Temporal workflow: queue unreachable",
+    );
+  });
+
+  it("gives a run with no status a FAILED one when the engine dropped after the gate", async () => {
+    counter += 1;
+    const executionId = `wfx_start_${counter}`;
+    const execution: WorkflowRun = create(WorkflowRunSchema, {
+      metadata: { id: executionId, name: executionId, org: "acme" },
+      spec: { workflowId: "wf_x" },
+    });
+    await store.saveResource(
+      ApiResourceKind.workflow_run,
+      executionId,
+      WorkflowRunSchema,
+      execution,
+    );
+    const step = newStartWorkflowStep({
+      store,
+      logger: silentLogger,
+      engineState: () => ({ connected: false }),
+    });
+
+    const ctx = new RequestContext(
+      WorkflowRunSchema,
+      execution,
+      testCallerIdentity(),
+      ApiResourceKind.workflow_run,
+    );
+    await expect(async () => step.execute(ctx)).rejects.toSatisfy(
+      (e: unknown) => e instanceof ConnectError && e.code === Code.Internal,
+    );
+    const stored = await store.getResource(
+      ApiResourceKind.workflow_run,
+      executionId,
+      WorkflowRunSchema,
+    );
+    expect(stored.status?.phase).toBe(RunPhase.RUN_FAILED);
+    expect(stored.status?.error).toBe(
+      "Failed to start Temporal workflow: workflow engine disconnected after the create gate",
     );
   });
 

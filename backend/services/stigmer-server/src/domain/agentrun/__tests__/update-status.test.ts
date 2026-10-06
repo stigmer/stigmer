@@ -327,6 +327,44 @@ describe("the phase latch and terminal settle", () => {
   });
 });
 
+describe("a first write and the sub-agent runs", () => {
+  it("builds a status for a run that has none from the runner's first write", () => {
+    const merged = runBuildStep(
+      create(AgentRunSchema, { metadata: { id: "exec-first", name: "exec-first" } }),
+      { phase: RunPhase.RUN_IN_PROGRESS, messages: [{ content: "m1" }] },
+    );
+
+    expect(merged.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
+    expect(merged.status?.messages.map((m) => m.content)).toEqual(["m1"]);
+  });
+
+  it("replaces the sub-agent runs wholesale when a write carries them and keeps them when it does not", () => {
+    const existing = existingWith(RunPhase.RUN_IN_PROGRESS, "m1");
+    (existing.status as AgentRunStatus).subAgentRuns = create(AgentRunStatusSchema, {
+      subAgentRuns: [{ id: "sub-old", name: "researcher" }],
+    }).subAgentRuns;
+
+    const replaced = runBuildStep(existing, {
+      phase: RunPhase.RUN_IN_PROGRESS,
+      messages: [{ content: "m1" }],
+      subAgentRuns: [
+        { id: "sub-a", name: "researcher" },
+        { id: "sub-b", name: "writer" },
+      ],
+    });
+    expect(replaced.status?.subAgentRuns.map((sa) => sa.id)).toEqual([
+      "sub-a",
+      "sub-b",
+    ]);
+
+    const kept = runBuildStep(existing, {
+      phase: RunPhase.RUN_IN_PROGRESS,
+      messages: [{ content: "m1" }],
+    });
+    expect(kept.status?.subAgentRuns.map((sa) => sa.id)).toEqual(["sub-old"]);
+  });
+});
+
 describe("the presence-guarded runner-owned field pattern (recalled_memories_report)", () => {
   function selectionReport(...ids: string[]) {
     return {

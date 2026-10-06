@@ -8,7 +8,9 @@
  * a list row's Organization column shows the stored org id through
  * OrgSlugText; a row's "Copy reference" copies `<org slug>/<slug>`; and a
  * row's Delete confirms in the detail page's words, the same confirmation
- * for the same act.
+ * for the same act; a started run is announced and opened, a run that fails
+ * to start shows its error, and a run picked on the detail page or in the
+ * runs list (by a click or Enter) opens through run navigation.
  * The views and the workbench are pinned in @stigmer/react.
  */
 import type { ReactNode } from "react";
@@ -42,6 +44,9 @@ const page = vi.hoisted(() => ({
   executionListOrg: [] as Array<string | null>,
   confirms: [] as Array<{ title: string; description: string }>,
   refetchWorkflow: () => undefined,
+  runs: [] as Array<{ metadata?: { id?: string; name?: string } }>,
+  openedRuns: [] as string[],
+  toasts: [] as Array<[string, string]>,
 }));
 
 vi.mock("@stigmer/react", () => {
@@ -122,7 +127,7 @@ vi.mock("@stigmer/react", () => {
     useWorkflowRunList: ({ org }: { org: string | null }) => {
       page.executionListOrg.push(org);
       return {
-        runs: [],
+        runs: page.runs,
         isLoading: false,
         error: null,
         hasMore: false,
@@ -173,7 +178,14 @@ vi.mock("@/domain/library/full-viewport-layout", () => ({
 }));
 
 vi.mock("@/domain/workflow/run-navigation", () => ({
-  useRunNavigation: () => ({ navigateToRun: () => undefined }),
+  useRunNavigation: () => ({ navigateToRun: (id: string) => page.openedRuns.push(id) }),
+}));
+
+vi.mock("sonner", () => ({
+  toast: {
+    success: (message: string) => page.toasts.push(["success", message]),
+    error: (message: string) => page.toasts.push(["error", message]),
+  },
 }));
 
 import { WorkflowListPage } from "../WorkflowListPage";
@@ -190,6 +202,9 @@ beforeEach(() => {
   page.architectOrg.length = 0;
   page.executionListOrg.length = 0;
   page.confirms.length = 0;
+  page.runs = [];
+  page.openedRuns.length = 0;
+  page.toasts.length = 0;
   copied = [];
   vi.spyOn(navigator.clipboard, "writeText").mockImplementation(
     async (text: string) => {
@@ -291,6 +306,34 @@ describe("web WorkflowDetailPageInner", () => {
     );
     expect(page.confirms.at(-1)?.description).toBe(WORKFLOW_DELETE_DESCRIPTION);
   });
+
+  it("announces a started run and opens it", () => {
+    render(<WorkflowDetailPageInner org="other" slug="nightly" />);
+
+    act(() => (page.props.get("WorkflowRunDialog")?.onSuccess as (id: string) => void)("wfr_started"));
+
+    expect(page.toasts).toEqual([["success", "Workflow run started"]]);
+    expect(page.openedRuns).toEqual(["wfr_started"]);
+  });
+
+  it("shows a run that fails to start as an error and opens nothing", () => {
+    render(<WorkflowDetailPageInner org="other" slug="nightly" />);
+
+    act(() => (page.props.get("WorkflowRunDialog")?.onError as (message: string) => void)("quota exhausted"));
+
+    expect(page.toasts).toEqual([["error", "quota exhausted"]]);
+    expect(page.openedRuns).toEqual([]);
+  });
+
+  it("opens a run picked from the workflow's run list, and the latest run from its link", () => {
+    render(<WorkflowDetailPageInner org="other" slug="nightly" />);
+    const detail = page.props.get("WorkflowDetailView");
+
+    act(() => (detail?.onRunClick as (id: string) => void)("wfr_listed"));
+    act(() => (detail?.onViewLatestRun as (id: string) => void)("wfr_latest"));
+
+    expect(page.openedRuns).toEqual(["wfr_listed", "wfr_latest"]);
+  });
 });
 
 describe("web WorkflowRunListPage", () => {
@@ -298,5 +341,37 @@ describe("web WorkflowRunListPage", () => {
     render(<WorkflowRunListPage />);
 
     expect(page.executionListOrg.at(-1)).toBe("org_acme");
+  });
+
+  it("opens a run when its row is clicked", () => {
+    page.runs = [{ metadata: { id: "wfr_1", name: "nightly digest" } }];
+    render(<WorkflowRunListPage />);
+
+    fireEvent.click(screen.getByRole("link", { name: /nightly digest/ }));
+
+    expect(page.openedRuns).toEqual(["wfr_1"]);
+  });
+
+  it("opens a run on Enter and ignores other keys", () => {
+    page.runs = [{ metadata: { id: "wfr_2", name: "weekly report" } }];
+    render(<WorkflowRunListPage />);
+    const row = screen.getByRole("link", { name: /weekly report/ });
+
+    fireEvent.keyDown(row, { key: " " });
+    expect(page.openedRuns).toEqual([]);
+
+    fireEvent.keyDown(row, { key: "Enter" });
+    expect(page.openedRuns).toEqual(["wfr_2"]);
+  });
+
+  it("opens nothing from a row whose run has no id", () => {
+    page.runs = [{ metadata: { name: "unsaved" } }];
+    render(<WorkflowRunListPage />);
+    const row = screen.getByRole("link", { name: /unsaved/ });
+
+    fireEvent.click(row);
+    fireEvent.keyDown(row, { key: "Enter" });
+
+    expect(page.openedRuns).toEqual([]);
   });
 });

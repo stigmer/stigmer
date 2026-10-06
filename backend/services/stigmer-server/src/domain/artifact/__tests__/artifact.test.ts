@@ -201,6 +201,18 @@ describe("artifact domain — create & content addressing", () => {
     expect(created.metadata?.org).toBe("");
   });
 
+  it("refuses a source naming neither a workflow run nor an agent run", async () => {
+    // The source message is present (its field-level `required` holds), so
+    // the refusal is the domain's own: an artifact must link to its run.
+    const err = await grpcError(() =>
+      command.create(artifactInput({ agentExecutionId: "", workflowExecutionId: "" })),
+    );
+    expect(err.code).toBe(Code.InvalidArgument);
+    expect(err.rawMessage).toBe(
+      "spec.source must include workflow_run_id or agent_run_id",
+    );
+  });
+
   it("rejects content over the 50MB domain cap with ResourceExhausted (unit-level arm)", async () => {
     // Through an in-process router — the wire path hits the transport's
     // 10MB cap first, so the domain arm is provable

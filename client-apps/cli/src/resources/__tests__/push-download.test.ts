@@ -4,7 +4,9 @@
 // plain HTTP server standing in for object storage, then drives the resource
 // layer end to end: pushSkill zips a temp dir and uploads it (asserting the
 // server receives a valid ZIP), and downloadRunArtifacts streams a
-// presigned URL to disk (asserting partial-failure tolerance).
+// presigned URL to disk (asserting partial-failure tolerance), warns that a
+// run still in progress may not have every artifact yet, and refuses a named
+// artifact the run does not hold with a pointer to `get run`.
 
 import { createServer as createHttpServer, type Server as HttpServer } from "node:http";
 import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Session } from "node:http2";
@@ -25,6 +27,7 @@ import { createNodeClient, normalizeEndpoint } from "@stigmer/sdk/node";
 import type { Stigmer } from "@stigmer/sdk";
 import { unzipSync } from "fflate";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { CliExitError, ExitCode } from "../../errors/index.js";
 import { downloadRunArtifacts } from "../download.js";
 import { pushSkill } from "../skill.js";
 
@@ -56,6 +59,12 @@ const execution = create(AgentRunSchema, {
   },
 });
 
+// A run still pending: nothing produced yet.
+const pendingExecution = create(AgentRunSchema, {
+  metadata: { id: "aex_pending" },
+  status: { phase: RunPhase.RUN_PENDING },
+});
+
 beforeAll(async () => {
   // Object-storage stand-in: serves the good key, 404s anything else.
   storage = createHttpServer((req, res) => {
@@ -84,6 +93,7 @@ beforeAll(async () => {
     });
     router.service(AgentRunQueryController, {
       get: (req) => {
+        if (req.value === "aex_pending") return pendingExecution;
         if (req.value !== "aex_done") throw new ConnectError("not found", Code.NotFound);
         return execution;
       },
@@ -157,6 +167,39 @@ describe("downloadRunArtifacts", () => {
       expect(outcome.downloaded).toBe(1); // broken.txt 404s, report.txt succeeds
       expect(outcome.noArtifacts).toBe(false);
       expect(readFileSync(join(out, "report.txt"), "utf8")).toBe(ARTIFACT_BODY);
+    } finally {
+      rmSync(out, { recursive: true, force: true });
+    }
+  });
+
+  it("warns that a pending run may be incomplete, and reports no artifacts", async () => {
+    const progress: string[] = [];
+    const out = mkdtempSync(join(tmpdir(), "dl-it-"));
+    try {
+      const outcome = await downloadRunArtifacts(
+        client,
+        "aex_pending",
+        { artifactName: "", outputDir: out },
+        (line) => progress.push(line),
+      );
+      expect(outcome).toEqual({ total: 0, downloaded: 0, noArtifacts: true, incompletePhase: "pending" });
+      expect(progress).toEqual([
+        "Run is still pending. Artifacts may not be complete until the run finishes.",
+      ]);
+    } finally {
+      rmSync(out, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses a named artifact the run does not hold, pointing at get run", async () => {
+    const out = mkdtempSync(join(tmpdir(), "dl-it-"));
+    try {
+      const failure = downloadRunArtifacts(client, "aex_done", { artifactName: "missing.txt", outputDir: out });
+      await expect(failure).rejects.toBeInstanceOf(CliExitError);
+      await expect(failure).rejects.toMatchObject({
+        message: "artifact not found: missing.txt\n\nUse 'stigmer get run aex_done' to see available artifacts",
+        exitCode: ExitCode.General,
+      });
     } finally {
       rmSync(out, { recursive: true, force: true });
     }

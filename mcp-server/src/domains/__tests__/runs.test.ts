@@ -1,6 +1,6 @@
 // In-process test for the run-loop tools: run_agent, run_workflow,
-// get_agent_run, the two approval tools, list_pending_approvals, and
-// cancel_run.
+// get_agent_run, get_workflow_run, get_workflow_run_events, the two approval
+// tools, list_pending_approvals, and cancel_run.
 //
 // Same harness as reads.test.ts: a real Connect backend serving
 // stubbed controllers, the MCP server driven through an in-memory client. The
@@ -9,7 +9,9 @@
 // target, a follow-up refused when it names another agent or organization
 // than the session's, runtime-env conversion, approval enum mapping) and
 // script run state (running vs terminal, long message histories) to
-// exercise the compact projection and the cancel short-circuit.
+// exercise the compact projection and the cancel short-circuit. A scripted
+// RPC failure per method pins the error copy each tool returns when the
+// backend refuses (rpcerr's classification plus the run the tool names).
 
 import { create, toJson } from "@bufbuild/protobuf";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
@@ -51,7 +53,9 @@ import {
 import { WorkflowRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/command_pb";
 import { RunPhase as WorkflowRunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import {
+  GetEventLogResponseSchema,
   PendingApprovalsListSchema,
+  type GetEventLogRequest,
   type ListPendingApprovalsRequest,
   type SubmitWorkflowTaskApprovalInput,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/io_pb";
@@ -132,6 +136,23 @@ let agentCancelCalls = 0;
 let agentLookups = 0;
 let workflowCancelCalls = 0;
 let lastWorkflowReferenceOrg: string | undefined;
+let lastEventLogRequest: GetEventLogRequest | undefined;
+
+/** Backend methods scripted to refuse, keyed "<service>.<method>". */
+const failures = new Map<string, ConnectError>();
+
+/** Throw the scripted refusal for `method`, when one is set. */
+function refuseIfScripted(method: string): void {
+  const failure = failures.get(method);
+  if (failure !== undefined) {
+    throw failure;
+  }
+}
+
+const eventLog = create(GetEventLogResponseSchema, {
+  events: [{ eventId: "evt_1", taskName: "build", sequenceNumber: 1n }],
+  latestSequence: 1n,
+});
 
 interface ToolResult {
   content: Array<{ type: string; text?: string }>;
@@ -161,7 +182,10 @@ beforeAll(async () => {
       },
     });
     router.service(AgentRunQueryController, {
-      get: () => agentRunState,
+      get: () => {
+        refuseIfScripted("agentRun.get");
+        return agentRunState;
+      },
     });
     router.service(SessionQueryController, {
       get: (req) => {
@@ -173,15 +197,18 @@ beforeAll(async () => {
     });
     router.service(AgentRunCommandController, {
       create: (req) => {
+        refuseIfScripted("agentRun.create");
         createdAgentRun = req;
         return agentRunFixture(RunPhase.RUN_PENDING);
       },
       submitApproval: (req) => {
+        refuseIfScripted("agentRun.submitApproval");
         lastAgentApproval = req;
         return agentRunFixture(RunPhase.RUN_IN_PROGRESS);
       },
       cancel: () => {
         agentCancelCalls++;
+        refuseIfScripted("agentRun.cancel");
         return agentRunFixture(RunPhase.RUN_CANCELLED);
       },
     });
@@ -192,7 +219,15 @@ beforeAll(async () => {
       },
     });
     router.service(WorkflowRunQueryController, {
-      get: () => workflowRunState,
+      get: () => {
+        refuseIfScripted("workflowRun.get");
+        return workflowRunState;
+      },
+      getEventLog: (req) => {
+        refuseIfScripted("workflowRun.getEventLog");
+        lastEventLogRequest = req;
+        return eventLog;
+      },
       listPendingApprovals: (req) => {
         lastPendingApprovalsRequest = req;
         return pendingApprovals;
@@ -200,15 +235,18 @@ beforeAll(async () => {
     });
     router.service(WorkflowRunCommandController, {
       create: (req) => {
+        refuseIfScripted("workflowRun.create");
         createdWorkflowRun = req;
         return workflowRunFixture(WorkflowRunPhase.RUN_PENDING);
       },
       submitWorkflowTaskApproval: (req) => {
+        refuseIfScripted("workflowRun.submitWorkflowTaskApproval");
         lastWorkflowApproval = req;
         return workflowRunFixture(WorkflowRunPhase.RUN_IN_PROGRESS);
       },
       cancel: () => {
         workflowCancelCalls++;
+        refuseIfScripted("workflowRun.cancel");
         return workflowRunFixture(WorkflowRunPhase.RUN_CANCELLED);
       },
     });
@@ -240,6 +278,8 @@ beforeEach(() => {
   agentLookups = 0;
   workflowCancelCalls = 0;
   lastWorkflowReferenceOrg = undefined;
+  lastEventLogRequest = undefined;
+  failures.clear();
 });
 
 afterAll(async () => {
@@ -415,6 +455,26 @@ describe("run tools integration", () => {
     expect(createdAgentRun).toBeUndefined();
   });
 
+  it("run_agent reports a run the backend refuses to create, naming the agent", async () => {
+    failures.set("agentRun.create", new ConnectError("quota exhausted", Code.ResourceExhausted));
+    const result = await callTool("run_agent", {
+      org: "acme",
+      agent: "code-reviewer",
+      message: "review this PR",
+    });
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toBe("unexpected error: quota exhausted");
+  });
+
+  it("run_workflow reports a run the backend refuses to create", async () => {
+    failures.set("workflowRun.create", new ConnectError("denied", Code.PermissionDenied));
+    const result = await callTool("run_workflow", { org: "acme", workflow: "release" });
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toBe(
+      'Permission denied for run of workflow "release" in org "acme". Check your API key permissions.',
+    );
+  });
+
   it("run_workflow creates the run with the org env injected", async () => {
     const result = await callTool("run_workflow", { org: "acme", workflow: "release" });
     expect(result.isError).toBeFalsy();
@@ -476,6 +536,22 @@ describe("run tools integration", () => {
     expect(status.messages as unknown[]).toHaveLength(2);
   });
 
+  it("get_agent_run refuses an empty run id without calling the backend", async () => {
+    failures.set("agentRun.get", new ConnectError("must not be called", Code.Internal));
+    const result = await callTool("get_agent_run", { run_id: "" });
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toBe("run_id is required");
+  });
+
+  it("get_agent_run reports a run it cannot find", async () => {
+    failures.set("agentRun.get", new ConnectError("no such run", Code.NotFound));
+    const result = await callTool("get_agent_run", { run_id: "aex_9" });
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toBe(
+      'agent run "aex_9" not found. Verify the org and slug are correct.',
+    );
+  });
+
   it("get_agent_run view=full returns the backend protojson verbatim", async () => {
     const result = await callTool("get_agent_run", { run_id: "aex_1", view: "full" });
     expect(parseText(result)).toEqual(
@@ -496,6 +572,21 @@ describe("run tools integration", () => {
     expect(lastAgentApproval?.action).toBe(ApprovalAction.REJECT);
     expect(lastAgentApproval?.comment).toBe("wrong repository");
     expect(parseText(result).view).toBe("compact");
+  });
+
+  it("submit_agent_run_approval reports an approval the backend refuses", async () => {
+    failures.set(
+      "agentRun.submitApproval",
+      new ConnectError("tool call call_7 is not pending", Code.InvalidArgument),
+    );
+    const result = await callTool("submit_agent_run_approval", {
+      run_id: "aex_1",
+      tool_call_id: "call_7",
+      action: "approve",
+    });
+    expect(result.isError).toBe(true);
+    // InvalidArgument passes the server's own message through.
+    expect(result.content[0]?.text).toBe("tool call call_7 is not pending");
   });
 
   it("list_pending_approvals forwards the org and returns the inbox", async () => {
@@ -525,6 +616,82 @@ describe("run tools integration", () => {
     expect(lastWorkflowApproval?.reviewer).toBe("");
   });
 
+  it("submit_workflow_task_approval reports a decision the backend refuses, naming the task and run", async () => {
+    failures.set(
+      "workflowRun.submitWorkflowTaskApproval",
+      new ConnectError("no such run", Code.NotFound),
+    );
+    const result = await callTool("submit_workflow_task_approval", {
+      run_id: "wex_9",
+      task_name: "sign-off",
+      outcome: "approve",
+    });
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toBe(
+      'approval for task "sign-off" in workflow run "wex_9" not found. Verify the org and slug are correct.',
+    );
+  });
+
+  it("get_workflow_run returns the run as protojson", async () => {
+    const result = await callTool("get_workflow_run", { run_id: "wex_1" });
+    expect(result.isError).toBeFalsy();
+    expect(parseText(result)).toEqual(
+      toJson(WorkflowRunSchema, workflowRunState, { useProtoFieldName: true }),
+    );
+  });
+
+  it("get_workflow_run refuses an empty run id", async () => {
+    const result = await callTool("get_workflow_run", { run_id: "" });
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toBe("run_id is required");
+  });
+
+  it("get_workflow_run reports a run it cannot find", async () => {
+    failures.set("workflowRun.get", new ConnectError("no such run", Code.NotFound));
+    const result = await callTool("get_workflow_run", { run_id: "wex_9" });
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toBe(
+      'workflow run "wex_9" not found. Verify the org and slug are correct.',
+    );
+  });
+
+  it("get_workflow_run_events forwards the filter and page size and returns the log", async () => {
+    const result = await callTool("get_workflow_run_events", {
+      run_id: "wex_1",
+      task_name: "build",
+      page_size: 50,
+    });
+    expect(result.isError).toBeFalsy();
+    expect(lastEventLogRequest?.runId).toBe("wex_1");
+    expect(lastEventLogRequest?.taskName).toBe("build");
+    expect(lastEventLogRequest?.pageSize).toBe(50);
+    expect(parseText(result)).toEqual(
+      toJson(GetEventLogResponseSchema, eventLog, { useProtoFieldName: true }),
+    );
+  });
+
+  it("get_workflow_run_events leaves the page size to the server when none is given", async () => {
+    await callTool("get_workflow_run_events", { run_id: "wex_1" });
+    expect(lastEventLogRequest?.taskName).toBe("");
+    expect(lastEventLogRequest?.pageSize).toBe(0);
+  });
+
+  it("get_workflow_run_events refuses an empty run id", async () => {
+    const result = await callTool("get_workflow_run_events", { run_id: "" });
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toBe("run_id is required");
+    expect(lastEventLogRequest).toBeUndefined();
+  });
+
+  it("get_workflow_run_events reports a log the backend will not serve", async () => {
+    failures.set("workflowRun.getEventLog", new ConnectError("down", Code.Unavailable));
+    const result = await callTool("get_workflow_run_events", { run_id: "wex_1" });
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toBe(
+      "Stigmer server is unavailable. Ensure it is running and reachable.",
+    );
+  });
+
   it("cancel_run cancels a running agent run", async () => {
     const body = parseText(await callTool("cancel_run", { run_id: "aex_1" }));
     expect(agentCancelCalls).toBe(1);
@@ -543,6 +710,44 @@ describe("run tools integration", () => {
     const body = parseText(await callTool("cancel_run", { run_id: "wex_1" }));
     expect(workflowCancelCalls).toBe(1);
     expect(body.already_terminal).toBe(false);
+  });
+
+  it("cancel_run short-circuits a terminal workflow run", async () => {
+    workflowRunState = workflowRunFixture(WorkflowRunPhase.RUN_COMPLETED);
+    const body = parseText(await callTool("cancel_run", { run_id: "wex_1" }));
+    expect(workflowCancelCalls).toBe(0);
+    expect(body.already_terminal).toBe(true);
+    expect((body.run as Record<string, unknown>).status).toMatchObject({
+      phase: "RUN_COMPLETED",
+    });
+  });
+
+  it("cancel_run reports an agent run the backend refuses to cancel", async () => {
+    failures.set("agentRun.cancel", new ConnectError("run is finalizing", Code.FailedPrecondition));
+    const result = await callTool("cancel_run", { run_id: "aex_1" });
+    expect(agentCancelCalls).toBe(1);
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toBe("unexpected error: run is finalizing");
+  });
+
+  it("cancel_run reports a workflow run it cannot find", async () => {
+    failures.set("workflowRun.get", new ConnectError("no such run", Code.NotFound));
+    const result = await callTool("cancel_run", { run_id: "wex_9" });
+    expect(workflowCancelCalls).toBe(0);
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toBe(
+      'workflow run "wex_9" not found. Verify the org and slug are correct.',
+    );
+  });
+
+  it("cancel_run reports a workflow run the backend refuses to cancel", async () => {
+    failures.set("workflowRun.cancel", new ConnectError("denied", Code.PermissionDenied));
+    const result = await callTool("cancel_run", { run_id: "wex_1" });
+    expect(workflowCancelCalls).toBe(1);
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toBe(
+      'Permission denied for workflow run "wex_1". Check your API key permissions.',
+    );
   });
 
   it("cancel_run rejects an unrecognized ID format", async () => {

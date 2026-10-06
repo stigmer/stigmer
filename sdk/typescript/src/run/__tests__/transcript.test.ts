@@ -629,6 +629,26 @@ describe("transcriptToMarkdown", () => {
     expect(md).toContain("````\na fence: ```md\ninside\n```\n````");
   });
 
+  it("quotes a failed run's error under its turn, one quoted line per error line", () => {
+    const failed = create(AgentRunSchema, {
+      metadata: { id: "aex_f" },
+      spec: { target: { case: "sessionId", value: "ses_01" }, message: "prompt" },
+      status: {
+        phase: RunPhase.RUN_FAILED,
+        error: "provider refused the request\n\nquota exceeded",
+      },
+    });
+    const md = transcriptToMarkdown(assembleSessionTranscript(session(), [failed]));
+    expect(md).toContain(
+      "**Run error**\n\n> provider refused the request\n>\n> quota exceeded",
+    );
+  });
+
+  it("omits the error block for a run that carries no error", () => {
+    const md = transcriptToMarkdown(assembleSessionTranscript(session(), [exec1()]));
+    expect(md).not.toContain("**Run error**");
+  });
+
   it("marks kept superseded turns", () => {
     const t = assembleSessionTranscript(session(), allRuns(), {
       includeSuperseded: true,

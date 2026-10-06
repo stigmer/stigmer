@@ -7,7 +7,7 @@
  * them) survives any save that leaves it alone.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, cleanup, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { clone, create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
@@ -25,6 +25,7 @@ import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/ag
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { ScheduleDetailView } from "../ScheduleDetailView";
+import { openMenu } from "../../__tests__/helpers/open-menu";
 
 vi.mock("../../feedback/toast", () => ({
   toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }),
@@ -339,6 +340,57 @@ describe("ScheduleDetailView", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "aex_01run" }));
     expect(onNavigateToRun).toHaveBeenCalledWith("aex_01run");
+  });
+
+  it("navigates to a ledger row's run from the recent-runs strip and the Runs table", async () => {
+    const onNavigateToRun = vi.fn();
+    const client = makeClient(makeSchedule({ lastRunId: "aex_01last" }));
+    client.schedule.listRuns.mockResolvedValue(
+      create(ScheduleRunListSchema, {
+        totalCount: 1,
+        items: [
+          create(ScheduleRunSchema, {
+            scheduleId: "sch_01example",
+            origin: ScheduleRunOrigin.MANUAL,
+            outcome: ScheduleRunOutcome.COMPLETED,
+            runId: "aex_01ledger",
+            nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 60_000)),
+          }),
+        ],
+      }),
+    );
+    renderView(client, { onNavigateToRun });
+
+    fireEvent.click(await screen.findByRole("button", { name: "aex_01ledger" }));
+    expect(onNavigateToRun).toHaveBeenLastCalledWith("aex_01ledger");
+
+    fireEvent.click(screen.getByRole("tab", { name: /Runs/ }));
+    const table = await screen.findByRole("table", { name: "Run history" });
+    fireEvent.click(within(table).getByRole("button", { name: "aex_01ledger" }));
+    expect(onNavigateToRun).toHaveBeenCalledTimes(2);
+    expect(onNavigateToRun).toHaveBeenLastCalledWith("aex_01ledger");
+  });
+
+  it("deletes behind a confirmation that says past runs are kept, then reports it", async () => {
+    const onDeleted = vi.fn();
+    const client = makeClient(makeSchedule());
+    renderView(client, { onDeleted });
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    await openMenu(screen.getByRole("button", { name: "More actions" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Delete" }));
+
+    await screen.findByText("Delete this schedule?");
+    expect(
+      screen.getByText(
+        '"daily-fee-reminders" will stop firing and be permanently removed. Past runs are not affected. This cannot be undone.',
+      ),
+    ).toBeTruthy();
+    expect(client.schedule.delete).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(client.schedule.delete).toHaveBeenCalledWith("sch_01example"));
+    await waitFor(() => expect(onDeleted).toHaveBeenCalledOnce());
   });
 
   it("renders references as plain text without navigation callbacks", async () => {

@@ -415,3 +415,34 @@ describe("MessageThread — multi-approval keyboard arbitration", () => {
     expect(onApprovalSubmit).toHaveBeenCalledWith("tc-1", ApprovalAction.APPROVE);
   });
 });
+
+describe("MessageThread — terminal phase badge", () => {
+  function runIn(phase: RunPhase) {
+    return create(AgentRunSchema, {
+      metadata: { id: "aex-phase" },
+      status: {
+        phase,
+        messages: [create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "partial answer" })],
+      },
+    });
+  }
+
+  it("ends a failed run's thread with the Failed badge", () => {
+    const { lastFrame } = render(<MessageThread runs={[runIn(RunPhase.RUN_FAILED)]} />);
+    const output = lastFrame() ?? "";
+    expect(output).toContain("partial answer");
+    expect(output).toContain("● Failed");
+  });
+
+  it("ends a cancelled run's thread with the Cancelled badge", () => {
+    const { lastFrame } = render(<MessageThread runs={[runIn(RunPhase.RUN_CANCELLED)]} />);
+    expect(lastFrame() ?? "").toContain("● Cancelled");
+  });
+
+  it("shows no badge after a completed run", () => {
+    const { lastFrame } = render(<MessageThread runs={[runIn(RunPhase.RUN_COMPLETED)]} />);
+    const output = lastFrame() ?? "";
+    expect(output).toContain("partial answer");
+    expect(output).not.toContain("Completed");
+  });
+});

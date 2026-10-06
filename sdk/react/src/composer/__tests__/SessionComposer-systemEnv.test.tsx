@@ -99,4 +99,22 @@ describe("SessionComposer — runtime env carries only what the page collected",
 
     expect(runtimeEnv).toEqual(typed);
   });
+
+  it("still sends a save-for-future value for this run when saving it fails", async () => {
+    // No agent or MCP picker means no org for the personal environment, so
+    // saving the value is refused; the submit goes on and the value rides
+    // this run through the one-time path.
+    const typed = { GITHUB_TOKEN: { value: "ghp_x", isSecret: true } };
+    const variables: UseSessionVariablesReturn = {
+      ...typedVariables(typed),
+      toSaveForFutureEnv: () => typed,
+      hasSaveForFutureEntries: true,
+    };
+    const { runtimeEnv } = await submit({
+      baseUrl: "https://api.example.com",
+      sessionVariables: variables,
+    });
+
+    expect(runtimeEnv).toEqual(typed);
+  });
 });

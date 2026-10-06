@@ -401,6 +401,21 @@ describe("presence-guarded field merges (BuildNewStateWithStatus)", () => {
   });
 });
 
+describe("a first write to a run with no status", () => {
+  it("builds the status from the runner's write", () => {
+    const result = executeMerge(makeExecution(undefined), {
+      runId: "wfx_test",
+      status: {
+        phase: RunPhase.RUN_IN_PROGRESS,
+        startedAt: "2026-05-23T10:00:00Z",
+      },
+    });
+
+    expect(result.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
+    expect(result.status?.startedAt).toBe("2026-05-23T10:00:00Z");
+  });
+});
+
 describe("updateStatus persistence mechanism", () => {
   let dir: string;
   let store: SqliteStore;

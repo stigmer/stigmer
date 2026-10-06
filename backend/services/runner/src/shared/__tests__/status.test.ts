@@ -143,6 +143,25 @@ describe("persistStatus", () => {
     consoleSpy.mockRestore();
   });
 
+  it("answers UNSPECIFIED and logs when the hard-elided retry is refused too", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const updateStatus = vi
+      .fn()
+      .mockRejectedValueOnce({ code: 8, message: "resource_exhausted: exceeds maximum size" })
+      .mockRejectedValueOnce(new Error("still too large"));
+    const mockClient = { updateStatus } as any;
+
+    const signal = await persistStatus(mockClient, "exec-too-big", create(AgentRunStatusSchema, {}));
+
+    expect(signal).toBe(RunControlSignal.UNSPECIFIED);
+    expect(updateStatus).toHaveBeenCalledTimes(2);
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "[persistStatus] exec-too-big: still failing after hard elide:",
+      expect.objectContaining({ message: "still too large" }),
+    );
+    consoleSpy.mockRestore();
+  });
+
   it("offloads oversized tool outputs before persisting when given an offload context", async () => {
     const uploaded: string[] = [];
     const { storage: offloadStorage } = makeInMemoryArtifactStorage({ urlBase: "https://artifacts.local/" });
@@ -291,6 +310,15 @@ describe("persistStatus — transient retry", () => {
     });
     errorSpy.mockRestore();
     expect(attempt).toBe(1);
+  });
+
+  it("a retry budget below zero makes no attempt and answers UNSPECIFIED", async () => {
+    const client = retryClient(async () => ({ signal: RunControlSignal.STOP }));
+    const signal = await persistStatus(client, "exec-none", emptyStatus(), {
+      retry: { maxRetries: -1, delayFn: noDelay },
+    });
+    expect(signal).toBe(RunControlSignal.UNSPECIFIED);
+    expect(client.updateStatus).not.toHaveBeenCalled();
   });
 
   it("handles a mixed sequence: transient then terminal", async () => {

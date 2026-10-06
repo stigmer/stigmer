@@ -7,6 +7,7 @@ import {
   TaskStartedPayloadSchema,
   TaskCompletedPayloadSchema,
   TaskFailedPayloadSchema,
+  TaskSkippedPayloadSchema,
   AgentCallStartedPayloadSchema,
   AgentCallProgressPayloadSchema,
   ApprovalRequestedPayloadSchema,
@@ -135,6 +136,20 @@ function makeTaskFailedEvent(
         error: opts.error ?? "boom",
         durationMs: BigInt(100),
       }),
+    },
+  });
+}
+
+function makeTaskSkippedEvent(seq: number, taskName: string, reason = "condition false"): WorkflowRunEvent {
+  return create(WorkflowRunEventSchema, {
+    eventId: `evt-${seq}`,
+    sequenceNumber: BigInt(seq),
+    occurredAt: "2026-05-22T00:00:00Z",
+    taskName,
+    eventType: WorkflowEventType.task_skipped,
+    payload: {
+      case: "taskSkipped",
+      value: create(TaskSkippedPayloadSchema, { taskKind: WorkflowTaskKind.agent_call, reason }),
     },
   });
 }
@@ -528,6 +543,39 @@ describe("WorkflowRunEventStore", () => {
       ]);
 
       expect(store.getTaskStates().has("ghost")).toBe(false);
+    });
+  });
+
+  describe("deriveTaskStates — skipped tasks", () => {
+    it("marks a skipped task with zeroed metrics and no child run", () => {
+      const store = new WorkflowRunEventStore();
+      store.appendEvents([makeTaskSkippedEvent(1, "notify")]);
+
+      expect(store.getTaskStates().get("notify")).toMatchObject({
+        taskName: "notify",
+        taskKind: WorkflowTaskKind.agent_call,
+        status: "skipped",
+        durationMs: 0,
+        costMicros: BigInt(0),
+        attemptNumber: 0,
+        error: "",
+        childRunId: "",
+        agentSlug: "",
+      });
+    });
+
+    it("keeps the child run id a skipped task had already started", () => {
+      const store = new WorkflowRunEventStore();
+      store.appendEvents([
+        makeTaskStartedEvent(1, "review"),
+        makeAgentCallStartedEvent(2, "review", { childRunId: "aex_child", agentSlug: "reviewer" }),
+        makeTaskSkippedEvent(3, "review"),
+      ]);
+
+      const state = store.getTaskStates().get("review");
+      expect(state?.status).toBe("skipped");
+      expect(state?.childRunId).toBe("aex_child");
+      expect(state?.agentSlug).toBe("");
     });
   });
 

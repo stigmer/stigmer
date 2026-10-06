@@ -4,8 +4,9 @@
  * arms, the relay-envelope construction on the byte-pinned relaySignal
  * channel, and the two-phase dedupe contract (oss#442) — ALREADY_EXISTS
  * on a DELIVERED duplicate, ABORTED on a live in-flight claim,
- * release-after-failure enabling an immediate retry, empty-key and
- * store-error skips, and org-scoped key isolation.
+ * release-after-failure enabling an immediate retry (and, when the release
+ * itself fails, a warning naming the run while the send's own error still
+ * answers), empty-key and store-error skips, and org-scoped key isolation.
  */
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
@@ -24,6 +25,8 @@ import type { SendSignalInput } from "@stigmer/protos/ai/stigmer/agentic/workflo
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
+import type { Logger, LogFields } from "../../../boot/logger.js";
+import type { Store } from "../../../store/interface.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 
 import { WORKFLOW_CREATOR_UNAVAILABLE_MESSAGE } from "../constants.js";
@@ -299,6 +302,54 @@ describe("sendSignal dedupe (send_signal_dedupe_test.go, oss#442)", () => {
     expect(
       engine.calls.filter((call) => call.method === "signalWithStart"),
     ).toHaveLength(3);
+  });
+
+  it("a release that fails is logged with the run and the key, and the send's error still answers", async () => {
+    const engine = stubConnectedEngine();
+    engine.failures.signalWithStart = new Error("temporal exploded");
+    const id = await seed(RunPhase.RUN_IN_PROGRESS);
+    const dedupe = store.signalDedupe;
+    const failingRelease = Object.assign(Object.create(store) as Store, {
+      signalDedupe: {
+        claim: dedupe.claim.bind(dedupe),
+        markDelivered: dedupe.markDelivered.bind(dedupe),
+        deleteByOrg: dedupe.deleteByOrg.bind(dedupe),
+        release: () => Promise.reject(new Error("disk full")),
+      },
+    });
+    const warnings: Array<{ message: string; fields?: LogFields }> = [];
+    const logger: Logger = {
+      debug: () => undefined,
+      info: () => undefined,
+      warn: (message, fields) => void warnings.push({ message, fields }),
+      error: () => undefined,
+    };
+
+    const err = await expectCode(
+      () =>
+        sendSignal(
+          { ...deps(engine), store: failingRelease, logger },
+          input(id, "sig", "key-release-fails"),
+          testCallerIdentity(),
+        ),
+      Code.Internal,
+    );
+
+    expect(err.rawMessage).toBe("failed to send signal to workflow");
+    const releaseWarnings = warnings.filter((w) =>
+      w.message.startsWith("Failed to release idempotency key"),
+    );
+    expect(releaseWarnings).toEqual([
+      {
+        message:
+          "Failed to release idempotency key after failed delivery (claim self-heals when its hold lapses)",
+        fields: {
+          executionId: id,
+          idempotencyKey: "key-release-fails",
+          error: "disk full",
+        },
+      },
+    ]);
   });
 
   it("engineless failure after a claim also releases it (the send step is the failure)", async () => {

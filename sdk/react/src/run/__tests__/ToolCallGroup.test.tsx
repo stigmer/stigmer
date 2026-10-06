@@ -5,7 +5,8 @@ import {
   ToolCallSchema,
   type ToolCall,
 } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { SubAgentStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
 import { ToolCallGroup } from "../ToolCallGroup";
 
 afterEach(cleanup);
@@ -128,5 +129,31 @@ describe("ToolCallGroup timeline", () => {
       // + e2e computed-style tests (happy-dom does not resolve `@layer`).
       expect(row.className).toContain("stg:border-border-prominent");
     }
+  });
+});
+
+describe("ToolCallGroup sub-agent rows", () => {
+  it("titles a tool call with the sub-agent run that carries its id, and leaves the others alone", () => {
+    render(
+      <ToolCallGroup
+        toolCalls={[
+          makeToolCall("task", "sa-1", { description: "look things up" }),
+          makeToolCall("Shell", "s1", { command: "echo hi" }, "hi"),
+        ]}
+        subAgentRuns={[
+          create(SubAgentRunSchema, {
+            id: "sa-1",
+            name: "researcher",
+            subject: "Research competitor pricing",
+            status: SubAgentStatus.SUB_AGENT_COMPLETED,
+          }),
+          create(SubAgentRunSchema, { id: "sa-unmatched", name: "other", subject: "Never shown" }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("Research competitor pricing")).toBeTruthy();
+    expect(screen.queryByText("Never shown")).toBeNull();
+    expect(screen.getByText("echo hi")).toBeTruthy();
   });
 });

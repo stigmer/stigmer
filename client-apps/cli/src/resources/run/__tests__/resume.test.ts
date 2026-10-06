@@ -3,7 +3,8 @@
 // context organization, both when the latest turn is still live (re-attach)
 // and when the session is replayed into the interactive composer. The mode
 // a resume continues in is the explicit --mode, else plan when the latest
-// turn ran in plan mode, else the agent default. The session reads, the stream and the Ink view are doubles, so only the
+// turn ran in plan mode, else the agent default. A session with no runs
+// says so and opens nothing. The session reads, the stream and the Ink view are doubles, so only the
 // organization handed onward is observed.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -50,6 +51,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.clearAllMocks();
+  vi.restoreAllMocks();
 });
 
 describe("openSession", () => {
@@ -106,6 +108,21 @@ describe("openSession", () => {
     await openSession({ client, sessionId: "ses_1", mode: "agent", outputMode: "json" });
 
     expect(stream).toHaveBeenCalledWith(expect.objectContaining({ mode: "agent" }));
+  });
+
+  it("says the session has no runs and opens nothing", async () => {
+    session.executions.mockResolvedValue([]);
+    const written: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      written.push(String(chunk));
+      return true;
+    });
+
+    await openSession({ client, sessionId: "ses_1", mode: "", outputMode: "json" });
+
+    expect(written).toEqual(["Session ses_1 has no runs\n"]);
+    expect(stream).not.toHaveBeenCalled();
+    expect(ink).not.toHaveBeenCalled();
   });
 
   it("continues in the agent default when the latest turn named no mode", async () => {

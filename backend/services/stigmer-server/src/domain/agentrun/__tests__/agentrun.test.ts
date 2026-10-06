@@ -1598,6 +1598,32 @@ describe("submitFileDecision over the wire", () => {
     expect(observed[0]?.newPhase).toBe(RunPhase.RUN_FAILED);
   });
 
+  it("refuses a run with no actionable change sets, naming the run and its phase", async () => {
+    const { init } = ledgerSeed();
+    const id = await seed({
+      apiVersion: API_VERSION,
+      kind: KIND,
+      metadata: init.metadata,
+      spec: { message: "Say hello." },
+      status: { phase: RunPhase.RUN_IN_PROGRESS },
+    });
+
+    const err = await expectCode(
+      () =>
+        command.submitFileDecision({
+          agentRunId: id,
+          changeSetId: "cs_none",
+          scope: FileDecisionScope.CHANGE_SET,
+          action: FileDecisionAction.APPROVE,
+          expectedDigest: "0".repeat(64),
+        }),
+      Code.FailedPrecondition,
+    );
+    expect(err.rawMessage).toBe(
+      `execution ${id} has no actionable file change sets (phase RUN_IN_PROGRESS)`,
+    );
+  });
+
   it("refuses a stale digest, an unknown change set, and FILE scope without an id", async () => {
     const { init, changeSetId } = ledgerSeed();
     const id = await seed(init);

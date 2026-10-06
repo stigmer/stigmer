@@ -13,6 +13,10 @@
  * runs here against a store whose one read throws. Every other dependency is
  * untouchable: a load that fails must stop the call before any of them.
  *
+ * The lifecycle persist gets the same contract for a run deleted between
+ * its load and its locked write: NotFound naming the run, never a
+ * resurrected row or an Internal.
+ *
  * Out of scope: the NotFound copy itself (wire contract, pinned where each
  * surface is otherwise tested and by the conformance suites) and loads
  * outside this domain.
@@ -28,6 +32,7 @@ import {
   FileDecisionScope,
 } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import {
   CancelWorkflowRunInputSchema,
   PauseWorkflowRunInputSchema,
@@ -73,6 +78,8 @@ import { submitFileDecision } from "../submit-file-decision.js";
 import { submitWorkflowTaskApproval } from "../submit-workflow-task-approval.js";
 import { subscribeEvents } from "../subscribe-events.js";
 import { subscribeExecution } from "../subscribe.js";
+
+import { stubConnectedEngine } from "./engine-stub.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -390,5 +397,33 @@ describe("create — PinWorkflowVersion's workflow load", () => {
 
     expect(error.code).toBe(Code.Internal);
     expect(error.rawMessage).toBe(WORKFLOW_FAULT_COPY);
+  });
+});
+
+describe("cancel — a run deleted between the load and the locked write", () => {
+  it("answers NotFound naming the run", async () => {
+    const store = {
+      getResource: () =>
+        Promise.resolve(
+          create(WorkflowRunSchema, {
+            metadata: { id: EXECUTION_ID },
+            status: { phase: RunPhase.RUN_IN_PROGRESS },
+          }),
+        ),
+      updateResource: () => Promise.reject(MISSING()),
+    } as unknown as Store;
+    const engine = stubConnectedEngine();
+
+    const error = await errorOf(() =>
+      cancelExecution(
+        { ...lifecycleDeps(store), engineState: () => engine.state },
+        create(CancelWorkflowRunInputSchema, { id: EXECUTION_ID }),
+        testCallerIdentity(),
+      ),
+    );
+
+    expect(error.code).toBe(Code.NotFound);
+    expect(error.rawMessage).toBe(`workflow_run not found: ${EXECUTION_ID}`);
+    expect(engine.calls.map((c) => c.method)).toEqual(["cancelWorkflow"]);
   });
 });

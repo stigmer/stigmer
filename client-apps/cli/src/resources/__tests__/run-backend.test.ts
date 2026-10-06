@@ -5,7 +5,9 @@
 // subscribe / subscribeEvents methods), points an SDK node client at it, and
 // drives the resource layer end to end: lifecycle control, approval submission
 // (asserting the comment carry and the unset reviewer), trace rendering, and
-// log streaming (workflow event stream + agent snapshot diffing).
+// log streaming (workflow event stream + agent snapshot diffing). The ids
+// `wex_empty` and `aex_empty` read back a run with nothing recorded, for the
+// logs' empty-run lines.
 
 import { create } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
@@ -92,7 +94,8 @@ function workflowControlResult(phase: WorkflowRunPhase) {
 beforeAll(async () => {
   const routes = (router: ConnectRouter) => {
     router.service(AgentRunQueryController, {
-      get: () => agentExec,
+      get: (req) =>
+        req.value === "aex_empty" ? create(AgentRunSchema, { metadata: { id: "aex_empty" }, status: {} }) : agentExec,
       subscribe: async function* () {
         yield create(AgentRunSchema, {
           metadata: { id: "aex_1" },
@@ -120,8 +123,8 @@ beforeAll(async () => {
 
     router.service(WorkflowRunQueryController, {
       get: () => workflowExec,
-      getEventLog: () =>
-        create(GetEventLogResponseSchema, {
+      getEventLog: (req) =>
+        req.runId === "wex_empty" ? create(GetEventLogResponseSchema, {}) : create(GetEventLogResponseSchema, {
           hasMore: true,
           events: [
             create(WorkflowRunEventSchema, {
@@ -188,6 +191,22 @@ describe("lifecycle control", () => {
     expect((await resumeRun(client, "wex_1")).phase).toBe("running");
     expect(workflowControl.map((c) => c.verb)).toEqual(["cancel", "resume"]);
   });
+
+  it("terminates / pauses a workflow run, carrying the reason", async () => {
+    expect(await terminateRun(client, "wex_1", "stuck")).toEqual({ type: "workflow", phase: "terminated" });
+    expect(await pauseRun(client, "wex_1", "maintenance")).toEqual({ type: "workflow", phase: "paused" });
+    expect(workflowControl).toEqual([
+      { verb: "terminate", id: "wex_1", reason: "stuck" },
+      { verb: "pause", id: "wex_1", reason: "maintenance" },
+    ]);
+    expect(agentControl).toEqual([]);
+  });
+
+  it("resumes an agent run", async () => {
+    expect(await resumeRun(client, "aex_1")).toEqual({ type: "agent", phase: "running" });
+    expect(agentControl).toEqual([{ verb: "resume", id: "aex_1", reason: "" }]);
+    expect(workflowControl).toEqual([]);
+  });
 });
 
 describe("approval submission", () => {
@@ -239,6 +258,26 @@ describe("trace", () => {
     expect(json.metadata.id).toBe("wex_1");
     expect(json.status.tasks).toHaveLength(2);
   });
+
+  it("emits the workflow run envelope as yaml", async () => {
+    const cap = capture();
+    await traceRun(client, "wex_1", "yaml", cap.streams);
+    expect(cap.text()).toContain("id: wex_1");
+    expect(cap.text()).toContain("task_name: build");
+  });
+
+  it("emits the agent run envelope as json and as yaml", async () => {
+    const json = capture();
+    await traceRun(client, "aex_1", "json", json.streams);
+    const parsed = JSON.parse(json.text());
+    expect(parsed.metadata.id).toBe("aex_1");
+    expect(parsed.status.messages).toHaveLength(2);
+
+    const yaml = capture();
+    await traceRun(client, "aex_1", "yaml", yaml.streams);
+    expect(yaml.text()).toContain("id: aex_1");
+    expect(yaml.text()).toContain("content: do it");
+  });
 });
 
 describe("logs", () => {
@@ -264,6 +303,18 @@ describe("logs", () => {
     // "other" task is filtered out.
     expect(text).not.toContain("task completed: other");
     expect(text).toContain("--- stream ended ---");
+  });
+
+  it("says so when a workflow run has recorded no events", async () => {
+    const cap = capture();
+    await streamRunLogs(client, { runId: "wex_empty", follow: false }, never, cap.streams);
+    expect(cap.lines).toEqual(["No events recorded for this run.\n"]);
+  });
+
+  it("says so when an agent run has recorded no messages", async () => {
+    const cap = capture();
+    await streamRunLogs(client, { runId: "aex_empty", follow: false }, never, cap.streams);
+    expect(cap.lines).toEqual(["No messages recorded for this run.\n"]);
   });
 
   it("prints agent messages from a single snapshot when not following", async () => {

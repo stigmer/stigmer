@@ -598,3 +598,44 @@ describe("osMimeTypeByExtension (the upload path's detection)", () => {
     );
   });
 });
+
+describe("the two artifact reads — required request fields", () => {
+  // Both reads refuse an empty run or key before authorization and before
+  // any store read; the copy names the wire field.
+  const READS = [
+    [
+      "getArtifactContent",
+      (runId: string, storageKey: string) =>
+        getArtifactContent(
+          deps,
+          create(GetArtifactContentRequestSchema, { runId, storageKey }),
+        ),
+    ],
+    [
+      "getArtifactDownloadUrl",
+      (runId: string, storageKey: string) =>
+        getArtifactDownloadUrl(
+          deps,
+          create(GetArtifactDownloadUrlRequestSchema, { runId, storageKey }),
+        ),
+    ],
+  ] as const;
+
+  describe.each(READS)("%s", (_name, read) => {
+    it("an empty run_id answers InvalidArgument naming run_id", async () => {
+      const error = await expectCode(
+        () => read("", "artifacts/aex_any/out.txt"),
+        Code.InvalidArgument,
+      );
+      expect(error.rawMessage).toBe("run_id is required");
+    });
+
+    it("an empty storage_key answers InvalidArgument naming storage_key", async () => {
+      const error = await expectCode(
+        () => read("aex_any", ""),
+        Code.InvalidArgument,
+      );
+      expect(error.rawMessage).toBe("storage_key is required");
+    });
+  });
+});

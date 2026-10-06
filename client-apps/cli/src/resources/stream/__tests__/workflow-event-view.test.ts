@@ -1,3 +1,7 @@
+// Unit tests for the workflow event view every workflow renderer prints: the
+// canonical event-type names, the HH:MM:SS time slice, and each payload's
+// glyph, tone, text and whether it ends the run.
+
 import { create } from "@bufbuild/protobuf";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
@@ -50,6 +54,13 @@ describe("toWorkflowEventView", () => {
     expect(view.terminal).toBe(true);
     expect(view.tone).toBe("error");
     expect(view.text).toBe("run failed: boom");
+  });
+
+  it("renders a paused and a resumed run as non-terminal lifecycle lines", () => {
+    const paused = toWorkflowEventView(create(WorkflowRunEventSchema, { payload: { case: "runPaused", value: {} as never } }));
+    expect(paused).toMatchObject({ glyph: "⏸", tone: "warning", text: "run paused", terminal: false });
+    const resumed = toWorkflowEventView(create(WorkflowRunEventSchema, { payload: { case: "runResumed", value: {} as never } }));
+    expect(resumed).toMatchObject({ glyph: "▶", tone: "success", text: "run resumed", terminal: false });
   });
 
   it("does not mark task/lifecycle non-terminal events as terminal", () => {

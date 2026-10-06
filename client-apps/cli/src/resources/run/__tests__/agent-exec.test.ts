@@ -4,8 +4,11 @@
 // old session.create + agentRun.create pair, and the flow must read the
 // canonical session id back from the returned run's target. A run on
 // an agent names it by reference (org and slug, no instance and no id); the
-// built-in assistant rides the same flow with no agent at all. Runs use
-// detach mode so no streaming machinery is exercised.
+// built-in assistant rides the same flow with no agent at all. Most runs
+// use detach mode so no streaming machinery is exercised; the attached runs
+// stream through a double that returns the final run, and pin that the
+// run's artifacts are downloaded only when a download directory was given
+// and the final run holds some.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
@@ -20,9 +23,15 @@ import {
   WorkspaceEntrySchema,
   WorkspaceSourceSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type { BackendClient } from "../../../client/index.js";
 import { executeResolvedAgent } from "../agent-exec.js";
 import type { PreparedRun } from "../prepare.js";
+
+const stream = vi.hoisted(() => ({ streamAgentRun: vi.fn() }));
+const download = vi.hoisted(() => ({ downloadRunArtifacts: vi.fn() }));
+vi.mock("../stream.js", () => stream);
+vi.mock("../../download.js", () => download);
 
 const WORKSPACE_ENTRY = create(WorkspaceEntrySchema, {
   name: "repo",
@@ -75,7 +84,7 @@ function fakeBackend(): { client: BackendClient; creates: () => AgentRun[] } {
       };
     },
   });
-  const client = { controller } as unknown as BackendClient;
+  const client = { controller, stigmer: { name: "stub-client" } } as unknown as BackendClient;
   return { client, creates: () => captured };
 }
 
@@ -92,6 +101,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.clearAllMocks();
 });
 
 describe("executeResolvedAgent", () => {
@@ -189,5 +199,71 @@ describe("executeResolvedAgent", () => {
     // whether the flag or the account preference selected it.
     expect(stderrLines.join("")).toContain("Harness:");
     expect(stderrLines.join("")).toContain("Cursor");
+  });
+});
+
+describe("executeResolvedAgent, attached", () => {
+  /** The final run the stream returns: `artifacts` named files under run aex_final. */
+  function finalRun(artifacts: string[]): AgentRun {
+    return create(AgentRunSchema, {
+      metadata: { id: "aex_final" },
+      status: { artifacts: artifacts.map((name) => ({ name, storageKey: `store/${name}` })) },
+    });
+  }
+
+  it("streams the created run with the session the server returned", async () => {
+    stream.streamAgentRun.mockResolvedValue(finalRun([]));
+    const { client } = fakeBackend();
+
+    await executeResolvedAgent({
+      agent: makeAgent(),
+      prepared: makePrepared({ detach: false, mode: "plan" }),
+      org: "acme",
+      downloadDir: "",
+      outputMode: "json",
+      client,
+    });
+
+    expect(stream.streamAgentRun).toHaveBeenCalledWith(
+      expect.objectContaining({ sessionId: "ses_srv", org: "acme", mode: "plan", outputMode: "json" }),
+    );
+    expect(download.downloadRunArtifacts).not.toHaveBeenCalled();
+  });
+
+  it("downloads the final run's artifacts into the download directory", async () => {
+    stream.streamAgentRun.mockResolvedValue(finalRun(["report.txt"]));
+    const { client } = fakeBackend();
+
+    await executeResolvedAgent({
+      agent: makeAgent(),
+      prepared: makePrepared({ detach: false }),
+      org: "acme",
+      downloadDir: "/tmp/out",
+      outputMode: "inline",
+      client,
+    });
+
+    expect(download.downloadRunArtifacts).toHaveBeenCalledWith(
+      client.stigmer,
+      "aex_final",
+      { artifactName: "", outputDir: "/tmp/out" },
+      expect.any(Function),
+    );
+  });
+
+  it("downloads nothing when the final run produced no artifacts", async () => {
+    stream.streamAgentRun.mockResolvedValue(finalRun([]));
+    const { client } = fakeBackend();
+
+    await executeResolvedAgent({
+      agent: makeAgent(),
+      prepared: makePrepared({ detach: false }),
+      org: "acme",
+      downloadDir: "/tmp/out",
+      outputMode: "inline",
+      client,
+    });
+
+    expect(download.downloadRunArtifacts).not.toHaveBeenCalled();
   });
 });

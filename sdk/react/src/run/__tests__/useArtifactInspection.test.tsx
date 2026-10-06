@@ -204,3 +204,38 @@ describe("useArtifactInspection — the organization by slug and by id", () => {
     expect(result.current.detectionLabel).toBe("Skill \u00B7 2 files");
   });
 });
+
+describe("useArtifactInspection — skill push", () => {
+  it("pushes a detected skill package from the run that produced it", async () => {
+    const getArtifactContent = vi
+      .fn()
+      .mockResolvedValue(contentResult("---\nname: triage\ndescription: Triage notes\n---\n# Triage\n"));
+    const pushFromRunArtifact = vi
+      .fn()
+      .mockResolvedValue({ metadata: { name: "triage", org: "acme", slug: "triage" } });
+    const stigmer = {
+      agentRun: { getArtifactContent },
+      skill: { pushFromRunArtifact },
+    } as unknown as Stigmer;
+    const onApplied = vi.fn();
+
+    const { result } = renderHook(
+      () => useArtifactInspection(dirArtifact("skill-pack"), "aex_1", "acme", { onApplied }),
+      { wrapper: wrapperFor(stigmer) },
+    );
+
+    await waitFor(() => expect(result.current.ctaLabel).toBe("Push Skill to acme"));
+    await act(async () => {
+      await result.current.apply();
+    });
+
+    expect(pushFromRunArtifact).toHaveBeenCalledTimes(1);
+    expect(pushFromRunArtifact.mock.calls[0][0]).toMatchObject({
+      org: "acme",
+      runId: "aex_1",
+      storageKey: "artifacts/aex_1/skill-pack",
+    });
+    await waitFor(() => expect(result.current.applyResult?.kind).toBe("Skill"));
+    expect(onApplied.mock.calls[0][0]).toEqual({ kind: "Skill", name: "triage", org: "acme", slug: "triage" });
+  });
+});

@@ -8,7 +8,11 @@ import {
   type AgentRun,
 } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import {
+  ApprovalAction,
+  FileDecisionAction,
+  RunPhase,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import type { Stigmer } from "@stigmer/sdk";
@@ -91,6 +95,7 @@ interface MockMethods {
   executionCreate: ReturnType<typeof vi.fn>;
   subscribe: ReturnType<typeof vi.fn>;
   submitApproval: ReturnType<typeof vi.fn>;
+  submitFileDecision?: ReturnType<typeof vi.fn>;
   cancel?: ReturnType<typeof vi.fn>;
   terminate?: ReturnType<typeof vi.fn>;
 }
@@ -105,6 +110,7 @@ function createMockStigmer(methods: MockMethods): Stigmer {
       create: methods.executionCreate,
       subscribe: methods.subscribe,
       submitApproval: methods.submitApproval,
+      submitFileDecision: methods.submitFileDecision,
       cancel: methods.cancel,
       terminate: methods.terminate,
     },
@@ -662,6 +668,65 @@ describe("useSessionConversation", () => {
 
     expect(methods.cancel).not.toHaveBeenCalled();
     expect(methods.terminate).not.toHaveBeenCalled();
+  });
+
+  it("submitApproval answers the gate on the active run", async () => {
+    methods.listBySession.mockResolvedValue({ entries: [makeExecution("e1", RunPhase.RUN_IN_PROGRESS)] });
+    const { result } = renderHook(() => useSessionConversation("session-1", "org"), {
+      wrapper: createWrapper(mockStigmer),
+    });
+    await waitFor(() => expect(result.current.canSendFollowUp).toBe(false));
+
+    await act(async () => {
+      await result.current.submitApproval("tc-1", ApprovalAction.APPROVE, "looks fine");
+    });
+
+    expect(methods.submitApproval).toHaveBeenCalledTimes(1);
+    expect(methods.submitApproval.mock.calls[0]![0]).toMatchObject({
+      agentRunId: "e1",
+      toolCallId: "tc-1",
+      action: ApprovalAction.APPROVE,
+      comment: "looks fine",
+    });
+  });
+
+  it("submitFileDecision decides the change set on the active run", async () => {
+    methods.submitFileDecision = vi.fn().mockResolvedValue({});
+    mockStigmer = createMockStigmer(methods);
+    methods.listBySession.mockResolvedValue({ entries: [makeExecution("e1", RunPhase.RUN_IN_PROGRESS)] });
+    const { result } = renderHook(() => useSessionConversation("session-1", "org"), {
+      wrapper: createWrapper(mockStigmer),
+    });
+    await waitFor(() => expect(result.current.canSendFollowUp).toBe(false));
+
+    await act(async () => {
+      await result.current.submitFileDecision("fcs-1", FileDecisionAction.APPROVE);
+    });
+
+    expect(methods.submitFileDecision).toHaveBeenCalledTimes(1);
+    expect(methods.submitFileDecision.mock.calls[0]![0]).toMatchObject({
+      agentRunId: "e1",
+      changeSetId: "fcs-1",
+      action: FileDecisionAction.APPROVE,
+    });
+  });
+
+  it("submitApproval and submitFileDecision do nothing with no active run", async () => {
+    methods.submitFileDecision = vi.fn().mockResolvedValue({});
+    mockStigmer = createMockStigmer(methods);
+    methods.listBySession.mockResolvedValue({ entries: [makeExecution("e1", RunPhase.RUN_COMPLETED)] });
+    const { result } = renderHook(() => useSessionConversation("session-1", "org"), {
+      wrapper: createWrapper(mockStigmer),
+    });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.submitApproval("tc-1", ApprovalAction.APPROVE);
+      await result.current.submitFileDecision("fcs-1", FileDecisionAction.APPROVE);
+    });
+
+    expect(methods.submitApproval).not.toHaveBeenCalled();
+    expect(methods.submitFileDecision).not.toHaveBeenCalled();
   });
 });
 

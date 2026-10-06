@@ -2,7 +2,9 @@
 // thread-primary center with the passive graph behind the toggle, the
 // workspace-only side panel (Artifacts/Changes/Usage — no Inspect facet
 // anywhere), the header's Diagnose button to the diagnosis editor document,
-// and the Usage facet's absorbed budget gauge. Data hooks and heavy leaves
+// the Usage facet's absorbed budget gauge, the not-found state for a run the
+// server does not return, and the notice an open file-change tab degrades to
+// when its path drops out of the refreshed rollup. Data hooks and heavy leaves
 // (React Flow graph, streaming repair card) are mocked — each has its own
 // suite; this file proves the seams between them.
 
@@ -11,6 +13,11 @@ import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { ApprovalRequestedPayloadSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/event_pb";
+import { FileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import {
+  FileChangeCaptureLevel,
+  FileChangeType,
+} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import {
   RunPhase,
   WorkflowTaskStatus,
@@ -72,6 +79,15 @@ vi.mock("../WorkflowRepairCard", () => ({
         close-diagnosis
       </button>
     </div>
+  ),
+}));
+
+// The diff reads the run's file content through the client (its own suite
+// covers it); here it only proves which change an open tab resolved to.
+vi.mock("../../run/FileChangesView", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../run/FileChangesView")>()),
+  FileChangeDiff: ({ change }: { change: { path: string } }) => (
+    <div data-testid="file-change-diff-stub">{change.path}</div>
   ),
 }));
 
@@ -593,6 +609,66 @@ describe("WorkflowRunViewer (approval boundary)", () => {
     render(<WorkflowRunViewer runId="wex_1" />);
 
     expect(refetch).not.toHaveBeenCalled();
+  });
+});
+
+describe("WorkflowRunViewer (missing run and vanished documents)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    architect.availability = "available";
+    arrange();
+  });
+  afterEach(cleanup);
+
+  it("says the run was not found when the server returns none", () => {
+    mockedUseWorkflowExecution.mockReturnValue({
+      run: null,
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useWorkflowRun>);
+    renderViewer();
+
+    expect(screen.getByText("Run not found")).toBeTruthy();
+    expect(screen.queryByTestId("graph-stub")).toBeNull();
+  });
+
+  it("an open file-change tab whose path left the rollup shows the unavailable notice", () => {
+    const fileChangesState = (fileChanges: ReturnType<typeof create<typeof FileChangeSchema>>[]) => ({
+      fileChanges,
+      fileChangeCount: fileChanges.length,
+      isLoading: false,
+      isRefetching: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+    mockedUseFileChanges.mockReturnValue(
+      fileChangesState([
+        create(FileChangeSchema, {
+          path: "src/report.ts",
+          changeType: FileChangeType.MODIFY,
+          captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
+          unifiedDiff: "@@ -1 +1 @@\n-a\n+b",
+          linesAdded: 1,
+          linesRemoved: 1,
+        }),
+      ]),
+    );
+    const { rerender } = renderViewer();
+
+    fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
+    fireEvent.click(screen.getByRole("radio", { name: /^Changes/ }));
+    fireEvent.click(screen.getByText("src/report.ts"));
+    expect(screen.getByTestId("file-change-diff-stub").textContent).toBe("src/report.ts");
+    expect(screen.queryByText("This file change is no longer available.")).toBeNull();
+
+    mockedUseFileChanges.mockReturnValue(fileChangesState([]));
+    rerender(<WorkflowRunViewer runId="wex_1" className="refreshed" />);
+
+    expect(screen.getByText("This file change is no longer available.")).toBeTruthy();
+    expect(
+      screen.getByText(/no longer appears among the run's changes/),
+    ).toBeTruthy();
   });
 });
 

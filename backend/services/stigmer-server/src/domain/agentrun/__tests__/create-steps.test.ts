@@ -85,6 +85,7 @@ import {
   newComposeDeclaredPreferencesStep,
   newComposeRecalledMemoriesStep,
   newCreateSessionIfNeededStep,
+  newSetInitialPhaseStep,
   newStartWorkflowStep,
 } from "../create-steps.js";
 import type { SessionCreatorProvider } from "../create-steps.js";
@@ -1335,6 +1336,34 @@ describe("agentCallTaskEnvironmentRefs", () => {
 // its create-gate side effects and then never started still reaches the
 // composed observers (a billing composition settles its reservation on
 // exactly this).
+// SetInitialPhase stamps PENDING before the workflow starts, so a client
+// sees the run as pending from its create reply on.
+describe("newSetInitialPhaseStep", () => {
+  it("gives a run with no status a PENDING one", async () => {
+    const execution = newExecution("ses_phase");
+    execution.status = undefined;
+    const ctx = newContext(execution);
+
+    await newSetInitialPhaseStep().execute(ctx);
+
+    expect(ctx.newState.status?.phase).toBe(RunPhase.RUN_PENDING);
+  });
+
+  it("stamps PENDING over a caller's phase and keeps the rest of the status", async () => {
+    const execution = newExecution("ses_phase");
+    execution.status = create(AgentRunStatusSchema, {
+      phase: RunPhase.RUN_COMPLETED,
+      agentId: "agt_kept",
+    });
+    const ctx = newContext(execution);
+
+    await newSetInitialPhaseStep().execute(ctx);
+
+    expect(ctx.newState.status?.phase).toBe(RunPhase.RUN_PENDING);
+    expect(ctx.newState.status?.agentId).toBe("agt_kept");
+  });
+});
+
 describe("newStartWorkflowStep — start-failure FAILED stamp", () => {
   it("persists FAILED and notifies the observers before surfacing Internal", async () => {
     const observed: AgentRunStatusTransition[] = [];
