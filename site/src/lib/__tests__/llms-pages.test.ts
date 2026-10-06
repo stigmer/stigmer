@@ -65,8 +65,8 @@ describe("entry classification", () => {
 
   it("extracts internal link targets and rejects external ones", () => {
     expect(linkTargetRelativePath("[Welcome](/docs)")).toBe("");
-    expect(linkTargetRelativePath("[Overview](/docs/guides/workflows)")).toBe(
-      "guides/workflows",
+    expect(linkTargetRelativePath("[Overview](/docs/guides/runners)")).toBe(
+      "guides/runners",
     );
     expect(linkTargetRelativePath("[GitHub](https://github.com)")).toBeNull();
     expect(linkTargetRelativePath("[Pricing](/pricing)")).toBeNull();
@@ -228,17 +228,17 @@ describe("collectDocsPages", () => {
     const dir = await setup({
       "index.mdx": mdx("Home"),
       "meta.json": meta({
-        pages: ["---Workflows---", "[Overview](/docs/guides/workflows)"],
+        pages: ["---Runners---", "[Overview](/docs/guides/runners)"],
       }),
-      "guides/workflows/index.mdx": mdx("Workflows Overview"),
+      "guides/runners/index.mdx": mdx("Runners Overview"),
     });
 
     const pages = await collectDocsPages(dir, SITE_URL);
-    const overview = pages.find((p) => p.relativePath === "guides/workflows");
+    const overview = pages.find((p) => p.relativePath === "guides/runners");
     expect(overview).toBeDefined();
-    expect(overview?.topSectionTitle).toBe("Workflows");
+    expect(overview?.topSectionTitle).toBe("Runners");
     // The nav label is presentation-only; content keeps the frontmatter title.
-    expect(overview?.title).toBe("Workflows Overview");
+    expect(overview?.title).toBe("Runners Overview");
   });
 
   it("skips external link entries", async () => {

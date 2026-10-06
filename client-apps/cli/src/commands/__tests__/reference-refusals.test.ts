@@ -3,10 +3,11 @@
 // type it does not know; `resume` refuses an agent id as not a session and
 // points at `run`; `run` refuses a full id of any kind but an agent, since only
 // agents run, and refuses a second argument, so the retired `run <type> <ref>`
-// form fails instead of running an agent named by its first word. The backend, the agent lookup and the session opener are
-// replaced at their module seams (the commands import them lazily) so a
-// refusal is proven to stop before any of them is reached; the program, the
-// flag parsing and the reference classification are real.
+// form fails instead of running an agent named by its first word. The
+// backend, the agent lookup and the session opener are replaced at their
+// module seams (the commands import them lazily) so a refusal is proven to
+// stop before any of them is reached; the program, the flag parsing and the
+// reference classification are real.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Config } from "../../config/index.js";
@@ -81,18 +82,21 @@ describe("stigmer run", () => {
   it.each([
     ["agent", "reviewer"],
     ["workflow", "nightly-digest"],
-  ])("refuses the two-word form `run %s %s` instead of running an agent named by its first word", async (first, second) => {
-    // Commander exits from the subcommand that refuses, so the override goes there.
-    const program = buildProgram();
-    program.exitOverride();
-    program.commands.find((c) => c.name() === "run")?.exitOverride();
-    await expect(
-      program.parseAsync(["node", "stigmer", "--standalone", "--org", "acme", "run", first, second, "-m", "hello"]),
-    ).rejects.toMatchObject({
-      code: "commander.excessArguments",
-      message: "error: too many arguments for 'run'. Expected 1 argument but got 2.",
-    });
-    expect(backend.connectBackend).not.toHaveBeenCalled();
-    expect(resolve.resolveAgentRef).not.toHaveBeenCalled();
-  });
+  ])(
+    "refuses the two-word form `run %s %s` instead of running an agent named by its first word",
+    async (first, second) => {
+      // Commander exits from the subcommand that refuses, so the override goes there.
+      const program = buildProgram();
+      program.exitOverride();
+      program.commands.find((c) => c.name() === "run")?.exitOverride();
+      await expect(
+        program.parseAsync(["node", "stigmer", "--standalone", "--org", "acme", "run", first, second, "-m", "hello"]),
+      ).rejects.toMatchObject({
+        code: "commander.excessArguments",
+        message: "error: too many arguments for 'run'. Expected 1 argument but got 2.",
+      });
+      expect(backend.connectBackend).not.toHaveBeenCalled();
+      expect(resolve.resolveAgentRef).not.toHaveBeenCalled();
+    },
+  );
 });

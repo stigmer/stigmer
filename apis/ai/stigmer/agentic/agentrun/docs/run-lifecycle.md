@@ -163,7 +163,7 @@ stigmer runs pause aex_abc123 --reason "Reviewing progress before continuing"
 2. Running activity is cancelled gracefully
 3. LangGraph saves checkpoint using `thread_id`
 4. `status.phase` → `RUN_PAUSED`
-5. Workflow enters a wait state (no resources consumed)
+5. The Temporal workflow enters a wait state (no resources consumed)
 6. `status.completed_at` is **not** set (run is not finished)
 
 ---
@@ -195,7 +195,7 @@ stigmer runs resume aex_abc123
 | Terminal state? | No | Yes |
 | Can resume? | Yes (via `resume`) | No |
 | Checkpoint saved? | Yes | Yes (best-effort) |
-| Workflow resources | Minimal (waiting) | None (terminated) |
+| Temporal workflow resources | Minimal (waiting) | None (terminated) |
 | Use case | Temporary stop, review | Permanent stop |
 
 ---

@@ -22,12 +22,12 @@ imports are the truth for every shape named here.
 ## 1. Place the kind before writing it
 
 A resource lives in a bounded context, a directory under `apis/ai/stigmer/`:
-`agentic` (agents, runs, sessions, workflows, MCP servers, skills and their
-supporting kinds), `iam` (identity, keys, policies, invitations), `tenancy`
-(organizations, projects), `platform`, `billing`, `search`, `activity`. Name its
-aggregate and its owner (which organization or parent it belongs to, who may
-grant roles on it) before a field is written; the authorization metadata in step
-3 asks for both.
+`agentic` (agents, runs, sessions, MCP servers, skills and their supporting
+kinds), `iam` (identity, keys, policies, invitations), `tenancy` (organizations,
+projects), `platform`, `billing`, `search`, `activity`. Name its aggregate and
+its owner (which organization or parent it belongs to, who may grant roles on
+it) before a field is written; the authorization metadata in step 3 asks for
+both.
 
 ## 2. The files
 
@@ -138,13 +138,13 @@ every RPC's posture and changes in the same pull request.
 ## 5. Spec against status
 
 User-provided configuration is spec; system-managed state is status. A field the
-user cannot supply (a workflow id the engine minted, a callback token, an
-execution timestamp) belongs in the status message, never in the spec or in a
-request message. The test: can the user provide this value, or is it created
-during execution? This separation is what lets a retry reuse the same spec and
-lets the system update state without touching the user's input. When a field
-seems out of place in a request or a spec, look for the precedent in a similar
-kind before adding it.
+user cannot supply (an id the engine minted, a run phase, an execution
+timestamp) belongs in the status message, never in the spec or in a request
+message. The test: can the user provide this value, or is it created during
+execution? This separation is what lets a retry reuse the same spec and lets the
+system update state without touching the user's input. When a field seems out of
+place in a request or a spec, look for the precedent in a similar kind before
+adding it.
 
 ## 6. Validation and comments
 
@@ -171,11 +171,10 @@ user-facing kind gets one in the same pull request.
 ## 8. Generate, then verify
 
 From the repository root, `make codegen` regenerates every stub under
-`apis/stubs/`, every SDK's `gen` directory, the validation helpers, the SDK docs
-and the task registry; all of it is committed and none of it is hand-edited.
-Then the checks the root guide's verification map names for `apis/**`:
-`make -C apis lint`, and for a `.proto` change
-`make check-docs-yaml gen-proto-sdk-docs-check gen-task-registry-check`;
+`apis/stubs/`, every SDK's `gen` directory, the validation helpers and the SDK
+docs; all of it is committed and none of it is hand-edited. Then the checks the
+root guide's verification map names for `apis/**`: `make -C apis lint`, and for
+a `.proto` change `make check-docs-yaml gen-proto-sdk-docs-check`;
 `make -C apis fmt` before committing. `buf breaking` runs in CI: a renamed
 field, enum value or service is a wire break and needs a migration plan, not a
 cleanup commit.

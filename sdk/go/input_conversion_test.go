@@ -2,22 +2,22 @@ package stigmer
 
 // Regression coverage for issue #342: the generated toProto methods
 // discarded structpb conversion errors, so a structpb-unsupported value in
-// a struct-kind input field (e.g. a []map[string]any of human_input
-// outcomes — a natural way to build a list of outcome objects) silently
-// applied an EMPTY task config. The workflow was accepted and the gate
-// lost its prompt, ui_hint, and outcomes with no failure until a human
-// noticed at runtime.
+// a struct-kind input field (e.g. a []map[string]any — a natural way to
+// build a list of objects in Go) silently sent an EMPTY struct. The
+// request was accepted and the caller's data was lost with no failure
+// until someone noticed at runtime.
 //
 // The fix is normalize-then-error: values structpb rejects are normalized
 // through a JSON round-trip (so natural typed slices/maps just work), and
 // only values JSON cannot represent either surface a structured
 // CodeInvalidArgument error from the mutation call, naming the field path.
 //
-// Like workspace_source_roundtrip_test.go (#254), these tests exercise the
-// *checked-in generated code* against the real proto stubs through the
-// public Apply call, capturing the exact wire message with an in-memory
-// gRPC server. They live at the SDK root because internal/gen is wiped and
-// regenerated wholesale.
+// The struct-kind input field these tests drive is an agent run's
+// structured_output_schema. Like workspace_source_roundtrip_test.go (#254),
+// they exercise the *checked-in generated code* against the real proto
+// stubs through the public Create call, capturing the exact wire message
+// with an in-memory gRPC server. They live at the SDK root because
+// internal/gen is wiped and regenerated wholesale.
 
 import (
 	"context"
@@ -26,28 +26,28 @@ import (
 	"strings"
 	"testing"
 
-	workflowv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1"
+	agentrunv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentrun/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 )
 
-type workflowCaptureServer struct {
-	workflowv1.UnimplementedWorkflowCommandControllerServer
-	lastWorkflow *workflowv1.Workflow
+type agentRunCaptureServer struct {
+	agentrunv1.UnimplementedAgentRunCommandControllerServer
+	lastRun *agentrunv1.AgentRun
 }
 
-func (s *workflowCaptureServer) Apply(_ context.Context, req *workflowv1.Workflow) (*workflowv1.Workflow, error) {
-	s.lastWorkflow = req
+func (s *agentRunCaptureServer) Create(_ context.Context, req *agentrunv1.AgentRun) (*agentrunv1.AgentRun, error) {
+	s.lastRun = req
 	return req, nil
 }
 
-func newWorkflowCaptureClient(t *testing.T) (*Client, *workflowCaptureServer) {
+func newAgentRunCaptureClient(t *testing.T) (*Client, *agentRunCaptureServer) {
 	t.Helper()
 
-	capture := &workflowCaptureServer{}
+	capture := &agentRunCaptureServer{}
 	lis := bufconn.Listen(1024 * 1024)
 	srv := grpc.NewServer()
-	workflowv1.RegisterWorkflowCommandControllerServer(srv, capture)
+	agentrunv1.RegisterAgentRunCommandControllerServer(srv, capture)
 
 	go func() { _ = srv.Serve(lis) }()
 
@@ -71,91 +71,85 @@ func newWorkflowCaptureClient(t *testing.T) (*Client, *workflowCaptureServer) {
 	return client, capture
 }
 
-func reviewGateInput(taskConfig map[string]any) *WorkflowInput {
-	return &WorkflowInput{
-		Org:  "acme",
-		Name: "review-flow",
-		Tasks: []*WorkflowTaskInput{{
-			Name:       "review",
-			Kind:       workflowv1.WorkflowTaskKind_human_input,
-			TaskConfig: taskConfig,
-		}},
+func verdictRunInput(schema map[string]any) *AgentRunInput {
+	return &AgentRunInput{
+		Org:                    "acme",
+		SessionId:              "ses-1",
+		Message:                "Review this change.",
+		StructuredOutputSchema: schema,
 	}
 }
 
-// assertReviewGateWire fails unless the wire task_config carries the full
-// gate configuration. An empty/nil task_config is the exact #342 regression.
-func assertReviewGateWire(t *testing.T, wf *workflowv1.Workflow) {
+// assertVerdictSchemaWire fails unless the wire structured_output_schema
+// carries the full schema. An empty/nil struct is the exact #342
+// regression.
+func assertVerdictSchemaWire(t *testing.T, run *agentrunv1.AgentRun) {
 	t.Helper()
-	tasks := wf.GetSpec().GetTasks()
-	if len(tasks) != 1 {
-		t.Fatalf("wire tasks = %d, want 1", len(tasks))
+	schema := run.GetSpec().GetStructuredOutputSchema()
+	if schema == nil || len(schema.GetFields()) == 0 {
+		t.Fatal("structured_output_schema empty on the wire (regression #342)")
 	}
-	tc := tasks[0].GetTaskConfig()
-	if tc == nil || len(tc.GetFields()) == 0 {
-		t.Fatal("task_config empty on the wire (regression #342)")
+	got := schema.AsMap()
+	if got["type"] != "object" {
+		t.Errorf("type = %v, want %q", got["type"], "object")
 	}
-	got := tc.AsMap()
-	if got["prompt"] != "Review this" {
-		t.Errorf("prompt = %v, want %q", got["prompt"], "Review this")
+	if got["title"] != "Verdict" {
+		t.Errorf("title = %v, want %q", got["title"], "Verdict")
 	}
-	if got["ui_hint"] != "my-renderer" {
-		t.Errorf("ui_hint = %v, want %q", got["ui_hint"], "my-renderer")
+	examples, ok := got["examples"].([]any)
+	if !ok || len(examples) != 1 {
+		t.Fatalf("examples = %#v, want one-element list", got["examples"])
 	}
-	outcomes, ok := got["outcomes"].([]any)
-	if !ok || len(outcomes) != 1 {
-		t.Fatalf("outcomes = %#v, want one-element list", got["outcomes"])
-	}
-	outcome, ok := outcomes[0].(map[string]any)
-	if !ok || outcome["name"] != "approve" || outcome["label"] != "Approve" {
-		t.Errorf("outcome = %#v, want {name: approve, label: Approve}", outcomes[0])
+	example, ok := examples[0].(map[string]any)
+	if !ok || example["outcome"] != "approve" || example["label"] != "Approve" {
+		t.Errorf("example = %#v, want {outcome: approve, label: Approve}", examples[0])
 	}
 }
 
-func TestTaskConfigConversion_TypedSliceNormalizes(t *testing.T) {
-	// The issue #342 repro verbatim: []map[string]any is not in structpb's
-	// supported set, so this task config used to arrive EMPTY.
-	client, capture := newWorkflowCaptureClient(t)
+func TestStructConversion_TypedSliceNormalizes(t *testing.T) {
+	// The issue #342 shape: []map[string]any is not in structpb's
+	// supported set, so this struct used to arrive EMPTY.
+	client, capture := newAgentRunCaptureClient(t)
 
-	_, err := client.Workflow.Apply(context.Background(), reviewGateInput(map[string]any{
-		"prompt":   "Review this",
-		"ui_hint":  "my-renderer",
-		"outcomes": []map[string]any{{"name": "approve", "label": "Approve"}},
+	_, err := client.AgentRun.Create(context.Background(), verdictRunInput(map[string]any{
+		"type":     "object",
+		"title":    "Verdict",
+		"examples": []map[string]any{{"outcome": "approve", "label": "Approve"}},
 	}))
 	if err != nil {
-		t.Fatalf("Apply: %v", err)
+		t.Fatalf("Create: %v", err)
 	}
-	assertReviewGateWire(t, capture.lastWorkflow)
+	assertVerdictSchemaWire(t, capture.lastRun)
 }
 
-func TestTaskConfigConversion_FastPathUnchanged(t *testing.T) {
+func TestStructConversion_FastPathUnchanged(t *testing.T) {
 	// []any is structpb-native and must keep converting exactly as before
 	// (the normalization fallback never runs for it).
-	client, capture := newWorkflowCaptureClient(t)
+	client, capture := newAgentRunCaptureClient(t)
 
-	_, err := client.Workflow.Apply(context.Background(), reviewGateInput(map[string]any{
-		"prompt":   "Review this",
-		"ui_hint":  "my-renderer",
-		"outcomes": []any{map[string]any{"name": "approve", "label": "Approve"}},
+	_, err := client.AgentRun.Create(context.Background(), verdictRunInput(map[string]any{
+		"type":     "object",
+		"title":    "Verdict",
+		"examples": []any{map[string]any{"outcome": "approve", "label": "Approve"}},
 	}))
 	if err != nil {
-		t.Fatalf("Apply: %v", err)
+		t.Fatalf("Create: %v", err)
 	}
-	assertReviewGateWire(t, capture.lastWorkflow)
+	assertVerdictSchemaWire(t, capture.lastRun)
 }
 
-func TestTaskConfigConversion_UnrepresentableValueFailsLoud(t *testing.T) {
-	// A value neither structpb nor JSON can represent must fail the Apply
+func TestStructConversion_UnrepresentableValueFailsLoud(t *testing.T) {
+	// A value neither structpb nor JSON can represent must fail the Create
 	// with a structured CodeInvalidArgument error naming the field path —
-	// never apply with a silently-empty config.
-	client, capture := newWorkflowCaptureClient(t)
+	// never send a silently-empty struct.
+	client, capture := newAgentRunCaptureClient(t)
 
-	_, err := client.Workflow.Apply(context.Background(), reviewGateInput(map[string]any{
-		"prompt":  "Review this",
+	_, err := client.AgentRun.Create(context.Background(), verdictRunInput(map[string]any{
+		"type":    "object",
 		"blocked": make(chan int),
 	}))
 	if err == nil {
-		t.Fatal("Apply accepted an unrepresentable task config value")
+		t.Fatal("Create accepted an unrepresentable struct value")
 	}
 
 	var sErr *Error
@@ -165,11 +159,11 @@ func TestTaskConfigConversion_UnrepresentableValueFailsLoud(t *testing.T) {
 	if sErr.Code != CodeInvalidArgument {
 		t.Errorf("code = %v, want CodeInvalidArgument", sErr.Code)
 	}
-	if !strings.Contains(sErr.Message, "Tasks[0]: TaskConfig:") {
-		t.Errorf("message %q does not locate the offending field (want prefix \"Tasks[0]: TaskConfig:\")", sErr.Message)
+	if !strings.Contains(sErr.Message, "StructuredOutputSchema:") {
+		t.Errorf("message %q does not locate the offending field (want prefix \"StructuredOutputSchema:\")", sErr.Message)
 	}
 
-	if capture.lastWorkflow != nil {
+	if capture.lastRun != nil {
 		t.Error("request reached the server despite the conversion failure")
 	}
 }

@@ -71,9 +71,9 @@ names, never invent fields. Content that is markdown-with-frontmatter (like a
 `SKILL.md` listing) belongs in a ` ```md ` fence, not ` ```yaml `.
 
 Manifests are additionally held to **platform-parity protovalidate rules**
-(stigmer/stigmer#305): the rules the platform itself evaluates when the
-resource is applied — required fields, value lists, name patterns. Anchored
-fragments are never rule-checked — partial-by-intent is their point. Run
+(stigmer/stigmer#305): the rules the platform itself evaluates when the resource
+is applied — required fields, value lists, name patterns. Anchored fragments are
+never rule-checked — partial-by-intent is their point. Run
 `make report-docs-yaml-rules` for the rule findings as a report that never
 fails.
 

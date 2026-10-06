@@ -155,7 +155,7 @@ What holds:
 
 ## Environment Specification
 
-Agents can declare required environment variables via `env_spec`. This defines the **schema** — actual values are provided at runtime: from the Environments bound to the schedule, workflow task or PlatformClient that started the run, from the run's `runtime_env`, and, for keys still missing, from the personal environment of the person who sent the message. Those keys reach the agent's tools and shell; the console names the keys an agent will read from a person's personal environment before their first message.
+Agents can declare required environment variables via `env_spec`. This defines the **schema** — actual values are provided at runtime: from the Environments bound to the schedule or PlatformClient that started the run, from the run's `runtime_env`, and, for keys still missing, from the personal environment of the person who sent the message. Those keys reach the agent's tools and shell; the console names the keys an agent will read from a person's personal environment before their first message.
 
 ```yaml
 spec:
@@ -177,11 +177,11 @@ The `data` field is a map of variable name to `EnvironmentValue`:
 | `is_secret` | `true`: encrypted at rest, redacted in logs, requires special permissions to read. `false`: stored as plaintext, visible in audit logs. |
 | `description` | Documentation for the variable. Shown in the UI when a person supplies the value. |
 
-The shared `EnvironmentSpec` and `EnvironmentValue` types are defined in `ai/stigmer/agentic/environment/v1/spec.proto` and reused across Agents, McpServers, and Workflows.
+The shared `EnvironmentSpec` and `EnvironmentValue` types are defined in `ai/stigmer/agentic/environment/v1/spec.proto` and reused across Agents and McpServers.
 
 ## Run Defaults
 
-`spec.run_config` is a `RunConfig` (`ai/stigmer/agentic/agentrun/v1/invocation.proto`), the same settings message a message, a schedule, a channel, a share and a workflow `agent_call` step carry. A turn uses the agent's defaults wherever the message or the surface it came through sets nothing; the field table and the full precedence rule are in [RunConfig Fields](../../agentrun/docs/agent-run-resource-guide.md#runconfig-fields).
+`spec.run_config` is a `RunConfig` (`ai/stigmer/agentic/agentrun/v1/invocation.proto`), the same settings message a message, a schedule, a channel and a share carry. A turn uses the agent's defaults wherever the message or the surface it came through sets nothing; the field table and the full precedence rule are in [RunConfig Fields](../../agentrun/docs/agent-run-resource-guide.md#runconfig-fields).
 
 ```yaml
 spec:

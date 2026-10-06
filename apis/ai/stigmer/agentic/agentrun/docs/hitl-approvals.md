@@ -102,7 +102,6 @@ Each entry in `status.pending_approvals` is a `PendingApproval` message:
 | `approval_policy_source` | `ApprovalPolicySource` | **Why-gated provenance:** what is holding this call for approval. Projected from the tool call so a client can explain the gate (e.g. "required: marked destructive by the server") while the tool is still waiting. See [Why a Tool Is Gated](#why-a-tool-is-gated-authorization-provenance). |
 | `approval_policy_hook` | `string` | The plugin whose hook asked for this approval; empty when no hook asked, or when the agent's own hooks block did. |
 | `interrupt_id` | `string` | LangGraph interrupt ID for targeted resume. Used internally — do not modify. |
-| `child_agent_run_id` | `string` | Set when this `PendingApproval` is surfaced at a `WorkflowRun` level, enabling approval forwarding. |
 
 ---
 
@@ -263,7 +262,7 @@ PendingApproval {
 
 Stigmer does not automatically reject pending approvals after a timeout — runs remain in `RUN_WAITING_FOR_APPROVAL` indefinitely until a decision is submitted. This is intentional: approval requests may legitimately wait for hours while reviewers are offline.
 
-To enforce a timeout in your workflows, implement external monitoring and call `cancel` (or `terminate`) if the approval exceeds your acceptable wait window.
+To enforce a timeout, implement external monitoring and call `cancel` (or `terminate`) if the approval exceeds your acceptable wait window.
 
 ---
 
@@ -271,7 +270,7 @@ To enforce a timeout in your workflows, implement external monitoring and call `
 
 Some surfaces have **no approver present at the conversation**: a WhatsApp or Slack channel user is a customer, not an org member, and a guest visiting a shared agent link is anonymous. An interactive pause would park the run in `RUN_WAITING_FOR_APPROVAL` forever — nobody on that surface is authorized to decide.
 
-The server records `status.approval_mode = APPROVAL_MODE_UNATTENDED` on these turns (the hosted edition's channel and shared-agent guest turns), and on every schedule fire, where nobody is present either. The mode is a fact of the lane the turn came through: no request field sets it, so neither the external user nor any other caller can choose it. Every other turn is `APPROVAL_MODE_INTERACTIVE`, a workflow step's included (its workflow takes the approval request). In unattended mode:
+The server records `status.approval_mode = APPROVAL_MODE_UNATTENDED` on these turns (the hosted edition's channel and shared-agent guest turns), and on every schedule fire, where nobody is present either. The mode is a fact of the lane the turn came through: no request field sets it, so neither the external user nor any other caller can choose it. Every other turn is `APPROVAL_MODE_INTERACTIVE`. In unattended mode:
 
 - **What is gated is unchanged.** The same default decides which tools ask; only the *resolution* differs.
 - A gated tool is resolved as an **automatic SKIP**: the tool does not run, the model is told the action requires an approval that is not available in this conversation, and the turn continues to normal completion. The user gets a plain-language explanation — never tool or approval vocabulary.

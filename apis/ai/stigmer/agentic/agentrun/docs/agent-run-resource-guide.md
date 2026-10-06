@@ -64,7 +64,7 @@ Defined in `ai/stigmer/agentic/agentrun/v1/spec.proto`.
 |---|---|---|
 | `run_config` | `RunConfig` | What this message asks for: model, speed tier, thinking, and run limits. Every field is optional; an unset field falls to the agent's defaults, then to the operator's profile for the lane. See [RunConfig Fields](#runconfig-fields) for the fields and the rule. |
 
-Unlike a saved surface's settings, a message may set `service_tier` or `thinking_mode` without a model, to adjust the model a less specific layer chose (for example, thinking off for one message on an agent whose default turns it on). A lane that composes the turn for a surface (a schedule, a workflow step) writes that surface's saved `run_config` here; on a lane whose caller is a visitor (the hosted edition's shared-agent guests and channel senders), the surface's saved settings replace this field.
+Unlike a saved surface's settings, a message may set `service_tier` or `thinking_mode` without a model, to adjust the model a less specific layer chose (for example, thinking off for one message on an agent whose default turns it on). A lane that composes the turn for a surface (a schedule) writes that surface's saved `run_config` here; on a lane whose caller is a visitor (the hosted edition's shared-agent guests and channel senders), the surface's saved settings replace this field.
 
 ### Per-Message Intents
 
@@ -74,7 +74,7 @@ These apply to this message only and never carry over to the next one in the ses
 |---|---|---|
 | `interaction_mode` | `InteractionMode` | `INTERACTION_MODE_AGENT` (default): full tool access. `INTERACTION_MODE_PLAN`: read-only analysis, no file mutations. |
 | `build_from_plan` | `bool` | Marks a "Build from plan" turn: the person approved a plan from an earlier Plan-mode turn and asked the agent to implement it. The runner injects the implement-plan directive, so `message` stays a short label. |
-| `structured_output_schema` | `google.protobuf.Struct` | JSON Schema the agent's output must conform to. The validated data returns to the parent workflow as `structured`. |
+| `structured_output_schema` | `google.protobuf.Struct` | JSON Schema the agent's output must conform to. The validated data lands on `status.structured_output`. |
 
 No request sets an approval mode: it is a fact of the lane the turn came through, recorded on `status.approval_mode`. See [hitl-approvals.md](hitl-approvals.md#unattended-surfaces-channels-and-guest-shares).
 
@@ -82,7 +82,7 @@ No request sets an approval mode: it is a fact of the lane the turn came through
 
 | Field | Type | Description |
 |---|---|---|
-| `runtime_env` | `map<string, ExecutionValue>` | Run-scoped secrets and environment variables. Available only for this run. Deleted when the run completes. Highest merge priority: Environment values (the creating schedule's, `agent_call` task's or PlatformClient's `environment_refs`) < `runtime_env`; declared keys still missing are filled from the run's person's personal environment. Keys must be declared in `Agent.spec.env` (a declaration whitelist, not a value source) or they are dropped. |
+| `runtime_env` | `map<string, ExecutionValue>` | Run-scoped secrets and environment variables. Available only for this run. Deleted when the run completes. Highest merge priority: Environment values (the creating schedule's or PlatformClient's `environment_refs`) < `runtime_env`; declared keys still missing are filled from the run's person's personal environment. Keys must be declared in `Agent.spec.env` (a declaration whitelist, not a value source) or they are dropped. |
 
 Use `runtime_env` for B2B integrations where secrets must be injected at runtime per-caller, not stored in the agent configuration.
 
@@ -98,12 +98,6 @@ Use `runtime_env` for B2B integrations where secrets must be injected at runtime
 |---|---|---|
 | `attachments` | `repeated Attachment` | Files to inject into the agent sandbox before the run begins. See [attachments-and-artifacts.md](attachments-and-artifacts.md). |
 | `workspace_file_refs` | `repeated string` | Workspace-relative paths for files already inside the session's workspace. The agent reads these directly — no upload, no injection. |
-
-### Async Workflow Integration
-
-| Field | Type | Description |
-|---|---|---|
-| `parent` | `WorkflowParent` | The workflow run whose `agent_call` step started this turn: `workflow_run_id`, `signal_workflow_id` (the workflow told about approval requests) and `callback_token` (the Temporal task token the turn completes). Honoured only from the workflow run it names: a server-composed request, a runner whose credential is bound to that run, or a holder of `can_write_reserved_labels`. Anyone else who sets it is refused with `INVALID_ARGUMENT`. See [async-workflow-integration.md](async-workflow-integration.md). |
 
 ---
 
@@ -126,7 +120,7 @@ Files must be pre-uploaded via `uploadAttachment` RPC before creating the run. T
 
 ## RunConfig Fields
 
-Defined in `ai/stigmer/agentic/agentrun/v1/invocation.proto`. The same message is a message's request (`spec.run_config`), a surface's saved settings (a schedule's invocation, a channel, a share, a workflow `agent_call` step), an agent's defaults (`Agent.spec.run_config`, versioned with the agent), and the settings a turn ran with (`status.run_config`). Zero or empty means "not set at this layer".
+Defined in `ai/stigmer/agentic/agentrun/v1/invocation.proto`. The same message is a message's request (`spec.run_config`), a surface's saved settings (a schedule's invocation, a channel, a share), an agent's defaults (`Agent.spec.run_config`, versioned with the agent), and the settings a turn ran with (`status.run_config`). Zero or empty means "not set at this layer".
 
 | Field | Type | Description |
 |---|---|---|
@@ -165,7 +159,7 @@ Defined in `ai/stigmer/agentic/agentrun/v1/api.proto`. All fields are system-man
 | `declared_preferences` | `DeclaredPreferences` | The organization's and the person's standing context, snapshotted when the turn was created. |
 | `recalled_memories` | `RecalledMemories` | The confirmed memories recalled into this turn, snapshotted when it was created. |
 | `run_config` | `RunConfig` | The settings this turn runs with, resolved once at create from `spec.run_config` (or the surface's saved settings), the agent version's defaults and the lane's operator profile. An empty `model_name` means no layer named one and the engine chose. Server-only. |
-| `approval_mode` | `ApprovalMode` | `APPROVAL_MODE_INTERACTIVE` or `APPROVAL_MODE_UNATTENDED`, a fact of the lane: schedule fires and the hosted edition's shared-agent guest and channel turns are unattended; every other turn, a workflow step's included, is interactive. Server-only. |
+| `approval_mode` | `ApprovalMode` | `APPROVAL_MODE_INTERACTIVE` or `APPROVAL_MODE_UNATTENDED`, a fact of the lane: schedule fires and the hosted edition's shared-agent guest and channel turns are unattended; every other turn is interactive. Server-only. |
 
 ### Messages
 
