@@ -511,6 +511,16 @@ function isAlreadyCollapsed(tc: ToolCall): boolean {
 }
 
 /**
+ * Whether a hook refused this call: the row `stampHookRefusedToolCalls`
+ * settles from a refusal ledger entry that names its hook. Such a row is the
+ * record of a decision, not a denial or cancel artifact, so the twin collapse
+ * never hides it.
+ */
+function isHookRefusedRow(tc: ToolCall): boolean {
+  return tc.status === ToolCallStatus.TOOL_CALL_FAILED && tc.approvalPolicySource === ApprovalPolicySource.HOOK;
+}
+
+/**
  * Whether a tool call carries a change/output of its own — the signal that it is
  * authoritative for its resource rather than a redundant denial/cancel twin.
  *
@@ -561,7 +571,8 @@ function carriesOwnChange(tc: ToolCall): boolean {
  * 2. Group those calls by `toolCallIdentityToken` — the SAME `toolIdentity` used
  *    for denial correlation and resume grants, so scope and grouping cannot drift.
  * 3. In each group the keepers carry authoritative state — a change/output of
- *    their own (see {@link carriesOwnChange}) or the approval gate itself
+ *    their own (see {@link carriesOwnChange}), a hook's refusal (see
+ *    {@link isHookRefusedRow}) or the approval gate itself
  *    (`WAITING_APPROVAL`). For a file mutation the gate is the sole authoritative
  *    row: the row carries no diff (review lives in the `FileChangeSet` ledger, or
  *    is the no-storage deny-gate itself), so a denied write's same-identity
@@ -603,9 +614,11 @@ export function collapseRedundantToolCallTwins(messages: AgentMessage[]): number
     // (carriesOwnChange), the approval gate itself, or a gate an earlier
     // invocation already settled (isAdjudicatedRow — the transcript's record of
     // what the user decided and what ran; a same-identity act in a later turn
-    // is a new act, never this row's twin). For a file mutation the gate is the
-    // sole authoritative row (the row carries no diff — review lives in the
-    // ledger, or the row IS the no-storage deny-gate), so a denied write's
+    // is a new act, never this row's twin), or a hook's refusal (a decision
+    // stamped from the refusal ledger, one row per refusal: two refusals of
+    // one command in a turn are two acts, #1967). For a file mutation the gate
+    // is the sole authoritative row (the row carries no diff — review lives in
+    // the ledger, or the row IS the no-storage deny-gate), so a denied write's
     // same-identity siblings collapse onto it; a shell/MCP twin keeps every
     // distinct run with output.
     const keepers = new Set<ToolCall>(
@@ -613,6 +626,7 @@ export function collapseRedundantToolCallTwins(messages: AgentMessage[]): number
         (tc) =>
           carriesOwnChange(tc) ||
           isAdjudicatedRow(tc) ||
+          isHookRefusedRow(tc) ||
           tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
       ),
     );

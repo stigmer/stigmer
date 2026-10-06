@@ -1039,6 +1039,55 @@ describe("collapseRedundantToolCallTwins — terminal-path twin collapse", () =>
     expect(runB.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
   });
 
+  // A hook's refusal is a decision with no output; two of the same command in
+  // one turn (a tamper between them, say) are two acts, and each stays on the
+  // record (#1967). A FAILED twin with no hook provenance still collapses.
+  function hookRefusedShell(id: string, command: string): ToolCall {
+    return toolCall({
+      id,
+      name: "shell",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { command },
+      argsPreview: JSON.stringify({ command }),
+      error: "The hookify plugin's hook refused this call: [block-dangerous-rm]",
+      approvalPolicySource: ApprovalPolicySource.HOOK,
+      approvalPolicyHook: "hookify",
+    });
+  }
+
+  it("keeps both of two hook refusals of the same shell command in one turn", () => {
+    const first = hookRefusedShell("rm-1", "rm -rf build");
+    const second = hookRefusedShell("rm-2", "rm -rf build");
+    const messages = [aiMessageWith([first]), aiMessageWith([second])];
+
+    const collapsed = collapseRedundantToolCallTwins(messages);
+
+    expect(collapsed).toBe(0);
+    for (const refusal of [first, second]) {
+      expect(refusal.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+      expect(refusal.approvalPolicySource).toBe(ApprovalPolicySource.HOOK);
+      expect(refusal.argsPreview).toBe(JSON.stringify({ command: "rm -rf build" }));
+    }
+  });
+
+  it("still collapses a provenance-less FAILED twin beside a hook refusal", () => {
+    const refusal = hookRefusedShell("rm-hook", "rm -rf build");
+    const twin = toolCall({
+      id: "rm-twin",
+      name: "shell",
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      args: { command: "rm -rf build" },
+      argsPreview: JSON.stringify({ command: "rm -rf build" }),
+    });
+    const messages = [aiMessageWith([refusal, twin])];
+
+    const collapsed = collapseRedundantToolCallTwins(messages);
+
+    expect(collapsed).toBe(1);
+    expect(refusal.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+    expect(twin.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+  });
+
   it("leaves an ungated read-only duplicate untouched (out of scope)", () => {
     const readA = toolCall({
       id: "r-a",
