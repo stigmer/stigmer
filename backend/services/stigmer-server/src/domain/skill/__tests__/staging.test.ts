@@ -4,7 +4,8 @@
  * domain's key and the slot TTL; consume reading then deleting, with the
  * delete best-effort and loud; the one "unknown or expired" condition for
  * a malformed, missing or already-consumed reference; a driver fault
- * propagating untouched; the download capability's floor TTL. First over
+ * propagating untouched; the download capability's floor TTL, signed for
+ * the runner that reads it. First over
  * a recording fake driver (what any bucket sees), then over the real local
  * driver with its slot registry, wired exactly as boot/compose.ts wires it
  * — the two drivers must be indistinguishable above this module.
@@ -20,7 +21,7 @@ import {
   ArtifactStorageNotFoundError,
   LocalArtifactStorage,
 } from "../../../artifactstorage/artifact-storage.js";
-import type { ArtifactStorage } from "../../../artifactstorage/artifact-storage.js";
+import type { ArtifactStorage, SignedUrlReader } from "../../../artifactstorage/artifact-storage.js";
 import { createLogger } from "../../../boot/logger.js";
 import { SKILL_ARTIFACTS_PATH_PREFIX } from "../../../transport/constants.js";
 import {
@@ -88,7 +89,7 @@ interface Recorded {
   presignPut: Array<{ key: string; declaredSizeBytes: number; ttlMs: number }>;
   downloads: string[];
   deletes: string[];
-  signed: Array<{ key: string; expiresInMs: number; downloadFilename: string }>;
+  signed: Array<{ key: string; expiresInMs: number; downloadFilename: string; reader: SignedUrlReader }>;
 }
 
 function fakeDriver(
@@ -126,8 +127,8 @@ function fakeDriver(
         ttlMs: ttlMs / 2,
       });
     },
-    getSignedUrl: (key, expiresInMs, downloadFilename) => {
-      recorded.signed.push({ key, expiresInMs, downloadFilename });
+    getSignedUrl: (key, expiresInMs, downloadFilename, reader) => {
+      recorded.signed.push({ key, expiresInMs, downloadFilename, reader });
       return Promise.resolve(`https://bucket.test/${key}?sig=get`);
     },
     delete: (key) => {
@@ -228,7 +229,7 @@ describe("newArchiveStaging over a bucket-shaped driver", () => {
     await expect(staging.consume(minted.ref)).rejects.toBe(fault);
   });
 
-  it("downloadUrl signs the stored key for the floor TTL and reports it", async () => {
+  it("downloadUrl signs the stored key for the runner, for the floor TTL, and reports it", async () => {
     const { driver, recorded } = fakeDriver();
     const staging = newArchiveStaging(driver, logger);
     const capability = await staging.downloadUrl("skills/abc.zip");
@@ -237,6 +238,7 @@ describe("newArchiveStaging over a bucket-shaped driver", () => {
         key: "skills/abc.zip",
         expiresInMs: DOWNLOAD_URL_TTL_MS,
         downloadFilename: "",
+        reader: "runner",
       },
     ]);
     expect(capability).toEqual({

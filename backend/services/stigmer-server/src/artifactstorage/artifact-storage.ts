@@ -67,6 +67,16 @@ export interface PresignedUpload {
   readonly ttlMs: number;
 }
 
+/**
+ * Who reads a signed download URL. A store can have one address for the
+ * people and servers outside it and another for the runners inside a
+ * deployment (a local cluster whose sandboxes reach the host by another
+ * name), and a presigned URL's host is part of its signature, so a link
+ * is signed for its reader: `"runner"` for an archive or file a runner
+ * downloads, `"person"` for everything a person's client or browser opens.
+ */
+export type SignedUrlReader = "person" | "runner";
+
 export interface ArtifactStorage {
   /** Stores artifact data under the key. */
   upload(key: string, data: Uint8Array, contentType: string): Promise<void>;
@@ -82,14 +92,16 @@ export interface ArtifactStorage {
    */
   size(key: string): Promise<number>;
   /**
-   * A time-limited download URL. downloadFilename, when non-empty, bakes
-   * a browser-download disposition into the URL (browsers ignore the HTML
-   * `download` attribute cross-origin); empty serves inline.
+   * A time-limited download URL for `reader` (SignedUrlReader).
+   * downloadFilename, when non-empty, bakes a browser-download disposition
+   * into the URL (browsers ignore the HTML `download` attribute
+   * cross-origin); empty serves inline.
    */
   getSignedUrl(
     key: string,
     expiresInMs: number,
     downloadFilename: string,
+    reader: SignedUrlReader,
   ): Promise<string>;
   /**
    * A time-limited upload URL for a blob of exactly declaredSizeBytes at
@@ -165,6 +177,8 @@ export interface ArtifactStorageConfig {
   readonly r2AccessKeyId: string;
   readonly r2SecretAccessKey: string;
   readonly r2Region: string;
+  /** The address runners dial the store at, when not r2Endpoint ("" = r2Endpoint); R2StorageConfig.runnerEndpoint. */
+  readonly r2RunnerEndpoint: string;
 }
 
 /**
@@ -198,6 +212,7 @@ export function newArtifactStorage(
         accessKeyId: config.r2AccessKeyId,
         secretAccessKey: config.r2SecretAccessKey,
         region: config.r2Region,
+        runnerEndpoint: config.r2RunnerEndpoint,
       });
     default: {
       const registered = registeredDrivers.get(storageType);
@@ -284,10 +299,13 @@ export class LocalArtifactStorage implements ArtifactStorage {
     return this.stagedUploadLane.reserve(key, declaredSizeBytes);
   }
 
+  // The reader is not part of the link: the serve URL is the lane's one
+  // address, configured for whoever downloads (ARTIFACT_LOCAL_SERVE_URL).
   async getSignedUrl(
     key: string,
     _expiresInMs: number,
     downloadFilename: string,
+    _reader: SignedUrlReader,
   ): Promise<string> {
     const serveUrl =
       typeof this.serveUrl === "function" ? this.serveUrl() : this.serveUrl;

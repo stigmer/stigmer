@@ -180,10 +180,13 @@ export function newArchiveStaging(
     },
 
     async downloadUrl(storageKey) {
+      // Only a runner mounting a skill or plugin archive asks for this
+      // link (the @internal GetArtifactDownloadUrl RPCs).
       const url = await driver.getSignedUrl(
         storageKey,
         DOWNLOAD_URL_TTL_MS,
         "",
+        "runner",
       );
       return { url, ttlMs: DOWNLOAD_URL_TTL_MS };
     },

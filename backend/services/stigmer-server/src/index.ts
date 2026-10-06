@@ -545,6 +545,7 @@ export type {
   ArtifactStorage,
   ArtifactStorageDriverFactory,
   PresignedUpload,
+  SignedUrlReader,
   StagedUploadLane,
 } from "./artifactstorage/artifact-storage.js";
 export { ArtifactStorageNotFoundError } from "./artifactstorage/artifact-storage.js";

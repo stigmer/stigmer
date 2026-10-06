@@ -17,7 +17,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl as presignGetObject } from "@aws-sdk/s3-request-presigner";
 
-import type { ArtifactStorage, PresignedUpload } from "./artifact-storage.js";
+import type { ArtifactStorage, PresignedUpload, SignedUrlReader } from "./artifact-storage.js";
 import {
   ArtifactStorageNotFoundError,
   contentDispositionAttachment,
@@ -41,11 +41,22 @@ export interface R2StorageConfig {
   readonly secretAccessKey: string;
   /** Usually "auto" for R2 (Go default). */
   readonly region: string;
+  /**
+   * The address runners dial the store at, when it is not `endpoint`: a
+   * local cluster's sandboxes reach a store on the host's loopback by
+   * another name. A download URL minted for a runner is signed for it,
+   * since a presigned URL's host is part of its signature; uploads, the
+   * server's own reads and a person's links keep `endpoint`. Empty or
+   * absent: `endpoint` for every reader.
+   */
+  readonly runnerEndpoint?: string;
 }
 
-/** Test seam: the two AWS clients, injectable for hermetic unit tests. */
+/** Test seam: the AWS clients, injectable for hermetic unit tests. */
 export interface R2Clients {
   readonly client: S3Client;
+  /** Signs a runner's download links; `client` when absent. */
+  readonly runnerClient?: S3Client;
   readonly presign: typeof presignGetObject;
 }
 
@@ -64,6 +75,8 @@ export function newR2ArtifactStorage(config: R2StorageConfig): ArtifactStorage {
 
 export class R2ArtifactStorage implements ArtifactStorage {
   private readonly client: S3Client;
+  /** Signs a runner's download links (`R2StorageConfig.runnerEndpoint`); never dialled. */
+  private readonly runnerClient: S3Client;
   private readonly presign: typeof presignGetObject;
   private readonly bucket: string;
 
@@ -85,19 +98,24 @@ export class R2ArtifactStorage implements ArtifactStorage {
     this.bucket = config.bucket;
     if (clients !== undefined) {
       this.client = clients.client;
+      this.runnerClient = clients.runnerClient ?? clients.client;
       this.presign = clients.presign;
       return;
     }
-    this.client = new S3Client({
-      region: config.region === "" ? "auto" : config.region,
-      endpoint: config.endpoint,
-      // R2 uses path-style addressing (Go o.UsePathStyle = true).
-      forcePathStyle: true,
-      credentials: {
-        accessKeyId: config.accessKeyId,
-        secretAccessKey: config.secretAccessKey,
-      },
-    });
+    const clientFor = (endpoint: string): S3Client =>
+      new S3Client({
+        region: config.region === "" ? "auto" : config.region,
+        endpoint,
+        // R2 uses path-style addressing (Go o.UsePathStyle = true).
+        forcePathStyle: true,
+        credentials: {
+          accessKeyId: config.accessKeyId,
+          secretAccessKey: config.secretAccessKey,
+        },
+      });
+    this.client = clientFor(config.endpoint);
+    const runnerEndpoint = config.runnerEndpoint ?? "";
+    this.runnerClient = runnerEndpoint === "" ? this.client : clientFor(runnerEndpoint);
     this.presign = presignGetObject;
   }
 
@@ -186,6 +204,7 @@ export class R2ArtifactStorage implements ArtifactStorage {
     key: string,
     expiresInMs: number,
     downloadFilename: string,
+    reader: SignedUrlReader,
   ): Promise<string> {
     const clampedMs = Math.min(expiresInMs, R2_MAX_EXPIRATION_MS);
     const command = new GetObjectCommand({
@@ -198,7 +217,7 @@ export class R2ArtifactStorage implements ArtifactStorage {
         : {}),
     });
     try {
-      return await this.presign(this.client, command, {
+      return await this.presign(reader === "runner" ? this.runnerClient : this.client, command, {
         expiresIn: Math.floor(clampedMs / 1000),
       });
     } catch (error) {

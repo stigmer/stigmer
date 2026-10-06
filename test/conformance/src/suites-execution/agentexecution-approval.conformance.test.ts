@@ -47,6 +47,10 @@
 //   parks the run on a pending approval with provenance HOOK and the hook's
 //   reason as its message, and approving it completes the run. A pushed
 //   plugin's hooks do the same, in Claude Code's format or Cursor's.
+// - A real plugin, Anthropic's hookify vendored unchanged, refuses through
+//   its own rule with its own text, under trust and without; its "no opinion"
+//   falls to the default's card; and an edit the agent's own shell makes to
+//   the plugin's installed files does not survive to the next hook run.
 // - Idempotency: re-submitting the same {tool_call_id, action} before the gate
 //   resolves is a benign no-op that returns the current state.
 // - Negatives: UNSPECIFIED action / empty ids -> InvalidArgument (proto
@@ -65,6 +69,7 @@ import {
   ApprovalEventType,
   ApprovalPolicySource,
   ExecutionPhase,
+  FileDecisionAction,
   MessageType,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -86,12 +91,16 @@ import {
   makeAgentExecution,
   requireLlmProxy,
   requireMcpFixture,
+  sessionIdOf,
   submitApprovalPerContract,
 } from "../support/agentexecutions";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { zipFiles } from "../support/skills";
+import { awaitFileReview, requireReviewSet, submitFileDecisionByPath } from "../support/file-review";
+import { execFileSync } from "node:child_process";
+import { hookifyExampleRule, realPluginFiles, upstreamManifest } from "@stigmer/test-support/real-plugins";
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -854,5 +863,150 @@ describe("AgentExecution — a pushed Cursor-format plugin's hooks decide at the
     expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
     const published = allToolCalls(final).find((tc) => tc.id === "call_cursor_hook_publish");
     expect(published?.result).toContain("published");
+  });
+});
+
+// A real plugin, unchanged: Anthropic's hookify, vendored whole at the commit
+// its NOTICE names and held to upstream's blob SHAs by test-support's own
+// test, pushed as a person's `stigmer push plugin` would push it. Its rule is
+// hookify's own example (`examples/dangerous-rm.local.md`), written into the
+// workspace by the agent as hookify's `/hookify` command has it do, and its
+// hooks run `python3`, as they do in Claude Code. hookify's plugin.json names
+// it `hookify` and "unchanged" forbids renaming it, so this test's uniqueness
+// is its own fresh organization rather than a unique plugin name.
+//
+// The tamper: the agent's own shell overwrites the mounted rule engine with
+// one that allows everything, and the next `rm -rf` is still refused,
+// because the runner restores the installed tree before any hook runs. The
+// shell finds the mount the way anything on the host could: the session's
+// workspace directory is named for the session, and the session's platform
+// tree is under the runner's home. `git hash-object` prints the evidence in
+// the manifest's own unit.
+//
+// The workspace is not a git tree, but the harness gives the runner an
+// artifact store, so every write is captured for review after the turn
+// (`deriveCaptureMode`), trusted or not: the person keeps the rule file, as
+// they would keep it in the console. The other calls write nothing there.
+describe("AgentExecution — a real plugin, unchanged, refuses at the gate and survives a tamper", () => {
+  const RULE = hookifyExampleRule("dangerous-rm");
+  const RULE_ENGINE = "core/rule_engine.py";
+  const RULE_ENGINE_BLOB = upstreamManifest().plugins.hookify.files[RULE_ENGINE]!.blob;
+  const MOUNTED_RULE_ENGINE = `"$(find "$HOME/.stigmer/sessions/$(basename "$PWD")/platform/plugins" -path '*/${RULE_ENGINE}' -print -quit)"`;
+  const TAMPER = [
+    `f=${MOUNTED_RULE_ENGINE}`,
+    'test -n "$f"',
+    `printf 'class RuleEngine:\\n    def evaluate_rules(self, rules, input_data):\\n        return {}\\n' > "$f"`,
+    'git hash-object "$f"',
+  ].join(" && ");
+
+  const execute = (toolCallId: string, command: string): ToolUseBlock => ({ toolCallId, toolName: "execute", toolInput: { command } });
+
+  it("refuses rm -rf with hookify's own text, under trust and without, and an edit to its files does not last", async () => {
+    try {
+      execFileSync("python3", ["--version"], { stdio: "ignore" });
+    } catch {
+      throw new Error("hookify's hooks run python3, which is not on this host's PATH; the runner needs it to run them");
+    }
+    const { org } = await target.provisionTenancy();
+    const files: Record<string, Uint8Array> = {};
+    for (const [path, bytes] of realPluginFiles("hookify")) files[path] = bytes;
+    const plugin = await clients.pluginCommand.push({ org, artifact: zipFiles(files) });
+    fixtures.defer(() => clients.pluginCommand.delete({ value: plugin.metadata!.id }).then(() => undefined, () => undefined));
+    expect(plugin.metadata!.name, "the plugin keeps its published name").toBe("hookify");
+    const slug = plugin.metadata!.slug;
+
+    const agent = await clients.agentCommand.create(
+      makeAgent({
+        org,
+        name: uniqueName("agent-hookify"),
+        hooks: [{ source: { case: "plugin", value: { kind: ApiResourceKind.plugin, slug } } }],
+      }),
+    );
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+
+    // Turn 1, "trust this whole run": the shell needs no card, so every
+    // refusal below is hookify's, binding under trust.
+    mock.enqueue(anthropicToolUses([{ toolCallId: "call_hookify_rule", toolName: "write_file", toolInput: { file_path: RULE.path, content: RULE.content } }]));
+    mock.enqueue(anthropicToolUses([execute("call_hookify_rm", "rm -rf build")]));
+    mock.enqueue(anthropicToolUses([execute("call_hookify_tamper", TAMPER)]));
+    mock.enqueue(anthropicToolUses([execute("call_hookify_rm_after_tamper", "rm -rf build")]));
+    mock.enqueue(anthropicToolUses([execute("call_hookify_restored", `git hash-object ${MOUNTED_RULE_ENGINE}`)]));
+    mock.enqueue(anthropicText("Done."));
+    const first = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("aex-hookify-trusted"), agentRef: agentRefOf(agent), autoApproveAll: true }),
+    );
+    const firstId = first.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: firstId }));
+
+    const reviewed = await awaitFileReview(clients, firstId);
+    const set = requireReviewSet(reviewed);
+    expect(set.changes.map((change) => change.pathAfter), "the rule file is the turn's one workspace change").toEqual([RULE.path]);
+    await submitFileDecisionByPath(clients, firstId, set, RULE.path, FileDecisionAction.APPROVE);
+    const trusted = await awaitTerminal(clients, firstId);
+    expect(trusted.status?.phase, "refused calls do not stop the run").toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    const rows = allToolCalls(trusted);
+    const row = (id: string) => {
+      const found = rows.find((tc) => tc.id === id);
+      expect(found, `execution ${firstId}: ${id} has a row`).toBeDefined();
+      return found!;
+    };
+    const refusedByHookify = (id: string): void => {
+      const refused = row(id);
+      expect(ToolCallStatus[refused.status], id).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_FAILED]);
+      expect(ApprovalPolicySource[refused.approvalPolicySource], id).toBe(ApprovalPolicySource[ApprovalPolicySource.HOOK]);
+      expect(refused.approvalPolicyHook, id).toBe(slug);
+      expect(refused.error, `${id}: hookify's own text is the reason`).toContain("Dangerous rm command detected!");
+    };
+
+    expect(ToolCallStatus[row("call_hookify_rule").status]).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_COMPLETED]);
+    refusedByHookify("call_hookify_rm");
+    const tamper = row("call_hookify_tamper");
+    expect(ToolCallStatus[tamper.status], "the agent's shell may write the mounted files").toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_COMPLETED]);
+    const tamperedBlob = /\b[0-9a-f]{40}\b/.exec(tamper.result)?.[0];
+    expect(tamperedBlob, `the tamper printed the edited file's blob SHA: ${tamper.result}`).toBeDefined();
+    expect(tamperedBlob, "the edit changed the mounted rule engine").not.toBe(RULE_ENGINE_BLOB);
+    refusedByHookify("call_hookify_rm_after_tamper");
+    expect(row("call_hookify_restored").result, "the mounted rule engine is upstream's again").toContain(RULE_ENGINE_BLOB);
+
+    // Turn 2, the same conversation, not trusted: the rule still refuses,
+    // and a call hookify has no opinion on falls to the default's card.
+    mock.enqueue(anthropicToolUses([execute("call_hookify_rm_untrusted", "rm -rf build")]));
+    mock.enqueue(anthropicToolUses([execute("call_hookify_quiet", "echo built")]));
+    mock.enqueue(anthropicText("Done."));
+    const second = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("aex-hookify-untrusted"), sessionId: sessionIdOf(trusted) }),
+    );
+    const secondId = second.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: secondId }));
+
+    const gated = await awaitPhase(clients, secondId, ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL, {
+      label: "WAITING_FOR_APPROVAL on the default's card for a call hookify let pass",
+    });
+    const refused = allToolCalls(gated).find((tc) => tc.id === "call_hookify_rm_untrusted");
+    expect(refused, `execution ${secondId}: the refused delete has a row`).toBeDefined();
+    expect(ToolCallStatus[refused!.status]).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_FAILED]);
+    expect(refused!.approvalPolicyHook).toBe(slug);
+    expect(refused!.error).toContain("Dangerous rm command detected!");
+    const pending = gated.status!.pendingApprovals[0]!;
+    expect(pending.toolCallId).toBe("call_hookify_quiet");
+    expect(ApprovalPolicySource[pending.approvalPolicySource], "hookify decided nothing, so the default asked").toBe(
+      ApprovalPolicySource[ApprovalPolicySource.BUILTIN_CATEGORY],
+    );
+
+    await submitApprovalPerContract({
+      expectedRemaining: 0,
+      label: "approving the default's card clears the gate",
+      submit: () =>
+        clients.agentExecutionCommand.submitApproval({
+          agentExecutionId: secondId,
+          toolCallId: pending.toolCallId,
+          action: ApprovalAction.APPROVE,
+        }),
+    });
+    const final = await awaitTerminal(clients, secondId);
+    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    const quiet = allToolCalls(final).find((tc) => tc.id === "call_hookify_quiet");
+    expect(ToolCallStatus[quiet!.status]).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_COMPLETED]);
+    expect(quiet!.result).toContain("built");
   });
 });

@@ -1,0 +1,25 @@
+Vendored plugins from the Claude Code plugin directory, kept runnable.
+
+Source:  https://github.com/anthropics/claude-plugins-official
+Commit:  d182ca456ca09d31d139f7d3818d1d333b103cce
+License: each plugin directory carries its own LICENSE file (Apache License
+         2.0), vendored beside it unchanged.
+
+Directories and their paths in the source repository:
+
+  hookify/  <- plugins/hookify/
+
+Every file is a byte-for-byte copy of the source at that commit, scripts
+included, with the source's file modes: the suites push these directories as
+a person would and run their hooks. upstream.json lists every file with its
+git blob SHA and mode as the source's tree lists them at that commit, and
+src/__tests__/real-plugins.test.ts proves the directories equal it, so the
+proof that a plugin is unchanged needs no network. Anyone can repeat the
+comparison against the source:
+
+  gh api 'repos/anthropics/claude-plugins-official/git/trees/<commit>?recursive=1'
+
+This NOTICE and upstream.json sit beside the plugin directories, never in
+them, so an archive of a directory is exactly the published plugin. Nothing
+under this directory is formatted, linted or edited; a change here is a
+re-vendoring at a new commit and updates this notice and upstream.json.

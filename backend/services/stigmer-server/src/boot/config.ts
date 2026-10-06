@@ -146,6 +146,13 @@ export interface ServerConfig {
   readonly r2SecretAccessKey: string;
   readonly r2Region: string;
   /**
+   * R2_RUNNER_ENDPOINT: the address runners dial the store at, when it is
+   * not R2_ENDPOINT (a local cluster whose sandboxes reach a store on the
+   * host's loopback by another name). Download links a runner reads are
+   * signed for it; "" signs every link for R2_ENDPOINT.
+   */
+  readonly r2RunnerEndpoint: string;
+  /**
    * GitHub OAuth credentials for workspace repo selection (the github
    * broker domain). Override via STIGMER_GITHUB_CLIENT_ID /
    * STIGMER_GITHUB_CLIENT_SECRET — an empty value is treated as unset
@@ -381,6 +388,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     r2AccessKeyId: envString(env, "R2_ACCESS_KEY_ID", ""),
     r2SecretAccessKey: envString(env, "R2_SECRET_ACCESS_KEY", ""),
     r2Region: envString(env, "R2_REGION", "auto"),
+    r2RunnerEndpoint: envString(env, "R2_RUNNER_ENDPOINT", ""),
   };
   const skillArtifactStorageType = envString(
     env,

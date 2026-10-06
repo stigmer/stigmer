@@ -168,6 +168,10 @@ describe("a pre-execution answer", () => {
       decision: "deny",
       reason: "c",
     });
+    expect(parseCursorPre(ran({ stdout: '{"hookSpecificOutput":{"permissionDecision":"deny"},"systemMessage":"why"}' }), open)).toEqual({
+      decision: "deny",
+      reason: "why",
+    });
     expect(parseCursorPre(ran({ stdout: '{"additional_context":"only context"}' }), open)).toEqual({ additionalContext: "only context" });
     expect(parseCursorPre(ran({ stdout: '{"continue":true}' }), open)).toEqual({});
   });
