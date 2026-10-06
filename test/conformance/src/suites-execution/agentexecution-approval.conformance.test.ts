@@ -69,6 +69,7 @@ import {
   ApprovalEventType,
   ApprovalPolicySource,
   ExecutionPhase,
+  FileDecisionAction,
   MessageType,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -97,6 +98,7 @@ import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { zipFiles } from "../support/skills";
+import { awaitFileReview, requireReviewSet, submitFileDecisionByPath } from "../support/file-review";
 import { execFileSync } from "node:child_process";
 import { hookifyExampleRule, realPluginFiles, upstreamManifest } from "@stigmer/test-support/real-plugins";
 
@@ -880,6 +882,11 @@ describe("AgentExecution — a pushed Cursor-format plugin's hooks decide at the
 // workspace directory is named for the session, and the session's platform
 // tree is under the runner's home. `git hash-object` prints the evidence in
 // the manifest's own unit.
+//
+// The workspace is not a git tree, but the harness gives the runner an
+// artifact store, so every write is captured for review after the turn
+// (`deriveCaptureMode`), trusted or not: the person keeps the rule file, as
+// they would keep it in the console. The other calls write nothing there.
 describe("AgentExecution — a real plugin, unchanged, refuses at the gate and survives a tamper", () => {
   const RULE = hookifyExampleRule("dangerous-rm");
   const RULE_ENGINE = "core/rule_engine.py";
@@ -931,6 +938,10 @@ describe("AgentExecution — a real plugin, unchanged, refuses at the gate and s
     const firstId = first.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: firstId }));
 
+    const reviewed = await awaitFileReview(clients, firstId);
+    const set = requireReviewSet(reviewed);
+    expect(set.changes.map((change) => change.pathAfter), "the rule file is the turn's one workspace change").toEqual([RULE.path]);
+    await submitFileDecisionByPath(clients, firstId, set, RULE.path, FileDecisionAction.APPROVE);
     const trusted = await awaitTerminal(clients, firstId);
     expect(trusted.status?.phase, "refused calls do not stop the run").toBe(ExecutionPhase.EXECUTION_COMPLETED);
     const rows = allToolCalls(trusted);
@@ -960,7 +971,7 @@ describe("AgentExecution — a real plugin, unchanged, refuses at the gate and s
     // Turn 2, the same conversation, not trusted: the rule still refuses,
     // and a call hookify has no opinion on falls to the default's card.
     mock.enqueue(anthropicToolUses([execute("call_hookify_rm_untrusted", "rm -rf build")]));
-    mock.enqueue(anthropicToolUses([execute("call_hookify_quiet", "touch built")]));
+    mock.enqueue(anthropicToolUses([execute("call_hookify_quiet", "echo built")]));
     mock.enqueue(anthropicText("Done."));
     const second = await clients.agentExecutionCommand.create(
       makeAgentExecution({ org, name: uniqueName("aex-hookify-untrusted"), sessionId: sessionIdOf(trusted) }),
@@ -994,8 +1005,8 @@ describe("AgentExecution — a real plugin, unchanged, refuses at the gate and s
     });
     const final = await awaitTerminal(clients, secondId);
     expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
-    expect(ToolCallStatus[allToolCalls(final).find((tc) => tc.id === "call_hookify_quiet")!.status]).toBe(
-      ToolCallStatus[ToolCallStatus.TOOL_CALL_COMPLETED],
-    );
+    const quiet = allToolCalls(final).find((tc) => tc.id === "call_hookify_quiet");
+    expect(ToolCallStatus[quiet!.status]).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_COMPLETED]);
+    expect(quiet!.result).toContain("built");
   });
 });
