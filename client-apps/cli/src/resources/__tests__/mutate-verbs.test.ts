@@ -31,6 +31,8 @@ import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcp
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
 import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
@@ -70,6 +72,10 @@ const knownChannelApp = create(ChannelAppSchema, {
 
 const knownSchedule = create(ScheduleSchema, {
   metadata: { name: "daily-fee-reminders", slug: "daily-fee-reminders", org: "acme", id: "sch_1" },
+});
+
+const knownPlugin = create(PluginSchema, {
+  metadata: { name: "clinic-tools", slug: "clinic-tools", org: "acme", id: "plg_1" },
 });
 
 // Pending run (cancellable) vs. an already-terminal one.
@@ -190,6 +196,13 @@ beforeAll(async () => {
       delete: (req) => {
         scheduleDeleteIds.push(req.value);
         return knownSchedule;
+      },
+    });
+
+    router.service(PluginQueryController, {
+      getByReference: (req) => {
+        if (req.slug !== "clinic-tools") throw new ConnectError("plugin not found", Code.NotFound);
+        return knownPlugin;
       },
     });
 
@@ -324,6 +337,16 @@ describe("delete (standard kinds)", () => {
     const err = await planDelete(client, "session", "ses_1", "acme").catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
     expect(String(err.message)).toContain("does not support");
+  });
+});
+
+describe("delete (plugin)", () => {
+  it("warns that it removes the plugin and everything it installed", async () => {
+    const plan = await planDelete(client, "plugin", "clinic-tools", "acme");
+    expect(plan.warning.hints).toContain(
+      "This removes the plugin and every skill, MCP server and agent it installed. " +
+        "It is refused while another agent of yours still references one of them.",
+    );
   });
 });
 
