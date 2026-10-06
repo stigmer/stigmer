@@ -216,6 +216,6 @@ waivers:
       What an update may change on a started or terminal run is undecided; the contract is decided before an arm pins it.
   - rpc: WorkflowRunCommandController.updateStatus
     kind: proven-elsewhere
-    proven_by: backend/services/stigmer-server/src/domain/workflowexecution/__tests__/workflowexecution.test.ts
+    proven_by: backend/services/stigmer-server/src/domain/workflowrun/__tests__/workflowrun.test.ts
     reason: >-
       Only the runner sends it, from its own process; the server's suite pins its contract over the wire (status merge, idempotent event batches, NotFound and InvalidArgument).
