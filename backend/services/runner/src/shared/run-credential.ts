@@ -14,7 +14,7 @@
  *
  * The server's dispatches — the Execute* turn activities and
  * GenerateSessionSubject — carry it on the activity INPUT under
- * {@link RUN_CREDENTIAL_INPUT_KEY}, the same key the workflow inputs use (a
+ * {@link RUN_CREDENTIAL_INPUT_KEY}, the same key the workflow input uses (a
  * cross-component wire contract; the server's
  * temporal/agentexecution/workflows/invoke-agent-execution.ts builds it).
  *
@@ -26,7 +26,7 @@
 
 /**
  * The snake_case key under which a dispatch's input object carries the run
- * credential. Byte-pinned: the same name on both invoke workflow inputs, on
+ * credential. Byte-pinned: the same name on the invoke workflow input, on
  * `ExecuteActivityInput`, on `GenerateSessionSubjectInput` and on the connect
  * lane's input (where it names a DIFFERENT, clocked token that this reader
  * never sees — that lane hands its token per call).

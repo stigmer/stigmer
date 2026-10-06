@@ -388,8 +388,8 @@ function kindsByEnumName(): Map<string, ApiResourceKind> {
  * inverse of `getIdPrefix` over the ids `generateId` mints
  * (`<prefix>_<ulid>`, pipeline/steps/defaults.ts). The one consumer today
  * is the runner-credential lane, whose token binds an execution by id and
- * must know whether that id names an agent execution or a workflow
- * execution without a second claim or a guess. Anything that is not
+ * must know whether that id names an agent execution without a second
+ * claim or a guess. Anything that is not
  * `<known prefix>_<rest>` — no underscore, an unknown prefix, the empty
  * string — is `api_resource_kind_unknown`; never a throw, because the id
  * arrived inside a credential and the caller refuses with its own

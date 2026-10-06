@@ -222,9 +222,7 @@ export async function submitApproval(
         // 1 — the same id auditActorFor stamps as created_by.id, so the
         // approval ledger and the audit trail name one person the same
         // way in every edition (the trusted-local operator on a laptop,
-        // the account on a signed-in server; stigmer/stigmer#1385). A
-        // decision forwarded by a workflow arrives as the server acting
-        // for that workflow's caller, so the person is named there too.
+        // the account on a signed-in server; stigmer/stigmer#1385).
         const decidedBy = ctx.callerIdentity.identityId;
 
         let updated: AgentRun;

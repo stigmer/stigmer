@@ -1,6 +1,6 @@
 # Stigmer all-in-one — `ghcr.io/stigmer/stigmer`
 
-One container for the "let me try this in thirty seconds" moment: the Stigmer server with the web console, an embedded Temporal dev-server, an embedded runner that executes Agents and Workflows, and SQLite. One `docker run`, one volume, no Node.js on the host.
+One container for the "let me try this in thirty seconds" moment: the Stigmer server with the web console, an embedded Temporal dev-server, an embedded runner that executes agents, and SQLite. One `docker run`, one volume, no Node.js on the host.
 
 **EVALUATION ONLY. NOT FOR PRODUCTION.** There are no separate backups or scaling, an upgrade kills in-flight runs, and Temporal's dev-server is not built for durable history. For a team, use the [Docker Compose stack](../../docker-compose.yml) ([guide](https://stigmer.ai/docs/guides/self-hosting/docker-compose)). The container says all of this every time it starts.
 
@@ -40,7 +40,7 @@ docker build --build-arg STIGMER_VERSION=$(cat deploy/all-in-one/stage/VERSION) 
 
 ## Prove
 
-`test/install/smoke-all-in-one.mjs` is the one smoke, run by `make smoke-all-in-one`, by `ci.all-in-one.yaml` on every relevant PR (both arches, from the PR's sources), and by the release lane against the pushed tag. It proves: Docker `healthy`; the banner and the no-key warning; SERVING and the console lane; the `stigmer` organization the server makes at its first start; an LLM-free Workflow run to `EXECUTION_COMPLETED` through the embedded Temporal and runner; the artifact lane; `docker restart` persistence; an unclean restart (`docker kill`, `docker start`) with exactly one Temporal across three supervisor ticks; `docker stop -t 30` exiting 0; an unwritable bind mount refused.
+`test/install/smoke-all-in-one.mjs` is the one smoke, run by `make smoke-all-in-one`, by `ci.all-in-one.yaml` on every relevant PR (both arches, from the PR's sources), and by the release lane against the pushed tag. It proves: Docker `healthy`; the banner and the no-key warning; SERVING and the console lane; the `stigmer` organization the server makes at its first start; an agent run to `RUN_COMPLETED` against a fake model through the embedded Temporal and runner; the artifact lane; `docker restart` persistence; an unclean restart (`docker kill`, `docker start`) with exactly one Temporal across three supervisor ticks; `docker stop -t 30` exiting 0; an unwritable bind mount refused.
 
 ## Ports and stopping
 

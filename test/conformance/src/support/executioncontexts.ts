@@ -44,7 +44,7 @@ export function makeExecutionValues(
 export interface ExecutionContextSpecOptions {
   // Parent execution id. Required (min_len=1); defaults to a synthetic id
   // that names no run: a context bound to a run is the server's to create,
-  // so a run-shaped id (`aex_…`, `wex_…`) is refused for a caller like this
+  // so a run-shaped id (`aex_…`) is refused for a caller like this
   // harness's.
   executionId?: string;
   // spec.data entries keyed by variable name. Defaults to one plain (non-secret)

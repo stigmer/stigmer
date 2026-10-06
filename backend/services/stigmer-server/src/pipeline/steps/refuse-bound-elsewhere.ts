@@ -4,7 +4,7 @@
  * writes into another: not a row, not a run, not a connect. The binding
  * wraps the Authorizer, so every lane that authorizes on the organization
  * it writes into is bound already; this is the check for the lanes that
- * authorize on something else (the workflow or agent a run executes, the
+ * authorize on something else (the agent a run executes, the
  * MCP server a connect reaches) and take the organization they write into
  * from the request. A run filed in another organization would otherwise
  * mint a run credential bound there (runnerauth/runner-subject-verifier.ts),

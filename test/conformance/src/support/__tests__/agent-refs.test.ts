@@ -116,12 +116,6 @@ describe("makeAgentExecution's target", () => {
       "spec.target is a oneof",
     );
   });
-
-  it("passes the labels through verbatim", () => {
-    const execution = makeAgentExecution({ ...base, labels: { "stigmer.ai/lineage": "aex_unit" } });
-    expect(execution.metadata?.labels).toEqual({ "stigmer.ai/lineage": "aex_unit" });
-    expect(makeAgentExecution(base).metadata).not.toHaveProperty("labels");
-  });
 });
 
 describe("sessionIdOf", () => {

@@ -39,7 +39,7 @@
  * made since it loaded the row.
  *
  * Proven by the skill domain's __tests__/push-degradation.test.ts (the
- * failing-store arms), the workflow and agent domains' version tests, and
+ * failing-store arms), the agent domain's version tests, and
  * every versioned kind's conformance suite (the content-addressed
  * versioning blocks).
  */

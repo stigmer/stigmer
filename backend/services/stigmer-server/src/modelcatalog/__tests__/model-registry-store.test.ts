@@ -141,7 +141,7 @@ describe("ModelRegistryStore", () => {
 
 /**
  * The catalog indexes (Go applyDocument :302-412 + the query methods) — the
- * surface the workflow validators consume. Fixture shape mirrors real
+ * surface the run-config checks consume. Fixture shape mirrors real
  * registry entries: canonical id + provider api id, harness sections,
  * pricingVariants key set, tri-state capabilities.
  */

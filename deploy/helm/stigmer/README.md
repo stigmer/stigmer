@@ -14,7 +14,7 @@ ships.
 ## What you get
 
 - **One pod** with two containers: the **server** (API, console, artifact file
-  server) and the **runner** (executes agents and workflows, holds your LLM
+  server) and the **runner** (executes agents, holds your LLM
   key). They share the pod network and an artifact disk, the way `stigmer up`
   shares one laptop and Compose shares one host.
 - **Postgres**, bundled as one `postgres:16.15` instance with one disk (one
@@ -78,8 +78,7 @@ authentication on together (below): the chart refuses an Ingress, a `NodePort`
 or `LoadBalancer` Service, or a public URL other than `localhost` while
 authentication is off.
 
-Give the runner an LLM key so agents can run (workflows without agent tasks run
-key-free):
+Give the runner an LLM key so agents can run:
 
 ```bash
 kubectl -n stigmer create secret generic stigmer-llm-keys --from-literal=ANTHROPIC_API_KEY=sk-ant-...

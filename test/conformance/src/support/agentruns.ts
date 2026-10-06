@@ -53,8 +53,6 @@ export interface AgentExecutionOptions {
   agentRef?: AgentRefInit;
   sessionId?: string;
   sessionSpec?: MessageInitShape<typeof SessionSpecSchema>;
-  // Metadata labels, passed through verbatim (the lineage-label arms).
-  labels?: Record<string, string>;
   // The user message that triggers the run; must be non-empty (proto min_len=1).
   message?: string;
   // Runtime bypass of all tool-approval gates (spec.auto_approve_all). Omitted =
@@ -92,7 +90,6 @@ export function makeAgentExecution(opts: AgentExecutionOptions): InitShape<typeo
     metadata: {
       name: opts.name,
       org: opts.org,
-      ...(opts.labels !== undefined ? { labels: opts.labels } : {}),
     },
     spec: {
       ...executionTarget(opts),

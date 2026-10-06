@@ -99,7 +99,7 @@ const outDir = join(serverRoot, "dist-slim");
 const pkgsDir = join(serverRoot, "dist-slim-pkgs");
 
 /**
- * The three domain workers and the sibling bundle names their
+ * The two domain workers and the sibling bundle names their
  * workflow-source resolvers look for. The names are load-bearing: a drifted
  * sibling fails SOFT at runtime (the worker falls through to the stubbed
  * bundler and manager.ts retries instead of crashing), so

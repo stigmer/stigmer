@@ -48,7 +48,9 @@ function toolList(first) {
   return line.replace(/^for tool in /, "").replace(/; do$/, "").split(/\s+/);
 }
 const REQUIRED = toolList("bash");
-const OPTIONAL = toolList("python3");
+/** The tools the script warns about, each checked on its own `if ! command -v <tool>` line. */
+const OPTIONAL = [...SOURCE.matchAll(/^if ! command -v (\S+) >\/dev\/null/gm)].map((m) => m[1]);
+assert.ok(OPTIONAL.length > 0, "start.sh warns about no optional tool");
 
 const which = (tool) => {
   const found = spawnSync("/bin/sh", ["-c", `command -v ${tool}`], { encoding: "utf8" });

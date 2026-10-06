@@ -27,8 +27,8 @@
  * truth), never from the snapshot.
  *
  * Proven by the skill domain's __tests__/skill.test.ts (ladder and
- * pagination blocks), the workflow and agent domains' version tests, and
- * the workflow, agent, skill and plugin conformance suites'
+ * pagination blocks), the agent domain's version tests, and
+ * the agent, skill and plugin conformance suites'
  * getByReference/listVersions/getVersion/tagVersion blocks.
  */
 import { fromBinary } from "@bufbuild/protobuf";
