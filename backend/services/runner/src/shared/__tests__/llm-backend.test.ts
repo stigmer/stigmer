@@ -19,7 +19,7 @@ import {
 
 describe("toVertexModelId", () => {
   // Both id shapes below are what the registry actually serves (see
-  // stigmer-server registry/data/model-registry.json): pre-4.6 models are
+  // stigmer-server modelcatalog/data/model-registry.json): pre-4.6 models are
   // dated, 4.6-generation and later are dateless canonical ids.
   it.each([
     // Pre-4.6 snapshot ids: the trailing date separator becomes `@`.
