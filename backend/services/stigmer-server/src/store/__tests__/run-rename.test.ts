@@ -15,7 +15,7 @@
  *     never rewritten; a workflow already current is left alone;
  *   - bytes that do not decode throw (the step must not pass over them).
  */
-import { fromBinary, toBinary } from "@bufbuild/protobuf";
+import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import { createValidator } from "@bufbuild/protovalidate";
 import { describe, expect, it } from "vitest";
 
@@ -115,6 +115,12 @@ describe("rekeyedRunPolicy", () => {
     expect(fromBinary(IamPolicySchema, rekeyed!.data).spec?.principal?.kind).toBe("agent_run");
   });
 
+  it("leaves a grant with no spec alone", () => {
+    expect(
+      rekeyedRunPolicy(toBinary(IamPolicySchema, create(IamPolicySchema, { metadata: { id: "iamp_bare" } }))),
+    ).toBeUndefined();
+  });
+
   it("leaves a grant on another kind alone", () => {
     expect(
       rekeyedRunPolicy(
@@ -143,6 +149,23 @@ describe("renamedWorkflowRow", () => {
     expect(yaml).toBe(protoToYaml(migrated.spec));
     expect(yaml).toContain("run_id:");
     expect(yaml).not.toMatch(/\bexecution_id:/);
+  });
+
+  it("rewrites an expression held in a list, leaving the list's other strings", () => {
+    const workflow = workflowWithSteps("wfl_list", OLD_RUN_NAMES);
+    workflow.spec!.tasks[2]!.taskConfig = {
+      event: {
+        type: "ticket.done",
+        data: { refs: ["${ .triage.agent_execution_id }", "agent_execution_id is plain text", 3] },
+      },
+    };
+    const migrated = fromBinary(WorkflowSchema, renamedWorkflowRow(toBinary(WorkflowSchema, workflow))!);
+    const event = migrated.spec?.tasks[2]?.taskConfig?.["event"] as { data: { refs: unknown } };
+    expect(event.data.refs).toEqual([
+      "${ .triage.agent_run_id }",
+      "agent_execution_id is plain text",
+      3,
+    ]);
   });
 
   it("leaves a workflow whose steps already read current alone", () => {

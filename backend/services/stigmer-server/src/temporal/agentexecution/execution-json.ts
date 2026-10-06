@@ -32,6 +32,7 @@
 import {
   fromJson,
   type DescEnum,
+  type DescField,
   type DescMessage,
   type JsonObject,
   type JsonValue,
@@ -90,12 +91,7 @@ function retiredEnumValue(value: JsonValue, desc: DescEnum): JsonValue {
 }
 
 function retiredMessage(value: JsonValue, desc: DescMessage): JsonValue {
-  if (
-    value === null ||
-    typeof value !== "object" ||
-    Array.isArray(value) ||
-    desc.typeName.startsWith("google.protobuf.")
-  ) {
+  if (!isJsonObject(value) || desc.typeName.startsWith("google.protobuf.")) {
     return value;
   }
   const out: JsonObject = {};
@@ -120,59 +116,32 @@ function retiredMessage(value: JsonValue, desc: DescMessage): JsonValue {
   return out;
 }
 
-function retiredField(raw: JsonValue, field: DescMessage["fields"][number]): JsonValue {
-  switch (field.fieldKind) {
-    case "scalar":
-      return raw;
-    case "enum":
-      return retiredEnumValue(raw, field.enum);
-    case "message":
-      return retiredMessage(raw, field.message);
-    case "list":
-      if (!Array.isArray(raw)) {
-        return raw;
-      }
-      switch (field.listKind) {
-        case "scalar":
-          return raw;
-        case "enum":
-          return raw.map((item) => retiredEnumValue(item, field.enum));
-        case "message":
-          return raw.map((item) => retiredMessage(item, field.message));
-        default: {
-          const unreachable: never = field;
-          return unreachable;
-        }
-      }
-    case "map": {
-      if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
-        return raw;
-      }
-      const out: JsonObject = {};
-      for (const [key, item] of Object.entries(raw)) {
-        switch (field.mapKind) {
-          case "scalar":
-            out[key] = item;
-            break;
-          case "enum":
-            out[key] = retiredEnumValue(item, field.enum);
-            break;
-          case "message":
-            out[key] = retiredMessage(item, field.message);
-            break;
-          default: {
-            const unreachable: never = field;
-            return unreachable;
-          }
-        }
-      }
-      return out;
-    }
-    default: {
-      const unreachable: never = field;
-      return unreachable;
-    }
+/** One field's value, or each element of a list or map field. */
+function retiredField(raw: JsonValue, field: DescField): JsonValue {
+  if (field.fieldKind === "list" && Array.isArray(raw)) {
+    return raw.map((item) => retiredElement(item, field));
   }
+  if (field.fieldKind === "map" && isJsonObject(raw)) {
+    return Object.fromEntries(
+      Object.entries(raw).map(([key, item]) => [key, retiredElement(item, field)]),
+    );
+  }
+  return retiredElement(raw, field);
+}
+
+/** A singular value of a field: an enum name or a message is renamed, a scalar kept. */
+function retiredElement(raw: JsonValue, field: DescField): JsonValue {
+  if (field.enum !== undefined) {
+    return retiredEnumValue(raw, field.enum);
+  }
+  if (field.message !== undefined) {
+    return retiredMessage(raw, field.message);
+  }
+  return raw;
+}
+
+function isJsonObject(value: JsonValue): value is JsonObject {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 /**

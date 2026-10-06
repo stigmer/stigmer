@@ -19,7 +19,9 @@ import {
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
-import { decodeLoadedExecution } from "../execution-json.js";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+
+import { decodeLoadedExecution, renameRetiredRunJson } from "../execution-json.js";
 import { getPhaseFromResult } from "../runner-result.js";
 
 describe("decodeLoadedExecution", () => {
@@ -71,6 +73,39 @@ describe("decodeLoadedExecution", () => {
     expect(call?.approvalPolicySource).toBe(ApprovalPolicySource.UNSPECIFIED);
   });
 
+  it("walks map fields: a message value is renamed inside, a scalar value is kept", () => {
+    const execution = decodeLoadedExecution({
+      metadata: { id: "aex_3", labels: { phase: "EXECUTION_COMPLETED" } },
+      status: {
+        todos: {
+          t1: { id: "t1", content: "EXECUTION_COMPLETED stays text", status: "TODO_STATUS_PENDING" },
+        },
+      },
+    });
+    expect(execution.metadata?.labels).toEqual({ phase: "EXECUTION_COMPLETED" });
+    expect(execution.status?.todos["t1"]?.content).toBe("EXECUTION_COMPLETED stays text");
+  });
+
+  it("leaves a value that is not the shape its field declares to the decoder", () => {
+    expect(renameRetiredRunJson(AgentRunSchema, "not an object")).toBe("not an object");
+    expect(renameRetiredRunJson(AgentRunSchema, { status: ["not", "an", "object"] })).toEqual({
+      status: ["not", "an", "object"],
+    });
+    expect(
+      renameRetiredRunJson(AgentRunSchema, { status: { subAgentExecutions: "not a list" } }),
+    ).toEqual({ status: { subAgentRuns: "not a list" } });
+    expect(renameRetiredRunJson(AgentRunSchema, { metadata: { labels: ["not", "a", "map"] } })).toEqual({
+      metadata: { labels: ["not", "a", "map"] },
+    });
+  });
+
+  it("keeps an enum value given by number, and a retired name that is not this enum's", () => {
+    expect(decodeLoadedExecution({ status: { phase: 3 } }).status?.phase).toBe(RunPhase.RUN_COMPLETED);
+    expect(renameRetiredRunJson(AgentRunSchema, { status: { phase: "agent_execution" } })).toEqual({
+      status: { phase: "agent_execution" },
+    });
+  });
+
   it("drops a field the contract no longer knows", () => {
     const execution = decodeLoadedExecution({ metadata: { id: "aex_2" }, removedField: true });
     expect(execution.metadata?.id).toBe("aex_2");
@@ -87,5 +122,12 @@ describe("getPhaseFromResult", () => {
     expect(getPhaseFromResult({ phase: "EXECUTION_EXPLODED" })).toBe(
       RunPhase.RUN_PHASE_UNSPECIFIED,
     );
+  });
+
+  it("reads a numeric phase as is, and an absent or unreadable one as UNSPECIFIED", () => {
+    expect(getPhaseFromResult({ phase: RunPhase.RUN_FAILED })).toBe(RunPhase.RUN_FAILED);
+    expect(getPhaseFromResult(null)).toBe(RunPhase.RUN_PHASE_UNSPECIFIED);
+    expect(getPhaseFromResult(undefined)).toBe(RunPhase.RUN_PHASE_UNSPECIFIED);
+    expect(getPhaseFromResult({ phase: true })).toBe(RunPhase.RUN_PHASE_UNSPECIFIED);
   });
 });

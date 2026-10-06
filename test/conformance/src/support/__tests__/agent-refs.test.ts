@@ -124,7 +124,7 @@ describe("makeAgentExecution's target", () => {
       parent: { workflowRunId: "wfx_unit" },
     });
     expect(execution.metadata?.labels).toEqual({ "stigmer.ai/lineage": "wfx_unit" });
-    expect(execution.spec?.parent).toEqual({ workflowExecutionId: "wfx_unit" });
+    expect(execution.spec?.parent).toEqual({ workflowRunId: "wfx_unit" });
     expect(makeAgentExecution(base).metadata).not.toHaveProperty("labels");
   });
 });

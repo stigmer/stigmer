@@ -37,8 +37,8 @@ describe("servedRpcs", () => {
       "a line with no procedure",
     ].join("\n");
     expect([...servedRpcs(log)].sort()).toEqual([
-      "AgentRunCommandController.updateStatus",
       "AgentQueryController.get",
+      "AgentRunCommandController.updateStatus",
       "Health.Check",
     ]);
   });
