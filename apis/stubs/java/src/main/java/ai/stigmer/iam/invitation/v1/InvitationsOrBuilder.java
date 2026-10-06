@@ -53,4 +53,26 @@ public interface InvitationsOrBuilder extends
    */
   ai.stigmer.iam.invitation.v1.InvitationOrBuilder getEntriesOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Set when more invitations may follow: pass it as page_token to
+   * continue. A page may be short, even empty, and still carry a token.
+   * </pre>
+   *
+   * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
+   * @return The nextPageToken.
+   */
+  java.lang.String getNextPageToken();
+  /**
+   * <pre>
+   * Set when more invitations may follow: pass it as page_token to
+   * continue. A page may be short, even empty, and still carry a token.
+   * </pre>
+   *
+   * <code>string next_page_token = 2 [json_name = "nextPageToken"];</code>
+   * @return The bytes for nextPageToken.
+   */
+  com.google.protobuf.ByteString
+      getNextPageTokenBytes();
 }

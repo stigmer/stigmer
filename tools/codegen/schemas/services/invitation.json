@@ -90,7 +90,7 @@
     },
     {
       "name": "ListInvitationsByOrgInput",
-      "description": "ListInvitationsByOrgInput specifies the organization whose invitations\n should be returned.",
+      "description": "ListInvitationsByOrgInput specifies the organization whose invitations\n should be returned, newest first.",
       "protoType": "ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput",
       "protoFile": "apis/ai/stigmer/iam/invitation/v1/io.proto",
       "fields": [
@@ -106,12 +106,35 @@
           "validation": {
             "minLength": 1
           }
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "The most invitations to return; 0 returns every invitation and no\n token. A positive size is capped at 100.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The previous response's next_page_token, to continue that list.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
+          }
         }
       ]
     },
     {
       "name": "Invitations",
-      "description": "Invitations contains a list of invitation resources.",
+      "description": "Invitations contains a list of invitation resources: one page of an\n organization's invitations, newest first.",
       "protoType": "ai.stigmer.iam.invitation.v1.Invitations",
       "protoFile": "apis/ai/stigmer/iam/invitation/v1/io.proto",
       "fields": [
@@ -127,6 +150,16 @@
             }
           },
           "description": "Invitation entries.",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Set when more invitations may follow: pass it as page_token to\n continue. A page may be short, even empty, and still carry a token.",
           "required": false
         }
       ]

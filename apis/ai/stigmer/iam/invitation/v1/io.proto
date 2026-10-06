@@ -13,17 +13,29 @@ message InvitationId {
   string value = 1 [(buf.validate.field).required = true];
 }
 
-// Invitations contains a list of invitation resources.
+// Invitations contains a list of invitation resources: one page of an
+// organization's invitations, newest first.
 message Invitations {
   // Invitation entries.
   repeated Invitation entries = 1;
+
+  // Set when more invitations may follow: pass it as page_token to
+  // continue. A page may be short, even empty, and still carry a token.
+  string next_page_token = 2;
 }
 
 // ListInvitationsByOrgInput specifies the organization whose invitations
-// should be returned.
+// should be returned, newest first.
 message ListInvitationsByOrgInput {
   // Organization slug to list invitations for.
   string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The most invitations to return; 0 returns every invitation and no
+  // token. A positive size is capped at 100.
+  int32 page_size = 2 [(buf.validate.field).int32.gte = 0];
+
+  // The previous response's next_page_token, to continue that list.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
 }
 
 // InvitationTokenInput identifies an invitation by its shareable token.

@@ -11,7 +11,9 @@
  *   - the check is `can_grant_access` on the organization's id;
  *   - a refused caller reads who manages invitations, is offered nothing,
  *     and the server never receives a list request for them;
- *   - an allowed caller gets the manager, which lists once;
+ *   - an allowed caller gets the manager, which lists once, a page at a
+ *     time: the first page, then "Load more" continues from the page's
+ *     token until the server says the list is complete;
  *   - while the check is in flight neither answer shows;
  *   - a failed check leaves the manager in place (fail-open: the server
  *     re-checks every call, and an admin is never told they are not one).
@@ -31,7 +33,9 @@ import {
   type CheckMyPermissionInput,
 } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
+import { InvitationSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
 import { InvitationsSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/io_pb";
+import { InvitationSpecSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/spec_pb";
 import { InvitationQueryController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/query_pb";
 import {
   OrganizationSchema,
@@ -57,13 +61,33 @@ interface Server {
   readonly orgs: readonly Organization[];
   readonly checks: CheckMyPermissionInput[];
   readonly listedOrgs: string[];
+  /** Each list request's page size and token, in order. */
+  readonly listedPages: Array<{ pageSize: number; pageToken: string }>;
+  /** The labels each page token answers, and the token after it; one empty page when absent. */
+  readonly pages?: Readonly<Record<string, { labels: readonly string[]; next: string }>>;
 }
 
 function newServer(
   verdict: () => Promise<boolean>,
   orgs: readonly Organization[] = [ACME],
+  pages?: Server["pages"],
 ): Server {
-  return { verdict, orgs, checks: [], listedOrgs: [] };
+  return {
+    verdict,
+    orgs,
+    checks: [],
+    listedOrgs: [],
+    listedPages: [],
+    ...(pages === undefined ? {} : { pages }),
+  };
+}
+
+/** An invitation as the list answers one, identified and labelled by `label`. */
+function invitation(label: string) {
+  return create(InvitationSchema, {
+    metadata: create(ApiResourceMetadataSchema, { id: `inv_${label}`, name: label, org: "org_acme" }),
+    spec: create(InvitationSpecSchema, { label }),
+  });
 }
 
 const never = () => new Promise<boolean>(() => {});
@@ -95,7 +119,12 @@ function renderSection(mode: DeploymentMode, server: Server) {
       router.service(InvitationQueryController, {
         listByOrg: (input) => {
           server.listedOrgs.push(input.org);
-          return create(InvitationsSchema, {});
+          server.listedPages.push({ pageSize: input.pageSize, pageToken: input.pageToken });
+          const page = server.pages?.[input.pageToken];
+          return create(InvitationsSchema, {
+            entries: (page?.labels ?? []).map(invitation),
+            nextPageToken: page?.next ?? "",
+          });
         },
       });
     }),
@@ -172,6 +201,29 @@ describe("InvitationsSection", () => {
     await settle();
     expect(server.listedOrgs).toEqual(["org_acme"]);
     expect(screen.queryByText(MANAGED_BY_ADMINS)).toBeNull();
+  });
+
+  it("pages the invitations, newest first, with Load more until the server says the list is complete", async () => {
+    const server = newServer(answerLater(true), [ACME], {
+      "": { labels: ["Newest", "Newer"], next: "after-newer" },
+      "after-newer": { labels: ["Oldest"], next: "" },
+    });
+    renderSection("cloud", server);
+
+    expect(await screen.findByText("Newest")).toBeTruthy();
+    expect(screen.getByText("Newer")).toBeTruthy();
+    expect(screen.queryByText("Oldest")).toBeNull();
+    expect(server.listedPages).toEqual([{ pageSize: 25, pageToken: "" }]);
+
+    await act(async () => {
+      screen.getByRole("button", { name: "Load more" }).click();
+    });
+    expect(await screen.findByText("Oldest")).toBeTruthy();
+    expect(server.listedPages).toEqual([
+      { pageSize: 25, pageToken: "" },
+      { pageSize: 25, pageToken: "after-newer" },
+    ]);
+    expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
   });
 
   it("shows neither answer while the check is in flight", async () => {

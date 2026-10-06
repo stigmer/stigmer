@@ -136,13 +136,17 @@ Returns invitations ordered by creation time (newest first).
 ```typescript
 const invitations = await stigmer.invitation.listByOrg({
   org: "...",
+  pageSize: 0,
+  pageToken: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 invitations, err := client.Invitation.ListByOrg(ctx, &stigmer.ListInvitationsByOrgInput{
-  Org: "...",
+  Org:       "...",
+  PageSize:  0,
+  PageToken: "...",
 })
 ```
 </Tab>
@@ -150,6 +154,8 @@ invitations, err := client.Invitation.ListByOrg(ctx, &stigmer.ListInvitationsByO
 ```python
 invitations = client.invitations.list_by_org(ListInvitationsByOrgInput(
     org="...",
+    page_size=0,
+    page_token="...",
 ))
 ```
 </Tab>
@@ -157,6 +163,8 @@ invitations = client.invitations.list_by_org(ListInvitationsByOrgInput(
 ```java
 Invitations invitations = client.invitations().listByOrg(ListInvitationsByOrgInput.builder()
     .org("...")
+    .pageSize(0)
+    .pageToken("...")
     .build());
 ```
 </Tab>
@@ -348,21 +356,24 @@ RedeemInvitationInput is the request to redeem an invitation.
 
 ### ListInvitationsByOrgInput
 
-ListInvitationsByOrgInput specifies the organization whose invitations should be returned.
+ListInvitationsByOrgInput specifies the organization whose invitations should be returned, newest first.
 
 <TypeTable
   type={{
     org: { type: "string", description: "Organization slug to list invitations for." },
+    pageSize: { type: "number", description: "The most invitations to return; 0 returns every invitation and no token." },
+    pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list." },
   }}
 />
 
 ### Invitations
 
-Invitations contains a list of invitation resources.
+Invitations contains a list of invitation resources: one page of an organization's invitations, newest first.
 
 <TypeTable
   type={{
     entries: { type: "InvitationInput[]", description: "Invitation entries.", typeDescriptionLink: "#invitationinput" },
+    nextPageToken: { type: "string", description: "Set when more invitations may follow: pass it as page_token to continue." },
   }}
 />
 

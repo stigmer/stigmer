@@ -525,6 +525,20 @@ export type {
   ListIndexQuery,
   ListIndexRow,
 } from "./store/list-index.js";
+// The page loop every paged lane runs (pipeline/steps/list-page.ts), over a
+// row source: an extension that keeps its own table pages its list by the
+// same size cap, examination budget, scope order and token as every lane
+// here, instead of writing a second loop.
+export {
+  LIST_PAGE_MAX_SIZE,
+  listPageFingerprint,
+  readPage,
+} from "./pipeline/steps/list-page.js";
+export type {
+  ListPage,
+  ListPageRequest,
+  ListPageSource,
+} from "./pipeline/steps/list-page.js";
 // The maintenance-surface row shape:
 // what findResourcesRawOrderedAfter pages and what
 // replaceResourceDataIfUnchanged guards on — the secret-convergence

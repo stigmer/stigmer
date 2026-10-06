@@ -1,5 +1,5 @@
 export { useOrgInvitations } from "./useOrgInvitations.js";
-export type { UseOrgInvitationsReturn } from "./useOrgInvitations.js";
+export type { UseOrgInvitationsOptions, UseOrgInvitationsReturn } from "./useOrgInvitations.js";
 export { useCreateInvitation } from "./useCreateInvitation.js";
 export type { UseCreateInvitationReturn } from "./useCreateInvitation.js";
 export { useRevokeInvitation } from "./useRevokeInvitation.js";

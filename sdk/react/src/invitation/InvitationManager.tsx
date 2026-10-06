@@ -60,7 +60,8 @@ type FlowState =
 /**
  * Self-contained panel for managing organization invitation links.
  *
- * Displays all invitations for the organization with inline actions
+ * Displays the organization's invitations, newest first, a page at a
+ * time with "Load more" while the server holds more, with inline actions
  * (copy link, revoke) and a create form for generating new invite
  * links. Follows the same pattern as {@link OrgMembersPanel}: a
  * single embeddable component that handles the full management flow.
@@ -91,7 +92,16 @@ export function InvitationManager({
   buildInviteUrl = defaultBuildInviteUrl,
   className,
 }: InvitationManagerProps) {
-  const { invitations, isLoading, error, refetch } = useOrgInvitations(org);
+  const {
+    invitations,
+    hasMore,
+    loadMore,
+    isLoadingMore,
+    loadMoreError,
+    isLoading,
+    error,
+    refetch,
+  } = useOrgInvitations(org);
   const [flow, setFlow] = useState<FlowState>({ phase: "idle" });
   const [revokingId, setRevokingId] = useState<string | null>(null);
 
@@ -209,6 +219,21 @@ export function InvitationManager({
             );
           })}
         </div>
+      )}
+      {loadMoreError !== null && (
+        <p className="stg:text-destructive stg:text-xs" role="alert">
+          {getUserMessage(loadMoreError)}
+        </p>
+      )}
+      {hasMore && (
+        <button
+          type="button"
+          onClick={loadMore}
+          disabled={isLoadingMore}
+          className="stg:text-primary stg:text-xs stg:font-medium stg:hover:underline stg:disabled:opacity-50"
+        >
+          {isLoadingMore ? "Loading…" : "Load more"}
+        </button>
       )}
     </div>
   );
