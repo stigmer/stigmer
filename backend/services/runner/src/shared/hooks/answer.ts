@@ -9,6 +9,11 @@
  *    `defer`) with its reason, `updatedInput` and `additionalContext`; the
  *    deprecated top-level `decision` (`approve`, `block`) with `reason`; and
  *    on PostToolUse a top-level `decision: "block"` with `reason`.
+ *  - A decision that carries no reason takes the hook's `systemMessage`, the
+ *    text Claude Code shows the person, as its reason, so a refusal says why
+ *    (hookify answers a block this way). Here that reason reaches the model
+ *    too, as every hook reason does. A `systemMessage` with no decision, a
+ *    warning, is shown to no one yet (stigmer#1954); it is logged.
  *  - Anything else (a plain exit 0, another exit code, a timeout, a command
  *    that did not start, JSON that does not parse) makes no decision. A
  *    failure is recorded as a hook error and the call falls to what would
@@ -58,15 +63,17 @@ export function parsePreToolUse(result: HookRunResult): PreToolUseAnswer {
   if (json === undefined) {
     return result.exitCode === 0 ? {} : { error: exitError(result) };
   }
-  logIgnoredFields(json);
   const specific = objectField(json, "hookSpecificOutput");
   const permission = specific?.["permissionDecision"];
-  const reason = stringField(specific, "permissionDecisionReason") ?? stringField(json, "reason");
-  const updatedInput = objectField(specific ?? {}, "updatedInput");
-  const additionalContext = stringField(specific, "additionalContext");
   const decision = typeof permission === "string" && DECISIONS.has(permission)
     ? (permission as HookDecision)
     : legacyDecision(json["decision"]);
+  logIgnoredFields(json, decision !== undefined);
+  const reason = stringField(specific, "permissionDecisionReason")
+    ?? stringField(json, "reason")
+    ?? (decision !== undefined ? stringField(json, "systemMessage") : undefined);
+  const updatedInput = objectField(specific ?? {}, "updatedInput");
+  const additionalContext = stringField(specific, "additionalContext");
   return {
     ...(decision !== undefined ? { decision } : {}),
     ...(reason !== undefined ? { reason: capped(reason) } : {}),
@@ -85,8 +92,11 @@ export function parsePostToolUse(result: HookRunResult): PostToolUseAnswer {
   if (json === undefined) {
     return result.exitCode === 0 ? {} : { error: exitError(result) };
   }
-  logIgnoredFields(json);
-  const blockReason = json["decision"] === "block" ? (stringField(json, "reason") ?? "A hook flagged this result.") : undefined;
+  const blocks = json["decision"] === "block";
+  logIgnoredFields(json, blocks);
+  const blockReason = blocks
+    ? (stringField(json, "reason") ?? stringField(json, "systemMessage") ?? "A hook flagged this result.")
+    : undefined;
   const additionalContext = stringField(objectField(json, "hookSpecificOutput"), "additionalContext");
   return {
     ...(blockReason !== undefined ? { blockReason: capped(blockReason) } : {}),
@@ -125,12 +135,17 @@ function jsonObjectOf(stdout: string): Record<string, unknown> | undefined {
   }
 }
 
-function logIgnoredFields(json: Record<string, unknown>): void {
+/** Says what a hook answered that is not applied here; `decided` when its answer carries a decision. */
+function logIgnoredFields(json: Record<string, unknown>, decided: boolean): void {
   if (objectField(json, "hookSpecificOutput")?.["updatedToolOutput"] !== undefined) {
     console.warn("[hooks] a hook's updatedToolOutput is not applied: a hook cannot replace a tool's result here");
   }
   if (json["continue"] === false) {
     console.warn("[hooks] a hook's continue:false is not applied: a hook cannot stop the turn here");
+  }
+  const systemMessage = stringField(json, "systemMessage");
+  if (!decided && systemMessage !== undefined) {
+    console.warn(`[hooks] a hook's systemMessage is not shown: a warning with no decision reaches no one here: ${systemMessage.slice(0, 500)}`);
   }
 }
 
