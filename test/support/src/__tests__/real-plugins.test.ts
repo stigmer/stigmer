@@ -14,6 +14,7 @@ import {
   realPluginDir,
   realPluginFiles,
   upstreamManifest,
+  vendoredPaths,
 } from "../real-plugins.ts";
 
 describe("vendored real plugins", () => {
@@ -28,8 +29,12 @@ describe("vendored real plugins", () => {
       const upstream = upstreamManifest().plugins[name];
       const files = realPluginFiles(name);
 
-      it("holds exactly upstream's files", () => {
-        expect([...files.keys()].sort()).toEqual(Object.keys(upstream.files).sort());
+      it("holds exactly upstream's files on disk, git-ignored ones included", () => {
+        expect(vendoredPaths(name)).toEqual(Object.keys(upstream.files).sort());
+      });
+
+      it("pushes exactly upstream's files", () => {
+        expect([...files.keys()]).toEqual(Object.keys(upstream.files).sort());
       });
 
       it("holds every file byte for byte as upstream's blob", () => {

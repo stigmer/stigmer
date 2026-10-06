@@ -1,9 +1,14 @@
 // Real plugins, vendored whole from the Claude Code plugin directory, so a
 // suite can push one exactly as its authors published it and run its hooks
-// (`fixtures/claude-plugins/NOTICE`). Every reader goes through here: a
-// plugin's files as the archive input a push takes, the manifest of
-// upstream's git blob SHAs that proves them unchanged, and a rule from the
-// plugin's own examples, so even the policy a proof installs is upstream's.
+// (`fixtures/claude-plugins/NOTICE`). Here: a plugin's files as the archive
+// input a push takes, the manifest of upstream's git blob SHAs that proves
+// them unchanged, and a rule from the plugin's own examples, so even the
+// policy a proof installs is upstream's. A plugin's files are the manifest's
+// list, read from disk, so a file git ignores in the fixture (Python's
+// `__pycache__`, which hookify's own `.gitignore` hides) never rides a push;
+// `vendoredPaths` lists the disk for the test that refuses such a file. The
+// runner, which does not depend on this package, reads the same fixture and
+// manifest by path (`cursor-hooks-gate.live.test.ts`).
 // Domain: test support (fixtures).
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -45,25 +50,32 @@ export function upstreamManifest(): UpstreamManifest {
 }
 
 /**
- * Every file under a plugin's directory, keyed by its slash-separated path
- * relative to the plugin root, in sorted order: the archive input a push
- * takes, read from disk as the CLI reads a plugin.
+ * The plugin as a push takes it: every file upstream's tree lists, keyed by
+ * its slash-separated path relative to the plugin root, in sorted order, its
+ * bytes read from disk.
  */
 export function realPluginFiles(name: RealClaudePlugin): Map<string, Uint8Array> {
   const root = realPluginDir(name);
   const files = new Map<string, Uint8Array>();
+  for (const path of Object.keys(upstreamManifest().plugins[name].files).sort()) {
+    files.set(path, readFileSync(join(root, path)));
+  }
+  return files;
+}
+
+/** Every file on disk under a plugin's directory, git-ignored ones included, slash-separated and sorted. */
+export function vendoredPaths(name: RealClaudePlugin): string[] {
+  const root = realPluginDir(name);
+  const paths: string[] = [];
   const walk = (dir: string): void => {
     for (const entry of readdirSync(dir).sort()) {
       const full = join(dir, entry);
-      if (statSync(full).isDirectory()) {
-        walk(full);
-      } else {
-        files.set(relative(root, full).split("\\").join("/"), readFileSync(full));
-      }
+      if (statSync(full).isDirectory()) walk(full);
+      else paths.push(relative(root, full).split("\\").join("/"));
     }
   };
   walk(root);
-  return files;
+  return paths.sort();
 }
 
 /** A file's git blob SHA, what `git hash-object` prints: SHA-1 over `blob <len>\0<bytes>`. */

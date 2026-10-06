@@ -12,8 +12,9 @@
  *  - A decision that carries no reason takes the hook's `systemMessage`, the
  *    text Claude Code shows the person, as its reason, so a refusal says why
  *    (hookify answers a block this way). Here that reason reaches the model
- *    too, as every hook reason does. A `systemMessage` with no decision, a
- *    warning, is shown to no one yet (stigmer#1954); it is logged.
+ *    too, as every hook reason does. A `systemMessage` that is not the
+ *    reason (a warning with no decision, or one beside a decision's own
+ *    reason) is shown to no one yet (stigmer#1954); it is logged.
  *  - Anything else (a plain exit 0, another exit code, a timeout, a command
  *    that did not start, JSON that does not parse) makes no decision. A
  *    failure is recorded as a hook error and the call falls to what would
@@ -68,10 +69,9 @@ export function parsePreToolUse(result: HookRunResult): PreToolUseAnswer {
   const decision = typeof permission === "string" && DECISIONS.has(permission)
     ? (permission as HookDecision)
     : legacyDecision(json["decision"]);
-  logIgnoredFields(json, decision !== undefined);
-  const reason = stringField(specific, "permissionDecisionReason")
-    ?? stringField(json, "reason")
-    ?? (decision !== undefined ? stringField(json, "systemMessage") : undefined);
+  const ownReason = stringField(specific, "permissionDecisionReason") ?? stringField(json, "reason");
+  logIgnoredFields(json, decision !== undefined, ownReason !== undefined);
+  const reason = ownReason ?? (decision !== undefined ? stringField(json, "systemMessage") : undefined);
   const updatedInput = objectField(specific ?? {}, "updatedInput");
   const additionalContext = stringField(specific, "additionalContext");
   return {
@@ -93,10 +93,9 @@ export function parsePostToolUse(result: HookRunResult): PostToolUseAnswer {
     return result.exitCode === 0 ? {} : { error: exitError(result) };
   }
   const blocks = json["decision"] === "block";
-  logIgnoredFields(json, blocks);
-  const blockReason = blocks
-    ? (stringField(json, "reason") ?? stringField(json, "systemMessage") ?? "A hook flagged this result.")
-    : undefined;
+  const ownReason = stringField(json, "reason");
+  logIgnoredFields(json, blocks, ownReason !== undefined);
+  const blockReason = blocks ? (ownReason ?? stringField(json, "systemMessage") ?? "A hook flagged this result.") : undefined;
   const additionalContext = stringField(objectField(json, "hookSpecificOutput"), "additionalContext");
   return {
     ...(blockReason !== undefined ? { blockReason: capped(blockReason) } : {}),
@@ -135,8 +134,13 @@ function jsonObjectOf(stdout: string): Record<string, unknown> | undefined {
   }
 }
 
-/** Says what a hook answered that is not applied here; `decided` when its answer carries a decision. */
-function logIgnoredFields(json: Record<string, unknown>, decided: boolean): void {
+/**
+ * Says what a hook answered that is not applied here. `decided` when its
+ * answer carries a decision, `reasoned` when that answer carries a reason of
+ * its own: a `systemMessage` is applied only as the reason of a decision
+ * that gives none.
+ */
+function logIgnoredFields(json: Record<string, unknown>, decided: boolean, reasoned: boolean): void {
   if (objectField(json, "hookSpecificOutput")?.["updatedToolOutput"] !== undefined) {
     console.warn("[hooks] a hook's updatedToolOutput is not applied: a hook cannot replace a tool's result here");
   }
@@ -144,9 +148,12 @@ function logIgnoredFields(json: Record<string, unknown>, decided: boolean): void
     console.warn("[hooks] a hook's continue:false is not applied: a hook cannot stop the turn here");
   }
   const systemMessage = stringField(json, "systemMessage");
-  if (!decided && systemMessage !== undefined) {
-    console.warn(`[hooks] a hook's systemMessage is not shown: a warning with no decision reaches no one here: ${systemMessage.slice(0, 500)}`);
-  }
+  if (systemMessage === undefined || (decided && !reasoned)) return;
+  console.warn(
+    decided
+      ? `[hooks] a hook's systemMessage is not shown: its decision gives its own reason: ${systemMessage.slice(0, 500)}`
+      : `[hooks] a hook's systemMessage is not shown: a warning with no decision reaches no one here: ${systemMessage.slice(0, 500)}`,
+  );
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {

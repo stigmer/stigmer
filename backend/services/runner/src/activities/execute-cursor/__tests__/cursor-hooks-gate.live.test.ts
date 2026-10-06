@@ -30,9 +30,9 @@ import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_p
 import { HookGroupSchema, HookHandlerSchema, type HookGroup } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { buildZip } from "@stigmer/zip-structure/testing";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 import { liveSecret } from "../../../__test-utils__/live-gate.js";
@@ -63,18 +63,20 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../
 const VENDORED = join(REPO_ROOT, "test", "support", "fixtures", "claude-plugins");
 const HOOKIFY = join(VENDORED, "hookify");
 
-/** Every file under a directory, keyed by its slash-separated path relative to it. */
-function filesUnder(root: string): { name: string; content: Uint8Array }[] {
-  const files: { name: string; content: Uint8Array }[] = [];
-  const walk = (dir: string): void => {
-    for (const entry of readdirSync(dir).sort()) {
-      const full = join(dir, entry);
-      if (statSync(full).isDirectory()) walk(full);
-      else files.push({ name: relative(root, full).split("\\").join("/"), content: readFileSync(full) });
-    }
-  };
-  walk(root);
-  return files;
+interface Upstream {
+  readonly plugins: { readonly hookify: { readonly files: Readonly<Record<string, { readonly blob: string }>> } };
+}
+
+/** The vendoring's manifest of upstream's files (`test/support/fixtures/claude-plugins/upstream.json`). */
+function upstreamManifest(): Upstream {
+  return JSON.parse(readFileSync(join(VENDORED, "upstream.json"), "utf-8")) as Upstream;
+}
+
+/** hookify as a push takes it: every file upstream's tree lists, read from the fixture, so nothing git ignores rides along. */
+function hookifyFiles(): { name: string; content: Uint8Array }[] {
+  return Object.keys(upstreamManifest().plugins.hookify.files)
+    .sort()
+    .map((name) => ({ name, content: readFileSync(join(HOOKIFY, name)) }));
 }
 
 /** A plugin's `hooks/hooks.json`, in Claude Code's shape, as the contract's groups. */
@@ -193,7 +195,7 @@ describe.skipIf(!liveSecret("CURSOR_API_KEY"))("Cursor engine: an agent's hooks 
       readFileSync(join(HOOKIFY, "examples", "dangerous-rm.local.md")),
     );
 
-    const archive = buildZip(filesUnder(HOOKIFY));
+    const archive = buildZip(hookifyFiles());
     const plugin = create(PluginSchema, {
       metadata: { id: "plg_hookify", org: "live-org", slug: "hookify", name: "hookify" },
       status: { digest: createHash("sha256").update(archive).digest("hex"), artifactStorageKey: "plugins/hookify.zip" },
@@ -207,10 +209,7 @@ describe.skipIf(!liveSecret("CURSOR_API_KEY"))("Cursor engine: an agent's hooks 
     } as unknown as StigmerClient;
     const mounted = await mountPlugin(client, plugin, platformDir);
     const ruleEngine = join(mounted.root, "core", "rule_engine.py");
-    const upstream = JSON.parse(readFileSync(join(VENDORED, "upstream.json"), "utf-8")) as {
-      plugins: { hookify: { files: Record<string, { blob: string }> } };
-    };
-    const upstreamBlob = upstream.plugins.hookify.files["core/rule_engine.py"]!.blob;
+    const upstreamBlob = upstreamManifest().plugins.hookify.files["core/rule_engine.py"]!.blob;
     expect(gitBlobSha(readFileSync(ruleEngine)), "the mount is upstream's rule engine").toBe(upstreamBlob);
 
     const evaluator = new HookEvaluator({

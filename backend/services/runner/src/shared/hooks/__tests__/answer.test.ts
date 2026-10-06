@@ -98,13 +98,18 @@ describe("parsePreToolUse", () => {
     });
   });
 
-  it("keeps the model's reason over the systemMessage", () => {
+  it("keeps the model's reason over the systemMessage, and logs the systemMessage", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const stdout = json({
       hookSpecificOutput: { permissionDecision: "deny", permissionDecisionReason: "for the model" },
       systemMessage: "for the person",
     });
     expect(parsePreToolUse(ran({ stdout })).reason).toBe("for the model");
     expect(parsePreToolUse(ran({ stdout: json({ decision: "block", reason: "legacy reason", systemMessage: "x" }) })).reason).toBe("legacy reason");
+    expect(warn.mock.calls.map(([line]) => line)).toEqual([
+      "[hooks] a hook's systemMessage is not shown: its decision gives its own reason: for the person",
+      "[hooks] a hook's systemMessage is not shown: its decision gives its own reason: x",
+    ]);
   });
 
   it("caps a systemMessage taken as the reason", () => {
@@ -153,6 +158,8 @@ describe("parsePostToolUse", () => {
     expect(warn).not.toHaveBeenCalled();
     expect(parsePostToolUse(ran({ stdout: json({ systemMessage: "heads up" }) }))).toEqual({});
     expect(warn).toHaveBeenCalledWith("[hooks] a hook's systemMessage is not shown: a warning with no decision reaches no one here: heads up");
+    expect(parsePostToolUse(ran({ stdout: json({ decision: "block", reason: "lint failed", systemMessage: "see the log" }) })).blockReason).toBe("lint failed");
+    expect(warn).toHaveBeenLastCalledWith("[hooks] a hook's systemMessage is not shown: its decision gives its own reason: see the log");
   });
 
   it("makes nothing of a plain exit, and records a failure", () => {
