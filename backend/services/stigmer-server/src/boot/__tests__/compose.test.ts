@@ -26,7 +26,11 @@
  *   - a sandbox driver is handed, as the server's release, the version
  *     getServerInfo reports when it is a release, and "" for a development
  *     version, so the runner layer's pairing check can never compare a
- *     layer with a version the server does not report (stigmer#1831).
+ *     layer with a version the server does not report (stigmer#1831);
+ *   - a bucket-backed plugin store signs the archive link a runner reads
+ *     for R2_RUNNER_ENDPOINT when one is set, else for R2_ENDPOINT (a
+ *     local HTTP listener stands in for the bucket's HEAD; presigning is
+ *     local).
  */
 import { createClient } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
@@ -36,6 +40,7 @@ import {
 } from "@stigmer/protos/grpc/health/v1/health_pb";
 import { ArtifactCommandController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/command_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 import { ArtifactQueryController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/query_pb";
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
 import {
@@ -43,6 +48,7 @@ import {
   connect as netConnect,
 } from "node:net";
 import type { AddressInfo } from "node:net";
+import { createServer as httpCreateServer } from "node:http";
 import { describe, expect, it, vi } from "vitest";
 
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
@@ -413,4 +419,53 @@ describe("the server's release in the sandbox driver bag", () => {
       }
     },
   );
+});
+
+describe("a bucket-backed plugin store", () => {
+  const KEY = `plugins/${"a".repeat(64)}.zip`;
+
+  /** Answers every request 200 with a ten-byte length: the bucket's HEAD for a stored archive. */
+  async function bucket(): Promise<{ readonly endpoint: string; close(): Promise<void> }> {
+    const server = httpCreateServer((_req, res) => {
+      res.writeHead(200, { "content-length": "10" });
+      res.end();
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    return {
+      endpoint: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
+      close: () => new Promise<void>((resolve) => server.close(() => resolve())),
+    };
+  }
+
+  async function runnerLink(runnerEndpoint: string | undefined): Promise<{ readonly url: string; readonly endpoint: string }> {
+    const store = await bucket();
+    const server = await compose({
+      SKILL_ARTIFACT_STORAGE_TYPE: "r2",
+      R2_BUCKET: "stigmer-artifacts",
+      R2_ENDPOINT: store.endpoint,
+      R2_ACCESS_KEY_ID: "k",
+      R2_SECRET_ACCESS_KEY: "s",
+      R2_REGION: "us-east-1",
+      ...(runnerEndpoint === undefined ? {} : { R2_RUNNER_ENDPOINT: runnerEndpoint }),
+    });
+    const port = await server.start();
+    try {
+      const query = createClient(PluginQueryController, createGrpcTransport({ baseUrl: `http://127.0.0.1:${port}` }));
+      const minted = await query.getArtifactDownloadUrl({ artifactStorageKey: KEY });
+      return { url: minted.url, endpoint: store.endpoint };
+    } finally {
+      await server.shutdown();
+      await store.close();
+    }
+  }
+
+  it("signs the archive link a runner reads for R2_RUNNER_ENDPOINT", async () => {
+    const { url } = await runnerLink("http://host.docker.internal:9000");
+    expect(url.startsWith(`http://host.docker.internal:9000/stigmer-artifacts/${KEY}?`)).toBe(true);
+  });
+
+  it("signs it for R2_ENDPOINT when no runner address is set", async () => {
+    const { url, endpoint } = await runnerLink(undefined);
+    expect(url.startsWith(`${endpoint}/stigmer-artifacts/${KEY}?`)).toBe(true);
+  });
 });
