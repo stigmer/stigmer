@@ -1837,9 +1837,9 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           );
           expect(policyHistory.rows).toEqual([{ resource_id: runGrant.id }]);
 
-          // The store the server opens (at the head, past v15) finds the
+          // The store the server opens (at the head, past v16) finds the
           // run through the key its list reads, and the grant through its
-          // principal under the id v15 derived for it in turn.
+          // principal under the id v16 derived for it in turn.
           const headId = policyIdFor(
             fromBinary(IamPolicySchema, policyRow({ ...runGrant, resource: "run:aex_1" })).spec!,
           );
@@ -2220,7 +2220,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           }),
         );
 
-        // The store the server opens migrates on to the head (v15 renames
+        // The store the server opens migrates on to the head (v16 renames
         // the kind and its kind string), reads each back through the API
         // and finds each through the keys its lists read.
         const store = await PostgresStore.open(db.databaseUrl, undefined, {

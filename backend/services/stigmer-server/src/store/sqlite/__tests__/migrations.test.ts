@@ -1839,9 +1839,9 @@ describe("v18: agent executions are runs", () => {
         .all(),
     ).toEqual([{ resource_id: runGrant.id }]);
 
-    // The store the server opens (at the head, past v20) finds the run
+    // The store the server opens (at the head, past v21) finds the run
     // through the key its list reads, and the grant through its principal
-    // under the id v20 derived for it in turn.
+    // under the id v21 derived for it in turn.
     const headId = policyIdFor(
       fromBinary(IamPolicySchema, policyRow({ ...runGrant, resource: "run:aex_1" })).spec!,
     );
@@ -2178,7 +2178,7 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
       }),
     );
 
-    // The store the server opens migrates on to the head (v20 renames the
+    // The store the server opens migrates on to the head (v21 renames the
     // kind) and reads every kept run as a run.
     const store = SqliteStore.open(dbPath, undefined, {
       listIndexes: [CONTRACT_SESSION_INDEX, agentExecutionListIndex, iamPolicyListIndex],
