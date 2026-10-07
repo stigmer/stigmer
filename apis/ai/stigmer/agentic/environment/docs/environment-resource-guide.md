@@ -38,7 +38,7 @@ All metadata fields are defined by `ApiResourceMetadata` in `ai/stigmer/commons/
 | Field | Required | Description |
 |---|---|---|
 | `metadata.name` | Yes | Human-readable name for the environment, at most 200 characters. Example: `"github-prod-secrets"`. |
-| `metadata.slug` | No | URL-friendly identifier. Auto-generated from `name` if omitted. Lowercase alphanumeric with hyphens, starts with a letter, ends with a letter or digit, 2 to 63 characters. A slug derived from a longer `name` is refused; set `metadata.slug`. |
+| `metadata.slug` | No | URL-friendly identifier. Auto-generated from `name` if omitted. Lowercase alphanumeric with hyphens, starts with a letter, ends with a letter or digit, 2 to 63 characters. A `name` whose derived slug breaks these rules (too long, starting with a digit, or with no ASCII letter or digit) is refused on create; set `metadata.slug`. |
 | `metadata.id` | No | System-generated unique identifier. Never set by users. |
 | `metadata.org` | Depends | Organization that owns this environment. Required in cloud mode. In local mode, defaults to `local`. |
 | `metadata.labels` | No | Key-value pairs for filtering and organization (e.g., `env: production`). |

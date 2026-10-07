@@ -6,18 +6,18 @@
  * derivation), so a stored account may hold a slug the rules refuse: one
  * longer than 63 characters, one starting with a digit, or none at all.
  * ValidateProto reads the slug an update sends back, so such an account
- * could no longer be updated. Both open-source drivers run this step; the
- * cloud's own migration over its account table applies the same
- * `repairAccountSlug`, so the two editions repair alike.
+ * could no longer be updated. Both open-source drivers run this step, and
+ * `repairAccountSlug` is on the barrel so an edition that keeps account
+ * rows of its own can repair them alike.
  *
  * Why the rule and the derivation are frozen here rather than imported from
  * the shared slug step (pipeline/steps/slug.ts fittedSlug). A migration
  * is a statement about the store as it was when the rule changed: a later
  * release that changes the live derivation must not change what this step
  * does to a database it has not reached yet (public-visibility-retired.ts
- * gives the same reason for its kind table). The derivation below is the
- * live one as of this step, and an account created after it gets the same
- * slug from the live function.
+ * gives the same reason for its kind table). The derivation below, the
+ * generator included, is a copy of the live one as of this step, and an
+ * account created after it gets the same slug from the live function.
  *
  * What changes. Only `metadata.slug`, and only where the frozen rule
  * refuses it or it is empty; every other byte is re-encoded from the same
@@ -35,7 +35,18 @@ import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityacc
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
-import { generateSlug } from "../pipeline/steps/slug.js";
+/**
+ * The shared generator (pipeline/steps/slug.ts generateSlug) as of this
+ * step: lowercase, spaces and dots to hyphens, every other character
+ * outside [a-z0-9-] dropped, runs of hyphens collapsed, hyphens trimmed.
+ */
+function frozenGenerateSlug(name: string): string {
+  let slug = name.toLowerCase();
+  slug = slug.replaceAll(" ", "-").replaceAll(".", "-");
+  slug = slug.replace(/[^a-z0-9\- ]/g, "");
+  slug = slug.replace(/-{2,}/g, "-");
+  return slug.replace(/^-+|-+$/g, "");
+}
 
 /** The enum NAME the drivers' `kind` column holds for an identity account. */
 export const IDENTITY_ACCOUNT_KIND = "identity_account";
@@ -63,7 +74,7 @@ export function repairAccountSlug(account: IdentityAccount): string | undefined 
   let source = "";
   let slug = "";
   for (const candidate of sources) {
-    slug = generateSlug(candidate);
+    slug = frozenGenerateSlug(candidate);
     source = candidate;
     if (slug !== "") {
       break;

@@ -41,10 +41,12 @@ export type ApiResourceMetadata = Message<"ai.stigmer.commons.apiresource.ApiRes
    * characters, the length every reference to a resource holds; must start
    * with a letter and end with a letter or digit. When empty, the server
    * derives the slug from the name, and refuses a name whose derived slug
-   * breaks these rules, never shortening it. An identity account is the
-   * exception: its name is the server's choice (an email or a subject), so
-   * its derived slug is made to fit instead (a letter in front, a fallback
-   * to the subject, or a cut with a short hash).
+   * breaks these rules, never shortening it. A resource the server names
+   * itself is the exception (an identity account, after its email or
+   * subject; the environment OAuth connect makes for an MCP server's
+   * tokens): its slug is made to fit instead (a letter in front, a
+   * fallback, or a cut with a short hash). An update by id keeps the
+   * stored slug, so a new name's derived slug is not checked there.
    *
    * @generated from field: string slug = 2;
    */

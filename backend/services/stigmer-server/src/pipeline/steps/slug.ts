@@ -14,7 +14,9 @@
  * The rules are read from the proto through the shared validator, never
  * copied here, and a slug that breaks them is refused with its fix, never
  * shortened. Every slug the server derives outside a chain (plugin and
- * skill push, a plugin's members) calls the same check.
+ * skill push, a plugin's members) calls the same check. An update chain by
+ * id is the exception (ResolveSlugOptions.update): the stored slug wins
+ * there, so the derived one is never checked.
  */
 import { createHash } from "node:crypto";
 
@@ -28,9 +30,21 @@ import type { RequestContext } from "../request-context.js";
 import { metadataOf } from "./shapes.js";
 import { validator } from "./validation.js";
 
+/** How a chain's ResolveSlug treats the slug it derives. */
+export interface ResolveSlugOptions {
+  /**
+   * The chain updates a stored resource. With `metadata.id` set,
+   * LoadExisting reads the resource by id and BuildUpdateState puts its
+   * stored slug back, so the slug derived here is never used and is not
+   * held to the slug rules: an update that renames a resource whose new
+   * name would derive an invalid slug still applies.
+   */
+  readonly update?: boolean;
+}
+
 export function newResolveSlugStep<
   Desc extends DescMessage,
->(): PipelineStep<Desc> {
+>(options: ResolveSlugOptions = {}): PipelineStep<Desc> {
   return {
     name: "ResolveSlug",
     execute(ctx: RequestContext<Desc>): void {
@@ -50,10 +64,12 @@ export function newResolveSlugStep<
         throw invalidArgumentError("resource name is required");
       }
       const slug = generateSlug(metadata.name);
-      checkDerivedSlug(slug, {
-        from: `the name '${metadata.name}'`,
-        fix: "set metadata.slug",
-      });
+      if (options.update !== true || metadata.id === "") {
+        checkDerivedSlug(slug, {
+          from: `the name '${metadata.name}'`,
+          fix: "set metadata.slug",
+        });
+      }
       metadata.slug = slug;
     },
   };
@@ -115,6 +131,24 @@ export function fittedSlug(name: string, ...fallbacks: string[]): string {
   }
   return slug;
 }
+
+/**
+ * A name the server chose, cut to metadata.name's bound so the resource it
+ * names validates on every later update: a managed environment's name is
+ * the MCP server's name with a prefix in front, and an account's is an
+ * email, either of which can pass the bound. The cut counts characters, as
+ * the bound does, so it never splits one. A name within the bound is kept
+ * as it is.
+ */
+export function fittedName(name: string): string {
+  const characters = Array.from(name);
+  return characters.length <= NAME_MAX_LENGTH
+    ? name
+    : characters.slice(0, NAME_MAX_LENGTH).join("");
+}
+
+/** metadata.name's bound. */
+const NAME_MAX_LENGTH = 200;
 
 /** metadata.slug's bounds, the ones every reference to a resource holds. */
 const FITTED_MAX_LENGTH = 63;

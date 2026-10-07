@@ -255,7 +255,7 @@ async function update(
       newAuthorizeStep(AgentCommandController.method.update, deps.authorizer),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newResolveSlugStep())
+    .addStep(newResolveSlugStep({ update: true }))
     .addStep(newLoadExistingStep(deps.store))
     // A resource a plugin materialised is the plugin's to redefine; a client
     // write is refused naming the plugin (GuardPluginManaged, keyed on the

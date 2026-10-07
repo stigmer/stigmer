@@ -15,7 +15,9 @@
  * The domain's own rules:
  *   - DefaultAccountName: `metadata.name` falls back to the email, then
  *     the subject. The field is not proto-required, and a machine subject
- *     whose IdP releases no email must still provision.
+ *     whose IdP releases no email must still provision. The fallback is
+ *     cut to the name's bound (`fittedName`), which ValidateProto, run
+ *     before this step, never sees, so the account stays updatable.
  *   - ResolveAccountSlug: an empty `metadata.slug` is derived by
  *     `fittedSlug` (pipeline/steps/slug.ts), which always yields a valid slug: the
  *     name is the server's choice, not the caller's, so the shared
@@ -70,7 +72,7 @@ import { RESOURCE_ID_KEY } from "../../pipeline/steps/delete.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import { idValueOf, metadataOf } from "../../pipeline/steps/shapes.js";
-import { fittedSlug } from "../../pipeline/steps/slug.js";
+import { fittedName, fittedSlug } from "../../pipeline/steps/slug.js";
 import {
   PLATFORM_CLIENT_SUBJECT_PREFIX,
   accountIdFor,
@@ -106,7 +108,7 @@ export function newDefaultAccountNameStep(): AccountStep {
       const metadata = requireMetadata(ctx, "default account name");
       if (metadata.name === "") {
         const spec = specOf(ctx);
-        metadata.name = spec.email !== "" ? spec.email : spec.idpId;
+        metadata.name = fittedName(spec.email !== "" ? spec.email : spec.idpId);
       }
     },
   };

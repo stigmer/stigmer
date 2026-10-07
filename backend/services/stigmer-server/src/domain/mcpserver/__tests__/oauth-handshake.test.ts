@@ -608,6 +608,23 @@ describe("completeOAuthConnect → grant → disconnect (the full lifecycle)", (
     expect(grant?.environmentId ?? "").not.toBe("");
   });
 
+  it("stores tokens for an MCP server whose name is at the name's bound, in a managed environment whose name is cut to it", async () => {
+    mockAs.reset();
+    // 200 characters, the most a name holds; the environment's prefix
+    // would take it past the bound.
+    const longName = `Customer Support ${"y".repeat(183)}`;
+    const id = await applyServer({ longName });
+    const initiated = await command.initiateOAuthConnect({ mcpServerId: id, org: ORG });
+    const completed = await command.completeOAuthConnect({
+      mcpServerId: id,
+      state: initiated.state,
+      authorizationCode: "auth-code-at-bound",
+    });
+    expect(completed.connected).toBe(true);
+    const grant = await server.store.oauthGrants.find("", id, ORG_ID);
+    expect(grant?.environmentId ?? "").not.toBe("");
+  });
+
   it("refuses a REPLAYED state after a successful complete (single-use atomicity at the wire)", async () => {
     mockAs.reset();
     const id = await applyServer();

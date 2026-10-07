@@ -131,6 +131,25 @@ describe("Agent conformance — CRUD & identity", () => {
     expect(updated.status?.audit?.specAudit?.event).toBe("updated");
   });
 
+  it("[rpc:AgentCommandController.update] an update by id with no slug renames to a name whose derived slug the slug rules refuse, and keeps the stored slug", async () => {
+    const { org } = await target.provisionTenancy();
+    const created = await createAgent(org, uniqueName("agent"));
+    const { id, slug } = created.metadata!;
+
+    // Starts with a digit and is past 63 once slugified: as a create's
+    // name with no slug, both would be refused.
+    const renamed = `2024 ${uniqueName("Roadmap")} ${"x".repeat(70)}`;
+    const updated = await clients.agentCommand.update({
+      apiVersion: AGENT_API_VERSION,
+      kind: AGENT_KIND,
+      metadata: { id, name: renamed, org },
+      spec: makeAgentSpec({ description: "renamed" }),
+    });
+
+    expect(updated.metadata?.slug).toBe(slug);
+    expect(updated.metadata?.name).toBe(renamed);
+  });
+
   it("[rpc:AgentCommandController.delete] delete returns the resource and a subsequent get reports NotFound", async () => {
     const { org } = await target.provisionTenancy();
     const created = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent") }));

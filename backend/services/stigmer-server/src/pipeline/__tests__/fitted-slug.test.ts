@@ -1,16 +1,17 @@
 /**
  * Pins fittedSlug (slug.ts): a slug fitted to metadata.slug's own rules
  * for every name the server may choose (an account's email or subject, a
- * managed resource's name), checked through the same checkDerivedSlug every
- * other kind's derivation answers to. A name whose slug the rules already admit keeps the slug every
- * earlier release derived; a name that starts with a digit gains `a-`; a
- * name with no ASCII letter or digit falls back to the subject; a name too
- * long is cut and hashed, so two long names sharing their first 54
- * characters still differ.
+ * managed resource's name), checked through the same checkDerivedSlug
+ * every other kind's derivation answers to. A name whose slug the rules
+ * already admit keeps the slug every earlier release derived; a name that
+ * starts with a digit gains `a-`; a name with no ASCII letter or digit
+ * falls back to the subject; a name too long is cut and hashed, so two long
+ * names sharing their first 54 characters still differ. fittedName cuts a
+ * server-chosen name to metadata.name's 200 characters, never through one.
  */
 import { describe, expect, it } from "vitest";
 
-import { checkDerivedSlug, fittedSlug, generateSlug } from "../steps/slug.js";
+import { checkDerivedSlug, fittedName, fittedSlug, generateSlug } from "../steps/slug.js";
 
 const VALID = { from: "the account's name", fix: "none" };
 
@@ -70,5 +71,21 @@ describe("fittedSlug", () => {
     for (const name of names) {
       expectValid(fittedSlug(name, "local|ops@example.com", "ida_01x"));
     }
+  });
+});
+
+describe("fittedName", () => {
+  it("keeps a name within the bound, and cuts a longer one to 200 characters", () => {
+    expect(fittedName("OAuth: Customer Support")).toBe("OAuth: Customer Support");
+    const atBound = `OAuth: ${"y".repeat(193)}`;
+    expect(fittedName(atBound)).toBe(atBound);
+    expect(fittedName(`OAuth: ${"y".repeat(200)}`)).toBe(`OAuth: ${"y".repeat(193)}`);
+  });
+
+  it("counts characters, not UTF-16 units, so the cut never splits one", () => {
+    const name = "😀".repeat(201);
+    const fitted = fittedName(name);
+    expect(Array.from(fitted)).toHaveLength(200);
+    expect(fitted).toBe("😀".repeat(200));
   });
 });

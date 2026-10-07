@@ -414,10 +414,9 @@ export function newPlanMaterializationStep(
       }
 
       // Every member's slug is derived from a name in the package (a
-      // skill's frontmatter, an mcp.json key, a workflow file's stem), so
-      // each is held to the slug rules here, before the first write: a
-      // member refused later, by its own chain, would leave the members
-      // before it installed.
+      // skill's frontmatter, an mcp.json key), so each is held to the slug
+      // rules here, before the first write: a member refused later, by its
+      // own chain, would leave the members before it installed.
       for (const member of plan.members) {
         checkDerivedSlug(member.slug, {
           from: `the plugin's ${memberNoun(member.kind)} '${member.name}'`,

@@ -344,7 +344,7 @@ async function update(
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newResolveSlugStep())
+    .addStep(newResolveSlugStep({ update: true }))
     .addStep(newLoadExistingOrganizationStep(deps.store))
     .addStep(newBuildUpdateStateStep())
     .addStep(newPreserveChildLinkStep())

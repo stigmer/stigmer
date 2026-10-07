@@ -79,6 +79,20 @@ describe("the create path's account slug, from a name the server chose", () => {
     expect(account.metadata?.slug).toBe("a-2024internacme-com");
   });
 
+  it("provisions an account with no name whose email is past the name's bound, its name cut to 200 characters", async () => {
+    const email = `${"m".repeat(195)}@acme.example`;
+    const account = await createAccount(
+      {
+        name: "",
+        spec: create(IdentityAccountSpecSchema, { idpId: "auth0|long-email", email }),
+        provisioning: { mode: "direct" },
+      },
+      CLIENT,
+    );
+    expect(account.metadata?.name).toBe(email.slice(0, 200));
+    expect(account.spec?.email).toBe(email);
+  });
+
   it("provisions a platform-client user whose external id is numeric, and one named by a UUID", async () => {
     for (const [external, slug] of [
       ["12345", "a-12345"],

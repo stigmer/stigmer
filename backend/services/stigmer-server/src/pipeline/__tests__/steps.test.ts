@@ -207,6 +207,21 @@ describe("ResolveSlug", () => {
       "the name '!!!' derives no slug: it has no ASCII letters or digits; set metadata.slug",
     );
   });
+
+  // An update by id keeps its stored slug (BuildUpdateState), so the slug
+  // derived from a new name is never used and never refused there.
+  it("derives without the check in an update chain by id, and keeps the check there without an id", async () => {
+    const step = newResolveSlugStep<typeof OrganizationSchema>({ update: true });
+    const byId = orgCtx(org({ id: "org_1", name: "1st Team" }));
+    await step.execute(byId);
+    expect(byId.newState.metadata?.slug).toBe("1st-team");
+
+    const bySlug = orgCtx(org({ name: "1st Team" }));
+    const error = await Promise.resolve()
+      .then(() => step.execute(bySlug))
+      .catch((e: unknown) => e);
+    expect((error as ConnectError).code).toBe(Code.InvalidArgument);
+  });
 });
 
 describe("CheckDuplicate (org-scoped)", () => {

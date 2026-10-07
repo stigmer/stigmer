@@ -22,7 +22,7 @@ import type { MessageInitShape } from "@bufbuild/protobuf";
 
 import type { Logger } from "../../../boot/logger.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
-import { fittedSlug } from "../../../pipeline/steps/slug.js";
+import { fittedName, fittedSlug } from "../../../pipeline/steps/slug.js";
 
 /** The label marking system-managed OAuth-token environments. */
 export const MANAGED_ENV_LABEL = "stigmer.ai/managed";
@@ -67,9 +67,10 @@ export class ManagedEnvironmentService {
    * stigmer.ai/managed=true label and returns its resource id (Go
    * CreateManagedEnvironment). The environment goes through the standard
    * create pipeline, which handles id generation, timestamps, and search
-   * indexing. Its slug is fitted here (fittedSlug): the server chose the
-   * name, after the MCP server whose tokens it holds, so a long MCP server
-   * name must not fail the OAuth callback after the user granted consent.
+   * indexing. Its name and slug are fitted here (fittedName, fittedSlug):
+   * the server chose the name, after the MCP server whose tokens it holds,
+   * so a long MCP server name must not fail the OAuth callback after the
+   * user granted consent.
    * `caller` propagates the connecting user through the hop so a
    * composed tuple-lifecycle driver attributes ownership to them — the
    * Java createAsCaller posture ("org link + owner = caller"); the
@@ -88,7 +89,7 @@ export class ManagedEnvironmentService {
           apiVersion: "agentic.stigmer.ai/v1",
           kind: "Environment",
           metadata: {
-            name,
+            name: fittedName(name),
             slug: fittedSlug(name),
             org,
             labels: { [MANAGED_ENV_LABEL]: "true" },
