@@ -227,8 +227,8 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
         advancePhase("connecting");
 
         // No runtime env: the backend resolves the token this flow just
-        // stored from the managed grant, and every other declared variable
-        // from the caller's personal environment. A runtime env would
+        // saved, and every other declared variable, from the credential
+        // serving the server (the run's own rule). A runtime env would
         // replace that resolution whole (stigmer/stigmer#1453).
         const input = create(ConnectInputSchema, { mcpServerId, org });
 

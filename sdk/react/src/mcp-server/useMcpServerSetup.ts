@@ -1,5 +1,13 @@
 "use client";
 
+/**
+ * useMcpServerSetup: the composer's per-server setup for MCP servers a
+ * person adds to a session. Each server's values come from the credential
+ * serving it: the person's own for personal sign-in, the organization's
+ * for organization sign-in (the resolver's rule,
+ * `credential/requirements.ts`). Values the person types are saved into
+ * that credential, or kept for this run only.
+ */
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import type { EnvVarInput, McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
 import { create } from "@bufbuild/protobuf";
@@ -7,8 +15,11 @@ import { GetOAuthGrantStatusInputSchema } from "@stigmer/protos/ai/stigmer/agent
 import type { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useStigmer } from "../hooks.js";
-import { usePersonalEnvironment } from "../environment/usePersonalEnvironment.js";
-import { diffEnv } from "../environment/diffEnv.js";
+import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { diffEnv } from "../credential/diffEnv.js";
+import { credentialFieldNames, servingCredential } from "../credential/model.js";
+import { mcpServerDeclarer } from "../credential/requirements.js";
+import { listCredentialsForReading, saveToServingCredential } from "../credential/serving.js";
 import { toError } from "../internal/toError.js";
 import {
   mcpServerSetupReducer,
@@ -31,9 +42,10 @@ export { toServerKey } from "./mcpServerSetupReducer.js";
 /** Options for {@link UseMcpServerSetupReturn.submitEnvVars}. */
 export interface SubmitMcpEnvVarsOptions {
   /**
-   * When `true` (default), the provided values are saved to the user's
-   * personal environment. Subsequent sessions using the same MCP server
-   * will reuse these credentials.
+   * When `true` (default), the provided values are saved into the
+   * credential serving the server (the person's own, created and named
+   * after the server when none serves it yet). Later sessions using the
+   * same MCP server reuse them.
    *
    * When `false`, the values are collected as `pendingRuntimeEnv` for
    * this session only — no data is persisted and no network calls are
@@ -59,7 +71,7 @@ export interface UseMcpServerSetupReturn {
    * Add an MCP server to the setup flow.
    *
    * Fetches the full server resource, checks `env` declarations against
-   * the personal environment, and resolves the entry to either `ready`
+   * the credential serving it, and resolves the entry to either `ready`
    * (no credentials needed or all present) or `needsSetup` (missing
    * variables). Also extracts the server's discovered tools.
    *
@@ -80,8 +92,8 @@ export interface UseMcpServerSetupReturn {
    * Complete credential collection for a server in `needsSetup` status.
    *
    * Behavior depends on `options.saveForFuture`:
-   * - `true` (default) — Saves values to the personal environment via
-   *   `addVariables`. The server transitions to `ready`.
+   * - `true` (default) — Saves values into the credential serving the
+   *   server. The server transitions to `ready`.
    * - `false` — Accumulates values into {@link pendingRuntimeEnv}
    *   without API calls. The server transitions to `ready` immediately.
    *
@@ -136,19 +148,35 @@ export interface UseMcpServerSetupReturn {
 // Hook
 // ---------------------------------------------------------------------------
 
+/** The fields of the credential serving `server` for this person's runs, by the resolver's rule. */
+async function servingFieldNames(
+  stigmer: ReturnType<typeof useStigmer>,
+  org: string,
+  server: McpServer,
+): Promise<string[]> {
+  const declarer = mcpServerDeclarer(server);
+  const credentials = await listCredentialsForReading(stigmer, org);
+  const credential = servingCredential(
+    credentials,
+    declarer.target,
+    declarer.signIn === "organization" ? "org" : "person",
+  );
+  return credential ? credentialFieldNames(credential) : [];
+}
+
 /**
  * Layer 2 behavior hook that orchestrates the setup flow for multiple
  * MCP servers selected in the {@link McpServerPicker}.
  *
  * When a user toggles an MCP server ON, this hook fetches the server's
- * full resource, checks its `env` declarations against the personal
- * environment (via {@link diffEnv}), and determines whether credentials are
+ * full resource, checks its `env` declarations against the credential
+ * serving it (via {@link diffEnv}), and determines whether credentials are
  * needed. It also extracts the server's discovered tools for display.
  *
  * The hook supports two credential delivery paths via the `saveForFuture`
  * option on {@link submitEnvVars}:
- * - **Saved** — secrets are persisted to the personal environment for
- *   reuse across sessions.
+ * - **Saved** — secrets are saved into the credential serving the server
+ *   for reuse across sessions.
  * - **One-time** — secrets are collected as `pendingRuntimeEnv` for a
  *   single run, with no data persisted.
  *
@@ -156,8 +184,8 @@ export interface UseMcpServerSetupReturn {
  * state machine with four phases:
  * `loading → needsSetup → submitting → ready`.
  *
- * Composes {@link usePersonalEnvironment} for credential persistence and
- * the Stigmer client for MCP server queries.
+ * Reads and writes credentials through the Stigmer client, fresh per
+ * server, so a save never decides create-or-set from a stale list.
  *
  * Mirrors the architecture of {@link useAgentSetup} but adapted for
  * multi-server orchestration (N independent entries vs. single agent).
@@ -168,7 +196,7 @@ export interface UseMcpServerSetupReturn {
  * @param poolKeys - Optional set of env-var keys already available
  *   from the session env pool (manual secrets, one-time env vars from
  *   other components). When provided, servers whose `env` keys
- *   are fully covered by `poolKeys` + personal env auto-resolve to
+ *   are fully covered by `poolKeys` + the serving credential auto-resolve to
  *   `ready` without prompting. Reactive — when `poolKeys` changes,
  *   `needsSetup` entries are re-evaluated.
  *
@@ -197,7 +225,9 @@ export function useMcpServerSetup(
   poolKeys?: Set<string>,
 ): UseMcpServerSetupReturn {
   const stigmer = useStigmer();
-  const personalEnv = usePersonalEnvironment(org);
+  // The fields the credential serving each server held when it was read,
+  // so the pool re-evaluation needs no network call.
+  const heldKeysRef = useRef<Map<string, ReadonlySet<string>>>(new Map());
 
   const [entries, dispatch] = useReducer(
     mcpServerSetupReducer,
@@ -240,9 +270,8 @@ export function useMcpServerSetup(
           return;
         }
 
-        const existingKeys = new Set(
-          Object.keys(personalEnv.environment?.spec?.data ?? {}),
-        );
+        const existingKeys = new Set(await servingFieldNames(stigmer, org, mcpServer));
+        heldKeysRef.current.set(key, new Set(existingKeys));
 
         // Carried onto the entry so consumers can tell a healthy grant
         // that merely lacks tool discovery (offer bare discovery,
@@ -294,7 +323,7 @@ export function useMcpServerSetup(
         dispatch({ type: "SET_ERROR", key, error: toError(err) });
       }
     },
-    [org, stigmer, personalEnv, poolKeys],
+    [org, stigmer, poolKeys],
   );
 
   // -------------------------------------------------------------------------
@@ -344,14 +373,23 @@ export function useMcpServerSetup(
       }
 
       try {
-        await personalEnv.getOrCreate();
-        await personalEnv.addVariables(values);
+        const declarer = mcpServerDeclarer(entry.mcpServer);
+        await saveToServingCredential(stigmer, {
+          org,
+          target: declarer.target,
+          name: declarer.name,
+          values,
+          owner: declarer.signIn === "organization" ? "org" : "person",
+        });
+        const held = new Set(heldKeysRef.current.get(key) ?? []);
+        for (const name of Object.keys(values)) held.add(name);
+        heldKeysRef.current.set(key, held);
         dispatch({ type: "SUBMIT_DONE", key });
       } catch (err) {
         dispatch({ type: "SUBMIT_FAIL", key, error: toError(err) });
       }
     },
-    [org, entries, personalEnv],
+    [org, entries, stigmer],
   );
 
   // -------------------------------------------------------------------------
@@ -374,21 +412,18 @@ export function useMcpServerSetup(
   useEffect(() => {
     if (!poolKeys || poolKeys.size === 0) return;
 
-    const personalKeys = new Set(
-      Object.keys(personalEnv.environment?.spec?.data ?? {}),
-    );
-
     for (const [key, entry] of Object.entries(entriesRef.current)) {
       if (entry.status !== "needsSetup") continue;
 
       const envDeclarations = entry.mcpServer.spec?.env;
       if (!envDeclarations) continue;
 
-      const allMissing = diffEnv(envDeclarations, personalKeys, poolKeys);
+      const held = new Set(heldKeysRef.current.get(key) ?? []);
+      const allMissing = diffEnv(envDeclarations, held, poolKeys);
       const requiredMissing = allMissing.filter((v) => !v.optional);
       dispatch({ type: "POOL_RESOLVE", key, missingVariables: requiredMissing });
     }
-  }, [poolKeys, personalEnv.environment]);
+  }, [poolKeys]);
 
   // -------------------------------------------------------------------------
   // Derived state

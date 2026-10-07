@@ -1,10 +1,16 @@
 "use client";
 
+/**
+ * useSaveAgentChannel: create or update an agent channel, and
+ * {@link agentChannelToInput}, the full input that reproduces a stored
+ * channel so a one-field change never drops the rest of its spec.
+ */
 import { useCallback, useState } from "react";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import type { AgentChannelInput } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
+import { assignmentInputsOf } from "../credential/assignments.js";
 
 /**
  * Rebuild the {@link AgentChannelInput} that reproduces an existing
@@ -22,8 +28,9 @@ import { toError } from "../internal/toError.js";
  * in `status`, which survives every save verbatim); the WhatsApp config
  * carries its declared `phone_number_id`. Dropping the arm is never an
  * option — the provider oneof is immutable server-side, so a save
- * without it would be refused outright. The channel's bound tool
- * credentials (`environment_refs`), its channel-app binding
+ * without it would be refused outright. The channel's credential
+ * assignments (`credentials`, carried without their server-stamped
+ * writer, which a client never sends), its channel-app binding
  * (`app_ref`), and its per-channel run override (`run_config`)
  * carry over too — apply semantics would otherwise silently unbind
  * them on every toggle (and an installed channel's app_ref is frozen
@@ -33,7 +40,7 @@ export function agentChannelToInput(channel: AgentChannel): AgentChannelInput {
   const metadata = channel.metadata;
   const spec = channel.spec;
   const labels = metadata?.labels ?? {};
-  const environmentRefs = spec?.environmentRefs ?? [];
+  const credentials = assignmentInputsOf(spec?.credentials ?? []);
 
   return {
     name: metadata?.name ?? "",
@@ -58,14 +65,7 @@ export function agentChannelToInput(channel: AgentChannel): AgentChannelInput {
           },
         }
       : {}),
-    ...(environmentRefs.length > 0
-      ? {
-          environmentRefs: environmentRefs.map((ref) => ({
-            org: ref.org,
-            slug: ref.slug,
-          })),
-        }
-      : {}),
+    ...(credentials.length > 0 ? { credentials } : {}),
     // run_config rides through verbatim so a settings save or
     // pause/resume toggle never wipes an override set elsewhere (the
     // ChannelRunConfigDialog — the one surface that edits it, #792 —

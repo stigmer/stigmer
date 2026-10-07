@@ -22,8 +22,8 @@ export interface UseMcpServerConnectReturn {
    * back to the blocking `connect` RPC transparently.
    *
    * Without `runtimeEnv`, the backend resolves the server's declared
-   * variables itself: OAuth tokens from the managed grant, the rest from
-   * the caller's personal environment. The platform's own keys are
+   * variables itself, from the credential serving the server (the
+   * caller's own, or the organization's for organization sign-in). The platform's own keys are
    * filled by the runner, never sent from here (`SYSTEM_ENV_VAR_KEYS`).
    *
    * With `runtimeEnv`, the backend connects with exactly those values
@@ -32,7 +32,7 @@ export interface UseMcpServerConnectReturn {
    *
    * @param mcpServerId - System-generated ID of the MCP server (metadata.id).
    * @param org - The caller's active organization id (a slug is also accepted). Required for
-   *   OAuth grant lookup and personal environment resolution.
+   *   OAuth grant lookup and credential resolution.
    * @param runtimeEnv - Optional one-time values for this connect.
    * @returns The updated McpServer with populated status.discovered_capabilities,
    *          each tool carrying its destructive hint.
@@ -67,7 +67,7 @@ export interface UseMcpServerConnectReturn {
  * const { connect, isConnecting, error } = useMcpServerConnect();
  * const { refetch } = useMcpServer(org, slug);
  *
- * // Saved credentials: already in personal environment
+ * // Saved credentials: already in the credential serving the server
  * async function handleConnectSaved() {
  *   await connect(mcpServer.metadata.id, org);
  *   refetch();

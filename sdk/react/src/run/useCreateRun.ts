@@ -72,7 +72,7 @@ export interface BootstrapSessionSpec {
    * can set this (the same trust level as authoring the first message).
    * Hidden from the conversation thread, not from the API — `session.get`
    * returns it, so never put secrets here; secrets belong in `runtimeEnv`
-   * or Environment resources. Large values bloat every prompt.
+   * or credentials. Large values bloat every prompt.
    */
   readonly sessionContext?: string;
   /** Run harness. Immutable after the first run runs. */
@@ -100,7 +100,7 @@ export interface SharedRunFields {
    *
    * Values are injected into the agent sandbox for this run only
    * and deleted when the run completes. They take the highest
-   * merge priority, overriding every environment layer. Keys must be
+   * priority, overriding every credential. Keys must be
    * declared in the agent's env declarations (a whitelist, not a value
    * source) or they are dropped.
    *
@@ -108,8 +108,9 @@ export interface SharedRunFields {
    * injected at runtime, or for one-off secrets that should not persist.
    *
    * For persistent credentials that are reused across runs, use
-   * the Environment Flow instead: the keys an agent declares are read
-   * from the running person's personal environment.
+   * the Credential Flow instead: each value a run needs is read from
+   * the running person's credential serving the agent or MCP server
+   * that declares it, else the organization's they may use.
    *
    * @see {@link https://stigmer.ai/docs/product/how-to-provide-secrets | How to Provide Secrets}
    */
@@ -286,16 +287,16 @@ export interface UseCreateRunReturn {
  *
  * Supports both secret delivery flows:
  *
- * - **Environment Flow** — Secrets are stored in the running person's
- *   personal environment. No `runtimeEnv` needed; the backend reads
- *   every key the agent declares from there.
+ * - **Credential Flow** — Secrets are saved as credentials (the running
+ *   person's own, or the organization's they may use). No `runtimeEnv`
+ *   needed; the backend reads every value the run needs from them.
  * - **Run Flow** — Pass `runtimeEnv` to inject per-execution
  *   secrets. Values are merged with the highest priority and deleted
  *   when the run completes.
  *
  * @example
  * ```tsx
- * // Environment Flow: secrets come from the person's personal environment
+ * // Credential Flow: secrets come from the person's credentials
  * const { create } = useCreateRun();
  * await create({ org: "acme", sessionId: "ses_abc", message: "Review the PR" });
  * ```

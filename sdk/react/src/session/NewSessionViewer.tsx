@@ -447,8 +447,8 @@ export function NewSessionViewer({
           onAgentResolutionChange={isGuest ? undefined : flow.setResolution}
           initialAgentRef={isGuest ? undefined : initialAgentRef}
           // Every message here starts a conversation, so the keys the
-          // selected agent will read from the person's personal environment
-          // are named first. A guest has no personal environment.
+          // selected agent will read from the person's own credentials
+          // are named first. A guest has no credentials.
           disclosePersonalKeys={!isGuest}
           initialAttachments={isGuest ? undefined : initialAttachments}
           lockAgent={isCurated && initialAgentRef != null}

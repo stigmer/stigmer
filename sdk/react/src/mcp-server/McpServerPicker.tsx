@@ -15,7 +15,7 @@ import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
-import type { EnvVarFormSubmitOptions } from "../environment/EnvVarForm.js";
+import type { EnvVarFormSubmitOptions } from "../credential/EnvVarForm.js";
 import { useMcpServerSearch } from "./useMcpServerSearch.js";
 import { useScrollShadows } from "../internal/useScrollShadows.js";
 import { ScrollFade } from "../internal/ScrollFade.js";
@@ -148,8 +148,8 @@ export interface McpServerPickerProps {
   readonly poolValues?: (key: string) => EnvVarInput | undefined;
   /**
    * The authenticated user's active organization id (a slug is also accepted).
-   * Used for OAuth token storage — tokens are stored in the user's personal
-   * environment within this org, not the MCP server's org.
+   * Used for credential storage — a sign-in is saved as a credential in
+   * this org, not the MCP server's org.
    * When omitted, falls back to the `org` prop.
    */
   readonly activeOrg?: string;

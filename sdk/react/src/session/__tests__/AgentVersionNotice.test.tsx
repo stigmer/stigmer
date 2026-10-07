@@ -6,7 +6,7 @@ import { AgentVersionNotice } from "../AgentVersionNotice";
 // The notice's words and its one control: it names the agent, and Update is
 // the only thing that moves the conversation (disabled while it runs, with
 // the failure shown beside it), and the keys the current version reads
-// from the person's personal environment are named before the update.
+// from the person's own credentials are named before the update.
 // ---------------------------------------------------------------------------
 
 afterEach(cleanup);
@@ -24,7 +24,7 @@ describe("AgentVersionNotice", () => {
     expect(onUpdate).toHaveBeenCalledTimes(1);
   });
 
-  it("names the keys the current version reads from the personal environment, and none when it declares none", () => {
+  it("names the keys the current version takes from the person's credentials, and none when it takes none", () => {
     render(
       <AgentVersionNotice
         agentName="PR Reviewer"
@@ -33,7 +33,7 @@ describe("AgentVersionNotice", () => {
       />,
     );
     expect(screen.getByRole("status").textContent).toContain(
-      "The current version can read these keys from your personal environment: GITHUB_TOKEN, LINEAR_API_KEY",
+      "The current version's runs use these keys of yours: GITHUB_TOKEN, LINEAR_API_KEY",
     );
     cleanup();
 

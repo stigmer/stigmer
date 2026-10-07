@@ -12,7 +12,7 @@ import type {
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import type { McpServerSpec } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
-import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/requirement_pb";
 import { useMcpServer } from "./useMcpServer.js";
 import type { UseMcpServerReturn } from "./useMcpServer.js";
 import { useUpdateMcpServer } from "./useUpdateMcpServer.js";
@@ -34,8 +34,8 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { DialogShell } from "../internal/DialogShell.js";
-import { EnvVarForm } from "../environment/EnvVarForm.js";
-import type { EnvVarFormVariable } from "../environment/EnvVarForm.js";
+import { EnvVarForm } from "../credential/EnvVarForm.js";
+import type { EnvVarFormVariable } from "../credential/EnvVarForm.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
 import { useManageAccess } from "../access/useManageAccess.js";
 import { Tabs, type TabItem } from "../tabs/Tabs.js";
@@ -121,8 +121,8 @@ export interface McpServerDetailViewProps {
   ) => import("@stigmer/sdk").EnvVarInput | undefined;
   /**
    * The authenticated user's active organization id (a slug is also accepted).
-   * Used for OAuth token storage — tokens are stored in the user's personal
-   * environment within this org, not the MCP server's org.
+   * Used for credential storage — a sign-in is saved as a credential in
+   * this org, not the MCP server's org.
    * When omitted, falls back to the `org` prop (MCP server's org).
    */
   readonly activeOrg?: string;
@@ -642,7 +642,7 @@ export function McpServerDetailView({
           >
             <EnvVarForm
               title="Credentials Required"
-              description="Enter the credentials needed to connect to this MCP server. Toggle &quot;Save for future runs&quot; to persist them in your personal environment, or leave it off for one-time use."
+              description="Enter the credentials needed to connect to this MCP server. Toggle &quot;Save for future runs&quot; to save them as your key for this server, or leave it off for one-time use."
               variables={credentials.missingVariables}
               onSubmit={(values, options) => handleCredentialSubmit(values, options)}
               onCancel={() => setShowCredentialForm(false)}

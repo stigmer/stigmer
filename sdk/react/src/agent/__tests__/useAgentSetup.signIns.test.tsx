@@ -1,21 +1,16 @@
 /**
- * An agent whose MCP server authenticates by OAuth is not ready until the
- * organization holds a grant for it. Pinned: resolving such an agent lands
- * in `needsEnvVars` with the server under `pendingSignIns` and no variable
- * asked for the token; a server with a connected grant is not pending; a
- * grant read that fails leaves the server pending (fail-closed, the
- * composer's own MCP rule); a server that cannot be read is the resolution's
+ * An agent whose MCP server signs in by OAuth is not ready until the
+ * person has signed in: the sign-in saves a credential of theirs serving
+ * the server, holding the key the server's auth fills. Pinned: resolving
+ * such an agent lands in `needsEnvVars` with the server under
+ * `pendingSignIns` and no variable asked for the token; a server whose
+ * sign-in credential is there and whose grant is connected is not
+ * pending; a sign-in credential whose grant read fails leaves the server
+ * pending (fail-closed); a server that cannot be read is the resolution's
  * error; `signInCompleted` for the last pending server resolves the agent
- * again and lands in `ready`; the pool covering every variable does not skip
- * a pending sign-in.
- *
- * The token variable IS on the agent: the server's MergeMcpServerEnvSpecs
- * step copies every referenced server's `env` onto the agent at save, so a
- * saved agent declares `<SLUG>_ACCESS_TOKEN` beside its own variables. Pinned
- * for that shape: a connected grant satisfies the declaration and the agent
- * resolves `ready` in direct mode; without the grant the variable is the Sign
- * in row and never a form field; a variable of the agent's own beside it is
- * still asked for.
+ * again and lands in `ready`; the pool covering every variable does not
+ * skip a pending sign-in; a variable of the agent's own is still asked
+ * for beside a satisfied sign-in.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -28,9 +23,7 @@ import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { McpServerUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
-import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
-import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/requirement_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { GetOAuthGrantStatusOutputSchema, OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
@@ -40,6 +33,7 @@ import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/ap
 
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { credentialWorld, routeCredentials, storedCredential } from "../../credential/__tests__/credential-world";
 import { useAgentSetup } from "../useAgentSetup";
 
 afterEach(cleanup);
@@ -48,7 +42,7 @@ const ORG = "acme";
 const REF = { org: ORG, slug: "reviewer" };
 
 interface World {
-  /** Per server slug: whether the organization holds a connected grant. `"unreadable"` makes the grant read fail; `"missing"` makes the server read fail. */
+  /** Per server slug: whether the person has signed in (a sign-in credential and a connected grant). `"unreadable"` keeps the credential but makes the grant read fail; `"missing"` makes the server read fail. */
   readonly grants: Record<string, boolean | "unreadable" | "missing">;
 }
 
@@ -68,8 +62,8 @@ function client(world: World, agentEnv: Record<string, { isSecret: boolean }> = 
   return new Stigmer({
     baseUrl: "/",
     getAccessToken: () => "t",
-    customTransport: createRouterTransport(({ service }) => {
-      service(AgentQueryController, {
+    customTransport: createRouterTransport((router) => {
+      router.service(AgentQueryController, {
         getByReference: () =>
           create(AgentSchema, {
             metadata: create(ApiResourceMetadataSchema, { id: "agt_1", org: ORG, slug: REF.slug, name: "Reviewer" }),
@@ -81,7 +75,7 @@ function client(world: World, agentEnv: Record<string, { isSecret: boolean }> = 
             }),
           }),
       });
-      service(McpServerQueryController, {
+      router.service(McpServerQueryController, {
         getByReference: (ref) => {
           if (world.grants[ref.slug] === "missing") throw new ConnectError(`no server '${ref.slug}'`, Code.NotFound);
           return oauthServer(ref.slug);
@@ -96,7 +90,25 @@ function client(world: World, agentEnv: Record<string, { isSecret: boolean }> = 
           });
         },
       });
-      service(EnvironmentQueryController, { list: () => create(EnvironmentListSchema, { items: [] }) });
+      // The person's sign-in credentials, read fresh so a test that flips a
+      // grant to connected is seen on the next resolve.
+      const signIns = credentialWorld();
+      Object.defineProperty(signIns, "credentials", {
+        get: () =>
+          Object.entries(world.grants)
+            .filter(([, grant]) => grant === true || grant === "unreadable")
+            .map(([slug]) =>
+              storedCredential({
+                id: `cred_${slug}`,
+                org: ORG,
+                owner: "person",
+                fields: [`${slug.toUpperCase()}_ACCESS_TOKEN`],
+                serves: [{ kind: "mcp_server", org: ORG, slug }],
+                signIn: true,
+              }),
+            ),
+      });
+      routeCredentials(router, signIns);
     }),
   });
 }
@@ -132,7 +144,7 @@ describe("useAgentSetup and the agent's OAuth servers", () => {
       await result.current.signInCompleted("mcp_linear");
     });
     await waitFor(() => expect(result.current.state.status).toBe("ready"));
-    expect(result.current.state).toMatchObject({ status: "ready", resolution: { mode: "direct" } });
+    expect(result.current.state).toMatchObject({ status: "ready", resolution: { mode: "saved" } });
   });
 
   it("fails closed on a grant it cannot read, and fails the resolution on a server it cannot read", async () => {
@@ -149,45 +161,9 @@ describe("useAgentSetup and the agent's OAuth servers", () => {
     expect(broken.result.current.state.error?.message).toMatch(/no server 'ghost'/);
   });
 
-  it("treats a connected grant as satisfying the agent's declaration of the token variable", async () => {
-    // The shape a saved agent has: the server merged the OAuth server's
-    // `LINEAR_ACCESS_TOKEN` declaration onto it; the organization signed in.
-    const { result } = renderHook(() => useAgentSetup(ORG), {
-      wrapper: wrapper(client({ grants: { linear: true } }, { LINEAR_ACCESS_TOKEN: { isSecret: true } })),
-    });
-    let outcome: unknown;
-    await act(async () => {
-      outcome = await result.current.resolveAgent(REF);
-    });
-    expect(outcome).toMatchObject({ status: "ready", resolution: { mode: "direct" } });
-    expect(result.current.state).toMatchObject({ status: "ready", resolution: { mode: "direct" } });
-  });
-
-  it("offers the token variable as a Sign in row and never as a form field while the grant is missing", async () => {
-    const world: { grants: Record<string, boolean | "unreadable" | "missing"> } = { grants: { linear: false } };
-    const { result } = renderHook(() => useAgentSetup(ORG), {
-      wrapper: wrapper(client(world, { LINEAR_ACCESS_TOKEN: { isSecret: true } })),
-    });
-    await act(async () => {
-      await result.current.resolveAgent(REF);
-    });
-    expect(result.current.state).toMatchObject({
-      status: "needsEnvVars",
-      missingVariables: [],
-      pendingSignIns: [expect.objectContaining({ id: "mcp_linear" })],
-    });
-
-    world.grants.linear = true;
-    await act(async () => {
-      await result.current.signInCompleted("mcp_linear");
-    });
-    await waitFor(() => expect(result.current.state.status).toBe("ready"));
-    expect(result.current.state).toMatchObject({ status: "ready", resolution: { mode: "direct" } });
-  });
-
   it("still asks for the agent's own variables beside a satisfied token variable", async () => {
     const { result } = renderHook(() => useAgentSetup(ORG), {
-      wrapper: wrapper(client({ grants: { linear: true } }, { LINEAR_ACCESS_TOKEN: { isSecret: true }, API_TOKEN: { isSecret: true } })),
+      wrapper: wrapper(client({ grants: { linear: true } }, { API_TOKEN: { isSecret: true } })),
     });
     await act(async () => {
       await result.current.resolveAgent(REF);

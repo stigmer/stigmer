@@ -9,8 +9,8 @@
  * save never changes it under the person in it. This strip says so and
  * offers "Update", which moves the conversation to the current version
  * (an update of the session's agent reference to `latest`); until the
- * person presses it, nothing changes. When the current version declares
- * keys it reads from the person's personal environment, the notice names
+ * person presses it, nothing changes. When the current version takes
+ * keys from the person's own credentials, the notice names
  * them, so the update hands over nothing unannounced (the line the
  * composer shows before a conversation's first message, for the version
  * the update moves to). `SessionViewer` renders it only
@@ -27,8 +27,8 @@ export interface AgentVersionNoticeProps {
   /** The agent's display name, as the notice names it. */
   readonly agentName: string;
   /**
-   * The keys the current version reads from the person's personal
-   * environment; named beside the control when there are any.
+   * The keys the current version takes from the person's own credentials;
+   * named beside the control when there are any.
    */
   readonly personalKeys?: readonly string[];
   /** Moves the conversation to the agent's current version. */
@@ -60,8 +60,7 @@ export function AgentVersionNotice({
         {personalKeys.length > 0 && (
           <>
             {" "}
-            The current version can read these keys from your personal
-            environment:{" "}
+            The current version&apos;s runs use these keys of yours:{" "}
             <span
               data-testid="agent-version-personal-keys"
               className="stg:font-mono"

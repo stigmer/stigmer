@@ -72,9 +72,8 @@ function createMockStigmer(overrides: MockOverrides = {}) {
           }),
         ),
     },
-    environment: {
+    credential: {
       list: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }),
-      getByReference: vi.fn().mockRejectedValue(new Error("not found")),
     },
     billing: {
       getOrCreateBillingAccount: vi.fn().mockResolvedValue(null),

@@ -28,8 +28,6 @@ export { ShareAgentDialog } from "./ShareAgentDialog.js";
 export type { ShareAgentDialogProps } from "./ShareAgentDialog.js";
 export { AgentShareList } from "./AgentShareList.js";
 export type { AgentShareListProps } from "./AgentShareList.js";
-export { useShareToolReadiness } from "./useShareToolReadiness.js";
-export type { ShareToolReadiness } from "./useShareToolReadiness.js";
 // Origin validation moved to @stigmer/sdk (framework-free, shared with the
 // CLI); re-exported here so existing @stigmer/react importers keep working.
 export { validateOrigin, MAX_ALLOWED_ORIGINS } from "@stigmer/sdk";

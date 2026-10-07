@@ -73,9 +73,15 @@ function createMockStigmer(overrides: MockOverrides = {}) {
       }),
       completeInstall: vi.fn().mockResolvedValue({}),
     },
-    environment: {
+    credential: {
       list: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }),
-      getByReference: vi.fn().mockRejectedValue(new Error("not found")),
+    },
+    // The tool-using agent's one server, read for what channel runs need.
+    mcpServer: {
+      getByReference: vi.fn().mockResolvedValue({
+        metadata: { id: "mcp_github", org: "acme", slug: "github", name: "GitHub" },
+        spec: { env: { GITHUB_TOKEN: { isSecret: true } } },
+      }),
     },
     iamPolicy: {
       checkMyPermission:
@@ -425,7 +431,7 @@ describe("AgentChannelsPanel", () => {
     // The awaited query anchors on the portaled menu's mount (#323) — only
     // then are the absence assertions below meaningful rather than vacuous.
     expect(await screen.findByRole("menuitem", { name: /sessions/i })).toBeTruthy();
-    expect(screen.queryByRole("menuitem", { name: /tool credentials/i })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: /^credentials$/i })).toBeNull();
     expect(screen.queryByRole("menuitem", { name: /disconnect/i })).toBeNull();
   });
 
@@ -460,7 +466,7 @@ describe("AgentChannelsPanel", () => {
     expect(within(dialog as HTMLElement).getByText("Support Slack")).toBeTruthy();
   });
 
-  it("warns on an installed card when a tool-using agent has no credentials bound", async () => {
+  it("warns on an installed card when the agent needs a value the channel does not assign", async () => {
     const client = createMockStigmer({
       channels: [makeChannel({ teamName: "Acme HQ" })],
     });
@@ -471,12 +477,11 @@ describe("AgentChannelsPanel", () => {
     );
 
     await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
-    // The card is where an owner discovers the gap — including one who
-    // connected before credential binding existed.
+    // The card is where an owner discovers the gap.
     expect(
-      await screen.findByText(/no credentials are bound to this channel/i),
+      await screen.findByText(/needs GITHUB_TOKEN, and nothing is assigned on this channel/i),
     ).toBeTruthy();
-    expect(screen.getByRole("button", { name: /bind credentials/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /assign credentials/i })).toBeTruthy();
   });
 
   it("stays silent on cards for agents without tools", async () => {
@@ -491,7 +496,7 @@ describe("AgentChannelsPanel", () => {
 
     await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
     expect(
-      screen.queryByText(/no credentials are bound to this channel/i),
+      screen.queryByText(/nothing is assigned on this channel/i),
     ).toBeNull();
   });
 
@@ -508,11 +513,11 @@ describe("AgentChannelsPanel", () => {
     await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
     await openMenu(screen.getByRole("button", { name: /actions for/i }));
     fireEvent.click(
-      await screen.findByRole("menuitem", { name: "Tool credentials" }),
+      await screen.findByRole("menuitem", { name: "Credentials" }),
     );
 
     expect(
-      await screen.findByRole("heading", { name: "Tool credentials" }),
+      await screen.findByRole("heading", { name: "Credentials" }),
     ).toBeTruthy();
   });
 

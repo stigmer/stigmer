@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
+import { create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
 import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { CredentialSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/api_pb";
+import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { StigmerError, type AgentShareInput } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
@@ -32,7 +34,7 @@ interface MockOverrides {
   apply?: (input: AgentShareInput) => Promise<unknown>;
   rotateShareLink?: (input: unknown) => Promise<unknown>;
   getOrCreateBillingAccount?: (orgId: string) => Promise<unknown>;
-  environments?: unknown[];
+  credentials?: unknown[];
   baseUrl?: string;
 }
 
@@ -46,23 +48,20 @@ function createMockStigmer(overrides: MockOverrides = {}) {
       rotateShareLink:
         overrides.rotateShareLink ?? vi.fn().mockResolvedValue({}),
     },
-    environment: {
+    credential: {
       list: vi.fn().mockResolvedValue({
-        items: overrides.environments ?? [],
-        totalCount: overrides.environments?.length ?? 0,
+        items: overrides.credentials ?? [],
+        totalCount: overrides.credentials?.length ?? 0,
       }),
-      // The readiness hook checks bound refs' visibility; the picker's
-      // list above is the source of the fixtures, so resolve from it.
-      getByReference: vi
-        .fn()
-        .mockImplementation(({ slug }: { org: string; slug: string }) => {
-          const env = (overrides.environments ?? []).find(
-            (e) => (e as { metadata?: { slug?: string } }).metadata?.slug === slug,
-          );
-          return env
-            ? Promise.resolve(env)
-            : Promise.reject(new Error("not found"));
+    },
+    // The agent's one MCP server, read for what visitors' runs need.
+    mcpServer: {
+      getByReference: vi.fn().mockResolvedValue(
+        create(McpServerSchema, {
+          metadata: { id: "mcp_github", org: "acme", slug: "github", name: "GitHub" },
+          spec: { env: { GITHUB_TOKEN: { isSecret: true } } },
         }),
+      ),
     },
     billing: {
       getOrCreateBillingAccount:
@@ -122,7 +121,7 @@ function makeShare(
       unavailable?: string;
       conversationEnded?: string;
     };
-    environmentRefs?: { org: string; slug: string }[];
+    credentials?: unknown[];
   },
   shareLinkToken?: string,
 ) {
@@ -138,14 +137,19 @@ function makeShare(
   } as never;
 }
 
-function orgSharedEnv(slug: string, name?: string) {
+function orgCredential(slug: string, name?: string) {
+  return create(CredentialSchema, {
+    metadata: { id: `cred_${slug}`, org: "acme", slug, name: name ?? slug },
+    spec: { owner: { case: "org", value: "acme" }, fields: { GITHUB_TOKEN: { value: "***REDACTED***" } } },
+  });
+}
+
+/** A stored assignment of GITHUB_TOKEN for the GitHub MCP server from `slug`. */
+function githubAssignment(slug: string) {
   return {
-    metadata: {
-      slug,
-      name: name ?? slug,
-      visibility: ApiResourceVisibility.visibility_org,
-    },
-    spec: { description: "" },
+    requirement: { declarer: { target: { case: "mcpServer", value: { org: "acme", slug: "github" } } }, key: "GITHUB_TOKEN" },
+    source: { case: "credential", value: { credential: { org: "acme", slug }, field: "" } },
+    writer: "ida_owner",
   };
 }
 
@@ -471,12 +475,12 @@ describe("ShareAgentDialog", () => {
       renderOpenDialog(
         createMockStigmer({
           apply,
-          environments: [orgSharedEnv("github-creds")],
+          credentials: [orgCredential("github-creds")],
         }),
         {
           share: makeShare({
             enabled: true,
-            environmentRefs: [{ org: "acme", slug: "github-creds" }],
+            credentials: [githubAssignment("github-creds")],
           }),
         },
       );
@@ -485,12 +489,12 @@ describe("ShareAgentDialog", () => {
         screen.getByRole("radio", { name: "Org members", hidden: true }),
       );
 
-      // The proto CEL rule rejects environment_refs on org-audience
-      // shares — carrying them would fail the whole apply.
+      // The proto CEL rule rejects credentials on org-audience shares —
+      // carrying them would fail the whole apply.
       await waitFor(() => expect(apply).toHaveBeenCalledTimes(1));
       const input = apply.mock.calls[0][0] as AgentShareInput;
       expect(input.audience).toBe(AgentShareAudience.org);
-      expect(input.environmentRefs).toEqual([]);
+      expect(input.credentials).toEqual([]);
     });
 
     it("renders org-audience copy: member link, revocation note, no indexability warning", () => {
@@ -605,24 +609,22 @@ describe("ShareAgentDialog", () => {
     expect(screen.getByText("https://normalized.example.com")).toBeTruthy();
   });
 
-  describe("Tool credentials", () => {
-    it("warns needs-credentials for a tool-using share without bindings", () => {
+  describe("Credentials", () => {
+    it("names the values visitors' chats need when nothing assigns them", async () => {
       renderOpenDialog(createMockStigmer(), {
         agent: makeAgent({ mcpUsages: true }),
         share: makeShare({ enabled: true }),
       });
 
-      expect(
-        screen.getByText(/no credentials are bound to this share/i),
-      ).toBeTruthy();
+      expect(await screen.findByText(/Visitors.*chats won.t start yet/i)).toBeTruthy();
     });
 
-    it("binds an org-shared environment by applying the appended refs", async () => {
+    it("assigns an organization key's field and saves it with one button, never sending a writer", async () => {
       const apply = vi.fn().mockResolvedValue({});
       renderOpenDialog(
         createMockStigmer({
           apply,
-          environments: [orgSharedEnv("github-creds", "GitHub Creds")],
+          credentials: [orgCredential("github-creds", "GitHub Creds")],
         }),
         {
           agent: makeAgent({ mcpUsages: true }),
@@ -631,45 +633,37 @@ describe("ShareAgentDialog", () => {
       );
 
       // The section is expanded by default for tool-using agents.
-      const picker = await screen.findByLabelText("Add environment", {
-        // The select is visually present inside the collapsible.
-        selector: "select",
-      });
-      fireEvent.change(picker, { target: { value: "github-creds" } });
+      const source = await screen.findByLabelText("GITHUB_TOKEN", { selector: "select" });
+      await screen.findByRole("option", { name: "GitHub Creds", hidden: true });
+      fireEvent.change(source, { target: { value: "cred:acme/github-creds" } });
+      expect(apply).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole("button", { name: "Save credentials", hidden: true }));
 
       await waitFor(() => expect(apply).toHaveBeenCalledTimes(1));
       const input = apply.mock.calls[0][0] as AgentShareInput;
-      expect(input.environmentRefs).toEqual([
-        { org: "acme", slug: "github-creds" },
+      expect(input.credentials).toEqual([
+        {
+          requirement: { declarer: { mcpServer: { org: "acme", slug: "github" } }, key: "GITHUB_TOKEN" },
+          credential: { credential: { org: "acme", slug: "github-creds" } },
+        },
       ]);
-      // The binding rides the full spec — nothing else changes.
+      // The assignment rides the full spec — nothing else changes.
       expect(input.enabled).toBe(true);
     });
 
-    it("offers only org-shared environments in the picker", async () => {
-      const privateEnv = {
-        metadata: {
-          slug: "personal-creds",
-          name: "Personal Creds",
-          visibility: ApiResourceVisibility.visibility_private,
-        },
-        spec: { description: "" },
-      };
-      renderOpenDialog(
-        createMockStigmer({
-          environments: [orgSharedEnv("github-creds", "GitHub Creds"), privateEnv],
-        }),
-        {
-          agent: makeAgent({ mcpUsages: true }),
-          share: makeShare({ enabled: true }),
-        },
-      );
+    it("keeps a stored assignment without its writer on any other save", async () => {
+      const apply = vi.fn().mockResolvedValue({});
+      renderOpenDialog(createMockStigmer({ apply, credentials: [orgCredential("github-creds")] }), {
+        agent: makeAgent({ mcpUsages: true }),
+        share: makeShare({ enabled: true, credentials: [githubAssignment("github-creds")] }),
+      });
 
-      await screen.findByLabelText("Add environment", { selector: "select" });
-      // Private environments are guest-unusable (the runtime merge skips
-      // them) — offering them would bind credentials that never apply.
-      expect(screen.getByText("GitHub Creds")).toBeTruthy();
-      expect(screen.queryByText("Personal Creds")).toBeNull();
+      fireEvent.click(screen.getByRole("switch", { hidden: true }));
+
+      await waitFor(() => expect(apply).toHaveBeenCalledTimes(1));
+      const input = apply.mock.calls[0][0] as AgentShareInput;
+      expect(input.credentials).toHaveLength(1);
+      expect(JSON.stringify(input.credentials)).not.toContain("writer");
     });
 
     it("hides the section entirely for org-audience shares", () => {
@@ -678,7 +672,7 @@ describe("ShareAgentDialog", () => {
         share: makeShare({ enabled: true, audience: AgentShareAudience.org }),
       });
 
-      expect(screen.queryByText("Tool credentials")).toBeNull();
+      expect(screen.queryByRole("button", { name: "Credentials", hidden: true })).toBeNull();
     });
   });
 

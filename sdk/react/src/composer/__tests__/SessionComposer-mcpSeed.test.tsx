@@ -22,7 +22,7 @@ const ZENDESK = { org: "acme", slug: "zendesk", kind: ApiResourceKind.mcp_server
 function clientWith(getByReference: () => Promise<unknown>): Stigmer {
   return {
     run: { uploadAttachment: vi.fn() },
-    environment: { getPersonal: vi.fn().mockResolvedValue(null) },
+    credential: { list: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }) },
     mcpServer: { getByReference: vi.fn(getByReference) },
     baseUrl: "/",
     getAuthCredential: vi.fn().mockResolvedValue("test-token"),

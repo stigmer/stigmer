@@ -11,7 +11,7 @@ import {
   EnvVarForm,
   type EnvVarFormVariable,
   type EnvVarFormSubmitOptions,
-} from "../environment/EnvVarForm.js";
+} from "../credential/EnvVarForm.js";
 import { VendorApprovalBlockedNotice } from "./VendorApprovalBlockedNotice.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import {
@@ -25,8 +25,8 @@ import {
 
 /**
  * Props for the inline credentials form shown when a server requires
- * environment variables that are missing from the user's personal
- * environment.
+ * environment variables that are missing from the credential serving the
+ * server.
  *
  * This is modeled as a sub-object of {@link McpServerConfigPanelProps}
  * so the presence of `credentials` controls whether the form is
@@ -75,7 +75,7 @@ export interface McpServerOAuthSignInProps {
   readonly onSignIn: () => void;
   /** Current phase of the OAuth flow. */
   readonly phase: OAuthConnectPhase;
-  /** `true` when the OAuth token already exists in the personal environment. */
+  /** `true` when the OAuth token already exists in the credentials. */
   readonly isConnected: boolean;
   /**
    * Health of the OAuth connection. Drives the status dot color and
@@ -229,7 +229,7 @@ export interface McpServerConfigPanelProps {
  * - **Absent** (server is ready) — only the tool list is shown.
  *
  * This is a **pure presentational component** with no knowledge of
- * the setup hook, personal environments, or session creation. All
+ * the setup hook, credentials, or session creation. All
  * state is controlled via props — platform builders can use it with
  * any state management approach.
  *

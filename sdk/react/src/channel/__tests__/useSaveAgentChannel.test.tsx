@@ -80,30 +80,47 @@ describe("agentChannelToInput", () => {
     expect(input).not.toHaveProperty("slug");
   });
 
-  it("carries environment_refs — the toggle must never wipe bound credentials", () => {
+  it("carries the credential assignments without their writer — the toggle must never wipe them, nor claim who wrote them", () => {
     const channel = makeChannel({
       spec: {
         agentRef: { org: "acme", slug: "support-agent" },
         enabled: true,
         providerConfig: { case: "slack", value: {} },
-        environmentRefs: [
-          { org: "acme", slug: "github-credentials" },
-          { org: "acme", slug: "search-credentials" },
+        credentials: [
+          {
+            requirement: {
+              declarer: { target: { case: "mcpServer", value: { org: "acme", slug: "github" } } },
+              key: "GITHUB_TOKEN",
+            },
+            source: { case: "credential", value: { credential: { org: "acme", slug: "bot-token" }, field: "" } },
+            writer: "ida_admin",
+          },
+          {
+            requirement: { declarer: { target: { case: "agent", value: { org: "acme", slug: "support-agent" } } }, key: "REGION" },
+            source: { case: "literal", value: "eu" },
+            writer: "ida_admin",
+          },
         ],
       },
     });
 
     const input = agentChannelToInput(channel);
-    // Order preserved: the ref list's order is the merge priority.
-    expect(input.environmentRefs).toEqual([
-      { org: "acme", slug: "github-credentials" },
-      { org: "acme", slug: "search-credentials" },
+    expect(input.credentials).toEqual([
+      {
+        requirement: { declarer: { mcpServer: { org: "acme", slug: "github" } }, key: "GITHUB_TOKEN" },
+        credential: { credential: { org: "acme", slug: "bot-token" } },
+      },
+      {
+        requirement: { declarer: { agent: { org: "acme", slug: "support-agent" } }, key: "REGION" },
+        literal: "eu",
+      },
     ]);
+    expect(JSON.stringify(input)).not.toContain("writer");
   });
 
-  it("omits environmentRefs entirely when the channel binds none", () => {
+  it("omits credentials entirely when the channel assigns none", () => {
     const input = agentChannelToInput(makeChannel());
-    expect(input).not.toHaveProperty("environmentRefs");
+    expect(input).not.toHaveProperty("credentials");
   });
 
   it("carries app_ref — the toggle must never unbind the serving app", () => {
@@ -260,7 +277,13 @@ describe("useSaveAgentChannel", () => {
         enabled: true,
         providerConfig: { case: "slack", value: {} },
         appRef: { org: "acme", slug: "acme-support-app" },
-        environmentRefs: [{ org: "acme", slug: "github-credentials" }],
+        credentials: [
+          {
+            requirement: { declarer: { target: { case: "gitHost", value: "github.com" } }, key: "GITHUB_TOKEN" },
+            source: { case: "credential", value: { credential: { org: "acme", slug: "github-credentials" }, field: "" } },
+            writer: "ida_owner",
+          },
+        ],
       },
     });
 
@@ -282,7 +305,12 @@ describe("useSaveAgentChannel", () => {
         slack: {},
         enabled: false,
         appRef: { org: "acme", slug: "acme-support-app" },
-        environmentRefs: [{ org: "acme", slug: "github-credentials" }],
+        credentials: [
+          {
+            requirement: { declarer: { gitHost: "github.com" }, key: "GITHUB_TOKEN" },
+            credential: { credential: { org: "acme", slug: "github-credentials" } },
+          },
+        ],
       }),
     );
   });

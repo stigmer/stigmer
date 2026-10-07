@@ -1,6 +1,6 @@
 /**
- * The pool re-evaluation must settle. An agent that declares a variable the
- * personal environment lacks enters `needsEnvVars`; the session composer's
+ * The pool re-evaluation must settle. An agent that declares a variable no
+ * credential holds enters `needsEnvVars`; the session composer's
  * pool always holds the system keys, so the pool-resolve effect always
  * runs. Before this test, the effect dispatched a freshly built array on
  * every run, the reducer stored it, the effect saw a new dependency and
@@ -21,13 +21,12 @@ import { Stigmer } from "@stigmer/sdk";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
-import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
-import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/requirement_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { credentialWorld, routeCredentials } from "../../credential/__tests__/credential-world";
 import { useAgentSetup } from "../useAgentSetup";
 
 afterEach(cleanup);
@@ -38,8 +37,8 @@ function client() {
   return new Stigmer({
     baseUrl: "/",
     getAccessToken: () => "t",
-    customTransport: createRouterTransport(({ service }) => {
-      service(AgentQueryController, {
+    customTransport: createRouterTransport((router) => {
+      router.service(AgentQueryController, {
         getByReference: () =>
           create(AgentSchema, {
             metadata: create(ApiResourceMetadataSchema, { id: "agt_1", org: REF.org, slug: REF.slug, name: "warmth-kit" }),
@@ -48,7 +47,7 @@ function client() {
             }),
           }),
       });
-      service(EnvironmentQueryController, { list: () => create(EnvironmentListSchema, { items: [] }) });
+      routeCredentials(router, credentialWorld());
     }),
   });
 }

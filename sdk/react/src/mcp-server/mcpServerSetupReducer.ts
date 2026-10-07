@@ -9,7 +9,7 @@ import type { ResourceRef } from "@stigmer/sdk";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import type { DiscoveredTool } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
-import type { EnvVarFormVariable } from "../environment/EnvVarForm.js";
+import type { EnvVarFormVariable } from "../credential/EnvVarForm.js";
 
 // ---------------------------------------------------------------------------
 // Key utility
@@ -43,7 +43,7 @@ export function toServerKey(ref: ResourceRef): string {
  * Phases:
  * - `"loading"` — Fetching the full `McpServer` resource (spec + status).
  * - `"needsSetup"` — The server has `env` declarations with variables
- *   missing from the user's personal environment. The UI should present
+ *   missing from the user's credentials. The UI should present
  *   a credential collection form.
  * - `"submitting"` — Environment variables are being persisted (save path)
  *   or collected (one-time path). The UI should show a loading indicator
@@ -59,7 +59,7 @@ export type McpServerSetupPhase =
       readonly status: "loading";
     }
   | {
-      /** The server has env vars missing from the user's personal environment. */
+      /** The server has env vars missing from the user's credentials. */
       readonly status: "needsSetup";
       /** The fetched MCP server resource. */
       readonly mcpServer: McpServer;

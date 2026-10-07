@@ -12,8 +12,7 @@ export type VisibilityResourceKind =
   | "skill"
   | "agent"
   | "mcpServer"
-  | "plugin"
-  | "environment";
+  | "plugin";
 
 /** Return value of {@link useUpdateVisibility}. */
 export interface UseUpdateVisibilityReturn {
@@ -35,9 +34,7 @@ export interface UseUpdateVisibilityReturn {
  *
  * Supports blueprints (Agent, Skill, MCP Server, Plugin) with
  * the full private/org/child-organizations spectrum (a plugin's change reaches
- * every resource it installed, by the server's contract), and environments
- * with private/org (secret values never leave the org boundary, so the
- * child-organizations level is rejected by the backend).
+ * every resource it installed, by the server's contract).
  *
  * Wraps the generated `stigmer.{kind}.updateVisibility()` SDK method
  * with loading and error state management. The hook is stateless with
@@ -93,9 +90,6 @@ export function useUpdateVisibility(
             break;
           case "plugin":
             await stigmer.plugin.updateVisibility(input);
-            break;
-          case "environment":
-            await stigmer.environment.updateVisibility(input);
             break;
         }
       } catch (err) {

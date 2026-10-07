@@ -327,7 +327,7 @@ describe("NewSessionViewer — audience wiring", () => {
     // directly, as given.
     expect(stubNewSessionFlow.setAgentRef).toHaveBeenCalledWith(AGENT_REF);
     expect(stubNewSessionFlow.setResolution).toHaveBeenCalledWith({ mode: "direct" });
-    // A guest has no personal environment, so nothing is disclosed.
+    // A guest has no credentials, so nothing is disclosed.
     expect(props.disclosePersonalKeys).toBe(false);
   });
 

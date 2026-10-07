@@ -80,7 +80,7 @@ function makeChannel(runConfig?: {
       agentRef: { org: "acme", slug: "support-agent" },
       enabled: true,
       providerConfig: { case: "slack", value: {} },
-      environmentRefs: [],
+      credentials: [],
       ...(runConfig
         ? {
             runConfig: {

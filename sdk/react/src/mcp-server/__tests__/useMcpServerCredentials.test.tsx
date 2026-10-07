@@ -9,8 +9,6 @@ import {
   GetOAuthGrantStatusOutputSchema,
   GetOrgOAuthAppOutputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
-import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import {
   McpServerSpecSchema,
   McpServerAuthSchema,
@@ -21,6 +19,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { samples } from "../../test/samples";
 import { StigmerContext } from "../../context";
+import { credentialWorld, routeCredentials } from "../../credential/__tests__/credential-world";
 import { useMcpServerCredentials } from "../useMcpServerCredentials";
 
 /**
@@ -63,15 +62,12 @@ function buildServer(options: { withAuth: boolean; withAppRef: boolean }): McpSe
   return server;
 }
 
-/** Baseline handlers so personal-env and grant-status fetches stay healthy. */
+/** Baseline handlers so the grant-status fetch stays healthy. */
 function baselineHandlers() {
   return {
     mcpServer: {
       getOAuthGrantStatus: () =>
         create(GetOAuthGrantStatusOutputSchema, { connected: false }),
-    },
-    environment: {
-      list: () => create(EnvironmentListSchema, { items: [] }),
     },
   };
 }
@@ -108,7 +104,7 @@ describe("useMcpServerCredentials — org-override derivation", () => {
               clientId: "acme-client-id",
             }),
         });
-        router.service(EnvironmentQueryController, base.environment);
+        routeCredentials(router, credentialWorld());
       },
     );
 
@@ -132,7 +128,7 @@ describe("useMcpServerCredentials — org-override derivation", () => {
           getOrgOAuthApp: () =>
             create(GetOrgOAuthAppOutputSchema, { hasOverride: false }),
         });
-        router.service(EnvironmentQueryController, base.environment);
+        routeCredentials(router, credentialWorld());
       },
     );
 
@@ -157,7 +153,7 @@ describe("useMcpServerCredentials — org-override derivation", () => {
       ORG,
       (router) => {
         router.service(McpServerQueryController, base.mcpServer);
-        router.service(EnvironmentQueryController, base.environment);
+        routeCredentials(router, credentialWorld());
       },
     );
 
@@ -183,7 +179,7 @@ describe("useMcpServerCredentials — org-override derivation", () => {
           ...base.mcpServer,
           getOrgOAuthApp,
         });
-        router.service(EnvironmentQueryController, base.environment);
+        routeCredentials(router, credentialWorld());
       },
     );
 
@@ -209,7 +205,7 @@ describe("useMcpServerCredentials — org-override derivation", () => {
           ...base.mcpServer,
           getOrgOAuthApp,
         });
-        router.service(EnvironmentQueryController, base.environment);
+        routeCredentials(router, credentialWorld());
       },
     );
 
@@ -233,7 +229,7 @@ describe("useMcpServerCredentials — org-override derivation", () => {
             throw new ConnectError("store unavailable", Code.Internal);
           },
         });
-        router.service(EnvironmentQueryController, base.environment);
+        routeCredentials(router, credentialWorld());
       },
     );
 
@@ -260,7 +256,7 @@ describe("useMcpServerCredentials — org-override derivation", () => {
           ...base.mcpServer,
           getOrgOAuthApp,
         });
-        router.service(EnvironmentQueryController, base.environment);
+        routeCredentials(router, credentialWorld());
       },
     );
 
@@ -283,7 +279,7 @@ describe("useMcpServerCredentials — org-override derivation", () => {
           getOrgOAuthApp: () =>
             create(GetOrgOAuthAppOutputSchema, { hasOverride }),
         });
-        router.service(EnvironmentQueryController, base.environment);
+        routeCredentials(router, credentialWorld());
       },
     );
 

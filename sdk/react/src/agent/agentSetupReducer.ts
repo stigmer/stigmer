@@ -1,3 +1,10 @@
+/**
+ * The agent setup state machine behind `useAgentSetup`: what the composer
+ * is waiting for before a run of the picked agent can start (values the
+ * person types, sign-ins the agent's tools need), and how the agent was
+ * resolved once nothing is missing. Pure: every network read and write is
+ * the hook's.
+ */
 import type { EnvVarInput, ResourceRef } from "@stigmer/sdk";
 import type { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import type { AgentEnvFormVariable } from "./AgentEnvForm.js";
@@ -7,11 +14,12 @@ import type { AgentEnvFormVariable } from "./AgentEnvForm.js";
 // ---------------------------------------------------------------------------
 
 /**
- * One MCP server the agent uses that authenticates by OAuth and has no
- * usable grant in the organization. The agent is not ready until each is
- * signed in: run would start and fail at the first tool call, so the
- * composer asks first, the way it asks for a missing variable. Grants are
- * per organization today, so one colleague's sign-in serves everyone.
+ * One MCP server the agent uses whose account is not connected for this
+ * person's runs. With personal sign-in it is the person's own sign-in that
+ * is missing (or expired); with organization sign-in it is the
+ * organization's, which only an admin can connect. The agent is not ready
+ * until each is connected: a run would be refused, so the composer asks
+ * first, the way it asks for a missing value.
  */
 export interface PendingSignIn {
   /** The server's reference, for the row's own read. */
@@ -22,6 +30,12 @@ export interface PendingSignIn {
   readonly name: string;
   /** The grant's health as the backend graded it; `NO_GRANT` when none exists. */
   readonly health: OAuthConnectionHealth;
+  /**
+   * `true` when the server uses one account for the whole organization:
+   * an admin connects it (in Accounts and keys, or by signing in), and the
+   * person can only ask.
+   */
+  readonly organization: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -35,8 +49,9 @@ export interface PendingSignIn {
  * Every mode starts the conversation on the agent itself (the session's
  * `agentRef`); the mode says where the keys the agent declares come from:
  *
- * - `"saved"` — The user's personal environment holds every declared
- *   key (saved just now or earlier). Each run reads them from there.
+ * - `"saved"` — Credentials give every declared value: the person's own
+ *   (saved just now or earlier) or the organization's they may use. Each
+ *   run reads them from there.
  * - `"oneTime"` — Secrets were collected but **not** persisted. Pass
  *   `runtimeEnv` to `createExecution` for this run only.
  * - `"direct"` — Nothing is needed from the user: the agent declares no
@@ -44,7 +59,7 @@ export interface PendingSignIn {
  */
 export type AgentResolution =
   | {
-      /** The user's personal environment holds every key the agent declares. */
+      /** Credentials give every value the agent's run needs. */
       readonly mode: "saved";
     }
   | {
@@ -54,7 +69,7 @@ export type AgentResolution =
       readonly runtimeEnv: Record<string, EnvVarInput>;
     }
   | {
-      /** Nothing is needed from the user's personal environment. */
+      /** Nothing is needed from credentials: the agent needs nothing, or this run's values cover it. */
       readonly mode: "direct";
     };
 
@@ -97,11 +112,11 @@ export type AgentSetupPhase =
       readonly agentName: string;
       /** Environment variables the user must provide before proceeding. */
       readonly missingVariables: AgentEnvFormVariable[];
-      /** OAuth servers of the agent's that nobody in the organization has signed in to. */
+      /** MCP servers of the agent's whose account is not connected for this person's runs. */
       readonly pendingSignIns: readonly PendingSignIn[];
     }
   | {
-      /** Environment variables are being saved to the personal environment. */
+      /** Values are being saved into the person's credentials. */
       readonly status: "submitting";
       /** Reference to the agent being set up. */
       readonly agentRef: ResourceRef;
@@ -183,7 +198,7 @@ export type AgentSetupResult =
       readonly agentName: string;
       /** Environment variables the user must provide before proceeding. */
       readonly missingVariables: AgentEnvFormVariable[];
-      /** OAuth servers of the agent's that nobody in the organization has signed in to. */
+      /** MCP servers of the agent's whose account is not connected for this person's runs. */
       readonly pendingSignIns: readonly PendingSignIn[];
     };
 
@@ -236,7 +251,7 @@ export type AgentSetupAction =
       readonly missingVariables: AgentEnvFormVariable[];
     }
   | {
-      /** Begin saving env vars to the personal environment. */
+      /** Begin saving values into the person's credentials. */
       readonly type: "SUBMIT_START";
     }
   | {

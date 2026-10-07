@@ -3,7 +3,6 @@ import {
   Activity,
   AppWindow,
   BarChart3,
-  Box,
   Brain,
   Building2,
   CreditCard,
@@ -12,6 +11,7 @@ import {
   KeyRound,
   KeySquare,
   Link,
+  LockKeyhole,
   MessageSquare,
   MousePointerClick,
   Plug,
@@ -80,7 +80,7 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
   {
     label: "Configuration",
     description:
-      "API keys, environment variables, and OAuth app credentials for your integrations.",
+      "API keys, the accounts and keys your agents use, and OAuth app credentials for your integrations.",
     items: [
       { href: "/settings/api-keys", label: "API Keys", icon: KeyRound },
       {
@@ -88,7 +88,7 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
         label: "Platform Clients",
         icon: Plug,
       },
-      { href: "/settings/environments", label: "Environments", icon: Box },
+      { href: "/settings/credentials", label: "Accounts and keys", icon: LockKeyhole },
       { href: "/settings/oauth-apps", label: "OAuth Apps", icon: AppWindow },
       {
         href: "/settings/channel-apps",

@@ -6,6 +6,7 @@ import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { storedCredential } from "../../credential/__tests__/credential-world";
 import { useSessionAgentVersion } from "../useSessionAgentVersion";
 
 // ---------------------------------------------------------------------------
@@ -15,9 +16,10 @@ import { useSessionAgentVersion } from "../useSessionAgentVersion";
 // by the id the session pinned, never by slug; a guest reads nothing; an
 // unreadable agent offers nothing; and labels read as a version's tag where
 // it has one, else a short hash. Update calls the move it is given and
-// reports a failure instead of throwing. The current version's declared
-// keys are reported, sorted, for the notice to name before an update, and
-// none when the agent belongs to another organization than the session.
+// reports a failure instead of throwing. The keys the current version
+// takes from the person's own credentials are reported, sorted, for the
+// notice to name before an update, read in the session's organization
+// only: the person's credentials elsewhere are not the run's.
 // ---------------------------------------------------------------------------
 
 function session(pin: string, org = "org_acme"): Session {
@@ -40,7 +42,24 @@ function makeClient(current: string, get = vi.fn()) {
       { versionHash: "h_old", tag: "", isCurrent: false },
     ],
   });
-  return { agent: { get, listVersions } } as unknown as Stigmer & {
+  // The person's credential serving the agent, in the agent's organization only.
+  const list = vi.fn(({ org }: { org: string }) =>
+    Promise.resolve({
+      items:
+        org === "org_acme"
+          ? [
+              storedCredential({
+                id: "mine",
+                org: "org_acme",
+                owner: "person",
+                fields: ["GITHUB_TOKEN", "LINEAR_API_KEY"],
+                serves: [{ kind: "agent", org: "org_acme", slug: "reviewer" }],
+              }),
+            ]
+          : [],
+    }),
+  );
+  return { agent: { get, listVersions }, credential: { list } } as unknown as Stigmer & {
     agent: { get: ReturnType<typeof vi.fn> };
   };
 }
@@ -74,7 +93,7 @@ describe("useSessionAgentVersion", () => {
     );
   });
 
-  it("reports no keys for an agent of another organization than the session's", async () => {
+  it("reports no keys when the session's organization holds none of the person's credentials", async () => {
     const client = makeClient("h_new");
     const { result } = renderHook(
       () =>

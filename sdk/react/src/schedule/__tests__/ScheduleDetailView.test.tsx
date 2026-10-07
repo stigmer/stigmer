@@ -19,6 +19,7 @@ import {
   ScheduleFireOutcome,
   ScheduleFireOrigin,
 } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -52,7 +53,7 @@ function makeSchedule(overrides?: {
   lastRunId?: string;
   cron?: string;
   consecutiveFailures?: number;
-  environmentRefs?: readonly { org: string; slug: string }[];
+  credentials?: readonly { key: string; server: string; credential: string }[];
   harness?: Harness;
   runConfig?: {
     modelName?: string;
@@ -81,10 +82,16 @@ function makeSchedule(overrides?: {
         value: {
           agentRef: { kind: ApiResourceKind.agent, org: "isc", slug: "fee-reminder" },
           message: "Send today's fee reminders.",
-          environmentRefs: (overrides?.environmentRefs ?? []).map((r) => ({
-            kind: ApiResourceKind.environment,
-            org: r.org,
-            slug: r.slug,
+          credentials: (overrides?.credentials ?? []).map((a) => ({
+            requirement: {
+              declarer: { target: { case: "mcpServer" as const, value: { kind: ApiResourceKind.mcp_server, org: "isc", slug: a.server } } },
+              key: a.key,
+            },
+            source: {
+              case: "credential" as const,
+              value: { credential: { kind: ApiResourceKind.credential, org: "isc", slug: a.credential }, field: "" },
+            },
+            writer: "ida_owner",
           })),
           ...(overrides?.harness !== undefined
             ? { harness: overrides.harness }
@@ -113,8 +120,9 @@ interface MockClient {
     delete: ReturnType<typeof vi.fn>;
   };
   manifest: { apply: ReturnType<typeof vi.fn> };
-  // The environments inline editor's picker lists the org's environments.
-  environment: { list: ReturnType<typeof vi.fn> };
+  // The credentials inline editor reads the agent and lists the org's credentials.
+  agent: { getByReference: ReturnType<typeof vi.fn> };
+  credential: { list: ReturnType<typeof vi.fn> };
 }
 
 function makeClient(schedule: Schedule): MockClient {
@@ -147,7 +155,12 @@ function makeClient(schedule: Schedule): MockClient {
         message: doc.message,
       })),
     },
-    environment: {
+    agent: {
+      getByReference: vi.fn().mockResolvedValue(
+        create(AgentSchema, { metadata: { id: "agt_1", org: "isc", slug: "fee-reminder", name: "Fee reminder" } }),
+      ),
+    },
+    credential: {
       list: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }),
     },
   };
@@ -312,7 +325,7 @@ describe("ScheduleDetailView", () => {
             origin: ScheduleFireOrigin.CRON,
             outcome: ScheduleFireOutcome.REFUSED,
             reason:
-              "run refused: MCP server 'isc-gym' requires environment variable 'ISC_MCP_SHARED_SECRET'",
+              "this run cannot start: MCP server 'isc-gym' needs ISC_MCP_SHARED_SECRET, and a run with no person behind it uses only what is assigned on the schedule that started it: assign ISC_MCP_SHARED_SECRET there",
             nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 60_000)),
           }),
         ],
@@ -836,16 +849,16 @@ describe("ScheduleDetailView", () => {
     expect(target?.runConfig?.maxCostUsd).toBe(2.5);
   });
 
-  it("round-trips environment references with the environment kind stamped", async () => {
+  it("round-trips credential assignments with the credential kind stamped and no writer sent", async () => {
     const client = makeClient(
       makeSchedule({
-        environmentRefs: [{ org: "isc", slug: "isc-mcp-credentials" }],
+        credentials: [{ key: "ISC_MCP_SHARED_SECRET", server: "isc-gym", credential: "isc-mcp-credentials" }],
       }),
     );
     renderView(client, { editable: true });
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
-    fireEvent.click(screen.getByRole("button", { name: "Edit environments" }));
+    fireEvent.click(screen.getByRole("button", { name: "Edit credentials" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(client.manifest.apply).toHaveBeenCalledOnce());
@@ -854,11 +867,15 @@ describe("ScheduleDetailView", () => {
       doc.message.spec?.target?.case === "agent"
         ? doc.message.spec.target.value
         : undefined;
-    expect(target?.environmentRefs).toHaveLength(1);
-    expect(target?.environmentRefs?.[0].slug).toBe("isc-mcp-credentials");
-    expect(target?.environmentRefs?.[0].kind).toBe(
-      ApiResourceKind.environment,
-    );
+    expect(target?.credentials).toHaveLength(1);
+    const assignment = target?.credentials?.[0];
+    expect(assignment?.requirement?.key).toBe("ISC_MCP_SHARED_SECRET");
+    expect(assignment?.source.case).toBe("credential");
+    if (assignment?.source.case === "credential") {
+      expect(assignment.source.value.credential?.slug).toBe("isc-mcp-credentials");
+      expect(assignment.source.value.credential?.kind).toBe(ApiResourceKind.credential);
+    }
+    expect(assignment?.writer).toBe("");
   });
 
   it("keeps the editor open with the server's message on a failed save", async () => {

@@ -1,12 +1,12 @@
 /**
  * useMcpServerSetup walks each attached server from loading to ready: a
  * server whose credentials are missing waits in needsSetup until they are
- * submitted (saved to the personal environment, or kept for this run only) or
- * until the session's env pool covers them. A ready server becomes a usage
- * that attaches the whole server: no per-tool selection rides on it, because
- * the agent's own tool lists decide which tools a session may call. The
- * personal environment is stubbed so these tests pin the hook's transitions,
- * not the environment hook's RPCs.
+ * submitted (saved into the person's credential serving the server, or kept
+ * for this run only) or until the session's env pool covers them. A ready
+ * server becomes a usage that attaches the whole server: no per-tool
+ * selection rides on it, because the agent's own tool lists decide which
+ * tools a session may call. Credentials are an in-memory world, so the save
+ * is pinned as the one write it makes.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook, act, waitFor, cleanup } from "@testing-library/react";
@@ -25,30 +25,19 @@ import {
   DiscoveredCapabilitiesSchema,
   DiscoveredToolSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/requirement_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { samples } from "../../test/samples";
 import { StigmerContext } from "../../context";
+import { ME, credentialWorld, routeCredentials, type CredentialWorld } from "../../credential/__tests__/credential-world";
 import { useMcpServerSetup } from "../useMcpServerSetup";
 
-const personalEnv = {
-  environment: null,
-  isLoading: false,
-  error: null,
-  refetch: vi.fn(),
-  getOrCreate: vi.fn(async () => ({})),
-  addVariables: vi.fn(async () => ({})),
-  removeVariables: vi.fn(async () => ({})),
-  isMutating: false,
-};
-
-vi.mock("../../environment/usePersonalEnvironment.js", () => ({
-  usePersonalEnvironment: () => personalEnv,
-}));
+let world: CredentialWorld = credentialWorld();
 
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  world = credentialWorld();
 });
 
 const ORG = "acme";
@@ -83,6 +72,7 @@ function wrapper({ children }: { readonly children: ReactNode }) {
       router.service(McpServerQueryController, {
         getByReference: () => serverNeedingToken(),
       });
+      routeCredentials(router, world);
     }),
   });
   return <StigmerContext.Provider value={client}>{children}</StigmerContext.Provider>;
@@ -115,23 +105,26 @@ describe("useMcpServerSetup", () => {
     );
 
     expect(result.current.entries["acme/zendesk"]?.status).toBe("ready");
-    expect(personalEnv.addVariables).not.toHaveBeenCalled();
+    expect(world.writes).toEqual([]);
     expect(result.current.pendingRuntimeEnv).toEqual({
       ZENDESK_TOKEN: { value: "t", isSecret: true },
     });
     expect(result.current.usageInputs).toEqual([WHOLE_SERVER_USAGE]);
   });
 
-  it("readies a server after saving its credentials to the personal environment", async () => {
+  it("readies a server after saving its credentials into a new credential of the person's serving it", async () => {
     const { result } = await addNeedingSetup();
 
     await act(() =>
       result.current.submitEnvVars(REF, { ZENDESK_TOKEN: { value: "t", isSecret: true } }),
     );
 
-    expect(personalEnv.addVariables).toHaveBeenCalledWith({
-      ZENDESK_TOKEN: { value: "t", isSecret: true },
-    });
+    expect(world.writes.map((w) => w.rpc)).toEqual(["create"]);
+    const created = world.writes[0]!.credential;
+    expect(created.metadata?.name).toBe("Zendesk");
+    expect(created.spec?.owner).toEqual({ case: "person", value: ME });
+    expect(Object.keys(created.spec?.fields ?? {})).toEqual(["ZENDESK_TOKEN"]);
+    expect(created.spec?.serves.map((t) => t.target.case)).toEqual(["mcpServer"]);
     expect(result.current.entries["acme/zendesk"]?.status).toBe("ready");
     expect(result.current.usageInputs).toEqual([WHOLE_SERVER_USAGE]);
   });

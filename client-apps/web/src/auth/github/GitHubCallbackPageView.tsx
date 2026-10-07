@@ -26,7 +26,7 @@ function isPopupWindow(): boolean {
  * Signal the opener window that the OAuth flow completed successfully
  * and close this popup. The opener's `useGitHubConnection` hook
  * listens for this message and re-reconciles the token from the
- * personal environment.
+ * person's GitHub credential.
  */
 function signalOpenerAndClose(): void {
   try {
@@ -45,7 +45,8 @@ function signalOpenerAndClose(): void {
  *
  * GitHub redirects here after the user authorizes. The page reads the
  * `code` and `state` query params, exchanges the code for a token via
- * the Stigmer backend, persists it in the personal environment, and
+ * the Stigmer backend, saves it as the person's credential serving
+ * github.com, and
  * either signals the opener popup or redirects to the home page.
  *
  * When running inside a popup (opened by the `connect({ popup: true })`
@@ -53,9 +54,9 @@ function signalOpenerAndClose(): void {
  * itself instead of navigating. This keeps the user on the original
  * page without context loss.
  *
- * The effect waits for both org context and the personal environment
- * to be ready before calling `handleCallback`, which writes the token
- * directly to the server-side personal environment.
+ * The effect waits for both org context and the person's credentials to
+ * be ready before calling `handleCallback`, which saves the token into
+ * the person's credential serving github.com.
  */
 export function GitHubCallbackPageView() {
   const router = useRouter();

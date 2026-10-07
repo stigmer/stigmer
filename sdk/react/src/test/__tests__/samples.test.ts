@@ -82,11 +82,18 @@ describe("samples", () => {
     });
   });
 
-  describe("environment", () => {
-    it("creates an environment with defaults", () => {
-      const e = samples.environment();
-      expect(e.kind).toBe("Environment");
-      expect(e.metadata?.name).toBe("demo-env");
+  describe("credential", () => {
+    it("creates the organization's credential by default", () => {
+      const c = samples.credential();
+      expect(c.kind).toBe("Credential");
+      expect(c.metadata?.name).toBe("demo-key");
+      expect(c.spec?.owner).toEqual({ case: "org", value: "demo" });
+    });
+
+    it("creates a person's credential with redacted fields", () => {
+      const c = samples.credential({ person: "ida_1", fields: ["API_KEY"] });
+      expect(c.spec?.owner).toEqual({ case: "person", value: "ida_1" });
+      expect(Object.keys(c.spec?.fields ?? {})).toEqual(["API_KEY"]);
     });
   });
 
@@ -187,7 +194,7 @@ describe("samples determinism", () => {
     run: () => samples.run(),
     skill: () => samples.skill(),
     mcpServer: () => samples.mcpServer(),
-    environment: () => samples.environment(),
+    credential: () => samples.credential(),
     apiKey: () => samples.apiKey(),
     organization: () => samples.organization(),
     organizationList: () => samples.organizationList(),

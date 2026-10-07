@@ -26,14 +26,14 @@ import { AgentDetailView } from "../../agent/AgentDetailView.js";
 import { ApiKeyListPanel } from "../../api-key/ApiKeyListPanel.js";
 import { BillingSection } from "../../billing/BillingSection.js";
 import { ChannelAppListPanel } from "../../channel-app/ChannelAppListPanel.js";
-import { EnvironmentListPanel } from "../../environment/EnvironmentListPanel.js";
-import { EnvironmentVariableEditor } from "../../environment/EnvironmentVariableEditor.js";
+import { CredentialsPanel } from "../../credential/CredentialsPanel.js";
+import { CredentialFieldsEditor } from "../../credential/CredentialFieldsEditor.js";
 import { OrgMembersPanel } from "../../iam-policy/OrgMembersPanel.js";
 import { IdentityProviderListPanel } from "../../identity-provider/IdentityProviderListPanel.js";
 import { InvitationRedemption } from "../../invitation/InvitationRedemption.js";
 import { OAuthAppListPanel } from "../../oauth-app/OAuthAppListPanel.js";
 import { PlatformClientListPanel } from "../../platform-client/PlatformClientListPanel.js";
-import { EnvironmentsSection } from "../../settings/EnvironmentsSection.js";
+import { CredentialsSection } from "../../settings/CredentialsSection.js";
 import { SkillDetailView } from "../../skill/SkillDetailView.js";
 import { SkillDiffDialog } from "../../skill/SkillDiffDialog.js";
 import { TeamListPanel } from "../../team/TeamListPanel.js";
@@ -101,16 +101,18 @@ const SITES: readonly Site[] = [
     ui: <ChannelAppListPanel org="acme" />,
   },
   {
-    name: "EnvironmentListPanel",
-    label: "Loading environments",
-    client: { environment: { list: pending } },
-    ui: <EnvironmentListPanel org="acme" />,
+    // The organization's section waits on the admin check, which never
+    // settles here, so only the person's own section loads.
+    name: "CredentialsPanel",
+    label: "Loading your keys",
+    client: { credential: { list: pending }, iamPolicy: { checkMyPermission: pending } },
+    ui: <CredentialsPanel org="org_acme" />,
   },
   {
-    name: "EnvironmentVariableEditor",
-    label: "Loading variables",
-    client: { environment: { get: pending } },
-    ui: <EnvironmentVariableEditor environmentId="env_acme" />,
+    name: "CredentialFieldsEditor",
+    label: "Loading fields",
+    client: { credential: { get: pending } },
+    ui: <CredentialFieldsEditor credentialId="cred_acme" />,
   },
   {
     name: "OrgMembersPanel",
@@ -146,17 +148,16 @@ const SITES: readonly Site[] = [
     ui: <PlatformClientListPanel org="acme" />,
   },
   {
-    // The personal environment's card; the organization's list below it
-    // is EnvironmentListPanel's row, named "Loading environments". The
-    // card asks to create the personal environment in the render where the
-    // organization arrives, before its list's first fetch has started, so
-    // `create` is among the calls it makes while it loads.
-    name: "EnvironmentsSection",
-    label: "Loading",
-    client: { ...ORG_PROVIDER_CALLS, environment: { list: pending, create: pending } },
+    name: "CredentialsSection",
+    label: "Loading your keys",
+    client: {
+      ...ORG_PROVIDER_CALLS,
+      credential: { list: pending },
+      iamPolicy: { checkMyPermission: pending },
+    },
     ui: (
       <OrgProvider>
-        <EnvironmentsSection />
+        <CredentialsSection />
       </OrgProvider>
     ),
   },

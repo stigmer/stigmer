@@ -17,8 +17,8 @@ import { PlatformClientDetailPanel } from "../PlatformClientDetailPanel";
 /**
  * Regression suite for the full-spec-replace wipe bug: before the
  * generated-mapper migration, this panel hand-built its update input and
- * NEVER sent `environment_refs` — saving any edit silently wiped the
- * client's credential-delivery environment bindings. The panel must
+ * NEVER sent the client's credential assignments — saving any edit
+ * silently wiped them. The panel must
  * spread `toPlatformClientUpdateInput` and override only what it edits.
  *
  * Also pins how the panel presents an expired client (#1254): the view
@@ -52,8 +52,15 @@ const PLATFORM_CLIENT: PlatformClient = create(PlatformClientSchema, {
     createAccountsOnSignIn: true,
     signInRole: IamRole.admin,
     allowedOrigins: ["https://embed.acme.example"],
-    environmentRefs: [
-      { org: "acme", slug: "prod", kind: ApiResourceKind.environment },
+    credentials: [
+      {
+        requirement: {
+          declarer: { target: { case: "mcpServer", value: { org: "acme", slug: "crm", kind: ApiResourceKind.mcp_server } } },
+          key: "CRM_TOKEN",
+        },
+        source: { case: "credential", value: { credential: { org: "acme", slug: "prod", kind: ApiResourceKind.credential } } },
+        writer: "ida_admin",
+      },
     ],
   },
 });
@@ -96,7 +103,7 @@ const ROTATE_WILL_NOT_HELP =
 afterEach(cleanup);
 
 describe("PlatformClientDetailPanel save payload", () => {
-  it("round-trips environment_refs on an origins-only edit (the wipe bug)", async () => {
+  it("round-trips the credential assignments, without their writer, on an origins-only edit (the wipe bug)", async () => {
     const update = vi.fn(async (_input: PlatformClientInput) => PLATFORM_CLIENT);
     renderPanel(update);
 
@@ -106,11 +113,15 @@ describe("PlatformClientDetailPanel save payload", () => {
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
     const input = update.mock.calls[0]![0];
 
-    // The wipe-bug guard: the form does not render environment bindings,
-    // yet they must survive the save.
-    expect(input.environmentRefs).toEqual([
-      { org: "acme", slug: "prod", kind: ApiResourceKind.environment },
+    // The wipe-bug guard: the form does not render the assignments, yet
+    // they must survive the save, and never claim who wrote them.
+    expect(input.credentials).toEqual([
+      {
+        requirement: { declarer: { mcpServer: { org: "acme", slug: "crm" } }, key: "CRM_TOKEN" },
+        credential: { credential: { org: "acme", slug: "prod" } },
+      },
     ]);
+    expect(JSON.stringify(input.credentials)).not.toContain("writer");
     // Form-owned fields round-trip from the edit state.
     expect(input.allowedOrigins).toEqual(["https://embed.acme.example"]);
     expect(input.createAccountsOnSignIn).toBe(true);

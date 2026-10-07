@@ -1,15 +1,25 @@
 "use client";
 
+/**
+ * useMcpServerCredentials: whether a person can use one MCP server now,
+ * and how they give it what it lacks. The values come from the
+ * credential serving the server: the person's own for a server with
+ * personal sign-in, the organization's for one with organization sign-in
+ * (the resolver's rule, `credential/requirements.ts`). A save goes into
+ * that same credential.
+ */
 import { useCallback, useMemo, useState } from "react";
 import type { EnvVarInput } from "@stigmer/sdk";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { OAuthAppSource } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
-import { usePersonalEnvironment } from "../environment/usePersonalEnvironment.js";
-import { diffEnv } from "../environment/diffEnv.js";
-import { SYSTEM_ENV_VAR_KEYS } from "../environment/systemEnvVars.js";
-import type { EnvVarFormVariable } from "../environment/EnvVarForm.js";
+import { useServingCredential } from "../credential/useServingCredential.js";
+import { diffEnv } from "../credential/diffEnv.js";
+import { credentialFieldNames } from "../credential/model.js";
+import { signInScopeOf } from "../credential/requirements.js";
+import { SYSTEM_ENV_VAR_KEYS } from "../credential/systemEnvVars.js";
+import type { EnvVarFormVariable } from "../credential/EnvVarForm.js";
 import { useOAuthGrantStatus } from "./useOAuthGrantStatus.js";
 import { useOrgOAuthApp } from "./useOrgOAuthApp.js";
 
@@ -40,8 +50,8 @@ export interface UseMcpServerCredentialsReturn {
   readonly oauthTargetEnvVar: string | null;
   /**
    * `true` when the user has an active OAuth grant for this server.
-   * Derived from the `getOAuthGrantStatus` API, not from personal
-   * environment key presence. Always `false` when `authMode` is `"manual"`.
+   * Derived from the `getOAuthGrantStatus` API, not from the credential's
+   * fields. Always `false` when `authMode` is `"manual"`.
    */
   readonly isOAuthConnected: boolean;
   /**
@@ -70,8 +80,8 @@ export interface UseMcpServerCredentialsReturn {
    */
   readonly tokenLifetimeHint: string | null;
   /**
-   * Required variables (non-optional) missing from the user's personal
-   * environment. Empty when all required variables are present, the
+   * Required variables (non-optional) missing from the credential serving
+   * the server. Empty when all required variables are present, the
    * server has no `env` declarations, or all declarations are optional.
    *
    * When `authMode` is `"oauth"`, the OAuth-managed `target_env_var`
@@ -89,31 +99,33 @@ export interface UseMcpServerCredentialsReturn {
    * `true` when all required (non-optional) credentials are available
    * — both OAuth-managed and manual variables. For OAuth servers this
    * means the OAuth grant is connected AND any additional required
-   * manual vars are present in the personal environment.
+   * manual vars are present in the credential serving the server.
    *
    * Servers whose env vars are all optional are always ready.
    */
   readonly isReady: boolean;
   /**
-   * `true` while the personal environment, grant status, or org-override
-   * lookup is being fetched.
+   * `true` while the credentials, grant status, or org-override lookup is
+   * being fetched.
    */
   readonly isLoading: boolean;
   /**
-   * Error from the personal environment, grant status, or org-override
-   * fetch, or `null`.
+   * Error from the credentials, grant status, or org-override fetch, or
+   * `null`.
    */
   readonly error: Error | null;
   /**
-   * Save the provided credentials to the user's personal environment.
-   * Creates the personal environment if it doesn't exist yet.
+   * Save the provided values into the credential serving the server: the
+   * person's own (created, named after the server, when none serves it
+   * yet), or the organization's for a server with organization sign-in
+   * (admins only).
    */
   readonly saveCredentials: (
     values: Record<string, EnvVarInput>,
   ) => Promise<void>;
   /** `true` while a save operation is in flight. */
   readonly isSaving: boolean;
-  /** Re-check the personal environment. */
+  /** Re-read the credentials and the sign-in. */
   readonly refetch: () => void;
   /**
    * `true` when the referenced OAuthApp's vendor approval is still pending.
@@ -204,8 +216,8 @@ export interface UseMcpServerCredentialsReturn {
 }
 
 /**
- * Checks the user's personal environment against an MCP server's
- * `env` declarations and provides a mechanism to save missing credentials.
+ * Checks the credential serving an MCP server against the server's `env`
+ * declarations and provides a mechanism to save missing values.
  *
  * Designed for the discovery flow on the MCP server detail page:
  * before triggering discovery, the UI needs to ensure all required
@@ -232,7 +244,7 @@ export interface UseMcpServerCredentialsReturn {
  *
  * Unlike {@link useMcpServerSetup} which manages multi-server setup
  * for session creation, this hook is scoped to a single server and
- * always persists to the personal environment (no one-time option).
+ * always saves into the serving credential (no one-time option).
  *
  * Pass `null` for `mcpServer` while loading.
  *
@@ -284,7 +296,17 @@ export function useMcpServerCredentials(
   org: string | null,
   mcpServer: McpServer | null,
 ): UseMcpServerCredentialsReturn {
-  const personalEnv = usePersonalEnvironment(org);
+  const serverOrg = mcpServer?.metadata?.org ?? "";
+  const serverSlug = mcpServer?.metadata?.slug ?? "";
+  const target = useMemo(
+    () =>
+      serverSlug !== ""
+        ? ({ kind: "mcp_server", org: serverOrg, slug: serverSlug } as const)
+        : null,
+    [serverOrg, serverSlug],
+  );
+  const owner = mcpServer && signInScopeOf(mcpServer) === "organization" ? "org" : "person";
+  const serving = useServingCredential(org, target, owner);
   const [manualOverride, setManualOverride] = useState(false);
 
   const auth = mcpServer?.spec?.auth;
@@ -363,8 +385,8 @@ export function useMcpServerCredentials(
   const isOAuthConnected = authMode === "oauth" && grantStatus.connected;
 
   const existingKeys = useMemo(
-    () => new Set(Object.keys(personalEnv.environment?.spec?.data ?? {})),
-    [personalEnv.environment],
+    () => new Set(serving.credential ? credentialFieldNames(serving.credential) : []),
+    [serving.credential],
   );
 
   const allMissingVariables = useMemo(() => {
@@ -388,24 +410,28 @@ export function useMcpServerCredentials(
   }, [requiredMissing, oauthTargetEnvVar, effectiveManualOverride]);
 
   const isReady =
-    !personalEnv.isLoading &&
+    !serving.isLoading &&
     !grantStatus.isLoading &&
     missingVariables.length === 0 &&
     (authMode === "manual" || effectiveManualOverride || isOAuthConnected);
 
+  const serverName = mcpServer?.metadata?.name || serverSlug;
+  const { save } = serving;
   const saveCredentials = useCallback(
     async (values: Record<string, EnvVarInput>): Promise<void> => {
-      await personalEnv.getOrCreate();
-      await personalEnv.addVariables(values);
+      await save(values, serverName);
     },
-    [personalEnv],
+    [save, serverName],
   );
 
+  const refetchServing = serving.refetch;
+  const refetchGrant = grantStatus.refetch;
+  const refetchOverride = orgOverride.refetch;
   const refetch = useCallback(() => {
-    personalEnv.refetch();
-    grantStatus.refetch();
-    orgOverride.refetch();
-  }, [personalEnv, grantStatus, orgOverride]);
+    refetchServing();
+    refetchGrant();
+    refetchOverride();
+  }, [refetchServing, refetchGrant, refetchOverride]);
 
   return {
     authMode,
@@ -425,10 +451,10 @@ export function useMcpServerCredentials(
     missingVariables,
     isReady,
     isLoading:
-      personalEnv.isLoading || grantStatus.isLoading || orgOverride.isLoading,
-    error: personalEnv.error ?? grantStatus.error ?? orgOverride.error,
+      serving.isLoading || grantStatus.isLoading || orgOverride.isLoading,
+    error: serving.error ?? grantStatus.error ?? orgOverride.error,
     saveCredentials,
-    isSaving: personalEnv.isMutating,
+    isSaving: serving.isSaving,
     refetch,
     manualOverride: effectiveManualOverride,
     setManualOverride,

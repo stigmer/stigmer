@@ -704,7 +704,7 @@ Renders [`useMcpServerReadiness`](#usemcpserverreadiness) for one server.
 <TypeTable
   type={{
     className: { type: "string", description: "" },
-    keysAskedAt: { type: "\"connect\" | \"agent\"", description: "Where an `api-key` server's variables are given. `\"agent\"` when the plugin installed an agent that declares them (the composer asks at the agent's first session); `\"connect\"` otherwise (they are set when the server is connected).", required: true },
+    keysAskedAt: { type: "\"agent\" | \"connect\"", description: "Where an `api-key` server's variables are given. `\"agent\"` when the plugin installed an agent that declares them (the composer asks at the agent's first session); `\"connect\"` otherwise (they are set when the server is connected).", required: true },
     onSignedIn: { type: "(mcpServerId: string) => void", description: "Called with the server's id when a sign-in started from this cell lands; the composer records it against the agent." },
     org: { type: "string", description: "The organization the server lives in.", required: true },
     slug: { type: "string", description: "The server's slug.", required: true },

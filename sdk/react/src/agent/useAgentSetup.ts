@@ -1,16 +1,47 @@
 "use client";
 
-import { useCallback, useEffect, useReducer } from "react";
+/**
+ * useAgentSetup: whether a run of the picked agent can start for this
+ * person, and what to ask them when it cannot.
+ *
+ * The reading is the server resolver's own rule, per declarer
+ * (`credential/requirements.ts`, `personReadiness`): a value given for
+ * this run counts first; then the agent's own keys and a repository
+ * host's token come from the person's own credential serving it, else the
+ * organization's they may use; an MCP server's keys come from the
+ * person's own credential serving it (personal sign-in) or the
+ * organization's (organization sign-in). The agent's `env` no longer
+ * carries its MCP servers' keys, so each server is read on its own.
+ *
+ * What cannot be typed is a sign-in: a server whose key a sign-in fills
+ * is a pending sign-in, and so is a server with organization sign-in that
+ * the organization has not connected (an admin connects it). A sign-in
+ * whose grant has expired is pending again.
+ *
+ * Values the person types are saved where the next run will look: into
+ * their own credential serving the declarer that needs them, created and
+ * named after the declarer when none serves it yet (`credential/serving.ts`).
+ *
+ * Pinned by `__tests__/useAgentSetup.credentials.test.tsx`,
+ * `__tests__/useAgentSetup.poolResolve.test.tsx` and
+ * `__tests__/useAgentSetup.signIns.test.tsx`.
+ */
+import { useCallback, useEffect, useReducer, useRef } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { EnvVarInput, ResourceRef, Stigmer } from "@stigmer/sdk";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import type { Credential } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/api_pb";
+import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { GetOAuthGrantStatusInputSchema, OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
-import { usePersonalEnvironment } from "../environment/usePersonalEnvironment.js";
-import { useOrganizationId } from "./usePersonalKeys.js";
-import { diffEnv } from "../environment/diffEnv.js";
+import { isSignInCredential, servingCredential, targetRefKey } from "../credential/model.js";
+import {
+  personReadiness,
+  readRunRequirements,
+  type Requirement,
+} from "../credential/requirements.js";
+import { listCredentialsForReading, saveToServingCredential } from "../credential/serving.js";
+import type { EnvVarFormVariable } from "../credential/EnvVarForm.js";
 import {
   agentSetupReducer,
   INITIAL_STATE,
@@ -21,76 +52,107 @@ import {
   type PendingSignIn,
 } from "./agentSetupReducer.js";
 
-/** What the agent's OAuth servers say about its readiness. */
-interface OAuthServerReadings {
-  /** The servers nobody in the organization has signed in to. */
-  readonly pendingSignIns: PendingSignIn[];
-  /**
-   * Every `spec.auth.targetEnvVar` among the agent's servers, connected or
-   * not: the variables a sign-in fills and the composer never asks for.
-   */
-  readonly signInVariables: ReadonlySet<string>;
+/** The server a requirement's declarer is, among the servers the agent uses. */
+function serverOf(servers: readonly McpServer[], requirement: Requirement): McpServer | undefined {
+  const id = requirement.declarer.mcpServerId;
+  return id ? servers.find((server) => server.metadata?.id === id) : undefined;
+}
+
+/** A pending sign-in row for `server`. */
+function pendingSignIn(
+  server: McpServer,
+  org: string,
+  health: OAuthConnectionHealth,
+  organization: boolean,
+): PendingSignIn {
+  return {
+    ref: { org: server.metadata?.org || org, slug: server.metadata?.slug ?? "" },
+    id: server.metadata?.id ?? "",
+    name: server.metadata?.name || server.metadata?.slug || "",
+    health,
+    organization,
+  };
 }
 
 /**
- * Reads the agent's OAuth servers once. The rule is the composer's own MCP
- * path's (`useMcpServerSetup`): a server whose `spec.auth.targetEnvVar` is
- * set is satisfied by a connected grant; a grant read that fails leaves it
- * pending, fail-closed, so the row offers Sign in rather than pretending; a
- * server that cannot be read is the resolution's error, thrown to the
- * caller's catch.
+ * The sign-ins a run of the agent still needs: every server whose sign-in
+ * key nobody filled (the person's own for personal sign-in), every server
+ * with organization sign-in missing a value, and every server whose
+ * sign-in credential is there but whose grant is no longer good. A grant
+ * read that fails leaves the server pending, fail-closed, so the row
+ * offers Sign in rather than pretending.
  */
-async function readOAuthServers(stigmer: Stigmer, org: string, agent: Agent): Promise<OAuthServerReadings> {
-  const pendingSignIns: PendingSignIn[] = [];
-  const signInVariables = new Set<string>();
-  for (const usage of agent.spec?.mcpServerUsages ?? []) {
-    const ref = usage.mcpServerRef;
-    if (!ref) continue;
-    const server = await stigmer.mcpServer.getByReference(ref);
-    const auth = server.spec?.auth;
-    const id = server.metadata?.id ?? "";
-    if (!auth?.targetEnvVar || id === "") continue;
-    signInVariables.add(auth.targetEnvVar);
+async function readPendingSignIns(
+  stigmer: Stigmer,
+  org: string,
+  servers: readonly McpServer[],
+  credentials: readonly Credential[],
+  readiness: ReturnType<typeof personReadiness>,
+): Promise<PendingSignIn[]> {
+  const pending = new Map<string, PendingSignIn>();
+  const add = (requirement: Requirement, health: OAuthConnectionHealth, organization: boolean) => {
+    const server = serverOf(servers, requirement);
+    const id = server?.metadata?.id ?? "";
+    if (!server || id === "" || pending.has(id)) return;
+    pending.set(id, pendingSignIn(server, org, health, organization));
+  };
+  for (const requirement of readiness.signIns) {
+    add(requirement, OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT, false);
+  }
+  for (const requirement of readiness.organization) {
+    add(requirement, OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT, true);
+  }
+  for (const { requirement, source } of readiness.met) {
+    const declarer = requirement.declarer;
+    if (declarer.signInKey !== requirement.key || source === "runtime") continue;
+    const owner = declarer.signIn === "organization" ? "org" : "person";
+    const credential = servingCredential(credentials, declarer.target, owner);
+    if (!credential || !isSignInCredential(credential) || !declarer.mcpServerId) continue;
     let health = OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT;
     let connected = false;
     try {
       const grant = await stigmer.mcpServer.getOAuthGrantStatus(
-        create(GetOAuthGrantStatusInputSchema, { resourceId: id, org }),
+        create(GetOAuthGrantStatusInputSchema, { resourceId: declarer.mcpServerId, org }),
       );
       health = grant.connectionHealth;
       connected = grant.connected && health !== OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED;
     } catch {
       // Fail closed: an unreadable grant is a sign-in still owed.
     }
-    if (connected) continue;
-    pendingSignIns.push({
-      ref: { org: ref.org || server.metadata?.org || org, slug: ref.slug || server.metadata?.slug || "" },
-      id,
-      name: server.metadata?.name || server.metadata?.slug || ref.slug,
-      health,
-    });
+    if (!connected) add(requirement, health, declarer.signIn === "organization");
   }
-  return { pendingSignIns, signInVariables };
+  return [...pending.values()];
 }
 
 /**
- * The declarations the composer may ask the user to type.
- *
- * The server's MergeMcpServerEnvSpecs step copies every referenced MCP
- * server's `env` onto the agent at save, the OAuth token variable included,
- * so the agent's schema is complete for run. That variable is filled
- * by a grant: run injects it from the server-managed OAuth
- * environment, never from a value the user owns. Without a grant it is a
- * Sign in row; with one it is satisfied. Either way it is not a form field,
- * and an agent whose only declarations are such variables is as ready as
- * one that declares nothing.
+ * The form rows for the values a person must give: one per key (a key two
+ * declarers need is typed once and saved for both), required first, then
+ * the optional keys of the same declarers so the form can offer them.
  */
-function typedDeclarations(
-  envDeclarations: Record<string, EnvVarDeclaration>,
-  signInVariables: ReadonlySet<string>,
-): Record<string, EnvVarDeclaration> {
-  if (signInVariables.size === 0) return envDeclarations;
-  return Object.fromEntries(Object.entries(envDeclarations).filter(([key]) => !signInVariables.has(key)));
+function formVariables(
+  missing: readonly Requirement[],
+  optionalMissing: readonly Requirement[],
+): EnvVarFormVariable[] {
+  const declarers = new Set(missing.map((requirement) => targetRefKey(requirement.declarer.target)));
+  const rows = new Map<string, EnvVarFormVariable>();
+  for (const requirement of missing) {
+    if (rows.has(requirement.key)) continue;
+    rows.set(requirement.key, {
+      key: requirement.key,
+      isSecret: requirement.isSecret,
+      ...(requirement.description ? { description: requirement.description } : {}),
+    });
+  }
+  for (const requirement of optionalMissing) {
+    if (rows.has(requirement.key) || !declarers.has(targetRefKey(requirement.declarer.target))) continue;
+    rows.set(requirement.key, {
+      key: requirement.key,
+      isSecret: requirement.isSecret,
+      ...(requirement.description ? { description: requirement.description } : {}),
+      optional: true,
+    });
+  }
+  return [...rows.values()];
 }
 
 // ---------------------------------------------------------------------------
@@ -109,10 +171,10 @@ export type {
 /** Options for {@link UseAgentSetupReturn.submitEnvVars}. */
 export interface SubmitEnvVarsOptions {
   /**
-   * When `true` (default), the provided values are saved to the user's
-   * personal environment. Every run of an agent the user starts reads
-   * the keys that agent declares from there, so later conversations
-   * reuse them without asking again.
+   * When `true` (default), the values are saved into the person's own
+   * credential serving each declarer that needs them (created, named
+   * after the declarer, when none serves it yet), so later runs find them
+   * without asking again.
    *
    * When `false`, the values are collected as `runtimeEnv` for this
    * run only — nothing is persisted. This path is instant (no
@@ -132,7 +194,7 @@ export interface UseAgentSetupReturn {
    * - `"idle"` — no agent selected
    * - `"resolving"` — evaluating an agent's requirements
    * - `"needsEnvVars"` — waiting for user to provide missing variables
-   * - `"submitting"` — saving to the personal environment
+   * - `"submitting"` — saving into the person's credentials
    * - `"ready"` — agent resolved, `resolution` describes how to proceed
    *
    * `error` is available on all variants (orthogonal to phase).
@@ -142,8 +204,9 @@ export interface UseAgentSetupReturn {
   /**
    * Evaluate whether an agent is ready to use or needs env var collection.
    *
-   * Fetches the full agent to read its `env` declarations and diffs them
-   * against the personal environment and the session's variables.
+   * Fetches the agent and each MCP server it uses, and reads every value
+   * a run needs against the person's credentials, the organization's they
+   * may use, and the session's variables.
    * Returns `"ready"` when the agent can be used immediately,
    * or `"needsEnvVars"` when the caller should present {@link AgentEnvForm}.
    */
@@ -153,8 +216,8 @@ export interface UseAgentSetupReturn {
    * Complete the env var collection flow for the pending agent.
    *
    * Behavior depends on `options.saveForFuture`:
-   * - `true` (default) — Creates or updates the personal environment
-   *   with the provided values.
+   * - `true` (default) — Saves each value into the person's own credential
+   *   serving the declarer that needs it.
    *   Returns `{ resolution: { mode: "saved" } }`.
    * - `false` — Collects values as `runtimeEnv` without any API calls.
    *   Returns `{ resolution: { mode: "oneTime", runtimeEnv } }`.
@@ -169,7 +232,7 @@ export interface UseAgentSetupReturn {
   /**
    * Record that one of the pending sign-ins completed (the row's own
    * OAuth flow landed). When it was the last one, the agent is resolved
-   * again through {@link resolveAgent}, which now finds the grant and
+   * again through {@link resolveAgent}, which now finds the sign-in and
    * lands in `ready` or in `needsEnvVars` for its variables alone.
    *
    * Must only be called when `state.status === "needsEnvVars"`.
@@ -184,39 +247,28 @@ export interface UseAgentSetupReturn {
 }
 
 /**
- * Layer 2 behavior hook that encapsulates the agent selection,
- * personal environment resolution, and secret delivery routing flow.
+ * Layer 2 behaviour hook behind the composer's agent selection: reads
+ * whether a run of the picked agent can start for this person, and
+ * collects what it cannot start without.
  *
- * When a user picks an agent in the {@link AgentPicker}, this hook
- * determines whether the agent requires credentials (via its
- * `env` declarations), checks what the user has already provided in their
- * personal environment, and either reports the agent as ready or
- * identifies the missing variables so the caller can render
- * {@link AgentEnvForm}.
- *
- * The hook supports two secret delivery paths via the `saveForFuture`
- * option on {@link submitEnvVars}:
- * - **Saved** — secrets are persisted to the personal environment,
- *   where every run of an agent the user starts reads the keys the
- *   agent declares.
- * - **One-time** — secrets are returned as `runtimeEnv` for a single
- *   run, with no data persisted.
+ * The hook supports two delivery paths via the `saveForFuture` option on
+ * {@link submitEnvVars}:
+ * - **Saved** — values are saved into the person's own credentials, one
+ *   per declarer, where every later run reads them.
+ * - **One-time** — values are returned as `runtimeEnv` for a single run,
+ *   with nothing saved.
  *
  * State is managed by a `useReducer` state machine with five phases:
  * `idle → resolving → needsEnvVars → submitting → ready`.
- *
- * Composes {@link usePersonalEnvironment} for personal environment
- * operations and calls the Stigmer client directly for the agent and
- * its MCP servers.
  *
  * Pass `null` as `org` to disable all operations (stable no-op).
  *
  * @param org - Organization id (a slug is also accepted). Pass `null` to disable.
  * @param poolKeys - Optional set of env-var keys already available
  *   from the session env pool (manual secrets, one-time env vars from
- *   other components). When provided, agents whose `env` keys
- *   are fully covered by `poolKeys` + personal env auto-resolve to
- *   `ready` without prompting. Reactive — when `poolKeys` changes,
+ *   other components). When provided, agents whose missing values
+ *   are all covered by `poolKeys` auto-resolve to `ready` without
+ *   prompting. Reactive — when `poolKeys` changes,
  *   `needsEnvVars` is re-evaluated.
  *
  * @example
@@ -238,10 +290,12 @@ export function useAgentSetup(
   poolKeys?: Set<string>,
 ): UseAgentSetupReturn {
   const stigmer = useStigmer();
-  const personalEnv = usePersonalEnvironment(org);
-  const orgId = useOrganizationId(org ?? "");
 
   const [state, dispatch] = useReducer(agentSetupReducer, INITIAL_STATE);
+
+  // The requirements behind the form's rows, kept for the save: a typed
+  // key goes into the credential serving each declarer that needs it.
+  const missingRef = useRef<readonly Requirement[]>([]);
 
   const clearError = useCallback(() => dispatch({ type: "CLEAR_ERROR" }), []);
   const reset = useCallback(() => dispatch({ type: "RESET" }), []);
@@ -263,21 +317,22 @@ export function useAgentSetup(
       try {
         const agent = await stigmer.agent.getByReference(ref);
         const agentName = agent.metadata?.name ?? ref.slug;
+        const { requirements, servers } = await readRunRequirements(stigmer, agent);
 
-        // Sign-ins first: an agent whose OAuth server has no grant is not
-        // ready however its variables stand. Nothing is created here; when
-        // the last sign-in lands, `signInCompleted` resolves again and the
-        // branches below run with the grant in place. The variables those
-        // sign-ins fill leave the declarations here and are never typed.
-        const { pendingSignIns, signInVariables } = await readOAuthServers(stigmer, org, agent);
-        const envDeclarations = agent.spec?.env ? typedDeclarations(agent.spec.env, signInVariables) : undefined;
-        if (pendingSignIns.length > 0) {
-          const existingKeys = new Set(
-            Object.keys(personalEnv.environment?.spec?.data ?? {}),
-          );
-          const missingVariables = envDeclarations
-            ? diffEnv(envDeclarations, existingKeys, poolKeys)
-            : [];
+        if (requirements.length === 0) {
+          missingRef.current = [];
+          const resolution: AgentResolution = { mode: "direct" };
+          dispatch({ type: "RESOLVE_READY", agentRef: ref, agentName, resolution });
+          return { status: "ready", agentRef: ref, agentName, resolution };
+        }
+
+        const credentials = await listCredentialsForReading(stigmer, org);
+        const readiness = personReadiness(requirements, { credentials, runtimeKeys: poolKeys });
+        const pendingSignIns = await readPendingSignIns(stigmer, org, servers, credentials, readiness);
+        const missingVariables = formVariables(readiness.missing, readiness.optionalMissing);
+        missingRef.current = [...readiness.missing, ...readiness.optionalMissing];
+
+        if (pendingSignIns.length > 0 || readiness.missing.length > 0) {
           dispatch({
             type: "RESOLVE_NEEDS_ENV",
             agentRef: ref,
@@ -286,88 +341,21 @@ export function useAgentSetup(
             missingVariables,
             pendingSignIns,
           });
-          return {
-            status: "needsEnvVars",
-            agentRef: ref,
-            agentName,
-            missingVariables,
-            pendingSignIns,
-          };
+          return { status: "needsEnvVars", agentRef: ref, agentName, missingVariables, pendingSignIns };
         }
 
-        // No env declarations — agent is immediately ready (direct mode).
-        // Nor is anything asked of an agent of another organization: a run
-        // reads none of the person's keys for it, so a key saved here
-        // would never reach it.
-        if (
-          !envDeclarations ||
-          Object.keys(envDeclarations).length === 0 ||
-          (agent.metadata?.org ?? "") !== orgId
-        ) {
-          const resolution: AgentResolution = { mode: "direct" };
-          dispatch({
-            type: "RESOLVE_READY",
-            agentRef: ref,
-            agentName,
-            resolution,
-          });
-          return { status: "ready", agentRef: ref, agentName, resolution };
-        }
-
-        // The agent declares keys. Each run reads them from the person's
-        // personal environment, so keys already saved there need nothing.
-        const existingKeys = new Set(
-          Object.keys(personalEnv.environment?.spec?.data ?? {}),
-        );
-        const personalOnlyMissing = diffEnv(envDeclarations, existingKeys);
-        const missingVariables = diffEnv(envDeclarations, existingKeys, poolKeys);
-
-        if (personalOnlyMissing.length === 0) {
-          const resolution: AgentResolution = { mode: "saved" };
-          dispatch({
-            type: "RESOLVE_READY",
-            agentRef: ref,
-            agentName,
-            resolution,
-          });
-          return { status: "ready", agentRef: ref, agentName, resolution };
-        }
-
-        if (missingVariables.length === 0) {
-          // The session's variables cover the remaining keys; their
-          // values flow via sessionVariables.toRuntimeEnv() at submit.
-          const resolution: AgentResolution = { mode: "direct" };
-          dispatch({
-            type: "RESOLVE_READY",
-            agentRef: ref,
-            agentName,
-            resolution,
-          });
-          return { status: "ready", agentRef: ref, agentName, resolution };
-        }
-
-        // Missing variables — transition to needsEnvVars.
-        dispatch({
-          type: "RESOLVE_NEEDS_ENV",
-          agentRef: ref,
-          agentId: agent.metadata!.id,
-          agentName,
-          missingVariables,
-          pendingSignIns: [],
-        });
-        return {
-          status: "needsEnvVars",
-          agentRef: ref,
-          agentName,
-          missingVariables,
-          pendingSignIns: [],
-        };
+        // Ready: "saved" when credentials give every value, "direct" when
+        // this run's own values cover some of them.
+        const fromRuntime = readiness.met.some(({ source }) => source === "runtime");
+        const resolution: AgentResolution = { mode: fromRuntime ? "direct" : "saved" };
+        dispatch({ type: "RESOLVE_READY", agentRef: ref, agentName, resolution });
+        return { status: "ready", agentRef: ref, agentName, resolution };
       } catch (err) {
         dispatch({ type: "ERROR", error: toError(err) });
         throw err;
       }
     },
-    [org, orgId, stigmer, personalEnv, poolKeys],
+    [org, stigmer, poolKeys],
   );
 
   // -------------------------------------------------------------------------
@@ -388,8 +376,8 @@ export function useAgentSetup(
     // Dispatch only when the pool covered something. The reducer stores the
     // array it is given, so dispatching an unchanged list would hand this
     // effect a new dependency and run it again, without end: the pool always
-    // holds the system keys, so this effect runs for every agent that
-    // declares a variable the personal environment lacks.
+    // holds the system keys, so this effect runs for every agent with a
+    // value missing.
     if (stillMissing.length === agentMissingVars.length) return;
 
     dispatch({ type: "POOL_RESOLVE", missingVariables: stillMissing });
@@ -442,12 +430,27 @@ export function useAgentSetup(
         return { status: "ready", agentRef, agentName, resolution };
       }
 
-      // ----- Save path: persist to the personal environment -----
+      // ----- Save path: into the person's credential serving each declarer -----
       dispatch({ type: "SUBMIT_START" });
 
       try {
-        await personalEnv.getOrCreate();
-        await personalEnv.addVariables(values);
+        const byDeclarer = new Map<string, { requirement: Requirement; values: Record<string, EnvVarInput> }>();
+        for (const requirement of missingRef.current) {
+          const value = values[requirement.key];
+          if (value === undefined || value.value === "") continue;
+          const key = targetRefKey(requirement.declarer.target);
+          const entry = byDeclarer.get(key) ?? { requirement, values: {} };
+          entry.values[requirement.key] = value;
+          byDeclarer.set(key, entry);
+        }
+        for (const { requirement, values: declared } of byDeclarer.values()) {
+          await saveToServingCredential(stigmer, {
+            org,
+            target: requirement.declarer.target,
+            name: requirement.declarer.name,
+            values: declared,
+          });
+        }
 
         const resolution: AgentResolution = { mode: "saved" };
         dispatch({
@@ -462,7 +465,7 @@ export function useAgentSetup(
         throw err;
       }
     },
-    [org, personalEnv, state],
+    [org, stigmer, state],
   );
 
   const signInCompleted = useCallback(

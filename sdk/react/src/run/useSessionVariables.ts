@@ -8,8 +8,9 @@ import type { EnvVarInput } from "@stigmer/sdk";
  *
  * Each entry maps to one environment variable. When `saveForFuture`
  * is `false` (default), the value is injected into the agent sandbox
- * for a single run only. When `true`, the value is persisted
- * to the user's personal environment for reuse across sessions.
+ * for a single run only. When `true`, the value is saved into the
+ * user's own credential serving the selected agent, for reuse across
+ * sessions.
  */
 export interface SessionVariableEntry {
   /** Unique identifier for this entry (auto-generated). */
@@ -20,7 +21,7 @@ export interface SessionVariableEntry {
   readonly value: string;
   /** Whether the value should be masked in the UI. */
   readonly isSecret: boolean;
-  /** When `true`, persists the value to the user's personal environment on submit. */
+  /** When `true`, saves the value into the user's credential serving the selected agent on submit. */
   readonly saveForFuture: boolean;
 }
 
@@ -57,7 +58,7 @@ export interface UseSessionVariablesReturn {
   readonly toRuntimeEnv: () => Record<string, EnvVarInput>;
   /**
    * Convert valid save-for-future entries (saveForFuture === true) to
-   * the SDK input shape for personal environment persistence.
+   * the SDK input shape for saving into a credential.
    *
    * Filters out entries with empty keys or values. When duplicate keys
    * exist, the last entry wins.
@@ -80,8 +81,8 @@ function uid(): string {
  *
  * Session variables are injected into the agent sandbox at run
  * time. By default they are ephemeral (single run), but users
- * can opt into persisting individual entries to their personal
- * environment via the `saveForFuture` flag.
+ * can opt into saving individual entries into their own credential
+ * serving the selected agent via the `saveForFuture` flag.
  *
  * Follows the same controlled-state pattern as {@link useWorkspaceEntries}:
  * the consumer owns the hook instance, passes it to UI components, reads

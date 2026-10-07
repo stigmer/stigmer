@@ -358,6 +358,8 @@ export { classifyPath, resolveGitBrowseUrl, resolvePathAction } from "./file-pat
 export type { PathClassification, ResolvedPathAction } from "./file-path-resolver.js";
 
 export { useSessionVariables } from "./useSessionVariables.js";
+export { useSessionEnvPool } from "./useSessionEnvPool.js";
+export type { SessionEnvPoolInput, UseSessionEnvPoolReturn } from "./useSessionEnvPool.js";
 export type {
   SessionVariableEntry,
   UseSessionVariablesReturn,

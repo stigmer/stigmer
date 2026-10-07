@@ -29,9 +29,9 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import {
-  EnvironmentSchema,
-  type Environment,
-} from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+  CredentialSchema,
+  type Credential,
+} from "@stigmer/protos/ai/stigmer/agentic/credential/v1/api_pb";
 import {
   ApiKeySchema,
   ApiKeyStatusSchema,
@@ -200,11 +200,15 @@ export interface McpServerOverrides {
   readonly description?: string;
 }
 
-export interface EnvironmentOverrides {
+export interface CredentialOverrides {
   readonly id?: string;
   readonly name?: string;
   readonly org?: string;
   readonly slug?: string;
+  /** The owning person's identity account id; the organization owns it when omitted. */
+  readonly person?: string;
+  /** Field names, each a secret with the redacted value. */
+  readonly fields?: readonly string[];
 }
 
 export interface ApiKeyOverrides {
@@ -402,19 +406,26 @@ export const samples = {
   },
 
   /**
-   * An environment resource.
-   * Default: `demo-env` in org `demo`.
+   * A credential resource.
+   * Default: the organization's `demo-key` in org `demo`, with no fields.
    */
-  environment(o?: EnvironmentOverrides): Environment {
-    return create(EnvironmentSchema, {
+  credential(o?: CredentialOverrides): Credential {
+    const org = o?.org ?? "demo";
+    return create(CredentialSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "Environment",
+      kind: "Credential",
       metadata: create(ApiResourceMetadataSchema, {
-        id: o?.id ?? "env-00000000-0000-0000-0000-000000000001",
-        name: o?.name ?? "demo-env",
-        slug: o?.slug ?? o?.name ?? "demo-env",
-        org: o?.org ?? "demo",
+        id: o?.id ?? "cred-00000000-0000-0000-0000-000000000001",
+        name: o?.name ?? "demo-key",
+        slug: o?.slug ?? o?.name ?? "demo-key",
+        org,
       }),
+      spec: {
+        owner: o?.person ? { case: "person", value: o.person } : { case: "org", value: org },
+        fields: Object.fromEntries(
+          (o?.fields ?? []).map((name) => [name, { value: "***REDACTED***", plain: false, description: "" }]),
+        ),
+      },
     });
   },
 

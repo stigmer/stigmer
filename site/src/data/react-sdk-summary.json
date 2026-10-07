@@ -53,8 +53,8 @@
       "slug": "channel",
       "title": "channel",
       "description": "",
-      "hooks": 11,
-      "components": 8
+      "hooks": 10,
+      "components": 7
     },
     {
       "slug": "channel-app",
@@ -78,6 +78,13 @@
       "components": 7
     },
     {
+      "slug": "credential",
+      "title": "Credentials",
+      "description": "Hooks and components for the keys and sign-ins runs use: credentials, what they serve, run requirements, and assignments.",
+      "hooks": 12,
+      "components": 6
+    },
+    {
       "slug": "dashboard",
       "title": "Dashboard",
       "description": "Hooks for dashboard metrics, activity feeds, and analytics data.",
@@ -90,13 +97,6 @@
       "description": "Hooks and components for visualizing agent specification dependencies.",
       "hooks": 1,
       "components": 1
-    },
-    {
-      "slug": "environment",
-      "title": "Environment",
-      "description": "Hooks and components for configuration, variables, secrets, and session environment pools.",
-      "hooks": 10,
-      "components": 5
     },
     {
       "slug": "error",
@@ -242,7 +242,7 @@
       "slug": "run",
       "title": "Run",
       "description": "Hooks and components for real-time streaming, tool calls, approvals, messages, and artifacts.",
-      "hooks": 22,
+      "hooks": 23,
       "components": 35
     },
     {
@@ -270,7 +270,7 @@
       "slug": "sharing",
       "title": "Sharing",
       "description": "Hooks and components for turning an agent into a hosted, shareable chat link and embed.",
-      "hooks": 7,
+      "hooks": 6,
       "components": 3
     },
     {

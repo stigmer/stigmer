@@ -1,14 +1,26 @@
 "use client";
 
+/**
+ * useGitHubConnection: the person's GitHub connection, kept as their own
+ * credential serving the git host github.com with one field,
+ * GITHUB_TOKEN. That is exactly where a run looks for the token a
+ * workspace clone of a github.com repository needs (the resolver reads
+ * the person's credential serving the repository's host), so connecting
+ * GitHub here is what makes private repositories clone.
+ */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { EnvironmentSecretValueInputSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
+import { RevealCredentialFieldInputSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/io_pb";
 import { useStigmer } from "../hooks.js";
-import { usePersonalEnvironment } from "../environment/usePersonalEnvironment.js";
+import { GIT_TOKEN_KEY, GITHUB_HOST, hasCredentialField, type CredentialTargetRef } from "../credential/model.js";
+import { useServingCredential } from "../credential/useServingCredential.js";
 
 const STORAGE_KEY_STATE = "stigmer:github:oauth-state";
 const GITHUB_USER_API = "https://api.github.com/user";
-const GITHUB_TOKEN_KEY = "GITHUB_TOKEN";
+const GITHUB_TOKEN_KEY = GIT_TOKEN_KEY;
+const GITHUB_TARGET: CredentialTargetRef = { kind: "git_host", host: GITHUB_HOST };
+/** The name a new GitHub credential takes in the person's list. */
+const GITHUB_CREDENTIAL_NAME = "GitHub";
 
 /** Message type sent from the OAuth callback popup to the opener. */
 export const GITHUB_CALLBACK_MESSAGE_TYPE = "stigmer:github:callback-success";
@@ -33,7 +45,7 @@ export interface GitHubConnectOptions {
    * When `true`, open the OAuth authorization page in a popup window
    * instead of redirecting the current page. The callback page signals
    * success via `postMessage` and the hook re-reconciles the token
-   * from the personal environment — keeping the user on the same page.
+   * from the GitHub credential — keeping the user on the same page.
    *
    * Falls back to redirect if the popup is blocked by the browser.
    *
@@ -59,7 +71,7 @@ export interface UseGitHubConnectionConfig {
    *
    * When used with {@link callbackUrl}, the callback page processes the
    * token exchange and the consumer calls {@link UseGitHubConnectionReturn.reconcile}
-   * to pick up the token from the personal environment.
+   * to pick up the token from the GitHub credential.
    *
    * When used without {@link callbackUrl} (e.g. localhost callback server),
    * the consumer calls {@link UseGitHubConnectionReturn.handleCallback}
@@ -119,12 +131,12 @@ export interface UseGitHubConnectionReturn {
     redirectUri: string,
   ) => Promise<void>;
   /**
-   * Trigger re-reconciliation from the personal environment.
+   * Trigger re-reconciliation from the GitHub credential.
    *
    * Call this when the token exchange was handled externally (e.g. by
    * the Stigmer web callback page during a desktop OAuth flow) and the
-   * token is already stored server-side. The hook will refetch the
-   * personal environment, reveal the token, and update
+   * token is already stored server-side. The hook will re-read the
+   * credentials, reveal the token, and update
    * {@link isConnected}.
    */
   readonly reconcile: () => void;
@@ -183,29 +195,18 @@ function clearOAuthState(): void {
 }
 
 /**
- * Checks whether the personal environment's redacted data contains a given key.
- * The key is present even when the value is redacted (`***REDACTED***`).
- */
-function personalEnvHasKey(
-  env: { spec?: { data?: Record<string, unknown> } } | null,
-  key: string,
-): boolean {
-  return env?.spec?.data != null && key in env.spec.data;
-}
-
-/**
  * Behavior hook that manages the GitHub OAuth connection lifecycle.
  *
  * Handles the full OAuth flow: generating the authorize URL via the
  * Stigmer backend, exchanging the code for a token, validating it,
- * and persisting it in the user's server-side personal
- * `Environment`.
+ * and saving it as the person's own credential serving github.com.
  *
- * **Storage strategy:** The token is stored encrypted in the personal
- * environment (server-side). On OAuth callback the token is written
- * directly to the personal environment via `getOrCreate` /
- * `addVariables`. On subsequent mounts the token is revealed from the
- * personal environment and validated against the GitHub API.
+ * **Storage strategy:** The token is a secret field (GITHUB_TOKEN) of the
+ * person's credential serving the git host github.com, encrypted
+ * server-side. On OAuth callback the token is saved into that credential
+ * (created, named "GitHub", when none serves github.com yet). On
+ * subsequent mounts the token is revealed from it and validated against
+ * the GitHub API.
  *
  * Pass `null` as `org` to disable server-side storage (the hook will
  * report as not connected until org context is available).
@@ -271,10 +272,10 @@ export function useGitHubConnection(
   const [isConnecting, setIsConnecting] = useState(false);
   const [popupBlocked, setPopupBlocked] = useState(false);
 
-  const personalEnv = usePersonalEnvironment(org || null);
+  const github = useServingCredential(org || null, GITHUB_TARGET);
 
-  const personalEnvRef = useRef(personalEnv);
-  personalEnvRef.current = personalEnv;
+  const githubRef = useRef(github);
+  githubRef.current = github;
 
   const reconciled = useRef(false);
   const popupRef = useRef<Window | null>(null);
@@ -291,20 +292,20 @@ export function useGitHubConnection(
   }
 
   // ── Server reconciliation ────────────────────────────────────────────
-  // Runs once after the personal environment finishes loading.
-  // If GITHUB_TOKEN exists in the personal env, reveals it and sets
-  // React state. If the revealed token is invalid, cleans it up.
-  // If no token exists, marks the hook as not connected.
+  // Runs once after the credentials finish loading. If the GitHub
+  // credential holds GITHUB_TOKEN, reveals it and sets React state. If
+  // the revealed token is invalid, removes it. If no token exists, marks
+  // the hook as not connected.
   useEffect(() => {
-    if (!org || personalEnv.isLoading) return;
+    if (!org || github.isLoading) return;
 
     if (reconciled.current) return;
     reconciled.current = true;
 
-    const env = personalEnv.environment;
-    const hasServerToken = personalEnvHasKey(env, GITHUB_TOKEN_KEY);
+    const credential = github.credential;
+    const credentialId = credential?.metadata?.id ?? "";
 
-    if (!hasServerToken || !env) {
+    if (!credential || credentialId === "" || !hasCredentialField(credential, GITHUB_TOKEN_KEY)) {
       setIsLoading(false);
       return;
     }
@@ -313,10 +314,10 @@ export function useGitHubConnection(
 
     async function reveal() {
       try {
-        const result = await stigmer.environment.getSecretValue(
-          create(EnvironmentSecretValueInputSchema, {
-            environmentId: env!.metadata!.id,
-            key: GITHUB_TOKEN_KEY,
+        const result = await stigmer.credential.revealField(
+          create(RevealCredentialFieldInputSchema, {
+            credentialId,
+            field: GITHUB_TOKEN_KEY,
           }),
         );
         if (cancelled) return;
@@ -330,9 +331,7 @@ export function useGitHubConnection(
             setUser(u);
           } else {
             try {
-              await personalEnvRef.current.removeVariables([
-                GITHUB_TOKEN_KEY,
-              ]);
+              await githubRef.current.removeFields([GITHUB_TOKEN_KEY]);
             } catch {
               // Best-effort cleanup.
             }
@@ -341,7 +340,7 @@ export function useGitHubConnection(
           }
         }
       } catch {
-        // getSecretValue failed — leave state as-is.
+        // revealField failed — leave state as-is.
       }
 
       if (!cancelled) setIsLoading(false);
@@ -351,12 +350,12 @@ export function useGitHubConnection(
     return () => {
       cancelled = true;
     };
-  }, [org, personalEnv.isLoading, personalEnv.environment, stigmer]);
+  }, [org, github.isLoading, github.credential, stigmer]);
 
   // ── Popup OAuth message listener ──────────────────────────────────────
   // Listens for success signals from the OAuth callback page running
   // in a popup window. On success, triggers re-reconciliation from the
-  // personal environment (where the popup already persisted the token).
+  // GitHub credential (where the popup already saved the token).
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
       if (event.origin !== window.location.origin) return;
@@ -369,12 +368,12 @@ export function useGitHubConnection(
       popupRef.current = null;
       setIsConnecting(false);
 
-      // Re-reconcile: the popup persisted the token server-side, so
-      // refetch the personal environment and let the reconciliation
-      // effect reveal and validate it.
+      // Re-reconcile: the popup saved the token server-side, so re-read
+      // the credentials and let the reconciliation effect reveal and
+      // validate it.
       setIsLoading(true);
       reconciled.current = false;
-      personalEnvRef.current.refetch();
+      githubRef.current.refetch();
     }
 
     window.addEventListener("message", handleMessage);
@@ -450,11 +449,11 @@ export function useGitHubConnection(
 
           // The callback page may have exchanged the code and stored
           // the token server-side (e.g. cross-origin popup flow for
-          // platform builders). Re-reconcile from the personal
-          // environment to pick up the token.
+          // platform builders). Re-reconcile from the GitHub credential
+          // to pick up the token.
           setIsLoading(true);
           reconciled.current = false;
-          personalEnvRef.current.refetch();
+          githubRef.current.refetch();
         }
       }, POPUP_CLOSE_POLL_MS);
       popupPollRef.current = pollId;
@@ -477,11 +476,10 @@ export function useGitHubConnection(
           redirectUri,
         });
 
-        const tokenVar = {
-          [GITHUB_TOKEN_KEY]: { value: accessToken, isSecret: true },
-        };
-        await personalEnvRef.current.getOrCreate();
-        await personalEnvRef.current.addVariables(tokenVar);
+        await githubRef.current.save(
+          { [GITHUB_TOKEN_KEY]: { value: accessToken, isSecret: true } },
+          GITHUB_CREDENTIAL_NAME,
+        );
 
         setToken(accessToken);
 
@@ -498,7 +496,7 @@ export function useGitHubConnection(
     setIsConnecting(false);
     setIsLoading(true);
     reconciled.current = false;
-    personalEnvRef.current.refetch();
+    githubRef.current.refetch();
   }, []);
 
   const disconnect = useCallback(() => {
@@ -516,11 +514,9 @@ export function useGitHubConnection(
     }
     setIsConnecting(false);
 
-    const env = personalEnvRef.current.environment;
-    if (env && personalEnvHasKey(env, GITHUB_TOKEN_KEY)) {
-      personalEnvRef.current
-        .removeVariables([GITHUB_TOKEN_KEY])
-        .catch(() => {});
+    const credential = githubRef.current.credential;
+    if (credential && hasCredentialField(credential, GITHUB_TOKEN_KEY)) {
+      githubRef.current.removeFields([GITHUB_TOKEN_KEY]).catch(() => {});
     }
   }, []);
 

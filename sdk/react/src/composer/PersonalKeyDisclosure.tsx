@@ -1,16 +1,15 @@
 "use client";
 
 /**
- * The line that names which keys an agent will read from the person's
- * personal environment, shown before the first message of a conversation
- * on that agent.
+ * The line that names which of the person's own keys an agent's run will
+ * receive, shown before the first message of a conversation on that agent.
  *
- * Every run of an agent fills the keys the agent declares
- * (`agent.spec.env`) from the running person's personal environment, so
- * starting a conversation hands the agent those values. The person is
- * told which keys before sending, from the declarations the agent
- * already publishes. It is a disclosure, not a gate: nothing is withheld
- * and nothing is asked. An agent that declares no keys, or one the viewer
+ * A run takes each value it needs from the running person's own
+ * credential serving the declarer (the agent, or one of its MCP servers)
+ * before anything of the organization's, so starting a conversation hands
+ * the agent those values. The person is told which keys before sending.
+ * It is a disclosure, not a gate: nothing is withheld and nothing is
+ * asked. An agent that takes none of the person's keys, or one the viewer
  * cannot read, renders nothing.
  *
  * A conversation runs the version its session pinned, so when the host
@@ -22,9 +21,9 @@
  * current spec; while the version loads, or when it cannot be read, the
  * line says nothing rather than name another version's keys.
  *
- * The keys are the ones the server fills (usePersonalKeys): none for an
- * agent of another organization than the conversation's (`runOrg`), and
- * never a server's OAuth variable, which its sign-in fills.
+ * The keys are the ones the server would fill from the person's own
+ * credentials in the conversation's organization (`runOrg`), read by
+ * usePersonalKeys.
  *
  * Pinned by `__tests__/PersonalKeyDisclosure.test.tsx`.
  */
@@ -39,9 +38,8 @@ export interface PersonalKeyDisclosureProps {
   /** The agent the conversation is about to start on. */
   readonly agentRef: ResourceRef;
   /**
-   * The organization the conversation runs in, by id: an agent of another
-   * organization reads none of the person's keys, so the line says
-   * nothing for it.
+   * The organization the conversation runs in, by id: the person's
+   * credentials there are the ones a run reads.
    */
   readonly runOrg: string;
   /**
@@ -55,13 +53,13 @@ export interface PersonalKeyDisclosureProps {
 }
 
 /**
- * Names the keys a run of `agentRef` reads from the person's personal
- * environment, in the order a reader scans them (sorted).
+ * Names the keys a run of `agentRef` takes from the person's own
+ * credentials, in the order a reader scans them (sorted).
  *
  * @example
  * ```tsx
  * <PersonalKeyDisclosure agentRef={{ org: "acme", slug: "pr-reviewer" }} runOrg="org_acme" />
- * // This agent can read these keys from your personal environment: GITHUB_TOKEN, LINEAR_API_KEY
+ * // This agent's runs use these keys of yours: GITHUB_TOKEN, LINEAR_API_KEY
  * ```
  */
 export function PersonalKeyDisclosure({
@@ -80,7 +78,7 @@ export function PersonalKeyDisclosure({
       data-testid="personal-key-disclosure"
       className={cn("stg:text-xs stg:text-muted-foreground", className)}
     >
-      This agent can read these keys from your personal environment:{" "}
+      This agent&apos;s runs use these keys of yours:{" "}
       <span className="stg:font-mono">{keys.join(", ")}</span>
     </p>
   );

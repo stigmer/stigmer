@@ -1,17 +1,18 @@
 "use client";
 
-import { type FormEvent, useCallback, useId, useState } from "react";
+import { type FormEvent, useCallback, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import {
   getUserMessage,
+  type CredentialAssignmentInput,
   type ResourceRef,
   type RunConfigInput,
 } from "@stigmer/sdk";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { Popover } from "@base-ui/react/popover";
 import { AgentPicker } from "../agent/AgentPicker.js";
-import { EnvironmentPicker } from "../environment/EnvironmentPicker.js";
+import { CredentialAssignmentsEditor, assignmentsForWrite } from "../credential/CredentialAssignmentsEditor.js";
+import { useAgent } from "../agent/useAgent.js";
 import { useGitHubConnection } from "../github/useGitHubConnection.js";
 import { ModelSelector } from "../models/ModelSelector.js";
 import { toProtoHarness, type HarnessOption } from "../models/harness.js";
@@ -110,7 +111,7 @@ export function ScheduleForm({
   const [timeZone, setTimeZone] = useState(browserTimeZone);
   const [enabled, setEnabled] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [environmentRefs, setEnvironmentRefs] = useState<ResourceRef[]>([]);
+  const [credentials, setCredentials] = useState<CredentialAssignmentInput[]>([]);
 
   // Engine & model are one atomic choice: picking a model pins BOTH the
   // harness and the model (the registry scopes models per harness, so a
@@ -139,6 +140,11 @@ export function ScheduleForm({
   // this form.
   const workspace = useWorkspaceEntries();
   const gitHub = useGitHubConnection(org);
+  const { agent } = useAgent(agentRef?.org ?? null, agentRef?.slug ?? null);
+  const repositoryUrls = useMemo(
+    () => workspace.entries.flatMap((entry) => (entry.type === "git" && entry.gitUrl ? [entry.gitUrl] : [])),
+    [workspace.entries],
+  );
 
   const trimmedName = name.trim();
   const trimmedMessage = message.trim();
@@ -183,7 +189,7 @@ export function ScheduleForm({
             ...(workspace.hasEntries
               ? { workspaceEntries: workspace.toInput() }
               : {}),
-            ...(environmentRefs.length > 0 ? { environmentRefs } : {}),
+            ...(credentials.length > 0 ? { credentials: assignmentsForWrite(credentials) } : {}),
             ...(runConfig ? { runConfig } : {}),
           },
         });
@@ -203,7 +209,7 @@ export function ScheduleForm({
       timeZone,
       enabled,
       trimmedMessage,
-      environmentRefs,
+      credentials,
       modelName,
       modelHarness,
       serviceTier,
@@ -319,33 +325,29 @@ export function ScheduleForm({
         />
         <p className={hintClasses}>
           Each run clones these repositories fresh. Private repositories need
-          a <code className="stg:font-mono">GITHUB_TOKEN</code> in one of this
-          schedule&rsquo;s environments; public ones need nothing.
+          a <code className="stg:font-mono">GITHUB_TOKEN</code> assigned below;
+          public ones need nothing.
         </p>
       </div>
 
-      {/* Environments — how a tool-using agent becomes schedulable.
-          Only org-shared environments resolve for a
-          schedule fire, so the picker is filtered to visibility_org —
-          the same credential surface a channel binding uses. */}
+      {/* Credentials — a fire has no person behind it, so its run takes
+          only what the schedule assigns. A schedule is the one surface
+          that accepts the creator's own credentials. */}
       <div className="stg:space-y-1">
-        <span id={`${baseId}-env-label`} className={labelClasses}>
-          Environments <span className="stg:font-normal stg:text-muted-foreground">(optional)</span>
-        </span>
-        <EnvironmentPicker
-          org={org}
-          value={environmentRefs}
-          onChange={setEnvironmentRefs}
-          disabled={isCreating}
-          filterEnvironment={(env) =>
-            env.metadata?.visibility === ApiResourceVisibility.visibility_org
-          }
-        />
+        <span className={labelClasses}>Credentials</span>
         <p className={hintClasses}>
-          Bind org-shared credentials (for example an MCP server&rsquo;s secret)
-          so the agent&rsquo;s tools work on an unattended fire. Without this, an
-          agent whose tools need credentials will be refused every run.
+          A scheduled run has nobody behind it, so it uses only the values
+          assigned here: an organization key you may use, or one of your own.
         </p>
+        <CredentialAssignmentsEditor
+          org={org}
+          agent={agent}
+          value={credentials}
+          onChange={setCredentials}
+          allowOwnCredentials
+          repositoryUrls={repositoryUrls}
+          disabled={isCreating}
+        />
       </div>
 
       {/* Cadence */}

@@ -1,22 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import { cn } from "@stigmer/theme";
-import type { ResourceRef } from "@stigmer/sdk";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { ChannelToolCredentials } from "../ChannelToolCredentials.js";
-import { ChevronIcon } from "./icons.js";
-
 /**
- * Collapsible credential-binding section for the connect dialogs' create
- * mode (the ShareAgentDialog ToolCredentialsSection pattern). Expanded by
- * default when the agent uses MCP tools — for those agents this is
- * essential configuration, not an advanced option: without a binding,
- * every channel message that needs a tool is refused.
+ * The collapsible credentials section of the connect dialogs' create mode.
+ * Expanded by default when the agent uses MCP tools: for those agents it
+ * is essential configuration, not an advanced option, because a channel
+ * conversation takes only what the channel assigns, and a value the
+ * agent needs that nothing assigns refuses every message that needs it.
  *
- * Provider-agnostic by construction: bindings are agent + environment
+ * Provider-agnostic by construction: assignments are agent and credential
  * facts, so both connect dialogs render this section unchanged.
  */
+import { useState } from "react";
+import { cn } from "@stigmer/theme";
+import type { CredentialAssignmentInput } from "@stigmer/sdk";
+import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { CredentialAssignmentsEditor } from "../../credential/CredentialAssignmentsEditor.js";
+import { ChevronIcon } from "./icons.js";
+
 export function ToolCredentialsSection({
   agent,
   org,
@@ -26,8 +26,8 @@ export function ToolCredentialsSection({
 }: {
   readonly agent: Agent;
   readonly org: string;
-  readonly value: readonly ResourceRef[];
-  readonly onChange: (refs: ResourceRef[]) => void;
+  readonly value: readonly CredentialAssignmentInput[];
+  readonly onChange: (next: CredentialAssignmentInput[]) => void;
   readonly disabled: boolean;
 }) {
   const hasMcpTools = (agent.spec?.mcpServerUsages?.length ?? 0) > 0;
@@ -48,14 +48,20 @@ export function ToolCredentialsSection({
         <ChevronIcon
           className={cn("stg:size-3 stg:transition-transform", expanded && "stg:rotate-90")}
         />
-        Tool credentials
+        Credentials
       </button>
 
       {expanded && (
-        <div className="stg:mt-2">
-          <ChannelToolCredentials
-            agent={agent}
+        <div className="stg:mt-2 stg:flex stg:flex-col stg:gap-2">
+          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+            Channel conversations have no person behind them, so they use
+            only the values assigned here. Pick an organization key you may
+            use for each value (a read-only token is safest). Nobody in the
+            workspace sees the values.
+          </p>
+          <CredentialAssignmentsEditor
             org={org}
+            agent={agent}
             value={value}
             onChange={onChange}
             disabled={disabled}

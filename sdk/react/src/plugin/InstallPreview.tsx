@@ -67,8 +67,8 @@ export function InstallPreview({ prepared, relation, className }: InstallPreview
         />
         {plugin.variables.length > 0 && (
           <p className="stg:mt-2 stg:text-xs stg:text-muted-foreground">
-            The agent asks for these the first time you start a session on it, and saves them to your personal
-            environment.
+            The agent asks for these the first time you start a session on it, and saves them as your key
+            for it.
           </p>
         )}
       </Block>

@@ -1,12 +1,20 @@
 "use client";
 
+/**
+ * useSaveAgentShare: the full-spec share draft every save requires, its
+ * projection from a stored share, and the save itself. A share's
+ * credential assignments ride every save without their server-stamped
+ * writer, which a client never sends.
+ */
 import { useCallback, useState } from "react";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
-import type { ResourceRef, RunConfigInput } from "@stigmer/sdk";
+import type { CredentialAssignmentInput, RunConfigInput } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
+import { assignmentsForWrite } from "../credential/CredentialAssignmentsEditor.js";
+import { assignmentInputsOf } from "../credential/assignments.js";
 
 /**
  * Who can chat with a shared agent over its hosted link.
@@ -24,7 +32,7 @@ export type SharingAudience = "public" | "org";
  * Every field is required by design: saving **replaces the share's whole
  * spec**, so a caller must always supply the full configuration. A
  * partial type here would let a toggle change silently wipe
- * `allowedOrigins`, `messages`, `environmentRefs`, or the `audience` —
+ * `allowedOrigins`, `messages`, `credentials`, or the `audience` —
  * the required shape makes that mistake unrepresentable. (The rotatable
  * link token is exempt: it is server-owned `status`, which survives
  * every save verbatim.)
@@ -50,20 +58,20 @@ export interface AgentShareDraft {
     readonly conversationEnded: string;
   };
   /**
-   * Org-shared environments whose values guest conversations receive —
-   * how a tool-using agent becomes chattable over a share link without
-   * touching the agent itself. Public-audience only (the
-   * proto CEL rule rejects bindings on org-audience shares, whose member
-   * sessions carry no share linkage).
+   * The values guest conversations use for what the agent needs: a
+   * guest has no credentials of their own, so a guest's run takes only
+   * what is assigned here. Public-audience only (the proto CEL rule
+   * rejects assignments on org-audience shares, where a member's run is
+   * the member's own and takes their credentials).
    */
-  readonly environmentRefs: readonly ResourceRef[];
+  readonly credentials: readonly CredentialAssignmentInput[];
   /**
    * The owner's per-share run override (model / cost cap / tool
    * rounds / service tier), merged over the platform guest profile at
    * run time — stigmer/stigmer#360. The console does not edit it (yet):
    * it rides through every save opaquely so a toggle never wipes an
    * override set via the CLI or API. Public-audience only (the same
-   * proto CEL rule as environmentRefs, for the same reason).
+   * proto CEL rule as credentials, for the same reason).
    */
   readonly runConfig: RunConfigInput | undefined;
 }
@@ -94,7 +102,7 @@ function sharingAudienceToProto(audience: SharingAudience): AgentShareAudience {
  * Shared by the Share dialog (draft seeding) and the share list's
  * pause/resume toggle, so a toggle rebuilds the complete spec with only
  * `enabled` flipped and can never wipe origins, messages, or credential
- * bindings — the fails-closed posture {@link AgentShareDraft} exists to
+ * assignments — the fails-closed posture {@link AgentShareDraft} exists to
  * enforce.
  */
 export function draftFromShare(share: AgentShare | null): AgentShareDraft {
@@ -108,10 +116,7 @@ export function draftFromShare(share: AgentShare | null): AgentShareDraft {
       unavailable: spec?.messages?.unavailable ?? "",
       conversationEnded: spec?.messages?.conversationEnded ?? "",
     },
-    environmentRefs: (spec?.environmentRefs ?? []).map((ref) => ({
-      org: ref.org,
-      slug: ref.slug,
-    })),
+    credentials: assignmentInputsOf(spec?.credentials ?? []),
     runConfig: spec?.runConfig
       ? {
           modelName: spec.runConfig.modelName,
@@ -246,10 +251,7 @@ export function useSaveAgentShare(
             unavailable: draft.messages.unavailable,
             conversationEnded: draft.messages.conversationEnded,
           },
-          environmentRefs: draft.environmentRefs.map((ref) => ({
-            org: ref.org,
-            slug: ref.slug,
-          })),
+          credentials: assignmentsForWrite(draft.credentials),
           runConfig: draft.runConfig,
         });
       } catch (err) {

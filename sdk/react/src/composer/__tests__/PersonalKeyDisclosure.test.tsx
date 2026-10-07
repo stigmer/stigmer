@@ -1,22 +1,22 @@
+/**
+ * The disclosure before a conversation's message: it names, sorted, the
+ * keys a run of the agent takes from the person's own credentials (each
+ * requirement of the agent or its MCP servers that the person's
+ * credential serving the declarer holds). Given the conversation's pinned
+ * version it reads what that version declares (by id and hash), the
+ * current spec when the agent holds no such version, and nothing while
+ * the version loads or cannot be read. It says nothing for an agent that
+ * takes none of the person's keys or cannot be read. A disclosure, so
+ * there is no control.
+ */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { StigmerError, type Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { storedCredential } from "../../credential/__tests__/credential-world";
 import { PersonalKeyDisclosure } from "../PersonalKeyDisclosure";
-
-// ---------------------------------------------------------------------------
-// The disclosure before a conversation's message: it names, sorted, the
-// keys a run of the agent reads from the person's personal environment —
-// the keys the agent declares (`spec.env`), minus its servers' OAuth
-// variables (their sign-in fills those), and none for an agent of another
-// organization than the conversation's. Given the conversation's pinned
-// version it names what that version declares (read by id and hash), the
-// current spec when the agent holds no such version, and nothing while the
-// version loads or cannot be read. It says nothing for an agent that
-// declares no keys or cannot be read. A disclosure, so there is no control.
-// ---------------------------------------------------------------------------
 
 afterEach(cleanup);
 
@@ -36,6 +36,29 @@ function wrapperFor(fakes: Fakes) {
       getVersion: fakes.getVersion ?? vi.fn(),
     },
     mcpServer: { getByReference: fakes.getServer ?? vi.fn() },
+    // The person's own credential serving the agent holds every key the
+    // tests' agents declare; one serving the calendar server holds its key.
+    credential: {
+      list: vi.fn().mockResolvedValue({
+        items: [
+          storedCredential({
+            id: "mine",
+            org: ORG,
+            owner: "person",
+            fields: ["GITHUB_TOKEN", "LINEAR_API_KEY", "SLACK_TOKEN"],
+            serves: [{ kind: "agent", org: ORG, slug: "pr-reviewer" }],
+          }),
+          storedCredential({
+            id: "mine-cal",
+            org: ORG,
+            owner: "person",
+            fields: ["CAL_TOKEN"],
+            serves: [{ kind: "mcp_server", org: ORG, slug: "calendar" }],
+          }),
+        ],
+        totalCount: 2,
+      }),
+    },
   } as unknown as Stigmer;
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
@@ -56,35 +79,27 @@ function agentOf(env: Record<string, object>, org = ORG, mcpServerUsages: object
 const LINE = "personal-key-disclosure";
 
 describe("PersonalKeyDisclosure", () => {
-  it("names the keys the agent declares, leaving out a server's OAuth variable", async () => {
+  it("names the person's keys the run takes, the agent's own and its servers', and none of the organization's", async () => {
     const getByReference = agentOf(
-      { LINEAR_API_KEY: {}, GITHUB_TOKEN: {}, CAL_TOKEN: {} },
+      { LINEAR_API_KEY: {}, GITHUB_TOKEN: {}, ORG_ONLY: {} },
       ORG,
       [{ mcpServerRef: { org: ORG, slug: "calendar" } }],
     );
-    const getServer = vi.fn().mockResolvedValue({ spec: { auth: { targetEnvVar: "CAL_TOKEN" } } });
+    const getServer = vi.fn().mockResolvedValue({
+      metadata: { id: "mcp_calendar", org: ORG, slug: "calendar" },
+      spec: { env: { CAL_TOKEN: {} } },
+    });
     render(<PersonalKeyDisclosure agentRef={REF} runOrg={ORG} />, {
       wrapper: wrapperFor({ getByReference, getServer }),
     });
 
     await waitFor(() =>
       expect(screen.getByTestId(LINE).textContent).toBe(
-        "This agent can read these keys from your personal environment: GITHUB_TOKEN, LINEAR_API_KEY",
+        "This agent's runs use these keys of yours: CAL_TOKEN, GITHUB_TOKEN, LINEAR_API_KEY",
       ),
     );
     expect(getByReference).toHaveBeenCalledWith({ org: ORG, slug: "pr-reviewer" });
     expect(screen.queryByRole("button")).toBeNull();
-  });
-
-  it("says nothing for an agent of another organization, which reads none of the person's keys", async () => {
-    const getByReference = agentOf({ GITHUB_TOKEN: {} }, "org_globex");
-    render(<PersonalKeyDisclosure agentRef={{ org: "org_globex", slug: "pr-reviewer" }} runOrg={ORG} />, {
-      wrapper: wrapperFor({ getByReference }),
-    });
-
-    await waitFor(() => expect(getByReference).toHaveBeenCalled());
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(screen.queryByTestId(LINE)).toBeNull();
   });
 
   it("names what the pinned version declares, not the agent's current spec", async () => {
@@ -99,7 +114,7 @@ describe("PersonalKeyDisclosure", () => {
 
     await waitFor(() =>
       expect(screen.getByTestId(LINE).textContent).toBe(
-        "This agent can read these keys from your personal environment: GITHUB_TOKEN",
+        "This agent's runs use these keys of yours: GITHUB_TOKEN",
       ),
     );
     expect(getVersion).toHaveBeenCalledWith(
@@ -118,7 +133,7 @@ describe("PersonalKeyDisclosure", () => {
 
     await waitFor(() =>
       expect(screen.getByTestId(LINE).textContent).toBe(
-        "This agent can read these keys from your personal environment: GITHUB_TOKEN",
+        "This agent's runs use these keys of yours: GITHUB_TOKEN",
       ),
     );
   });
@@ -153,7 +168,7 @@ describe("PersonalKeyDisclosure", () => {
     expect(getVersion).not.toHaveBeenCalled();
   });
 
-  it("says nothing for an agent that declares no keys", async () => {
+  it("says nothing for an agent that takes none of the person's keys", async () => {
     const getByReference = agentOf({});
     render(<PersonalKeyDisclosure agentRef={REF} runOrg={ORG} />, {
       wrapper: wrapperFor({ getByReference }),

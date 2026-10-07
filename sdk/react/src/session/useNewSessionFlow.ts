@@ -169,7 +169,7 @@ export interface UseNewSessionFlowOptions {
    * can set this (the same trust level as authoring the first message).
    * Hidden from the conversation thread, not from the API — `session.get`
    * returns it, so never put secrets here; secrets belong in `runtimeEnv`
-   * or Environment resources. Large values bloat every prompt.
+   * or credentials. Large values bloat every prompt.
    */
   readonly sessionContext?: string;
   /**

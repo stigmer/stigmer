@@ -117,8 +117,8 @@ describe("useShareFlow — canShareWithTeams", () => {
     ["local", ApiResourceKind.agent, "agent", false],
     ["enterprise", ApiResourceKind.agent, "agent", true],
     ["cloud", ApiResourceKind.agent, "agent", true],
-    // An environment grants no team roles: a credential set is shared per person.
-    ["enterprise", ApiResourceKind.environment, "environment", false],
+    // A credential's user role is granted to people and teams alike.
+    ["enterprise", ApiResourceKind.credential, "credential", true],
     // Circular with the membership bound.
     ["enterprise", ApiResourceKind.organization, "organization", false],
   ];

@@ -4,7 +4,7 @@ import { useCallback, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { DialogShell } from "../internal/DialogShell.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
-import { getErrorReason, type ResourceRef } from "@stigmer/sdk";
+import { getErrorReason, type CredentialAssignmentInput, type ResourceRef } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
@@ -17,6 +17,7 @@ import {
   ServingAppSection,
 } from "./connect/ServingAppSection.js";
 import { ToolCredentialsSection } from "./connect/ToolCredentialsSection.js";
+import { assignmentsForWrite } from "../credential/CredentialAssignmentsEditor.js";
 import { RefusalBox, VerbatimRefusal } from "./connect/VerbatimRefusal.js";
 import { CheckIcon, CloseIcon, Spinner } from "./connect/icons.js";
 import { useConnectSlackChannel, type SlackConnectPhase } from "./useConnectSlackChannel.js";
@@ -159,10 +160,10 @@ function ConnectSlackDialogBody({
   const [name, setName] = useState(() =>
     channel ? (channel.metadata?.name ?? "") : `${agentName} Slack`,
   );
-  // Tool credentials bound at connect time (create mode only — a
+  // Credentials assigned at connect time (create mode only — a
   // reconnect keeps the channel's existing bindings untouched; edits go
   // through the channel card's credentials dialog).
-  const [environmentRefs, setEnvironmentRefs] = useState<ResourceRef[]>([]);
+  const [credentials, setCredentials] = useState<CredentialAssignmentInput[]>([]);
   // The serving app (create mode only): null = the platform Stigmer app;
   // a ref = one of the org's own channel apps (BYO — the bot carries that
   // app's name, and each app is its own bot identity). A reconnect keeps
@@ -237,7 +238,7 @@ function ConnectSlackDialogBody({
           enabled: true,
           slack: {},
           ...(appRef ? { appRef } : {}),
-          ...(environmentRefs.length > 0 ? { environmentRefs } : {}),
+          ...(credentials.length > 0 ? { credentials: assignmentsForWrite(credentials) } : {}),
         });
         // The channel now exists even if the install below fails or is
         // abandoned — surface it in the list either way.
@@ -252,7 +253,7 @@ function ConnectSlackDialogBody({
       // error null for it; everything else renders below.
       setError(slack.error ?? (err instanceof Error ? err : new Error(String(err))));
     }
-  }, [agent, agentName, appRef, channel, createChannel, environmentRefs, name, org, onChannelsChanged, slack]);
+  }, [agent, agentName, appRef, channel, createChannel, credentials, name, org, onChannelsChanged, slack]);
 
   const handleCancel = useCallback(() => {
     slack.clearError();
@@ -364,8 +365,8 @@ function ConnectSlackDialogBody({
               <ToolCredentialsSection
                 agent={agent}
                 org={org}
-                value={environmentRefs}
-                onChange={setEnvironmentRefs}
+                value={credentials}
+                onChange={setCredentials}
                 disabled={busy}
               />
             )}

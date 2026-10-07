@@ -1,13 +1,18 @@
 "use client";
 
+/**
+ * Edits an installed channel's credential assignments after the fact: the
+ * values channel conversations use, since a channel conversation has no
+ * person behind it and takes only what its channel assigns.
+ */
 import { useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { DialogShell } from "../internal/DialogShell.js";
-import { getUserMessage, type ResourceRef } from "@stigmer/sdk";
+import { getUserMessage, type CredentialAssignmentInput } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { Button } from "../button/Button.js";
-import { ChannelToolCredentials } from "./ChannelToolCredentials.js";
+import { CredentialAssignmentsEditor, assignmentsForWrite } from "../credential/CredentialAssignmentsEditor.js";
 import { agentChannelToInput, useSaveAgentChannel } from "./useSaveAgentChannel.js";
 
 /** Props for {@link ChannelCredentialsDialog}. */
@@ -16,9 +21,9 @@ export interface ChannelCredentialsDialogProps {
   readonly open: boolean;
   /** Called when the dialog requests an open-state change. */
   readonly onOpenChange: (open: boolean) => void;
-  /** The agent the channel serves (drives the readiness hint). */
+  /** The agent the channel serves: what its conversations need. */
   readonly agent: Agent;
-  /** The channel whose credential bindings are edited. */
+  /** The channel whose credential assignments are edited. */
   readonly channel: AgentChannel;
   /** Called after a successful save (hosts typically pass `refetch`). */
   readonly onSaved?: () => void;
@@ -33,12 +38,12 @@ export interface ChannelCredentialsDialogProps {
 }
 
 /**
- * Edits an installed channel's tool-credential bindings
- * (`AgentChannelSpec.environment_refs`) after the fact — the companion
- * to binding at connect time in {@link ConnectSlackDialog}. Saves are
+ * Edits an installed channel's credential assignments
+ * (`AgentChannelSpec.credentials`) after the fact — the companion to
+ * assigning at connect time in {@link ConnectSlackDialog}. Saves are
  * full-input applies via {@link agentChannelToInput}, so the agent
  * reference, provider marker, and install status all survive; an
- * emptied list is an explicit unbind.
+ * emptied list removes every assignment.
  *
  * Built on the native `<dialog>` element, matching the SDK's modal
  * convention. Most hosts mount it via {@link AgentChannelsPanel}'s
@@ -105,20 +110,17 @@ function ChannelCredentialsDialogBody({
 
   const { save, isPending, error, clearError } = useSaveAgentChannel();
 
-  const [draft, setDraft] = useState<ResourceRef[]>(() =>
-    (channel.spec?.environmentRefs ?? []).map((ref) => ({
-      org: ref.org,
-      slug: ref.slug,
-    })),
+  const [draft, setDraft] = useState<CredentialAssignmentInput[]>(
+    () => agentChannelToInput(channel).credentials ?? [],
   );
 
   const handleSave = useCallback(async () => {
     try {
-      // Full-input apply: only the binding list changes; an empty draft
-      // is an explicit unbind (apply semantics replace the spec).
+      // Full-input apply: only the assignments change; an empty draft
+      // removes them all (apply semantics replace the spec).
       await save({
         ...agentChannelToInput(channel),
-        environmentRefs: [...draft],
+        credentials: assignmentsForWrite(draft),
       });
       onSaved?.();
       onClose();
@@ -135,7 +137,7 @@ function ChannelCredentialsDialogBody({
             id={titleId}
             className="stg:text-sm stg:font-semibold stg:text-foreground"
           >
-            Tool credentials
+            Credentials
           </h2>
           <p className="stg:mt-0.5 stg:truncate stg:text-xs stg:text-muted-foreground">
             {channelName}
@@ -156,13 +158,16 @@ function ChannelCredentialsDialogBody({
       </div>
 
       <div className="stg:px-5 stg:py-4">
-        <ChannelToolCredentials
-          agent={agent}
+        <p className="stg:mb-3 stg:text-[0.65rem] stg:text-muted-foreground">
+          Channel conversations have no person behind them, so they use only
+          the values assigned here. Nobody in the workspace sees the values.
+        </p>
+        <CredentialAssignmentsEditor
           org={org}
+          agent={agent}
           value={draft}
           onChange={setDraft}
           disabled={isPending}
-          enabled={channel.spec?.enabled ?? false}
         />
 
         {error && (

@@ -2,15 +2,11 @@
 
 import { useCallback } from "react";
 import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { useDeploymentMode } from "../deployment-mode.js";
 import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { useOrganization } from "../organization/useOrganization.js";
 import { useSingleOrg } from "../server-info.js";
 import { VisibilityBadge, VisibilitySelector } from "./VisibilitySelector.js";
-import {
-  blueprintVisibilityLevels,
-  environmentVisibilityLevels,
-} from "./visibilityLevels.js";
+import { blueprintVisibilityLevels } from "./visibilityLevels.js";
 import {
   useUpdateVisibility,
   type VisibilityResourceKind,
@@ -27,7 +23,6 @@ const FGA_KIND: Record<VisibilityResourceKind, string> = {
   plugin: "plugin",
   skill: "skill",
   mcpServer: "mcp_server",
-  environment: "environment",
 };
 
 /** Props for {@link ResourceVisibilityControl}. */
@@ -75,9 +70,6 @@ export interface ResourceVisibilityControlProps {
  *   not itself a child (its `spec.parent_org`, read with
  *   {@link useOrganization}; anyone who may change a blueprint's audience
  *   holds a role in its organization, so the read succeeds).
- * - Environments: Private / Organization only — secret values never leave
- *   the org boundary. In `local` mode there are no levels to choose (the
- *   open-source edition is single-user), so the control degrades to a badge.
  *
  * The backend remains the enforcer (it refuses child organizations in an
  * organization that is a child, and the retired public level for every
@@ -93,23 +85,16 @@ export function ResourceVisibilityControl({
   className,
 }: ResourceVisibilityControlProps) {
   const { updateVisibility, isPending } = useUpdateVisibility(kind, resourceId);
-  const deploymentMode = useDeploymentMode();
   const singleOrg = useSingleOrg();
 
-  const isEnvironment = kind === "environment";
-  // Only a blueprint can take the child-organizations level, and only a
-  // server that holds more than one organization can have children.
-  // Passing null makes the hook a stable no-op everywhere else.
-  const ownerLookupOrg =
-    !isEnvironment && singleOrg === false ? (org ?? null) : null;
+  // Only a server that holds more than one organization can have
+  // children. Passing null makes the hook a stable no-op everywhere else.
+  const ownerLookupOrg = singleOrg === false ? (org ?? null) : null;
   const { organization: owner } = useOrganization(ownerLookupOrg);
 
-  const options = isEnvironment
-    ? environmentVisibilityLevels(deploymentMode)
-    : blueprintVisibilityLevels({
-        offersChildOrgs:
-          owner !== null && (owner.spec?.parentOrg ?? "") === "",
-      });
+  const options = blueprintVisibilityLevels({
+    offersChildOrgs: owner !== null && (owner.spec?.parentOrg ?? "") === "",
+  });
 
   const handleChange = useCallback(
     async (next: ApiResourceVisibility) => {
@@ -127,8 +112,8 @@ export function ResourceVisibilityControl({
 
   const badge = <VisibilityBadge visibility={visibility} className={className} />;
 
-  // Fewer than two levels means there is nothing to choose (e.g. an
-  // environment in local mode) — stay legible with the read-only badge.
+  // Fewer than two levels means there is nothing to choose — stay legible
+  // with the read-only badge.
   if (options.length < 2) {
     return badge;
   }

@@ -84,9 +84,8 @@ function createMockStigmer(overrides: MockOverrides = {}) {
         vi.fn().mockResolvedValue({ completed: true }),
       get: overrides.get ?? vi.fn().mockResolvedValue(installedChannel()),
     },
-    environment: {
+    credential: {
       list: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }),
-      getByReference: vi.fn().mockRejectedValue(new Error("not found")),
     },
   } as never;
 }

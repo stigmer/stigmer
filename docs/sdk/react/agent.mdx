@@ -193,30 +193,19 @@ const { results, isLoading, query, setQuery } = useAgentSearch("acme");
 
 ### useAgentSetup
 
-Layer 2 behavior hook that encapsulates the agent selection,
-personal environment resolution, and secret delivery routing flow.
+Layer 2 behaviour hook behind the composer's agent selection: reads
+whether a run of the picked agent can start for this person, and
+collects what it cannot start without.
 
-When a user picks an agent in the [`AgentPicker`](#agentpicker), this hook
-determines whether the agent requires credentials (via its
-`env` declarations), checks what the user has already provided in their
-personal environment, and either reports the agent as ready or
-identifies the missing variables so the caller can render
-[`AgentEnvForm`](#agentenvform).
-
-The hook supports two secret delivery paths via the `saveForFuture`
-option on `submitEnvVars`:
-- **Saved** — secrets are persisted to the personal environment,
-  where every run of an agent the user starts reads the keys the
-  agent declares.
-- **One-time** — secrets are returned as `runtimeEnv` for a single
-  run, with no data persisted.
+The hook supports two delivery paths via the `saveForFuture` option on
+`submitEnvVars`:
+- **Saved** — values are saved into the person's own credentials, one
+  per declarer, where every later run reads them.
+- **One-time** — values are returned as `runtimeEnv` for a single run,
+  with nothing saved.
 
 State is managed by a `useReducer` state machine with five phases:
 `idle → resolving → needsEnvVars → submitting → ready`.
-
-Composes [`usePersonalEnvironment`](/docs/sdk/react/environment#usepersonalenvironment) for personal environment
-operations and calls the Stigmer client directly for the agent and
-its MCP servers.
 
 Pass `null` as `org` to disable all operations (stable no-op).
 
@@ -229,7 +218,7 @@ function useAgentSetup(org: string | null, poolKeys?: Set<string>): UseAgentSetu
 <TypeTable
   type={{
     org: { type: "string | null", description: "Organization id (a slug is also accepted). Pass `null` to disable.", required: true },
-    poolKeys: { type: "Set<string>", description: "Optional set of env-var keys already available   from the session env pool (manual secrets, one-time env vars from   other components). When provided, agents whose `env` keys   are fully covered by `poolKeys` + personal env auto-resolve to   `ready` without prompting. Reactive — when `poolKeys` changes,   `needsEnvVars` is re-evaluated." },
+    poolKeys: { type: "Set<string>", description: "Optional set of env-var keys already available   from the session env pool (manual secrets, one-time env vars from   other components). When provided, agents whose missing values   are all covered by `poolKeys` auto-resolve to `ready` without   prompting. Reactive — when `poolKeys` changes,   `needsEnvVars` is re-evaluated." },
   }}
 />
 
@@ -239,10 +228,10 @@ function useAgentSetup(org: string | null, poolKeys?: Set<string>): UseAgentSetu
   type={{
     clearError: { type: "() => void", description: "Clear the error without changing the current phase." },
     reset: { type: "() => void", description: "Reset to `idle` state, clearing all phase data and errors." },
-    resolveAgent: { type: "(ref: ResourceRef) => Promise<AgentSetupResult>", description: "Evaluate whether an agent is ready to use or needs env var collection.  Fetches the full agent to read its `env` declarations and diffs them against the personal environment and the session's variables. Returns `\"ready\"` when the agent can be used immediately, or `\"needsEnvVars\"` when the caller should present AgentEnvForm." },
-    signInCompleted: { type: "(mcpServerId: string) => Promise<void>", description: "Record that one of the pending sign-ins completed (the row's own OAuth flow landed). When it was the last one, the agent is resolved again through resolveAgent, which now finds the grant and lands in `ready` or in `needsEnvVars` for its variables alone.  Must only be called when `state.status === \"needsEnvVars\"`." },
-    state: { type: "AgentSetupState", description: "Current state of the agent setup flow.  A discriminated union on `status`: - `\"idle\"` — no agent selected - `\"resolving\"` — evaluating an agent's requirements - `\"needsEnvVars\"` — waiting for user to provide missing variables - `\"submitting\"` — saving to the personal environment - `\"ready\"` — agent resolved, `resolution` describes how to proceed  `error` is available on all variants (orthogonal to phase).", typeDescriptionLink: "#agentsetupstate" },
-    submitEnvVars: { type: "(values: Record<string, EnvVarInput>, options?: SubmitEnvVarsOptions) => Promise<AgentSetupReadyResult>", description: "Complete the env var collection flow for the pending agent.  Behavior depends on `options.saveForFuture`: - `true` (default) — Creates or updates the personal environment   with the provided values.   Returns `{ resolution: { mode: \"saved\" } }`. - `false` — Collects values as `runtimeEnv` without any API calls.   Returns `{ resolution: { mode: \"oneTime\", runtimeEnv } }`.  Must only be called when `state.status === \"needsEnvVars\"`." },
+    resolveAgent: { type: "(ref: ResourceRef) => Promise<AgentSetupResult>", description: "Evaluate whether an agent is ready to use or needs env var collection.  Fetches the agent and each MCP server it uses, and reads every value a run needs against the person's credentials, the organization's they may use, and the session's variables. Returns `\"ready\"` when the agent can be used immediately, or `\"needsEnvVars\"` when the caller should present AgentEnvForm." },
+    signInCompleted: { type: "(mcpServerId: string) => Promise<void>", description: "Record that one of the pending sign-ins completed (the row's own OAuth flow landed). When it was the last one, the agent is resolved again through resolveAgent, which now finds the sign-in and lands in `ready` or in `needsEnvVars` for its variables alone.  Must only be called when `state.status === \"needsEnvVars\"`." },
+    state: { type: "AgentSetupState", description: "Current state of the agent setup flow.  A discriminated union on `status`: - `\"idle\"` — no agent selected - `\"resolving\"` — evaluating an agent's requirements - `\"needsEnvVars\"` — waiting for user to provide missing variables - `\"submitting\"` — saving into the person's credentials - `\"ready\"` — agent resolved, `resolution` describes how to proceed  `error` is available on all variants (orthogonal to phase).", typeDescriptionLink: "#agentsetupstate" },
+    submitEnvVars: { type: "(values: Record<string, EnvVarInput>, options?: SubmitEnvVarsOptions) => Promise<AgentSetupReadyResult>", description: "Complete the env var collection flow for the pending agent.  Behavior depends on `options.saveForFuture`: - `true` (default) — Saves each value into the person's own credential   serving the declarer that needs it.   Returns `{ resolution: { mode: \"saved\" } }`. - `false` — Collects values as `runtimeEnv` without any API calls.   Returns `{ resolution: { mode: \"oneTime\", runtimeEnv } }`.  Must only be called when `state.status === \"needsEnvVars\"`." },
   }}
 />
 
@@ -544,7 +533,7 @@ All visual properties flow through `--stgm-*` design tokens.
 
 Compact form that collects environment variable values for an agent.
 
-This is a thin wrapper around [`EnvVarForm`](/docs/sdk/react/environment#envvarform) that provides
+This is a thin wrapper around [`EnvVarForm`](/docs/sdk/react/credential#envvarform) that provides
 agent-specific defaults: the agent name as the form title, and a
 contextual description. All rendering, validation, and toggle
 behavior is delegated to `EnvVarForm`.
@@ -695,8 +684,9 @@ should create the session and its first run.
 Every mode starts the conversation on the agent itself (the session's
 `agentRef`); the mode says where the keys the agent declares come from:
 
-- `"saved"` — The user's personal environment holds every declared
-  key (saved just now or earlier). Each run reads them from there.
+- `"saved"` — Credentials give every declared value: the person's own
+  (saved just now or earlier) or the organization's they may use. Each
+  run reads them from there.
 - `"oneTime"` — Secrets were collected but **not** persisted. Pass
   `runtimeEnv` to `createExecution` for this run only.
 - `"direct"` — Nothing is needed from the user: the agent declares no
@@ -820,17 +810,19 @@ an `AgentInput` for submission on the final step.
 
 ### PendingSignIn
 
-One MCP server the agent uses that authenticates by OAuth and has no
-usable grant in the organization. The agent is not ready until each is
-signed in: run would start and fail at the first tool call, so the
-composer asks first, the way it asks for a missing variable. Grants are
-per organization today, so one colleague's sign-in serves everyone.
+One MCP server the agent uses whose account is not connected for this
+person's runs. With personal sign-in it is the person's own sign-in that
+is missing (or expired); with organization sign-in it is the
+organization's, which only an admin can connect. The agent is not ready
+until each is connected: a run would be refused, so the composer asks
+first, the way it asks for a missing value.
 
 <TypeTable
   type={{
     health: { type: "OAuthConnectionHealth", description: "The grant's health as the backend graded it; `NO_GRANT` when none exists.", required: true },
     id: { type: "string", description: "The server's id, the key a sign-in completes under.", required: true },
     name: { type: "string", description: "The server's display name.", required: true },
+    organization: { type: "boolean", description: "`true` when the server uses one account for the whole organization: an admin connects it (in Accounts and keys, or by signing in), and the person can only ask.", required: true },
     ref: { type: "ResourceRef", description: "The server's reference, for the row's own read.", required: true },
   }}
 />
@@ -842,7 +834,7 @@ Options for `UseAgentSetupReturn.submitEnvVars`.
 
 <TypeTable
   type={{
-    saveForFuture: { type: "boolean", description: "When `true` (default), the provided values are saved to the user's personal environment. Every run of an agent the user starts reads the keys that agent declares from there, so later conversations reuse them without asking again.  When `false`, the values are collected as `runtimeEnv` for this run only — nothing is persisted. This path is instant (no network calls)." },
+    saveForFuture: { type: "boolean", description: "When `true` (default), the values are saved into the person's own credential serving each declarer that needs them (created, named after the declarer, when none serves it yet), so later runs find them without asking again.  When `false`, the values are collected as `runtimeEnv` for this run only — nothing is persisted. This path is instant (no network calls)." },
   }}
 />
 

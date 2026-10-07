@@ -86,7 +86,7 @@ const NATIVE_ALWAYS_THINKS: ModelInfo = {
 function createMinimalStigmerMock(): Stigmer {
   return {
     run: { uploadAttachment: vi.fn() },
-    environment: { getPersonal: vi.fn().mockResolvedValue(null) },
+    credential: { list: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }) },
     baseUrl: "http://localhost:8080",
     getAuthCredential: vi.fn().mockResolvedValue("test-token"),
     config: {

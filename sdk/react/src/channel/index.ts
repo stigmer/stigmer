@@ -44,8 +44,6 @@ export type {
   InstallChannelPhase,
 } from "./useInstallChannel.js";
 
-export { useChannelToolReadiness } from "./useChannelToolReadiness.js";
-
 export { useChannelTemplateReadiness } from "./useChannelTemplateReadiness.js";
 export type { ChannelTemplateReadiness } from "./useChannelTemplateReadiness.js";
 
@@ -71,9 +69,6 @@ export { ChannelCredentialsDialog } from "./ChannelCredentialsDialog.js";
 export type { ChannelCredentialsDialogProps } from "./ChannelCredentialsDialog.js";
 export { ChannelRunConfigDialog } from "./ChannelRunConfigDialog.js";
 export type { ChannelRunConfigDialogProps } from "./ChannelRunConfigDialog.js";
-
-export { ChannelToolCredentials } from "./ChannelToolCredentials.js";
-export type { ChannelToolCredentialsProps } from "./ChannelToolCredentials.js";
 
 export { ChannelConversationsDialog } from "./ChannelConversationsDialog.js";
 export type { ChannelConversationsDialogProps } from "./ChannelConversationsDialog.js";

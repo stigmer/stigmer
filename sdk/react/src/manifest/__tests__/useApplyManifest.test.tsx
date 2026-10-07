@@ -50,7 +50,7 @@ spec:
   instructions: Short messages.
 `;
 
-const CHANNEL_AND_ENV_YAML = `
+const CHANNEL_AND_APP_YAML = `
 apiVersion: agentic.stigmer.ai/v1
 kind: AgentChannel
 metadata:
@@ -63,16 +63,17 @@ spec:
     slug: clinic-patient-assistant
   enabled: true
 ---
-apiVersion: agentic.stigmer.ai/v1
-kind: Environment
+apiVersion: iam.stigmer.ai/v1
+kind: OAuthApp
 metadata:
-  name: clinic-patient-db
+  name: clinic-calendar
   org: rakeshreddi098
 spec:
-  data:
-    POSTGRES_CONNECTION_URL:
-      value: "***REDACTED***"
-      is_secret: true
+  provider: google
+  client_id: clinic-client
+  client_secret: "***REDACTED***"
+  authorization_url: https://accounts.example.com/authorize
+  token_url: https://accounts.example.com/token
 `;
 
 // Validation (parse + existence resolution) debounces across keystrokes.
@@ -126,19 +127,19 @@ describe("useApplyManifest", () => {
     expect(result.current.validationError).toContain("Invalid Agent");
   });
 
-  it("orders multi-document manifests by dependency (Environment before AgentChannel)", async () => {
+  it("orders multi-document manifests by dependency (OAuthApp before AgentChannel)", async () => {
     const { result } = renderHook(() => useApplyManifest("rakeshreddi098"), {
       wrapper: wrapper(createMockStigmer()),
     });
 
     act(() => {
-      result.current.setContent(CHANNEL_AND_ENV_YAML);
+      result.current.setContent(CHANNEL_AND_APP_YAML);
     });
     await act(settleValidation);
 
     expect(
       result.current.entries!.map((e) => e.document.handler.yamlKind),
-    ).toEqual(["Environment", "AgentChannel"]);
+    ).toEqual(["OAuthApp", "AgentChannel"]);
     expect(result.current.hasRedactedSecrets).toBe(true);
   });
 
@@ -172,7 +173,7 @@ describe("useApplyManifest", () => {
     });
 
     act(() => {
-      result.current.setContent(CHANNEL_AND_ENV_YAML);
+      result.current.setContent(CHANNEL_AND_APP_YAML);
     });
     await act(settleValidation);
 
@@ -192,14 +193,14 @@ describe("useApplyManifest", () => {
   it("stops at the first failure and marks the rest skipped", async () => {
     const apply = vi
       .fn()
-      .mockRejectedValueOnce(new Error("environment rejected"))
+      .mockRejectedValueOnce(new Error("oauth app rejected"))
       .mockResolvedValue({});
     const { result } = renderHook(() => useApplyManifest("rakeshreddi098"), {
       wrapper: wrapper(createMockStigmer({ apply })),
     });
 
     act(() => {
-      result.current.setContent(CHANNEL_AND_ENV_YAML);
+      result.current.setContent(CHANNEL_AND_APP_YAML);
     });
     await act(settleValidation);
 
@@ -214,7 +215,7 @@ describe("useApplyManifest", () => {
       "failed",
       "skipped",
     ]);
-    expect(result.current.entries![0].errorMessage).toBe("environment rejected");
+    expect(result.current.entries![0].errorMessage).toBe("oauth app rejected");
   });
 
   it("reset clears content, preview, and errors", async () => {

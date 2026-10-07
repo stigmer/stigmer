@@ -11,8 +11,8 @@ export interface UseDisconnectOAuthReturn {
   /**
    * Disconnect the current user's OAuth grant for an MCP server.
    *
-   * Deletes the managed environment (secrets first) and then the grant
-   * document. The operation is idempotent — disconnecting when no grant
+   * Deletes the sign-in's credential (the access token) and then the
+   * grant, with its sealed refresh token. The operation is idempotent — disconnecting when no grant
    * exists returns `false` without error.
    *
    * Resolves with `true` when a grant was removed, `false` when no
@@ -32,8 +32,9 @@ export interface UseDisconnectOAuthReturn {
  * Behavior hook that wraps `mcpServer.disconnectOAuth()` with loading
  * and error state.
  *
- * Removes the user's OAuth grant and associated managed environment
- * for a given MCP server resource. After a successful disconnect the
+ * Removes one sign-in (the user's own, or the organization's for a
+ * server with organization sign-in, which only an admin may end) for a
+ * given MCP server resource. After a successful disconnect the
  * UI should revert to the "Not connected" state — call `refetch()` on
  * the credentials / grant status hooks to reflect the change.
  *

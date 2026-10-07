@@ -12,13 +12,11 @@ import {
   chatPath,
   getUserMessage,
   validateOrigin,
-  type ResourceRef,
+  type CredentialAssignmentInput,
 } from "@stigmer/sdk";
 import { create as createMessage } from "@bufbuild/protobuf";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
-import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { Switch } from "../switch/Switch.js";
 import { Tabs, type TabItem } from "../tabs/Tabs.js";
@@ -29,7 +27,8 @@ import { useCopyResource } from "../resource-detail/useCopyResource.js";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { useBillingAccount } from "../billing/useBillingAccount.js";
 import { formatCreditBalance } from "../billing/format.js";
-import { EnvironmentPicker } from "../environment/EnvironmentPicker.js";
+import { CredentialAssignmentsEditor } from "../credential/CredentialAssignmentsEditor.js";
+import { useToolCredentialsReadiness } from "../credential/useToolCredentialsReadiness.js";
 import { generateSlug } from "../internal/slug.js";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { getFieldError, validateMessage } from "../internal/validate.js";
@@ -40,7 +39,6 @@ import {
   type SharingAudience,
 } from "./useSaveAgentShare.js";
 import { useRotateShareLink } from "./useRotateShareLink.js";
-import { useShareToolReadiness } from "./useShareToolReadiness.js";
 import { trimTrailing } from "../internal/trim.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 
@@ -569,21 +567,21 @@ function ShareAgentForm({
   const handleAudienceChange = useCallback(
     (audience: SharingAudience) => {
       if (audience === draft.audience) return;
-      // Credential bindings are public-audience only (the proto CEL rule
-      // rejects them on org shares), so switching
-      // to org drops them, and the toast says so: silent config loss is
-      // worse than a wordier confirmation.
+      // Credential assignments are public-audience only (the proto CEL
+      // rule rejects them on org shares), so switching to org drops them,
+      // and the toast says so: silent config loss is worse than a wordier
+      // confirmation.
       const dropsBindings =
-        audience === "org" && draft.environmentRefs.length > 0;
+        audience === "org" && draft.credentials.length > 0;
       void commit(
         {
           ...draft,
           audience,
-          environmentRefs: dropsBindings ? [] : draft.environmentRefs,
+          credentials: dropsBindings ? [] : draft.credentials,
         },
         audience === "org"
           ? dropsBindings
-            ? "Only organization members can chat now — tool credential bindings were removed (they apply to public links only)"
+            ? "Only organization members can chat now — credential assignments were removed (they apply to public links only)"
             : "Only organization members can chat now"
           : "Anyone with the link can chat now",
       );
@@ -676,16 +674,16 @@ function ShareAgentForm({
 }
 
 // ---------------------------------------------------------------------------
-// Tool readiness — visitors' tool use needs credentials bound to the share
+// Readiness — visitors' chats take only what the share assigns
 // ---------------------------------------------------------------------------
 
 /**
- * Pre-flight hint for tool-using agents: visitors' chats receive
- * credentials only from the share's own environment bindings, so a
- * tool-using agent with no bindings (`needs-credentials`) or a binding
- * that is still private (`blocked`) will fail at the visitor's first
- * message. Renders nothing when there is nothing to fix — sharing stays
- * one toggle; this only catches the misconfiguration at share time.
+ * Pre-flight hint: a visitor has no credentials of their own, so a
+ * visitor's chat takes only what the share assigns, and a value the
+ * agent needs that nothing assigns refuses the visitor's first message.
+ * Checked only where it matters: an enabled public share on an edition
+ * that serves guests. Renders nothing when there is nothing to fix —
+ * sharing stays one toggle; this only catches the gap at share time.
  */
 function ToolReadinessHint({
   agent,
@@ -694,33 +692,21 @@ function ToolReadinessHint({
   readonly agent: Agent;
   readonly draft: AgentShareDraft;
 }) {
-  const readiness = useShareToolReadiness(agent, draft);
+  const cloud = useDeploymentMode() === "cloud";
+  const applicable = draft.enabled && draft.audience === "public" && cloud;
+  const readiness = useToolCredentialsReadiness(applicable, agent, draft.credentials);
 
-  if (readiness.status === "needs-credentials") {
-    return (
-      <p className="stg:mt-2 stg:text-xs stg:text-warning" role="status">
-        Visitors&apos; chats can&apos;t use this agent&apos;s tools yet: no
-        credentials are bound to this share. Bind an org-shared environment
-        under <span className="stg:font-medium">Tool credentials</span> in the
-        Link tab below.
-      </p>
-    );
-  }
-
-  if (readiness.status !== "blocked") {
+  if (readiness.status !== "needs-credentials") {
     return null;
   }
 
-  const envList = readiness.privateEnvironments.join(", ");
-  const plural = readiness.privateEnvironments.length > 1;
-
+  const keys = readiness.unassigned.map((requirement) => requirement.key).join(", ");
   return (
     <p className="stg:mt-2 stg:text-xs stg:text-warning" role="status">
-      Visitors&apos; chats can&apos;t use this agent&apos;s tools yet: the
-      environment{plural ? "s" : ""} <span className="stg:font-medium">{envList}</span>{" "}
-      {plural ? "are" : "is"} private. Share {plural ? "them" : "it"} with your
-      organization (Settings &rarr; Environments) so visitor runs can use the
-      credentials. Secret values stay hidden either way.
+      Visitors&apos; chats won&apos;t start yet: this agent needs{" "}
+      <span className="stg:font-mono">{keys}</span>, and nothing is assigned.
+      Assign {readiness.unassigned.length === 1 ? "it" : "them"} under{" "}
+      <span className="stg:font-medium">Credentials</span> in the Link tab below.
     </p>
   );
 }
@@ -963,18 +949,19 @@ function ResetLinkControl({
 }
 
 // ---------------------------------------------------------------------------
-// Tool credentials — org-shared environments bound to the share for visitors
+// Credentials — what visitors' chats use, assigned on the share
 // ---------------------------------------------------------------------------
 
 /**
- * Binds org-shared environments to the share's `environment_refs` — the
- * consent act that makes a tool-using agent work for visitors (decision
- * 011: credentials belong to the channel, never to the agent itself).
- * Public audience only; the section disappears for
- * org shares, whose member sessions carry no share linkage.
+ * Assigns the share's credentials (`AgentShareSpec.credentials`): the
+ * consent act that makes an agent that needs keys work for visitors,
+ * without touching the agent itself. Public audience only; the section
+ * disappears for org shares, where a member's run takes their own.
  *
- * Expanded by default when the agent uses MCP tools — for those agents
- * this is essential configuration, not an advanced option.
+ * Edits are drafted here and saved together with one button, so typing
+ * a plain value never saves a half-typed one. Expanded by default when
+ * the agent uses MCP tools — for those agents this is essential
+ * configuration, not an advanced option.
  */
 function ToolCredentialsSection({
   org,
@@ -994,28 +981,17 @@ function ToolCredentialsSection({
 }) {
   const hasMcpTools = (agent.spec?.mcpServerUsages?.length ?? 0) > 0;
   const [expanded, setExpanded] = useState(
-    hasMcpTools || draft.environmentRefs.length > 0,
+    hasMcpTools || draft.credentials.length > 0,
   );
+  const [assignments, setAssignments] = useState<CredentialAssignmentInput[] | null>(null);
+  const editing = assignments ?? [...draft.credentials];
 
-  const handleChange = useCallback(
-    (refs: ResourceRef[]) => {
-      const added = refs.length > draft.environmentRefs.length;
-      void commit(
-        { ...draft, environmentRefs: refs },
-        added ? "Credentials bound" : "Credential bindings updated",
-      );
-    },
-    [commit, draft],
-  );
-
-  // Only org-shared environments are guest-usable (the runtime merge
-  // skips private ones), so offering others would bind
-  // credentials that silently never apply.
-  const onlyOrgShared = useCallback(
-    (env: Environment) =>
-      env.metadata?.visibility === ApiResourceVisibility.visibility_org,
-    [],
-  );
+  const handleSave = useCallback(() => {
+    if (assignments === null) return;
+    void commit({ ...draft, credentials: assignments }, "Credentials saved").then((saved) => {
+      if (saved) setAssignments(null);
+    });
+  }, [assignments, commit, draft]);
 
   return (
     <section>
@@ -1032,25 +1008,44 @@ function ToolCredentialsSection({
         <ChevronIcon
           className={cn("stg:size-3 stg:transition-transform", expanded && "stg:rotate-90")}
         />
-        Tool credentials
+        Credentials
       </button>
 
       {expanded && (
         <div className="stg:mt-2 stg:flex stg:flex-col stg:gap-2">
           <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-            Environments whose values visitors&apos; chats can use — bind one
-            holding the credentials this agent&apos;s tools need (a read-only
-            token is safest). Only environments shared with your organization
-            can be bound; share one first in Settings &rarr; Environments.
-            Secret values stay hidden from visitors either way.
+            Visitors have no keys of their own, so their chats use only the
+            values assigned here. Pick an organization key you may use for
+            each value (a read-only token is safest). Visitors never see the
+            values.
           </p>
-          <EnvironmentPicker
+          <CredentialAssignmentsEditor
             org={org}
-            value={draft.environmentRefs}
-            onChange={handleChange}
+            agent={agent}
+            value={editing}
+            onChange={setAssignments}
             disabled={isPending}
-            filterEnvironment={onlyOrgShared}
           />
+          {assignments !== null && (
+            <div className="stg:flex stg:items-center stg:gap-2">
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={isPending}
+                className="stg:rounded-md stg:bg-primary stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium stg:text-primary-foreground stg:hover:bg-primary-hover stg:disabled:opacity-50"
+              >
+                Save credentials
+              </button>
+              <button
+                type="button"
+                onClick={() => setAssignments(null)}
+                disabled={isPending}
+                className="stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:text-muted-foreground stg:hover:text-foreground"
+              >
+                Discard
+              </button>
+            </div>
+          )}
         </div>
       )}
     </section>

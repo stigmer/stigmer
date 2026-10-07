@@ -1,5 +1,14 @@
 "use client";
 
+/**
+ * Recovery guidance for a run the server refused because a value it needs
+ * has no source. The server names each missing value with who needs it
+ * ("MCP server 'linear' needs LINEAR_API_KEY"); this guide groups them by
+ * who needs them and says how to give them: a key of your own, a value
+ * for this run, or the organization's key an admin lets you use.
+ *
+ * Pinned by `__tests__/SecretFlowErrorGuide.test.tsx`.
+ */
 import { useMemo } from "react";
 import { StigmerError, getUserMessage } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
@@ -17,25 +26,29 @@ export interface SecretFlowErrorGuideProps {
 }
 
 interface MissingVariable {
-  readonly serverName: string;
+  /** Who needs the value, as the server named it ("MCP server 'linear'"). */
+  readonly declarer: string;
   readonly variableName: string;
 }
 
-const MISSING_ENV_VAR_PATTERN =
-  /MCP server '([^']+)' requires environment variable '([^']+)'/g;
+const DECLARER = "(?:MCP server|agent|git host) '[^']+'";
+const MISSING_VALUE_PATTERN = new RegExp(
+  `(${DECLARER}(?: and ${DECLARER})*) needs ([A-Za-z_][A-Za-z0-9_]*)`,
+  "g",
+);
 
 /**
- * Parse a `FAILED_PRECONDITION` error message for missing environment
- * variable declarations. Returns an empty array when the pattern does
- * not match.
+ * Parse a `FAILED_PRECONDITION` refusal for the values a run needs and
+ * nothing gives, one entry per declarer and key. Returns an empty array
+ * when the message names none.
  */
-function parseMissingVariables(message: string): MissingVariable[] {
+export function parseMissingVariables(message: string): MissingVariable[] {
   const results: MissingVariable[] = [];
-  let match: RegExpExecArray | null;
-  while ((match = MISSING_ENV_VAR_PATTERN.exec(message)) !== null) {
-    results.push({ serverName: match[1], variableName: match[2] });
+  for (const match of message.matchAll(MISSING_VALUE_PATTERN)) {
+    for (const declarer of match[1]!.split(" and ")) {
+      results.push({ declarer, variableName: match[2]! });
+    }
   }
-  MISSING_ENV_VAR_PATTERN.lastIndex = 0;
   return results;
 }
 
@@ -46,9 +59,9 @@ function isFailedPreconditionError(error: Error): boolean {
 /**
  * Contextual recovery guidance for secret-flow errors.
  *
- * Detects `FAILED_PRECONDITION` errors from run creation that
- * indicate missing MCP server environment variables, and renders
- * actionable guidance alongside the technical error message.
+ * Detects `FAILED_PRECONDITION` errors from run creation that name
+ * values nothing gives, and renders actionable guidance alongside the
+ * technical error message.
  *
  * When the error does not match a secret-flow pattern, renders nothing.
  * This makes the component composable: try `SecretFlowErrorGuide`
@@ -73,24 +86,20 @@ export function SecretFlowErrorGuide({
   error,
   className,
 }: SecretFlowErrorGuideProps) {
-  const parsed = useMemo(() => {
+  const grouped = useMemo(() => {
     if (!error || !isFailedPreconditionError(error)) return null;
     const variables = parseMissingVariables(error.message);
     if (variables.length === 0) return null;
-    return variables;
-  }, [error]);
-
-  if (!parsed) return null;
-
-  const grouped = useMemo(() => {
     const map = new Map<string, string[]>();
-    for (const { serverName, variableName } of parsed) {
-      const list = map.get(serverName) ?? [];
-      list.push(variableName);
-      map.set(serverName, list);
+    for (const { declarer, variableName } of variables) {
+      const list = map.get(declarer) ?? [];
+      if (!list.includes(variableName)) list.push(variableName);
+      map.set(declarer, list);
     }
     return map;
-  }, [parsed]);
+  }, [error]);
+
+  if (!grouped) return null;
 
   return (
     <div
@@ -105,14 +114,14 @@ export function SecretFlowErrorGuide({
 
         <div className="stg:min-w-0 stg:flex-1 stg:space-y-2">
           <p className="stg:text-sm stg:font-medium stg:text-amber-800 stg:dark:text-amber-200">
-            Missing environment variables
+            Missing keys
           </p>
 
           <div className="stg:space-y-1.5">
-            {Array.from(grouped).map(([server, vars]) => (
-              <div key={server}>
+            {Array.from(grouped).map(([declarer, vars]) => (
+              <div key={declarer}>
                 <p className="stg:text-xs stg:text-amber-700 stg:dark:text-amber-300">
-                  <span className="stg:font-medium">{server}</span> requires:
+                  <span className="stg:font-medium">{declarer}</span> needs:
                 </p>
                 <ul className={cn(UNSTYLED_LIST, "stg:mt-0.5 stg:space-y-0.5")}>
                   {vars.map((v) => (
@@ -130,15 +139,15 @@ export function SecretFlowErrorGuide({
 
           <div className="stg:border-t stg:border-amber-500/20 stg:pt-2">
             <p className="stg:text-xs stg:text-amber-700/90 stg:dark:text-amber-300/90">
-              You can provide these values in two ways:
+              You can provide these values in three ways:
             </p>
             <ul className={cn(UNSTYLED_LIST, "stg:mt-1 stg:space-y-0.5 stg:text-xs stg:text-amber-700/80 stg:dark:text-amber-300/80")}>
               <li className="stg:flex stg:items-start stg:gap-1.5">
                 <span className="stg:mt-px stg:shrink-0">•</span>
                 <span>
-                  Add them to your{" "}
-                  <strong className="stg:font-medium">personal environment</strong>{" "}
-                  in Settings for automatic reuse across sessions.
+                  Save a key of yours for it in Settings,{" "}
+                  <strong className="stg:font-medium">Accounts and keys</strong>,
+                  or sign in to the tool, for reuse in every run.
                 </span>
               </li>
               <li className="stg:flex stg:items-start stg:gap-1.5">
@@ -147,6 +156,12 @@ export function SecretFlowErrorGuide({
                   Provide them as{" "}
                   <strong className="stg:font-medium">session variables</strong>{" "}
                   when sending a message.
+                </span>
+              </li>
+              <li className="stg:flex stg:items-start stg:gap-1.5">
+                <span className="stg:mt-px stg:shrink-0">•</span>
+                <span>
+                  Ask an admin to let you use the organization&apos;s key for it.
                 </span>
               </li>
             </ul>

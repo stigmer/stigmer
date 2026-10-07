@@ -54,7 +54,14 @@ const FULL_DRAFT: AgentShareDraft = {
     unavailable: "We're out of credits.",
     conversationEnded: "This conversation has ended.",
   },
-  environmentRefs: [{ org: "acme", slug: "github-org-shared" }],
+  credentials: [
+    {
+      requirement: { declarer: { mcpServer: { org: "acme", slug: "github" } }, key: "GITHUB_TOKEN" },
+      credential: { credential: { org: "acme", slug: "github-org-shared" } },
+      // A writer a stale caller kept must never be sent.
+      writer: "ida_someone",
+    },
+  ],
   runConfig: { modelName: "gpt-5-mini", maxCostUsd: 0.25 },
 };
 
@@ -91,9 +98,13 @@ describe("useSaveAgentShare", () => {
     expect(input.messages?.conversationEnded).toBe(
       "This conversation has ended.",
     );
-    expect(input.environmentRefs).toEqual([
-      { org: "acme", slug: "github-org-shared" },
+    expect(input.credentials).toEqual([
+      {
+        requirement: { declarer: { mcpServer: { org: "acme", slug: "github" } }, key: "GITHUB_TOKEN" },
+        credential: { credential: { org: "acme", slug: "github-org-shared" } },
+      },
     ]);
+    expect(JSON.stringify(input.credentials)).not.toContain("writer");
     expect(input.runConfig).toEqual({ modelName: "gpt-5-mini", maxCostUsd: 0.25 });
   });
 
@@ -130,13 +141,13 @@ describe("useSaveAgentShare", () => {
 
     await act(() =>
       result.current.save(
-        // An org-audience share carries no environmentRefs or runConfig
+        // An org-audience share carries no credentials or runConfig
         // (both are public-audience-only by the proto CEL rules).
         {
           ...FULL_DRAFT,
           enabled: false,
           audience: "org",
-          environmentRefs: [],
+          credentials: [],
           runConfig: undefined,
         },
         null,
@@ -164,7 +175,7 @@ describe("useSaveAgentShare", () => {
       spec: {
         enabled: true,
         allowedOrigins: ["https://example.com"],
-        environmentRefs: [],
+        credentials: [],
         runConfig: { modelName: "gpt-5-mini", maxCostUsd: 0.25, maxToolRounds: 8 },
       },
     } as unknown as AgentShare;
@@ -202,7 +213,7 @@ describe("useSaveAgentShare", () => {
     };
     const share = {
       metadata: { id: "ash_3", org: "acme", slug: "support-agent", name: "Support Agent" },
-      spec: { enabled: true, allowedOrigins: [], environmentRefs: [], runConfig },
+      spec: { enabled: true, allowedOrigins: [], credentials: [], runConfig },
     } as unknown as AgentShare;
 
     const { result } = renderHook(() => useSaveAgentShare(AGENT), {
@@ -237,7 +248,7 @@ describe("useSaveAgentShare", () => {
     await act(() => result.current.save(FULL_DRAFT, null));
     await act(() =>
       result.current.save(
-        { ...FULL_DRAFT, audience: "org", environmentRefs: [] },
+        { ...FULL_DRAFT, audience: "org", credentials: [] },
         null,
       ),
     );

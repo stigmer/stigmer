@@ -26,7 +26,7 @@ export type {
   AgentEnvFormVariable,
 } from "./AgentEnvForm.js";
 
-export { diffEnv } from "../environment/diffEnv.js";
+export { diffEnv } from "../credential/diffEnv.js";
 
 export { useAgentSetup } from "./useAgentSetup.js";
 export type {

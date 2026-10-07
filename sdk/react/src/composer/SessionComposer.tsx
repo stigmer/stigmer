@@ -39,9 +39,11 @@ import { extractClipboardFiles } from "../attachment/clipboard.js";
 import { useFileReferences } from "../file-reference/useFileReferences.js";
 import { FileReferenceChipList } from "../file-reference/FileReferenceChipList.js";
 import { FILE_REF_MIME } from "../internal/file-tree/index.js";
-import { useSessionEnvPool } from "../environment/useSessionEnvPool.js";
-import { usePersonalEnvironment } from "../environment/usePersonalEnvironment.js";
-import { SYSTEM_ENV_VAR_KEYS } from "../environment/systemEnvVars.js";
+import { useSessionEnvPool } from "../run/useSessionEnvPool.js";
+import { SYSTEM_ENV_VAR_KEYS } from "../credential/systemEnvVars.js";
+import { agentDeclarer } from "../credential/requirements.js";
+import { saveToServingCredential } from "../credential/serving.js";
+import { useStigmer } from "../hooks.js";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import {
@@ -372,7 +374,7 @@ export interface SessionComposerProps {
    *
    * Every {@link AgentResolution} starts the session on `agentRef`; the
    * mode says where the agent's declared keys come from:
-   * - `"saved"` — the user's personal environment holds them
+   * - `"saved"` — credentials give them (the person's own, or the organization's they may use)
    * - `"oneTime"` — pass `runtimeEnv` to the run
    * - `"direct"` — nothing is needed from the user
    *
@@ -400,7 +402,7 @@ export interface SessionComposerProps {
    * When provided, the composer runs the full agent resolution flow
    * on mount — exactly as if the user had picked this agent in the
    * {@link AgentPicker}. If the agent requires credentials, the
-   * environment form appears automatically.
+   * values form appears automatically.
    *
    * One-time: consumed on mount; subsequent changes are ignored.
    * To change the agent after mount, use the picker or
@@ -424,16 +426,16 @@ export interface SessionComposerProps {
   readonly initialAgentRef?: ResourceRef;
 
   /**
-   * Name, below the composer, the keys the selected agent declares
-   * (`agent.spec.env`): every run of the agent reads those keys from the
-   * person's personal environment, so the person sees what the agent can
-   * read before sending the first message of a conversation on it. A
+   * Name, below the composer, the keys of the person's own that a run of
+   * the selected agent will receive (from their credentials serving the
+   * agent or its MCP servers), so the person sees what the agent gets of
+   * theirs before sending the first message of a conversation on it. A
    * disclosure, not a gate: nothing is withheld or asked. Shown only when
-   * an agent is selected and declares at least one key.
+   * an agent is selected and takes at least one of the person's keys.
    *
    * Opt-in: a host enables it where a conversation is about to start on
    * an agent (the new-session launcher, or a conversation moving to a
-   * different agent), never for a guest, who has no personal environment.
+   * different agent), never for a guest, who has no credentials.
    *
    * @default false
    */
@@ -453,7 +455,7 @@ export interface SessionComposerProps {
    *
    * Locking does not unwire the agent machinery — `initialAgentRef`
    * resolution still runs on mount, and when the agent requires
-   * credentials the environment form stays reachable in the Configure
+   * credentials the values form stays reachable in the Configure
    * menu until setup completes (lock ≠ unwire). Pair with
    * `initialAgentRef` to pin a pre-configured agent in end-user-facing
    * embeds (see `SessionViewer` / `NewSessionViewer` `audience`).
@@ -486,8 +488,9 @@ export interface SessionComposerProps {
    * that opens a key-value editor for environment variables.
    *
    * Variables are ephemeral by default (single run). Individual
-   * entries can be marked `saveForFuture: true` to persist them to
-   * the user's personal environment. The consumer should call
+   * entries can be marked `saveForFuture: true` to save them into the
+   * person's own credential serving the selected agent (with no agent
+   * selected they are used for this run only). The consumer should call
    * `sessionVariables.clear()` after submission.
    */
   readonly sessionVariables?: UseSessionVariablesReturn;
@@ -780,17 +783,9 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   // Session env pool — cross-references secrets across all sources
   // ---------------------------------------------------------------------------
 
-  const personalEnv = usePersonalEnvironment(
-    (showAgent || showMcp) ? (org ?? null) : null,
-  );
-
-  const personalEnvKeys = useMemo(
-    () => new Set(Object.keys(personalEnv.environment?.spec?.data ?? {})),
-    [personalEnv.environment],
-  );
+  const stigmer = useStigmer();
 
   const pool = useSessionEnvPool({
-    personalEnvKeys,
     manualSecrets: sessionVariables?.entries,
   });
 
@@ -1132,16 +1127,24 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         buildFromPlan?: boolean;
       },
     ) => {
-      // Persist save-for-future manual secrets before building runtimeEnv
-      if (sessionVariables?.hasSaveForFutureEntries) {
+      // Save save-for-future manual secrets before building runtimeEnv:
+      // into the person's own credential serving the selected agent, where
+      // that agent's later runs read the keys it declares.
+      if (sessionVariables?.hasSaveForFutureEntries && agentRef && org) {
         const saveVars = sessionVariables.toSaveForFutureEnv();
         if (Object.keys(saveVars).length > 0) {
           try {
-            await personalEnv.getOrCreate();
-            await personalEnv.addVariables(saveVars);
+            const agent = await stigmer.agent.getByReference(agentRef);
+            const declarer = agentDeclarer(agent);
+            await saveToServingCredential(stigmer, {
+              org,
+              target: declarer.target,
+              name: declarer.name,
+              values: saveVars,
+            });
           } catch {
-            // Best-effort: if persistence fails, the values still flow
-            // into runtimeEnv for this run via the one-time path.
+            // Best-effort: if saving fails, the values still flow into
+            // runtimeEnv for this run via the one-time path.
           }
         }
       }
@@ -1235,7 +1238,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         fileRefs.clear();
       }
     },
-    [onSubmit, effective, serviceTierPick, thinkingModePick, agentSetup.state, mcpSetup.pendingRuntimeEnv, sessionVariables, enableAttachments, attachments, personalEnv, showInteractionModePicker, interactionMode],
+    [onSubmit, effective, serviceTierPick, thinkingModePick, agentSetup.state, mcpSetup.pendingRuntimeEnv, sessionVariables, enableAttachments, attachments, agentRef, org, stigmer, showInteractionModePicker, interactionMode],
   );
 
   const composer = useComposer({
@@ -1311,7 +1314,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   );
 
   // ---------------------------------------------------------------------------
-  // Agent setup: state-machine-driven popover + environment resolution
+  // Agent setup: state-machine-driven popover + credential resolution
   // ---------------------------------------------------------------------------
 
   const showEnvForm = agentSetup.state.status === "needsEnvVars";
@@ -1676,12 +1679,19 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
               {agentSetup.state.pendingSignIns.length > 0 && (
                 <div className="stg:flex stg:flex-col stg:gap-2">
                   <p className="stg:text-sm stg:text-foreground">
-                    {agentSetup.state.agentName} uses tools nobody in this organization has signed in to yet.
+                    {agentSetup.state.agentName} uses tools that need a sign-in before it can run.
                   </p>
                   <ul className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:divide-y stg:divide-border stg:rounded-md stg:border stg:border-border")} aria-label="Sign-ins this agent needs">
                     {agentSetup.state.pendingSignIns.map((signIn) => (
                       <li key={signIn.id} className="stg:flex stg:items-center stg:justify-between stg:gap-3 stg:px-3 stg:py-2">
-                        <span className="stg:text-sm stg:font-medium stg:text-foreground">{signIn.name}</span>
+                        <span className="stg:flex stg:min-w-0 stg:flex-col">
+                          <span className="stg:text-sm stg:font-medium stg:text-foreground">{signIn.name}</span>
+                          {signIn.organization && (
+                            <span className="stg:text-xs stg:text-muted-foreground">
+                              Uses the organization&apos;s account: an admin connects it once for everyone.
+                            </span>
+                          )}
+                        </span>
                         <McpServerReadiness
                           org={signIn.ref.org}
                           slug={signIn.ref.slug}

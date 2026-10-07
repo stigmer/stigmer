@@ -3,8 +3,9 @@
  * became ready without a handler awaiting it. Pins: an agent in
  * `needsEnvVars` with pending sign-ins renders one row per server under
  * "Sign-ins this agent needs" and no variable form while a sign-in is
- * pending, even with variables missing; the form returns once the
- * sign-ins are done; a `ready` state reached reactively (a sign-in landing,
+ * pending, even with variables missing; a server that uses the
+ * organization's account says an admin connects it; the form returns once
+ * the sign-ins are done; a `ready` state reached reactively (a sign-in landing,
  * the pool covering the keys) reports the agent's ref to the parent as well
  * as its resolution, which the imperative handlers did alone before.
  */
@@ -47,7 +48,7 @@ beforeAll(() => {
 function createMinimalStigmerMock(): Stigmer {
   return {
     run: { uploadAttachment: vi.fn() },
-    environment: { getPersonal: vi.fn().mockResolvedValue(null) },
+    credential: { list: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }) },
     mcpServer: { getByReference: vi.fn().mockRejectedValue(new Error("no backend in this test")) },
     baseUrl: "http://localhost:8080",
     getAuthCredential: vi.fn().mockResolvedValue("test-token"),
@@ -66,7 +67,8 @@ function createWrapper(client: Stigmer) {
 }
 
 const AGENT_REF = { org: "acme", slug: "reviewer" };
-const LINEAR = { ref: { org: "acme", slug: "linear" }, id: "mcp_linear", name: "Linear", health: OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT };
+const LINEAR = { ref: { org: "acme", slug: "linear" }, id: "mcp_linear", name: "Linear", health: OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT, organization: false };
+const SLACK = { ref: { org: "acme", slug: "slack" }, id: "mcp_slack", name: "Slack", health: OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT, organization: true };
 
 function renderComposer(props?: Partial<React.ComponentProps<typeof SessionComposer>>) {
   return render(
@@ -96,8 +98,26 @@ describe("SessionComposer — the agent's sign-ins", () => {
 
     const list = await screen.findByRole("list", { name: "Sign-ins this agent needs" });
     expect(list.textContent).toContain("Linear");
-    expect(screen.getByText(/uses tools nobody in this organization has signed in to yet/)).toBeTruthy();
+    expect(screen.getByText(/uses tools that need a sign-in before it can run/)).toBeTruthy();
     expect(screen.queryByText(/Enter required credentials/)).toBeNull();
+    expect(screen.queryByText(/an admin connects it once for everyone/)).toBeNull();
+  });
+
+  it("says a server on the organization's account is connected by an admin", async () => {
+    mockAgentSetup.state = {
+      status: "needsEnvVars",
+      agentRef: AGENT_REF,
+      agentId: "agt_1",
+      agentName: "Reviewer",
+      missingVariables: [],
+      pendingSignIns: [SLACK],
+      error: null,
+    };
+    renderComposer({ initialAgentRef: AGENT_REF });
+
+    const list = await screen.findByRole("list", { name: "Sign-ins this agent needs" });
+    expect(list.textContent).toContain("Slack");
+    expect(screen.getByText(/an admin connects it once for everyone/)).toBeTruthy();
   });
 
   it("shows the variable form once no sign-in is pending", async () => {

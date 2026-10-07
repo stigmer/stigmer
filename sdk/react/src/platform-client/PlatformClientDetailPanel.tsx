@@ -4,6 +4,7 @@ import { type FormEvent, type KeyboardEvent, useCallback, useId, useState } from
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import { getUserMessage, toPlatformClientUpdateInput } from "@stigmer/sdk";
+import { assignmentsForWrite } from "../credential/CredentialAssignmentsEditor.js";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
@@ -181,11 +182,15 @@ export function PlatformClientDetailPanel({
       try {
         // Full-spec-replace safety: spread the complete mapped input and
         // override only the edited fields, so unlisted spec fields (e.g.
-        // environment_refs, the embedded-assistant credential binding)
-        // survive the save. Cleared fields are set to undefined
-        // explicitly — omitting them would carry the stale mapped value.
+        // the credential assignments its users' runs take) survive the
+        // save. Assignments go back without their writer, which the
+        // server stamps and a client never sends. Cleared fields are set
+        // to undefined explicitly — omitting them would carry the stale
+        // mapped value.
+        const mapped = toPlatformClientUpdateInput(platformClient);
         const updated = await update({
-          ...toPlatformClientUpdateInput(platformClient),
+          ...mapped,
+          credentials: mapped.credentials ? assignmentsForWrite(mapped.credentials) : undefined,
           neverExpires,
           expiresAt:
             !neverExpires && expiresAt ? new Date(expiresAt) : undefined,

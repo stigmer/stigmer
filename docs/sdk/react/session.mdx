@@ -321,7 +321,7 @@ function useSessionAgentVersion(session: Session | null, options: UseSessionAgen
   type={{
     agentName: { type: "string", description: "The agent's display name (its name, else its slug); `\"\"` until it loads." },
     currentHash: { type: "string", description: "The agent's current version; `\"\"` until the agent loads, or when it cannot be read." },
-    currentPersonalKeys: { type: "readonly string[]", description: "The keys the agent's current version reads from the person's personal environment (usePersonalKeys: its declared keys, minus its servers' OAuth variables, and none for an agent of another organization than the session's), sorted: what an update hands the agent. Empty while the conversation is current (no update to name them for), and until the agent and its servers load." },
+    currentPersonalKeys: { type: "readonly string[]", description: "The keys the agent's current version takes from the person's own credentials in the session's organization (usePersonalKeys), sorted: what an update hands the agent. Empty while the conversation is current (no update to name them for), and until the agent and its servers load." },
     isOutdated: { type: "boolean", description: "`true` when the pin and the agent's current version are both known and differ: the conversation runs an older version than the agent's author last saved." },
     isUpdating: { type: "boolean", description: "`true` while update is in flight." },
     labelOf: { type: "(versionHash: string) => string", description: "How a version hash reads: its tag when it has one, else a short hash." },
@@ -1081,7 +1081,7 @@ control.
     error: { type: "Error | null", description: "The last update's failure, shown beside the control." },
     isUpdating: { type: "boolean", description: "`true` while the update is in flight; the control is disabled." },
     onUpdate: { type: "() => void", description: "Moves the conversation to the agent's current version.", required: true },
-    personalKeys: { type: "readonly string[]", description: "The keys the current version reads from the person's personal environment; named beside the control when there are any." },
+    personalKeys: { type: "readonly string[]", description: "The keys the current version takes from the person's own credentials; named beside the control when there are any." },
   }}
 />
 
@@ -1776,7 +1776,7 @@ presented to.
   attachments, the workspace picker, and the session panel. Guest is
   behavioral, not just cosmetic — the organisms also skip the
   org-level reads a guest principal cannot make (session→agent
-  derivation, personal environments) and never fall back to the
+  derivation, credentials) and never fall back to the
   built-in assistant. Approval mechanics are
   also withheld: the HITL gate protects the ORG's tools and
   an anonymous visitor is not its trustee — guest runs run in
@@ -2001,7 +2001,7 @@ Options for [`useNewSessionFlow`](#usenewsessionflow).
     onSessionCreated: { type: "(sessionId: string) => void", description: "Called after a session and its first run are created successfully. The consumer is responsible for navigation (e.g. `router.push`).", required: true },
     org: { type: "string", description: "Organization id (a slug is also accepted). Required for session and run creation.", required: true },
     runConfig: { type: "SessionRunConfig", description: "Owner-pinned model/tier for the session's first run (stigmer/stigmer#664). Stamped at submit, winning over the composer's selection and the restored Console preference. Pair with the same pin on the conversation surface (`useSessionPageFlow` / `SessionViewer`) so follow-ups match. Ignored for the `\"guest\"` audience (the platform share policy owns guest run config). See SessionRunConfig.", typeDescriptionLink: "#sessionrunconfig" },
-    sessionContext: { type: "string", description: "Standing, per-user context the agent receives on every turn but the conversation UI never renders — who the caller is, their experience level, their standing instructions (stigmer/stigmer#286).  Stored on the created session's `SessionSpec.metadata` under `stigmer.ai/session-context`; the agent runner injects it into the system prompt as already-known background, so agents can greet the user by name and calibrate depth/defaults from the first turn without a visible context preamble.  Personalization, not authorization: anyone who can create the session can set this (the same trust level as authoring the first message). Hidden from the conversation thread, not from the API — `session.get` returns it, so never put secrets here; secrets belong in `runtimeEnv` or Environment resources. Large values bloat every prompt." },
+    sessionContext: { type: "string", description: "Standing, per-user context the agent receives on every turn but the conversation UI never renders — who the caller is, their experience level, their standing instructions (stigmer/stigmer#286).  Stored on the created session's `SessionSpec.metadata` under `stigmer.ai/session-context`; the agent runner injects it into the system prompt as already-known background, so agents can greet the user by name and calibrate depth/defaults from the first turn without a visible context preamble.  Personalization, not authorization: anyone who can create the session can set this (the same trust level as authoring the first message). Hidden from the conversation thread, not from the API — `session.get` returns it, so never put secrets here; secrets belong in `runtimeEnv` or credentials. Large values bloat every prompt." },
   }}
 />
 

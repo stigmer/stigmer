@@ -29,7 +29,7 @@ import {
   DiscoveredCapabilitiesSchema,
   DiscoveredToolSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/requirement_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { samples } from "../../test/samples";
@@ -174,7 +174,7 @@ function PickerHarness({ refs }: { readonly refs: readonly ResourceRef[] }) {
 /**
  * Mounts the harness against a real Connect router transport. RPCs a test
  * does not register fall through to Connect's `unimplemented`, which the
- * SDK hooks degrade from (search list and personal-environment lookups
+ * SDK hooks degrade from (search list and credential lookups
  * are irrelevant here and stay unregistered).
  */
 function renderPicker(

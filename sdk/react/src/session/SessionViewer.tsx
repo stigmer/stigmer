@@ -873,7 +873,7 @@ const ConversationColumn = memo(function ConversationColumn({
   // The next message starts a conversation on the selected agent when the
   // session has no turn yet, or when the person picked a different agent
   // than the session runs: that is when the keys the agent will read from
-  // the person's personal environment are named. Guests and observers
+  // the person's own credentials are named. Guests and observers
   // never send on their own agent choice.
   const hasTurns =
     conv.completedRuns.length > 0 || conv.activeStreamRun !== null;

@@ -3,9 +3,9 @@ import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/re
 import type { ReactNode } from "react";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { StigmerError, type AgentChannelInput } from "@stigmer/sdk";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { StigmerContext } from "../../context";
+import { storedCredential } from "../../credential/__tests__/credential-world";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { DeploymentModeContext } from "../../deployment-mode";
 import { OAUTH_CALLBACK_MESSAGE_TYPE } from "../../internal/oauthPopup";
@@ -88,23 +88,24 @@ function createMockStigmer(overrides: MockOverrides = {}) {
           },
         }),
     },
-    environment: {
+    credential: {
       list: vi.fn().mockResolvedValue({
         items: [
-          {
-            metadata: {
-              slug: "github-credentials",
-              name: "GitHub Credentials",
-              org: "acme",
-              visibility: ApiResourceVisibility.visibility_org,
-            },
-            spec: {},
-          },
+          storedCredential({
+            id: "github-credentials",
+            org: "acme",
+            owner: "org",
+            name: "GitHub Credentials",
+            fields: ["GITHUB_TOKEN"],
+          }),
         ],
         totalCount: 1,
       }),
+    },
+    mcpServer: {
       getByReference: vi.fn().mockResolvedValue({
-        metadata: { visibility: ApiResourceVisibility.visibility_org },
+        metadata: { id: "mcp_github", org: "acme", slug: "github", name: "GitHub" },
+        spec: { env: { GITHUB_TOKEN: { isSecret: true } } },
       }),
     },
   } as never;
@@ -274,19 +275,19 @@ describe("ConnectSlackDialog", () => {
     expect(onChannelsChanged).toHaveBeenCalledTimes(2);
   });
 
-  it("keeps the tool-credentials section collapsed for agents without tools", async () => {
+  it("keeps the credentials section collapsed for agents without tools", async () => {
     render(
       <Providers client={createMockStigmer()}>
         <ConnectSlackDialog open onOpenChange={() => {}} agent={makeAgent()} />
       </Providers>,
     );
 
-    const toggle = await screen.findByRole("button", { name: "Tool credentials" });
+    const toggle = await screen.findByRole("button", { name: "Credentials" });
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
-    expect(screen.queryByLabelText("Add environment")).toBeNull();
+    expect(screen.queryByText(/Channel conversations have no person behind them/)).toBeNull();
   });
 
-  it("binds credentials at connect time — create carries the chosen environment refs", async () => {
+  it("assigns credentials at connect time — create carries the chosen assignment and no writer", async () => {
     const create = vi.fn().mockResolvedValue({
       metadata: { id: "ach_new", org: "acme" },
     });
@@ -303,15 +304,16 @@ describe("ConnectSlackDialog", () => {
     );
 
     // Tool-using agent: the section is expanded by default (essential
-    // configuration, not an advanced option) and warns while unbound.
-    const toggle = await screen.findByRole("button", { name: "Tool credentials" });
+    // configuration, not an advanced option) and names what is unassigned.
+    const toggle = await screen.findByRole("button", { name: "Credentials" });
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
     expect(
-      await screen.findByText(/no credentials are bound to this channel/i),
+      await screen.findByText(/Runs will not start until this value is assigned/i),
     ).toBeTruthy();
 
-    const select = await screen.findByLabelText("Add environment");
-    fireEvent.change(select, { target: { value: "github-credentials" } });
+    const select = await screen.findByLabelText("GITHUB_TOKEN", { selector: "select" });
+    await screen.findByRole("option", { name: "GitHub Credentials", hidden: true });
+    fireEvent.change(select, { target: { value: "cred:acme/github-credentials" } });
 
     fireEvent.click(
       screen.getByRole("button", { name: /connect to slack/i }),
@@ -320,7 +322,12 @@ describe("ConnectSlackDialog", () => {
     await waitFor(() =>
       expect(create).toHaveBeenCalledWith(
         expect.objectContaining({
-          environmentRefs: [{ org: "acme", slug: "github-credentials" }],
+          credentials: [
+            {
+              requirement: { declarer: { mcpServer: { org: "acme", slug: "github" } }, key: "GITHUB_TOKEN" },
+              credential: { credential: { org: "acme", slug: "github-credentials" } },
+            },
+          ],
         }),
       ),
     );

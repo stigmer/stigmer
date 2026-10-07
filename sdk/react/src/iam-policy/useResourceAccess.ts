@@ -48,7 +48,7 @@ export interface UseResourceAccessReturn {
  *
  * Pass `null` as `resource` to skip fetching (stable no-op).
  *
- * **Generic** — works for organizations, agents, environments, or any
+ * **Generic** — works for organizations, agents, credentials, or any
  * resource kind that has IAM policies.
  *
  * @param resource - The resource to query access for, or `null` to skip.

@@ -26,7 +26,7 @@ function createMinimalStigmerMock(): Stigmer {
         .fn()
         .mockResolvedValue({ storageKey: "attachments/test-ulid/file" }),
     },
-    environment: { getPersonal: vi.fn().mockResolvedValue(null) },
+    credential: { list: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }) },
     baseUrl: "http://localhost:8080",
     getAuthCredential: vi.fn().mockResolvedValue("test-token"),
     config: {

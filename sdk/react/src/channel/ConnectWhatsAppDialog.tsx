@@ -3,7 +3,7 @@
 import { useCallback, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { DialogShell } from "../internal/DialogShell.js";
-import { getErrorReason, type ResourceRef } from "@stigmer/sdk";
+import { getErrorReason, type CredentialAssignmentInput, type ResourceRef } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
@@ -17,6 +17,7 @@ import {
   ServingAppSection,
 } from "./connect/ServingAppSection.js";
 import { ToolCredentialsSection } from "./connect/ToolCredentialsSection.js";
+import { assignmentsForWrite } from "../credential/CredentialAssignmentsEditor.js";
 import { RefusalBox, VerbatimRefusal } from "./connect/VerbatimRefusal.js";
 import { CheckIcon, CloseIcon, Spinner } from "./connect/icons.js";
 import { useCreateAgentChannel } from "./useCreateAgentChannel.js";
@@ -180,10 +181,10 @@ function ConnectWhatsAppDialogBody({
       ? channel.spec.providerConfig.value.phoneNumberId
       : "",
   );
-  // Tool credentials bound at connect time (create mode only — a retry
+  // Credentials assigned at connect time (create mode only — a retry
   // keeps the channel's existing bindings untouched; edits go through
   // the channel card's credentials dialog).
-  const [environmentRefs, setEnvironmentRefs] = useState<ResourceRef[]>([]);
+  const [credentials, setCredentials] = useState<CredentialAssignmentInput[]>([]);
   // The serving app — required (no platform Meta app exists).
   // Editable in retry mode too: app_ref is server-mutable while the
   // channel isn't installed, and a wrong app is a likely failure cause.
@@ -255,7 +256,7 @@ function ConnectWhatsAppDialogBody({
           enabled: true,
           whatsapp: { phoneNumberId: trimmedNumber },
           ...(effectiveAppRef ? { appRef: effectiveAppRef } : {}),
-          ...(environmentRefs.length > 0 ? { environmentRefs } : {}),
+          ...(credentials.length > 0 ? { credentials: assignmentsForWrite(credentials) } : {}),
         });
         // The channel now exists even if the install below fails —
         // surface it in the list either way.
@@ -293,7 +294,7 @@ function ConnectWhatsAppDialogBody({
         installer.error ?? (err instanceof Error ? err : new Error(String(err))),
       );
     }
-  }, [agent, agentName, channel, createChannel, effectiveAppRef, environmentRefs, installer, name, org, onChannelsChanged, save, stigmer, trimmedNumber]);
+  }, [agent, agentName, channel, createChannel, effectiveAppRef, credentials, installer, name, org, onChannelsChanged, save, stigmer, trimmedNumber]);
 
   const busy = isCreating || isSaving || installer.isInProgress;
   const canConnect = trimmedNumber !== "" && effectiveAppRef !== null && !busy;
@@ -416,8 +417,8 @@ function ConnectWhatsAppDialogBody({
               <ToolCredentialsSection
                 agent={agent}
                 org={org}
-                value={environmentRefs}
-                onChange={setEnvironmentRefs}
+                value={credentials}
+                onChange={setCredentials}
                 disabled={busy}
               />
             )}

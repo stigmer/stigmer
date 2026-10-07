@@ -1,5 +1,4 @@
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import type { DeploymentMode } from "@stigmer/sdk";
 
 /**
  * A selectable visibility level: label, explanation, and escalation copy.
@@ -129,43 +128,6 @@ export function blueprintVisibilityLevels(
   return context.offersChildOrgs
     ? [PRIVATE_OPTION, ORG_OPTION, CHILD_ORGS_OPTION]
     : [PRIVATE_OPTION, ORG_OPTION];
-}
-
-/**
- * The levels an environment selector offers, in escalation order:
- * Private / Organization. The child-organizations level is structurally absent —
- * secret values never leave the org boundary (the backend rejects it via
- * the kind's VisibilityConfig).
- *
- * Org sharing on an environment carries credential semantics, so the
- * copy names both effects: members get redacted view, and runs
- * in the org (teammate-run agents AND shared-agent visitors) can use
- * the values at runtime. Secret reveal stays creator-only at every
- * level.
- *
- * In `local` mode (the open-source edition, single-user) sharing has no
- * enforcement meaning, so no interactive levels are offered —
- * {@link ResourceVisibilityControl} degrades to a read-only badge.
- * Enterprise and Cloud enforce org sharing alike.
- */
-export function environmentVisibilityLevels(
-  deploymentMode: DeploymentMode,
-): readonly VisibilityLevelOption[] {
-  if (deploymentMode === "local") {
-    return [PRIVATE_OPTION];
-  }
-  return [
-    {
-      ...PRIVATE_OPTION,
-      description: "Only you can view and use these credentials",
-    },
-    {
-      ...ORG_OPTION,
-      description:
-        "Agents run in your org — including shared-agent visitors — can use these credentials. Members see names only; secret values stay hidden.",
-      confirmPrompt: "Let agents run in your org use these credentials?",
-    },
-  ];
 }
 
 /**

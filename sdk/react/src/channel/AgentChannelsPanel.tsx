@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { FileCode2, KeyRound, LayoutTemplate, MessageSquare, MoreHorizontal, Share2, SlidersHorizontal, Trash2 } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
@@ -39,7 +39,7 @@ import {
   DEFAULT_CHANNEL_PRESENTATION,
 } from "./providerPresentation.js";
 import { useAgentChannelList } from "./useAgentChannelList.js";
-import { useChannelToolReadiness } from "./useChannelToolReadiness.js";
+import { useToolCredentialsReadiness } from "../credential/useToolCredentialsReadiness.js";
 import { useDeleteAgentChannel } from "./useDeleteAgentChannel.js";
 import { agentChannelToInput, useSaveAgentChannel } from "./useSaveAgentChannel.js";
 
@@ -616,7 +616,7 @@ function ChannelCard({
                   icon={<KeyRound />}
                   onSelect={onEditCredentials}
                 >
-                  Tool credentials
+                  Credentials
                 </ActionMenu.Item>
               )}
               {canEdit && (
@@ -653,13 +653,11 @@ function ChannelCard({
 }
 
 /**
- * Serving-readiness warning for tool-using agents: channel runs
- * receive credentials only from the channel's own bindings, so an
- * installed, enabled channel with none (or with a private binding) will
- * refuse the first workspace message that needs a tool. The card is
- * where an owner — including one who connected before credential
- * binding existed — discovers the gap, instead of hearing about it from
- * a confused workspace member.
+ * Serving-readiness warning: a channel conversation takes only what its
+ * channel assigns, so an installed, enabled channel whose agent needs a
+ * value nothing assigns will refuse the first workspace message. The
+ * card is where an owner discovers the gap, instead of hearing about it
+ * from a confused workspace member.
  */
 function CardReadinessWarning({
   agent,
@@ -675,20 +673,16 @@ function CardReadinessWarning({
   const serving =
     (channel.spec?.enabled ?? false) &&
     installStateOf(channel) === AgentChannelInstallState.installed;
-  const readiness = useChannelToolReadiness(
-    agent,
-    serving,
-    channel.spec?.environmentRefs ?? [],
-  );
+  const cloud = useDeploymentMode() === "cloud";
+  const assignments = useMemo(() => agentChannelToInput(channel).credentials ?? [], [channel]);
+  const readiness = useToolCredentialsReadiness(serving && cloud, agent, assignments);
 
-  if (readiness.status !== "needs-credentials" && readiness.status !== "blocked") {
+  if (readiness.status !== "needs-credentials") {
     return null;
   }
 
-  const message =
-    readiness.status === "needs-credentials"
-      ? "This agent uses tools, but no credentials are bound to this channel — workspace messages that need a tool will be refused."
-      : `Bound environment${readiness.privateEnvironments.length > 1 ? "s" : ""} ${readiness.privateEnvironments.join(", ")} ${readiness.privateEnvironments.length > 1 ? "are" : "is"} private — share ${readiness.privateEnvironments.length > 1 ? "them" : "it"} with your organization so workspace messages can use the credentials.`;
+  const keys = readiness.unassigned.map((requirement) => requirement.key).join(", ");
+  const message = `This agent needs ${keys}, and nothing is assigned on this channel: workspace messages will be refused until it is.`;
 
   return (
     <p className="stg:mt-2 stg:text-xs stg:text-warning" role="status">
@@ -705,7 +699,7 @@ function CardReadinessWarning({
               "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded",
             )}
           >
-            Bind credentials
+            Assign credentials
           </button>
         </>
       )}

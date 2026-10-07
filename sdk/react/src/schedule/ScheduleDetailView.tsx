@@ -6,11 +6,8 @@ import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type { ResourceRef } from "@stigmer/sdk";
+import type { CredentialAssignment } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/requirement_pb";
+import type { CredentialAssignmentInput } from "@stigmer/sdk";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { InlineEditTextarea } from "../inline-edit/InlineEditTextarea.js";
@@ -47,7 +44,10 @@ import {
   type CadencePreset,
 } from "./cadence.js";
 import { CadenceField } from "./CadenceField.js";
-import { EnvironmentPicker } from "../environment/EnvironmentPicker.js";
+import { CredentialAssignmentsEditor } from "../credential/CredentialAssignmentsEditor.js";
+import { assignmentInputsOf, assignmentProtoOf } from "../credential/assignments.js";
+import { fromCredentialTarget, targetWords } from "../credential/model.js";
+import { useAgent } from "../agent/useAgent.js";
 import { ModelSelector } from "../models/ModelSelector.js";
 import {
   HARNESS_META,
@@ -105,7 +105,7 @@ export interface ScheduleDetailViewProps {
   readonly onResourceLoad?: (schedule: Schedule) => void;
   /**
    * Enable inline editing of the schedule's mutable spec fields
-   * (cadence, message, environments, engine & model, budget). Each
+   * (cadence, message, credentials, engine & model, budget). Each
    * field saves independently via a lossless full-resource re-apply
    * ({@link useUpdateScheduleSpec}). The server-immutable fields —
    * slug, target agent, target type — never gain an edit affordance;
@@ -563,34 +563,31 @@ export function ScheduleDetailView({
               </p>
             )}
           </DetailRow>
-          <DetailRow label="Environments">
+          <DetailRow label="Credentials">
             {editable && target ? (
-              <EnvironmentsInlineEditor
+              <CredentialsInlineEditor
                 org={scheduleOrg}
-                refs={target.environmentRefs ?? []}
-                onSave={(refs) =>
-                  saveSpecField("environments", (s) => {
+                invocation={target}
+                onSave={(assignments) =>
+                  saveSpecField("credentials", (s) => {
                     if (s.target.case === "agent") {
-                      s.target.value.environmentRefs = refs.map((r) =>
-                        create(ApiResourceReferenceSchema, {
-                          org: r.org,
-                          slug: r.slug,
-                          kind: ApiResourceKind.environment,
-                        }),
-                      );
+                      s.target.value.credentials = assignments.flatMap((a) => {
+                        const proto = assignmentProtoOf(a);
+                        return proto ? [proto] : [];
+                      });
                     }
                   })
                 }
                 isSaving={isUpdating}
                 error={
-                  saveError?.field === "environments"
+                  saveError?.field === "credentials"
                     ? saveError.message
                     : undefined
                 }
               />
             ) : (
-              <EnvironmentRefList
-                refs={target?.environmentRefs ?? []}
+              <AssignmentList
+                assignments={target?.credentials ?? []}
               />
             )}
           </DetailRow>
@@ -868,7 +865,7 @@ function CadenceSummary({
 // server's message rendered verbatim beneath it. The editors
 // stay in this file (the AgentDetailView single-organism precedent) and
 // reuse the creation form's field components — CadenceField,
-// TimeZoneField, EnvironmentPicker — so creating and editing a schedule
+// TimeZoneField, CredentialAssignmentsEditor — so creating and editing a schedule
 // are the same experience.
 
 /** Cadence + time zone edit in one panel — they form one sentence. */
@@ -941,53 +938,59 @@ function CadenceInlineEditor({
   );
 }
 
-/** Environment bindings edit — org-shared credentials only. */
-function EnvironmentsInlineEditor({
+/**
+ * Credential assignments edit: a fire has no person behind it, so its
+ * run takes only what the schedule assigns. A schedule is the one
+ * surface that also accepts its creator's own credentials.
+ */
+function CredentialsInlineEditor({
   org,
-  refs,
+  invocation,
   onSave,
   isSaving,
   error,
 }: {
   readonly org: string;
-  readonly refs: readonly { org: string; slug: string }[];
-  readonly onSave: (refs: readonly ResourceRef[]) => Promise<boolean>;
+  readonly invocation: AgentInvocation;
+  readonly onSave: (assignments: readonly CredentialAssignmentInput[]) => Promise<boolean>;
   readonly isSaving: boolean;
   readonly error?: string;
 }) {
   const [isEditing, setIsEditing] = useState(false);
-  const [draft, setDraft] = useState<ResourceRef[]>([]);
+  const [draft, setDraft] = useState<CredentialAssignmentInput[]>([]);
+  const { agent } = useAgent(
+    isEditing ? (invocation.agentRef?.org ?? null) : null,
+    isEditing ? (invocation.agentRef?.slug ?? null) : null,
+  );
+  const repositoryUrls = useMemo(
+    () => repositoryUrlsOf(invocation.workspaceEntries ?? []),
+    [invocation.workspaceEntries],
+  );
 
   const startEdit = () => {
-    setDraft(refs.map((r) => ({ org: r.org, slug: r.slug })));
+    setDraft(assignmentInputsOf(invocation.credentials ?? []));
     setIsEditing(true);
   };
 
   if (!isEditing) {
     return (
-      <InlineReadButton onEdit={startEdit} ariaLabel="Edit environments">
-        <EnvironmentRefList refs={refs} />
+      <InlineReadButton onEdit={startEdit} ariaLabel="Edit credentials">
+        <AssignmentList assignments={invocation.credentials ?? []} />
       </InlineReadButton>
     );
   }
 
   return (
     <div className="stg:flex stg:flex-col stg:gap-2">
-      <EnvironmentPicker
+      <CredentialAssignmentsEditor
         org={org}
+        agent={agent}
         value={draft}
         onChange={setDraft}
+        allowOwnCredentials
+        repositoryUrls={repositoryUrls}
         disabled={isSaving}
-        // Only org-shared environments resolve for a schedule fire (the
-        // same credential surface a channel binding uses), so offering
-        // anything else could only produce refused runs.
-        filterEnvironment={isOrgSharedEnvironment}
       />
-      <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-        Bind org-shared credentials so the agent&rsquo;s tools work on an
-        unattended fire. Without this, an agent whose tools need credentials
-        will be refused every run.
-      </p>
       <InlineEditActions
         onCancel={() => setIsEditing(false)}
         onSave={async () => {
@@ -1002,8 +1005,11 @@ function EnvironmentsInlineEditor({
   );
 }
 
-function isOrgSharedEnvironment(env: Environment): boolean {
-  return env.metadata?.visibility === ApiResourceVisibility.visibility_org;
+/** The repository URLs a schedule's workspace clones. */
+function repositoryUrlsOf(entries: readonly WorkspaceEntry[]): string[] {
+  return entries.flatMap((entry) =>
+    entry.source?.source.case === "gitRepo" ? [entry.source.source.value.url] : [],
+  );
 }
 
 /**
@@ -1399,26 +1405,36 @@ function DetailRow({
   );
 }
 
-/** The bound environment references, or the em-dash when there are none. */
-function EnvironmentRefList({
-  refs,
+/** The schedule's credential assignments, or the em-dash when there are none. */
+function AssignmentList({
+  assignments,
 }: {
-  readonly refs: readonly { org: string; slug: string }[];
+  readonly assignments: readonly CredentialAssignment[];
 }) {
-  const slugForOrg = useOrgSlugForId();
-  if (refs.length === 0) {
+  if (assignments.length === 0) {
     return <span className="stg:text-sm stg:text-muted-foreground">—</span>;
   }
   return (
     <ul className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:gap-0.5")}>
-      {refs.map((ref, i) => (
-        <li
-          key={`${ref.org}/${ref.slug}-${i}`}
-          className="stg:font-mono stg:text-xs stg:text-foreground"
-        >
-          {ref.org ? `${slugForOrg(ref.org)}/${ref.slug}` : ref.slug}
-        </li>
-      ))}
+      {assignments.map((assignment, i) => {
+        const declarer = assignment.requirement?.declarer
+          ? fromCredentialTarget(assignment.requirement.declarer)
+          : undefined;
+        const source =
+          assignment.source.case === "credential"
+            ? `${assignment.source.value.credential?.slug ?? ""}${assignment.source.value.field ? `.${assignment.source.value.field}` : ""}`
+            : assignment.source.case === "literal"
+              ? "a plain value"
+              : "nothing";
+        return (
+          <li key={i} className="stg:text-xs stg:text-foreground">
+            <span className="stg:font-mono">{assignment.requirement?.key}</span>
+            {declarer && <span className="stg:text-muted-foreground"> for {targetWords(declarer)}</span>}
+            <span className="stg:text-muted-foreground"> from </span>
+            <span className="stg:font-mono">{source}</span>
+          </li>
+        );
+      })}
     </ul>
   );
 }
