@@ -81,15 +81,14 @@ Rows read `| Service.method | org |`, `| Service.method | metadata.org |` or `| 
 | ChannelAppQueryController.getByReference | org |
 | ChannelAppQueryController.listByOrg | org |
 
-## `ai.stigmer.agentic.environment.v1`
+## `ai.stigmer.agentic.credential.v1`
 
 | Method | Fills |
 |---|---|
-| EnvironmentCommandController.apply | metadata.org |
-| EnvironmentCommandController.create | metadata.org |
-| EnvironmentCommandController.update | metadata.org |
-| EnvironmentQueryController.getByReference | org |
-| EnvironmentQueryController.list | org |
+| CredentialCommandController.create | metadata.org |
+| CredentialCommandController.update | metadata.org |
+| CredentialQueryController.getByReference | org |
+| CredentialQueryController.list | org |
 
 ## `ai.stigmer.agentic.mcpserver.v1`
 

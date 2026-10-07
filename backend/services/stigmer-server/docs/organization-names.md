@@ -40,9 +40,9 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| AgentChannelCommandController.apply | `metadata.org`, `spec.agent_ref.org`, `spec.environment_refs.org`, `spec.app_ref.org` |
-| AgentChannelCommandController.create | `metadata.org`, `spec.agent_ref.org`, `spec.environment_refs.org`, `spec.app_ref.org` |
-| AgentChannelCommandController.update | `metadata.org`, `spec.agent_ref.org`, `spec.environment_refs.org`, `spec.app_ref.org` |
+| AgentChannelCommandController.apply | `metadata.org`, `spec.agent_ref.org`, `spec.credentials.requirement.declarer.mcp_server.org`, `spec.credentials.requirement.declarer.agent.org`, `spec.credentials.credential.credential.org`, `spec.app_ref.org` |
+| AgentChannelCommandController.create | `metadata.org`, `spec.agent_ref.org`, `spec.credentials.requirement.declarer.mcp_server.org`, `spec.credentials.requirement.declarer.agent.org`, `spec.credentials.credential.credential.org`, `spec.app_ref.org` |
+| AgentChannelCommandController.update | `metadata.org`, `spec.agent_ref.org`, `spec.credentials.requirement.declarer.mcp_server.org`, `spec.credentials.requirement.declarer.agent.org`, `spec.credentials.credential.credential.org`, `spec.app_ref.org` |
 | AgentChannelQueryController.getByAgent | `org` |
 | AgentChannelQueryController.getByReference | `org` |
 | AgentChannelQueryController.list | `org` |
@@ -65,9 +65,9 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| AgentShareCommandController.apply | `metadata.org`, `spec.agent_ref.org`, `spec.environment_refs.org` |
-| AgentShareCommandController.create | `metadata.org`, `spec.agent_ref.org`, `spec.environment_refs.org` |
-| AgentShareCommandController.update | `metadata.org`, `spec.agent_ref.org`, `spec.environment_refs.org` |
+| AgentShareCommandController.apply | `metadata.org`, `spec.agent_ref.org`, `spec.credentials.requirement.declarer.mcp_server.org`, `spec.credentials.requirement.declarer.agent.org`, `spec.credentials.credential.credential.org` |
+| AgentShareCommandController.create | `metadata.org`, `spec.agent_ref.org`, `spec.credentials.requirement.declarer.mcp_server.org`, `spec.credentials.requirement.declarer.agent.org`, `spec.credentials.credential.credential.org` |
+| AgentShareCommandController.update | `metadata.org`, `spec.agent_ref.org`, `spec.credentials.requirement.declarer.mcp_server.org`, `spec.credentials.requirement.declarer.agent.org`, `spec.credentials.credential.credential.org` |
 | AgentShareQueryController.getByAgent | `org` |
 | AgentShareQueryController.getByReference | `org` |
 | AgentShareQueryController.list | `org` |
@@ -82,15 +82,14 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | ChannelAppQueryController.getByReference | `org` |
 | ChannelAppQueryController.listByOrg | `org` |
 
-## `ai.stigmer.agentic.environment.v1`
+## `ai.stigmer.agentic.credential.v1`
 
 | Method | Organization fields |
 |---|---|
-| EnvironmentCommandController.apply | `metadata.org` |
-| EnvironmentCommandController.create | `metadata.org` |
-| EnvironmentCommandController.update | `metadata.org` |
-| EnvironmentQueryController.getByReference | `org` |
-| EnvironmentQueryController.list | `org` |
+| CredentialCommandController.create | `metadata.org`, `spec.org`, `spec.serves.mcp_server.org`, `spec.serves.agent.org` |
+| CredentialCommandController.update | `metadata.org`, `spec.org`, `spec.serves.mcp_server.org`, `spec.serves.agent.org` |
+| CredentialQueryController.getByReference | `org` |
+| CredentialQueryController.list | `org` |
 
 ## `ai.stigmer.agentic.executioncontext.v1`
 
@@ -138,9 +137,9 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| ScheduleCommandController.apply | `metadata.org`, `spec.agent.agent_ref.org`, `spec.agent.environment_refs.org` |
-| ScheduleCommandController.create | `metadata.org`, `spec.agent.agent_ref.org`, `spec.agent.environment_refs.org` |
-| ScheduleCommandController.update | `metadata.org`, `spec.agent.agent_ref.org`, `spec.agent.environment_refs.org` |
+| ScheduleCommandController.apply | `metadata.org`, `spec.agent.agent_ref.org`, `spec.agent.credentials.requirement.declarer.mcp_server.org`, `spec.agent.credentials.requirement.declarer.agent.org`, `spec.agent.credentials.credential.credential.org` |
+| ScheduleCommandController.create | `metadata.org`, `spec.agent.agent_ref.org`, `spec.agent.credentials.requirement.declarer.mcp_server.org`, `spec.agent.credentials.requirement.declarer.agent.org`, `spec.agent.credentials.credential.credential.org` |
+| ScheduleCommandController.update | `metadata.org`, `spec.agent.agent_ref.org`, `spec.agent.credentials.requirement.declarer.mcp_server.org`, `spec.agent.credentials.requirement.declarer.agent.org`, `spec.agent.credentials.credential.credential.org` |
 | ScheduleQueryController.getByAgent | `org` |
 | ScheduleQueryController.getByReference | `org` |
 | ScheduleQueryController.list | `org` |
@@ -214,8 +213,8 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| PlatformClientCommandController.create | `metadata.org`, `spec.environment_refs.org` |
-| PlatformClientCommandController.update | `metadata.org`, `spec.environment_refs.org` |
+| PlatformClientCommandController.create | `metadata.org`, `spec.credentials.requirement.declarer.mcp_server.org`, `spec.credentials.requirement.declarer.agent.org`, `spec.credentials.credential.credential.org` |
+| PlatformClientCommandController.update | `metadata.org`, `spec.credentials.requirement.declarer.mcp_server.org`, `spec.credentials.requirement.declarer.agent.org`, `spec.credentials.credential.credential.org` |
 | PlatformClientQueryController.getByReference | `org` |
 | PlatformClientQueryController.listByOrg | `org` |
 | PlatformClientTokenController.mintUserToken | `org` |
