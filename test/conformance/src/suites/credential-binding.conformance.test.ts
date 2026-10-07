@@ -10,7 +10,10 @@
 // it then manages (settings and members, never the child's rows), cannot mint a key that speaks
 // for the person everywhere (an empty organization becomes A), and cannot
 // mint a key limited to B. A key may be limited only to an organization its
-// owner can view.
+// owner can view. A run filed in A cannot use an agent of B that B does not
+// share with A, though its person may run it there: the run's own credential
+// is bound to A and could not read it, so the create refuses it before
+// anything runs.
 //
 // Every arm runs on the target's enforcing lane, where the server signs its
 // callers in and keys authenticate: the primary on the cloud, open source's
@@ -41,6 +44,7 @@ import { agentRefOf, makeAgent } from "../support/agents";
 import { makeAgentExecution } from "../support/agentruns";
 import { makeEnvironment } from "../support/environments";
 import { makeMcpServer } from "../support/mcpservers";
+import { makeSession } from "../support/sessions";
 import { organizationRole, policyTriple, ref } from "../support/iampolicies";
 import { uniqueName } from "../support/naming";
 import {
@@ -597,6 +601,64 @@ describe("credential binding — a credential that names an organization works t
       await outcomeOf(key.clients),
       "the limited key's answer is its person's",
     ).toBe(await outcomeOf(person));
+  });
+
+  it("[rpc:AgentRunCommandController.create] a run filed in A cannot use B's agent once B stops sharing it: its run credential, bound to A, could not read it", async (ctx) => {
+    if (lane === undefined) return ctx.skip(laneReason);
+    const on = lane;
+    const b = await tenancy(on);
+    const a = await childTenancy(on, b);
+    const person = await personIn(on, a, "member");
+    await on.clients.iamPolicyCommand.create(
+      organizationRole(await on.accountIdOf(person), "member", b.org),
+    );
+    const agentInput = makeAgent({
+      org: b.org,
+      name: uniqueName("binding-agent-b"),
+    });
+    const agent = await on.clients.agentCommand.create({
+      ...agentInput,
+      metadata: {
+        ...agentInput.metadata,
+        visibility: ApiResourceVisibility.visibility_child_orgs,
+      },
+    });
+    const agentId = agent.metadata?.id ?? "";
+    fixtures.defer(() => on.clients.agentCommand.delete({ value: agentId }));
+
+    // While B shares the agent with its children, A's conversation may
+    // name it. Then B keeps it to itself: the person still may run it (a
+    // member of B), so only the run's organization can refuse the turn.
+    const session = await person.sessionCommand.create(
+      makeSession({
+        org: a.org,
+        name: uniqueName("binding-session"),
+        agentRef: agentRefOf(agent),
+      }),
+    );
+    const sessionId = session.metadata?.id ?? "";
+    fixtures.defer(() => person.sessionCommand.delete({ value: sessionId }));
+    await on.clients.agentCommand.updateVisibility({
+      resourceId: agentId,
+      visibility: ApiResourceVisibility.visibility_org,
+    });
+
+    const refused = await expectGrpcCode(
+      () =>
+        person.agentExecutionCommand.create(
+          makeAgentExecution({
+            org: a.org,
+            name: uniqueName("binding-aex-cross"),
+            sessionId,
+            message: "Say hello.",
+          }),
+        ),
+      Code.FailedPrecondition,
+      "file a run in A on B's agent that B no longer shares",
+    );
+    expect(refused.rawMessage).toBe(
+      `a run uses only what its own organization can read: Agent ${agentId} belongs to another organization and is not one its parent shares with child organizations`,
+    );
   });
 
   it("[rpc:ApiKeyCommandController.create] a key can be limited only to an organization its owner can view", async (ctx) => {

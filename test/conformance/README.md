@@ -236,9 +236,10 @@ After its last turn the judge is shown a blind subject: the user's messages,
 the agent's final replies, the files changed, the named files' content and
 the result of any `go_test` check. That judge is an agent run: a judge agent
 whose instructions carry the task's rubric (no skills, MCP servers or
-sub-agents), run once per sample on the native harness with the pinned judge
-model and a structured output schema naming exactly the task's criteria, each
-a score in 0..1 and a reason. A verdict whose criteria are not exactly the
+sub-agents, and every native built-in tool in its `disallowed_tools`), run
+once per sample on the native harness in an organization of its own with
+memory off, with the pinned judge model and a structured output schema naming
+exactly the task's criteria, each a score in 0..1 and a reason. A verdict whose criteria are not exactly the
 task's is refused as a judge failure, never read as a score; the task's score
 is the criteria's mean weighted by the task's weights. Reports before schema
 v5 were graded through a different judging path, so a grade is compared only

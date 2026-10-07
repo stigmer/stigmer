@@ -28,8 +28,8 @@
  *    platform fault.
  *
  * Classification order is load-bearing: the sentinel check must precede
- * status mapping, otherwise the proxy's 503 would classify as a retryable
- * 5xx and waste Temporal retries against a dead platform account.
+ * status mapping, otherwise the proxy's 503 would classify as a provider
+ * server error and the user would read a platform fault as the provider's.
  */
 
 import type { LlmProvider } from "./llm-proxy.js";
@@ -60,12 +60,10 @@ export const PLATFORM_CAPACITY_SENTINEL = "STIGMER_PLATFORM_MODEL_CAPACITY";
 export const ORGANIZATION_PROVIDER_KEY_SENTINEL = "STIGMER_ORGANIZATION_PROVIDER_KEY";
 
 export interface ClassifiedModelError {
-  /** Stable machine-readable code (doubles as the Temporal failure type). */
+  /** Stable machine-readable code (the `[type]` a failed turn's message leads with). */
   readonly code: string;
   /** User-facing message; never raw provider prose in proxy mode. */
   readonly message: string;
-  /** Temporal retry semantics: false = will not self-heal, fail fast. */
-  readonly retryable: boolean;
 }
 
 export interface ModelErrorContext {
@@ -132,7 +130,6 @@ export function classifyModelCallError(
   if (message.includes(PLATFORM_CAPACITY_SENTINEL)) {
     return {
       code: "LLM_PLATFORM_CAPACITY",
-      retryable: false,
       message: platformCapacityMessage(ctx),
     };
   }
@@ -146,7 +143,6 @@ export function classifyModelCallError(
   if (backend === "vertex" && isGoogleCredentialMessage(message)) {
     return {
       code: "LLM_BACKEND_CREDENTIALS",
-      retryable: false,
       message:
         `The vertex backend could not acquire Google credentials for ${modelLabel(ctx)}. ` +
         `Set GOOGLE_APPLICATION_CREDENTIALS to a service-account key, or run on a GCP ` +
@@ -158,7 +154,6 @@ export function classifyModelCallError(
   if (backend === "bedrock" && isAwsCredentialMessage(message)) {
     return {
       code: "LLM_BACKEND_CREDENTIALS",
-      retryable: false,
       message:
         `The bedrock backend could not acquire AWS credentials for ${modelLabel(ctx)}. ` +
         `Provide credentials through the standard AWS chain (environment keys, an IAM ` +
@@ -172,7 +167,6 @@ export function classifyModelCallError(
     // throws statusless from inside the Foundry SDK's authHeaders.
     return {
       code: "LLM_BACKEND_CREDENTIALS",
-      retryable: false,
       message:
         `The foundry backend could not acquire a Microsoft Entra ID token for ${modelLabel(ctx)}. ` +
         `Give the runner an Azure identity the credential chain can resolve (workload ` +
@@ -190,7 +184,6 @@ export function classifyModelCallError(
   if (backend === "bedrock" && isBedrockInferenceProfileMessage(message)) {
     return {
       code: "LLM_BACKEND_MODEL_ROUTING",
-      retryable: false,
       message:
         `Bedrock requires an inference profile for ${modelLabel(ctx)} — the bare model ` +
         `id cannot be invoked on-demand. Set ${BEDROCK_INFERENCE_PREFIX_ENV} to your ` +
@@ -209,13 +202,11 @@ export function classifyModelCallError(
     if (ctx.proxyMode) {
       return {
         code: "LLM_PLATFORM_CAPACITY",
-        retryable: false,
         message: platformCapacityMessage(ctx),
       };
     }
     return {
       code: "LLM_PROVIDER_BILLING",
-      retryable: false,
       message:
         `Your ${ctx.provider ? providerLabel(ctx) : "model provider"} account is out of credits or over quota. ` +
         `Add credits to your provider account or switch to a different model. ` +
@@ -241,7 +232,6 @@ export function classifyModelCallError(
   if (isTimeout) {
     return {
       code: "LLM_CONNECTION_TIMEOUT",
-      retryable: true,
       message: `Connection timed out for ${modelLabel(ctx)}: ${message}`,
     };
   }
@@ -249,7 +239,6 @@ export function classifyModelCallError(
   if (isConnection) {
     return {
       code: "LLM_CONNECTION_ERROR",
-      retryable: true,
       message: `Connection failed for ${modelLabel(ctx)}: ${message}`,
     };
   }
@@ -272,7 +261,6 @@ function classifyOrganizationKeyError(
   if (isProviderBillingMessage(message)) {
     return {
       code: "LLM_PROVIDER_BILLING",
-      retryable: false,
       message:
         `Your organization's own ${providerLabel(ctx)} key is out of credits or over quota. ` +
         `Add credits to that provider account, or update the key in Settings → Provider keys. ` +
@@ -285,7 +273,6 @@ function classifyOrganizationKeyError(
   if (status === 401) {
     return {
       code: "LLM_AUTHENTICATION_ERROR",
-      retryable: false,
       message:
         `${provider} rejected your organization's own key (authentication, HTTP 401) for ${modelLabel(ctx)}. ` +
         `Update the key in Settings → Provider keys.`,
@@ -294,7 +281,6 @@ function classifyOrganizationKeyError(
   if (status === 403) {
     return {
       code: "LLM_PERMISSION_DENIED",
-      retryable: false,
       message:
         `${provider} denied your organization's own key (authorization, HTTP 403) for ${modelLabel(ctx)}. ` +
         `Check that the key's account may use this model, or update the key in Settings → Provider keys.`,
@@ -304,11 +290,10 @@ function classifyOrganizationKeyError(
 }
 
 /**
- * Retryability policy:
- *   - 4xx (except 429): nonRetryable — client/config errors won't self-heal
- *   - 429: nonRetryable at the Temporal level — the SDK already retried
- *     internally with backoff; retrying on top causes duplicates
- *   - 5xx: retryable — transient provider outages
+ * Maps a provider HTTP status to its code and message: 401, 403, 404, 400,
+ * 422 and 429 each have their own code (429's message says the provider
+ * SDK's own retry was exhausted), any other 5xx is a provider server
+ * error, and anything else a generic API error.
  */
 function classifyByStatus(
   status: number,
@@ -322,7 +307,6 @@ function classifyByStatus(
     case 401:
       return {
         code: "LLM_AUTHENTICATION_ERROR",
-        retryable: false,
         message: ctx.proxyMode
           ? `The Stigmer platform rejected this model call (authentication, HTTP 401) for ${context}. ` +
             `Your session token may have expired — retry the execution, and contact support if it persists.`
@@ -347,7 +331,6 @@ function classifyByStatus(
     case 403:
       return {
         code: "LLM_PERMISSION_DENIED",
-        retryable: false,
         message: ctx.proxyMode
           ? `The Stigmer platform denied this model call (authorization, HTTP 403) for ${context}. ` +
             `Verify this execution is permitted to use the model, and contact support if it persists.`
@@ -372,7 +355,6 @@ function classifyByStatus(
     case 404:
       return {
         code: "LLM_MODEL_NOT_FOUND",
-        retryable: false,
         // The most common Vertex setup mistake: Claude models must be enabled
         // per project in Model Garden, and availability varies by region.
         message: backend === "vertex"
@@ -399,19 +381,16 @@ function classifyByStatus(
     case 400:
       return {
         code: "LLM_BAD_REQUEST",
-        retryable: false,
         message: `Invalid request to ${context}: ${rawMessage}`,
       };
     case 422:
       return {
         code: "LLM_UNPROCESSABLE_REQUEST",
-        retryable: false,
         message: `Unprocessable request to ${context}: ${rawMessage}`,
       };
     case 429:
       return {
         code: "LLM_RATE_LIMIT",
-        retryable: false,
         message:
           `Rate limit exceeded for ${context}. The provider's built-in retry was exhausted. ` +
           `Try again later or reduce request frequency.`,
@@ -420,13 +399,11 @@ function classifyByStatus(
       if (status >= 500) {
         return {
           code: "LLM_PROVIDER_ERROR",
-          retryable: true,
           message: `${providerSubject(ctx)} returned a server error (HTTP ${status}) for ${context}: ${rawMessage}`,
         };
       }
       return {
         code: "LLM_API_ERROR",
-        retryable: false,
         message: `${providerSubject(ctx)} returned an API error (HTTP ${status}) for ${context}: ${rawMessage}`,
       };
   }

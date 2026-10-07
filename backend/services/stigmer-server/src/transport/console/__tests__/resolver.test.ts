@@ -22,7 +22,9 @@ import {
 
 // The realistic export inventory: static pages, one- and two-dynamic-
 // segment routes, a literal-beats-dynamic sibling pair under /library/agents,
-// root-level RSC payloads, and build assets.
+// a one-placeholder page (versions/[id]) and a two-placeholder page
+// ([org]/[slug]) that both match one /library/agents path, root-level RSC
+// payloads, and build assets.
 const index = buildConsoleFileIndex([
   "/index.html",
   "/index.txt",
@@ -44,6 +46,8 @@ const index = buildConsoleFileIndex([
   "/library/agents/__placeholder__/__placeholder__.html",
   "/library/agents/__placeholder__/__placeholder__.txt",
   "/library/agents/__placeholder__/__placeholder__/__next.agents.txt",
+  "/library/agents/versions/__placeholder__.html",
+  "/library/agents/versions/__placeholder__.txt",
   "/_next/static/chunks/app-1a2b3c.js",
 ]);
 
@@ -95,6 +99,13 @@ describe("page contract (the nginx chain)", () => {
     );
     expect(servedFile("/library/agents/acme/triage-bot")).toBe(
       "/library/agents/__placeholder__/__placeholder__.html",
+    );
+    // The shape this test needs: /library/agents/versions/v2 matches both
+    // versions/[id] (one placeholder) and [org]/[slug] (two placeholders).
+    // The literal-segment page must win, so the resolver tries one
+    // placeholder before two; flipping that order serves the wrong page.
+    expect(servedFile("/library/agents/versions/v2")).toBe(
+      "/library/agents/versions/__placeholder__.html",
     );
   });
 

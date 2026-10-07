@@ -3,8 +3,9 @@
  * a temporary directory: a resource manifest, a fragment anchored with
  * validate-as and a block marked no-validate with its reason all pass and are
  * counted; an authoring directory's raw manifests are validated and counted;
- * an unclassified block, an anchor naming no kind, a marker with no reason and
- * a manifest that does not decode each fail the gate with their own message;
+ * an unclassified block, an anchor naming an unknown kind, a validate-as
+ * marker with no anchor, a no-validate marker with no reason and a manifest
+ * that does not decode each fail the gate with their own message;
  * and report mode prints a protovalidate violation without failing the build.
  */
 import * as fs from "node:fs";
@@ -81,19 +82,20 @@ describe("the docs YAML gate", () => {
     );
   });
 
-  it("fails on an unclassified block, an unknown anchor, a marker with no reason and a manifest that does not decode, naming each", () => {
+  it("fails on an unclassified block, an unknown anchor, a validate-as marker with no anchor, a no-validate marker with no reason and a manifest that does not decode, naming each", () => {
     writeDoc(
       "docs/broken.md",
       [
         fence("", "title: not a resource"),
         fence('validate-as="Workflow.spec"', "tasks: []"),
         fence("validate-as", "instructions: x"),
+        fence("no-validate", "title: x"),
         fence("", `${AGENT}\n  nonsense: true`),
       ].join("\n"),
     );
 
     expect(() => runDocsYamlCheck(path.join(root, "docs"), [], "off")).toThrow(
-      "docs YAML validation failed with 4 problem(s)",
+      "docs YAML validation failed with 5 problem(s)",
     );
     expect(printed).toContain(
       "unclassified yaml block: not a resource manifest (apiVersion/kind)",
@@ -104,6 +106,7 @@ describe("the docs YAML gate", () => {
     expect(printed).toContain(
       'validate-as marker requires an anchor: use validate-as="<Kind>[.<field>]"',
     );
+    expect(printed).toContain("no-validate marker requires a reason");
     expect(printed).toContain("Agent manifest does not validate against");
     expect(printed).toContain(
       'no-validate="reason" marker in the fence info string.',

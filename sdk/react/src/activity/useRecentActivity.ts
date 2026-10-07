@@ -34,6 +34,12 @@ const DEFAULT_PAGE_SIZE = 30;
 const EPOCH = new Date(0);
 
 /**
+ * The id prefix the server mints every session id with (`ses_` + ULID).
+ * Only entries carrying it are sessions the recents list can open.
+ */
+const SESSION_ID_PREFIX = "ses_";
+
+/**
  * Fetches recent activity via the `listRecentActivity` RPC, which
  * returns the caller's most recent sessions, time-sorted, in a single
  * call.
@@ -49,6 +55,11 @@ const EPOCH = new Date(0);
  * Both editions implement the RPC with identical projection semantics
  * (the OSS server since stigmer#461; it is single-tenant, so the caller sees
  * every stored session and the org filter is a no-op there).
+ *
+ * The client keeps only entries whose id carries the session prefix
+ * (`ses_`). The wire entry no longer says what kind it is, and an older
+ * server can still return workflow-run entries (`wex_` ids); listed, they
+ * would read as sessions that fail to open, so they are dropped here.
  */
 export function useRecentActivity(
   options?: UseRecentActivityOptions,
@@ -61,13 +72,22 @@ export function useRecentActivity(
     () =>
       stigmer.activity
         .listRecentActivity({ pageSize, org })
-        .then((resp) => resp.entries.map(normalizeRecentActivityEntry)),
+        .then((resp) =>
+          resp.entries
+            .filter(isSessionEntry)
+            .map(normalizeRecentActivityEntry),
+        ),
     [stigmer, pageSize, org],
     [] as RecentActivityEntry[],
     { cacheKey: `recent-activity:${org}` },
   );
 
   return { entries: data, isLoading, error, refetch };
+}
+
+/** Whether a wire entry names a session (its id carries `ses_`). */
+function isSessionEntry(entry: ProtoEntry): boolean {
+  return entry.id.startsWith(SESSION_ID_PREFIX);
 }
 
 /**

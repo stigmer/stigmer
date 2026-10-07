@@ -60,9 +60,10 @@ export interface CapabilityFlags {
   // (proto documents find as platform-admin/administrative use only).
   organizationEnumeration: boolean;
   // The dedicated AgentCommandController.tagVersion mutation RPC is
-  // implemented. Where false, the suite pins that it answers Unimplemented
-  // and version tags are instead set at apply time via metadata.version.tag
-  // and resolved through getByReference.
+  // implemented. Where true, the agent-versions suite runs its tagVersion
+  // cases; where false, it skips them and pins nothing about the RPC (version
+  // tags are then set at apply time via metadata.version.tag and resolved
+  // through getByReference).
   versionTagging: boolean;
   // The skill artifact transfer lane (stigmer#675): createArtifactUploadUrl /
   // push-by-reference / getArtifactDownloadUrl move artifact bytes over HTTP

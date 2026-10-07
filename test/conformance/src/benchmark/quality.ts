@@ -9,16 +9,29 @@
 // settings. The subject is the run's message, and the run's
 // `structured_output_schema` names exactly the task's criteria, each a score
 // in 0..1 and a reason (`verdictSchema`). One agent and one run per sample,
-// both deferred for cleanup. The subject is another model's output, so the run
-// approves nothing: a tool call it makes parks the run, and the grade is
-// refused as a timeout instead of running a tool on that text.
+// both deferred for cleanup, in the organization the caller names: the
+// benchmark gives the judge one of its own with memory off, so nothing the
+// graded agent's organization remembers reaches the grade.
+//
+// The subject is another model's output, so the judge is kept from acting on
+// it. Its `disallowed_tools` names every built-in the native harness binds
+// (`JUDGE_DISALLOWED_TOOLS`), so the model is shown none of them and a call
+// to one is refused without running; with memory off in its organization the
+// platform attaches no memory tool either. The one built-in left visible is
+// `read_file`, which the runner keeps bound with `Read` excluded but confines
+// to the platform's own content and the run's offloaded outputs, never the
+// workspace (the runner's middleware/tool-scope.ts). The run also approves
+// nothing, so a call past both would park the run and the grade is refused as
+// a timeout instead of running a tool on that text.
 //
 // The verdict is read STRICTLY, because a model's structured reply can still
 // miss the schema (the runner's extraction tiers fall back to the reply's
 // text), and a skipped criterion read as a lower grade would silently change
 // the scale. So the criteria returned must be exactly the rubric's, each a
 // score in 0..1. Otherwise the grade is refused (`failure.stage: "judge"`,
-// `score: null`), never read as a number. The score is the benchmark's own:
+// `score: null`), never read as a number; the refusal names the criteria
+// returned, or the one criterion whose value is not a score and that value.
+// The score is the benchmark's own:
 // the mean of the criteria's scores weighted by the task's weights
 // (quality-tasks.ts). The judge model on the grade is the one the run's usage
 // reports (the validated requested model, `StreamingUsageSummary.model`), so
@@ -52,6 +65,27 @@ export interface JudgeRequest {
   timeoutMs: number;
 }
 
+/**
+ * The built-ins the judge may never use, in the tool-list vocabulary: every
+ * Claude tool the native harness has a tool for (the runner's
+ * `NATIVE_TOOL_COVERS`, shared/tool-lists.ts) — shell, file read, write and
+ * edit, glob and ls, grep, the `task` sub-agent tool, web fetch and the to-do
+ * list. A deny-list, because an empty list means every tool, and a deny-list
+ * leaves alone whatever is not a built-in (the run's structured output path
+ * included).
+ */
+export const JUDGE_DISALLOWED_TOOLS: readonly string[] = [
+  "Bash",
+  "Read",
+  "Write",
+  "Edit",
+  "Glob",
+  "Grep",
+  "Agent",
+  "WebFetch",
+  "TodoWrite",
+];
+
 /** The judge's session subject: set, so the run spends no call titling it. */
 const JUDGE_SESSION_SUBJECT = "benchmark judge";
 
@@ -68,6 +102,7 @@ export async function judge(
       description: "Grades one benchmark sample against its rubric",
       instructions: judgeInstructions(request.task),
       harness: Harness.NATIVE,
+      disallowedTools: [...JUDGE_DISALLOWED_TOOLS],
     }),
   );
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
@@ -153,9 +188,19 @@ export function verdictOf(run: AgentRun, rubric: readonly QualityCriterion[]): V
     return grade === undefined ? undefined : { name: criterion.name, weight: criterion.weight, ...grade };
   });
   const exact = got.length === wanted.length && wanted.every((name) => got.includes(name));
-  if (!exact || grades.some((grade) => grade === undefined)) {
+  if (!exact) {
     return {
       ...refused(`the judge returned criteria ${JSON.stringify(got)} for a rubric of ${JSON.stringify(wanted)}`, "failed"),
+      judge_model: judgeModel,
+    };
+  }
+  const malformed = rubric.find((_, index) => grades[index] === undefined);
+  if (malformed !== undefined) {
+    return {
+      ...refused(
+        `the judge's criterion ${JSON.stringify(malformed.name)} is ${JSON.stringify(output[malformed.name])}, not a score in 0..1 with a reason`,
+        "failed",
+      ),
       judge_model: judgeModel,
     };
   }

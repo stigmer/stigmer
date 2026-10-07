@@ -9,11 +9,14 @@
 // joined in rubric order, the model the run served) and scored as the
 // weighted mean; a missing, extra or malformed criterion, or a score outside
 // 0..1, refuses the grade as a judge failure with a null score, never a
-// number; a judge run that failed refuses the grade with the platform's
-// error, and one that was cancelled says so; the judge creates one agent with
-// the rubric on the native harness and one run with the subject, the pinned
-// model, the verdict schema and a set session subject, defers both deletes,
-// and refuses the grade as a timeout when the run never settles.
+// number, and a malformed criterion or out-of-range score is named with its
+// value in the refusal; a judge run that failed refuses the grade with the
+// platform's error, and one that was cancelled says so; the judge creates one
+// agent with the rubric on the native harness, every native built-in in its
+// disallowed tools, and one run with the subject, the pinned model, the
+// verdict schema and a set session subject, all in the organization the
+// request names, defers both deletes, and refuses the grade as a timeout when
+// the run never settles.
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
@@ -132,6 +135,17 @@ describe("verdictOf", () => {
     expect(verdictOf(judged({ ...both, meaningful_test: { score: -0.1, reasoning: "" } }), RUBRIC).score).toBeNull();
   });
 
+  it("names the criterion whose value is not a score in 0..1, and that value, when the names match", () => {
+    const both = { correct_fix: { score: 1, reasoning: "" }, meaningful_test: { score: 1, reasoning: "" } };
+    expect(verdictOf(judged({ ...both, meaningful_test: { score: 1.5, reasoning: "x" } }), RUBRIC).failure).toEqual({
+      stage: "judge",
+      message: 'the judge\'s criterion "meaningful_test" is {"score":1.5,"reasoning":"x"}, not a score in 0..1 with a reason',
+    });
+    expect(verdictOf(judged({ ...both, correct_fix: "great" }), RUBRIC).failure?.message).toBe(
+      'the judge\'s criterion "correct_fix" is "great", not a score in 0..1 with a reason',
+    );
+  });
+
   it("a judge run that failed refuses the grade with the platform's error", () => {
     const verdict = verdictOf(judged(undefined, RunPhase.RUN_FAILED, "judge model not in registry"), RUBRIC);
     expect(verdict).toEqual({
@@ -179,7 +193,7 @@ describe("the judge's run", () => {
     terminal.awaitTerminal.mockReset();
   });
 
-  it("runs one native agent carrying the rubric on the subject, with the pinned model and the verdict schema, and cleans both up", async () => {
+  it("runs one native agent carrying the rubric and denied every built-in on the subject, with the pinned model and the verdict schema, and cleans both up", async () => {
     const both = { correct_fix: { score: 1, reasoning: "right" }, meaningful_test: { score: 0.5, reasoning: "thin" } };
     terminal.awaitTerminal.mockResolvedValue(judged(both));
     const fixtures = new FixtureTracker();
@@ -190,6 +204,11 @@ describe("the judge's run", () => {
       metadata: { org: "org_bench" },
       spec: { instructions: judgeInstructions(TASK), harness: Harness.NATIVE },
     });
+    expect(
+      (created.agent as { spec: { disallowedTools?: string[]; tools?: string[] } }).spec,
+      "the judge is denied every built-in the native harness binds, by a deny-list",
+    ).toMatchObject({ disallowedTools: ["Bash", "Read", "Write", "Edit", "Glob", "Grep", "Agent", "WebFetch", "TodoWrite"] });
+    expect((created.agent as { spec: { tools?: string[] } }).spec.tools, "no allow-list").toBeUndefined();
     expect(created.run).toMatchObject({
       metadata: { org: "org_bench" },
       spec: {

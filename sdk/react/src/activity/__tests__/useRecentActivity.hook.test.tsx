@@ -3,7 +3,10 @@
  * activity RPC for the active organization's most recent sessions with the
  * page size it was given (30 by default) and returns the entries in the
  * server's order, each normalized (an empty subject reads "Untitled
- * session"). The client and the active organization are stubbed.
+ * session"), keeping only entries whose id carries the session prefix
+ * `ses_` (an older server can still return workflow-run entries, `wex_`
+ * ids, which would not open as sessions). The client and the active
+ * organization are stubbed.
  */
 import { describe, it, expect, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
@@ -58,6 +61,24 @@ describe("useRecentActivity", () => {
     expect(result.current.entries.map((e) => e.id)).toEqual(["ses_1", "ses_2"]);
     expect(result.current.entries[0]?.updatedAt).toEqual(UPDATED);
     expect(result.current.entries[1]?.subject).toBe("Untitled session");
+  });
+
+  it("drops an entry whose id is not a session id and keeps the session one", async () => {
+    const listRecentActivity = vi.fn().mockResolvedValue(
+      create(ListRecentActivityResponseSchema, {
+        entries: [
+          create(RecentActivityEntrySchema, { id: "wex_1", subject: "Nightly report run" }),
+          create(RecentActivityEntrySchema, { id: "ses_1", subject: "Triage the inbox" }),
+        ],
+      }),
+    );
+
+    const { result } = renderHook(() => useRecentActivity(), {
+      wrapper: clientWith(listRecentActivity),
+    });
+
+    await waitFor(() => expect(result.current.entries).toHaveLength(1));
+    expect(result.current.entries.map((e) => e.id)).toEqual(["ses_1"]);
   });
 
   it("asks for thirty entries when no page size is given", async () => {

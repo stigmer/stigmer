@@ -12,7 +12,10 @@
  *   - the queue each scope's sandbox serves, as minted by its own domain,
  *     is SANDBOX_QUEUE_PREFIXES' prefix plus the id (the table the
  *     runner's attach waiter checks its own against), and sandboxTaskQueue
- *     names exactly that queue.
+ *     names exactly that queue;
+ *   - a leftover sandbox of the retired workflow scope (sbx-wfx-<12 hex>)
+ *     is not a name this server gives any more, so no driver deletes one
+ *     by name; operators remove such leftovers by hand.
  */
 import { describe, expect, it } from "vitest";
 
@@ -182,6 +185,10 @@ describe("SANDBOX_QUEUE_PREFIXES (the queue each scope's sandbox serves)", () =>
     ]) {
       expect(isSandboxBaseName(other)).toBe(false);
     }
+  });
+
+  it("refuses a leftover workflow-scope name (sbx-wfx-<12 hex>), a scope this server no longer has", () => {
+    expect(isSandboxBaseName("sbx-wfx-0123456789ab")).toBe(false);
   });
 
   it("is what sandboxTaskQueue names for each scope", () => {

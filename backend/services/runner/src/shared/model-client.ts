@@ -87,7 +87,6 @@ export interface BuildChatModelOptions {
    * factory did exactly that; stigmer/stigmer#468). An explicit value wins.
    */
   readonly timeoutMs?: number;
-  readonly maxRetries?: number;
   /**
    * The execution's EFFECTIVE service tier (stigmer/stigmer#361) — already
    * resolved by the caller (resolveEffectiveServiceTier), never
@@ -285,13 +284,10 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
       ? (getRunnerSecret("OPENAI_API_KEY") ?? "")
       : (getRunnerSecret("ANTHROPIC_API_KEY") ?? "");
 
-  // maxRetries applies when a timeout is bound (a retry loop under a bound
-  // multiplies the wall-clock budget) or when the caller pinned it
-  // explicitly. Callers
-  // that set neither keep LangChain's default retry behavior unchanged.
-  const maxRetries = timeoutMs !== undefined || opts.maxRetries !== undefined
-    ? { maxRetries: opts.maxRetries ?? 0 }
-    : {};
+  // maxRetries is 0 when a timeout is bound (a retry loop under a bound
+  // multiplies the wall-clock budget); with no bound, LangChain's default
+  // retry behavior is unchanged.
+  const maxRetries = timeoutMs !== undefined ? { maxRetries: 0 } : {};
   if (opts.thinking !== undefined && provider !== "anthropic") {
     throw new Error(
       `buildChatModel: a thinking parameter was passed for ${opts.modelName}, a ${provider} model; ` +

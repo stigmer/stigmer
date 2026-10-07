@@ -5,7 +5,10 @@
  * recorder).
  *
  * What these pin (all load-bearing orchestration contracts):
- *   - the happy path (EnsureThread → ExecuteDeepAgent → EC cleanup);
+ *   - the happy path (EnsureThread → ExecuteDeepAgent → EC cleanup), and
+ *     the same run from an input that still carries the retired
+ *     `callback_token` and `parent_workflow_id` keys (an older server's
+ *     dispatch): the keys are ignored and it runs as an ordinary run;
  *   - the HITL loop (WAITING persist → gate re-read → approvalGateResolved
  *     → re-invoke with TurnSeq = approvalCycle — the deterministic
  *     change-set id input);
@@ -416,6 +419,25 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     ];
 
     const handle = await startWorkflow(workflowInput());
+    await handle.result();
+
+    expect(script.executeCalls).toEqual([{ thread_id: "thread-1", turn_seq: 0 }]);
+    expectExecutionContextDeleted();
+  }, 30_000);
+
+  it("runs an input still carrying the retired callback_token and parent_workflow_id keys as an ordinary run", async (testCtx) => {    if (!envReady) return testCtx.skip();
+    script.executeBehaviors = [
+      async () => slimResult(RunPhase.RUN_COMPLETED),
+    ];
+
+    // The shape an older server dispatched for a run a workflow step
+    // started; this interface no longer names either key.
+    const olderServerInput = {
+      ...workflowInput(),
+      callback_token: "Y2FsbGJhY2stdG9rZW4=",
+      parent_workflow_id: "wex-parent-1",
+    };
+    const handle = await startWorkflow(olderServerInput);
     await handle.result();
 
     expect(script.executeCalls).toEqual([{ thread_id: "thread-1", turn_seq: 0 }]);

@@ -34,7 +34,8 @@
  *     per process for a sandbox still awake, moves only a sleeping sandbox
  *     off an older template, then retires, skipping a sandbox whose upkeep fails and stopping before
  *     retirement when asked; `deleteByName` deletes only a name this driver
- *     gives, and with a guard asks it inside the actor's queue from a
+ *     gives (a leftover workflow-scope `sbx-wfx-` sandbox is refused before
+ *     any gateway call, left for an operator), and with a guard asks it inside the actor's queue from a
  *     fresh read, so a sandbox a turn woke while the delete waited is
  *     skipped, never deleted; `prepare` readies the template and never
  *     rejects.
@@ -1111,6 +1112,21 @@ describe("the lifecycle a composition's own sweep calls", () => {
       );
       expect(h.substrate.actors.has(foreign)).toBe(true);
     }
+  });
+
+  it("refuses a leftover workflow-scope sandbox by name without calling the gateway", async () => {
+    const h = harness();
+    const leftover = "sbx-wfx-0123456789ab";
+    h.substrate.put({
+      name: leftover,
+      state: ActorState.SUSPENDED,
+      template: "t",
+    });
+    await expect(h.driver.lifecycle.deleteByName(leftover)).rejects.toThrow(
+      /not a sandbox this driver names/,
+    );
+    expect(h.substrate.calls).toEqual([]);
+    expect(h.substrate.actors.has(leftover)).toBe(true);
   });
 
   it("asks a delete's guard inside the actor's queue, so a sandbox a turn woke meanwhile is skipped, not deleted", async () => {
