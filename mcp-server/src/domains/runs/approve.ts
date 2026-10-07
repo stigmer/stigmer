@@ -1,13 +1,13 @@
 // Agent-run approval path: submit a decision for a tool call the run is
 // waiting on (AgentRunCommandController.submitApproval).
 //
-// Pending approvals surface in get_agent_run's status.pending_approvals[] —
+// Pending approvals surface in get_run's status.pending_approvals[] —
 // there is no org-wide inbox for agent runs. The response reuses the
 // compact projection: the returned AgentRun embeds the full message history,
 // which the approval loop doesn't need.
 
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
 
 import { withClient } from "../client.js";
 import { rpcError } from "../rpcerr.js";
@@ -32,7 +32,7 @@ export interface SubmitAgentApprovalArgs {
 }
 
 /** Submit an approval decision; returns the run in the compact view. */
-export async function submitAgentApproval(
+export async function submitRunApproval(
   serverAddress: string,
   token: string,
   args: SubmitAgentApprovalArgs,
@@ -42,14 +42,14 @@ export async function submitAgentApproval(
     throw new Error(`unknown action "${args.action}"; valid actions: approve, skip, reject`);
   }
   return withClient(
-    AgentRunCommandController,
+    RunCommandController,
     serverAddress,
     token,
     async (client, callOptions) => {
       try {
         const run = await client.submitApproval(
           {
-            agentRunId: args.runId,
+            runId: args.runId,
             toolCallId: args.toolCallId,
             action,
             comment: args.comment ?? "",

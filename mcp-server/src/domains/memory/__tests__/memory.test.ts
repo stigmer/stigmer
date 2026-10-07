@@ -173,7 +173,7 @@ describe("argument + capture context → request mapping", () => {
     expect(req?.spec?.subjectIdentityAccountId).toBe("");
     expect(req?.spec?.provenance?.agentId).toBe("agt_1");
     expect(req?.spec?.provenance?.sessionId).toBe("ses_1");
-    expect(req?.spec?.provenance?.agentRunId).toBe("aex_1");
+    expect(req?.spec?.provenance?.runId).toBe("aex_1");
     // v1: MCP does not carry the harness's tool-call identity.
     expect(req?.spec?.provenance?.toolCallId).toBe("");
   });

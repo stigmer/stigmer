@@ -1,4 +1,4 @@
-// Agent-run read path: the polling primitive behind get_agent_run.
+// Agent-run read path: the polling primitive behind get_run.
 //
 // Agent runs have no event-log RPC — the platform's contract is: poll get
 // and read status.phase, status.messages[], and status.pending_approvals[].
@@ -9,8 +9,8 @@
 // server-side bookkeeping fields; "full" is the verbatim protojson for when
 // the model genuinely needs everything.
 
-import { AgentRunSchema, type AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
+import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
 
 import { withClient } from "../client.js";
 import { toProtoJson } from "../marshal.js";
@@ -32,7 +32,7 @@ const COMPACT_PRUNED_STATUS_FIELDS = [
 ] as const;
 
 /** Fetch a single agent run by ID and shape it for the requested view. */
-export async function fetchAgentRun(
+export async function fetchRun(
   serverAddress: string,
   token: string,
   runId: string,
@@ -43,18 +43,18 @@ export async function fetchAgentRun(
     throw new Error("run_id is required");
   }
   return withClient(
-    AgentRunQueryController,
+    RunQueryController,
     serverAddress,
     token,
     async (client, callOptions) => {
-      let run: AgentRun;
+      let run: Run;
       try {
         run = await client.get({ value: runId }, callOptions);
       } catch (err) {
         throw rpcError(err, `agent run "${runId}"`);
       }
       return view === "full"
-        ? toProtoJson(AgentRunSchema, run)
+        ? toProtoJson(RunSchema, run)
         : compactRunJson(run, messageLimit);
     },
   );
@@ -75,8 +75,8 @@ export interface CompactRun {
  * Shared by the write tools that return an AgentRun (approve, cancel):
  * their responses embed the same potentially-huge status.
  */
-export function compactRun(run: AgentRun, messageLimit: number): CompactRun {
-  const data = JSON.parse(toProtoJson(AgentRunSchema, run)) as Record<string, unknown>;
+export function compactRun(run: Run, messageLimit: number): CompactRun {
+  const data = JSON.parse(toProtoJson(RunSchema, run)) as Record<string, unknown>;
   let totalMessages = 0;
 
   const status = data.status as Record<string, unknown> | undefined;
@@ -99,7 +99,7 @@ export function compactRun(run: AgentRun, messageLimit: number): CompactRun {
  * the model can tell when the message tail is a window (and re-request with a
  * larger message_limit or view=full).
  */
-export function compactRunJson(run: AgentRun, messageLimit: number): string {
+export function compactRunJson(run: Run, messageLimit: number): string {
   const { totalMessages, data } = compactRun(run, messageLimit);
   return JSON.stringify(
     { view: "compact", total_messages: totalMessages, run: data },

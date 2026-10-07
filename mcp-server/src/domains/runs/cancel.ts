@@ -5,12 +5,12 @@
 // success/no-op distinction comes from authoritative state.
 
 import { createClient } from "@connectrpc/connect";
-import { type AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
+import { type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
 
-import { compactRun, DEFAULT_MESSAGE_LIMIT } from "../agentruns/fetch.js";
+import { compactRun, DEFAULT_MESSAGE_LIMIT } from "./fetch.js";
 import { withTransport } from "../client.js";
 import { rpcError } from "../rpcerr.js";
 
@@ -35,13 +35,13 @@ export async function cancelRun(
   const desc = `agent run "${id}"`;
   return withTransport(serverAddress, token, async (transport, callOptions) => {
     try {
-      const query = createClient(AgentRunQueryController, transport);
+      const query = createClient(RunQueryController, transport);
       const current = await query.get({ value: id }, callOptions);
       const phase = current.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
       if (TERMINAL_PHASES.has(phase)) {
         return wrap(current, true);
       }
-      const command = createClient(AgentRunCommandController, transport);
+      const command = createClient(RunCommandController, transport);
       const cancelled = await command.cancel({ id, reason }, callOptions);
       return wrap(cancelled, false);
     } catch (err) {
@@ -50,7 +50,7 @@ export async function cancelRun(
   });
 }
 
-function wrap(run: AgentRun, alreadyTerminal: boolean): string {
+function wrap(run: Run, alreadyTerminal: boolean): string {
   const { totalMessages, data } = compactRun(run, DEFAULT_MESSAGE_LIMIT);
   return JSON.stringify(
     { already_terminal: alreadyTerminal, view: "compact", total_messages: totalMessages, run: data },

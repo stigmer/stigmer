@@ -20,8 +20,8 @@
 // stored id) is the named agent resolved and its organization id compared.
 //
 // The tool is deliberately asynchronous: it returns the created run (with
-// its aex_* ID) immediately and the run continues in the background.
-// Observation happens through get_agent_run polling — MCP tools are
+// its run_* ID) immediately and the run continues in the background.
+// Observation happens through get_run polling — MCP tools are
 // request/response, so there is no streaming path here by design.
 
 import {
@@ -31,12 +31,12 @@ import {
 } from "@connectrpc/connect";
 import { create as createMessage } from "@bufbuild/protobuf";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
 import {
-  type AgentRunSpec,
-  AgentRunSpecSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+  type RunSpec,
+  RunSpecSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import {
   ExecutionValueSchema,
   type ExecutionValue,
@@ -78,7 +78,7 @@ export async function runAgent(
   const desc = `agent "${args.agent}" in org "${args.org}"`;
   return withTransport(serverAddress, token, async (transport, callOptions) => {
     const sessionId = args.sessionId ?? "";
-    let target: AgentRunSpec["target"];
+    let target: RunSpec["target"];
     if (sessionId !== "") {
       await assertSessionRunsAgent(transport, callOptions, sessionId, args);
       target = { case: "sessionId", value: sessionId };
@@ -104,9 +104,9 @@ export async function runAgent(
       }
     }
 
-    const run = createMessage(AgentRunSchema, {
+    const run = createMessage(RunSchema, {
       apiVersion: API_VERSION,
-      kind: "AgentRun",
+      kind: "Run",
       // `org` names the agent's organization. A follow-up in an existing
       // session belongs to the session's organization, which the server
       // fills in when none is sent (stigmer/stigmer#1580); sending the
@@ -115,7 +115,7 @@ export async function runAgent(
         name: runName(),
         org: sessionId === "" ? args.org : "",
       }),
-      spec: createMessage(AgentRunSpecSchema, {
+      spec: createMessage(RunSpecSchema, {
         // Empty message means "just run" — the CLI applies the same default.
         message: args.message === "" ? "execute" : args.message,
         runtimeEnv: toExecutionValues(args.runtimeEnv),
@@ -123,10 +123,10 @@ export async function runAgent(
       }),
     });
 
-    const command = createClient(AgentRunCommandController, transport);
+    const command = createClient(RunCommandController, transport);
     try {
       const created = await command.create(run, callOptions);
-      return toProtoJson(AgentRunSchema, created);
+      return toProtoJson(RunSchema, created);
     } catch (err) {
       throw rpcError(err, `run of ${desc}`);
     }

@@ -78,10 +78,10 @@ the assistant polls the observation tools.
 
 | Tool | Description |
 | --- | --- |
-| `run_agent` | Start an agent run (new session or `session_id` follow-up). |
-| `get_agent_run` | Poll an agent run: phase, message tail (compact view) or full record, pending approvals. |
-| `submit_agent_run_approval` | Approve / skip / reject a tool call an agent run is waiting on. |
-| `cancel_run` | Gracefully cancel an agent run (`aex_*`) by ID. |
+| `run_agent` | Start a run of an agent (new session or `session_id` follow-up). |
+| `get_run` | Poll a run: phase, message tail (compact view) or full record, pending approvals. |
+| `submit_run_approval` | Approve / skip / reject a tool call a run is waiting on. |
+| `cancel_run` | Gracefully cancel a run (`run_*`) by ID. |
 
 ## Resources (5)
 

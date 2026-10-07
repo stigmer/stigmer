@@ -1,5 +1,5 @@
-// In-process test for the run-loop tools: run_agent, get_agent_run,
-// submit_agent_run_approval, and cancel_run.
+// In-process test for the run-loop tools: run_agent, get_run,
+// submit_run_approval, and cancel_run.
 //
 // Same harness as reads.test.ts: a real Connect backend serving
 // stubbed controllers, the MCP server driven through an in-memory client. The
@@ -27,16 +27,16 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import {
-  AgentRunSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
+  RunSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
 import {
   ApprovalAction,
   RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
-import type { SubmitApprovalInput } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
+import type { SubmitApprovalInput } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   SessionSchema,
@@ -56,12 +56,12 @@ const knownAgent = create(AgentSchema, {
   metadata: { name: "Code Reviewer", slug: "code-reviewer", org: "acme", id: "agt_1" },
 });
 
-/** An agent run with a scriptable phase and an 8-message history. */
-function agentRunFixture(phase: RunPhase): AgentRun {
-  return create(AgentRunSchema, {
+/** A run with a scriptable phase and an 8-message history. */
+function runFixture(phase: RunPhase): Run {
+  return create(RunSchema, {
     apiVersion: "v1",
-    kind: "AgentRun",
-    metadata: { name: "run", org: "acme", id: "aex_1" },
+    kind: "Run",
+    metadata: { name: "run", org: "acme", id: "run_1" },
     spec: { target: { case: "sessionId", value: "ses_1" }, message: "review this" },
     status: {
       agentId: "agt_1",
@@ -86,8 +86,8 @@ let client: Client;
 const openSessions = new Set<ServerHttp2Session>();
 
 // Captured requests / scripted state, reset per test.
-let createdAgentRun: AgentRun | undefined;
-let agentRunState: AgentRun;
+let createdRun: Run | undefined;
+let runState: Run;
 let sessionState: Session;
 let lastAgentApproval: SubmitApprovalInput | undefined;
 let agentCancelCalls = 0;
@@ -131,10 +131,10 @@ beforeAll(async () => {
         return knownAgent;
       },
     });
-    router.service(AgentRunQueryController, {
+    router.service(RunQueryController, {
       get: () => {
-        refuseIfScripted("agentRun.get");
-        return agentRunState;
+        refuseIfScripted("run.get");
+        return runState;
       },
     });
     router.service(SessionQueryController, {
@@ -145,21 +145,21 @@ beforeAll(async () => {
         return sessionState;
       },
     });
-    router.service(AgentRunCommandController, {
+    router.service(RunCommandController, {
       create: (req) => {
-        refuseIfScripted("agentRun.create");
-        createdAgentRun = req;
-        return agentRunFixture(RunPhase.RUN_PENDING);
+        refuseIfScripted("run.create");
+        createdRun = req;
+        return runFixture(RunPhase.RUN_PENDING);
       },
       submitApproval: (req) => {
-        refuseIfScripted("agentRun.submitApproval");
+        refuseIfScripted("run.submitApproval");
         lastAgentApproval = req;
-        return agentRunFixture(RunPhase.RUN_IN_PROGRESS);
+        return runFixture(RunPhase.RUN_IN_PROGRESS);
       },
       cancel: () => {
         agentCancelCalls++;
-        refuseIfScripted("agentRun.cancel");
-        return agentRunFixture(RunPhase.RUN_CANCELLED);
+        refuseIfScripted("run.cancel");
+        return runFixture(RunPhase.RUN_CANCELLED);
       },
     });
   };
@@ -178,8 +178,8 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  createdAgentRun = undefined;
-  agentRunState = agentRunFixture(RunPhase.RUN_IN_PROGRESS);
+  createdRun = undefined;
+  runState = runFixture(RunPhase.RUN_IN_PROGRESS);
   sessionState = sessionFixture({ org: "acme", slug: "code-reviewer" });
   lastAgentApproval = undefined;
   agentCancelCalls = 0;
@@ -199,8 +199,8 @@ describe("run tools integration", () => {
     expect(tools.map((t) => t.name)).toEqual(
       expect.arrayContaining([
         "run_agent",
-        "get_agent_run",
-        "submit_agent_run_approval",
+        "get_run",
+        "submit_run_approval",
         "cancel_run",
       ]),
     );
@@ -215,7 +215,7 @@ describe("run tools integration", () => {
     });
     expect(result.isError).toBeFalsy();
 
-    const target = createdAgentRun?.spec?.target;
+    const target = createdRun?.spec?.target;
     expect(target?.case).toBe("sessionSpec");
     // The agent by reference, no version: the session pins the current one.
     expect(target?.case === "sessionSpec" ? target.value.agentRef : undefined).toMatchObject({
@@ -224,16 +224,16 @@ describe("run tools integration", () => {
       slug: "code-reviewer",
       version: "",
     });
-    expect(createdAgentRun?.kind).toBe("AgentRun");
-    expect(createdAgentRun?.spec?.message).toBe("review this PR");
-    expect(createdAgentRun?.metadata?.org).toBe("acme");
+    expect(createdRun?.kind).toBe("Run");
+    expect(createdRun?.spec?.message).toBe("review this PR");
+    expect(createdRun?.metadata?.org).toBe("acme");
     // Runtime env values through MCP are never secrets.
-    expect(createdAgentRun?.spec?.runtimeEnv?.REPO?.value).toBe("stigmer/stigmer");
-    expect(createdAgentRun?.spec?.runtimeEnv?.REPO?.isSecret).toBe(false);
+    expect(createdRun?.spec?.runtimeEnv?.REPO?.value).toBe("stigmer/stigmer");
+    expect(createdRun?.spec?.runtimeEnv?.REPO?.isSecret).toBe(false);
 
     // The created run comes back as plain protojson (its status is small).
     const created = parseText(result);
-    expect((created.metadata as Record<string, unknown>).id).toBe("aex_1");
+    expect((created.metadata as Record<string, unknown>).id).toBe("run_1");
   });
 
   it("run_agent reports an unknown agent as not found and starts nothing", async () => {
@@ -247,7 +247,7 @@ describe("run tools integration", () => {
     expect(result.content[0]?.text).toContain(
       'agent "no-such-agent" in org "acme" not found',
     );
-    expect(createdAgentRun).toBeUndefined();
+    expect(createdRun).toBeUndefined();
   });
 
   it("run_agent threads a session follow-up", async () => {
@@ -260,11 +260,11 @@ describe("run tools integration", () => {
     // The session id alone: the session runs the agent it started on, so the
     // turn does not name it, and an org equal to the session's reference
     // needs no lookup.
-    expect(createdAgentRun?.spec?.target).toEqual({ case: "sessionId", value: "ses_42" });
+    expect(createdRun?.spec?.target).toEqual({ case: "sessionId", value: "ses_42" });
     expect(agentLookups).toBe(0);
     // The follow-up names no organization: the server files it under the
     // session's, which may differ from the agent's (stigmer/stigmer#1580).
-    expect(createdAgentRun?.metadata?.org).toBe("");
+    expect(createdRun?.metadata?.org).toBe("");
   });
 
   it("run_agent refuses a follow-up naming another agent than the session's", async () => {
@@ -279,7 +279,7 @@ describe("run tools integration", () => {
     expect(result.content[0]?.text).toContain(
       'session "ses_42" runs agent "code-reviewer" in org "acme", not agent "release-bot" in org "acme"',
     );
-    expect(createdAgentRun).toBeUndefined();
+    expect(createdRun).toBeUndefined();
   });
 
   it("run_agent refuses a follow-up naming an agent in a session on the built-in assistant", async () => {
@@ -295,7 +295,7 @@ describe("run tools integration", () => {
     expect(result.content[0]?.text).toContain(
       'session "ses_42" runs the built-in assistant, not agent "code-reviewer"',
     );
-    expect(createdAgentRun).toBeUndefined();
+    expect(createdRun).toBeUndefined();
   });
 
   it("run_agent resolves an org given as a slug against the id the session's reference holds", async () => {
@@ -311,7 +311,7 @@ describe("run tools integration", () => {
     // agent to organization "acme", the one the reference holds.
     expect(result.isError).toBeFalsy();
     expect(agentLookups).toBe(1);
-    expect(createdAgentRun?.spec?.target).toEqual({ case: "sessionId", value: "ses_42" });
+    expect(createdRun?.spec?.target).toEqual({ case: "sessionId", value: "ses_42" });
   });
 
   it("run_agent refuses a follow-up whose org names another organization's agent", async () => {
@@ -327,7 +327,7 @@ describe("run tools integration", () => {
     expect(result.content[0]?.text).toContain(
       'session "ses_42" runs agent "code-reviewer" in org "org_other", not agent "code-reviewer" in org "acme"',
     );
-    expect(createdAgentRun).toBeUndefined();
+    expect(createdRun).toBeUndefined();
   });
 
   it("run_agent reports a session it cannot read and starts nothing", async () => {
@@ -340,7 +340,7 @@ describe("run tools integration", () => {
 
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toContain('session "ses_gone"');
-    expect(createdAgentRun).toBeUndefined();
+    expect(createdRun).toBeUndefined();
   });
 
   it("run_agent reports an agent it cannot read while checking a follow-up's org, and starts nothing", async () => {
@@ -354,11 +354,11 @@ describe("run tools integration", () => {
 
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toContain('agent "code-reviewer" in org "org-down"');
-    expect(createdAgentRun).toBeUndefined();
+    expect(createdRun).toBeUndefined();
   });
 
   it("run_agent reports a run the backend refuses to create, naming the agent", async () => {
-    failures.set("agentRun.create", new ConnectError("quota exhausted", Code.ResourceExhausted));
+    failures.set("run.create", new ConnectError("quota exhausted", Code.ResourceExhausted));
     const result = await callTool("run_agent", {
       org: "acme",
       agent: "code-reviewer",
@@ -368,8 +368,8 @@ describe("run tools integration", () => {
     expect(result.content[0]?.text).toBe("unexpected error: quota exhausted");
   });
 
-  it("get_agent_run defaults to the compact view", async () => {
-    const result = await callTool("get_agent_run", { run_id: "aex_1" });
+  it("get_run defaults to the compact view", async () => {
+    const result = await callTool("get_run", { run_id: "run_1" });
     expect(result.isError).toBeFalsy();
 
     const body = parseText(result);
@@ -386,9 +386,9 @@ describe("run tools integration", () => {
     expect(status.sub_agent_runs).toBeUndefined();
   });
 
-  it("get_agent_run honors message_limit", async () => {
+  it("get_run honors message_limit", async () => {
     const body = parseText(
-      await callTool("get_agent_run", { run_id: "aex_1", message_limit: 2 }),
+      await callTool("get_run", { run_id: "run_1", message_limit: 2 }),
     );
     const status = ((body.run as Record<string, unknown>).status ?? {}) as Record<
       string,
@@ -397,51 +397,51 @@ describe("run tools integration", () => {
     expect(status.messages as unknown[]).toHaveLength(2);
   });
 
-  it("get_agent_run refuses an empty run id without calling the backend", async () => {
-    failures.set("agentRun.get", new ConnectError("must not be called", Code.Internal));
-    const result = await callTool("get_agent_run", { run_id: "" });
+  it("get_run refuses an empty run id without calling the backend", async () => {
+    failures.set("run.get", new ConnectError("must not be called", Code.Internal));
+    const result = await callTool("get_run", { run_id: "" });
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toBe("run_id is required");
   });
 
-  it("get_agent_run reports a run it cannot find", async () => {
-    failures.set("agentRun.get", new ConnectError("no such run", Code.NotFound));
-    const result = await callTool("get_agent_run", { run_id: "aex_9" });
+  it("get_run reports a run it cannot find", async () => {
+    failures.set("run.get", new ConnectError("no such run", Code.NotFound));
+    const result = await callTool("get_run", { run_id: "run_9" });
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toBe(
-      'agent run "aex_9" not found. Verify the org and slug are correct.',
+      'agent run "run_9" not found. Verify the org and slug are correct.',
     );
   });
 
-  it("get_agent_run view=full returns the backend protojson verbatim", async () => {
-    const result = await callTool("get_agent_run", { run_id: "aex_1", view: "full" });
+  it("get_run view=full returns the backend protojson verbatim", async () => {
+    const result = await callTool("get_run", { run_id: "run_1", view: "full" });
     expect(parseText(result)).toEqual(
-      toJson(AgentRunSchema, agentRunState, { useProtoFieldName: true }),
+      toJson(RunSchema, runState, { useProtoFieldName: true }),
     );
   });
 
-  it("submit_agent_run_approval maps the action and returns the compact view", async () => {
-    const result = await callTool("submit_agent_run_approval", {
-      run_id: "aex_1",
+  it("submit_run_approval maps the action and returns the compact view", async () => {
+    const result = await callTool("submit_run_approval", {
+      run_id: "run_1",
       tool_call_id: "call_7",
       action: "reject",
       comment: "wrong repository",
     });
     expect(result.isError).toBeFalsy();
-    expect(lastAgentApproval?.agentRunId).toBe("aex_1");
+    expect(lastAgentApproval?.runId).toBe("run_1");
     expect(lastAgentApproval?.toolCallId).toBe("call_7");
     expect(lastAgentApproval?.action).toBe(ApprovalAction.REJECT);
     expect(lastAgentApproval?.comment).toBe("wrong repository");
     expect(parseText(result).view).toBe("compact");
   });
 
-  it("submit_agent_run_approval reports an approval the backend refuses", async () => {
+  it("submit_run_approval reports an approval the backend refuses", async () => {
     failures.set(
-      "agentRun.submitApproval",
+      "run.submitApproval",
       new ConnectError("tool call call_7 is not pending", Code.InvalidArgument),
     );
-    const result = await callTool("submit_agent_run_approval", {
-      run_id: "aex_1",
+    const result = await callTool("submit_run_approval", {
+      run_id: "run_1",
       tool_call_id: "call_7",
       action: "approve",
     });
@@ -451,34 +451,34 @@ describe("run tools integration", () => {
   });
 
   it("cancel_run cancels a running agent run", async () => {
-    const body = parseText(await callTool("cancel_run", { run_id: "aex_1" }));
+    const body = parseText(await callTool("cancel_run", { run_id: "run_1" }));
     expect(agentCancelCalls).toBe(1);
     expect(body.already_terminal).toBe(false);
     expect(body.view).toBe("compact");
   });
 
   it("cancel_run short-circuits a terminal agent run", async () => {
-    agentRunState = agentRunFixture(RunPhase.RUN_COMPLETED);
-    const body = parseText(await callTool("cancel_run", { run_id: "aex_1" }));
+    runState = runFixture(RunPhase.RUN_COMPLETED);
+    const body = parseText(await callTool("cancel_run", { run_id: "run_1" }));
     expect(agentCancelCalls).toBe(0);
     expect(body.already_terminal).toBe(true);
   });
 
   it("cancel_run reports an agent run the backend refuses to cancel", async () => {
-    failures.set("agentRun.cancel", new ConnectError("run is finalizing", Code.FailedPrecondition));
-    const result = await callTool("cancel_run", { run_id: "aex_1" });
+    failures.set("run.cancel", new ConnectError("run is finalizing", Code.FailedPrecondition));
+    const result = await callTool("cancel_run", { run_id: "run_1" });
     expect(agentCancelCalls).toBe(1);
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toBe("unexpected error: run is finalizing");
   });
 
   it("cancel_run reports a run it cannot find", async () => {
-    failures.set("agentRun.get", new ConnectError("no such run", Code.NotFound));
-    const result = await callTool("cancel_run", { run_id: "aex_9" });
+    failures.set("run.get", new ConnectError("no such run", Code.NotFound));
+    const result = await callTool("cancel_run", { run_id: "run_9" });
     expect(agentCancelCalls).toBe(0);
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toBe(
-      'agent run "aex_9" not found. Verify the org and slug are correct.',
+      'agent run "run_9" not found. Verify the org and slug are correct.',
     );
   });
 });

@@ -19,7 +19,6 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import type { Config } from "./config.js";
 import { createMcpHttpHandler, type McpHttpHandler } from "./http-handler.js";
 import { createReadinessCheck, type ReadinessResult } from "./readiness.js";
-import { registerAgentRunTools } from "./domains/agentruns/tools.js";
 import { registerAgentResources } from "./domains/agents/resources.js";
 import { registerAgentTools } from "./domains/agents/tools.js";
 import { registerChannelTools } from "./domains/channels/tools.js";
@@ -34,7 +33,7 @@ import {
   type CaptureContext,
 } from "./domains/memory/context.js";
 import { registerMemoryTools } from "./domains/memory/tools.js";
-import { registerRunControlTools } from "./domains/runs/tools.js";
+import { registerRunControlTools, registerRunTools } from "./domains/runs/tools.js";
 import { registerSearchTools } from "./domains/search/tools.js";
 import { registerSkillResources } from "./domains/skills/resources.js";
 import { registerSkillTools } from "./domains/skills/tools.js";
@@ -170,7 +169,7 @@ function registerTools(server: McpServer, target: BackendTarget): string[] {
   return [
     ...registerSearchTools(server, target),
     ...registerAgentTools(server, target),
-    ...registerAgentRunTools(server, target),
+    ...registerRunTools(server, target),
     ...registerMcpServerTools(server, target),
     ...registerSkillTools(server, target),
     ...registerRunControlTools(server, target),
