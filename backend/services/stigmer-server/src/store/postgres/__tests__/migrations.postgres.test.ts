@@ -50,7 +50,17 @@
  * grant through its principal; a chain from v12 (before v13) reaches the
  * same rows; across keyset pages whatever the collation orders first; a run
  * or grant it cannot decode fails the step, naming the row, and leaves the
- * database at v15.
+ * database at v15. v17 retires the environment kind: from a store at v16
+ * every environment row leaves every table keyed by kind, every grant
+ * naming an environment as resource or principal leaves with its list keys
+ * (its history kept), the OAuth grant that kept its tokens in an
+ * environment is deleted and the one that named none is kept with an empty
+ * credential id and an empty refresh token, the column naming the refresh
+ * token's variable gone; every other row of every table reads back byte for
+ * byte, and the store opened at the head finds the kept grant; across
+ * keyset pages whatever the collation orders first; a grant it cannot
+ * decode fails the step, naming the row, and leaves the database at v16
+ * with every row and the old grant columns in place.
  * A step's starting database is built by running the chain up to the step
  * before it.
  * Newer schemas are refused without writes or reconciliation; refusal
@@ -65,6 +75,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import pg from "pg";
 
 import { create, fromBinary, fromJson, toBinary } from "@bufbuild/protobuf";
+import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 import type { DescMessage } from "@bufbuild/protobuf";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -80,6 +91,7 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 import { HISTORY_PAGE_SIZE } from "../../organization-slug-history.js";
 import { PUBLIC_ROW_KINDS_AT_RETIREMENT } from "../../public-visibility-retired.js";
@@ -98,6 +110,7 @@ import {
   SCHEMA_VERSION_14,
   SCHEMA_VERSION_15,
   SCHEMA_VERSION_16,
+  SCHEMA_VERSION_17,
   runMigrations,
 } from "../migrations.js";
 import { RETIREMENT_PAGE_SIZE } from "../../agent-instance-retired.js";
@@ -132,6 +145,7 @@ import { agentExecutionListIndex } from "../../../domain/run/list-index.js";
 import { policyIdFor } from "../../../domain/iampolicy/constants.js";
 import { iamPolicyListIndex } from "../../../domain/iampolicy/list-index.js";
 import { RUN_KIND_TABLES, RUN_RENAME_PAGE_SIZE } from "../../run-rename.js";
+import { ENVIRONMENT_RETIRED_PAGE_SIZE } from "../../environment-retired.js";
 import {
   AGENT_RUN_NAMES,
   EXECUTION_NAMES,
@@ -145,6 +159,12 @@ import {
   testDatabaseAdminUrl,
   type TestDatabase,
 } from "./support.js";
+
+/**
+ * The wire number the retired Environment kind held in ApiResourceKind; an
+ * earlier release wrote it into a workflow instance's environment refs.
+ */
+const RETIRED_ENVIRONMENT_KIND_NUMBER = 53 as ApiResourceKind;
 
 /** Builds the database a step starts from: the chain run up to `version`. */
 async function migrateTo(databaseUrl: string, version: number): Promise<void> {
@@ -1465,7 +1485,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           retiredWorkflowInstanceRow({
             metadata: { id: "win_named", org: ORG, slug: "nightly-prod" },
             workflowId: "wfl_1",
-            environmentRefs: [{ org: ORG, slug: "prod", kind: 53 }],
+            environmentRefs: [{ org: ORG, slug: "prod", kind: RETIRED_ENVIRONMENT_KIND_NUMBER }],
             executionVisibility: 2,
           }),
         );
@@ -1632,7 +1652,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
               },
               workflowId: "wfl_1",
               description: "Shared deployment",
-              environmentRefs: [{ org: "deleted-org", slug: "prod", kind: 53 }],
+              environmentRefs: [{ org: "deleted-org", slug: "prod", kind: RETIRED_ENVIRONMENT_KIND_NUMBER }],
               executionVisibility: 2,
             });
           await insert(
@@ -2764,6 +2784,340 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           expect((await row(client, "agent_run", "aex_good"))?.data).toEqual(
             runBytes("aex_good", "ses_1", AGENT_RUN_NAMES),
           );
+        } finally {
+          await client.end();
+        }
+      });
+    });
+
+    describe("v17: the environment rows and the grants naming them leave, and OAuth grants name a credential", () => {
+      const ORG = "org_01jz0000000000000000000000";
+      const seededAt = new Date("2026-10-07T00:00:00Z");
+
+      /** A v16 database, the one v17 starts from, and a client on it for the seeding. */
+      async function v16Client(): Promise<pg.Client> {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_17 - 1);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        return client;
+      }
+
+      async function insert(
+        client: pg.Client,
+        kind: string,
+        id: string,
+        data: Uint8Array,
+      ): Promise<void> {
+        await client.query(
+          `INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, $4)`,
+          [kind, id, Buffer.from(data), seededAt],
+        );
+      }
+
+      async function count(
+        client: pg.Client,
+        table: string,
+        kind: string,
+      ): Promise<number> {
+        const result = await client.query<{ n: string }>(
+          `SELECT COUNT(*) AS n FROM ${table} WHERE kind = $1`,
+          [kind],
+        );
+        return Number(result.rows[0]!.n);
+      }
+
+      async function version(client: pg.Client): Promise<number> {
+        const result = await client.query(
+          `SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`,
+        );
+        return Number(result.rows[0].version);
+      }
+
+      async function oauthGrantColumns(client: pg.Client): Promise<string[]> {
+        const result = await client.query<{ column_name: string }>(
+          `SELECT column_name FROM information_schema.columns
+           WHERE table_schema = current_schema() AND table_name = 'oauth_grant'
+           ORDER BY ordinal_position`,
+        );
+        return result.rows.map((r) => r.column_name);
+      }
+
+      /** An Environment row as an earlier release stored it: api_version 1, kind 2, metadata 3, spec 4 { data 1 }. */
+      function environmentRow(id: string): Uint8Array {
+        const value = new BinaryWriter()
+          .tag(1, WireType.LengthDelimited)
+          .string("enc:v1:sealed")
+          .tag(2, WireType.Varint)
+          .bool(true)
+          .finish();
+        const entry = new BinaryWriter()
+          .tag(1, WireType.LengthDelimited)
+          .string("TOKEN")
+          .tag(2, WireType.LengthDelimited)
+          .bytes(value)
+          .finish();
+        return new BinaryWriter()
+          .tag(1, WireType.LengthDelimited)
+          .string("agentic.stigmer.ai/v1")
+          .tag(2, WireType.LengthDelimited)
+          .string("Environment")
+          .tag(3, WireType.LengthDelimited)
+          .bytes(
+            toBinary(
+              ApiResourceMetadataSchema,
+              create(ApiResourceMetadataSchema, { id, org: ORG, slug: id }),
+            ),
+          )
+          .tag(4, WireType.LengthDelimited)
+          .bytes(new BinaryWriter().tag(1, WireType.LengthDelimited).bytes(entry).finish())
+          .finish();
+      }
+
+      const agent = toBinary(
+        AgentSchema,
+        create(AgentSchema, {
+          apiVersion: "agentic.stigmer.ai/v1",
+          kind: "Agent",
+          metadata: { id: "agt_1", name: "reviewer", slug: "reviewer", org: ORG },
+          spec: { instructions: "a conformant instruction body" },
+        }),
+      );
+      const keptGrant = {
+        id: "iam_on_agent",
+        principal: "identity_account:ida_1",
+        relation: "viewer",
+        resource: "agent:agt_1",
+      };
+      const retiredGrants = [
+        {
+          id: "iam_on_env",
+          principal: "identity_account:ida_1",
+          relation: "viewer",
+          resource: "environment:env_1",
+        },
+        {
+          id: "iam_env_member",
+          principal: "environment:env_2",
+          relation: "member",
+          resource: "team:tm_1",
+        },
+      ];
+
+      /** Two environments in every table keyed by kind, an agent beside them, and the grants. */
+      async function seed(client: pg.Client): Promise<void> {
+        for (const id of ["env_1", "env_2"]) {
+          await insert(client, "environment", id, environmentRow(id));
+          await client.query(
+            `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('environment', $1, $2, '', '')`,
+            [id, Buffer.from(environmentRow(id))],
+          );
+          await client.query(
+            `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('environment', $1, 'org', $2, '')`,
+            [id, ORG],
+          );
+          await client.query(
+            `INSERT INTO resource_names (kind, org, name, id, state, claimed_at) VALUES ('environment', $1, $2, $2, 'current', '2026-10-07T00:00:00Z')`,
+            [ORG, id],
+          );
+        }
+        await insert(client, "agent", "agt_1", agent);
+        await client.query(
+          `INSERT INTO resource_names (kind, org, name, id, state, claimed_at) VALUES ('agent', $1, 'reviewer', 'agt_1', 'current', '2026-10-07T00:00:00Z')`,
+          [ORG],
+        );
+        for (const grant of [...retiredGrants, keptGrant]) {
+          await insert(client, "iam_policy", grant.id, policyRow(grant));
+          await client.query(
+            `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('iam_policy', $1, 'principal', $2, '')`,
+            [grant.id, grant.principal.split(":")[1] ?? ""],
+          );
+        }
+        await client.query(
+          `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('iam_policy', 'iam_on_env', $1, '', '')`,
+          [Buffer.from(policyRow(retiredGrants[0]!))],
+        );
+      }
+
+      /** Two OAuth grants: one whose tokens an environment kept, one that named none. */
+      async function seedOAuthGrants(client: pg.Client): Promise<void> {
+        for (const [identity, resource, refreshVariable, environmentId] of [
+          ["ida_1", "mcp_env", "REFRESH", "env_1"],
+          ["ida_2", "mcp_plain", "", ""],
+        ] as const) {
+          await client.query(
+            `INSERT INTO oauth_grant (
+              identity_account_id, resource_id, resource_kind, org_id,
+              access_token_expires_at, client_id, auth_method, token_endpoint,
+              access_token_env_var, refresh_token_env_var, environment_id,
+              created_at, updated_at
+            ) VALUES ($1, $2, 'mcp_server', $3, 1787485434, 'client-1', 'mcp_oauth', 'https://example.test/token', 'TOKEN', $4, $5, 1787400000, 1787485434)`,
+            [identity, resource, ORG, refreshVariable, environmentId],
+          );
+        }
+      }
+
+      /** Every row the step must leave alone, in a stable order. */
+      async function keptRows(client: pg.Client): Promise<unknown[]> {
+        const kept: unknown[] = [];
+        for (const table of RUN_KIND_TABLES) {
+          // A retired grant's history is kept, so its audit rows are kept rows.
+          const history = table === "resource_audit";
+          const retiredGrant = history ? "" : `AND NOT (kind = 'iam_policy' AND id = ANY($1::text[]))`;
+          const order = history ? "id" : `kind, id COLLATE "C", 3`;
+          const result = await client.query(
+            `SELECT * FROM ${table} WHERE kind <> 'environment' ${retiredGrant} ORDER BY ${order}`,
+            history ? [] : [retiredGrants.map((grant) => grant.id)],
+          );
+          kept.push(result.rows);
+        }
+        return kept;
+      }
+
+      it("removes the environment rows from every table and every grant naming one, its history kept, and leaves every other row byte for byte", async () => {
+        const client = await v16Client();
+        try {
+          await seed(client);
+          await seedOAuthGrants(client);
+          const before = await keptRows(client);
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_17);
+          expect(await version(client)).toBe(SCHEMA_VERSION_17);
+
+          for (const table of RUN_KIND_TABLES) {
+            expect(await count(client, table, "environment"), table).toBe(0);
+          }
+          const policyIds = async (table: string): Promise<string[]> =>
+            (
+              await client.query<{ id: string }>(
+                `SELECT id FROM ${table} WHERE kind = 'iam_policy' ORDER BY id`,
+              )
+            ).rows.map((r) => r.id);
+          expect(await policyIds("resources")).toEqual([keptGrant.id]);
+          expect(await policyIds("resource_list_keys")).toEqual([keptGrant.id]);
+          expect(
+            await count(client, "resource_audit", "iam_policy"),
+            "the grant's history is kept",
+          ).toBe(1);
+          expect(await keptRows(client)).toEqual(before);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("deletes the OAuth grant an environment held, keeps the other naming no credential and holding no refresh token, and drops the refresh token's variable", async () => {
+        const client = await v16Client();
+        try {
+          await seed(client);
+          await seedOAuthGrants(client);
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_17);
+
+          expect(await oauthGrantColumns(client)).toEqual([
+            "identity_account_id",
+            "resource_id",
+            "resource_kind",
+            "org_id",
+            "access_token_expires_at",
+            "client_id",
+            "auth_method",
+            "token_endpoint",
+            "access_token_env_var",
+            "credential_id",
+            "created_at",
+            "updated_at",
+            "refresh_token",
+          ]);
+          expect(
+            (await client.query(`SELECT * FROM oauth_grant ORDER BY identity_account_id`)).rows,
+          ).toEqual([
+            {
+              identity_account_id: "ida_2",
+              resource_id: "mcp_plain",
+              resource_kind: "mcp_server",
+              org_id: ORG,
+              access_token_expires_at: "1787485434",
+              client_id: "client-1",
+              auth_method: "mcp_oauth",
+              token_endpoint: "https://example.test/token",
+              access_token_env_var: "TOKEN",
+              credential_id: "",
+              created_at: "1787400000",
+              updated_at: "1787485434",
+              refresh_token: "",
+            },
+          ]);
+        } finally {
+          await client.end();
+        }
+
+        const store = await PostgresStore.open(db.databaseUrl, undefined, CONTRACT_STORE_OPTIONS);
+        try {
+          expect(await store.oauthGrants.find("ida_1", "mcp_env", ORG)).toBeUndefined();
+          expect(await store.oauthGrants.find("ida_2", "mcp_plain", ORG)).toMatchObject({
+            credentialId: "",
+            refreshToken: "",
+            accessTokenEnvVar: "TOKEN",
+            createdAt: 1787400000,
+          });
+        } finally {
+          await store.close();
+        }
+      });
+
+      it("reads grants across keyset pages, missing none past the first page", async () => {
+        const client = await v16Client();
+        try {
+          const total = ENVIRONMENT_RETIRED_PAGE_SIZE + 3;
+          await client.query("BEGIN");
+          for (let i = 0; i < total; i++) {
+            // Mixed case and punctuation order differently under a
+            // linguistic collation than as bytes; the keyset compares and
+            // orders under one collation, so it misses none either way.
+            const id = `${i % 2 === 0 ? "iam_" : "IAM-"}${String(i).padStart(4, "0")}`;
+            await insert(
+              client,
+              "iam_policy",
+              id,
+              policyRow({
+                id,
+                principal: "identity_account:ida_1",
+                relation: "viewer",
+                resource: "environment:env_1",
+              }),
+            );
+          }
+          await client.query("COMMIT");
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_17);
+
+          expect(await count(client, "resources", "iam_policy")).toBe(0);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("a grant that does not decode fails the step, names the row, rolls back, and leaves the database at v16", async () => {
+        const client = await v16Client();
+        try {
+          await seed(client);
+          await seedOAuthGrants(client);
+          await insert(client, "iam_policy", "iam_z_broken", new Uint8Array([0x22, 0xff]));
+          const before = (
+            await client.query(`SELECT * FROM resources ORDER BY kind, id COLLATE "C"`)
+          ).rows;
+
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_17)).rejects.toThrow(
+            "iam_policy 'iam_z_broken' cannot be read to retire the environment kind",
+          );
+          expect(await version(client)).toBe(SCHEMA_VERSION_17 - 1);
+          expect(
+            (await client.query(`SELECT * FROM resources ORDER BY kind, id COLLATE "C"`)).rows,
+          ).toEqual(before);
+          const columns = await oauthGrantColumns(client);
+          expect(columns).toContain("refresh_token_env_var");
+          expect(columns).toContain("environment_id");
+          expect(
+            Number((await client.query(`SELECT COUNT(*) AS n FROM oauth_grant`)).rows[0].n),
+          ).toBe(2);
         } finally {
           await client.end();
         }

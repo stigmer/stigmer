@@ -10,12 +10,17 @@
  *     encode writes them, so the step does what it did when it shipped;
  *   - a row that does not hold the public level is left untouched;
  *   - each envelope carries its retired message's own full name, one
- *     envelope per message.
+ *     envelope per message;
+ *   - the retired Environment kind stays in the slug ledger's table under
+ *     its envelope, which reads the organization a stored environment row
+ *     names (the v22 / v17 step that removes those rows runs after the
+ *     ledger).
  */
 import { create, toBinary } from "@bufbuild/protobuf";
 import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 import { describe, expect, it } from "vitest";
 
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiResourceAuditStatusSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
@@ -23,6 +28,7 @@ import { ApiResourceAuditStatusSchema } from "@stigmer/protos/ai/stigmer/commons
 import {
   FrozenAgentInstanceEnvelopeSchema,
   FrozenArtifactEnvelopeSchema,
+  FrozenEnvironmentEnvelopeSchema,
   FrozenWorkflowEnvelopeSchema,
   FrozenWorkflowExecutionEnvelopeSchema,
   FrozenWorkflowInstanceEnvelopeSchema,
@@ -43,6 +49,12 @@ import {
   retiredWorkflowRunRow,
 } from "./retired-workflow-rows.js";
 
+/**
+ * The wire number the retired Environment kind held in ApiResourceKind; an
+ * earlier release wrote it into a workflow instance's environment refs.
+ */
+const RETIRED_ENVIRONMENT_KIND_NUMBER = 53 as ApiResourceKind;
+
 const workflowInstanceLedgerEntry = ORGANIZATION_SCOPED_KINDS_AT_LEDGER.find(
   (entry) => entry.kind === "workflow_instance",
 );
@@ -59,7 +71,9 @@ function fullInstance(
     metadata: { id, org: "acme", slug: "nightly-shared", visibility },
     workflowId: "wfl_1",
     description: "Shared deployment",
-    environmentRefs: [{ org: "acme", slug: "prod", kind: 53 }],
+    environmentRefs: [
+      { org: "acme", slug: "prod", kind: RETIRED_ENVIRONMENT_KIND_NUMBER },
+    ],
     executionVisibility: 2,
   });
 }
@@ -321,5 +335,62 @@ describe("the frozen workflow, workflow run and artifact envelopes", () => {
     expect(
       movePublicRowToOrg(moverOf("workflow")!, at(ApiResourceVisibility.visibility_private)),
     ).toBeUndefined();
+  });
+});
+
+describe("the frozen environment envelope", () => {
+  const ledgerEntry = ORGANIZATION_SCOPED_KINDS_AT_LEDGER.find(
+    (entry) => entry.kind === "environment",
+  );
+
+  /** An Environment row as an earlier release stored it: api_version 1, kind 2, metadata 3, spec 4 { data 1 }. */
+  function retiredEnvironmentRow(org: string): Uint8Array {
+    const value = new BinaryWriter()
+      .tag(1, WireType.LengthDelimited)
+      .string("enc:v1:sealed")
+      .tag(2, WireType.Varint)
+      .bool(true)
+      .finish();
+    const entry = new BinaryWriter()
+      .tag(1, WireType.LengthDelimited)
+      .string("TOKEN")
+      .tag(2, WireType.LengthDelimited)
+      .bytes(value)
+      .finish();
+    const spec = new BinaryWriter()
+      .tag(1, WireType.LengthDelimited)
+      .bytes(entry)
+      .finish();
+    return new BinaryWriter()
+      .tag(1, WireType.LengthDelimited)
+      .string("agentic.stigmer.ai/v1")
+      .tag(2, WireType.LengthDelimited)
+      .string("Environment")
+      .tag(3, WireType.LengthDelimited)
+      .bytes(
+        toBinary(
+          ApiResourceMetadataSchema,
+          create(ApiResourceMetadataSchema, { id: "env_1", org, slug: "prod" }),
+        ),
+      )
+      .tag(4, WireType.LengthDelimited)
+      .bytes(spec)
+      .finish();
+  }
+
+  it("stays in the slug ledger's kind table under the retired message's name", () => {
+    expect(ledgerEntry?.schema).toBe(FrozenEnvironmentEnvelopeSchema);
+    expect(FrozenEnvironmentEnvelopeSchema.typeName).toBe(
+      "ai.stigmer.agentic.environment.v1.Environment",
+    );
+    expect(FrozenEnvironmentEnvelopeSchema.fields.map((f) => f.number)).toEqual([
+      1, 2, 3,
+    ]);
+  });
+
+  it("lets the slug ledger read the organization a retired row names", () => {
+    expect(organizationNamedBy(ledgerEntry!, retiredEnvironmentRow("acme"))).toBe(
+      "acme",
+    );
   });
 });

@@ -59,6 +59,16 @@
  * re-keyed grant through its principal; a chain from v17 (before v18)
  * reaches the same rows; across keyset pages; a run or grant it cannot
  * decode fails the step, naming the row, and leaves the database at v20.
+ * v22 retires the environment kind: from a store at v21 every environment
+ * row leaves every table keyed by kind, every grant naming an environment
+ * as resource or principal leaves with its list keys (its history kept),
+ * the OAuth grant that kept its tokens in an environment is deleted and
+ * the one that named none is kept with an empty credential id and an
+ * empty refresh token, the column naming the refresh token's variable
+ * gone; every other row, of every table, reads back byte for byte, and the
+ * store opened at the head finds the kept grant; across keyset pages; a
+ * grant it cannot decode fails the step, naming the row, and leaves the
+ * database at v21 with every row and the old grant columns in place.
  * A schema written by a newer release is refused before any migration or
  * list-index reconciliation, with the failed store's connection closed.
  */
@@ -70,6 +80,7 @@ import { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { create, fromBinary, fromJson, toBinary } from "@bufbuild/protobuf";
+import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 import type { DescMessage } from "@bufbuild/protobuf";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -84,6 +95,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 import {
   CONTRACT_SESSION_INDEX,
@@ -103,6 +115,7 @@ import {
   SCHEMA_VERSION_19,
   SCHEMA_VERSION_20,
   SCHEMA_VERSION_21,
+  SCHEMA_VERSION_22,
   getSchemaVersion,
   runMigrations,
 } from "../migrations.js";
@@ -147,6 +160,7 @@ import {
   runBytes,
 } from "../../__tests__/run-rename-rows.js";
 import { policyIdFor } from "../../../domain/iampolicy/constants.js";
+import { ENVIRONMENT_RETIRED_PAGE_SIZE } from "../../environment-retired.js";
 
 const cleanups: Array<() => void | Promise<void>> = [];
 
@@ -170,6 +184,18 @@ function tableNames(db: DatabaseSync): string[] {
     .all() as Array<{ name: string }>;
   return rows.map((row) => row.name);
 }
+
+function oauthGrantColumns(db: DatabaseSync): string[] {
+  return (
+    db.prepare(`PRAGMA table_info(oauth_grant)`).all() as Array<{ name: string }>
+  ).map((column) => column.name);
+}
+
+/**
+ * The wire number the retired Environment kind held in ApiResourceKind; an
+ * earlier release wrote it into a workflow instance's environment refs.
+ */
+const RETIRED_ENVIRONMENT_KIND_NUMBER = 53 as ApiResourceKind;
 
 describe("newer database schema", () => {
   it.each([CURRENT_SCHEMA_VERSION, CURRENT_SCHEMA_VERSION + 1])(
@@ -306,6 +332,7 @@ describe("fresh database", () => {
       .all() as Array<{ version: number }>;
     expect(rows.map((row) => row.version)).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+      22,
     ]);
   });
 
@@ -398,12 +425,21 @@ describe("Go-created v6 database adoption (the Go fixture)", () => {
     expect(tableNames(db)).not.toContain("workflow_execution_events");
     expect(tableNames(db)).not.toContain("signal_dedupe");
 
-    const grant = db
-      .prepare(
-        `SELECT client_id FROM oauth_grant WHERE identity_account_id = 'ida_fixture'`,
-      )
-      .get() as { client_id: string };
-    expect(grant.client_id).toBe("client-1");
+    // The fixture's one OAuth grant kept its tokens in an environment, so
+    // it left with the environment kind (v22); the table it leaves names a
+    // credential and holds the sealed refresh token.
+    expect(
+      db
+        .prepare(
+          `SELECT COUNT(*) AS n FROM oauth_grant WHERE identity_account_id = 'ida_fixture'`,
+        )
+        .get(),
+    ).toEqual({ n: 0 });
+    expect(oauthGrantColumns(db)).toEqual(
+      expect.arrayContaining(["credential_id", "refresh_token"]),
+    );
+    expect(oauthGrantColumns(db)).not.toContain("refresh_token_env_var");
+    expect(oauthGrantColumns(db)).not.toContain("environment_id");
 
     const pending = db
       .prepare(
@@ -1499,7 +1535,7 @@ describe("v17: the workflow instance rows and the grants naming them leave", () 
       retiredWorkflowInstanceRow({
         metadata: { id: "win_named", org: ORG, slug: "nightly-prod" },
         workflowId: "wfl_1",
-        environmentRefs: [{ org: ORG, slug: "prod", kind: 53 }],
+        environmentRefs: [{ org: ORG, slug: "prod", kind: RETIRED_ENVIRONMENT_KIND_NUMBER }],
         executionVisibility: 2,
       }),
     );
@@ -1652,7 +1688,7 @@ describe("v17: the workflow instance rows and the grants naming them leave", () 
         },
         workflowId: "wfl_1",
         description: "Shared deployment",
-        environmentRefs: [{ org: "deleted-org", slug: "prod", kind: 53 }],
+        environmentRefs: [{ org: "deleted-org", slug: "prod", kind: RETIRED_ENVIRONMENT_KIND_NUMBER }],
         executionVisibility: 2,
       });
     insert(
@@ -2690,5 +2726,292 @@ describe("v21: the agent run is a run", () => {
     );
     expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_20);
     expect(row(db, "agent_run", "aex_good")?.data).toEqual(runBytes("aex_good", "ses_1", AGENT_RUN_NAMES));
+  });
+});
+
+describe("v22: the environment rows and the grants naming them leave, and OAuth grants name a credential", () => {
+  const ORG = "org_01jz0000000000000000000000";
+  const SEEDED_AT = "2026-10-07 00:00:00";
+
+  /** A v21 database: the chain replayed up to the step before v22. */
+  function v21Database(): { dbPath: string; db: DatabaseSync } {
+    const dbPath = tempDbPath();
+    const setup = new DatabaseSync(dbPath);
+    runMigrations(setup, SCHEMA_VERSION_22 - 1);
+    expect(getSchemaVersion(setup)).toBe(SCHEMA_VERSION_22 - 1);
+    return { dbPath, db: setup };
+  }
+
+  function insert(db: DatabaseSync, kind: string, id: string, data: Uint8Array): void {
+    db.prepare(
+      `INSERT INTO resources (kind, id, data, updated_at) VALUES (?, ?, ?, ?)`,
+    ).run(kind, id, data, SEEDED_AT);
+  }
+
+  function count(db: DatabaseSync, table: string, kind: string): number {
+    return (
+      db.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE kind = ?`).get(kind) as {
+        n: number;
+      }
+    ).n;
+  }
+
+  /** An Environment row as an earlier release stored it: api_version 1, kind 2, metadata 3, spec 4 { data 1 }. */
+  function environmentRow(id: string): Uint8Array {
+    const value = new BinaryWriter()
+      .tag(1, WireType.LengthDelimited)
+      .string("enc:v1:sealed")
+      .tag(2, WireType.Varint)
+      .bool(true)
+      .finish();
+    const entry = new BinaryWriter()
+      .tag(1, WireType.LengthDelimited)
+      .string("TOKEN")
+      .tag(2, WireType.LengthDelimited)
+      .bytes(value)
+      .finish();
+    return new BinaryWriter()
+      .tag(1, WireType.LengthDelimited)
+      .string("agentic.stigmer.ai/v1")
+      .tag(2, WireType.LengthDelimited)
+      .string("Environment")
+      .tag(3, WireType.LengthDelimited)
+      .bytes(
+        toBinary(
+          ApiResourceMetadataSchema,
+          create(ApiResourceMetadataSchema, { id, org: ORG, slug: id }),
+        ),
+      )
+      .tag(4, WireType.LengthDelimited)
+      .bytes(new BinaryWriter().tag(1, WireType.LengthDelimited).bytes(entry).finish())
+      .finish();
+  }
+
+  const agent = toBinary(
+    AgentSchema,
+    create(AgentSchema, {
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "Agent",
+      metadata: { id: "agt_1", name: "reviewer", slug: "reviewer", org: ORG },
+      spec: { instructions: "a conformant instruction body" },
+    }),
+  );
+  const keptGrant = {
+    id: "iam_on_agent",
+    principal: "identity_account:ida_1",
+    relation: "viewer",
+    resource: "agent:agt_1",
+  };
+  const retiredGrants = [
+    {
+      id: "iam_on_env",
+      principal: "identity_account:ida_1",
+      relation: "viewer",
+      resource: "environment:env_1",
+    },
+    {
+      id: "iam_env_member",
+      principal: "environment:env_2",
+      relation: "member",
+      resource: "team:tm_1",
+    },
+  ];
+
+  /** Two environments in every table keyed by kind, an agent beside them, and the grants. */
+  function seed(db: DatabaseSync): void {
+    for (const id of ["env_1", "env_2"]) {
+      insert(db, "environment", id, environmentRow(id));
+      db.prepare(
+        `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('environment', ?, ?, '', '')`,
+      ).run(id, environmentRow(id));
+      db.prepare(
+        `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('environment', ?, 'org', ?, '')`,
+      ).run(id, ORG);
+      db.prepare(
+        `INSERT INTO resource_names (kind, org, name, id, state, claimed_at) VALUES ('environment', ?, ?, ?, 'current', ?)`,
+      ).run(ORG, id, id, SEEDED_AT);
+    }
+    insert(db, "agent", "agt_1", agent);
+    db.prepare(
+      `INSERT INTO resource_names (kind, org, name, id, state, claimed_at) VALUES ('agent', ?, 'reviewer', 'agt_1', 'current', ?)`,
+    ).run(ORG, SEEDED_AT);
+    for (const grant of [...retiredGrants, keptGrant]) {
+      insert(db, "iam_policy", grant.id, policyRow(grant));
+      db.prepare(
+        `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('iam_policy', ?, 'principal', ?, '')`,
+      ).run(grant.id, grant.principal.split(":")[1] ?? "");
+    }
+    db.prepare(
+      `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('iam_policy', 'iam_on_env', ?, '', '')`,
+    ).run(policyRow(retiredGrants[0]!));
+  }
+
+  /** Two OAuth grants: one whose tokens an environment kept, one that named none. */
+  function seedOAuthGrants(db: DatabaseSync): void {
+    const insertGrant = db.prepare(
+      `INSERT INTO oauth_grant (
+        identity_account_id, resource_id, resource_kind, org_id,
+        access_token_expires_at, client_id, auth_method, token_endpoint,
+        access_token_env_var, refresh_token_env_var, environment_id,
+        created_at, updated_at
+      ) VALUES (?, ?, 'mcp_server', ?, 1787485434, 'client-1', 'mcp_oauth', 'https://example.test/token', 'TOKEN', ?, ?, 1787400000, 1787485434)`,
+    );
+    insertGrant.run("ida_1", "mcp_env", ORG, "REFRESH", "env_1");
+    insertGrant.run("ida_2", "mcp_plain", ORG, "", "");
+  }
+
+  /** Every row the step must leave alone, in a stable order. */
+  function keptRows(db: DatabaseSync): unknown[] {
+    const retired = retiredGrants.map((grant) => `'${grant.id}'`).join(", ");
+    return RUN_KIND_TABLES.map((table) => {
+      // A retired grant's history is kept, so its audit rows are kept rows.
+      const history = table === "resource_audit";
+      const idColumn = history ? "resource_id" : "id";
+      const retiredGrant = history
+        ? ""
+        : `AND NOT (kind = 'iam_policy' AND id IN (${retired}))`;
+      return db
+        .prepare(
+          `SELECT * FROM ${table} WHERE kind <> 'environment' ${retiredGrant} ORDER BY kind, ${idColumn}`,
+        )
+        .all();
+    });
+  }
+
+  it("removes the environment rows from every table and every grant naming one, its history kept, and leaves every other row byte for byte", async () => {
+    const { dbPath, db: setup } = v21Database();
+    seed(setup);
+    seedOAuthGrants(setup);
+    const before = keptRows(setup);
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_22);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_22);
+
+    for (const table of RUN_KIND_TABLES) {
+      expect(count(db, table, "environment"), table).toBe(0);
+    }
+    const policyIds = (table: string) =>
+      (
+        db
+          .prepare(`SELECT id FROM ${table} WHERE kind = 'iam_policy' ORDER BY id`)
+          .all() as Array<{ id: string }>
+      ).map((r) => r.id);
+    expect(policyIds("resources")).toEqual([keptGrant.id]);
+    expect(policyIds("resource_list_keys")).toEqual([keptGrant.id]);
+    expect(count(db, "resource_audit", "iam_policy"), "the grant's history is kept").toBe(1);
+    expect(keptRows(db)).toEqual(before);
+  });
+
+  it("deletes the OAuth grant an environment held, keeps the other naming no credential and holding no refresh token, and drops the refresh token's variable", async () => {
+    const { dbPath, db: setup } = v21Database();
+    seed(setup);
+    seedOAuthGrants(setup);
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_22);
+
+    expect(oauthGrantColumns(db)).toEqual([
+      "identity_account_id",
+      "resource_id",
+      "resource_kind",
+      "org_id",
+      "access_token_expires_at",
+      "client_id",
+      "auth_method",
+      "token_endpoint",
+      "access_token_env_var",
+      "credential_id",
+      "created_at",
+      "updated_at",
+      "refresh_token",
+    ]);
+    expect(db.prepare(`SELECT * FROM oauth_grant ORDER BY identity_account_id`).all()).toEqual([
+      {
+        identity_account_id: "ida_2",
+        resource_id: "mcp_plain",
+        resource_kind: "mcp_server",
+        org_id: ORG,
+        access_token_expires_at: 1787485434,
+        client_id: "client-1",
+        auth_method: "mcp_oauth",
+        token_endpoint: "https://example.test/token",
+        access_token_env_var: "TOKEN",
+        credential_id: "",
+        created_at: 1787400000,
+        updated_at: 1787485434,
+        refresh_token: "",
+      },
+    ]);
+
+    const store = SqliteStore.open(dbPath, undefined, CONTRACT_STORE_OPTIONS);
+    cleanups.push(() => store.close());
+    expect(await store.oauthGrants.find("ida_1", "mcp_env", ORG)).toBeUndefined();
+    expect(await store.oauthGrants.find("ida_2", "mcp_plain", ORG)).toMatchObject({
+      credentialId: "",
+      refreshToken: "",
+      accessTokenEnvVar: "TOKEN",
+      createdAt: 1787400000,
+    });
+  });
+
+  it("reads grants across keyset pages, missing none past the first page", () => {
+    const { dbPath, db: setup } = v21Database();
+    setup.exec("BEGIN");
+    for (let i = 0; i <= ENVIRONMENT_RETIRED_PAGE_SIZE; i++) {
+      const id = `iam_page_${String(i).padStart(4, "0")}`;
+      // The last grant, past the first page, is the only one naming an
+      // environment.
+      insert(
+        setup,
+        "iam_policy",
+        id,
+        policyRow({
+          id,
+          principal: "identity_account:ida_1",
+          relation: "viewer",
+          resource:
+            i === ENVIRONMENT_RETIRED_PAGE_SIZE ? "environment:env_1" : "agent:agt_1",
+        }),
+      );
+    }
+    setup.exec("COMMIT");
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_22);
+
+    expect(count(db, "resources", "iam_policy")).toBe(ENVIRONMENT_RETIRED_PAGE_SIZE);
+    const last = `iam_page_${String(ENVIRONMENT_RETIRED_PAGE_SIZE).padStart(4, "0")}`;
+    expect(
+      db.prepare(`SELECT id FROM resources WHERE kind = 'iam_policy' AND id = ?`).get(last),
+    ).toBeUndefined();
+  });
+
+  it("a grant that does not decode fails the step, names the row, rolls back, and leaves the database at v21", () => {
+    const { dbPath, db: setup } = v21Database();
+    seed(setup);
+    seedOAuthGrants(setup);
+    insert(setup, "iam_policy", "iam_z_broken", new Uint8Array([0x22, 0xff]));
+    const before = setup.prepare(`SELECT * FROM resources ORDER BY kind, id`).all();
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    expect(() => runMigrations(db, SCHEMA_VERSION_22)).toThrow(
+      "iam_policy 'iam_z_broken' cannot be read to retire the environment kind",
+    );
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_22 - 1);
+    expect(db.prepare(`SELECT * FROM resources ORDER BY kind, id`).all()).toEqual(before);
+    expect(oauthGrantColumns(db)).toContain("refresh_token_env_var");
+    expect(oauthGrantColumns(db)).toContain("environment_id");
+    expect(
+      (db.prepare(`SELECT COUNT(*) AS n FROM oauth_grant`).get() as { n: number }).n,
+    ).toBe(2);
   });
 });

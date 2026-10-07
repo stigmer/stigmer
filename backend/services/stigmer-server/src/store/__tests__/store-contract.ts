@@ -19,7 +19,9 @@
  * resource-name table (one winner of
  * concurrent claims, lazy expiry, renames that move, take back, revert and
  * overlap to one current name, a name equal to its id reserved for good,
- * a release that frees only its own names), OAuth grants, once-only pending-state
+ * a release that frees only its own names), OAuth grants (every field
+ * round-trips, the credential id and the sealed refresh token included,
+ * and the empty identity is the organization's own grant), once-only pending-state
  * redemption with its 10-minute TTL, the organization deletion table (one
  * winner of concurrent marks, transitions that apply only from the phase
  * they name), removal of one organization's side-store records, the
@@ -1477,8 +1479,8 @@ export function describeStoreContract(
       authMethod: "mcp_oauth",
       tokenEndpoint: "https://example.test/token",
       accessTokenEnvVar: "TOKEN",
-      refreshTokenEnvVar: "REFRESH",
-      environmentId: "env_1",
+      credentialId: "crd_1",
+      refreshToken: "enc:v1:sealed-refresh",
       createdAt: 0,
       updatedAt: 0,
     };
@@ -1495,6 +1497,44 @@ export function describeStoreContract(
       expect(second!.createdAt, "createdAt survives the upsert").toBe(
         first!.createdAt,
       );
+    });
+
+    it("find returns every field upsert wrote, the credential and the sealed refresh token included, and a replace overwrites both", async () => {
+      await fx.store.oauthGrants.upsert(grant);
+      const first = await fx.store.oauthGrants.find("ida_1", "mcp_1", "acme");
+      expect(first).toEqual({
+        ...grant,
+        createdAt: first!.createdAt,
+        updatedAt: first!.updatedAt,
+      });
+      expect(first!.credentialId).toBe("crd_1");
+      expect(first!.refreshToken).toBe("enc:v1:sealed-refresh");
+
+      // A sign-in that issued no refresh token clears the one kept before.
+      await fx.store.oauthGrants.upsert({
+        ...grant,
+        credentialId: "crd_2",
+        refreshToken: "",
+      });
+      const second = await fx.store.oauthGrants.find("ida_1", "mcp_1", "acme");
+      expect(second!.credentialId).toBe("crd_2");
+      expect(second!.refreshToken).toBe("");
+    });
+
+    it("an organization's own sign-in is the grant with the empty identity, apart from a person's", async () => {
+      await fx.store.oauthGrants.upsert({
+        ...grant,
+        identityAccountId: "",
+        credentialId: "crd_org",
+      });
+      await fx.store.oauthGrants.upsert(grant);
+      expect(
+        (await fx.store.oauthGrants.find("", "mcp_1", "acme"))!.credentialId,
+      ).toBe("crd_org");
+      expect(
+        (await fx.store.oauthGrants.find("ida_1", "mcp_1", "acme"))!
+          .credentialId,
+      ).toBe("crd_1");
     });
 
     it("find returns undefined (not an error) when absent; delete removes by composite key", async () => {
@@ -1732,8 +1772,8 @@ export function describeStoreContract(
           authMethod: "mcp_oauth",
           tokenEndpoint: "https://example.test/token",
           accessTokenEnvVar: "TOKEN",
-          refreshTokenEnvVar: "",
-          environmentId: "",
+          credentialId: "",
+          refreshToken: "",
           createdAt: 0,
           updatedAt: 0,
         });

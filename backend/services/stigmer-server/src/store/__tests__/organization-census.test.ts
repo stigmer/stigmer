@@ -63,8 +63,8 @@ describe("the organization census", () => {
       authMethod: "mcp_oauth",
       tokenEndpoint: "https://example.test/token",
       accessTokenEnvVar: "TOKEN",
-      refreshTokenEnvVar: "",
-      environmentId: "",
+      credentialId: "",
+      refreshToken: "",
       createdAt: 0,
       updatedAt: 0,
     });

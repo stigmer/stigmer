@@ -8,7 +8,7 @@
  *
  * The seed. The kinds a trusted-local server creates without an engine go
  * through their RPCs (an agent and its version archive, a share of it, an
- * environment holding a sealed secret, a session), so the purge meets rows
+ * organization's credential holding a sealed secret, a session), so the purge meets rows
  * as their own chains wrote them; every other kind the core purges is
  * stored directly with the organization in `metadata.org` (an API key with
  * it in `spec.bound_org`), with the side-table records a run or a schedule
@@ -40,7 +40,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
-import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
+import { CredentialCommandController } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/command_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -110,7 +110,7 @@ const STORED_KINDS = [...CORE_PURGED_KINDS].filter(
     kind !== ApiResourceKind.iam_policy &&
     kind !== ApiResourceKind.agent &&
     kind !== ApiResourceKind.agent_share &&
-    kind !== ApiResourceKind.environment &&
+    kind !== ApiResourceKind.credential &&
     kind !== ApiResourceKind.session,
 );
 
@@ -125,7 +125,7 @@ export function describeOrganizationPurge(
     let organizationQuery: Client<typeof OrganizationQueryController>;
     let agents: Client<typeof AgentCommandController>;
     let shares: Client<typeof AgentShareCommandController>;
-    let environments: Client<typeof EnvironmentCommandController>;
+    let credentials: Client<typeof CredentialCommandController>;
     let sessions: Client<typeof SessionCommandController>;
     let internalSessions: Client<typeof SessionCommandController>;
     let platform: Client<typeof IamPolicyCommandController>;
@@ -186,7 +186,7 @@ export function describeOrganizationPurge(
       organizationQuery = createClient(OrganizationQueryController, transport);
       agents = createClient(AgentCommandController, transport);
       shares = createClient(AgentShareCommandController, transport);
-      environments = createClient(EnvironmentCommandController, transport);
+      credentials = createClient(CredentialCommandController, transport);
       sessions = createClient(SessionCommandController, transport);
       internalSessions = createClient(
         SessionCommandController,
@@ -230,13 +230,17 @@ export function describeOrganizationPurge(
         spec: { agentRef: { kind: ApiResourceKind.agent, slug: agent.metadata?.slug ?? "" }, enabled: true },
       });
       ids.add(share.metadata?.id ?? "");
-      const environment = await environments.create({
+      const credential = await credentials.create({
         apiVersion: API_VERSION,
-        kind: "Environment",
-        metadata: { name: `${slug}-env`, org },
-        spec: { data: { TOKEN: { value: "s3cr3t", isSecret: true } } },
+        kind: "Credential",
+        metadata: { name: `${slug}-credential`, org },
+        spec: {
+          owner: { case: "org", value: "" },
+          fields: { TOKEN: { value: "s3cr3t" } },
+        },
       });
-      ids.add(environment.metadata?.id ?? "");
+      const credentialId = credential.metadata?.id ?? "";
+      ids.add(credentialId);
       const session = await sessions.create({
         apiVersion: API_VERSION,
         kind: "Session",
@@ -295,8 +299,10 @@ export function describeOrganizationPurge(
         authMethod: "mcp_oauth",
         tokenEndpoint: "https://example.test/token",
         accessTokenEnvVar: "TOKEN",
-        refreshTokenEnvVar: "",
-        environmentId: "",
+        // The sign-in grant names the credential holding its access token,
+        // so the census proves the grant leaves with it.
+        credentialId,
+        refreshToken: "enc:v1:sealed",
         createdAt: 0,
         updatedAt: 0,
       });
