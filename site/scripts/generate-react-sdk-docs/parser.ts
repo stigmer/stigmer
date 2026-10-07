@@ -87,7 +87,7 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
   credential: {
     title: "Credentials",
     description:
-      "Hooks and components for the keys and sign-ins runs use: credentials, what they serve, run requirements, and assignments.",
+      "Hooks and components for credentials, what they serve, the values a run requires, and the assignments surfaces carry.",
   },
   workspace: {
     title: "Workspace",
