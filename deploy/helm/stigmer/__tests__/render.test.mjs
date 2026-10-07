@@ -18,10 +18,12 @@
  *   - every bundled container (Postgres, Temporal, the init containers) runs
  *     as its image's own user by number, non-root, with nothing to escalate
  *     to, every capability dropped and the runtime's seccomp profile; the
- *     Postgres pod's fsGroup is that user's group;
- *   - the server's DATABASE_URL names no password (it arrives as
- *     PGPASSWORD by secretKeyRef), and its user and database are
- *     percent-encoded;
+ *     Postgres pod's fsGroup is that user's group, re-owned only on a root
+ *     mismatch, and a context set to null (a cluster that assigns its own
+ *     UIDs) renders with neither;
+ *   - the server's DATABASE_URL names no password and no database (they
+ *     arrive as PGPASSWORD by secretKeyRef and PGDATABASE), and its user is
+ *     percent-encoded the way node-postgres decodes it;
  *   - a Secret name from values renders as the string it was, never a YAML
  *     number or boolean;
  *   - every top-level values key is documented in the README;
@@ -246,6 +248,7 @@ for (const profile of PROFILES) {
           999,
           "a fresh Postgres claim must be writable by its user",
         );
+        assert.equal(spec.securityContext?.fsGroupChangePolicy, "OnRootMismatch");
       }
     }
     assert.ok(
@@ -398,26 +401,39 @@ test("the server's DATABASE_URL names no password; the password is PGPASSWORD fr
       { name: "stigmer-secrets", key: "POSTGRES_PASSWORD" },
       `[${profile}] PGPASSWORD`,
     );
+    assert.equal(url.pathname, "", `[${profile}] DATABASE_URL names no database`);
+    assert.equal(env.get("PGDATABASE")?.value, "stigmer", `[${profile}] PGDATABASE`);
     assert.equal(env.has("POSTGRES_PASSWORD"), false, `[${profile}]`);
   }
 });
 
-test("the database user and name are percent-encoded into DATABASE_URL", () => {
+test("the database user and name reach node-postgres exactly, whatever their characters", () => {
+  const user = "team a@ops:1/+";
+  const database = "stig/mer+1@x:y";
   const pod = findOne(
     renderProfile("byo", {
-      sets: [
-        "externalDatabase.user=team a@ops",
-        "externalDatabase.database=stig/mer+1",
-      ],
+      sets: [`externalDatabase.user=${user}`, `externalDatabase.database=${database}`],
     }),
     "Deployment",
     RELEASE,
   ).spec.template.spec;
-  const url = envMap(containerNamed(pod, "server")).get("DATABASE_URL").value;
-  assert.equal(
-    url,
-    "postgres://team%20a%40ops@byo-postgres.byo-infra.svc.cluster.local:5432/stig%2Fmer%2B1",
-  );
+  const env = envMap(containerNamed(pod, "server"));
+  const url = new URL(env.get("DATABASE_URL").value);
+  // node-postgres (pg-connection-string) reads the user with
+  // decodeURIComponent, so the user rides the URL percent-encoded; it reads a
+  // URL's database with decodeURI, which keeps reserved escapes, so the
+  // database never rides the URL and arrives as PGDATABASE instead.
+  assert.equal(decodeURIComponent(url.username), user);
+  assert.equal(url.host, "byo-postgres.byo-infra.svc.cluster.local:5432");
+  assert.equal(url.pathname, "");
+  assert.equal(env.get("PGDATABASE")?.value, database);
+});
+
+test("a postgres securityContext set to null renders, with no pod fsGroup", () => {
+  const docs = renderProfile("bundled", { sets: ["postgres.securityContext=null"] });
+  const postgres = findOne(docs, "StatefulSet", `${RELEASE}-postgres`).spec.template.spec;
+  assert.equal(postgres.securityContext, undefined);
+  assert.equal(containerNamed(postgres, "postgres").securityContext, null);
 });
 
 test("the init containers read the dependencies' addresses from env, never from spliced shell text", () => {
@@ -462,6 +478,19 @@ test("a Secret name from values renders as the string it was", () => {
       envMap(containerNamed(postgres, "postgres")).get("POSTGRES_PASSWORD")
         ?.valueFrom?.secretKeyRef?.name,
       "0123",
+    );
+
+    writeFileSync(
+      values,
+      'ingress:\n  api:\n    tlsSecretName: "0123"\n  artifacts:\n    tlsSecretName: "true"\n',
+    );
+    const ingresses = findAll(
+      renderProfile("ingress-oidc", { valuesFiles: [values] }),
+      "Ingress",
+    );
+    assert.deepEqual(
+      ingresses.map((ingress) => ingress.spec.tls[0].secretName).sort(),
+      ["0123", "true"],
     );
   } finally {
     rmSync(scratch, { recursive: true, force: true });

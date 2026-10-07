@@ -227,9 +227,12 @@ key out of its environment at boot, so its agent tools cannot read them. They
 are Stigmer's own names, so a developer's `TEMPORAL_API_KEY` for their own
 Temporal work is never picked up.
 
-The server's `DATABASE_URL` names the user, host, port and database, and the
-password reaches the server as `PGPASSWORD` from its Secret, so it never appears
-in rendered manifests and no character in it can break the URL. When Temporal
+The server's `DATABASE_URL` names the user, host and port. The database reaches
+the server as `PGDATABASE` and the password as `PGPASSWORD` from its Secret, so
+the password never appears in rendered manifests and no character in either can
+break the URL. Connection options the Postgres client reads from the
+environment, such as `PGSSLMODE=require` for a managed database, go through
+`server.extraEnv`. When Temporal
 stays bundled and Postgres is yours, Temporal's `auto-setup` creates its two
 databases (`temporal`, `temporal_visibility`) on your instance at first boot and
 needs a user with `CREATE DATABASE`.
