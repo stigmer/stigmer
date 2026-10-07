@@ -494,13 +494,27 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
 }
 
 /**
- * OIDC issuer/audience — boot-FATAL on the two certain
- * misconfigurations, joining the operator-identity and R2 exceptions to
- * the lenient-loader posture: an issuer that is not an http(s) URL can
- * never complete discovery, and an issuer without an audience (or the
- * reverse) is half an auth configuration — silently serving trusted-local
- * when the operator believes authentication is on would be a security
- * failure, not a convenience.
+ * The hosts an http issuer may name: this machine's loopback, where the test
+ * and e2e issuers listen (test/support's local OIDC issuer). Discovery and
+ * the signing keys are fetched from the issuer, so plaintext anywhere else
+ * would let the network between the server and its identity provider vouch
+ * for every token. Not the bind-any addresses (0.0.0.0, [::]): those name no
+ * host a request could reach. `URL.hostname` keeps IPv6 brackets.
+ */
+const PLAINTEXT_ISSUER_HOSTS: ReadonlySet<string> = new Set([
+  "localhost",
+  "127.0.0.1",
+  "[::1]",
+]);
+
+/**
+ * OIDC issuer/audience — boot-FATAL on the certain misconfigurations,
+ * joining the operator-identity and R2 exceptions to the lenient-loader
+ * posture: an issuer that is not an https URL (or an http URL on loopback)
+ * can never be trusted for discovery, and an issuer without an audience (or
+ * the reverse) is half an auth configuration — silently serving
+ * trusted-local when the operator believes authentication is on would be a
+ * security failure, not a convenience.
  */
 function loadOidcConfig(env: NodeJS.ProcessEnv): {
   oidcIssuer: string;
@@ -524,9 +538,11 @@ function loadOidcConfig(env: NodeJS.ProcessEnv): {
       `STIGMER_OIDC_ISSUER "${issuer}" is not a valid URL — OIDC discovery requires the issuer's https URL`,
     );
   }
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+  const plaintextAllowed =
+    parsed.protocol === "http:" && PLAINTEXT_ISSUER_HOSTS.has(parsed.hostname);
+  if (parsed.protocol !== "https:" && !plaintextAllowed) {
     throw new Error(
-      `STIGMER_OIDC_ISSUER "${issuer}" must be an http(s) URL — OIDC discovery requires it`,
+      `STIGMER_OIDC_ISSUER "${issuer}" must be an https URL — OIDC discovery and the signing keys are fetched from it; http is accepted only on localhost, 127.0.0.1 or [::1]`,
     );
   }
   return { oidcIssuer: issuer, oidcAudience: audience };

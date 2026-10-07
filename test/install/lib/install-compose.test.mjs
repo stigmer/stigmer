@@ -57,9 +57,9 @@ test("the override maps the host gateway, and adds the base URL only for a compo
 test("docker compose ps --format json is read as one object per line and as one array", () => {
   const rows = [
     { Service: "stigmer-server", Image: "ghcr.io/stigmer/stigmer-server:v3.41.0" },
-    { Service: "postgres", Image: "postgres:16" },
+    { Service: "postgres", Image: "postgres:16.15" },
   ];
-  const want = { "stigmer-server": "ghcr.io/stigmer/stigmer-server:v3.41.0", postgres: "postgres:16" };
+  const want = { "stigmer-server": "ghcr.io/stigmer/stigmer-server:v3.41.0", postgres: "postgres:16.15" };
   assert.deepEqual(serviceImages(rows.map((row) => JSON.stringify(row)).join("\n")), want);
   assert.deepEqual(serviceImages(JSON.stringify(rows)), want);
   assert.deepEqual(serviceImages(""), {});

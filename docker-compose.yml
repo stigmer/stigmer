@@ -55,7 +55,9 @@ x-artifact-serve-url: &artifact-serve-url "${STIGMER_ARTIFACT_PUBLIC_URL:-http:/
 
 services:
   postgres:
-    image: postgres:16
+    # An exact minor release, never the floating `16`; the chart's
+    # postgres.image is the same tag (its parity test holds the two equal).
+    image: postgres:16.15
     restart: unless-stopped
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?missing — copy .env.example to .env and fill it in}
@@ -119,8 +121,13 @@ services:
     environment:
       GRPC_PORT: "7234"
       # Non-empty DATABASE_URL selects the Postgres driver; the
-      # image's sqlite path is the single-container `docker run` tier.
-      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:?missing — copy .env.example to .env and fill it in}@postgres:5432/stigmer
+      # image's sqlite path is the single-container `docker run` tier. It
+      # names the user and the address only: node-postgres reads
+      # PGDATABASE and PGPASSWORD when the URL carries neither, so no
+      # character in the password can break the URL.
+      DATABASE_URL: postgres://postgres@postgres:5432
+      PGDATABASE: stigmer
+      PGPASSWORD: ${POSTGRES_PASSWORD:?missing — copy .env.example to .env and fill it in}
       TEMPORAL_HOST_PORT: temporal:7233
       TEMPORAL_NAMESPACE: default
       TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE: *runner-task-queue

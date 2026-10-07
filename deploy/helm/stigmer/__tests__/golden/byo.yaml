@@ -133,21 +133,45 @@ spec:
       # Service has no endpoints until the default namespace exists.
       initContainers:
         - name: wait-for-dependencies
-          image: postgres:16
+          image: "postgres:16.15"
+          # The addresses arrive as env and the script reads them quoted, so
+          # nothing from values is spliced into shell text. pg_isready reads
+          # PGHOST, PGPORT and PGUSER itself.
+          env:
+            - name: PGHOST
+              value: "byo-postgres.byo-infra.svc.cluster.local"
+            - name: PGPORT
+              value: "5432"
+            - name: PGUSER
+              value: "postgres"
+            - name: TEMPORAL_HOST
+              value: "byo-temporal.byo-infra.svc.cluster.local"
+            - name: TEMPORAL_PORT
+              value: "7233"
           command:
             - bash
             - -c
             - |
-              until pg_isready -h byo-postgres.byo-infra.svc.cluster.local -p 5432 -U postgres; do
-                echo "waiting for postgres at byo-postgres.byo-infra.svc.cluster.local:5432"; sleep 2
+              until pg_isready; do
+                echo "waiting for postgres at ${PGHOST}:${PGPORT}"; sleep 2
               done
-              until (exec 3<>/dev/tcp/byo-temporal.byo-infra.svc.cluster.local/7233) 2>/dev/null; do
-                echo "waiting for temporal at byo-temporal.byo-infra.svc.cluster.local:7233"; sleep 2
+              until (exec 3<>"/dev/tcp/${TEMPORAL_HOST}/${TEMPORAL_PORT}") 2>/dev/null; do
+                echo "waiting for temporal at ${TEMPORAL_HOST}:${TEMPORAL_PORT}"; sleep 2
               done
           resources:
             requests:
               cpu: 10m
               memory: 32Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            runAsGroup: 999
+            runAsNonRoot: true
+            runAsUser: 999
+            seccompProfile:
+              type: RuntimeDefault
       containers:
         - name: server
           image: ghcr.io/stigmer/stigmer-server:v<CHART_VERSION>
@@ -155,16 +179,21 @@ spec:
           env:
             - name: GRPC_PORT
               value: "7234"
-            # The expansion source for DATABASE_URL: the password stays in
-            # its Secret and never lands in rendered YAML.
-            - name: POSTGRES_PASSWORD
+            # Non-empty DATABASE_URL selects the Postgres driver. It names
+            # the user and the address only: node-postgres reads PGDATABASE
+            # and PGPASSWORD when the URL carries no database and no
+            # password, so no character in either can break it (a URL's
+            # database is decoded with decodeURI, which keeps reserved
+            # escapes), and the password stays in its Secret.
+            - name: DATABASE_URL
+              value: "postgres://postgres@byo-postgres.byo-infra.svc.cluster.local:5432"
+            - name: PGDATABASE
+              value: "stigmer"
+            - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: stigmer-secrets
-                  key: POSTGRES_PASSWORD
-            # Non-empty DATABASE_URL selects the Postgres driver.
-            - name: DATABASE_URL
-              value: "postgres://postgres:$(POSTGRES_PASSWORD)@byo-postgres.byo-infra.svc.cluster.local:5432/stigmer"
+                  name: "stigmer-secrets"
+                  key: "POSTGRES_PASSWORD"
             - name: TEMPORAL_HOST_PORT
               value: "byo-temporal.byo-infra.svc.cluster.local:7233"
             - name: TEMPORAL_NAMESPACE
@@ -186,12 +215,12 @@ spec:
             - name: STIGMER_ENCRYPTION_KEY
               valueFrom:
                 secretKeyRef:
-                  name: stigmer-secrets
+                  name: "stigmer-secrets"
                   key: STIGMER_ENCRYPTION_KEY
             - name: STIGMER_RUNNER_TOKEN_KEY
               valueFrom:
                 secretKeyRef:
-                  name: stigmer-secrets
+                  name: "stigmer-secrets"
                   key: STIGMER_RUNNER_TOKEN_KEY
             # Optional, unlike the two above: it signs only the 15-minute
             # PlatformClient user tokens, so a lost key costs at most one
@@ -200,7 +229,7 @@ spec:
             - name: STIGMER_PLATFORM_TOKEN_KEY
               valueFrom:
                 secretKeyRef:
-                  name: stigmer-secrets
+                  name: "stigmer-secrets"
                   key: STIGMER_PLATFORM_TOKEN_KEY
                   optional: true
             - name: STIGMER_OPERATOR_EMAIL

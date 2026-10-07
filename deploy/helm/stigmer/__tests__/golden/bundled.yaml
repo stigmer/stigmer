@@ -1,4 +1,41 @@
 ---
+# Source: stigmer/templates/postgres-networkpolicy.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: stigmer-postgres
+  labels:
+    app.kubernetes.io/name: stigmer
+    app.kubernetes.io/instance: stigmer
+    app.kubernetes.io/version: "<CHART_VERSION>"
+    app.kubernetes.io/managed-by: Helm
+    helm.sh/chart: stigmer-<CHART_VERSION>
+    app.kubernetes.io/component: postgres
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: stigmer
+      app.kubernetes.io/instance: stigmer
+      app.kubernetes.io/component: postgres
+  policyTypes:
+    - Ingress
+  ingress:
+    # The stigmer pod and the Temporal pod: the Postgres port only.
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: stigmer
+              app.kubernetes.io/instance: stigmer
+              app.kubernetes.io/component: stigmer
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: stigmer
+              app.kubernetes.io/instance: stigmer
+              app.kubernetes.io/component: temporal
+      ports:
+        - protocol: TCP
+          port: postgres
+---
 # Source: stigmer/templates/temporal-networkpolicy.yaml
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -220,21 +257,45 @@ spec:
       # Service has no endpoints until the default namespace exists.
       initContainers:
         - name: wait-for-dependencies
-          image: postgres:16
+          image: "postgres:16.15"
+          # The addresses arrive as env and the script reads them quoted, so
+          # nothing from values is spliced into shell text. pg_isready reads
+          # PGHOST, PGPORT and PGUSER itself.
+          env:
+            - name: PGHOST
+              value: "stigmer-postgres"
+            - name: PGPORT
+              value: "5432"
+            - name: PGUSER
+              value: "postgres"
+            - name: TEMPORAL_HOST
+              value: "stigmer-temporal"
+            - name: TEMPORAL_PORT
+              value: "7233"
           command:
             - bash
             - -c
             - |
-              until pg_isready -h stigmer-postgres -p 5432 -U postgres; do
-                echo "waiting for postgres at stigmer-postgres:5432"; sleep 2
+              until pg_isready; do
+                echo "waiting for postgres at ${PGHOST}:${PGPORT}"; sleep 2
               done
-              until (exec 3<>/dev/tcp/stigmer-temporal/7233) 2>/dev/null; do
-                echo "waiting for temporal at stigmer-temporal:7233"; sleep 2
+              until (exec 3<>"/dev/tcp/${TEMPORAL_HOST}/${TEMPORAL_PORT}") 2>/dev/null; do
+                echo "waiting for temporal at ${TEMPORAL_HOST}:${TEMPORAL_PORT}"; sleep 2
               done
           resources:
             requests:
               cpu: 10m
               memory: 32Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            runAsGroup: 999
+            runAsNonRoot: true
+            runAsUser: 999
+            seccompProfile:
+              type: RuntimeDefault
       containers:
         - name: server
           image: ghcr.io/stigmer/stigmer-server:v<CHART_VERSION>
@@ -242,16 +303,21 @@ spec:
           env:
             - name: GRPC_PORT
               value: "7234"
-            # The expansion source for DATABASE_URL: the password stays in
-            # its Secret and never lands in rendered YAML.
-            - name: POSTGRES_PASSWORD
+            # Non-empty DATABASE_URL selects the Postgres driver. It names
+            # the user and the address only: node-postgres reads PGDATABASE
+            # and PGPASSWORD when the URL carries no database and no
+            # password, so no character in either can break it (a URL's
+            # database is decoded with decodeURI, which keeps reserved
+            # escapes), and the password stays in its Secret.
+            - name: DATABASE_URL
+              value: "postgres://postgres@stigmer-postgres:5432"
+            - name: PGDATABASE
+              value: "stigmer"
+            - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: stigmer-secrets
-                  key: POSTGRES_PASSWORD
-            # Non-empty DATABASE_URL selects the Postgres driver.
-            - name: DATABASE_URL
-              value: "postgres://postgres:$(POSTGRES_PASSWORD)@stigmer-postgres:5432/stigmer"
+                  name: "stigmer-secrets"
+                  key: "POSTGRES_PASSWORD"
             - name: TEMPORAL_HOST_PORT
               value: "stigmer-temporal:7233"
             - name: TEMPORAL_NAMESPACE
@@ -273,12 +339,12 @@ spec:
             - name: STIGMER_ENCRYPTION_KEY
               valueFrom:
                 secretKeyRef:
-                  name: stigmer-secrets
+                  name: "stigmer-secrets"
                   key: STIGMER_ENCRYPTION_KEY
             - name: STIGMER_RUNNER_TOKEN_KEY
               valueFrom:
                 secretKeyRef:
-                  name: stigmer-secrets
+                  name: "stigmer-secrets"
                   key: STIGMER_RUNNER_TOKEN_KEY
             # Optional, unlike the two above: it signs only the 15-minute
             # PlatformClient user tokens, so a lost key costs at most one
@@ -287,7 +353,7 @@ spec:
             - name: STIGMER_PLATFORM_TOKEN_KEY
               valueFrom:
                 secretKeyRef:
-                  name: stigmer-secrets
+                  name: "stigmer-secrets"
                   key: STIGMER_PLATFORM_TOKEN_KEY
                   optional: true
             - name: STIGMER_OPERATOR_EMAIL
@@ -435,22 +501,41 @@ spec:
       automountServiceAccountToken: false
       initContainers:
         - name: wait-for-postgres
-          image: postgres:16
+          image: "postgres:16.15"
+          # The address arrives as env and pg_isready reads it, so nothing
+          # from values is spliced into shell text.
+          env:
+            - name: PGHOST
+              value: "stigmer-postgres"
+            - name: PGPORT
+              value: "5432"
+            - name: PGUSER
+              value: "postgres"
           command:
             - bash
             - -c
             - |
-              until pg_isready -h stigmer-postgres -p 5432 -U postgres; do
-                echo "waiting for postgres at stigmer-postgres:5432"; sleep 2
+              until pg_isready; do
+                echo "waiting for postgres at ${PGHOST}:${PGPORT}"; sleep 2
               done
           resources:
             requests:
               cpu: 10m
               memory: 32Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            runAsGroup: 999
+            runAsNonRoot: true
+            runAsUser: 999
+            seccompProfile:
+              type: RuntimeDefault
       containers:
         - name: temporal
-          image: temporalio/auto-setup:1.28.0
-          # A pinned third-party tag: IfNotPresent by definition. image.pullPolicy
+          image: "temporalio/auto-setup:1.28.0"
+          # An exact third-party tag: IfNotPresent by definition. image.pullPolicy
           # governs the two Stigmer images only.
           imagePullPolicy: IfNotPresent
           env:
@@ -463,8 +548,8 @@ spec:
             - name: POSTGRES_PWD
               valueFrom:
                 secretKeyRef:
-                  name: stigmer-secrets
-                  key: POSTGRES_PASSWORD
+                  name: "stigmer-secrets"
+                  key: "POSTGRES_PASSWORD"
             - name: POSTGRES_SEEDS
               value: "stigmer-postgres"
           ports:
@@ -488,6 +573,16 @@ spec:
             requests:
               cpu: 250m
               memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            runAsGroup: 1000
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault
 ---
 # Source: stigmer/templates/postgres.yaml
 apiVersion: apps/v1
@@ -516,18 +611,24 @@ spec:
         app.kubernetes.io/instance: stigmer
         app.kubernetes.io/component: postgres
     spec:
+      # The claim's group: a fresh volume is writable by the user above.
+      # OnRootMismatch: the kubelet re-owns the volume only when its root
+      # is not already the group's, never the whole database at each start.
+      securityContext:
+        fsGroup: 999
+        fsGroupChangePolicy: OnRootMismatch
       automountServiceAccountToken: false
       containers:
         - name: postgres
-          image: postgres:16
-          # A pinned third-party tag: IfNotPresent by definition. image.pullPolicy
+          image: "postgres:16.15"
+          # An exact third-party tag: IfNotPresent by definition. image.pullPolicy
           # governs the two Stigmer images only.
           imagePullPolicy: IfNotPresent
           env:
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: stigmer-secrets
+                  name: "stigmer-secrets"
                   key: POSTGRES_PASSWORD
             # The app database; auto-setup creates `temporal` and
             # `temporal_visibility` beside it.
@@ -559,6 +660,16 @@ spec:
             requests:
               cpu: 100m
               memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            runAsGroup: 999
+            runAsNonRoot: true
+            runAsUser: 999
+            seccompProfile:
+              type: RuntimeDefault
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data

@@ -13,7 +13,14 @@
  *   - an unknown top-level key (a typo): refused, never silently ignored;
  *   - Postgres disabled without an external host, Temporal likewise;
  *   - Temporal authentication against the bundled Temporal, TLS keys without
- *     TLS or without their Secret, and half a mutual-TLS pair.
+ *     TLS or without their Secret, half a mutual-TLS pair, and a server name
+ *     when nothing asks for TLS;
+ *   - an install reachable from outside the cluster (an Ingress, a NodePort
+ *     or LoadBalancer Service, a public URL off loopback) while sign-in is
+ *     off, unless server.allowUnauthenticatedExposure states it on purpose;
+ *   - an issuer that is not https;
+ *   - a misspelled securityContext field;
+ *   - an extraEnv entry that repeats a name the chart sets.
  */
 
 import assert from "node:assert/strict";
@@ -111,4 +118,91 @@ test("half a mutual-TLS pair is refused", () => {
 test("an Ingress without a host is refused", () => {
   const result = helmTemplate("bundled", { sets: ["ingress.enabled=true"] });
   expectRefusal(result, /ingress\.api\.host/, "ingress without host");
+});
+
+test("a server name with neither TLS nor an API key is refused", () => {
+  expectRefusal(
+    helmTemplate("byo", { sets: ["externalTemporal.tls.serverName=temporal.internal"] }),
+    /externalTemporal\.tls\.serverName is set, but nothing asks for TLS/,
+    "server name alone",
+  );
+});
+
+const EXPOSURE_FIX = /sign-in off.*server\.oidc\.issuer.*server\.allowUnauthenticatedExposure=true/s;
+
+test("an install reachable from outside the cluster is refused while sign-in is off, naming each exposure", () => {
+  const cases = [
+    [
+      ["ingress.enabled=true", "ingress.api.host=stigmer.example.com", "ingress.artifacts.host=artifacts.example.com"],
+      /ingress\.enabled is true/,
+    ],
+    [["service.type=NodePort"], /service\.type is NodePort/],
+    [["service.type=LoadBalancer"], /service\.type is LoadBalancer/],
+    [["server.publicUrl=https://stigmer.example.com"], /server\.publicUrl names https:\/\/stigmer\.example\.com/],
+    [["server.artifactPublicUrl=http://10.0.0.7:7235"], /server\.artifactPublicUrl names http:\/\/10\.0\.0\.7:7235/],
+  ];
+  for (const [sets, named] of cases) {
+    const result = helmTemplate("bundled", { sets });
+    expectRefusal(result, EXPOSURE_FIX, sets.join(" "));
+    expectRefusal(result, named, sets.join(" "));
+  }
+});
+
+test("loopback public URLs, a stated exposure, or sign-in let an install render", () => {
+  for (const sets of [
+    ["server.publicUrl=http://localhost:7234", "server.artifactPublicUrl=http://127.0.0.1:7235"],
+    ["server.publicUrl=http://[::1]:7234"],
+    ["service.type=LoadBalancer", "server.allowUnauthenticatedExposure=true"],
+    [
+      "ingress.enabled=true",
+      "ingress.api.host=stigmer.example.com",
+      "ingress.artifacts.host=artifacts.example.com",
+      "server.oidc.issuer=https://issuer.example.com",
+      "server.oidc.audience=https://stigmer.example.com",
+    ],
+  ]) {
+    const result = helmTemplate("bundled", { sets });
+    assert.equal(result.ok, true, `${sets.join(" ")}: ${result.stderr}`);
+  }
+});
+
+test("an issuer that is not https is refused by the schema", () => {
+  const result = helmTemplate("bundled", {
+    sets: ["server.oidc.issuer=http://issuer.example.com", "server.oidc.audience=https://stigmer.example.com"],
+  });
+  expectRefusal(result, /server\.oidc\.issuer|issuer.*pattern|does not match pattern/is, "http issuer");
+});
+
+test("a misspelled securityContext field is refused on every container that takes one", () => {
+  for (const key of [
+    "server.securityContext",
+    "runner.securityContext",
+    "postgres.securityContext",
+    "temporal.securityContext",
+    "waitForDependencies.securityContext",
+  ]) {
+    const result = helmTemplate("bundled", { sets: [`${key}.runAsUsr=1000`] });
+    expectRefusal(result, /runAsUsr|additional propert/i, key);
+  }
+});
+
+test("an extraEnv entry that repeats a name the chart sets is refused, for the server and the runner", () => {
+  expectRefusal(
+    helmTemplate("ingress-oidc", {
+      sets: ["server.extraEnv[0].name=STIGMER_OIDC_ISSUER", "server.extraEnv[0].value="],
+    }),
+    /server\.extraEnv sets STIGMER_OIDC_ISSUER, a name the chart sets itself/,
+    "server repeat",
+  );
+  expectRefusal(
+    helmTemplate("bundled", {
+      sets: ["runner.extraEnv[0].name=LOCAL_ARTIFACT_PATH", "runner.extraEnv[0].value=/tmp"],
+    }),
+    /runner\.extraEnv sets LOCAL_ARTIFACT_PATH, a name the chart sets itself/,
+    "runner repeat",
+  );
+  const unowned = helmTemplate("bundled", {
+    sets: ["server.extraEnv[0].name=LOG_LEVEL", "server.extraEnv[0].value=debug"],
+  });
+  assert.equal(unowned.ok, true, unowned.stderr);
 });
