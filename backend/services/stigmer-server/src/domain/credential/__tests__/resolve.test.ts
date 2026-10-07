@@ -25,8 +25,9 @@
  *     declarer's requirement provided is not missing;
  *   - one value per key: two declarers resolving one key to different
  *     values refuse naming both; the same value is no conflict;
- *   - a sign-in is freshened before its field is read, and the fresh
- *     value is the one delivered;
+ *   - a sign-in is freshened before its field is read, once per run
+ *     whichever declarer reads it first, and the fresh value is the one
+ *     every declarer receives;
  *   - credentials are read in the run's organization only.
  *
  * Every refusal is FailedPrecondition: the create fails naming what to
@@ -234,24 +235,44 @@ const unreachedFreshener: SignInFreshener = {
   },
 };
 
-/** A freshener that answers every credential unchanged, recording what it was asked. */
-function passThroughFreshener(): {
+/**
+ * A freshener answering each credential with `answer(credential)`
+ * (unchanged by default), recording the id of every credential it was
+ * asked to freshen.
+ */
+function recordingFreshener(
+  answer: (credential: Credential) => Credential = (credential) => credential,
+): {
   readonly freshener: SignInFreshener;
-  readonly asked: Array<{ credentialId: string; mcpServerId: string }>;
+  readonly asked: string[];
 } {
-  const asked: Array<{ credentialId: string; mcpServerId: string }> = [];
+  const asked: string[] = [];
   return {
     asked,
     freshener: {
-      freshen: async (credential, mcpServerId) => {
-        asked.push({
-          credentialId: credential.metadata?.id ?? "",
-          mcpServerId,
-        });
-        return credential;
+      freshen: async (credential) => {
+        asked.push(credential.metadata?.id ?? "");
+        return answer(credential);
       },
     },
   };
+}
+
+/** `saved` as a refresh re-reads it: `field` holding `value`, sealed. */
+async function refreshedCredential(
+  saved: Credential,
+  field: string,
+  value: string,
+): Promise<Credential> {
+  const refreshed = clone(CredentialSchema, saved);
+  const fields = refreshed.spec?.fields ?? {};
+  fields[field] = create(CredentialFieldSchema, {
+    value: await secrets.encrypt(
+      value,
+      EncryptionScope.forOrganization(saved.metadata?.org ?? ""),
+    ),
+  });
+  return refreshed;
 }
 
 function resolverDeps(
@@ -1090,7 +1111,7 @@ describe("one value per key", () => {
       serves: [githubServer, githubHost],
       signIn: true,
     });
-    const { freshener, asked } = passThroughFreshener();
+    const { freshener, asked } = recordingFreshener();
 
     const values = await resolveCredentials(
       resolverDeps(authorizerAllowing([]).authorizer, freshener),
@@ -1105,10 +1126,44 @@ describe("one value per key", () => {
     );
 
     expect(plain(values)).toEqual({ [GIT_TOKEN_KEY]: "ghp-ana" });
-    // Freshened once, for the server: a git host reads the sign-in as saved.
-    expect(asked).toEqual([
-      { credentialId: "cred_ana_github", mcpServerId: "mcps_github" },
-    ]);
+    expect(asked).toEqual(["cred_ana_github"]);
+  });
+
+  it("a sign-in serving a server and a git host is freshened once, and both read the fresh value whichever comes first", async () => {
+    const org = freshOrg();
+    const githubServer = serverDeclarer(
+      org,
+      "github",
+      McpServerSignIn.personal,
+    );
+    const githubHost = gitHostDeclarer("github.com");
+    const saved = await saveCredential({
+      org,
+      id: "cred_ana_github",
+      owner: { person: ANA },
+      fields: { [GIT_TOKEN_KEY]: "ghp-expired" },
+      serves: [githubServer, githubHost],
+      signIn: true,
+    });
+    const fresh = await refreshedCredential(saved, GIT_TOKEN_KEY, "ghp-fresh");
+    const { freshener, asked } = recordingFreshener(() => fresh);
+
+    const values = await resolveCredentials(
+      resolverDeps(authorizerAllowing([]).authorizer, freshener),
+      resolveInput({
+        org,
+        person: ANA,
+        // The git host's requirement is resolved first: a stale read
+        // there would disagree with the server's fresh one.
+        requirements: [
+          requirement(githubHost, GIT_TOKEN_KEY, { optional: true }),
+          requirement(githubServer, GIT_TOKEN_KEY),
+        ],
+      }),
+    );
+
+    expect(plain(values)).toEqual({ [GIT_TOKEN_KEY]: "ghp-fresh" });
+    expect(asked).toEqual(["cred_ana_github"]);
   });
 });
 
@@ -1124,22 +1179,12 @@ describe("sign-ins", () => {
       serves: [notes],
       signIn: true,
     });
-    // The refresh answers the credential re-read with its new access token.
-    const refreshed = clone(CredentialSchema, saved);
-    const fields = refreshed.spec?.fields ?? {};
-    fields["NOTES_TOKEN"] = create(CredentialFieldSchema, {
-      value: await secrets.encrypt(
-        "nt-fresh",
-        EncryptionScope.forOrganization(org),
-      ),
-    });
-    const asked: Array<[string, string]> = [];
-    const freshener: SignInFreshener = {
-      freshen: async (credential, mcpServerId) => {
-        asked.push([credential.metadata?.id ?? "", mcpServerId]);
-        return refreshed;
-      },
-    };
+    const refreshed = await refreshedCredential(
+      saved,
+      "NOTES_TOKEN",
+      "nt-fresh",
+    );
+    const { freshener, asked } = recordingFreshener(() => refreshed);
 
     const values = await resolveCredentials(
       resolverDeps(authorizerAllowing([]).authorizer, freshener),
@@ -1150,7 +1195,7 @@ describe("sign-ins", () => {
       }),
     );
 
-    expect(asked).toEqual([["cred_ana_notes", "mcps_notes"]]);
+    expect(asked).toEqual(["cred_ana_notes"]);
     expect(plain(values)).toEqual({ NOTES_TOKEN: "nt-fresh" });
   });
 
