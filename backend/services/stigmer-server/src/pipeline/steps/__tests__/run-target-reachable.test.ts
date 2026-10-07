@@ -11,8 +11,8 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type {
@@ -42,7 +42,7 @@ function bindingAnswering(answer: BindingVerdict | Error) {
   return { binding, asked };
 }
 
-const agentTarget = (execution: AgentRun): RunTarget | undefined =>
+const agentTarget = (execution: Run): RunTarget | undefined =>
   execution.status?.agentId
     ? {
         ...RUN_GATE_CHECKS.agent,
@@ -61,20 +61,20 @@ function settle(
 
 function runIn(org: string, agentId: string) {
   return new RequestContext(
-    AgentRunSchema,
-    create(AgentRunSchema, {
+    RunSchema,
+    create(RunSchema, {
       metadata: { name: "run", org },
       status: { agentId },
     }),
     testCallerIdentity(),
-    ApiResourceKind.agent_run,
+    ApiResourceKind.run,
   );
 }
 
 describe("RunTargetReachable", () => {
   it("asks as a credential bound to the run's organization, for can_view", async () => {
     const { binding, asked } = bindingAnswering("inside");
-    await newRunTargetReachableStep<typeof AgentRunSchema>(
+    await newRunTargetReachableStep<typeof RunSchema>(
       binding,
       agentTarget,
     ).execute(runIn("org_a", "agt_1"));
@@ -90,7 +90,7 @@ describe("RunTargetReachable", () => {
   it("refuses a target the run's organization cannot read, naming it", async () => {
     const { binding } = bindingAnswering("outside");
     const error = await settle(
-      newRunTargetReachableStep<typeof AgentRunSchema>(binding, agentTarget),
+      newRunTargetReachableStep<typeof RunSchema>(binding, agentTarget),
       runIn("org_a", "agt_elsewhere"),
     ).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ConnectError);
@@ -106,17 +106,17 @@ describe("RunTargetReachable", () => {
 
   it("passes an admitted or missing target, and a run with no target or no organization", async () => {
     for (const answer of ["admitted", "missing"] as const) {
-      await newRunTargetReachableStep<typeof AgentRunSchema>(
+      await newRunTargetReachableStep<typeof RunSchema>(
         bindingAnswering(answer).binding,
         agentTarget,
       ).execute(runIn("org_a", "agt_1"));
     }
     const { binding, asked } = bindingAnswering("outside");
-    await newRunTargetReachableStep<typeof AgentRunSchema>(
+    await newRunTargetReachableStep<typeof RunSchema>(
       binding,
       agentTarget,
     ).execute(runIn("org_a", ""));
-    await newRunTargetReachableStep<typeof AgentRunSchema>(
+    await newRunTargetReachableStep<typeof RunSchema>(
       binding,
       agentTarget,
     ).execute(runIn("", "agt_1"));
@@ -126,7 +126,7 @@ describe("RunTargetReachable", () => {
   it("answers INTERNAL when the binding cannot read the target", async () => {
     const { binding } = bindingAnswering(new Error("store unavailable"));
     const error = await settle(
-      newRunTargetReachableStep<typeof AgentRunSchema>(binding, agentTarget),
+      newRunTargetReachableStep<typeof RunSchema>(binding, agentTarget),
       runIn("org_a", "agt_1"),
     ).catch((e: unknown) => e);
     expect((error as ConnectError).code).toBe(Code.Internal);

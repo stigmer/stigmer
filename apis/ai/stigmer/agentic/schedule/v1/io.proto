@@ -57,14 +57,14 @@ message ListSchedulesRequest {
 }
 
 // How a schedule fire was initiated.
-enum ScheduleRunOrigin {
-  SCHEDULE_RUN_ORIGIN_UNSPECIFIED = 0;
+enum ScheduleFireOrigin {
+  SCHEDULE_FIRE_ORIGIN_UNSPECIFIED = 0;
 
   // The clock fired the schedule on its cron cadence.
-  SCHEDULE_RUN_ORIGIN_CRON = 1;
+  SCHEDULE_FIRE_ORIGIN_CRON = 1;
 
   // A caller fired the schedule through the trigger command.
-  SCHEDULE_RUN_ORIGIN_MANUAL = 2;
+  SCHEDULE_FIRE_ORIGIN_MANUAL = 2;
 }
 
 // What one schedule fire produced.
@@ -72,36 +72,36 @@ enum ScheduleRunOrigin {
 // @internal
 // One vocabulary for two surfaces: the trigger
 // result reports the START outcomes (STARTED / REFUSED /
-// TARGET_MISSING), and the run-history rows additionally reach the
+// TARGET_MISSING), and the fire-history rows additionally reach the
 // terminal outcomes (COMPLETED / FAILED / TIMED_OUT) written by the cron
 // tick's tracking. SKIPPED records a cron fire that revalidated against
 // a row deleted/disabled/paused between recording and starting.
-enum ScheduleRunOutcome {
-  SCHEDULE_RUN_OUTCOME_UNSPECIFIED = 0;
+enum ScheduleFireOutcome {
+  SCHEDULE_FIRE_OUTCOME_UNSPECIFIED = 0;
 
   // A run was created (or idempotently re-found) and is running.
-  SCHEDULE_RUN_OUTCOME_STARTED = 1;
+  SCHEDULE_FIRE_OUTCOME_STARTED = 1;
 
   // A launch gate refused the run deterministically; reason carries the
   // gate's copy verbatim.
-  SCHEDULE_RUN_OUTCOME_REFUSED = 2;
+  SCHEDULE_FIRE_OUTCOME_REFUSED = 2;
 
   // The schedule's agent_ref no longer resolves.
-  SCHEDULE_RUN_OUTCOME_TARGET_MISSING = 3;
+  SCHEDULE_FIRE_OUTCOME_TARGET_MISSING = 3;
 
   // The fire no-opped: the row was deleted, disabled, or paused between
   // the fire being recorded and the run starting.
-  SCHEDULE_RUN_OUTCOME_SKIPPED = 4;
+  SCHEDULE_FIRE_OUTCOME_SKIPPED = 4;
 
   // The tracked run reached RUN_COMPLETED.
-  SCHEDULE_RUN_OUTCOME_COMPLETED = 5;
+  SCHEDULE_FIRE_OUTCOME_COMPLETED = 5;
 
   // The tracked run ended terminal-but-not-completed (failed, cancelled,
   // or terminated); reason names the terminal phase.
-  SCHEDULE_RUN_OUTCOME_FAILED = 6;
+  SCHEDULE_FIRE_OUTCOME_FAILED = 6;
 
   // The tracked run outlived the fire's tracking budget.
-  SCHEDULE_RUN_OUTCOME_TIMED_OUT = 7;
+  SCHEDULE_FIRE_OUTCOME_TIMED_OUT = 7;
 }
 
 // Result of manually triggering a schedule.
@@ -114,9 +114,9 @@ message ScheduleTriggerResult {
   Schedule schedule = 1;
 
   // What the fire produced: STARTED, REFUSED, or TARGET_MISSING (the
-  // terminal outcomes belong to run history — a manual fire answers at
+  // terminal outcomes belong to fire history — a manual fire answers at
   // run start).
-  ScheduleRunOutcome outcome = 2;
+  ScheduleFireOutcome outcome = 2;
 
   // ID of the created run. Set only when outcome is STARTED.
   string run_id = 3;
@@ -126,7 +126,7 @@ message ScheduleTriggerResult {
   string refusal_reason = 4;
 }
 
-// One recorded schedule fire — a run-history row.
+// One recorded schedule fire — a fire-history row.
 //
 // @internal
 // Backed by the fire ledger: every fire leaves a
@@ -135,7 +135,7 @@ message ScheduleTriggerResult {
 // Rows carrying a run id but no terminal outcome are enriched
 // with the run's live phase at read time, so outcome never lies
 // while a run is in flight.
-message ScheduleRun {
+message ScheduleFire {
   // Schedule this fire belongs to.
   string schedule_id = 1;
 
@@ -147,10 +147,10 @@ message ScheduleRun {
   google.protobuf.Timestamp nominal_fire_time = 3;
 
   // How the fire was initiated.
-  ScheduleRunOrigin origin = 4;
+  ScheduleFireOrigin origin = 4;
 
   // What the fire produced.
-  ScheduleRunOutcome outcome = 5;
+  ScheduleFireOutcome outcome = 5;
 
   // The refusing gate's or terminal verdict's copy, verbatim. Empty for
   // healthy outcomes.
@@ -168,20 +168,20 @@ message ScheduleRun {
   google.protobuf.Timestamp completed_at = 9;
 }
 
-// Input for listing a schedule's run history.
-message ListScheduleRunsRequest {
-  // Schedule whose runs to list.
+// Input for listing a schedule's fire history.
+message ListScheduleFiresRequest {
+  // Schedule whose fires to list.
   string schedule_id = 1 [(buf.validate.field).required = true];
 
-  // Pagination options. Runs are returned newest first.
+  // Pagination options. Fires are returned newest first.
   ai.stigmer.commons.rpc.PageInfo page_info = 2;
 }
 
-// Response containing a paginated list of schedule runs, newest first.
-message ScheduleRunList {
-  // Total number of recorded runs for the schedule.
+// Response containing a paginated list of schedule fires, newest first.
+message ScheduleFireList {
+  // Total number of recorded fires for the schedule.
   int32 total_count = 1;
 
-  // Runs in the current page.
-  repeated ScheduleRun items = 2;
+  // Fires in the current page.
+  repeated ScheduleFire items = 2;
 }

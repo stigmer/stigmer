@@ -5,20 +5,20 @@ import {
   AgentMessageSchema,
   ToolCallSchema,
   type AgentMessage,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   SubAgentRunSchema,
   type SubAgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 import {
   PendingApprovalSchema,
   type PendingApproval,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
 import {
   MessageType,
   SubAgentStatus,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SubAgentSection } from "../SubAgentSection";
 import { ApprovalContext, type ApprovalContextValue } from "../ApprovalContext";
 

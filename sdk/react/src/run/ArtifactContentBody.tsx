@@ -1,7 +1,7 @@
 "use client";
 
-import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
-import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { ArtifactFileContent } from "./ArtifactFileContent.js";
 import type { SkillPackageDetection } from "../library/detect-skill-package.js";

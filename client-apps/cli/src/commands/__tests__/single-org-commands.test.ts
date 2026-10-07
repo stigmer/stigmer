@@ -11,7 +11,7 @@ import { create } from "@bufbuild/protobuf";
 import type { DescMessage, Message } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { Config } from "../../config/index.js";
@@ -79,8 +79,8 @@ vi.mock("../../resources/runs.js", async (importOriginal) => {
   return {
     ...actual,
     getRun: async () => ({
-      schema: AgentRunSchema,
-      message: create(AgentRunSchema, {
+      schema: RunSchema,
+      message: create(RunSchema, {
         metadata: { id: "aex_1", name: "run", org: executionOrg },
       }),
     }),

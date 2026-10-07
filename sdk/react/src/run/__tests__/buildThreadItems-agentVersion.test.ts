@@ -1,15 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+  RunSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { buildThreadItems, type ThreadItem } from "../MessageThread";
 
 // ---------------------------------------------------------------------------
 // buildThreadItems: the agent version each turn ran
-// (`AgentRunStatus.agent_version_hash`).
+// (`RunStatus.agent_version_hash`).
 //
 // With a label function the thread marks the version where it starts and
 // wherever it changes, so every turn reads under the version it ran; a turn
@@ -17,8 +17,8 @@ import { buildThreadItems, type ThreadItem } from "../MessageThread";
 // label function the thread is unchanged.
 // ---------------------------------------------------------------------------
 
-function turn(id: string, versionHash: string): AgentRun {
-  return create(AgentRunSchema, {
+function turn(id: string, versionHash: string): Run {
+  return create(RunSchema, {
     metadata: { id },
     spec: { target: { case: "sessionId", value: "ses_1" }, message: `message ${id}` },
     status: { phase: RunPhase.RUN_COMPLETED, agentVersionHash: versionHash },
@@ -33,7 +33,7 @@ function markers(items: readonly ThreadItem[]) {
   );
 }
 
-function build(executions: AgentRun[], withLabel: boolean) {
+function build(executions: Run[], withLabel: boolean) {
   return buildThreadItems(
     executions, null, null, false, undefined, undefined,
     false, false, false, false, undefined,

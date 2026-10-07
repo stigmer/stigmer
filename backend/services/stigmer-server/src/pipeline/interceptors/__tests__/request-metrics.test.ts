@@ -32,8 +32,8 @@ import { create } from "@bufbuild/protobuf";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
 import {
   Health,
   HealthCheckResponse_ServingStatus as ServingStatus,
@@ -64,7 +64,7 @@ const COUNT = "stigmer.grpc.request.count";
 const DURATION = "stigmer.grpc.request.duration";
 const AGENT_SERVICE = "ai.stigmer.agentic.agent.v1.AgentCommandController";
 const EXECUTION_SERVICE =
-  "ai.stigmer.agentic.agentrun.v1.AgentRunQueryController";
+  "ai.stigmer.agentic.run.v1.RunQueryController";
 
 const VALID_AGENT = {
   apiVersion: "agentic.stigmer.ai/v1",
@@ -131,7 +131,7 @@ function servingTransport(
         updateVisibility: () => create(AgentSchema, VALID_AGENT),
         delete: () => create(AgentSchema, VALID_AGENT),
       });
-      router.service(AgentRunQueryController, {
+      router.service(RunQueryController, {
         subscribe: () => (handlers.subscribe?.() ?? emptyStream()) as never,
       });
       router.service(Health, {
@@ -164,7 +164,7 @@ function servingTransport(
 async function* emptyStream(): AsyncIterable<unknown> {}
 
 function execution(id: string) {
-  return create(AgentRunSchema, { metadata: { id } });
+  return create(RunSchema, { metadata: { id } });
 }
 
 describe("the request-metrics interceptor on the serving chain", () => {
@@ -349,7 +349,7 @@ describe("the request-metrics interceptor on the serving chain", () => {
 
       const seen: string[] = [];
       for await (const message of createClient(
-        AgentRunQueryController,
+        RunQueryController,
         transport,
       ).subscribe({ value: "exec-1" })) {
         seen.push(message.metadata?.id ?? "");
@@ -388,7 +388,7 @@ describe("the request-metrics interceptor on the serving chain", () => {
       const failure = await (async () => {
         try {
           for await (const _ of createClient(
-            AgentRunQueryController,
+            RunQueryController,
             transport,
           ).subscribe({ value: "exec-1" })) {
             // drain

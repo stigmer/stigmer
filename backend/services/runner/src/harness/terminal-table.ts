@@ -32,7 +32,7 @@
  * cannot tell which it is, so its arm writes no phase and no row, and the
  * invoke workflow, which knows, writes the phase and the stop row that the
  * server's merge keeps last (stigmer#980;
- * `backend/services/stigmer-server/src/domain/agentrun/platform-rows.ts`).
+ * `backend/services/stigmer-server/src/domain/run/platform-rows.ts`).
  * The pause row lived here until then, and a cancelled run ended with an
  * instruction to resume it. The arm's throw messages keep their bytes: they
  * are the wire copy the control planes see on the activity failure.
@@ -47,9 +47,9 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { COST_LIMIT_USER_COPY, formatCostLimitError } from "../shared/cost-guard.js";
 import { TOOL_CALL_LIMIT_USER_COPY, formatToolCallLimitError } from "../shared/tool-rounds.js";
@@ -317,14 +317,14 @@ export function unexpectedErrorArm(errorType: string, errorMessage: string): Ter
  * on purpose: rows reach a status only through `applyTerminalArm`, so no
  * caller can append an arm's copy a second time (the shape of stigmer#1054).
  */
-function appendSystemRows(status: AgentRunStatus, rows: readonly string[]): void {
+function appendSystemRows(status: RunStatus, rows: readonly string[]): void {
   for (const content of rows) {
     status.messages.push(create(AgentMessageSchema, { type: MessageType.MESSAGE_SYSTEM, content, timestamp: utcTimestamp() }));
   }
 }
 
 /** Write an arm onto the status: phase, error, completion stamp, rows. The caller persists and disposes. */
-export function applyTerminalArm(status: AgentRunStatus, arm: TerminalArm): void {
+export function applyTerminalArm(status: RunStatus, arm: TerminalArm): void {
   status.phase = arm.phase;
   if (arm.error !== undefined) status.error = arm.error;
   if (arm.completes) status.completedAt = utcTimestamp();

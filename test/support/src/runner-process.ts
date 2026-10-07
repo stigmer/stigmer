@@ -31,7 +31,7 @@
 //   substrate never reads the user's gitconfig — it authors its snapshot
 //   objects with an explicit identity — so a bare HOME is safe for file review.
 //
-// An AgentRun runs an LLM loop. Without `proxy` the runner calls its
+// A Run runs an LLM loop. Without `proxy` the runner calls its
 // providers directly with whatever keys its environment holds (the live
 // benchmark's direct mode). When `proxy` is supplied the runner is pointed at
 // the mock LLM proxy (a base-URL override via

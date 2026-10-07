@@ -35,7 +35,7 @@ private static final long serialVersionUID = 0L;
   private MemoryProvenance() {
     agentId_ = "";
     sessionId_ = "";
-    agentRunId_ = "";
+    runId_ = "";
     toolCallId_ = "";
   }
 
@@ -151,47 +151,47 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int AGENT_RUN_ID_FIELD_NUMBER = 3;
+  public static final int RUN_ID_FIELD_NUMBER = 3;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object agentRunId_ = "";
+  private volatile java.lang.Object runId_ = "";
   /**
    * <pre>
-   * ID of the agent run in which this memory was proposed.
+   * ID of the run in which this memory was proposed.
    * </pre>
    *
-   * <code>string agent_run_id = 3 [json_name = "agentRunId"];</code>
-   * @return The agentRunId.
+   * <code>string run_id = 3 [json_name = "runId"];</code>
+   * @return The runId.
    */
   @java.lang.Override
-  public java.lang.String getAgentRunId() {
-    java.lang.Object ref = agentRunId_;
+  public java.lang.String getRunId() {
+    java.lang.Object ref = runId_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      agentRunId_ = s;
+      runId_ = s;
       return s;
     }
   }
   /**
    * <pre>
-   * ID of the agent run in which this memory was proposed.
+   * ID of the run in which this memory was proposed.
    * </pre>
    *
-   * <code>string agent_run_id = 3 [json_name = "agentRunId"];</code>
-   * @return The bytes for agentRunId.
+   * <code>string run_id = 3 [json_name = "runId"];</code>
+   * @return The bytes for runId.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getAgentRunIdBytes() {
-    java.lang.Object ref = agentRunId_;
+      getRunIdBytes() {
+    java.lang.Object ref = runId_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      agentRunId_ = b;
+      runId_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -265,8 +265,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(sessionId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, sessionId_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentRunId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 3, agentRunId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 3, runId_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(toolCallId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 4, toolCallId_);
@@ -286,8 +286,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(sessionId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, sessionId_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentRunId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, agentRunId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, runId_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(toolCallId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(4, toolCallId_);
@@ -311,8 +311,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getAgentId())) return false;
     if (!getSessionId()
         .equals(other.getSessionId())) return false;
-    if (!getAgentRunId()
-        .equals(other.getAgentRunId())) return false;
+    if (!getRunId()
+        .equals(other.getRunId())) return false;
     if (!getToolCallId()
         .equals(other.getToolCallId())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -330,8 +330,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getAgentId().hashCode();
     hash = (37 * hash) + SESSION_ID_FIELD_NUMBER;
     hash = (53 * hash) + getSessionId().hashCode();
-    hash = (37 * hash) + AGENT_RUN_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getAgentRunId().hashCode();
+    hash = (37 * hash) + RUN_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getRunId().hashCode();
     hash = (37 * hash) + TOOL_CALL_ID_FIELD_NUMBER;
     hash = (53 * hash) + getToolCallId().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
@@ -472,7 +472,7 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       agentId_ = "";
       sessionId_ = "";
-      agentRunId_ = "";
+      runId_ = "";
       toolCallId_ = "";
       return this;
     }
@@ -514,7 +514,7 @@ private static final long serialVersionUID = 0L;
         result.sessionId_ = sessionId_;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.agentRunId_ = agentRunId_;
+        result.runId_ = runId_;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.toolCallId_ = toolCallId_;
@@ -543,8 +543,8 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000002;
         onChanged();
       }
-      if (!other.getAgentRunId().isEmpty()) {
-        agentRunId_ = other.agentRunId_;
+      if (!other.getRunId().isEmpty()) {
+        runId_ = other.runId_;
         bitField0_ |= 0x00000004;
         onChanged();
       }
@@ -590,7 +590,7 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 18
             case 26: {
-              agentRunId_ = input.readStringRequireUtf8();
+              runId_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000004;
               break;
             } // case 26
@@ -800,22 +800,22 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object agentRunId_ = "";
+    private java.lang.Object runId_ = "";
     /**
      * <pre>
-     * ID of the agent run in which this memory was proposed.
+     * ID of the run in which this memory was proposed.
      * </pre>
      *
-     * <code>string agent_run_id = 3 [json_name = "agentRunId"];</code>
-     * @return The agentRunId.
+     * <code>string run_id = 3 [json_name = "runId"];</code>
+     * @return The runId.
      */
-    public java.lang.String getAgentRunId() {
-      java.lang.Object ref = agentRunId_;
+    public java.lang.String getRunId() {
+      java.lang.Object ref = runId_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        agentRunId_ = s;
+        runId_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -823,20 +823,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the agent run in which this memory was proposed.
+     * ID of the run in which this memory was proposed.
      * </pre>
      *
-     * <code>string agent_run_id = 3 [json_name = "agentRunId"];</code>
-     * @return The bytes for agentRunId.
+     * <code>string run_id = 3 [json_name = "runId"];</code>
+     * @return The bytes for runId.
      */
     public com.google.protobuf.ByteString
-        getAgentRunIdBytes() {
-      java.lang.Object ref = agentRunId_;
+        getRunIdBytes() {
+      java.lang.Object ref = runId_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        agentRunId_ = b;
+        runId_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -844,49 +844,49 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the agent run in which this memory was proposed.
+     * ID of the run in which this memory was proposed.
      * </pre>
      *
-     * <code>string agent_run_id = 3 [json_name = "agentRunId"];</code>
-     * @param value The agentRunId to set.
+     * <code>string run_id = 3 [json_name = "runId"];</code>
+     * @param value The runId to set.
      * @return This builder for chaining.
      */
-    public Builder setAgentRunId(
+    public Builder setRunId(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      agentRunId_ = value;
+      runId_ = value;
       bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * ID of the agent run in which this memory was proposed.
+     * ID of the run in which this memory was proposed.
      * </pre>
      *
-     * <code>string agent_run_id = 3 [json_name = "agentRunId"];</code>
+     * <code>string run_id = 3 [json_name = "runId"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearAgentRunId() {
-      agentRunId_ = getDefaultInstance().getAgentRunId();
+    public Builder clearRunId() {
+      runId_ = getDefaultInstance().getRunId();
       bitField0_ = (bitField0_ & ~0x00000004);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * ID of the agent run in which this memory was proposed.
+     * ID of the run in which this memory was proposed.
      * </pre>
      *
-     * <code>string agent_run_id = 3 [json_name = "agentRunId"];</code>
-     * @param value The bytes for agentRunId to set.
+     * <code>string run_id = 3 [json_name = "runId"];</code>
+     * @param value The bytes for runId to set.
      * @return This builder for chaining.
      */
-    public Builder setAgentRunIdBytes(
+    public Builder setRunIdBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      agentRunId_ = value;
+      runId_ = value;
       bitField0_ |= 0x00000004;
       onChanged();
       return this;

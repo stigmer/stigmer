@@ -3,7 +3,7 @@ import { create, type JsonObject } from "@bufbuild/protobuf";
 import {
   ToolCallSchema,
   type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { segmentToolCalls } from "../segment-tool-calls";
 import { registerToolPresenter } from "../tool-presenter";
 import { ToolKind } from "@stigmer/sdk";

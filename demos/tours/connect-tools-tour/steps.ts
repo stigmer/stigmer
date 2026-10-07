@@ -63,7 +63,7 @@ export const MCP_REFS_CODE = [
   `  mcpServerRefs: [{ org: "my-org", slug: "${ORDER_MGMT_MCP.slug}" }],`,
   "});",
   "",
-  "const run = await stigmer.agentRun.create({",
+  "const run = await stigmer.run.create({",
   '  org: "my-org",',
   "  sessionId: session.metadata!.id,",
   '  message: "What\'s the status of order #ORD-4821?",',

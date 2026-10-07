@@ -19,8 +19,10 @@ export interface TypeInfo {
   readonly name: string;
   /** Human-readable name, e.g. "MCP Server". */
   readonly displayName: string;
-  /** ID prefix, e.g. "mcp". */
+  /** ID prefix new ids are minted with, e.g. "mcp". */
   readonly idPrefix: string;
+  /** Every prefix this type's ids may carry: `idPrefix`, then any retired ones. */
+  readonly idPrefixes: readonly string[];
   /** Canonical singular form (lowercase name), e.g. "mcpserver". */
   readonly singular: string;
   /** Plural form for list commands, e.g. "mcpservers". */
@@ -65,7 +67,12 @@ export interface Registry {
   typesForVerb(verb: Verb): readonly TypeInfo[];
 }
 
-function buildTypeInfo(kind: ApiResourceKind): TypeInfo | undefined {
+/**
+ * The type info of any kind the metadata table holds, registered or not —
+ * for a kind the CLI routes outside the registry (runs) that still takes its
+ * spellings from the table.
+ */
+export function buildTypeInfo(kind: ApiResourceKind): TypeInfo | undefined {
   const meta = KIND_META.get(kind);
   if (meta === undefined) return undefined;
 
@@ -75,6 +82,7 @@ function buildTypeInfo(kind: ApiResourceKind): TypeInfo | undefined {
     name: meta.name,
     displayName: meta.displayName,
     idPrefix: meta.idPrefix,
+    idPrefixes: [meta.idPrefix, ...(meta.retiredIdPrefixes ?? [])].filter((p) => p !== ""),
     singular,
     plural: singular.endsWith("s") ? singular : `${singular}s`,
     // ApiResourceKind[kind] reverse-maps to the proto enum value name (e.g.

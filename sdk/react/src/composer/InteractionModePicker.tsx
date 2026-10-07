@@ -6,7 +6,7 @@ import { cn } from "@stigmer/theme";
 import { useStigmerPortalContainer } from "../portal-container.js";
 
 /**
- * Interaction mode options for agent runs.
+ * Interaction mode options for runs.
  *
  * Maps to `InteractionMode` proto enum values (excluding UNSPECIFIED):
  * - `"agent"` → `INTERACTION_MODE_AGENT` (full tool access)

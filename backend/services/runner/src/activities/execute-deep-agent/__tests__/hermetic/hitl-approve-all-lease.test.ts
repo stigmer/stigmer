@@ -50,16 +50,16 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
 import {
-  AgentRunStatusSchema,
-  type AgentRunStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+  RunStatusSchema,
+  type RunStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   ApprovalAction,
   ApprovalPolicySource,
   RunPhase,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -86,8 +86,8 @@ const REASONING = "Two commands are needed; I will run them in order.";
 const OPENING_TEXT = "I will run the two commands.";
 const DECIDED_AT = "2026-01-01T00:00:30.000Z";
 
-function statusJson(status: AgentRunStatus): string {
-  return JSON.stringify(toJson(AgentRunStatusSchema, status), null, 2) + "\n";
+function statusJson(status: RunStatus): string {
+  return JSON.stringify(toJson(RunStatusSchema, status), null, 2) + "\n";
 }
 
 describe("ExecuteDeepAgent hermetic — APPROVE_ALL leases the class (sqlite)", () => {

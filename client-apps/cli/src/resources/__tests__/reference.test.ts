@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   hasResourceIdPrefix,
+  idPrefixesFor,
   isAgentId,
+  isScheduleId,
   isSessionId,
   parseReference,
   validateResourceId,
@@ -57,11 +60,46 @@ describe("parseReference", () => {
   });
 });
 
+describe("a kind's retired id prefixes", () => {
+  it("are read beside its current one, current first", () => {
+    expect(idPrefixesFor(ApiResourceKind.run)).toEqual(["run", "aex"]);
+    expect(idPrefixesFor(ApiResourceKind.agent)).toEqual(["agt"]);
+  });
+
+  it("are none for a kind the CLI's table does not carry", () => {
+    expect(idPrefixesFor(ApiResourceKind.iam_policy)).toEqual([]);
+  });
+
+  it("classify a stored id as an id of the kind, for every reader", () => {
+    for (const id of [`run_${ULID}`, `aex_${ULID}`]) {
+      expect(hasResourceIdPrefix(id), id).toBe(true);
+      expect(validateResourceId(id), id).toBeNull();
+      expect(parseReference(id, "acme", idPrefixesFor(ApiResourceKind.run)), id).toEqual({ kind: "id", id });
+    }
+    expect(validateResourceId("aex_tooshort")).toMatch(/incomplete/);
+    expect(parseReference("aex-run", "acme", idPrefixesFor(ApiResourceKind.run))).toEqual({
+      kind: "ref",
+      org: "acme",
+      slug: "aex-run",
+    });
+  });
+
+  it("leave an agent slug that starts with run- an agent reference", () => {
+    for (const slug of ["run-nightly-report", `run-${ULID}`]) {
+      expect(hasResourceIdPrefix(slug), slug).toBe(false);
+      expect(validateResourceId(slug), slug).toMatch(/not a recognized/);
+    }
+    expect(hasResourceIdPrefix(`aex-${ULID}`)).toBe(true);
+  });
+});
+
 describe("resource-ID classification", () => {
   it("detects kind prefixes with either separator", () => {
     expect(isAgentId(`agt_${ULID}`)).toBe(true);
     expect(isAgentId(`agt-${ULID}`)).toBe(true);
     expect(isSessionId(`ses_${ULID}`)).toBe(true);
+    expect(isScheduleId(`sch_${ULID}`)).toBe(true);
+    expect(isScheduleId(`ses_${ULID}`)).toBe(false);
   });
 
   it("does not classify cross-kind prefixes", () => {

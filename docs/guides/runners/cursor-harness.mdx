@@ -21,10 +21,10 @@ engines on models, cost, and capabilities.
 
 ## How the Cursor harness runs
 
-A single runner hosts workers for both harnesses. Native Agent Runs are served
-from the runner's base task queue; Cursor Agent Runs from a dedicated queue. You
-do not run a separate process for Cursor — when a runner has a Cursor
-credential, it starts the Cursor worker alongside the native one.
+A single runner hosts workers for both harnesses. Native runs are served from
+the runner's base task queue; Cursor runs from a dedicated queue. You do not run
+a separate process for Cursor — when a runner has a Cursor credential, it starts
+the Cursor worker alongside the native one.
 
 What you supply depends on where the runner runs:
 
@@ -123,9 +123,9 @@ In the web console, the model picker lists models from both harnesses. Selecting
 a Cursor-served model sets the harness to Cursor for that Session.
 
 <Callout type="warn">
-  A Session's harness is immutable after its first Agent Run. If you select
-  Cursor, the runner that serves the Session must have the Cursor worker running
-  — a local runner started without `CURSOR_API_KEY` cannot pick up Cursor Agent
+  A Session's harness is immutable after its first run. If you select Cursor,
+  the runner that serves the Session must have the Cursor worker running — a
+  local runner started without `CURSOR_API_KEY` cannot pick up Cursor Agent
   Runs.
 </Callout>
 

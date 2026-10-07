@@ -12,10 +12,10 @@ import { connectNodeAdapter } from "@connectrpc/connect-node";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
 import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
@@ -79,15 +79,15 @@ const knownPlugin = create(PluginSchema, {
 });
 
 // Pending run (cancellable) vs. an already-terminal one.
-const pendingExecution = create(AgentRunSchema, {
+const pendingExecution = create(RunSchema, {
   metadata: { id: "aex_run" },
   status: { phase: RunPhase.RUN_PENDING },
 });
-const cancelledExecution = create(AgentRunSchema, {
+const cancelledExecution = create(RunSchema, {
   metadata: { id: "aex_run" },
   status: { phase: RunPhase.RUN_CANCELLED },
 });
-const completedExecution = create(AgentRunSchema, {
+const completedExecution = create(RunSchema, {
   metadata: { id: "aex_done" },
   status: { phase: RunPhase.RUN_COMPLETED },
 });
@@ -222,14 +222,14 @@ beforeAll(async () => {
       },
     });
 
-    router.service(AgentRunQueryController, {
+    router.service(RunQueryController, {
       get: (req) => {
         if (req.value === "aex_done") return completedExecution;
-        if (req.value === "aex_run") return pendingExecution;
+        if (req.value === "aex_run" || req.value === "run_current") return pendingExecution;
         throw new ConnectError("execution not found", Code.NotFound);
       },
     });
-    router.service(AgentRunCommandController, {
+    router.service(RunCommandController, {
       cancel: (req) => {
         cancelCalls.push(req.id);
         return cancelledExecution;
@@ -428,6 +428,12 @@ describe("delete run (cancel special case)", () => {
     expect(result.message).toBe("Run was already in terminal state");
     expect(result.sections[0].fields).toContainEqual({ key: "Status", value: "completed" });
     expect(cancelCalls).toEqual([]);
+  });
+
+  it("cancels a run by its current id prefix too", async () => {
+    const plan = await planDelete(client, "run", "run_current", "");
+    await plan.perform();
+    expect(cancelCalls).toEqual(["run_current"]);
   });
 
   it("rejects a non-run ID with a usage error", async () => {

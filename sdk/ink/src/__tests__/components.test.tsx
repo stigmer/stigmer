@@ -3,11 +3,11 @@ import { describe, it, expect, vi } from "vitest";
 import { render } from "ink-testing-library";
 import { Text, Box } from "ink";
 import { create } from "@bufbuild/protobuf";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { MessageType, RunPhase, ToolCallStatus, ApprovalAction, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { MessageType, RunPhase, ToolCallStatus, ApprovalAction, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { MessageEntry } from "../components/MessageEntry.js";
 import { RunProgress } from "../components/RunProgress.js";
 import { ToolCallItem } from "../components/ToolCallItem.js";
@@ -380,7 +380,7 @@ describe("MessageThread — multi-approval keyboard arbitration", () => {
       pa.toolName = "write_file";
       return pa;
     });
-    return create(AgentRunSchema, {
+    return create(RunSchema, {
       metadata: { id: "aex-1" },
       status: { pendingApprovals },
     });
@@ -418,7 +418,7 @@ describe("MessageThread — multi-approval keyboard arbitration", () => {
 
 describe("MessageThread — terminal phase badge", () => {
   function runIn(phase: RunPhase) {
-    return create(AgentRunSchema, {
+    return create(RunSchema, {
       metadata: { id: "aex-phase" },
       status: {
         phase,

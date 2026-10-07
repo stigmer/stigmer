@@ -1,8 +1,8 @@
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   InteractionMode,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { isTerminalPhase } from "@stigmer/sdk";
 
 /**
@@ -84,7 +84,7 @@ function unwrapStreamingPlanFence(content: string): string {
  * back to it would promote the wrong text.
  */
 export function findStreamingPlan(
-  execution: AgentRun | null | undefined,
+  execution: Run | null | undefined,
 ): StreamingPlan | undefined {
   if (execution?.spec?.interactionMode !== InteractionMode.PLAN) {
     return undefined;

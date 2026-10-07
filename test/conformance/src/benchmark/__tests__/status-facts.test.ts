@@ -1,5 +1,5 @@
 // Unit arms for the status-borne facts of a sample, over hand-built
-// AgentRun messages.
+// Run messages.
 // Domain: conformance benchmark.
 //
 // Pinned: int64 token counts become numbers; the cost estimate becomes
@@ -10,14 +10,14 @@
 // with content.
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { describe, expect, it } from "vitest";
 import { finalReply, outcomeOf, statusFacts, visibleRows } from "../status-facts";
 
 describe("statusFacts", () => {
   it("reads tokens, the cost estimate in micros, the priced model and the server's stamps", () => {
-    const execution = create(AgentRunSchema, {
+    const execution = create(RunSchema, {
       metadata: { id: "aex_1" },
       spec: { target: { case: "sessionId", value: "ses_1" } },
       status: {
@@ -56,7 +56,7 @@ describe("statusFacts", () => {
 
   it("keeps the platform's error on a failed turn and counts memory on the status as one attachment", () => {
     const facts = statusFacts(
-      create(AgentRunSchema, {
+      create(RunSchema, {
         status: {
           phase: RunPhase.RUN_FAILED,
           error: "provider returned 529 overloaded",
@@ -69,7 +69,7 @@ describe("statusFacts", () => {
   });
 
   it("reads zeros and an empty model when the runner reported no usage", () => {
-    const facts = statusFacts(create(AgentRunSchema, { status: { phase: RunPhase.RUN_FAILED } }));
+    const facts = statusFacts(create(RunSchema, { status: { phase: RunPhase.RUN_FAILED } }));
     expect(facts.tokens.total).toBe(0);
     expect(facts.model_reported).toBe("");
     expect(facts.outcome).toBe("failed");
@@ -88,7 +88,7 @@ describe("outcomeOf", () => {
 
 describe("finalReply", () => {
   it("is the last root AI row with content, never a sub-agent's or an empty row", () => {
-    const execution = create(AgentRunSchema, {
+    const execution = create(RunSchema, {
       status: {
         messages: [
           { type: MessageType.MESSAGE_HUMAN, content: "fix it" },
@@ -100,24 +100,24 @@ describe("finalReply", () => {
       },
     });
     expect(finalReply(execution)).toBe("Fixed: 90s is now 1 minute.");
-    expect(finalReply(create(AgentRunSchema, {}))).toBe("");
+    expect(finalReply(create(RunSchema, {}))).toBe("");
   });
 });
 
 describe("visibleRows", () => {
   it("a THINKING row with content is visible but not text; an AI row is both", () => {
-    const thinking = create(AgentRunSchema, {
+    const thinking = create(RunSchema, {
       status: { messages: [{ type: MessageType.MESSAGE_THINKING, content: "hmm" }] },
     });
     expect(visibleRows(thinking)).toEqual({ visible: true, text: false });
-    const ai = create(AgentRunSchema, {
+    const ai = create(RunSchema, {
       status: { messages: [{ type: MessageType.MESSAGE_HUMAN, content: "hi" }, { type: MessageType.MESSAGE_AI, content: "Hello." }] },
     });
     expect(visibleRows(ai)).toEqual({ visible: true, text: true });
   });
 
   it("an empty AI row and a sub-agent's row are not visible", () => {
-    const execution = create(AgentRunSchema, {
+    const execution = create(RunSchema, {
       status: {
         messages: [{ type: MessageType.MESSAGE_AI, content: "" }],
         subAgentRuns: [{ messages: [{ type: MessageType.MESSAGE_AI, content: "sub-agent text" }] }],

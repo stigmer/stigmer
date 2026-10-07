@@ -49,8 +49,8 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -135,7 +135,7 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
     const final = record.lastFullStatus!;
     expect(final.structuredOutput, "the engine's structuredResponse reaches the status").toEqual(ANSWER);
 
-    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/structured-output.tool-strategy.status.json");
   });
 
@@ -169,7 +169,7 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
     expect(record.toolCalls(), "no tool was involved").toHaveLength(0);
 
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
-    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/structured-output.text-fallback.status.json");
   });
 
@@ -223,7 +223,7 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
       // falls back to the primary (its last resort).
       expect(extractorBuilds[0]!.modelName).toBe(FIXTURE_NATIVE_MODEL);
 
-      const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
+      const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
       await expect(json).toMatchFileSnapshot("./goldens/structured-output.tier2.status.json");
     } finally {
       vi.unstubAllEnvs();

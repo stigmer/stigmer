@@ -89,7 +89,7 @@ describe("scrubTs", () => {
     {
       name: "field JSDoc keeps @generated trailer past the internal section",
       input:
-        'export type AgentRun = Message<"a.b.AgentRun"> & {\n' +
+        'export type Run = Message<"a.b.Run"> & {\n' +
         "  /**\n" +
         "   * API version for this resource type.\n" +
         "   *\n" +
@@ -102,7 +102,7 @@ describe("scrubTs", () => {
         "  apiVersion: string;\n" +
         "};\n",
       want:
-        'export type AgentRun = Message<"a.b.AgentRun"> & {\n' +
+        'export type Run = Message<"a.b.Run"> & {\n' +
         "  /**\n" +
         "   * API version for this resource type.\n" +
         "   *\n" +

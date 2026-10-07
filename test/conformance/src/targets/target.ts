@@ -650,7 +650,7 @@ export interface TargetProfile {
   // targets. Agent execution suites obtain it via requireLlmProxy().
   llmProxy?(): MockLlmProxy;
 
-  // The HTTP MCP server fixture backing tool-using agent runs (HITL). Present
+  // The HTTP MCP server fixture backing tool-using runs (HITL). Present
   // only on execution targets; absent on CRUD/cloud targets. Suites obtain it via
   // requireMcpFixture() and register an McpServer pointing at its url().
   mcpFixture?(): McpToolFixture;

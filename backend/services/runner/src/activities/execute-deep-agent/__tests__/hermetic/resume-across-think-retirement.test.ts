@@ -35,13 +35,13 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { fromJson, toJson } from "@bufbuild/protobuf";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   ApprovalAction,
   RunPhase,
   ToolCallStatus,
   ToolKind,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -125,7 +125,7 @@ describe("ExecuteDeepAgent hermetic — a session saved with a think call resume
       recordedWith: engineVersions(),
       threadId: FIXTURE.threadId,
       ...readRows(getCheckpointDbPath(FIXTURE.sessionId)),
-      status: toJson(AgentRunStatusSchema, record.lastFullStatus!),
+      status: toJson(RunStatusSchema, record.lastFullStatus!),
     };
     mkdirSync(dirname(FIXTURE_PATH), { recursive: true });
     writeFileSync(FIXTURE_PATH, JSON.stringify(fixture, null, 2) + "\n");
@@ -139,7 +139,7 @@ describe("ExecuteDeepAgent hermetic — a session saved with a think call resume
     const record = deepAgentExecutionRecord({ message: THINK_RETIREMENT_MESSAGE });
     const scenario = beginDeepAgentScenario({ env, clock, record, checkpointer: "sqlite", script: SCRIPT });
     await loadRows(getCheckpointDbPath(FIXTURE.sessionId), fixture);
-    record.applyStatusUpdate(fromJson(AgentRunStatusSchema, fixture.status));
+    record.applyStatusUpdate(fromJson(RunStatusSchema, fixture.status));
     // The approval arrives after the pause, as it does live; the resumed
     // turn's checkpoints must sort after the paused one they continue.
     clock.tick(RESUME_AFTER_MS);

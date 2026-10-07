@@ -7,13 +7,13 @@
 //
 // All three converge on the same epilogue (final Get + usage summary). The
 // headless paths share one driver (runHeadlessStream) over the SDK's
-// agentRun.subscribe / submitApproval; the differ + renderers are the
+// run.subscribe / submitApproval; the differ + renderers are the
 // CLI-local port of Go's streamToEvents + handleJSONEvent.
 
 import { create } from "@bufbuild/protobuf";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { SubmitApprovalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { SubmitApprovalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { runEpilogue } from "./epilogue.js";
 import { renderSessionHeader, type SessionHeaderInfo } from "./header.js";
@@ -42,7 +42,7 @@ export interface StreamDeps {
  * Stream the run to a terminal phase, then run the epilogue. Returns the
  * authoritative final run (for artifact download).
  */
-export async function streamAgentRun(deps: StreamDeps): Promise<AgentRun> {
+export async function streamAgentRun(deps: StreamDeps): Promise<Run> {
   if (deps.outputMode === "json") {
     renderSessionHeader(process.stderr, deps.header);
     const result = await runHeadless(deps, jsonRenderer(deps));
@@ -79,10 +79,10 @@ async function runHeadless(deps: StreamDeps, renderer: HeadlessRenderer): Promis
 
   try {
     return await runHeadlessStream({
-      subscribe: (signal) => deps.client.agentRun.subscribe(deps.runId, signal),
+      subscribe: (signal) => deps.client.run.subscribe(deps.runId, signal),
       submitApproval: async (toolCallId, action) => {
-        await deps.client.agentRun.submitApproval(
-          create(SubmitApprovalInputSchema, { agentRunId: deps.runId, toolCallId, action }),
+        await deps.client.run.submitApproval(
+          create(SubmitApprovalInputSchema, { runId: deps.runId, toolCallId, action }),
         );
       },
       renderer,

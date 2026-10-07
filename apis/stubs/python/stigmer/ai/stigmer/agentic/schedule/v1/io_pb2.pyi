@@ -13,33 +13,33 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
-class ScheduleRunOrigin(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+class ScheduleFireOrigin(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
-    SCHEDULE_RUN_ORIGIN_UNSPECIFIED: _ClassVar[ScheduleRunOrigin]
-    SCHEDULE_RUN_ORIGIN_CRON: _ClassVar[ScheduleRunOrigin]
-    SCHEDULE_RUN_ORIGIN_MANUAL: _ClassVar[ScheduleRunOrigin]
+    SCHEDULE_FIRE_ORIGIN_UNSPECIFIED: _ClassVar[ScheduleFireOrigin]
+    SCHEDULE_FIRE_ORIGIN_CRON: _ClassVar[ScheduleFireOrigin]
+    SCHEDULE_FIRE_ORIGIN_MANUAL: _ClassVar[ScheduleFireOrigin]
 
-class ScheduleRunOutcome(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+class ScheduleFireOutcome(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
-    SCHEDULE_RUN_OUTCOME_UNSPECIFIED: _ClassVar[ScheduleRunOutcome]
-    SCHEDULE_RUN_OUTCOME_STARTED: _ClassVar[ScheduleRunOutcome]
-    SCHEDULE_RUN_OUTCOME_REFUSED: _ClassVar[ScheduleRunOutcome]
-    SCHEDULE_RUN_OUTCOME_TARGET_MISSING: _ClassVar[ScheduleRunOutcome]
-    SCHEDULE_RUN_OUTCOME_SKIPPED: _ClassVar[ScheduleRunOutcome]
-    SCHEDULE_RUN_OUTCOME_COMPLETED: _ClassVar[ScheduleRunOutcome]
-    SCHEDULE_RUN_OUTCOME_FAILED: _ClassVar[ScheduleRunOutcome]
-    SCHEDULE_RUN_OUTCOME_TIMED_OUT: _ClassVar[ScheduleRunOutcome]
-SCHEDULE_RUN_ORIGIN_UNSPECIFIED: ScheduleRunOrigin
-SCHEDULE_RUN_ORIGIN_CRON: ScheduleRunOrigin
-SCHEDULE_RUN_ORIGIN_MANUAL: ScheduleRunOrigin
-SCHEDULE_RUN_OUTCOME_UNSPECIFIED: ScheduleRunOutcome
-SCHEDULE_RUN_OUTCOME_STARTED: ScheduleRunOutcome
-SCHEDULE_RUN_OUTCOME_REFUSED: ScheduleRunOutcome
-SCHEDULE_RUN_OUTCOME_TARGET_MISSING: ScheduleRunOutcome
-SCHEDULE_RUN_OUTCOME_SKIPPED: ScheduleRunOutcome
-SCHEDULE_RUN_OUTCOME_COMPLETED: ScheduleRunOutcome
-SCHEDULE_RUN_OUTCOME_FAILED: ScheduleRunOutcome
-SCHEDULE_RUN_OUTCOME_TIMED_OUT: ScheduleRunOutcome
+    SCHEDULE_FIRE_OUTCOME_UNSPECIFIED: _ClassVar[ScheduleFireOutcome]
+    SCHEDULE_FIRE_OUTCOME_STARTED: _ClassVar[ScheduleFireOutcome]
+    SCHEDULE_FIRE_OUTCOME_REFUSED: _ClassVar[ScheduleFireOutcome]
+    SCHEDULE_FIRE_OUTCOME_TARGET_MISSING: _ClassVar[ScheduleFireOutcome]
+    SCHEDULE_FIRE_OUTCOME_SKIPPED: _ClassVar[ScheduleFireOutcome]
+    SCHEDULE_FIRE_OUTCOME_COMPLETED: _ClassVar[ScheduleFireOutcome]
+    SCHEDULE_FIRE_OUTCOME_FAILED: _ClassVar[ScheduleFireOutcome]
+    SCHEDULE_FIRE_OUTCOME_TIMED_OUT: _ClassVar[ScheduleFireOutcome]
+SCHEDULE_FIRE_ORIGIN_UNSPECIFIED: ScheduleFireOrigin
+SCHEDULE_FIRE_ORIGIN_CRON: ScheduleFireOrigin
+SCHEDULE_FIRE_ORIGIN_MANUAL: ScheduleFireOrigin
+SCHEDULE_FIRE_OUTCOME_UNSPECIFIED: ScheduleFireOutcome
+SCHEDULE_FIRE_OUTCOME_STARTED: ScheduleFireOutcome
+SCHEDULE_FIRE_OUTCOME_REFUSED: ScheduleFireOutcome
+SCHEDULE_FIRE_OUTCOME_TARGET_MISSING: ScheduleFireOutcome
+SCHEDULE_FIRE_OUTCOME_SKIPPED: ScheduleFireOutcome
+SCHEDULE_FIRE_OUTCOME_COMPLETED: ScheduleFireOutcome
+SCHEDULE_FIRE_OUTCOME_FAILED: ScheduleFireOutcome
+SCHEDULE_FIRE_OUTCOME_TIMED_OUT: ScheduleFireOutcome
 
 class ScheduleId(_message.Message):
     __slots__ = ("value",)
@@ -89,12 +89,12 @@ class ScheduleTriggerResult(_message.Message):
     RUN_ID_FIELD_NUMBER: _ClassVar[int]
     REFUSAL_REASON_FIELD_NUMBER: _ClassVar[int]
     schedule: _api_pb2.Schedule
-    outcome: ScheduleRunOutcome
+    outcome: ScheduleFireOutcome
     run_id: str
     refusal_reason: str
-    def __init__(self, schedule: _Optional[_Union[_api_pb2.Schedule, _Mapping]] = ..., outcome: _Optional[_Union[ScheduleRunOutcome, str]] = ..., run_id: _Optional[str] = ..., refusal_reason: _Optional[str] = ...) -> None: ...
+    def __init__(self, schedule: _Optional[_Union[_api_pb2.Schedule, _Mapping]] = ..., outcome: _Optional[_Union[ScheduleFireOutcome, str]] = ..., run_id: _Optional[str] = ..., refusal_reason: _Optional[str] = ...) -> None: ...
 
-class ScheduleRun(_message.Message):
+class ScheduleFire(_message.Message):
     __slots__ = ("schedule_id", "org", "nominal_fire_time", "origin", "outcome", "reason", "run_id", "recorded_at", "completed_at")
     SCHEDULE_ID_FIELD_NUMBER: _ClassVar[int]
     ORG_FIELD_NUMBER: _ClassVar[int]
@@ -108,15 +108,15 @@ class ScheduleRun(_message.Message):
     schedule_id: str
     org: str
     nominal_fire_time: _timestamp_pb2.Timestamp
-    origin: ScheduleRunOrigin
-    outcome: ScheduleRunOutcome
+    origin: ScheduleFireOrigin
+    outcome: ScheduleFireOutcome
     reason: str
     run_id: str
     recorded_at: _timestamp_pb2.Timestamp
     completed_at: _timestamp_pb2.Timestamp
-    def __init__(self, schedule_id: _Optional[str] = ..., org: _Optional[str] = ..., nominal_fire_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., origin: _Optional[_Union[ScheduleRunOrigin, str]] = ..., outcome: _Optional[_Union[ScheduleRunOutcome, str]] = ..., reason: _Optional[str] = ..., run_id: _Optional[str] = ..., recorded_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., completed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    def __init__(self, schedule_id: _Optional[str] = ..., org: _Optional[str] = ..., nominal_fire_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., origin: _Optional[_Union[ScheduleFireOrigin, str]] = ..., outcome: _Optional[_Union[ScheduleFireOutcome, str]] = ..., reason: _Optional[str] = ..., run_id: _Optional[str] = ..., recorded_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., completed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
-class ListScheduleRunsRequest(_message.Message):
+class ListScheduleFiresRequest(_message.Message):
     __slots__ = ("schedule_id", "page_info")
     SCHEDULE_ID_FIELD_NUMBER: _ClassVar[int]
     PAGE_INFO_FIELD_NUMBER: _ClassVar[int]
@@ -124,10 +124,10 @@ class ListScheduleRunsRequest(_message.Message):
     page_info: _pagination_pb2.PageInfo
     def __init__(self, schedule_id: _Optional[str] = ..., page_info: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ...) -> None: ...
 
-class ScheduleRunList(_message.Message):
+class ScheduleFireList(_message.Message):
     __slots__ = ("total_count", "items")
     TOTAL_COUNT_FIELD_NUMBER: _ClassVar[int]
     ITEMS_FIELD_NUMBER: _ClassVar[int]
     total_count: int
-    items: _containers.RepeatedCompositeFieldContainer[ScheduleRun]
-    def __init__(self, total_count: _Optional[int] = ..., items: _Optional[_Iterable[_Union[ScheduleRun, _Mapping]]] = ...) -> None: ...
+    items: _containers.RepeatedCompositeFieldContainer[ScheduleFire]
+    def __init__(self, total_count: _Optional[int] = ..., items: _Optional[_Iterable[_Union[ScheduleFire, _Mapping]]] = ...) -> None: ...

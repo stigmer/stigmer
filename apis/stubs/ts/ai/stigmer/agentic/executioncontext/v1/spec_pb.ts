@@ -20,7 +20,7 @@ export const file_ai_stigmer_agentic_executioncontext_v1_spec: GenFile = /*@__PU
  */
 export type ExecutionContextSpec = Message<"ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec"> & {
   /**
-   * ID of the parent AgentRun (or an MCP connect's execution id).
+   * ID of the parent Run (or an MCP connect's execution id).
    *
    * @generated from field: string execution_id = 1;
    */

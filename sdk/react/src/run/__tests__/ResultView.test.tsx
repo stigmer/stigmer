@@ -2,11 +2,11 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   ToolCallStatus,
   ToolKind,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { normalizeToolResult } from "@stigmer/sdk";
 import type { ToolResultView } from "@stigmer/sdk";
 import type { Stigmer } from "@stigmer/sdk";
@@ -305,7 +305,7 @@ describe("ResultView — offloaded outputRef (on-demand resolution)", () => {
       .fn()
       .mockResolvedValue({ downloadUrl: "https://fresh/url.png" });
     const stigmer = {
-      agentRun: { getArtifactDownloadUrl, getArtifactContent: vi.fn() },
+      run: { getArtifactDownloadUrl, getArtifactContent: vi.fn() },
     } as unknown as Stigmer;
 
     render(withStigmer(<ResultView view={imageView} />, stigmer));
@@ -325,7 +325,7 @@ describe("ResultView — offloaded outputRef (on-demand resolution)", () => {
       truncated: false,
     });
     const stigmer = {
-      agentRun: { getArtifactContent, getArtifactDownloadUrl: vi.fn() },
+      run: { getArtifactContent, getArtifactDownloadUrl: vi.fn() },
     } as unknown as Stigmer;
 
     render(withStigmer(<ResultView view={textView} />, stigmer));

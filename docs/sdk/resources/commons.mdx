@@ -99,14 +99,14 @@ API resource kinds for Stigmer.
 | `organization` | The boundary that holds people, Agents, Sessions and secrets together; nothing outside it sees them. |
 | `platform` | Singleton platform instance representing the Stigmer deployment. |
 | `agent` | AI assistant with instructions, tools, skills, and a delegation model. |
-| `agent_run` | Single run of an agent within a session, tracking tool calls and responses. |
+| `run` | Single run of an agent within a session, tracking tool calls and responses. |
 | `session` | Conversation thread between a user and an agent. |
 | `skill` | Knowledge resource that provides domain-specific context to an agent. |
 | `mcp_server` | External tool server connected via the Model Context Protocol. |
 | `agent_share` | Hosted chat link for an agent with its own audience, origins, and credentials. |
 | `agent_channel` | Connection binding an agent to an external messaging platform workspace. |
 | `channel_app` | Customer-owned messaging-platform app (e.g. a Slack app) that agent channels can install through instead of the shared platform app. |
-| `environment` | Named set of variables and secrets for an agent run. |
+| `environment` | Named set of variables and secrets for a run. |
 | `execution_context` | User-owned runtime context for managing execution state. |
 | `schedule` | Recurring trigger that runs an agent on a cron schedule. |
 | `memory` | Agent-proposed, user-confirmed fact the platform remembers about a person. |

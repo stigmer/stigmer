@@ -29,19 +29,19 @@ import {
   FileReviewBlockReason,
   FileReviewFailureKind,
   SnapshotKind,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   CasManifestRefSchema,
   GitTreeRefSchema,
   SnapshotRefSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import type {
   CapturedFileChange,
   FileChangeSet,
   SnapshotRef,
   TurnCommandProvenance,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import { utcTimestamp } from "../status.js";
 import {
   appendFileReviewEvents,
@@ -124,7 +124,7 @@ export function deriveCaptureMode(
  * no manifest yet (the manifest is authored at candidate time). Returns "".
  */
 export async function captureBaselineToLedger(opts: {
-  readonly status: AgentRunStatus;
+  readonly status: RunStatus;
   readonly gitRoot: string;
   readonly executionId: string;
   readonly changeSetId: string;
@@ -166,7 +166,7 @@ export async function captureBaselineToLedger(opts: {
  * Returns the captured changes. No-op authoring when the turn changed nothing.
  */
 export async function captureCandidateToLedger(opts: {
-  readonly status: AgentRunStatus;
+  readonly status: RunStatus;
   readonly gitRoot: string;
   readonly executionId: string;
   readonly changeSetId: string;
@@ -341,7 +341,7 @@ export interface CaptureResumeResult {
  * Mutates `status.fileReviewEventStream` in place (authors RECONCILED / FAILED).
  */
 export async function applyCaptureDecisions(opts: {
-  readonly status: AgentRunStatus;
+  readonly status: RunStatus;
   readonly gitRoot: string;
   readonly executionId: string;
   readonly changeSet: FileChangeSet;

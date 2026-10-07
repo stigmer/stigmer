@@ -1803,90 +1803,6 @@
       "metadata": {
         "module": "agentic",
         "relations": {
-          "can_edit": {},
-          "can_view": {},
-          "owner": {},
-          "session": {
-            "directly_related_user_types": [
-              {
-                "type": "session"
-              }
-            ]
-          },
-          "viewer": {}
-        },
-        "source_info": {
-          "file": "agentic/agent_run.fga"
-        }
-      },
-      "relations": {
-        "can_edit": {
-          "computedUserset": {
-            "relation": "owner"
-          }
-        },
-        "can_view": {
-          "union": {
-            "child": [
-              {
-                "computedUserset": {
-                  "relation": "viewer"
-                }
-              },
-              {
-                "tupleToUserset": {
-                  "computedUserset": {
-                    "relation": "can_view"
-                  },
-                  "tupleset": {
-                    "relation": "session"
-                  }
-                }
-              }
-            ]
-          }
-        },
-        "owner": {
-          "tupleToUserset": {
-            "computedUserset": {
-              "relation": "owner"
-            },
-            "tupleset": {
-              "relation": "session"
-            }
-          }
-        },
-        "session": {
-          "this": {}
-        },
-        "viewer": {
-          "union": {
-            "child": [
-              {
-                "tupleToUserset": {
-                  "computedUserset": {
-                    "relation": "viewer"
-                  },
-                  "tupleset": {
-                    "relation": "session"
-                  }
-                }
-              },
-              {
-                "computedUserset": {
-                  "relation": "owner"
-                }
-              }
-            ]
-          }
-        }
-      },
-      "type": "agent_run"
-    },
-    {
-      "metadata": {
-        "module": "agentic",
-        "relations": {
           "can_delete": {},
           "can_edit": {},
           "can_grant_access": {},
@@ -2524,6 +2440,90 @@
         }
       },
       "type": "plugin"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
+          "can_edit": {},
+          "can_view": {},
+          "owner": {},
+          "session": {
+            "directly_related_user_types": [
+              {
+                "type": "session"
+              }
+            ]
+          },
+          "viewer": {}
+        },
+        "source_info": {
+          "file": "agentic/run.fga"
+        }
+      },
+      "relations": {
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_view": {
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "viewer"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "can_view"
+                  },
+                  "tupleset": {
+                    "relation": "session"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "owner": {
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "owner"
+            },
+            "tupleset": {
+              "relation": "session"
+            }
+          }
+        },
+        "session": {
+          "this": {}
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "viewer"
+                  },
+                  "tupleset": {
+                    "relation": "session"
+                  }
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "type": "run"
     },
     {
       "metadata": {

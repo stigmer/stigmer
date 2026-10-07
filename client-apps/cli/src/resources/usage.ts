@@ -10,7 +10,7 @@
 // snake_case keys).
 
 import { create } from "@bufbuild/protobuf";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   GetAgentUsageReportInputSchema,
   GetAgentUsageReportOutputSchema,
@@ -21,8 +21,8 @@ import {
   type GetAgentUsageReportOutput,
   type GetOrgUsageReportOutput,
   type GetSessionUsageReportOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
-import type { UsageReportAggregate } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/usage_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import type { UsageReportAggregate } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import type { OutputFormat } from "../output/index.js";
 import { renderProtoJson, renderProtoYaml, renderTable } from "../output/index.js";
@@ -35,7 +35,7 @@ export interface DateRange {
 // --- Fetch ---
 
 export async function getSessionUsageReport(client: Stigmer, sessionId: string): Promise<GetSessionUsageReportOutput> {
-  return client.agentRun.getSessionUsageReport(create(GetSessionUsageReportInputSchema, { sessionId }));
+  return client.run.getSessionUsageReport(create(GetSessionUsageReportInputSchema, { sessionId }));
 }
 
 export async function getAgentUsageReport(
@@ -44,7 +44,7 @@ export async function getAgentUsageReport(
   org: string,
   range: DateRange,
 ): Promise<GetAgentUsageReportOutput> {
-  return client.agentRun.getAgentUsageReport(
+  return client.run.getAgentUsageReport(
     create(GetAgentUsageReportInputSchema, { agentId, org, fromDate: range.from, toDate: range.to }),
   );
 }
@@ -54,7 +54,7 @@ export async function getOrgUsageReport(
   org: string,
   range: DateRange,
 ): Promise<GetOrgUsageReportOutput> {
-  return client.agentRun.getOrgUsageReport(
+  return client.run.getOrgUsageReport(
     create(GetOrgUsageReportInputSchema, { org, fromDate: range.from, toDate: range.to }),
   );
 }

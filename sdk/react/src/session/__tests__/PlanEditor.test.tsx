@@ -2,8 +2,8 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/sdk";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
-import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import type { SessionPlan } from "../../library/detect-plan-artifact";
 import type { PlanDraftController } from "../usePlanDraft";
@@ -26,7 +26,7 @@ const plan: SessionPlan = {
 
 function stigmerMock(opts?: { text?: string; truncated?: boolean }): Stigmer {
   return {
-    agentRun: {
+    run: {
       getArtifactContent: vi.fn().mockResolvedValue({
         content: new TextEncoder().encode(opts?.text ?? PLAN_TEXT),
         contentType: "text/markdown",
@@ -161,7 +161,7 @@ describe("PlanEditor", () => {
 
   it("renders an error state with retry when the content fetch fails", async () => {
     const failing = {
-      agentRun: {
+      run: {
         getArtifactContent: vi.fn().mockRejectedValue(new Error("boom")),
       },
     } as unknown as Stigmer;

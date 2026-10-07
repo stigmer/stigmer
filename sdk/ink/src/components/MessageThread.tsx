@@ -1,21 +1,21 @@
 import React, { useMemo } from "react";
 import { Box, Text, Static } from "ink";
 import { create } from "@bufbuild/protobuf";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type {
   AgentMessage,
   ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
-import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
-import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
+import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   ApprovalAction,
   RunPhase,
   FileChangeSetStatus,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   isTerminalPhase,
   FileReviewContext,
@@ -32,9 +32,9 @@ import { FileReviewRecord } from "./FileReviewRecord.js";
 /** Props for {@link MessageThread}. */
 export interface MessageThreadProps {
   /** Completed runs in chronological order. */
-  readonly runs: readonly AgentRun[];
+  readonly runs: readonly Run[];
   /** The currently streaming run (appended after `executions`). */
-  readonly activeStreamRun?: AgentRun | null;
+  readonly activeStreamRun?: Run | null;
   /** Optimistic user message shown before the stream delivers it. */
   readonly pendingUserMessage?: string | null;
   /** Callback for approval actions. Shows approval UI when provided. */
@@ -81,7 +81,7 @@ function isSettledSet(status: FileChangeSetStatus): boolean {
  * the run's tail for each decided/reconciled/failed change set.
  */
 function buildExecutionSegment(
-  exec: AgentRun,
+  exec: Run,
   ei: number,
   includeFileReviewRecords: boolean,
 ): ThreadItem[] {
@@ -161,8 +161,8 @@ function buildExecutionSegment(
  * without shrinking the Static array.
  */
 function buildThreadItems(
-  executions: readonly AgentRun[],
-  activeStreamRun: AgentRun | null | undefined,
+  executions: readonly Run[],
+  activeStreamRun: Run | null | undefined,
   pendingUserMessage: string | null | undefined,
   includeApprovals: boolean,
   includeFileReviewRecords: boolean,
@@ -236,8 +236,8 @@ function buildThreadItems(
  * collision so a live decision is reflected before it is persisted.
  */
 function buildChangeSetsById(
-  executions: readonly AgentRun[],
-  activeStreamRun: AgentRun | null | undefined,
+  executions: readonly Run[],
+  activeStreamRun: Run | null | undefined,
 ): FileReviewContextValue {
   const changeSetsById = new Map<string, FileChangeSet>();
   for (const exec of executions) {
@@ -255,7 +255,7 @@ function buildChangeSetsById(
 
 /**
  * Renders a continuous conversation thread from one or more
- * `AgentRun` snapshots in the terminal.
+ * `Run` snapshots in the terminal.
  *
  * Composes {@link MessageEntry}, {@link ToolCallGroup}, {@link SubAgentBlock},
  * {@link RunProgress}, {@link ApprovalPrompt}, and (for settled change

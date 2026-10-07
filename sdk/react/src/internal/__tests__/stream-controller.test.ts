@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+  RunSchema,
+  RunStatusSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   StreamController,
   type StreamControllerSink,
@@ -19,9 +19,9 @@ import type { StreamState } from "../store/conversation-store";
 function makeSnapshot(
   phase: RunPhase,
   messageCount = 0,
-): AgentRun {
-  const exec = create(AgentRunSchema);
-  const status = create(AgentRunStatusSchema);
+): Run {
+  const exec = create(RunSchema);
+  const status = create(RunStatusSchema);
   status.phase = phase;
   for (let i = 0; i < messageCount; i++) {
     status.messages.push({} as never);
@@ -31,12 +31,12 @@ function makeSnapshot(
 }
 
 function createTestSink(): StreamControllerSink & {
-  snapshots: AgentRun[];
+  snapshots: Run[];
   states: Array<{ stage: string; executionId?: string; error?: Error }>;
   connectTimeouts: number;
   slow: boolean[];
 } {
-  const snapshots: AgentRun[] = [];
+  const snapshots: Run[] = [];
   const states: Array<{ stage: string; executionId?: string; error?: Error }> =
     [];
   const slow: boolean[] = [];
@@ -45,7 +45,7 @@ function createTestSink(): StreamControllerSink & {
     states,
     connectTimeouts: 0,
     slow,
-    ingestSnapshot(snapshot: AgentRun) {
+    ingestSnapshot(snapshot: Run) {
       snapshots.push(snapshot);
     },
     setStreamState(state: StreamState) {

@@ -41,12 +41,12 @@ import { createLogger } from "../../../boot/logger.js";
 import {
   EngineDispatchError,
   EngineWorkflowNotFoundError,
-} from "../../../domain/agentrun/engine.js";
+} from "../../../domain/run/engine.js";
 import {
   AgentExecutionTemporalConfig,
   DEFAULT_EXECUTION_TARGET_LOCAL,
   ROUTING_GLOBAL,
-} from "../../../domain/agentrun/temporal/config.js";
+} from "../../../domain/run/temporal/config.js";
 import type { RunCredentialMint } from "../../../runnerauth/dispatch-credential.js";
 import { newExecutionScopedRunnerCredentialProvider } from "../../../runnerauth/runner-credential-provider.js";
 import {

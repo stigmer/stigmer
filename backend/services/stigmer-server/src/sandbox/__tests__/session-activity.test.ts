@@ -32,8 +32,8 @@ import { create, toBinary } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -82,9 +82,9 @@ function execution(
   createdAt: Date,
   completedAt?: Date,
 ) {
-  return create(AgentRunSchema, {
+  return create(RunSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
-    kind: "AgentRun",
+    kind: "Run",
     metadata: { id, name: id, org: "org-a" },
     spec: { target: { case: "sessionId", value: sessionId }, message: "hi" },
     status: {
@@ -98,9 +98,9 @@ function execution(
 async function save(...executions: ReturnType<typeof execution>[]) {
   for (const e of executions) {
     await store.saveResource(
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
       e.metadata?.id ?? "",
-      AgentRunSchema,
+      RunSchema,
       e,
     );
   }
@@ -187,7 +187,7 @@ describe("a row that does not decode", () => {
         { id: "aex_bad", data: new Uint8Array([0xff, 0xff, 0xff]), cursor: "" },
         {
           id: "aex_1",
-          data: toBinary(AgentRunSchema, good),
+          data: toBinary(RunSchema, good),
           cursor: "",
         },
       ],
@@ -209,13 +209,13 @@ describe("sessionActivityOf", () => {
             RunPhase.RUN_CANCELLED,
             new Date("2026-10-03T08:00:00Z"),
           ),
-          create(AgentRunSchema, {
+          create(RunSchema, {
             status: {
               phase: RunPhase.RUN_COMPLETED,
               completedAt: "not a time",
             },
           }),
-          create(AgentRunSchema, {}),
+          create(RunSchema, {}),
         ],
         NOW(),
       ),
@@ -500,15 +500,15 @@ describe("recentActivity(sessionId)", () => {
       ],
       [
         "(deleted)",
-        () => store.deleteResource(ApiResourceKind.agent_run, "aex_3"),
+        () => store.deleteResource(ApiResourceKind.run, "aex_3"),
       ],
       [
         "the run holding the latest stamp is deleted",
-        () => store.deleteResource(ApiResourceKind.agent_run, "aex_2"),
+        () => store.deleteResource(ApiResourceKind.run, "aex_2"),
       ],
       [
         "the last run is deleted",
-        () => store.deleteResource(ApiResourceKind.agent_run, "aex_1"),
+        () => store.deleteResource(ApiResourceKind.run, "aex_1"),
       ],
     ];
     for (const [step, act] of steps) {
@@ -668,7 +668,7 @@ describe("recentActivity(sessionId)", () => {
       ],
     ];
     for (const [name, act] of cases) {
-      await store.deleteResourcesByKind(ApiResourceKind.agent_run);
+      await store.deleteResourcesByKind(ApiResourceKind.run);
       await save(
         execution(
           "aex_1",
@@ -760,11 +760,11 @@ describe("recentActivity(sessionId)", () => {
       ],
       [
         "the run was deleted",
-        () => store.deleteResource(ApiResourceKind.agent_run, "aex_2"),
+        () => store.deleteResource(ApiResourceKind.run, "aex_2"),
       ],
     ];
     for (const [name, act] of cases) {
-      await store.deleteResourcesByKind(ApiResourceKind.agent_run);
+      await store.deleteResourcesByKind(ApiResourceKind.run);
       await save(
         execution(
           "aex_1",

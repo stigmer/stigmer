@@ -19,7 +19,7 @@ import { describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
+import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
 import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
@@ -56,7 +56,7 @@ describe("fillRuleFor — one path per method, from the contract", () => {
     ],
     [
       "a parent-scoped kind (an execution, its session's organization) fills metadata.org",
-      AgentRunCommandController.method.create,
+      RunCommandController.method.create,
       { path: "metadata.org" },
     ],
     [

@@ -718,7 +718,7 @@ java.lang.String defaultValue) {
    * Execution harness for this session.
    *
    * Determines which Temporal activity type is dispatched when an
-   * AgentRun is created in this session:
+   * Run is created in this session:
    * - NATIVE (default): ExecuteDeepAgent activity -&gt; Stigmer unified runner
    * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
    *
@@ -741,7 +741,7 @@ java.lang.String defaultValue) {
    * Execution harness for this session.
    *
    * Determines which Temporal activity type is dispatched when an
-   * AgentRun is created in this session:
+   * Run is created in this session:
    * - NATIVE (default): ExecuteDeepAgent activity -&gt; Stigmer unified runner
    * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
    *
@@ -3737,7 +3737,7 @@ java.lang.String defaultValue) {
      * Execution harness for this session.
      *
      * Determines which Temporal activity type is dispatched when an
-     * AgentRun is created in this session:
+     * Run is created in this session:
      * - NATIVE (default): ExecuteDeepAgent activity -&gt; Stigmer unified runner
      * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
      *
@@ -3760,7 +3760,7 @@ java.lang.String defaultValue) {
      * Execution harness for this session.
      *
      * Determines which Temporal activity type is dispatched when an
-     * AgentRun is created in this session:
+     * Run is created in this session:
      * - NATIVE (default): ExecuteDeepAgent activity -&gt; Stigmer unified runner
      * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
      *
@@ -3788,7 +3788,7 @@ java.lang.String defaultValue) {
      * Execution harness for this session.
      *
      * Determines which Temporal activity type is dispatched when an
-     * AgentRun is created in this session:
+     * Run is created in this session:
      * - NATIVE (default): ExecuteDeepAgent activity -&gt; Stigmer unified runner
      * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
      *
@@ -3813,7 +3813,7 @@ java.lang.String defaultValue) {
      * Execution harness for this session.
      *
      * Determines which Temporal activity type is dispatched when an
-     * AgentRun is created in this session:
+     * Run is created in this session:
      * - NATIVE (default): ExecuteDeepAgent activity -&gt; Stigmer unified runner
      * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
      *
@@ -3841,7 +3841,7 @@ java.lang.String defaultValue) {
      * Execution harness for this session.
      *
      * Determines which Temporal activity type is dispatched when an
-     * AgentRun is created in this session:
+     * Run is created in this session:
      * - NATIVE (default): ExecuteDeepAgent activity -&gt; Stigmer unified runner
      * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
      *

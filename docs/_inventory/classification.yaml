@@ -142,7 +142,7 @@ pages:
     diataxis: explanation
     teaches:
       An Agent is a secret-free, versioned YAML blueprint that a Session names
-      directly and each Agent Run runs.
+      directly and each run runs.
     medium: still
     why:
       The prose says "here's how this Agent looks in the console" — one frame
@@ -168,7 +168,7 @@ pages:
       every message, locks a Harness, and can override Skills and tools.
     medium: diagram
     why:
-      The lifecycle (Agent to Session to Agent Runs) is structure; the existing
+      The lifecycle (Agent to Session to runs) is structure; the existing
       mermaid carries it.
 
   concepts/approval-flows:
@@ -446,7 +446,7 @@ pages:
       task queue and what happens when none is polling.
     medium: diagram
     why:
-      The runner's place at the end of the Agent, Session, Agent Run chain is
+      The runner's place at the end of the Agent, Session, run chain is
       structure; the existing mermaid carries it.
 
   guides/runners/overview:

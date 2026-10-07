@@ -96,11 +96,11 @@ export interface SessionComposerHandle {
    *   submission, overriding the picker. Avoids the same-tick race when the
    *   caller also calls `onInteractionModeChange` just before submitting.
    * @param options.attachments - Pre-uploaded attachments (storage keys from
-   *   `agentRun.uploadAttachment`) to include with this one submission,
+   *   `run.uploadAttachment`) to include with this one submission,
    *   in addition to any files attached in the composer. Used by "Build from
    *   plan" to deliver the approved `plan.md` to the implement run.
    * @param options.buildFromPlan - Marks this submission as the implement
-   *   turn of a Plan → Build handoff (`AgentRunSpec.build_from_plan`).
+   *   turn of a Plan → Build handoff (`RunSpec.build_from_plan`).
    *   The runner injects the implement-plan directive and the thread hides
    *   the turn's message; the message stays a short label for surfaces
    *   without that treatment (the CLI, history).
@@ -140,7 +140,7 @@ export interface SessionComposerSubmitContext {
    * Pre-uploaded file attachments for the run.
    *
    * Each entry contains a `storageKey` obtained from
-   * `agentRun.uploadAttachment()`. Only successfully uploaded
+   * `run.uploadAttachment()`. Only successfully uploaded
    * attachments are included. Pass directly to run creation
    * as `attachments`.
    *
@@ -155,7 +155,7 @@ export interface SessionComposerSubmitContext {
    *
    * `undefined` when no mode picker is shown (defaults to `"agent"`).
    * Pass to run creation as `interactionMode`
-   * (`AgentRunSpec.interaction_mode`).
+   * (`RunSpec.interaction_mode`).
    */
   readonly interactionMode?: InteractionModeOption;
   /**
@@ -499,7 +499,7 @@ export interface SessionComposerProps {
    * drag-and-drop file upload plus clipboard paste on the textarea —
    * pasting a screenshot attaches it exactly like a picked file, with
    * a generated `pasted-image-*` filename. Attachments are uploaded
-   * immediately via `agentRun.uploadAttachment()` and included
+   * immediately via `run.uploadAttachment()` and included
    * in `context.attachments` on submit.
    *
    * @default true

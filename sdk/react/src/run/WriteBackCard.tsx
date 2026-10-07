@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback } from "react";
-import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/writeback_pb";
-import { WorkspaceWriteBackPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/writeback_pb";
+import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/run/v1/writeback_pb";
+import { WorkspaceWriteBackPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/writeback_pb";
 import { cn } from "@stigmer/theme";
 import { DiffSummary } from "../version-history/DiffSummary.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";

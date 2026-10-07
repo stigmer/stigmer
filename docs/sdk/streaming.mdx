@@ -1,7 +1,7 @@
 ---
 title: Streaming
 description:
-  Consume real-time Agent Run updates as they arrive.
+  Consume real-time run updates as they arrive.
 ---
 
 The `subscribe` method opens a server stream that pushes run snapshots as the
@@ -12,7 +12,7 @@ If you are new to streaming, the
 [Quickstart](/docs/getting-started/quickstart) walks through a minimal subscribe
 loop. This guide covers the production patterns you need after that.
 
-## Subscribe to an Agent Run
+## Subscribe to a run
 
 Call `subscribe` with the run ID after creating a run. Iterate the stream and
 check `status.phase` on each snapshot to decide what to do.
@@ -20,7 +20,7 @@ check `status.phase` on each snapshot to decide what to do.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-for await (const snapshot of stigmer.agentRun.subscribe(runId)) {
+for await (const snapshot of stigmer.run.subscribe(runId)) {
   const phase = snapshot.status?.phase;
   const messages = snapshot.status?.messages ?? [];
 
@@ -39,7 +39,7 @@ for await (const snapshot of stigmer.agentRun.subscribe(runId)) {
 </Tab>
 <Tab value="Go">
 ```go
-stream, err := client.AgentRun.Subscribe(ctx, runID)
+stream, err := client.Run.Subscribe(ctx, runID)
 if err != nil {
     log.Fatal(err)
 }
@@ -56,12 +56,12 @@ for {
     status := snapshot.GetStatus()
     phase := status.GetPhase()
 
-    if phase == agentrunv1.RunPhase_RUN_COMPLETED || phase == agentrunv1.RunPhase_RUN_FAILED {
+    if phase == runv1.RunPhase_RUN_COMPLETED || phase == runv1.RunPhase_RUN_FAILED {
         msgs := status.GetMessages()
         if len(msgs) > 0 {
             fmt.Println(msgs[len(msgs)-1].GetContent())
         }
-        if phase == agentrunv1.RunPhase_RUN_FAILED {
+        if phase == runv1.RunPhase_RUN_FAILED {
             log.Fatalf("Run failed: %s", status.GetError())
         }
         break
@@ -71,7 +71,7 @@ for {
 </Tab>
 <Tab value="Python">
 ```python
-for snapshot in client.agent_runs.subscribe(run_id):
+for snapshot in client.runs.subscribe(run_id):
     phase = snapshot.status.phase
     messages = snapshot.status.messages
 
@@ -85,7 +85,7 @@ for snapshot in client.agent_runs.subscribe(run_id):
 </Tab>
 <Tab value="Java">
 ```java
-var stream = client.agentRun.subscribe(runId);
+var stream = client.run.subscribe(runId);
 
 while (stream.hasNext()) {
     var snapshot = stream.next();
@@ -109,7 +109,7 @@ while (stream.hasNext()) {
 
 ## Read the snapshot
 
-Every snapshot is a full `AgentRun` resource. The fields you inspect most
+Every snapshot is a full `Run` resource. The fields you inspect most
 often are on `status`:
 
 | Field | What it contains |
@@ -125,7 +125,7 @@ often are on `status`:
 
 <Callout type="info">
   For the complete field reference, see
-  [Agent Run > AgentRunStatus](/docs/sdk/resources/agent-run#agentrunstatus).
+  [Run > RunStatus](/docs/sdk/resources/run#runstatus).
 </Callout>
 
 ## Detect completion
@@ -169,12 +169,12 @@ function isTerminal(phase: string | undefined): boolean {
 </Tab>
 <Tab value="Go">
 ```go
-func isTerminal(phase agentrunv1.RunPhase) bool {
+func isTerminal(phase runv1.RunPhase) bool {
     switch phase {
-    case agentrunv1.RunPhase_RUN_COMPLETED,
-        agentrunv1.RunPhase_RUN_FAILED,
-        agentrunv1.RunPhase_RUN_CANCELLED,
-        agentrunv1.RunPhase_RUN_TERMINATED:
+    case runv1.RunPhase_RUN_COMPLETED,
+        runv1.RunPhase_RUN_FAILED,
+        runv1.RunPhase_RUN_CANCELLED,
+        runv1.RunPhase_RUN_TERMINATED:
         return true
     }
     return false
@@ -218,7 +218,7 @@ from run-level failures reported in `status.error`.
 import { StigmerError, isRetryable } from "@stigmer/sdk";
 
 try {
-  for await (const snapshot of stigmer.agentRun.subscribe(runId)) {
+  for await (const snapshot of stigmer.run.subscribe(runId)) {
     // process snapshot
   }
 } catch (err) {
@@ -231,7 +231,7 @@ try {
 </Tab>
 <Tab value="Go">
 ```go
-stream, err := client.AgentRun.Subscribe(ctx, runID)
+stream, err := client.Run.Subscribe(ctx, runID)
 if err != nil {
     log.Fatal(err)
 }
@@ -257,7 +257,7 @@ for {
 from stigmer import StigmerError, is_retryable
 
 try:
-    for snapshot in client.agent_runs.subscribe(run_id):
+    for snapshot in client.runs.subscribe(run_id):
         # process snapshot
         pass
 except StigmerError as err:
@@ -269,7 +269,7 @@ except StigmerError as err:
 <Tab value="Java">
 ```java
 try {
-    var stream = client.agentRun.subscribe(runId);
+    var stream = client.run.subscribe(runId);
     while (stream.hasNext()) {
         var snapshot = stream.next();
         // process snapshot
@@ -305,7 +305,7 @@ Pass an `AbortSignal` to `subscribe`. Abort the controller to close the stream:
 const controller = new AbortController();
 setTimeout(() => controller.abort(), 30_000);
 
-for await (const snapshot of stigmer.agentRun.subscribe(
+for await (const snapshot of stigmer.run.subscribe(
   runId,
   controller.signal,
 )) {
@@ -322,7 +322,7 @@ Cancel the `context.Context` to close the stream:
 ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 defer cancel()
 
-stream, err := client.AgentRun.Subscribe(ctx, runID)
+stream, err := client.Run.Subscribe(ctx, runID)
 if err != nil {
     log.Fatal(err)
 }
@@ -343,7 +343,7 @@ Break out of the iterator to stop reading. The underlying gRPC channel cleans
 up when the iterator is garbage collected:
 
 ```python
-for snapshot in client.agent_runs.subscribe(run_id):
+for snapshot in client.runs.subscribe(run_id):
     if should_stop():
         break
 ```
@@ -355,7 +355,7 @@ Break out of the iteration loop. The underlying gRPC stream cleans up when the
 `StigmerStream` is garbage collected:
 
 ```java
-var stream = client.agentRun.subscribe(runId);
+var stream = client.run.subscribe(runId);
 while (stream.hasNext()) {
     var snapshot = stream.next();
     if (shouldStop()) {
@@ -370,17 +370,17 @@ while (stream.hasNext()) {
 <Callout type="warn">
   Cancelling a stream stops your client from receiving updates. It does not
   cancel the run itself. To cancel the run, call
-  [`cancel`](/docs/sdk/resources/agent-run#cancel) or
-  [`terminate`](/docs/sdk/resources/agent-run#terminate).
+  [`cancel`](/docs/sdk/resources/run#cancel) or
+  [`terminate`](/docs/sdk/resources/run#terminate).
 </Callout>
 
 ## What's next
 
 <Cards>
   <Card
-    title="Agent Run"
-    description="Full method and type reference for Agent Runs."
-    href="/docs/sdk/resources/agent-run"
+    title="Run"
+    description="Full method and type reference for runs."
+    href="/docs/sdk/resources/run"
   />
   <Card
     title="Connect Tools"

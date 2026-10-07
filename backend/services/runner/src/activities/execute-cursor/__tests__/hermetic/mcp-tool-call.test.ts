@@ -29,8 +29,8 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase, ToolCallStatus, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase, ToolCallStatus, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -140,7 +140,7 @@ describe("ExecuteCursor hermetic — MCP tool call", () => {
 
     // ── Assert: the golden ───────────────────────────────────────────────────
     const final = record.lastFullStatus!;
-    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/mcp-tool-call.status.json");
   });
 });

@@ -70,7 +70,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object executionId_ = "";
   /**
    * <pre>
-   * ID of the parent AgentRun (or an MCP connect's execution id).
+   * ID of the parent Run (or an MCP connect's execution id).
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -91,7 +91,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ID of the parent AgentRun (or an MCP connect's execution id).
+   * ID of the parent Run (or an MCP connect's execution id).
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -568,7 +568,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     private java.lang.Object executionId_ = "";
     /**
      * <pre>
-     * ID of the parent AgentRun (or an MCP connect's execution id).
+     * ID of the parent Run (or an MCP connect's execution id).
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -588,7 +588,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * ID of the parent AgentRun (or an MCP connect's execution id).
+     * ID of the parent Run (or an MCP connect's execution id).
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -609,7 +609,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * ID of the parent AgentRun (or an MCP connect's execution id).
+     * ID of the parent Run (or an MCP connect's execution id).
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -626,7 +626,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * ID of the parent AgentRun (or an MCP connect's execution id).
+     * ID of the parent Run (or an MCP connect's execution id).
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -640,7 +640,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * ID of the parent AgentRun (or an MCP connect's execution id).
+     * ID of the parent Run (or an MCP connect's execution id).
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>

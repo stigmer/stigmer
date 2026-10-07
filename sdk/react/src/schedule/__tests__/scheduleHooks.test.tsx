@@ -6,10 +6,10 @@ import { ScheduleSchema, type Schedule } from "@stigmer/protos/ai/stigmer/agenti
 import {
   ScheduleListSchema,
   ScheduleTriggerResultSchema,
-  ScheduleRunListSchema,
-  ScheduleRunSchema,
-  ScheduleRunOutcome,
-  ScheduleRunOrigin,
+  ScheduleFireListSchema,
+  ScheduleFireSchema,
+  ScheduleFireOutcome,
+  ScheduleFireOrigin,
 } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { StigmerError } from "@stigmer/sdk";
@@ -20,7 +20,7 @@ import { useScheduleList } from "../useScheduleList";
 import { useScheduleCount } from "../useScheduleCount";
 import { useResumeSchedule } from "../useResumeSchedule";
 import { useTriggerSchedule } from "../useTriggerSchedule";
-import { useScheduleRuns } from "../useScheduleRuns";
+import { useScheduleFires } from "../useScheduleFires";
 import { useSetScheduleEnabled } from "../useSetScheduleEnabled";
 
 vi.mock("../../feedback/toast", () => ({
@@ -206,7 +206,7 @@ describe("useResumeSchedule", () => {
 describe("useTriggerSchedule", () => {
   it("resolves a STARTED result and toasts success", async () => {
     const started = create(ScheduleTriggerResultSchema, {
-      outcome: ScheduleRunOutcome.STARTED,
+      outcome: ScheduleFireOutcome.STARTED,
       runId: "aex_01run",
       schedule: SCHEDULE,
     });
@@ -220,7 +220,7 @@ describe("useTriggerSchedule", () => {
     const res = await result.current.triggerSchedule("sch_01example");
 
     expect(trigger).toHaveBeenCalledWith("sch_01example");
-    expect(res.outcome).toBe(ScheduleRunOutcome.STARTED);
+    expect(res.outcome).toBe(ScheduleFireOutcome.STARTED);
     expect(res.runId).toBe("aex_01run");
     expect(toast.success).toHaveBeenCalledWith("Run started");
   });
@@ -230,7 +230,7 @@ describe("useTriggerSchedule", () => {
     // promise resolves, and the gate's own copy is surfaced,
     // never paraphrased.
     const refused = create(ScheduleTriggerResultSchema, {
-      outcome: ScheduleRunOutcome.REFUSED,
+      outcome: ScheduleFireOutcome.REFUSED,
       refusalReason:
         "run refused: The organization cannot fund a scheduled run right now.",
       schedule: SCHEDULE,
@@ -244,7 +244,7 @@ describe("useTriggerSchedule", () => {
 
     const res = await result.current.triggerSchedule("sch_01example");
 
-    expect(res.outcome).toBe(ScheduleRunOutcome.REFUSED);
+    expect(res.outcome).toBe(ScheduleFireOutcome.REFUSED);
     expect(toast.error).toHaveBeenCalledWith(
       "run refused: The organization cannot fund a scheduled run right now.",
     );
@@ -272,49 +272,49 @@ describe("useTriggerSchedule", () => {
   });
 });
 
-describe("useScheduleRuns", () => {
+describe("useScheduleFires", () => {
   it("fetches a schedule's run history, newest first", async () => {
-    const listRuns = vi.fn().mockResolvedValue(
-      create(ScheduleRunListSchema, {
+    const listFires = vi.fn().mockResolvedValue(
+      create(ScheduleFireListSchema, {
         totalCount: 2,
         items: [
-          create(ScheduleRunSchema, {
+          create(ScheduleFireSchema, {
             scheduleId: "sch_01example",
-            origin: ScheduleRunOrigin.MANUAL,
-            outcome: ScheduleRunOutcome.STARTED,
+            origin: ScheduleFireOrigin.MANUAL,
+            outcome: ScheduleFireOutcome.STARTED,
             runId: "aex_01run",
           }),
-          create(ScheduleRunSchema, {
+          create(ScheduleFireSchema, {
             scheduleId: "sch_01example",
-            origin: ScheduleRunOrigin.CRON,
-            outcome: ScheduleRunOutcome.REFUSED,
+            origin: ScheduleFireOrigin.CRON,
+            outcome: ScheduleFireOutcome.REFUSED,
             reason: "run refused: missing credential",
           }),
         ],
       }),
     );
-    const client = { schedule: { listRuns } };
+    const client = { schedule: { listFires } };
 
-    const { result } = renderHook(() => useScheduleRuns("sch_01example"), {
+    const { result } = renderHook(() => useScheduleFires("sch_01example"), {
       wrapper: wrapper(client),
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.runs).toHaveLength(2);
+    expect(result.current.fires).toHaveLength(2);
     expect(result.current.totalCount).toBe(2);
-    expect(result.current.runs[1].reason).toBe("run refused: missing credential");
+    expect(result.current.fires[1].reason).toBe("run refused: missing credential");
   });
 
   it("skips fetching when scheduleId is null", () => {
-    const listRuns = vi.fn();
-    const client = { schedule: { listRuns } };
+    const listFires = vi.fn();
+    const client = { schedule: { listFires } };
 
-    const { result } = renderHook(() => useScheduleRuns(null), {
+    const { result } = renderHook(() => useScheduleFires(null), {
       wrapper: wrapper(client),
     });
 
-    expect(result.current.runs).toEqual([]);
-    expect(listRuns).not.toHaveBeenCalled();
+    expect(result.current.fires).toEqual([]);
+    expect(listFires).not.toHaveBeenCalled();
   });
 });
 

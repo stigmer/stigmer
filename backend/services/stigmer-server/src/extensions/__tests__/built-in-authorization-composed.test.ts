@@ -68,7 +68,7 @@ import { ActivityQueryController } from "@stigmer/protos/ai/stigmer/activity/v1/
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
+import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
 import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
@@ -539,7 +539,7 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
       ).listRecentActivity({ pageSize: 10 });
       expect(recents.entries).toEqual([]);
       const summary = await createClient(
-        AgentRunQueryController,
+        RunQueryController,
         asMember(),
       ).getRunSummary({ org: ORG });
       expect(summary.activeCount).toBe(0);
@@ -712,7 +712,7 @@ describe("built-in authorizer (composed server, trusted-local: the permissive de
         "a usage report",
         await failureOf(
           createClient(
-            AgentRunQueryController,
+            RunQueryController,
             anonymous,
           ).getOrgUsageReport({
             org: MISSING_ORG,
@@ -830,7 +830,7 @@ describe("built-in list scope (two boots, one seed — the scope is the only var
       founder,
     ).listRecentActivity({ pageSize: 10 });
     const summary = await createClient(
-      AgentRunQueryController,
+      RunQueryController,
       founder,
     ).getRunSummary({ org: ORG });
     return {

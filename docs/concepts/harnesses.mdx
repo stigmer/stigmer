@@ -92,8 +92,8 @@ The Harness you choose depends on what your Agent needs to do.
 | **Best for**                | General-purpose agents, custom model selection, production workloads  | Developer-facing agents, coding tasks, Cursor model access                   |
 
 <Callout type="info">
-  A Session's Harness is immutable after the first Agent Run starts. Choose the
-  right Harness when you create the Session — you cannot switch later.
+  A Session's Harness is immutable after the first run starts. Choose the right
+  Harness when you create the Session — you cannot switch later.
 </Callout>
 
 ### Auto and pricing determinism
@@ -119,7 +119,7 @@ approval flows, billing, usage tracking) works the same regardless of Harness.
 
 ```mermaid
 flowchart LR
-  S["Session"] --> R["Agent Run"]
+  S["Session"] --> R["run"]
   R --> D{Harness?}
   D -->|Native| EG["Native Runtime"]
   D -->|Cursor| EC["Cursor Runtime"]
@@ -128,8 +128,8 @@ flowchart LR
 ```
 
 One [Runner](/docs/concepts/runners) serves both harnesses. The Harness is a
-property of the Session and travels with each Agent Run on the same task queue;
-the runner reads it and hands the work to the matching runtime. You don't need
+property of the Session and travels with each run on the same task queue; the
+runner reads it and hands the work to the matching runtime. You don't need
 separate runner processes, or separate queues, for each Harness.
 
 ## Creating a Session with a Harness

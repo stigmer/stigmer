@@ -61,7 +61,7 @@ class StigmerClientTest {
                 .insecure()
                 .build()) {
             assertNotNull(client.agent);
-            assertNotNull(client.agentRun);
+            assertNotNull(client.run);
             assertNotNull(client.apiKey);
             assertNotNull(client.environment);
             assertNotNull(client.executionContext);

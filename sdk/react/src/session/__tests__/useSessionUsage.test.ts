@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { GetSessionUsageReportOutput } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { GetSessionUsageReportOutput } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 
 vi.mock("../../hooks", () => ({
   useStigmer: vi.fn(),
@@ -18,11 +18,11 @@ const SESSION_ID = "sess-1";
 function makeExecution(
   phase: RunPhase,
   streamingUsage?: Record<string, unknown>,
-): AgentRun {
+): Run {
   return {
     spec: { target: { case: "sessionId", value: SESSION_ID } },
     status: { phase, streamingUsage },
-  } as unknown as AgentRun;
+  } as unknown as Run;
 }
 
 function streamingUsage(costUsd: number): Record<string, unknown> {
@@ -85,7 +85,7 @@ function emptyReport(): GetSessionUsageReportOutput {
 }
 
 function mockStigmer(getSessionUsageReport: ReturnType<typeof vi.fn>) {
-  const stigmer = { agentRun: { getSessionUsageReport } };
+  const stigmer = { run: { getSessionUsageReport } };
   (useStigmer as ReturnType<typeof vi.fn>).mockReturnValue(stigmer);
 }
 

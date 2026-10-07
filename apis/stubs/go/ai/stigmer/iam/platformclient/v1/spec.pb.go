@@ -103,7 +103,7 @@ type PlatformClientSpec struct {
 	// Edits apply to the next request: the client is read on every request
 	// that bears one of its tokens.
 	AllowedOrigins []string `protobuf:"bytes,9,rep,name=allowed_origins,json=allowedOrigins,proto3" json:"allowed_origins,omitempty"`
-	// Environments whose values are delivered to every agent run a
+	// Environments whose values are delivered to every run a
 	// user signed in through this PlatformClient creates. This is how an
 	// embedded assistant reaches secret-gated MCP servers: the client — the
 	// connection resource — carries the credentials (for example a shared

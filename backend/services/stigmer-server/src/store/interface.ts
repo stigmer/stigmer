@@ -85,7 +85,7 @@ export interface AuditRecord {
  * ("started", "refused", "cron", "manual", …); timestamps are RFC-3339 UTC
  * strings compared lexicographically (the house convention).
  */
-export interface ScheduleRunRecord {
+export interface ScheduleFireRecord {
   readonly scheduleId: string;
   readonly org: string;
   /**
@@ -837,7 +837,7 @@ export interface Store {
    * is set is never downgraded — a replayed "started" write after the
    * verdict landed is a no-op by construction (the ON CONFLICT guard).
    */
-  upsertScheduleRun(record: ScheduleRunRecord): Promise<void>;
+  upsertScheduleFire(record: ScheduleFireRecord): Promise<void>;
 
   /**
    * Stamps the terminal verdict on the schedule's NEWEST non-terminal row
@@ -849,7 +849,7 @@ export interface Store {
    * untracked, so without it a newer manual row would steal a cron run's
    * verdict. Silent no-op when no matching non-terminal row exists.
    */
-  markLatestScheduleRunTerminal(
+  markLatestScheduleFireTerminal(
     scheduleId: string,
     origin: string,
     outcome: string,
@@ -858,23 +858,23 @@ export interface Store {
   ): Promise<void>;
 
   /** Recorded fires, newest first, plus the total count for pagination. */
-  listScheduleRuns(
+  listScheduleFires(
     scheduleId: string,
     offset: number,
     limit: number,
-  ): Promise<{ runs: ScheduleRunRecord[]; total: number }>;
+  ): Promise<{ fires: ScheduleFireRecord[]; total: number }>;
 
   /** Delete-cascade twin, called after the resource row delete succeeds. */
-  deleteScheduleRunsBySchedule(scheduleId: string): Promise<number>;
+  deleteScheduleFiresBySchedule(scheduleId: string): Promise<number>;
 
   /** Removes every ledger row of an organization's schedules (its purge's sweep); returns the count. */
-  deleteScheduleRunsByOrg(org: string): Promise<number>;
+  deleteScheduleFiresByOrg(org: string): Promise<number>;
 
   /**
    * Removes ledger rows recorded before the cutoff (RFC-3339, compared
    * lexicographically) — the retention policy the table was born with.
    */
-  pruneScheduleRuns(recordedBefore: string): Promise<number>;
+  pruneScheduleFires(recordedBefore: string): Promise<number>;
 
   // ---------------------------------------------------------------------------
   // Search index

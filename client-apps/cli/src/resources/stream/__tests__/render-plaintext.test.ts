@@ -2,7 +2,7 @@
 // status, approvals auto-skipped, untracked event kinds silent.
 
 import { describe, expect, it } from "vitest";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { StreamEvent, ToolCallInfo } from "../events.js";
 import { PlaintextRenderer } from "../render-plaintext.js";
 

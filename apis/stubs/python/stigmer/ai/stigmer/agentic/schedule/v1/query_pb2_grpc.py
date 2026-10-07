@@ -37,10 +37,10 @@ class ScheduleQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ListSchedulesRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ScheduleList.FromString,
                 _registered_method=True)
-        self.listRuns = channel.unary_unary(
-                '/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/listRuns',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ListScheduleRunsRequest.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ScheduleRunList.FromString,
+        self.listFires = channel.unary_unary(
+                '/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/listFires',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ListScheduleFiresRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ScheduleFireList.FromString,
                 _registered_method=True)
 
 
@@ -80,8 +80,8 @@ class ScheduleQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def listRuns(self, request, context):
-        """List a schedule's run history, newest first.
+    def listFires(self, request, context):
+        """List a schedule's fire history, newest first.
 
         Every fire leaves a row — including fires that created no run
         (a refused launch gate, a missing target agent) — with the refusing
@@ -115,10 +115,10 @@ def add_ScheduleQueryControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ListSchedulesRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ScheduleList.SerializeToString,
             ),
-            'listRuns': grpc.unary_unary_rpc_method_handler(
-                    servicer.listRuns,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ListScheduleRunsRequest.FromString,
-                    response_serializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ScheduleRunList.SerializeToString,
+            'listFires': grpc.unary_unary_rpc_method_handler(
+                    servicer.listFires,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ListScheduleFiresRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ScheduleFireList.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -241,7 +241,7 @@ class ScheduleQueryController(object):
             _registered_method=True)
 
     @staticmethod
-    def listRuns(request,
+    def listFires(request,
             target,
             options=(),
             channel_credentials=None,
@@ -254,9 +254,9 @@ class ScheduleQueryController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/listRuns',
-            ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ListScheduleRunsRequest.SerializeToString,
-            ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ScheduleRunList.FromString,
+            '/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/listFires',
+            ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ListScheduleFiresRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ScheduleFireList.FromString,
             options,
             channel_credentials,
             insecure,

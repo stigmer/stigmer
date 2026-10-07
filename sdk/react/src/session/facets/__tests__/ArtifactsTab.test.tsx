@@ -2,12 +2,12 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/sdk";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import {
   RunArtifactKind,
   RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { StigmerContext } from "../../../context";
 import { ArtifactsTab, type ArtifactsTabProps } from "../ArtifactsTab";
 import type { SessionArtifactEntry } from "../../useSessionArtifacts";
@@ -22,7 +22,7 @@ function artifact(name: string) {
   });
 }
 
-const execution = create(AgentRunSchema, {
+const execution = create(RunSchema, {
   metadata: { id: "aex_1" },
   status: {
     phase: RunPhase.RUN_COMPLETED,
@@ -33,7 +33,7 @@ const execution = create(AgentRunSchema, {
 /** Modal content fetch — keep pending so nothing rejects during the test. */
 function createStigmerMock(): Stigmer {
   return {
-    agentRun: {
+    run: {
       getArtifactContent: vi.fn().mockReturnValue(new Promise(() => {})),
     },
   } as unknown as Stigmer;

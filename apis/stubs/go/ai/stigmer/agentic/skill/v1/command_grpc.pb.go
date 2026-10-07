@@ -48,7 +48,7 @@ type SkillCommandControllerClient interface {
 	// The server refuses over-limit size_bytes here, before any bytes move.
 	CreateArtifactUploadUrl(ctx context.Context, in *CreateSkillArtifactUploadUrlRequest, opts ...grpc.CallOption) (*SkillArtifactUploadUrl, error)
 	// Push a skill from a run artifact already in storage.
-	// Use this when an agent run has already produced a skill artifact
+	// Use this when a run has already produced a skill artifact
 	// and you want to publish it without downloading and re-uploading the ZIP.
 	PushFromRunArtifact(ctx context.Context, in *PushSkillFromRunArtifactRequest, opts ...grpc.CallOption) (*Skill, error)
 	// Update the visibility of an existing skill.
@@ -139,7 +139,7 @@ type SkillCommandControllerServer interface {
 	// The server refuses over-limit size_bytes here, before any bytes move.
 	CreateArtifactUploadUrl(context.Context, *CreateSkillArtifactUploadUrlRequest) (*SkillArtifactUploadUrl, error)
 	// Push a skill from a run artifact already in storage.
-	// Use this when an agent run has already produced a skill artifact
+	// Use this when a run has already produced a skill artifact
 	// and you want to publish it without downloading and re-uploading the ZIP.
 	PushFromRunArtifact(context.Context, *PushSkillFromRunArtifactRequest) (*Skill, error)
 	// Update the visibility of an existing skill.

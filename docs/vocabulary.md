@@ -80,12 +80,12 @@ IdentityProvider, `kind: identity_provider` | Identity Provider |
 | **Identity Account** | --- | --- | Identity Account | IdentityAccount,
 `kind: identity_account` | Identity Account | | **PlatformClient** | --- | --- |
 PlatformClient | PlatformClient, `kind: platform_client` | PlatformClient | |
-**Agent Run** | --- | run | Agent Run | AgentRun, `kind: AgentRun` | Agent Run |
-| **Sub-Agent** | --- | --- | Sub-Agent | SubAgent, `sub_agents` | Sub-Agent | |
-**Agent Channel** | --- | --- | channel, Agent Channel | AgentChannel,
-`kind: AgentChannel` | Agent Channel | | **Channel App** | --- | --- | Channel
-App | ChannelApp, `kind: ChannelApp` | Channel App | | **Schedule** | --- | ---
-| schedule, Schedule | Schedule, `kind: Schedule` | Schedule |
+**Run** | --- | run | run | Run, `kind: Run` | Run | | **Sub-Agent** | --- | ---
+| Sub-Agent | SubAgent, `sub_agents` | Sub-Agent | | **Agent Channel** | --- |
+--- | channel, Agent Channel | AgentChannel, `kind: AgentChannel` | Agent
+Channel | | **Channel App** | --- | --- | Channel App | ChannelApp,
+`kind: ChannelApp` | Channel App | | **Schedule** | --- | --- | schedule,
+Schedule | Schedule, `kind: Schedule` | Schedule |
 
 Dash (—) means the term should not appear in that context.
 
@@ -352,9 +352,9 @@ An ongoing conversation with an Agent across multiple messages.
   runs), `subject` (display title), `workspace_entries`, `sandbox_id`. Sessions
   can add `mcp_server_usages` and `skill_refs` to the Agent's; the Agent's tool
   lists still govern every tool.
-- **Related terms**: A Session contains multiple Agent Runs. Each message
-  exchange within a Session is one run. The proto also uses `MessageType`
-  (HUMAN, AI, TOOL, SYSTEM) for individual messages.
+- **Related terms**: A Session contains multiple runs. Each message exchange
+  within a Session is one run. The proto also uses `MessageType` (HUMAN, AI,
+  TOOL, SYSTEM) for individual messages.
 
 **Good examples**:
 
@@ -478,9 +478,8 @@ action before proceeding.
   destructive (`destructive_hint`). An Agent's hooks (`hooks`) decide call by
   call: refuse, ask, or allow. Its `tools` and `disallowed_tools` lists decide
   which tools it has at all. Submitted via
-  `AgentRunCommandController.submitApproval`. Statuses:
-  `TOOL_CALL_WAITING_APPROVAL`, `TOOL_CALL_SKIPPED`. Actions: `APPROVE`, `SKIP`,
-  `REJECT`.
+  `RunCommandController.submitApproval`. Statuses: `TOOL_CALL_WAITING_APPROVAL`,
+  `TOOL_CALL_SKIPPED`. Actions: `APPROVE`, `SKIP`, `REJECT`.
 
 **Good examples**:
 
@@ -721,15 +720,15 @@ different settings and secrets.
 #### Preference
 
 A standing default or free-text context a user or Organization declares once,
-applied to their Agent Runs automatically, and always overridable where a
-per-action control exists.
+applied to their runs automatically, and always overridable where a per-action
+control exists.
 
 - **Capitalize**: Yes, when referring to the Stigmer concept.
 - **API surface**: not a resource kind — a spec message on existing kinds:
   `OrganizationSpec.preferences` (`OrganizationPreferences`) and
   `IdentityAccountSpec.preferences` (`IdentityAccountPreferences`), each with
   `standing_context`. The server snapshots the texts onto
-  `AgentRunStatus.declared_preferences` when the run is created.
+  `RunStatus.declared_preferences` when the run is created.
 - **Boundaries**: a Preference is not a **Skill** (Agent knowledge), not an
   **Environment** (workload config and secrets), not a **Session** (conversation
   state), and not a **Memory** (a learned fact an agent proposed and you
@@ -746,8 +745,8 @@ per-action control exists.
 
 A single fact the platform remembers about a person: an agent proposes it during
 a session, and it becomes active only after the person it is about confirms it.
-Confirmed Memories are recalled into that person's future Agent Runs as
-background context.
+Confirmed Memories are recalled into that person's future runs as background
+context.
 
 - **Capitalize**: Yes, when referring to the Stigmer concept. Lowercase when
   used generically ("memory usage").
@@ -932,15 +931,17 @@ engine.
 
 ---
 
-#### Agent Run
+#### Run
 
-One run of an Agent from start to finish.
+One run of an Agent from start to finish: what a user starts when they send a
+message, fire a schedule or open a share link.
 
-- **User-facing alternative**: "run" in tutorials. Avoid the compound "Agent
-  Run" until concept or reference pages.
-- **Capitalize**: Yes, as a compound proper noun.
-- **API surface**: `kind: AgentRun`, prefix `aex`. proto:
-  `agentrun/v1/api.proto`. CLI:
+- **Capitalize**: As the resource name in labels and reference pages
+  (`kind: Run`, the console's "Run" page). In prose say "run" in lower case: the
+  word is also a verb, so no style rule can capitalize it.
+- **API surface**: `kind: Run`, id prefix `run` (`run_...`); a store that
+  existed before the rename also holds runs whose ids start `aex_...`, and those
+  ids keep working. proto: `run/v1/api.proto`. CLI:
 
   ```bash
   stigmer run <agent_name> "<prompt>"
@@ -948,30 +949,23 @@ One run of an Agent from start to finish.
   stigmer runs logs <id>
   ```
 
-- **Message types**: `HUMAN`, `AI`, `TOOL`, `SYSTEM` (from
-  `agentrun/v1/enum.proto`).
+- **Message types**: `HUMAN`, `AI`, `TOOL`, `SYSTEM` (from `run/v1/enum.proto`).
 - **Phases**: `RUN_WAITING_FOR_APPROVAL` is a notable phase---the run pauses
   during an approval flow.
+- **Two meanings**: the word "run" means two different things across Stigmer.
+  Say which one when a page touches both.
+  1. **A Stigmer run**---what a user starts: a run, with an id (`run_...`), a
+     phase and a page in the console. This is the meaning everywhere in
+     user-facing docs.
+  2. **Temporal's run of a workflow**---one attempt of a Temporal workflow
+     (`runId`). It appears only in engine code and engine operations pages,
+     never in user-facing docs.
 - **Engine words**: the engine underneath still says "execution": its logs, its
   Temporal task queues (`agent_execution_stigmer`) and operator settings such as
   `TEMPORAL_AGENT_EXECUTION_STIGMER_TASK_QUEUE` keep that word. Do not rename
   them in docs; say "run" for what the user started.
-- **Former name**: `AgentExecution` (`kind: AgentExecution`). Do not use it in
-  new writing.
-
----
-
-#### Run
-
-The word "run" means two different things across Stigmer. Say which one when a
-page touches both.
-
-1. **A Stigmer run**---what a user starts: an Agent Run, with an id (`aex_...`),
-   a phase and a page in the console. This is the meaning everywhere in
-   user-facing docs.
-2. **Temporal's run of a workflow**---one attempt of a Temporal workflow
-   (`runId`). It appears only in engine code and engine operations pages, never
-   in user-facing docs.
+- **Former names**: `AgentExecution` (`kind: AgentExecution`), then `AgentRun`
+  (`kind: AgentRun`, "Agent Run"). Do not use them in new writing.
 
 ---
 
@@ -1070,7 +1064,7 @@ subtask.
 - **Capitalize**: Yes, hyphenated: "Sub-Agent."
 - **API surface**: `SubAgent` message in `agent/v1/spec.proto`. Fields: `tools`,
   `disallowed_tools` (narrow the parent's tools, never widen them),
-  `skill_refs`, `model_override`. Run tracking: `agentrun/v1/subagent.proto`.
+  `skill_refs`, `model_override`. Run tracking: `run/v1/subagent.proto`.
 - **Context rule**: Concepts and reference only. Never on the sales site. In
   tutorials, if needed, describe as "an Agent that calls another Agent."
 
@@ -1078,7 +1072,7 @@ subtask.
 
 #### Durable Execution
 
-The ability for Agent Runs to survive crashes, restart automatically, and resume
+The ability for runs to survive crashes, restart automatically, and resume
 exactly where they left off.
 
 - **Capitalize**: Yes, as a Stigmer concept.

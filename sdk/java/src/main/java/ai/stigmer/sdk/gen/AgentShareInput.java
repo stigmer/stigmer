@@ -2,13 +2,13 @@
 
 package ai.stigmer.sdk.gen;
 
-import ai.stigmer.agentic.agentrun.v1.RunConfig;
-import ai.stigmer.agentic.agentrun.v1.ServiceTier;
-import ai.stigmer.agentic.agentrun.v1.ThinkingMode;
 import ai.stigmer.agentic.agentshare.v1.AgentShare;
 import ai.stigmer.agentic.agentshare.v1.AgentShareAudience;
 import ai.stigmer.agentic.agentshare.v1.AgentShareMessages;
 import ai.stigmer.agentic.agentshare.v1.AgentShareSpec;
+import ai.stigmer.agentic.run.v1.RunConfig;
+import ai.stigmer.agentic.run.v1.ServiceTier;
+import ai.stigmer.agentic.run.v1.ThinkingMode;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;

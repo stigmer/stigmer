@@ -2,22 +2,22 @@ import { describe, it, expect, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+  RunSchema,
+  RunStatusSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,
   type AgentMessage,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   RunPhase,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { buildThreadItems } from "../MessageThread";
 import { MessageEntry } from "../MessageEntry";
 
@@ -65,11 +65,11 @@ function gatedAiMessage(): AgentMessage {
  * gated tool call (WAITING_APPROVAL), then the blanked provisional narration
  * (a THINKING and an AI message, both with empty content). Count preserved.
  */
-function waitingForApprovalExecution(): AgentRun {
-  const exec = create(AgentRunSchema);
+function waitingForApprovalExecution(): Run {
+  const exec = create(RunSchema);
   exec.metadata = create(ApiResourceMetadataSchema, { id: "exec-hitl" });
-  exec.spec = create(AgentRunSpecSchema, { message: "make the change" });
-  exec.status = create(AgentRunStatusSchema, {
+  exec.spec = create(RunSpecSchema, { message: "make the change" });
+  exec.status = create(RunStatusSchema, {
     phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
     messages: [
       aiText("Let me create the file."),

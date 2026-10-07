@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { cn } from "@stigmer/theme";
 import {
   useContextWindow,
@@ -16,7 +16,7 @@ export interface ContextGaugeProps {
    * The run snapshot from `useRunStream`, or `null`.
    * The gauge extracts `context_info` from the run status.
    */
-  readonly run: AgentRun | null;
+  readonly run: Run | null;
   /**
    * When `true`, renders a minimal bar without labels.
    * Use in tight layouts (e.g., inline status indicators).
@@ -52,7 +52,7 @@ function formatCompactTokens(count: number): string {
 }
 
 /**
- * Visual gauge showing context window utilization during agent run.
+ * Visual gauge showing context window utilization during run.
  *
  * Renders a progress bar with threshold markers, token count labels, and
  * a health indicator derived from utilization percentage. The gauge updates

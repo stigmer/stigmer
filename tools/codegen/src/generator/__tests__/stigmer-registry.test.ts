@@ -2,7 +2,7 @@
 // reports "unknown kind" for any resource whose package is missing from the
 // root list, so these cases hold the closure's shape (every file once, each
 // after its dependencies) and that the run resource docs show as a manifest
-// (AgentRun) resolves by its wire type name.
+// (Run) resolves by its wire type name.
 import { describe, expect, it } from "vitest";
 
 import { allStigmerFiles, allStigmerMessages, stigmerRegistry } from "../stigmer-registry.js";
@@ -23,14 +23,14 @@ describe("allStigmerFiles", () => {
 
   it("carries the agent run API file", () => {
     const names = allStigmerFiles().map((f) => f.proto.name);
-    expect(names).toContain("ai/stigmer/agentic/agentrun/v1/api.proto");
+    expect(names).toContain("ai/stigmer/agentic/run/v1/api.proto");
   });
 });
 
 describe("stigmerRegistry", () => {
   it("resolves the run resource by its wire type name", () => {
     const registry = stigmerRegistry();
-    expect(registry.getMessage("ai.stigmer.agentic.agentrun.v1.AgentRun")?.name).toBe("AgentRun");
+    expect(registry.getMessage("ai.stigmer.agentic.run.v1.Run")?.name).toBe("Run");
   });
 });
 
@@ -44,6 +44,6 @@ describe("allStigmerMessages", () => {
     for (const msg of nested) {
       expect(typeNames.has(msg.typeName)).toBe(true);
     }
-    expect(typeNames.has("ai.stigmer.agentic.agentrun.v1.AgentRun")).toBe(true);
+    expect(typeNames.has("ai.stigmer.agentic.run.v1.Run")).toBe(true);
   });
 });

@@ -57,7 +57,7 @@ service ScheduleQueryController {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
-  // List a schedule's run history, newest first.
+  // List a schedule's fire history, newest first.
   //
   // Every fire leaves a row — including fires that created no run
   // (a refused launch gate, a missing target agent) — with the refusing
@@ -66,17 +66,17 @@ service ScheduleQueryController {
   //
   // @internal
   // Backed by the fire ledger. Authorization:
-  // can_view on the schedule — run history is the schedule's own
+  // can_view on the schedule — fire history is the schedule's own
   // operational record; the linked runs keep their own bars. Rows
   // carrying a run id but no terminal outcome are enriched with
   // the run's live phase at read time (one join), so manual fires
   // need no tracker and outcome columns never lie. OSS implements the
   // same contract against its store; the conformance suite holds both
   // editions to it.
-  rpc listRuns(ListScheduleRunsRequest) returns (ScheduleRunList) {
+  rpc listFires(ListScheduleFiresRequest) returns (ScheduleFireList) {
     option (ai.stigmer.commons.rpc.config).resource_kind = schedule;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
     option (ai.stigmer.commons.rpc.config).field_path = "schedule_id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list schedule runs";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list schedule fires";
   }
 }

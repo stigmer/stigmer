@@ -183,9 +183,9 @@ async function main() {
 
     // 5. The end-to-end agent run through Temporal, the server's workers and
     // the runner, answered by the model.
-    const agentRun = await runAgentToReply(baseUrl, RUN_COMPLETED_TIMEOUT_MS, { expectText: fake.replyText, log });
+    const run = await runAgentToReply(baseUrl, RUN_COMPLETED_TIMEOUT_MS, { expectText: fake.replyText, log });
     log(
-      `agent run: execution ${agentRun.executionId} COMPLETED inside the one container with the model's reply (${fake.requests()} model calls)`,
+      `agent run: execution ${run.executionId} COMPLETED inside the one container with the model's reply (${fake.requests()} model calls)`,
     );
 
     // 6. The artifact lane on its published port.
@@ -197,12 +197,12 @@ async function main() {
     docker(["restart", "--time", String(STOP_GRACE_SECONDS), container]);
     await aio.waitHealthy();
     const restartedBase = aio.baseUrl();
-    const agentAfter = await readAgentExecution(restartedBase, agentRun.executionId);
+    const agentAfter = await readAgentExecution(restartedBase, run.executionId);
     if (agentAfter.status?.phase !== "RUN_COMPLETED") {
-      throw new Error(`agent execution ${agentRun.executionId} not completed after restart: ${JSON.stringify(agentAfter.status)}`);
+      throw new Error(`agent execution ${run.executionId} not completed after restart: ${JSON.stringify(agentAfter.status)}`);
     }
-    if (lastAiReply(agentAfter) !== agentRun.reply) {
-      throw new Error(`agent execution ${agentRun.executionId} lost its reply across the restart: ${JSON.stringify(agentAfter.status)}`);
+    if (lastAiReply(agentAfter) !== run.reply) {
+      throw new Error(`agent execution ${run.executionId} lost its reply across the restart: ${JSON.stringify(agentAfter.status)}`);
     }
     log("state survived docker restart, the agent's reply included");
 
@@ -224,9 +224,9 @@ async function main() {
         `Temporal churned across the supervisor window: processes ${countBefore}->${countAfter}, pid ${pidBefore}->${pidAfter} (a restart loop)`,
       );
     }
-    const stillThere = await readAgentExecution(uncleanBase, agentRun.executionId);
+    const stillThere = await readAgentExecution(uncleanBase, run.executionId);
     if (stillThere.status?.phase !== "RUN_COMPLETED") {
-      throw new Error(`agent execution ${agentRun.executionId} lost across the unclean restart`);
+      throw new Error(`agent execution ${run.executionId} lost across the unclean restart`);
     }
     log("unclean restart: recovered; one Temporal, same pid, across three supervisor ticks; state intact");
 

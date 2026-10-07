@@ -2,21 +2,21 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+  RunSchema,
+  RunStatusSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
-  AgentRunSpecSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+  RunSpecSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
-import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/todo_pb";
-import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
+import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/todo_pb";
+import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
@@ -25,7 +25,7 @@ import {
   FileReviewEventSchema,
   FileReviewEventStreamSchema,
   FileReviewReconciledSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   DiffCompleteness,
   RunPhase,
@@ -37,7 +37,7 @@ import {
   MessageType,
   TodoStatus,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { MessageThread } from "../MessageThread";
 
@@ -95,21 +95,21 @@ function makeExecution(opts: {
   interactionMode?: InteractionMode;
   aiContent?: string;
   error?: string;
-}): AgentRun {
-  const exec = create(AgentRunSchema);
+}): Run {
+  const exec = create(RunSchema);
 
   const meta = create(ApiResourceMetadataSchema);
   meta.id = opts.id;
   exec.metadata = meta;
 
-  const spec = create(AgentRunSpecSchema);
+  const spec = create(RunSpecSchema);
   spec.message = opts.specMessage ?? "Hello";
   if (opts.interactionMode !== undefined) {
     spec.interactionMode = opts.interactionMode;
   }
   exec.spec = spec;
 
-  const status = create(AgentRunStatusSchema);
+  const status = create(RunStatusSchema);
   status.phase = opts.phase ?? RunPhase.RUN_COMPLETED;
   if (opts.error !== undefined) {
     status.error = opts.error;
@@ -133,18 +133,18 @@ function makeExecutionWithApproval(
   id: string,
   toolCallId: string,
   toolName: string,
-): AgentRun {
-  const exec = create(AgentRunSchema);
+): Run {
+  const exec = create(RunSchema);
 
   const meta = create(ApiResourceMetadataSchema);
   meta.id = id;
   exec.metadata = meta;
 
-  const spec = create(AgentRunSpecSchema);
+  const spec = create(RunSpecSchema);
   spec.message = "Do something";
   exec.spec = spec;
 
-  const status = create(AgentRunStatusSchema);
+  const status = create(RunStatusSchema);
   status.phase = RunPhase.RUN_IN_PROGRESS;
 
   const aiMsg = create(AgentMessageSchema);
@@ -169,12 +169,12 @@ function makeExecutionWithInlineApproval(
   id: string,
   toolCallId: string,
   toolName: string,
-): AgentRun {
-  const exec = create(AgentRunSchema);
+): Run {
+  const exec = create(RunSchema);
   exec.metadata = create(ApiResourceMetadataSchema, { id });
-  exec.spec = create(AgentRunSpecSchema, { message: "Do something" });
+  exec.spec = create(RunSpecSchema, { message: "Do something" });
 
-  const status = create(AgentRunStatusSchema);
+  const status = create(RunStatusSchema);
   status.phase = RunPhase.RUN_WAITING_FOR_APPROVAL;
 
   const aiMsg = create(AgentMessageSchema, {
@@ -206,12 +206,12 @@ function makeExecutionWithInlineApproval(
  * FileReviewDock owns it). Flip the set's status to a settled value to exercise
  * the read-only record rendering.
  */
-function makeExecutionWithFileReview(id: string, setId: string): AgentRun {
-  const exec = create(AgentRunSchema);
+function makeExecutionWithFileReview(id: string, setId: string): Run {
+  const exec = create(RunSchema);
   exec.metadata = create(ApiResourceMetadataSchema, { id });
-  exec.spec = create(AgentRunSpecSchema, { message: "Edit a file" });
+  exec.spec = create(RunSpecSchema, { message: "Edit a file" });
 
-  const status = create(AgentRunStatusSchema);
+  const status = create(RunStatusSchema);
   status.phase = RunPhase.RUN_IN_PROGRESS;
   status.messages = [
     create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "Done." }),
@@ -297,10 +297,10 @@ describe("MessageThread", () => {
   it("folds the ledger and renders read-only for a terminal execution (empty projection)", () => {
     // A terminal run: the server projects no actionable file_change_sets,
     // so MessageThread must fold the durable ledger to show what changed.
-    const exec = create(AgentRunSchema);
+    const exec = create(RunSchema);
     exec.metadata = create(ApiResourceMetadataSchema, { id: "exec-terminal" });
-    exec.spec = create(AgentRunSpecSchema, { message: "Edit a file" });
-    const status = create(AgentRunStatusSchema);
+    exec.spec = create(RunSpecSchema, { message: "Edit a file" });
+    const status = create(RunStatusSchema);
     status.phase = RunPhase.RUN_COMPLETED;
     status.messages = [
       create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "Done." }),
@@ -394,10 +394,10 @@ describe("MessageThread", () => {
   it("threads an approvalErrors entry to a bottom backstop card (orphan approval)", () => {
     // An approval whose tool call has no inline row renders as the bottom
     // backstop ApprovalCard; the keyed error must reach it too.
-    const exec = create(AgentRunSchema);
+    const exec = create(RunSchema);
     exec.metadata = create(ApiResourceMetadataSchema, { id: "exec-orphan" });
-    exec.spec = create(AgentRunSpecSchema, { message: "Do something" });
-    const status = create(AgentRunStatusSchema);
+    exec.spec = create(RunSpecSchema, { message: "Do something" });
+    const status = create(RunStatusSchema);
     status.phase = RunPhase.RUN_WAITING_FOR_APPROVAL;
     status.messages = [];
     status.pendingApprovals = [
@@ -783,15 +783,15 @@ describe("MessageThread", () => {
   describe("streaming trace replaces the synthetic placeholder (issue #179)", () => {
     function makeStreamingExecution(
       messages: ReturnType<typeof create<typeof AgentMessageSchema>>[],
-    ): AgentRun {
-      const exec = create(AgentRunSchema);
+    ): Run {
+      const exec = create(RunSchema);
       const meta = create(ApiResourceMetadataSchema);
       meta.id = "exec-streaming";
       exec.metadata = meta;
-      const spec = create(AgentRunSpecSchema);
+      const spec = create(RunSpecSchema);
       spec.message = "Do the thing";
       exec.spec = spec;
-      const status = create(AgentRunStatusSchema);
+      const status = create(RunStatusSchema);
       status.phase = RunPhase.RUN_IN_PROGRESS;
       status.messages = messages;
       exec.status = status;

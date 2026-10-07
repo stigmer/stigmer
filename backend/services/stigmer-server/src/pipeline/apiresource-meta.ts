@@ -388,14 +388,16 @@ function kindsByEnumName(): Map<string, ApiResourceKind> {
  * inverse of `getIdPrefix` over the ids `generateId` mints
  * (`<prefix>_<ulid>`, pipeline/steps/defaults.ts). The one consumer today
  * is the runner-credential lane, whose token binds an execution by id and
- * must know whether that id names an agent execution without a second
- * claim or a guess. Anything that is not
- * `<known prefix>_<rest>` — no underscore, an unknown prefix, the empty
- * string — is `api_resource_kind_unknown`; never a throw, because the id
- * arrived inside a credential and the caller refuses with its own
- * sentence. Every `id_prefix` in the contract is unique; the table pin in
- * __tests__ makes a future duplicate a reviewed change, since this lookup
- * would otherwise resolve it silently to one of the two.
+ * must know whether that id names a run without a second claim or a
+ * guess. A kind's retired prefixes (`retired_id_prefixes`) name it too:
+ * ids are identities and are never rewritten, so a store keeps the ids it
+ * minted before a kind's prefix changed (a run's `aex_…`). Anything that
+ * is not `<known prefix>_<rest>` — no underscore, an unknown prefix, the
+ * empty string — is `api_resource_kind_unknown`; never a throw, because
+ * the id arrived inside a credential and the caller refuses with its own
+ * sentence. Every prefix in the contract, current and retired, is unique;
+ * the table pin in __tests__ makes a future duplicate a reviewed change,
+ * since this lookup would otherwise resolve it silently to one of the two.
  */
 export function kindByIdPrefix(id: string): ApiResourceKind {
   const separator = id.indexOf("_");
@@ -415,10 +417,12 @@ function kindsByIdPrefix(): Map<string, ApiResourceKind> {
     idPrefixCache = new Map(
       ApiResourceKindSchema.values
         .filter((value) => hasOption(value, kind_meta))
-        .map((value) => [
-          getOption(value, kind_meta).idPrefix,
-          value.number as ApiResourceKind,
-        ]),
+        .flatMap((value) => {
+          const meta = getOption(value, kind_meta);
+          return [meta.idPrefix, ...meta.retiredIdPrefixes].map(
+            (prefix) => [prefix, value.number as ApiResourceKind] as const,
+          );
+        }),
     );
   }
   return idPrefixCache;

@@ -1,19 +1,19 @@
-import type { GetOrgUsageReportOutput } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import type { GetOrgUsageReportOutput } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 
 /**
- * Dashboard summary of an organization's agent runs.
+ * Dashboard summary of an organization's runs.
  *
- * Run counts (active, completed, failed) come from the agent run summary.
+ * Run counts (active, completed, failed) come from the run summary.
  * Cost comes from {@link GetOrgUsageReportOutput} (billing source of truth),
  * not from summing per-run costs, so the dashboard shows what billing
  * recorded.
  */
 export interface DashboardSummary {
-  /** Active agent run count. */
+  /** Active run count. */
   readonly activeCount: number;
-  /** Completed agent run count. */
+  /** Completed run count. */
   readonly completedCount: number;
-  /** Failed agent run count. */
+  /** Failed run count. */
   readonly failedCount: number;
   /**
    * Total platform cost in USD from the billing source of truth.
@@ -24,9 +24,9 @@ export interface DashboardSummary {
   readonly orgUsage: GetOrgUsageReportOutput | null;
 }
 
-/** A normalized entry representing a failed agent run. */
+/** A normalized entry representing a failed run. */
 export interface DashboardFailedRun {
-  /** Agent run ID (`aex_*`). */
+  /** Run ID (`run_*`). */
   readonly id: string;
   /** Run name or subject. */
   readonly name: string;

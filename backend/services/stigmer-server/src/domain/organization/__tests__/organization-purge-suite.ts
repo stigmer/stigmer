@@ -38,7 +38,7 @@ import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -263,7 +263,7 @@ export function describeOrganizationPurge(
         // A run stored here has finished: a server with no engine holds no
         // live run, and the purge needs the engine only for one that may be.
         const finished =
-          kind === ApiResourceKind.agent_run
+          kind === ApiResourceKind.run
             ? { status: { phase: FINISHED_PHASE } }
             : {};
         const row = create(schema, {
@@ -274,7 +274,7 @@ export function describeOrganizationPurge(
         await store.saveResource(kind, id, schema, row as never);
         ids.add(id);
       }
-      await store.upsertScheduleRun({
+      await store.upsertScheduleFire({
         scheduleId: `schedule_${slug}`,
         org,
         nominalFireTime: new Date().toISOString(),

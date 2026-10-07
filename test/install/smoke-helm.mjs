@@ -275,14 +275,14 @@ async function probeStack(release, fake) {
     log("console lane: /config.json contract + / html both answer");
     await assertArtifactLane(forward.artifactUrl);
     log("artifact file server: answering through the port-forward");
-    const agentRun = await runAgentToReply(baseUrl, RUN_COMPLETED_TIMEOUT_MS, {
+    const run = await runAgentToReply(baseUrl, RUN_COMPLETED_TIMEOUT_MS, {
       expectText: fake.replyText,
       log,
     });
     log(
-      `agent run: execution ${agentRun.executionId} COMPLETED through the runner with the model's reply (${fake.requests()} model calls)`,
+      `agent run: execution ${run.executionId} COMPLETED through the runner with the model's reply (${fake.requests()} model calls)`,
     );
-    return agentRun.executionId;
+    return run.executionId;
   } finally {
     forward.stop();
   }

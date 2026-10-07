@@ -8,7 +8,7 @@
 // same label reads correctly whether the call is still waiting (a gating source
 // → "required by …") or already cleared (a bypass source → "auto-approved …").
 
-import { ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 export { ApprovalPolicySource };
 

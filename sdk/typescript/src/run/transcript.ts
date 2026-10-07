@@ -32,30 +32,30 @@
 import { toJson, type JsonValue } from "@bufbuild/protobuf";
 import { create } from "@bufbuild/protobuf";
 import type {
-  AgentRun,
-  AgentRunStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+  Run,
+  RunStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type {
   AgentMessage,
   ToolCall,
   ToolCallOutputRef,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type {
   GetArtifactContentResponse,
-  ListAgentRunsBySessionRequest,
-  AgentRunList,
+  ListRunsBySessionRequest,
+  RunList,
   GetArtifactContentRequest,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import {
   GetArtifactContentRequestSchema,
-  ListAgentRunsBySessionRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
-import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+  ListRunsBySessionRequestSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { resolvedSubject } from "../session.js";
@@ -102,7 +102,7 @@ export interface ResolvedToolOutput {
  * rules' verdicts precomputed so consumers never re-derive them. */
 export interface TranscriptTurn {
   /** The run, verbatim — messages, tool calls, sub-agents, timestamps. */
-  readonly run: AgentRun;
+  readonly run: Run;
   /**
    * The user prose that opened this turn, or `null` when the turn has none
    * (programmatic create, `"execute"` placeholder, Build-from-plan label) —
@@ -161,7 +161,7 @@ export interface AssembleSessionTranscriptOptions {
  */
 export function assembleSessionTranscript(
   session: Session,
-  executions: readonly AgentRun[],
+  executions: readonly Run[],
   options?: AssembleSessionTranscriptOptions,
 ): SessionTranscript {
   const includeSuperseded = options?.includeSuperseded === true;
@@ -203,10 +203,10 @@ export interface SessionTranscriptClient {
   readonly session: {
     get(id: string): Promise<Session>;
   };
-  readonly agentRun: {
+  readonly run: {
     listBySession(
-      input: ListAgentRunsBySessionRequest,
-    ): Promise<AgentRunList>;
+      input: ListRunsBySessionRequest,
+    ): Promise<RunList>;
     getArtifactContent(
       input: GetArtifactContentRequest,
     ): Promise<GetArtifactContentResponse>;
@@ -245,8 +245,8 @@ export async function fetchSessionTranscript(
 ): Promise<SessionTranscript> {
   const [session, list] = await Promise.all([
     client.session.get(sessionId),
-    client.agentRun.listBySession(
-      create(ListAgentRunsBySessionRequestSchema, { sessionId }),
+    client.run.listBySession(
+      create(ListRunsBySessionRequestSchema, { sessionId }),
     ),
   ]);
 
@@ -282,8 +282,8 @@ export async function fetchSessionTranscript(
  * run's id, and the key is the record of that.
  */
 export async function resolveOffloadedOutputs(
-  client: Pick<SessionTranscriptClient, "agentRun">,
-  executions: readonly AgentRun[],
+  client: Pick<SessionTranscriptClient, "run">,
+  executions: readonly Run[],
   options?: { readonly concurrency?: number },
 ): Promise<Record<string, ResolvedToolOutput>> {
   const refs = new Map<string, ToolCallOutputRef>();
@@ -321,7 +321,7 @@ export async function resolveOffloadedOutputs(
         return;
       }
       try {
-        const response = await client.agentRun.getArtifactContent(
+        const response = await client.run.getArtifactContent(
           create(GetArtifactContentRequestSchema, {
             runId: executionId,
             storageKey: ref.storageKey,
@@ -349,7 +349,7 @@ export async function resolveOffloadedOutputs(
 /** Every tool call in a run's status — the parent transcript's plus
  * each embedded sub-agent transcript's. */
 function* allToolCalls(
-  status: AgentRunStatus | undefined,
+  status: RunStatus | undefined,
 ): Generator<ToolCall> {
   if (!status) return;
   const messageLists: readonly (readonly AgentMessage[])[] = [
@@ -686,12 +686,12 @@ function fenced(content: string, language = ""): string {
  * object here: int64 fields are `bigint` and would throw.
  *
  * The format is `stigmer.ai/session-transcript/v2`: each turn's `run` is an
- * AgentRun. v1 named it `execution` and held the AgentExecution shape that
+ * Run. v1 named it `execution` and held the AgentExecution shape that
  * executions had before they were named runs.
  */
 export function transcriptToJson(transcript: SessionTranscript): JsonValue {
   const turns: JsonValue[] = transcript.turns.map((turn) => {
-    const run = toJson(AgentRunSchema, turn.run, {
+    const run = toJson(RunSchema, turn.run, {
       useProtoFieldName: true,
     });
     return {

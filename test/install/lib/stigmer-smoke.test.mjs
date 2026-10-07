@@ -250,8 +250,8 @@ const MY_ORGS = "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/
 const STIGMER_ORG = { metadata: { id: "stigmer", slug: "stigmer", name: "Stigmer" } };
 const OTHER_ORG = { metadata: { id: "acme", slug: "acme", name: "acme" } };
 const AGENT_CREATE = "ai.stigmer.agentic.agent.v1.AgentCommandController/create";
-const AEX_CREATE = "ai.stigmer.agentic.agentrun.v1.AgentRunCommandController/create";
-const AEX_GET = "ai.stigmer.agentic.agentrun.v1.AgentRunQueryController/get";
+const AEX_CREATE = "ai.stigmer.agentic.run.v1.RunCommandController/create";
+const AEX_GET = "ai.stigmer.agentic.run.v1.RunQueryController/get";
 const REPLY = "This is the Stigmer fake model's default reply; no real model was called.";
 
 function agentLane(executionAt, aexCreate = () => ({ metadata: { id: "aex_smoke_1" } })) {
@@ -669,6 +669,20 @@ test("state recorded through the run API before the rename reads back whole thro
   }
 });
 
+test("state recorded through the agent run API reads back whole through the current one", async () => {
+  const lane = await stateLane(RUN_APIS.beforeRunKindRename);
+  try {
+    assert.equal(await runApiOf(lane.baseUrl), RUN_APIS.beforeRunKindRename);
+    const recorded = await recordState(lane.baseUrl, 10_000, { expectText: REPLY });
+    assert.equal(recorded.snapshot.agentExecution.phase, "COMPLETED");
+    lane.upgrade();
+    assert.equal(await runApiOf(lane.baseUrl), RUN_APIS.current);
+    await assertStateSurvived(lane.baseUrl, recorded);
+  } finally {
+    await lane.close();
+  }
+});
+
 test("a run that lost its phase across the rename is named", async () => {
   const lane = await stateLane(RUN_APIS.beforeRunRename);
   try {
@@ -686,7 +700,7 @@ test("a run that lost its phase across the rename is named", async () => {
 
 test("runApiOf takes any answer but an unrouted procedure's bare 404 as the current run API", async () => {
   for (const [status, body] of [
-    [404, { code: "not_found", message: "agent run aex_run_api_probe not found" }],
+    [404, { code: "not_found", message: "Run not found: run_api_probe" }],
     [400, { code: "invalid_argument", message: "value: not an id" }],
   ]) {
     const lane = await serveAnswer(status, body);
@@ -715,7 +729,7 @@ test("readState keeps a failed read as an error and skips the reference it depen
 
 test("a base that still serves workflows records one completed workflow run, under either run API", async () => {
   for (const [api, workflows] of [
-    [RUN_APIS.current, LEGACY_WORKFLOW_APIS[0]],
+    [RUN_APIS.beforeRunKindRename, LEGACY_WORKFLOW_APIS[0]],
     [RUN_APIS.beforeRunRename, LEGACY_WORKFLOW_APIS[1]],
   ]) {
     const lane = await stateLane(api, workflows);
@@ -735,7 +749,7 @@ test("a base that still serves workflows records one completed workflow run, und
 });
 
 test("the workflow API must be gone after the upgrade: refused while it is routed, passed once it is not", async () => {
-  const lane = await stateLane(RUN_APIS.current, LEGACY_WORKFLOW_APIS[0]);
+  const lane = await stateLane(RUN_APIS.beforeRunKindRename, LEGACY_WORKFLOW_APIS[0]);
   try {
     const recorded = await recordState(lane.baseUrl, 10_000, { expectText: REPLY });
     await assert.rejects(assertWorkflowApiGone(lane.baseUrl), /still routes ai\.stigmer\.agentic\.workflowrun\.v1\.WorkflowRunQueryController\/get/);

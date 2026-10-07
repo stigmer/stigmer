@@ -172,7 +172,7 @@ Create `ask_agent.py`:
 import os
 import time
 
-from stigmer import StigmerClient, SessionInput, AgentRunInput
+from stigmer import StigmerClient, SessionInput, RunInput
 
 client = StigmerClient(os.environ["STIGMER_API_KEY"])
 ```
@@ -185,7 +185,7 @@ Create `src/main/java/AskAgent.java`:
 ```java
 import ai.stigmer.sdk.StigmerClient;
 import ai.stigmer.sdk.gen.SessionInput;
-import ai.stigmer.sdk.gen.AgentRunInput;
+import ai.stigmer.sdk.gen.RunInput;
 
 public class AskAgent {
     public static void main(String[] args) {
@@ -220,7 +220,7 @@ async function main() {
     org: "my-org",
   });
 
-  const run = await stigmer.agentRun.create({
+  const run = await stigmer.run.create({
     name: `run-${Date.now()}`,
     org: "my-org",
     sessionId: session.metadata!.id,
@@ -246,7 +246,7 @@ Add to `main.go`:
 		log.Fatal(err)
 	}
 
-	run, err := client.AgentRun.Create(ctx, &stigmer.AgentRunInput{
+	run, err := client.Run.Create(ctx, &stigmer.RunInput{
 		Name:      "run-" + ts,
 		Org:       "my-org",
 		SessionId: session.GetMetadata().GetId(),
@@ -270,7 +270,7 @@ session = client.sessions.create(SessionInput(
     org="my-org",
 ))
 
-run = client.agent_runs.create(AgentRunInput(
+run = client.runs.create(RunInput(
     name=f"run-{ts}",
     org="my-org",
     session_id=session.metadata.id,
@@ -293,8 +293,8 @@ Add to `src/main/java/AskAgent.java`:
                 .build()
         );
 
-        var run = client.agentRun.create(
-            AgentRunInput.builder()
+        var run = client.run.create(
+            RunInput.builder()
                 .name("run-" + ts)
                 .org("my-org")
                 .sessionId(session.getMetadata().getId())
@@ -323,7 +323,7 @@ Add the following to the same file, right after the code from the previous step.
 Add to `ask-agent.ts`:
 
 ```typescript
-  for await (const snapshot of stigmer.agentRun.subscribe(
+  for await (const snapshot of stigmer.run.subscribe(
     run.metadata!.id,
   )) {
     const messages = snapshot.status?.messages ?? [];
@@ -344,7 +344,7 @@ main();
 Add to `main.go`:
 
 ```go
-	stream, err := client.AgentRun.Subscribe(ctx, run.GetMetadata().GetId())
+	stream, err := client.Run.Subscribe(ctx, run.GetMetadata().GetId())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -375,7 +375,7 @@ Add to `main.go`:
 Add to `ask_agent.py`:
 
 ```python
-for snapshot in client.agent_runs.subscribe(run.metadata.id):
+for snapshot in client.runs.subscribe(run.metadata.id):
     messages = snapshot.status.messages
     if messages and messages[-1].content:
         print(messages[-1].content)
@@ -388,7 +388,7 @@ for snapshot in client.agent_runs.subscribe(run.metadata.id):
 Add to `src/main/java/AskAgent.java`:
 
 ```java
-        var stream = client.agentRun.subscribe(
+        var stream = client.run.subscribe(
             run.getMetadata().getId()
         );
 
@@ -434,14 +434,14 @@ async function main() {
     org: "my-org",
   });
 
-  const run = await stigmer.agentRun.create({
+  const run = await stigmer.run.create({
     name: `run-${Date.now()}`,
     org: "my-org",
     sessionId: session.metadata!.id,
     message: "What are some best practices for handling customer complaints?",
   });
 
-  for await (const snapshot of stigmer.agentRun.subscribe(run.metadata!.id)) {
+  for await (const snapshot of stigmer.run.subscribe(run.metadata!.id)) {
     const messages = snapshot.status?.messages ?? [];
     const last = messages[messages.length - 1];
     if (last?.content) {
@@ -491,7 +491,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	run, err := client.AgentRun.Create(ctx, &stigmer.AgentRunInput{
+	run, err := client.Run.Create(ctx, &stigmer.RunInput{
 		Name:      "run-" + ts,
 		Org:       "my-org",
 		SessionId: session.GetMetadata().GetId(),
@@ -501,7 +501,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	stream, err := client.AgentRun.Subscribe(ctx, run.GetMetadata().GetId())
+	stream, err := client.Run.Subscribe(ctx, run.GetMetadata().GetId())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -535,7 +535,7 @@ func main() {
 import os
 import time
 
-from stigmer import StigmerClient, SessionInput, AgentRunInput
+from stigmer import StigmerClient, SessionInput, RunInput
 
 client = StigmerClient(os.environ["STIGMER_API_KEY"])
 
@@ -546,14 +546,14 @@ session = client.sessions.create(SessionInput(
     org="my-org",
 ))
 
-run = client.agent_runs.create(AgentRunInput(
+run = client.runs.create(RunInput(
     name=f"run-{ts}",
     org="my-org",
     session_id=session.metadata.id,
     message="What are some best practices for handling customer complaints?",
 ))
 
-for snapshot in client.agent_runs.subscribe(run.metadata.id):
+for snapshot in client.runs.subscribe(run.metadata.id):
     messages = snapshot.status.messages
     if messages and messages[-1].content:
         print(messages[-1].content)
@@ -568,7 +568,7 @@ for snapshot in client.agent_runs.subscribe(run.metadata.id):
 ```java
 import ai.stigmer.sdk.StigmerClient;
 import ai.stigmer.sdk.gen.SessionInput;
-import ai.stigmer.sdk.gen.AgentRunInput;
+import ai.stigmer.sdk.gen.RunInput;
 
 public class AskAgent {
     public static void main(String[] args) {
@@ -585,8 +585,8 @@ public class AskAgent {
                 .build()
         );
 
-        var run = client.agentRun.create(
-            AgentRunInput.builder()
+        var run = client.run.create(
+            RunInput.builder()
                 .name("run-" + ts)
                 .org("my-org")
                 .sessionId(session.getMetadata().getId())
@@ -594,7 +594,7 @@ public class AskAgent {
                 .build()
         );
 
-        var stream = client.agentRun.subscribe(
+        var stream = client.run.subscribe(
             run.getMetadata().getId()
         );
 

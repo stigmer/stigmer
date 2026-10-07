@@ -30,8 +30,8 @@ import path from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -44,11 +44,11 @@ import { serverActingFor } from "../../../../pipeline/interceptors/auth.js";
 import type { SandboxLane } from "../../../../sandbox/lane.js";
 import type { SandboxProvisioner } from "../../../../sandbox/provisioner.js";
 import { SqliteStore } from "../../../../store/sqlite/store.js";
-import type { ConnectedExecutionEngine } from "../../../agentrun/engine.js";
+import type { ConnectedExecutionEngine } from "../../../run/engine.js";
 import {
   ENGINE_DISCONNECTED,
   EngineWorkflowNotFoundError,
-} from "../../../agentrun/engine.js";
+} from "../../../run/engine.js";
 import type { IamPolicyGrantPath } from "../../../iampolicy/grant-path.js";
 import { ORGANIZATION_NAME_KIND } from "../../names.js";
 import {
@@ -104,10 +104,10 @@ function kindPurge(
 
 async function saveExecution(id: string, org: string, phase: RunPhase) {
   await store.saveResource(
-    ApiResourceKind.agent_run,
+    ApiResourceKind.run,
     id,
-    AgentRunSchema,
-    create(AgentRunSchema, {
+    RunSchema,
+    create(RunSchema, {
       metadata: { id, org, name: id },
       status: { phase },
     }),
@@ -364,7 +364,7 @@ describe("the final stage", () => {
       visibility: "visibility_private",
       createdAt: 1_700_000_000,
     });
-    await store.upsertScheduleRun({
+    await store.upsertScheduleFire({
       scheduleId: "sch_left",
       org: ORG,
       nominalFireTime: "2026-08-20T00:00:00Z",
@@ -378,7 +378,7 @@ describe("the final stage", () => {
     const { stage } = rig();
     await stage.run(context);
     expect(await store.deleteSearchIndexByOrg(ORG)).toBe(0);
-    expect((await store.listScheduleRuns("sch_left", 0, 0)).total).toBe(0);
+    expect((await store.listScheduleFires("sch_left", 0, 0)).total).toBe(0);
   });
 
   it("runs its sweeps to their end before anything final", async () => {

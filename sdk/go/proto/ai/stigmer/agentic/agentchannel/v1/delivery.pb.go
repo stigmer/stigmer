@@ -169,7 +169,7 @@ type ChannelDelivery struct {
 	// Organization that owns the connection (billing org).
 	// Denormalized from the channel so sweep/worker paths never join.
 	Org string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
-	// AgentRun whose terminal result this delivery carries.
+	// Run whose terminal result this delivery carries.
 	RunId string `protobuf:"bytes,4,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	// Session the run belongs to (conversation continuity + audit).
 	SessionId string `protobuf:"bytes,5,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`

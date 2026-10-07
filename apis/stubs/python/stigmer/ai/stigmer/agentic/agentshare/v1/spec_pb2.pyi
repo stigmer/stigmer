@@ -1,4 +1,4 @@
-from ai.stigmer.agentic.agentrun.v1 import invocation_pb2 as _invocation_pb2
+from ai.stigmer.agentic.run.v1 import invocation_pb2 as _invocation_pb2
 from ai.stigmer.commons.apiresource import field_options_pb2 as _field_options_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as _io_pb2
 from buf.validate import validate_pb2 as _validate_pb2

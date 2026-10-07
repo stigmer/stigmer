@@ -11,16 +11,16 @@ Agents do not run on their own. A session names an agent directly, and each run 
 ## Agent Lifecycle
 
 ```
-Agent ──► Session ──► AgentRun
+Agent ──► Session ──► Run
 ```
 
 | Resource | Analogy | Purpose |
 |---|---|---|
 | **Agent** | Docker image | Declares capabilities and configuration. Every change to the definition is kept as a version. |
 | **Session** | Container runtime | Names the agent (`agent_ref`) and pins the version it resolved. Groups related runs into a conversational context. Maintains state across multiple runs. |
-| **AgentRun** | Container run (`docker run`) | A single run of the session's agent, at the pinned version. Produces messages, tool calls, and results. |
+| **Run** | Container run (`docker run`) | A single run of the session's agent, at the pinned version. Produces messages, tool calls, and results. |
 
-The Agent resource is the only one users author directly in YAML. Sessions and AgentRuns are created via the API or CLI at runtime. The agent declares the environment keys it needs (`env`); values come from the Environments bound to what starts a run (a schedule, a PlatformClient), from the run's `runtime_env`, and, for keys still missing, from the personal environment of the person who sent the message.
+The Agent resource is the only one users author directly in YAML. Sessions and Runs are created via the API or CLI at runtime. The agent declares the environment keys it needs (`env`); values come from the Environments bound to what starts a run (a schedule, a PlatformClient), from the run's `runtime_env`, and, for keys still missing, from the personal environment of the person who sent the message.
 
 ## Documentation Index
 

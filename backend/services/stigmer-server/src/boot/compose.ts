@@ -57,15 +57,15 @@ import { registerAgentServices } from "../domain/agent/controller.js";
 import {
   newConfigFromEnv,
   ROUTING_SESSION,
-} from "../domain/agentrun/temporal/config.js";
-import { registerAgentExecutionServices } from "../domain/agentrun/controller.js";
+} from "../domain/run/temporal/config.js";
+import { registerAgentExecutionServices } from "../domain/run/controller.js";
 import {
   LocalArtifactStorage,
   newArtifactStorage,
 } from "../artifactstorage/artifact-storage.js";
 import type { ArtifactStorage } from "../artifactstorage/artifact-storage.js";
 import { downloadUrlSignerFor } from "../artifactstorage/url-signer.js";
-import { StreamBroker } from "../domain/agentrun/stream-broker.js";
+import { StreamBroker } from "../domain/run/stream-broker.js";
 import { newExecutionEngineStateProvider } from "../temporal/agentexecution/engine-client.js";
 import { newMcpServerEngineStateProvider } from "../temporal/mcpserver/engine-client.js";
 import { newAgentExecutionWorkerFactory } from "../temporal/agentexecution/worker.js";

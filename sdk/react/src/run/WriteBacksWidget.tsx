@@ -1,6 +1,6 @@
 "use client";
 
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { useSessionWriteBacks } from "../session/useSessionWriteBacks.js";
@@ -17,7 +17,7 @@ export interface WriteBacksWidgetProps {
    * Renders nothing when the list is empty or no run has
    * write-backs.
    */
-  readonly runs: readonly AgentRun[];
+  readonly runs: readonly Run[];
   /** Additional CSS classes for the root element. */
   readonly className?: string;
 }

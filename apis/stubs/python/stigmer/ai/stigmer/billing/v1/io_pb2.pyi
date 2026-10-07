@@ -1,7 +1,7 @@
 import datetime
 
-from ai.stigmer.agentic.agentrun.v1 import enum_pb2 as _enum_pb2
-from ai.stigmer.agentic.agentrun.v1 import usage_pb2 as _usage_pb2
+from ai.stigmer.agentic.run.v1 import enum_pb2 as _enum_pb2
+from ai.stigmer.agentic.run.v1 import usage_pb2 as _usage_pb2
 from ai.stigmer.billing.v1 import credit_pb2 as _credit_pb2
 from ai.stigmer.billing.v1 import enum_pb2 as _enum_pb2_1
 from ai.stigmer.billing.v1 import model_pricing_baseline_pb2 as _model_pricing_baseline_pb2

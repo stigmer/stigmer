@@ -46,14 +46,14 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
 import {
-  AgentRunStatusSchema,
-  type AgentRunStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+  RunStatusSchema,
+  type RunStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunControlSignal,
   RunPhase,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -120,7 +120,7 @@ describe("ExecuteDeepAgent hermetic — pause vs worker shutdown", () => {
             if (info.round === 1) controls.cancel();
           },
         }),
-      controlSignal: undefined as ((status: AgentRunStatus) => RunControlSignal) | undefined,
+      controlSignal: undefined as ((status: RunStatus) => RunControlSignal) | undefined,
       loopGolden: "./goldens/pause.loop.after-tool.status.json",
     },
     {
@@ -129,7 +129,7 @@ describe("ExecuteDeepAgent hermetic — pause vs worker shutdown", () => {
         beginDeepAgentScenario({ env, clock, record, script: () => SCRIPT }),
       // The platform answers the persist that carries the first tool row by
       // cancelling the activity (the workflow's pause).
-      controlSignal: (status: AgentRunStatus) => {
+      controlSignal: (status: RunStatus) => {
         if (status.messages.some((m) => m.toolCalls.length > 0)) inFlight?.controls?.cancel();
         return RunControlSignal.UNSPECIFIED;
       },
@@ -163,7 +163,7 @@ describe("ExecuteDeepAgent hermetic — pause vs worker shutdown", () => {
       expect(paused.completedAt).toBe("");
       expect(record.persisted.at(-1), "the wire ends on the write that carries the transcript").toEqual(paused);
 
-      const json = JSON.stringify(toJson(AgentRunStatusSchema, paused), null, 2) + "\n";
+      const json = JSON.stringify(toJson(RunStatusSchema, paused), null, 2) + "\n";
       await expect(json).toMatchFileSnapshot(loopGolden);
     });
   });
@@ -205,7 +205,7 @@ describe("ExecuteDeepAgent hermetic — pause vs worker shutdown", () => {
     ]);
     expect(final.messages.flatMap((m) => m.toolCalls).map((tc) => tc.name), "the read that landed before the drain is kept").toEqual(["read_file"]);
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
-    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/worker-shutdown.status.json");
   });
 });

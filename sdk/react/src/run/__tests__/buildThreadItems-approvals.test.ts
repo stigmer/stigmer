@@ -1,31 +1,31 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+  RunSchema,
+  RunStatusSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,
   type AgentMessage,
   type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   PendingApprovalSchema,
   type PendingApproval,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
 import {
   SubAgentRunSchema,
   type SubAgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 import {
   RunPhase,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { buildThreadItems, type ThreadItem } from "../MessageThread";
 
 // ---------------------------------------------------------------------------
@@ -60,11 +60,11 @@ function execution(opts: {
   messages?: AgentMessage[];
   subAgents?: SubAgentRun[];
   pendingApprovals?: PendingApproval[];
-}): AgentRun {
-  return create(AgentRunSchema, {
+}): Run {
+  return create(RunSchema, {
     metadata: create(ApiResourceMetadataSchema, { id: "aex-1" }),
-    spec: create(AgentRunSpecSchema, { message: "go" }),
-    status: create(AgentRunStatusSchema, {
+    spec: create(RunSpecSchema, { message: "go" }),
+    status: create(RunStatusSchema, {
       phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
       messages: opts.messages ?? [],
       subAgentRuns: opts.subAgents ?? [],
@@ -200,11 +200,11 @@ function execAtPhase(
   phase: RunPhase,
   messages: AgentMessage[],
   pendingApprovals: PendingApproval[] = [],
-): AgentRun {
-  return create(AgentRunSchema, {
+): Run {
+  return create(RunSchema, {
     metadata: create(ApiResourceMetadataSchema, { id: "aex-1" }),
-    spec: create(AgentRunSpecSchema, { message: "Self-DM me" }),
-    status: create(AgentRunStatusSchema, {
+    spec: create(RunSpecSchema, { message: "Self-DM me" }),
+    status: create(RunStatusSchema, {
       phase,
       messages,
       pendingApprovals,

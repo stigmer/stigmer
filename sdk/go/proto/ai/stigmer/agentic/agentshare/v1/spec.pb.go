@@ -8,7 +8,7 @@ package agentsharev1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentrun/v1"
+	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -303,7 +303,7 @@ var File_ai_stigmer_agentic_agentshare_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentshare_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/agentic/agentshare/v1/spec.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a/ai/stigmer/agentic/agentrun/v1/invocation.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xa3\n" +
+	"+ai/stigmer/agentic/agentshare/v1/spec.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\x9e\n" +
 	"\n" +
 	"\x0eAgentShareSpec\x12\xb6\x01\n" +
 	"\tagent_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBc\xbaH\\\xba\x01V\n" +
@@ -314,9 +314,9 @@ const file_ai_stigmer_agentic_agentshare_v1_spec_proto_rawDesc = "" +
 	"\x16allowed_origins.format\x12nallowed_origins entries must be exact web origins like https://example.com (no path, query, or trailing slash)\x1a{this.matches('^https?://[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\\\\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*(:[0-9]{1,5})?$')R\x0eallowedOrigins\x12P\n" +
 	"\bmessages\x18\x05 \x01(\v24.ai.stigmer.agentic.agentshare.v1.AgentShareMessagesR\bmessages\x12\xd9\x01\n" +
 	"\x10environment_refs\x18\x06 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n" +
-	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefs\x12H\n" +
+	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefs\x12C\n" +
 	"\n" +
-	"run_config\x18\a \x01(\v2).ai.stigmer.agentic.agentrun.v1.RunConfigR\trunConfig:\xb0\x02\xbaH\xac\x02\x1a\x9f\x01\n" +
+	"run_config\x18\a \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfig:\xb0\x02\xbaH\xac\x02\x1a\x9f\x01\n" +
 	"(agent_share.environment_refs_public_only\x12:environment_refs can only be set on public-audience shares\x1a7this.audience != 2 || this.environment_refs.size() == 0\x1a\x87\x01\n" +
 	"\"agent_share.run_config_public_only\x124run_config can only be set on public-audience shares\x1a+this.audience != 2 || !has(this.run_config)\"\xa6\x01\n" +
 	"\x12AgentShareMessages\x12+\n" +
@@ -348,14 +348,14 @@ var file_ai_stigmer_agentic_agentshare_v1_spec_proto_goTypes = []any{
 	(*AgentShareSpec)(nil),                   // 1: ai.stigmer.agentic.agentshare.v1.AgentShareSpec
 	(*AgentShareMessages)(nil),               // 2: ai.stigmer.agentic.agentshare.v1.AgentShareMessages
 	(*apiresource.ApiResourceReference)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*v1.RunConfig)(nil),                     // 4: ai.stigmer.agentic.agentrun.v1.RunConfig
+	(*v1.RunConfig)(nil),                     // 4: ai.stigmer.agentic.run.v1.RunConfig
 }
 var file_ai_stigmer_agentic_agentshare_v1_spec_proto_depIdxs = []int32{
 	3, // 0: ai.stigmer.agentic.agentshare.v1.AgentShareSpec.agent_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	0, // 1: ai.stigmer.agentic.agentshare.v1.AgentShareSpec.audience:type_name -> ai.stigmer.agentic.agentshare.v1.AgentShareAudience
 	2, // 2: ai.stigmer.agentic.agentshare.v1.AgentShareSpec.messages:type_name -> ai.stigmer.agentic.agentshare.v1.AgentShareMessages
 	3, // 3: ai.stigmer.agentic.agentshare.v1.AgentShareSpec.environment_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	4, // 4: ai.stigmer.agentic.agentshare.v1.AgentShareSpec.run_config:type_name -> ai.stigmer.agentic.agentrun.v1.RunConfig
+	4, // 4: ai.stigmer.agentic.agentshare.v1.AgentShareSpec.run_config:type_name -> ai.stigmer.agentic.run.v1.RunConfig
 	5, // [5:5] is the sub-list for method output_type
 	5, // [5:5] is the sub-list for method input_type
 	5, // [5:5] is the sub-list for extension type_name

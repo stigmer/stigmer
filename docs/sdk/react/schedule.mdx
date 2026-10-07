@@ -297,7 +297,7 @@ function useTriggerSchedule(): UseTriggerScheduleReturn
   type={{
     error: { type: "Error | null", description: "Error from the last failed or refused trigger, or `null` when healthy." },
     isTriggering: { type: "boolean", description: "`true` while the trigger request is in flight." },
-    triggerSchedule: { type: "(scheduleId: string) => Promise<ScheduleTriggerResult>", description: "Fire the schedule once, now — a real agent run, outside the cron cadence. Resolves with the ScheduleTriggerResult: the run's REAL outcome (started with a run id, or refused with the gate's copy), so a caller can navigate to the run or surface the refusal. Refetch the schedule afterwards to pick up the freshly stamped `status.last_fire_at` / `status.last_run_id`." },
+    triggerSchedule: { type: "(scheduleId: string) => Promise<ScheduleTriggerResult>", description: "Fire the schedule once, now — a real run, outside the cron cadence. Resolves with the ScheduleTriggerResult: the run's REAL outcome (started with a run id, or refused with the gate's copy), so a caller can navigate to the run or surface the refusal. Refetch the schedule afterwards to pick up the freshly stamped `status.last_fire_at` / `status.last_run_id`." },
   }}
 />
 
@@ -385,8 +385,8 @@ string with [`cadenceToCron`](#cadencetocron) at submit time.
 ### ScheduleDetailView
 
 Self-contained detail view for a Schedule (stigmer/stigmer#352),
-split into an Overview tab (definition + status + recent runs) and a
-Runs tab (the full paginated fire ledger).
+split into an Overview tab (definition + status + recent fires) and a
+History tab (the full paginated fire ledger).
 
 The view's one non-negotiable is rendering the two stop-levers
 distinctly, each with its inline remedy:
@@ -419,13 +419,55 @@ All visual properties flow through `--stgm-*` design tokens.
     now: { type: "Date", description: "The instant \"next fire\" countdowns and run timestamps are computed against. Injectable for deterministic tests and Scenar fixtures." },
     onDeleted: { type: "() => void", description: "Called after a successful delete (navigate back to the list)." },
     onNavigateToAgent: { type: "(org: string, slug: string) => void", description: "Called when the user activates the target-agent reference. Navigation is the consumer's concern — the Console pushes a Library route; an embedding host does whatever fits." },
-    onNavigateToRun: { type: "(executionId: string) => void", description: "Called when the user activates a run reference (`aex_…`), from the status row or a run-history row. When omitted, ids render as plain text." },
+    onNavigateToRun: { type: "(executionId: string) => void", description: "Called when the user activates a run reference (`run_…`), from the status row or a run-history row. When omitted, ids render as plain text." },
     onResourceLoad: { type: "(schedule: Schedule) => void", description: "Called when the schedule loads or reloads (e.g. breadcrumb label sync)." },
     onTabChange: { type: "(tabId: string) => void", description: "Controlled tab change handler (pair with `activeTab`)." },
     org: { type: "string", description: "Organization id (a slug is also accepted).", required: true },
     slug: { type: "string", description: "Schedule slug.", required: true },
   }}
 />
+
+
+### ScheduleFiresTable
+
+Paginated fire-history table for a schedule — the fire ledger,
+rendered in full.
+
+Every fire leaves a row, INCLUDING fires that created no run (a
+refused launch gate, a missing target agent), carrying the refusing
+gate's copy verbatim. Columns: outcome, origin, fired time (relative,
+with the absolute instant on hover), duration (recorded → completed;
+"—" while a run is in flight or when no run was created), and the
+run reference.
+
+Owns its data: give it a `scheduleId` and it fetches via
+`useScheduleFires` with internal page state. To force a refresh
+from outside (e.g. after triggering a manual run), remount with a
+React `key` — the standard reset idiom; the remount also
+returns to page 1, where the new run appears.
+
+Handles loading, error, and empty states automatically.
+Zero Console dependencies — safe for platform builder embedding.
+All visual properties flow through `--stgm-*` design tokens.
+
+**Props** — `ScheduleFiresTableProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root container." },
+    now: { type: "Date", description: "The instant relative timestamps are computed against. Injectable for deterministic tests and Scenar fixtures." },
+    onNavigateToRun: { type: "(executionId: string) => void", description: "Called when the user activates a fire's run reference (`run_…`). When omitted, the id renders as plain text." },
+    pageSize: { type: "number", description: "Fires per page." },
+    scheduleId: { type: "string", description: "ID of the schedule whose fire history to show.", required: true },
+  }}
+/>
+
+```tsx
+<ScheduleFiresTable
+  scheduleId={schedule.metadata.id}
+  onNavigateToRun={(id) => router.push(`/runs/${id}`)}
+/>
+```
 
 
 ### ScheduleForm
@@ -499,48 +541,6 @@ so row behavior never diverges between apps.
     schedule: { type: "Schedule", description: "The schedule this row represents.", required: true },
   }}
 />
-
-
-### ScheduleRunsTable
-
-Paginated run-history table for a schedule — the fire ledger,
-rendered in full.
-
-Every fire leaves a row, INCLUDING fires that created no run (a
-refused launch gate, a missing target agent), carrying the refusing
-gate's copy verbatim. Columns: outcome, origin, fired time (relative,
-with the absolute instant on hover), duration (recorded → completed;
-"—" while a run is in flight or when no run was created), and the
-run reference.
-
-Owns its data: give it a `scheduleId` and it fetches via
-`useScheduleRuns` with internal page state. To force a refresh
-from outside (e.g. after triggering a manual run), remount with a
-React `key` — the standard reset idiom; the remount also
-returns to page 1, where the new run appears.
-
-Handles loading, error, and empty states automatically.
-Zero Console dependencies — safe for platform builder embedding.
-All visual properties flow through `--stgm-*` design tokens.
-
-**Props** — `ScheduleRunsTableProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS classes for the root container." },
-    now: { type: "Date", description: "The instant relative timestamps are computed against. Injectable for deterministic tests and Scenar fixtures." },
-    onNavigateToRun: { type: "(executionId: string) => void", description: "Called when the user activates a run's run reference (`aex_…`). When omitted, the id renders as plain text." },
-    pageSize: { type: "number", description: "Runs per page." },
-    scheduleId: { type: "string", description: "ID of the schedule whose run history to show.", required: true },
-  }}
-/>
-
-```tsx
-<ScheduleRunsTable
-  scheduleId={schedule.metadata.id}
-  onNavigateToRun={(id) => router.push(`/runs/${id}`)}
-/>
-```
 
 
 ## Types

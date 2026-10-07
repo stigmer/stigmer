@@ -46,7 +46,7 @@ Every resource type has a typed client accessible as a property on the `Stigmer`
 | Property             | Resource           |
 |----------------------|--------------------|
 | `agent`              | Agent              |
-| `agentRun`           | AgentRun           |
+| `run`                | Run                |
 | `apiKey`             | ApiKey             |
 | `environment`        | Environment        |
 | `executionContext`   | ExecutionContext    |
@@ -135,13 +135,13 @@ const results = await stigmer.search.query({
 Resources with streaming RPCs return `AsyncGenerator`:
 
 ```typescript
-for await (const event of stigmer.agentRun.watch("run-id")) {
+for await (const event of stigmer.run.watch("run-id")) {
   console.log(event);
 }
 
 // With cancellation
 const controller = new AbortController();
-for await (const event of stigmer.agentRun.watch("run-id", controller.signal)) {
+for await (const event of stigmer.run.watch("run-id", controller.signal)) {
   if (shouldStop(event)) {
     controller.abort();
   }

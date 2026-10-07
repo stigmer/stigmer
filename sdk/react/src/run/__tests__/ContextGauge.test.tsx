@@ -8,19 +8,19 @@ import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+  RunSchema,
+  RunStatusSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   ContextInfoSchema,
   SummarizationEventSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/context_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/context_pb";
 import { ContextGauge } from "../ContextGauge";
 
 afterEach(cleanup);
 
-function runWithContext(currentTokenCount: number, utilizationPercent: number, summarized = false): AgentRun {
+function runWithContext(currentTokenCount: number, utilizationPercent: number, summarized = false): Run {
   const contextInfo = create(ContextInfoSchema, {
     currentTokenCount,
     contextWindowLimit: 200_000,
@@ -34,12 +34,12 @@ function runWithContext(currentTokenCount: number, utilizationPercent: number, s
       create(SummarizationEventSchema, { tokensBefore: 180_000, tokensAfter: 80_000, compressionRatio: 0.56 }),
     );
   }
-  return create(AgentRunSchema, { status: create(AgentRunStatusSchema, { contextInfo }) });
+  return create(RunSchema, { status: create(RunStatusSchema, { contextInfo }) });
 }
 
 describe("ContextGauge", () => {
   it("renders nothing for a run without context info", () => {
-    const { container } = render(<ContextGauge run={create(AgentRunSchema)} />);
+    const { container } = render(<ContextGauge run={create(RunSchema)} />);
     expect(container.innerHTML).toBe("");
   });
 

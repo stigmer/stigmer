@@ -259,7 +259,7 @@ export type PushSkillFromRunArtifactRequest = Message<"ai.stigmer.agentic.skill.
   org: string;
 
   /**
-   * ID of the agent run that produced the artifact (e.g., "aex_abc123xyz456").
+   * ID of the run that produced the artifact (e.g., "run_abc123xyz456").
    *
    * @generated from field: string run_id = 2;
    */

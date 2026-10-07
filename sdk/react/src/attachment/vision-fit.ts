@@ -1,5 +1,5 @@
 /**
- * Resolution policy for images attached to agent runs — the pure math
+ * Resolution policy for images attached to runs — the pure math
  * behind {@link prepareImageForVision}.
  *
  * Vision providers cap what they will actually look at: Anthropic's standard

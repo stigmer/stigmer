@@ -236,7 +236,7 @@ const SHAPES: ReadonlyArray<Shape> = [
   },
   {
     name: "restrict: executions in TEN sessions (the parent hop, dense)",
-    kind: "agent_run",
+    kind: "run",
     caller: FOUNDER,
     verb: "restrict",
     parents: Array.from({ length: 10 }, (_, i) => ({
@@ -253,7 +253,7 @@ const SHAPES: ReadonlyArray<Shape> = [
   },
   {
     name: "restrict: executions in a THOUSAND sessions (the parent hop, sparse)",
-    kind: "agent_run",
+    kind: "run",
     caller: FOUNDER,
     verb: "restrict",
     parents: Array.from({ length: 1_000 }, (_, i) => ({
@@ -410,7 +410,7 @@ describe.each(
     ApiResourceKind.team,
     ApiResourceKind.agent,
     ApiResourceKind.session,
-    ApiResourceKind.agent_run,
+    ApiResourceKind.run,
   ]),
 )("the built-in evaluator's cost on $name", (fixture) => {
   describe.skipIf(fixture.skip)("measured", () => {

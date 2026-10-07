@@ -1,4 +1,4 @@
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { structuralShare } from "./structural-share.js";
 
 // ---------------------------------------------------------------------------
@@ -49,7 +49,7 @@ type Listener = () => void;
  *   suitable as `useSyncExternalStore` snapshot selectors.
  */
 export class ConversationStore {
-  private _execution: AgentRun | null = null;
+  private _execution: Run | null = null;
   private _streamState: StreamState = IDLE_STATE;
   private _connectTimedOut = false;
   private _isSlow = false;
@@ -62,7 +62,7 @@ export class ConversationStore {
    * against the previous snapshot and notifies listeners only if
    * the resulting reference changed.
    */
-  ingestSnapshot(snapshot: AgentRun): void {
+  ingestSnapshot(snapshot: Run): void {
     const shared = structuralShare(this._execution, snapshot);
     if (shared === this._execution) return;
     this._execution = shared;
@@ -136,7 +136,7 @@ export class ConversationStore {
   };
 
   /** Stable snapshot selector for the current run. */
-  getExecution = (): AgentRun | null => {
+  getExecution = (): Run | null => {
     return this._execution;
   };
 

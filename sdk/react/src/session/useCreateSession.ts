@@ -119,7 +119,7 @@ export interface UseCreateSessionReturn {
  * resolves it and pins the version on `status`.
  *
  * This hook maps 1:1 to the Session aggregate. To start the first
- * run within the session, compose with {@link useCreateAgentRun}.
+ * run within the session, compose with {@link useCreateRun}.
  *
  * @example
  * ```tsx

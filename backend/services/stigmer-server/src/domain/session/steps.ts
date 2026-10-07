@@ -21,9 +21,9 @@
 import { create, fromBinary } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import {
@@ -39,8 +39,8 @@ import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type { Logger } from "../../boot/logger.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { cleanUpDeletedResource } from "../../pipeline/steps/authorization-tuples.js";
-import { isActiveExecutionPhase } from "../agentrun/phases.js";
-import type { AgentExecutionTemporalConfig } from "../agentrun/temporal/config.js";
+import { isActiveExecutionPhase } from "../run/phases.js";
+import type { AgentExecutionTemporalConfig } from "../run/temporal/config.js";
 import {
   failedPreconditionError,
   internalError,
@@ -62,7 +62,7 @@ import type { ListPageRequest } from "../../pipeline/steps/list-page.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { Store } from "../../store/interface.js";
 import type { ListIndexQuery, ListIndexRow } from "../../store/list-index.js";
-import { agentExecutionListIndex } from "../agentrun/list-index.js";
+import { agentExecutionListIndex } from "../run/list-index.js";
 import { sessionListIndex } from "./list-index.js";
 
 type SessionDesc = typeof SessionSchema;
@@ -272,7 +272,7 @@ async function listExecutionsBySession(
   store: Store,
   logger: Logger,
   sessionId: string,
-): Promise<AgentRun[]> {
+): Promise<Run[]> {
   let rows: ListIndexRow[];
   try {
     rows = await store.queryResources(agentExecutionListIndex, {
@@ -282,10 +282,10 @@ async function listExecutionsBySession(
     throw internalError(error, "failed to list agent executions");
   }
 
-  const executions: AgentRun[] = [];
+  const executions: Run[] = [];
   for (const row of rows) {
     try {
-      executions.push(fromBinary(AgentRunSchema, row.data));
+      executions.push(fromBinary(RunSchema, row.data));
     } catch (error) {
       logger.warn("Failed to unmarshal execution, skipping", {
         error: error instanceof Error ? error.message : String(error),
@@ -368,7 +368,7 @@ export function newCascadeDeleteAgentExecutionsStep<Desc extends DescMessage>(
         const executionId = execution.metadata?.id ?? "";
         try {
           await store.deleteResource(
-            ApiResourceKind.agent_run,
+            ApiResourceKind.run,
             executionId,
           );
         } catch (error) {
@@ -378,14 +378,14 @@ export function newCascadeDeleteAgentExecutionsStep<Desc extends DescMessage>(
           );
         }
         await cleanUpDeletedResource(lifecycle, logger, {
-          kind: ApiResourceKind.agent_run,
+          kind: ApiResourceKind.run,
           resourceId: executionId,
           orgId: execution.metadata?.org ?? "",
           caller: ctx.callerIdentity,
         });
         try {
           await store.deleteSearchIndex(
-            ApiResourceKind.agent_run,
+            ApiResourceKind.run,
             executionId,
           );
         } catch (error) {

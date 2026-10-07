@@ -3,7 +3,6 @@
 import type { Transport } from "@connectrpc/connect";
 import { AgentClient } from "./agent.js";
 import { AgentChannelClient } from "./agentchannel.js";
-import { AgentRunClient } from "./agentrun.js";
 import { AgentShareClient } from "./agentshare.js";
 import { ApiKeyClient } from "./apikey.js";
 import { ChannelAppClient } from "./channelapp.js";
@@ -22,6 +21,7 @@ import { PlanClient } from "./plan.js";
 import { PlatformClientClient } from "./platformclient.js";
 import { PluginClient } from "./plugin.js";
 import { ProviderKeyClient } from "./providerkey.js";
+import { RunClient } from "./run.js";
 import { ScheduleClient } from "./schedule.js";
 import { SessionClient } from "./session.js";
 import { SkillClient } from "./skill.js";
@@ -32,7 +32,6 @@ import { TeamClient } from "./team.js";
 export class GeneratedClient {
   readonly agent: AgentClient;
   readonly agentChannel: AgentChannelClient;
-  readonly agentRun: AgentRunClient;
   readonly agentShare: AgentShareClient;
   readonly apiKey: ApiKeyClient;
   readonly channelapp: ChannelAppClient;
@@ -51,6 +50,7 @@ export class GeneratedClient {
   readonly platformclient: PlatformClientClient;
   readonly plugin: PluginClient;
   readonly providerkey: ProviderKeyClient;
+  readonly run: RunClient;
   readonly schedule: ScheduleClient;
   readonly session: SessionClient;
   readonly skill: SkillClient;
@@ -60,7 +60,6 @@ export class GeneratedClient {
   constructor(transport: Transport) {
     this.agent = new AgentClient(transport);
     this.agentChannel = new AgentChannelClient(transport);
-    this.agentRun = new AgentRunClient(transport);
     this.agentShare = new AgentShareClient(transport);
     this.apiKey = new ApiKeyClient(transport);
     this.channelapp = new ChannelAppClient(transport);
@@ -79,6 +78,7 @@ export class GeneratedClient {
     this.platformclient = new PlatformClientClient(transport);
     this.plugin = new PluginClient(transport);
     this.providerkey = new ProviderKeyClient(transport);
+    this.run = new RunClient(transport);
     this.schedule = new ScheduleClient(transport);
     this.session = new SessionClient(transport);
     this.skill = new SkillClient(transport);
@@ -92,8 +92,6 @@ export { AgentClient } from "./agent.js";
 export { type AgentInput, type McpServerUsageInput, type SubAgentInput, type EnvVarDeclarationInput, type HookSourceInput, type HookConfigInput, type HookGroupInput, type HookHandlerInput, type RunConfigInput } from "./agent.js";
 export { AgentChannelClient } from "./agentchannel.js";
 export { type AgentChannelInput, type SlackChannelConfigInput, type WhatsAppChannelConfigInput } from "./agentchannel.js";
-export { AgentRunClient } from "./agentrun.js";
-export { type AgentRunInput, type SessionSpecInput, type WorkspaceEntryInput, type WorkspaceSourceInput, type GitRepoSourceInput, type LocalPathSourceInput, type AttachmentInput, type ConversationCatchupInput } from "./agentrun.js";
 export { AgentShareClient } from "./agentshare.js";
 export { type AgentShareInput, type AgentShareMessagesInput } from "./agentshare.js";
 export { ApiKeyClient } from "./apikey.js";
@@ -129,6 +127,8 @@ export { type PlatformClientInput } from "./platformclient.js";
 export { PluginClient } from "./plugin.js";
 export { type PluginInput, type PluginAuthorInput } from "./plugin.js";
 export { ProviderKeyClient } from "./providerkey.js";
+export { RunClient } from "./run.js";
+export { type RunInput, type SessionSpecInput, type WorkspaceEntryInput, type WorkspaceSourceInput, type GitRepoSourceInput, type LocalPathSourceInput, type AttachmentInput, type ConversationCatchupInput } from "./run.js";
 export { ScheduleClient } from "./schedule.js";
 export { type ScheduleInput, type AgentInvocationInput } from "./schedule.js";
 export { SessionClient } from "./session.js";

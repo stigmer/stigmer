@@ -1,7 +1,7 @@
 /**
  * Status-transition hook types — the execution-lifecycle seam, carried
  * by the extension registry and CONSUMED at
- * the updateStatus chokepoint (src/domain/agentrun/update-status.ts,
+ * the updateStatus chokepoint (src/domain/run/update-status.ts,
  * the single merge point every status transition funnels through).
  *
  * The contract: observers fire synchronously after the
@@ -15,14 +15,14 @@
  * Scope note: this hook family spans the agent-execution family, the one
  * run kind.
  */
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { UpdateStatusResponse } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { UpdateStatusResponse } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 
 /** One observed phase transition, delivered post-merge. */
-export interface AgentRunStatusTransition {
+export interface RunStatusTransition {
   /** The merged, persisted run snapshot. Observers may not mutate it. */
-  readonly run: AgentRun;
+  readonly run: Run;
   readonly oldPhase: RunPhase;
   readonly newPhase: RunPhase;
 }
@@ -32,8 +32,8 @@ export interface AgentRunStatusTransition {
  * extension bug logged by the chokepoint, never a failed transition — the
  * cloud's expiry sweep remains the reconciliation backstop it already is.
  */
-export type AgentRunStatusObserver = (
-  transition: AgentRunStatusTransition,
+export type RunStatusObserver = (
+  transition: RunStatusTransition,
 ) => void | Promise<void>;
 
 /**
@@ -41,13 +41,13 @@ export type AgentRunStatusObserver = (
  * reply schema carries. Decorator failure degrades the contributed fields
  * to their defaults (the verified non-fatal posture), never the RPC.
  */
-export type AgentRunResponseDecorator = (
-  execution: AgentRun,
+export type RunResponseDecorator = (
+  execution: Run,
   response: UpdateStatusResponse,
 ) => void | Promise<void>;
 
 /** The hook bundle one extension unit contributes (both lists optional). */
-export interface AgentRunStatusHooks {
-  readonly observers?: ReadonlyArray<AgentRunStatusObserver>;
-  readonly responseDecorators?: ReadonlyArray<AgentRunResponseDecorator>;
+export interface RunStatusHooks {
+  readonly observers?: ReadonlyArray<RunStatusObserver>;
+  readonly responseDecorators?: ReadonlyArray<RunResponseDecorator>;
 }

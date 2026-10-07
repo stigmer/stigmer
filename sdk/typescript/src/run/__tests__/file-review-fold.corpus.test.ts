@@ -21,11 +21,11 @@ import { create, fromJson, type JsonValue } from "@bufbuild/protobuf";
 import {
   FileReviewEventSchema,
   FileReviewEventStreamSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   RunPhase,
   FileChangeSetStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { foldFileReviewEventStream } from "../file-review-fold";
 import { isTerminalPhase } from "../run-phases";
 

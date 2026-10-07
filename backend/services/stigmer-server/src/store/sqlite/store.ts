@@ -55,7 +55,7 @@ import type {
   OrganizationDeletionStore,
   PendingOAuthStateStore,
   RawResourceDocument,
-  ScheduleRunRecord,
+  ScheduleFireRecord,
   SearchIndexEntry,
   SearchIndexHit,
   SearchIndexQuery,
@@ -918,7 +918,7 @@ export class SqliteStore implements Store {
   // Schedule runs (fire ledger)
   // ---------------------------------------------------------------------------
 
-  async upsertScheduleRun(record: ScheduleRunRecord): Promise<void> {
+  async upsertScheduleFire(record: ScheduleFireRecord): Promise<void> {
     const db = this.open();
     // Default recorded_at is RFC-3339 whole seconds (Go time.RFC3339) —
     // the ledger's house convention for lexicographic comparison.
@@ -950,7 +950,7 @@ export class SqliteStore implements Store {
     );
   }
 
-  async markLatestScheduleRunTerminal(
+  async markLatestScheduleFireTerminal(
     scheduleId: string,
     origin: string,
     outcome: string,
@@ -968,11 +968,11 @@ export class SqliteStore implements Store {
     ).run(outcome, reason, completedAt, scheduleId, origin, scheduleId, origin);
   }
 
-  async listScheduleRuns(
+  async listScheduleFires(
     scheduleId: string,
     offset: number,
     limit: number,
-  ): Promise<{ runs: ScheduleRunRecord[]; total: number }> {
+  ): Promise<{ fires: ScheduleFireRecord[]; total: number }> {
     const db = this.open();
     const effectiveLimit = limit <= 0 ? 50 : limit;
     const effectiveOffset = offset < 0 ? 0 : offset;
@@ -1005,7 +1005,7 @@ export class SqliteStore implements Store {
 
     return {
       total: totalRow.total,
-      runs: rows.map((row) => ({
+      fires: rows.map((row) => ({
         scheduleId: row.schedule_id,
         org: row.org,
         nominalFireTime: row.nominal_fire_time,
@@ -1019,7 +1019,7 @@ export class SqliteStore implements Store {
     };
   }
 
-  async deleteScheduleRunsBySchedule(scheduleId: string): Promise<number> {
+  async deleteScheduleFiresBySchedule(scheduleId: string): Promise<number> {
     const db = this.open();
     const result = db
       .prepare(`DELETE FROM schedule_runs WHERE schedule_id = ?`)
@@ -1027,14 +1027,14 @@ export class SqliteStore implements Store {
     return Number(result.changes);
   }
 
-  async deleteScheduleRunsByOrg(org: string): Promise<number> {
+  async deleteScheduleFiresByOrg(org: string): Promise<number> {
     const result = this.open()
       .prepare(`DELETE FROM schedule_runs WHERE org = ?`)
       .run(org);
     return Number(result.changes);
   }
 
-  async pruneScheduleRuns(recordedBefore: string): Promise<number> {
+  async pruneScheduleFires(recordedBefore: string): Promise<number> {
     const db = this.open();
     const result = db
       .prepare(`DELETE FROM schedule_runs WHERE recorded_at < ?`)

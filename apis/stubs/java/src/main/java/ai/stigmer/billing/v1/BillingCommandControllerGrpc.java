@@ -565,7 +565,7 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Reserve credits before starting an agent run.
+     * Reserve credits before starting a run.
      * Returns authorization status and reservation details.
      * </pre>
      */
@@ -795,7 +795,7 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Reserve credits before starting an agent run.
+     * Reserve credits before starting a run.
      * Returns authorization status and reservation details.
      * </pre>
      */
@@ -1015,7 +1015,7 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Reserve credits before starting an agent run.
+     * Reserve credits before starting a run.
      * Returns authorization status and reservation details.
      * </pre>
      */
@@ -1224,7 +1224,7 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Reserve credits before starting an agent run.
+     * Reserve credits before starting a run.
      * Returns authorization status and reservation details.
      * </pre>
      */
@@ -1436,7 +1436,7 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Reserve credits before starting an agent run.
+     * Reserve credits before starting a run.
      * Returns authorization status and reservation details.
      * </pre>
      */

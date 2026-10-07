@@ -9,8 +9,8 @@ import {
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/sdk";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
-import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { PlanArtifactCard } from "../PlanArtifactCard";
 
@@ -33,7 +33,7 @@ function createStigmerMock(): {
     .mockResolvedValue({ downloadUrl: "https://example.test/plan.md" });
   return {
     stigmer: {
-      agentRun: { getArtifactContent, getArtifactDownloadUrl },
+      run: { getArtifactContent, getArtifactDownloadUrl },
     } as unknown as Stigmer,
     getArtifactContent,
     getArtifactDownloadUrl,
@@ -169,7 +169,7 @@ describe("PlanArtifactCard — compact document card", () => {
       .mockResolvedValue({ content: new TextEncoder().encode("# Plan\n\nsteps") });
     const getArtifactDownloadUrl = vi.fn();
     const stigmer = {
-      agentRun: { getArtifactContent, getArtifactDownloadUrl },
+      run: { getArtifactContent, getArtifactDownloadUrl },
     } as unknown as Stigmer;
 
     render(

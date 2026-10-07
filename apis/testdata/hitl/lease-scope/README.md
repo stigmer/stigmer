@@ -31,7 +31,7 @@ server than the runner then lets through:
   `backend/services/runner/src/shared/approval-policy.ts` (the per-call core of
   `deriveActiveLeases`);
 - the server: `deriveLeaseScope` in
-  `backend/services/stigmer-server/src/domain/agentrun/approval/lease-scope.ts`,
+  `backend/services/stigmer-server/src/domain/run/approval/lease-scope.ts`,
   which `bulkApproveCoPendingToolCalls` matches co-pending calls with.
 
 Each has a test that loads `vectors.json` and asserts every vector, so a drift

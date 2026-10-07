@@ -44,9 +44,9 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunControlSignal } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/usage_pb";
+import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunControlSignal } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
 
 import type { StigmerClient } from "../client/stigmer-client.js";
 import { captureFileChangeProgress } from "../shared/filereview/progress.js";
@@ -59,7 +59,7 @@ import type { UsageAccumulator } from "./usage-accumulator.js";
 export interface PersistChokepointDeps {
   readonly client: StigmerClient;
   readonly executionId: string;
-  readonly status: AgentRunStatus;
+  readonly status: RunStatus;
   /** Present when artifact storage resolved; enables tool-output offload on every write. */
   readonly offload: ToolOutputOffloadContext | undefined;
   /**

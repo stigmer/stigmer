@@ -2,18 +2,18 @@
 // (run_stream_events.go:203-468).
 //
 // Go's version owns a gRPC loop and blocks on an approval channel. This is a
-// pure, stateful transformer instead: feed it each AgentRun snapshot and
+// pure, stateful transformer instead: feed it each Run snapshot and
 // it returns the discrete events for that snapshot, holding all cross-snapshot
 // state (message cursor, tool/sub-agent/todo trackers, prompted-approval dedup).
 // Approval *submission* is the renderer's job — the differ only emits
 // ApprovalNeededEvent. The step numbering and ordering below mirror the Go body
 // exactly, because the resulting event sequence is a wire-parity contract.
 
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
-import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
+import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   buildApprovalNeeded,
   buildPendingApprovalFromToolCall,
@@ -53,7 +53,7 @@ export class SnapshotDiffer {
   private readonly todos = new TodoDiffer();
 
   /** Project one snapshot into its events, advancing all internal state. */
-  next(execution: AgentRun): StreamEvent[] {
+  next(execution: Run): StreamEvent[] {
     if (this.finished) return [];
     const out: StreamEvent[] = [];
     const status = execution.status;
@@ -99,7 +99,7 @@ export class SnapshotDiffer {
 
   // Step 0: emit the user's input message once, suppressing the "execute"
   // placeholder. Mirrors streamToEvents Step 0.
-  private emitHumanMessage(out: StreamEvent[], execution: AgentRun): void {
+  private emitHumanMessage(out: StreamEvent[], execution: Run): void {
     if (this.humanMessageEmitted) return;
     const msg = execution.spec?.message ?? "";
     if (msg !== "" && msg !== "execute") {
@@ -175,7 +175,7 @@ export class SnapshotDiffer {
 
   // Step 1f: emit a ContextCompactedEvent per new summarization event. Mirrors
   // the count-based tracking in streamToEvents.
-  private emitContextCompaction(out: StreamEvent[], execution: AgentRun): void {
+  private emitContextCompaction(out: StreamEvent[], execution: Run): void {
     const events = execution.status?.contextInfo?.summarizationEvents ?? [];
     for (let i = this.seenSummarizationCount; i < events.length; i++) {
       const se = events[i];

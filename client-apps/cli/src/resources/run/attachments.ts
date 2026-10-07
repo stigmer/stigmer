@@ -1,4 +1,4 @@
-// Attachment processing for agent runs.
+// Attachment processing for runs.
 //
 // Ports the Go CLI's run_attachments.go + run_attachments_zip.go. Each `--attach`
 // path is either recorded as a workspace-relative reference (when it lives inside
@@ -11,12 +11,12 @@ import { readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { extname, join, relative, resolve, sep } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { zipSync } from "fflate";
-import { type Attachment, AttachmentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+import { type Attachment, AttachmentSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import {
   type UploadAttachmentRequest,
   UploadAttachmentRequestSchema,
   type UploadAttachmentResponse,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { UsageError } from "../../errors/index.js";
 
 // Must match the server's grpc.MaxRecvMsgSize (Go: maxAttachmentSize).

@@ -3,23 +3,23 @@ import { describe, it, expect } from "vitest";
 import { render } from "ink-testing-library";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+  RunSchema,
+  RunStatusSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   ContextInfoSchema,
   SummarizationEventSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/context_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/context_pb";
 import { ContextGauge } from "../components/ContextGauge.js";
 
 function makeExecution(overrides?: {
   currentTokenCount?: number;
   contextWindowLimit?: number;
   utilizationPercent?: number;
-}): AgentRun {
-  const exec = create(AgentRunSchema);
-  const status = create(AgentRunStatusSchema);
+}): Run {
+  const exec = create(RunSchema);
+  const status = create(RunStatusSchema);
   const contextInfo = create(ContextInfoSchema);
 
   contextInfo.currentTokenCount = overrides?.currentTokenCount ?? 10_000;
@@ -35,7 +35,7 @@ function makeExecution(overrides?: {
 }
 
 function addSummarizationEvent(
-  exec: AgentRun,
+  exec: Run,
   overrides?: {
     tokensBefore?: number;
     tokensAfter?: number;
@@ -66,8 +66,8 @@ describe("ContextGauge", () => {
   });
 
   it("renders nothing when contextInfo is absent", () => {
-    const exec = create(AgentRunSchema);
-    exec.status = create(AgentRunStatusSchema);
+    const exec = create(RunSchema);
+    exec.status = create(RunStatusSchema);
 
     const { lastFrame } = render(<ContextGauge run={exec} />);
     expect(lastFrame()).toBe("");

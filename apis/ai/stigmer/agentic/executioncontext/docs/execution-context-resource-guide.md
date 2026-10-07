@@ -55,7 +55,7 @@ Defined in `ai/stigmer/agentic/executioncontext/v1/spec.proto`.
 
 | Field | Required | Description |
 |---|---|---|
-| `spec.execution_id` | Yes | The ID of the `AgentRun` this context belongs to. Must be a non-empty string. Used as the primary lookup key by runners via `getByExecutionId`. |
+| `spec.execution_id` | Yes | The ID of the `Run` this context belongs to. Must be a non-empty string. Used as the primary lookup key by runners via `getByExecutionId`. |
 | `spec.data` | No | Map of key-value pairs. Each key is a string (e.g., `"AWS_ACCESS_KEY_ID"`); each value is an `ExecutionValue` message. |
 
 ---
@@ -130,7 +130,7 @@ then fills declared keys still missing from OAuth tokens and the run's person's 
     │
     ▼
 Engine calls ExecutionContextCommandController.create(ExecutionContext)
-    │  spec.execution_id = <agentRun.id>
+    │  spec.execution_id = <run.id>
     │  spec.data = merged key-value pairs
     │
     ▼

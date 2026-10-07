@@ -365,14 +365,20 @@ export async function smokeOrganization(baseUrl, name, { org } = {}) {
 }
 
 /**
- * The run API a server speaks. The rename of agent executions to runs moved
- * their service, kind string and phase names; an upgrade rehearsal records
- * its state on a release from before it and reads it back on the build
- * after, so every run line takes the API of the server it talks to
- * ({@link runApiOf}).
+ * The run API a server speaks. Two renames moved it: agent executions
+ * became agent runs (their service, kind string and phase names), then the
+ * agent run became a run (its service and kind string). An upgrade
+ * rehearsal records its state on a release from before them and reads it
+ * back on the build after, so every run line takes the API of the server it
+ * talks to ({@link runApiOf}).
  */
 export const RUN_APIS = Object.freeze({
   current: Object.freeze({
+    agentService: "ai.stigmer.agentic.run.v1.Run",
+    agentKind: "Run",
+    phasePrefix: "RUN_",
+  }),
+  beforeRunKindRename: Object.freeze({
     agentService: "ai.stigmer.agentic.agentrun.v1.AgentRun",
     agentKind: "AgentRun",
     phasePrefix: "RUN_",
@@ -400,14 +406,15 @@ async function routes(baseUrl, procedure, body) {
 }
 
 /**
- * The run API `baseUrl` serves: the current one, unless the server does not
- * route the current agent-run query, which only a release from before the
- * rename does.
+ * The run API `baseUrl` serves: the newest one whose run query the server
+ * routes, and the oldest when it routes neither newer one, which only a
+ * release from before both renames does.
  */
 export async function runApiOf(baseUrl) {
-  return (await routes(baseUrl, `${RUN_APIS.current.agentService}QueryController/get`, { value: "aex_run_api_probe" }))
-    ? RUN_APIS.current
-    : RUN_APIS.beforeRunRename;
+  for (const api of [RUN_APIS.current, RUN_APIS.beforeRunKindRename]) {
+    if (await routes(baseUrl, `${api.agentService}QueryController/get`, { value: "run_api_probe" })) return api;
+  }
+  return RUN_APIS.beforeRunRename;
 }
 
 /** A run phase without its API's prefix (`COMPLETED`), so phases compare across the rename. */

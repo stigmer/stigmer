@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 
 /** Return value of {@link useRunArtifacts}. */
 export interface UseRunArtifactsReturn {
@@ -16,7 +16,7 @@ export interface UseRunArtifactsReturn {
 
 /**
  * Pure derivation hook that extracts artifact metadata from an
- * {@link AgentRun} snapshot.
+ * {@link Run} snapshot.
  *
  * Follows the same pattern as {@link useSessionUsage}: a `useMemo`-based
  * derivation with no side effects and no data fetching. The run
@@ -45,7 +45,7 @@ export interface UseRunArtifactsReturn {
  * @see formatArtifactSize — human-readable file size formatting
  */
 export function useRunArtifacts(
-  execution: AgentRun | null,
+  execution: Run | null,
 ): UseRunArtifactsReturn {
   return useMemo(() => {
     const artifacts = execution?.status?.artifacts ?? [];

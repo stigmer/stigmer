@@ -4,7 +4,7 @@ module agentic
 # EXECUTION CONTEXT TYPE (Owner-scoped)
 # ========================================
 # Ephemeral runtime configuration and encrypted secrets for executions.
-# Created at execution start (an agent run or MCP discovery),
+# Created at execution start (a run or MCP discovery),
 # deleted when the operation completes.
 #
 # Security model:

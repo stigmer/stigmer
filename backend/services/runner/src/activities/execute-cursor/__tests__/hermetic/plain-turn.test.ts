@@ -30,8 +30,8 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { MessageType, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { MessageType, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 // Both mocks are hoisted by vitest; they must live in this file. Each factory
 // imports the reusable module and returns its mock surface.
@@ -169,7 +169,7 @@ describe("ExecuteCursor hermetic — plain turn", () => {
     // ── Assert: the golden ───────────────────────────────────────────────────
     const finalStatus = record.lastFullStatus;
     expect(finalStatus).toBeDefined();
-    const json = JSON.stringify(toJson(AgentRunStatusSchema, finalStatus!), null, 2) + "\n";
+    const json = JSON.stringify(toJson(RunStatusSchema, finalStatus!), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/plain-turn.status.json");
   });
 });

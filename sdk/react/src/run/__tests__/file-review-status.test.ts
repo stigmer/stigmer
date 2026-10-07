@@ -3,14 +3,14 @@ import { create } from "@bufbuild/protobuf";
 import {
   FileContentSchema,
   ToolCallOutputRefSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import type { FileContent } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { FileContent } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
   FileDecisionSchema,
   type FileDecision,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   DiffCompleteness,
   FileChangeKind,
@@ -18,7 +18,7 @@ import {
   FileDecisionAction,
   FileDecisionScope,
   FileReviewBlockReason,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   changeForRowPath,
   changeSetReviewability,

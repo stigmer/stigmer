@@ -1,8 +1,8 @@
 "use client";
 
 import { memo, useCallback } from "react";
-import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
-import type { FileDecisionAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { FileDecisionAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import { FileReviewCard } from "./FileReviewCard.js";
 import type { FileDecisionOptions } from "./useFileReview.js";

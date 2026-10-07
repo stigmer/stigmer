@@ -1,4 +1,4 @@
-// `stigmer runs …` — lifecycle and observability for agent runs (aex_).
+// `stigmer runs …` — lifecycle and observability for runs (run_).
 //
 // The group is plural because the singular `stigmer run` starts a run (`run
 // <agent>`), the top-level `logs` reads the local stack
@@ -18,7 +18,7 @@ import { registerRunsTrace } from "./trace.js";
 export function registerRuns(program: Command): void {
   const runs = program
     .command("runs")
-    .description("manage run lifecycle and observability (run IDs: aex_)");
+    .description("manage run lifecycle and observability (run IDs: run_)");
 
   registerRunsControl(runs);
   registerRunsLogs(runs);

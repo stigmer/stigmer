@@ -7,12 +7,12 @@
 import { describe, expect, it } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { AgentRunSchema, type AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/writeback_pb";
+import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/writeback_pb";
 import { useSessionWriteBacks } from "../useSessionWriteBacks";
 
-function runWithWriteBacks(id: string, entryNames: string[]): AgentRun {
-  return create(AgentRunSchema, {
+function runWithWriteBacks(id: string, entryNames: string[]): Run {
+  return create(RunSchema, {
     metadata: { id },
     status: {
       workspaceWriteBacks: entryNames.map((workspaceEntryName) =>
@@ -24,7 +24,7 @@ function runWithWriteBacks(id: string, entryNames: string[]): AgentRun {
 
 describe("useSessionWriteBacks", () => {
   it("reports none for a session without write-backs", () => {
-    const { result } = renderHook(() => useSessionWriteBacks([create(AgentRunSchema)]));
+    const { result } = renderHook(() => useSessionWriteBacks([create(RunSchema)]));
     expect(result.current).toEqual({ writeBacks: [], hasWriteBacks: false, writeBackCount: 0 });
   });
 
@@ -47,7 +47,7 @@ describe("useSessionWriteBacks", () => {
   });
 
   it("tags a write-back from a run without an id with an empty run id", () => {
-    const run = create(AgentRunSchema, {
+    const run = create(RunSchema, {
       status: { workspaceWriteBacks: [create(WorkspaceWriteBackSchema, { workspaceEntryName: "repo" })] },
     });
     const { result } = renderHook(() => useSessionWriteBacks([run]));

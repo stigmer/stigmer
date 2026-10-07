@@ -53,8 +53,8 @@
  */
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 
-import { AgentRunSchema, AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunSchema, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 
 /**
@@ -129,7 +129,7 @@ export const WORKFLOW_CHILD_ENDED_ERROR =
  * when the bytes do not decode.
  */
 export function migrateAgentRunRow(data: Uint8Array, endedAt: string): Uint8Array | undefined {
-  const run = fromBinary(AgentRunSchema, data);
+  const run = fromBinary(RunSchema, data);
   const spec = run.spec;
   const status = run.status;
   const labels = run.metadata?.labels;
@@ -147,7 +147,7 @@ export function migrateAgentRunRow(data: Uint8Array, endedAt: string): Uint8Arra
   }
   const workflowStarted = specHeld || lineage.includes(WORKFLOW_EXECUTION_LABEL);
   if (workflowStarted && !FINISHED_RUN_PHASES.has(run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED)) {
-    const ended = run.status ?? create(AgentRunStatusSchema);
+    const ended = run.status ?? create(RunStatusSchema);
     ended.phase = RunPhase.RUN_FAILED;
     ended.error = WORKFLOW_CHILD_ENDED_ERROR;
     ended.completedAt = endedAt;
@@ -174,7 +174,7 @@ export function migrateAgentRunRow(data: Uint8Array, endedAt: string): Uint8Arra
       delete labels[key];
     }
   }
-  return toBinary(AgentRunSchema, run);
+  return toBinary(RunSchema, run);
 }
 
 /**

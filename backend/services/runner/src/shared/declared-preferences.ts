@@ -20,7 +20,7 @@
  * pre-#293 behavior, never worse.
  */
 
-import type { DeclaredPreferences } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+import type { DeclaredPreferences } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 
 /**
  * How the preferences are introduced to the model, shared by both harnesses

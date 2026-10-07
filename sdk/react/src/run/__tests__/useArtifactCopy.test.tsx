@@ -12,7 +12,7 @@ function wrapperFor(stigmer: Stigmer) {
 }
 
 function makeStigmer(getArtifactContent = vi.fn()) {
-  return { agentRun: { getArtifactContent } } as unknown as Stigmer;
+  return { run: { getArtifactContent } } as unknown as Stigmer;
 }
 
 const writeText = vi.fn().mockResolvedValue(undefined);

@@ -22,8 +22,8 @@
  * (middleware interruptOn model) to determine which tools need approval.
  */
 
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { ApprovalAction, ApprovalMode, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { ApprovalAction, ApprovalMode, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SENSITIVE_ARG_KEYS } from "./args-preview.js";
 import { toolApprovalCategory, type ToolApprovalCategory } from "./tool-kind.js";
 import { extractFilePath } from "./file-tools.js";
@@ -138,7 +138,7 @@ export function deriveLeaseScope(row: LeaseScopeInput): LeaseScope | undefined {
  * corpus-tested oracle the Go and Java editions mirror, so the backend's
  * scope-aware bulk-approve and this runner-side evaluation can never disagree.
  */
-export function deriveActiveLeases(execution: AgentRun): ActiveLeases {
+export function deriveActiveLeases(execution: Run): ActiveLeases {
   const categories = new Set<ToolApprovalCategory>();
   const servers = new Set<string>();
   const hooks = new Set<string>();
@@ -205,7 +205,7 @@ export function deriveActiveLeases(execution: AgentRun): ActiveLeases {
  * interrupting; the Cursor hook records a non-pausing "unattended" denial),
  * so the surfaces can never diverge on what "unattended" means.
  */
-export function isUnattendedApprovalMode(execution: AgentRun): boolean {
+export function isUnattendedApprovalMode(execution: Run): boolean {
   return execution.status?.approvalMode === ApprovalMode.UNATTENDED;
 }
 

@@ -10,7 +10,7 @@ import { DEFAULT_HARNESS, type HarnessOption } from "../models/harness.js";
 import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace/index.js";
 import { useSessionVariables, type UseSessionVariablesReturn } from "../run/useSessionVariables.js";
 import type { SessionComposerSubmitContext } from "../composer/index.js";
-import { useCreateAgentRun } from "../run/useCreateAgentRun.js";
+import { useCreateRun } from "../run/useCreateRun.js";
 import type { ExecutionTargetOption } from "./execution-target.js";
 import { useExecutionTarget } from "../execution-target-context.js";
 import { useApprovalDefaults } from "../approval-defaults-context.js";
@@ -272,7 +272,7 @@ export interface UseNewSessionFlowReturn {
    *
    * Composes all managed state (agent, workspace, MCP servers, skills,
    * model, session variables) into a single bootstrap RPC —
-   * `agentRun.create` with an embedded session spec — then calls
+   * `run.create` with an embedded session spec — then calls
    * `onSessionCreated` on success.
    *
    * The `model` parameter overrides `modelId` for this submission only
@@ -292,7 +292,7 @@ export interface UseNewSessionFlowReturn {
  * model selection (with localStorage persistence), agent resolution,
  * MCP server/skill selection, workspace entries, and session
  * variables. On submission, creates the session and its first run
- * with a single one-call bootstrap RPC (`agentRun.create` with an
+ * with a single one-call bootstrap RPC (`run.create` with an
  * embedded session spec), then notifies the consumer via
  * `onSessionCreated`.
  *
@@ -428,7 +428,7 @@ export function useNewSessionFlow(
   );
 
   const { getModel, isLoading: isModelsLoading } = useModelRegistry({ harness });
-  const { create: createExecution } = useCreateAgentRun();
+  const { create: createExecution } = useCreateRun();
   const workspace = useWorkspaceEntries();
   const sessionVariables = useSessionVariables();
 
@@ -579,7 +579,7 @@ export function useNewSessionFlow(
             : undefined,
           mcpServerUsages: mcpServerUsages.length > 0 ? mcpServerUsages : undefined,
           skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
-          // The typed-wins merge happens downstream in useCreateAgentRun;
+          // The typed-wins merge happens downstream in useCreateRun;
           // both fields are forwarded verbatim here.
           metadata,
           sessionContext,

@@ -2,13 +2,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 /**
  * Pins the run-scoped call the client composes for the control plane: the
- * agent run's status write, which names the run by `run_id`, the wire field
+ * run's status write, which names the run by `run_id`, the wire field
  * the run rename settled on. The transport and the generated clients are
  * replaced at their module seams, so the request the method builds is
  * observed without a server.
  */
 
-const agentRunUpdateStatus = vi.fn();
+const runUpdateStatus = vi.fn();
 
 vi.mock("@connectrpc/connect-node", () => ({
   createGrpcTransport: () => ({}),
@@ -20,8 +20,8 @@ vi.mock("@connectrpc/connect", async (importOriginal) => {
     ...actual,
     createClient: (service: { typeName: string }) => {
       switch (service.typeName) {
-        case "ai.stigmer.agentic.agentrun.v1.AgentRunCommandController":
-          return { updateStatus: agentRunUpdateStatus };
+        case "ai.stigmer.agentic.run.v1.RunCommandController":
+          return { updateStatus: runUpdateStatus };
         default:
           return {};
       }
@@ -30,8 +30,8 @@ vi.mock("@connectrpc/connect", async (importOriginal) => {
 });
 
 import { create } from "@bufbuild/protobuf";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { StigmerClient } from "../stigmer-client.js";
 
@@ -40,21 +40,21 @@ function newClient(): StigmerClient {
 }
 
 beforeEach(() => {
-  agentRunUpdateStatus.mockReset();
+  runUpdateStatus.mockReset();
 });
 
 describe("StigmerClient.updateStatus", () => {
-  it("sends the agent run's status under run_id and answers the server's response", async () => {
+  it("sends the run's status under run_id and answers the server's response", async () => {
     const response = { signal: 0 };
-    agentRunUpdateStatus.mockResolvedValue(response);
-    const status = create(AgentRunStatusSchema, {
+    runUpdateStatus.mockResolvedValue(response);
+    const status = create(RunStatusSchema, {
       phase: RunPhase.RUN_IN_PROGRESS,
     });
 
     const answered = await newClient().updateStatus("aex_1", status);
 
-    expect(agentRunUpdateStatus).toHaveBeenCalledTimes(1);
-    const input = agentRunUpdateStatus.mock.calls[0]![0] as {
+    expect(runUpdateStatus).toHaveBeenCalledTimes(1);
+    const input = runUpdateStatus.mock.calls[0]![0] as {
       runId: string;
       status: unknown;
     };

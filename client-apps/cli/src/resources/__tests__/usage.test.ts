@@ -1,10 +1,10 @@
 import { create, toJson } from "@bufbuild/protobuf";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   GetAgentUsageReportOutputSchema,
   GetOrgUsageReportOutputSchema,
   GetSessionUsageReportOutputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { describe, expect, it } from "vitest";
 import type { Stigmer } from "@stigmer/sdk";
 import {
@@ -111,7 +111,7 @@ describe("the usage reports ask for the organization as org", () => {
   it("getAgentUsageReport sends the agent and org with the range", async () => {
     let seen: unknown;
     const client = {
-      agentRun: { getAgentUsageReport: async (input: unknown) => ((seen = input), {}) },
+      run: { getAgentUsageReport: async (input: unknown) => ((seen = input), {}) },
     } as unknown as Stigmer;
     await getAgentUsageReport(client, "agt_1", "acme", range);
     expect(seen).toMatchObject({ agentId: "agt_1", org: "acme", fromDate: range.from, toDate: range.to });
@@ -120,7 +120,7 @@ describe("the usage reports ask for the organization as org", () => {
   it("getOrgUsageReport sends the org with the range", async () => {
     let seen: unknown;
     const client = {
-      agentRun: { getOrgUsageReport: async (input: unknown) => ((seen = input), {}) },
+      run: { getOrgUsageReport: async (input: unknown) => ((seen = input), {}) },
     } as unknown as Stigmer;
     await getOrgUsageReport(client, "acme", range);
     expect(seen).toMatchObject({ org: "acme", fromDate: range.from, toDate: range.to });

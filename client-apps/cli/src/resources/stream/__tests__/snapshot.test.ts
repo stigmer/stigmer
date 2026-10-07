@@ -5,22 +5,22 @@
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+  RunSchema,
+  RunStatusSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,
   type AgentMessage,
   type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   RunPhase,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { StreamEvent } from "../events.js";
 import { snapshotToEvents } from "../snapshot.js";
 
@@ -29,10 +29,10 @@ function exec(opts: {
   phase?: RunPhase;
   messages?: AgentMessage[];
   error?: string;
-}): AgentRun {
-  return create(AgentRunSchema, {
-    spec: create(AgentRunSpecSchema, { message: opts.message ?? "" }),
-    status: create(AgentRunStatusSchema, {
+}): Run {
+  return create(RunSchema, {
+    spec: create(RunSpecSchema, { message: opts.message ?? "" }),
+    status: create(RunStatusSchema, {
       phase: opts.phase ?? RunPhase.RUN_COMPLETED,
       messages: opts.messages ?? [],
       error: opts.error ?? "",

@@ -9,8 +9,8 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { isTransientStreamError } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
@@ -33,7 +33,7 @@ import { isTerminalPhase } from "./run-phases.js";
 /** Return value of {@link useRunStream}. */
 export interface UseRunStreamReturn {
   /** Latest full run snapshot from the stream, or `null` before the first update arrives. */
-  readonly run: AgentRun | null;
+  readonly run: Run | null;
   /**
    * Convenience extraction of `execution.status.phase`.
    *
@@ -136,8 +136,8 @@ export interface UseRunStreamOptions {
 }
 
 /**
- * Behavior hook that subscribes to real-time {@link AgentRun}
- * updates via `stigmer.agentRun.subscribe()`.
+ * Behavior hook that subscribes to real-time {@link Run}
+ * updates via `stigmer.run.subscribe()`.
  *
  * Manages the full subscription lifecycle through a finite state
  * machine: connection establishment, rAF-coalesced snapshot streaming,
@@ -338,7 +338,7 @@ export function useRunStream(
       while (!signal.aborted) {
         let sawTerminal = false;
         try {
-          for await (const snapshot of stigmer.agentRun.subscribe(
+          for await (const snapshot of stigmer.run.subscribe(
             executionId,
             signal,
           )) {

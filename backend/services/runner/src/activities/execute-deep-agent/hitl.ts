@@ -19,13 +19,13 @@
  */
 
 import { Command } from "@langchain/langgraph";
-import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   ApprovalAction,
   ApprovalPolicySource,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { POLICY_ENGINE_VERSION, unattendedSkipMessage, type PolicySource } from "../../shared/approval-policy.js";
 
 /**
@@ -200,7 +200,7 @@ function extractPendingInterrupts(state: GraphStateSnapshot): ResumableInterrupt
  * the parent's registry instance.
  */
 export function reconcileUnattendedSkips(
-  status: AgentRunStatus,
+  status: RunStatus,
   unattendedSkips: ReadonlyMap<string, string | null> | undefined,
 ): void {
   if (!unattendedSkips || unattendedSkips.size === 0) return;

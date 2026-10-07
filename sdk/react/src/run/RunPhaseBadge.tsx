@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 
 /** Props for {@link RunPhaseBadge}. */
@@ -86,7 +86,7 @@ const PHASE_CONFIG: ReadonlyMap<RunPhase, PhaseConfig> = new Map([
 ]);
 
 /**
- * Displays the lifecycle phase of an `AgentRun` as an
+ * Displays the lifecycle phase of a `Run` as an
  * inline badge with a status icon and label.
  *
  * Renders nothing for `RUN_PHASE_UNSPECIFIED`.

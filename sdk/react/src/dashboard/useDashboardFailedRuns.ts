@@ -3,9 +3,9 @@
 import { useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { ListAgentRunsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { ListRunsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 import type { DashboardFailedRun } from "./types.js";
@@ -22,7 +22,7 @@ export interface UseDashboardFailedRunsReturn {
 }
 
 /**
- * Data hook that fetches an organization's recent failed agent runs,
+ * Data hook that fetches an organization's recent failed runs,
  * normalizes them into {@link DashboardFailedRun} entries, and orders
  * them newest first.
  *
@@ -38,21 +38,21 @@ export function useDashboardFailedRuns(
     () =>
       orgVal
         ? async () => {
-            const resp = await stigmer.agentRun.list(
-              create(ListAgentRunsRequestSchema, {
+            const resp = await stigmer.run.list(
+              create(ListRunsRequestSchema, {
                 pageSize: PAGE_SIZE,
                 phase: RunPhase.RUN_FAILED,
                 org: orgVal,
               }),
             );
-            return [...resp.entries] as readonly AgentRun[];
+            return [...resp.entries] as readonly Run[];
           }
         : null,
     [stigmer, orgVal],
   );
 
   const { data: failed, isLoading, error } =
-    useFetch<readonly AgentRun[]>(fetchFn, [stigmer, orgVal], [], {
+    useFetch<readonly Run[]>(fetchFn, [stigmer, orgVal], [], {
       refetchInterval: 60_000,
     });
 

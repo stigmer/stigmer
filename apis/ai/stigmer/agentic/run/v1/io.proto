@@ -1,0 +1,1224 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.run.v1;
+
+import "ai/stigmer/agentic/run/v1/api.proto";
+import "ai/stigmer/agentic/run/v1/enum.proto";
+import "ai/stigmer/agentic/run/v1/usage.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/duration.proto";
+
+// RunId wraps a run identifier.
+message RunId {
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// SessionId wraps a session identifier for filtering.
+message SessionId {
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// RunList contains one page of runs, newest first.
+message RunList {
+  // Not computed for this list: 1 when the response holds every run,
+  // 0 when next_page_token is set. Follow next_page_token instead.
+  int32 total_pages = 1;
+
+  // Runs in this page, newest first.
+  repeated Run entries = 2;
+
+  // Set when more runs may follow: pass it as page_token to
+  // continue. A page may hold fewer runs than page_size, even none,
+  // and still carry a token. Empty when the list is complete, and always
+  // empty from listBySession, which returns a session's runs whole.
+  string next_page_token = 3;
+}
+
+// ListRunsRequest specifies parameters for listing runs.
+message ListRunsRequest {
+  // The most runs to return, at most 100; zero returns them all.
+  int32 page_size = 1 [(buf.validate.field).int32.gte = 0];
+
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 2;
+
+  // Filter by run phase (optional).
+  RunPhase phase = 3;
+
+  // Filter by tags (optional).
+  repeated string tags = 4;
+
+  // Organization slug to scope the results to.
+  //
+  // When set, only runs whose metadata.org matches are returned — the
+  // org-context view a console tab needs. When empty, results are bounded
+  // only by the caller's view permissions, which for a member of several
+  // organizations spans all of them.
+  //
+  // @internal
+  // Optional by design: pre-existing callers rely on the permission-bounded
+  // behavior. Every edition honours it in the store's indexed read, never
+  // client-side.
+  string org = 5;
+}
+
+// ListRunsBySessionRequest lists all runs in a session.
+//
+// A session's runs are returned whole, newest first: a conversation
+// is read as one, and every consumer of this list needs all of it.
+message ListRunsBySessionRequest {
+  // Session ID to filter by.
+  string session_id = 1 [(buf.validate.field).required = true];
+
+  // Not read: a session's runs are returned whole.
+  int32 page_size = 2 [deprecated = true];
+
+  // Not read: a session's runs are returned whole.
+  string page_token = 3 [deprecated = true];
+}
+
+// Input message for updateStatus RPC.
+// Contains only the run ID and the status fields to be updated.
+// This avoids validation errors on incomplete metadata/spec fields and makes the API contract clearer.
+message RunUpdateStatusInput {
+  // ID of the run to update (required).
+  // Format: "run_abc123xyz456"
+  string run_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Status fields to update.
+  // The handler will merge these status fields with the existing run's status.
+  // Only the fields present in this status object will be updated.
+  RunStatus status = 2 [(buf.validate.field).required = true];
+}
+
+// UpdateStatusResponse is the lightweight response returned by the
+// updateStatus RPC. It replaces the previous Run return type
+// to avoid serializing the full resource on every progressive update
+// (~every 2-3 seconds during streaming).
+//
+// The response carries an optional run control signal from the
+// platform back to the runner. The signal is generic — the runner acts
+// on STOP / WARNING without knowing the source (billing, admin, budget).
+message UpdateStatusResponse {
+  // Platform-to-runner directive. UNSPECIFIED means continue normally.
+  RunControlSignal signal = 1;
+
+  // Human-readable reason for the signal (optional).
+  // Logged by the runner and may be surfaced to the user in the stop summary.
+  string signal_reason = 2;
+}
+
+// Input for submitting an approval decision.
+//
+// All required fields must be provided. The handler validates:
+// 1. The run exists and is in RUN_WAITING_FOR_APPROVAL phase
+// 2. The tool_call_id matches status.pending_approval.tool_call_id
+// 3. The action is a valid non-UNSPECIFIED enum value
+//
+// Example:
+//   {
+//     "run_id": "run_abc123xyz456",
+//     "tool_call_id": "call_def789",
+//     "action": "APPROVAL_ACTION_APPROVE",
+//     "comment": "Verified safe to execute"
+//   }
+message SubmitApprovalInput {
+  // ID of the run.
+  // Format: "run_abc123xyz456"
+  string run_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // ID of the tool call to approve/skip/reject.
+  // Must match status.pending_approval.tool_call_id exactly.
+  // Format: Tool call ID from agent runtime (e.g., "call_abc123")
+  string tool_call_id = 2 [(buf.validate.field).string.min_len = 1];
+
+  // User's decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
+  // APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
+  ApprovalAction action = 3 [(buf.validate.field).enum = {
+    defined_only: true
+    not_in: [0]
+  }];
+
+  // Optional reason/comment for the decision.
+  // Stored in audit trail for compliance and debugging.
+  // Examples:
+  //   - "Verified the target repository is safe to delete" (on APPROVE)
+  //   - "Will handle this operation manually" (on SKIP)
+  //   - "Unexpected target - this looks like the wrong repository" (on REJECT)
+  string comment = 4;
+}
+
+// ApprovalDecisionList wraps a batch of approval decisions for Temporal
+// activity transport.
+//
+// Required for polyglot Temporal serialization: a bare repeated field (Go
+// slice / Java List) is NOT a proto.Message, so the SDK falls back to
+// json/plain encoding which the Python worker cannot decode into typed
+// protobuf objects.  Wrapping in a message ensures the SDK uses the
+// json/protobuf payload converter on both sides.
+message ApprovalDecisionList {
+  repeated SubmitApprovalInput decisions = 1;
+}
+
+// SubmitFileDecisionInput is a user's keep/discard decision on a file change
+// set or a single file within it.
+//
+// The decision is recorded in the append-only file_review event stream as a
+// FILE_DECIDED event; FileChangeSet.decisions is the derived projection. The
+// runner reconciles approved bytes; this RPC only records the
+// decision and enforces that expected_digest still matches what the user saw.
+//
+// Example:
+//   {
+//     "run_id": "run_abc123xyz456",
+//     "change_set_id": "fcs_def789",
+//     "scope": "FILE_DECISION_SCOPE_FILE",
+//     "file_change_id": "fc_001",
+//     "action": "FILE_DECISION_ACTION_APPROVE",
+//     "expected_digest": "sha256:…",
+//     "reason": "Looks correct"
+//   }
+message SubmitFileDecisionInput {
+  // ID of the run.
+  string run_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // ID of the change set this decision targets. Must match
+  // status.file_change_sets[].id.
+  string change_set_id = 2 [(buf.validate.field).string.min_len = 1];
+
+  // Whether the decision applies to the whole change set or one file.
+  // FILE_DECISION_SCOPE_UNSPECIFIED (0) is rejected by validation.
+  FileDecisionScope scope = 3 [(buf.validate.field).enum = {
+    defined_only: true
+    not_in: [0]
+  }];
+
+  // ID of the file change to decide; required when scope is FILE, ignored for
+  // CHANGE_SET (the cross-field rule is enforced in the handler). Must match a
+  // CapturedFileChange.id within the change set.
+  string file_change_id = 4;
+
+  // Keep (APPROVE) or discard (REJECT). FILE_DECISION_ACTION_UNSPECIFIED (0) is
+  // rejected by validation.
+  FileDecisionAction action = 5 [(buf.validate.field).enum = {
+    defined_only: true
+    not_in: [0]
+  }];
+
+  // Digest of the content the user actually saw — the enforcement gate. The
+  // handler rejects the decision if the target's current digest differs, so a
+  // change captured after the user reviewed cannot be silently decided.
+  string expected_digest = 6 [(buf.validate.field).string.min_len = 1];
+
+  // Optional reason/comment for the decision (audit trail).
+  string reason = 7;
+
+  // Set true on an APPROVE to consciously KEEP a change whose diff could not be
+  // fully reviewed. Honored only for a binary file (FileContent.is_binary) at
+  // FILE scope: a binary has no text diff, but its exact bytes are captured and
+  // reconcilable, so a user may acknowledge that and keep it. It NEVER relaxes
+  // the expected_digest gate, and is ignored for CHANGE_SET scope and for any
+  // other incompleteness (secret-withheld / size-elided / uncapturable), which
+  // have no keepable bytes and stay discard-only (fail-closed). Ignored on
+  // REJECT.
+  bool acknowledge_unreviewable = 8;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Lifecycle Control Input Messages
+//
+// These messages are used by lifecycle control RPCs (cancel, terminate, recover,
+// pause, resume) to manage run state.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// CancelRunInput requests graceful cancellation of a run.
+//
+// Cancellation sends a signal to the run, allowing it to clean up
+// gracefully. The agent can handle the cancellation signal (e.g., save checkpoint,
+// report status) before the run transitions to CANCELLED phase.
+//
+// ## Behavior
+//
+// - Sends cancellation signal to Temporal via CancelWorkflow API
+// - Agent activity receives cancellation and saves checkpoint
+// - Run transitions to RUN_CANCELLED phase after cleanup
+// - LangGraph checkpoint is preserved for potential future recovery
+//
+// ## Preconditions
+//
+// - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
+// - User must have can_edit permission on the run
+//
+// ## Idempotency
+//
+// If the run is already cancelled (phase == RUN_CANCELLED),
+// the call succeeds as a no-op and returns the current run state.
+//
+// ## Use Cases
+//
+// - User realizes they provided incorrect input to the agent
+// - Business decision to stop a long-running agent task
+// - Graceful shutdown before maintenance window
+// - Cancel agent that is taking too long
+//
+// ## Example
+//
+// {
+//   "id": "run_abc123xyz456",
+//   "reason": "User requested cancellation - task no longer needed"
+// }
+message CancelRunInput {
+  // Run ID to cancel.
+  //
+  // Format: "run_{ulid}" (auto-generated unique identifier)
+  // Example: "run_abc123xyz456"
+  //
+  // Validation: Required, cannot be empty
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Human-readable reason for cancellation.
+  //
+  // Stored in the audit trail and passed to Temporal for operational debugging.
+  // Optional but strongly recommended for compliance and troubleshooting.
+  //
+  // Examples:
+  // - "User requested cancellation"
+  // - "Incorrect input provided to agent"
+  // - "Superseded by newer run"
+  // - "Pre-maintenance shutdown"
+  string reason = 2;
+}
+
+// TerminateRunInput requests immediate termination of a run.
+//
+// Termination forcefully kills the run without allowing cleanup.
+// Unlike cancellation, the agent cannot respond to termination - it is stopped
+// immediately. Use this for stuck or unresponsive runs.
+//
+// ## Behavior
+//
+// - Force-kills workflow via Temporal TerminateWorkflow API
+// - Agent activity does NOT receive any signal (cannot clean up)
+// - Run transitions to RUN_TERMINATED phase immediately
+// - All in-progress tool calls are stopped abruptly
+// - LangGraph checkpoint may be incomplete
+//
+// ## Preconditions
+//
+// - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
+// - User must have can_edit permission on the run
+//
+// ## Idempotency
+//
+// If the run is already terminated (phase == RUN_TERMINATED),
+// the call succeeds as a no-op and returns the current run state.
+//
+// ## Terminated vs Cancelled
+//
+// | Aspect | Cancel | Terminate |
+// |--------|--------|-----------|
+// | Signal | Agent receives cancellation signal | No signal sent |
+// | Cleanup | Agent can save checkpoint | No cleanup possible |
+// | Use case | Normal cancellation | Stuck/unresponsive agents |
+// | Recovery | Cannot recover | Cannot recover |
+//
+// ## Use Cases
+//
+// - Agent is stuck and not responding to cancellation
+// - Agent is in an infinite loop
+// - Emergency stop for misbehaving agent
+// - Agent has a bug causing it to ignore cancellation signals
+//
+// ## Example
+//
+// {
+//   "id": "run_abc123xyz456",
+//   "reason": "Agent stuck in infinite loop, not responding to cancel"
+// }
+message TerminateRunInput {
+  // Run ID to terminate.
+  //
+  // Format: "run_{ulid}" (auto-generated unique identifier)
+  // Example: "run_abc123xyz456"
+  //
+  // Validation: Required, cannot be empty
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Human-readable reason for termination.
+  //
+  // Stored in the audit trail and passed to Temporal for operational debugging.
+  // Optional but strongly recommended - termination is a drastic action
+  // and the reason helps with post-incident analysis.
+  //
+  // Examples:
+  // - "Agent stuck for 30 minutes, not responding to cancel"
+  // - "Infinite loop detected in tool calls"
+  // - "Emergency stop - agent making unexpected API calls"
+  // - "Cancel failed after 3 attempts, force terminating"
+  string reason = 2;
+}
+
+// RecoverRunInput requests recovery of a failed run.
+//
+// Recovery retries the failed run while preserving all completed work. The
+// agent continues from where it failed without re-executing successful steps.
+//
+// ## Behavior
+//
+// - Terminates the previous Temporal workflow and starts a fresh one
+// - The LangGraph checkpoint is loaded using the preserved thread_id, so
+//   completed work carries over from the session's harness state
+// - Completed tool calls are NOT re-executed
+// - Run transitions from FAILED back to IN_PROGRESS phase
+// - Agent retries from where it failed
+//
+// ## Preconditions
+//
+// - Run must be in RUN_FAILED phase
+// - TERMINATED runs cannot be recovered (incomplete checkpoint)
+// - CANCELLED runs cannot be recovered (intentional user action)
+// - User must have can_edit permission on the run
+//
+// ## Idempotency
+//
+// If recovery is already in progress (run moved to IN_PROGRESS after
+// a previous recover call), the call succeeds as a no-op and returns current state.
+//
+// ## Use Cases
+//
+// - Agent failed due to transient error (network timeout, rate limit)
+// - External API was down but is now available
+// - Bug was fixed and agent should continue from failure point
+// - Retry after investigating and fixing the root cause
+//
+// ## Example
+//
+// {
+//   "id": "run_abc123xyz456"
+// }
+message RecoverRunInput {
+  // Run ID to recover.
+  //
+  // Must be in FAILED phase. TERMINATED and CANCELLED runs
+  // cannot be recovered.
+  //
+  // Format: "run_{ulid}" (auto-generated unique identifier)
+  // Example: "run_abc123xyz456"
+  //
+  // Validation: Required, cannot be empty
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// PauseRunInput requests temporarily pausing a run.
+//
+// Pauses the agent at its current checkpoint. Unlike cancel, the run
+// is NOT terminal and can be resumed later from where it left off.
+//
+// ## Behavior
+//
+// When an agent is paused:
+// 1. A "pause" signal is sent to the Temporal workflow
+// 2. Running activity is gracefully cancelled (checkpoint saved)
+// 3. LangGraph auto-saves checkpoint on cancellation
+// 4. Run transitions to RUN_PAUSED phase
+// 5. Workflow waits for resume signal (no resources consumed)
+//
+// ## Resume Flow
+//
+// The paused agent can be resumed via the resume RPC:
+// 1. Resume signal unblocks the workflow
+// 2. Activity is re-invoked with same thread_id
+// 3. LangGraph loads from checkpoint automatically
+// 4. Agent continues from exact pause point
+//
+// ## Preconditions
+//
+// - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
+// - Cannot pause already paused or terminal runs
+//
+// ## Use Cases
+//
+// - User wants to review agent progress before continuing
+// - Scheduled maintenance window requires pausing work
+// - Rate limit concerns require throttling agent work
+// - Need to modify agent configuration before continuing
+//
+// ## Example
+//
+// {
+//   "id": "run_abc123xyz456",
+//   "reason": "Pausing to review progress before continuing"
+// }
+message PauseRunInput {
+  // Run ID to pause.
+  //
+  // Must be in PENDING or IN_PROGRESS phase. Cannot pause
+  // runs that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
+  //
+  // Format: "run_{ulid}" (auto-generated unique identifier)
+  // Example: "run_abc123xyz456"
+  //
+  // Validation: Required, cannot be empty
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Human-readable reason for pausing.
+  //
+  // Stored in the audit trail for operational debugging and compliance.
+  // Helps track why the pause was needed.
+  //
+  // Examples:
+  // - "Pausing for scheduled maintenance window"
+  // - "User requested pause to review progress"
+  // - "Pausing due to rate limit concerns"
+  // - "Emergency pause - investigating issue"
+  string reason = 2;
+}
+
+// ResumeRunInput requests resuming a paused run.
+//
+// Continues the run from the checkpoint where it was paused. The agent
+// re-invokes activities with the same thread_id, which loads from checkpoint
+// and continues from where it left off.
+//
+// ## Behavior
+//
+// When an agent is resumed:
+// 1. A "resume" signal is sent to the paused Temporal workflow
+// 2. Workflow unblocks from its wait state
+// 3. Activity is re-invoked with same execution context
+// 4. LangGraph loads checkpoint using thread_id
+// 5. Agent continues from exact pause point
+//
+// ## Preconditions
+//
+// - Run must be in RUN_PAUSED phase
+// - Cannot resume non-paused runs
+//
+// ## Idempotency
+//
+// If the run is not paused (already IN_PROGRESS),
+// the call succeeds as a no-op and returns the current run state.
+//
+// ## Example
+//
+// {
+//   "id": "run_abc123xyz456"
+// }
+message ResumeRunInput {
+  // Run ID to resume.
+  //
+  // Must be in PAUSED phase. Cannot resume runs
+  // that are not paused.
+  //
+  // Format: "run_{ulid}" (auto-generated unique identifier)
+  // Example: "run_abc123xyz456"
+  //
+  // Validation: Required, cannot be empty
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Artifact Lifecycle Messages
+//
+// These messages support file attachments (inputs) and artifacts (outputs)
+// for runs. Attachments are files provided to agents before
+// run; artifacts are files created by agents during the run.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// UploadAttachmentRequest uploads a file attachment for use in a run.
+//
+// This endpoint allows CLI and other clients to pre-upload large files (>4MB)
+// to artifact storage before creating a run. The returned storage_key
+// can then be used in the Attachment message when creating the run.
+//
+// ## Storage
+//
+// Files are uploaded to: attachments/{ulid}/{filename}
+// The ULID ensures unique paths and allows for future cleanup policies.
+//
+// ## Authorization
+//
+// This endpoint does not require authorization. The storage_key returned acts
+// as a capability token - knowing the key grants access to the content. This
+// simplifies the upload flow while maintaining security through obscurity
+// of the storage path.
+//
+// ## Use Cases
+//
+// - CLI uploading files before run
+// - Pre-uploading large datasets for agent processing
+// - Uploading binary files that cannot be embedded inline
+//
+// ## Example
+//
+// Request:
+// {
+//   "filename": "dataset.csv",
+//   "content": <binary data>,
+//   "content_type": "text/csv"
+// }
+//
+// Response:
+// {
+//   "storage_key": "attachments/01HGXXX.../dataset.csv"
+// }
+message UploadAttachmentRequest {
+  // Original filename of the attachment.
+  //
+  // Used in the storage path and for display purposes.
+  // Must be a bare filename with no path separators and no `.`/`..` traversal
+  // segments — it is interpolated into the storage key and, on the local
+  // backend, into an on-disk path.
+  //
+  // Examples: "dataset.csv", "config.json", "report.pdf"
+  //
+  // Validation: Required, minimum 1 character, no path separators or traversal
+  // segments
+  string filename = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).cel = {
+      id: "upload_attachment.filename.no_path"
+      message: "filename must be a bare filename without path separators or traversal segments"
+      expression: "!this.contains('/') && !this.contains('\\\\') && this != '.' && this != '..'"
+    }
+  ];
+
+  // Binary content of the file.
+  //
+  // Maximum size depends on gRPC message limits (typically 4MB).
+  // For very large files, consider chunked upload (future enhancement).
+  //
+  // Validation: Required, cannot be empty
+  bytes content = 2 [(buf.validate.field).required = true];
+
+  // MIME type of the file content.
+  //
+  // Used for Content-Type header when downloading.
+  // If not provided, will be guessed from filename extension.
+  //
+  // Examples: "text/csv", "application/json", "application/pdf"
+  string content_type = 3;
+}
+
+// UploadAttachmentResponse returns the storage key for the uploaded attachment.
+//
+// The storage_key should be used in the Attachment message when creating
+// a run. The key is opaque to clients - do not parse or
+// construct keys manually.
+message UploadAttachmentResponse {
+  // Storage key for the uploaded attachment.
+  //
+  // Use this key in Attachment.storage_key when creating a run.
+  // The key includes a unique identifier and the filename.
+  //
+  // Format: "attachments/{ulid}/{filename}"
+  // Example: "attachments/01HGXXX123ABC/dataset.csv"
+  string storage_key = 1;
+}
+
+// GetArtifactDownloadUrlRequest requests a download URL for a run artifact.
+//
+// This endpoint generates presigned URLs for artifacts published by agents
+// during the run. The URLs are time-limited and can be used for direct
+// HTTP download without authentication.
+//
+// ## Authorization
+//
+// Requires can_view permission on the run. This ensures users can only
+// access artifacts from runs they have access to.
+//
+// ## Security
+//
+// The storage_key is validated to ensure it belongs to the specified run.
+// Storage keys must start with "artifacts/{run_id}/" to prevent path
+// traversal attacks where a user could request URLs for other runs'
+// artifacts.
+//
+// ## Use Cases
+//
+// - CLI downloading agent-created files
+// - Web UI providing download links for artifacts
+// - Refreshing expired download URLs
+//
+// ## Example
+//
+// Request:
+// {
+//   "run_id": "run_abc123xyz456",
+//   "storage_key": "artifacts/run_abc123xyz456/generated-skill.zip"
+// }
+//
+// Response:
+// {
+//   "download_url": "https://r2.example.com/...",
+//   "expires_at": "2026-02-20T10:30:00Z"
+// }
+message GetArtifactDownloadUrlRequest {
+  // ID of the run that produced the artifact.
+  //
+  // Used for authorization (can_view check) and storage_key validation.
+  //
+  // Format: "run_{ulid}"
+  // Example: "run_abc123xyz456"
+  //
+  // Validation: Required, minimum 1 character
+  string run_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Storage key of the artifact to download.
+  //
+  // Must be an artifact from the specified run. The storage_key
+  // is validated to start with "artifacts/{run_id}/" to prevent
+  // access to other runs' artifacts.
+  //
+  // Obtain this value from RunArtifact.storage_key in the run status.
+  //
+  // Format: "artifacts/{run_id}/{filename}"
+  // Example: "artifacts/run_abc123xyz456/generated-skill.zip"
+  //
+  // Validation: Required, minimum 1 character
+  string storage_key = 2 [(buf.validate.field).string.min_len = 1];
+
+  // Whether the URL should force a browser download instead of inline display.
+  //
+  // When true, the presigned URL carries a Content-Disposition: attachment
+  // header keyed to the artifact's filename, so a browser navigating to it
+  // saves the file rather than rendering it in a tab. Browsers ignore the
+  // HTML `download` attribute on cross-origin URLs (e.g. presigned R2), so
+  // the disposition MUST be signed into the URL itself — this flag is how a
+  // caller requests it.
+  //
+  // When false (the default), the URL displays inline. Inline is required for
+  // rendering surfaces such as an `<img src>` pointing at an offloaded
+  // screenshot; forcing a download there would break the render.
+  //
+  // Use true for click-to-download affordances; false (or unset) for inline
+  // rendering and programmatic reads.
+  bool as_attachment = 3;
+}
+
+// GetArtifactDownloadUrlResponse returns a presigned download URL for an artifact.
+//
+// The download_url can be used with a simple HTTP GET request to download
+// the artifact. No authentication headers are required - the URL contains
+// embedded authorization.
+message GetArtifactDownloadUrlResponse {
+  // Presigned URL for downloading the artifact.
+  //
+  // Valid for direct HTTP GET request without authentication.
+  // The URL includes embedded authorization that expires at expires_at.
+  //
+  // Example: "https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=..."
+  // With local storage the URL is the server's artifact file server,
+  // signed by the server: "http://localhost:7235/artifacts/...?exp=...&sig=..."
+  string download_url = 1;
+
+  // ISO 8601 timestamp when the download URL expires.
+  //
+  // After this time, the URL will no longer work and a new URL
+  // must be requested via this endpoint.
+  //
+  // Default expiration: 7 days from generation.
+  //
+  // Example: "2026-02-20T10:30:00Z"
+  string expires_at = 2;
+}
+
+// GetArtifactContentRequest reads the raw content of a run artifact.
+//
+// Unlike getArtifactDownloadUrl (which returns a presigned URL for direct
+// browser download), this endpoint returns the artifact bytes through the
+// Stigmer API. This eliminates CORS concerns for SDK consumers who need to
+// read artifact content programmatically — e.g., for YAML parsing, resource
+// detection, or in-app preview rendering.
+//
+// ## Authorization
+//
+// Requires can_view permission on the run. This ensures users can only
+// read artifacts from runs they have access to.
+//
+// ## Security
+//
+// The storage_key is validated to ensure it belongs to the specified run.
+// Storage keys must start with "artifacts/{run_id}/" to prevent path
+// traversal attacks where a user could request content from other runs'
+// artifacts.
+//
+// ## Size Limit
+//
+// The server enforces a maximum content size (default: 512 KB). If the
+// artifact exceeds max_bytes, the response contains the first max_bytes of
+// content with truncated=true. Callers can use total_size_bytes to decide
+// whether to offer a full download via getArtifactDownloadUrl instead.
+//
+// ## Use Cases
+//
+// - Web UI reading YAML artifacts for Stigmer resource detection
+// - SDK consumers rendering artifact previews in embedded components
+// - CLI inspecting artifact content without a separate HTTP download
+//
+// ## Example
+//
+// Request:
+// {
+//   "run_id": "run_abc123xyz456",
+//   "storage_key": "artifacts/run_abc123xyz456/pr-review-agent.yaml"
+// }
+//
+// Response:
+// {
+//   "content": <bytes>,
+//   "content_type": "text/yaml",
+//   "total_size_bytes": 1842,
+//   "truncated": false
+// }
+message GetArtifactContentRequest {
+  // ID of the run that produced the artifact.
+  //
+  // Used for authorization (can_view check) and storage_key validation.
+  //
+  // Format: "run_{ulid}"
+  // Example: "run_abc123xyz456"
+  //
+  // Validation: Required, minimum 1 character
+  string run_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Storage key of the artifact to read.
+  //
+  // Must be an artifact from the specified run. The storage_key
+  // is validated to start with "artifacts/{run_id}/" to prevent
+  // access to other runs' artifacts.
+  //
+  // Obtain this value from RunArtifact.storage_key in the run status.
+  //
+  // Format: "artifacts/{run_id}/{filename}"
+  // Example: "artifacts/run_abc123xyz456/pr-review-agent.yaml"
+  //
+  // Validation: Required, minimum 1 character
+  string storage_key = 2 [(buf.validate.field).string.min_len = 1];
+
+  // Maximum number of bytes to return.
+  //
+  // If the artifact is larger than this limit, the response will contain
+  // the first max_bytes of content with truncated=true.
+  //
+  // When 0 or unset, the server applies a default limit (512 KB).
+  // The server may also enforce a hard upper bound regardless of this value.
+  //
+  // Example: 524288 (512 KB)
+  int64 max_bytes = 3;
+
+  // For directory artifacts (ZIPs): extract a specific file by its
+  // path within the archive instead of returning the raw ZIP bytes.
+  //
+  // When empty, returns the full artifact content (existing behavior).
+  // When set for a FILE artifact, this field is ignored.
+  //
+  // The path must match an entry in the archive exactly (case-sensitive).
+  // Use the paths from RunArtifact.entries to discover valid values.
+  //
+  // Example: "SKILL.md", "scripts/init_skill.py"
+  string entry_path = 4;
+}
+
+// GetArtifactContentResponse returns the raw content of a run artifact.
+//
+// The content field contains the artifact bytes (up to max_bytes). For text
+// artifacts, clients decode via TextDecoder or equivalent. The content_type
+// field provides a hint for rendering (detected by file extension).
+message GetArtifactContentResponse {
+  // Raw artifact content (up to max_bytes).
+  //
+  // For text artifacts (YAML, JSON, Markdown, etc.), decode as UTF-8.
+  // For binary artifacts, this contains raw bytes — but callers should
+  // generally use getArtifactDownloadUrl for binary downloads instead.
+  bytes content = 1;
+
+  // Detected content type based on file extension.
+  //
+  // Examples: "text/yaml", "text/plain", "application/json",
+  // "application/zip" (for directory artifacts).
+  //
+  // This is a best-effort detection — not based on content inspection.
+  string content_type = 2;
+
+  // Actual total size of the artifact in bytes.
+  //
+  // May be larger than len(content) when truncated=true.
+  // Callers can use this to show "showing 512 KB of 2.1 MB" messages
+  // or to decide whether to offer a full download link.
+  int64 total_size_bytes = 3;
+
+  // Whether the content was truncated to fit within max_bytes.
+  //
+  // When true, content contains only the first max_bytes of the artifact.
+  // The full artifact can be downloaded via getArtifactDownloadUrl.
+  bool truncated = 4;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Usage Report Types
+//
+// Request/response messages for usage reporting RPCs that provide cost and
+// token consumption visibility at run, session, agent, and organization
+// levels. All data is sourced from the llm_call_usage_record collection.
+//
+// Token counts are int64. Cost amounts are int64 micro-USD
+// (1 USD = 1,000,000 micros).
+// ─────────────────────────────────────────────────────────────────────────────
+
+// GetRunUsageReportInput requests a usage report for a single run.
+message GetRunUsageReportInput {
+  // Run ID to get usage report for.
+  string run_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// GetRunUsageReportOutput returns aggregated usage for one run.
+message GetRunUsageReportOutput {
+  // Aggregated token counts and cost for this run.
+  UsageReportAggregate aggregate = 1;
+
+  // Per-model breakdown within this run.
+  repeated ModelUsage model_breakdown = 2;
+}
+
+// GetSessionUsageReportInput requests a usage report for a single session.
+// Aggregates cost and token data across all runs in the session.
+message GetSessionUsageReportInput {
+  // Session ID to get usage report for.
+  string session_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// GetSessionUsageReportOutput returns aggregated usage for a session.
+//
+// Provides both the session-level totals and per-run breakdown,
+// enabling drill-down from "this session cost $0.90" to "run #3
+// cost $0.12 because it used claude-sonnet-4."
+message GetSessionUsageReportOutput {
+  // Session identifier.
+  string session_id = 1;
+
+  // Total number of runs in this session.
+  int32 run_count = 2;
+
+  // Aggregated usage across all runs in this session.
+  UsageReportAggregate total_usage = 3;
+
+  // Per-run breakdown (ordered chronologically).
+  repeated RunUsageSummary runs = 4;
+
+  // Per-model breakdown across the entire session.
+  repeated ModelUsage model_breakdown = 5;
+
+  // ISO 8601 timestamp of the first run in this session.
+  string first_run_at = 6;
+
+  // ISO 8601 timestamp of the most recent run in this session.
+  string last_run_at = 7;
+
+  // Whether any record in this session is still estimated (not yet proxy-metered).
+  // True when the run is in flight and only streaming usage data is available.
+  // False once proxy billing records have been written.
+  bool is_estimated = 8;
+}
+
+// GetAgentUsageReportInput requests a usage report for a specific agent
+// within one organization. Aggregates cost and token data across the org's
+// sessions of the agent within a time range.
+message GetAgentUsageReportInput {
+  // Agent ID to get usage report for.
+  string agent_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Start of time range filter (ISO 8601, inclusive).
+  // Example: "2026-03-01"
+  string from_date = 2;
+
+  // End of time range filter (ISO 8601, inclusive).
+  // Example: "2026-03-13"
+  string to_date = 3;
+
+  // Maximum number of sessions to return per page.
+  int32 page_size = 4;
+
+  // Token for pagination, obtained from previous response.
+  string page_token = 5;
+
+  // Organization scope for the report: usage of this agent within this
+  // organization. Only runs belonging to this organization are
+  // aggregated. The caller must hold can_view on the organization.
+  string org = 6 [(buf.validate.field).string.min_len = 1];
+}
+
+// GetAgentUsageReportOutput returns aggregated usage for an agent.
+//
+// Provides agent-level totals, per-model breakdown, and per-session
+// summaries within the requested time range.
+message GetAgentUsageReportOutput {
+  // Agent identifier.
+  string agent_id = 1;
+
+  // Human-readable agent name for display.
+  string agent_name = 2;
+
+  // Aggregated usage within the time range.
+  UsageReportAggregate total_usage = 3;
+
+  // Per-model breakdown across the agent's runs.
+  repeated ModelUsage model_breakdown = 4;
+
+  // Per-session breakdown within the time range.
+  repeated SessionUsageSummary sessions = 5;
+
+  // Total number of sessions within the time range.
+  int32 total_sessions = 6;
+
+  // Total number of runs within the time range.
+  int32 total_runs = 7;
+
+  // Total billable cost in micro-USD within the time range.
+  int64 total_billable_cost_micros = 8;
+
+  // Token for the next page of sessions (empty if no more pages).
+  string next_page_token = 9;
+}
+
+// GetOrgUsageReportInput requests a usage report for an entire organization.
+// Aggregates cost and token data across all agents and sessions within a
+// time range.
+message GetOrgUsageReportInput {
+  // Organization ID.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Start of time range filter (ISO 8601, inclusive, required).
+  // Example: "2026-03-01"
+  string from_date = 2 [(buf.validate.field).string.min_len = 1];
+
+  // End of time range filter (ISO 8601, inclusive, required).
+  // Example: "2026-03-13"
+  string to_date = 3 [(buf.validate.field).string.min_len = 1];
+}
+
+// GetOrgUsageReportOutput returns aggregated usage for an organization.
+//
+// Provides org-level totals, per-model breakdown, top agents by cost,
+// and a daily cost trend for capacity planning and budget monitoring.
+message GetOrgUsageReportOutput {
+  // Organization identifier.
+  string org = 1;
+
+  // Total distinct agents with runs in the time range.
+  int32 total_agents = 2;
+
+  // Total sessions across all agents in the time range.
+  int32 total_sessions = 3;
+
+  // Total runs across all agents in the time range.
+  int32 total_runs = 4;
+
+  // Total billable cost in micro-USD across the organization in the time range.
+  int64 total_billable_cost_micros = 5;
+
+  // Per-model breakdown across the organization.
+  repeated ModelUsage model_breakdown = 6;
+
+  // Top agents by cost (top 10), ordered by billable_cost_micros descending.
+  repeated AgentUsageSummary top_agents_by_cost = 7;
+
+  // Daily cost trend within the time range, ordered chronologically.
+  repeated DailyCostEntry daily_costs = 8;
+
+  // Cost split by execution harness (e.g., "native" vs "cursor").
+  repeated HarnessCostSummary harness_breakdown = 9;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Usage Report Supporting Types
+//
+// Lightweight summary types used within usage report responses.
+// All token counts are int64. All cost amounts are int64 micro-USD.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Lightweight view of a single run's usage within a session report.
+message RunUsageSummary {
+  // Run identifier.
+  string run_id = 1;
+
+  // ISO 8601 timestamp when the run started.
+  string started_at = 2;
+
+  // ISO 8601 timestamp when the run completed.
+  string completed_at = 3;
+
+  // Input tokens for this run.
+  int64 input_tokens = 4;
+
+  // Output tokens for this run.
+  int64 output_tokens = 5;
+
+  // Cache read tokens for this run.
+  int64 cache_read_input_tokens = 6;
+
+  // Billable cost in micro-USD for this run.
+  int64 billable_cost_micros = 7;
+
+  // Primary model used for this run.
+  string primary_model = 8;
+
+  // Number of sub-agent invocations in this run.
+  int32 sub_agent_count = 9;
+
+  // Terminal phase of this run.
+  RunPhase phase = 10;
+
+  // Whether this run's cost is estimated (in-flight, no billing records yet).
+  bool is_estimated = 11;
+}
+
+// Lightweight view of a session's usage within an agent report.
+message SessionUsageSummary {
+  // Session identifier.
+  string session_id = 1;
+
+  // Number of runs in this session.
+  int32 run_count = 2;
+
+  // Total tokens across all runs (cache-inclusive: the sum of each
+  // call's provider-reported total, including cached input tokens).
+  int64 total_tokens = 3;
+
+  // Total billable cost in micro-USD for this session.
+  int64 billable_cost_micros = 4;
+
+  // ISO 8601 timestamp of the first run in this session.
+  string first_run_at = 5;
+
+  // ISO 8601 timestamp of the most recent run in this session.
+  string last_run_at = 6;
+}
+
+// Lightweight view of an agent's usage within an org report.
+message AgentUsageSummary {
+  // Agent identifier.
+  string agent_id = 1;
+
+  // Human-readable agent name for display.
+  string agent_name = 2;
+
+  // Total runs for this agent in the time range.
+  int32 run_count = 3;
+
+  // Total tokens across all runs (cache-inclusive: the sum of each
+  // call's provider-reported total, including cached input tokens).
+  int64 total_tokens = 4;
+
+  // Total billable cost in micro-USD for this agent.
+  int64 billable_cost_micros = 5;
+}
+
+// Cost and usage for a single day within an org report.
+message DailyCostEntry {
+  // Date in YYYY-MM-DD format.
+  string date = 1;
+
+  // Number of runs on this date.
+  int32 run_count = 2;
+
+  // Total tokens consumed on this date.
+  int64 total_tokens = 3;
+
+  // Total billable cost in micro-USD on this date.
+  int64 billable_cost_micros = 4;
+}
+
+// Cost split by execution harness within an org report.
+//
+// Each entry represents one harness (e.g., "native" or "cursor") and
+// aggregates cost, call count, and run count for that harness
+// within the report's time range.
+message HarnessCostSummary {
+  // Harness identifier (e.g., "native", "cursor").
+  string harness = 1;
+
+  // Total billable cost in micro-USD for this harness.
+  int64 billable_cost_micros = 2;
+
+  // Number of LLM API calls through this harness.
+  int32 call_count = 3;
+
+  // Number of distinct runs that used this harness.
+  int32 run_count = 4;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RUN SUMMARY (Dashboard Aggregation)
+//
+// Operational summary of runs scoped to an organization and time
+// window. Used by the platform dashboard to show run health. Cost is
+// intentionally excluded — the dashboard sources cost from
+// getOrgUsageReport (billing source of truth), so it shows what billing
+// recorded and cost is never counted from two sources.
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Controls the time range for run summary queries.
+enum RunSummaryTimeWindow {
+  RUN_SUMMARY_TIME_WINDOW_UNSPECIFIED = 0;
+  RUN_SUMMARY_TIME_WINDOW_LAST_24H = 1;
+  RUN_SUMMARY_TIME_WINDOW_LAST_7D = 2;
+  RUN_SUMMARY_TIME_WINDOW_LAST_30D = 3;
+  RUN_SUMMARY_TIME_WINDOW_ALL_TIME = 4;
+}
+
+// GetRunSummaryRequest fetches aggregated run statistics
+// for an organization's runs.
+message GetRunSummaryRequest {
+  // Organization slug to scope the summary.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Time window for aggregation.
+  //
+  // Defaults to LAST_7D when unspecified.
+  RunSummaryTimeWindow time_window = 2;
+}
+
+// RunSummary contains aggregated operational statistics for agent
+// runs. Designed for the platform dashboard's unified health view.
+//
+// Cost is intentionally omitted. The dashboard sources cost from
+// getOrgUsageReport (billing source of truth), so it shows what billing
+// recorded and cost is never counted from two sources.
+message RunSummary {
+  // Number of runs currently in a non-terminal phase
+  // (PENDING, IN_PROGRESS, WAITING_FOR_APPROVAL, PAUSED).
+  int32 active_count = 1;
+
+  // Run counts broken down by RunPhase enum value.
+  //
+  // Keys are RunPhase enum values (as int32).
+  // Only phases with at least one run are included.
+  map<int32, int32> phase_counts = 2;
+
+  // Mean run duration (from started_at to completed_at) for completed
+  // runs in the time window.
+  //
+  // Zero when no completed runs exist.
+  google.protobuf.Duration avg_duration = 3;
+
+  // Agents with the highest failure count in the time window, ranked descending.
+  //
+  // Capped at 10 entries.
+  repeated AgentFailureRank top_failing_agents = 4;
+}
+
+// AgentFailureRank represents an agent and its failure count within
+// a time window.
+message AgentFailureRank {
+  // Agent slug (org/name format).
+  string agent_slug = 1;
+
+  // Human-readable agent name for display.
+  string agent_name = 2;
+
+  // Number of failed runs in the time window.
+  int32 failure_count = 3;
+}

@@ -24,7 +24,7 @@ import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { SDKMessage } from "@cursor/sdk";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RecordingTurnSink } from "../../../__test-utils__/harness-contract/recording-sink.js";
 import type { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import { sdkEvents } from "../__test-utils__/scripted-agent.js";

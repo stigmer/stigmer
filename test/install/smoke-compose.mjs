@@ -165,8 +165,8 @@ async function main() {
     // 6. The end-to-end agent run — the line that matters: it only completes
     // if the runner container connected to Temporal and polled the queue, and
     // the model path a user configures answered.
-    const agentRun = await runAgentToReply(baseUrl, RUN_COMPLETED_TIMEOUT_MS, { expectText: fake.replyText, log });
-    log(`agent run: execution ${agentRun.executionId} COMPLETED with the model's reply (${fake.requests()} model calls)`);
+    const run = await runAgentToReply(baseUrl, RUN_COMPLETED_TIMEOUT_MS, { expectText: fake.replyText, log });
+    log(`agent run: execution ${run.executionId} COMPLETED with the model's reply (${fake.requests()} model calls)`);
 
     log("PASS");
   } catch (error) {

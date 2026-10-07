@@ -12,7 +12,7 @@
  * this table and that fixture in lockstep.
  */
 
-import { ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { ToolKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { MEMORY_ATTACHMENT_SLUG } from "./memory-attachment.js";
 

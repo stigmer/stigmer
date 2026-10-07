@@ -12,7 +12,7 @@ public interface ExecutionContextSpecOrBuilder extends
 
   /**
    * <pre>
-   * ID of the parent AgentRun (or an MCP connect's execution id).
+   * ID of the parent Run (or an MCP connect's execution id).
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface ExecutionContextSpecOrBuilder extends
   java.lang.String getExecutionId();
   /**
    * <pre>
-   * ID of the parent AgentRun (or an MCP connect's execution id).
+   * ID of the parent Run (or an MCP connect's execution id).
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>

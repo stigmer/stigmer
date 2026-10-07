@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   FileChangeCaptureLevel,
   FileChangeType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import { BoundedContent } from "../internal/BoundedContent.js";
 import { computeDiff } from "../version-history/computeDiff.js";

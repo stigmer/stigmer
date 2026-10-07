@@ -48,7 +48,7 @@
  * legitimate runner writes trail the terminal stamp (constants.ts). A
  * terminal row that does not say when it finished gets no grace: fail
  * closed. The terminal set is the run domain's own predicate
- * (agentrun/phases.ts), never restated here. A RECOVERED execution is live again, and so is its credential —
+ * (run/phases.ts), never restated here. A RECOVERED execution is live again, and so is its credential —
  * the same principal set as the token in Temporal history (the operator
  * who runs the engine and holds the signing key).
  *
@@ -61,12 +61,12 @@
  */
 import type { Message } from "@bufbuild/protobuf";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import { isTerminalExecutionPhase } from "../domain/agentrun/phases.js";
+import { isTerminalExecutionPhase } from "../domain/run/phases.js";
 import { findExecutionContextsForExecution } from "../domain/executioncontext/contexts-for-execution.js";
 import type { ExecutionContextLookupStore } from "../domain/executioncontext/contexts-for-execution.js";
 import { isConnectExecutionId } from "../domain/mcpserver/connect-execution-id.js";
@@ -74,7 +74,7 @@ import { kindByIdPrefix } from "../pipeline/apiresource-meta.js";
 import { auditOf } from "../pipeline/steps/defaults.js";
 import type { Store } from "../store/interface.js";
 import { ResourceNotFoundError } from "../store/interface.js";
-import { sessionIdOf } from "../domain/agentrun/target.js";
+import { sessionIdOf } from "../domain/run/target.js";
 import { RUN_CREDENTIAL_GRACE_AFTER_TERMINAL_MS } from "./constants.js";
 
 /** The two things a runner credential can bind — the lane's own vocabulary, not the enum's. */
@@ -101,7 +101,7 @@ export function boundExecutionKindOf(
   executionId: string,
 ): BoundExecutionKind | undefined {
   switch (kindByIdPrefix(executionId)) {
-    case ApiResourceKind.agent_run:
+    case ApiResourceKind.run:
       return "agent-execution";
     default:
       return isConnectExecutionId(executionId) ? "mcp-connect" : undefined;
@@ -140,9 +140,9 @@ export async function loadBoundExecution(
     case "agent-execution": {
       const row = await getRow(
         store,
-        ApiResourceKind.agent_run,
+        ApiResourceKind.run,
         executionId,
-        AgentRunSchema,
+        RunSchema,
       );
       if (row === undefined) {
         return undefined;
@@ -151,7 +151,7 @@ export async function loadBoundExecution(
         kind,
         executionId,
         org: row.metadata?.org ?? "",
-        createdBy: creatorStampOf(AgentRunSchema, row),
+        createdBy: creatorStampOf(RunSchema, row),
         sessionId: sessionIdOf(row.spec),
         live: isLive(
           row.status !== undefined &&
@@ -199,13 +199,13 @@ function isLive(terminal: boolean, completedAt: string, now: number): boolean {
 }
 
 /** The schemas whose rows a binding can resolve to. */
-type BoundRowSchema = typeof AgentRunSchema | typeof ExecutionContextSchema;
+type BoundRowSchema = typeof RunSchema | typeof ExecutionContextSchema;
 
 function creatorStampOf(schema: BoundRowSchema, row: Message): string {
   return auditOf(schema, row)?.specAudit?.createdBy?.id ?? "";
 }
 
-async function getRow<Desc extends typeof AgentRunSchema>(
+async function getRow<Desc extends typeof RunSchema>(
   store: BoundExecutionStore,
   kind: ApiResourceKind,
   id: string,

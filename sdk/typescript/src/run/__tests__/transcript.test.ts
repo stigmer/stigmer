@@ -16,20 +16,20 @@ import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import type { JsonObject } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+  RunSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunPhase,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
-  AgentRunListSchema,
+  RunListSchema,
   GetArtifactContentResponseSchema,
   type GetArtifactContentRequest,
   type GetArtifactContentResponse,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import {
@@ -59,8 +59,8 @@ function session() {
 
 /** Turn 1: prompt echo dedupe, thinking, tool call with args + inline
  * result + duration, offloaded text output, image output, raw system. */
-function exec1(): AgentRun {
-  return create(AgentRunSchema, {
+function exec1(): Run {
+  return create(RunSchema, {
     metadata: { id: "aex_01a" },
     spec: { target: { case: "sessionId", value: "ses_01" }, message: "Why is CI red?" },
     status: {
@@ -135,8 +135,8 @@ function exec1(): AgentRun {
 }
 
 /** Superseded by exec3's edit-and-resubmit — excluded by default. */
-function exec2(): AgentRun {
-  return create(AgentRunSchema, {
+function exec2(): Run {
+  return create(RunSchema, {
     metadata: { id: "aex_01b" },
     spec: { target: { case: "sessionId", value: "ses_01" }, message: "old prompt" },
     status: { phase: RunPhase.RUN_COMPLETED },
@@ -144,8 +144,8 @@ function exec2(): AgentRun {
 }
 
 /** Turn 2: edit-and-resubmit successor with a sub-agent delegation. */
-function exec3(): AgentRun {
-  return create(AgentRunSchema, {
+function exec3(): Run {
+  return create(RunSchema, {
     metadata: { id: "aex_01c" },
     spec: {
       target: { case: "sessionId", value: "ses_01" },
@@ -206,8 +206,8 @@ function exec3(): AgentRun {
 }
 
 /** Turn 3: an in-flight Build-from-plan turn. */
-function exec4(): AgentRun {
-  return create(AgentRunSchema, {
+function exec4(): Run {
+  return create(RunSchema, {
     metadata: { id: "aex_01d" },
     spec: {
       target: { case: "sessionId", value: "ses_01" },
@@ -222,7 +222,7 @@ function exec4(): AgentRun {
   });
 }
 
-function allRuns(): AgentRun[] {
+function allRuns(): Run[] {
   // Deliberately scrambled: assembly must restore ULID order.
   return [exec3(), exec1(), exec4(), exec2()];
 }
@@ -298,7 +298,7 @@ describe("assembleSessionTranscript", () => {
   });
 
   it("suppresses the 'execute' placeholder prompt", () => {
-    const exec = create(AgentRunSchema, {
+    const exec = create(RunSchema, {
       metadata: { id: "aex_x" },
       spec: { target: { case: "sessionId", value: "ses_01" }, message: "execute" },
       status: { phase: RunPhase.RUN_COMPLETED },
@@ -328,7 +328,7 @@ function fakeArtifactClient(contentByKey: ContentByKey) {
   return {
     requests,
     client: {
-      agentRun: {
+      run: {
         listBySession: () => Promise.reject(new Error("not under test")),
         getArtifactContent: (input: GetArtifactContentRequest) => {
           requests.push(input);
@@ -422,7 +422,7 @@ describe("resolveOffloadedOutputs", () => {
     // fetch on a deferred so the in-flight count is observable, then releases
     // them one at a time; the pool must never exceed two and must drain all six.
     const keys = Array.from({ length: 6 }, (_, i) => `artifacts/aex_pool/toolcalls/tc_${i}.txt`);
-    const execution = create(AgentRunSchema, {
+    const execution = create(RunSchema, {
       metadata: { id: "aex_pool" },
       status: {
         messages: [
@@ -443,7 +443,7 @@ describe("resolveOffloadedOutputs", () => {
     let inFlight = 0;
     let maxInFlight = 0;
     const client = {
-      agentRun: {
+      run: {
         listBySession: () => Promise.reject(new Error("not under test")),
         getArtifactContent: (input: GetArtifactContentRequest) => {
           inFlight++;
@@ -499,11 +499,11 @@ describe("fetchSessionTranscript", () => {
     });
     return {
       session: { get: (id: string) => Promise.resolve(session()) },
-      agentRun: {
-        ...artifacts.client.agentRun,
+      run: {
+        ...artifacts.client.run,
         listBySession: () =>
           Promise.resolve(
-            create(AgentRunListSchema, {
+            create(RunListSchema, {
               totalPages: overrides?.totalPages ?? 1,
               entries: allRuns(),
             }),
@@ -602,7 +602,7 @@ describe("transcriptToMarkdown", () => {
   });
 
   it("sizes fences past backtick runs in the content", () => {
-    const exec = create(AgentRunSchema, {
+    const exec = create(RunSchema, {
       metadata: { id: "aex_x" },
       spec: { target: { case: "sessionId", value: "ses_01" }, message: "prompt" },
       status: {
@@ -630,7 +630,7 @@ describe("transcriptToMarkdown", () => {
   });
 
   it("quotes a failed run's error under its turn, one quoted line per error line", () => {
-    const failed = create(AgentRunSchema, {
+    const failed = create(RunSchema, {
       metadata: { id: "aex_f" },
       spec: { target: { case: "sessionId", value: "ses_01" }, message: "prompt" },
       status: {

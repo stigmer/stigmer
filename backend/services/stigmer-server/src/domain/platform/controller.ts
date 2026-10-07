@@ -275,7 +275,7 @@ async function getRunnerBootstrapConfig(
  * decrypt lane.
  *
  * Arms:
- *   - agent_run_id: minted. The id IS the ExecutionContext's
+ *   - run_id: minted. The id IS the ExecutionContext's
  *     spec.execution_id, so the token binds directly to
  *     the one EC it may decrypt. (Cloud scopes agent tokens to the parent
  *     session for warm-pool multi-turn reuse; OSS runners exchange
@@ -322,7 +322,7 @@ async function getRunnerScopedToken(
 
   let executionId: string;
   switch (input.scope.case) {
-    case "agentRunId":
+    case "runId":
       executionId = input.scope.value;
       break;
     case "poolClaim":
@@ -377,7 +377,7 @@ function exchangeRequestOf(
   input: GetRunnerScopedTokenInput,
 ): RunnerScopedTokenRequest {
   switch (input.scope.case) {
-    case "agentRunId":
+    case "runId":
       return { arm: "agent-execution", executionId: input.scope.value };
     case "poolClaim":
       return { arm: "pool-claim", sessionId: input.scope.value.sessionId };

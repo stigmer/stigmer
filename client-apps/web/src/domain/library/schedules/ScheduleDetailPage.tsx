@@ -15,7 +15,7 @@ import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam"
  * Read the `?tab=` deep-link target once, at mount.
  *
  * Lets external surfaces land directly on a specific tab — e.g.
- * `?tab=runs`. Read from `window.location` instead of `useSearchParams()`
+ * `?tab=history`. Read from `window.location` instead of `useSearchParams()`
  * because tab state is deliberately local after landing (the
  * AgentDetailPage precedent) and the static-export prerender has no URL
  * to read (the `useStaticRouteParam` idiom).

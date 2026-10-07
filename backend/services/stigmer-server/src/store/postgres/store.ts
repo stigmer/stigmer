@@ -59,7 +59,7 @@ import type {
   OrganizationDeletionStore,
   PendingOAuthStateStore,
   RawResourceDocument,
-  ScheduleRunRecord,
+  ScheduleFireRecord,
   SearchIndexEntry,
   SearchIndexHit,
   SearchIndexQuery,
@@ -871,7 +871,7 @@ export class PostgresStore implements Store {
   // Schedule runs (fire ledger)
   // ---------------------------------------------------------------------------
 
-  async upsertScheduleRun(record: ScheduleRunRecord): Promise<void> {
+  async upsertScheduleFire(record: ScheduleFireRecord): Promise<void> {
     // Default recorded_at is RFC-3339 whole seconds (Go time.RFC3339) —
     // the ledger's house convention for lexicographic comparison.
     const recordedAt =
@@ -903,7 +903,7 @@ export class PostgresStore implements Store {
     );
   }
 
-  async markLatestScheduleRunTerminal(
+  async markLatestScheduleFireTerminal(
     scheduleId: string,
     origin: string,
     outcome: string,
@@ -921,11 +921,11 @@ export class PostgresStore implements Store {
     );
   }
 
-  async listScheduleRuns(
+  async listScheduleFires(
     scheduleId: string,
     offset: number,
     limit: number,
-  ): Promise<{ runs: ScheduleRunRecord[]; total: number }> {
+  ): Promise<{ fires: ScheduleFireRecord[]; total: number }> {
     const effectiveLimit = limit <= 0 ? 50 : limit;
     const effectiveOffset = offset < 0 ? 0 : offset;
 
@@ -945,7 +945,7 @@ export class PostgresStore implements Store {
 
     return {
       total: Number((totalResult.rows[0] as { total: string | number }).total),
-      runs: (
+      fires: (
         result.rows as Array<{
           schedule_id: string;
           org: string;
@@ -971,7 +971,7 @@ export class PostgresStore implements Store {
     };
   }
 
-  async deleteScheduleRunsBySchedule(scheduleId: string): Promise<number> {
+  async deleteScheduleFiresBySchedule(scheduleId: string): Promise<number> {
     const result = await this.open().query(
       `DELETE FROM schedule_runs WHERE schedule_id = $1`,
       [scheduleId],
@@ -979,7 +979,7 @@ export class PostgresStore implements Store {
     return result.rowCount ?? 0;
   }
 
-  async deleteScheduleRunsByOrg(org: string): Promise<number> {
+  async deleteScheduleFiresByOrg(org: string): Promise<number> {
     const result = await this.open().query(
       `DELETE FROM schedule_runs WHERE org = $1`,
       [org],
@@ -987,7 +987,7 @@ export class PostgresStore implements Store {
     return result.rowCount ?? 0;
   }
 
-  async pruneScheduleRuns(recordedBefore: string): Promise<number> {
+  async pruneScheduleFires(recordedBefore: string): Promise<number> {
     const result = await this.open().query(
       `DELETE FROM schedule_runs WHERE recorded_at < $1`,
       [recordedBefore],

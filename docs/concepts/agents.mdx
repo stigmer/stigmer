@@ -102,15 +102,15 @@ The runtime resources that bring an Agent to life form a chain:
   chart={`
 graph LR
   A["Agent<br/>(blueprint)"] --> S["Session<br/>(conversation)"]
-  S --> AE["Agent Run"]
+  S --> AE["run"]
 `}
 />
 
-| Resource      | What it represents                                                     | Analogy                                    |
-| ------------- | ---------------------------------------------------------------------- | ------------------------------------------ |
-| **Agent**     | The definition — instructions, Skills, tools                           | A recipe                                   |
-| **Session**   | A conversation on one Agent, at the version it started on, with memory | An order cooked from the recipe as written |
-| **Agent Run** | One request-response cycle within a Session                            | Preparing one dish for that order          |
+| Resource    | What it represents                                                     | Analogy                                    |
+| ----------- | ---------------------------------------------------------------------- | ------------------------------------------ |
+| **Agent**   | The definition — instructions, Skills, tools                           | A recipe                                   |
+| **Session** | A conversation on one Agent, at the version it started on, with memory | An order cooked from the recipe as written |
+| **Run**     | One request-response cycle within a Session                            | Preparing one dish for that order          |
 
 A Session names its Agent directly. There is no deployed copy in between: the
 person who starts the conversation picks the Agent, and every message in it runs
@@ -129,14 +129,14 @@ the sign-in to that server). The same Agent runs with test credentials from one
 Schedule and production credentials from another, and its definition never
 changes.
 
-### Sessions and Agent Runs
+### Sessions and runs
 
 A [Session](/docs/concepts/sessions) represents a conversation. It holds message
 history and can add Skills and MCP Servers for a specific interaction; the
 Agent's tool lists still govern every tool.
 
-An Agent Run is a single request-response cycle within a Session. When a user
-sends a message, Stigmer creates an Agent Run that:
+A run is a single request-response cycle within a Session. When a user sends a
+message, Stigmer creates a run that:
 
 1. Loads the Agent's instructions, Skills, and tool configuration
 2. Sends the message to the LLM along with conversation history
@@ -144,8 +144,8 @@ sends a message, Stigmer creates an Agent Run that:
 4. Pauses for [approval](/docs/concepts/approval-flows) when required
 5. Returns the response
 
-Agent Runs are **durable** — if the process crashes mid-run, Stigmer recovers
-and resumes from where it left off.
+Runs are **durable** — if the process crashes mid-run, Stigmer recovers and
+resumes from where it left off.
 
 ## Versions
 
@@ -166,13 +166,12 @@ stigmer get agent code-reviewer --version stable
 stigmer tag agent acme-corp/code-reviewer <version-hash> stable
 ```
 
-Every Agent Run records the Agent version it ran, and runs that version to the
-end. If someone changes the Agent while your message is queued or running, your
-Agent Run keeps the instructions it started with, and anyone who can view the
-Agent can later open that version, for as long as the Agent exists, to see
-exactly what it was told. An Agent last saved before versions existed has none
-until it is next saved; until then its Agent Runs record only the Agent and run
-it as it is.
+Every run records the Agent version it ran, and runs that version to the end. If
+someone changes the Agent while your message is queued or running, your Run
+keeps the instructions it started with, and anyone who can view the Agent can
+later open that version, for as long as the Agent exists, to see exactly what it
+was told. An Agent last saved before versions existed has none until it is next
+saved; until then its runs record only the Agent and run it as it is.
 
 A [Session](/docs/concepts/sessions#which-version-a-session-runs) runs the
 version it started on, so an author's later saves never change a conversation
@@ -243,8 +242,8 @@ Two rules combine them:
   result size. A message or a channel can lower this Agent's $2 cap to $0.50,
   but cannot raise it to $5.
 
-The settings a message ran with are recorded on its Agent Run
-(`status.run_config`), so its history and its bill read the same answer.
+The settings a message ran with are recorded on its run (`status.run_config`),
+so its history and its bill read the same answer.
 
 ### In the console
 

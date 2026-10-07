@@ -4,8 +4,8 @@ import { create } from "@bufbuild/protobuf";
 import {
   RunArtifactKind,
   RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import { useSessionPanel, type UseSessionPanelOptions } from "../useSessionPanel";
 import { PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH } from "../plan-document";
 import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../../run/artifact-document";

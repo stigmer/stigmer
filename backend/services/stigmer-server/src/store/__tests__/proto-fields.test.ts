@@ -21,7 +21,7 @@ describe("apiResourceKindName", () => {
   it.each([
     [ApiResourceKind.organization, "organization"],
     [ApiResourceKind.agent, "agent"],
-    [ApiResourceKind.agent_run, "agent_run"],
+    [ApiResourceKind.run, "run"],
     [ApiResourceKind.mcp_server, "mcp_server"],
     [ApiResourceKind.agent_share, "agent_share"],
     [ApiResourceKind.execution_context, "execution_context"],
@@ -75,7 +75,7 @@ describe("extractLabelValue", () => {
 describe("toSnakeCase", () => {
   it.each([
     ["executionId", "execution_id"],
-    ["agentRunId", "agent_run_id"],
+    ["supersedesRunId", "supersedes_run_id"],
     ["already_snake", "already_snake"],
     ["single", "single"],
   ])("converts %j to %j (Go toSnakeCase)", (input, expected) => {

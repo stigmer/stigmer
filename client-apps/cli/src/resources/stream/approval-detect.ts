@@ -7,13 +7,13 @@
 // cycle resets the dedup set.
 
 import { create } from "@bufbuild/protobuf";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   type PendingApproval,
   PendingApprovalSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
-import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
+import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ApprovalNeededEvent } from "./events.js";
 
 /** A tool call awaiting approval, with sub-agent provenance. Mirrors Go's unpromptedApproval. */

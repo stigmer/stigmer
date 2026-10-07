@@ -35,13 +35,13 @@
  * This is the contract as of stigmer#197: REJECT denies the tool and the run
  * CONTINUES; it never fails the execution. The native harness proved it
  * (`hitl.ts` `reconcileNonExecutingDecisions`, moved here in #1096) and the
- * conformance suite (`agentrun-approval.conformance.test.ts`) is its
+ * conformance suite (`run-approval.conformance.test.ts`) is its
  * arbiter for both harnesses.
  */
 
-import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 /** The row's error for a REJECT; byte-pinned by the native goldens (`reject.turn2.status.json`) and the conformance suite. */
 export const REJECTED_BY_USER_ERROR = "Rejected by user";
@@ -55,7 +55,7 @@ export const REJECTED_BY_USER_ERROR = "Rejected by user";
  * pending-approval protos and content digests); a test pins the two
  * readers' agreement.
  */
-export function approvalDecisionsOf(status: AgentRunStatus): ReadonlyMap<string, ApprovalAction> {
+export function approvalDecisionsOf(status: RunStatus): ReadonlyMap<string, ApprovalAction> {
   const decisions = new Map<string, ApprovalAction>();
   for (const message of status.messages) {
     for (const row of message.toolCalls) {
@@ -73,7 +73,7 @@ export function approvalDecisionsOf(status: AgentRunStatus): ReadonlyMap<string,
  * decision and re-settles identically. A REJECT row's `error` is set only
  * when empty, so an engine's own denial text, if any, stands.
  */
-export function terminalizeNonExecutingDecisions(status: AgentRunStatus): void {
+export function terminalizeNonExecutingDecisions(status: RunStatus): void {
   const settle = (messages: readonly AgentMessage[]): void => {
     for (const message of messages) {
       for (const row of message.toolCalls) {

@@ -58,7 +58,7 @@ export const SKILL_REFS_CODE = [
   '  skillRefs: [{ org: "my-org", slug: "return-policy" }],',
   "});",
   "",
-  "const run = await stigmer.agentRun.create({",
+  "const run = await stigmer.run.create({",
   '  org: "my-org",',
   "  sessionId: session.metadata!.id,",
   '  message: "What is your return policy for defective items?",',

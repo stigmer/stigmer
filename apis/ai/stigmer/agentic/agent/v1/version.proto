@@ -19,7 +19,7 @@ import "google/protobuf/timestamp.proto";
 // same model skills use.
 //
 // Every turn records the agent version it ran
-// (AgentRunStatus.agent_id and agent_version_hash) and runs that
+// (RunStatus.agent_id and agent_version_hash) and runs that
 // version's spec_snapshot, so getVersion answers what a past turn's agent
 // was told.
 

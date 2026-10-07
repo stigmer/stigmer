@@ -3,31 +3,31 @@ import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+  RunSchema,
+  RunStatusSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunArtifactSchema,
   type RunArtifact,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import {
   RunArtifactKind,
   RunPhase,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
-  AgentRunListSchema,
-  type AgentRunList,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+  RunListSchema,
+  type RunList,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,
   type AgentMessage,
   type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import {
   EnvironmentSchema,
   type Environment,
@@ -174,7 +174,7 @@ export interface AgentOverrides {
   readonly instructions?: string;
 }
 
-export interface AgentRunOverrides {
+export interface RunOverrides {
   readonly id?: string;
   readonly sessionId?: string;
   readonly agentId?: string;
@@ -319,10 +319,10 @@ export const samples = {
   },
 
   /**
-   * An agent run with status, messages, and optional artifacts.
+   * A run with status, messages, and optional artifacts.
    * Default: completed run with a short human/AI exchange.
    */
-  agentRun(o?: AgentRunOverrides): AgentRun {
+  run(o?: RunOverrides): Run {
     const msgs =
       o?.messages ?? [
         samples.humanMessage("Hello! Can you help me get started?"),
@@ -331,23 +331,23 @@ export const samples = {
         ),
       ];
 
-    return create(AgentRunSchema, {
+    return create(RunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "AgentRun",
+      kind: "Run",
       metadata: create(ApiResourceMetadataSchema, {
-        id: o?.id ?? "aex-00000000-0000-0000-0000-000000000001",
+        id: o?.id ?? "run_00000000000000000000000001",
         name: "demo-execution",
         slug: "demo-execution",
         org: "demo",
       }),
-      spec: create(AgentRunSpecSchema, {
+      spec: create(RunSpecSchema, {
         target: {
           case: "sessionId",
           value: o?.sessionId ?? "ses-00000000-0000-0000-0000-000000000001",
         },
         message: msgs[0]?.content ?? "",
       }),
-      status: create(AgentRunStatusSchema, {
+      status: create(RunStatusSchema, {
         agentId: o?.agentId ?? "agt-00000000-0000-0000-0000-000000000001",
         phase: o?.phase ?? RunPhase.RUN_COMPLETED,
         messages: msgs,
@@ -537,10 +537,10 @@ export const samples = {
     });
   },
 
-  /** An agent run list response. Defaults to one demo run. */
-  agentRunList(entries?: AgentRun[]): AgentRunList {
-    const items = entries ?? [samples.agentRun()];
-    return create(AgentRunListSchema, {
+  /** A run list response. Defaults to one demo run. */
+  runList(entries?: Run[]): RunList {
+    const items = entries ?? [samples.run()];
+    return create(RunListSchema, {
       entries: items,
       totalPages: 1,
     });

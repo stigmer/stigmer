@@ -1,12 +1,12 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { useSessionUsage, formatCost, formatTokenCount } from "@stigmer/react";
 
 /** Props for {@link UsageWidget}. */
 export interface UsageWidgetProps {
   /** All runs for the current session (completed + active). */
-  readonly runs: readonly AgentRun[];
+  readonly runs: readonly Run[];
 }
 
 /**

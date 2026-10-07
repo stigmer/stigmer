@@ -9,8 +9,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { BackendClient } from "../../../client/index.js";
 
@@ -35,7 +35,7 @@ function executionIn(
   phase: RunPhase,
   interactionMode: InteractionMode = InteractionMode.UNSPECIFIED,
 ) {
-  return create(AgentRunSchema, {
+  return create(RunSchema, {
     metadata: { id: "aex_1", org: "acme" },
     spec: { interactionMode },
     status: { phase },

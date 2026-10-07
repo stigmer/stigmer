@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useState } from "react";
-import type { FileChangeProgress } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+import type { FileChangeProgress } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { FileKindBadge, FileLineStats } from "./FileReviewAtoms.js";

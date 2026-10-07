@@ -152,7 +152,7 @@ export class LocalExecutionTarget implements TargetProfile {
     this.mockLlm = new MockLlmProxy();
     await this.mockLlm.start();
 
-    // 3b. MCP tool fixture: the tool surface a HITL agent run dispatches to;
+    // 3b. MCP tool fixture: the tool surface a HITL run dispatches to;
     //     torn down last (with the proxy) because it must outlive executions.
     this.mcpTools = new McpToolFixture();
     await this.mcpTools.start();

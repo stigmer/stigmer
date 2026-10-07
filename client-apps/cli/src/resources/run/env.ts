@@ -1,4 +1,4 @@
-// Runtime-environment assembly for agent runs.
+// Runtime-environment assembly for runs.
 //
 // Ports the Go CLI's `internal/cli/envfile` package (parser.go + merge.go): it
 // parses `--env`/`--secret` flags and `--env-file`/`--secret-file` files into a

@@ -1,8 +1,8 @@
 "use client";
 
 import { memo, useMemo } from "react";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 import { cn } from "@stigmer/theme";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { ToolCallItem } from "./ToolCallItem.js";
@@ -15,7 +15,7 @@ export interface ToolCallGroupProps {
   /** Tool calls in this group, ordered by invocation time. */
   readonly toolCalls: readonly ToolCall[];
   /**
-   * Sub-agent runs from the parent `AgentRunStatus`.
+   * Sub-agent runs from the parent `RunStatus`.
    * When provided, tool calls whose `id` matches a
    * `SubAgentRun.id` are rendered with a nested sub-agent
    * thread instead of a standard detail panel.

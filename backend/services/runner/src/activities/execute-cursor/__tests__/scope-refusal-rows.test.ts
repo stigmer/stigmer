@@ -19,7 +19,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { ApprovalPolicySource, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { ApprovalPolicySource, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ToolScope, outOfScopeMessage, type ToolLists } from "../../../shared/tool-lists.js";
 import type { McpApprovalDefault } from "../../../shared/approval-policy.js";
 import { grantToken, readDenialLedger } from "../approval-state.js";

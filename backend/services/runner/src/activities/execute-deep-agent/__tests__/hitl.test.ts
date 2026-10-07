@@ -1,13 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { Command } from "@langchain/langgraph";
 import { detectPendingInterrupts, resolveResumeInput, reconcileUnattendedSkips } from "../hitl.js";
-import { ApprovalAction, ApprovalPolicySource, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { ApprovalAction, ApprovalPolicySource, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { create } from "@bufbuild/protobuf";
 import {
   AgentMessageSchema,
   ToolCallSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { GraphStateSnapshot } from "../hitl.js";
 
 /** The runtime's reading of the adjudicated rows (`approvalDecisionsOf`): a decision per WAITING tool-call id. */
@@ -195,7 +195,7 @@ describe("reconcileUnattendedSkips", () => {
   function statusWithCalls(
     toolCalls: Array<{ id: string; status: ToolCallStatus; result?: string }>,
   ) {
-    return create(AgentRunStatusSchema, {
+    return create(RunStatusSchema, {
       messages: [
         create(AgentMessageSchema, {
           toolCalls: toolCalls.map(tc =>
@@ -257,7 +257,7 @@ describe("reconcileUnattendedSkips", () => {
   });
 
   it("covers sub-agent transcripts (sub-agent gates share the parent registry)", () => {
-    const status = create(AgentRunStatusSchema, {
+    const status = create(RunStatusSchema, {
       messages: [],
       subAgentRuns: [{
         messages: [
@@ -294,7 +294,7 @@ describe("reconcileUnattendedSkips", () => {
 
 describe("reconcileUnattendedSkips — a hook's ask", () => {
   it("names the hook whose ask was skipped, and no hook when the default asked", () => {
-    const status = create(AgentRunStatusSchema, {
+    const status = create(RunStatusSchema, {
       messages: [create(AgentMessageSchema, {
         toolCalls: [
           create(ToolCallSchema, { id: "call-h", name: "execute", status: ToolCallStatus.TOOL_CALL_RUNNING }),

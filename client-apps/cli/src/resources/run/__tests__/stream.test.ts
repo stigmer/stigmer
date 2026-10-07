@@ -7,9 +7,9 @@
 // The driver, Ink, the terminal probe and the epilogue are doubles.
 
 import { create } from "@bufbuild/protobuf";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { SubmitApprovalInput } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { SubmitApprovalInput } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HeadlessStreamDeps } from "../../stream/headless.js";
@@ -29,13 +29,13 @@ vi.mock("../epilogue.js", () => epilogue);
 
 import { streamAgentRun } from "../stream.js";
 
-const FINAL = create(AgentRunSchema, { metadata: { id: "aex_1" } });
+const FINAL = create(RunSchema, { metadata: { id: "aex_1" } });
 
 let subscribed: string[];
 let approvals: SubmitApprovalInput[];
 
 const client = {
-  agentRun: {
+  run: {
     subscribe: (runId: string) => {
       subscribed.push(runId);
       return (async function* () {})();
@@ -106,7 +106,7 @@ describe("streamAgentRun", () => {
 
     expect(subscribed).toEqual(["aex_1"]);
     expect(approvals).toHaveLength(1);
-    expect(approvals[0]?.agentRunId).toBe("aex_1");
+    expect(approvals[0]?.runId).toBe("aex_1");
     expect(approvals[0]?.toolCallId).toBe("tc_1");
     expect(approvals[0]?.action).toBe(ApprovalAction.APPROVE);
   });

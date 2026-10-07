@@ -18,7 +18,7 @@
  * immutable).
  */
 import type { Logger } from "../../boot/logger.js";
-import type { ScheduleRunRecord, Store } from "../../store/interface.js";
+import type { ScheduleFireRecord, Store } from "../../store/interface.js";
 import type { RunOutcomeResult } from "./run-starter.js";
 import {
   RUN_ALREADY_STARTED,
@@ -30,7 +30,7 @@ import {
 } from "./names.js";
 
 // Ledger vocabulary: the lowercase names of the
-// ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome / ScheduleRunOrigin
+// ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome / ScheduleFireOrigin
 // enum values, shared byte-for-byte with the cloud edition's rows.
 export const RUN_LEDGER_ORIGIN_CRON = "cron";
 export const RUN_LEDGER_ORIGIN_MANUAL = "manual";
@@ -73,7 +73,7 @@ export async function recordRunLedgerStart(
     reason: runStart.failureReason,
     recordedAt: "",
   };
-  let record: ScheduleRunRecord;
+  let record: ScheduleFireRecord;
   switch (runStart.outcome) {
     case RUN_STARTED:
     case RUN_ALREADY_STARTED:
@@ -104,7 +104,7 @@ export async function recordRunLedgerStart(
       return;
   }
   try {
-    await store.upsertScheduleRun(record);
+    await store.upsertScheduleFire(record);
   } catch (error) {
     logger.warn(
       "Fire-ledger row not written (best-effort — the run itself is unaffected)",
@@ -134,7 +134,7 @@ export async function recordRunLedgerVerdict(
   reason: string,
 ): Promise<void> {
   try {
-    await store.markLatestScheduleRunTerminal(
+    await store.markLatestScheduleFireTerminal(
       scheduleId,
       RUN_LEDGER_ORIGIN_CRON,
       outcome,
@@ -158,7 +158,7 @@ export async function recordRunLedgerVerdict(
  * — exported for the trigger controller, so the ledger vocabulary and the
  * outcome mapping stay in ONE module (Go RecordManualFire). Manual rows
  * for started runs stay non-terminal forever in storage: manual fires are
- * untracked by design (the caller watches the execution), and listRuns
+ * untracked by design (the caller watches the execution), and listFires
  * resolves their outcome from the execution's live phase at read time.
  * Start failures are terminal at insert, exactly like cron.
  */
@@ -219,7 +219,7 @@ export async function pruneRunLedger(
   );
   let pruned: number;
   try {
-    pruned = await store.pruneScheduleRuns(cutoff);
+    pruned = await store.pruneScheduleFires(cutoff);
   } catch (error) {
     logger.warn("Fire-ledger retention prune failed (retried next pass)", {
       cutoff,

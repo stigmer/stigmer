@@ -56,7 +56,7 @@ import { ACCOUNT_TYPE, formatObjectRef, isPerson, pairKey } from "./tuples.js";
 /**
  * OpenFGA's default resolution-depth limit (its `resolveNodeLimit`), so
  * the bound here is the oracle's own and not a number chosen locally. The
- * deepest real chain in the model is under ten: an agent run's `can_view
+ * deepest real chain in the model is under ten: a run's `can_view
  * from session` to its session, the session's `viewer from schedule` to
  * its schedule, the schedule's `team#member` userset, then the
  * organization's four-rung ladder.

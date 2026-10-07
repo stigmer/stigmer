@@ -37,7 +37,7 @@ const (
 	// FGA tuple: resource#organization@organization:<org_id>
 	AuthorizationScopeType_AUTHORIZATION_SCOPE_TYPE_ORGANIZATION AuthorizationScopeType = 2
 	// Links to a parent resource.
-	// Used for: agent_run (links to session)
+	// Used for: run (links to session)
 	// FGA tuple: resource#<relation>@<parent_kind>:<parent_id>
 	AuthorizationScopeType_AUTHORIZATION_SCOPE_TYPE_PARENT AuthorizationScopeType = 3
 	// Owner link only, no scope hierarchy.
@@ -107,7 +107,7 @@ const (
 	// FGA tuple: resource#owner@identity_account:<creator_id>
 	OwnerAttributionType_OWNER_ATTRIBUTION_TYPE_DIRECT OwnerAttributionType = 1
 	// Owner is computed from parent - no tuple created.
-	// Used for: agent_run (inherits owner from session)
+	// Used for: run (inherits owner from session)
 	// FGA: owner relation derived via "owner from session"
 	OwnerAttributionType_OWNER_ATTRIBUTION_TYPE_INHERITED OwnerAttributionType = 2
 	// Self-ownership - resource owns itself.
@@ -312,7 +312,7 @@ type ParentRelationConfig struct {
 	Relation string `protobuf:"bytes,2,opt,name=relation,proto3" json:"relation,omitempty"`
 	// Field name in the resource's spec message that contains the parent ID.
 	// The service extracts this field from resource.spec to resolve the parent ID.
-	// Example: "session_id" for agent_run, "subject_identity_account_id" for
+	// Example: "session_id" for run, "subject_identity_account_id" for
 	// memory.
 	// This eliminates hardcoded parent ID extraction logic in the service.
 	SpecField     string `protobuf:"bytes,3,opt,name=spec_field,json=specField,proto3" json:"spec_field,omitempty"`
@@ -390,12 +390,12 @@ func (x *ParentRelationConfig) GetSpecField() string {
 //	-> Creates: organization#platform@platform:stigmer
 //	-> Creates: organization#owner@identity_account:<creator_id>
 //
-// Parent-bound resource (agent_run):
+// Parent-bound resource (run):
 //
 //	scope_type: AUTHORIZATION_SCOPE_TYPE_PARENT
 //	owner_type: OWNER_ATTRIBUTION_TYPE_INHERITED
 //	parent: { kind: "session", relation: "session", spec_field: "session_id" }
-//	-> Creates: agent_run#session@session:<session_id>
+//	-> Creates: run#session@session:<session_id>
 //	-> No owner tuple (inherited from session)
 //
 // Resource with additional parent (memory):
@@ -463,7 +463,7 @@ type AuthorizationConfig struct {
 	//
 	// Empty means no user-grantable roles: the resource is either owner-only
 	// (api_key, execution_context), inherits authorization from a parent
-	// (agent_run), is self-owned (identity_account), or has no
+	// (run), is self-owned (identity_account), or has no
 	// authorization (platform, api_resource_version).
 	GrantableRoles []v1.IamRole `protobuf:"varint,7,rep,packed,name=grantable_roles,json=grantableRoles,proto3,enum=ai.stigmer.iam.v1.IamRole" json:"grantable_roles,omitempty"`
 	// Roles that can be granted on this resource kind to a team, so that every

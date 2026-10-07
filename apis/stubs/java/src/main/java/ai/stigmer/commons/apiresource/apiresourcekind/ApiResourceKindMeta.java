@@ -38,6 +38,8 @@ private static final long serialVersionUID = 0L;
     displayName_ = "";
     idPrefix_ = "";
     tier_ = 0;
+    retiredIdPrefixes_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -346,6 +348,71 @@ private static final long serialVersionUID = 0L;
     return authorization_ == null ? ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig.getDefaultInstance() : authorization_;
   }
 
+  public static final int RETIRED_ID_PREFIXES_FIELD_NUMBER = 10;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.LazyStringArrayList retiredIdPrefixes_ =
+      com.google.protobuf.LazyStringArrayList.emptyList();
+  /**
+   * <pre>
+   * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
+   * identities and are never rewritten, so a store keeps the ids it minted
+   * under an earlier prefix: readers that tell a kind from an id read these
+   * too. Never minted.
+   * </pre>
+   *
+   * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
+   * @return A list containing the retiredIdPrefixes.
+   */
+  public com.google.protobuf.ProtocolStringList
+      getRetiredIdPrefixesList() {
+    return retiredIdPrefixes_;
+  }
+  /**
+   * <pre>
+   * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
+   * identities and are never rewritten, so a store keeps the ids it minted
+   * under an earlier prefix: readers that tell a kind from an id read these
+   * too. Never minted.
+   * </pre>
+   *
+   * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
+   * @return The count of retiredIdPrefixes.
+   */
+  public int getRetiredIdPrefixesCount() {
+    return retiredIdPrefixes_.size();
+  }
+  /**
+   * <pre>
+   * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
+   * identities and are never rewritten, so a store keeps the ids it minted
+   * under an earlier prefix: readers that tell a kind from an id read these
+   * too. Never minted.
+   * </pre>
+   *
+   * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
+   * @param index The index of the element to return.
+   * @return The retiredIdPrefixes at the given index.
+   */
+  public java.lang.String getRetiredIdPrefixes(int index) {
+    return retiredIdPrefixes_.get(index);
+  }
+  /**
+   * <pre>
+   * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
+   * identities and are never rewritten, so a store keeps the ids it minted
+   * under an earlier prefix: readers that tell a kind from an id read these
+   * too. Never minted.
+   * </pre>
+   *
+   * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the retiredIdPrefixes at the given index.
+   */
+  public com.google.protobuf.ByteString
+      getRetiredIdPrefixesBytes(int index) {
+    return retiredIdPrefixes_.getByteString(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -386,6 +453,9 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(9, getAuthorization());
+    }
+    for (int i = 0; i < retiredIdPrefixes_.size(); i++) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 10, retiredIdPrefixes_.getRaw(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -429,6 +499,14 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(9, getAuthorization());
     }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < retiredIdPrefixes_.size(); i++) {
+        dataSize += computeStringSizeNoTag(retiredIdPrefixes_.getRaw(i));
+      }
+      size += dataSize;
+      size += 1 * getRetiredIdPrefixesList().size();
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -462,6 +540,8 @@ private static final long serialVersionUID = 0L;
       if (!getAuthorization()
           .equals(other.getAuthorization())) return false;
     }
+    if (!getRetiredIdPrefixesList()
+        .equals(other.getRetiredIdPrefixesList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -494,6 +574,10 @@ private static final long serialVersionUID = 0L;
     if (hasAuthorization()) {
       hash = (37 * hash) + AUTHORIZATION_FIELD_NUMBER;
       hash = (53 * hash) + getAuthorization().hashCode();
+    }
+    if (getRetiredIdPrefixesCount() > 0) {
+      hash = (37 * hash) + RETIRED_ID_PREFIXES_FIELD_NUMBER;
+      hash = (53 * hash) + getRetiredIdPrefixesList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -649,6 +733,8 @@ private static final long serialVersionUID = 0L;
         authorizationBuilder_.dispose();
         authorizationBuilder_ = null;
       }
+      retiredIdPrefixes_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
       return this;
     }
 
@@ -713,6 +799,10 @@ private static final long serialVersionUID = 0L;
             : authorizationBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
+      if (((from_bitField0_ & 0x00000200) != 0)) {
+        retiredIdPrefixes_.makeImmutable();
+        result.retiredIdPrefixes_ = retiredIdPrefixes_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -760,6 +850,16 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasAuthorization()) {
         mergeAuthorization(other.getAuthorization());
+      }
+      if (!other.retiredIdPrefixes_.isEmpty()) {
+        if (retiredIdPrefixes_.isEmpty()) {
+          retiredIdPrefixes_ = other.retiredIdPrefixes_;
+          bitField0_ |= 0x00000200;
+        } else {
+          ensureRetiredIdPrefixesIsMutable();
+          retiredIdPrefixes_.addAll(other.retiredIdPrefixes_);
+        }
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -834,6 +934,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000100;
               break;
             } // case 74
+            case 82: {
+              ensureRetiredIdPrefixesIsMutable();
+              retiredIdPrefixes_.add(input.readStringRequireUtf8());
+              break;
+            } // case 82
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1586,6 +1691,180 @@ private static final long serialVersionUID = 0L;
         authorization_ = null;
       }
       return authorizationBuilder_;
+    }
+
+    private com.google.protobuf.LazyStringArrayList retiredIdPrefixes_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    private void ensureRetiredIdPrefixesIsMutable() {
+      if (!retiredIdPrefixes_.isModifiable()) {
+        retiredIdPrefixes_ = new com.google.protobuf.LazyStringArrayList(retiredIdPrefixes_);
+      }
+      bitField0_ |= 0x00000200;
+    }
+    /**
+     * <pre>
+     * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
+     * identities and are never rewritten, so a store keeps the ids it minted
+     * under an earlier prefix: readers that tell a kind from an id read these
+     * too. Never minted.
+     * </pre>
+     *
+     * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
+     * @return A list containing the retiredIdPrefixes.
+     */
+    public com.google.protobuf.ProtocolStringList
+        getRetiredIdPrefixesList() {
+      retiredIdPrefixes_.makeImmutable();
+      return retiredIdPrefixes_;
+    }
+    /**
+     * <pre>
+     * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
+     * identities and are never rewritten, so a store keeps the ids it minted
+     * under an earlier prefix: readers that tell a kind from an id read these
+     * too. Never minted.
+     * </pre>
+     *
+     * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
+     * @return The count of retiredIdPrefixes.
+     */
+    public int getRetiredIdPrefixesCount() {
+      return retiredIdPrefixes_.size();
+    }
+    /**
+     * <pre>
+     * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
+     * identities and are never rewritten, so a store keeps the ids it minted
+     * under an earlier prefix: readers that tell a kind from an id read these
+     * too. Never minted.
+     * </pre>
+     *
+     * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
+     * @param index The index of the element to return.
+     * @return The retiredIdPrefixes at the given index.
+     */
+    public java.lang.String getRetiredIdPrefixes(int index) {
+      return retiredIdPrefixes_.get(index);
+    }
+    /**
+     * <pre>
+     * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
+     * identities and are never rewritten, so a store keeps the ids it minted
+     * under an earlier prefix: readers that tell a kind from an id read these
+     * too. Never minted.
+     * </pre>
+     *
+     * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the retiredIdPrefixes at the given index.
+     */
+    public com.google.protobuf.ByteString
+        getRetiredIdPrefixesBytes(int index) {
+      return retiredIdPrefixes_.getByteString(index);
+    }
+    /**
+     * <pre>
+     * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
+     * identities and are never rewritten, so a store keeps the ids it minted
+     * under an earlier prefix: readers that tell a kind from an id read these
+     * too. Never minted.
+     * </pre>
+     *
+     * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
+     * @param index The index to set the value at.
+     * @param value The retiredIdPrefixes to set.
+     * @return This builder for chaining.
+     */
+    public Builder setRetiredIdPrefixes(
+        int index, java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureRetiredIdPrefixesIsMutable();
+      retiredIdPrefixes_.set(index, value);
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
+     * identities and are never rewritten, so a store keeps the ids it minted
+     * under an earlier prefix: readers that tell a kind from an id read these
+     * too. Never minted.
+     * </pre>
+     *
+     * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
+     * @param value The retiredIdPrefixes to add.
+     * @return This builder for chaining.
+     */
+    public Builder addRetiredIdPrefixes(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureRetiredIdPrefixesIsMutable();
+      retiredIdPrefixes_.add(value);
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
+     * identities and are never rewritten, so a store keeps the ids it minted
+     * under an earlier prefix: readers that tell a kind from an id read these
+     * too. Never minted.
+     * </pre>
+     *
+     * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
+     * @param values The retiredIdPrefixes to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllRetiredIdPrefixes(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureRetiredIdPrefixesIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, retiredIdPrefixes_);
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
+     * identities and are never rewritten, so a store keeps the ids it minted
+     * under an earlier prefix: readers that tell a kind from an id read these
+     * too. Never minted.
+     * </pre>
+     *
+     * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearRetiredIdPrefixes() {
+      retiredIdPrefixes_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+      bitField0_ = (bitField0_ & ~0x00000200);;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
+     * identities and are never rewritten, so a store keeps the ids it minted
+     * under an earlier prefix: readers that tell a kind from an id read these
+     * too. Never minted.
+     * </pre>
+     *
+     * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
+     * @param value The bytes of the retiredIdPrefixes to add.
+     * @return This builder for chaining.
+     */
+    public Builder addRetiredIdPrefixesBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      ensureRetiredIdPrefixesIsMutable();
+      retiredIdPrefixes_.add(value);
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMeta)

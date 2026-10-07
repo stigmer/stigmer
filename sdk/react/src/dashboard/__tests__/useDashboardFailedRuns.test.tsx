@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { useDashboardFailedRuns } from "../useDashboardFailedRuns";
@@ -10,7 +10,7 @@ function createMockStigmer(overrides: {
   agentList?: (...args: unknown[]) => Promise<unknown>;
 } = {}) {
   return {
-    agentRun: {
+    run: {
       list: overrides.agentList ?? vi.fn().mockResolvedValue({ entries: [] }),
     },
   } as never;

@@ -43,14 +43,14 @@ import { create, toJson } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
 
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+  RunSchema,
+  RunStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type {
-  AgentRunUpdateStatusInput,
+  RunUpdateStatusInput,
   UpdateStatusResponse,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
-import { AgentRunUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { RunUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -75,7 +75,7 @@ import { decodeRunStatusJson } from "./execution-json.js";
  */
 export interface ExecutionStatusWriter {
   updateStatus(
-    input: AgentRunUpdateStatusInput,
+    input: RunUpdateStatusInput,
   ): Promise<UpdateStatusResponse>;
 }
 
@@ -126,9 +126,9 @@ export function createAgentExecutionActivities(
       executionId: string,
       statusJson: JsonValue,
     ): Promise<void> => {
-      const status = decodeRunStatusJson(AgentRunStatusSchema, statusJson);
+      const status = decodeRunStatusJson(RunStatusSchema, statusJson);
       await deps.statusWriter().updateStatus(
-        create(AgentRunUpdateStatusInputSchema, {
+        create(RunUpdateStatusInputSchema, {
           runId: executionId,
           status,
         }),
@@ -146,9 +146,9 @@ export function createAgentExecutionActivities(
       let execution;
       try {
         execution = await store.getResource(
-          ApiResourceKind.agent_run,
+          ApiResourceKind.run,
           executionId,
-          AgentRunSchema,
+          RunSchema,
         );
       } catch (error) {
         // Go load_execution.go wraps with this exact text — keeps the
@@ -158,7 +158,7 @@ export function createAgentExecutionActivities(
           { cause: error },
         );
       }
-      return toJson(AgentRunSchema, execution);
+      return toJson(RunSchema, execution);
     },
 
     /**

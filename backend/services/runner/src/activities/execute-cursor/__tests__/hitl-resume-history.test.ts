@@ -34,19 +34,19 @@
 
 import { describe, it, expect } from "vitest";
 import { create, clone } from "@bufbuild/protobuf";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type {
   AgentMessage,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   ApprovalAction,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 import { reconcileDeniedToolCalls, clearProvisionalPostDenialNarration } from "../boundary-rows.js";
 import { CursorFold, builderOver } from "../__test-utils__/fold.js";
@@ -68,8 +68,8 @@ import {
 } from "../__test-utils__/cursor-hook-harness.js";
 import {
   SubAgentRunSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
-import { SubAgentStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
+import { SubAgentStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 const MCP_SLUG = "open-computer-use";
 
@@ -289,7 +289,7 @@ describe("Cursor HITL resume — append-only transcript", () => {
     });
     const statusRows = [seededSub];
 
-    const status = create(AgentRunStatusSchema, {});
+    const status = create(RunStatusSchema, {});
     status.subAgentRuns = statusRows;
     new TranscriptBuilder("exec-resume", status).finalize();
 

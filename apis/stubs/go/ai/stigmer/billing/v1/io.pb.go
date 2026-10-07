@@ -8,7 +8,7 @@ package billingv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentrun/v1"
+	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/run/v1"
 	rpc "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -422,7 +422,7 @@ type RecordLlmCallUsageInput struct {
 	// Token usage extracted from the provider's SSE stream.
 	Tokens *v1.TokenUsage `protobuf:"bytes,6,opt,name=tokens,proto3" json:"tokens,omitempty"`
 	// Status of usage extraction.
-	UsageStatus v1.UsageCompletionStatus `protobuf:"varint,7,opt,name=usage_status,json=usageStatus,proto3,enum=ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus" json:"usage_status,omitempty"`
+	UsageStatus v1.UsageCompletionStatus `protobuf:"varint,7,opt,name=usage_status,json=usageStatus,proto3,enum=ai.stigmer.agentic.run.v1.UsageCompletionStatus" json:"usage_status,omitempty"`
 	// Provider request ID from response headers.
 	ProviderRequestId string `protobuf:"bytes,8,opt,name=provider_request_id,json=providerRequestId,proto3" json:"provider_request_id,omitempty"`
 	// HTTP status code from the upstream provider.
@@ -451,7 +451,7 @@ type RecordLlmCallUsageInput struct {
 	// CursorAccount store is the only credential source, so a current
 	// proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
 	// caller.
-	CursorKeySource v1.CursorKeySource `protobuf:"varint,17,opt,name=cursor_key_source,json=cursorKeySource,proto3,enum=ai.stigmer.agentic.agentrun.v1.CursorKeySource" json:"cursor_key_source,omitempty"`
+	CursorKeySource v1.CursorKeySource `protobuf:"varint,17,opt,name=cursor_key_source,json=cursorKeySource,proto3,enum=ai.stigmer.agentic.run.v1.CursorKeySource" json:"cursor_key_source,omitempty"`
 	// Provider-reported service tier that actually served this call
 	// (native harness, stigmer/stigmer#361): Anthropic reports it in the
 	// response usage ("standard" | "priority" | "batch"), OpenAI at the
@@ -462,7 +462,7 @@ type RecordLlmCallUsageInput struct {
 	// none, and for cursor-harness calls, whose billed variant arrives
 	// through the cursor path's pricing-variant resolution instead.
 	ServedServiceTier string `protobuf:"bytes,18,opt,name=served_service_tier,json=servedServiceTier,proto3" json:"served_service_tier,omitempty"`
-	// The agent run this call is metered under, as the proxy resolved
+	// The run this call is metered under, as the proxy resolved
 	// it from the run's system of record — on the caller's own
 	// credential, before reporting. The billing handler stamps these facts
 	// onto the usage record and reconciles the requested tier and thinking
@@ -480,7 +480,7 @@ type RecordLlmCallUsageInput struct {
 	// organization's own provider key served the call: it is recorded and
 	// priced for visibility, and never debited. UNSPECIFIED from a proxy
 	// that predates the field, read as the platform's key.
-	ProviderKeySource v1.ProviderKeySource `protobuf:"varint,21,opt,name=provider_key_source,json=providerKeySource,proto3,enum=ai.stigmer.agentic.agentrun.v1.ProviderKeySource" json:"provider_key_source,omitempty"`
+	ProviderKeySource v1.ProviderKeySource `protobuf:"varint,21,opt,name=provider_key_source,json=providerKeySource,proto3,enum=ai.stigmer.agentic.run.v1.ProviderKeySource" json:"provider_key_source,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -680,11 +680,11 @@ type MeteredRun struct {
 	// The service tier the run resolved (status.run_config.
 	// service_tier); UNSPECIFIED resolves to standard. Reconciled against
 	// served_service_tier by the service_tier.mismatch counter.
-	RequestedServiceTier v1.ServiceTier `protobuf:"varint,3,opt,name=requested_service_tier,json=requestedServiceTier,proto3,enum=ai.stigmer.agentic.agentrun.v1.ServiceTier" json:"requested_service_tier,omitempty"`
+	RequestedServiceTier v1.ServiceTier `protobuf:"varint,3,opt,name=requested_service_tier,json=requestedServiceTier,proto3,enum=ai.stigmer.agentic.run.v1.ServiceTier" json:"requested_service_tier,omitempty"`
 	// The thinking mode the run resolved (status.run_config.
 	// thinking_mode). Reconciled against the served variant by the
 	// thinking.mismatch counter.
-	RequestedThinkingMode v1.ThinkingMode `protobuf:"varint,4,opt,name=requested_thinking_mode,json=requestedThinkingMode,proto3,enum=ai.stigmer.agentic.agentrun.v1.ThinkingMode" json:"requested_thinking_mode,omitempty"`
+	RequestedThinkingMode v1.ThinkingMode `protobuf:"varint,4,opt,name=requested_thinking_mode,json=requestedThinkingMode,proto3,enum=ai.stigmer.agentic.run.v1.ThinkingMode" json:"requested_thinking_mode,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -2971,7 +2971,7 @@ var File_ai_stigmer_billing_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"\x1eai/stigmer/billing/v1/io.proto\x12\x15ai.stigmer.billing.v1\x1a)ai/stigmer/agentic/agentrun/v1/enum.proto\x1a*ai/stigmer/agentic/agentrun/v1/usage.proto\x1a\"ai/stigmer/billing/v1/credit.proto\x1a ai/stigmer/billing/v1/enum.proto\x1a2ai/stigmer/billing/v1/model_pricing_baseline.proto\x1a,ai/stigmer/billing/v1/pricing_override.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\":\n" +
+	"\x1eai/stigmer/billing/v1/io.proto\x12\x15ai.stigmer.billing.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a%ai/stigmer/agentic/run/v1/usage.proto\x1a\"ai/stigmer/billing/v1/credit.proto\x1a ai/stigmer/billing/v1/enum.proto\x1a2ai/stigmer/billing/v1/model_pricing_baseline.proto\x1a,ai/stigmer/billing/v1/pricing_override.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\":\n" +
 	"\x1eGetOrCreateBillingAccountInput\x12\x18\n" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\"\xa4\x01\n" +
 	"\x12AdjustCreditsInput\x12\x18\n" +
@@ -2998,38 +2998,38 @@ const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"\x0ereservation_id\x18\x02 \x01(\tR\rreservationId\x12'\n" +
 	"\x0freserved_micros\x18\x03 \x01(\x03R\x0ereservedMicros\x128\n" +
 	"\x18available_balance_micros\x18\x04 \x01(\x03R\x16availableBalanceMicros\x12#\n" +
-	"\rdenial_reason\x18\x05 \x01(\tR\fdenialReason\"\xd5\b\n" +
+	"\rdenial_reason\x18\x05 \x01(\tR\fdenialReason\"\xbc\b\n" +
 	"\x17RecordLlmCallUsageInput\x12\x1d\n" +
 	"\x06run_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05runId\x12#\n" +
 	"\bsequence\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00R\bsequence\x12!\n" +
 	"\acall_id\x18\x14 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\x06callId\x12\"\n" +
 	"\bprovider\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\bprovider\x12-\n" +
 	"\x0eresolved_model\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\rresolvedModel\x12'\n" +
-	"\x0frequested_model\x18\x05 \x01(\tR\x0erequestedModel\x12B\n" +
-	"\x06tokens\x18\x06 \x01(\v2*.ai.stigmer.agentic.agentrun.v1.TokenUsageR\x06tokens\x12X\n" +
-	"\fusage_status\x18\a \x01(\x0e25.ai.stigmer.agentic.agentrun.v1.UsageCompletionStatusR\vusageStatus\x12.\n" +
+	"\x0frequested_model\x18\x05 \x01(\tR\x0erequestedModel\x12=\n" +
+	"\x06tokens\x18\x06 \x01(\v2%.ai.stigmer.agentic.run.v1.TokenUsageR\x06tokens\x12S\n" +
+	"\fusage_status\x18\a \x01(\x0e20.ai.stigmer.agentic.run.v1.UsageCompletionStatusR\vusageStatus\x12.\n" +
 	"\x13provider_request_id\x18\b \x01(\tR\x11providerRequestId\x12(\n" +
 	"\x10http_status_code\x18\t \x01(\x05R\x0ehttpStatusCode\x12\x1c\n" +
 	"\tstreaming\x18\n" +
 	" \x01(\bR\tstreaming\x12#\n" +
-	"\rfinish_reason\x18\v \x01(\tR\ffinishReason\x12N\n" +
-	"\fproxy_timing\x18\f \x01(\v2+.ai.stigmer.agentic.agentrun.v1.ProxyTimingR\vproxyTiming\x12.\n" +
+	"\rfinish_reason\x18\v \x01(\tR\ffinishReason\x12I\n" +
+	"\fproxy_timing\x18\f \x01(\v2&.ai.stigmer.agentic.run.v1.ProxyTimingR\vproxyTiming\x12.\n" +
 	"\x13provider_usage_json\x18\r \x01(\tR\x11providerUsageJson\x12\x18\n" +
 	"\aharness\x18\x0e \x01(\tR\aharness\x12*\n" +
 	"\x11cursor_account_id\x18\x0f \x01(\tR\x0fcursorAccountId\x12\"\n" +
-	"\rcursor_key_id\x18\x10 \x01(\tR\vcursorKeyId\x12[\n" +
-	"\x11cursor_key_source\x18\x11 \x01(\x0e2/.ai.stigmer.agentic.agentrun.v1.CursorKeySourceR\x0fcursorKeySource\x12.\n" +
+	"\rcursor_key_id\x18\x10 \x01(\tR\vcursorKeyId\x12V\n" +
+	"\x11cursor_key_source\x18\x11 \x01(\x0e2*.ai.stigmer.agentic.run.v1.CursorKeySourceR\x0fcursorKeySource\x12.\n" +
 	"\x13served_service_tier\x18\x12 \x01(\tR\x11servedServiceTier\x12B\n" +
 	"\vmetered_run\x18\x13 \x01(\v2!.ai.stigmer.billing.v1.MeteredRunR\n" +
-	"meteredRun\x12a\n" +
-	"\x13provider_key_source\x18\x15 \x01(\x0e21.ai.stigmer.agentic.agentrun.v1.ProviderKeySourceR\x11providerKeySource\"\x97\x02\n" +
+	"meteredRun\x12\\\n" +
+	"\x13provider_key_source\x18\x15 \x01(\x0e2,.ai.stigmer.agentic.run.v1.ProviderKeySourceR\x11providerKeySource\"\x8d\x02\n" +
 	"\n" +
 	"MeteredRun\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12!\n" +
-	"\fpinned_model\x18\x02 \x01(\tR\vpinnedModel\x12a\n" +
-	"\x16requested_service_tier\x18\x03 \x01(\x0e2+.ai.stigmer.agentic.agentrun.v1.ServiceTierR\x14requestedServiceTier\x12d\n" +
-	"\x17requested_thinking_mode\x18\x04 \x01(\x0e2,.ai.stigmer.agentic.agentrun.v1.ThinkingModeR\x15requestedThinkingMode\"\x81\x02\n" +
+	"\fpinned_model\x18\x02 \x01(\tR\vpinnedModel\x12\\\n" +
+	"\x16requested_service_tier\x18\x03 \x01(\x0e2&.ai.stigmer.agentic.run.v1.ServiceTierR\x14requestedServiceTier\x12_\n" +
+	"\x17requested_thinking_mode\x18\x04 \x01(\x0e2'.ai.stigmer.agentic.run.v1.ThinkingModeR\x15requestedThinkingMode\"\x81\x02\n" +
 	"\x1aRecordLlmCallUsageResponse\x12&\n" +
 	"\x0fusage_record_id\x18\x01 \x01(\tR\rusageRecordId\x120\n" +
 	"\x14provider_cost_micros\x18\x02 \x01(\x03R\x12providerCostMicros\x12E\n" +
@@ -3245,13 +3245,13 @@ var file_ai_stigmer_billing_v1_io_proto_goTypes = []any{
 	(*GetRunBillingSignalInput)(nil),                // 38: ai.stigmer.billing.v1.GetRunBillingSignalInput
 	(*GetRunBillingSignalResponse)(nil),             // 39: ai.stigmer.billing.v1.GetRunBillingSignalResponse
 	(*timestamppb.Timestamp)(nil),                   // 40: google.protobuf.Timestamp
-	(*v1.TokenUsage)(nil),                           // 41: ai.stigmer.agentic.agentrun.v1.TokenUsage
-	(v1.UsageCompletionStatus)(0),                   // 42: ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus
-	(*v1.ProxyTiming)(nil),                          // 43: ai.stigmer.agentic.agentrun.v1.ProxyTiming
-	(v1.CursorKeySource)(0),                         // 44: ai.stigmer.agentic.agentrun.v1.CursorKeySource
-	(v1.ProviderKeySource)(0),                       // 45: ai.stigmer.agentic.agentrun.v1.ProviderKeySource
-	(v1.ServiceTier)(0),                             // 46: ai.stigmer.agentic.agentrun.v1.ServiceTier
-	(v1.ThinkingMode)(0),                            // 47: ai.stigmer.agentic.agentrun.v1.ThinkingMode
+	(*v1.TokenUsage)(nil),                           // 41: ai.stigmer.agentic.run.v1.TokenUsage
+	(v1.UsageCompletionStatus)(0),                   // 42: ai.stigmer.agentic.run.v1.UsageCompletionStatus
+	(*v1.ProxyTiming)(nil),                          // 43: ai.stigmer.agentic.run.v1.ProxyTiming
+	(v1.CursorKeySource)(0),                         // 44: ai.stigmer.agentic.run.v1.CursorKeySource
+	(v1.ProviderKeySource)(0),                       // 45: ai.stigmer.agentic.run.v1.ProviderKeySource
+	(v1.ServiceTier)(0),                             // 46: ai.stigmer.agentic.run.v1.ServiceTier
+	(v1.ThinkingMode)(0),                            // 47: ai.stigmer.agentic.run.v1.ThinkingMode
 	(*rpc.PageInfo)(nil),                            // 48: ai.stigmer.commons.rpc.PageInfo
 	(LedgerEntryType)(0),                            // 49: ai.stigmer.billing.v1.LedgerEntryType
 	(LedgerView)(0),                                 // 50: ai.stigmer.billing.v1.LedgerView
@@ -3262,14 +3262,14 @@ var file_ai_stigmer_billing_v1_io_proto_goTypes = []any{
 }
 var file_ai_stigmer_billing_v1_io_proto_depIdxs = []int32{
 	40, // 0: ai.stigmer.billing.v1.GrantCreditsInput.expires_at:type_name -> google.protobuf.Timestamp
-	41, // 1: ai.stigmer.billing.v1.RecordLlmCallUsageInput.tokens:type_name -> ai.stigmer.agentic.agentrun.v1.TokenUsage
-	42, // 2: ai.stigmer.billing.v1.RecordLlmCallUsageInput.usage_status:type_name -> ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus
-	43, // 3: ai.stigmer.billing.v1.RecordLlmCallUsageInput.proxy_timing:type_name -> ai.stigmer.agentic.agentrun.v1.ProxyTiming
-	44, // 4: ai.stigmer.billing.v1.RecordLlmCallUsageInput.cursor_key_source:type_name -> ai.stigmer.agentic.agentrun.v1.CursorKeySource
+	41, // 1: ai.stigmer.billing.v1.RecordLlmCallUsageInput.tokens:type_name -> ai.stigmer.agentic.run.v1.TokenUsage
+	42, // 2: ai.stigmer.billing.v1.RecordLlmCallUsageInput.usage_status:type_name -> ai.stigmer.agentic.run.v1.UsageCompletionStatus
+	43, // 3: ai.stigmer.billing.v1.RecordLlmCallUsageInput.proxy_timing:type_name -> ai.stigmer.agentic.run.v1.ProxyTiming
+	44, // 4: ai.stigmer.billing.v1.RecordLlmCallUsageInput.cursor_key_source:type_name -> ai.stigmer.agentic.run.v1.CursorKeySource
 	6,  // 5: ai.stigmer.billing.v1.RecordLlmCallUsageInput.metered_run:type_name -> ai.stigmer.billing.v1.MeteredRun
-	45, // 6: ai.stigmer.billing.v1.RecordLlmCallUsageInput.provider_key_source:type_name -> ai.stigmer.agentic.agentrun.v1.ProviderKeySource
-	46, // 7: ai.stigmer.billing.v1.MeteredRun.requested_service_tier:type_name -> ai.stigmer.agentic.agentrun.v1.ServiceTier
-	47, // 8: ai.stigmer.billing.v1.MeteredRun.requested_thinking_mode:type_name -> ai.stigmer.agentic.agentrun.v1.ThinkingMode
+	45, // 6: ai.stigmer.billing.v1.RecordLlmCallUsageInput.provider_key_source:type_name -> ai.stigmer.agentic.run.v1.ProviderKeySource
+	46, // 7: ai.stigmer.billing.v1.MeteredRun.requested_service_tier:type_name -> ai.stigmer.agentic.run.v1.ServiceTier
+	47, // 8: ai.stigmer.billing.v1.MeteredRun.requested_thinking_mode:type_name -> ai.stigmer.agentic.run.v1.ThinkingMode
 	48, // 9: ai.stigmer.billing.v1.GetCreditLedgerInput.page:type_name -> ai.stigmer.commons.rpc.PageInfo
 	49, // 10: ai.stigmer.billing.v1.GetCreditLedgerInput.type_filter:type_name -> ai.stigmer.billing.v1.LedgerEntryType
 	40, // 11: ai.stigmer.billing.v1.GetCreditLedgerInput.start_time:type_name -> google.protobuf.Timestamp

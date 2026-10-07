@@ -26,28 +26,28 @@ import (
 	"strings"
 	"testing"
 
-	agentrunv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentrun/v1"
+	runv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 )
 
-type agentRunCaptureServer struct {
-	agentrunv1.UnimplementedAgentRunCommandControllerServer
-	lastRun *agentrunv1.AgentRun
+type runCaptureServer struct {
+	runv1.UnimplementedRunCommandControllerServer
+	lastRun *runv1.Run
 }
 
-func (s *agentRunCaptureServer) Create(_ context.Context, req *agentrunv1.AgentRun) (*agentrunv1.AgentRun, error) {
+func (s *runCaptureServer) Create(_ context.Context, req *runv1.Run) (*runv1.Run, error) {
 	s.lastRun = req
 	return req, nil
 }
 
-func newAgentRunCaptureClient(t *testing.T) (*Client, *agentRunCaptureServer) {
+func newRunCaptureClient(t *testing.T) (*Client, *runCaptureServer) {
 	t.Helper()
 
-	capture := &agentRunCaptureServer{}
+	capture := &runCaptureServer{}
 	lis := bufconn.Listen(1024 * 1024)
 	srv := grpc.NewServer()
-	agentrunv1.RegisterAgentRunCommandControllerServer(srv, capture)
+	runv1.RegisterRunCommandControllerServer(srv, capture)
 
 	go func() { _ = srv.Serve(lis) }()
 
@@ -71,8 +71,8 @@ func newAgentRunCaptureClient(t *testing.T) (*Client, *agentRunCaptureServer) {
 	return client, capture
 }
 
-func verdictRunInput(schema map[string]any) *AgentRunInput {
-	return &AgentRunInput{
+func verdictRunInput(schema map[string]any) *RunInput {
+	return &RunInput{
 		Org:                    "acme",
 		SessionId:              "ses-1",
 		Message:                "Review this change.",
@@ -83,7 +83,7 @@ func verdictRunInput(schema map[string]any) *AgentRunInput {
 // assertVerdictSchemaWire fails unless the wire structured_output_schema
 // carries the full schema. An empty/nil struct is the exact #342
 // regression.
-func assertVerdictSchemaWire(t *testing.T, run *agentrunv1.AgentRun) {
+func assertVerdictSchemaWire(t *testing.T, run *runv1.Run) {
 	t.Helper()
 	schema := run.GetSpec().GetStructuredOutputSchema()
 	if schema == nil || len(schema.GetFields()) == 0 {
@@ -109,9 +109,9 @@ func assertVerdictSchemaWire(t *testing.T, run *agentrunv1.AgentRun) {
 func TestStructConversion_TypedSliceNormalizes(t *testing.T) {
 	// The issue #342 shape: []map[string]any is not in structpb's
 	// supported set, so this struct used to arrive EMPTY.
-	client, capture := newAgentRunCaptureClient(t)
+	client, capture := newRunCaptureClient(t)
 
-	_, err := client.AgentRun.Create(context.Background(), verdictRunInput(map[string]any{
+	_, err := client.Run.Create(context.Background(), verdictRunInput(map[string]any{
 		"type":     "object",
 		"title":    "Verdict",
 		"examples": []map[string]any{{"outcome": "approve", "label": "Approve"}},
@@ -125,9 +125,9 @@ func TestStructConversion_TypedSliceNormalizes(t *testing.T) {
 func TestStructConversion_FastPathUnchanged(t *testing.T) {
 	// []any is structpb-native and must keep converting exactly as before
 	// (the normalization fallback never runs for it).
-	client, capture := newAgentRunCaptureClient(t)
+	client, capture := newRunCaptureClient(t)
 
-	_, err := client.AgentRun.Create(context.Background(), verdictRunInput(map[string]any{
+	_, err := client.Run.Create(context.Background(), verdictRunInput(map[string]any{
 		"type":     "object",
 		"title":    "Verdict",
 		"examples": []any{map[string]any{"outcome": "approve", "label": "Approve"}},
@@ -142,9 +142,9 @@ func TestStructConversion_UnrepresentableValueFailsLoud(t *testing.T) {
 	// A value neither structpb nor JSON can represent must fail the Create
 	// with a structured CodeInvalidArgument error naming the field path —
 	// never send a silently-empty struct.
-	client, capture := newAgentRunCaptureClient(t)
+	client, capture := newRunCaptureClient(t)
 
-	_, err := client.AgentRun.Create(context.Background(), verdictRunInput(map[string]any{
+	_, err := client.Run.Create(context.Background(), verdictRunInput(map[string]any{
 		"type":    "object",
 		"blocked": make(chan int),
 	}))

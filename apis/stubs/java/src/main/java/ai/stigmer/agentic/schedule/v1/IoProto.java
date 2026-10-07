@@ -57,20 +57,20 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_schedule_v1_ScheduleTriggerResult_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_schedule_v1_ScheduleRun_descriptor;
+    internal_static_ai_stigmer_agentic_schedule_v1_ScheduleFire_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_schedule_v1_ScheduleRun_fieldAccessorTable;
+      internal_static_ai_stigmer_agentic_schedule_v1_ScheduleFire_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_schedule_v1_ListScheduleRunsRequest_descriptor;
+    internal_static_ai_stigmer_agentic_schedule_v1_ListScheduleFiresRequest_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_schedule_v1_ListScheduleRunsRequest_fieldAccessorTable;
+      internal_static_ai_stigmer_agentic_schedule_v1_ListScheduleFiresRequest_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_schedule_v1_ScheduleRunList_descriptor;
+    internal_static_ai_stigmer_agentic_schedule_v1_ScheduleFireList_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_schedule_v1_ScheduleRunList_fieldAccessorTable;
+      internal_static_ai_stigmer_agentic_schedule_v1_ScheduleFireList_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -99,46 +99,47 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "uest.LabelsEntryR\006labels\022=\n\tpage_info\030\003 " +
       "\001(\0132 .ai.stigmer.commons.rpc.PageInfoR\010p" +
       "ageInfo\0329\n\013LabelsEntry\022\020\n\003key\030\001 \001(\tR\003key" +
-      "\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\"\351\001\n\025ScheduleT" +
+      "\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\"\352\001\n\025ScheduleT" +
       "riggerResult\022D\n\010schedule\030\001 \001(\0132(.ai.stig" +
       "mer.agentic.schedule.v1.ScheduleR\010schedu" +
-      "le\022L\n\007outcome\030\002 \001(\01622.ai.stigmer.agentic" +
-      ".schedule.v1.ScheduleRunOutcomeR\007outcome" +
-      "\022\025\n\006run_id\030\003 \001(\tR\005runId\022%\n\016refusal_reaso" +
-      "n\030\004 \001(\tR\rrefusalReason\"\314\003\n\013ScheduleRun\022\037" +
-      "\n\013schedule_id\030\001 \001(\tR\nscheduleId\022\020\n\003org\030\002" +
-      " \001(\tR\003org\022F\n\021nominal_fire_time\030\003 \001(\0132\032.g" +
-      "oogle.protobuf.TimestampR\017nominalFireTim" +
-      "e\022I\n\006origin\030\004 \001(\01621.ai.stigmer.agentic.s" +
-      "chedule.v1.ScheduleRunOriginR\006origin\022L\n\007" +
-      "outcome\030\005 \001(\01622.ai.stigmer.agentic.sched" +
-      "ule.v1.ScheduleRunOutcomeR\007outcome\022\026\n\006re" +
-      "ason\030\006 \001(\tR\006reason\022\025\n\006run_id\030\007 \001(\tR\005runI" +
-      "d\022;\n\013recorded_at\030\010 \001(\0132\032.google.protobuf" +
-      ".TimestampR\nrecordedAt\022=\n\014completed_at\030\t" +
-      " \001(\0132\032.google.protobuf.TimestampR\013comple" +
-      "tedAt\"\201\001\n\027ListScheduleRunsRequest\022\'\n\013sch" +
-      "edule_id\030\001 \001(\tB\006\272H\003\310\001\001R\nscheduleId\022=\n\tpa" +
-      "ge_info\030\002 \001(\0132 .ai.stigmer.commons.rpc.P" +
-      "ageInfoR\010pageInfo\"u\n\017ScheduleRunList\022\037\n\013" +
-      "total_count\030\001 \001(\005R\ntotalCount\022A\n\005items\030\002" +
-      " \003(\0132+.ai.stigmer.agentic.schedule.v1.Sc" +
-      "heduleRunR\005items*v\n\021ScheduleRunOrigin\022#\n" +
-      "\037SCHEDULE_RUN_ORIGIN_UNSPECIFIED\020\000\022\034\n\030SC" +
-      "HEDULE_RUN_ORIGIN_CRON\020\001\022\036\n\032SCHEDULE_RUN" +
-      "_ORIGIN_MANUAL\020\002*\262\002\n\022ScheduleRunOutcome\022" +
-      "$\n SCHEDULE_RUN_OUTCOME_UNSPECIFIED\020\000\022 \n" +
-      "\034SCHEDULE_RUN_OUTCOME_STARTED\020\001\022 \n\034SCHED" +
-      "ULE_RUN_OUTCOME_REFUSED\020\002\022\'\n#SCHEDULE_RU" +
-      "N_OUTCOME_TARGET_MISSING\020\003\022 \n\034SCHEDULE_R" +
-      "UN_OUTCOME_SKIPPED\020\004\022\"\n\036SCHEDULE_RUN_OUT" +
-      "COME_COMPLETED\020\005\022\037\n\033SCHEDULE_RUN_OUTCOME" +
-      "_FAILED\020\006\022\"\n\036SCHEDULE_RUN_OUTCOME_TIMED_" +
-      "OUT\020\007B\246\001B\007IoProtoP\001\242\002\004ASAS\252\002\036Ai.Stigmer." +
-      "Agentic.Schedule.V1\312\002\036Ai\\Stigmer\\Agentic" +
-      "\\Schedule\\V1\342\002*Ai\\Stigmer\\Agentic\\Schedu" +
-      "le\\V1\\GPBMetadata\352\002\"Ai::Stigmer::Agentic" +
-      "::Schedule::V1b\006proto3"
+      "le\022M\n\007outcome\030\002 \001(\01623.ai.stigmer.agentic" +
+      ".schedule.v1.ScheduleFireOutcomeR\007outcom" +
+      "e\022\025\n\006run_id\030\003 \001(\tR\005runId\022%\n\016refusal_reas" +
+      "on\030\004 \001(\tR\rrefusalReason\"\317\003\n\014ScheduleFire" +
+      "\022\037\n\013schedule_id\030\001 \001(\tR\nscheduleId\022\020\n\003org" +
+      "\030\002 \001(\tR\003org\022F\n\021nominal_fire_time\030\003 \001(\0132\032" +
+      ".google.protobuf.TimestampR\017nominalFireT" +
+      "ime\022J\n\006origin\030\004 \001(\01622.ai.stigmer.agentic" +
+      ".schedule.v1.ScheduleFireOriginR\006origin\022" +
+      "M\n\007outcome\030\005 \001(\01623.ai.stigmer.agentic.sc" +
+      "hedule.v1.ScheduleFireOutcomeR\007outcome\022\026" +
+      "\n\006reason\030\006 \001(\tR\006reason\022\025\n\006run_id\030\007 \001(\tR\005" +
+      "runId\022;\n\013recorded_at\030\010 \001(\0132\032.google.prot" +
+      "obuf.TimestampR\nrecordedAt\022=\n\014completed_" +
+      "at\030\t \001(\0132\032.google.protobuf.TimestampR\013co" +
+      "mpletedAt\"\202\001\n\030ListScheduleFiresRequest\022\'" +
+      "\n\013schedule_id\030\001 \001(\tB\006\272H\003\310\001\001R\nscheduleId\022" +
+      "=\n\tpage_info\030\002 \001(\0132 .ai.stigmer.commons." +
+      "rpc.PageInfoR\010pageInfo\"w\n\020ScheduleFireLi" +
+      "st\022\037\n\013total_count\030\001 \001(\005R\ntotalCount\022B\n\005i" +
+      "tems\030\002 \003(\0132,.ai.stigmer.agentic.schedule" +
+      ".v1.ScheduleFireR\005items*z\n\022ScheduleFireO" +
+      "rigin\022$\n SCHEDULE_FIRE_ORIGIN_UNSPECIFIE" +
+      "D\020\000\022\035\n\031SCHEDULE_FIRE_ORIGIN_CRON\020\001\022\037\n\033SC" +
+      "HEDULE_FIRE_ORIGIN_MANUAL\020\002*\273\002\n\023Schedule" +
+      "FireOutcome\022%\n!SCHEDULE_FIRE_OUTCOME_UNS" +
+      "PECIFIED\020\000\022!\n\035SCHEDULE_FIRE_OUTCOME_STAR" +
+      "TED\020\001\022!\n\035SCHEDULE_FIRE_OUTCOME_REFUSED\020\002" +
+      "\022(\n$SCHEDULE_FIRE_OUTCOME_TARGET_MISSING" +
+      "\020\003\022!\n\035SCHEDULE_FIRE_OUTCOME_SKIPPED\020\004\022#\n" +
+      "\037SCHEDULE_FIRE_OUTCOME_COMPLETED\020\005\022 \n\034SC" +
+      "HEDULE_FIRE_OUTCOME_FAILED\020\006\022#\n\037SCHEDULE" +
+      "_FIRE_OUTCOME_TIMED_OUT\020\007B\246\001B\007IoProtoP\001\242" +
+      "\002\004ASAS\252\002\036Ai.Stigmer.Agentic.Schedule.V1\312" +
+      "\002\036Ai\\Stigmer\\Agentic\\Schedule\\V1\342\002*Ai\\St" +
+      "igmer\\Agentic\\Schedule\\V1\\GPBMetadata\352\002\"" +
+      "Ai::Stigmer::Agentic::Schedule::V1b\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -184,23 +185,23 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_schedule_v1_ScheduleTriggerResult_descriptor,
         new java.lang.String[] { "Schedule", "Outcome", "RunId", "RefusalReason", });
-    internal_static_ai_stigmer_agentic_schedule_v1_ScheduleRun_descriptor =
+    internal_static_ai_stigmer_agentic_schedule_v1_ScheduleFire_descriptor =
       getDescriptor().getMessageType(5);
-    internal_static_ai_stigmer_agentic_schedule_v1_ScheduleRun_fieldAccessorTable = new
+    internal_static_ai_stigmer_agentic_schedule_v1_ScheduleFire_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_schedule_v1_ScheduleRun_descriptor,
+        internal_static_ai_stigmer_agentic_schedule_v1_ScheduleFire_descriptor,
         new java.lang.String[] { "ScheduleId", "Org", "NominalFireTime", "Origin", "Outcome", "Reason", "RunId", "RecordedAt", "CompletedAt", });
-    internal_static_ai_stigmer_agentic_schedule_v1_ListScheduleRunsRequest_descriptor =
+    internal_static_ai_stigmer_agentic_schedule_v1_ListScheduleFiresRequest_descriptor =
       getDescriptor().getMessageType(6);
-    internal_static_ai_stigmer_agentic_schedule_v1_ListScheduleRunsRequest_fieldAccessorTable = new
+    internal_static_ai_stigmer_agentic_schedule_v1_ListScheduleFiresRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_schedule_v1_ListScheduleRunsRequest_descriptor,
+        internal_static_ai_stigmer_agentic_schedule_v1_ListScheduleFiresRequest_descriptor,
         new java.lang.String[] { "ScheduleId", "PageInfo", });
-    internal_static_ai_stigmer_agentic_schedule_v1_ScheduleRunList_descriptor =
+    internal_static_ai_stigmer_agentic_schedule_v1_ScheduleFireList_descriptor =
       getDescriptor().getMessageType(7);
-    internal_static_ai_stigmer_agentic_schedule_v1_ScheduleRunList_fieldAccessorTable = new
+    internal_static_ai_stigmer_agentic_schedule_v1_ScheduleFireList_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_schedule_v1_ScheduleRunList_descriptor,
+        internal_static_ai_stigmer_agentic_schedule_v1_ScheduleFireList_descriptor,
         new java.lang.String[] { "TotalCount", "Items", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.schedule.v1.ApiProto.getDescriptor();

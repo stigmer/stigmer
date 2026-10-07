@@ -3,14 +3,14 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest;
-import ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest;
+import ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest;
 import ai.stigmer.agentic.schedule.v1.ListSchedulesRequest;
 import ai.stigmer.agentic.schedule.v1.Schedule;
 import ai.stigmer.agentic.schedule.v1.ScheduleCommandControllerGrpc;
+import ai.stigmer.agentic.schedule.v1.ScheduleFireList;
 import ai.stigmer.agentic.schedule.v1.ScheduleId;
 import ai.stigmer.agentic.schedule.v1.ScheduleList;
 import ai.stigmer.agentic.schedule.v1.ScheduleQueryControllerGrpc;
-import ai.stigmer.agentic.schedule.v1.ScheduleRunList;
 import ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import io.grpc.Channel;
@@ -86,9 +86,9 @@ public final class ScheduleClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public ScheduleRunList listRuns(ListScheduleRunsRequest input) {
+    public ScheduleFireList listFires(ListScheduleFiresRequest input) {
         try {
-            return query.listRuns(input);
+            return query.listFires(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

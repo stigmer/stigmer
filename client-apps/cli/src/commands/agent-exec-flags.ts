@@ -1,4 +1,4 @@
-// The agent-run flag set `run` registers (Go's registerAgentExecFlags),
+// The run flag set `run` registers (Go's registerAgentExecFlags),
 // kept as its own module so a new run flag has one home and any future
 // command that starts a run picks the whole set up unchanged.
 

@@ -27,7 +27,7 @@
 
 import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { type AgentRunStatus, AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { type RunStatus, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   ApprovalAction,
   ApprovalPolicySource,
@@ -37,11 +37,11 @@ import {
   ToolCallStatus,
   ToolCallStreamingSource,
   ToolKind,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
-import { WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/writeback_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
+import { WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/writeback_pb";
 import { TranscriptBuilder } from "../builder.js";
 import type { TranscriptEvent } from "../events.js";
 
@@ -52,11 +52,11 @@ import type { TranscriptEvent } from "../events.js";
  */
 interface Fold {
   readonly sb: TranscriptBuilder;
-  readonly status: AgentRunStatus;
+  readonly status: RunStatus;
 }
 
 function builder(): Fold {
-  const status = create(AgentRunStatusSchema, {});
+  const status = create(RunStatusSchema, {});
   return { sb: new TranscriptBuilder("exec-test", status), status };
 }
 
@@ -75,7 +75,7 @@ function proposedCall(callId = "call-1", name = "read_file"): TranscriptEvent[] 
   ];
 }
 
-function rowOf(status: AgentRunStatus, callId: string) {
+function rowOf(status: RunStatus, callId: string) {
   const row = status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === callId);
   if (!row) throw new Error(`no row ${callId}`);
   return row;
@@ -179,7 +179,7 @@ describe("TranscriptBuilder — one observation is folded at one instant", () =>
   // The clock moves 1 ms after every fold, so any stamp that read it twice
   // within one observation would show two instants.
   function ticking(): Fold {
-    const status = create(AgentRunStatusSchema, {});
+    const status = create(RunStatusSchema, {});
     return { sb: new TranscriptBuilder("exec-instant", status, () => vi.advanceTimersByTime(1)), status };
   }
 
@@ -572,7 +572,7 @@ describe("TranscriptBuilder — tool_output_delta streams the row's output", () 
 
 describe("TranscriptBuilder — a row per callId, reconciled in place, never duplicated", () => {
   it("a re-emitted start for a known row is a no-op on the row's identity; a WAITING row flips to RUNNING and takes the args it lacked", () => {
-    const status = create(AgentRunStatusSchema, {
+    const status = create(RunStatusSchema, {
       messages: [
         create(AgentMessageSchema, {
           type: MessageType.MESSAGE_AI,
@@ -608,7 +608,7 @@ describe("TranscriptBuilder — a row per callId, reconciled in place, never dup
   });
 
   it("a re-emitted start advances a seeded INTERRUPTED row to RUNNING — the recovery replay's supersede — and previews the args it fills", () => {
-    const status = create(AgentRunStatusSchema, {
+    const status = create(RunStatusSchema, {
       messages: [
         create(AgentMessageSchema, {
           type: MessageType.MESSAGE_AI,
@@ -644,7 +644,7 @@ describe("TranscriptBuilder — a row per callId, reconciled in place, never dup
   describe("seed(): a reinvocation's prior rows, appended and indexed after the builder is born", () => {
     /** Last turn's transcript as the server holds it: a text, a WAITING row, a sub-agent with its own row, an artifact, a write-back, a todo. */
     function persisted() {
-      return create(AgentRunStatusSchema, {
+      return create(RunStatusSchema, {
         messages: [
           create(AgentMessageSchema, {
             type: MessageType.MESSAGE_AI,
@@ -681,7 +681,7 @@ describe("TranscriptBuilder — a row per callId, reconciled in place, never dup
     }
 
     it("appends every collection into the status's own arrays and sets no flag", () => {
-      const status = create(AgentRunStatusSchema, {});
+      const status = create(RunStatusSchema, {});
       const messages = status.messages;
       const sb = new TranscriptBuilder("exec-seed", status);
       sb.seed(persisted());
@@ -696,7 +696,7 @@ describe("TranscriptBuilder — a row per callId, reconciled in place, never dup
     });
 
     it("indexes the seeded rows exactly as a builder born over the seeded status does: a re-issued call reconciles onto the seed, in the root and in a sub-agent", () => {
-      const lateStatus = create(AgentRunStatusSchema, {});
+      const lateStatus = create(RunStatusSchema, {});
       const seededLate: Fold = { sb: new TranscriptBuilder("exec-late", lateStatus), status: lateStatus };
       seededLate.sb.seed(persisted());
       const earlyStatus = persisted();
@@ -720,7 +720,7 @@ describe("TranscriptBuilder — a row per callId, reconciled in place, never dup
     });
 
     it("a seeded sub-agent row re-announced by a replayed engine is not re-opened", () => {
-      const status = create(AgentRunStatusSchema, {});
+      const status = create(RunStatusSchema, {});
       const sb = new TranscriptBuilder("exec-seed", status);
       sb.seed(persisted());
       sb.apply({ kind: "sub_agent_started", subAgentId: "sub-1", name: "researcher", subject: "again", input: "x" });
@@ -849,7 +849,7 @@ describe("TranscriptBuilder — the AI-message boundary: a row joins the text th
   });
 
   it("over a seeded transcript the first fresh row joins the seed's last AI message", () => {
-    const status = create(AgentRunStatusSchema, {
+    const status = create(RunStatusSchema, {
       messages: [
         create(AgentMessageSchema, { type: MessageType.MESSAGE_THINKING, content: "hm" }),
         create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "I will run the two commands." }),
@@ -972,7 +972,7 @@ describe("TranscriptBuilder — a sub-agent row per subAgentId with a transcript
   });
 
   it("a known id is never re-opened — a seeded row re-announced by a replayed engine is reconciled onto, not duplicated", () => {
-    const status = create(AgentRunStatusSchema, {});
+    const status = create(RunStatusSchema, {});
     status.subAgentRuns.push(create(SubAgentRunSchema, { id: "task-1", name: "helper", status: SubAgentStatus.SUB_AGENT_IN_PROGRESS }));
     const sb = new TranscriptBuilder("exec-resume", status);
     feed({ sb, status }, [open, { kind: "text_delta", runId: "sub-1", text: "resumed", subAgentId: "task-1" }]);
@@ -981,7 +981,7 @@ describe("TranscriptBuilder — a sub-agent row per subAgentId with a transcript
   });
 
   it("two sub-agents keep separate transcripts; the status's own array is pushed into, never replaced", () => {
-    const status = create(AgentRunStatusSchema, {});
+    const status = create(RunStatusSchema, {});
     const arrayBefore = status.subAgentRuns;
     const sb = new TranscriptBuilder("exec", status);
     feed({ sb, status }, [
@@ -1137,7 +1137,7 @@ describe("TranscriptBuilder — the dirty flag and the error guard", () => {
 
 describe("TranscriptBuilder — the observer sees every folded event, after the fold, and can break nothing", () => {
   it("is told every applied event, in order, once the fold has landed", () => {
-    const status = create(AgentRunStatusSchema, {});
+    const status = create(RunStatusSchema, {});
     const seen: Array<{ kind: string; rowsAtNotify: number }> = [];
     const sb = new TranscriptBuilder("exec-observe", status, (event) => {
       seen.push({ kind: event.kind, rowsAtNotify: status.messages.flatMap((m) => m.toolCalls).length });
@@ -1155,7 +1155,7 @@ describe("TranscriptBuilder — the observer sees every folded event, after the 
     const original = console.error;
     console.error = (msg: unknown) => { errors.push(String(msg)); };
     try {
-      const status = create(AgentRunStatusSchema, {});
+      const status = create(RunStatusSchema, {});
       const sb = new TranscriptBuilder("exec-observe", status, () => { throw new Error("observer fell over"); });
       expect(() => { for (const e of proposedCall()) sb.apply(e); }).not.toThrow();
       expect(rowOf(status, "call-1").status, "the transcript is whole").toBe(ToolCallStatus.TOOL_CALL_RUNNING);
@@ -1184,10 +1184,10 @@ describe("TranscriptBuilder — the observer sees every folded event, after the 
   });
 
   it("seed() does not notify: a seeded row is last turn's fact, not an event of this turn", () => {
-    const status = create(AgentRunStatusSchema, {});
+    const status = create(RunStatusSchema, {});
     const seen: string[] = [];
     const sb = new TranscriptBuilder("exec-observe", status, (event) => { seen.push(event.kind); });
-    sb.seed(create(AgentRunStatusSchema, {
+    sb.seed(create(RunStatusSchema, {
       messages: [create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "earlier", toolCalls: [create(ToolCallSchema, { id: "old-1", name: "read_file", status: ToolCallStatus.TOOL_CALL_COMPLETED })] })],
     }));
     expect(seen).toEqual([]);

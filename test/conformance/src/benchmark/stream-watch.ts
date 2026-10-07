@@ -1,4 +1,4 @@
-// Watches one execution through `AgentRun.subscribe`, the lane a console
+// Watches one execution through `Run.subscribe`, the lane a console
 // reads a turn on, and stamps on the client's clock the instants the parity
 // work is judged by: when the user first saw something (a root AI or THINKING
 // row with content), when the agent's work was done and offered for review (a
@@ -21,10 +21,10 @@
 // runner's `turn_phases` line carries the precise activity-relative instants
 // beside it. The stamps are quantised to the runner's persist cadence, which
 // is what the console sees too.
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { ConformanceClients } from "../harness/clients";
-import { FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { isTerminalPhase } from "../support/agentruns";
+import { FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { isTerminalPhase } from "../support/runs";
 import { collectStream, type CollectedStream } from "../support/collect-stream";
 import { findChangeSet } from "../support/file-review";
 import { visibleRows } from "./status-facts";
@@ -51,12 +51,12 @@ export interface WatchedExecution {
   /** `true` when the watch stopped at review: `final` carries the set AWAITING_REVIEW. */
   awaiting_review: boolean;
   /** The last snapshot received: terminal, or offering review, when `outcome` is `until`. */
-  final: AgentRun | undefined;
-  outcome: CollectedStream<AgentRun>["outcome"];
+  final: Run | undefined;
+  outcome: CollectedStream<Run>["outcome"];
 }
 
 /** The stream factory a watch consumes; the clients' subscribe by default, injectable for tests. */
-export type SubscribeFactory = (signal: AbortSignal) => AsyncIterable<AgentRun>;
+export type SubscribeFactory = (signal: AbortSignal) => AsyncIterable<Run>;
 
 export function subscribeTo(clients: ConformanceClients, executionId: string): SubscribeFactory {
   return (signal) => clients.agentExecutionQuery.subscribe({ value: executionId }, { signal });

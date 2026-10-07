@@ -50,16 +50,16 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | ChannelMessageCommandController.sendMessage | `org` |
 | ChannelMessageQueryController.listTemplates | `org` |
 
-## `ai.stigmer.agentic.agentrun.v1`
+## `ai.stigmer.agentic.run.v1`
 
 | Method | Organization fields |
 |---|---|
-| AgentRunCommandController.create | `metadata.org`, `spec.session_spec.agent_ref.org`, `spec.session_spec.mcp_server_usages.mcp_server_ref.org`, `spec.session_spec.skill_refs.org` |
-| AgentRunCommandController.update | `metadata.org`, `spec.session_spec.agent_ref.org`, `spec.session_spec.mcp_server_usages.mcp_server_ref.org`, `spec.session_spec.skill_refs.org` |
-| AgentRunQueryController.getAgentUsageReport | `org` |
-| AgentRunQueryController.getRunSummary | `org` |
-| AgentRunQueryController.getOrgUsageReport | `org` |
-| AgentRunQueryController.list | `org` |
+| RunCommandController.create | `metadata.org`, `spec.session_spec.agent_ref.org`, `spec.session_spec.mcp_server_usages.mcp_server_ref.org`, `spec.session_spec.skill_refs.org` |
+| RunCommandController.update | `metadata.org`, `spec.session_spec.agent_ref.org`, `spec.session_spec.mcp_server_usages.mcp_server_ref.org`, `spec.session_spec.skill_refs.org` |
+| RunQueryController.getAgentUsageReport | `org` |
+| RunQueryController.getRunSummary | `org` |
+| RunQueryController.getOrgUsageReport | `org` |
+| RunQueryController.list | `org` |
 
 ## `ai.stigmer.agentic.agentshare.v1`
 

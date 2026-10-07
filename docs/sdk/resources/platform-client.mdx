@@ -700,7 +700,7 @@ Input for creating or updating a Platform Client.
     expiresAt: { type: "string", description: "Expiration time for the client secret." },
     neverExpires: { type: "boolean", description: "When true, the client secret never expires regardless of expires_at." },
     allowedOrigins: { type: "string[]", description: "Web origins allowed for browser-based requests using tokens minted by this PlatformClient." },
-    environmentRefs: { type: "ResourceRef[]", description: "Environments whose values are delivered to every agent run a user signed in through this PlatformClient creates.", typeDescriptionLink: "#resourceref" },
+    environmentRefs: { type: "ResourceRef[]", description: "Environments whose values are delivered to every run a user signed in through this PlatformClient creates.", typeDescriptionLink: "#resourceref" },
     createAccountsOnSignIn: { type: "boolean", description: "Whether mintUserToken creates an identity account for a user_id that has none yet." },
     signInRole: { type: "IamRole", description: "The role an account mintUserToken creates receives on the client's owning organization.", typeDescriptionLink: "#iamrole" },
   }}

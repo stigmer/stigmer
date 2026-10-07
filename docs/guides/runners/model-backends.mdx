@@ -175,8 +175,8 @@ CloudWatch under Bedrock metrics.
 
 <Callout type="warn">
   Bedrock does not support Anthropic's token-counting or prompt-caching APIs.
-  Agent Runs behave identically otherwise; if a future capability depends on
-  these, it will say so rather than degrade silently.
+  Runs behave identically otherwise; if a future capability depends on these, it
+  will say so rather than degrade silently.
 </Callout>
 
 ## Serve Claude from Azure (Microsoft Foundry)
@@ -194,10 +194,10 @@ reason not to; custom names work too (see the mapping section below).
 
 Each deployment chooses a **hosting option**: _Hosted on Azure_ keeps inference
 inside Azure (fewer models, currently no structured outputs or server-side tools
-— Stigmer's native harness uses neither natively, so Agent Runs are unaffected),
-while _Hosted on Anthropic infrastructure_ offers the full Claude catalog served
-by Anthropic under your Azure billing. Pick per deployment based on your
-residency requirements.
+— Stigmer's native harness uses neither natively, so runs are unaffected), while
+_Hosted on Anthropic infrastructure_ offers the full Claude catalog served by
+Anthropic under your Azure billing. Pick per deployment based on your residency
+requirements.
 
 </Step>
 <Step>

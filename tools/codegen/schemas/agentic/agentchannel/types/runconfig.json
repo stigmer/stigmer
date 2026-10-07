@@ -1,8 +1,8 @@
 {
   "name": "RunConfig",
-  "description": "RunConfig is the settings message for every run: a model, a speed tier,\n thinking, and run bounds.\n\n The same message is a message's request (AgentRunSpec.run_config),\n a surface's saved settings (a schedule's invocation, a channel, a share),\n an agent author's defaults (AgentSpec.run_config,\n versioned with the agent), and the settings a turn ran with\n (AgentRunStatus.run_config). Zero or empty means \"not set at this\n layer\".\n\n The server resolves a turn's settings once, at create, from three layers,\n most specific first: the message (or the surface it came through), the\n agent's defaults, and the lane's operator profile.\n\n - Choices. model_name comes from the first layer that names one. When no\n   layer names one, the model is left to the engine (the native engine's\n   registry default; Cursor's Auto). service_tier and thinking_mode each\n   come from the first layer, at or above the model's layer, that sets\n   them: a less specific layer's tier or thinking was chosen for another\n   model, so it never lands on this one. Without a model, tier and thinking\n   come only from the message.\n - Bounds. max_cost_usd, max_tool_rounds and max_tool_result_chars each take\n   the smallest positive value any layer sets. An operator profile is a\n   ceiling the message, the surface and the agent can lower but never\n   raise.\n - The agent's choices apply only on the engine its defaults name\n   (AgentSpec.harness). On a conversation running the other engine the\n   agent layer gives its bounds alone.\n\n Saved settings are self-contained: a surface or an agent that sets\n service_tier FAST or thinking_mode ENABLED names the model it is for. Only a\n message may set them alone, to adjust the model it is given.",
-  "protoType": "ai.stigmer.agentic.agentrun.v1.RunConfig",
-  "protoFile": "apis/ai/stigmer/agentic/agentrun/v1/invocation.proto",
+  "description": "RunConfig is the settings message for every run: a model, a speed tier,\n thinking, and run bounds.\n\n The same message is a message's request (RunSpec.run_config),\n a surface's saved settings (a schedule's invocation, a channel, a share),\n an agent author's defaults (AgentSpec.run_config,\n versioned with the agent), and the settings a turn ran with\n (RunStatus.run_config). Zero or empty means \"not set at this\n layer\".\n\n The server resolves a turn's settings once, at create, from three layers,\n most specific first: the message (or the surface it came through), the\n agent's defaults, and the lane's operator profile.\n\n - Choices. model_name comes from the first layer that names one. When no\n   layer names one, the model is left to the engine (the native engine's\n   registry default; Cursor's Auto). service_tier and thinking_mode each\n   come from the first layer, at or above the model's layer, that sets\n   them: a less specific layer's tier or thinking was chosen for another\n   model, so it never lands on this one. Without a model, tier and thinking\n   come only from the message.\n - Bounds. max_cost_usd, max_tool_rounds and max_tool_result_chars each take\n   the smallest positive value any layer sets. An operator profile is a\n   ceiling the message, the surface and the agent can lower but never\n   raise.\n - The agent's choices apply only on the engine its defaults name\n   (AgentSpec.harness). On a conversation running the other engine the\n   agent layer gives its bounds alone.\n\n Saved settings are self-contained: a surface or an agent that sets\n service_tier FAST or thinking_mode ENABLED names the model it is for. Only a\n message may set them alone, to adjust the model it is given.",
+  "protoType": "ai.stigmer.agentic.run.v1.RunConfig",
+  "protoFile": "apis/ai/stigmer/agentic/run/v1/invocation.proto",
   "fields": [
     {
       "name": "ModelName",
@@ -21,7 +21,7 @@
       "type": {
         "kind": "double"
       },
-      "description": "Maximum estimated cost in USD per run.\n\n When the run's estimated spend reaches this limit, the run stops with a\n \"send another message to continue\" prompt and ends TERMINATED; the work\n done so far is kept. The limit is checked each time the engine reports\n its spend, so a run can end somewhat above it. The native harness\n reports after every model call, counts a sub-agent's spend toward the\n limit, and advises the agent to wrap up at about 80% of the budget; the\n Cursor harness gives no warning.\n\n 0 = not set at this layer. The budget is per message: a follow-up\n message, or a run resuming after an approval, starts a fresh count. The\n spend is the runner's estimate, reported on\n AgentRunStatus.streaming_usage.estimated_cost_usd, not the billed\n amount.",
+      "description": "Maximum estimated cost in USD per run.\n\n When the run's estimated spend reaches this limit, the run stops with a\n \"send another message to continue\" prompt and ends TERMINATED; the work\n done so far is kept. The limit is checked each time the engine reports\n its spend, so a run can end somewhat above it. The native harness\n reports after every model call, counts a sub-agent's spend toward the\n limit, and advises the agent to wrap up at about 80% of the budget; the\n Cursor harness gives no warning.\n\n 0 = not set at this layer. The budget is per message: a follow-up\n message, or a run resuming after an approval, starts a fresh count. The\n spend is the runner's estimate, reported on\n RunStatus.streaming_usage.estimated_cost_usd, not the billed\n amount.",
       "required": false
     },
     {
@@ -40,7 +40,7 @@
       "protoField": "service_tier",
       "type": {
         "kind": "string",
-        "enumType": "ai.stigmer.agentic.agentrun.v1.ServiceTier",
+        "enumType": "ai.stigmer.agentic.run.v1.ServiceTier",
         "enumValues": [
           "SERVICE_TIER_STANDARD",
           "SERVICE_TIER_FAST"
@@ -55,7 +55,7 @@
       "protoField": "thinking_mode",
       "type": {
         "kind": "string",
-        "enumType": "ai.stigmer.agentic.agentrun.v1.ThinkingMode",
+        "enumType": "ai.stigmer.agentic.run.v1.ThinkingMode",
         "enumValues": [
           "THINKING_MODE_DISABLED",
           "THINKING_MODE_ENABLED"

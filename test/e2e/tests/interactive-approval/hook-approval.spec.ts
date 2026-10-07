@@ -17,7 +17,7 @@
 // resets the queue per test.
 import type { HookSourceInput } from "@stigmer/sdk";
 import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { test, expect } from "../../fixtures";
 import {
   MockControl,

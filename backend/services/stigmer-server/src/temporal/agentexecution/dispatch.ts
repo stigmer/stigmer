@@ -22,7 +22,7 @@ import type { Logger } from "../../boot/logger.js";
 import {
   AgentExecutionTemporalConfig,
   ROUTING_SESSION,
-} from "../../domain/agentrun/temporal/config.js";
+} from "../../domain/run/temporal/config.js";
 import { ResourceNotFoundError, type Store } from "../../store/interface.js";
 
 /** Go dispatch.go sessionTaskQueuePrefix. */

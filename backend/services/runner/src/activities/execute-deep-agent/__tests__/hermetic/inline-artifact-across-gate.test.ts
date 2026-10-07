@@ -70,14 +70,14 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
 import {
-  AgentRunStatusSchema,
-  type AgentRunStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+  RunStatusSchema,
+  type RunStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   ApprovalAction,
   RunPhase,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -106,8 +106,8 @@ const REPORT_BODY = "# Report\n\nAll fixtures nominal.\n";
 const WRITE_CALL_ID = "call-hermetic-write-0001";
 const DECIDED_AT = "2026-01-01T00:00:30.000Z";
 
-function statusJson(status: AgentRunStatus): string {
-  return JSON.stringify(toJson(AgentRunStatusSchema, status), null, 2) + "\n";
+function statusJson(status: RunStatus): string {
+  return JSON.stringify(toJson(RunStatusSchema, status), null, 2) + "\n";
 }
 
 describe("ExecuteDeepAgent hermetic — inline artifact across a gate (sqlite)", () => {

@@ -52,8 +52,8 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
 import type { InteractionUpdate } from "@cursor/sdk";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -184,7 +184,7 @@ describe("ExecuteCursor hermetic — the delta channel on a shell row", () => {
     expect(row.approvalRequestedAt).toBe("");
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
-    const json = JSON.stringify(toJson(AgentRunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
+    const json = JSON.stringify(toJson(RunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/shell-output-delta.status.json");
   });
 
@@ -225,7 +225,7 @@ describe("ExecuteCursor hermetic — the delta channel on a shell row", () => {
     expect(rows[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
     expect(rows[0].result, "the early chunk was not lost").toBe(FULL_OUTPUT);
 
-    const json = JSON.stringify(toJson(AgentRunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
+    const json = JSON.stringify(toJson(RunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/shell-output-delta.output-first.status.json");
   });
 
@@ -272,7 +272,7 @@ describe("ExecuteCursor hermetic — the delta channel on a shell row", () => {
     expect(row.result).toBe("");
     expect(row.approvalRequestedAt, "a failure is not an approval request").toBe("");
 
-    const json = JSON.stringify(toJson(AgentRunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
+    const json = JSON.stringify(toJson(RunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/shell-output-delta.error-delta.status.json");
   });
 });

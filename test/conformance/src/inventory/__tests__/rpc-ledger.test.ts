@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest";
 import { formatLedgerReport, parseLedger, servedRpcs, summarizeLedger, type RpcLedgerLine } from "../rpc-ledger";
 
-const DECLARED = ["AgentCommandController.create", "AgentQueryController.get", "AgentQueryController.list", "AgentRunCommandController.updateStatus", "SkillQueryController.get"];
+const DECLARED = ["AgentCommandController.create", "AgentQueryController.get", "AgentQueryController.list", "RunCommandController.updateStatus", "SkillQueryController.get"];
 
 function line(target: string, test: string | null, rpc: string, file = "src/suites/agent.conformance.test.ts"): RpcLedgerLine {
   return { target, file, test, rpc };
@@ -32,14 +32,14 @@ describe("servedRpcs", () => {
   it("reads the procedure of every outcome line, NDJSON and console shapes alike", () => {
     const log = [
       JSON.stringify({ level: "info", time: "t", message: "rpc completed", procedure: "/ai.stigmer.agentic.agent.v1.AgentQueryController/get", durationMs: 1 }),
-      `12:00:00 WRN rpc client error {"procedure":"/ai.stigmer.agentic.agentrun.v1.AgentRunCommandController/updateStatus","code":"InvalidArgument"}`,
+      `12:00:00 WRN rpc client error {"procedure":"/ai.stigmer.agentic.run.v1.RunCommandController/updateStatus","code":"InvalidArgument"}`,
       `12:00:01 DBG rpc completed {"procedure":"/grpc.health.v1.Health/Check","durationMs":0}`,
       "a line with no procedure",
     ].join("\n");
     expect([...servedRpcs(log)].sort()).toEqual([
       "AgentQueryController.get",
-      "AgentRunCommandController.updateStatus",
       "Health.Check",
+      "RunCommandController.updateStatus",
     ]);
   });
 });
@@ -53,11 +53,11 @@ describe("summarizeLedger", () => {
   ];
 
   it("sorts every declared RPC into one class, and counts the stop threshold's set", () => {
-    const summary = summarizeLedger(DECLARED, lines, new Set(["AgentRunCommandController.updateStatus", "AgentQueryController.get"]));
+    const summary = summarizeLedger(DECLARED, lines, new Set(["RunCommandController.updateStatus", "AgentQueryController.get"]));
     const coverage = Object.fromEntries(summary.entries.map((entry) => [entry.key, entry.coverage]));
     expect(coverage).toEqual({
       "AgentCommandController.create": "in-test",
-      "AgentRunCommandController.updateStatus": "served-only",
+      "RunCommandController.updateStatus": "served-only",
       "AgentQueryController.get": "hook-only",
       "AgentQueryController.list": "unexercised",
       "SkillQueryController.get": "unexercised",

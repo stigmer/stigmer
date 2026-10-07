@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { PanelLeft } from "lucide-react";
 import { cn } from "@stigmer/theme";
-import { useResolveAgentRunSession } from "@stigmer/react";
+import { useResolveRunSession } from "@stigmer/react";
 import { Button } from "@/domain/_shared/ui/button";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
 import { useRunNavigation } from "@/domain/runs/run-navigation";
@@ -149,7 +149,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
  */
 function RunZoneContent({ runId }: { runId: string }) {
   const { navigateToSession } = useSessionNavigation();
-  const { sessionId, isLoading, error, refetch } = useResolveAgentRunSession(runId);
+  const { sessionId, isLoading, error, refetch } = useResolveRunSession(runId);
 
   useEffect(() => {
     if (sessionId) {

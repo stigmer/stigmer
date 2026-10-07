@@ -101,7 +101,7 @@ func main() {
 	}
 
 	// Fetch the run's final state to set the CLI exit code.
-	run, err := client.AgentRun.Get(ctx, runID)
+	run, err := client.Run.Get(ctx, runID)
 	if err != nil {
 		os.Exit(1)
 	}

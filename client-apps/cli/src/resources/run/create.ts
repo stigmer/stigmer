@@ -1,4 +1,4 @@
-// Resource creation for the run path: AgentRun.
+// Resource creation for the run path: Run.
 //
 // Ports the Go CLI's run_create.go. We build the full proto messages and drive
 // the generated command controllers directly — the fidelity rule
@@ -8,18 +8,18 @@
 
 import type { Client } from "@connectrpc/connect";
 import { create, type DescService } from "@bufbuild/protobuf";
-import { type AgentRun, AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
-import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+import { type Run, RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
+import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import {
-  type AgentRunSpec,
-  AgentRunSpecSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+  type RunSpec,
+  RunSpecSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import {
   type RunConfig,
   RunConfigSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import type { ExecutionValue } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { type SessionSpec, SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
@@ -49,7 +49,7 @@ export interface AgentRefInput {
 }
 
 /**
- * Inputs for creating an agent run. The turn's target is one of two
+ * Inputs for creating a run. The turn's target is one of two
  * things: sessionId continues an existing conversation (whose agent the
  * session already pins), or a new conversation the backend creates from the
  * embedded session_spec. agentRef names the new conversation's agent; with
@@ -60,7 +60,7 @@ export interface AgentRefInput {
  * workspace and harness are fixed at creation, so with sessionId set they are
  * not sent: the target carries the session id alone.
  */
-export interface CreateAgentRunInput {
+export interface CreateRunInput {
   readonly agentRef?: AgentRefInput;
   readonly sessionId?: string;
   readonly orgId: string;
@@ -77,16 +77,16 @@ export interface CreateAgentRunInput {
   readonly harness: HarnessFlag;
 }
 
-/** Create an agent run. Mirrors Go's createAgentExecution. */
+/** Create a run. Mirrors Go's createAgentExecution. */
 export async function createAgentRun(
   controller: ControllerFn,
-  input: CreateAgentRunInput,
-): Promise<AgentRun> {
-  const run = create(AgentRunSchema, {
+  input: CreateRunInput,
+): Promise<Run> {
+  const run = create(RunSchema, {
     apiVersion: API_VERSION,
-    kind: "AgentRun",
+    kind: "Run",
     metadata: create(ApiResourceMetadataSchema, { name: runName(), org: input.orgId }),
-    spec: create(AgentRunSpecSchema, {
+    spec: create(RunSpecSchema, {
       message: input.message === "" ? "execute" : input.message,
       runtimeEnv: toExecutionValues(input.runtimeEnv),
       attachments: [...input.attachments],
@@ -99,13 +99,13 @@ export async function createAgentRun(
       interactionMode: input.mode === "plan" ? InteractionMode.PLAN : InteractionMode.UNSPECIFIED,
     }),
   });
-  return controller(AgentRunCommandController).create(run);
+  return controller(RunCommandController).create(run);
 }
 
 // The turn's target: an existing session by id, or the session_spec of the
 // conversation the backend creates for it. An unset target is a new
 // conversation with the built-in assistant.
-function buildTarget(input: CreateAgentRunInput): AgentRunSpec["target"] {
+function buildTarget(input: CreateRunInput): RunSpec["target"] {
   const sessionId = input.sessionId ?? "";
   if (sessionId !== "") return { case: "sessionId", value: sessionId };
   const sessionSpec = buildSessionSpec(input.agentRef, input.workspaceEntries, input.harness);

@@ -1,7 +1,7 @@
 // Orchestration tests for executeResolvedAgent: the one-call bootstrap
 // contract (stigmer/stigmer#249). A workspace-bearing run must issue exactly
-// one create RPC — the AgentRun carrying session_spec — instead of the
-// old session.create + agentRun.create pair, and the flow must read the
+// one create RPC — the Run carrying session_spec — instead of the
+// old session.create + run.create pair, and the flow must read the
 // canonical session id back from the returned run's target. A run on
 // an agent names it by reference (org and slug, no instance and no id); the
 // built-in assistant rides the same flow with no agent at all. Most runs
@@ -14,8 +14,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
@@ -23,7 +23,7 @@ import {
   WorkspaceEntrySchema,
   WorkspaceSourceSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { BackendClient } from "../../../client/index.js";
 import { executeResolvedAgent } from "../agent-exec.js";
 import type { PreparedRun } from "../prepare.js";
@@ -69,10 +69,10 @@ function makePrepared(overrides: Partial<PreparedRun> = {}): PreparedRun {
 // A BackendClient double whose controller records every create call and
 // emulates the server stamping the bootstrapped session id onto the returned
 // run spec.
-function fakeBackend(): { client: BackendClient; creates: () => AgentRun[] } {
-  const captured: AgentRun[] = [];
+function fakeBackend(): { client: BackendClient; creates: () => Run[] } {
+  const captured: Run[] = [];
   const controller = () => ({
-    create: async (msg: AgentRun) => {
+    create: async (msg: Run) => {
       captured.push(msg);
       // Echo with the server-owned session id filled in, like the real backend.
       return {
@@ -118,7 +118,7 @@ describe("executeResolvedAgent", () => {
     });
 
     const sent = creates();
-    expect(sent, "a workspace run is a single AgentRun create").toHaveLength(1);
+    expect(sent, "a workspace run is a single Run create").toHaveLength(1);
     const target = sent[0]?.spec?.target;
     expect(target?.case, "no client-created session id").toBe("sessionSpec");
     const sessionSpec = target?.case === "sessionSpec" ? target.value : undefined;
@@ -204,8 +204,8 @@ describe("executeResolvedAgent", () => {
 
 describe("executeResolvedAgent, attached", () => {
   /** The final run the stream returns: `artifacts` named files under run aex_final. */
-  function finalRun(artifacts: string[]): AgentRun {
-    return create(AgentRunSchema, {
+  function finalRun(artifacts: string[]): Run {
+    return create(RunSchema, {
       metadata: { id: "aex_final" },
       status: { artifacts: artifacts.map((name) => ({ name, storageKey: `store/${name}` })) },
     });

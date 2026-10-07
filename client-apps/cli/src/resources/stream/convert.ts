@@ -5,16 +5,16 @@
 // types to the differ's render-agnostic event payloads (events.ts), keeping the
 // enum/string translation in exactly one place.
 
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
-import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/todo_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
+import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/run/v1/todo_pb";
 import {
   RunPhase,
   SubAgentStatus,
   SummarizationSource,
   ToolCallStatus,
   TodoStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ToolCallInfo, TodoItemView } from "./events.js";
 
 /** Mapped tool-call status strings. */
@@ -199,7 +199,7 @@ export function sanitizeSystemContent(content: string): string {
     const prefix = content.slice(0, idx).trim().replace(/[:\-\s]+$/, "");
     if (prefix !== "") return `${prefix} (internal error — check run logs for details)`;
   }
-  return "Agent run encountered an internal error. Check run logs for details.";
+  return "Run encountered an internal error. Check run logs for details.";
 }
 
 /** True when the system message looks like an approval-received acknowledgement. Mirrors Go's isApprovalNoiseMessage. */

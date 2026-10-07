@@ -2,14 +2,14 @@ import type {
   CapturedFileChange,
   FileChangeSet,
   FileDecision,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   DiffCompleteness,
   FileChangeSetStatus,
   FileDecisionAction,
   FileDecisionScope,
   FileReviewBlockReason,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 /**
  * Why an `"unavailable"` file cannot be reviewed — the honest per-file cause the

@@ -4,8 +4,8 @@
  * and is the one function every server-internal delete of a context calls:
  * the DeleteExecutionContext activity the agent-execution worker runs when
  * a run ends (temporal/agentexecution/activities.ts), and the
- * agent run's recover step before it recreates the context
- * (domain/agentrun/lifecycle.ts).
+ * run's recover step before it recreates the context
+ * (domain/run/lifecycle.ts).
  *
  * The ExecutionContext is an ephemeral resource containing the
  * fully-merged environment (environment_refs values overridden by
@@ -68,7 +68,7 @@ export interface InternalDeleteDeps {
 export type InternalDeleteReason = "run-end" | "recover";
 
 /**
- * Finds the ExecutionContext of the given execution (an AgentRun id —
+ * Finds the ExecutionContext of the given execution (a Run id —
  * the lookup uses the spec.executionId field) and
  * deletes it through the context's delete chain. A run has one; if more
  * than one names it, every one is deleted, each through the chain.

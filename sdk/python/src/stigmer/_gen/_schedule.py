@@ -14,12 +14,12 @@ from ai.stigmer.agentic.schedule.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
-from ai.stigmer.agentic.agentrun.v1 import invocation_pb2 as agentrun_invocation_pb2
+from ai.stigmer.agentic.run.v1 import invocation_pb2 as run_invocation_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
 from ._agent import RunConfigInput
-from ._agentrun import GitRepoSourceInput, LocalPathSourceInput, WorkspaceEntryInput, WorkspaceSourceInput
+from ._run import GitRepoSourceInput, LocalPathSourceInput, WorkspaceEntryInput, WorkspaceSourceInput
 
 
 class ScheduleClient:
@@ -91,9 +91,9 @@ class ScheduleClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def list_runs(self, input: io_pb2.ListScheduleRunsRequest) -> io_pb2.ScheduleRunList:
+    def list_fires(self, input: io_pb2.ListScheduleFiresRequest) -> io_pb2.ScheduleFireList:
         try:
-            return self._query.listRuns(input)
+            return self._query.listFires(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -152,8 +152,8 @@ class AgentInvocationInput:
     environment_refs: list[ResourceRef] = field(default_factory=list)
     run_config: RunConfigInput | None = None
 
-    def _to_proto(self) -> agentrun_invocation_pb2.AgentInvocation:
-        msg = agentrun_invocation_pb2.AgentInvocation(
+    def _to_proto(self) -> run_invocation_pb2.AgentInvocation:
+        msg = run_invocation_pb2.AgentInvocation(
             message=self.message,
             harness=self.harness,
         )

@@ -2,7 +2,8 @@
 // server call: `search` names the one type it searches (agent) when given a
 // type it does not know; `resume` refuses an agent id as not a session and
 // points at `run`; `run` refuses a full id of any kind but an agent, since only
-// agents run, and refuses a second argument, so the retired `run <type> <ref>`
+// agents run, while an agent slug that starts with a prefix word ("run-…")
+// stays an agent reference, and refuses a second argument, so the retired `run <type> <ref>`
 // form fails instead of running an agent named by its first word. The
 // backend, the agent lookup and the session opener are replaced at their
 // module seams (the commands import them lazily) so a refusal is proven to
@@ -77,6 +78,18 @@ describe("stigmer run", () => {
       ),
     );
     expect(resolve.resolveAgentRef).not.toHaveBeenCalled();
+  });
+
+  it("refuses a run id, and reads an agent slug that starts with run- as an agent", async () => {
+    const runId = "run_01abc123xyz456789012345678";
+    await expect(stigmer("run", runId)).rejects.toThrow(
+      new UsageError(`Cannot run resource ID "${runId}": only agents run\n\nTo run an agent:\n  stigmer run <agent-id>`),
+    );
+    expect(resolve.resolveAgentRef).not.toHaveBeenCalled();
+
+    resolve.resolveAgentRef.mockRejectedValue(new Error("not found"));
+    await expect(stigmer("run", "run-nightly-report", "-m", "hello")).rejects.toThrow();
+    expect(resolve.resolveAgentRef).toHaveBeenCalledWith({ name: "stub-client" }, "run-nightly-report", "acme");
   });
 
   it.each([

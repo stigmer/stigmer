@@ -173,4 +173,57 @@ public interface ApiResourceKindMetaOrBuilder extends
    * <code>.ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig authorization = 9 [json_name = "authorization"];</code>
    */
   ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfigOrBuilder getAuthorizationOrBuilder();
+
+  /**
+   * <pre>
+   * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
+   * identities and are never rewritten, so a store keeps the ids it minted
+   * under an earlier prefix: readers that tell a kind from an id read these
+   * too. Never minted.
+   * </pre>
+   *
+   * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
+   * @return A list containing the retiredIdPrefixes.
+   */
+  java.util.List<java.lang.String>
+      getRetiredIdPrefixesList();
+  /**
+   * <pre>
+   * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
+   * identities and are never rewritten, so a store keeps the ids it minted
+   * under an earlier prefix: readers that tell a kind from an id read these
+   * too. Never minted.
+   * </pre>
+   *
+   * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
+   * @return The count of retiredIdPrefixes.
+   */
+  int getRetiredIdPrefixesCount();
+  /**
+   * <pre>
+   * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
+   * identities and are never rewritten, so a store keeps the ids it minted
+   * under an earlier prefix: readers that tell a kind from an id read these
+   * too. Never minted.
+   * </pre>
+   *
+   * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
+   * @param index The index of the element to return.
+   * @return The retiredIdPrefixes at the given index.
+   */
+  java.lang.String getRetiredIdPrefixes(int index);
+  /**
+   * <pre>
+   * Prefixes this kind's ids were minted with before `id_prefix`. Ids are
+   * identities and are never rewritten, so a store keeps the ids it minted
+   * under an earlier prefix: readers that tell a kind from an id read these
+   * too. Never minted.
+   * </pre>
+   *
+   * <code>repeated string retired_id_prefixes = 10 [json_name = "retiredIdPrefixes"];</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the retiredIdPrefixes at the given index.
+   */
+  com.google.protobuf.ByteString
+      getRetiredIdPrefixesBytes(int index);
 }

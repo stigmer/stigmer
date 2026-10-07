@@ -46,7 +46,7 @@
           "inputFullType": "ai.stigmer.agentic.session.v1.SessionId",
           "outputType": "Session",
           "outputFullType": "ai.stigmer.agentic.session.v1.Session",
-          "description": "Delete a session.\n\n Deletion cascades to the session's agent runs. Billing usage\n records are immutable and unaffected — they carry their own copies of\n the session and run identifiers.\n\n Fails with FAILED_PRECONDITION while any agent run in the\n session is still active (pending, in progress, waiting for approval,\n or paused); cancel it or wait for it to finish first."
+          "description": "Delete a session.\n\n Deletion cascades to the session's runs. Billing usage\n records are immutable and unaffected — they carry their own copies of\n the session and run identifiers.\n\n Fails with FAILED_PRECONDITION while any run in the\n session is still active (pending, in progress, waiting for approval,\n or paused); cancel it or wait for it to finish first."
         }
       ]
     },
@@ -443,7 +443,7 @@
           "description": "AI assistant with instructions, tools, skills, and a delegation model."
         },
         {
-          "name": "agent_run",
+          "name": "run",
           "number": 41,
           "description": "Single run of an agent within a session, tracking tool calls and responses."
         },
@@ -480,7 +480,7 @@
         {
           "name": "environment",
           "number": 53,
-          "description": "Named set of variables and secrets for an agent run."
+          "description": "Named set of variables and secrets for a run."
         },
         {
           "name": "execution_context",

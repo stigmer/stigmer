@@ -58,7 +58,7 @@ private static final long serialVersionUID = 0L;
   public enum ScopeCase
       implements com.google.protobuf.Internal.EnumLite,
           com.google.protobuf.AbstractMessage.InternalOneOfEnum {
-    AGENT_RUN_ID(1),
+    RUN_ID(1),
     POOL_CLAIM(3),
     RENEWAL(4),
     SCOPE_NOT_SET(0);
@@ -78,7 +78,7 @@ private static final long serialVersionUID = 0L;
 
     public static ScopeCase forNumber(int value) {
       switch (value) {
-        case 1: return AGENT_RUN_ID;
+        case 1: return RUN_ID;
         case 3: return POOL_CLAIM;
         case 4: return RENEWAL;
         case 0: return SCOPE_NOT_SET;
@@ -96,29 +96,29 @@ private static final long serialVersionUID = 0L;
         scopeCase_);
   }
 
-  public static final int AGENT_RUN_ID_FIELD_NUMBER = 1;
+  public static final int RUN_ID_FIELD_NUMBER = 1;
   /**
    * <pre>
-   * AgentRun id — yields a token scoped to the run's parent
+   * Run id — yields a token scoped to the run's parent
    * session, valid for every ExecutionContext in that session (multi-turn).
    * </pre>
    *
-   * <code>string agent_run_id = 1 [json_name = "agentRunId"];</code>
-   * @return Whether the agentRunId field is set.
+   * <code>string run_id = 1 [json_name = "runId"];</code>
+   * @return Whether the runId field is set.
    */
-  public boolean hasAgentRunId() {
+  public boolean hasRunId() {
     return scopeCase_ == 1;
   }
   /**
    * <pre>
-   * AgentRun id — yields a token scoped to the run's parent
+   * Run id — yields a token scoped to the run's parent
    * session, valid for every ExecutionContext in that session (multi-turn).
    * </pre>
    *
-   * <code>string agent_run_id = 1 [json_name = "agentRunId"];</code>
-   * @return The agentRunId.
+   * <code>string run_id = 1 [json_name = "runId"];</code>
+   * @return The runId.
    */
-  public java.lang.String getAgentRunId() {
+  public java.lang.String getRunId() {
     if (scopeCase_ != 1) {
       return "";
     }
@@ -135,15 +135,15 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * AgentRun id — yields a token scoped to the run's parent
+   * Run id — yields a token scoped to the run's parent
    * session, valid for every ExecutionContext in that session (multi-turn).
    * </pre>
    *
-   * <code>string agent_run_id = 1 [json_name = "agentRunId"];</code>
-   * @return The bytes for agentRunId.
+   * <code>string run_id = 1 [json_name = "runId"];</code>
+   * @return The bytes for runId.
    */
   public com.google.protobuf.ByteString
-      getAgentRunIdBytes() {
+      getRunIdBytes() {
     if (scopeCase_ != 1) {
       return com.google.protobuf.ByteString.copyFromUtf8("");
     }
@@ -318,8 +318,8 @@ private static final long serialVersionUID = 0L;
     if (!getScopeCase().equals(other.getScopeCase())) return false;
     switch (scopeCase_) {
       case 1:
-        if (!getAgentRunId()
-            .equals(other.getAgentRunId())) return false;
+        if (!getRunId()
+            .equals(other.getRunId())) return false;
         break;
       case 3:
         if (!getPoolClaim()
@@ -345,8 +345,8 @@ private static final long serialVersionUID = 0L;
     hash = (19 * hash) + getDescriptor().hashCode();
     switch (scopeCase_) {
       case 1:
-        hash = (37 * hash) + AGENT_RUN_ID_FIELD_NUMBER;
-        hash = (53 * hash) + getAgentRunId().hashCode();
+        hash = (37 * hash) + RUN_ID_FIELD_NUMBER;
+        hash = (53 * hash) + getRunId().hashCode();
         break;
       case 3:
         hash = (37 * hash) + POOL_CLAIM_FIELD_NUMBER;
@@ -564,7 +564,7 @@ private static final long serialVersionUID = 0L;
     public Builder mergeFrom(ai.stigmer.platform.v1.GetRunnerScopedTokenInput other) {
       if (other == ai.stigmer.platform.v1.GetRunnerScopedTokenInput.getDefaultInstance()) return this;
       switch (other.getScopeCase()) {
-        case AGENT_RUN_ID: {
+        case RUN_ID: {
           scopeCase_ = 1;
           scope_ = other.scope_;
           onChanged();
@@ -661,28 +661,28 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * AgentRun id — yields a token scoped to the run's parent
+     * Run id — yields a token scoped to the run's parent
      * session, valid for every ExecutionContext in that session (multi-turn).
      * </pre>
      *
-     * <code>string agent_run_id = 1 [json_name = "agentRunId"];</code>
-     * @return Whether the agentRunId field is set.
+     * <code>string run_id = 1 [json_name = "runId"];</code>
+     * @return Whether the runId field is set.
      */
     @java.lang.Override
-    public boolean hasAgentRunId() {
+    public boolean hasRunId() {
       return scopeCase_ == 1;
     }
     /**
      * <pre>
-     * AgentRun id — yields a token scoped to the run's parent
+     * Run id — yields a token scoped to the run's parent
      * session, valid for every ExecutionContext in that session (multi-turn).
      * </pre>
      *
-     * <code>string agent_run_id = 1 [json_name = "agentRunId"];</code>
-     * @return The agentRunId.
+     * <code>string run_id = 1 [json_name = "runId"];</code>
+     * @return The runId.
      */
     @java.lang.Override
-    public java.lang.String getAgentRunId() {
+    public java.lang.String getRunId() {
       if (scopeCase_ != 1) {
         return "";
       }
@@ -699,16 +699,16 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * AgentRun id — yields a token scoped to the run's parent
+     * Run id — yields a token scoped to the run's parent
      * session, valid for every ExecutionContext in that session (multi-turn).
      * </pre>
      *
-     * <code>string agent_run_id = 1 [json_name = "agentRunId"];</code>
-     * @return The bytes for agentRunId.
+     * <code>string run_id = 1 [json_name = "runId"];</code>
+     * @return The bytes for runId.
      */
     @java.lang.Override
     public com.google.protobuf.ByteString
-        getAgentRunIdBytes() {
+        getRunIdBytes() {
       if (scopeCase_ != 1) {
         return com.google.protobuf.ByteString.copyFromUtf8(        "");
       }
@@ -725,15 +725,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * AgentRun id — yields a token scoped to the run's parent
+     * Run id — yields a token scoped to the run's parent
      * session, valid for every ExecutionContext in that session (multi-turn).
      * </pre>
      *
-     * <code>string agent_run_id = 1 [json_name = "agentRunId"];</code>
-     * @param value The agentRunId to set.
+     * <code>string run_id = 1 [json_name = "runId"];</code>
+     * @param value The runId to set.
      * @return This builder for chaining.
      */
-    public Builder setAgentRunId(
+    public Builder setRunId(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       scopeCase_ = 1;
@@ -743,14 +743,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * AgentRun id — yields a token scoped to the run's parent
+     * Run id — yields a token scoped to the run's parent
      * session, valid for every ExecutionContext in that session (multi-turn).
      * </pre>
      *
-     * <code>string agent_run_id = 1 [json_name = "agentRunId"];</code>
+     * <code>string run_id = 1 [json_name = "runId"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearAgentRunId() {
+    public Builder clearRunId() {
       if (scopeCase_ == 1) {
         scopeCase_ = 0;
         scope_ = null;
@@ -760,15 +760,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * AgentRun id — yields a token scoped to the run's parent
+     * Run id — yields a token scoped to the run's parent
      * session, valid for every ExecutionContext in that session (multi-turn).
      * </pre>
      *
-     * <code>string agent_run_id = 1 [json_name = "agentRunId"];</code>
-     * @param value The bytes for agentRunId to set.
+     * <code>string run_id = 1 [json_name = "runId"];</code>
+     * @param value The bytes for runId to set.
      * @return This builder for chaining.
      */
-    public Builder setAgentRunIdBytes(
+    public Builder setRunIdBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);

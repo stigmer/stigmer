@@ -21,7 +21,7 @@
  * a blueprint shared with child organizations, and listChildOrgs pages
  * them (domain/organization/list-index.ts).
  */
-import { agentExecutionListIndex } from "../domain/agentrun/list-index.js";
+import { agentExecutionListIndex } from "../domain/run/list-index.js";
 import { iamPolicyListIndex } from "../domain/iampolicy/list-index.js";
 import { memoryListIndex } from "../domain/memory/list-index.js";
 import { organizationListIndex } from "../domain/organization/list-index.js";

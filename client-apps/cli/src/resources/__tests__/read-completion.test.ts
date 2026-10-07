@@ -11,10 +11,10 @@
 import { create, toJson } from "@bufbuild/protobuf";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { GetSessionUsageReportOutputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
-import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { GetSessionUsageReportOutputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -36,7 +36,7 @@ import { getSessionUsageReport, renderSessionUsage } from "../usage.js";
 
 const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
 
-const knownExec = create(AgentRunSchema, {
+const knownExec = create(RunSchema, {
   metadata: { id: "aex_1", org: "acme" },
   status: { agentId: "agt_1", phase: RunPhase.RUN_COMPLETED, startedAt: "2026-03-01T10:00:00Z" },
 });
@@ -78,7 +78,7 @@ const openSessions = new Set<ServerHttp2Session>();
 
 beforeAll(async () => {
   const routes = (router: ConnectRouter) => {
-    router.service(AgentRunQueryController, {
+    router.service(RunQueryController, {
       get: (req) => {
         if (req.value !== "aex_1") throw new ConnectError("execution not found", Code.NotFound);
         return knownExec;
@@ -142,10 +142,10 @@ describe("search integration", () => {
 });
 
 describe("run integration", () => {
-  it("gets an agent run by ID and renders backend protojson", async () => {
+  it("gets a run by ID and renders backend protojson", async () => {
     const { schema, message } = await getRun(client, "aex_1");
     expect(JSON.parse(renderResource(schema, message, "json"))).toEqual(
-      toJson(AgentRunSchema, knownExec, { useProtoFieldName: true }),
+      toJson(RunSchema, knownExec, { useProtoFieldName: true }),
     );
   });
 
@@ -154,7 +154,7 @@ describe("run integration", () => {
     expect(classify(err)?.exitCode).toBe(ExitCode.NotFound);
   });
 
-  it("lists agent runs as protojson envelope", async () => {
+  it("lists runs as protojson envelope", async () => {
     const result = await listAgentRuns(client, 50);
     const json = JSON.parse(renderRunList(result, "json"));
     expect(json.entries[0].metadata.id).toBe("aex_1");

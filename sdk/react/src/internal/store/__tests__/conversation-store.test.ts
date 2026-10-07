@@ -1,15 +1,15 @@
 import { describe, it, expect, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+  RunSchema,
+  RunStatusSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   RunPhase,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ConversationStore, type StreamState } from "../conversation-store";
 
 // ---------------------------------------------------------------------------
@@ -19,9 +19,9 @@ import { ConversationStore, type StreamState } from "../conversation-store";
 function makeExec(
   phase: RunPhase,
   messages?: Array<{ type: MessageType; content: string }>,
-): AgentRun {
-  const exec = create(AgentRunSchema);
-  const status = create(AgentRunStatusSchema);
+): Run {
+  const exec = create(RunSchema);
+  const status = create(RunStatusSchema);
   status.phase = phase;
   if (messages) {
     status.messages = messages.map((m) => {

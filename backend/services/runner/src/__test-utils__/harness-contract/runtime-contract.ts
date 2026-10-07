@@ -49,15 +49,15 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { realpath } from "node:fs/promises";
 import { join } from "node:path";
-import { ApprovalAction, RunControlSignal, RunPhase, MessageType, SubAgentStatus, TodoStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { ApprovalAction, RunControlSignal, RunPhase, MessageType, SubAgentStatus, TodoStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import { RecalledMemoriesReportSchema, type AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
-import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/todo_pb";
-import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/usage_pb";
-import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
-import { WorkspaceWriteBackPhase, WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/writeback_pb";
+import { RecalledMemoriesReportSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
+import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/todo_pb";
+import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
+import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
+import { WorkspaceWriteBackPhase, WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/writeback_pb";
 
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { Config } from "../../config.js";
@@ -124,12 +124,12 @@ export interface RuntimeTurnOptions {
   readonly onControls?: (controls: InvocationControls) => void;
 }
 
-export function systemMessages(status: AgentRunStatus): string[] {
+export function systemMessages(status: RunStatus): string[] {
   return status.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content);
 }
 
 /** The assistant's texts; a message that only carries tool-call rows has none and is not one. */
-export function aiMessages(status: AgentRunStatus): string[] {
+export function aiMessages(status: RunStatus): string[] {
   return status.messages.filter((m) => m.type === MessageType.MESSAGE_AI && m.content !== "").map((m) => m.content);
 }
 
@@ -224,7 +224,7 @@ export class RuntimeExecutionDriver {
  * settled turn owes its transcript before the arm reads anything else. An
  * arm that persisted nothing is a failure, named.
  */
-function finalStatusOf(harness: RuntimeContractHarness, driver: RuntimeExecutionDriver): AgentRunStatus {
+function finalStatusOf(harness: RuntimeContractHarness, driver: RuntimeExecutionDriver): RunStatus {
   const final = driver.record.lastFullStatus;
   if (!final) throw new Error(`${harness.subject.name}: the runtime persisted no full status`);
   assertTranscriptStreamsNothing(harness.subject.name, final);
@@ -243,9 +243,9 @@ function finalStatusOf(harness: RuntimeContractHarness, driver: RuntimeExecution
  * kit's self-check can hand it a status that still streams and prove it
  * fires.
  */
-export function assertTranscriptStreamsNothing(subjectName: string, status: AgentRunStatus): void {
+export function assertTranscriptStreamsNothing(subjectName: string, status: RunStatus): void {
   const streaming: string[] = [];
-  const sweep = (scope: string, messages: AgentRunStatus["messages"]): void => {
+  const sweep = (scope: string, messages: RunStatus["messages"]): void => {
     messages.forEach((m, i) => {
       if (m.isStreaming) streaming.push(`${scope}messages[${i}]`);
       for (const tc of m.toolCalls) {
@@ -264,7 +264,7 @@ export function assertTranscriptStreamsNothing(subjectName: string, status: Agen
 export interface RuntimeArmResult {
   readonly driver: RuntimeExecutionDriver;
   readonly invocations: readonly ActivityInvocation[];
-  readonly final: AgentRunStatus;
+  readonly final: RunStatus;
 }
 
 // ── Arm: completed ──────────────────────────────────────────────────────────
@@ -567,7 +567,7 @@ export async function assertFirstTurnSeedsNothing(harness: RuntimeContractHarnes
 }
 
 /** Write the prior turn's facts onto the server-held status, as its writes would have left them. */
-function plantPriorTurnFacts(held: AgentRunStatus, label: string) {
+function plantPriorTurnFacts(held: RunStatus, label: string) {
   const planted = {
     subAgentId: `${label}-sub`,
     todoId: `${label}-todo`,

@@ -52,21 +52,21 @@ import proto from "@temporalio/proto";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+  RunSchema,
+  RunStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunPhase,
   FileChangeSetStatus,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
 import {
   CANCEL_STOP_ROW,
   PAUSE_STOP_ROW,
-} from "../../../domain/agentrun/platform-rows.js";
+} from "../../../domain/run/platform-rows.js";
 
 import {
   ENSURE_THREAD_ACTIVITY_NAME,
@@ -103,7 +103,7 @@ let envReady = false;
 
 interface RecordedStatus {
   readonly executionId: string;
-  readonly status: AgentRunStatus;
+  readonly status: RunStatus;
 }
 
 interface ActivityScript {
@@ -187,40 +187,40 @@ function slimResult(
   phase: RunPhase,
   error?: string,
 ): Record<string, unknown> {
-  const status = create(AgentRunStatusSchema, {
+  const status = create(RunStatusSchema, {
     phase,
     ...(error !== undefined ? { error } : {}),
   });
-  return toJson(AgentRunStatusSchema, status) as Record<string, unknown>;
+  return toJson(RunStatusSchema, status) as Record<string, unknown>;
 }
 
 /** An execution snapshot with the given status, as the load activity returns it. */
-function executionJson(status: AgentRunStatus): JsonValue {
+function executionJson(status: RunStatus): JsonValue {
   return toJson(
-    AgentRunSchema,
-    create(AgentRunSchema, {
+    RunSchema,
+    create(RunSchema, {
       metadata: { id: currentExecutionId },
       status,
     }),
   );
 }
 
-function statusWithPendingApproval(): AgentRunStatus {
-  return create(AgentRunStatusSchema, {
+function statusWithPendingApproval(): RunStatus {
+  return create(RunStatusSchema, {
     phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
     pendingApprovals: [{ toolCallId: "tc-1", toolName: "echo" }],
   });
 }
 
-function statusWithEmptyGate(): AgentRunStatus {
-  return create(AgentRunStatusSchema, {
+function statusWithEmptyGate(): RunStatus {
+  return create(RunStatusSchema, {
     phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
   });
 }
 
 /** A change set already DECIDED (verdicts in) but not yet reconciled. */
-function statusDecidedAwaitingReconcile(): AgentRunStatus {
-  return create(AgentRunStatusSchema, {
+function statusDecidedAwaitingReconcile(): RunStatus {
+  return create(RunStatusSchema, {
     phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
     fileChangeSets: [
       {
@@ -267,7 +267,7 @@ function scriptedActivities(): Record<string, (...args: never[]) => Promise<unkn
     ): Promise<void> => {
       script.persistedStatuses.push({
         executionId,
-        status: fromJson(AgentRunStatusSchema, statusJson),
+        status: fromJson(RunStatusSchema, statusJson),
       });
     },
     LoadAgentExecution: async (): Promise<JsonValue> => {

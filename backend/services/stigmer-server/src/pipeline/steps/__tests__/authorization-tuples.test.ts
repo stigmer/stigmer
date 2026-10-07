@@ -14,7 +14,7 @@ import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -210,13 +210,13 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
     expect(event?.requiresCreatorTuple).toBe(true);
   });
 
-  it("agent_run: PARENT scope resolves the session link from spec.session_id, owner INHERITED", () => {
-    const execution = create(AgentRunSchema, {
+  it("run: PARENT scope resolves the session link from spec.session_id, owner INHERITED", () => {
+    const execution = create(RunSchema, {
       metadata: { id: "aexec_1", org: "acme" },
       spec: { target: { case: "sessionId", value: "ses_parent" } },
     });
     const event = resolveResourceCreatedEvent(
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
       execution,
       caller,
       logger,
@@ -231,13 +231,13 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
     expect(event?.ownerAttribution).toBe(OwnerAttributionType.INHERITED);
   });
 
-  it("agent_run with no session id fails the request (Java's missing-parent arm)", () => {
-    const execution = create(AgentRunSchema, {
+  it("run with no session id fails the request (Java's missing-parent arm)", () => {
+    const execution = create(RunSchema, {
       metadata: { id: "aexec_2", org: "acme" },
     });
     expect(() =>
       resolveResourceCreatedEvent(
-        ApiResourceKind.agent_run,
+        ApiResourceKind.run,
         execution,
         caller,
         logger,
@@ -290,7 +290,7 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
 
 describe("cleanUpDeletedResource (the delete cleanup every chain and cascade shares)", () => {
   const event: ResourceDeletedEvent = {
-    kind: ApiResourceKind.agent_run,
+    kind: ApiResourceKind.run,
     resourceId: "aex_cleanup_subject",
     orgId: "acme",
     caller,
@@ -347,7 +347,7 @@ describe("cleanUpDeletedResource (the delete cleanup every chain and cascade sha
         message:
           "authorization cleanup failed — orphaned IAM policies may remain",
         fields: {
-          kind: "AgentRun",
+          kind: "Run",
           resourceId: "aex_cleanup_subject",
           error: "fga is down",
         },

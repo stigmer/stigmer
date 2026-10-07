@@ -18,7 +18,7 @@ const page = vi.hoisted(() => ({
 }));
 
 vi.mock("@stigmer/react", () => ({
-  useResolveAgentRunSession: (id: string | null) => {
+  useResolveRunSession: (id: string | null) => {
     page.resolving.push(id);
     return {
       sessionId: id ? (page.sessionFor.get(id) ?? null) : null,

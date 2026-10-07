@@ -542,7 +542,7 @@ type GetRunnerScopedTokenInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Scope:
 	//
-	//	*GetRunnerScopedTokenInput_AgentRunId
+	//	*GetRunnerScopedTokenInput_RunId
 	//	*GetRunnerScopedTokenInput_PoolClaim
 	//	*GetRunnerScopedTokenInput_Renewal
 	Scope         isGetRunnerScopedTokenInput_Scope `protobuf_oneof:"scope"`
@@ -587,10 +587,10 @@ func (x *GetRunnerScopedTokenInput) GetScope() isGetRunnerScopedTokenInput_Scope
 	return nil
 }
 
-func (x *GetRunnerScopedTokenInput) GetAgentRunId() string {
+func (x *GetRunnerScopedTokenInput) GetRunId() string {
 	if x != nil {
-		if x, ok := x.Scope.(*GetRunnerScopedTokenInput_AgentRunId); ok {
-			return x.AgentRunId
+		if x, ok := x.Scope.(*GetRunnerScopedTokenInput_RunId); ok {
+			return x.RunId
 		}
 	}
 	return ""
@@ -618,10 +618,10 @@ type isGetRunnerScopedTokenInput_Scope interface {
 	isGetRunnerScopedTokenInput_Scope()
 }
 
-type GetRunnerScopedTokenInput_AgentRunId struct {
-	// AgentRun id — yields a token scoped to the run's parent
+type GetRunnerScopedTokenInput_RunId struct {
+	// Run id — yields a token scoped to the run's parent
 	// session, valid for every ExecutionContext in that session (multi-turn).
-	AgentRunId string `protobuf:"bytes,1,opt,name=agent_run_id,json=agentRunId,proto3,oneof"`
+	RunId string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3,oneof"`
 }
 
 type GetRunnerScopedTokenInput_PoolClaim struct {
@@ -638,7 +638,7 @@ type GetRunnerScopedTokenInput_Renewal struct {
 	Renewal *TokenRenewal `protobuf:"bytes,4,opt,name=renewal,proto3,oneof"`
 }
 
-func (*GetRunnerScopedTokenInput_AgentRunId) isGetRunnerScopedTokenInput_Scope() {}
+func (*GetRunnerScopedTokenInput_RunId) isGetRunnerScopedTokenInput_Scope() {}
 
 func (*GetRunnerScopedTokenInput_PoolClaim) isGetRunnerScopedTokenInput_Scope() {}
 
@@ -850,10 +850,9 @@ const file_ai_stigmer_platform_v1_server_info_proto_rawDesc = "" +
 	"\x16payload_encryption_key\x18\x06 \x01(\tR\x14payloadEncryptionKey\x129\n" +
 	"\x19payload_encryption_key_id\x18\a \x01(\tR\x16payloadEncryptionKeyId\x12G\n" +
 	" payload_encryption_secondary_key\x18\b \x01(\tR\x1dpayloadEncryptionSecondaryKey\x12L\n" +
-	"#payload_encryption_secondary_key_id\x18\t \x01(\tR\x1fpayloadEncryptionSecondaryKeyId\"\xec\x01\n" +
-	"\x19GetRunnerScopedTokenInput\x12\"\n" +
-	"\fagent_run_id\x18\x01 \x01(\tH\x00R\n" +
-	"agentRunId\x12B\n" +
+	"#payload_encryption_secondary_key_id\x18\t \x01(\tR\x1fpayloadEncryptionSecondaryKeyId\"\xe1\x01\n" +
+	"\x19GetRunnerScopedTokenInput\x12\x17\n" +
+	"\x06run_id\x18\x01 \x01(\tH\x00R\x05runId\x12B\n" +
 	"\n" +
 	"pool_claim\x18\x03 \x01(\v2!.ai.stigmer.platform.v1.PoolClaimH\x00R\tpoolClaim\x12@\n" +
 	"\arenewal\x18\x04 \x01(\v2$.ai.stigmer.platform.v1.TokenRenewalH\x00R\arenewalB\x0e\n" +
@@ -940,7 +939,7 @@ func file_ai_stigmer_platform_v1_server_info_proto_init() {
 	file_ai_stigmer_platform_v1_license_proto_init()
 	file_ai_stigmer_platform_v1_server_info_proto_msgTypes[1].OneofWrappers = []any{}
 	file_ai_stigmer_platform_v1_server_info_proto_msgTypes[6].OneofWrappers = []any{
-		(*GetRunnerScopedTokenInput_AgentRunId)(nil),
+		(*GetRunnerScopedTokenInput_RunId)(nil),
 		(*GetRunnerScopedTokenInput_PoolClaim)(nil),
 		(*GetRunnerScopedTokenInput_Renewal)(nil),
 	}

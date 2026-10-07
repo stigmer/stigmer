@@ -3,7 +3,7 @@
  * pkg/domain/agentexecution/temporal/workflows/workflow_input.go.
  *
  * Carries ONLY orchestration coordinates: no secrets, no large payloads
- * (the full AgentRun proto used to be the input; runtime_env could
+ * (the full Run proto used to be the input; runtime_env could
  * hold secrets, and Temporal history is durable — stigmer's slim-input
  * redesign keeps secrets out of history).
  *

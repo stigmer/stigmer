@@ -2,7 +2,7 @@
 // confirmation prompt, then delete it. Mirrors the Go CLI's unified delete,
 // including its three special cases:
 //
-//   - run        → maps to a *cancel* (agent runs only, by ID)
+//   - run        → maps to a *cancel* (runs only, by ID)
 //   - organization → not org-scoped; resolved via findMyOrganizations
 //   - api_key    → addressable by ID only (not slug)
 //
@@ -18,7 +18,7 @@
 // to delete and *how* to describe it.
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { omitsOrganization } from "../client/single-org.js";
 import { CliExitError, ExitCode, UsageError } from "../errors/index.js";
@@ -27,12 +27,11 @@ import { defaultRegistry, type TypeInfo, Verb } from "../registry/index.js";
 import {
   cancelAgentRun,
   formatAgentPhase,
-  isAgentRunId,
   isRunAlias,
 } from "./runs.js";
 import { fetchResource } from "./get.js";
 import { getterFor } from "./get-bindings.js";
-import { parseReference } from "./reference.js";
+import { isRunId, parseReference } from "./reference.js";
 import { organizationLabel } from "../client/organizations.js";
 
 /** A staged delete: confirmation content plus the mutation to run on approval. */
@@ -167,7 +166,7 @@ async function planStandardDelete(
     throw new UsageError(`delete not implemented for ${info.displayName}`);
   }
 
-  const parsed = parseReference(reference, org, info.idPrefix);
+  const parsed = parseReference(reference, org, info.idPrefixes);
   // ResourceResult.message is the opaque proto Message; every resource carries
   // the ApiResourceMetadata envelope, so read it through the structural view.
   const resource = (await getter(client, parsed))
@@ -230,9 +229,9 @@ async function planOrganizationDelete(
 }
 
 function planRunCancel(client: Stigmer, reference: string): DeletePlan {
-  if (!isAgentRunId(reference)) {
+  if (!isRunId(reference)) {
     throw new CliExitError(
-      `invalid run ID: ${reference}\n\nRuns must be referenced by ID (e.g., aex_01abc123)`,
+      `invalid run ID: ${reference}\n\nRuns must be referenced by ID (e.g., run_01abc123)`,
       ExitCode.Usage,
     );
   }

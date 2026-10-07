@@ -69,7 +69,7 @@ public interface ScheduleStatusOrBuilder extends
 
   /**
    * <pre>
-   * ID of the agent run created by the most recent fire.
+   * ID of the run created by the most recent fire.
    * </pre>
    *
    * <code>string last_run_id = 3 [json_name = "lastRunId"];</code>
@@ -78,7 +78,7 @@ public interface ScheduleStatusOrBuilder extends
   java.lang.String getLastRunId();
   /**
    * <pre>
-   * ID of the agent run created by the most recent fire.
+   * ID of the run created by the most recent fire.
    * </pre>
    *
    * <code>string last_run_id = 3 [json_name = "lastRunId"];</code>

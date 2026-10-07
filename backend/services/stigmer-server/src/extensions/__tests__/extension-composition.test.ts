@@ -35,13 +35,13 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import {
   RunControlSignal,
   RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { ExecutionContextCommandController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/command_pb";
 import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
@@ -90,7 +90,7 @@ import type {
   ResourceDeletedEvent,
   VisibilityChangedEvent,
 } from "../resource-authorization.js";
-import type { AgentRunStatusTransition } from "../status-hooks.js";
+import type { RunStatusTransition } from "../status-hooks.js";
 import type { ServerExtension } from "../registry.js";
 import type { IdentityVerifier } from "../identity.js";
 import type { ResourceRowReader } from "../resource-row-reader.js";
@@ -897,7 +897,7 @@ describe("extension composition (driver substitution)", () => {
       server.inProcessTransport,
     );
     const out = await client.getRunnerScopedToken({
-      scope: { case: "agentRunId", value: "aex_substituted" },
+      scope: { case: "runId", value: "aex_substituted" },
     });
     expect(out.runnerScopedToken).toBe("fake-execution_scoped-aex_substituted");
     expect(out.expiresInSeconds).toBe(42);
@@ -926,7 +926,7 @@ describe("extension composition (gate slots + status hooks)", () => {
   let server: ComposedServer;
   let dir: string;
   let portTransport: Transport;
-  const observed: AgentRunStatusTransition[] = [];
+  const observed: RunStatusTransition[] = [];
 
   const sessionGate: PipelineStep<DescMessage> = {
     name: "FakeSessionGate",
@@ -1117,17 +1117,17 @@ describe("extension composition (gate slots + status hooks)", () => {
   it("observers see the terminal updateStatus transition once and the decorator contributes the signal", async () => {
     const executionId = "aexec_o4_hooks";
     await server.store.saveResource(
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
       executionId,
-      AgentRunSchema,
-      create(AgentRunSchema, {
+      RunSchema,
+      create(RunSchema, {
         metadata: { id: executionId, name: executionId, org: "acme" },
         spec: { message: "hook test" },
         status: { phase: RunPhase.RUN_IN_PROGRESS },
       }),
     );
     const command = createClient(
-      AgentRunCommandController,
+      RunCommandController,
       portTransport,
     );
 
@@ -1451,12 +1451,12 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
       const runIds = ["aex_c2_cascade_1", "aex_c2_cascade_2"];
       for (const runId of runIds) {
         await server.store.saveResource(
-          ApiResourceKind.agent_run,
+          ApiResourceKind.run,
           runId,
-          AgentRunSchema,
-          create(AgentRunSchema, {
+          RunSchema,
+          create(RunSchema, {
             apiVersion: "agentic.stigmer.ai/v1",
-            kind: "AgentRun",
+            kind: "Run",
             metadata: { id: runId, name: runId, org: seededOrgId },
             spec: { target: { case: "sessionId", value: sessionId } },
             status: { phase: RunPhase.RUN_COMPLETED },
@@ -1468,7 +1468,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
       await createClient(SessionCommandController, portTransport).delete({ value: sessionId });
 
       expect(cascadeOrder(deletedEvents)).toEqual([
-        ...runIds.map((runId): [ApiResourceKind, string] => [ApiResourceKind.agent_run, runId]),
+        ...runIds.map((runId): [ApiResourceKind, string] => [ApiResourceKind.run, runId]),
         [ApiResourceKind.session, sessionId],
       ]);
       expectOneCallerAndOrganization(deletedEvents);
@@ -1489,19 +1489,19 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
         }),
       );
       await server.store.saveResource(
-        ApiResourceKind.agent_run,
+        ApiResourceKind.run,
         runId,
-        AgentRunSchema,
-        create(AgentRunSchema, {
+        RunSchema,
+        create(RunSchema, {
           apiVersion: "agentic.stigmer.ai/v1",
-          kind: "AgentRun",
+          kind: "Run",
           metadata: { id: runId, name: runId, org: seededOrgId },
           spec: { target: { case: "sessionId", value: sessionId } },
           status: { phase: RunPhase.RUN_COMPLETED },
         }),
       );
       deletedEvents.length = 0;
-      failDeleteKinds.add(ApiResourceKind.agent_run);
+      failDeleteKinds.add(ApiResourceKind.run);
       try {
         await createClient(SessionCommandController, portTransport).delete({ value: sessionId });
       } finally {
@@ -1513,7 +1513,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
         [ApiResourceKind.session, sessionId],
       ]);
       await expect(
-        server.store.getResource(ApiResourceKind.agent_run, runId, AgentRunSchema),
+        server.store.getResource(ApiResourceKind.run, runId, RunSchema),
       ).rejects.toBeInstanceOf(ResourceNotFoundError);
     });
   });

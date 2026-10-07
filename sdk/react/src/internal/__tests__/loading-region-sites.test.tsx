@@ -186,7 +186,7 @@ const SITES: readonly Site[] = [
   {
     name: "OrgUsagePanel",
     label: "Loading usage data",
-    client: { agentRun: { getOrgUsageReport: pending } },
+    client: { run: { getOrgUsageReport: pending } },
     ui: <OrgUsagePanel org="org_acme" />,
   },
   {

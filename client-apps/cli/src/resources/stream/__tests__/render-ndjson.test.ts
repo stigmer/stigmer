@@ -2,7 +2,7 @@
 // and Go-parity payload cleaning (empty strings dropped, false/0 kept).
 
 import { describe, expect, it } from "vitest";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { StreamEvent, ToolCallInfo } from "../events.js";
 import { NdjsonRenderer } from "../render-ndjson.js";
 

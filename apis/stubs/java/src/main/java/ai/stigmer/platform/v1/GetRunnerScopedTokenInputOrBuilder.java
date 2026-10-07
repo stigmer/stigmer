@@ -12,35 +12,35 @@ public interface GetRunnerScopedTokenInputOrBuilder extends
 
   /**
    * <pre>
-   * AgentRun id — yields a token scoped to the run's parent
+   * Run id — yields a token scoped to the run's parent
    * session, valid for every ExecutionContext in that session (multi-turn).
    * </pre>
    *
-   * <code>string agent_run_id = 1 [json_name = "agentRunId"];</code>
-   * @return Whether the agentRunId field is set.
+   * <code>string run_id = 1 [json_name = "runId"];</code>
+   * @return Whether the runId field is set.
    */
-  boolean hasAgentRunId();
+  boolean hasRunId();
   /**
    * <pre>
-   * AgentRun id — yields a token scoped to the run's parent
+   * Run id — yields a token scoped to the run's parent
    * session, valid for every ExecutionContext in that session (multi-turn).
    * </pre>
    *
-   * <code>string agent_run_id = 1 [json_name = "agentRunId"];</code>
-   * @return The agentRunId.
+   * <code>string run_id = 1 [json_name = "runId"];</code>
+   * @return The runId.
    */
-  java.lang.String getAgentRunId();
+  java.lang.String getRunId();
   /**
    * <pre>
-   * AgentRun id — yields a token scoped to the run's parent
+   * Run id — yields a token scoped to the run's parent
    * session, valid for every ExecutionContext in that session (multi-turn).
    * </pre>
    *
-   * <code>string agent_run_id = 1 [json_name = "agentRunId"];</code>
-   * @return The bytes for agentRunId.
+   * <code>string run_id = 1 [json_name = "runId"];</code>
+   * @return The bytes for runId.
    */
   com.google.protobuf.ByteString
-      getAgentRunIdBytes();
+      getRunIdBytes();
 
   /**
    * <pre>

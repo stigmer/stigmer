@@ -15,7 +15,7 @@
 // - Two provisionings of the working agent send the model byte-identical
 //   system prompts and tool surfaces: the instrument's own claim that its
 //   fixed names keep the provider's prompt cache as warm as a user's.
-// - A composed subject graded by the judge agent run, with a scripted
+// - A composed subject graded by the judge run, with a scripted
 //   verdict read back off the run's structured output with its criteria and
 //   their weighted score, and a verdict missing a criterion refused as a
 //   judge failure.
@@ -40,7 +40,7 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { JUDGE_MODEL } from "../benchmark/cells";
@@ -61,7 +61,7 @@ import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm"
 import { readAnthropicRequest, type AnthropicRequestBody } from "@stigmer/test-support/llm-wire";
 import { TEMPORAL_DEV_NAMESPACE } from "@stigmer/test-support/temporal";
 import { BARE_AGENT_INSTRUCTIONS, agentRefOf, makeAgent } from "../support/agents";
-import { makeAgentExecution, requireLlmProxy, requireMcpFixture } from "../support/agentruns";
+import { makeAgentExecution, requireLlmProxy, requireMcpFixture } from "../support/runs";
 import { uniqueName } from "../support/naming";
 import { renderSystemPrompt, renderToolSurface } from "../support/request-shape";
 import {
@@ -288,7 +288,7 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
         ["concise", 1, 0.5],
       ]);
       expect(graded.judge_model, "the judge run reported the model it ran under").not.toBe("");
-      expect(graded.judge_run_id, "the grade names the judge run it came from").toMatch(/^aex_/);
+      expect(graded.judge_run_id, "the grade names the judge run it came from").toMatch(/^run_/);
 
       mock.enqueue(anthropicText(JSON.stringify({ accurate: { score: 1, reasoning: "Matches the code." } })));
       const refused = await judge(clients, fixtures, { org, task, subject, judgeModel: JUDGE_MODEL, timeoutMs: 120_000 });

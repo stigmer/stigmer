@@ -37,10 +37,10 @@ repository is in [references/test-discipline.md](references/test-discipline.md).
   `test/support/src/__tests__/`.
 
 Extend the existing `<domain>-<facet>.conformance.test.ts` when the facet
-exists; the execution class has one file per facet (`agentrun-approval`,
-`agentrun-file-review`, `schedule-firing`, and the rest), and a new file is a
-new facet, opened with an intent header that states the contract it pins and
-what is deliberately out of scope.
+exists; the execution class has one file per facet (`run-approval`,
+`run-file-review`, `schedule-firing`, and the rest), and a new file is a new
+facet, opened with an intent header that states the contract it pins and what is
+deliberately out of scope.
 
 ## The three shapes
 
@@ -61,13 +61,13 @@ expect(mock.consumed(), "exactly the scripted turns").toBe(2);
 
 `anthropicText`, `anthropicToolUse` and the other turn builders live in
 `test/support/src/llm-wire.ts`; `makeAgentExecution` and `awaitTerminal` in
-`test/conformance/src/support/agentruns.ts`.
+`test/conformance/src/support/runs.ts`.
 
 **An approval gate.** Every submit goes through `submitApprovalPerContract`
-(`test/conformance/src/support/agentruns.ts`), which asserts the contract's pre-
-and post-conditions around the call. Never a bare submit followed by an
-expectation on pending approvals: that shape passed while the contract was
-broken, which is why the helper exists.
+(`test/conformance/src/support/runs.ts`), which asserts the contract's pre- and
+post-conditions around the call. Never a bare submit followed by an expectation
+on pending approvals: that shape passed while the contract was broken, which is
+why the helper exists.
 
 **A file-review turn.** Attach a `GitWorkspace`
 (`test/conformance/src/harness/git-workspace.ts`) as the session's local

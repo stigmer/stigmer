@@ -139,35 +139,35 @@ public final class ScheduleQueryControllerGrpc {
     return getListMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest,
-      ai.stigmer.agentic.schedule.v1.ScheduleRunList> getListRunsMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest,
+      ai.stigmer.agentic.schedule.v1.ScheduleFireList> getListFiresMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "listRuns",
-      requestType = ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest.class,
-      responseType = ai.stigmer.agentic.schedule.v1.ScheduleRunList.class,
+      fullMethodName = SERVICE_NAME + '/' + "listFires",
+      requestType = ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest.class,
+      responseType = ai.stigmer.agentic.schedule.v1.ScheduleFireList.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest,
-      ai.stigmer.agentic.schedule.v1.ScheduleRunList> getListRunsMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest, ai.stigmer.agentic.schedule.v1.ScheduleRunList> getListRunsMethod;
-    if ((getListRunsMethod = ScheduleQueryControllerGrpc.getListRunsMethod) == null) {
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest,
+      ai.stigmer.agentic.schedule.v1.ScheduleFireList> getListFiresMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest, ai.stigmer.agentic.schedule.v1.ScheduleFireList> getListFiresMethod;
+    if ((getListFiresMethod = ScheduleQueryControllerGrpc.getListFiresMethod) == null) {
       synchronized (ScheduleQueryControllerGrpc.class) {
-        if ((getListRunsMethod = ScheduleQueryControllerGrpc.getListRunsMethod) == null) {
-          ScheduleQueryControllerGrpc.getListRunsMethod = getListRunsMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest, ai.stigmer.agentic.schedule.v1.ScheduleRunList>newBuilder()
+        if ((getListFiresMethod = ScheduleQueryControllerGrpc.getListFiresMethod) == null) {
+          ScheduleQueryControllerGrpc.getListFiresMethod = getListFiresMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest, ai.stigmer.agentic.schedule.v1.ScheduleFireList>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listRuns"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listFires"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest.getDefaultInstance()))
+                  ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.schedule.v1.ScheduleRunList.getDefaultInstance()))
-              .setSchemaDescriptor(new ScheduleQueryControllerMethodDescriptorSupplier("listRuns"))
+                  ai.stigmer.agentic.schedule.v1.ScheduleFireList.getDefaultInstance()))
+              .setSchemaDescriptor(new ScheduleQueryControllerMethodDescriptorSupplier("listFires"))
               .build();
         }
       }
     }
-    return getListRunsMethod;
+    return getListFiresMethod;
   }
 
   /**
@@ -281,16 +281,16 @@ public final class ScheduleQueryControllerGrpc {
 
     /**
      * <pre>
-     * List a schedule's run history, newest first.
+     * List a schedule's fire history, newest first.
      * Every fire leaves a row — including fires that created no run
      * (a refused launch gate, a missing target agent) — with the refusing
      * gate's copy verbatim. This is the surface that explains
      * status.consecutive_failures.
      * </pre>
      */
-    default void listRuns(ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.ScheduleRunList> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListRunsMethod(), responseObserver);
+    default void listFires(ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.ScheduleFireList> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListFiresMethod(), responseObserver);
     }
   }
 
@@ -376,17 +376,17 @@ public final class ScheduleQueryControllerGrpc {
 
     /**
      * <pre>
-     * List a schedule's run history, newest first.
+     * List a schedule's fire history, newest first.
      * Every fire leaves a row — including fires that created no run
      * (a refused launch gate, a missing target agent) — with the refusing
      * gate's copy verbatim. This is the surface that explains
      * status.consecutive_failures.
      * </pre>
      */
-    public void listRuns(ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.ScheduleRunList> responseObserver) {
+    public void listFires(ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.ScheduleFireList> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getListRunsMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getListFiresMethod(), getCallOptions()), request, responseObserver);
     }
   }
 
@@ -454,16 +454,16 @@ public final class ScheduleQueryControllerGrpc {
 
     /**
      * <pre>
-     * List a schedule's run history, newest first.
+     * List a schedule's fire history, newest first.
      * Every fire leaves a row — including fires that created no run
      * (a refused launch gate, a missing target agent) — with the refusing
      * gate's copy verbatim. This is the surface that explains
      * status.consecutive_failures.
      * </pre>
      */
-    public ai.stigmer.agentic.schedule.v1.ScheduleRunList listRuns(ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.schedule.v1.ScheduleFireList listFires(ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getListRunsMethod(), getCallOptions(), request);
+          getChannel(), getListFiresMethod(), getCallOptions(), request);
     }
   }
 
@@ -531,16 +531,16 @@ public final class ScheduleQueryControllerGrpc {
 
     /**
      * <pre>
-     * List a schedule's run history, newest first.
+     * List a schedule's fire history, newest first.
      * Every fire leaves a row — including fires that created no run
      * (a refused launch gate, a missing target agent) — with the refusing
      * gate's copy verbatim. This is the surface that explains
      * status.consecutive_failures.
      * </pre>
      */
-    public ai.stigmer.agentic.schedule.v1.ScheduleRunList listRuns(ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest request) {
+    public ai.stigmer.agentic.schedule.v1.ScheduleFireList listFires(ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getListRunsMethod(), getCallOptions(), request);
+          getChannel(), getListFiresMethod(), getCallOptions(), request);
     }
   }
 
@@ -612,17 +612,17 @@ public final class ScheduleQueryControllerGrpc {
 
     /**
      * <pre>
-     * List a schedule's run history, newest first.
+     * List a schedule's fire history, newest first.
      * Every fire leaves a row — including fires that created no run
      * (a refused launch gate, a missing target agent) — with the refusing
      * gate's copy verbatim. This is the surface that explains
      * status.consecutive_failures.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.schedule.v1.ScheduleRunList> listRuns(
-        ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest request) {
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.schedule.v1.ScheduleFireList> listFires(
+        ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getListRunsMethod(), getCallOptions()), request);
+          getChannel().newCall(getListFiresMethod(), getCallOptions()), request);
     }
   }
 
@@ -630,7 +630,7 @@ public final class ScheduleQueryControllerGrpc {
   private static final int METHODID_GET_BY_REFERENCE = 1;
   private static final int METHODID_GET_BY_AGENT = 2;
   private static final int METHODID_LIST = 3;
-  private static final int METHODID_LIST_RUNS = 4;
+  private static final int METHODID_LIST_FIRES = 4;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -665,9 +665,9 @@ public final class ScheduleQueryControllerGrpc {
           serviceImpl.list((ai.stigmer.agentic.schedule.v1.ListSchedulesRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.ScheduleList>) responseObserver);
           break;
-        case METHODID_LIST_RUNS:
-          serviceImpl.listRuns((ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.ScheduleRunList>) responseObserver);
+        case METHODID_LIST_FIRES:
+          serviceImpl.listFires((ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.ScheduleFireList>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -716,12 +716,12 @@ public final class ScheduleQueryControllerGrpc {
               ai.stigmer.agentic.schedule.v1.ScheduleList>(
                 service, METHODID_LIST)))
         .addMethod(
-          getListRunsMethod(),
+          getListFiresMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest,
-              ai.stigmer.agentic.schedule.v1.ScheduleRunList>(
-                service, METHODID_LIST_RUNS)))
+              ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest,
+              ai.stigmer.agentic.schedule.v1.ScheduleFireList>(
+                service, METHODID_LIST_FIRES)))
         .build();
   }
 
@@ -774,7 +774,7 @@ public final class ScheduleQueryControllerGrpc {
               .addMethod(getGetByReferenceMethod())
               .addMethod(getGetByAgentMethod())
               .addMethod(getListMethod())
-              .addMethod(getListRunsMethod())
+              .addMethod(getListFiresMethod())
               .build();
         }
       }

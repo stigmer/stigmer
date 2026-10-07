@@ -4,7 +4,7 @@
  * Shared prev/next pagination control for paginated SDK tables.
  *
  * Extracted from `CreditLedgerTable` (its original, file-private home)
- * when `ScheduleRunsTable` became the second consumer. Deliberately
+ * when `ScheduleFiresTable` became the second consumer. Deliberately
  * minimal — Previous / "Page N of M" / Next — because every paginated
  * surface in the SDK so far wants exactly this shape; page-number
  * jumping earns its complexity only when a consumer actually needs it.

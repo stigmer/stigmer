@@ -48,7 +48,7 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { create, toJson } from "@bufbuild/protobuf";
 import { ConnectError, Code } from "@connectrpc/connect";
-import { AgentRunStatusSchema, type AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
   ApprovalAction,
@@ -56,7 +56,7 @@ import {
   RunPhase,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { HookConfigSchema, HookFormat, HookGroupSchema, HookHandlerSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { GetArtifactResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
@@ -158,11 +158,11 @@ function pluginClient(script: string) {
 /** Cursor's preToolUse payload for a shell call. */
 const shellHook = (command: string, callId: string) => ({ ...hookBuiltin("Shell", { command, cwd: "", timeout: 30000 }), tool_use_id: callId });
 
-function statusJson(status: AgentRunStatus): string {
-  return JSON.stringify(toJson(AgentRunStatusSchema, status), null, 2) + "\n";
+function statusJson(status: RunStatus): string {
+  return JSON.stringify(toJson(RunStatusSchema, status), null, 2) + "\n";
 }
 
-const row = (status: AgentRunStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
+const row = (status: RunStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
 
 describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, allows and asks", () => {
   let env: HermeticEnvironment;

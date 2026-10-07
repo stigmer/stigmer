@@ -5,9 +5,9 @@
 // yaml/json, defer to the standard proto renderers so `trace -o json` and
 // `get -o json` produce the identical envelope.
 
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { renderProtoJson, renderProtoYaml } from "../output/index.js";
 import { shouldColorize, styler } from "../output/style.js";
@@ -29,19 +29,19 @@ export async function traceRun(
   format: TraceFormat,
   streams: TraceStreams = defaultStreams(),
 ): Promise<void> {
-  const exec = await client.agentRun.get(runId);
+  const exec = await client.run.get(runId);
   if (format === "yaml") {
-    streams.write(renderProtoYaml(AgentRunSchema, exec));
+    streams.write(renderProtoYaml(RunSchema, exec));
     return;
   }
   if (format === "json") {
-    streams.write(renderProtoJson(AgentRunSchema, exec));
+    streams.write(renderProtoJson(RunSchema, exec));
     return;
   }
   renderAgentTrace(exec, streams);
 }
 
-function renderAgentTrace(exec: AgentRun, streams: TraceStreams): void {
+function renderAgentTrace(exec: Run, streams: TraceStreams): void {
   const style = styler(streams.colorize);
   const name = exec.metadata?.name || exec.metadata?.id || "";
   const phase = formatAgentPhase(exec.status?.phase ?? 0);
@@ -73,7 +73,7 @@ interface ToolCallSummary {
 
 // Mirrors Go's extractToolCallSummary: tool calls on AI messages, with results
 // truncated to 40 chars.
-function extractToolCallSummaries(exec: AgentRun): ToolCallSummary[] {
+function extractToolCallSummaries(exec: Run): ToolCallSummary[] {
   const calls: ToolCallSummary[] = [];
   for (const message of exec.status?.messages ?? []) {
     if (message.type !== MessageType.MESSAGE_AI) continue;

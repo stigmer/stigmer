@@ -42,7 +42,7 @@ function makeAttachment(overrides: Partial<{
     contentType: overrides.contentType ?? "text/markdown",
     extract: overrides.extract ?? false,
     localPath: overrides.localPath ?? "",
-    $typeName: "ai.stigmer.agentic.agentrun.v1.Attachment" as const,
+    $typeName: "ai.stigmer.agentic.run.v1.Attachment" as const,
     $unknown: undefined,
   } as any;
 }

@@ -3,7 +3,7 @@
 //
 // ExecutionContext is the execution-scoped, flat resource the engine creates to
 // carry a single run's merged runtime configuration and secrets. Its spec pairs
-// a required `execution_id` (the parent AgentRun id) with
+// a required `execution_id` (the parent Run id) with
 // a `data` map of ExecutionValue entries (value + is_secret; no description,
 // unlike EnvironmentValue).
 //
@@ -22,7 +22,7 @@ export const EXECUTION_CONTEXT_API_VERSION = "agentic.stigmer.ai/v1";
 export const EXECUTION_CONTEXT_KIND = "ExecutionContext";
 
 // A single ExecutionValue entry: the runtime value and whether it is a secret.
-// Used both for ExecutionContext.spec.data and for the AgentRun runtime_env
+// Used both for ExecutionContext.spec.data and for the Run runtime_env
 // map (both are map<string, ExecutionValue>).
 export interface ExecutionValueInit {
   value: string;

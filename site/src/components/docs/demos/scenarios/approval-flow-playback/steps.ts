@@ -1,8 +1,8 @@
 import { create } from "@bufbuild/protobuf";
-import { ApprovalPolicySource, RunPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
-import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { ApprovalPolicySource, RunPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
+import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { samples } from "@stigmer/react/test";
 import type { ScenarioStep } from "@scenar/react";
 import { snapshot } from "../../fixtures";
@@ -13,8 +13,8 @@ import { snapshot } from "../../fixtures";
 
 export type ApprovalFlowStep =
   | { view: "composer-typing"; message: string }
-  | { view: "conversation"; execution: AgentRun }
-  | { view: "approval-pending"; execution: AgentRun };
+  | { view: "conversation"; execution: Run }
+  | { view: "approval-pending"; execution: Run };
 
 // ---------------------------------------------------------------------------
 // Fixture data
@@ -70,7 +70,7 @@ const aiSummaryMsg = samples.aiMessage(
     "Is there anything else I can help with?",
 );
 
-function buildWaitingExecution(): AgentRun {
+function buildWaitingExecution(): Run {
   const exec = snapshot(
     [user1, samples.aiMessage("", [pendingToolCall])],
     RunPhase.RUN_WAITING_FOR_APPROVAL,

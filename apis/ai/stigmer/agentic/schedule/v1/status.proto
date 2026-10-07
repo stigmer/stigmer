@@ -23,7 +23,7 @@ message ScheduleStatus {
   // When the schedule last fired, in UTC.
   google.protobuf.Timestamp last_fire_at = 2;
 
-  // ID of the agent run created by the most recent fire.
+  // ID of the run created by the most recent fire.
   //
   // @internal
   // The reverse pointer of the stigmer.ai/schedule-id label stamped on

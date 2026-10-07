@@ -20,9 +20,9 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { inheritedAuthorizationParentOf } from "../apiresource-meta.js";
 
 describe("inheritedAuthorizationParentOf — the parent a kind's authorization is", () => {
-  it("agent_run's authorization is its session's: relation `session`, spec field `session_id`", () => {
+  it("run's authorization is its session's: relation `session`, spec field `session_id`", () => {
     const parent = inheritedAuthorizationParentOf(
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
     );
     expect(parent).toBeDefined();
     expect(parent?.kind).toBe("session");
@@ -36,7 +36,7 @@ describe("inheritedAuthorizationParentOf — the parent a kind's authorization i
       .filter((kind) => kind !== ApiResourceKind.api_resource_kind_unknown)
       .filter((kind) => inheritedAuthorizationParentOf(kind) !== undefined)
       .map((kind) => ApiResourceKind[kind]);
-    expect(inherited).toEqual(["agent_run"]);
+    expect(inherited).toEqual(["run"]);
   });
 
   it.each([

@@ -1,13 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { useOrgUsageReport } from "../usage/useOrgUsageReport.js";
 import { dateRangeFromPreset } from "../usage/date-range.js";
 import {
-  useAgentRunSummary,
-  AgentRunSummaryTimeWindow,
-} from "./useAgentRunSummary.js";
+  useRunSummary,
+  RunSummaryTimeWindow,
+} from "./useRunSummary.js";
 import type { DashboardSummary } from "./types.js";
 
 /** Options for {@link useDashboardSummary}. */
@@ -27,10 +27,10 @@ export interface UseDashboardSummaryReturn {
 }
 
 /**
- * Composition hook that merges the agent run summary and the org usage
+ * Composition hook that merges the run summary and the org usage
  * report into a single {@link DashboardSummary}.
  *
- * - Run counts (active, completed, failed) come from the agent run
+ * - Run counts (active, completed, failed) come from the run
  *   summary over the last seven days.
  * - Cost comes from `getOrgUsageReport` (billing source of truth), not
  *   from summing per-run costs, so the dashboard shows what billing
@@ -42,9 +42,9 @@ export function useDashboardSummary(
   const refetchInterval = options.refetchInterval ?? 60_000;
 
   const { summary: agentSummary, isLoading: agLoading, error: agError, refetch: agRefetch } =
-    useAgentRunSummary({
+    useRunSummary({
       org: options.org,
-      timeWindow: AgentRunSummaryTimeWindow.LAST_7D,
+      timeWindow: RunSummaryTimeWindow.LAST_7D,
       refetchInterval,
     });
 

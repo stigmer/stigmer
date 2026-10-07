@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import {
-  ScheduleRunOutcome,
+  ScheduleFireOutcome,
   type ScheduleTriggerResult,
 } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { getUserMessage } from "@stigmer/sdk";
@@ -13,7 +13,7 @@ import { toError } from "../internal/toError.js";
 /** Return value of {@link useTriggerSchedule}. */
 export interface UseTriggerScheduleReturn {
   /**
-   * Fire the schedule once, now — a real agent run, outside the
+   * Fire the schedule once, now — a real run, outside the
    * cron cadence. Resolves with the {@link ScheduleTriggerResult}: the
    * run's REAL outcome (started with a run id, or refused with the
    * gate's copy), so a caller can navigate to the run or surface
@@ -60,7 +60,7 @@ export function useTriggerSchedule(): UseTriggerScheduleReturn {
       setError(null);
       try {
         const result = await stigmer.schedule.trigger(scheduleId);
-        if (result.outcome === ScheduleRunOutcome.STARTED) {
+        if (result.outcome === ScheduleFireOutcome.STARTED) {
           toast.success("Run started");
         } else {
           // The fire happened but the run was refused — surface the

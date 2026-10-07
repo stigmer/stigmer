@@ -230,7 +230,7 @@ const (
 	// AI assistant with instructions, tools, skills, and a delegation model.
 	ApiResourceKind_agent ApiResourceKind = 40
 	// Single run of an agent within a session, tracking tool calls and responses.
-	ApiResourceKind_agent_run ApiResourceKind = 41
+	ApiResourceKind_run ApiResourceKind = 41
 	// Conversation thread between a user and an agent.
 	ApiResourceKind_session ApiResourceKind = 42
 	// Knowledge resource that provides domain-specific context to an agent.
@@ -244,7 +244,7 @@ const (
 	// Customer-owned messaging-platform app (e.g. a Slack app) that agent
 	// channels can install through instead of the shared platform app.
 	ApiResourceKind_channel_app ApiResourceKind = 48
-	// Named set of variables and secrets for an agent run.
+	// Named set of variables and secrets for a run.
 	ApiResourceKind_environment ApiResourceKind = 53
 	// User-owned runtime context for managing execution state.
 	ApiResourceKind_execution_context ApiResourceKind = 54
@@ -295,7 +295,7 @@ var (
 		30: "organization",
 		31: "platform",
 		40: "agent",
-		41: "agent_run",
+		41: "run",
 		42: "session",
 		43: "skill",
 		44: "mcp_server",
@@ -325,7 +325,7 @@ var (
 		"organization":              30,
 		"platform":                  31,
 		"agent":                     40,
-		"agent_run":                 41,
+		"run":                       41,
 		"session":                   42,
 		"skill":                     43,
 		"mcp_server":                44,
@@ -391,8 +391,13 @@ type ApiResourceKindMeta struct {
 	Tier ResourceTier `protobuf:"varint,8,opt,name=tier,proto3,enum=ai.stigmer.commons.apiresource.apiresourcekind.ResourceTier" json:"tier,omitempty"`
 	// FGA authorization configuration - defines how FGA tuples are created for this resource
 	Authorization *AuthorizationConfig `protobuf:"bytes,9,opt,name=authorization,proto3" json:"authorization,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Prefixes this kind's ids were minted with before `id_prefix`. Ids are
+	// identities and are never rewritten, so a store keeps the ids it minted
+	// under an earlier prefix: readers that tell a kind from an id read these
+	// too. Never minted.
+	RetiredIdPrefixes []string `protobuf:"bytes,10,rep,name=retired_id_prefixes,json=retiredIdPrefixes,proto3" json:"retired_id_prefixes,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ApiResourceKindMeta) Reset() {
@@ -488,6 +493,13 @@ func (x *ApiResourceKindMeta) GetAuthorization() *AuthorizationConfig {
 	return nil
 }
 
+func (x *ApiResourceKindMeta) GetRetiredIdPrefixes() []string {
+	if x != nil {
+		return x.RetiredIdPrefixes
+	}
+	return nil
+}
+
 var file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_proto_extTypes = []protoimpl.ExtensionInfo{
 	{
 		ExtendedType:  (*descriptorpb.EnumValueOptions)(nil),
@@ -509,7 +521,7 @@ var File_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_proto 
 
 const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_proto_rawDesc = "" +
 	"\n" +
-	"Fai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto\x12.ai.stigmer.commons.apiresource.apiresourcekind\x1aGai/stigmer/commons/apiresource/apiresourcekind/api_resource_group.proto\x1aIai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto\x1a google/protobuf/descriptor.proto\"\xad\x04\n" +
+	"Fai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto\x12.ai.stigmer.commons.apiresource.apiresourcekind\x1aGai/stigmer/commons/apiresource/apiresourcekind/api_resource_group.proto\x1aIai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto\x1a google/protobuf/descriptor.proto\"\xdd\x04\n" +
 	"\x13ApiResourceKindMeta\x12V\n" +
 	"\x05group\x18\x01 \x01(\x0e2@.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceGroupR\x05group\x12\\\n" +
 	"\aversion\x18\x02 \x01(\x0e2B.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceVersionR\aversion\x12\x12\n" +
@@ -519,7 +531,9 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\fis_versioned\x18\x06 \x01(\bR\visVersioned\x12,\n" +
 	"\x12not_search_indexed\x18\a \x01(\bR\x10notSearchIndexed\x12P\n" +
 	"\x04tier\x18\b \x01(\x0e2<.ai.stigmer.commons.apiresource.apiresourcekind.ResourceTierR\x04tier\x12i\n" +
-	"\rauthorization\x18\t \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfigR\rauthorization*B\n" +
+	"\rauthorization\x18\t \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfigR\rauthorization\x12.\n" +
+	"\x13retired_id_prefixes\x18\n" +
+	" \x03(\tR\x11retiredIdPrefixes*B\n" +
 	"\x12ApiResourceVersion\x12$\n" +
 	" api_resource_version_unspecified\x10\x00\x12\x06\n" +
 	"\x02v1\x10\x01*^\n" +
@@ -532,7 +546,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"enterprise\x10\x03*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\xc9\x10\n" +
+	"\astigmer\x10\x01*\xbd\x10\n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x12?\n" +
@@ -553,10 +567,10 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\forganization\x10\x1e\x1a7\xaa\xff+3\b\x03\x10\x01\x1a\fOrganization\"\fOrganization*\x03org@\x01J\n" +
 	"\b\x04\x10\x01:\x04\x01\x02\x03\x04\x129\n" +
 	"\bplatform\x10\x1f\x1a+\xaa\xff+'\b\x03\x10\x01\x1a\bPlatform\"\bPlatform*\x03plt8\x01@\x03J\x04\b\x05\x10\x04\x12A\n" +
-	"\x05agent\x10(\x1a6\xaa\xff+2\b\x01\x10\x01\x1a\x05Agent\"\x05Agent*\x03agt0\x01@\x01J\x15\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x03\x01\x06\x04B\x02\x06\x04\x12Y\n" +
-	"\tagent_run\x10)\x1aJ\xaa\xff+F\b\x01\x10\x01\x1a\bAgentRun\"\tAgent Run*\x03aex@\x01J$\b\x03\x10\x02\x1a\x1e\n" +
+	"\x05agent\x10(\x1a6\xaa\xff+2\b\x01\x10\x01\x1a\x05Agent\"\x05Agent*\x03agt0\x01@\x01J\x15\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x03\x01\x06\x04B\x02\x06\x04\x12M\n" +
+	"\x03run\x10)\x1aD\xaa\xff+@\b\x01\x10\x01\x1a\x03Run\"\x03Run*\x03run@\x01J$\b\x03\x10\x02\x1a\x1e\n" +
 	"\asession\x12\asession\x1a\n" +
-	"session_id\x128\n" +
+	"session_idR\x03aex\x128\n" +
 	"\asession\x10*\x1a+\xaa\xff+'\b\x01\x10\x01\x1a\aSession\"\aSession*\x03ses@\x01J\b\b\x02\x10\x01:\x02\x01\x04\x12?\n" +
 	"\x05skill\x10+\x1a4\xaa\xff+0\b\x01\x10\x01\x1a\x05Skill\"\x05Skill*\x03skl0\x01@\x01J\x13\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x02\x01\x04B\x01\x04\x12M\n" +
 	"\n" +

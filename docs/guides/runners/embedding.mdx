@@ -139,15 +139,15 @@ deployment: cloud on Stigmer Cloud, local in an OSS deployment.
 
 The deep-link moment every embedder builds first — the user clicks one action
 and lands in a session that already has a workspace attached and the first
-message running — is a single API call. Pass `sessionSpec` on `agentRun.create`
-and the server creates the session from that spec (the Agent, workspace entries,
+message running — is a single API call. Pass `sessionSpec` on `run.create` and
+the server creates the session from that spec (the Agent, workspace entries,
 harness, execution target, MCP servers, skills) and dispatches the message in
 the same request:
 
 ```typescript
 import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
-const run = await stigmer.agentRun.create({
+const run = await stigmer.run.create({
   name: `run-${Date.now()}`,
   org: "acme",
   message: "Customize the landing page",
@@ -179,7 +179,7 @@ Notes on the contract:
   immediately.
 - In React you rarely write this by hand — `useNewSessionFlow` (and the
   `NewSessionViewer` component built on it) submits through this one-call path
-  and handles the runner attach for you. `useCreateAgentRun` accepts the same
+  and handles the runner attach for you. `useCreateRun` accepts the same
   `sessionSpec` input for custom flows.
 
 ## The RunnerAdapter

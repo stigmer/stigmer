@@ -22,7 +22,6 @@ const VOCABULARY = readFileSync(
 /** Definitions that differ from their vocabulary entry today (stigmer#1788). */
 const KNOWN_DIFFERENCES: ReadonlyArray<string> = [
   "Agent",
-  "Agent Run",
   "Session",
   "Skill",
   "MCP Server",

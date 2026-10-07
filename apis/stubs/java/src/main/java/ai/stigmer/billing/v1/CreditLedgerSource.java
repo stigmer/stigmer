@@ -73,7 +73,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object runId_ = "";
   /**
    * <pre>
-   * Agent run that generated this debit.
+   * Run that generated this debit.
    * </pre>
    *
    * <code>string run_id = 1 [json_name = "runId"];</code>
@@ -94,7 +94,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Agent run that generated this debit.
+   * Run that generated this debit.
    * </pre>
    *
    * <code>string run_id = 1 [json_name = "runId"];</code>
@@ -1038,7 +1038,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object runId_ = "";
     /**
      * <pre>
-     * Agent run that generated this debit.
+     * Run that generated this debit.
      * </pre>
      *
      * <code>string run_id = 1 [json_name = "runId"];</code>
@@ -1058,7 +1058,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent run that generated this debit.
+     * Run that generated this debit.
      * </pre>
      *
      * <code>string run_id = 1 [json_name = "runId"];</code>
@@ -1079,7 +1079,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent run that generated this debit.
+     * Run that generated this debit.
      * </pre>
      *
      * <code>string run_id = 1 [json_name = "runId"];</code>
@@ -1096,7 +1096,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent run that generated this debit.
+     * Run that generated this debit.
      * </pre>
      *
      * <code>string run_id = 1 [json_name = "runId"];</code>
@@ -1110,7 +1110,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent run that generated this debit.
+     * Run that generated this debit.
      * </pre>
      *
      * <code>string run_id = 1 [json_name = "runId"];</code>

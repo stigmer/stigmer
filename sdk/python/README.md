@@ -35,7 +35,7 @@ Every resource type has a typed client accessible as a property on `StigmerClien
 | Property               | Resource           |
 |------------------------|--------------------|
 | `agents`               | Agent              |
-| `agent_runs`           | AgentRun           |
+| `runs`                 | Run                |
 | `api_keys`             | ApiKey             |
 | `environments`         | Environment        |
 | `execution_contexts`   | ExecutionContext    |

@@ -40,11 +40,11 @@ import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/ap
 import { ScheduleListSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import type {
   GetSchedulesByAgentRequest,
-  ListScheduleRunsRequest,
+  ListScheduleFiresRequest,
   ListSchedulesRequest,
   ScheduleId,
   ScheduleList,
-  ScheduleRunList,
+  ScheduleFireList,
   ScheduleTriggerResult,
 } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -114,10 +114,10 @@ import {
   type ClockProvider,
 } from "./clock.js";
 import {
-  LIST_RUNS_RESULT_KEY,
-  newListRunsFromLedgerStep,
-  newLoadScheduleForRunsStep,
-} from "./list-runs.js";
+  LIST_FIRES_RESULT_KEY,
+  newListFiresFromLedgerStep,
+  newLoadScheduleForFiresStep,
+} from "./list-fires.js";
 import { newPersistScheduleUpdateStep } from "./persist-update.js";
 import { newClearSchedulePauseStep } from "./resume.js";
 import {
@@ -175,7 +175,7 @@ export function registerScheduleServices(
     getByReference: (ref, ctx) => getByReference(deps, ref, ctx),
     getByAgent: (req, ctx) => getByAgent(deps, req, ctx),
     list: (req, ctx) => list(deps, req, ctx),
-    listRuns: (req, ctx) => listRuns(deps, req, ctx),
+    listFires: (req, ctx) => listFires(deps, req, ctx),
   });
 }
 
@@ -731,38 +731,38 @@ function newListByOrgAndLabelsStep(
   };
 }
 
-/** ListRuns — the fire-ledger surface (list_runs.go:44-61). */
-async function listRuns(
+/** ListFires — the fire-ledger surface (list_runs.go:44-61). */
+async function listFires(
   deps: ScheduleControllerDeps,
-  req: ListScheduleRunsRequest,
+  req: ListScheduleFiresRequest,
   ctx: HandlerContext,
-): Promise<ScheduleRunList> {
-  type ListRunsInput = typeof ScheduleQueryController.method.listRuns.input;
+): Promise<ScheduleFireList> {
+  type ListFiresInput = typeof ScheduleQueryController.method.listFires.input;
   const reqCtx = new RequestContext(
-    ScheduleQueryController.method.listRuns.input,
+    ScheduleQueryController.method.listFires.input,
     req,
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<ListRunsInput>("schedule-list-runs", deps.logger)
+  await newPipeline<ListFiresInput>("schedule-list-runs", deps.logger)
     .addStep(
       newAuthorizeStep(
-        ScheduleQueryController.method.listRuns,
+        ScheduleQueryController.method.listFires,
         deps.authorizer,
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newLoadScheduleForRunsStep(deps.store))
-    .addStep(newListRunsFromLedgerStep(deps.store))
+    .addStep(newLoadScheduleForFiresStep(deps.store))
+    .addStep(newListFiresFromLedgerStep(deps.store))
     .build()
     .execute(reqCtx);
 
-  const result = reqCtx.get(LIST_RUNS_RESULT_KEY);
+  const result = reqCtx.get(LIST_FIRES_RESULT_KEY);
   if (result === undefined) {
     throw internalError(
       new Error("schedule run list not found in context"),
       "schedule run list not found in context",
     );
   }
-  return result as ScheduleRunList;
+  return result as ScheduleFireList;
 }

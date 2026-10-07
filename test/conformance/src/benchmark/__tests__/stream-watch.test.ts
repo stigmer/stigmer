@@ -12,17 +12,17 @@
 // did see.
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { AgentRunSchema, type AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase, FileChangeSetStatus, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase, FileChangeSetStatus, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { describe, expect, it } from "vitest";
 import { watchExecution } from "../stream-watch";
 
-function snapshot(phase: RunPhase, rows: Array<{ type: MessageType; content: string }>): AgentRun {
-  return create(AgentRunSchema, { metadata: { id: "aex_1" }, status: { phase, messages: rows } });
+function snapshot(phase: RunPhase, rows: Array<{ type: MessageType; content: string }>): Run {
+  return create(RunSchema, { metadata: { id: "aex_1" }, status: { phase, messages: rows } });
 }
 
-function awaitingReview(): AgentRun {
-  return create(AgentRunSchema, {
+function awaitingReview(): Run {
+  return create(RunSchema, {
     metadata: { id: "aex_1" },
     status: {
       phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
@@ -32,7 +32,7 @@ function awaitingReview(): AgentRun {
   });
 }
 
-function scripted(snapshots: AgentRun[]): (signal: AbortSignal) => AsyncIterable<AgentRun> {
+function scripted(snapshots: Run[]): (signal: AbortSignal) => AsyncIterable<Run> {
   return () => ({
     async *[Symbol.asyncIterator]() {
       for (const item of snapshots) yield item;
@@ -103,7 +103,7 @@ describe("watchExecution", () => {
   it("a stream that never turns terminal is a timeout with a null end-to-end and the stamps it did take", async () => {
     // Honours the abort the bounded reader sends, the way a Connect stream
     // does: the iterable ends with Canceled once the deadline passes.
-    const forever = (signal: AbortSignal): AsyncIterable<AgentRun> => ({
+    const forever = (signal: AbortSignal): AsyncIterable<Run> => ({
       async *[Symbol.asyncIterator]() {
         yield snapshot(RunPhase.RUN_IN_PROGRESS, [{ type: MessageType.MESSAGE_AI, content: "Hel" }]);
         await new Promise<never>((_, reject) => {

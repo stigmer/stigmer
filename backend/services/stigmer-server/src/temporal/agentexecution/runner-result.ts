@@ -3,7 +3,7 @@
  * pkg/domain/agentexecution/temporal/activities/execute_deep_agent.go.
  *
  * The TS runner returns a plain JSON object: the proto-JSON fields of the
- * slim AgentRunStatus (phase, error, pendingApprovals, …). An untyped record
+ * slim RunStatus (phase, error, pendingApprovals, …). An untyped record
  * preserves every field across the data converter, exactly Go's
  * map[string]interface{} posture. The tolerant phase
  * extraction (string enum name first, numeric fallback) is a wire
@@ -13,7 +13,7 @@
  * Bundle-safe (pure proto enum import) — the workflow reads phases from
  * every activity result.
  */
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { currentRunEnumValueName } from "./execution-json.js";
 

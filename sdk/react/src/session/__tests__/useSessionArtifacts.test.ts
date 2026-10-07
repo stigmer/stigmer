@@ -1,12 +1,12 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { renderHook, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import {
   RunArtifactKind,
   RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { useSessionArtifacts, artifactKey } from "../useSessionArtifacts";
 
 function artifact(opts: { name: string; sandboxPath?: string }) {
@@ -33,14 +33,14 @@ describe("artifactKey", () => {
   });
 
   it("is the key useSessionArtifacts dedups on (same key → latest wins)", () => {
-    const older = create(AgentRunSchema, {
+    const older = create(RunSchema, {
       metadata: { id: "aex_1" },
       status: {
         phase: RunPhase.RUN_COMPLETED,
         artifacts: [artifact({ name: "a.md", sandboxPath: "/w/a.md" })],
       },
     });
-    const newer = create(AgentRunSchema, {
+    const newer = create(RunSchema, {
       metadata: { id: "aex_2" },
       status: {
         phase: RunPhase.RUN_COMPLETED,

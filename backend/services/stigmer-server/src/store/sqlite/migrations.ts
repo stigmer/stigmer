@@ -72,16 +72,16 @@ import {
   unreadableWorkflowRowError,
 } from "../workflow-instance-retired.js";
 import {
-  RETIRED_AGENT_RUN_KIND,
-  RUN_KIND_RENAMES,
   RUN_KIND_TABLES,
   RUN_RENAME_PAGE_SIZE,
   RUN_RENAME_POLICY_KIND,
+  RUN_RENAME_V18,
+  RUN_RENAME_V21,
   rekeyedRunPolicy,
-  renamedAgentRunRow,
+  renamedRunRow,
   unreadableRunRenameRowError,
 } from "../run-rename.js";
-import type { RekeyedPolicy } from "../run-rename.js";
+import type { RekeyedPolicy, RunRename } from "../run-rename.js";
 import {
   AGENT_RUN_KIND,
   AGENT_RUN_RETIRED_PAGE_SIZE,
@@ -132,9 +132,11 @@ export const SCHEMA_VERSION_18 = 18;
 export const SCHEMA_VERSION_19 = 19;
 /** v20: every identity account's slug and name held to their rules. */
 export const SCHEMA_VERSION_20 = 20;
+/** v21: the agent run is a run. */
+export const SCHEMA_VERSION_21 = 21;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_20;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_21;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -179,6 +181,7 @@ export function runMigrations(
     [SCHEMA_VERSION_18, migrateToV18],
     [SCHEMA_VERSION_19, migrateToV19],
     [SCHEMA_VERSION_20, migrateToV20],
+    [SCHEMA_VERSION_21, migrateToV21],
   ];
 
   for (const [version, migrate] of chain) {
@@ -898,17 +901,26 @@ function migrateToV17(db: DatabaseSync): void {
 /**
  * v18: agent executions are runs — the Postgres driver's v13 in this
  * engine's terms (run-rename.ts says what each row becomes and why an
- * unreadable row fails the step). Every run row is read in keyset pages
- * under its old kind and rewritten when its bytes spell the kind the old
- * way; then every table keyed by kind renames the run kind. Every IamPolicy
- * row is read in keyset pages, and the ones naming a run kind are re-keyed:
- * the old row leaves with its list keys, its history kept, and the new row
- * is written unproven with `updated_at` stamped, so the list index derives
- * its keys at open. The search index is left to boot's RebuildIndex (the
- * v14 precedent). Runs inside applyInTransaction's BEGIN, so a throw rolls
- * the whole step back and the boot stops on the row it names.
+ * unreadable row fails the step). `renameRunKind` applies it.
  */
 function migrateToV18(db: DatabaseSync): void {
+  renameRunKind(db, RUN_RENAME_V18);
+}
+
+/**
+ * One rename of the run kind (run-rename.ts), shared by v18 and v21. Every
+ * run row is read in keyset pages under its old kind and rewritten when its
+ * bytes spell the kind the old way; then every table keyed by kind renames
+ * the run kind. Every IamPolicy row is read in keyset pages, and the ones
+ * naming the old kind are re-keyed: the old row leaves with its list keys,
+ * its history kept, and the new row is written unproven with `updated_at`
+ * stamped, so the list index derives its keys at open. The search index is
+ * left to boot's RebuildIndex (the v14 precedent). Runs inside
+ * applyInTransaction's BEGIN, so a throw rolls the whole step back and the
+ * boot stops on the row it names.
+ */
+function renameRunKind(db: DatabaseSync, rename: RunRename): void {
+  const [fromKind, toKind] = rename.kind;
   const resourcePage = db.prepare(
     `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
   );
@@ -931,32 +943,30 @@ function migrateToV18(db: DatabaseSync): void {
   const rewrite = db.prepare(
     `UPDATE resources SET data = ? WHERE kind = ? AND id = ?`,
   );
-  for (const row of resources(RETIRED_AGENT_RUN_KIND)) {
+  for (const row of resources(fromKind)) {
     let data: Uint8Array | undefined;
     try {
-      data = renamedAgentRunRow(row.data);
+      data = renamedRunRow(rename, row.data);
     } catch (error) {
-      throw unreadableRunRenameRowError(RETIRED_AGENT_RUN_KIND, row.id, error);
+      throw unreadableRunRenameRowError(rename, fromKind, row.id, error);
     }
     if (data !== undefined) {
-      rewrite.run(data, RETIRED_AGENT_RUN_KIND, row.id);
+      rewrite.run(data, fromKind, row.id);
     }
   }
-  for (const [from, to] of RUN_KIND_RENAMES) {
-    for (const table of RUN_KIND_TABLES) {
-      db.prepare(`UPDATE ${table} SET kind = ? WHERE kind = ?`).run(to, from);
-    }
+  for (const table of RUN_KIND_TABLES) {
+    db.prepare(`UPDATE ${table} SET kind = ? WHERE kind = ?`).run(toKind, fromKind);
   }
 
   const rekeyed: Array<{ from: string; policy: RekeyedPolicy }> = [];
   for (const row of resources(RUN_RENAME_POLICY_KIND)) {
     try {
-      const policy = rekeyedRunPolicy(row.data);
+      const policy = rekeyedRunPolicy(rename, row.data);
       if (policy !== undefined) {
         rekeyed.push({ from: row.id, policy });
       }
     } catch (error) {
-      throw unreadableRunRenameRowError(RUN_RENAME_POLICY_KIND, row.id, error);
+      throw unreadableRunRenameRowError(rename, RUN_RENAME_POLICY_KIND, row.id, error);
     }
   }
   const deletePolicy = ["resource_list_keys", "resources"].map((table) =>
@@ -1094,4 +1104,15 @@ function migrateToV20(db: DatabaseSync): void {
       update.run(repaired, IDENTITY_ACCOUNT_KIND, row.id);
     }
   }
+}
+
+/**
+ * v21: the agent run is a run — the Postgres driver's v16 in this engine's
+ * terms. The kind `agent_run` and its kind string `AgentRun` become `run`
+ * and `Run` by the same transformation as v18 (`renameRunKind`), with this
+ * step's frozen names (run-rename.ts `RUN_RENAME_V21`). Runs keep their
+ * ids, the `aex_` ones included.
+ */
+function migrateToV21(db: DatabaseSync): void {
+  renameRunKind(db, RUN_RENAME_V21);
 }

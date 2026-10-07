@@ -9,7 +9,7 @@
  *      ExecutionContext is create-only with NO redaction round-trip
  *      (unlike Environment, whose PreserveRedactedSecrets restores
  *      ***REDACTED*** markers on update), so this guard is the WHOLE
- *      write boundary: every legitimate creator — the agent run builder,
+ *      write boundary: every legitimate creator — the run builder,
  *      the MCP connect handler, an SDK caller — supplies
  *      plaintext, and nothing with an enc:v<N>: prefix reaches the store
  *      except server-produced ciphertext. That is what keeps the decrypt
@@ -242,7 +242,7 @@ export function newLoadByExecutionIdStep(
  * GuardExecutionBinding — a context bound to a run is the server's to
  * create. The run builders and the MCP connect lane create a run's or a
  * connect's context in-process (boot/inprocess.ts), so a WIRE caller's
- * create or apply naming a run's id (`aex_…`) or a connect's
+ * create or apply naming a run's id (`run_…`) or a connect's
  * (`connect-…`) is refused with PermissionDenied. Every lookup by run id
  * then meets the one context the server made (contexts-for-execution.ts).
  *
@@ -278,7 +278,7 @@ export function newGuardExecutionBindingStep(): PipelineStep<
 /**
  * AuthorizeCreate — the Java ExecutionContextCreateHandler.AuthorizeCreate
  * port: the create RPC skips the
- * declarative position-1 check (in-process creators — the agent run
+ * declarative position-1 check (in-process creators — the run
  * machinery — already authorized the run against its
  * session-or-org and act as the machine account), so EXTERNAL callers are
  * gated here instead: they must hold can_create_run_in on

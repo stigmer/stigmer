@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { GetArtifactDownloadUrlRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { GetArtifactDownloadUrlRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
@@ -64,7 +64,7 @@ export function useArtifactDownload(
       setIsDownloading(true);
       setError(null);
       try {
-        const result = await stigmer.agentRun.getArtifactDownloadUrl(
+        const result = await stigmer.run.getArtifactDownloadUrl(
           create(GetArtifactDownloadUrlRequestSchema, {
             runId: executionId,
             storageKey,

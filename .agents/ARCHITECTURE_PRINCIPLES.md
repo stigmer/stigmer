@@ -8,7 +8,7 @@ Read this before proposing a new concept, a new layer or a new copy of anything.
 - The resource model is declarative and Kubernetes-shaped. Every concept is a
   resource with `apiVersion`, `kind`, `metadata`, `spec` and `status`; a user
   applies a definition and the platform reconciles it. Names are the ubiquitous
-  language: an Agent is a blueprint, an AgentRun is one run, a Session is a
+  language: an Agent is a blueprint, a Run is one run, a Session is a
   conversation context. Never introduce a synonym.
 - Blueprints and runtime are separated by a hard line. Agent, McpServer and
   Skill definitions carry no secrets and no environment-specific values;

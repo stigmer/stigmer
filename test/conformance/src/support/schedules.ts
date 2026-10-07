@@ -87,5 +87,5 @@ export function makeSchedule(
 
 // The old pollScheduleUntil helper is gone with the asynchronous
 // trigger it served: the sync trigger answers with the fire's outcome in
-// the result, so firing assertions read the response (or listRuns) rather
+// the result, so firing assertions read the response (or listFires) rather
 // than polling status.

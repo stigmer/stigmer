@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>The struct-kind field these tests drive is an agent run's
  * {@code structuredOutputSchema}, converted through the real
- * {@code AgentRunInput} entry point.
+ * {@code RunInput} entry point.
  */
 class InputConversionTest {
 
@@ -39,7 +39,7 @@ class InputConversionTest {
     private enum Mode { FAST }
 
     private static Struct schemaOnTheWire(java.util.Map<String, Object> schema) {
-        return AgentRunInput.builder()
+        return RunInput.builder()
             .name("verdict-run")
             .org("acme")
             .sessionId("ses-1")

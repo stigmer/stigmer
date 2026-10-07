@@ -177,7 +177,7 @@ export function newDeleteScheduleRunsStep<Desc extends DescMessage>(
         return;
       }
       try {
-        await store.deleteScheduleRunsBySchedule(resourceId);
+        await store.deleteScheduleFiresBySchedule(resourceId);
       } catch (error) {
         logger.warn(
           "Fire-ledger cleanup failed (non-fatal — orphaned rows answer no query; retention prunes them)",

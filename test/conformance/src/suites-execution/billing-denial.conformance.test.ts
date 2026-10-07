@@ -22,7 +22,7 @@
 // by the edition boundary (see CapabilityFlags.billingGates), so there is no
 // denial contract to pin — the scheduleFiring skip posture.
 import { Code } from "@connectrpc/connect";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
@@ -34,7 +34,7 @@ import {
   awaitTerminal,
   makeAgentExecution,
   requireLlmProxy,
-} from "../support/agentruns";
+} from "../support/runs";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile, type TenancyContext } from "../targets";
 

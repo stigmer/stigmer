@@ -9,9 +9,9 @@
 // todo snapshot. Only the last run emits `done` (so the Ink composer
 // activates for follow-ups; headless renderers ignore intermediate dones).
 
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   collectToolCallsFromMessages,
   convertProtoTodos,
@@ -29,7 +29,7 @@ import { SubAgentTracking } from "./subagent.js";
  * Convert stored runs (chronological, oldest first) into a flat event
  * sequence. Only the final run emits a `done` event.
  */
-export function snapshotToEvents(runs: readonly AgentRun[]): StreamEvent[] {
+export function snapshotToEvents(runs: readonly Run[]): StreamEvent[] {
   const out: StreamEvent[] = [];
   runs.forEach((exec, i) => {
     emitSnapshotEvents(out, exec, i === runs.length - 1);
@@ -40,7 +40,7 @@ export function snapshotToEvents(runs: readonly AgentRun[]): StreamEvent[] {
 // Project one stored run's final state into events. Mirrors Go's
 // emitSnapshotEvents: spec message → interleaved messages + tools → trailing
 // non-message tools → sub-agents → todos → (optional) done.
-function emitSnapshotEvents(out: StreamEvent[], exec: AgentRun, emitDone: boolean): void {
+function emitSnapshotEvents(out: StreamEvent[], exec: Run, emitDone: boolean): void {
   const status = exec.status;
   const messages = status?.messages ?? [];
 

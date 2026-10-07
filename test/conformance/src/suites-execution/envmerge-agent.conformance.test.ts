@@ -1,7 +1,7 @@
 // Conformance suite for environment-merge precedence (Class B).
 //
 // Domain: agentic — the env layering that populates an ExecutionContext at
-// run start, exercised through AgentRun. The merge contract (value layers +
+// run start, exercised through Run. The merge contract (value layers +
 // blueprint key whitelist, stigmer#222): a turn's value layers are the
 // lane's (a PlatformClient's or a schedule's environment_refs) and its own
 // runtime_env; the agent's spec.env is a KEY WHITELIST (+ required/optional
@@ -32,9 +32,9 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { awaitPhase, awaitTerminal, makeAgentExecution, requireLlmProxy, requireMcpFixture } from "../support/agentruns";
+import { awaitPhase, awaitTerminal, makeAgentExecution, requireLlmProxy, requireMcpFixture } from "../support/runs";
 import { makeHttpMcpServer } from "../support/mcpservers";
 import { type EnvVarDeclarationInit, type EnvironmentValueInit, makePersonalEnvironment } from "../support/environments";
 import { type ExecutionValueInit } from "../support/executioncontexts";
@@ -48,7 +48,7 @@ let clients: ConformanceClients;
 let mock: MockLlmProxy;
 const fixtures = new FixtureTracker();
 
-// Holds an agent run's single turn open so the run stays non-terminal (and its
+// Holds a run's single turn open so the run stays non-terminal (and its
 // ephemeral ExecutionContext survives) while we read. Same rationale/value as the
 // agentexecution lifecycle suite: a held turn aborts the instant the client
 // disconnects, so the wall-clock cost is tiny.
@@ -85,7 +85,7 @@ interface MergeSetup {
 
 // Drives the AGENT env-merge path end to end: the caller's personal
 // Environment -> Agent (env whitelist) -> Session on the agent ->
-// AgentRun (runtime_env) in the session. A held mock turn keeps the run
+// Run (runtime_env) in the session. A held mock turn keeps the run
 // non-terminal for the read.
 async function runAgentMerge(org: string, setup: MergeSetup) {
   const personal = await clients.environmentCommand.create(
@@ -207,7 +207,7 @@ async function contextState(executionId: string): Promise<"present" | "gone"> {
 }
 
 describe("envmerge conformance — recover", () => {
-  it("[rpc:AgentRunCommandController.recover] recover rebuilds the context create built: the recorded agent version's keys, from the same person's personal environment as it is now", async () => {
+  it("[rpc:RunCommandController.recover] recover rebuilds the context create built: the recorded agent version's keys, from the same person's personal environment as it is now", async () => {
     // The first turn fails, and the run's end deletes its context. Between
     // the failure and the recover the agent's author saves a version
     // declaring another key, and the person fixes the key's value: the

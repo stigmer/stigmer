@@ -49,7 +49,7 @@ describe("packageNames (the checker itself)", () => {
   it("reduces a specifier to its package and drops relatives and builtins", () => {
     const source = [
       'import { create } from "@bufbuild/protobuf";',
-      'import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";',
+      'import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";',
       'import { join } from "node:path";',
       'import { a } from "./events.js";',
       'import { b } from "../../shared/status.js";',

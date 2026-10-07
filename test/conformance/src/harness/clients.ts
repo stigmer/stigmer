@@ -20,8 +20,8 @@ import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/a
 import { ChannelMessageCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_command_pb";
 import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_query_pb";
 import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
-import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
-import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
+import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
+import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
 import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
 import { AgentShareQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/query_pb";
 import { BillingCommandController } from "@stigmer/protos/ai/stigmer/billing/v1/command_pb";
@@ -103,8 +103,8 @@ export interface ConformanceClients {
   iamPolicyQuery: Client<typeof IamPolicyQueryController>;
   organizationCommand: Client<typeof OrganizationCommandController>;
   organizationQuery: Client<typeof OrganizationQueryController>;
-  agentExecutionCommand: Client<typeof AgentRunCommandController>;
-  agentExecutionQuery: Client<typeof AgentRunQueryController>;
+  agentExecutionCommand: Client<typeof RunCommandController>;
+  agentExecutionQuery: Client<typeof RunQueryController>;
   agentCommand: Client<typeof AgentCommandController>;
   agentQuery: Client<typeof AgentQueryController>;
   environmentCommand: Client<typeof EnvironmentCommandController>;
@@ -228,10 +228,10 @@ export function makeClients(transport: Transport): ConformanceClients {
     organizationCommand: createClient(OrganizationCommandController, transport),
     organizationQuery: createClient(OrganizationQueryController, transport),
     agentExecutionCommand: createClient(
-      AgentRunCommandController,
+      RunCommandController,
       transport,
     ),
-    agentExecutionQuery: createClient(AgentRunQueryController, transport),
+    agentExecutionQuery: createClient(RunQueryController, transport),
     agentCommand: createClient(AgentCommandController, transport),
     agentQuery: createClient(AgentQueryController, transport),
     environmentCommand: createClient(EnvironmentCommandController, transport),

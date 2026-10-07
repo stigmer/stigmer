@@ -52,15 +52,15 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "ject_identity_account_id\030\002 \001(\tR\030subjectI" +
       "dentityAccountId\022N\n\nprovenance\030\003 \001(\0132..a" +
       "i.stigmer.agentic.memory.v1.MemoryProven" +
-      "anceR\nprovenance\"\220\001\n\020MemoryProvenance\022\031\n" +
+      "anceR\nprovenance\"\205\001\n\020MemoryProvenance\022\031\n" +
       "\010agent_id\030\001 \001(\tR\007agentId\022\035\n\nsession_id\030\002" +
-      " \001(\tR\tsessionId\022 \n\014agent_run_id\030\003 \001(\tR\na" +
-      "gentRunId\022 \n\014tool_call_id\030\004 \001(\tR\ntoolCal" +
-      "lIdB\240\001B\tSpecProtoP\001\242\002\004ASAM\252\002\034Ai.Stigmer." +
-      "Agentic.Memory.V1\312\002\034Ai\\Stigmer\\Agentic\\M" +
-      "emory\\V1\342\002(Ai\\Stigmer\\Agentic\\Memory\\V1\\" +
-      "GPBMetadata\352\002 Ai::Stigmer::Agentic::Memo" +
-      "ry::V1b\006proto3"
+      " \001(\tR\tsessionId\022\025\n\006run_id\030\003 \001(\tR\005runId\022 " +
+      "\n\014tool_call_id\030\004 \001(\tR\ntoolCallIdB\240\001B\tSpe" +
+      "cProtoP\001\242\002\004ASAM\252\002\034Ai.Stigmer.Agentic.Mem" +
+      "ory.V1\312\002\034Ai\\Stigmer\\Agentic\\Memory\\V1\342\002(" +
+      "Ai\\Stigmer\\Agentic\\Memory\\V1\\GPBMetadata" +
+      "\352\002 Ai::Stigmer::Agentic::Memory::V1b\006pro" +
+      "to3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -78,7 +78,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_memory_v1_MemoryProvenance_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_memory_v1_MemoryProvenance_descriptor,
-        new java.lang.String[] { "AgentId", "SessionId", "AgentRunId", "ToolCallId", });
+        new java.lang.String[] { "AgentId", "SessionId", "RunId", "ToolCallId", });
     descriptor.resolveAllFeaturesImmutable();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =

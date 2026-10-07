@@ -63,7 +63,7 @@ type BillingCommandControllerClient interface {
 	// entry, even after the expiry has passed. Requires can_manage_credits on
 	// the platform, as adjustCredits does.
 	GrantCredits(ctx context.Context, in *GrantCreditsInput, opts ...grpc.CallOption) (*CreditLedgerEntry, error)
-	// Reserve credits before starting an agent run.
+	// Reserve credits before starting a run.
 	// Returns authorization status and reservation details.
 	AuthorizeRun(ctx context.Context, in *AuthorizeRunInput, opts ...grpc.CallOption) (*AuthorizeRunResponse, error)
 	// Record a single LLM call's usage for billing.
@@ -302,7 +302,7 @@ type BillingCommandControllerServer interface {
 	// entry, even after the expiry has passed. Requires can_manage_credits on
 	// the platform, as adjustCredits does.
 	GrantCredits(context.Context, *GrantCreditsInput) (*CreditLedgerEntry, error)
-	// Reserve credits before starting an agent run.
+	// Reserve credits before starting a run.
 	// Returns authorization status and reservation details.
 	AuthorizeRun(context.Context, *AuthorizeRunInput) (*AuthorizeRunResponse, error)
 	// Record a single LLM call's usage for billing.

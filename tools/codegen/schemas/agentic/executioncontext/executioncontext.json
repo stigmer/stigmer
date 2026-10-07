@@ -11,7 +11,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "ID of the parent AgentRun (or an MCP connect's execution id).",
+      "description": "ID of the parent Run (or an MCP connect's execution id).",
       "required": false,
       "validation": {
         "minLength": 1

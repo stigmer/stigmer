@@ -8,7 +8,7 @@ package ai.stigmer.iam.identityaccount.v1;
 /**
  * <pre>
  * IdentityAccountPreferences holds user-declared defaults that apply to the
- * user's own agent runs.
+ * user's own runs.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences}
@@ -499,7 +499,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * IdentityAccountPreferences holds user-declared defaults that apply to the
-   * user's own agent runs.
+   * user's own runs.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences}

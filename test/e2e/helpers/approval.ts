@@ -5,8 +5,8 @@ import type { Page, Locator } from "@playwright/test";
 import { create } from "@bufbuild/protobuf";
 import type { HookSourceInput, Stigmer } from "@stigmer/sdk";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { TerminateAgentRunInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { TerminateRunInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import {
   anthropicText,
   anthropicToolUses,
@@ -23,7 +23,7 @@ const DEFAULT_ORG = "default";
 export { getMockControlUrl, MockControl };
 
 // ---------------------------------------------------------------------------
-// Node-client seeding — gated AgentRun rendered + resolved in the browser
+// Node-client seeding — gated Run rendered + resolved in the browser
 // ---------------------------------------------------------------------------
 
 /** A seeded run sitting at (or heading toward) an approval gate. */
@@ -82,7 +82,7 @@ export function shellBlock(toolCallId: string, command: string): ToolUseBlock {
 }
 
 /**
- * Seeds an agent + a NATIVE-harness session + a gated AgentRun via the
+ * Seeds an agent + a NATIVE-harness session + a gated Run via the
  * node SDK client, and programs the mock LLM to drive the run to its gate.
  *
  * The browser is then used only to render and resolve the gate, so the test
@@ -145,7 +145,7 @@ export async function seedGatedSession(
   }
   await control.enqueue(anthropicText("Done."));
 
-  const execution = await client.agentRun.create({
+  const execution = await client.run.create({
     name: `e2e-approval-exec-${stamp}`,
     org,
     sessionId,
@@ -164,15 +164,15 @@ export async function seedGatedSession(
       // it terminal, then delete — and bound EVERY call so cleanup can never hang
       // the suite regardless of backend state.
       await withTimeout(
-        client.agentRun.terminate(
-          create(TerminateAgentRunInputSchema, {
+        client.run.terminate(
+          create(TerminateRunInputSchema, {
             id: executionId,
             reason: "e2e approval spec teardown",
           }),
         ),
         3_000,
       ).catch(() => {});
-      await withTimeout(client.agentRun.delete(executionId), 5_000).catch(() => {});
+      await withTimeout(client.run.delete(executionId), 5_000).catch(() => {});
       await withTimeout(client.session.delete(sessionId), 5_000).catch(() => {});
       await withTimeout(client.agent.delete(agentId), 5_000).catch(() => {});
     },
@@ -213,7 +213,7 @@ export interface SeedToolRunSessionOptions {
 }
 
 /**
- * Seeds an agent + native session + an `auto_approve_all` AgentRun that
+ * Seeds an agent + native session + an `auto_approve_all` Run that
  * runs the given tool turns to completion, then a terminating text turn. Sibling
  * of {@link seedGatedSession} (the seeding shape is deliberately parallel; the
  * one difference is `autoApproveAll: true` + no gate), kept separate so the
@@ -257,7 +257,7 @@ export async function seedToolRunSession(
   }
   await control.enqueue(anthropicText("Done."));
 
-  const execution = await client.agentRun.create({
+  const execution = await client.run.create({
     name: `e2e-toolrun-exec-${stamp}`,
     org,
     sessionId,
@@ -273,15 +273,15 @@ export async function seedToolRunSession(
     runId: executionId,
     cleanup: async () => {
       await withTimeout(
-        client.agentRun.terminate(
-          create(TerminateAgentRunInputSchema, {
+        client.run.terminate(
+          create(TerminateRunInputSchema, {
             id: executionId,
             reason: "e2e tool-run spec teardown",
           }),
         ),
         3_000,
       ).catch(() => {});
-      await withTimeout(client.agentRun.delete(executionId), 5_000).catch(() => {});
+      await withTimeout(client.run.delete(executionId), 5_000).catch(() => {});
       await withTimeout(client.session.delete(sessionId), 5_000).catch(() => {});
       await withTimeout(client.agent.delete(agentId), 5_000).catch(() => {});
     },
@@ -364,7 +364,7 @@ async function pollExecution(
     // Capping the call keeps the loop honoring `timeoutMs`, so a stuck backend
     // surfaces as a fast, phase-annotated failure instead of a 90s hang.
     try {
-      const exec = await withTimeout(client.agentRun.get(executionId), 5_000);
+      const exec = await withTimeout(client.run.get(executionId), 5_000);
       last = exec.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
       lastGetError = undefined;
       if (predicate(last)) return last;

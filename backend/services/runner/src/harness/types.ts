@@ -68,8 +68,8 @@
  * `registry.ts`, no barrel.
  */
 
-import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { AgentRun, AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run, RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 
 import type { Config } from "../config.js";
@@ -339,7 +339,7 @@ export interface TurnInput extends NormalizedActivityInput {
    * verdict from the rows itself.
    */
   readonly approvalDecisions: ReadonlyMap<string, ApprovalAction>;
-  readonly execution: AgentRun;
+  readonly execution: Run;
   /** The same object as `blueprint.session`; `bindHarnessState` writes it. */
   readonly session: Session;
   readonly blueprint: ResolvedBlueprint;
@@ -405,7 +405,7 @@ export interface TurnSink {
    * seeded by the runtime from the persisted transcript, so the WAITING rows
    * the adapter wrote last time, and their decisions, are already on it.
    */
-  readonly status: AgentRunStatus;
+  readonly status: RunStatus;
 
   /**
    * The one transcript builder over `status`, constructed by the runtime

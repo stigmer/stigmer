@@ -227,7 +227,7 @@ own client with methods like `get`, `create`, `list`, `apply`, `update`, and
 ```typescript
 stigmer.agent.get(id)
 stigmer.session.create(input)
-stigmer.agentRun.subscribe(id)
+stigmer.run.subscribe(id)
 ```
 
 TypeScript uses singular camelCase accessors on the `Stigmer` instance.
@@ -236,7 +236,7 @@ TypeScript uses singular camelCase accessors on the `Stigmer` instance.
 ```go
 client.Agent.Get(ctx, id)
 client.Session.Create(ctx, &stigmer.SessionInput{...})
-client.AgentRun.Subscribe(ctx, id)
+client.Run.Subscribe(ctx, id)
 ```
 
 Go uses singular PascalCase fields. Every method takes a `context.Context` as
@@ -246,7 +246,7 @@ its first argument.
 ```python
 client.agents.get(id)
 client.sessions.create(SessionInput(...))
-client.agent_runs.subscribe(id)
+client.runs.subscribe(id)
 ```
 
 Python uses plural snake_case attributes.
@@ -255,7 +255,7 @@ Python uses plural snake_case attributes.
 ```java
 client.agents().get(id);
 client.sessions().create(SessionInput.builder()...build());
-client.agentRun.subscribe(id);
+client.run.subscribe(id);
 ```
 
 Java uses plural camelCase methods that return typed sub-clients.
@@ -360,7 +360,7 @@ try {
 
 ## Pagination
 
-The lists that grow without bound (Sessions and Agent Runs) page
+The lists that grow without bound (Sessions and runs) page
 by cursor, newest first. Pass `pageSize` (at most 100; zero
 returns the whole list) and read `nextPageToken` from the result. Pass that
 token back as `pageToken` to get the next page. An empty token means you have
@@ -442,13 +442,13 @@ do {
 
 ## Streaming
 
-Agent Runs support server-streaming via a `subscribe` method.
+Runs support server-streaming via a `subscribe` method.
 You receive snapshots of the run state as it progresses — messages arriving, tool calls executing, and phases changing.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-for await (const snapshot of stigmer.agentRun.subscribe(runId)) {
+for await (const snapshot of stigmer.run.subscribe(runId)) {
   const messages = snapshot.status?.messages ?? [];
   const last = messages[messages.length - 1];
   if (last?.content) {
@@ -460,7 +460,7 @@ for await (const snapshot of stigmer.agentRun.subscribe(runId)) {
 </Tab>
 <Tab value="Go">
 ```go
-stream, err := client.AgentRun.Subscribe(ctx, runID)
+stream, err := client.Run.Subscribe(ctx, runID)
 if err != nil {
     log.Fatal(err)
 }
@@ -485,7 +485,7 @@ for {
 </Tab>
 <Tab value="Python">
 ```python
-for snapshot in client.agent_runs.subscribe(run_id):
+for snapshot in client.runs.subscribe(run_id):
     messages = snapshot.status.messages
     if messages and messages[-1].content:
         print(messages[-1].content)
@@ -494,7 +494,7 @@ for snapshot in client.agent_runs.subscribe(run_id):
 </Tab>
 <Tab value="Java">
 ```java
-var stream = client.agentRun.subscribe(runId);
+var stream = client.run.subscribe(runId);
 while (stream.hasNext()) {
     var snapshot = stream.next();
     var messages = snapshot.getStatus().getMessagesList();

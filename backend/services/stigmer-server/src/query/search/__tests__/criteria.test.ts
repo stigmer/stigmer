@@ -48,7 +48,7 @@ describe("searchIndexedKinds derivation (kind_meta)", () => {
         ApiResourceKind.mcp_server,
         ApiResourceKind.environment,
         ApiResourceKind.session,
-        ApiResourceKind.agent_run,
+        ApiResourceKind.run,
         ApiResourceKind.execution_context,
         ApiResourceKind.organization,
         ApiResourceKind.plugin,

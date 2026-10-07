@@ -36,7 +36,7 @@ import { newIdentityAccountPurge } from "../domain/identityaccount/purge.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
 import type { ChannelRuntime } from "../domain/agentchannel/channel-runtime.js";
 import { newAgentChannelPurge } from "../domain/agentchannel/purge.js";
-import { newAgentExecutionPurge } from "../domain/agentrun/purge.js";
+import { newAgentExecutionPurge } from "../domain/run/purge.js";
 import { newAgentSharePurge } from "../domain/agentshare/purge.js";
 import { newApiKeyPurge } from "../domain/apikey/purge.js";
 import { newChannelAppPurge } from "../domain/channelapp/purge.js";
@@ -135,7 +135,7 @@ export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
  */
 export const CORE_PURGED_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.schedule,
-  ApiResourceKind.agent_run,
+  ApiResourceKind.run,
   ApiResourceKind.session,
   ApiResourceKind.agent_share,
   ApiResourceKind.agent_channel,

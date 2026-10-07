@@ -3,8 +3,8 @@ import { create } from "@bufbuild/protobuf";
 import {
   FileChangeSchema,
   type FileChange,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { findChangeForSelection } from "../findChangeForSelection";
 import type { WorkspaceEntry } from "../useWorkspaceEntries";
 

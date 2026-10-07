@@ -597,7 +597,7 @@ describe("leaving an organization: the account's rows on its resources", () => {
       scopeLink("team", TEAM, "acme"),
       scopeLink("session", SESSION, "acme"),
       triple({ kind: "session", id: SESSION }, "session", {
-        kind: "agent_run",
+        kind: "run",
         id: RUN,
       }),
       triple({ kind: "identity_account", id: ALICE }, "viewer", agent(SHARED)),
@@ -617,7 +617,7 @@ describe("leaving an organization: the account's rows on its resources", () => {
         id: SESSION,
       }),
       triple({ kind: "identity_account", id: ALICE }, "viewer", {
-        kind: "agent_run",
+        kind: "run",
         id: RUN,
       }),
     ]) {
@@ -664,7 +664,7 @@ describe("leaving an organization: the account's rows on its resources", () => {
 
     await path.revokeOrgAccess(ALICE, "acme", alice);
 
-    expect(aliceHolds(policies)).not.toContain(`viewer agent_run:${RUN}`);
+    expect(aliceHolds(policies)).not.toContain(`viewer run:${RUN}`);
   });
 
   it("a retried revokeOrgAccess still sweeps when the organization rows are already gone", async () => {
@@ -1086,7 +1086,7 @@ describe("who and why: every access row reaches the store with its change record
       storedResources({ organizations: { [`session:${SESSION}`]: "acme" } }),
     );
     const viewer = triple({ kind: "identity_account", id: BOB }, "viewer", {
-      kind: "agent_run",
+      kind: "run",
       id: RUN,
     });
     await path.grant(
@@ -1096,7 +1096,7 @@ describe("who and why: every access row reaches the store with its change record
     );
     await path.grant(
       triple({ kind: "session", id: SESSION }, "session", {
-        kind: "agent_run",
+        kind: "run",
         id: RUN,
       }),
       alice,

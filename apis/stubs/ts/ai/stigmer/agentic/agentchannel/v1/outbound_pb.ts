@@ -48,7 +48,7 @@ export type ChannelOutboundMessage = Message<"ai.stigmer.agentic.agentchannel.v1
   org: string;
 
   /**
-   * Session of the originating agent run; empty for direct operator
+   * Session of the originating run; empty for direct operator
    * sends, which have no session.
    *
    * @generated from field: string session_id = 4;
@@ -272,7 +272,7 @@ export enum ChannelOutboundOrigin {
   channel_outbound_origin_unspecified = 0,
 
   /**
-   * The send came from an agent run created by an inbound channel
+   * The send came from a run created by an inbound channel
    * message; the recipient must be a known sender on the channel.
    *
    * @generated from enum value: channel_conversation = 1;

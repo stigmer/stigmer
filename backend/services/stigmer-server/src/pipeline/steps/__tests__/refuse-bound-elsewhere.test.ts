@@ -10,7 +10,7 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -34,12 +34,12 @@ const boundToAcme: CallerIdentity = { ...person, boundOrg: "org_acme" };
 
 function runIn(org: string, caller: CallerIdentity) {
   return new RequestContext(
-    AgentRunSchema,
-    create(AgentRunSchema, {
+    RunSchema,
+    create(RunSchema, {
       metadata: { id: "aex_1", name: "run", org },
     }),
     caller,
-    ApiResourceKind.agent_run,
+    ApiResourceKind.run,
   );
 }
 
@@ -72,7 +72,7 @@ describe("refuseBoundElsewhere", () => {
 
 describe("the step and the persist backstop", () => {
   it("the step refuses a run filed in another organization, and passes one in its own", async () => {
-    const step = newRefuseBoundElsewhereStep<typeof AgentRunSchema>();
+    const step = newRefuseBoundElsewhereStep<typeof RunSchema>();
     await expect(
       step.execute(runIn("org_globex", boundToAcme)),
     ).rejects.toMatchObject({
@@ -90,7 +90,7 @@ describe("the step and the persist backstop", () => {
         saved.push(id);
       },
     } as unknown as Store;
-    const persist = newPersistStep<typeof AgentRunSchema>(store);
+    const persist = newPersistStep<typeof RunSchema>(store);
     await expect(
       persist.execute(runIn("org_globex", boundToAcme)),
     ).rejects.toMatchObject({

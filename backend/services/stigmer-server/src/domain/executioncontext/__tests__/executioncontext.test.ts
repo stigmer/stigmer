@@ -45,8 +45,8 @@ import type { Client, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { ExecutionContextCommandController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/command_pb";
@@ -451,10 +451,10 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
       completedAt = "",
     ): Promise<void> {
       await ts.server.store.saveResource(
-        ApiResourceKind.agent_run,
+        ApiResourceKind.run,
         RUN_ID,
-        AgentRunSchema,
-        create(AgentRunSchema, {
+        RunSchema,
+        create(RunSchema, {
           metadata: { id: RUN_ID, name: RUN_ID, org: "test-org" },
           status: { phase, completedAt },
         }),
@@ -546,10 +546,10 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
     /** Seeds an agent execution row, as a run the server started. */
     async function seedAgentRun(id: string): Promise<void> {
       await ts.server.store.saveResource(
-        ApiResourceKind.agent_run,
+        ApiResourceKind.run,
         id,
-        AgentRunSchema,
-        create(AgentRunSchema, {
+        RunSchema,
+        create(RunSchema, {
           metadata: { id, name: id, org: ORG },
           status: { phase: RunPhase.RUN_IN_PROGRESS },
         }),
@@ -577,7 +577,7 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
       );
     }
 
-    it("a wire create naming an existing agent run's id is refused with PermissionDenied", async () => {
+    it("a wire create naming an existing run's id is refused with PermissionDenied", async () => {
       await seedAgentRun("aex_bound_existing");
       const error = await grpcError(() =>
         ts.command.create(ecInput({ executionId: "aex_bound_existing" })),

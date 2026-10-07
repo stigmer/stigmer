@@ -58,7 +58,7 @@ const SESSION_START_MS = START_SESSION_WAITS_MS.composer + START_SESSION_WAITS_M
 const CASE_BUDGET_MS = SESSION_START_MS + 4 * TURN_BUDGET_MS + 60_000;
 
 /**
- * Agent run through the session surface, anchored to the signals the
+ * Run through the session surface, anchored to the signals the
  * CURRENT session viewer exposes (stigmer/stigmer#743 re-anchor): the
  * composer disables while a run is active and re-enables after, and the
  * response lands in the thread. The pre-redesign sidebar "Execution

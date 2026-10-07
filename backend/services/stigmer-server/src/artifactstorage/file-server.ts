@@ -2,7 +2,7 @@
  * The local download lane: an HTTP listener that serves the bytes local
  * artifact storage (artifact-storage.ts) holds, at the URLs its
  * getSignedUrl mints. Two kinds of file reach a caller through it: an agent
- * run's files (agentRun.getArtifactDownloadUrl) and the skill and plugin
+ * run's files (run.getArtifactDownloadUrl) and the skill and plugin
  * archives a runner mounts (the staging driver's download links). The lane
  * ports Go pkg/server/server.go's artifactDownloadHandler and its boot block:
  * a second listener on 127.0.0.1:ARTIFACT_HTTP_PORT (unset: the unified

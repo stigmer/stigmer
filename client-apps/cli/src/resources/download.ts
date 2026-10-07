@@ -8,9 +8,9 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 import { create } from "@bufbuild/protobuf";
-import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { GetArtifactDownloadUrlRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { GetArtifactDownloadUrlRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { CliExitError, ExitCode } from "../errors/index.js";
 import { formatBytes } from "./skill.js";
@@ -44,7 +44,7 @@ export async function downloadRunArtifacts(
   params: DownloadParams,
   progress?: ProgressSink,
 ): Promise<DownloadOutcome> {
-  const run = await client.agentRun.get(runId);
+  const run = await client.run.get(runId);
   const phase = run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   const incompletePhase = TERMINAL_PHASES.has(phase) ? undefined : formatDownloadPhase(phase);
   if (incompletePhase !== undefined) {
@@ -123,7 +123,7 @@ async function downloadSingle(
  * expired, so the refresh RPC is the single source of a working URL.
  */
 async function resolveDownloadUrl(client: Stigmer, runId: string, artifact: RunArtifact): Promise<string> {
-  const response = await client.agentRun.getArtifactDownloadUrl(
+  const response = await client.run.getArtifactDownloadUrl(
     create(GetArtifactDownloadUrlRequestSchema, { runId, storageKey: artifact.storageKey }),
   );
   if (response.downloadUrl !== "") return response.downloadUrl;

@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, act, fireEvent } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import {
   RunArtifactKind,
   RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../../run/artifact-document";
 import { artifactKey, type SessionArtifactEntry } from "../useSessionArtifacts";
 
@@ -56,7 +56,7 @@ const artifact = create(RunArtifactSchema, {
   storageKey: "artifacts/aex_1/agent.yaml",
 });
 
-const artifactExecution = create(AgentRunSchema, {
+const artifactExecution = create(RunSchema, {
   metadata: { id: "aex_1" },
   status: {
     phase: RunPhase.RUN_COMPLETED,
@@ -152,7 +152,7 @@ vi.mock("../useSessionPageFlow", () => ({
 
 vi.mock("../../hooks", () => ({
   useStigmer: () => ({
-    agentRun: {
+    run: {
       uploadAttachment: vi.fn(),
       getArtifactContent: vi.fn(),
     },

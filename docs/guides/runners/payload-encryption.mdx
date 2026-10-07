@@ -6,10 +6,10 @@ description:
   UI. Two environment variables on the runner and the server.
 ---
 
-Agent Runs move data through Temporal: activity inputs and results, workflow
-results. Without encryption, that data — including the execution-context secrets
-a run resolves — rests in durable Temporal history, readable by anyone with
-access to the Temporal UI or database.
+Runs move data through Temporal: activity inputs and results, workflow results.
+Without encryption, that data — including the execution-context secrets a run
+resolves — rests in durable Temporal history, readable by anyone with access to
+the Temporal UI or database.
 
 Payload encryption closes the whole class at the codec layer: the runner
 encrypts **every payload its workers hand to Temporal** with AES-256-GCM before
@@ -44,8 +44,8 @@ to silent plaintext.
 
 <Callout type="warn">
   Both processes need the key. The server holds it to *decode* runner results —
-  with the key set only on the runner, every Agent Run and MCP connect fails on
-  the server's first read. Upgrade both to a release that ships the server-side
+  with the key set only on the runner, every run and MCP connect fails on the
+  server's first read. Upgrade both to a release that ships the server-side
   codec, then set the key on both together.
 </Callout>
 

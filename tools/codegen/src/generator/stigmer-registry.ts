@@ -10,7 +10,7 @@ import { createRegistry } from "@bufbuild/protobuf";
 
 import { file_ai_stigmer_agentic_agent_v1_api } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { file_ai_stigmer_agentic_agentchannel_v1_api } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { file_ai_stigmer_agentic_agentrun_v1_api } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { file_ai_stigmer_agentic_run_v1_api } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { file_ai_stigmer_agentic_agentshare_v1_api } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { file_ai_stigmer_agentic_channelapp_v1_api } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { file_ai_stigmer_agentic_environment_v1_api } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
@@ -37,7 +37,7 @@ import { file_ai_stigmer_tenancy_organization_v1_api } from "@stigmer/protos/ai/
 const ROOT_FILES: DescFile[] = [
   file_ai_stigmer_agentic_agent_v1_api,
   file_ai_stigmer_agentic_agentchannel_v1_api,
-  file_ai_stigmer_agentic_agentrun_v1_api,
+  file_ai_stigmer_agentic_run_v1_api,
   file_ai_stigmer_agentic_agentshare_v1_api,
   file_ai_stigmer_agentic_channelapp_v1_api,
   file_ai_stigmer_agentic_environment_v1_api,

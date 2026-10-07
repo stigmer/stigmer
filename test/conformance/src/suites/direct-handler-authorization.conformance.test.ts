@@ -251,7 +251,7 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
     );
   });
 
-  it("[rpc:AgentRunQueryController.getArtifactContent] [rpc:AgentRunQueryController.getArtifactDownloadUrl] [rpc:AgentRunQueryController.subscribe] the authorize-first read lanes answer an outsider's unknown id with the uniform NOT_FOUND", async (ctx) => {
+  it("[rpc:RunQueryController.getArtifactContent] [rpc:RunQueryController.getArtifactDownloadUrl] [rpc:RunQueryController.subscribe] the authorize-first read lanes answer an outsider's unknown id with the uniform NOT_FOUND", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const outsider = await lane.provisionIdentity();
     const missingAgentExecution = "aexec_01conformancemissing";

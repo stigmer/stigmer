@@ -43,11 +43,6 @@ from ._gen._agent import (
     RunConfigInput,
     SubAgentInput,
 )
-from ._gen._agentrun import (
-    AgentRunClient,
-    AgentRunInput,
-    AttachmentInput,
-)
 from ._gen._apikey import ApiKeyClient, ApiKeyInput
 from ._gen._environment import EnvironmentClient, EnvironmentInput
 from ._gen._executioncontext import ExecutionContextClient, ExecutionContextInput
@@ -62,6 +57,11 @@ from ._gen._mcpserver import (
 )
 from ._gen._oauthapp import OAuthAppClient, OAuthAppInput
 from ._gen._organization import OrganizationClient, OrganizationInput
+from ._gen._run import (
+    AttachmentInput,
+    RunClient,
+    RunInput,
+)
 from ._gen._session import (
     GitRepoSourceInput,
     LocalPathSourceInput,
@@ -136,7 +136,6 @@ __all__ = [
     "SearchResponse",
     # Resource clients
     "AgentClient",
-    "AgentRunClient",
     "ApiKeyClient",
     "EnvironmentClient",
     "ExecutionContextClient",
@@ -146,13 +145,13 @@ __all__ = [
     "McpServerClient",
     "OAuthAppClient",
     "OrganizationClient",
+    "RunClient",
     "SessionClient",
     "SkillClient",
     "RoutedSkillClient",
     "MAX_INLINE_ARTIFACT_BYTES",
     # Input types
     "AgentInput",
-    "AgentRunInput",
     "ApiKeyInput",
     "ApiResourceRefInput",
     "AttachmentInput",
@@ -171,6 +170,7 @@ __all__ = [
     "McpServerUsageInput",
     "OAuthAppInput",
     "OrganizationInput",
+    "RunInput",
     "RunConfigInput",
     "SessionInput",
     "SkillInput",

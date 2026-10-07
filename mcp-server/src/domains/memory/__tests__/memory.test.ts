@@ -113,7 +113,7 @@ beforeAll(async () => {
   // runner-set STIGMER_MEMORY_* environment.
   const mcp = createMemoryServer(
     { serverAddress: `127.0.0.1:${port}`, apiKey: "" },
-    { org: "acme", agentId: "agt_1", sessionId: "ses_1", agentRunId: "aex_1" },
+    { org: "acme", agentId: "agt_1", sessionId: "ses_1", runId: "aex_1" },
   );
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   client = new Client({ name: "memory-integration", version: "test" });
@@ -173,7 +173,7 @@ describe("argument + capture context → request mapping", () => {
     expect(req?.spec?.subjectIdentityAccountId).toBe("");
     expect(req?.spec?.provenance?.agentId).toBe("agt_1");
     expect(req?.spec?.provenance?.sessionId).toBe("ses_1");
-    expect(req?.spec?.provenance?.agentRunId).toBe("aex_1");
+    expect(req?.spec?.provenance?.runId).toBe("aex_1");
     // v1: MCP does not carry the harness's tool-call identity.
     expect(req?.spec?.provenance?.toolCallId).toBe("");
   });

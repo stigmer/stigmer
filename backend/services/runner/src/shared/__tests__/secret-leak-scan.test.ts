@@ -11,7 +11,7 @@
  * offline harness always runs a git workspace with LocalArtifactDir,
  * so deriveCaptureMode is always true and the no-storage deny-gate is unreachable).
  * This test exercises the exact function the turn runtime's persist chokepoint
- * invokes for both harnesses, over a full AgentRunStatus.
+ * invokes for both harnesses, over a full RunStatus.
  */
 
 import { describe, it, expect } from "vitest";
@@ -19,10 +19,10 @@ import { create, toJsonString } from "@bufbuild/protobuf";
 import {
   AgentMessageSchema,
   ToolCallSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { ToolCallStatus, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { ToolCallStatus, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { withholdSecretContentFromMessages } from "../tool-row.js";
 
 const SECRET = "API_KEY=SUPER_SECRET_LEAK_TOKEN_9f3a";
@@ -40,7 +40,7 @@ function secretWriteRow(id: string, path: string) {
 
 describe("deny-gate secret leak-scan", () => {
   it("no secret bytes survive in the serialized status (top-level + sub-agent), non-secret content preserved", () => {
-    const status = create(AgentRunStatusSchema, {
+    const status = create(RunStatusSchema, {
       messages: [
         create(AgentMessageSchema, {
           type: MessageType.MESSAGE_AI,
@@ -74,7 +74,7 @@ describe("deny-gate secret leak-scan", () => {
     // The mechanism both harnesses call before every persist.
     withholdSecretContentFromMessages(status.messages, status.subAgentRuns);
 
-    const serialized = toJsonString(AgentRunStatusSchema, status);
+    const serialized = toJsonString(RunStatusSchema, status);
     expect(serialized).not.toContain(SECRET);
     // The paths remain (a filename is not the secret); non-secret content survives.
     expect(serialized).toContain(".env");
@@ -87,7 +87,7 @@ describe("deny-gate secret leak-scan", () => {
     // flows and its content lands on the streamed row unscrubbed. The backstop —
     // called unconditionally before persist — is the only thing standing between
     // that row and durable storage.
-    const status = create(AgentRunStatusSchema, {
+    const status = create(RunStatusSchema, {
       messages: [
         create(AgentMessageSchema, {
           type: MessageType.MESSAGE_AI,
@@ -98,7 +98,7 @@ describe("deny-gate secret leak-scan", () => {
 
     withholdSecretContentFromMessages(status.messages, status.subAgentRuns);
 
-    const serialized = toJsonString(AgentRunStatusSchema, status);
+    const serialized = toJsonString(RunStatusSchema, status);
     expect(serialized).not.toContain(SECRET);
     expect(serialized).toContain(".aws/credentials"); // path kept, honest record
   });

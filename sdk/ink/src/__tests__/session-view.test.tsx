@@ -13,8 +13,8 @@ import { create } from "@bufbuild/protobuf";
 import {
   FileChangeProgressSchema,
   FileChangeProgressEntrySchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
-import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { UseSessionConversationReturn } from "@stigmer/react";
 import { SessionView } from "../app/SessionView.js";

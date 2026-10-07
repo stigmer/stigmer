@@ -139,7 +139,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object lastRunId_ = "";
   /**
    * <pre>
-   * ID of the agent run created by the most recent fire.
+   * ID of the run created by the most recent fire.
    * </pre>
    *
    * <code>string last_run_id = 3 [json_name = "lastRunId"];</code>
@@ -160,7 +160,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ID of the agent run created by the most recent fire.
+   * ID of the run created by the most recent fire.
    * </pre>
    *
    * <code>string last_run_id = 3 [json_name = "lastRunId"];</code>
@@ -1075,7 +1075,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object lastRunId_ = "";
     /**
      * <pre>
-     * ID of the agent run created by the most recent fire.
+     * ID of the run created by the most recent fire.
      * </pre>
      *
      * <code>string last_run_id = 3 [json_name = "lastRunId"];</code>
@@ -1095,7 +1095,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the agent run created by the most recent fire.
+     * ID of the run created by the most recent fire.
      * </pre>
      *
      * <code>string last_run_id = 3 [json_name = "lastRunId"];</code>
@@ -1116,7 +1116,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the agent run created by the most recent fire.
+     * ID of the run created by the most recent fire.
      * </pre>
      *
      * <code>string last_run_id = 3 [json_name = "lastRunId"];</code>
@@ -1133,7 +1133,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the agent run created by the most recent fire.
+     * ID of the run created by the most recent fire.
      * </pre>
      *
      * <code>string last_run_id = 3 [json_name = "lastRunId"];</code>
@@ -1147,7 +1147,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the agent run created by the most recent fire.
+     * ID of the run created by the most recent fire.
      * </pre>
      *
      * <code>string last_run_id = 3 [json_name = "lastRunId"];</code>

@@ -21,11 +21,11 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { type AgentRunStatus, AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { ApprovalAction, ApprovalPolicySource, RunPhase, MessageType, ToolCallStatus, ToolKind, TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
-import { WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/writeback_pb";
+import { type RunStatus, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { ApprovalAction, ApprovalPolicySource, RunPhase, MessageType, ToolCallStatus, ToolKind, TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
+import { WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/writeback_pb";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import { DeepAgentTranslator } from "../translator.js";
 import type { DeepAgentGateState } from "../turn-setup.js";
@@ -52,8 +52,8 @@ import type { V3ProtocolEvent } from "../v3-event-recorder.js";
  * carry are the wire's real shape and are ignored by everything here.
  */
 /** A builder and the status it builds into: the test writes through `sb` and reads `status`, as production reads `TurnSink.status`. */
-function makeBuilder(): { sb: TranscriptBuilder; status: AgentRunStatus } {
-  const status = create(AgentRunStatusSchema, {});
+function makeBuilder(): { sb: TranscriptBuilder; status: RunStatus } {
+  const status = create(RunStatusSchema, {});
   return { sb: new TranscriptBuilder("exec-test", status), status };
 }
 
@@ -732,7 +732,7 @@ describe("the native translator through the builder", () => {
     const GATED_ID = "toolu_seeded_01";
 
     it("resolves the seeded gated row in place — no duplicate, history kept, no re-gate", () => {
-      const status = create(AgentRunStatusSchema, {
+      const status = create(RunStatusSchema, {
         phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
         messages: [
           create(AgentMessageSchema, {

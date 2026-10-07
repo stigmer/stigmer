@@ -1,6 +1,6 @@
 /**
  * The one reader of the provider's `mintRunCredential` capability for the
- * agent run's dispatch path (temporal/agentexecution/engine-client.ts),
+ * run's dispatch path (temporal/agentexecution/engine-client.ts),
  * which puts the answer on the invoke workflow input as
  * `execution_context_token` — the
  * connect lane's key for the same token type (domain/mcpserver/engine.ts)

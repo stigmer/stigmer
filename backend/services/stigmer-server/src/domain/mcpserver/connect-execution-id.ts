@@ -3,7 +3,7 @@
  * shape, built here by the connect lane and recognized here by the
  * runner-credential lane, so the two can never drift apart.
  *
- * A connect is not an execution: it has no AgentRun row. What it has is an ephemeral ExecutionContext
+ * A connect is not an execution: it has no Run row. What it has is an ephemeral ExecutionContext
  * (connect.ts `createConnectExecutionContext`) whose `spec.execution_id`
  * must name SOMETHING for the decrypt lane's binding check
  * (executioncontext/resolve-values-for-caller.ts: the token's

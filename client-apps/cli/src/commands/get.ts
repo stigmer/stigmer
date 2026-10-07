@@ -1,7 +1,7 @@
 // `stigmer get <type> <reference>` — fetch a single resource.
 //
 // Thin handler: route the two non-registry special cases (runs, addressed
-// by `aex_` ID; agent version history/retrieval) first, then the
+// by `run_` ID; agent version history/retrieval) first, then the
 // registry-driven standard path. Heavy modules (backend client, SDK schemas)
 // are dynamically imported inside the action so `--help` stays fast.
 
@@ -80,7 +80,7 @@ async function runGet(type: string, reference: string, options: GetFlags, comman
     return;
   }
 
-  const parsed = parseReference(reference, org, info.idPrefix);
+  const parsed = parseReference(reference, org, info.idPrefixes);
   const [{ schema, message }, hideOrg] = await Promise.all([
     fetchResource(client.stigmer, info.kind, parsed),
     omitsOrganization(client.stigmer),

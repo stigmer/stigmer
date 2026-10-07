@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest",
           "outputType": "Skill",
           "outputFullType": "ai.stigmer.agentic.skill.v1.Skill",
-          "description": "Push a skill from a run artifact already in storage.\n Use this when an agent run has already produced a skill artifact\n and you want to publish it without downloading and re-uploading the ZIP."
+          "description": "Push a skill from a run artifact already in storage.\n Use this when a run has already produced a skill artifact\n and you want to publish it without downloading and re-uploading the ZIP."
         },
         {
           "name": "UpdateVisibility",
@@ -286,7 +286,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "ID of the agent run that produced the artifact (e.g., \"aex_abc123xyz456\").",
+          "description": "ID of the run that produced the artifact (e.g., \"run_abc123xyz456\").",
           "required": false,
           "validation": {
             "minLength": 1
@@ -398,7 +398,7 @@
               "organization",
               "platform",
               "agent",
-              "agent_run",
+              "run",
               "session",
               "skill",
               "mcp_server",
@@ -717,7 +717,7 @@
           "description": "AI assistant with instructions, tools, skills, and a delegation model."
         },
         {
-          "name": "agent_run",
+          "name": "run",
           "number": 41,
           "description": "Single run of an agent within a session, tracking tool calls and responses."
         },
@@ -754,7 +754,7 @@
         {
           "name": "environment",
           "number": 53,
-          "description": "Named set of variables and secrets for an agent run."
+          "description": "Named set of variables and secrets for a run."
         },
         {
           "name": "execution_context",

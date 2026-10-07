@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "@bufbuild/protobuf";
-import { GetArtifactContentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { GetArtifactContentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 
@@ -58,7 +58,7 @@ export interface UseArtifactContentReturn {
 
 /**
  * Data hook that fetches the text content of a single run artifact
- * via `stigmer.agentRun.getArtifactContent()`.
+ * via `stigmer.run.getArtifactContent()`.
  *
  * The server reads the artifact from R2 and returns the bytes through the
  * Stigmer API, eliminating CORS concerns for SDK consumers who need to
@@ -154,7 +154,7 @@ export function useArtifactContent(
   const { data, isLoading, isRefetching, error, refetch } = useFetch(
     executionId && storageKey
       ? () =>
-          stigmer.agentRun
+          stigmer.run
             .getArtifactContent(
               create(GetArtifactContentRequestSchema, {
                 runId: executionId,

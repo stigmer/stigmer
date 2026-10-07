@@ -393,7 +393,7 @@
           "description": "AI assistant with instructions, tools, skills, and a delegation model."
         },
         {
-          "name": "agent_run",
+          "name": "run",
           "number": 41,
           "description": "Single run of an agent within a session, tracking tool calls and responses."
         },
@@ -430,7 +430,7 @@
         {
           "name": "environment",
           "number": 53,
-          "description": "Named set of variables and secrets for an agent run."
+          "description": "Named set of variables and secrets for a run."
         },
         {
           "name": "execution_context",

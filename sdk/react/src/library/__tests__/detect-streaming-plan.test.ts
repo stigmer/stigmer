@@ -1,19 +1,19 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+  RunSchema,
+  RunStatusSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
-  AgentRunSpecSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+  RunSpecSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   RunPhase,
   InteractionMode,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { findStreamingPlan } from "../detect-streaming-plan";
 
 function makeMessage(type: MessageType, content: string) {
@@ -27,16 +27,16 @@ function makeExecution(opts: {
   phase?: RunPhase;
   interactionMode?: InteractionMode;
   messages?: ReturnType<typeof makeMessage>[];
-}): AgentRun {
-  const exec = create(AgentRunSchema);
+}): Run {
+  const exec = create(RunSchema);
 
-  const spec = create(AgentRunSpecSchema);
+  const spec = create(RunSpecSchema);
   if (opts.interactionMode !== undefined) {
     spec.interactionMode = opts.interactionMode;
   }
   exec.spec = spec;
 
-  const status = create(AgentRunStatusSchema);
+  const status = create(RunStatusSchema);
   status.phase = opts.phase ?? RunPhase.RUN_IN_PROGRESS;
   if (opts.messages) {
     status.messages = opts.messages;

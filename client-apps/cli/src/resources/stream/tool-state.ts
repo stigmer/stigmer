@@ -7,7 +7,7 @@
 // the top-level run gets one, each sub-agent gets its own (matching Go's
 // per-sub-agent tracker maps).
 
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { convertToolCall, isTerminalToolStatus, mapToolCallStatus } from "./convert.js";
 import type { StreamEvent } from "./events.js";
 

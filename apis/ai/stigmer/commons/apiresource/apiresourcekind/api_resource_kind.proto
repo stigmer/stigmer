@@ -78,6 +78,11 @@ message ApiResourceKindMeta {
   ResourceTier tier = 8;
   // FGA authorization configuration - defines how FGA tuples are created for this resource
   AuthorizationConfig authorization = 9;
+  // Prefixes this kind's ids were minted with before `id_prefix`. Ids are
+  // identities and are never rewritten, so a store keeps the ids it minted
+  // under an earlier prefix: readers that tell a kind from an id read these
+  // too. Never minted.
+  repeated string retired_id_prefixes = 10;
 }
 
 // API resource kinds for Stigmer.
@@ -399,12 +404,13 @@ enum ApiResourceKind {
   }];
 
   // Single run of an agent within a session, tracking tool calls and responses.
-  agent_run = 41 [(kind_meta) = {
+  run = 41 [(kind_meta) = {
     group: agentic
     version: v1
-    name: "AgentRun"
-    display_name: "Agent Run"
-    id_prefix: "aex"
+    name: "Run"
+    display_name: "Run"
+    id_prefix: "run"
+    retired_id_prefixes: ["aex"]
     is_versioned: false
     not_search_indexed: false
     tier: open_source
@@ -611,7 +617,7 @@ enum ApiResourceKind {
 
   // Agentic - Run environment and context
 
-  // Named set of variables and secrets for an agent run.
+  // Named set of variables and secrets for a run.
   environment = 53 [(kind_meta) = {
     group: agentic
     version: v1
@@ -658,7 +664,7 @@ enum ApiResourceKind {
 
   // Value 55 held the Artifact kind (id prefix "art": a blob a workflow
   // step promoted from its output) until the workflow product, its only
-  // producer, was removed platform-wide. An agent run's own files are
+  // producer, was removed platform-wide. A run's own files are
   // RunArtifact entries on the run's status, not this kind. Reserved so
   // the number is never reused for a different kind.
   reserved 55;

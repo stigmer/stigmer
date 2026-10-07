@@ -14,7 +14,7 @@ Environment ──► Schedule / PlatformClient (via environment_refs) ──►
 |---|---|---|
 | **Environment** | `.env` file | Stores named key-value pairs, each optionally marked as secret. Encrypted at rest when secret. |
 | **Schedule, PlatformClient** | Container config | References one or more Environments to supply runtime values to the agent runs it starts. |
-| **AgentRun** | `docker run` | Resolves the referenced Environments at start time, then `runtime_env`, then the personal environment of the person who sent the message for declared keys still missing, and injects the agent's declared keys into the sandbox. |
+| **Run** | `docker run` | Resolves the referenced Environments at start time, then `runtime_env`, then the personal environment of the person who sent the message for declared keys still missing, and injects the agent's declared keys into the sandbox. |
 
 Environments are created independently of agents — the same Environment can be referenced by many schedules and PlatformClients, enabling shared credential sets across teams and agents. A personal environment holds one person's own keys; a run reads it only for the person who started it (who sent the message), and only for the keys the agent and its MCP servers declare.
 

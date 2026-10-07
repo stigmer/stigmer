@@ -38,7 +38,7 @@
           "organization",
           "platform",
           "agent",
-          "agent_run",
+          "run",
           "session",
           "skill",
           "mcp_server",

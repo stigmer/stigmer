@@ -130,9 +130,9 @@ public enum ApiResourceKind
    * Single run of an agent within a session, tracking tool calls and responses.
    * </pre>
    *
-   * <code>agent_run = 41 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   * <code>run = 41 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
-  agent_run(41),
+  run(41),
   /**
    * <pre>
    * Conversation thread between a user and an agent.
@@ -184,7 +184,7 @@ public enum ApiResourceKind
   channel_app(48),
   /**
    * <pre>
-   * Named set of variables and secrets for an agent run.
+   * Named set of variables and secrets for a run.
    * </pre>
    *
    * <code>environment = 53 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
@@ -390,9 +390,9 @@ public enum ApiResourceKind
    * Single run of an agent within a session, tracking tool calls and responses.
    * </pre>
    *
-   * <code>agent_run = 41 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   * <code>run = 41 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
    */
-  public static final int agent_run_VALUE = 41;
+  public static final int run_VALUE = 41;
   /**
    * <pre>
    * Conversation thread between a user and an agent.
@@ -444,7 +444,7 @@ public enum ApiResourceKind
   public static final int channel_app_VALUE = 48;
   /**
    * <pre>
-   * Named set of variables and secrets for an agent run.
+   * Named set of variables and secrets for a run.
    * </pre>
    *
    * <code>environment = 53 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
@@ -562,7 +562,7 @@ public enum ApiResourceKind
       case 30: return organization;
       case 31: return platform;
       case 40: return agent;
-      case 41: return agent_run;
+      case 41: return run;
       case 42: return session;
       case 43: return skill;
       case 44: return mcp_server;

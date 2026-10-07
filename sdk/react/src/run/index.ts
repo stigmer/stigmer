@@ -1,31 +1,31 @@
-export { useCreateAgentRun } from "./useCreateAgentRun.js";
+export { useCreateRun } from "./useCreateRun.js";
 export type {
   BootstrapSessionSpec,
-  CreateAgentRunInput,
-  CreateAgentRunResult,
-  SharedAgentRunFields,
-  UseCreateAgentRunReturn,
-} from "./useCreateAgentRun.js";
+  CreateRunInput,
+  CreateRunResult,
+  SharedRunFields,
+  UseCreateRunReturn,
+} from "./useCreateRun.js";
 
 export { isTerminalPhase } from "./run-phases.js";
 
 export { useRunStream } from "./useRunStream.js";
 export type { UseRunStreamReturn } from "./useRunStream.js";
 
-export { useLiveAgentRun } from "./useLiveAgentRun.js";
+export { useLiveRun } from "./useLiveRun.js";
 export type {
-  UseLiveAgentRunOptions,
-  UseLiveAgentRunReturn,
-} from "./useLiveAgentRun.js";
+  UseLiveRunOptions,
+  UseLiveRunReturn,
+} from "./useLiveRun.js";
 
-export { useAgentRunActions } from "./useAgentRunActions.js";
+export { useRunActions } from "./useRunActions.js";
 export type {
-  UseAgentRunActionsOptions,
-  UseAgentRunActionsReturn,
-} from "./useAgentRunActions.js";
+  UseRunActionsOptions,
+  UseRunActionsReturn,
+} from "./useRunActions.js";
 
-export { useResolveAgentRunSession } from "./useResolveAgentRunSession.js";
-export type { UseResolveAgentRunSessionReturn } from "./useResolveAgentRunSession.js";
+export { useResolveRunSession } from "./useResolveRunSession.js";
+export type { UseResolveRunSessionReturn } from "./useResolveRunSession.js";
 
 export { UsageWidget, formatCost, formatTokenCount } from "./UsageWidget.js";
 export type { UsageWidgetProps } from "./UsageWidget.js";

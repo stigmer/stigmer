@@ -113,7 +113,7 @@ export const CreditLedgerEntrySchema: GenMessage<CreditLedgerEntry> = /*@__PURE_
  */
 export type CreditLedgerSource = Message<"ai.stigmer.billing.v1.CreditLedgerSource"> & {
   /**
-   * Agent run that generated this debit.
+   * Run that generated this debit.
    *
    * @generated from field: string run_id = 1;
    */
@@ -324,7 +324,7 @@ export const CreditPackSchema: GenMessage<CreditPack> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_billing_v1_credit, 3);
 
 /**
- * RunReservation tracks credits held for an active agent run.
+ * RunReservation tracks credits held for an active run.
  *
  * Created at run start (AuthorizeRun), consumed incrementally
  * by per-LLM-call debits (via proxy-observed usage metering), and settled
@@ -348,7 +348,7 @@ export type RunReservation = Message<"ai.stigmer.billing.v1.RunReservation"> & {
   org: string;
 
   /**
-   * Agent run this reservation is for.
+   * Run this reservation is for.
    *
    * @generated from field: string run_id = 3;
    */

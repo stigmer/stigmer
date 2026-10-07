@@ -59,10 +59,10 @@ The [authentication guide](./authentication#what-changes) has the rules.
 ## When the runner is gone
 
 Nothing on the server notices a runner leaving; it finds out when a run has
-nobody to take it. **An Agent Run waits five minutes, then fails.** Its status
-carries the reason: `No worker available to execute activity`, followed by the
-three usual causes, starting with "the Stigmer runner is not running". The
-console and the CLI both show it. Start the run again once the runner is back.
+nobody to take it. **A run waits five minutes, then fails.** Its status carries
+the reason: `No worker available to execute activity`, followed by the three
+usual causes, starting with "the Stigmer runner is not running". The console and
+the CLI both show it. Start the run again once the runner is back.
 
 A runner that dies in the middle of an Agent turn is a different case. The
 runner reports to Temporal every 30 seconds while it works; when two minutes

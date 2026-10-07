@@ -5,7 +5,7 @@
  * Every create that starts or continues a run names a target — an
  * `agent` or a conversation (`session`) — and until this step nothing
  * asked whether the caller may use it: session-create authorized only the
- * organization's `can_create_session`, agent-run create is
+ * organization's `can_create_session`, run create is
  * `is_skip_authorization`, and `can_execute` was defined on the agent
  * type of the FGA model and checked nowhere. The invariant the
  * model states ("you can run what you can read") is enforced here.

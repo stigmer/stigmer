@@ -31,7 +31,7 @@ type ScheduleStatus struct {
 	NextFireAt *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=next_fire_at,json=nextFireAt,proto3" json:"next_fire_at,omitempty"`
 	// When the schedule last fired, in UTC.
 	LastFireAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=last_fire_at,json=lastFireAt,proto3" json:"last_fire_at,omitempty"`
-	// ID of the agent run created by the most recent fire.
+	// ID of the run created by the most recent fire.
 	LastRunId string `protobuf:"bytes,3,opt,name=last_run_id,json=lastRunId,proto3" json:"last_run_id,omitempty"`
 	// Number of consecutive failed runs. A successful run resets it.
 	ConsecutiveFailures int32 `protobuf:"varint,4,opt,name=consecutive_failures,json=consecutiveFailures,proto3" json:"consecutive_failures,omitempty"`

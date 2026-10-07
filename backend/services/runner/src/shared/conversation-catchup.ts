@@ -28,7 +28,7 @@
  * agent re-enters blind, exactly the behavior before catchup existed, never worse.
  */
 
-import type { ConversationCatchup } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+import type { ConversationCatchup } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 
 /**
  * How the digest is introduced to the model, shared by both harnesses so the

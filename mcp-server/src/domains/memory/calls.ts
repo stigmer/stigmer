@@ -56,7 +56,7 @@ export async function proposeMemory(
       provenance: create(MemoryProvenanceSchema, {
         agentId: context.agentId,
         sessionId: context.sessionId,
-        agentRunId: context.agentRunId,
+        runId: context.runId,
         // tool_call_id stays empty in v1 — MCP does not carry the
         // harness's tool-call identity to the tool handler.
       }),

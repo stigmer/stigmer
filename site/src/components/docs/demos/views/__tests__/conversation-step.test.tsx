@@ -18,7 +18,7 @@ import { createConnectTransport } from "@connectrpc/connect-web";
 import { Stigmer } from "@stigmer/sdk";
 import { StigmerProvider } from "@stigmer/react";
 import { samples } from "@stigmer/react/test";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { AppShell } from "../AppShell";
 import { ComposerView } from "../ComposerView";
 import { renderWidgetsSidebar } from "../WidgetsSidebar";

@@ -1,6 +1,6 @@
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
-import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 /**
  * The session's current plan: the published plan artifact (a `*.plan.md` FILE)
@@ -66,7 +66,7 @@ export function isPlanArtifact(artifact: RunArtifact): boolean {
  * replaces rather than appends, so this is defensive.
  */
 export function findPlanArtifact(
-  execution: AgentRun | null | undefined,
+  execution: Run | null | undefined,
 ): RunArtifact | undefined {
   const artifacts = execution?.status?.artifacts;
   if (!artifacts || artifacts.length === 0) return undefined;
@@ -86,7 +86,7 @@ export function findPlanArtifact(
  * Returns `undefined` when no run in the session published a plan.
  */
 export function findLatestSessionPlan(
-  executions: readonly AgentRun[],
+  executions: readonly Run[],
 ): SessionPlan | undefined {
   for (let i = executions.length - 1; i >= 0; i--) {
     const execution = executions[i];

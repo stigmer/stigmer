@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   type UploadAttachmentRequest,
   UploadAttachmentResponseSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { type AttachmentUploader, processAttachments } from "../attachments.js";
 
 // Records each upload and returns a deterministic storage key.

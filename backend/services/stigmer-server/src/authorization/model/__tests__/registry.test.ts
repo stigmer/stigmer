@@ -453,13 +453,13 @@ describe("the built-in model", () => {
 });
 
 describe("the parent-inheritance walker refuses what would make asking the parent wrong", () => {
-  const execution = declared(declarationFor(ApiResourceKind.agent_run), "agent_run");
+  const execution = declared(declarationFor(ApiResourceKind.run), "run");
   const session = declared(builtInModel.byType("session"), "session");
 
-  /** agent_run as the model has it, with one line rewritten. */
+  /** run as the model has it, with one line rewritten. */
   function executionWith(relation: string, rewrite: Rewrite): KindDeclaration {
     return throwawayDeclaration({
-      kind: ApiResourceKind.agent_run,
+      kind: ApiResourceKind.run,
       relations: [...execution.relations].map(([name, current]) =>
         name === relation ? ([name, rewrite] as const) : ([name, current] as const),
       ),
@@ -473,12 +473,12 @@ describe("the parent-inheritance walker refuses what would make asking the paren
         "viewer",
         union(direct(objectOf("identity_account")), from("viewer", "session"), computed("owner")),
       ),
-      violation: "agent_run#viewer admits a tuple on the child itself",
+      violation: "run#viewer admits a tuple on the child itself",
     },
     {
       shape: "a can_view that no longer includes the session's",
       child: executionWith("can_view", computed("viewer")),
-      violation: "agent_run#can_view does not include can_view from session",
+      violation: "run#can_view does not include can_view from session",
     },
     {
       shape: "a can_view reaching a session relation its can_view does not include",
@@ -487,7 +487,7 @@ describe("the parent-inheritance walker refuses what would make asking the paren
         union(computed("viewer"), from("can_view", "session"), from("can_delete", "session")),
       ),
       violation:
-        "agent_run#can_view reaches session#can_delete, which session#can_view does not include",
+        "run#can_view reaches session#can_delete, which session#can_view does not include",
     },
   ])("$shape", ({ child, violation }) => {
     expect(inheritedWholeViolations(child, session, "session")).toEqual([violation]);

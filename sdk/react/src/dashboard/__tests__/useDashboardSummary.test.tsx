@@ -1,6 +1,6 @@
 /**
  * useDashboardSummary reads one organization for both of its sources: the
- * agent run summary and the usage report the cost comes from, and it has no
+ * run summary and the usage report the cost comes from, and it has no
  * summary to show while the run summary is still loading. The two source
  * hooks are stubbed; each records the organization it was asked for.
  */
@@ -13,11 +13,11 @@ const asked = vi.hoisted(() => ({
   agentLoading: false,
 }));
 
-vi.mock("../useAgentRunSummary.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../useAgentRunSummary.js")>();
+vi.mock("../useRunSummary.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../useRunSummary.js")>();
   return {
     ...actual,
-    useAgentRunSummary: (options: { org: unknown }) => {
+    useRunSummary: (options: { org: unknown }) => {
       asked.agent.push(options.org);
       return { summary: null, isLoading: asked.agentLoading, error: null, refetch: () => {} };
     },

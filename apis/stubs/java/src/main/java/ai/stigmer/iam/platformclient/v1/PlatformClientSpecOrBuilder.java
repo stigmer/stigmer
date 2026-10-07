@@ -244,7 +244,7 @@ public interface PlatformClientSpecOrBuilder extends
 
   /**
    * <pre>
-   * Environments whose values are delivered to every agent run a
+   * Environments whose values are delivered to every run a
    * user signed in through this PlatformClient creates. This is how an
    * embedded assistant reaches secret-gated MCP servers: the client — the
    * connection resource — carries the credentials (for example a shared
@@ -259,7 +259,7 @@ public interface PlatformClientSpecOrBuilder extends
       getEnvironmentRefsList();
   /**
    * <pre>
-   * Environments whose values are delivered to every agent run a
+   * Environments whose values are delivered to every run a
    * user signed in through this PlatformClient creates. This is how an
    * embedded assistant reaches secret-gated MCP servers: the client — the
    * connection resource — carries the credentials (for example a shared
@@ -273,7 +273,7 @@ public interface PlatformClientSpecOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRefs(int index);
   /**
    * <pre>
-   * Environments whose values are delivered to every agent run a
+   * Environments whose values are delivered to every run a
    * user signed in through this PlatformClient creates. This is how an
    * embedded assistant reaches secret-gated MCP servers: the client — the
    * connection resource — carries the credentials (for example a shared
@@ -287,7 +287,7 @@ public interface PlatformClientSpecOrBuilder extends
   int getEnvironmentRefsCount();
   /**
    * <pre>
-   * Environments whose values are delivered to every agent run a
+   * Environments whose values are delivered to every run a
    * user signed in through this PlatformClient creates. This is how an
    * embedded assistant reaches secret-gated MCP servers: the client — the
    * connection resource — carries the credentials (for example a shared
@@ -302,7 +302,7 @@ public interface PlatformClientSpecOrBuilder extends
       getEnvironmentRefsOrBuilderList();
   /**
    * <pre>
-   * Environments whose values are delivered to every agent run a
+   * Environments whose values are delivered to every run a
    * user signed in through this PlatformClient creates. This is how an
    * embedded assistant reaches secret-gated MCP servers: the client — the
    * connection resource — carries the credentials (for example a shared

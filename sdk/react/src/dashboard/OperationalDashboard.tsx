@@ -10,13 +10,13 @@ import { DashboardFailedRuns } from "./DashboardFailedRuns.js";
 export interface OperationalDashboardProps {
   /** The organization whose runs and usage the dashboard shows. */
   readonly org: string | null | undefined;
-  /** Called with the agent run's ID when the user clicks "View" on a failed run. */
+  /** Called with the run's ID when the user clicks "View" on a failed run. */
   readonly onFailedRunClick?: (id: string) => void;
   readonly className?: string;
 }
 
 /**
- * Composed dashboard widget showing an organization's agent run
+ * Composed dashboard widget showing an organization's run
  * operational metrics.
  *
  * Layout:

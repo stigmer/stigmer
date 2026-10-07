@@ -41,7 +41,7 @@ import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { LedgerEntryType } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
 import { ModelPricingBaselineStatus } from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
-import { UsageCompletionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/usage_pb";
+import { UsageCompletionStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
 import { FixtureTracker } from "../harness/fixtures";
 import { FAKE_CARD, postStripeWebhook, signStripePayload, signedEvent, stripeEvent, type CapturedStripeRequest } from "../harness/fake-stripe";
 import { expectGrpcCode } from "../contract/errors";

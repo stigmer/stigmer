@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ScheduleSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_schedule_v1_api } from "./api_pb.js";
-import type { GetSchedulesByAgentRequestSchema, ListScheduleRunsRequestSchema, ListSchedulesRequestSchema, ScheduleIdSchema, ScheduleListSchema, ScheduleRunListSchema } from "./io_pb.js";
+import type { GetSchedulesByAgentRequestSchema, ListScheduleFiresRequestSchema, ListSchedulesRequestSchema, ScheduleFireListSchema, ScheduleIdSchema, ScheduleListSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_schedule_v1_io } from "./io_pb.js";
 import type { ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/schedule/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_schedule_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvc2NoZWR1bGUvdjEvcXVlcnkucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MTLGBQoXU2NoZWR1bGVRdWVyeUNvbnRyb2xsZXISigEKA2dldBIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUlkGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIi3CuBgpCAEQOCIFdmFsdWUqHHVuYXV0aG9yaXplZCB0byBnZXQgc2NoZWR1bGUSdgoOZ2V0QnlSZWZlcmVuY2USNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaKC5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGUiBNC4GAESfAoKZ2V0QnlBZ2VudBI6LmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5HZXRTY2hlZHVsZXNCeUFnZW50UmVxdWVzdBosLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUxpc3QiBNC4GAEScAoEbGlzdBI0LmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5MaXN0U2NoZWR1bGVzUmVxdWVzdBosLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUxpc3QiBNC4GAESrwEKCGxpc3RSdW5zEjcuYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLkxpc3RTY2hlZHVsZVJ1bnNSZXF1ZXN0Gi8uYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlUnVuTGlzdCI5wrgYNQgBEDgiC3NjaGVkdWxlX2lkKiJ1bmF1dGhvcml6ZWQgdG8gbGlzdCBzY2hlZHVsZSBydW5zGgSg/ys4YgZwcm90bzM", [file_ai_stigmer_agentic_schedule_v1_api, file_ai_stigmer_agentic_schedule_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvc2NoZWR1bGUvdjEvcXVlcnkucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MTLKBQoXU2NoZWR1bGVRdWVyeUNvbnRyb2xsZXISigEKA2dldBIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUlkGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIi3CuBgpCAEQOCIFdmFsdWUqHHVuYXV0aG9yaXplZCB0byBnZXQgc2NoZWR1bGUSdgoOZ2V0QnlSZWZlcmVuY2USNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaKC5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGUiBNC4GAESfAoKZ2V0QnlBZ2VudBI6LmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5HZXRTY2hlZHVsZXNCeUFnZW50UmVxdWVzdBosLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUxpc3QiBNC4GAEScAoEbGlzdBI0LmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5MaXN0U2NoZWR1bGVzUmVxdWVzdBosLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUxpc3QiBNC4GAESswEKCWxpc3RGaXJlcxI4LmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5MaXN0U2NoZWR1bGVGaXJlc1JlcXVlc3QaMC5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGVGaXJlTGlzdCI6wrgYNggBEDgiC3NjaGVkdWxlX2lkKiN1bmF1dGhvcml6ZWQgdG8gbGlzdCBzY2hlZHVsZSBmaXJlcxoEoP8rOGIGcHJvdG8z", [file_ai_stigmer_agentic_schedule_v1_api, file_ai_stigmer_agentic_schedule_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * ScheduleQueryController handles read operations for schedules.
@@ -70,19 +70,19 @@ export const ScheduleQueryController: GenService<{
     output: typeof ScheduleListSchema;
   },
   /**
-   * List a schedule's run history, newest first.
+   * List a schedule's fire history, newest first.
    *
    * Every fire leaves a row — including fires that created no run
    * (a refused launch gate, a missing target agent) — with the refusing
    * gate's copy verbatim. This is the surface that explains
    * status.consecutive_failures.
    *
-   * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleQueryController.listRuns
+   * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleQueryController.listFires
    */
-  listRuns: {
+  listFires: {
     methodKind: "unary";
-    input: typeof ListScheduleRunsRequestSchema;
-    output: typeof ScheduleRunListSchema;
+    input: typeof ListScheduleFiresRequestSchema;
+    output: typeof ScheduleFireListSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_schedule_v1_query, 0);

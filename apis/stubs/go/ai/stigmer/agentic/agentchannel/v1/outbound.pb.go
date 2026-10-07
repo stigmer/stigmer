@@ -92,7 +92,7 @@ type ChannelOutboundOrigin int32
 const (
 	// Default value when no origin is set.
 	ChannelOutboundOrigin_channel_outbound_origin_unspecified ChannelOutboundOrigin = 0
-	// The send came from an agent run created by an inbound channel
+	// The send came from a run created by an inbound channel
 	// message; the recipient must be a known sender on the channel.
 	ChannelOutboundOrigin_channel_conversation ChannelOutboundOrigin = 1
 	// The send was authored by an operator (console, CLI, SDK, scheduled
@@ -162,7 +162,7 @@ type ChannelOutboundMessage struct {
 	// Organization that owns the connection (billing org).
 	// Denormalized from the channel so sweep/cap paths never join.
 	Org string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
-	// Session of the originating agent run; empty for direct operator
+	// Session of the originating run; empty for direct operator
 	// sends, which have no session.
 	SessionId string `protobuf:"bytes,4,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	// How the send was authorized (the surface-aware recipient policy).

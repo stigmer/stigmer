@@ -2,8 +2,8 @@ import { describe, it, expect, vi } from "vitest";
 import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
 import { ConnectError, Code } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunControlSignal, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunControlSignal, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../status.js";
 
 describe("utcTimestamp", () => {
@@ -24,7 +24,7 @@ describe("utcTimestamp", () => {
 
 describe("slimStatus", () => {
   it("preserves phase, error, timestamps, and pendingApprovals", () => {
-    const full = create(AgentRunStatusSchema, {
+    const full = create(RunStatusSchema, {
       phase: RunPhase.RUN_COMPLETED,
       error: "test error",
       startedAt: "2026-01-01T00:00:00Z",
@@ -38,7 +38,7 @@ describe("slimStatus", () => {
   });
 
   it("excludes heavy fields like messages", () => {
-    const full = create(AgentRunStatusSchema, {
+    const full = create(RunStatusSchema, {
       phase: RunPhase.RUN_IN_PROGRESS,
     });
     const result = slimStatus(full) as Record<string, unknown>;
@@ -47,7 +47,7 @@ describe("slimStatus", () => {
   });
 
   it("returns a plain JSON-serializable object (not a protobuf Message)", () => {
-    const full = create(AgentRunStatusSchema, {
+    const full = create(RunStatusSchema, {
       phase: RunPhase.RUN_FAILED,
     });
     const result = slimStatus(full);
@@ -57,7 +57,7 @@ describe("slimStatus", () => {
   });
 
   it("preserves structuredOutput when present on the full status", () => {
-    const full = create(AgentRunStatusSchema, {
+    const full = create(RunStatusSchema, {
       phase: RunPhase.RUN_COMPLETED,
       structuredOutput: {
         executive_summary: "DAU stable at 7175",
@@ -77,7 +77,7 @@ describe("slimStatus", () => {
   });
 
   it("omits structuredOutput when not present on full status", () => {
-    const full = create(AgentRunStatusSchema, {
+    const full = create(RunStatusSchema, {
       phase: RunPhase.RUN_COMPLETED,
     });
     const result = slimStatus(full) as Record<string, unknown>;
@@ -85,7 +85,7 @@ describe("slimStatus", () => {
   });
 
   it("activity return contains structuredOutput accessible by Go buildCallbackResult", () => {
-    const full = create(AgentRunStatusSchema, {
+    const full = create(RunStatusSchema, {
       phase: RunPhase.RUN_COMPLETED,
       structuredOutput: {
         cohorts: [{ name: "D1", size: 500 }],
@@ -104,7 +104,7 @@ describe("persistStatus", () => {
         signal: RunControlSignal.STOP,
       }),
     } as any;
-    const status = create(AgentRunStatusSchema, {
+    const status = create(RunStatusSchema, {
       phase: RunPhase.RUN_IN_PROGRESS,
     });
     const signal = await persistStatus(mockClient, "exec-1", status);
@@ -117,7 +117,7 @@ describe("persistStatus", () => {
       updateStatus: vi.fn().mockRejectedValue(new Error("network")),
     } as any;
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const status = create(AgentRunStatusSchema, {
+    const status = create(RunStatusSchema, {
       phase: RunPhase.RUN_IN_PROGRESS,
     });
     const signal = await persistStatus(mockClient, "exec-2", status);
@@ -133,7 +133,7 @@ describe("persistStatus", () => {
       .mockRejectedValueOnce({ code: 8, message: "resource_exhausted: exceeds maximum size" })
       .mockResolvedValueOnce({ signal: RunControlSignal.STOP });
     const mockClient = { updateStatus } as any;
-    const status = create(AgentRunStatusSchema, {
+    const status = create(RunStatusSchema, {
       phase: RunPhase.RUN_IN_PROGRESS,
     });
 
@@ -151,7 +151,7 @@ describe("persistStatus", () => {
       .mockRejectedValueOnce(new Error("still too large"));
     const mockClient = { updateStatus } as any;
 
-    const signal = await persistStatus(mockClient, "exec-too-big", create(AgentRunStatusSchema, {}));
+    const signal = await persistStatus(mockClient, "exec-too-big", create(RunStatusSchema, {}));
 
     expect(signal).toBe(RunControlSignal.UNSPECIFIED);
     expect(updateStatus).toHaveBeenCalledTimes(2);
@@ -175,9 +175,9 @@ describe("persistStatus", () => {
       updateStatus: vi.fn().mockResolvedValue({ signal: RunControlSignal.UNSPECIFIED }),
     } as any;
     const { AgentMessageSchema, ToolCallSchema } = await import(
-      "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb"
+      "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb"
     );
-    const status = create(AgentRunStatusSchema, {
+    const status = create(RunStatusSchema, {
       phase: RunPhase.RUN_IN_PROGRESS,
       messages: [
         create(AgentMessageSchema, {
@@ -200,7 +200,7 @@ describe("persistStatus", () => {
 // one chokepoint that bounds size AND retries transient transport errors.
 describe("persistStatus — transient retry", () => {
   const noDelay = async () => {};
-  const emptyStatus = () => create(AgentRunStatusSchema, {});
+  const emptyStatus = () => create(RunStatusSchema, {});
   function retryClient(impl: () => Promise<{ signal: RunControlSignal }>) {
     return { updateStatus: vi.fn(impl) } as any;
   }

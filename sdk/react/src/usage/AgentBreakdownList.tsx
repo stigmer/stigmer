@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
-import type { AgentUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import type { AgentUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { formatCost } from "../run/UsageWidget.js";
 
 /** Props for {@link AgentBreakdownList}. */

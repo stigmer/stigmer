@@ -22,13 +22,13 @@
 
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
-import { RunConfigSchema, type RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
-import { ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+  RunSchema,
+  RunStatusSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
+import { RunConfigSchema, type RunConfig } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
+import { ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
@@ -118,9 +118,9 @@ export interface ExecutionRecordOptions {
 export function executionRecordFixture(options: ExecutionRecordOptions): ExecutionRecord {
   const ids = options.ids ?? DEFAULT_RECORD_IDS;
   const builtIn = options.builtInAssistant === true;
-  const execution: AgentRun = create(AgentRunSchema, {
+  const execution: Run = create(RunSchema, {
     metadata: create(ApiResourceMetadataSchema, { id: ids.executionId, org: ids.org, name: ids.executionId }),
-    spec: create(AgentRunSpecSchema, {
+    spec: create(RunSpecSchema, {
       target: { case: "sessionId", value: ids.sessionId },
       message: options.message,
       autoApproveAll: options.autoApproveAll ?? false,
@@ -128,7 +128,7 @@ export function executionRecordFixture(options: ExecutionRecordOptions): Executi
       // A `google.protobuf.Struct` field is a plain `JsonObject` in protobuf-es.
       structuredOutputSchema: options.structuredOutputSchema,
     }),
-    status: create(AgentRunStatusSchema, {
+    status: create(RunStatusSchema, {
       agentId: builtIn ? "" : ids.agentId,
       agentVersionHash: builtIn ? "" : ids.agentVersionHash,
       runConfig: create(RunConfigSchema, {

@@ -1,8 +1,8 @@
 "use client";
 
 import { memo, useMemo, type ComponentType } from "react";
-import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/todo_pb";
-import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/run/v1/todo_pb";
+import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";

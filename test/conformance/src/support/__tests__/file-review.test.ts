@@ -7,9 +7,9 @@
 // Pure: a hand-built change set and a stubbed command client, no target.
 // Domain: conformance support (execution engine).
 import { create } from "@bufbuild/protobuf";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { FileDecisionAction, FileDecisionScope } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { FileChangeSetSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { FileDecisionAction, FileDecisionScope } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileChangeSetSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import { describe, expect, it, vi } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
 import { submitChangeSetDecision, submitFileDecisionByPath } from "../file-review";
@@ -24,7 +24,7 @@ const SET = create(FileChangeSetSchema, {
 });
 
 function commandClient() {
-  const answer = create(AgentRunSchema, { metadata: { id: "aex_unit" } });
+  const answer = create(RunSchema, { metadata: { id: "aex_unit" } });
   const submitFileDecision = vi.fn(async () => answer);
   const clients = { agentExecutionCommand: { submitFileDecision } } as unknown as ConformanceClients;
   return { clients, submitFileDecision, answer };
@@ -36,7 +36,7 @@ describe("submitFileDecisionByPath", () => {
     const response = await submitFileDecisionByPath(c.clients, "aex_unit", SET, "src/old.ts", FileDecisionAction.REJECT);
     expect(response).toBe(c.answer);
     expect(c.submitFileDecision).toHaveBeenCalledWith({
-      agentRunId: "aex_unit",
+      runId: "aex_unit",
       changeSetId: "fcs_unit",
       scope: FileDecisionScope.FILE,
       fileChangeId: "fc_deleted",
@@ -79,7 +79,7 @@ describe("submitChangeSetDecision", () => {
     const response = await submitChangeSetDecision(c.clients, "aex_unit", SET, FileDecisionAction.APPROVE);
     expect(response).toBe(c.answer);
     expect(c.submitFileDecision).toHaveBeenCalledWith({
-      agentRunId: "aex_unit",
+      runId: "aex_unit",
       changeSetId: "fcs_unit",
       scope: FileDecisionScope.CHANGE_SET,
       action: FileDecisionAction.APPROVE,

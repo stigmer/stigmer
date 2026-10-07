@@ -17,10 +17,10 @@ import { create } from "@bufbuild/protobuf";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -181,7 +181,7 @@ describe("RunStarter.startRun — against a real store", () => {
   });
 
   function starter(
-    create_: (execution: AgentRun) => Promise<AgentRun>,
+    create_: (execution: Run) => Promise<Run>,
   ) {
     return new RunStarter({
       store,
@@ -192,10 +192,10 @@ describe("RunStarter.startRun — against a real store", () => {
   }
 
   it("shapes the execution request: name, org, label, subject prefix, fire-context message", async () => {
-    let seen: AgentRun | undefined;
+    let seen: Run | undefined;
     const runStarter = starter(async (execution) => {
       seen = execution;
-      return create(AgentRunSchema, {
+      return create(RunSchema, {
         metadata: { id: "aex_01new", org: "acme" },
       });
     });
@@ -208,7 +208,7 @@ describe("RunStarter.startRun — against a real store", () => {
     });
 
     expect(seen?.apiVersion).toBe("agentic.stigmer.ai/v1");
-    expect(seen?.kind).toBe("AgentRun");
+    expect(seen?.kind).toBe("Run");
     expect(seen?.metadata?.name).toBe("sch-01test-20260825t093000z");
     expect(seen?.metadata?.org).toBe("acme");
     expect(seen?.metadata?.labels[SCHEDULE_ID_LABEL_KEY]).toBe("sch_01test");
@@ -242,10 +242,10 @@ describe("RunStarter.startRun — against a real store", () => {
   });
 
   it("starts the fire's session on the version the schedule's agent reference names", async () => {
-    let seen: AgentRun | undefined;
+    let seen: Run | undefined;
     const runStarter = starter(async (execution) => {
       seen = execution;
-      return create(AgentRunSchema, {
+      return create(RunSchema, {
         metadata: { id: "aex_01pinned", org: "acme" },
       });
     });
@@ -265,10 +265,10 @@ describe("RunStarter.startRun — against a real store", () => {
 
   it("finds an existing execution by the deterministic name instead of creating (idempotent retry)", async () => {
     await store.saveResource(
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
       "aex_01prior",
-      AgentRunSchema,
-      create(AgentRunSchema, {
+      RunSchema,
+      create(RunSchema, {
         metadata: {
           id: "aex_01prior",
           org: "acme",
@@ -285,7 +285,7 @@ describe("RunStarter.startRun — against a real store", () => {
       executionId: "aex_01prior",
       alreadyExisted: true,
     });
-    await store.deleteResource(ApiResourceKind.agent_run, "aex_01prior");
+    await store.deleteResource(ApiResourceKind.run, "aex_01prior");
   });
 
   // The scheduleFireCaller seam: composed → every
@@ -310,7 +310,7 @@ describe("RunStarter.startRun — against a real store", () => {
         executions: {
           create: async (_execution, fireCaller) => {
             seenCaller = fireCaller;
-            return create(AgentRunSchema, {
+            return create(RunSchema, {
               metadata: { id: "aex_01minted", org: "acme" },
             });
           },
@@ -342,7 +342,7 @@ describe("RunStarter.startRun — against a real store", () => {
         executions: {
           create: async (_execution, fireCaller) => {
             seenCaller = fireCaller;
-            return create(AgentRunSchema, {
+            return create(RunSchema, {
               metadata: { id: "aex_01plain", org: "acme" },
             });
           },
@@ -407,10 +407,10 @@ describe("RunStarter.startRun — against a real store", () => {
 
     it("never mints on the idempotent path (the winner needs no credential)", async () => {
       await store.saveResource(
-        ApiResourceKind.agent_run,
+        ApiResourceKind.run,
         "aex_01winner",
-        AgentRunSchema,
-        create(AgentRunSchema, {
+        RunSchema,
+        create(RunSchema, {
           metadata: {
             id: "aex_01winner",
             org: "acme",
@@ -440,7 +440,7 @@ describe("RunStarter.startRun — against a real store", () => {
         alreadyExisted: true,
       });
       await store.deleteResource(
-        ApiResourceKind.agent_run,
+        ApiResourceKind.run,
         "aex_01winner",
       );
     });
@@ -512,10 +512,10 @@ describe("RunStarter.startRun — against a real store", () => {
     const runStarter = starter(async () => {
       calls++;
       await store.saveResource(
-        ApiResourceKind.agent_run,
+        ApiResourceKind.run,
         "aex_01winner",
-        AgentRunSchema,
-        create(AgentRunSchema, {
+        RunSchema,
+        create(RunSchema, {
           metadata: {
             id: "aex_01winner",
             org: "acme",
@@ -532,14 +532,14 @@ describe("RunStarter.startRun — against a real store", () => {
       executionId: "aex_01winner",
       alreadyExisted: true,
     });
-    await store.deleteResource(ApiResourceKind.agent_run, "aex_01winner");
+    await store.deleteResource(ApiResourceKind.run, "aex_01winner");
   });
 
   it("writes the schedule's saved settings as the turn's run_config, unchanged", async () => {
-    let seen: AgentRun | undefined;
+    let seen: Run | undefined;
     const runStarter = starter(async (execution) => {
       seen = execution;
-      return create(AgentRunSchema, {
+      return create(RunSchema, {
         metadata: { id: "aex_01x", org: "acme" },
       });
     });

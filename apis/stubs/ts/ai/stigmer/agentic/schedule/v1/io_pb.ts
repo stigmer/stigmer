@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/schedule/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_schedule_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvc2NoZWR1bGUvdjEvaW8ucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MSIjCgpTY2hlZHVsZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEieAoaR2V0U2NoZWR1bGVzQnlBZ2VudFJlcXVlc3QSGAoIYWdlbnRfaWQYASABKAlCBrpIA8gBARIzCglwYWdlX2luZm8YAiABKAsyIC5haS5zdGlnbWVyLmNvbW1vbnMucnBjLlBhZ2VJbmZvEgsKA29yZxgDIAEoCSJcCgxTY2hlZHVsZUxpc3QSEwoLdG90YWxfY291bnQYASABKAUSNwoFaXRlbXMYAiADKAsyKC5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGUi4gEKFExpc3RTY2hlZHVsZXNSZXF1ZXN0EhQKA29yZxgBIAEoCUIHukgEcgIQARJQCgZsYWJlbHMYAiADKAsyQC5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuTGlzdFNjaGVkdWxlc1JlcXVlc3QuTGFiZWxzRW50cnkSMwoJcGFnZV9pbmZvGAMgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIsABChVTY2hlZHVsZVRyaWdnZXJSZXN1bHQSOgoIc2NoZWR1bGUYASABKAsyKC5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGUSQwoHb3V0Y29tZRgCIAEoDjIyLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZVJ1bk91dGNvbWUSDgoGcnVuX2lkGAMgASgJEhYKDnJlZnVzYWxfcmVhc29uGAQgASgJIvECCgtTY2hlZHVsZVJ1bhITCgtzY2hlZHVsZV9pZBgBIAEoCRILCgNvcmcYAiABKAkSNQoRbm9taW5hbF9maXJlX3RpbWUYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEkEKBm9yaWdpbhgEIAEoDjIxLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZVJ1bk9yaWdpbhJDCgdvdXRjb21lGAUgASgOMjIuYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlUnVuT3V0Y29tZRIOCgZyZWFzb24YBiABKAkSDgoGcnVuX2lkGAcgASgJEi8KC3JlY29yZGVkX2F0GAggASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIwCgxjb21wbGV0ZWRfYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wImsKF0xpc3RTY2hlZHVsZVJ1bnNSZXF1ZXN0EhsKC3NjaGVkdWxlX2lkGAEgASgJQga6SAPIAQESMwoJcGFnZV9pbmZvGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbyJiCg9TY2hlZHVsZVJ1bkxpc3QSEwoLdG90YWxfY291bnQYASABKAUSOgoFaXRlbXMYAiADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGVSdW4qdgoRU2NoZWR1bGVSdW5PcmlnaW4SIwofU0NIRURVTEVfUlVOX09SSUdJTl9VTlNQRUNJRklFRBAAEhwKGFNDSEVEVUxFX1JVTl9PUklHSU5fQ1JPThABEh4KGlNDSEVEVUxFX1JVTl9PUklHSU5fTUFOVUFMEAIqsgIKElNjaGVkdWxlUnVuT3V0Y29tZRIkCiBTQ0hFRFVMRV9SVU5fT1VUQ09NRV9VTlNQRUNJRklFRBAAEiAKHFNDSEVEVUxFX1JVTl9PVVRDT01FX1NUQVJURUQQARIgChxTQ0hFRFVMRV9SVU5fT1VUQ09NRV9SRUZVU0VEEAISJwojU0NIRURVTEVfUlVOX09VVENPTUVfVEFSR0VUX01JU1NJTkcQAxIgChxTQ0hFRFVMRV9SVU5fT1VUQ09NRV9TS0lQUEVEEAQSIgoeU0NIRURVTEVfUlVOX09VVENPTUVfQ09NUExFVEVEEAUSHwobU0NIRURVTEVfUlVOX09VVENPTUVfRkFJTEVEEAYSIgoeU0NIRURVTEVfUlVOX09VVENPTUVfVElNRURfT1VUEAdiBnByb3RvMw", [file_ai_stigmer_agentic_schedule_v1_api, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvc2NoZWR1bGUvdjEvaW8ucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MSIjCgpTY2hlZHVsZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEieAoaR2V0U2NoZWR1bGVzQnlBZ2VudFJlcXVlc3QSGAoIYWdlbnRfaWQYASABKAlCBrpIA8gBARIzCglwYWdlX2luZm8YAiABKAsyIC5haS5zdGlnbWVyLmNvbW1vbnMucnBjLlBhZ2VJbmZvEgsKA29yZxgDIAEoCSJcCgxTY2hlZHVsZUxpc3QSEwoLdG90YWxfY291bnQYASABKAUSNwoFaXRlbXMYAiADKAsyKC5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGUi4gEKFExpc3RTY2hlZHVsZXNSZXF1ZXN0EhQKA29yZxgBIAEoCUIHukgEcgIQARJQCgZsYWJlbHMYAiADKAsyQC5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuTGlzdFNjaGVkdWxlc1JlcXVlc3QuTGFiZWxzRW50cnkSMwoJcGFnZV9pbmZvGAMgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIsEBChVTY2hlZHVsZVRyaWdnZXJSZXN1bHQSOgoIc2NoZWR1bGUYASABKAsyKC5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGUSRAoHb3V0Y29tZRgCIAEoDjIzLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUZpcmVPdXRjb21lEg4KBnJ1bl9pZBgDIAEoCRIWCg5yZWZ1c2FsX3JlYXNvbhgEIAEoCSL0AgoMU2NoZWR1bGVGaXJlEhMKC3NjaGVkdWxlX2lkGAEgASgJEgsKA29yZxgCIAEoCRI1ChFub21pbmFsX2ZpcmVfdGltZRgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASQgoGb3JpZ2luGAQgASgOMjIuYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlRmlyZU9yaWdpbhJECgdvdXRjb21lGAUgASgOMjMuYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlRmlyZU91dGNvbWUSDgoGcmVhc29uGAYgASgJEg4KBnJ1bl9pZBgHIAEoCRIvCgtyZWNvcmRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMAoMY29tcGxldGVkX2F0GAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJsChhMaXN0U2NoZWR1bGVGaXJlc1JlcXVlc3QSGwoLc2NoZWR1bGVfaWQYASABKAlCBrpIA8gBARIzCglwYWdlX2luZm8YAiABKAsyIC5haS5zdGlnbWVyLmNvbW1vbnMucnBjLlBhZ2VJbmZvImQKEFNjaGVkdWxlRmlyZUxpc3QSEwoLdG90YWxfY291bnQYASABKAUSOwoFaXRlbXMYAiADKAsyLC5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGVGaXJlKnoKElNjaGVkdWxlRmlyZU9yaWdpbhIkCiBTQ0hFRFVMRV9GSVJFX09SSUdJTl9VTlNQRUNJRklFRBAAEh0KGVNDSEVEVUxFX0ZJUkVfT1JJR0lOX0NST04QARIfChtTQ0hFRFVMRV9GSVJFX09SSUdJTl9NQU5VQUwQAiq7AgoTU2NoZWR1bGVGaXJlT3V0Y29tZRIlCiFTQ0hFRFVMRV9GSVJFX09VVENPTUVfVU5TUEVDSUZJRUQQABIhCh1TQ0hFRFVMRV9GSVJFX09VVENPTUVfU1RBUlRFRBABEiEKHVNDSEVEVUxFX0ZJUkVfT1VUQ09NRV9SRUZVU0VEEAISKAokU0NIRURVTEVfRklSRV9PVVRDT01FX1RBUkdFVF9NSVNTSU5HEAMSIQodU0NIRURVTEVfRklSRV9PVVRDT01FX1NLSVBQRUQQBBIjCh9TQ0hFRFVMRV9GSVJFX09VVENPTUVfQ09NUExFVEVEEAUSIAocU0NIRURVTEVfRklSRV9PVVRDT01FX0ZBSUxFRBAGEiMKH1NDSEVEVUxFX0ZJUkVfT1VUQ09NRV9USU1FRF9PVVQQB2IGcHJvdG8z", [file_ai_stigmer_agentic_schedule_v1_api, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * ScheduleId wraps a schedule identifier.
@@ -162,12 +162,12 @@ export type ScheduleTriggerResult = Message<"ai.stigmer.agentic.schedule.v1.Sche
 
   /**
    * What the fire produced: STARTED, REFUSED, or TARGET_MISSING (the
-   * terminal outcomes belong to run history — a manual fire answers at
+   * terminal outcomes belong to fire history — a manual fire answers at
    * run start).
    *
-   * @generated from field: ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome outcome = 2;
+   * @generated from field: ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome outcome = 2;
    */
-  outcome: ScheduleRunOutcome;
+  outcome: ScheduleFireOutcome;
 
   /**
    * ID of the created run. Set only when outcome is STARTED.
@@ -193,11 +193,11 @@ export const ScheduleTriggerResultSchema: GenMessage<ScheduleTriggerResult> = /*
   messageDesc(file_ai_stigmer_agentic_schedule_v1_io, 4);
 
 /**
- * One recorded schedule fire — a run-history row.
+ * One recorded schedule fire — a fire-history row.
  *
- * @generated from message ai.stigmer.agentic.schedule.v1.ScheduleRun
+ * @generated from message ai.stigmer.agentic.schedule.v1.ScheduleFire
  */
-export type ScheduleRun = Message<"ai.stigmer.agentic.schedule.v1.ScheduleRun"> & {
+export type ScheduleFire = Message<"ai.stigmer.agentic.schedule.v1.ScheduleFire"> & {
   /**
    * Schedule this fire belongs to.
    *
@@ -223,16 +223,16 @@ export type ScheduleRun = Message<"ai.stigmer.agentic.schedule.v1.ScheduleRun"> 
   /**
    * How the fire was initiated.
    *
-   * @generated from field: ai.stigmer.agentic.schedule.v1.ScheduleRunOrigin origin = 4;
+   * @generated from field: ai.stigmer.agentic.schedule.v1.ScheduleFireOrigin origin = 4;
    */
-  origin: ScheduleRunOrigin;
+  origin: ScheduleFireOrigin;
 
   /**
    * What the fire produced.
    *
-   * @generated from field: ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome outcome = 5;
+   * @generated from field: ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome outcome = 5;
    */
-  outcome: ScheduleRunOutcome;
+  outcome: ScheduleFireOutcome;
 
   /**
    * The refusing gate's or terminal verdict's copy, verbatim. Empty for
@@ -267,27 +267,27 @@ export type ScheduleRun = Message<"ai.stigmer.agentic.schedule.v1.ScheduleRun"> 
 };
 
 /**
- * Describes the message ai.stigmer.agentic.schedule.v1.ScheduleRun.
- * Use `create(ScheduleRunSchema)` to create a new message.
+ * Describes the message ai.stigmer.agentic.schedule.v1.ScheduleFire.
+ * Use `create(ScheduleFireSchema)` to create a new message.
  */
-export const ScheduleRunSchema: GenMessage<ScheduleRun> = /*@__PURE__*/
+export const ScheduleFireSchema: GenMessage<ScheduleFire> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_schedule_v1_io, 5);
 
 /**
- * Input for listing a schedule's run history.
+ * Input for listing a schedule's fire history.
  *
- * @generated from message ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest
+ * @generated from message ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest
  */
-export type ListScheduleRunsRequest = Message<"ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest"> & {
+export type ListScheduleFiresRequest = Message<"ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest"> & {
   /**
-   * Schedule whose runs to list.
+   * Schedule whose fires to list.
    *
    * @generated from field: string schedule_id = 1;
    */
   scheduleId: string;
 
   /**
-   * Pagination options. Runs are returned newest first.
+   * Pagination options. Fires are returned newest first.
    *
    * @generated from field: ai.stigmer.commons.rpc.PageInfo page_info = 2;
    */
@@ -295,87 +295,87 @@ export type ListScheduleRunsRequest = Message<"ai.stigmer.agentic.schedule.v1.Li
 };
 
 /**
- * Describes the message ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest.
- * Use `create(ListScheduleRunsRequestSchema)` to create a new message.
+ * Describes the message ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest.
+ * Use `create(ListScheduleFiresRequestSchema)` to create a new message.
  */
-export const ListScheduleRunsRequestSchema: GenMessage<ListScheduleRunsRequest> = /*@__PURE__*/
+export const ListScheduleFiresRequestSchema: GenMessage<ListScheduleFiresRequest> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_schedule_v1_io, 6);
 
 /**
- * Response containing a paginated list of schedule runs, newest first.
+ * Response containing a paginated list of schedule fires, newest first.
  *
- * @generated from message ai.stigmer.agentic.schedule.v1.ScheduleRunList
+ * @generated from message ai.stigmer.agentic.schedule.v1.ScheduleFireList
  */
-export type ScheduleRunList = Message<"ai.stigmer.agentic.schedule.v1.ScheduleRunList"> & {
+export type ScheduleFireList = Message<"ai.stigmer.agentic.schedule.v1.ScheduleFireList"> & {
   /**
-   * Total number of recorded runs for the schedule.
+   * Total number of recorded fires for the schedule.
    *
    * @generated from field: int32 total_count = 1;
    */
   totalCount: number;
 
   /**
-   * Runs in the current page.
+   * Fires in the current page.
    *
-   * @generated from field: repeated ai.stigmer.agentic.schedule.v1.ScheduleRun items = 2;
+   * @generated from field: repeated ai.stigmer.agentic.schedule.v1.ScheduleFire items = 2;
    */
-  items: ScheduleRun[];
+  items: ScheduleFire[];
 };
 
 /**
- * Describes the message ai.stigmer.agentic.schedule.v1.ScheduleRunList.
- * Use `create(ScheduleRunListSchema)` to create a new message.
+ * Describes the message ai.stigmer.agentic.schedule.v1.ScheduleFireList.
+ * Use `create(ScheduleFireListSchema)` to create a new message.
  */
-export const ScheduleRunListSchema: GenMessage<ScheduleRunList> = /*@__PURE__*/
+export const ScheduleFireListSchema: GenMessage<ScheduleFireList> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_schedule_v1_io, 7);
 
 /**
  * How a schedule fire was initiated.
  *
- * @generated from enum ai.stigmer.agentic.schedule.v1.ScheduleRunOrigin
+ * @generated from enum ai.stigmer.agentic.schedule.v1.ScheduleFireOrigin
  */
-export enum ScheduleRunOrigin {
+export enum ScheduleFireOrigin {
   /**
-   * @generated from enum value: SCHEDULE_RUN_ORIGIN_UNSPECIFIED = 0;
+   * @generated from enum value: SCHEDULE_FIRE_ORIGIN_UNSPECIFIED = 0;
    */
   UNSPECIFIED = 0,
 
   /**
    * The clock fired the schedule on its cron cadence.
    *
-   * @generated from enum value: SCHEDULE_RUN_ORIGIN_CRON = 1;
+   * @generated from enum value: SCHEDULE_FIRE_ORIGIN_CRON = 1;
    */
   CRON = 1,
 
   /**
    * A caller fired the schedule through the trigger command.
    *
-   * @generated from enum value: SCHEDULE_RUN_ORIGIN_MANUAL = 2;
+   * @generated from enum value: SCHEDULE_FIRE_ORIGIN_MANUAL = 2;
    */
   MANUAL = 2,
 }
 
 /**
- * Describes the enum ai.stigmer.agentic.schedule.v1.ScheduleRunOrigin.
+ * Describes the enum ai.stigmer.agentic.schedule.v1.ScheduleFireOrigin.
  */
-export const ScheduleRunOriginSchema: GenEnum<ScheduleRunOrigin> = /*@__PURE__*/
+export const ScheduleFireOriginSchema: GenEnum<ScheduleFireOrigin> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_agentic_schedule_v1_io, 0);
 
 /**
  * What one schedule fire produced.
  *
- * @generated from enum ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome
+ * @generated from enum ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome
  */
-export enum ScheduleRunOutcome {
+export enum ScheduleFireOutcome {
   /**
-   * @generated from enum value: SCHEDULE_RUN_OUTCOME_UNSPECIFIED = 0;
+   * @generated from enum value: SCHEDULE_FIRE_OUTCOME_UNSPECIFIED = 0;
    */
   UNSPECIFIED = 0,
 
   /**
    * A run was created (or idempotently re-found) and is running.
    *
-   * @generated from enum value: SCHEDULE_RUN_OUTCOME_STARTED = 1;
+   * @generated from enum value: SCHEDULE_FIRE_OUTCOME_STARTED = 1;
    */
   STARTED = 1,
 
@@ -383,14 +383,14 @@ export enum ScheduleRunOutcome {
    * A launch gate refused the run deterministically; reason carries the
    * gate's copy verbatim.
    *
-   * @generated from enum value: SCHEDULE_RUN_OUTCOME_REFUSED = 2;
+   * @generated from enum value: SCHEDULE_FIRE_OUTCOME_REFUSED = 2;
    */
   REFUSED = 2,
 
   /**
    * The schedule's agent_ref no longer resolves.
    *
-   * @generated from enum value: SCHEDULE_RUN_OUTCOME_TARGET_MISSING = 3;
+   * @generated from enum value: SCHEDULE_FIRE_OUTCOME_TARGET_MISSING = 3;
    */
   TARGET_MISSING = 3,
 
@@ -398,14 +398,14 @@ export enum ScheduleRunOutcome {
    * The fire no-opped: the row was deleted, disabled, or paused between
    * the fire being recorded and the run starting.
    *
-   * @generated from enum value: SCHEDULE_RUN_OUTCOME_SKIPPED = 4;
+   * @generated from enum value: SCHEDULE_FIRE_OUTCOME_SKIPPED = 4;
    */
   SKIPPED = 4,
 
   /**
    * The tracked run reached RUN_COMPLETED.
    *
-   * @generated from enum value: SCHEDULE_RUN_OUTCOME_COMPLETED = 5;
+   * @generated from enum value: SCHEDULE_FIRE_OUTCOME_COMPLETED = 5;
    */
   COMPLETED = 5,
 
@@ -413,21 +413,21 @@ export enum ScheduleRunOutcome {
    * The tracked run ended terminal-but-not-completed (failed, cancelled,
    * or terminated); reason names the terminal phase.
    *
-   * @generated from enum value: SCHEDULE_RUN_OUTCOME_FAILED = 6;
+   * @generated from enum value: SCHEDULE_FIRE_OUTCOME_FAILED = 6;
    */
   FAILED = 6,
 
   /**
    * The tracked run outlived the fire's tracking budget.
    *
-   * @generated from enum value: SCHEDULE_RUN_OUTCOME_TIMED_OUT = 7;
+   * @generated from enum value: SCHEDULE_FIRE_OUTCOME_TIMED_OUT = 7;
    */
   TIMED_OUT = 7,
 }
 
 /**
- * Describes the enum ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome.
+ * Describes the enum ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome.
  */
-export const ScheduleRunOutcomeSchema: GenEnum<ScheduleRunOutcome> = /*@__PURE__*/
+export const ScheduleFireOutcomeSchema: GenEnum<ScheduleFireOutcome> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_agentic_schedule_v1_io, 1);
 

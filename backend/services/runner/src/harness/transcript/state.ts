@@ -1,5 +1,5 @@
 /**
- * TranscriptState — the AgentRunStatus proto `TranscriptBuilder` is
+ * TranscriptState — the RunStatus proto `TranscriptBuilder` is
  * building into, held as one {@link Transcript} per scope: the root's over
  * `status.messages`, and one per sub-agent over its row's `messages`.
  *
@@ -27,10 +27,10 @@
  * it was `ExecutionState` in the native adapter (renamed in #1097).
  */
 
-import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 
 /**
  * One scope's transcript: the `messages[]` it folds into (by reference) and
@@ -85,7 +85,7 @@ export class Transcript {
 }
 
 /** The transcript half of a persisted status: what a reinvocation seeds through the builder. */
-export type TranscriptSeed = Pick<AgentRunStatus, "messages" | "subAgentRuns" | "artifacts" | "workspaceWriteBacks" | "todos">;
+export type TranscriptSeed = Pick<RunStatus, "messages" | "subAgentRuns" | "artifacts" | "workspaceWriteBacks" | "todos">;
 
 /** A sub-agent's row and the transcript folded into it. */
 export interface SubAgentScope {
@@ -95,7 +95,7 @@ export interface SubAgentScope {
 
 export class TranscriptState {
   /** The protobuf projection being built. */
-  readonly proto: AgentRunStatus;
+  readonly proto: RunStatus;
 
   /** The root transcript, over `proto.messages`. */
   readonly root: Transcript;
@@ -107,7 +107,7 @@ export class TranscriptState {
    * sub-agent row (a reinvocation's seed carries prior turns' rows, whose
    * events may be re-driven).
    */
-  constructor(proto: AgentRunStatus) {
+  constructor(proto: RunStatus) {
     this.proto = proto;
     this.root = new Transcript(proto.messages);
     for (const row of proto.subAgentRuns) {

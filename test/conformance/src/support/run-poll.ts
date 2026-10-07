@@ -1,11 +1,11 @@
 // Enum-agnostic execution polling core.
 // Domain: conformance support (execution engine).
 //
-// An AgentRun is a *running thing* whose phase advances asynchronously, and so
+// A Run is a *running thing* whose phase advances asynchronously, and so
 // is much else a suite waits on (a schedule's fires, a billing request, a
 // workspace link), so suites must poll-don't-sleep: fetch the resource on an
 // interval until a predicate holds, never block on a fixed timer. This core
-// owns that rhythm without knowing any resource or enum, so agentruns.ts and
+// owns that rhythm without knowing any resource or enum, so runs.ts and
 // the other callers add only typed predicates and a diagnostic renderer over
 // it.
 import { setTimeout as delay } from "node:timers/promises";

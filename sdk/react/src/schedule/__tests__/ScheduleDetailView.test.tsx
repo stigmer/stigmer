@@ -14,14 +14,14 @@ import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { ScheduleSchema, type Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import {
   ScheduleTriggerResultSchema,
-  ScheduleRunListSchema,
-  ScheduleRunSchema,
-  ScheduleRunOutcome,
-  ScheduleRunOrigin,
+  ScheduleFireListSchema,
+  ScheduleFireSchema,
+  ScheduleFireOutcome,
+  ScheduleFireOrigin,
 } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { ScheduleDetailView } from "../ScheduleDetailView";
@@ -109,7 +109,7 @@ interface MockClient {
     getByReference: ReturnType<typeof vi.fn>;
     resume: ReturnType<typeof vi.fn>;
     trigger: ReturnType<typeof vi.fn>;
-    listRuns: ReturnType<typeof vi.fn>;
+    listFires: ReturnType<typeof vi.fn>;
     delete: ReturnType<typeof vi.fn>;
   };
   manifest: { apply: ReturnType<typeof vi.fn> };
@@ -126,13 +126,13 @@ function makeClient(schedule: Schedule): MockClient {
       // — a started run by default.
       trigger: vi.fn().mockResolvedValue(
         create(ScheduleTriggerResultSchema, {
-          outcome: ScheduleRunOutcome.STARTED,
+          outcome: ScheduleFireOutcome.STARTED,
           runId: "aex_01triggered",
           schedule,
         }),
       ),
-      listRuns: vi.fn().mockResolvedValue(
-        create(ScheduleRunListSchema, { items: [], totalCount: 0 }),
+      listFires: vi.fn().mockResolvedValue(
+        create(ScheduleFireListSchema, { items: [], totalCount: 0 }),
       ),
       delete: vi.fn().mockResolvedValue(schedule),
     },
@@ -303,14 +303,14 @@ describe("ScheduleDetailView", () => {
 
   it("renders the run history from the fire ledger", async () => {
     const client = makeClient(makeSchedule());
-    client.schedule.listRuns.mockResolvedValue(
-      create(ScheduleRunListSchema, {
+    client.schedule.listFires.mockResolvedValue(
+      create(ScheduleFireListSchema, {
         totalCount: 1,
         items: [
-          create(ScheduleRunSchema, {
+          create(ScheduleFireSchema, {
             scheduleId: "sch_01example",
-            origin: ScheduleRunOrigin.CRON,
-            outcome: ScheduleRunOutcome.REFUSED,
+            origin: ScheduleFireOrigin.CRON,
+            outcome: ScheduleFireOutcome.REFUSED,
             reason:
               "run refused: MCP server 'isc-gym' requires environment variable 'ISC_MCP_SHARED_SECRET'",
             nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 60_000)),
@@ -324,6 +324,42 @@ describe("ScheduleDetailView", () => {
     // The refusal reason — invisible before the ledger — is now on screen.
     await screen.findByText(/ISC_MCP_SHARED_SECRET/);
     expect(screen.getByText("Refused")).toBeTruthy();
+  });
+
+  it("states an empty fire history in the History tab, not a blank table", async () => {
+    const client = makeClient(makeSchedule());
+    client.schedule.listFires.mockResolvedValue(create(ScheduleFireListSchema, { totalCount: 0, items: [] }));
+    renderView(client);
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    fireEvent.click(screen.getByRole("tab", { name: /History/ }));
+    expect(await screen.findByText(/No fires yet\./)).toBeTruthy();
+    expect(screen.queryByRole("table", { name: "Fire history" })).toBeNull();
+  });
+
+  it("shows how long a fire's run took, recorded to completed", async () => {
+    const client = makeClient(makeSchedule());
+    client.schedule.listFires.mockResolvedValue(
+      create(ScheduleFireListSchema, {
+        totalCount: 1,
+        items: [
+          create(ScheduleFireSchema, {
+            scheduleId: "sch_01example",
+            origin: ScheduleFireOrigin.CRON,
+            outcome: ScheduleFireOutcome.COMPLETED,
+            nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 60_000)),
+            recordedAt: timestampFromDate(new Date(NOW.getTime() - 60_000)),
+            completedAt: timestampFromDate(new Date(NOW.getTime() - 18_000)),
+          }),
+        ],
+      }),
+    );
+    renderView(client);
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    fireEvent.click(screen.getByRole("tab", { name: /History/ }));
+    const table = await screen.findByRole("table", { name: "Fire history" });
+    expect(within(table).getByText("42s")).toBeTruthy();
   });
 
   it("navigates through the callback seams", async () => {
@@ -342,17 +378,17 @@ describe("ScheduleDetailView", () => {
     expect(onNavigateToRun).toHaveBeenCalledWith("aex_01run");
   });
 
-  it("navigates to a ledger row's run from the recent-runs strip and the Runs table", async () => {
+  it("navigates to a ledger row's run from the recent-fires strip and the History table", async () => {
     const onNavigateToRun = vi.fn();
     const client = makeClient(makeSchedule({ lastRunId: "aex_01last" }));
-    client.schedule.listRuns.mockResolvedValue(
-      create(ScheduleRunListSchema, {
+    client.schedule.listFires.mockResolvedValue(
+      create(ScheduleFireListSchema, {
         totalCount: 1,
         items: [
-          create(ScheduleRunSchema, {
+          create(ScheduleFireSchema, {
             scheduleId: "sch_01example",
-            origin: ScheduleRunOrigin.MANUAL,
-            outcome: ScheduleRunOutcome.COMPLETED,
+            origin: ScheduleFireOrigin.MANUAL,
+            outcome: ScheduleFireOutcome.COMPLETED,
             runId: "aex_01ledger",
             nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 60_000)),
           }),
@@ -364,8 +400,8 @@ describe("ScheduleDetailView", () => {
     fireEvent.click(await screen.findByRole("button", { name: "aex_01ledger" }));
     expect(onNavigateToRun).toHaveBeenLastCalledWith("aex_01ledger");
 
-    fireEvent.click(screen.getByRole("tab", { name: /Runs/ }));
-    const table = await screen.findByRole("table", { name: "Run history" });
+    fireEvent.click(screen.getByRole("tab", { name: /History/ }));
+    const table = await screen.findByRole("table", { name: "Fire history" });
     fireEvent.click(within(table).getByRole("button", { name: "aex_01ledger" }));
     expect(onNavigateToRun).toHaveBeenCalledTimes(2);
     expect(onNavigateToRun).toHaveBeenLastCalledWith("aex_01ledger");
@@ -466,19 +502,19 @@ describe("ScheduleDetailView", () => {
   });
 
   // -------------------------------------------------------------------------
-  // Tabs — Overview and the paginated Runs tab
+  // Tabs — Overview and the paginated History tab
   // -------------------------------------------------------------------------
 
-  it("splits into Overview and Runs tabs, with the run count as badge", async () => {
+  it("splits into Overview and History tabs, with the fire count as badge", async () => {
     const client = makeClient(makeSchedule());
-    client.schedule.listRuns.mockResolvedValue(
-      create(ScheduleRunListSchema, {
+    client.schedule.listFires.mockResolvedValue(
+      create(ScheduleFireListSchema, {
         totalCount: 12,
         items: [
-          create(ScheduleRunSchema, {
+          create(ScheduleFireSchema, {
             scheduleId: "sch_01example",
-            origin: ScheduleRunOrigin.CRON,
-            outcome: ScheduleRunOutcome.COMPLETED,
+            origin: ScheduleFireOrigin.CRON,
+            outcome: ScheduleFireOutcome.COMPLETED,
             nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 60_000)),
           }),
         ],
@@ -487,32 +523,32 @@ describe("ScheduleDetailView", () => {
     renderView(client);
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
-    // The badge fills in once the (separate) runs fetch resolves.
+    // The badge fills in once the (separate) fires fetch resolves.
     await waitFor(() => {
       const tabs = screen.getAllByRole("tab");
-      expect(tabs.map((t) => t.textContent)).toEqual(["Overview", "Runs12"]);
+      expect(tabs.map((t) => t.textContent)).toEqual(["Overview", "History12"]);
     });
     // Overview is the default: definition on screen, no full table.
     expect(screen.getByText("Target agent")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("tab", { name: /Runs/ }));
-    await screen.findByRole("table", { name: "Run history" });
+    fireEvent.click(screen.getByRole("tab", { name: /History/ }));
+    await screen.findByRole("table", { name: "Fire history" });
     expect(screen.queryByText("Target agent")).toBeNull();
   });
 
-  it("pages through the run history (the hook's pagination, finally used)", async () => {
+  it("pages through the fire history (the hook's pagination, finally used)", async () => {
     const client = makeClient(makeSchedule());
-    client.schedule.listRuns.mockImplementation(
+    client.schedule.listFires.mockImplementation(
       async (req: { pageInfo?: { num: number; size: number } }) =>
-        create(ScheduleRunListSchema, {
+        create(ScheduleFireListSchema, {
           totalCount: 30,
           items: Array.from(
             { length: Math.min(req.pageInfo?.size ?? 25, 30) },
             (_, i) =>
-              create(ScheduleRunSchema, {
+              create(ScheduleFireSchema, {
                 scheduleId: "sch_01example",
-                origin: ScheduleRunOrigin.CRON,
-                outcome: ScheduleRunOutcome.COMPLETED,
+                origin: ScheduleFireOrigin.CRON,
+                outcome: ScheduleFireOutcome.COMPLETED,
                 nominalFireTime: timestampFromDate(
                   new Date(NOW.getTime() - (i + 1) * 60_000),
                 ),
@@ -523,12 +559,12 @@ describe("ScheduleDetailView", () => {
     renderView(client);
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
-    fireEvent.click(screen.getByRole("tab", { name: /Runs/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /History/ }));
     await screen.findByText("Page 1 of 2");
 
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     await waitFor(() => {
-      const pageTwoCall = client.schedule.listRuns.mock.calls.find((call) => {
+      const pageTwoCall = client.schedule.listFires.mock.calls.find((call) => {
         const req = call[0] as { pageInfo?: { num: number; size: number } };
         return req.pageInfo?.num === 2 && req.pageInfo?.size === 25;
       });
@@ -537,19 +573,19 @@ describe("ScheduleDetailView", () => {
     await screen.findByText("Page 2 of 2");
   });
 
-  it("links the Overview recent-runs strip to the Runs tab", async () => {
+  it("links the Overview recent-fires strip to the History tab", async () => {
     const client = makeClient(makeSchedule());
-    client.schedule.listRuns.mockImplementation(
+    client.schedule.listFires.mockImplementation(
       async (req: { pageInfo?: { num: number; size: number } }) =>
-        create(ScheduleRunListSchema, {
+        create(ScheduleFireListSchema, {
           totalCount: 12,
           items: Array.from(
             { length: Math.min(req.pageInfo?.size ?? 25, 12) },
             (_, i) =>
-              create(ScheduleRunSchema, {
+              create(ScheduleFireSchema, {
                 scheduleId: "sch_01example",
-                origin: ScheduleRunOrigin.CRON,
-                outcome: ScheduleRunOutcome.COMPLETED,
+                origin: ScheduleFireOrigin.CRON,
+                outcome: ScheduleFireOutcome.COMPLETED,
                 nominalFireTime: timestampFromDate(
                   new Date(NOW.getTime() - (i + 1) * 60_000),
                 ),
@@ -561,9 +597,9 @@ describe("ScheduleDetailView", () => {
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
     fireEvent.click(
-      await screen.findByRole("button", { name: "View all 12 runs" }),
+      await screen.findByRole("button", { name: "View all 12 fires" }),
     );
-    await screen.findByRole("table", { name: "Run history" });
+    await screen.findByRole("table", { name: "Fire history" });
   });
 
   // -------------------------------------------------------------------------

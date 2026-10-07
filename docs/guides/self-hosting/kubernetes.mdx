@@ -89,9 +89,9 @@ kubectl -n stigmer create secret generic stigmer-llm-keys \
   --from-literal=ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-Without it the stack still serves the console and the API; Agent Runs fail at
-the LLM call. You can add the key later: create this Secret, add its line to
-your values file, and run the `helm upgrade` shown further down this page.
+Without it the stack still serves the console and the API; runs fail at the LLM
+call. You can add the key later: create this Secret, add its line to your values
+file, and run the `helm upgrade` shown further down this page.
 
 If your model traffic goes through an LLM gateway in front of Anthropic, give
 the runner its address in your values file (see

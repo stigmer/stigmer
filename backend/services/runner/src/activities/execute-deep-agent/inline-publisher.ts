@@ -23,12 +23,12 @@
 import { createHash } from "node:crypto";
 import { basename } from "node:path";
 import { create } from "@bufbuild/protobuf";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import {
   RunArtifactKind,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ArtifactStorage } from "../../shared/artifact-storage.js";
-import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 import { utcTimestamp } from "../../shared/status.js";
 import { isSecretLikePath } from "../../shared/filereview/secret-paths.js";

@@ -6,12 +6,12 @@ import {
   FileChangeProgressSchema,
   FileChangeProgressEntrySchema,
   CapturedFileChangeSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import type {
   FileChangeProgress,
   FileChangeProgressEntry,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
-import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { FileChangeProgressBar } from "../components/FileChangeProgressBar.js";
 import { changeDisplayPath, progressEntryDisplayPath } from "../file-review.js";
 

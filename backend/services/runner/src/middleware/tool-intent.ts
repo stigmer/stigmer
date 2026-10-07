@@ -38,7 +38,7 @@
  */
 
 import { toJsonSchema } from "@langchain/core/utils/json_schema";
-import { ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { ToolKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { classifyTool } from "../shared/tool-kind.js";
 import type { StigmerMiddleware } from "./types.js";
 

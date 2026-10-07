@@ -17,8 +17,8 @@ import path from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -28,7 +28,7 @@ import {
   AgentExecutionTemporalConfig,
   ROUTING_GLOBAL,
   ROUTING_SESSION,
-} from "../../domain/agentrun/temporal/config.js";
+} from "../../domain/run/temporal/config.js";
 import type {
   RunnerCredentialProvider,
   SandboxCredentialRequest,
@@ -186,7 +186,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
 
   async function seed(target: ExecutionTarget): Promise<{
     sessionId: string;
-    execution: AgentRun;
+    execution: Run;
   }> {
     counter += 1;
     const sessionId = `ses_sbx_${counter}`;
@@ -200,14 +200,14 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         spec: { executionTarget: target },
       }),
     );
-    const execution = create(AgentRunSchema, {
+    const execution = create(RunSchema, {
       metadata: { id: executionId, name: executionId },
       spec: { target: { case: "sessionId", value: sessionId } },
     });
     await store.saveResource(
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
       executionId,
-      AgentRunSchema,
+      RunSchema,
       execution,
     );
     return { sessionId, execution };
@@ -274,7 +274,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         spec: { executionTarget: ExecutionTarget.CLOUD },
       }),
     );
-    const execution = create(AgentRunSchema, {
+    const execution = create(RunSchema, {
       metadata: { id: executionId, name: executionId, org: "org-test" },
       spec: { target: { case: "sessionId", value: sessionId } },
     });
@@ -319,7 +319,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
   });
 
   it("skips when the lane is disabled without touching the store", async () => {
-    const execution = create(AgentRunSchema, {
+    const execution = create(RunSchema, {
       metadata: { id: "axr_disabled" },
       spec: { target: { case: "sessionId", value: "ses_never_loaded" } },
     });
@@ -395,9 +395,9 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
       TEST_CALLER,
     );
     const stamped = await store.getResource(
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
       executionId,
-      AgentRunSchema,
+      RunSchema,
     );
     expect(stamped.status?.error).toBe(
       `${SANDBOX_PROVISIONING_FAILED_PREFIX}quota exhausted: count/secrets`,
@@ -413,10 +413,10 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
     // Re-seed WITH a status already carrying the first error — the state
     // a concurrent runner write (or an earlier stamp) leaves behind.
     await store.saveResource(
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
       executionId,
-      AgentRunSchema,
-      create(AgentRunSchema, {
+      RunSchema,
+      create(RunSchema, {
         metadata: { id: executionId, name: executionId },
         spec: { target: { case: "sessionId", value: sessionId } },
         status: { error: "the real root cause" },
@@ -433,9 +433,9 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
       TEST_CALLER,
     );
     const after = await store.getResource(
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
       executionId,
-      AgentRunSchema,
+      RunSchema,
     );
     expect(after.status?.error).toBe("the real root cause");
   });

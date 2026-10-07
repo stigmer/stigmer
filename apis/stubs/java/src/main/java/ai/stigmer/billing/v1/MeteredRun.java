@@ -172,7 +172,7 @@ private static final long serialVersionUID = 0L;
    * served_service_tier by the service_tier.mismatch counter.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentrun.v1.ServiceTier requested_service_tier = 3 [json_name = "requestedServiceTier"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.ServiceTier requested_service_tier = 3 [json_name = "requestedServiceTier"];</code>
    * @return The enum numeric value on the wire for requestedServiceTier.
    */
   @java.lang.Override public int getRequestedServiceTierValue() {
@@ -185,12 +185,12 @@ private static final long serialVersionUID = 0L;
    * served_service_tier by the service_tier.mismatch counter.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentrun.v1.ServiceTier requested_service_tier = 3 [json_name = "requestedServiceTier"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.ServiceTier requested_service_tier = 3 [json_name = "requestedServiceTier"];</code>
    * @return The requestedServiceTier.
    */
-  @java.lang.Override public ai.stigmer.agentic.agentrun.v1.ServiceTier getRequestedServiceTier() {
-    ai.stigmer.agentic.agentrun.v1.ServiceTier result = ai.stigmer.agentic.agentrun.v1.ServiceTier.forNumber(requestedServiceTier_);
-    return result == null ? ai.stigmer.agentic.agentrun.v1.ServiceTier.UNRECOGNIZED : result;
+  @java.lang.Override public ai.stigmer.agentic.run.v1.ServiceTier getRequestedServiceTier() {
+    ai.stigmer.agentic.run.v1.ServiceTier result = ai.stigmer.agentic.run.v1.ServiceTier.forNumber(requestedServiceTier_);
+    return result == null ? ai.stigmer.agentic.run.v1.ServiceTier.UNRECOGNIZED : result;
   }
 
   public static final int REQUESTED_THINKING_MODE_FIELD_NUMBER = 4;
@@ -202,7 +202,7 @@ private static final long serialVersionUID = 0L;
    * thinking.mismatch counter.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentrun.v1.ThinkingMode requested_thinking_mode = 4 [json_name = "requestedThinkingMode"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.ThinkingMode requested_thinking_mode = 4 [json_name = "requestedThinkingMode"];</code>
    * @return The enum numeric value on the wire for requestedThinkingMode.
    */
   @java.lang.Override public int getRequestedThinkingModeValue() {
@@ -215,12 +215,12 @@ private static final long serialVersionUID = 0L;
    * thinking.mismatch counter.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentrun.v1.ThinkingMode requested_thinking_mode = 4 [json_name = "requestedThinkingMode"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.ThinkingMode requested_thinking_mode = 4 [json_name = "requestedThinkingMode"];</code>
    * @return The requestedThinkingMode.
    */
-  @java.lang.Override public ai.stigmer.agentic.agentrun.v1.ThinkingMode getRequestedThinkingMode() {
-    ai.stigmer.agentic.agentrun.v1.ThinkingMode result = ai.stigmer.agentic.agentrun.v1.ThinkingMode.forNumber(requestedThinkingMode_);
-    return result == null ? ai.stigmer.agentic.agentrun.v1.ThinkingMode.UNRECOGNIZED : result;
+  @java.lang.Override public ai.stigmer.agentic.run.v1.ThinkingMode getRequestedThinkingMode() {
+    ai.stigmer.agentic.run.v1.ThinkingMode result = ai.stigmer.agentic.run.v1.ThinkingMode.forNumber(requestedThinkingMode_);
+    return result == null ? ai.stigmer.agentic.run.v1.ThinkingMode.UNRECOGNIZED : result;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -243,10 +243,10 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pinnedModel_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, pinnedModel_);
     }
-    if (requestedServiceTier_ != ai.stigmer.agentic.agentrun.v1.ServiceTier.SERVICE_TIER_UNSPECIFIED.getNumber()) {
+    if (requestedServiceTier_ != ai.stigmer.agentic.run.v1.ServiceTier.SERVICE_TIER_UNSPECIFIED.getNumber()) {
       output.writeEnum(3, requestedServiceTier_);
     }
-    if (requestedThinkingMode_ != ai.stigmer.agentic.agentrun.v1.ThinkingMode.THINKING_MODE_UNSPECIFIED.getNumber()) {
+    if (requestedThinkingMode_ != ai.stigmer.agentic.run.v1.ThinkingMode.THINKING_MODE_UNSPECIFIED.getNumber()) {
       output.writeEnum(4, requestedThinkingMode_);
     }
     getUnknownFields().writeTo(output);
@@ -264,11 +264,11 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pinnedModel_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, pinnedModel_);
     }
-    if (requestedServiceTier_ != ai.stigmer.agentic.agentrun.v1.ServiceTier.SERVICE_TIER_UNSPECIFIED.getNumber()) {
+    if (requestedServiceTier_ != ai.stigmer.agentic.run.v1.ServiceTier.SERVICE_TIER_UNSPECIFIED.getNumber()) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(3, requestedServiceTier_);
     }
-    if (requestedThinkingMode_ != ai.stigmer.agentic.agentrun.v1.ThinkingMode.THINKING_MODE_UNSPECIFIED.getNumber()) {
+    if (requestedThinkingMode_ != ai.stigmer.agentic.run.v1.ThinkingMode.THINKING_MODE_UNSPECIFIED.getNumber()) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(4, requestedThinkingMode_);
     }
@@ -809,7 +809,7 @@ private static final long serialVersionUID = 0L;
      * served_service_tier by the service_tier.mismatch counter.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.ServiceTier requested_service_tier = 3 [json_name = "requestedServiceTier"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.ServiceTier requested_service_tier = 3 [json_name = "requestedServiceTier"];</code>
      * @return The enum numeric value on the wire for requestedServiceTier.
      */
     @java.lang.Override public int getRequestedServiceTierValue() {
@@ -822,7 +822,7 @@ private static final long serialVersionUID = 0L;
      * served_service_tier by the service_tier.mismatch counter.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.ServiceTier requested_service_tier = 3 [json_name = "requestedServiceTier"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.ServiceTier requested_service_tier = 3 [json_name = "requestedServiceTier"];</code>
      * @param value The enum numeric value on the wire for requestedServiceTier to set.
      * @throws IllegalArgumentException if UNRECOGNIZED is provided.
      * @return This builder for chaining.
@@ -840,13 +840,13 @@ private static final long serialVersionUID = 0L;
      * served_service_tier by the service_tier.mismatch counter.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.ServiceTier requested_service_tier = 3 [json_name = "requestedServiceTier"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.ServiceTier requested_service_tier = 3 [json_name = "requestedServiceTier"];</code>
      * @return The requestedServiceTier.
      */
     @java.lang.Override
-    public ai.stigmer.agentic.agentrun.v1.ServiceTier getRequestedServiceTier() {
-      ai.stigmer.agentic.agentrun.v1.ServiceTier result = ai.stigmer.agentic.agentrun.v1.ServiceTier.forNumber(requestedServiceTier_);
-      return result == null ? ai.stigmer.agentic.agentrun.v1.ServiceTier.UNRECOGNIZED : result;
+    public ai.stigmer.agentic.run.v1.ServiceTier getRequestedServiceTier() {
+      ai.stigmer.agentic.run.v1.ServiceTier result = ai.stigmer.agentic.run.v1.ServiceTier.forNumber(requestedServiceTier_);
+      return result == null ? ai.stigmer.agentic.run.v1.ServiceTier.UNRECOGNIZED : result;
     }
     /**
      * <pre>
@@ -855,11 +855,11 @@ private static final long serialVersionUID = 0L;
      * served_service_tier by the service_tier.mismatch counter.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.ServiceTier requested_service_tier = 3 [json_name = "requestedServiceTier"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.ServiceTier requested_service_tier = 3 [json_name = "requestedServiceTier"];</code>
      * @param value The requestedServiceTier to set.
      * @return This builder for chaining.
      */
-    public Builder setRequestedServiceTier(ai.stigmer.agentic.agentrun.v1.ServiceTier value) {
+    public Builder setRequestedServiceTier(ai.stigmer.agentic.run.v1.ServiceTier value) {
       if (value == null) { throw new NullPointerException(); }
       bitField0_ |= 0x00000004;
       requestedServiceTier_ = value.getNumber();
@@ -873,7 +873,7 @@ private static final long serialVersionUID = 0L;
      * served_service_tier by the service_tier.mismatch counter.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.ServiceTier requested_service_tier = 3 [json_name = "requestedServiceTier"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.ServiceTier requested_service_tier = 3 [json_name = "requestedServiceTier"];</code>
      * @return This builder for chaining.
      */
     public Builder clearRequestedServiceTier() {
@@ -891,7 +891,7 @@ private static final long serialVersionUID = 0L;
      * thinking.mismatch counter.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.ThinkingMode requested_thinking_mode = 4 [json_name = "requestedThinkingMode"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.ThinkingMode requested_thinking_mode = 4 [json_name = "requestedThinkingMode"];</code>
      * @return The enum numeric value on the wire for requestedThinkingMode.
      */
     @java.lang.Override public int getRequestedThinkingModeValue() {
@@ -904,7 +904,7 @@ private static final long serialVersionUID = 0L;
      * thinking.mismatch counter.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.ThinkingMode requested_thinking_mode = 4 [json_name = "requestedThinkingMode"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.ThinkingMode requested_thinking_mode = 4 [json_name = "requestedThinkingMode"];</code>
      * @param value The enum numeric value on the wire for requestedThinkingMode to set.
      * @throws IllegalArgumentException if UNRECOGNIZED is provided.
      * @return This builder for chaining.
@@ -922,13 +922,13 @@ private static final long serialVersionUID = 0L;
      * thinking.mismatch counter.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.ThinkingMode requested_thinking_mode = 4 [json_name = "requestedThinkingMode"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.ThinkingMode requested_thinking_mode = 4 [json_name = "requestedThinkingMode"];</code>
      * @return The requestedThinkingMode.
      */
     @java.lang.Override
-    public ai.stigmer.agentic.agentrun.v1.ThinkingMode getRequestedThinkingMode() {
-      ai.stigmer.agentic.agentrun.v1.ThinkingMode result = ai.stigmer.agentic.agentrun.v1.ThinkingMode.forNumber(requestedThinkingMode_);
-      return result == null ? ai.stigmer.agentic.agentrun.v1.ThinkingMode.UNRECOGNIZED : result;
+    public ai.stigmer.agentic.run.v1.ThinkingMode getRequestedThinkingMode() {
+      ai.stigmer.agentic.run.v1.ThinkingMode result = ai.stigmer.agentic.run.v1.ThinkingMode.forNumber(requestedThinkingMode_);
+      return result == null ? ai.stigmer.agentic.run.v1.ThinkingMode.UNRECOGNIZED : result;
     }
     /**
      * <pre>
@@ -937,11 +937,11 @@ private static final long serialVersionUID = 0L;
      * thinking.mismatch counter.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.ThinkingMode requested_thinking_mode = 4 [json_name = "requestedThinkingMode"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.ThinkingMode requested_thinking_mode = 4 [json_name = "requestedThinkingMode"];</code>
      * @param value The requestedThinkingMode to set.
      * @return This builder for chaining.
      */
-    public Builder setRequestedThinkingMode(ai.stigmer.agentic.agentrun.v1.ThinkingMode value) {
+    public Builder setRequestedThinkingMode(ai.stigmer.agentic.run.v1.ThinkingMode value) {
       if (value == null) { throw new NullPointerException(); }
       bitField0_ |= 0x00000008;
       requestedThinkingMode_ = value.getNumber();
@@ -955,7 +955,7 @@ private static final long serialVersionUID = 0L;
      * thinking.mismatch counter.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.ThinkingMode requested_thinking_mode = 4 [json_name = "requestedThinkingMode"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.ThinkingMode requested_thinking_mode = 4 [json_name = "requestedThinkingMode"];</code>
      * @return This builder for chaining.
      */
     public Builder clearRequestedThinkingMode() {

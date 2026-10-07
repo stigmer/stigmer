@@ -140,7 +140,7 @@ class BillingCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def authorizeRun(self, request, context):
-        """Reserve credits before starting an agent run.
+        """Reserve credits before starting a run.
         Returns authorization status and reservation details.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)

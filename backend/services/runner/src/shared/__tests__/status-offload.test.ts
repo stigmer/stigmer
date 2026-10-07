@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { create, toBinary } from "@bufbuild/protobuf";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
-import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
+import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
 import {
   DiffCompleteness,
@@ -13,7 +13,7 @@ import {
   FileChangeType,
   FileChangeCaptureLevel,
   FileReviewBlockReason,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   offloadOversizedToolOutputs,
   offloadCandidateChangesToFit,
@@ -26,7 +26,7 @@ import {
   buildCapturedFileChange,
   type ChangeSetContext,
 } from "../filereview/events.js";
-import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 
 function makeFakeStorage() {
   // Canonical double, with the metadata-tracking `uploads` shim these tests assert
@@ -41,14 +41,14 @@ function makeFakeStorage() {
   return { storage, uploads };
 }
 
-function statusWithToolCall(tc: ToolCall): AgentRunStatus {
-  return create(AgentRunStatusSchema, {
+function statusWithToolCall(tc: ToolCall): RunStatus {
+  return create(RunStatusSchema, {
     messages: [create(AgentMessageSchema, { toolCalls: [tc] })],
   });
 }
 
-function encodedSize(status: AgentRunStatus): number {
-  return toBinary(AgentRunStatusSchema, status).length;
+function encodedSize(status: RunStatus): number {
+  return toBinary(RunStatusSchema, status).length;
 }
 
 const BIG_BASE64_IMAGE = Buffer.from("x".repeat(4096)).toString("base64");
@@ -398,8 +398,8 @@ describe("offloadOversizedToolOutputs", () => {
 // location was a hole in the persist boundary's bounded-payload guarantee.
 // ---------------------------------------------------------------------------
 
-function statusWithSubAgentToolCall(tc: ToolCall): AgentRunStatus {
-  return create(AgentRunStatusSchema, {
+function statusWithSubAgentToolCall(tc: ToolCall): RunStatus {
+  return create(RunStatusSchema, {
     subAgentRuns: [
       create(SubAgentRunSchema, {
         id: "sa-1",
@@ -464,7 +464,7 @@ describe("sub-agent message size bounding", () => {
   });
 
   it("enforceStatusSizeLimit last-resort elides oversized sub-agent message content", () => {
-    const status = create(AgentRunStatusSchema, {
+    const status = create(RunStatusSchema, {
       subAgentRuns: [
         create(SubAgentRunSchema, {
           id: "sa-2",
@@ -492,7 +492,7 @@ describe("enforceStatusSizeLimit", () => {
 
   it("elides the largest inline fields until the status fits", () => {
     const big = "Z".repeat(50_000);
-    const status = create(AgentRunStatusSchema, {
+    const status = create(RunStatusSchema, {
       messages: [
         create(AgentMessageSchema, {
           toolCalls: [
@@ -531,7 +531,7 @@ describe("enforceStatusSizeLimit", () => {
     expect(change.blockedReason).toBe(FileReviewBlockReason.UNSPECIFIED);
     expect(change.diffComplete).toBe(true);
 
-    const status = create(AgentRunStatusSchema, {});
+    const status = create(RunStatusSchema, {});
     appendFileReviewEvents(status, "exec-1", [
       buildCandidateCapturedEvent(ctx, undefined, [change]),
     ]);
@@ -586,7 +586,7 @@ describe("enforceStatusSizeLimit", () => {
       after: big,
     });
 
-    const status = create(AgentRunStatusSchema, {});
+    const status = create(RunStatusSchema, {});
     appendFileReviewEvents(status, "exec-3", [
       buildCandidateCapturedEvent(ctx, undefined, [binary, bigText]),
     ]);
@@ -637,7 +637,7 @@ describe("enforceStatusSizeLimit", () => {
       diffComplete: false,
       blockedReason: FileReviewBlockReason.SECRET_WITHHELD,
     });
-    const status = create(AgentRunStatusSchema, {});
+    const status = create(RunStatusSchema, {});
     appendFileReviewEvents(status, "exec-2", [
       buildCandidateCapturedEvent(ctx, undefined, [secretButLarge]),
     ]);
@@ -657,21 +657,21 @@ describe("offloadCandidateChangesToFit", () => {
   function statusWithCandidate(
     changes: CapturedFileChange[],
     executionId: string,
-  ): AgentRunStatus {
+  ): RunStatus {
     const ctx: ChangeSetContext = {
       changeSetId: `${executionId}:0`,
       turnId: "turn-0",
       harnessId: "deep-agent",
       timestamp: "2026-07-01T00:00:00Z",
     };
-    const status = create(AgentRunStatusSchema, {});
+    const status = create(RunStatusSchema, {});
     appendFileReviewEvents(status, executionId, [
       buildCandidateCapturedEvent(ctx, undefined, changes),
     ]);
     return status;
   }
 
-  function candidateOf(status: AgentRunStatus) {
+  function candidateOf(status: RunStatus) {
     const ev = status.fileReviewEventStream?.events.find(
       (e) => e.payload.case === "candidateCaptured",
     );

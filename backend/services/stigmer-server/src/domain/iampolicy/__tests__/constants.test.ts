@@ -303,7 +303,7 @@ describe("BLUEPRINT_KINDS — the legacy-creator rule's scan", () => {
   it("never names a personal kind — those stay with their creator, no role needed", () => {
     for (const personal of [
       ApiResourceKind.session,
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
       ApiResourceKind.api_key,
       ApiResourceKind.memory,
     ]) {
@@ -341,8 +341,8 @@ describe("byte-pinned copy", () => {
     expect(policyNotFoundMessage("iamp_x")).toBe(
       "IAM policy not found: iamp_x",
     );
-    expect(noGrantableRolesMessage("agent_run")).toBe(
-      "No roles can be granted on resource kind 'agent_run'. Role assignments for this resource kind are system-managed.",
+    expect(noGrantableRolesMessage("run")).toBe(
+      "No roles can be granted on resource kind 'run'. Role assignments for this resource kind are system-managed.",
     );
     expect(
       roleNotGrantableMessage("editor", "organization", [

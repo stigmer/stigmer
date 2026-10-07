@@ -34,7 +34,7 @@
 import { create } from "@bufbuild/protobuf";
 import type { Run } from "@cursor/sdk";
 import type { ConversationTurn } from "@cursor/sdk";
-import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/usage_pb";
+import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
 
 import type { TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
 import { TimingRecorder, emitTimingLog } from "../../shared/cold-start-timing.js";

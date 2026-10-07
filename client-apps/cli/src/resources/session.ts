@@ -6,8 +6,8 @@
 // resume-style flows read sessions through these helpers instead.
 
 import { create } from "@bufbuild/protobuf";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { ListAgentRunsBySessionRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { ListRunsBySessionRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Stigmer } from "@stigmer/sdk";
 
@@ -21,8 +21,8 @@ export async function getSessionById(client: Stigmer, sessionId: string): Promis
  * returns a session's runs whole, so one call is the complete set.
  * Returns the raw entries for resume to inspect.
  */
-export async function listRunsBySession(client: Stigmer, sessionId: string): Promise<AgentRun[]> {
-  const list = await client.agentRun.listBySession(create(ListAgentRunsBySessionRequestSchema, { sessionId }));
+export async function listRunsBySession(client: Stigmer, sessionId: string): Promise<Run[]> {
+  const list = await client.run.listBySession(create(ListRunsBySessionRequestSchema, { sessionId }));
   return list.entries;
 }
 
