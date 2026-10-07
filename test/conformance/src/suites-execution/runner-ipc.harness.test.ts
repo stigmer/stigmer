@@ -39,7 +39,7 @@ afterAll(async () => {
 });
 
 describe.skipIf(!hasEngineCoordinates)("Runner manager-mode IPC — handshake", () => {
-  it("a manager-mode runner advertises protocol version 1 in its ready handshake and answers shutdown with shutdownComplete", async () => {
+  it("a manager-mode runner advertises protocol version 2 in its ready handshake and answers shutdown with shutdownComplete", async () => {
     const coordinates = target.engineCoordinates!();
     manager = await spawnManagerRunner({
       entryPath: await ensureRunnerBuilt(),
@@ -50,7 +50,7 @@ describe.skipIf(!hasEngineCoordinates)("Runner manager-mode IPC — handshake", 
 
     expect(manager.ready.type).toBe("ready");
     expect(manager.ready.protocolVersion, "the version the hosts negotiate on").toBe(IPC_PROTOCOL_VERSION);
-    expect(manager.ready.protocolVersion).toBe(1);
+    expect(manager.ready.protocolVersion).toBe(2);
 
     manager.send({ type: "shutdown" });
     const response = await manager.nextResponse("shutdownComplete");
