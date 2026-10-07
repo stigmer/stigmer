@@ -1415,7 +1415,6 @@ export async function composeServer(
       delete: (input) => requireInProcess().signInCredentialClient.delete(input),
     },
     store,
-    credentialValues,
     logger,
   );
   const credentialResolver: CredentialResolverDeps = {

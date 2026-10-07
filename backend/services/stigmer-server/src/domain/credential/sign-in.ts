@@ -48,7 +48,6 @@ import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import type { CredentialOwner } from "./steps.js";
 import { isSignIn, ownerOf } from "./steps.js";
-import type { CredentialValues } from "./values.js";
 
 /**
  * The narrow in-process credential surface the sign-in lane consumes —
@@ -82,7 +81,6 @@ export class SignInCredentials {
   constructor(
     private readonly client: SignInCredentialClient,
     private readonly store: Store,
-    private readonly values: CredentialValues,
     private readonly logger: Logger,
   ) {}
 
@@ -179,14 +177,6 @@ export class SignInCredentials {
         fields: { [field]: { value: token, plain: false } },
       }),
     );
-  }
-
-  /** The decrypted access token a sign-in holds, or undefined when the credential or field is gone. */
-  async readToken(credentialId: string, field: string): Promise<string | undefined> {
-    const credential = await this.load(credentialId);
-    return credential === undefined
-      ? undefined
-      : this.values.fieldValue(credential, field);
   }
 
   /** Deletes a sign-in's credential; a credential already gone is no fault. */

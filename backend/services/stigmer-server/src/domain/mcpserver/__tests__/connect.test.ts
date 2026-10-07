@@ -296,7 +296,6 @@ function makeHarness(options: HarnessOptions = {}): Harness {
           },
         },
         store,
-        new CredentialValues(SecretService.create(undefined), silentLogger),
         silentLogger,
       ),
       oauthGrants: store.oauthGrants,

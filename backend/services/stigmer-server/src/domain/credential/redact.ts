@@ -19,12 +19,8 @@ import { REDACTED_MARKER } from "./constants.js";
  * stored value). Mutates in place: callers hold a fresh store decode or
  * the already-persisted new state.
  */
-export function redactCredentialSecrets(credential: Credential | undefined): void {
-  const fields = credential?.spec?.fields;
-  if (fields === undefined) {
-    return;
-  }
-  for (const field of Object.values(fields)) {
+export function redactCredentialSecrets(credential: Credential): void {
+  for (const field of Object.values(credential.spec?.fields ?? {})) {
     if (!field.plain && field.value !== "") {
       field.value = REDACTED_MARKER;
     }

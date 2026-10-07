@@ -87,6 +87,7 @@ function assignmentKey(assignment: CredentialAssignment): string {
       break;
     case undefined:
       break;
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
       const exhaustive: never = source;
       throw new Error(`unknown assignment source: ${JSON.stringify(exhaustive)}`);
@@ -184,19 +185,13 @@ async function requireUse(
     resourceKind: ApiResourceKind.credential,
     resourceId: credential.metadata?.id ?? "",
   });
-  switch (decision.kind) {
-    case "allow":
-      return;
-    case "deny":
-    case "not-found":
-      throw permissionDeniedError(
-        `credential '${credential.metadata?.slug ?? ""}' is not one you may use, so you cannot assign it on a ${noun}; assign a credential of your own or one the organization lets you use`,
-      );
-    case "unavailable":
-      throw internalError(decision.cause, "failed to authorize an assigned credential");
-    default: {
-      const exhaustive: never = decision;
-      throw new Error(`unknown decision: ${JSON.stringify(exhaustive)}`);
-    }
+  if (decision.kind === "allow") {
+    return;
   }
+  if (decision.kind === "deny" || decision.kind === "not-found") {
+    throw permissionDeniedError(
+      `credential '${credential.metadata?.slug ?? ""}' is not one you may use, so you cannot assign it on a ${noun}; assign a credential of your own or one the organization lets you use`,
+    );
+  }
+  throw internalError(decision.cause, "failed to authorize an assigned credential");
 }

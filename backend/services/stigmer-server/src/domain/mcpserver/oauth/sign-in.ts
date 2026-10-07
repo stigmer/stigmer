@@ -99,21 +99,15 @@ export async function requireOrganizationSignInAdmin(
     resourceKind: ApiResourceKind.organization,
     resourceId: org,
   });
-  switch (decision.kind) {
-    case "allow":
-      return;
-    case "deny":
-    case "not-found":
-      throw permissionDeniedError(
-        `MCP server '${server.metadata?.slug ?? ""}' uses the organization's sign-in; only the organization's admins sign it in or out`,
-      );
-    case "unavailable":
-      throw internalError(decision.cause, "failed to authorize the organization's sign-in");
-    default: {
-      const exhaustive: never = decision;
-      throw new Error(`unknown decision: ${JSON.stringify(exhaustive)}`);
-    }
+  if (decision.kind === "allow") {
+    return;
   }
+  if (decision.kind === "deny" || decision.kind === "not-found") {
+    throw permissionDeniedError(
+      `MCP server '${server.metadata?.slug ?? ""}' uses the organization's sign-in; only the organization's admins sign it in or out`,
+    );
+  }
+  throw internalError(decision.cause, "failed to authorize the organization's sign-in");
 }
 
 /** Seals a refresh token for the grant row; "" stays "" (no refresh token issued). */

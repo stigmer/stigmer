@@ -134,34 +134,31 @@ export interface CredentialResolverDeps {
 
 /** The target a declarer is, as credentials name it in `serves` and assignments. */
 export function declarerTarget(declarer: Declarer): CredentialTarget {
-  switch (declarer.kind) {
-    case "agent":
-      return create(CredentialTargetSchema, {
-        target: {
-          case: "agent",
-          value: { kind: ApiResourceKind.agent, org: declarer.org, slug: declarer.slug },
-        },
-      });
-    case "mcp_server":
-      return create(CredentialTargetSchema, {
-        target: {
-          case: "mcpServer",
-          value: {
-            kind: ApiResourceKind.mcp_server,
-            org: declarer.org,
-            slug: declarer.slug,
-          },
-        },
-      });
-    case "git_host":
-      return create(CredentialTargetSchema, {
-        target: { case: "gitHost", value: declarer.host },
-      });
-    default: {
-      const exhaustive: never = declarer;
-      throw new Error(`unknown declarer: ${JSON.stringify(exhaustive)}`);
-    }
+  if (declarer.kind === "agent") {
+    return create(CredentialTargetSchema, {
+      target: {
+        case: "agent",
+        value: { kind: ApiResourceKind.agent, org: declarer.org, slug: declarer.slug },
+      },
+    });
   }
+  if (declarer.kind === "mcp_server") {
+    return create(CredentialTargetSchema, {
+      target: {
+        case: "mcpServer",
+        value: {
+          kind: ApiResourceKind.mcp_server,
+          org: declarer.org,
+          slug: declarer.slug,
+        },
+      },
+    });
+  }
+  // The last kind left: `host` exists on a git host alone, so a new kind
+  // fails to compile here rather than falling through.
+  return create(CredentialTargetSchema, {
+    target: { case: "gitHost", value: declarer.host },
+  });
 }
 
 /** A value and where it came from, for the conflict rule. */
@@ -379,6 +376,7 @@ async function assignedValue(
     }
     case undefined:
       return { kind: "value", value: undefined };
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
       const exhaustive: never = source;
       throw new Error(`unknown assignment source: ${JSON.stringify(exhaustive)}`);
@@ -397,19 +395,13 @@ async function writerMayUse(
     resourceKind: ApiResourceKind.credential,
     resourceId: credential.metadata?.id ?? "",
   });
-  switch (decision.kind) {
-    case "allow":
-      return true;
-    case "deny":
-    case "not-found":
-      return false;
-    case "unavailable":
-      throw internalError(decision.cause, "failed to check an assigned credential");
-    default: {
-      const exhaustive: never = decision;
-      throw new Error(`unknown decision: ${JSON.stringify(exhaustive)}`);
-    }
+  if (decision.kind === "allow") {
+    return true;
   }
+  if (decision.kind === "deny" || decision.kind === "not-found") {
+    return false;
+  }
+  throw internalError(decision.cause, "failed to check an assigned credential");
 }
 
 /** A person asked about as themselves: a signed-in user with no token, from the server. */

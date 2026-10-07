@@ -104,6 +104,7 @@ export function ownerOf(credential: Credential): CredentialOwner | undefined {
       return { kind: "org", org: owner.value };
     case undefined:
       return undefined;
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
       const exhaustive: never = owner;
       throw new Error(`unknown credential owner: ${JSON.stringify(exhaustive)}`);
@@ -163,24 +164,20 @@ export function newResolveCredentialOwnerStep(
         resourceKind: ApiResourceKind.organization,
         resourceId: org,
       });
-      switch (decision.kind) {
-        case "allow":
-          return;
-        case "deny":
-          throw permissionDeniedError(
-            owner.kind === "person"
-              ? "unauthorized to create a credential in this organization"
-              : "unauthorized to create an organization credential: only the organization's admins save credentials for it",
-          );
-        case "not-found":
-          throw notFoundError("organization", org);
-        case "unavailable":
-          throw internalError(decision.cause, "failed to authorize credential create");
-        default: {
-          const exhaustive: never = decision;
-          throw new Error(`unknown decision: ${JSON.stringify(exhaustive)}`);
-        }
+      if (decision.kind === "allow") {
+        return;
       }
+      if (decision.kind === "deny") {
+        throw permissionDeniedError(
+          owner.kind === "person"
+            ? "unauthorized to create a credential in this organization"
+            : "unauthorized to create an organization credential: only the organization's admins save credentials for it",
+        );
+      }
+      if (decision.kind === "not-found") {
+        throw notFoundError("organization", org);
+      }
+      throw internalError(decision.cause, "failed to authorize credential create");
     },
   };
 }
@@ -335,6 +332,7 @@ export function targetKey(target: CredentialTarget): string | undefined {
       return `git_host:${t.value.toLowerCase()}`;
     case undefined:
       return undefined;
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
       const exhaustive: never = t;
       throw new Error(`unknown credential target: ${JSON.stringify(exhaustive)}`);
@@ -354,6 +352,7 @@ export function targetWords(target: CredentialTarget): string {
       return `git host '${t.value}'`;
     case undefined:
       return "an empty target";
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
       const exhaustive: never = t;
       throw new Error(`unknown credential target: ${JSON.stringify(exhaustive)}`);
@@ -528,18 +527,16 @@ export function newDestroyDroppedSecretsStep(
   return {
     name: "DestroyDroppedSecrets",
     async execute(ctx: RequestContext<typeof CredentialSchema>): Promise<void> {
-      const existing = ctx.get(EXISTING_RESOURCE_KEY) as Credential | undefined;
-      const before = existing?.spec?.fields;
-      if (before === undefined) {
-        return;
-      }
+      // LoadExisting precedes this step on the update chain.
+      const existing = ctx.get(EXISTING_RESOURCE_KEY) as Credential;
+      const before = existing.spec?.fields ?? {};
       const after = ctx.newState.spec?.fields ?? {};
       await destroySecretBackingState(
         secretService,
         logger,
         {
           kind: "credential",
-          resourceId: existing?.metadata?.id ?? "",
+          resourceId: existing.metadata?.id ?? "",
           operation: "update",
         },
         Object.entries(before)
@@ -571,10 +568,9 @@ export function newLoadCredentialByIdStep<Desc extends DescMessage>(
   return {
     name: "LoadCredentialById",
     async execute(ctx: RequestContext<Desc>): Promise<void> {
-      const credentialId = (ctx.input as { credentialId?: unknown }).credentialId;
-      if (typeof credentialId !== "string" || credentialId === "") {
-        throw invalidArgumentError("credential_id is required");
-      }
+      // ValidateProto precedes this step, and every input it serves
+      // requires a non-empty credential_id.
+      const credentialId = (ctx.input as { credentialId?: string }).credentialId ?? "";
       let credential: Credential;
       try {
         credential = await store.getResource(
@@ -593,15 +589,9 @@ export function newLoadCredentialByIdStep<Desc extends DescMessage>(
   };
 }
 
+/** The credential LoadCredentialById put on the context; it precedes every field-lane step. */
 function loadedCredential<Desc extends DescMessage>(ctx: RequestContext<Desc>): Credential {
-  const credential = ctx.get(TARGET_RESOURCE_KEY) as Credential | undefined;
-  if (credential === undefined) {
-    throw internalError(
-      new Error("targetResource missing or wrong type"),
-      "credential not loaded in context",
-    );
-  }
-  return credential;
+  return ctx.get(TARGET_RESOURCE_KEY) as Credential;
 }
 
 /** Refuses a hand edit of a sign-in's fields; the sign-in lane (server-composed) passes. */
@@ -621,11 +611,7 @@ async function persistFieldWrite<Desc extends DescMessage>(
   credential: Credential,
   operation: string,
 ): Promise<void> {
-  try {
-    setAuditFieldsForUpdate(CredentialSchema, credential, "spec_audit", ctx.callerIdentity);
-  } catch (error) {
-    throw internalError(error, "failed to set audit fields");
-  }
+  setAuditFieldsForUpdate(CredentialSchema, credential, "spec_audit", ctx.callerIdentity);
   try {
     await store.saveResource(
       ctx.apiResourceKind,

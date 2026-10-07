@@ -271,14 +271,8 @@ async function deleteCredential(
     .build()
     .execute(reqCtx);
 
-  const deleted = reqCtx.get(EXISTING_RESOURCE_KEY);
-  if (deleted === undefined) {
-    throw internalError(
-      new Error("deleted credential not found in context"),
-      "deleted credential not found in context",
-    );
-  }
-  const credential = deleted as Credential;
+  // LoadExistingForDelete put the row on the context, or the chain threw.
+  const credential = reqCtx.get(EXISTING_RESOURCE_KEY) as Credential;
   redactCredentialSecrets(credential);
   return credential;
 }
@@ -464,14 +458,8 @@ async function list(
     .addStep(newListCredentialsStep(deps.store, deps.listReadScope))
     .build()
     .execute(reqCtx);
-  const result = reqCtx.get(LIST_RESULT_KEY);
-  if (result === undefined) {
-    throw internalError(
-      new Error("credential list not found in context"),
-      "credential list not found in context",
-    );
-  }
-  return result as CredentialList;
+  // ListCredentials sets the page, or the chain threw.
+  return reqCtx.get(LIST_RESULT_KEY) as CredentialList;
 }
 
 /**
