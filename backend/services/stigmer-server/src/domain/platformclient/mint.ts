@@ -84,6 +84,7 @@ import type { CallerIdentity } from "../../extensions/identity.js";
 import { recordCredentialUse } from "../../identity/credential-use.js";
 import { internalError } from "../../pipeline/errors.js";
 import { serverActingFor } from "../../pipeline/interceptors/auth.js";
+import { fittedName } from "../../pipeline/steps/slug.js";
 import { validator } from "../../pipeline/steps/validation.js";
 import {
   canSign,
@@ -372,7 +373,8 @@ function accountInput(
   user: EndUser,
 ): CreateAccountInput {
   const input: CreateAccountInput = {
-    name: user.email !== "" ? user.email : user.externalUserId,
+    // Cut to metadata.name's bound: the name is the mint's choice.
+    name: fittedName(user.email !== "" ? user.email : user.externalUserId),
     spec: create(IdentityAccountSpecSchema, {
       idpId,
       email: user.email,

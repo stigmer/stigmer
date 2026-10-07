@@ -30,7 +30,7 @@ const PINNED: Readonly<
     revision: 1,
     fingerprint: "organization{parent_org=field:spec.parent_org}",
   },
-  // The run kind's stored name changed (SQLite v20, Postgres v15) and its
+  // The run kind's stored name changed (SQLite v21, Postgres v16) and its
   // keys did not; the step renames the rows' kind column, so the facts
   // already derived stay trusted under the same revision.
   run: {

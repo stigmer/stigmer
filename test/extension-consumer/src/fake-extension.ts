@@ -73,6 +73,7 @@ import {
   composeServer,
   createLogger,
   DuplicateAccountError,
+  fittedSlug,
   DuplicatePlatformClientError,
   DuplicatePolicyError,
   EncryptionScope,
@@ -111,6 +112,8 @@ import {
   verifyPlatformToken,
   RequestContext,
   ResourceNotFoundError,
+  repairAccountSlug,
+  rethrownStatusError,
   newSubstrateSandboxDriver,
   newSubstrateSettingsFromEnv,
   ROUTING_SESSION,
@@ -741,6 +744,24 @@ export function consumerGateStep(): PipelineStep<DescMessage> {
   };
 }
 
+/**
+ * An in-process client's refusal re-thrown unwrapped: the exported helper
+ * builds a fresh ConnectError (same code, same text) so the inner
+ * response's metadata never reaches the outer trailers (stigmer#1284).
+ */
+export async function consumerForwardInProcessRefusal(
+  call: () => Promise<unknown>,
+): Promise<void> {
+  try {
+    await call();
+  } catch (error) {
+    if (error instanceof ConnectError) {
+      throw rethrownStatusError(error);
+    }
+    throw error;
+  }
+}
+
 /** The typed store not-found classes are importable for the instanceof idiom. */
 export function isStoreNotFound(error: unknown): boolean {
   return error instanceof ResourceNotFoundError;
@@ -1087,6 +1108,17 @@ const consumerVaultCodec: SecretCodec = {
     );
   },
 };
+
+/**
+ * An edition that writes its own account rows derives a new account's slug
+ * through the library and repairs a stored one through the same frozen
+ * rule the library's store migration applies, so both editions' accounts
+ * hold slugs the rules admit.
+ */
+export const consumerAccountSlugs: {
+  readonly derive: (name: string, ...fallbacks: string[]) => string;
+  readonly repair: typeof repairAccountSlug;
+} = { derive: fittedSlug, repair: repairAccountSlug };
 
 /**
  * A consumer-shaped schedule-fire caller mint — the identity a schedule

@@ -1,6 +1,7 @@
 /**
  * Pins the shared steps against their Go references (steps/*_test.go,
- * translated): slug generation (cloud-Java-identical, no truncation),
+ * translated): slug generation (cloud-Java-identical, no truncation), a
+ * derived slug held to metadata.slug's bound and pattern (stigmer#1283),
  * duplicate checking with the byte-pinned AlreadyExists copy, create/update
  * state building (status clearing, ULID minting that replaces any id the
  * request carried unless an earlier step claimed it #1266, audit slots #540,
@@ -165,6 +166,61 @@ describe("ResolveSlug", () => {
     expect((error as ConnectError).rawMessage).toBe(
       "resource name is required",
     );
+  });
+
+  // The bound and the pattern are metadata.slug's own (stigmer#1283): a
+  // derived slug is held to them because most chains validate before
+  // they derive, and it is refused, never shortened.
+  async function resolveError(name: string): Promise<ConnectError> {
+    const ctx = orgCtx(org({ name }));
+    const error = await Promise.resolve()
+      .then(() => newResolveSlugStep<typeof OrganizationSchema>().execute(ctx))
+      .catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ConnectError);
+    expect((error as ConnectError).code).toBe(Code.InvalidArgument);
+    expect(ctx.newState.metadata?.slug).toBe("");
+    return error as ConnectError;
+  }
+
+  it("accepts a name that derives a slug of exactly the bound", async () => {
+    const ctx = orgCtx(org({ name: `A${"b".repeat(62)}` }));
+    await newResolveSlugStep<typeof OrganizationSchema>().execute(ctx);
+    expect(ctx.newState.metadata?.slug).toHaveLength(63);
+  });
+
+  it("refuses a name that derives a slug one past the bound, naming the name, the slug and the fix", async () => {
+    const name = `A${"b".repeat(63)}`;
+    const slug = name.toLowerCase();
+    expect((await resolveError(name)).rawMessage).toBe(
+      `the name '${name}' derives the slug '${slug}' (64 characters), which is not a valid slug: it must be at most 63 characters; set metadata.slug`,
+    );
+  });
+
+  it("refuses a name that derives a slug the pattern refuses", async () => {
+    expect((await resolveError("1st Team")).rawMessage).toBe(
+      "the name '1st Team' derives the slug '1st-team' (8 characters), which is not a valid slug: it does not match regex pattern `^[a-z][a-z0-9-]*[a-z0-9]$`; set metadata.slug",
+    );
+  });
+
+  it("refuses a name with no letters or digits, which derives no slug", async () => {
+    expect((await resolveError("!!!")).rawMessage).toBe(
+      "the name '!!!' derives no slug: it has no ASCII letters or digits; set metadata.slug",
+    );
+  });
+
+  // An update by id keeps its stored slug (BuildUpdateState), so the slug
+  // derived from a new name is never used and never refused there.
+  it("derives without the check in an update chain by id, and keeps the check there without an id", async () => {
+    const step = newResolveSlugStep<typeof OrganizationSchema>({ update: true });
+    const byId = orgCtx(org({ id: "org_1", name: "1st Team" }));
+    await step.execute(byId);
+    expect(byId.newState.metadata?.slug).toBe("1st-team");
+
+    const bySlug = orgCtx(org({ name: "1st Team" }));
+    const error = await Promise.resolve()
+      .then(() => step.execute(bySlug))
+      .catch((e: unknown) => e);
+    expect((error as ConnectError).code).toBe(Code.InvalidArgument);
   });
 });
 
@@ -570,6 +626,28 @@ describe("ValidateProto", () => {
       .catch((e: unknown) => e);
     expect((error as ConnectError).code).toBe(Code.InvalidArgument);
   });
+
+  // One case per bound on the metadata every kind shares (stigmer#1283):
+  // a slug as long as a reference holds, a name as long as a label.
+  it.each([
+    ["slug", { slug: `a${"b".repeat(62)}` }, { slug: `a${"b".repeat(63)}` }],
+    ["name", { name: "n".repeat(200) }, { name: "n".repeat(201) }],
+  ])(
+    "accepts metadata.%s at its bound and refuses it one past",
+    async (_field, atBound, pastBound) => {
+      await newValidateProtoStep<typeof OrganizationSchema>().execute(
+        orgCtx(org(atBound)),
+      );
+      const error = await Promise.resolve()
+        .then(() =>
+          newValidateProtoStep<typeof OrganizationSchema>().execute(
+            orgCtx(org(pastBound)),
+          ),
+        )
+        .catch((e: unknown) => e);
+      expect((error as ConnectError).code).toBe(Code.InvalidArgument);
+    },
+  );
 });
 
 describe("ValidateVisibility", () => {

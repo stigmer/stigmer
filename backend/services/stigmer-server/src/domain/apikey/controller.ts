@@ -175,7 +175,7 @@ async function update(
       newAuthorizeStep(ApiKeyCommandController.method.update, deps.authorizer),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newResolveSlugStep())
+    .addStep(newResolveSlugStep({ update: true }))
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newBuildUpdateStateStep())
     .addStep(newPreserveKeyMaterialStep())

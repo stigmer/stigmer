@@ -24,7 +24,7 @@ Run through this list before applying an Agent YAML with `stigmer apply -f`.
 - [ ] All `skill_refs` use `kind: skill` (lowercase string, not `kind: 43`)
 - [ ] All `mcp_server_ref` entries use `kind: mcp_server` (lowercase string, not `kind: 44`)
 - [ ] All `org` values in references (if set) are valid organization identifiers — omit `org` for same-org references
-- [ ] All `slug` values are lowercase alphanumeric with hyphens, start with a letter, 1-63 characters
+- [ ] All `slug` values are lowercase alphanumeric with hyphens, start with a letter, end with a letter or digit, 2 to 63 characters
 - [ ] All referenced MCP servers and skills actually exist — query with `stigmer get mcp-server <slug>` or `stigmer get skill <slug>` before referencing
 
 ### MCP Server Usages

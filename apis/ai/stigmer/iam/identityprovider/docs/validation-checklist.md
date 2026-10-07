@@ -10,7 +10,7 @@ Pre-create checklist and known pitfalls when registering an IdentityProvider.
 - [ ] `kind` is exactly `IdentityProvider`
 - [ ] `metadata.name` is present and descriptive
 - [ ] `metadata.org` is set to the organization that owns this identity provider
-- [ ] `metadata.slug` follows the slug format: lowercase alphanumeric with hyphens, starts with a letter, 1–63 characters
+- [ ] `metadata.slug` follows the slug format: lowercase alphanumeric with hyphens, starts with a letter, ends with a letter or digit, 2 to 63 characters
 
 ### Spec Validation
 

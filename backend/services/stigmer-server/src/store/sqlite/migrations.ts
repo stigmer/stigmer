@@ -76,7 +76,7 @@ import {
   RUN_RENAME_PAGE_SIZE,
   RUN_RENAME_POLICY_KIND,
   RUN_RENAME_V18,
-  RUN_RENAME_V20,
+  RUN_RENAME_V21,
   rekeyedRunPolicy,
   renamedRunRow,
   unreadableRunRenameRowError,
@@ -93,6 +93,10 @@ import {
   policyNamesRetiredWorkflowKind,
   unreadableRetiredWorkflowRowError,
 } from "../workflow-retired.js";
+import {
+  IDENTITY_ACCOUNT_KIND,
+  repairedAccountSlugRow,
+} from "../account-slugs-repaired.js";
 
 export const SCHEMA_VERSION_1 = 1;
 export const SCHEMA_VERSION_2 = 2;
@@ -126,11 +130,13 @@ export const SCHEMA_VERSION_17 = 17;
 export const SCHEMA_VERSION_18 = 18;
 /** v19: the workflow, workflow run and artifact rows removed, with the tables only workflows wrote. */
 export const SCHEMA_VERSION_19 = 19;
-/** v20: the agent run is a run. */
+/** v20: every identity account's slug and name held to their rules. */
 export const SCHEMA_VERSION_20 = 20;
+/** v21: the agent run is a run. */
+export const SCHEMA_VERSION_21 = 21;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_20;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_21;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -175,6 +181,7 @@ export function runMigrations(
     [SCHEMA_VERSION_18, migrateToV18],
     [SCHEMA_VERSION_19, migrateToV19],
     [SCHEMA_VERSION_20, migrateToV20],
+    [SCHEMA_VERSION_21, migrateToV21],
   ];
 
   for (const [version, migrate] of chain) {
@@ -1070,12 +1077,42 @@ function migrateToV19(db: DatabaseSync): void {
 }
 
 /**
- * v20: the agent run is a run — the Postgres driver's v15 in this engine's
- * terms. The kind `agent_run` and its kind string `AgentRun` become `run`
- * and `Run` by the same transformation as v18 (`renameRunKind`), with this
- * step's frozen names (run-rename.ts `RUN_RENAME_V20`). Runs keep their
- * ids, the `aex_` ones included.
+ * v20: identity-account slugs repaired, the Postgres driver's v15 in this
+ * engine's terms (../account-slugs-repaired.ts says what changes and why).
+ * One read of the kind, one UPDATE per repaired row with `updated_at`
+ * bumped; runs inside applyInTransaction's BEGIN, so a throw rolls the
+ * step back and the boot stops on the row it names.
  */
 function migrateToV20(db: DatabaseSync): void {
-  renameRunKind(db, RUN_RENAME_V20);
+  const update = db.prepare(
+    `UPDATE resources SET data = ?, updated_at = datetime('now') WHERE kind = ? AND id = ?`,
+  );
+  const rows = db
+    .prepare(`SELECT id, data FROM resources WHERE kind = ?`)
+    .all(IDENTITY_ACCOUNT_KIND) as Array<{ id: string; data: Uint8Array }>;
+  for (const row of rows) {
+    let repaired: Uint8Array | undefined;
+    try {
+      repaired = repairedAccountSlugRow(row.data);
+    } catch (error) {
+      throw new Error(
+        `${IDENTITY_ACCOUNT_KIND} '${row.id}' cannot have its slug repaired: ${String(error)}`,
+        { cause: error },
+      );
+    }
+    if (repaired !== undefined) {
+      update.run(repaired, IDENTITY_ACCOUNT_KIND, row.id);
+    }
+  }
+}
+
+/**
+ * v21: the agent run is a run — the Postgres driver's v16 in this engine's
+ * terms. The kind `agent_run` and its kind string `AgentRun` become `run`
+ * and `Run` by the same transformation as v18 (`renameRunKind`), with this
+ * step's frozen names (run-rename.ts `RUN_RENAME_V21`). Runs keep their
+ * ids, the `aex_` ones included.
+ */
+function migrateToV21(db: DatabaseSync): void {
+  renameRunKind(db, RUN_RENAME_V21);
 }

@@ -45,7 +45,6 @@ import {
   goWrappedStatusError,
   internalError,
   invalidArgumentError,
-  rethrownStatusError,
 } from "../../pipeline/errors.js";
 import { ConnectError } from "@connectrpc/connect";
 import type { PipelineStep } from "../../pipeline/pipeline.js";

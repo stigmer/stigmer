@@ -211,7 +211,7 @@ async function update(
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newResolveSlugStep())
+    .addStep(newResolveSlugStep({ update: true }))
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newBuildUpdateStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))

@@ -229,7 +229,7 @@ async function updateClient(
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newResolveSlugStep())
+    .addStep(newResolveSlugStep({ update: true }))
     .addStep(newLoadExistingClientStep(deps.clients))
     .addStep(
       newRefuseSystemManagedStep<typeof PlatformClientSchema>(

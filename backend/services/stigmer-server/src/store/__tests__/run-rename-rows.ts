@@ -2,7 +2,7 @@
  * Run rows as each release wrote them, for the driver-neutral test of
  * ../run-rename.ts and both drivers' migration arms: under the kind string
  * of agent executions (before SQLite v18, Postgres v13), of agent runs
- * (before SQLite v20, Postgres v15) and of runs (now). A row built with a
+ * (before SQLite v21, Postgres v16) and of runs (now). A row built with a
  * step's old name is what the step reads; the same builder with its new
  * name is what it must leave behind.
  */

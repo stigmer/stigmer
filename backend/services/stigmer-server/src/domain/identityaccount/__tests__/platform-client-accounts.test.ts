@@ -14,17 +14,20 @@ import { create } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
 
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import { serverActingFor } from "../../../pipeline/interceptors/auth.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
+import { validator } from "../../../pipeline/steps/validation.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import { accountIdFor, reservedSubjectMessage } from "../constants.js";
 import { newCreateAccountPath } from "../controller.js";
 import type { CreateAccount } from "../provisioning.js";
+import { newDirectAccountProvisioner } from "../provisioning.js";
 import { newResourceIdentityAccountStore } from "../resource-store.js";
 import type { IdentityAccountStore } from "../store.js";
 
@@ -62,6 +65,75 @@ async function refusal(promise: Promise<unknown>): Promise<ConnectError> {
   }
   throw new Error("expected a ConnectError refusal");
 }
+
+describe("the create path's account slug, from a name the server chose", () => {
+  it("provisions a direct account whose email starts with a digit", async () => {
+    const account = await createAccount(
+      {
+        name: "2024intern@acme.com",
+        spec: create(IdentityAccountSpecSchema, {
+          idpId: "auth0|2024intern",
+          email: "2024intern@acme.com",
+        }),
+        provisioning: { mode: "direct" },
+      },
+      CLIENT,
+    );
+    expect(account.metadata?.slug).toBe("a-2024internacme-com");
+  });
+
+  it("provisions an account with no name whose email is past the name's bound, its name cut to 200 characters", async () => {
+    const email = `${"m".repeat(195)}@acme.example`;
+    const account = await createAccount(
+      {
+        name: "",
+        spec: create(IdentityAccountSpecSchema, { idpId: "auth0|long-email", email }),
+        provisioning: { mode: "direct" },
+      },
+      CLIENT,
+    );
+    expect(account.metadata?.name).toBe(email.slice(0, 200));
+    expect(account.spec?.email).toBe(email);
+  });
+
+  it("signs in a person whose email is past the name's bound: the account is named by the email cut to 200, and validates as an update sends it back", async () => {
+    const email = `${"m".repeat(240)}@acme.example`;
+    const provisioner = newDirectAccountProvisioner({
+      accounts,
+      createAccount,
+      userInfo: {
+        fetchUserProfile: async () => ({ email, firstName: "", lastName: "", pictureUrl: "" }),
+      },
+    });
+    const { account, created } = await provisioner.provisionDirectAccount("auth0|long-email-person", {
+      identityId: "auth0|long-email-person",
+      callerClass: "user",
+      issuer: "https://issuer.test",
+      rawToken: "token",
+    });
+    expect(created).toBe(true);
+    expect(account.metadata?.name).toBe(email.slice(0, 200));
+    expect(account.spec?.email).toBe(email);
+    expect(validator().validate(IdentityAccountSchema, account).kind).toBe("valid");
+  });
+
+  it("provisions a platform-client user whose external id is numeric, and one named by a UUID", async () => {
+    for (const [external, slug] of [
+      ["12345", "a-12345"],
+      ["550e8400-e29b-41d4-a716-446655440000", "a-550e8400-e29b-41d4-a716-446655440000"],
+    ] as const) {
+      const account = await createAccount(
+        {
+          name: external,
+          spec: create(IdentityAccountSpecSchema, { idpId: `stgm_pc|acme|${external}` }),
+          provisioning: { mode: "platform_client", org: "acme" },
+        },
+        CLIENT,
+      );
+      expect(account.metadata?.slug).toBe(slug);
+    }
+  });
+});
 
 describe("the create path's platform-client arm", () => {
   it("writes the mode, the owning organization and the derived id, stamped as the client", async () => {

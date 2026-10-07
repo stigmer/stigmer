@@ -5,14 +5,14 @@
  *
  *   - SQLite v18, Postgres v13: agent executions became agent runs
  *     (`agent_execution`, `AgentExecution` to `agent_run`, `AgentRun`);
- *   - SQLite v20, Postgres v15: the agent run became a run (`agent_run`,
+ *   - SQLite v21, Postgres v16: the agent run became a run (`agent_run`,
  *     `AgentRun` to `run`, `Run`), once the workflow product it was told
  *     apart from was gone.
  *
  * The drivers own the SQL (which rows to read, in what pages, how to write
  * them, the transaction), one helper each that takes a rename; this module
  * owns what is driver-neutral: what one row becomes. Each step's names are
- * frozen literals here (`RUN_RENAME_V18`, `RUN_RENAME_V20`), never read off
+ * frozen literals here (`RUN_RENAME_V18`, `RUN_RENAME_V21`), never read off
  * the contract, so a later rename cannot change what an earlier step does.
  * The retired-kind steps are twin modules instead (agent-instance-retired.ts,
  * workflow-instance-retired.ts) because they delete different rows of
@@ -81,8 +81,8 @@ export const RUN_RENAME_V18: RunRename = {
   label: "the rename of executions to runs",
 };
 
-/** SQLite v20, Postgres v15: the agent run became a run. */
-export const RUN_RENAME_V20: RunRename = {
+/** SQLite v21, Postgres v16: the agent run became a run. */
+export const RUN_RENAME_V21: RunRename = {
   kind: ["agent_run", "run"],
   kindString: ["AgentRun", "Run"],
   label: "the rename of the agent run to a run",

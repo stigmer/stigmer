@@ -9,7 +9,8 @@
  * store access): repoint-never-duplicate row counts, the single-holder tag
  * column (a version fetched after its tag moved reports the tag it holds
  * now), audit-slot preservation across pushes (#540), and delete's archive
- * cleanup.
+ * cleanup. Also the refusal of a frontmatter name whose derived slug no
+ * reference could hold (stigmer#1283), with its exact copy.
  */
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import http2 from "node:http2";
@@ -214,6 +215,19 @@ describe("push — identity and versioning", () => {
     const tagged = history.versions.filter((v) => v.tag === "stable");
     expect(tagged).toHaveLength(1);
     expect(tagged[0]?.isCurrent).toBe(true);
+  });
+
+  it("refuses a frontmatter name whose slug no reference could hold, naming the name and the fix", async () => {
+    const prefix = uniqueName();
+    const name = prefix + "a".repeat(64 - prefix.length);
+    const error = await expectCode(
+      command.push({ org: ORG, artifact: makeArtifact(name) }),
+      Code.InvalidArgument,
+      "64-character name",
+    );
+    expect(error.rawMessage).toBe(
+      `the skill name '${name}' derives the slug '${name}' (64 characters), which is not a valid slug: it must be at most 63 characters; rename the skill in its SKILL.md frontmatter`,
+    );
   });
 
   it("push into a different org creates an independent skill under the same slug", async () => {

@@ -23,7 +23,7 @@ import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api
 import { policyIdFor } from "../../domain/iampolicy/constants.js";
 import {
   RUN_RENAME_V18,
-  RUN_RENAME_V20,
+  RUN_RENAME_V21,
   rekeyedRunPolicy,
   renamedRunRow,
   unreadableRunRenameRowError,
@@ -37,17 +37,17 @@ import {
 } from "./run-rename-rows.js";
 
 describe("each step's names are frozen literals", () => {
-  it("v18 renamed agent executions to agent runs, v20 agent runs to runs", () => {
+  it("v18 renamed agent executions to agent runs, v21 agent runs to runs", () => {
     expect(RUN_RENAME_V18.kind).toEqual(["agent_execution", "agent_run"]);
     expect(RUN_RENAME_V18.kindString).toEqual(["AgentExecution", "AgentRun"]);
-    expect(RUN_RENAME_V20.kind).toEqual(["agent_run", "run"]);
-    expect(RUN_RENAME_V20.kindString).toEqual(["AgentRun", "Run"]);
+    expect(RUN_RENAME_V21.kind).toEqual(["agent_run", "run"]);
+    expect(RUN_RENAME_V21.kindString).toEqual(["AgentRun", "Run"]);
   });
 });
 
 describe.each([
   { step: "v18", rename: RUN_RENAME_V18, before: EXECUTION_NAMES, after: AGENT_RUN_NAMES },
-  { step: "v20", rename: RUN_RENAME_V20, before: AGENT_RUN_NAMES, after: RUN_NAMES },
+  { step: "v21", rename: RUN_RENAME_V21, before: AGENT_RUN_NAMES, after: RUN_NAMES },
 ])("$step", ({ rename, before, after }) => {
   const [fromKind, toKind] = rename.kind;
 
@@ -128,7 +128,7 @@ describe.each([
 
 describe("after the last step", () => {
   it("a fetched run passes the contract's own validation, so it can be sent back through update", () => {
-    const run = fromBinary(RunSchema, renamedRunRow(RUN_RENAME_V20, runBytes("aex_1", "ses_1", AGENT_RUN_NAMES))!);
+    const run = fromBinary(RunSchema, renamedRunRow(RUN_RENAME_V21, runBytes("aex_1", "ses_1", AGENT_RUN_NAMES))!);
     const kindViolations = createValidator()
       .validate(RunSchema, run)
       .violations?.filter((v) => v.toString().startsWith("kind:"));

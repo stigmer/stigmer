@@ -80,7 +80,7 @@ import {
   RUN_RENAME_PAGE_SIZE,
   RUN_RENAME_POLICY_KIND,
   RUN_RENAME_V18,
-  RUN_RENAME_V20,
+  RUN_RENAME_V21,
   rekeyedRunPolicy,
   renamedRunRow,
   unreadableRunRenameRowError,
@@ -97,6 +97,10 @@ import {
   policyNamesRetiredWorkflowKind,
   unreadableRetiredWorkflowRowError,
 } from "../workflow-retired.js";
+import {
+  IDENTITY_ACCOUNT_KIND,
+  repairedAccountSlugRow,
+} from "../account-slugs-repaired.js";
 
 export const SCHEMA_VERSION_1 = 1;
 export const SCHEMA_VERSION_2 = 2;
@@ -123,11 +127,13 @@ export const SCHEMA_VERSION_12 = 12;
 export const SCHEMA_VERSION_13 = 13;
 /** v14: the workflow, workflow run and artifact rows removed, with the tables only workflows wrote. */
 export const SCHEMA_VERSION_14 = 14;
-/** v15: the agent run is a run. */
+/** v15: every identity account's slug and name held to their rules. */
 export const SCHEMA_VERSION_15 = 15;
+/** v16: the agent run is a run. */
+export const SCHEMA_VERSION_16 = 16;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_15;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_16;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -182,6 +188,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_13, migrateToV13],
       [SCHEMA_VERSION_14, migrateToV14],
       [SCHEMA_VERSION_15, migrateToV15],
+      [SCHEMA_VERSION_16, migrateToV16],
     ];
 
     for (const [version, migrate] of chain) {
@@ -1089,12 +1096,44 @@ async function migrateToV14(client: PoolClient): Promise<void> {
 }
 
 /**
- * v15: the agent run is a run. The kind `agent_run` and its kind string
- * `AgentRun` become `run` and `Run` by the same transformation as v13
- * (`renameRunKind`), with this step's frozen names (run-rename.ts
- * `RUN_RENAME_V20`, the SQLite step's number). Runs keep their ids, the
- * `aex_` ones included.
+ * v15: identity-account slugs repaired (../account-slugs-repaired.ts says
+ * what changes, why the rule is frozen there, and why an undecodable row
+ * fails the step). This step owns the SQL: the kind's rows read under
+ * FOR UPDATE, one UPDATE per repaired row with `updated_at` bumped, every
+ * other row left byte for byte. Runs inside the chain's transaction, so a
+ * throw rolls the step back and the boot stops on the row it names.
  */
 async function migrateToV15(client: PoolClient): Promise<void> {
-  await renameRunKind(client, RUN_RENAME_V20);
+  const result = await client.query<{ id: string; data: Buffer }>(
+    `SELECT id, data FROM resources WHERE kind = $1 FOR UPDATE`,
+    [IDENTITY_ACCOUNT_KIND],
+  );
+  for (const row of result.rows) {
+    let repaired: Uint8Array | undefined;
+    try {
+      repaired = repairedAccountSlugRow(new Uint8Array(row.data));
+    } catch (error) {
+      throw new Error(
+        `${IDENTITY_ACCOUNT_KIND} '${row.id}' cannot have its slug repaired: ${String(error)}`,
+        { cause: error },
+      );
+    }
+    if (repaired !== undefined) {
+      await client.query(
+        `UPDATE resources SET data = $1, updated_at = now() WHERE kind = $2 AND id = $3`,
+        [Buffer.from(repaired), IDENTITY_ACCOUNT_KIND, row.id],
+      );
+    }
+  }
+}
+
+/**
+ * v16: the agent run is a run. The kind `agent_run` and its kind string
+ * `AgentRun` become `run` and `Run` by the same transformation as v13
+ * (`renameRunKind`), with this step's frozen names (run-rename.ts
+ * `RUN_RENAME_V21`, the SQLite step's number). Runs keep their ids, the
+ * `aex_` ones included.
+ */
+async function migrateToV16(client: PoolClient): Promise<void> {
+  await renameRunKind(client, RUN_RENAME_V21);
 }
