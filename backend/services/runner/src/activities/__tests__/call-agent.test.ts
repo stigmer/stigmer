@@ -372,6 +372,48 @@ describe("callAgentAction", () => {
       expect(execution.spec.parent?.workflowRunId).toBe("wex_from_task");
     });
 
+    it("gives the step's session and run slugs that fit the slug rules whatever the task's name, and the session the same slug on a retry", async () => {
+      // A workflow run id is a prefix and a 26-character ULID; the task name
+      // is free-form, and 60 characters long here.
+      const runId = "wrn_01k6zq4m8x2y7v3n5t9b1c0d4e";
+      const taskName = `summarize-customer-feedback-${"and-escalate-".repeat(3)}`;
+      const slugRule = /^[a-z][a-z0-9-]{0,61}[a-z0-9]$/;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        await expect(
+          callAgentAction(
+            { agent: "my-agent", message: "Hello", __wfExecId: runId, __taskName: taskName } as never,
+            { __stigmer_org_id: "test-org", __stigmer_execution_id: runId },
+            "wfl_parent",
+            appConfig,
+          ),
+        ).rejects.toThrow("CompleteAsyncError");
+      }
+      const sessions = mockCreateSession.mock.calls.map((call) => call[0].metadata);
+      const runs = mockCreateAgentExecution.mock.calls.map((call) => call[0].metadata);
+      for (const metadata of [...sessions, ...runs]) {
+        expect(metadata.slug, metadata.name).toMatch(slugRule);
+      }
+      expect(sessions[0].name).toBe(`ses-wf-${runId}-${taskName}`);
+      expect(sessions[1].slug).toBe(sessions[0].slug);
+      expect(runs[1].slug).not.toBe(runs[0].slug);
+    });
+
+    it("gives a step with no task name slugs that fit, from a 63-character agent slug", async () => {
+      const longAgent = `a${"b".repeat(61)}c`;
+      mockGetAgentByReference.mockResolvedValue({ metadata: { id: "agt_long", org: "org_agents", slug: longAgent } });
+      await expect(
+        callAgentAction(
+          { agent: longAgent, message: "Hello", __wfExecId: WEX } as never,
+          { __stigmer_org_id: "test-org", __stigmer_execution_id: WEX },
+          "wfl_parent",
+          appConfig,
+        ),
+      ).rejects.toThrow("CompleteAsyncError");
+      const slugRule = /^[a-z][a-z0-9-]{0,61}[a-z0-9]$/;
+      expect(mockCreateSession.mock.calls[0][0].metadata.slug).toMatch(slugRule);
+      expect(mockCreateAgentExecution.mock.calls[0][0].metadata.slug).toMatch(slugRule);
+    });
+
     it("links the turn by the environment's execution id when the task's is empty", async () => {
       // An empty id is no id: it falls back rather than linking the turn to "".
       await expect(

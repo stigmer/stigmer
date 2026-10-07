@@ -16,6 +16,8 @@
  * shortened. Every slug the server derives outside a chain (plugin and
  * skill push, a plugin's members) calls the same check.
  */
+import { createHash } from "node:crypto";
+
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -68,6 +70,57 @@ export function generateSlug(name: string): string {
   slug = slug.replace(/-{2,}/g, "-");
   return slug.replace(/^-+|-+$/g, "");
 }
+
+/**
+ * A slug fitted to metadata.slug's rules, for a name the server or the
+ * runner chose rather than the caller: an identity account's email or
+ * subject, a managed environment named after the MCP server it holds
+ * tokens for. Refusing such a name (checkDerivedSlug) would refuse what no
+ * caller can fix, so the slug is made to fit instead:
+ *
+ *   - the shared generator over the name, kept as it is whenever the rules
+ *     admit it, so a valid slug is the one every earlier release derived;
+ *   - nothing left (no ASCII letter or digit): the first fallback that
+ *     leaves something;
+ *   - not starting with a letter: `a-` in front;
+ *   - longer than 63, or shorter than 2: cut to fit and suffixed with the
+ *     first 8 hex digits of the source's SHA-256, so two long names that
+ *     share their first 54 characters still differ.
+ *
+ * Names people type keep checkDerivedSlug's refusal and its fix. The store
+ * migration that repairs account slugs stored before the rules held keeps
+ * a frozen copy of this rule (store/account-slugs-repaired.ts).
+ */
+export function fittedSlug(name: string, ...fallbacks: string[]): string {
+  let source = name;
+  let slug = generateSlug(name);
+  for (const fallback of fallbacks) {
+    if (slug !== "") {
+      break;
+    }
+    source = fallback;
+    slug = generateSlug(fallback);
+  }
+  if (slug === "") {
+    throw new Error(
+      "a fitted slug needs a name or fallback with an ASCII letter or digit",
+    );
+  }
+  if (!/^[a-z]/.test(slug)) {
+    slug = `a-${slug}`;
+  }
+  if (slug.length > FITTED_MAX_LENGTH || slug.length < FITTED_MIN_LENGTH) {
+    const hash = createHash("sha256").update(source).digest("hex").slice(0, FITTED_HASH_DIGITS);
+    const head = slug.slice(0, FITTED_MAX_LENGTH - FITTED_HASH_DIGITS - 1).replace(/-+$/, "");
+    slug = `${head}-${hash}`;
+  }
+  return slug;
+}
+
+/** metadata.slug's bounds, the ones every reference to a resource holds. */
+const FITTED_MAX_LENGTH = 63;
+const FITTED_MIN_LENGTH = 2;
+const FITTED_HASH_DIGITS = 8;
 
 /** Where a derived slug came from, and what the caller changes to fix it. */
 export interface DerivedSlugSource {

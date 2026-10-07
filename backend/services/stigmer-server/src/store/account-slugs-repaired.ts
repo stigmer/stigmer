@@ -11,7 +11,7 @@
  * `repairAccountSlug`, so the two editions repair alike.
  *
  * Why the rule and the derivation are frozen here rather than imported from
- * the domain (domain/identityaccount/slug.ts accountSlugFor). A migration
+ * the shared slug step (pipeline/steps/slug.ts fittedSlug). A migration
  * is a statement about the store as it was when the rule changed: a later
  * release that changes the live derivation must not change what this step
  * does to a database it has not reached yet (public-visibility-retired.ts
@@ -48,7 +48,7 @@ const HASH_DIGITS = 8;
 
 /**
  * The slug a stored account takes when the frozen rule refuses its own, or
- * `undefined` when its slug stands. The derivation is accountSlugFor's as of
+ * `undefined` when its slug stands. The derivation is fittedSlug's as of
  * this step: the shared generator over the name, then the subject, then the
  * id; `a-` before a leading non-letter; a cut to 54 with 8 hex digits of the
  * source's SHA-256 when too long or too short.

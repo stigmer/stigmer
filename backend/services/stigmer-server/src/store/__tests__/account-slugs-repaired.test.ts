@@ -2,7 +2,7 @@
  * Pins the frozen identity-account slug repair (account-slugs-repaired.ts)
  * both editions' migrations apply: a slug the rule admits stands; a slug too
  * long, one starting with a digit, and an empty one are re-derived to what
- * the live derivation (domain/identityaccount/slug.ts accountSlugFor) gives
+ * the live derivation (pipeline/steps/slug.ts fittedSlug) gives
  * the same account today; a row's other bytes survive the rewrite.
  */
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 
-import { accountSlugFor } from "../../domain/identityaccount/slug.js";
+import { fittedSlug } from "../../pipeline/steps/slug.js";
 import { repairAccountSlug, repairedAccountSlugRow } from "../account-slugs-repaired.js";
 
 function account(name: string, slug: string, idpId = "auth0|1"): IdentityAccount {
@@ -37,7 +37,7 @@ describe("repairAccountSlug", () => {
       ["李明", "", "local|ops@example.com"],
     ] as const) {
       const repaired = repairAccountSlug(account(name, stored, idpId));
-      expect(repaired, name).toBe(accountSlugFor(name, idpId));
+      expect(repaired, name).toBe(fittedSlug(name, idpId));
       expect(repaired!.length).toBeLessThanOrEqual(63);
     }
   });

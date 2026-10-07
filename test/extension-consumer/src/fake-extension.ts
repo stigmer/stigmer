@@ -66,7 +66,6 @@ import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_inf
 
 import {
   accountIdFor,
-  accountSlugFor,
   ArtifactStorageNotFoundError,
   callerIdentityKey,
   callerIdentityOf,
@@ -74,6 +73,7 @@ import {
   composeServer,
   createLogger,
   DuplicateAccountError,
+  fittedSlug,
   DuplicatePlatformClientError,
   DuplicatePolicyError,
   EncryptionScope,
@@ -1137,7 +1137,7 @@ const consumerVaultCodec: SecretCodec = {
 export const consumerAccountSlugs: {
   readonly derive: (name: string, ...fallbacks: string[]) => string;
   readonly repair: typeof repairAccountSlug;
-} = { derive: accountSlugFor, repair: repairAccountSlug };
+} = { derive: fittedSlug, repair: repairAccountSlug };
 
 /**
  * A consumer-shaped schedule-fire caller mint — the identity a schedule

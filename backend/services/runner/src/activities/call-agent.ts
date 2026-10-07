@@ -8,7 +8,7 @@
  * 3. Resolve the agent by reference, for its id and its env declarations;
  *    a row missing its id, organization or slug is refused
  * 4. Apply the Session on the agent's reference (idempotent get-or-create
- *    by name); the server pins the agent's current version on create and
+ *    by slug); the server pins the agent's current version on create and
  *    keeps that pin when a retry re-applies the same reference
  * 5. Create the AgentRun in that session, linked to the workflow run
  *    by `parent` (workflow execution id, the workflow to signal, the task
@@ -37,7 +37,7 @@
  *   Output: (completed asynchronously by platform)
  */
 
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { Context, CompleteAsyncError } from "@temporalio/activity";
 import { StigmerClient } from "../client/stigmer-client.js";
 import type { Config } from "../config.js";
@@ -162,20 +162,30 @@ export async function callAgentAction(
     throw new Error(`Agent '${resolved.agent}' resolved but has no metadata.slug`);
   }
 
+  // The names stay readable; the slugs, which the runner chooses here and
+  // no workflow author can fix, are built to fit metadata.slug's rules
+  // whatever the task's name (stepSlugs below).
   let sessionName: string;
   let executionName: string;
+  let sessionSlug: string;
+  let executionSlug: string;
 
   if (taskName) {
     const taskKey = `${wfExecId}-${taskName}`;
+    const unique = shortUniqueId();
     sessionName = `ses-wf-${taskKey}`;
-    executionName = `aex-wf-${taskKey}-${shortUniqueId()}`;
+    executionName = `aex-wf-${taskKey}-${unique}`;
+    ({ sessionSlug, executionSlug } = stepSlugs(slugToken(wfExecId), shortHash(taskName), unique));
   } else {
     console.warn(
       `[CallAgent] Missing task name for session naming: wfExecId=${wfExecId}. ` +
       `Using timestamp-based names — session will NOT be reused on retry.`,
     );
-    sessionName = `wf-${extractSlug(resolved.agent)}-${Math.floor(Date.now() / 1000)}`;
-    executionName = `aex-wf-${extractSlug(resolved.agent)}-${Date.now()}`;
+    const now = Date.now();
+    sessionName = `wf-${extractSlug(resolved.agent)}-${Math.floor(now / 1000)}`;
+    executionName = `aex-wf-${extractSlug(resolved.agent)}-${now}`;
+    sessionSlug = `wf-${shortHash(resolved.agent)}-${Math.floor(now / 1000)}`;
+    executionSlug = `aex-wf-${shortHash(resolved.agent)}-${now}`;
   }
 
   console.log(
@@ -197,6 +207,7 @@ export async function callAgentAction(
       kind: "Session",
       metadata: create(ApiResourceMetadataSchema, {
         name: sessionName,
+        slug: sessionSlug,
         org: orgId,
       }),
       spec: create(SessionSpecSchema, {
@@ -329,6 +340,7 @@ export async function callAgentAction(
       kind: "AgentRun",
       metadata: create(ApiResourceMetadataSchema, {
         name: executionName,
+        slug: executionSlug,
         org: orgId,
         labels,
       }),
@@ -381,6 +393,37 @@ function extractSlug(agentStr: string): string {
 
 function shortUniqueId(): string {
   return randomUUID().replace(/-/g, "").slice(0, 8);
+}
+
+/**
+ * The slugs of a workflow step's session and agent run, built from the
+ * workflow run's id and a short hash of the task's name rather than derived
+ * from their names: a task name is free-form, and a derived slug past
+ * metadata.slug's 63 characters would refuse the step with a fix no
+ * workflow author can make. A workflow run id is a prefix and a 26-character
+ * ULID, so the session's slug is about 45 characters and the run's about
+ * 54. The same task in the same workflow run hashes the same way, so a
+ * retry re-applies the session it created.
+ */
+function stepSlugs(
+  workflowRunToken: string,
+  taskHash: string,
+  unique: string,
+): { sessionSlug: string; executionSlug: string } {
+  return {
+    sessionSlug: `ses-wf-${workflowRunToken}-${taskHash}`,
+    executionSlug: `aex-wf-${workflowRunToken}-${taskHash}-${unique}`,
+  };
+}
+
+/** An id as slug characters: lowercase letters and digits only. */
+function slugToken(id: string): string {
+  return id.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+/** The first 8 hex digits of the text's SHA-256. */
+function shortHash(text: string): string {
+  return createHash("sha256").update(text).digest("hex").slice(0, 8);
 }
 
 /**

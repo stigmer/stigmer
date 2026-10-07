@@ -17,7 +17,7 @@
  *     the subject. The field is not proto-required, and a machine subject
  *     whose IdP releases no email must still provision.
  *   - ResolveAccountSlug: an empty `metadata.slug` is derived by
- *     `accountSlugFor` (slug.ts), which always yields a valid slug: the
+ *     `fittedSlug` (pipeline/steps/slug.ts), which always yields a valid slug: the
  *     name is the server's choice, not the caller's, so the shared
  *     ResolveSlug's refusal of an invalid derived slug would refuse a
  *     sign-in. A slug the caller sent was held to the rules by
@@ -70,6 +70,7 @@ import { RESOURCE_ID_KEY } from "../../pipeline/steps/delete.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import { idValueOf, metadataOf } from "../../pipeline/steps/shapes.js";
+import { fittedSlug } from "../../pipeline/steps/slug.js";
 import {
   PLATFORM_CLIENT_SUBJECT_PREFIX,
   accountIdFor,
@@ -79,7 +80,6 @@ import {
   isPlatformClientSubject,
   reservedSubjectMessage,
 } from "./constants.js";
-import { accountSlugFor } from "./slug.js";
 import type { AccountProvisioning } from "./provisioning.js";
 import { DuplicateAccountError } from "./store.js";
 import type { IdentityAccountStore } from "./store.js";
@@ -118,7 +118,7 @@ export function newResolveAccountSlugStep(): AccountStep {
     execute(ctx: AccountContext): void {
       const metadata = requireMetadata(ctx, "resolve account slug");
       if (metadata.slug === "") {
-        metadata.slug = accountSlugFor(metadata.name, specOf(ctx).idpId);
+        metadata.slug = fittedSlug(metadata.name, specOf(ctx).idpId);
       }
     },
   };
