@@ -34,12 +34,12 @@
 // an unattended fire that would run Cursor with no model is refused.
 import { create } from "@bufbuild/protobuf";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ApprovalMode, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
+import { ApprovalMode, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import {
-  ScheduleRunOrigin,
-  ScheduleRunOutcome,
+  ScheduleFireOrigin,
+  ScheduleFireOutcome,
 } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -110,7 +110,7 @@ describe.skipIf(!firingEnabled)("Schedule trigger contract (scheduleFiring targe
     // run's deterministic failure is honestly reported in the result,
     // never thrown. The reason is the tick's exact vocabulary, pinned
     // byte-identical in both editions.
-    expect(result.outcome).toBe(ScheduleRunOutcome.TARGET_MISSING);
+    expect(result.outcome).toBe(ScheduleFireOutcome.TARGET_MISSING);
     expect(result.refusalReason).toBe(targetMissingReason(org, agentSlug));
     expect(result.runId).toBe("");
 
@@ -138,13 +138,13 @@ describe.skipIf(!firingEnabled)("Schedule trigger contract (scheduleFiring targe
     // The fire ledger: a no-execution fire is exactly the
     // case status.consecutive_failures alone cannot explain, and exactly
     // the row this surface exists to keep.
-    const history = await clients.scheduleQuery.listRuns({
+    const history = await clients.scheduleQuery.listFires({
       scheduleId: schedule.metadata!.id,
     });
     expect(history.totalCount).toBe(1);
     const run = history.items[0]!;
-    expect(run.origin).toBe(ScheduleRunOrigin.MANUAL);
-    expect(run.outcome).toBe(ScheduleRunOutcome.TARGET_MISSING);
+    expect(run.origin).toBe(ScheduleFireOrigin.MANUAL);
+    expect(run.outcome).toBe(ScheduleFireOutcome.TARGET_MISSING);
     expect(run.reason).toBe(targetMissingReason(org, agentSlug));
     expect(run.runId).toBe("");
     expect(run.completedAt, "a no-run fire is terminal at insert").toBeDefined();
@@ -152,7 +152,7 @@ describe.skipIf(!firingEnabled)("Schedule trigger contract (scheduleFiring targe
 
   it("[rpc:ScheduleQueryController.listRuns] listing runs of a missing schedule is NotFound — an empty history never impersonates 'never fired'", async () => {
     await expectGrpcCode(
-      () => clients.scheduleQuery.listRuns({ scheduleId: "sch_01conformancemissing" }),
+      () => clients.scheduleQuery.listFires({ scheduleId: "sch_01conformancemissing" }),
       Code.NotFound,
       "list runs of a missing schedule",
     );
@@ -196,7 +196,7 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
     // The sync trigger answers with the execution — no polling for
     // last_run_id (the asynchronous shape this replaced).
     const result = await clients.scheduleCommand.trigger({ value: id });
-    expect(result.outcome).toBe(ScheduleRunOutcome.STARTED);
+    expect(result.outcome).toBe(ScheduleFireOutcome.STARTED);
     const executionId = result.runId;
     expect(executionId).not.toBe("");
     expect(result.schedule?.status?.lastRunId).toBe(executionId);
@@ -221,11 +221,11 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
     // Manual fires are untracked by design — the caller watches the
     // execution — so run history resolves their outcome at READ time
     // from the execution's live phase (the honesty rule).
-    const history = await clients.scheduleQuery.listRuns({ scheduleId: id });
+    const history = await clients.scheduleQuery.listFires({ scheduleId: id });
     expect(history.totalCount).toBe(1);
     const run = history.items[0]!;
-    expect(run.origin).toBe(ScheduleRunOrigin.MANUAL);
-    expect(run.outcome).toBe(ScheduleRunOutcome.COMPLETED);
+    expect(run.origin).toBe(ScheduleFireOrigin.MANUAL);
+    expect(run.outcome).toBe(ScheduleFireOutcome.COMPLETED);
     expect(run.runId).toBe(executionId);
 
     // The streak was never fed: manual fires are not the cron health
@@ -257,7 +257,7 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
 
     target.llmProxy!().enqueue(anthropicText("Reminders sent."));
     const result = await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
-    expect(result.outcome, `the fire's refusal: ${result.refusalReason}`).toBe(ScheduleRunOutcome.STARTED);
+    expect(result.outcome, `the fire's refusal: ${result.refusalReason}`).toBe(ScheduleFireOutcome.STARTED);
 
     const execution = await clients.agentExecutionQuery.get({ value: result.runId });
     const session = await clients.sessionQuery.get({ value: sessionIdOf(execution) });
@@ -289,7 +289,7 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
 
     target.llmProxy!().enqueue(anthropicText("Reminders sent."));
     const result = await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
-    expect(result.outcome, `the fire's refusal: ${result.refusalReason}`).toBe(ScheduleRunOutcome.STARTED);
+    expect(result.outcome, `the fire's refusal: ${result.refusalReason}`).toBe(ScheduleFireOutcome.STARTED);
 
     const execution = await clients.agentExecutionQuery.get({ value: result.runId });
     expect(execution.spec?.runConfig?.maxToolRounds, "the turn asks for what the schedule saved").toBe(1000);
@@ -326,7 +326,7 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
 
     target.llmProxy!().enqueue(anthropicText("Reminders sent."));
     const result = await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
-    expect(result.outcome, `the fire's refusal: ${result.refusalReason}`).toBe(ScheduleRunOutcome.STARTED);
+    expect(result.outcome, `the fire's refusal: ${result.refusalReason}`).toBe(ScheduleFireOutcome.STARTED);
     const execution = await clients.agentExecutionQuery.get({ value: result.runId });
     const session = await clients.sessionQuery.get({ value: sessionIdOf(execution) });
     expect(session.spec?.harness).toBe(Harness.NATIVE);
@@ -356,7 +356,7 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
 
     const result = await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
 
-    expect(result.outcome).toBe(ScheduleRunOutcome.REFUSED);
+    expect(result.outcome).toBe(ScheduleFireOutcome.REFUSED);
     expect(result.refusalReason).toContain("must name a model");
     expect(result.refusalReason).toContain("stigmer/stigmer#362");
     expect(result.runId).toBe("");

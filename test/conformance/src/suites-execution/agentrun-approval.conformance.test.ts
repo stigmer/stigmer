@@ -63,7 +63,7 @@
 // contract above is asserted there once, so a decision the server failed to
 // record is red at the submit that made it, never a timeout later in the arm.
 import { Code } from "@connectrpc/connect";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   ApprovalAction,
   ApprovalEventType,
@@ -72,7 +72,7 @@ import {
   FileDecisionAction,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
@@ -153,7 +153,7 @@ async function runToGate(
   agentRef: AgentRefInit,
   blocks: ToolUseBlock[],
   opts: { autoApproveAll?: boolean; turnsBeforeDone?: AnthropicMessageBody[] } = {},
-): Promise<{ executionId: string; gated: AgentRun }> {
+): Promise<{ executionId: string; gated: Run }> {
   mock.enqueue(anthropicToolUses(blocks));
   // Further assistant turns between the gated one and the terminating text —
   // the lever for a SECOND tool turn on the same server (the lease arm).
@@ -180,7 +180,7 @@ function echoBlock(toolCallId: string, text: string): ToolUseBlock {
 // Whether the approval-event stream records `type` for a tool call. The
 // stream is keyed by approval_request_id, which the proto pins equal to the
 // tool_call_id (approval.proto), so the transcript's id is the lookup key.
-function approvalStreamHas(exec: AgentRun, toolCallId: string, type: ApprovalEventType): boolean {
+function approvalStreamHas(exec: Run, toolCallId: string, type: ApprovalEventType): boolean {
   return (exec.status?.approvalEventStream?.events ?? []).some(
     (event) => event.approvalRequestId === toolCallId && event.eventType === type,
   );
@@ -207,7 +207,7 @@ describe("AgentRun submitApproval — gate resolution", () => {
       label: "approve clears the pending gate",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentRunId: executionId,
+          runId: executionId,
           toolCallId,
           action: ApprovalAction.APPROVE,
         }),
@@ -248,7 +248,7 @@ describe("AgentRun submitApproval — gate resolution", () => {
       label: "skip clears the pending gate",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentRunId: executionId,
+          runId: executionId,
           toolCallId,
           action: ApprovalAction.SKIP,
         }),
@@ -269,7 +269,7 @@ describe("AgentRun submitApproval — gate resolution", () => {
       label: "reject clears the pending gate",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentRunId: executionId,
+          runId: executionId,
           toolCallId,
           action: ApprovalAction.REJECT,
           comment: "not this time",
@@ -314,7 +314,7 @@ describe("AgentRun submitApproval — gate resolution", () => {
       label: "APPROVE_ALL resolves both gates at once",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentRunId: executionId,
+          runId: executionId,
           toolCallId: gated.status!.pendingApprovals[0]!.toolCallId,
           action: ApprovalAction.APPROVE_ALL,
         }),
@@ -374,7 +374,7 @@ describe("AgentRun submitApproval — spec bypass and read model", () => {
       label: "the settling approve clears the gate",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentRunId: executionId,
+          runId: executionId,
           toolCallId: pending.toolCallId,
           action: ApprovalAction.APPROVE,
         }),
@@ -396,7 +396,7 @@ describe("AgentRun submitApproval — spec bypass and read model", () => {
 
     const approveFirst = () =>
       clients.agentExecutionCommand.submitApproval({
-        agentRunId: executionId,
+        runId: executionId,
         toolCallId: firstId,
         action: ApprovalAction.APPROVE,
       });
@@ -419,7 +419,7 @@ describe("AgentRun submitApproval — spec bypass and read model", () => {
       label: "the second approve clears the gate",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentRunId: executionId,
+          runId: executionId,
           toolCallId: secondId,
           action: ApprovalAction.APPROVE,
         }),
@@ -452,7 +452,7 @@ describe("AgentRun submitApproval — lease, cancel at the gate, durable resume"
       label: "APPROVE_ALL resolves the first gate",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentRunId: executionId,
+          runId: executionId,
           toolCallId: gated.status!.pendingApprovals[0]!.toolCallId,
           action: ApprovalAction.APPROVE_ALL,
         }),
@@ -490,7 +490,7 @@ describe("AgentRun submitApproval — lease, cancel at the gate, durable resume"
       label: "approve clears the gate",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentRunId: executionId,
+          runId: executionId,
           toolCallId,
           action: ApprovalAction.APPROVE,
         }),
@@ -515,7 +515,7 @@ describe("AgentRun submitApproval — negatives", () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitApproval({
-          agentRunId: "aex_whatever",
+          runId: "aex_whatever",
           toolCallId: "call_x",
           action: ApprovalAction.UNSPECIFIED,
         }),
@@ -528,7 +528,7 @@ describe("AgentRun submitApproval — negatives", () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitApproval({
-          agentRunId: "",
+          runId: "",
           toolCallId: "call_x",
           action: ApprovalAction.APPROVE,
         }),
@@ -541,7 +541,7 @@ describe("AgentRun submitApproval — negatives", () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitApproval({
-          agentRunId: "aex_whatever",
+          runId: "aex_whatever",
           toolCallId: "",
           action: ApprovalAction.APPROVE,
         }),
@@ -554,7 +554,7 @@ describe("AgentRun submitApproval — negatives", () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitApproval({
-          agentRunId: "aex_does_not_exist_000000",
+          runId: "aex_does_not_exist_000000",
           toolCallId: "call_x",
           action: ApprovalAction.APPROVE,
         }),
@@ -571,7 +571,7 @@ describe("AgentRun submitApproval — negatives", () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitApproval({
-          agentRunId: executionId,
+          runId: executionId,
           toolCallId: "call_not_a_real_id",
           action: ApprovalAction.APPROVE,
         }),
@@ -586,7 +586,7 @@ describe("AgentRun submitApproval — negatives", () => {
       label: "the settling approve clears the gate",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentRunId: executionId,
+          runId: executionId,
           toolCallId: gated.status!.pendingApprovals[0]!.toolCallId,
           action: ApprovalAction.APPROVE,
         }),
@@ -611,7 +611,7 @@ describe("AgentRun submitApproval — negatives", () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitApproval({
-          agentRunId: executionId,
+          runId: executionId,
           toolCallId: "call_echo_terminal",
           action: ApprovalAction.APPROVE,
         }),
@@ -688,7 +688,7 @@ describe("AgentRun — an agent's hooks decide at the gate", () => {
       label: "approving the hook's ask clears the gate",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentRunId: executionId,
+          runId: executionId,
           toolCallId: pending.toolCallId,
           action: ApprovalAction.APPROVE,
         }),
@@ -771,7 +771,7 @@ describe("AgentRun — a pushed plugin's hooks decide at the gate", () => {
       label: "approving the plugin's ask clears the gate",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentRunId: executionId,
+          runId: executionId,
           toolCallId: pending.toolCallId,
           action: ApprovalAction.APPROVE,
         }),
@@ -854,7 +854,7 @@ describe("AgentRun — a pushed Cursor-format plugin's hooks decide at the gate"
       label: "approving the Cursor plugin's ask clears the gate",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentRunId: executionId,
+          runId: executionId,
           toolCallId: pending.toolCallId,
           action: ApprovalAction.APPROVE,
         }),
@@ -998,7 +998,7 @@ describe("AgentRun — a real plugin, unchanged, refuses at the gate and survive
       label: "approving the default's card clears the gate",
       submit: () =>
         clients.agentExecutionCommand.submitApproval({
-          agentRunId: secondId,
+          runId: secondId,
           toolCallId: pending.toolCallId,
           action: ApprovalAction.APPROVE,
         }),

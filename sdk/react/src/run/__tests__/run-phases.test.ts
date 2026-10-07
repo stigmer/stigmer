@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { isTerminalPhase } from "../run-phases";
 
 describe("isTerminalPhase", () => {

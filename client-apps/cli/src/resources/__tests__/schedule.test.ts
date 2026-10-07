@@ -10,7 +10,7 @@ import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { ScheduleSchema, type Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import {
-  ScheduleRunOutcome,
+  ScheduleFireOutcome,
   ScheduleTriggerResultSchema,
   type ScheduleTriggerResult,
 } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
@@ -50,7 +50,7 @@ describe("triggerSchedule", () => {
   it("reports a started run with the command to watch it and the next cron fire", async () => {
     const { client, triggered } = double(
       nightly,
-      create(ScheduleTriggerResultSchema, { schedule: nightly, outcome: ScheduleRunOutcome.STARTED, runId: "aex_7" }),
+      create(ScheduleTriggerResultSchema, { schedule: nightly, outcome: ScheduleFireOutcome.STARTED, runId: "aex_7" }),
     );
 
     const result = await triggerSchedule(client, "sch_1", "acme");
@@ -69,7 +69,7 @@ describe("triggerSchedule", () => {
     const unnamed = create(ScheduleSchema, { metadata: { id: "sch_1", slug: "nightly" } });
     const { client } = double(
       unnamed,
-      create(ScheduleTriggerResultSchema, { outcome: ScheduleRunOutcome.STARTED, runId: "aex_8" }),
+      create(ScheduleTriggerResultSchema, { outcome: ScheduleFireOutcome.STARTED, runId: "aex_8" }),
     );
 
     const result = await triggerSchedule(client, "sch_1", "acme");
@@ -83,7 +83,7 @@ describe("triggerSchedule", () => {
       nightly,
       create(ScheduleTriggerResultSchema, {
         schedule: nightly,
-        outcome: ScheduleRunOutcome.REFUSED,
+        outcome: ScheduleFireOutcome.REFUSED,
         refusalReason: "monthly spend cap reached",
       }),
     );
@@ -103,7 +103,7 @@ describe("triggerSchedule", () => {
       nightly,
       create(ScheduleTriggerResultSchema, {
         schedule: nightly,
-        outcome: ScheduleRunOutcome.TARGET_MISSING,
+        outcome: ScheduleFireOutcome.TARGET_MISSING,
         refusalReason: "agent acme/digest not found",
       }),
     );

@@ -2,14 +2,14 @@ import { describe, it, expect } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+  RunSchema,
+  RunStatusSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   ContextInfoSchema,
   SummarizationEventSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/context_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/context_pb";
 import { useContextWindow } from "../useContextWindow";
 
 function makeExecution(overrides?: {
@@ -19,9 +19,9 @@ function makeExecution(overrides?: {
   targetTokens?: number;
   summarizationEnabled?: boolean;
   utilizationPercent?: number;
-}): AgentRun {
-  const exec = create(AgentRunSchema);
-  const status = create(AgentRunStatusSchema);
+}): Run {
+  const exec = create(RunSchema);
+  const status = create(RunStatusSchema);
   const contextInfo = create(ContextInfoSchema);
 
   contextInfo.currentTokenCount = overrides?.currentTokenCount ?? 10_000;
@@ -36,7 +36,7 @@ function makeExecution(overrides?: {
   return exec;
 }
 
-function makeExecutionWithSummarization(): AgentRun {
+function makeExecutionWithSummarization(): Run {
   const exec = makeExecution({
     currentTokenCount: 80_000,
     contextWindowLimit: 200_000,
@@ -69,8 +69,8 @@ describe("useContextWindow", () => {
   });
 
   it("returns empty state when execution has no context_info", () => {
-    const exec = create(AgentRunSchema);
-    exec.status = create(AgentRunStatusSchema);
+    const exec = create(RunSchema);
+    exec.status = create(RunStatusSchema);
 
     const { result } = renderHook(() => useContextWindow(exec));
 

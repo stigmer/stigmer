@@ -1,8 +1,8 @@
 "use client";
 
 import { memo, useId, useMemo, useState } from "react";
-import type { RecalledMemoriesReport } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { RecalledMemoryFact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+import type { RecalledMemoriesReport } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { RecalledMemoryFact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { cn } from "@stigmer/theme";
 
 /**

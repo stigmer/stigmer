@@ -24,9 +24,9 @@
 // goes on. A session whose first turn was never created has no session for
 // the rest: they are recorded as failed at create, never skipped silently.
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { FileDecisionAction, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { FileDecisionAction, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import type { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { ConformanceClients } from "../harness/clients";
 import { makeAgentExecution, sessionIdOf } from "../support/agentruns";
@@ -116,7 +116,7 @@ async function measureTurn(stack: SessionStack, plan: SessionPlan, turn: TurnReq
         };
   const startedAtMs = Date.now();
 
-  let created: AgentRun;
+  let created: Run;
   try {
     created = await clients.agentExecutionCommand.create(
       makeAgentExecution({

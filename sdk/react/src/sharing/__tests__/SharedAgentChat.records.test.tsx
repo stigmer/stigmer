@@ -67,7 +67,7 @@ const createExecution = vi.fn(async (_input: Record<string, unknown>) => ({
   spec: { target: { case: "sessionId", value: "ses_1" } },
 }));
 
-const client = { agentRun: { create: createExecution } };
+const client = { run: { create: createExecution } };
 
 function Providers({ children }: { children: ReactNode }) {
   return (

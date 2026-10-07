@@ -4,8 +4,8 @@ import { isNotFound, isPermissionDenied } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 
-/** Return value of {@link useResolveAgentRunSession}. */
-export interface UseResolveAgentRunSessionReturn {
+/** Return value of {@link useResolveRunSession}. */
+export interface UseResolveRunSessionReturn {
   /**
    * The resolved session ID; `null` while loading, on error, and when no
    * session resolves (the run does not exist, the caller cannot see it, or
@@ -36,7 +36,7 @@ export interface UseResolveAgentRunSessionReturn {
  * @example
  * ```tsx
  * function DrillDown({ agentExecutionId }: { agentExecutionId: string }) {
- *   const { sessionId, isLoading } = useResolveAgentRunSession(agentExecutionId);
+ *   const { sessionId, isLoading } = useResolveRunSession(agentExecutionId);
  *   useEffect(() => {
  *     if (sessionId) navigateToSession(sessionId);
  *   }, [sessionId]);
@@ -45,15 +45,15 @@ export interface UseResolveAgentRunSessionReturn {
  * }
  * ```
  */
-export function useResolveAgentRunSession(
+export function useResolveRunSession(
   agentExecutionId: string | null,
-): UseResolveAgentRunSessionReturn {
+): UseResolveRunSessionReturn {
   const stigmer = useStigmer();
 
   const fetchFn = agentExecutionId
     ? async () => {
         try {
-          const execution = await stigmer.agentRun.get(agentExecutionId);
+          const execution = await stigmer.run.get(agentExecutionId);
           const target = execution.spec?.target;
           return target?.case === "sessionId" ? target.value : null;
         } catch (err) {

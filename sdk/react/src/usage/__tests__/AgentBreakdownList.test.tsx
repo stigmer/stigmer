@@ -7,7 +7,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { AgentUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { AgentUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { AgentBreakdownList } from "../AgentBreakdownList";
 
 afterEach(cleanup);

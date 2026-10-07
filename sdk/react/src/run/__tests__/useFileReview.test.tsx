@@ -5,7 +5,7 @@ import type { Stigmer } from "@stigmer/sdk";
 import {
   FileDecisionAction,
   FileDecisionScope,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { useFileReview, fileDecisionKey } from "../useFileReview";
 
@@ -13,7 +13,7 @@ const mockSubmitFileDecision = vi.fn();
 
 function makeMockClient(): Stigmer {
   return {
-    agentRun: { submitFileDecision: mockSubmitFileDecision },
+    run: { submitFileDecision: mockSubmitFileDecision },
   } as unknown as Stigmer;
 }
 
@@ -43,7 +43,7 @@ describe("useFileReview", () => {
 
     expect(mockSubmitFileDecision).toHaveBeenCalledTimes(1);
     expect(mockSubmitFileDecision.mock.calls[0][0]).toMatchObject({
-      agentRunId: "aex-1",
+      runId: "aex-1",
       changeSetId: "aex-1:0",
       scope: FileDecisionScope.CHANGE_SET,
       fileChangeId: "",

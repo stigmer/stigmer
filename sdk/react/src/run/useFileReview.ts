@@ -5,8 +5,8 @@ import { create } from "@bufbuild/protobuf";
 import {
   FileDecisionAction,
   FileDecisionScope,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { SubmitFileDecisionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { SubmitFileDecisionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
@@ -89,7 +89,7 @@ export function fileDecisionKey(changeSetId: string, fileChangeId?: string): str
 const NO_DECISION_ERRORS: ReadonlyMap<string, Error> = new Map();
 
 /**
- * Behavior hook that wraps `agentRun.submitFileDecision()` with per-decision
+ * Behavior hook that wraps `run.submitFileDecision()` with per-decision
  * loading state and error management — the file-review sibling of
  * {@link useSubmitApproval}.
  *
@@ -157,7 +157,7 @@ export function useFileReview(): UseFileReviewReturn {
 
       try {
         const input = create(SubmitFileDecisionInputSchema, {
-          agentRunId: executionId,
+          runId: executionId,
           changeSetId,
           scope,
           fileChangeId,
@@ -166,7 +166,7 @@ export function useFileReview(): UseFileReviewReturn {
           reason: options?.reason ?? "",
           acknowledgeUnreviewable: options?.acknowledgeUnreviewable ?? false,
         });
-        await stigmer.agentRun.submitFileDecision(input);
+        await stigmer.run.submitFileDecision(input);
       } catch (err) {
         const e = toError(err);
         setDecisionErrors((prev) => new Map(prev).set(key, e));

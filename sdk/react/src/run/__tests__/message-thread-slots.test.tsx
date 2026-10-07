@@ -3,20 +3,20 @@ import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import React, { memo } from "react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
+  RunSchema,
+  RunStatusSchema,
   RecalledMemoriesReportSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
-  AgentRunSpecSchema,
+  RunSpecSchema,
   RecalledMemoriesSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
-import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/todo_pb";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
+import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/todo_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import {
   ApprovalAction,
   RunArtifactKind,
@@ -24,7 +24,7 @@ import {
   InteractionMode,
   MessageType,
   TodoStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { MessageThread, type MessageThreadSlots } from "../MessageThread";
 import type { MessageEntryProps } from "../MessageEntry";
@@ -115,21 +115,21 @@ function makeExecution(opts: {
   pendingApprovalToolCallId?: string;
   planArtifactName?: string;
   error?: string;
-}): AgentRun {
-  const exec = create(AgentRunSchema);
+}): Run {
+  const exec = create(RunSchema);
 
   const meta = create(ApiResourceMetadataSchema);
   meta.id = opts.id;
   exec.metadata = meta;
 
-  const spec = create(AgentRunSpecSchema);
+  const spec = create(RunSpecSchema);
   spec.message = opts.specMessage ?? "Hello";
   if (opts.interactionMode !== undefined) {
     spec.interactionMode = opts.interactionMode;
   }
   exec.spec = spec;
 
-  const status = create(AgentRunStatusSchema);
+  const status = create(RunStatusSchema);
   status.phase = opts.phase ?? RunPhase.RUN_COMPLETED;
   if (opts.error) {
     status.error = opts.error;

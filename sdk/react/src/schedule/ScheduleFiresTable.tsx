@@ -5,23 +5,23 @@ import { cn } from "@stigmer/theme";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import {
-  ScheduleRunOrigin,
-  ScheduleRunOutcome,
-  type ScheduleRun,
+  ScheduleFireOrigin,
+  ScheduleFireOutcome,
+  type ScheduleFire,
 } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { Pagination } from "../internal/Pagination.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
-import { useScheduleRuns } from "./useScheduleRuns.js";
+import { useScheduleFires } from "./useScheduleFires.js";
 
-/** Props for {@link ScheduleRunsTable}. */
-export interface ScheduleRunsTableProps {
-  /** ID of the schedule whose run history to show. */
+/** Props for {@link ScheduleFiresTable}. */
+export interface ScheduleFiresTableProps {
+  /** ID of the schedule whose fire history to show. */
   readonly scheduleId: string;
   /**
-   * Called when the user activates a run's run reference
-   * (`aex_…`). When omitted, the id renders as plain text.
+   * Called when the user activates a fire's run reference
+   * (`run_…`). When omitted, the id renders as plain text.
    */
   readonly onNavigateToRun?: (executionId: string) => void;
   /**
@@ -30,14 +30,14 @@ export interface ScheduleRunsTableProps {
    * @default new Date() at render
    */
   readonly now?: Date;
-  /** Runs per page. @default 25 */
+  /** Fires per page. @default 25 */
   readonly pageSize?: number;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
 
 /**
- * Paginated run-history table for a schedule — the fire ledger,
+ * Paginated fire-history table for a schedule — the fire ledger,
  * rendered in full.
  *
  * Every fire leaves a row, INCLUDING fires that created no run (a
@@ -48,7 +48,7 @@ export interface ScheduleRunsTableProps {
  * run reference.
  *
  * Owns its data: give it a `scheduleId` and it fetches via
- * {@link useScheduleRuns} with internal page state. To force a refresh
+ * {@link useScheduleFires} with internal page state. To force a refresh
  * from outside (e.g. after triggering a manual run), remount with a
  * React `key` — the standard reset idiom; the remount also
  * returns to page 1, where the new run appears.
@@ -59,21 +59,21 @@ export interface ScheduleRunsTableProps {
  *
  * @example
  * ```tsx
- * <ScheduleRunsTable
+ * <ScheduleFiresTable
  *   scheduleId={schedule.metadata.id}
  *   onNavigateToRun={(id) => router.push(`/runs/${id}`)}
  * />
  * ```
  */
-export function ScheduleRunsTable({
+export function ScheduleFiresTable({
   scheduleId,
   onNavigateToRun,
   now,
   pageSize = 25,
   className,
-}: ScheduleRunsTableProps) {
+}: ScheduleFiresTableProps) {
   const [pageNum, setPageNum] = useState(1);
-  const { runs, totalCount, isLoading, error, refetch } = useScheduleRuns(
+  const { fires, totalCount, isLoading, error, refetch } = useScheduleFires(
     scheduleId,
     { page: pageNum, pageSize },
   );
@@ -81,7 +81,7 @@ export function ScheduleRunsTable({
   if (error) {
     return <ErrorMessage error={error} retry={refetch} className={className} />;
   }
-  if (isLoading && runs.length === 0) {
+  if (isLoading && fires.length === 0) {
     return (
       <div className={cn("stg:space-y-2", className)} aria-busy="true">
         {Array.from({ length: 5 }, (_, i) => (
@@ -90,10 +90,10 @@ export function ScheduleRunsTable({
       </div>
     );
   }
-  if (runs.length === 0) {
+  if (fires.length === 0) {
     return (
       <div className={className}>
-        <EmptyRuns />
+        <EmptyFires />
       </div>
     );
   }
@@ -105,7 +105,7 @@ export function ScheduleRunsTable({
     <div className={className}>
       <div
         role="table"
-        aria-label="Run history"
+        aria-label="Fire history"
         className="stg:overflow-hidden stg:rounded-lg stg:border stg:border-border"
       >
         <div
@@ -127,10 +127,10 @@ export function ScheduleRunsTable({
             Run
           </span>
         </div>
-        {runs.map((run, i) => (
-          <RunTableRow
-            key={runKey(run, i)}
-            run={run}
+        {fires.map((fire, i) => (
+          <FireTableRow
+            key={fireKey(fire, i)}
+            fire={fire}
             now={renderNow}
             onNavigateToRun={onNavigateToRun}
           />
@@ -142,7 +142,7 @@ export function ScheduleRunsTable({
           pageNum={pageNum}
           totalPages={totalPages}
           onPageChange={setPageNum}
-          ariaLabel="Run history pagination"
+          ariaLabel="Fire history pagination"
           className="stg:mt-3"
         />
       )}
@@ -155,19 +155,19 @@ export function ScheduleRunsTable({
 const rowGridClasses =
   "stg:grid stg:grid-cols-[7rem_1fr_auto] stg:items-center stg:gap-x-4 stg:sm:grid-cols-[7rem_5.5rem_1fr_5rem_minmax(0,12rem)]";
 
-function RunTableRow({
-  run,
+function FireTableRow({
+  fire,
   now,
   onNavigateToRun,
 }: {
-  readonly run: ScheduleRun;
+  readonly fire: ScheduleFire;
   readonly now: Date;
   readonly onNavigateToRun?: (executionId: string) => void;
 }) {
-  const fireDate = run.nominalFireTime
-    ? timestampDate(run.nominalFireTime)
+  const fireDate = fire.nominalFireTime
+    ? timestampDate(fire.nominalFireTime)
     : null;
-  const badge = runOutcomeBadge(run.outcome);
+  const badge = fireOutcomeBadge(fire.outcome);
 
   return (
     <div
@@ -188,7 +188,7 @@ function RunTableRow({
         </span>
       </span>
       <span role="cell" className="stg:hidden stg:text-xs stg:text-muted-foreground stg:sm:block">
-        {runOriginLabel(run.origin)}
+        {fireOriginLabel(fire.origin)}
       </span>
       <span role="cell" className="stg:text-xs stg:text-muted-foreground">
         {fireDate ? (
@@ -206,36 +206,36 @@ function RunTableRow({
         role="cell"
         className="stg:hidden stg:text-xs stg:tabular-nums stg:text-muted-foreground stg:sm:block"
       >
-        {formatRunDuration(run) ?? "—"}
+        {formatFireDuration(fire) ?? "—"}
       </span>
       <span role="cell" className="stg:min-w-0 stg:text-right">
-        {run.runId ? (
+        {fire.runId ? (
           onNavigateToRun ? (
             <button
               type="button"
-              onClick={() => onNavigateToRun(run.runId)}
+              onClick={() => onNavigateToRun(fire.runId)}
               className={cn(
                 "stg:max-w-full stg:truncate stg:font-mono stg:text-[0.65rem] stg:text-primary stg:underline-offset-2 stg:hover:underline",
                 "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded-sm",
               )}
             >
-              {run.runId}
+              {fire.runId}
             </button>
           ) : (
             <span className="stg:font-mono stg:text-[0.65rem] stg:text-muted-foreground">
-              {run.runId}
+              {fire.runId}
             </span>
           )
         ) : (
           <span className="stg:text-xs stg:text-muted-foreground">—</span>
         )}
       </span>
-      {run.reason && (
+      {fire.reason && (
         <p
           role="cell"
           className="stg:col-span-full stg:mt-1 stg:whitespace-pre-wrap stg:break-words stg:text-xs stg:text-muted-foreground"
         >
-          {run.reason}
+          {fire.reason}
         </p>
       )}
     </div>
@@ -243,30 +243,30 @@ function RunTableRow({
 }
 
 // ---------------------------------------------------------------------------
-// Compact list — the Overview tab's "recent runs" strip
+// Compact list — the Overview tab's "recent fires" strip
 // ---------------------------------------------------------------------------
 
 /**
- * Compact run list: badge, origin, relative time, refusal reason, and
+ * Compact fire list: badge, origin, relative time, refusal reason, and
  * run link per row — the at-a-glance form used by the detail
- * view's Overview tab. Presentational: runs come in as props (the
- * caller owns the fetch, so one hook can also feed the Runs tab badge).
+ * view's Overview tab. Presentational: fires come in as props (the
+ * caller owns the fetch, so one hook can also feed the History tab badge).
  *
- * Not barrel-exported: the public run-history surface is
- * {@link ScheduleRunsTable}; this exists for the detail view's strip.
+ * Not barrel-exported: the public fire-history surface is
+ * {@link ScheduleFiresTable}; this exists for the detail view's strip.
  */
-export function ScheduleRunsCompactList({
-  runs,
+export function ScheduleFiresCompactList({
+  fires,
   isLoading,
   now,
   onNavigateToRun,
 }: {
-  readonly runs: readonly ScheduleRun[];
+  readonly fires: readonly ScheduleFire[];
   readonly isLoading: boolean;
   readonly now: Date;
   readonly onNavigateToRun?: (executionId: string) => void;
 }) {
-  if (isLoading && runs.length === 0) {
+  if (isLoading && fires.length === 0) {
     return (
       <div className="stg:space-y-2 stg:px-4 stg:py-3" aria-busy="true">
         <div className="stg:h-4 stg:w-full stg:animate-pulse stg:rounded stg:bg-muted" />
@@ -274,15 +274,15 @@ export function ScheduleRunsCompactList({
       </div>
     );
   }
-  if (runs.length === 0) {
-    return <EmptyRuns />;
+  if (fires.length === 0) {
+    return <EmptyFires />;
   }
   return (
     <ul className={cn(UNSTYLED_LIST, "stg:divide-y stg:divide-border")}>
-      {runs.map((run, i) => (
-        <CompactRunRow
-          key={runKey(run, i)}
-          run={run}
+      {fires.map((fire, i) => (
+        <CompactFireRow
+          key={fireKey(fire, i)}
+          fire={fire}
           now={now}
           onNavigateToRun={onNavigateToRun}
         />
@@ -291,19 +291,19 @@ export function ScheduleRunsCompactList({
   );
 }
 
-function CompactRunRow({
-  run,
+function CompactFireRow({
+  fire,
   now,
   onNavigateToRun,
 }: {
-  readonly run: ScheduleRun;
+  readonly fire: ScheduleFire;
   readonly now: Date;
   readonly onNavigateToRun?: (executionId: string) => void;
 }) {
-  const fireDate = run.nominalFireTime
-    ? timestampDate(run.nominalFireTime)
+  const fireDate = fire.nominalFireTime
+    ? timestampDate(fire.nominalFireTime)
     : null;
-  const badge = runOutcomeBadge(run.outcome);
+  const badge = fireOutcomeBadge(fire.outcome);
 
   return (
     <li className="stg:flex stg:flex-col stg:gap-1 stg:px-4 stg:py-2.5">
@@ -317,7 +317,7 @@ function CompactRunRow({
           {badge.label}
         </span>
         <span className="stg:text-xs stg:text-muted-foreground">
-          {runOriginLabel(run.origin)}
+          {fireOriginLabel(fire.origin)}
         </span>
         <span className="stg:text-xs stg:text-muted-foreground-subtle">·</span>
         <span className="stg:text-xs stg:text-muted-foreground">
@@ -333,26 +333,26 @@ function CompactRunRow({
           )}
         </span>
       </div>
-      {run.reason && (
+      {fire.reason && (
         <p className="stg:whitespace-pre-wrap stg:break-words stg:text-xs stg:text-muted-foreground">
-          {run.reason}
+          {fire.reason}
         </p>
       )}
-      {run.runId &&
+      {fire.runId &&
         (onNavigateToRun ? (
           <button
             type="button"
-            onClick={() => onNavigateToRun(run.runId)}
+            onClick={() => onNavigateToRun(fire.runId)}
             className={cn(
               "stg:self-start stg:font-mono stg:text-[0.65rem] stg:text-primary stg:underline-offset-2 stg:hover:underline",
               "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded-sm",
             )}
           >
-            {run.runId}
+            {fire.runId}
           </button>
         ) : (
           <span className="stg:self-start stg:font-mono stg:text-[0.65rem] stg:text-muted-foreground">
-            {run.runId}
+            {fire.runId}
           </span>
         ))}
     </li>
@@ -363,10 +363,10 @@ function CompactRunRow({
 // Shared pieces
 // ---------------------------------------------------------------------------
 
-function EmptyRuns() {
+function EmptyFires() {
   return (
     <p className="stg:px-4 stg:py-6 stg:text-center stg:text-xs stg:text-muted-foreground">
-      No runs yet. Use &ldquo;Run now&rdquo; to fire a test run — every fire,
+      No fires yet. Use &ldquo;Run now&rdquo; to fire the schedule — every fire,
       including a refused one, is recorded here.
     </p>
   );
@@ -376,36 +376,36 @@ function EmptyRuns() {
  * Stable row key from the fire ledger's natural identity
  * (nominal fire time + origin), with the index as a collision tail.
  */
-function runKey(run: ScheduleRun, index: number): string {
-  const fireMs = run.nominalFireTime
-    ? timestampDate(run.nominalFireTime).getTime()
+function fireKey(fire: ScheduleFire, index: number): string {
+  const fireMs = fire.nominalFireTime
+    ? timestampDate(fire.nominalFireTime).getTime()
     : "no-time";
-  return `${fireMs}-${run.origin}-${index}`;
+  return `${fireMs}-${fire.origin}-${index}`;
 }
 
-function runOriginLabel(origin: ScheduleRunOrigin): string {
-  return origin === ScheduleRunOrigin.MANUAL ? "Manual" : "Scheduled";
+function fireOriginLabel(origin: ScheduleFireOrigin): string {
+  return origin === ScheduleFireOrigin.MANUAL ? "Manual" : "Scheduled";
 }
 
-/** Verbatim-label badges for a run outcome, colored by health. */
-export function runOutcomeBadge(outcome: ScheduleRunOutcome): {
+/** Verbatim-label badges for a fire's outcome, colored by health. */
+export function fireOutcomeBadge(outcome: ScheduleFireOutcome): {
   label: string;
   className: string;
 } {
   switch (outcome) {
-    case ScheduleRunOutcome.STARTED:
+    case ScheduleFireOutcome.STARTED:
       return { label: "Started", className: "stg:bg-info/10 stg:text-info" };
-    case ScheduleRunOutcome.COMPLETED:
+    case ScheduleFireOutcome.COMPLETED:
       return { label: "Completed", className: "stg:bg-success/10 stg:text-success" };
-    case ScheduleRunOutcome.REFUSED:
+    case ScheduleFireOutcome.REFUSED:
       return { label: "Refused", className: "stg:bg-warning/10 stg:text-warning" };
-    case ScheduleRunOutcome.TARGET_MISSING:
+    case ScheduleFireOutcome.TARGET_MISSING:
       return { label: "Target missing", className: "stg:bg-warning/10 stg:text-warning" };
-    case ScheduleRunOutcome.SKIPPED:
+    case ScheduleFireOutcome.SKIPPED:
       return { label: "Skipped", className: "stg:bg-muted stg:text-muted-foreground" };
-    case ScheduleRunOutcome.FAILED:
+    case ScheduleFireOutcome.FAILED:
       return { label: "Failed", className: "stg:bg-destructive/10 stg:text-destructive" };
-    case ScheduleRunOutcome.TIMED_OUT:
+    case ScheduleFireOutcome.TIMED_OUT:
       return { label: "Timed out", className: "stg:bg-destructive/10 stg:text-destructive" };
     default:
       return { label: "Unknown", className: "stg:bg-muted stg:text-muted-foreground" };
@@ -413,16 +413,16 @@ export function runOutcomeBadge(outcome: ScheduleRunOutcome): {
 }
 
 /**
- * Wall-clock duration of a run, `recorded_at` → `completed_at`, in the
+ * Wall-clock duration of a fire's run, `recorded_at` → `completed_at`, in the
  * compact unit style the schedule views use elsewhere (`42s`, `5m 12s`,
  * `2h 3m`). `null` while the run is in flight or when the fire created
  * no run at all — the caller renders the em-dash.
  */
-function formatRunDuration(run: ScheduleRun): string | null {
-  if (!run.recordedAt || !run.completedAt) return null;
+function formatFireDuration(fire: ScheduleFire): string | null {
+  if (!fire.recordedAt || !fire.completedAt) return null;
   const ms =
-    timestampDate(run.completedAt).getTime() -
-    timestampDate(run.recordedAt).getTime();
+    timestampDate(fire.completedAt).getTime() -
+    timestampDate(fire.recordedAt).getTime();
   if (ms < 0) return null;
 
   const totalSeconds = Math.round(ms / 1000);

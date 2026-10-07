@@ -26,7 +26,7 @@ import "@stigmer/theme/presets/monochrome.css";
  * pending approval gate — the exact chrome issue #187 is about. Built once
  * at module level; only the theme scope around it changes.
  */
-const demoExecution = samples.agentRun({
+const demoExecution = samples.run({
   phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
   messages: [
     create(AgentMessageSchema, {

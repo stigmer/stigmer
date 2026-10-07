@@ -27,8 +27,8 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter } from "@connectrpc/connect";
 
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import { ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
+import { ApprovalMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import {
   ChannelConversationListSchema,
   ChannelConversationSchema,
@@ -126,9 +126,9 @@ import {
 import type { BindingVerdict, CredentialBinding } from "@stigmer/server";
 import type { RunLane, RunLanes } from "@stigmer/server";
 import type {
-  AgentRunResponseDecorator,
+  RunResponseDecorator,
   AgentExecutionTemporalConfig,
-  AgentRunStatusObserver,
+  RunStatusObserver,
   ArtifactStorage,
   ArtifactStorageDriverFactory,
   AuthorizationQueryEngine,
@@ -767,12 +767,12 @@ export function consumerCapacityGateStep(): PipelineStep<DescMessage> {
   };
 }
 
-const statusObserver: AgentRunStatusObserver = (transition) => {
+const statusObserver: RunStatusObserver = (transition) => {
   void transition.run.metadata?.id;
   void transition.newPhase;
 };
 
-const responseDecorator: AgentRunResponseDecorator = (
+const responseDecorator: RunResponseDecorator = (
   execution,
   response,
 ) => {

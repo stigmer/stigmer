@@ -7,13 +7,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+  RunSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunPhase,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { AgentRunListSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunListSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 
 const toastSuccess = vi.fn();
@@ -30,7 +30,7 @@ const fakeSession = create(SessionSchema, {
   spec: { subject: "Fix the flaky test" },
 });
 
-const fakeExecution = create(AgentRunSchema, {
+const fakeExecution = create(RunSchema, {
   metadata: { id: "aex_01" },
   spec: { target: { case: "sessionId", value: "ses_01" }, message: "Why is CI red?" },
   status: {
@@ -46,7 +46,7 @@ let listBySession: (input: unknown) => Promise<unknown>;
 vi.mock("../../hooks", () => ({
   useStigmer: () => ({
     session: { get: () => Promise.resolve(fakeSession) },
-    agentRun: {
+    run: {
       listBySession: (input: unknown) => listBySession(input),
       getArtifactContent: vi.fn(),
     },
@@ -68,7 +68,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   listBySession = vi.fn(() =>
     Promise.resolve(
-      create(AgentRunListSchema, {
+      create(RunListSchema, {
         totalPages: 1,
         entries: [fakeExecution],
       }),

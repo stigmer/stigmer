@@ -3,16 +3,16 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+  RunSchema,
+  RunStatusSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import {
   ApprovalAction,
   FileDecisionAction,
   RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import type { Stigmer } from "@stigmer/sdk";
@@ -34,16 +34,16 @@ function makeExecution(
   id: string,
   phase: RunPhase,
   opts?: { supersedes?: string },
-): AgentRun {
-  const exec = create(AgentRunSchema);
+): Run {
+  const exec = create(RunSchema);
   const metadata = create(ApiResourceMetadataSchema);
   metadata.id = id;
   exec.metadata = metadata;
-  const status = create(AgentRunStatusSchema);
+  const status = create(RunStatusSchema);
   status.phase = phase;
   exec.status = status;
   if (opts?.supersedes) {
-    const spec = create(AgentRunSpecSchema);
+    const spec = create(RunSpecSchema);
     spec.supersedesRunId = opts.supersedes;
     exec.spec = spec;
   }
@@ -105,7 +105,7 @@ function createMockStigmer(methods: MockMethods): Stigmer {
     session: {
       get: methods.sessionGet,
     },
-    agentRun: {
+    run: {
       listBySession: methods.listBySession,
       create: methods.executionCreate,
       subscribe: methods.subscribe,
@@ -134,10 +134,10 @@ function createWrapper(client: Stigmer) {
 describe("useSessionConversation", () => {
   let methods: MockMethods;
   let mockStigmer: Stigmer;
-  let stream: ReturnType<typeof createControllableStream<AgentRun>>;
+  let stream: ReturnType<typeof createControllableStream<Run>>;
 
   beforeEach(() => {
-    stream = createControllableStream<AgentRun>();
+    stream = createControllableStream<Run>();
     methods = {
       sessionGet: vi.fn().mockResolvedValue(makeSession("session-1")),
       listBySession: vi.fn().mockResolvedValue({ entries: [] }),
@@ -278,7 +278,7 @@ describe("useSessionConversation", () => {
     newExec.metadata!.id = "new-exec";
     methods.executionCreate.mockResolvedValue(newExec);
 
-    const newStream = createControllableStream<AgentRun>();
+    const newStream = createControllableStream<Run>();
     methods.subscribe.mockReturnValue(newStream.generator);
 
     const attachments = [
@@ -407,7 +407,7 @@ describe("useSessionConversation", () => {
     newExec.metadata!.id = "new-exec";
     methods.executionCreate.mockResolvedValue(newExec);
 
-    const newStream = createControllableStream<AgentRun>();
+    const newStream = createControllableStream<Run>();
     methods.subscribe.mockReturnValue(newStream.generator);
 
     const { result } = renderHook(
@@ -536,7 +536,7 @@ describe("useSessionConversation", () => {
     const activeExec = makeExecution("exec-1", RunPhase.RUN_IN_PROGRESS);
     methods.listBySession.mockResolvedValue({ entries: [activeExec] });
 
-    const execStream = createControllableStream<AgentRun>();
+    const execStream = createControllableStream<Run>();
     methods.subscribe.mockReturnValue(execStream.generator);
 
     const { result } = renderHook(
@@ -601,7 +601,7 @@ describe("useSessionConversation", () => {
     const active = makeExecution("e1", RunPhase.RUN_IN_PROGRESS);
     methods.listBySession.mockResolvedValue({ entries: [active] });
 
-    const execStream = createControllableStream<AgentRun>();
+    const execStream = createControllableStream<Run>();
     methods.subscribe.mockReturnValue(execStream.generator);
 
     const { result } = renderHook(
@@ -622,7 +622,7 @@ describe("useSessionConversation", () => {
     const active = makeExecution("e1", RunPhase.RUN_IN_PROGRESS);
     methods.listBySession.mockResolvedValue({ entries: [active] });
 
-    const execStream = createControllableStream<AgentRun>();
+    const execStream = createControllableStream<Run>();
     methods.subscribe.mockReturnValue(execStream.generator);
 
     const { result } = renderHook(
@@ -683,7 +683,7 @@ describe("useSessionConversation", () => {
 
     expect(methods.submitApproval).toHaveBeenCalledTimes(1);
     expect(methods.submitApproval.mock.calls[0]![0]).toMatchObject({
-      agentRunId: "e1",
+      runId: "e1",
       toolCallId: "tc-1",
       action: ApprovalAction.APPROVE,
       comment: "looks fine",
@@ -705,7 +705,7 @@ describe("useSessionConversation", () => {
 
     expect(methods.submitFileDecision).toHaveBeenCalledTimes(1);
     expect(methods.submitFileDecision.mock.calls[0]![0]).toMatchObject({
-      agentRunId: "e1",
+      runId: "e1",
       changeSetId: "fcs-1",
       action: FileDecisionAction.APPROVE,
     });
@@ -733,10 +733,10 @@ describe("useSessionConversation", () => {
 describe("useSessionConversation — supersede filtering (edit-and-resubmit)", () => {
   let methods: MockMethods;
   let mockStigmer: Stigmer;
-  let stream: ReturnType<typeof createControllableStream<AgentRun>>;
+  let stream: ReturnType<typeof createControllableStream<Run>>;
 
   beforeEach(() => {
-    stream = createControllableStream<AgentRun>();
+    stream = createControllableStream<Run>();
     methods = {
       sessionGet: vi.fn().mockResolvedValue(makeSession("session-1")),
       listBySession: vi.fn().mockResolvedValue({ entries: [] }),
@@ -793,7 +793,7 @@ describe("useSessionConversation — supersede filtering (edit-and-resubmit)", (
     const stopped = makeExecution("e1", RunPhase.RUN_IN_PROGRESS);
     methods.listBySession.mockResolvedValue({ entries: [stopped] });
 
-    const successorStream = createControllableStream<AgentRun>();
+    const successorStream = createControllableStream<Run>();
     methods.subscribe.mockReturnValue(successorStream.generator);
     methods.executionCreate.mockResolvedValue(
       makeExecution("e2", RunPhase.RUN_PENDING),
@@ -894,7 +894,7 @@ describe("useSessionConversation — supersede filtering (edit-and-resubmit)", (
 describe("useSessionConversation — local runner worker lifecycle", () => {
   let methods: MockMethods;
   let mockStigmer: Stigmer;
-  let stream: ReturnType<typeof createControllableStream<AgentRun>>;
+  let stream: ReturnType<typeof createControllableStream<Run>>;
 
   function createMockAdapter(): RunnerAdapter & {
     onSessionOpened: ReturnType<typeof vi.fn>;
@@ -921,7 +921,7 @@ describe("useSessionConversation — local runner worker lifecycle", () => {
   }
 
   beforeEach(() => {
-    stream = createControllableStream<AgentRun>();
+    stream = createControllableStream<Run>();
     methods = {
       sessionGet: vi.fn().mockResolvedValue(makeSession("session-1")),
       listBySession: vi.fn().mockResolvedValue({ entries: [] }),

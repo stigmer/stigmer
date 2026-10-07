@@ -31,7 +31,7 @@
 // asserted nowhere on the wire), the Cursor harness (it carries none of these
 // middlewares), and which threshold fires when (pinned beside each middleware
 // in the runner's unit suites).
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";

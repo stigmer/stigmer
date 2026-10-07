@@ -2,11 +2,11 @@ import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+  RunSchema,
+  RunStatusSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { RunProgress } from "../RunProgress";
 
@@ -14,9 +14,9 @@ afterEach(() => {
   cleanup();
 });
 
-function makeExecution(phase: RunPhase, error?: string): AgentRun {
-  const exec = create(AgentRunSchema);
-  const status = create(AgentRunStatusSchema);
+function makeExecution(phase: RunPhase, error?: string): Run {
+  const exec = create(RunSchema);
+  const status = create(RunStatusSchema);
   status.phase = phase;
   if (error !== undefined) {
     status.error = error;

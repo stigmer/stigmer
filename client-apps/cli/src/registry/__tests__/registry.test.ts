@@ -61,7 +61,7 @@ describe("registry — alias resolution", () => {
   // that the pre-gate route then shadows — the stigmer/stigmer#469 class
   // (see the alias-shadowing suite below).
   it("does not register the run kind as an addressable type", () => {
-    expect(registry.getByKind(ApiResourceKind.agent_run)).toBeUndefined();
+    expect(registry.getByKind(ApiResourceKind.run)).toBeUndefined();
   });
 });
 

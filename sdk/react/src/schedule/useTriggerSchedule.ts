@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import {
-  ScheduleRunOutcome,
+  ScheduleFireOutcome,
   type ScheduleTriggerResult,
 } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { getUserMessage } from "@stigmer/sdk";
@@ -60,7 +60,7 @@ export function useTriggerSchedule(): UseTriggerScheduleReturn {
       setError(null);
       try {
         const result = await stigmer.schedule.trigger(scheduleId);
-        if (result.outcome === ScheduleRunOutcome.STARTED) {
+        if (result.outcome === ScheduleFireOutcome.STARTED) {
           toast.success("Run started");
         } else {
           // The fire happened but the run was refused — surface the

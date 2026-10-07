@@ -6,27 +6,27 @@ import { create } from "@bufbuild/protobuf";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Code, ConnectError } from "@connectrpc/connect";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+  RunSchema,
+  RunStatusSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
 import {
   ApprovalAction,
   RunPhase,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ApprovalNeededEvent, StreamEvent } from "../events.js";
 import { type HeadlessRenderer, runHeadlessStream, SUBSCRIPTION_DRAIN_GRACE_MS } from "../headless.js";
 
-function snapshot(phase: RunPhase, opts: { waiting?: boolean } = {}): AgentRun {
+function snapshot(phase: RunPhase, opts: { waiting?: boolean } = {}): Run {
   const toolCalls = opts.waiting
     ? [create(ToolCallSchema, { id: "t1", name: "delete", status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL })]
     : [];
-  return create(AgentRunSchema, {
-    status: create(AgentRunStatusSchema, {
+  return create(RunSchema, {
+    status: create(RunStatusSchema, {
       phase,
       messages: [create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "hi", toolCalls })],
       pendingApprovals: opts.waiting ? [create(PendingApprovalSchema, { toolCallId: "t1", toolName: "delete" })] : [],
@@ -34,7 +34,7 @@ function snapshot(phase: RunPhase, opts: { waiting?: boolean } = {}): AgentRun {
   });
 }
 
-function source(snapshots: AgentRun[]): (signal: AbortSignal) => AsyncIterable<AgentRun> {
+function source(snapshots: Run[]): (signal: AbortSignal) => AsyncIterable<Run> {
   return async function* (signal: AbortSignal) {
     for (const s of snapshots) {
       if (signal.aborted) throw new DOMException("Aborted", "AbortError");

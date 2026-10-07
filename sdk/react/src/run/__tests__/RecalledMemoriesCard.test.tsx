@@ -10,11 +10,11 @@ import { create } from "@bufbuild/protobuf";
 import {
   RecalledMemoriesReportSchema,
   type RecalledMemoriesReport,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RecalledMemoryFactSchema,
   type RecalledMemoryFact,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import {
   RecalledMemoriesCard,
   resolveInjectedFacts,

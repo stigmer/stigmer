@@ -109,7 +109,7 @@ vi.mock("../useSessionPageFlow", () => ({
 vi.mock("../../hooks", () => ({
   useStigmer: () => ({
     session: { get: vi.fn() },
-    agentRun: {
+    run: {
       uploadAttachment: vi.fn(),
       getArtifactContent: vi.fn(),
       listBySession: vi.fn(),

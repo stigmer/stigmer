@@ -3,7 +3,7 @@ import { renderHook, act } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
-import { useAgentRunActions } from "../useAgentRunActions";
+import { useRunActions } from "../useRunActions";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -23,7 +23,7 @@ const mockResume = vi.fn();
 
 function makeMockClient(): Stigmer {
   return {
-    agentRun: {
+    run: {
       cancel: mockCancel,
       terminate: mockTerminate,
       pause: mockPause,
@@ -50,13 +50,13 @@ beforeEach(() => {
 // Lifecycle actions (cancel, terminate, pause, resume)
 // ---------------------------------------------------------------------------
 
-describe("useAgentRunActions", () => {
+describe("useRunActions", () => {
   it("cancel returns updated execution on success", async () => {
     const execution = makeExecution("aex-001", 5 /* CANCELLED */);
     mockCancel.mockResolvedValueOnce(execution);
 
     const { result } = renderHook(
-      () => useAgentRunActions("aex-001"),
+      () => useRunActions("aex-001"),
       { wrapper: createWrapper(makeMockClient()) },
     );
 
@@ -83,7 +83,7 @@ describe("useAgentRunActions", () => {
     mockTerminate.mockResolvedValueOnce(execution);
 
     const { result } = renderHook(
-      () => useAgentRunActions("aex-001"),
+      () => useRunActions("aex-001"),
       { wrapper: createWrapper(makeMockClient()) },
     );
 
@@ -100,7 +100,7 @@ describe("useAgentRunActions", () => {
     mockCancel.mockRejectedValueOnce(new Error("Temporal not found"));
 
     const { result } = renderHook(
-      () => useAgentRunActions("aex-001"),
+      () => useRunActions("aex-001"),
       { wrapper: createWrapper(makeMockClient()) },
     );
 
@@ -119,7 +119,7 @@ describe("useAgentRunActions", () => {
     mockPause.mockRejectedValueOnce(new Error("oops"));
 
     const { result } = renderHook(
-      () => useAgentRunActions("aex-001"),
+      () => useRunActions("aex-001"),
       { wrapper: createWrapper(makeMockClient()) },
     );
 
@@ -138,7 +138,7 @@ describe("useAgentRunActions", () => {
       .mockResolvedValueOnce(makeExecution());
 
     const { result } = renderHook(
-      () => useAgentRunActions("aex-001"),
+      () => useRunActions("aex-001"),
       { wrapper: createWrapper(makeMockClient()) },
     );
 
@@ -155,7 +155,7 @@ describe("useAgentRunActions", () => {
 
   it("null executionId returns null without calling SDK", async () => {
     const { result } = renderHook(
-      () => useAgentRunActions(null),
+      () => useRunActions(null),
       { wrapper: createWrapper(makeMockClient()) },
     );
 
@@ -174,7 +174,7 @@ describe("useAgentRunActions", () => {
     mockResume.mockResolvedValueOnce(makeExecution("aex-001", 2));
 
     const { result } = renderHook(
-      () => useAgentRunActions("aex-001"),
+      () => useRunActions("aex-001"),
       { wrapper: createWrapper(makeMockClient()) },
     );
 
@@ -198,7 +198,7 @@ describe("onSuccess callback", () => {
     const onSuccess = vi.fn();
 
     const { result } = renderHook(
-      () => useAgentRunActions("aex-001", { onSuccess }),
+      () => useRunActions("aex-001", { onSuccess }),
       { wrapper: createWrapper(makeMockClient()) },
     );
 
@@ -215,7 +215,7 @@ describe("onSuccess callback", () => {
     const onSuccess = vi.fn();
 
     const { result } = renderHook(
-      () => useAgentRunActions("aex-001", { onSuccess }),
+      () => useRunActions("aex-001", { onSuccess }),
       { wrapper: createWrapper(makeMockClient()) },
     );
 
@@ -237,7 +237,7 @@ describe("stop escalation", () => {
     mockTerminate.mockResolvedValue(makeExecution("aex-001", 6));
 
     const { result } = renderHook(
-      () => useAgentRunActions("aex-001"),
+      () => useRunActions("aex-001"),
       { wrapper: createWrapper(makeMockClient()) },
     );
 
@@ -259,7 +259,7 @@ describe("stop escalation", () => {
     mockTerminate.mockResolvedValue(makeExecution());
 
     const { result, rerender } = renderHook(
-      ({ id }: { id: string | null }) => useAgentRunActions(id),
+      ({ id }: { id: string | null }) => useRunActions(id),
       {
         wrapper: createWrapper(makeMockClient()),
         initialProps: { id: "aex-001" as string | null },
@@ -283,7 +283,7 @@ describe("stop escalation", () => {
 
   it("stop is a no-op for a null execution id", async () => {
     const { result } = renderHook(
-      () => useAgentRunActions(null),
+      () => useRunActions(null),
       { wrapper: createWrapper(makeMockClient()) },
     );
 

@@ -37,7 +37,7 @@ vi.mock("@/domain/session/session-navigation", () => ({
 }));
 
 vi.mock("@stigmer/react", () => ({
-  useResolveAgentRunSession: (id: string | null) => {
+  useResolveRunSession: (id: string | null) => {
     shell.resolving.push(id);
     return {
       sessionId: id ? (shell.sessionFor.get(id) ?? null) : null,

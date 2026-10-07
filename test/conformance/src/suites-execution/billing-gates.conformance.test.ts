@@ -19,8 +19,8 @@
 //   recover unfunded  → FAILED_PRECONDITION "Insufficient credits to recover
 //                       this execution: Insufficient credits to start execution"
 import { Code } from "@connectrpc/connect";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
@@ -195,7 +195,7 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
     const held = (await balance(org)).reservedMicros;
     await drainPast(org, held + 1n);
     const refused = await expectGrpcCode(
-      () => clients.agentExecutionCommand.submitApproval({ agentRunId: executionId, toolCallId, action: ApprovalAction.APPROVE }),
+      () => clients.agentExecutionCommand.submitApproval({ runId: executionId, toolCallId, action: ApprovalAction.APPROVE }),
       Code.FailedPrecondition,
       "approval while the billing signal is STOP",
     );
@@ -205,7 +205,7 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
     await submitApprovalPerContract({
       expectedRemaining: 0,
       label: "the approve clears the gate once funded",
-      submit: () => clients.agentExecutionCommand.submitApproval({ agentRunId: executionId, toolCallId, action: ApprovalAction.APPROVE }),
+      submit: () => clients.agentExecutionCommand.submitApproval({ runId: executionId, toolCallId, action: ApprovalAction.APPROVE }),
     });
     const final = await awaitTerminal(clients, executionId);
     expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);

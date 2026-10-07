@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/writeback_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/run/v1/writeback_pb";
 
 /** Return value of {@link useWorkspaceWriteBacks}. */
 export interface UseWorkspaceWriteBacksReturn {
@@ -43,7 +43,7 @@ export interface UseWorkspaceWriteBacksReturn {
  * @see useRunArtifacts — similar derivation hook for artifacts
  */
 export function useWorkspaceWriteBacks(
-  execution: AgentRun | null,
+  execution: Run | null,
 ): UseWorkspaceWriteBacksReturn {
   return useMemo(() => {
     const writeBacks = execution?.status?.workspaceWriteBacks ?? [];

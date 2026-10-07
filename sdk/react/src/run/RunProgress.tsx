@@ -1,7 +1,7 @@
 "use client";
 
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import { RunPhaseBadge } from "./RunPhaseBadge.js";
 import { TodoList } from "./TodoList.js";
@@ -9,7 +9,7 @@ import { TodoList } from "./TodoList.js";
 /** Props for {@link RunProgress}. */
 export interface RunProgressProps {
   /** The run to display progress for. Renders nothing when null. */
-  readonly run: AgentRun | null;
+  readonly run: Run | null;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }

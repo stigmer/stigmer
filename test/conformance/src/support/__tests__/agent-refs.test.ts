@@ -15,7 +15,7 @@
 // Pure: hand-built resources, no target.
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { describe, expect, it } from "vitest";
@@ -120,11 +120,11 @@ describe("makeAgentExecution's target", () => {
 
 describe("sessionIdOf", () => {
   it("reads the session a stored turn belongs to through the session_id arm alone", () => {
-    expect(sessionIdOf(create(AgentRunSchema, { spec: { target: { case: "sessionId", value: "ses_unit" } } }))).toBe(
+    expect(sessionIdOf(create(RunSchema, { spec: { target: { case: "sessionId", value: "ses_unit" } } }))).toBe(
       "ses_unit",
     );
-    expect(sessionIdOf(create(AgentRunSchema, { spec: { target: { case: "sessionSpec", value: {} } } }))).toBe("");
-    expect(sessionIdOf(create(AgentRunSchema, {}))).toBe("");
+    expect(sessionIdOf(create(RunSchema, { spec: { target: { case: "sessionSpec", value: {} } } }))).toBe("");
+    expect(sessionIdOf(create(RunSchema, {}))).toBe("");
     expect(sessionIdOf(undefined)).toBe("");
   });
 });

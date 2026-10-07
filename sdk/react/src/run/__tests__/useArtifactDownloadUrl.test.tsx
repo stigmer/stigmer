@@ -12,7 +12,7 @@ function wrapperFor(stigmer: Stigmer) {
 }
 
 function makeStigmer(getArtifactDownloadUrl = vi.fn()) {
-  return { agentRun: { getArtifactDownloadUrl } } as unknown as Stigmer;
+  return { run: { getArtifactDownloadUrl } } as unknown as Stigmer;
 }
 
 describe("useArtifactDownloadUrl", () => {

@@ -29,15 +29,15 @@ import type {
 } from "../resource-detail/types.js";
 import type { TabItem } from "../tabs/Tabs.js";
 import { useExportResource } from "../library/useExportResource.js";
-import { ScheduleRunOutcome } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+import { ScheduleFireOutcome } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import type { ScheduleSpec } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
 import {
   RunConfigSchema,
   type AgentInvocation,
   type RunConfig,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import {
   cadenceToCron,
@@ -67,12 +67,12 @@ import {
 } from "../models/thinking-mode.js";
 import { deriveScheduleState, formatNextFire } from "./scheduleState.js";
 import {
-  ScheduleRunsCompactList,
-  ScheduleRunsTable,
-} from "./ScheduleRunsTable.js";
+  ScheduleFiresCompactList,
+  ScheduleFiresTable,
+} from "./ScheduleFiresTable.js";
 import { TimeZoneField, browserTimeZone } from "./TimeZoneField.js";
 import { useSchedule } from "./useSchedule.js";
-import { useScheduleRuns } from "./useScheduleRuns.js";
+import { useScheduleFires } from "./useScheduleFires.js";
 import { useResumeSchedule } from "./useResumeSchedule.js";
 import { useSetScheduleEnabled } from "./useSetScheduleEnabled.js";
 import { useTriggerSchedule } from "./useTriggerSchedule.js";
@@ -132,19 +132,19 @@ export interface ScheduleDetailViewProps {
 }
 
 const OVERVIEW_TAB_ID = "overview";
-const RUNS_TAB_ID = "runs";
+const HISTORY_TAB_ID = "history";
 
-// The Overview strip shows the newest handful of fires; the Runs tab
+// The Overview strip shows the newest handful of fires; the History tab
 // owns the full paginated history.
-const RECENT_RUNS_OPTIONS = { pageSize: 5 } as const;
+const RECENT_FIRES_OPTIONS = { pageSize: 5 } as const;
 
 /** invocation.proto pins AgentInvocation.message to 8192 characters. */
 const MESSAGE_MAX_LEN = 8192;
 
 /**
  * Self-contained detail view for a Schedule (stigmer/stigmer#352),
- * split into an Overview tab (definition + status + recent runs) and a
- * Runs tab (the full paginated fire ledger).
+ * split into an Overview tab (definition + status + recent fires) and a
+ * History tab (the full paginated fire ledger).
  *
  * The view's one non-negotiable is rendering the two stop-levers
  * distinctly, each with its inline remedy:
@@ -183,16 +183,16 @@ export function ScheduleDetailView({
   const slugForOrg = useOrgSlugForId();
   const { schedule, isLoading, error, refetch } = useSchedule(org, slug);
 
-  // The recent-runs fetch stays mounted regardless of the active tab:
-  // it feeds the Runs tab badge (total count), the Overview strip, and
-  // post-trigger freshness. The Runs tab's full table owns its own
-  // paginated fetch inside ScheduleRunsTable.
+  // The recent-fires fetch stays mounted regardless of the active tab:
+  // it feeds the History tab badge (total count), the Overview strip, and
+  // post-trigger freshness. The History tab's full table owns its own
+  // paginated fetch inside ScheduleFiresTable.
   const {
-    runs: recentRuns,
-    totalCount: totalRunCount,
-    isLoading: recentRunsLoading,
-    refetch: refetchRecentRuns,
-  } = useScheduleRuns(schedule?.metadata?.id ?? null, RECENT_RUNS_OPTIONS);
+    fires: recentFires,
+    totalCount: totalFireCount,
+    isLoading: recentFiresLoading,
+    refetch: refetchRecentFires,
+  } = useScheduleFires(schedule?.metadata?.id ?? null, RECENT_FIRES_OPTIONS);
 
   const { resumeSchedule, isResuming } = useResumeSchedule();
   const { triggerSchedule, isTriggering } = useTriggerSchedule();
@@ -208,10 +208,10 @@ export function ScheduleDetailView({
   const { copyId, copyQualifiedSlug } = useCopyResource();
   const [editOpen, setEditOpen] = useState(false);
 
-  // Remount key for the Runs tab's table: a manual trigger bumps it so
+  // Remount key for the History tab's table: a manual trigger bumps it so
   // the table refetches and returns to page 1, where the new fire
   // appears (the key-remount reset idiom).
-  const [runsVersion, setRunsVersion] = useState(0);
+  const [firesVersion, setFiresVersion] = useState(0);
 
   // Last failed inline save, attributed to the field that was edited so
   // only that editor shows the message. The backend's message is the
@@ -247,12 +247,12 @@ export function ScheduleDetailView({
     () => [
       { id: OVERVIEW_TAB_ID, label: "Overview" },
       {
-        id: RUNS_TAB_ID,
-        label: "Runs",
-        ...(totalRunCount > 0 ? { badge: totalRunCount } : {}),
+        id: HISTORY_TAB_ID,
+        label: "History",
+        ...(totalFireCount > 0 ? { badge: totalFireCount } : {}),
       },
     ],
-    [totalRunCount],
+    [totalFireCount],
   );
 
   const {
@@ -310,10 +310,10 @@ export function ScheduleDetailView({
   const fireNow = async () => {
     const result = await triggerSchedule(scheduleId);
     refetch();
-    refetchRecentRuns();
-    setRunsVersion((v) => v + 1);
+    refetchRecentFires();
+    setFiresVersion((v) => v + 1);
     if (
-      result.outcome === ScheduleRunOutcome.STARTED &&
+      result.outcome === ScheduleFireOutcome.STARTED &&
       result.runId &&
       onNavigateToRun
     ) {
@@ -688,25 +688,25 @@ export function ScheduleDetailView({
       </Section>
 
       <Section
-        title="Recent runs"
+        title="Recent fires"
         headerActions={
-          totalRunCount > recentRuns.length ? (
+          totalFireCount > recentFires.length ? (
             <button
               type="button"
-              onClick={() => effectiveOnTabChange(RUNS_TAB_ID)}
+              onClick={() => effectiveOnTabChange(HISTORY_TAB_ID)}
               className={cn(
                 "stg:text-xs stg:font-medium stg:text-primary stg:underline-offset-2 stg:hover:underline",
                 "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded-sm",
               )}
             >
-              View all {totalRunCount} runs
+              View all {totalFireCount} fires
             </button>
           ) : undefined
         }
       >
-        <ScheduleRunsCompactList
-          runs={recentRuns}
-          isLoading={recentRunsLoading}
+        <ScheduleFiresCompactList
+          fires={recentFires}
+          isLoading={recentFiresLoading}
           now={renderNow}
           onNavigateToRun={onNavigateToRun}
         />
@@ -717,10 +717,10 @@ export function ScheduleDetailView({
   let tabContent: React.ReactNode;
   if (activeAdditionalTab) {
     tabContent = activeAdditionalTab.content;
-  } else if (effectiveActiveTab === RUNS_TAB_ID) {
+  } else if (effectiveActiveTab === HISTORY_TAB_ID) {
     tabContent = (
-      <ScheduleRunsTable
-        key={runsVersion}
+      <ScheduleFiresTable
+        key={firesVersion}
         scheduleId={scheduleId}
         now={now}
         onNavigateToRun={onNavigateToRun}

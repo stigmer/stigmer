@@ -2,11 +2,11 @@ import type {
   CapturedFileChange,
   FileChangeProgressEntry,
   FileChangeSet,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   FileChangeKind,
   FileDecisionAction,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { deriveEffectiveVerdicts, fileReviewability } from "@stigmer/react";
 
 /**

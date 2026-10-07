@@ -2,8 +2,8 @@
 
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
-import { ApprovalAction, ApprovalPolicySource, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
+import { ApprovalAction, ApprovalPolicySource, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import {
   describeApprovalPolicySource,

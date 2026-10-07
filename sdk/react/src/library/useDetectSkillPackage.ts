@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import { useArtifactContent } from "../run/useArtifactContent.js";
 import {
   detectSkillPackage,

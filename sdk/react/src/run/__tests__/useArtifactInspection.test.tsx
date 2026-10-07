@@ -8,8 +8,8 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/sdk";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
-import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { useArtifactInspection } from "../useArtifactInspection";
 import { ACME_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
@@ -69,7 +69,7 @@ const AGENT_YAML = [
 describe("useArtifactInspection — content + copy", () => {
   it("fetches text content and copies it to the clipboard on demand", async () => {
     const getArtifactContent = vi.fn().mockResolvedValue(contentResult("hello world"));
-    const stigmer = { agentRun: { getArtifactContent } } as unknown as Stigmer;
+    const stigmer = { run: { getArtifactContent } } as unknown as Stigmer;
 
     const { result } = renderHook(
       () => useArtifactInspection(fileArtifact("notes.txt"), "aex_1", "acme"),
@@ -90,7 +90,7 @@ describe("useArtifactInspection — content + copy", () => {
 
   it("does not fetch content for a directory artifact", () => {
     const getArtifactContent = vi.fn().mockReturnValue(new Promise(() => {}));
-    const stigmer = { agentRun: { getArtifactContent } } as unknown as Stigmer;
+    const stigmer = { run: { getArtifactContent } } as unknown as Stigmer;
 
     const { result } = renderHook(
       () => useArtifactInspection(dirArtifact("skill-pack"), "aex_1", "acme"),
@@ -111,7 +111,7 @@ describe("useArtifactInspection — content + copy", () => {
 describe("useArtifactInspection — detection + apply", () => {
   it("labels a detected Agent YAML and offers an Apply CTA", async () => {
     const getArtifactContent = vi.fn().mockResolvedValue(contentResult(AGENT_YAML));
-    const stigmer = { agentRun: { getArtifactContent } } as unknown as Stigmer;
+    const stigmer = { run: { getArtifactContent } } as unknown as Stigmer;
 
     const { result } = renderHook(
       () => useArtifactInspection(fileArtifact("agent.yaml"), "aex_1", "acme"),
@@ -137,7 +137,7 @@ describe("useArtifactInspection — detection + apply", () => {
       id: "agt_01",
     });
     const stigmer = {
-      agentRun: { getArtifactContent },
+      run: { getArtifactContent },
       manifest: { apply },
     } as unknown as Stigmer;
     const onApplied = vi.fn();
@@ -180,7 +180,7 @@ describe("useArtifactInspection — the organization by slug and by id", () => {
 
     const { result } = renderHook(
       () => useArtifactInspection(fileArtifact("agent.yaml"), "aex_1", ACME_ID),
-      { wrapper: orgWrapper({ agentRun: { getArtifactContent }, manifest: { apply } }) },
+      { wrapper: orgWrapper({ run: { getArtifactContent }, manifest: { apply } }) },
     );
 
     await waitFor(() => expect(result.current.ctaLabel).toBe("Apply to acme"));
@@ -197,7 +197,7 @@ describe("useArtifactInspection — the organization by slug and by id", () => {
 
     const { result } = renderHook(
       () => useArtifactInspection(dirArtifact("skill-pack"), "aex_1", ACME_ID),
-      { wrapper: orgWrapper({ agentRun: { getArtifactContent } }) },
+      { wrapper: orgWrapper({ run: { getArtifactContent } }) },
     );
 
     await waitFor(() => expect(result.current.ctaLabel).toBe("Push Skill to acme"));
@@ -214,7 +214,7 @@ describe("useArtifactInspection — skill push", () => {
       .fn()
       .mockResolvedValue({ metadata: { name: "triage", org: "acme", slug: "triage" } });
     const stigmer = {
-      agentRun: { getArtifactContent },
+      run: { getArtifactContent },
       skill: { pushFromRunArtifact },
     } as unknown as Stigmer;
     const onApplied = vi.fn();

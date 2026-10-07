@@ -12,7 +12,7 @@ import { getUserMessage } from "@stigmer/sdk";
 import {
   GetOrgUsageReportOutputSchema,
   type GetOrgUsageReportOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 
 const state = vi.hoisted(() => ({
   report: null as GetOrgUsageReportOutput | null,

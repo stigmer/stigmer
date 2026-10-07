@@ -7,7 +7,7 @@ import { getUserMessage, type AttachmentInput, type ResourceRef } from "@stigmer
 import {
   GetArtifactContentRequestSchema,
   UploadAttachmentRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister.js";
 import type { WorkspaceFileReader } from "../workspace/WorkspaceFileReader.js";
@@ -65,7 +65,7 @@ import {
   type SessionArtifactEntry,
 } from "./useSessionArtifacts.js";
 import type { SetupTabProps } from "./facets/SetupTab.js";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { RuntimeEnvProvider } from "./runtime-env.js";
 import type { SessionAudience, SessionPanelMode } from "./audience.js";
 import type { SessionRunConfig } from "./run-config.js";
@@ -117,7 +117,7 @@ async function fetchPlanText(
   stigmer: ReturnType<typeof useStigmer>,
   plan: SessionPlan,
 ): Promise<string> {
-  const result = await stigmer.agentRun.getArtifactContent(
+  const result = await stigmer.run.getArtifactContent(
     create(GetArtifactContentRequestSchema, {
       runId: plan.runId,
       storageKey: plan.artifact.storageKey,
@@ -582,7 +582,7 @@ export function SessionViewer({
       try {
         const approvedText =
           planDraft.readDraft() ?? (await fetchPlanText(stigmer, sessionPlan));
-        const response = await stigmer.agentRun.uploadAttachment(
+        const response = await stigmer.run.uploadAttachment(
           create(UploadAttachmentRequestSchema, {
             filename: planFileName,
             content: new TextEncoder().encode(approvedText),

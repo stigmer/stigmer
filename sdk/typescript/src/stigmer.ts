@@ -69,7 +69,7 @@ export class Stigmer extends GeneratedClient {
    * Default execution target for sessions.
    *
    * When set, `session.create()`, `session.apply()` and an
-   * `agentRun.create()` that bootstraps its session apply this as
+   * `run.create()` that bootstraps its session apply this as
    * the default when the per-call input does not specify an
    * explicit `executionTarget`.
    *
@@ -134,7 +134,7 @@ export class Stigmer extends GeneratedClient {
 
   /**
    * Wrap `session.create/apply` — and the one-call bootstrap path on
-   * `agentRun.create` (an embedded `sessionSpec` defines the
+   * `run.create` (an embedded `sessionSpec` defines the
    * session to auto-create) — so that the client-level
    * `defaultExecutionTarget` is applied when the per-call input
    * does not specify one.

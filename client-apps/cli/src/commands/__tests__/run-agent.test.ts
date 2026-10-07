@@ -36,7 +36,7 @@ vi.mock("../../config/index.js", async (importOriginal) => {
 vi.mock("../../backend.js", () => ({
   connectBackend: (): BackendClient =>
     ({
-      stigmer: { agentRun: {} },
+      stigmer: { run: {} },
       config: CONFIG,
       isResourceAvailable: () => Promise.resolve(false),
     }) as unknown as BackendClient,

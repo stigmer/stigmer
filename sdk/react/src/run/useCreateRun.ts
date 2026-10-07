@@ -81,8 +81,8 @@ export interface BootstrapSessionSpec {
   readonly executionTarget?: ExecutionTargetOption;
 }
 
-/** Fields shared by both variants of {@link CreateAgentRunInput}. */
-export interface SharedAgentRunFields {
+/** Fields shared by both variants of {@link CreateRunInput}. */
+export interface SharedRunFields {
   /** Id of the organization that owns the session (a slug is also accepted). */
   readonly org: string;
   /** User message that initiates the run. */
@@ -118,7 +118,7 @@ export interface SharedAgentRunFields {
    * Pre-uploaded file attachments injected into the agent sandbox.
    *
    * Each entry must include a `storageKey` obtained from
-   * `agentRun.uploadAttachment()`. The agent can read attached
+   * `run.uploadAttachment()`. The agent can read attached
    * files from their mount paths (default `/inputs/{filename}`).
    */
   readonly attachments?: AttachmentInput[];
@@ -220,18 +220,18 @@ export interface SharedAgentRunFields {
 }
 
 /**
- * Input for {@link UseCreateAgentRunReturn.create}. Exactly one
+ * Input for {@link UseCreateRunReturn.create}. Exactly one
  * session strategy must be provided:
  *
  * - **`sessionId`** — Create the run within an existing session.
  * - **`sessionSpec`** — One-call bootstrap: the server creates a session
  *   from the embedded spec and dispatches this run in it. The new
- *   session's ID is returned on {@link CreateAgentRunResult.sessionId}.
+ *   session's ID is returned on {@link CreateRunResult.sessionId}.
  *
  * The two map onto the execution's `target` oneof, which carries one;
  * providing both is a type error.
  */
-export type CreateAgentRunInput = SharedAgentRunFields &
+export type CreateRunInput = SharedRunFields &
   (
     | {
         /** Session to create the run within. */
@@ -247,8 +247,8 @@ export type CreateAgentRunInput = SharedAgentRunFields &
       }
   );
 
-/** Resolved output of {@link UseCreateAgentRunReturn.create}. */
-export interface CreateAgentRunResult {
+/** Resolved output of {@link UseCreateRunReturn.create}. */
+export interface CreateRunResult {
   /** Server-assigned identifier for the newly created run. */
   readonly runId: string;
   /**
@@ -259,12 +259,12 @@ export interface CreateAgentRunResult {
   readonly sessionId: string;
 }
 
-/** Return value of {@link useCreateAgentRun}. */
-export interface UseCreateAgentRunReturn {
+/** Return value of {@link useCreateRun}. */
+export interface UseCreateRunReturn {
   /** Create a run within a session. Resolves with the new run ID. */
   readonly create: (
-    input: CreateAgentRunInput,
-  ) => Promise<CreateAgentRunResult>;
+    input: CreateRunInput,
+  ) => Promise<CreateRunResult>;
   /** `true` while the create RPC is in flight. */
   readonly isCreating: boolean;
   /** Error from the last failed create attempt, or `null` when healthy. */
@@ -274,7 +274,7 @@ export interface UseCreateAgentRunReturn {
 }
 
 /**
- * Behavior hook that wraps `agentRun.create()` with loading/error
+ * Behavior hook that wraps `run.create()` with loading/error
  * state.
  *
  * Maps 1:1 to the AgentRun aggregate — a single run of an agent.
@@ -296,14 +296,14 @@ export interface UseCreateAgentRunReturn {
  * @example
  * ```tsx
  * // Environment Flow: secrets come from the person's personal environment
- * const { create } = useCreateAgentRun();
+ * const { create } = useCreateRun();
  * await create({ org: "acme", sessionId: "ses_abc", message: "Review the PR" });
  * ```
  *
  * @example
  * ```tsx
  * // Run Flow: inject per-call secrets
- * const { create } = useCreateAgentRun();
+ * const { create } = useCreateRun();
  * await create({
  *   org: "acme",
  *   sessionId: "ses_abc",
@@ -317,7 +317,7 @@ export interface UseCreateAgentRunReturn {
  * @example
  * ```tsx
  * // One-call bootstrap: session with a workspace + first message
- * const { create } = useCreateAgentRun();
+ * const { create } = useCreateRun();
  * const { sessionId } = await create({
  *   org: "acme",
  *   message: "Customize the landing page",
@@ -329,7 +329,7 @@ export interface UseCreateAgentRunReturn {
  * });
  * ```
  */
-export function useCreateAgentRun(): UseCreateAgentRunReturn {
+export function useCreateRun(): UseCreateRunReturn {
   const stigmer = useStigmer();
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -338,8 +338,8 @@ export function useCreateAgentRun(): UseCreateAgentRunReturn {
 
   const create = useCallback(
     async (
-      input: CreateAgentRunInput,
-    ): Promise<CreateAgentRunResult> => {
+      input: CreateRunInput,
+    ): Promise<CreateRunResult> => {
       setIsCreating(true);
       setError(null);
 
@@ -380,7 +380,7 @@ export function useCreateAgentRun(): UseCreateAgentRunReturn {
             }
           : undefined;
 
-        const execution = await stigmer.agentRun.create({
+        const execution = await stigmer.run.create({
           name: `run-${Date.now()}`,
           org: input.org,
           sessionId: input.sessionId,

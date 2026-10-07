@@ -328,7 +328,7 @@ function fakeArtifactClient(contentByKey: ContentByKey) {
   return {
     requests,
     client: {
-      agentRun: {
+      run: {
         listBySession: () => Promise.reject(new Error("not under test")),
         getArtifactContent: (input: GetArtifactContentRequest) => {
           requests.push(input);
@@ -443,7 +443,7 @@ describe("resolveOffloadedOutputs", () => {
     let inFlight = 0;
     let maxInFlight = 0;
     const client = {
-      agentRun: {
+      run: {
         listBySession: () => Promise.reject(new Error("not under test")),
         getArtifactContent: (input: GetArtifactContentRequest) => {
           inFlight++;
@@ -499,8 +499,8 @@ describe("fetchSessionTranscript", () => {
     });
     return {
       session: { get: (id: string) => Promise.resolve(session()) },
-      agentRun: {
-        ...artifacts.client.agentRun,
+      run: {
+        ...artifacts.client.run,
         listBySession: () =>
           Promise.resolve(
             create(RunListSchema, {

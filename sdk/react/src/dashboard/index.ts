@@ -3,11 +3,11 @@ export type { DashboardSummary, DashboardFailedRun } from "./types.js";
 
 // ─── Data Hooks ─────────────────────────────────────────────────────────────
 export {
-  useAgentRunSummary,
-  AgentRunSummaryTimeWindow,
-  type UseAgentRunSummaryOptions,
-  type UseAgentRunSummaryReturn,
-} from "./useAgentRunSummary.js";
+  useRunSummary,
+  RunSummaryTimeWindow,
+  type UseRunSummaryOptions,
+  type UseRunSummaryReturn,
+} from "./useRunSummary.js";
 
 export {
   useDashboardSummary,

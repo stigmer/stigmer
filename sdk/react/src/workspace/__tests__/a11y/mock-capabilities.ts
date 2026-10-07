@@ -12,11 +12,11 @@ import {
   FileChangeSchema,
   FileContentSchema,
   type FileChange,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   FileChangeCaptureLevel,
   FileChangeType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { WorkspaceEntry } from "../../useWorkspaceEntries.js";
 import type {
   WorkspaceFileEntry,

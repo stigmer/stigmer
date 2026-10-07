@@ -21,8 +21,8 @@
 // memory_retrieval_offline_test.go. The opted-out-member subtest is cloud IAM
 // vocabulary and is covered there.
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
@@ -76,7 +76,7 @@ afterAll(async () => {
 const QUERY = "What do you remember about me?";
 
 // One completed execution in `org` asking the retriever's query, one scripted turn.
-async function runExecution(org: string): Promise<AgentRun> {
+async function runExecution(org: string): Promise<Run> {
   const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent") }));
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
 

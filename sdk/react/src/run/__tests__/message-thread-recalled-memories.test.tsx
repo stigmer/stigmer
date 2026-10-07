@@ -17,21 +17,21 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
+  RunSchema,
+  RunStatusSchema,
   RecalledMemoriesReportSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
-  AgentRunSpecSchema,
+  RunSpecSchema,
   RecalledMemoriesSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   RunPhase,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { MessageThread } from "../MessageThread";
 
@@ -65,15 +65,15 @@ function makeExecution(opts: {
   specMessage?: string;
   facts?: ReadonlyArray<{ id: string; content: string }>;
   report?: { selectionActive: boolean; injectedMemoryIds?: string[] };
-}): AgentRun {
-  const exec = create(AgentRunSchema);
+}): Run {
+  const exec = create(RunSchema);
   exec.metadata = create(ApiResourceMetadataSchema, { id: opts.id });
 
-  const spec = create(AgentRunSpecSchema);
+  const spec = create(RunSpecSchema);
   spec.message = opts.specMessage ?? "Hello";
   exec.spec = spec;
 
-  const status = create(AgentRunStatusSchema);
+  const status = create(RunStatusSchema);
   if (opts.facts) {
     status.recalledMemories = create(RecalledMemoriesSchema, {
       enabled: true,

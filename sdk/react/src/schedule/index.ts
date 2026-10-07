@@ -7,11 +7,11 @@ export type { ScheduleListClient, SchedulePage } from "./scheduleListFn.js";
 export { useSchedule } from "./useSchedule.js";
 export type { UseScheduleReturn } from "./useSchedule.js";
 
-export { useScheduleRuns } from "./useScheduleRuns.js";
+export { useScheduleFires } from "./useScheduleFires.js";
 export type {
-  UseScheduleRunsOptions,
-  UseScheduleRunsReturn,
-} from "./useScheduleRuns.js";
+  UseScheduleFiresOptions,
+  UseScheduleFiresReturn,
+} from "./useScheduleFires.js";
 
 export { useScheduleList } from "./useScheduleList.js";
 export type {
@@ -46,8 +46,8 @@ export type { ScheduleRowActionsProps } from "./ScheduleRowActions.js";
 export { ScheduleDetailView, ScheduleIcon } from "./ScheduleDetailView.js";
 export type { ScheduleDetailViewProps } from "./ScheduleDetailView.js";
 
-export { ScheduleRunsTable } from "./ScheduleRunsTable.js";
-export type { ScheduleRunsTableProps } from "./ScheduleRunsTable.js";
+export { ScheduleFiresTable } from "./ScheduleFiresTable.js";
+export type { ScheduleFiresTableProps } from "./ScheduleFiresTable.js";
 
 export {
   cadenceToCron,

@@ -17,7 +17,7 @@
 // target whose conformance user passes it. The capture-gate refusal is
 // pinned in the CRUD-level memory suite.
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";

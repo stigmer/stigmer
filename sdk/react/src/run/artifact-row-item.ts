@@ -1,8 +1,8 @@
 // View-model for artifact list rows, with the adapter from the session's
 // run-artifact model. Domain: run.
 
-import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
-import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 /**
  * What an artifact row displays, mapped from the session's `RunArtifact`

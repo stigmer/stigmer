@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { UploadAttachmentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { UploadAttachmentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { AttachmentInput } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
@@ -160,7 +160,7 @@ function generateId(): string {
  * Behavior hook that manages file attachments for agent runs.
  *
  * Handles the full lifecycle: file validation, upload via
- * `stigmer.agentRun.uploadAttachment()`, progress tracking,
+ * `stigmer.run.uploadAttachment()`, progress tracking,
  * error handling, and retry. Produces `AttachmentInput[]` ready
  * for run creation.
  *
@@ -230,7 +230,7 @@ export function useAttachments(
 
         if (controller.signal.aborted) return;
 
-        const response = await stigmer.agentRun.uploadAttachment(
+        const response = await stigmer.run.uploadAttachment(
           create(UploadAttachmentRequestSchema, {
             filename: file.name,
             content: bytes,

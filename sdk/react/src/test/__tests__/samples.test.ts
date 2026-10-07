@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { RunPhase, MessageType, ToolCallStatus, RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase, MessageType, ToolCallStatus, RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { formatDuration } from "../../run/ToolCallDetail";
 import { samples, SAMPLE_INSTANT, sampleInstant, sampleDate } from "../samples";
@@ -38,9 +38,9 @@ describe("samples", () => {
     });
   });
 
-  describe("agentRun", () => {
+  describe("run", () => {
     it("creates a completed execution with default messages", () => {
-      const ex = samples.agentRun();
+      const ex = samples.run();
       expect(ex.kind).toBe("AgentRun");
       expect(ex.status?.phase).toBe(RunPhase.RUN_COMPLETED);
       expect(ex.status?.messages.length).toBeGreaterThanOrEqual(2);
@@ -51,7 +51,7 @@ describe("samples", () => {
         samples.humanMessage("test input"),
         samples.aiMessage("test response"),
       ];
-      const ex = samples.agentRun({
+      const ex = samples.run({
         phase: RunPhase.RUN_IN_PROGRESS,
         messages: msgs,
       });
@@ -137,8 +137,8 @@ describe("samples", () => {
       expect(list.entries).toHaveLength(2);
     });
 
-    it("agentRunList wraps executions", () => {
-      const list = samples.agentRunList();
+    it("runList wraps runs", () => {
+      const list = samples.runList();
       expect(list.entries).toHaveLength(1);
       expect(list.totalPages).toBe(1);
     });
@@ -184,7 +184,7 @@ describe("samples determinism", () => {
   const invoke: Record<keyof typeof samples, () => unknown> = {
     session: () => samples.session(),
     agent: () => samples.agent(),
-    agentRun: () => samples.agentRun(),
+    run: () => samples.run(),
     skill: () => samples.skill(),
     mcpServer: () => samples.mcpServer(),
     environment: () => samples.environment(),
@@ -196,7 +196,7 @@ describe("samples determinism", () => {
     toolCall: () => samples.toolCall("lookup_order", '{"orderId":"123"}'),
     artifact: () => samples.artifact("report.md"),
     sessionList: () => samples.sessionList(),
-    agentRunList: () => samples.agentRunList(),
+    runList: () => samples.runList(),
     searchResponse: () => samples.searchResponse(),
     apiKeyList: () => samples.apiKeyList(),
     searchResult: () => samples.searchResult(),

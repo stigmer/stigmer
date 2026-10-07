@@ -233,7 +233,7 @@ const ROWS: readonly Row[] = [
   {
     title: "[rpc:AgentRunCommandController.create] AgentRun",
     key: "AgentRunCommandController.create",
-    kind: ApiResourceKind.agent_run,
+    kind: ApiResourceKind.run,
     edition: "engine",
     async send({ org }, chosenId) {
       await fundedWhereMetered(org);

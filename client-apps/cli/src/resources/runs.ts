@@ -7,13 +7,13 @@
 // `list runs`, `delete run` and `download`.
 
 import { create } from "@bufbuild/protobuf";
-import { AgentRunSchema, type AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
-  AgentRunListSchema,
-  CancelAgentRunInputSchema,
-  ListAgentRunsRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+  RunListSchema,
+  CancelRunInputSchema,
+  ListRunsRequestSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import type { OutputFormat } from "../output/index.js";
 import { readCursorPages } from "./cursor-pages.js";
@@ -47,7 +47,7 @@ export function isTerminalAgentPhase(phase: RunPhase): boolean {
 }
 
 export interface CancelRunResult {
-  readonly run: AgentRun;
+  readonly run: Run;
   /** True when the run was already terminal, so no cancel was issued. */
   readonly wasAlreadyTerminal: boolean;
 }
@@ -60,12 +60,12 @@ export interface CancelRunResult {
  * authoritative state rather than from the cancel RPC's response alone.
  */
 export async function cancelAgentRun(client: Stigmer, id: string): Promise<CancelRunResult> {
-  const current = await client.agentRun.get(id);
+  const current = await client.run.get(id);
   const phase = current.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   if (TERMINAL_AGENT_PHASES.has(phase)) {
     return { run: current, wasAlreadyTerminal: true };
   }
-  const cancelled = await client.agentRun.cancel(create(CancelAgentRunInputSchema, { id }));
+  const cancelled = await client.run.cancel(create(CancelRunInputSchema, { id }));
   return { run: cancelled, wasAlreadyTerminal: false };
 }
 
@@ -81,7 +81,7 @@ export function isRunAlias(type: string): boolean {
 
 /** Fetch a single run by ID, with its schema. */
 export async function getRun(client: Stigmer, id: string): Promise<ResourceResult> {
-  return { schema: AgentRunSchema, message: await client.agentRun.get(id) };
+  return { schema: RunSchema, message: await client.run.get(id) };
 }
 
 /**
@@ -93,9 +93,9 @@ export async function getRun(client: Stigmer, id: string): Promise<ResourceResul
  */
 export async function listAgentRuns(client: Stigmer, limit: number, org = ""): Promise<ResourceResult> {
   const entries = await readCursorPages(limit, (pageSize, pageToken) =>
-    client.agentRun.list(create(ListAgentRunsRequestSchema, { pageSize, pageToken, org })),
+    client.run.list(create(ListRunsRequestSchema, { pageSize, pageToken, org })),
   );
-  return { schema: AgentRunListSchema, message: create(AgentRunListSchema, { entries, totalPages: 1 }) };
+  return { schema: RunListSchema, message: create(RunListSchema, { entries, totalPages: 1 }) };
 }
 
 const RUN_TABLE: TableShape = {

@@ -17,10 +17,10 @@ import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { GetArtifactDownloadUrlResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
-import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { GetArtifactDownloadUrlResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
 import { createNodeClient, normalizeEndpoint } from "@stigmer/sdk/node";
@@ -48,7 +48,7 @@ beforeEach(() => {
   pushedTags = [];
 });
 
-const execution = create(AgentRunSchema, {
+const execution = create(RunSchema, {
   metadata: { id: "aex_done" },
   status: {
     phase: RunPhase.RUN_COMPLETED,
@@ -60,7 +60,7 @@ const execution = create(AgentRunSchema, {
 });
 
 // A run still pending: nothing produced yet.
-const pendingExecution = create(AgentRunSchema, {
+const pendingExecution = create(RunSchema, {
   metadata: { id: "aex_pending" },
   status: { phase: RunPhase.RUN_PENDING },
 });
@@ -91,7 +91,7 @@ beforeAll(async () => {
         });
       },
     });
-    router.service(AgentRunQueryController, {
+    router.service(RunQueryController, {
       get: (req) => {
         if (req.value === "aex_pending") return pendingExecution;
         if (req.value !== "aex_done") throw new ConnectError("not found", Code.NotFound);

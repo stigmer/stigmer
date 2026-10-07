@@ -78,10 +78,10 @@ describe("web ScheduleDetailPageInner", () => {
   });
 
   it("lands on the tab a ?tab= deep link names", () => {
-    window.history.replaceState(null, "", "/library/schedules/acme/nightly?tab=runs");
+    window.history.replaceState(null, "", "/library/schedules/acme/nightly?tab=history");
     render(<ScheduleDetailPageInner org="acme" slug="nightly" />);
 
-    expect(view()?.activeTab).toBe("runs");
+    expect(view()?.activeTab).toBe("history");
   });
 
   it("opens a run picked on the schedule through run navigation", () => {

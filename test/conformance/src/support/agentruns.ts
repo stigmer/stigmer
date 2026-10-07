@@ -16,13 +16,13 @@
 // asserted (see the seam's own header below).
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import type { InitShape } from "./init-shape";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import type { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
-import type { AttachmentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
+import type { AttachmentSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import type { JsonObject } from "@bufbuild/protobuf";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -83,7 +83,7 @@ export interface AgentExecutionOptions {
 // A complete, valid AgentRun create request. run_config is left unset
 // unless provided, so the only variable inputs are the target, the message,
 // and the optional overrides.
-export function makeAgentExecution(opts: AgentExecutionOptions): InitShape<typeof AgentRunSchema> {
+export function makeAgentExecution(opts: AgentExecutionOptions): InitShape<typeof RunSchema> {
   return {
     apiVersion: AGENT_EXECUTION_API_VERSION,
     kind: AGENT_EXECUTION_KIND,
@@ -114,7 +114,7 @@ export function makeAgentExecution(opts: AgentExecutionOptions): InitShape<typeo
 // oneof holds one arm), refused here rather than silently dropping one.
 function executionTarget(
   opts: AgentExecutionOptions,
-): Pick<NonNullable<InitShape<typeof AgentRunSchema>["spec"]>, "target"> {
+): Pick<NonNullable<InitShape<typeof RunSchema>["spec"]>, "target"> {
   if (opts.sessionId !== undefined) {
     if (opts.agentRef !== undefined || opts.sessionSpec !== undefined) {
       throw new Error("makeAgentExecution: sessionId excludes agentRef and sessionSpec (spec.target is a oneof)");
@@ -134,7 +134,7 @@ function executionTarget(
 // The session a persisted turn belongs to: the server replaces a new
 // conversation's session_spec with the id of the session it created, so
 // every stored turn reads through the session_id arm ("" when it has none).
-export function sessionIdOf(execution: AgentRun | undefined): string {
+export function sessionIdOf(execution: Run | undefined): string {
   const target = execution?.spec?.target;
   return target?.case === "sessionId" ? target.value : "";
 }
@@ -165,9 +165,9 @@ export interface PollOptions extends PollCoreOptions {
 export function pollExecution(
   clients: ConformanceClients,
   executionId: string,
-  predicate: (exec: AgentRun) => boolean,
+  predicate: (exec: Run) => boolean,
   opts: PollOptions = {},
-): Promise<AgentRun> {
+): Promise<Run> {
   const phaseTrace: string[] = [];
   return pollUntil(
     async () => {
@@ -200,7 +200,7 @@ export function awaitPhase(
   executionId: string,
   phase: RunPhase,
   opts: PollOptions = {},
-): Promise<AgentRun> {
+): Promise<Run> {
   return pollExecution(clients, executionId, (e) => e.status?.phase === phase, {
     label: `phase ${RunPhase[phase]}`,
     ...opts,
@@ -212,7 +212,7 @@ export function awaitTerminal(
   clients: ConformanceClients,
   executionId: string,
   opts: PollOptions = {},
-): Promise<AgentRun> {
+): Promise<Run> {
   return pollExecution(clients, executionId, (e) => isTerminalPhase(e.status?.phase), {
     label: "a terminal phase",
     ...opts,
@@ -244,7 +244,7 @@ export function awaitTerminal(
 export interface SubmitApprovalPerContractOptions {
   // Issues the decision. Resolves to the AgentRun whose read model the
   // contract is asserted on: the submit response.
-  submit: () => Promise<AgentRun>;
+  submit: () => Promise<Run>;
   // pending_approvals the response must carry after this decision: 0 for a
   // single gate, 1 for the first approve of two co-pending calls.
   expectedRemaining: number;
@@ -259,7 +259,7 @@ export interface SubmitApprovalPerContractOptions {
 // vitest's `expect` refuses to load without a running test worker.
 export async function submitApprovalPerContract(
   opts: SubmitApprovalPerContractOptions,
-): Promise<AgentRun> {
+): Promise<Run> {
   const { expect } = await import("vitest");
   const response = await opts.submit();
   expect(response.status?.pendingApprovals.length, opts.label).toBe(opts.expectedRemaining);
@@ -272,7 +272,7 @@ export async function submitApprovalPerContract(
 // resumed stream does not keep stable. The server records the principal it
 // authorized, the same id it stamps as created_by on what that caller creates,
 // so a suite compares the two without knowing the edition's identity scheme.
-export function decidedByOf(execution: AgentRun, toolCallId: string): string | undefined {
+export function decidedByOf(execution: Run, toolCallId: string): string | undefined {
   const decided = (execution.status?.approvalEventStream?.events ?? []).find(
     (event) => event.approvalRequestId === toolCallId && event.payload.case === "decided",
   );
@@ -281,7 +281,7 @@ export function decidedByOf(execution: AgentRun, toolCallId: string): string | u
 
 // Root and sub-agent transcripts, the same scan the server's pending-approval
 // projection runs — the REJECT arm reads the decided tool call through it.
-export function allToolCalls(execution: AgentRun): ToolCall[] {
+export function allToolCalls(execution: Run): ToolCall[] {
   const root = execution.status?.messages.flatMap((message) => message.toolCalls) ?? [];
   const nested =
     execution.status?.subAgentRuns.flatMap((subAgent) =>

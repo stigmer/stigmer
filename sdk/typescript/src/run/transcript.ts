@@ -203,7 +203,7 @@ export interface SessionTranscriptClient {
   readonly session: {
     get(id: string): Promise<Session>;
   };
-  readonly agentRun: {
+  readonly run: {
     listBySession(
       input: ListRunsBySessionRequest,
     ): Promise<RunList>;
@@ -245,7 +245,7 @@ export async function fetchSessionTranscript(
 ): Promise<SessionTranscript> {
   const [session, list] = await Promise.all([
     client.session.get(sessionId),
-    client.agentRun.listBySession(
+    client.run.listBySession(
       create(ListRunsBySessionRequestSchema, { sessionId }),
     ),
   ]);
@@ -282,7 +282,7 @@ export async function fetchSessionTranscript(
  * run's id, and the key is the record of that.
  */
 export async function resolveOffloadedOutputs(
-  client: Pick<SessionTranscriptClient, "agentRun">,
+  client: Pick<SessionTranscriptClient, "run">,
   executions: readonly Run[],
   options?: { readonly concurrency?: number },
 ): Promise<Record<string, ResolvedToolOutput>> {
@@ -321,7 +321,7 @@ export async function resolveOffloadedOutputs(
         return;
       }
       try {
-        const response = await client.agentRun.getArtifactContent(
+        const response = await client.run.getArtifactContent(
           create(GetArtifactContentRequestSchema, {
             runId: executionId,
             storageKey: ref.storageKey,

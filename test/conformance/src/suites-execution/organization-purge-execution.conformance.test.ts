@@ -10,7 +10,7 @@
 // and only then releases the organization's slug, so a slug that comes free
 // is the purge's proof that the run was stopped and removed.
 import { Code } from "@connectrpc/connect";
-import { ApprovalAction, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { ApprovalAction, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUses } from "@stigmer/test-support/mock-llm";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -90,7 +90,7 @@ describe("Organization purge with a live run", () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitApproval({
-          agentRunId: executionId,
+          runId: executionId,
           toolCallId: gated.status!.pendingApprovals[0]!.toolCallId,
           action: ApprovalAction.APPROVE,
         }),

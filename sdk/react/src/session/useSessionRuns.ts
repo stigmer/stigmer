@@ -1,8 +1,8 @@
 "use client";
 
 import { create } from "@bufbuild/protobuf";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { ListAgentRunsBySessionRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { ListRunsBySessionRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { sortChronologically } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
@@ -31,7 +31,7 @@ export interface UseSessionRunsOptions {
 /** Return value of {@link useSessionRuns}. */
 export interface UseSessionRunsReturn {
   /** All runs for the session, empty while loading or on error. */
-  readonly runs: readonly AgentRun[];
+  readonly runs: readonly Run[];
   /** `true` while the initial fetch is in flight. */
   readonly isLoading: boolean;
   /** `true` while a background refetch is in flight. */
@@ -85,14 +85,14 @@ export function useSessionRuns(
   const { data: executions, isLoading, isRefetching, error, refetch } = useFetch(
     sessionId
       ? () =>
-          stigmer.agentRun
+          stigmer.run
             .listBySession(
-              create(ListAgentRunsBySessionRequestSchema, { sessionId }),
+              create(ListRunsBySessionRequestSchema, { sessionId }),
             )
             .then((result) => sortChronologically(result.entries))
       : null,
     [sessionId, stigmer],
-    [] as AgentRun[],
+    [] as Run[],
     {
       cacheKey: sessionId ? `session-executions:${sessionId}` : undefined,
       refetchInterval: options?.refetchInterval,

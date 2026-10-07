@@ -12,7 +12,7 @@ import { SessionComposer } from "../SessionComposer";
 
 function createMinimalStigmerMock(): Stigmer {
   return {
-    agentRun: { uploadAttachment: vi.fn() },
+    run: { uploadAttachment: vi.fn() },
     environment: { getPersonal: vi.fn().mockResolvedValue(null) },
     baseUrl: "http://localhost:8080",
     getAuthCredential: vi.fn().mockResolvedValue("test-token"),

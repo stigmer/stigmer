@@ -6,7 +6,7 @@
 // a single TodoUpdateEvent (with the full list) whenever anything is added,
 // removed, or changed.
 
-import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/todo_pb";
+import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/run/v1/todo_pb";
 import { convertProtoTodos, mapTodoStatus } from "./convert.js";
 import type { StreamEvent } from "./events.js";
 

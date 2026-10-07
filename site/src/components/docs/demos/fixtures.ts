@@ -45,7 +45,7 @@ export function snapshot(
       ? [...msgs.slice(0, firstHumanIdx), ...msgs.slice(firstHumanIdx + 1)]
       : msgs;
 
-  const exec = samples.agentRun({
+  const exec = samples.run({
     phase,
     messages: statusMessages,
     artifacts,

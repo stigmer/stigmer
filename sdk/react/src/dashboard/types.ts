@@ -1,4 +1,4 @@
-import type { GetOrgUsageReportOutput } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import type { GetOrgUsageReportOutput } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 
 /**
  * Dashboard summary of an organization's agent runs.

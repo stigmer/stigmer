@@ -2,15 +2,15 @@
 
 import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { AgentRun, RecalledMemoriesReport } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { RecalledMemoryFact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
-import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
-import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
-import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/todo_pb";
+import type { Run, RecalledMemoriesReport } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { RecalledMemoryFact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
+import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
+import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/run/v1/todo_pb";
 import {
   ApprovalAction,
   RunPhase,
@@ -19,7 +19,7 @@ import {
   MessageType,
   SubAgentStatus,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { displayFileChangeSets, syntheticUserPrompt } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
@@ -139,13 +139,13 @@ export interface MessageThreadSlots {
 /** Props for {@link MessageThread}. */
 export interface MessageThreadProps {
   /** Completed runs in chronological order. */
-  readonly runs: readonly AgentRun[];
+  readonly runs: readonly Run[];
   /**
    * The currently streaming run. Appended after `executions` to
    * form a continuous thread. Pass `null` or `undefined` when no
    * run is actively streaming.
    */
-  readonly activeStreamRun?: AgentRun | null;
+  readonly activeStreamRun?: Run | null;
   /**
    * Optimistic user message shown at the end of the thread before the
    * stream delivers the real message. Rendered as a human message with
@@ -478,7 +478,7 @@ export type ThreadItem =
  * moment any of these stream in, otherwise it would render *alongside* the real
  * ThinkingMessage / ToolCallGroup cards (the GitHub #179 duplicate-spinner).
  */
-function hasStartedResponding(execution: AgentRun): boolean {
+function hasStartedResponding(execution: Run): boolean {
   const messages = execution.status?.messages;
   if (!messages || messages.length === 0) return false;
   return messages.some((m) => {
@@ -500,7 +500,7 @@ function hasStartedResponding(execution: AgentRun): boolean {
  * Suppresses the bottom liveness line: one ambient signal at a time, riding
  * the words closest to the actual activity.
  */
-function hasVisiblyRunningActivity(execution: AgentRun): boolean {
+function hasVisiblyRunningActivity(execution: Run): boolean {
   for (const sub of execution.status?.subAgentRuns ?? []) {
     if (
       sub.status === SubAgentStatus.SUB_AGENT_IN_PROGRESS ||
@@ -522,7 +522,7 @@ function hasVisiblyRunningActivity(execution: AgentRun): boolean {
  * run that has a reviewable plan (streaming/failed/terminated Plan turns
  * have nothing final to review or build from).
  */
-function isCompletedPlanExecution(execution: AgentRun): boolean {
+function isCompletedPlanExecution(execution: Run): boolean {
   return (
     execution.status?.phase === RunPhase.RUN_COMPLETED &&
     execution.spec?.interactionMode === InteractionMode.PLAN
@@ -649,8 +649,8 @@ function insertFileReviewItems(
  * @internal Exported for testing — not part of the public API.
  */
 export function buildThreadItems(
-  executions: readonly AgentRun[],
-  activeStreamRun: AgentRun | null | undefined,
+  executions: readonly Run[],
+  activeStreamRun: Run | null | undefined,
   pendingUserMessage: string | null | undefined,
   includeApprovals: boolean,
   workspaceEntries: readonly WorkspaceEntry[] | undefined,

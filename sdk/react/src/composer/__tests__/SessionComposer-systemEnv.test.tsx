@@ -19,7 +19,7 @@ import { SessionComposer } from "../SessionComposer";
 
 function clientAt(baseUrl: string): Stigmer {
   return {
-    agentRun: { uploadAttachment: vi.fn() },
+    run: { uploadAttachment: vi.fn() },
     environment: { getPersonal: vi.fn().mockResolvedValue(null) },
     baseUrl,
     getAuthCredential: vi.fn().mockResolvedValue("test-token"),

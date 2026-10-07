@@ -11,9 +11,9 @@
 // returned edit failure is `not_found` or `not_unique` in both backends'
 // words; the final to-do list is counted by state.
 import { create } from "@bufbuild/protobuf";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { MessageType, TodoStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { MessageType, TodoStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { describe, expect, it } from "vitest";
 import type { TimingLine } from "../report";
 import { COMMAND_TARGET_CHARS, outcomeOf, targetOf, todoCounts, toolCallFacts } from "../tool-call-facts";
@@ -25,7 +25,7 @@ function row({ name, startedAt, args = {}, result = "ok", status = ToolCallStatu
 }
 
 function execution(messages: RowInit[][]) {
-  return create(AgentRunSchema, {
+  return create(RunSchema, {
     status: {
       messages: messages.map((rows, index) => ({
         type: MessageType.MESSAGE_AI,
@@ -144,7 +144,7 @@ describe("targetOf", () => {
 
 describe("todoCounts", () => {
   it("counts the final list by state, an unset state as pending", () => {
-    const turn = create(AgentRunSchema, {
+    const turn = create(RunSchema, {
       status: {
         todos: {
           a: { content: "one", status: TodoStatus.TODO_COMPLETED },
@@ -158,6 +158,6 @@ describe("todoCounts", () => {
   });
 
   it("reads an execution with no list as all zeros", () => {
-    expect(todoCounts(create(AgentRunSchema, {}))).toEqual({ pending: 0, in_progress: 0, completed: 0, cancelled: 0 });
+    expect(todoCounts(create(RunSchema, {}))).toEqual({ pending: 0, in_progress: 0, completed: 0, cancelled: 0 });
   });
 });

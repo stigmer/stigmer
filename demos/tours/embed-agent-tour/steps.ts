@@ -10,8 +10,8 @@
  * the agent they created answering inside "their" app. The order it
  * discusses is #ORD-4821, the sequence's shared order fixture.
  */
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { samples } from "@stigmer/react/test";
 import type { ScenarioStep } from "@scenar/react";
 import { snapshot } from "../_shared/fixtures";
@@ -24,7 +24,7 @@ import { snapshot } from "../_shared/fixtures";
 export type EmbedAgentTourStep =
   | { view: "host-launcher" }
   | { view: "host-typing" }
-  | { view: "host-reply"; execution: AgentRun }
+  | { view: "host-reply"; execution: Run }
   | { view: "host-code" };
 
 /** What the depicted customer types into the embedded composer. */

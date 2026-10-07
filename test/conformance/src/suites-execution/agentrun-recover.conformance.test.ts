@@ -28,7 +28,7 @@
 // Already covered in the main AgentRun suite (not re-asserted here):
 // - recover of a non-FAILED terminal execution -> FailedPrecondition.
 // - recover with empty id -> InvalidArgument; missing execution -> NotFound.
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";

@@ -7,8 +7,8 @@
 // flag then dropped it. We thread it through.
 
 import { create } from "@bufbuild/protobuf";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { SubmitApprovalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { SubmitApprovalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 
 export interface ApproveAgentOptions {
@@ -20,9 +20,9 @@ export interface ApproveAgentOptions {
 
 /** Submit an agent tool-call approval. `--comment` is carried through. */
 export async function approveAgentToolCall(client: Stigmer, opts: ApproveAgentOptions): Promise<void> {
-  await client.agentRun.submitApproval(
+  await client.run.submitApproval(
     create(SubmitApprovalInputSchema, {
-      agentRunId: opts.runId,
+      runId: opts.runId,
       toolCallId: opts.toolCallId,
       action: resolveApprovalAction(opts.action),
       comment: opts.comment,

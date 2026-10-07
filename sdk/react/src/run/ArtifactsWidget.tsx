@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import {
@@ -24,7 +24,7 @@ export interface ArtifactsWidgetProps {
    * Renders nothing when the list is empty or no run has
    * artifacts.
    */
-  readonly runs: readonly AgentRun[];
+  readonly runs: readonly Run[];
   /** Organization id for the "Apply to [org]" CTA in the preview modal (a slug is also accepted). */
   readonly org: string;
   /**

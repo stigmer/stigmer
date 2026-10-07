@@ -30,9 +30,9 @@
 //   is kept with the record of the work and read by people, and a call's
 //   target (a path, a pattern, the head of a command) is what a reader needs
 //   to tell a re-read from a new read.
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { TodoStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { TodoStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { TimingLine, TodoCounts, ToolCallFact, ToolCallOutcome } from "./report";
 
 /** The longest command head a fact keeps: enough to tell `go test ./...` from `ls -la`. */
@@ -54,7 +54,7 @@ const NOT_FOUND_RESULTS = [/^Error: String not found in file/, /^String not foun
 const NOT_UNIQUE_RESULTS = [/has multiple occurrences/, /^Multiple occurrences found in/];
 
 /** Every root tool call of the turn, in the order the calls started, each placed on its model round. */
-export function toolCallFacts(execution: AgentRun, turnPhases: TimingLine | null): ToolCallFact[] {
+export function toolCallFacts(execution: Run, turnPhases: TimingLine | null): ToolCallFact[] {
   const rows = (execution.status?.messages ?? [])
     .flatMap((message) => message.toolCalls)
     .map((row, index) => ({ row, index }))
@@ -78,7 +78,7 @@ export function toolCallFacts(execution: AgentRun, turnPhases: TimingLine | null
 }
 
 /** The turn's to-do list at its end, counted by state: what the user's progress card showed. */
-export function todoCounts(execution: AgentRun): TodoCounts {
+export function todoCounts(execution: Run): TodoCounts {
   const counts: TodoCounts = { pending: 0, in_progress: 0, completed: 0, cancelled: 0 };
   for (const item of Object.values(execution.status?.todos ?? {})) {
     switch (item.status) {

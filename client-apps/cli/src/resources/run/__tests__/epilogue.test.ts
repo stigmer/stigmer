@@ -9,9 +9,9 @@
 // and fails nothing. The client is a double recording what it was asked.
 
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
-import { AgentRunSchema, type AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { MessageType, RunPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { GetRunUsageReportInput } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { MessageType, RunPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { GetRunUsageReportInput } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CliExitError, ExitCode } from "../../../errors/index.js";
@@ -19,8 +19,8 @@ import { runEpilogue } from "../epilogue.js";
 
 const STARTED = "2026-06-12T10:00:00Z";
 
-function finalRun(status: MessageInitShape<typeof AgentRunSchema>["status"]): AgentRun {
-  return create(AgentRunSchema, { metadata: { id: "aex_1" }, status });
+function finalRun(status: MessageInitShape<typeof RunSchema>["status"]): Run {
+  return create(RunSchema, { metadata: { id: "aex_1" }, status });
 }
 
 interface Double {
@@ -30,11 +30,11 @@ interface Double {
 }
 
 /** A client whose final Get answers `run` and whose usage report costs `micros` (or fails). */
-function double(run: AgentRun, micros: bigint | "fails" = 0n): Double {
+function double(run: Run, micros: bigint | "fails" = 0n): Double {
   const gets: string[] = [];
   const usageRequests: GetRunUsageReportInput[] = [];
   const client = {
-    agentRun: {
+    run: {
       get: async (id: string) => {
         gets.push(id);
         return run;

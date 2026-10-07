@@ -29,7 +29,7 @@ import type { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum
 import {
   ServiceTier,
   ThinkingMode,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { RunConfigInput } from "@stigmer/sdk";
 import { Section } from "../resource-detail/Section.js";
 import { HarnessSelector } from "../models/HarnessSelector.js";

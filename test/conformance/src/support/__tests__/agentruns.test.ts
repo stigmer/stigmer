@@ -15,9 +15,9 @@
 // Pure: hand-built resources and stubbed clients, no target.
 // Domain: conformance support (execution engine).
 import { create } from "@bufbuild/protobuf";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { type McpServer, McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { ConnectPhase } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { describe, expect, it, vi } from "vitest";
@@ -32,8 +32,8 @@ import {
   submitApprovalPerContract,
 } from "../agentruns";
 
-function executionWithPending(toolCallIds: string[]): AgentRun {
-  return create(AgentRunSchema, {
+function executionWithPending(toolCallIds: string[]): Run {
+  return create(RunSchema, {
     metadata: { id: "aex_unit" },
     status: { pendingApprovals: toolCallIds.map((toolCallId) => ({ toolCallId })) },
   });
@@ -142,14 +142,14 @@ describe("createConnectedMcpServer", () => {
 
 // A query client whose get answers each of `answers` in turn, then the last
 // one for good.
-function queryAnswering(answers: AgentRun[]) {
-  const get = vi.fn(async () => answers[Math.min(get.mock.calls.length - 1, answers.length - 1)] as AgentRun);
+function queryAnswering(answers: Run[]) {
+  const get = vi.fn(async () => answers[Math.min(get.mock.calls.length - 1, answers.length - 1)] as Run);
   const clients = { agentExecutionQuery: { get } } as unknown as ConformanceClients;
   return { clients, get };
 }
 
-function atPhase(phase: RunPhase, extra: { error?: string; lastMessage?: string } = {}): AgentRun {
-  return create(AgentRunSchema, {
+function atPhase(phase: RunPhase, extra: { error?: string; lastMessage?: string } = {}): Run {
+  return create(RunSchema, {
     metadata: { id: "aex_unit" },
     status: {
       phase,
@@ -179,7 +179,7 @@ describe("pollExecution", () => {
   });
 
   it("reads an absent phase as RUN_PHASE_UNSPECIFIED", async () => {
-    const { clients } = queryAnswering([create(AgentRunSchema, {})]);
+    const { clients } = queryAnswering([create(RunSchema, {})]);
     await expect(pollExecution(clients, "aex_unit", () => false, { timeoutMs: 1, pollMs: 1 })).rejects.toThrow(
       'did not satisfy the predicate within 1ms (observed phases: RUN_PHASE_UNSPECIFIED; status.error: ""; messages: 0, last: "")',
     );
@@ -205,7 +205,7 @@ describe("awaitPhase", () => {
 
 describe("allToolCalls", () => {
   it("returns the root transcript's tool calls, then every sub-agent's", () => {
-    const execution = create(AgentRunSchema, {
+    const execution = create(RunSchema, {
       status: {
         messages: [{ toolCalls: [{ id: "call_root" }] }, { toolCalls: [] }],
         subAgentRuns: [
@@ -223,6 +223,6 @@ describe("allToolCalls", () => {
   });
 
   it("is empty for a run with no status", () => {
-    expect(allToolCalls(create(AgentRunSchema, {}))).toEqual([]);
+    expect(allToolCalls(create(RunSchema, {}))).toEqual([]);
   });
 });

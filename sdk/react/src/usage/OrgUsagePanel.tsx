@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
-import type { ModelUsage } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/usage_pb";
+import type { ModelUsage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
 import type {
   DailyCostEntry,
   GetOrgUsageReportOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { formatCost, formatTokenCount } from "../run/UsageWidget.js";
 import { useOrgUsageReport } from "./useOrgUsageReport.js";
 import {

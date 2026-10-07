@@ -11,11 +11,11 @@ import {
   type KeyboardEvent,
 } from "react";
 import { cn } from "@stigmer/theme";
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   FileChangeCaptureLevel,
   FileChangeType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { AttachmentImageLightbox } from "../attachment/AttachmentImageLightbox.js";
 import { useObjectUrl } from "../attachment/useObjectUrl.js";
 import { ArtifactContentRenderer } from "../run/ArtifactContentRenderer.js";

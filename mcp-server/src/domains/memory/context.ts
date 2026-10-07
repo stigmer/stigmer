@@ -45,7 +45,7 @@ export interface CaptureContext {
   readonly org: string;
   readonly agentId: string;
   readonly sessionId: string;
-  readonly agentRunId: string;
+  readonly runId: string;
 }
 
 /** A context with no attribution — the resolve fallback of last resort. */
@@ -53,7 +53,7 @@ export const EMPTY_CAPTURE_CONTEXT: CaptureContext = {
   org: "",
   agentId: "",
   sessionId: "",
-  agentRunId: "",
+  runId: "",
 };
 
 /**
@@ -80,7 +80,7 @@ export function loadCaptureContextFromEnv(env: NodeJS.ProcessEnv = process.env):
     org: env[MEMORY_ORG_ENV] ?? "",
     agentId: env[MEMORY_AGENT_ID_ENV] ?? "",
     sessionId: env[MEMORY_SESSION_ID_ENV] ?? "",
-    agentRunId: env[MEMORY_EXECUTION_ID_ENV] ?? "",
+    runId: env[MEMORY_EXECUTION_ID_ENV] ?? "",
   };
 }
 
@@ -100,7 +100,7 @@ export function resolveCaptureContext(
     org: headerValue(headers, MEMORY_ORG_HEADER),
     agentId: headerValue(headers, MEMORY_AGENT_ID_HEADER),
     sessionId: headerValue(headers, MEMORY_SESSION_ID_HEADER),
-    agentRunId: headerValue(headers, MEMORY_EXECUTION_ID_HEADER),
+    runId: headerValue(headers, MEMORY_EXECUTION_ID_HEADER),
   };
 }
 

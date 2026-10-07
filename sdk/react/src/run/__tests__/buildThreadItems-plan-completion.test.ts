@@ -1,22 +1,22 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+  RunSchema,
+  RunStatusSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
-  AgentRunSpecSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+  RunSpecSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   RunArtifactKind,
   RunPhase,
   InteractionMode,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { buildThreadItems, type ThreadItem } from "../MessageThread";
 
 function makeMessage(type: MessageType, content: string) {
@@ -42,14 +42,14 @@ function makeExecution(opts: {
   buildFromPlan?: boolean;
   messages?: ReturnType<typeof makeMessage>[];
   withPlanArtifact?: boolean;
-}): AgentRun {
-  const exec = create(AgentRunSchema);
+}): Run {
+  const exec = create(RunSchema);
 
   const meta = create(ApiResourceMetadataSchema);
   meta.id = opts.id;
   exec.metadata = meta;
 
-  const spec = create(AgentRunSpecSchema);
+  const spec = create(RunSpecSchema);
   spec.message = opts.specMessage ?? "test message";
   if (opts.interactionMode !== undefined) {
     spec.interactionMode = opts.interactionMode;
@@ -59,7 +59,7 @@ function makeExecution(opts: {
   }
   exec.spec = spec;
 
-  const status = create(AgentRunStatusSchema);
+  const status = create(RunStatusSchema);
   status.phase = opts.phase ?? RunPhase.RUN_COMPLETED;
   if (opts.messages) {
     status.messages = opts.messages;
@@ -483,8 +483,8 @@ describe("buildThreadItems plan-writing (live streaming collapse)", () => {
 
   /** buildThreadItems with the collapseStreamingPlan opt-in enabled. */
   function buildWithLiveCollapse(
-    executions: AgentRun[],
-    activeStreamRun: AgentRun | null,
+    executions: Run[],
+    activeStreamRun: Run | null,
   ) {
     return buildThreadItems(
       executions,

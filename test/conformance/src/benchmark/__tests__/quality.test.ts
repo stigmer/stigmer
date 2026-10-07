@@ -19,8 +19,8 @@
 // request names, defers both deletes, and refuses the grade as a timeout when
 // the run never settles.
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
@@ -50,7 +50,7 @@ const TASK: QualityTask = {
 };
 
 function judged(output: JsonObject | undefined, phase = RunPhase.RUN_COMPLETED, error = "", model = "claude-sonnet-4-6") {
-  return create(AgentRunSchema, {
+  return create(RunSchema, {
     status: {
       phase,
       error,

@@ -136,7 +136,7 @@ const client = vi.hoisted(() => ({ current: null as unknown }));
 vi.mock("../../hooks", () => ({
   useStigmer: () => {
     client.current ??= {
-      agentRun: {
+      run: {
         uploadAttachment: vi.fn(),
         getArtifactContent: vi.fn(),
       },

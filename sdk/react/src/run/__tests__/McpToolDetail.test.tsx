@@ -6,7 +6,7 @@ import type { Stigmer } from "@stigmer/sdk";
 import {
   ToolCallSchema,
   ToolCallOutputRefSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { StigmerContext } from "../../context";
 import { McpToolDetail } from "../McpToolDetail";
 
@@ -31,7 +31,7 @@ describe("McpToolDetail — offloaded output", () => {
       .fn()
       .mockResolvedValue({ downloadUrl: "https://fresh/shot.png" });
     const stigmer = {
-      agentRun: { getArtifactDownloadUrl, getArtifactContent: vi.fn() },
+      run: { getArtifactDownloadUrl, getArtifactContent: vi.fn() },
     } as unknown as Stigmer;
 
     const ref = create(ToolCallOutputRefSchema, {
@@ -56,7 +56,7 @@ describe("McpToolDetail — offloaded output", () => {
       truncated: false,
     });
     const stigmer = {
-      agentRun: { getArtifactContent, getArtifactDownloadUrl: vi.fn() },
+      run: { getArtifactContent, getArtifactDownloadUrl: vi.fn() },
     } as unknown as Stigmer;
 
     const ref = create(ToolCallOutputRefSchema, {

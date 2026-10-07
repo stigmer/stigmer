@@ -4,8 +4,8 @@
 // recording what it was asked.
 
 import { create } from "@bufbuild/protobuf";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { ListAgentRunsBySessionRequest } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { ListRunsBySessionRequest } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { describe, expect, it } from "vitest";
@@ -30,15 +30,15 @@ describe("session reads", () => {
   });
 
   it("lists a session's runs in one call, in the server's order", async () => {
-    const requests: ListAgentRunsBySessionRequest[] = [];
+    const requests: ListRunsBySessionRequest[] = [];
     const client = {
-      agentRun: {
-        listBySession: async (req: ListAgentRunsBySessionRequest) => {
+      run: {
+        listBySession: async (req: ListRunsBySessionRequest) => {
           requests.push(req);
           return {
             entries: [
-              create(AgentRunSchema, { metadata: { id: "aex_2" } }),
-              create(AgentRunSchema, { metadata: { id: "aex_1" } }),
+              create(RunSchema, { metadata: { id: "aex_2" } }),
+              create(RunSchema, { metadata: { id: "aex_1" } }),
             ],
           };
         },

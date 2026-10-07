@@ -4,7 +4,7 @@ import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/ap
 import {
   ScheduleDetailView,
   useBreadcrumbOverride,
-  useResolveAgentRunSession,
+  useResolveRunSession,
   useOrgSlugForId,
 } from "@stigmer/react";
 
@@ -26,7 +26,7 @@ export default function ScheduleDetailPage() {
   // desktop it is viewed through its parent session — the same
   // resolve-then-navigate pattern as the run page (pages/runs/RunPage).
   const [pendingExecutionId, setPendingExecutionId] = useState<string | null>(null);
-  const { sessionId } = useResolveAgentRunSession(pendingExecutionId);
+  const { sessionId } = useResolveRunSession(pendingExecutionId);
 
   useEffect(() => {
     if (sessionId) {

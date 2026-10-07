@@ -16,7 +16,7 @@
 
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleRunOutcome } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+import { ScheduleFireOutcome } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { UsageError } from "../errors/index.js";
 import { CommandResult } from "../output/index.js";
@@ -82,7 +82,7 @@ export async function triggerSchedule(stigmer: Stigmer, ref: string, org: string
   const slug = schedule.metadata?.slug ?? "";
   const name = schedule.metadata?.name || slug;
 
-  if (triggered.outcome === ScheduleRunOutcome.STARTED) {
+  if (triggered.outcome === ScheduleFireOutcome.STARTED) {
     const result = CommandResult.success(`Schedule '${name}' fired — run started`);
     const section = result.addSection();
     section.field("Run", triggered.runId);
@@ -96,7 +96,7 @@ export async function triggerSchedule(stigmer: Stigmer, ref: string, org: string
   // The run was refused deterministically (a launch gate said no, or the
   // target agent is gone). The fire happened and is recorded in run
   // history; the refusing gate's copy relays verbatim.
-  const what = triggered.outcome === ScheduleRunOutcome.TARGET_MISSING
+  const what = triggered.outcome === ScheduleFireOutcome.TARGET_MISSING
     ? "the target agent was not found"
     : "a launch gate refused the run";
   const result = CommandResult.error(`Schedule '${name}' fired, but ${what}`);

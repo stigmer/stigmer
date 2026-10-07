@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { GetArtifactContentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { GetArtifactContentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
@@ -85,7 +85,7 @@ export function useArtifactCopy(
       setIsCopying(true);
       setError(null);
       try {
-        const result = await stigmer.agentRun.getArtifactContent(
+        const result = await stigmer.run.getArtifactContent(
           create(GetArtifactContentRequestSchema, { runId: executionId, storageKey }),
         );
         const text = new TextDecoder().decode(result.content);

@@ -6,16 +6,16 @@ import {
   InteractionMode,
   ServiceTier,
   ThinkingMode,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness, ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { StigmerContext } from "../../context";
-import { useCreateAgentRun } from "../useCreateAgentRun";
+import { useCreateRun } from "../useCreateRun";
 
 const mockCreate = vi.fn();
 
 function makeMockClient(): Stigmer {
   return {
-    agentRun: { create: mockCreate },
+    run: { create: mockCreate },
   } as unknown as Stigmer;
 }
 
@@ -30,9 +30,9 @@ beforeEach(() => {
   mockCreate.mockResolvedValue({ metadata: { id: "aex-1" } });
 });
 
-describe("useCreateAgentRun — run_config and the per-message intents", () => {
-  async function createWith(fields: Partial<Parameters<ReturnType<typeof useCreateAgentRun>["create"]>[0]>) {
-    const { result } = renderHook(() => useCreateAgentRun(), {
+describe("useCreateRun — run_config and the per-message intents", () => {
+  async function createWith(fields: Partial<Parameters<ReturnType<typeof useCreateRun>["create"]>[0]>) {
+    const { result } = renderHook(() => useCreateRun(), {
       wrapper: createWrapper(makeMockClient()),
     });
     await act(async () => {
@@ -98,9 +98,9 @@ describe("useCreateAgentRun — run_config and the per-message intents", () => {
   });
 });
 
-describe("useCreateAgentRun — one-call session bootstrap (sessionSpec)", () => {
+describe("useCreateRun — one-call session bootstrap (sessionSpec)", () => {
   it("converts harness and executionTarget options to proto enums", async () => {
-    const { result } = renderHook(() => useCreateAgentRun(), {
+    const { result } = renderHook(() => useCreateRun(), {
       wrapper: createWrapper(makeMockClient()),
     });
 
@@ -133,7 +133,7 @@ describe("useCreateAgentRun — one-call session bootstrap (sessionSpec)", () =>
   });
 
   it("leaves harness and executionTarget undefined when not chosen (server decides)", async () => {
-    const { result } = renderHook(() => useCreateAgentRun(), {
+    const { result } = renderHook(() => useCreateRun(), {
       wrapper: createWrapper(makeMockClient()),
     });
 
@@ -151,7 +151,7 @@ describe("useCreateAgentRun — one-call session bootstrap (sessionSpec)", () =>
   });
 
   it("passes the metadata map through on the bootstrap spec", async () => {
-    const { result } = renderHook(() => useCreateAgentRun(), {
+    const { result } = renderHook(() => useCreateRun(), {
       wrapper: createWrapper(makeMockClient()),
     });
 
@@ -171,7 +171,7 @@ describe("useCreateAgentRun — one-call session bootstrap (sessionSpec)", () =>
   });
 
   it("maps the typed sessionContext onto the reserved metadata key", async () => {
-    const { result } = renderHook(() => useCreateAgentRun(), {
+    const { result } = renderHook(() => useCreateRun(), {
       wrapper: createWrapper(makeMockClient()),
     });
 
@@ -193,7 +193,7 @@ describe("useCreateAgentRun — one-call session bootstrap (sessionSpec)", () =>
   });
 
   it("lets the typed sessionContext win over a raw entry under the reserved key", async () => {
-    const { result } = renderHook(() => useCreateAgentRun(), {
+    const { result } = renderHook(() => useCreateRun(), {
       wrapper: createWrapper(makeMockClient()),
     });
 
@@ -220,7 +220,7 @@ describe("useCreateAgentRun — one-call session bootstrap (sessionSpec)", () =>
   });
 
   it("omits metadata entirely when neither field is provided", async () => {
-    const { result } = renderHook(() => useCreateAgentRun(), {
+    const { result } = renderHook(() => useCreateRun(), {
       wrapper: createWrapper(makeMockClient()),
     });
 
@@ -241,7 +241,7 @@ describe("useCreateAgentRun — one-call session bootstrap (sessionSpec)", () =>
       metadata: { id: "aex-1" },
       spec: { target: { case: "sessionId", value: "ses-created" } },
     });
-    const { result } = renderHook(() => useCreateAgentRun(), {
+    const { result } = renderHook(() => useCreateRun(), {
       wrapper: createWrapper(makeMockClient()),
     });
 
@@ -258,7 +258,7 @@ describe("useCreateAgentRun — one-call session bootstrap (sessionSpec)", () =>
   });
 
   it("echoes the input session id on the existing-session path", async () => {
-    const { result } = renderHook(() => useCreateAgentRun(), {
+    const { result } = renderHook(() => useCreateRun(), {
       wrapper: createWrapper(makeMockClient()),
     });
 
@@ -275,9 +275,9 @@ describe("useCreateAgentRun — one-call session bootstrap (sessionSpec)", () =>
   });
 });
 
-describe("useCreateAgentRun — supersede link (edit-and-resubmit)", () => {
+describe("useCreateRun — supersede link (edit-and-resubmit)", () => {
   it("maps supersedesRunId into the create call", async () => {
-    const { result } = renderHook(() => useCreateAgentRun(), {
+    const { result } = renderHook(() => useCreateRun(), {
       wrapper: createWrapper(makeMockClient()),
     });
 
@@ -294,7 +294,7 @@ describe("useCreateAgentRun — supersede link (edit-and-resubmit)", () => {
   });
 
   it("leaves supersedesRunId undefined for ordinary sends", async () => {
-    const { result } = renderHook(() => useCreateAgentRun(), {
+    const { result } = renderHook(() => useCreateRun(), {
       wrapper: createWrapper(makeMockClient()),
     });
 

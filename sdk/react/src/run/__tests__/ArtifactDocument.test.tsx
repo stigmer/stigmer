@@ -2,8 +2,8 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/sdk";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
-import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { ArtifactDocument } from "../ArtifactDocument";
 
@@ -29,7 +29,7 @@ function dirArtifact(name: string) {
 
 function stigmerReturning(text: string): Stigmer {
   return {
-    agentRun: {
+    run: {
       getArtifactContent: vi.fn().mockResolvedValue({
         content: new TextEncoder().encode(text),
         contentType: "text/plain",

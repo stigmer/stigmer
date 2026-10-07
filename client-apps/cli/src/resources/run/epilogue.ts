@@ -5,10 +5,10 @@
 // before reaching a phase is re-raised as a CLI error.
 
 import { create } from "@bufbuild/protobuf";
-import { RunPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { GetRunUsageReportInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
-import type { UsageReportAggregate } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/usage_pb";
+import { RunPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { GetRunUsageReportInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import type { UsageReportAggregate } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { CliExitError, ExitCode } from "../../errors/index.js";
 import { shouldColorize, styler } from "../../output/style.js";
@@ -24,13 +24,13 @@ export async function runEpilogue(
   sessionId: string,
   runId: string,
   result: HeadlessResult,
-): Promise<AgentRun> {
+): Promise<Run> {
   // A stream error before any phase is a hard failure (Go: epilogue returns it).
   if (result.error !== "" && result.phase === "") {
     throw new CliExitError(result.error, ExitCode.General);
   }
 
-  const exec = await client.agentRun.get(runId);
+  const exec = await client.run.get(runId);
   const usage = await fetchUsage(client, runId);
 
   const write = (line: string): void => void process.stderr.write(`${line}\n`);
@@ -48,7 +48,7 @@ export async function runEpilogue(
 // nil usage report and renders without the cost line).
 async function fetchUsage(client: Stigmer, runId: string): Promise<UsageReportAggregate | undefined> {
   try {
-    const report = await client.agentRun.getRunUsageReport(
+    const report = await client.run.getRunUsageReport(
       create(GetRunUsageReportInputSchema, { runId }),
     );
     return report.aggregate;
@@ -66,7 +66,7 @@ function printSessionExit(
   write: Write,
   s: Styler,
   sessionId: string,
-  exec: AgentRun,
+  exec: Run,
   usage: UsageReportAggregate | undefined,
 ): void {
   const phase = exec.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
@@ -96,7 +96,7 @@ function printSessionExit(
 
 // Non-session completion (rare for run; e.g. a degraded backend). Mirrors the
 // information of Go's displayAgentExecutionComplete without the panel chrome.
-function printCompletion(write: Write, s: Styler, exec: AgentRun): void {
+function printCompletion(write: Write, s: Styler, exec: Run): void {
   const phase = exec.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   if (phase === RunPhase.RUN_FAILED) {
     write(s.red(`✗ Run failed: ${resolveFailureError(exec)}`));
@@ -124,7 +124,7 @@ function resumeVerb(phase: RunPhase): string {
 
 // Mirrors Go's resolveFailureError: canonical error, else last system message,
 // else first failed tool call's error, else a generic pointer to the logs.
-function resolveFailureError(exec: AgentRun): string {
+function resolveFailureError(exec: Run): string {
   const status = exec.status;
   if (status === undefined) return GENERIC_FAILURE;
   if (status.error !== "") return status.error;

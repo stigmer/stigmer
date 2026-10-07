@@ -42,7 +42,7 @@
 // reports (the validated requested model, `StreamingUsageSummary.model`), so
 // a grade names what the judge run actually ran under.
 import type { JsonObject, JsonValue } from "@bufbuild/protobuf";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import type { ConformanceClients } from "../harness/clients";
 import type { FixtureTracker } from "../harness/fixtures";
@@ -178,7 +178,7 @@ export function verdictSchema(rubric: readonly QualityCriterion[]): JsonObject {
 }
 
 /** The verdict on a terminal judge run, refused unless its criteria are exactly `rubric`'s. */
-export function verdictOf(run: AgentRun, rubric: readonly QualityCriterion[]): Verdict {
+export function verdictOf(run: Run, rubric: readonly QualityCriterion[]): Verdict {
   const outcome = outcomeOf(run.status?.phase);
   if (outcome !== "completed") {
     return refused(run.status?.error || `the judge run ended ${outcome}`, outcome);

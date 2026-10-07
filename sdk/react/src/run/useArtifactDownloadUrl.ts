@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
-import { GetArtifactDownloadUrlRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { GetArtifactDownloadUrlRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 
@@ -48,7 +48,7 @@ export interface UseArtifactDownloadUrlOptions {
 
 /**
  * Data hook that resolves a **fresh** presigned download URL for a run
- * artifact on demand via `stigmer.agentRun.getArtifactDownloadUrl()`.
+ * artifact on demand via `stigmer.run.getArtifactDownloadUrl()`.
  *
  * This exists because presigned URLs expire. The runner once baked a
  * short-lived URL into the persisted run status and the UI rendered it
@@ -95,7 +95,7 @@ export function useArtifactDownloadUrl(
   const { data, isLoading, isRefetching, error, refetch } = useFetch(
     active
       ? () =>
-          stigmer.agentRun
+          stigmer.run
             .getArtifactDownloadUrl(
               create(GetArtifactDownloadUrlRequestSchema, {
                 runId: executionId!,

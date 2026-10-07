@@ -177,24 +177,24 @@ spec:
   );
   await cli(["apply", "-f", agentPath]);
   const modelArgs = fake === undefined ? ["--model", LIVE_MODEL] : [];
-  const agentRun = await cli(["run", AGENT, "-m", "Say hello.", ...modelArgs, "--json"], {
+  const run = await cli(["run", AGENT, "-m", "Say hello.", ...modelArgs, "--json"], {
     timeoutMs: RUN_TIMEOUT_MS,
   });
   if (fake === undefined) {
-    const outcome = streamedRunOutcome(agentRun.stdout);
+    const outcome = streamedRunOutcome(run.stdout);
     // The CLI's stream names phases in its short words (`pending`, `in_progress`, `completed`).
     if (outcome.phase !== "completed" || outcome.reply.trim() === "") {
       throw new Error(
         `the live agent run on ${LIVE_MODEL} did not complete with a reply (phase ${outcome.phase || "none"})\n` +
-          `stdout:\n${agentRun.stdout}\nstderr:\n${agentRun.stderr}`,
+          `stdout:\n${run.stdout}\nstderr:\n${run.stderr}`,
       );
     }
     log(`agent run on ${LIVE_MODEL} completed with a reply from the real provider`);
   } else {
-    if (!agentRun.stdout.includes(fake.replyText)) {
+    if (!run.stdout.includes(fake.replyText)) {
       throw new Error(
         `the agent run's stream does not carry the model's reply (${fake.requests()} model calls)\n` +
-          `stdout:\n${agentRun.stdout}\nstderr:\n${agentRun.stderr}`,
+          `stdout:\n${run.stdout}\nstderr:\n${run.stderr}`,
       );
     }
     log(`agent run streamed the model's reply (${fake.requests()} model calls)`);

@@ -1,25 +1,25 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+  RunSchema,
+  RunStatusSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,
   type AgentMessage,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
 import {
   RunPhase,
   MessageType,
   ToolCallStatus,
   SubAgentStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { structuralShare } from "../structural-share";
 
 // ---------------------------------------------------------------------------
@@ -88,14 +88,14 @@ function exec(opts: {
   messages?: AgentMessage[];
   subAgents?: ReturnType<typeof subAgent>[];
   approvals?: ReturnType<typeof approval>[];
-}): AgentRun {
-  const e = create(AgentRunSchema);
+}): Run {
+  const e = create(RunSchema);
   const meta = create(ApiResourceMetadataSchema);
   meta.id = opts.id ?? "exec-1";
   e.metadata = meta;
-  const spec = create(AgentRunSpecSchema);
+  const spec = create(RunSpecSchema);
   e.spec = spec;
-  const status = create(AgentRunStatusSchema);
+  const status = create(RunStatusSchema);
   status.phase = opts.phase ?? RunPhase.RUN_IN_PROGRESS;
   if (opts.messages) status.messages = opts.messages;
   if (opts.subAgents) status.subAgentRuns = opts.subAgents;
@@ -440,14 +440,14 @@ describe("structuralShare", () => {
 
   describe("missing status", () => {
     it("returns next when prev has no status", () => {
-      const prev = create(AgentRunSchema);
+      const prev = create(RunSchema);
       const next = exec({ messages: [msg(MessageType.MESSAGE_AI, "hi")] });
       expect(structuralShare(prev, next)).toBe(next);
     });
 
     it("returns next when next has no status", () => {
       const prev = exec({ messages: [msg(MessageType.MESSAGE_AI, "hi")] });
-      const next = create(AgentRunSchema);
+      const next = create(RunSchema);
       expect(structuralShare(prev, next)).toBe(next);
     });
   });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import { cn } from "@stigmer/theme";
 import { DialogShell } from "../internal/DialogShell.js";
 import { useArtifactDownload } from "./useArtifactDownload.js";

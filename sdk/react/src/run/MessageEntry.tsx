@@ -2,11 +2,11 @@
 
 import { memo, useMemo, useState } from "react";
 import { Streamdown } from "streamdown";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   MessageType,
   type InteractionMode,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import {
   MARKDOWN_COMPONENTS,

@@ -53,7 +53,7 @@ const REGISTRY_DOCUMENT = parseRegistryDocument({
 
 function createUploadMockClient(): Stigmer {
   return {
-    agentRun: {
+    run: {
       uploadAttachment: vi.fn().mockResolvedValue({ storageKey: "attachments/test/file" }),
     },
     environment: { getPersonal: vi.fn().mockResolvedValue(null) },

@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   useContextWindow,
   type ContextHealth,
@@ -13,7 +13,7 @@ export interface ContextGaugeProps {
    * The run snapshot from the active stream, or `null`.
    * The gauge extracts `context_info` from the run status.
    */
-  readonly run: AgentRun | null;
+  readonly run: Run | null;
 }
 
 const BAR_WIDTH = 20;

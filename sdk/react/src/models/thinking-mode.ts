@@ -1,4 +1,4 @@
-import { ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import type { ModelInfo } from "./registry.js";
 

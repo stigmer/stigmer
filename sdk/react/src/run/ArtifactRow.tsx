@@ -3,7 +3,7 @@
 // Session-model artifact list row: adapts an RunArtifact + its download
 // wiring onto the shared, data-model-agnostic ArtifactRowView.
 
-import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import { useMemo } from "react";
 import {
   fromRunArtifact,

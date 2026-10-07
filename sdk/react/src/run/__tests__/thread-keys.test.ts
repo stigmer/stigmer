@@ -1,27 +1,27 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+  RunSchema,
+  RunStatusSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 import {
   TodoItemSchema,
   type TodoItem,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/todo_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/todo_pb";
 import {
   RunPhase,
   MessageType,
   TodoStatus,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { buildThreadItems } from "../MessageThread";
 
 // ---------------------------------------------------------------------------
@@ -78,20 +78,20 @@ function makeExecution(opts: {
   messages?: ReturnType<typeof makeMessage>[];
   subAgents?: ReturnType<typeof makeSubAgent>[];
   todos?: { [id: string]: TodoItem };
-}): AgentRun {
-  const exec = create(AgentRunSchema);
+}): Run {
+  const exec = create(RunSchema);
 
   const meta = create(ApiResourceMetadataSchema);
   meta.id = opts.id;
   exec.metadata = meta;
 
   if (opts.specMessage) {
-    const spec = create(AgentRunSpecSchema);
+    const spec = create(RunSpecSchema);
     spec.message = opts.specMessage;
     exec.spec = spec;
   }
 
-  const status = create(AgentRunStatusSchema);
+  const status = create(RunStatusSchema);
   status.phase = opts.phase ?? RunPhase.RUN_COMPLETED;
   if (opts.messages) {
     status.messages = opts.messages;
@@ -416,8 +416,8 @@ describe("buildThreadItems key generation", () => {
   });
 
   it("falls back to index-based prefix when metadata.id is missing", () => {
-    const exec = create(AgentRunSchema);
-    const status = create(AgentRunStatusSchema);
+    const exec = create(RunSchema);
+    const status = create(RunStatusSchema);
     status.phase = RunPhase.RUN_COMPLETED;
     status.messages = [makeMessage(MessageType.MESSAGE_AI, "No metadata")];
     exec.status = status;

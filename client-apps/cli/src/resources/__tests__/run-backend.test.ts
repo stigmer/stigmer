@@ -10,11 +10,11 @@
 import { create } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
-import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { SubmitApprovalInput } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
-import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
+import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { SubmitApprovalInput } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { createNodeClient, normalizeEndpoint } from "@stigmer/sdk/node";
 import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Session } from "node:http2";
@@ -39,7 +39,7 @@ beforeEach(() => {
 });
 
 // An agent run carrying two messages for the agent log + trace views.
-const agentExec = create(AgentRunSchema, {
+const agentExec = create(RunSchema, {
   metadata: { id: "aex_1", name: "Reviewer" },
   status: {
     phase: RunPhase.RUN_COMPLETED,
@@ -53,20 +53,20 @@ const agentExec = create(AgentRunSchema, {
 });
 
 function controlResult(phase: RunPhase) {
-  return create(AgentRunSchema, { metadata: { id: "aex_1" }, status: { phase } });
+  return create(RunSchema, { metadata: { id: "aex_1" }, status: { phase } });
 }
 
 beforeAll(async () => {
   const routes = (router: ConnectRouter) => {
-    router.service(AgentRunQueryController, {
+    router.service(RunQueryController, {
       get: (req) =>
-        req.value === "aex_empty" ? create(AgentRunSchema, { metadata: { id: "aex_empty" }, status: {} }) : agentExec,
+        req.value === "aex_empty" ? create(RunSchema, { metadata: { id: "aex_empty" }, status: {} }) : agentExec,
       subscribe: async function* () {
-        yield create(AgentRunSchema, {
+        yield create(RunSchema, {
           metadata: { id: "aex_1" },
           status: { phase: RunPhase.RUN_IN_PROGRESS, messages: [{ type: MessageType.MESSAGE_AI, content: "thinking" }] },
         });
-        yield create(AgentRunSchema, {
+        yield create(RunSchema, {
           metadata: { id: "aex_1" },
           status: {
             phase: RunPhase.RUN_COMPLETED,
@@ -78,7 +78,7 @@ beforeAll(async () => {
         });
       },
     });
-    router.service(AgentRunCommandController, {
+    router.service(RunCommandController, {
       cancel: (req) => (agentControl.push({ verb: "cancel", id: req.id, reason: req.reason }), controlResult(RunPhase.RUN_CANCELLED)),
       terminate: (req) => (agentControl.push({ verb: "terminate", id: req.id, reason: req.reason }), controlResult(RunPhase.RUN_TERMINATED)),
       pause: (req) => (agentControl.push({ verb: "pause", id: req.id, reason: req.reason }), controlResult(RunPhase.RUN_PAUSED)),

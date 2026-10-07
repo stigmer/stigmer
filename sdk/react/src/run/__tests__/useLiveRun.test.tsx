@@ -10,25 +10,25 @@ vi.mock("../useRunStream", () => ({
 }));
 
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+  RunSchema,
+  RunStatusSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { StigmerError } from "@stigmer/sdk";
 import { useStigmer } from "../../hooks";
 import { useRunStream } from "../useRunStream";
-import { useLiveAgentRun } from "../useLiveAgentRun";
+import { useLiveRun } from "../useLiveRun";
 
 // ---------------------------------------------------------------------------
 // Fixtures
 // ---------------------------------------------------------------------------
 
-function executionFixture(id: string, phase: RunPhase): AgentRun {
-  const exec = create(AgentRunSchema);
+function executionFixture(id: string, phase: RunPhase): Run {
+  const exec = create(RunSchema);
   exec.metadata = create(ApiResourceMetadataSchema, { id });
-  exec.status = create(AgentRunStatusSchema, { phase });
+  exec.status = create(RunStatusSchema, { phase });
   return exec;
 }
 
@@ -51,9 +51,9 @@ function idleStream() {
 const mockUseStigmer = vi.mocked(useStigmer);
 const mockUseExecutionStream = vi.mocked(useRunStream);
 
-function mockGet(impl: (id: string) => Promise<AgentRun>) {
+function mockGet(impl: (id: string) => Promise<Run>) {
   mockUseStigmer.mockReturnValue({
-    agentRun: { get: vi.fn(impl) },
+    run: { get: vi.fn(impl) },
   } as unknown as ReturnType<typeof useStigmer>);
 }
 
@@ -66,12 +66,12 @@ beforeEach(() => {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("useLiveAgentRun", () => {
+describe("useLiveRun", () => {
   it("serves a terminal execution from get() alone and never subscribes", async () => {
     const terminal = executionFixture("aex_1", RunPhase.RUN_COMPLETED);
     mockGet(async () => terminal);
 
-    const { result } = renderHook(() => useLiveAgentRun("aex_1"));
+    const { result } = renderHook(() => useLiveRun("aex_1"));
 
     expect(result.current.isLoading).toBe(true);
     await waitFor(() => expect(result.current.run).toBe(terminal));
@@ -90,7 +90,7 @@ describe("useLiveAgentRun", () => {
     const running = executionFixture("aex_2", RunPhase.RUN_IN_PROGRESS);
     mockGet(async () => running);
 
-    const { result } = renderHook(() => useLiveAgentRun("aex_2"));
+    const { result } = renderHook(() => useLiveRun("aex_2"));
     await waitFor(() => expect(result.current.run).not.toBeNull());
 
     const lastCall =
@@ -108,7 +108,7 @@ describe("useLiveAgentRun", () => {
       isStreaming: true,
     });
 
-    const { result } = renderHook(() => useLiveAgentRun("aex_3"));
+    const { result } = renderHook(() => useLiveRun("aex_3"));
     await waitFor(() => expect(result.current.run).toBe(streamed));
     expect(result.current.isStreaming).toBe(true);
   });
@@ -120,7 +120,7 @@ describe("useLiveAgentRun", () => {
       throw new StigmerError("not-found", "execution not found", 5);
     });
 
-    const { result } = renderHook(() => useLiveAgentRun("aex_missing"));
+    const { result } = renderHook(() => useLiveRun("aex_missing"));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.run).toBeNull();
@@ -136,7 +136,7 @@ describe("useLiveAgentRun", () => {
       throw new StigmerError("internal", "boom", 13);
     });
 
-    const { result } = renderHook(() => useLiveAgentRun("aex_err"));
+    const { result } = renderHook(() => useLiveRun("aex_err"));
     await waitFor(() => expect(result.current.error).not.toBeNull());
     expect(result.current.error?.message).toContain("boom");
     expect(result.current.run).toBeNull();
@@ -151,7 +151,7 @@ describe("useLiveAgentRun", () => {
       error: streamError,
     });
 
-    const { result } = renderHook(() => useLiveAgentRun("aex_4"));
+    const { result } = renderHook(() => useLiveRun("aex_4"));
     // The stream error surfaces synchronously, but the fetched snapshot
     // arrives asynchronously — wait for both so the assertion cannot race
     // the in-flight fetch (the snapshot stays visible alongside the error).
@@ -165,7 +165,7 @@ describe("useLiveAgentRun", () => {
     const running = executionFixture("aex_5", RunPhase.RUN_IN_PROGRESS);
     const getFn = vi.fn(async () => running);
     mockUseStigmer.mockReturnValue({
-      agentRun: { get: getFn },
+      run: { get: getFn },
     } as unknown as ReturnType<typeof useStigmer>);
     const streamReconnect = vi.fn();
     mockUseExecutionStream.mockReturnValue({
@@ -173,7 +173,7 @@ describe("useLiveAgentRun", () => {
       reconnect: streamReconnect,
     });
 
-    const { result } = renderHook(() => useLiveAgentRun("aex_5"));
+    const { result } = renderHook(() => useLiveRun("aex_5"));
     await waitFor(() => expect(result.current.run).toBe(running));
 
     const callsBefore = getFn.mock.calls.length;
@@ -187,10 +187,10 @@ describe("useLiveAgentRun", () => {
   it("is a stable no-op for a null id", () => {
     const getFn = vi.fn();
     mockUseStigmer.mockReturnValue({
-      agentRun: { get: getFn },
+      run: { get: getFn },
     } as unknown as ReturnType<typeof useStigmer>);
 
-    const { result } = renderHook(() => useLiveAgentRun(null));
+    const { result } = renderHook(() => useLiveRun(null));
 
     expect(result.current.run).toBeNull();
     expect(result.current.isLoading).toBe(false);
@@ -205,13 +205,13 @@ describe("useLiveAgentRun", () => {
 // The { live } visibility gate
 // ---------------------------------------------------------------------------
 
-describe("useLiveAgentRun { live }", () => {
+describe("useLiveRun { live }", () => {
   it("live: false fetches the snapshot but never subscribes", async () => {
     const running = executionFixture("aex_p1", RunPhase.RUN_IN_PROGRESS);
     mockGet(async () => running);
 
     const { result } = renderHook(() =>
-      useLiveAgentRun("aex_p1", { live: false }),
+      useLiveRun("aex_p1", { live: false }),
     );
     await waitFor(() => expect(result.current.run).toBe(running));
 
@@ -226,7 +226,7 @@ describe("useLiveAgentRun { live }", () => {
     mockGet(async () => running);
 
     const { result } = renderHook(() =>
-      useLiveAgentRun("aex_p2", { live: true }),
+      useLiveRun("aex_p2", { live: true }),
     );
     await waitFor(() => expect(result.current.run).not.toBeNull());
 
@@ -240,7 +240,7 @@ describe("useLiveAgentRun { live }", () => {
     mockGet(async () => terminal);
 
     const { result } = renderHook(() =>
-      useLiveAgentRun("aex_p3", { live: true }),
+      useLiveRun("aex_p3", { live: true }),
     );
     await waitFor(() => expect(result.current.run).toBe(terminal));
 
@@ -255,7 +255,7 @@ describe("useLiveAgentRun { live }", () => {
 
     const { result, rerender } = renderHook(
       ({ live }: { live: boolean }) =>
-        useLiveAgentRun("aex_p4", { live }),
+        useLiveRun("aex_p4", { live }),
       { initialProps: { live: false } },
     );
     await waitFor(() => expect(result.current.run).toBe(running));
@@ -283,7 +283,7 @@ describe("useLiveAgentRun { live }", () => {
 
     const { result, rerender } = renderHook(
       ({ live }: { live: boolean }) =>
-        useLiveAgentRun("aex_p5", { live }),
+        useLiveRun("aex_p5", { live }),
       { initialProps: { live: true } },
     );
     await waitFor(() => expect(result.current.run).toBe(streamed));
@@ -310,7 +310,7 @@ describe("useLiveAgentRun { live }", () => {
     });
 
     const { result, rerender } = renderHook(
-      ({ id }: { id: string }) => useLiveAgentRun(id, { live: true }),
+      ({ id }: { id: string }) => useLiveRun(id, { live: true }),
       { initialProps: { id: "aex_p6a" } },
     );
     await waitFor(() => expect(result.current.run).toBe(streamedFirst));

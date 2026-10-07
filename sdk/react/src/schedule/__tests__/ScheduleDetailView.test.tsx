@@ -14,14 +14,14 @@ import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { ScheduleSchema, type Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import {
   ScheduleTriggerResultSchema,
-  ScheduleRunListSchema,
-  ScheduleRunSchema,
-  ScheduleRunOutcome,
-  ScheduleRunOrigin,
+  ScheduleFireListSchema,
+  ScheduleFireSchema,
+  ScheduleFireOutcome,
+  ScheduleFireOrigin,
 } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { ScheduleDetailView } from "../ScheduleDetailView";
@@ -126,13 +126,13 @@ function makeClient(schedule: Schedule): MockClient {
       // — a started run by default.
       trigger: vi.fn().mockResolvedValue(
         create(ScheduleTriggerResultSchema, {
-          outcome: ScheduleRunOutcome.STARTED,
+          outcome: ScheduleFireOutcome.STARTED,
           runId: "aex_01triggered",
           schedule,
         }),
       ),
       listRuns: vi.fn().mockResolvedValue(
-        create(ScheduleRunListSchema, { items: [], totalCount: 0 }),
+        create(ScheduleFireListSchema, { items: [], totalCount: 0 }),
       ),
       delete: vi.fn().mockResolvedValue(schedule),
     },
@@ -304,13 +304,13 @@ describe("ScheduleDetailView", () => {
   it("renders the run history from the fire ledger", async () => {
     const client = makeClient(makeSchedule());
     client.schedule.listRuns.mockResolvedValue(
-      create(ScheduleRunListSchema, {
+      create(ScheduleFireListSchema, {
         totalCount: 1,
         items: [
-          create(ScheduleRunSchema, {
+          create(ScheduleFireSchema, {
             scheduleId: "sch_01example",
-            origin: ScheduleRunOrigin.CRON,
-            outcome: ScheduleRunOutcome.REFUSED,
+            origin: ScheduleFireOrigin.CRON,
+            outcome: ScheduleFireOutcome.REFUSED,
             reason:
               "run refused: MCP server 'isc-gym' requires environment variable 'ISC_MCP_SHARED_SECRET'",
             nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 60_000)),
@@ -346,13 +346,13 @@ describe("ScheduleDetailView", () => {
     const onNavigateToRun = vi.fn();
     const client = makeClient(makeSchedule({ lastRunId: "aex_01last" }));
     client.schedule.listRuns.mockResolvedValue(
-      create(ScheduleRunListSchema, {
+      create(ScheduleFireListSchema, {
         totalCount: 1,
         items: [
-          create(ScheduleRunSchema, {
+          create(ScheduleFireSchema, {
             scheduleId: "sch_01example",
-            origin: ScheduleRunOrigin.MANUAL,
-            outcome: ScheduleRunOutcome.COMPLETED,
+            origin: ScheduleFireOrigin.MANUAL,
+            outcome: ScheduleFireOutcome.COMPLETED,
             runId: "aex_01ledger",
             nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 60_000)),
           }),
@@ -472,13 +472,13 @@ describe("ScheduleDetailView", () => {
   it("splits into Overview and Runs tabs, with the run count as badge", async () => {
     const client = makeClient(makeSchedule());
     client.schedule.listRuns.mockResolvedValue(
-      create(ScheduleRunListSchema, {
+      create(ScheduleFireListSchema, {
         totalCount: 12,
         items: [
-          create(ScheduleRunSchema, {
+          create(ScheduleFireSchema, {
             scheduleId: "sch_01example",
-            origin: ScheduleRunOrigin.CRON,
-            outcome: ScheduleRunOutcome.COMPLETED,
+            origin: ScheduleFireOrigin.CRON,
+            outcome: ScheduleFireOutcome.COMPLETED,
             nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 60_000)),
           }),
         ],
@@ -504,15 +504,15 @@ describe("ScheduleDetailView", () => {
     const client = makeClient(makeSchedule());
     client.schedule.listRuns.mockImplementation(
       async (req: { pageInfo?: { num: number; size: number } }) =>
-        create(ScheduleRunListSchema, {
+        create(ScheduleFireListSchema, {
           totalCount: 30,
           items: Array.from(
             { length: Math.min(req.pageInfo?.size ?? 25, 30) },
             (_, i) =>
-              create(ScheduleRunSchema, {
+              create(ScheduleFireSchema, {
                 scheduleId: "sch_01example",
-                origin: ScheduleRunOrigin.CRON,
-                outcome: ScheduleRunOutcome.COMPLETED,
+                origin: ScheduleFireOrigin.CRON,
+                outcome: ScheduleFireOutcome.COMPLETED,
                 nominalFireTime: timestampFromDate(
                   new Date(NOW.getTime() - (i + 1) * 60_000),
                 ),
@@ -541,15 +541,15 @@ describe("ScheduleDetailView", () => {
     const client = makeClient(makeSchedule());
     client.schedule.listRuns.mockImplementation(
       async (req: { pageInfo?: { num: number; size: number } }) =>
-        create(ScheduleRunListSchema, {
+        create(ScheduleFireListSchema, {
           totalCount: 12,
           items: Array.from(
             { length: Math.min(req.pageInfo?.size ?? 25, 12) },
             (_, i) =>
-              create(ScheduleRunSchema, {
+              create(ScheduleFireSchema, {
                 scheduleId: "sch_01example",
-                origin: ScheduleRunOrigin.CRON,
-                outcome: ScheduleRunOutcome.COMPLETED,
+                origin: ScheduleFireOrigin.CRON,
+                outcome: ScheduleFireOutcome.COMPLETED,
                 nominalFireTime: timestampFromDate(
                   new Date(NOW.getTime() - (i + 1) * 60_000),
                 ),

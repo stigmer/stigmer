@@ -12,12 +12,12 @@ import { useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AlertTriangle, FileQuestion, RotateCcw } from "lucide-react";
 import { getUserMessage } from "@stigmer/sdk";
-import { useResolveAgentRunSession } from "@stigmer/react";
+import { useResolveRunSession } from "@stigmer/react";
 
 export default function RunPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { sessionId, isLoading, error, refetch } = useResolveAgentRunSession(id ?? null);
+  const { sessionId, isLoading, error, refetch } = useResolveRunSession(id ?? null);
 
   useEffect(() => {
     if (sessionId) {

@@ -40,7 +40,7 @@ let executionCreate: ReturnType<typeof vi.fn>;
 function client(): Stigmer {
   return {
     session: { get: sessionGet, update: sessionUpdate },
-    agentRun: {
+    run: {
       listBySession: vi.fn().mockResolvedValue({ entries: [] }),
       create: executionCreate,
       subscribe: vi.fn(),

@@ -5,10 +5,10 @@
 // client double that records what it was asked.
 
 import { create, isMessage, type Message } from "@bufbuild/protobuf";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { AgentRunListSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
-import type { ListAgentRunsRequest } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunListSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import type { ListRunsRequest } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { describe, expect, it } from "vitest";
 import {
@@ -49,10 +49,10 @@ describe("isRunAlias", () => {
 });
 
 describe("renderRunList", () => {
-  const list = create(AgentRunListSchema, {
+  const list = create(RunListSchema, {
     totalPages: 1,
     entries: [
-      create(AgentRunSchema, {
+      create(RunSchema, {
         metadata: { id: "aex_1" },
         status: {
           agentId: "agt_1",
@@ -61,10 +61,10 @@ describe("renderRunList", () => {
         },
       }),
       // Nothing recorded yet: every unset column is a dash.
-      create(AgentRunSchema, { metadata: { id: "aex_2" } }),
+      create(RunSchema, { metadata: { id: "aex_2" } }),
     ],
   });
-  const result = { schema: AgentRunListSchema, message: list };
+  const result = { schema: RunListSchema, message: list };
 
   it("renders the full list envelope as protojson for json", () => {
     const json = JSON.parse(renderRunList(result, "json"));
@@ -87,19 +87,19 @@ describe("renderRunList", () => {
 /** Two list pages, recording each request. */
 function listingClient(): {
   client: Stigmer;
-  agentRequests: ListAgentRunsRequest[];
+  agentRequests: ListRunsRequest[];
 } {
-  const agentRequests: ListAgentRunsRequest[] = [];
+  const agentRequests: ListRunsRequest[] = [];
   const page = <T>(entries: T[], token: string) => ({ entries, nextPageToken: token });
   const client = {
-    agentRun: {
-      list: async (req: ListAgentRunsRequest) => {
+    run: {
+      list: async (req: ListRunsRequest) => {
         agentRequests.push(req);
         return req.pageToken === ""
-          ? page([create(AgentRunSchema, { metadata: { id: "aex_1" } })], "p2")
-          : page([create(AgentRunSchema, { metadata: { id: "aex_2" } })], "");
+          ? page([create(RunSchema, { metadata: { id: "aex_1" } })], "p2")
+          : page([create(RunSchema, { metadata: { id: "aex_2" } })], "");
       },
-      get: async (id: string) => create(AgentRunSchema, { metadata: { id } }),
+      get: async (id: string) => create(RunSchema, { metadata: { id } }),
     },
   } as unknown as Stigmer;
   return { client, agentRequests };
@@ -107,8 +107,8 @@ function listingClient(): {
 
 /** The run ids a run read or list result holds, in order. */
 function runIds(message: Message): string[] {
-  if (isMessage(message, AgentRunListSchema)) return message.entries.map((e) => e.metadata?.id ?? "");
-  if (isMessage(message, AgentRunSchema)) return [message.metadata?.id ?? ""];
+  if (isMessage(message, RunListSchema)) return message.entries.map((e) => e.metadata?.id ?? "");
+  if (isMessage(message, RunSchema)) return [message.metadata?.id ?? ""];
   throw new Error(`not a run message: ${message.$typeName}`);
 }
 
@@ -116,7 +116,7 @@ describe("getRun", () => {
   it("reads a run through the agent-run controller, with its schema", async () => {
     const { client } = listingClient();
     const result = await getRun(client, "aex_9");
-    expect(result.schema).toBe(AgentRunSchema);
+    expect(result.schema).toBe(RunSchema);
     expect(runIds(result.message)).toEqual(["aex_9"]);
   });
 });
@@ -125,7 +125,7 @@ describe("listAgentRuns", () => {
   it("reads agent run pages until the limit, scoped to the organization", async () => {
     const { client, agentRequests } = listingClient();
     const result = await listAgentRuns(client, 2, "acme");
-    expect(result.schema).toBe(AgentRunListSchema);
+    expect(result.schema).toBe(RunListSchema);
     expect(runIds(result.message)).toEqual(["aex_1", "aex_2"]);
     expect(agentRequests.map((r) => [r.pageSize, r.pageToken, r.org])).toEqual([
       [2, "", "acme"],

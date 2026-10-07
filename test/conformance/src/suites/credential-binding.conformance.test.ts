@@ -534,7 +534,7 @@ describe("credential binding — a credential that names an organization works t
       }),
     );
 
-    const agentRun = await expectGrpcCode(
+    const run = await expectGrpcCode(
       () =>
         key.clients.agentExecutionCommand.create(
           makeAgentExecution({
@@ -547,7 +547,7 @@ describe("credential binding — a credential that names an organization works t
       Code.PermissionDenied,
       "file an agent run in B through a key limited to A",
     );
-    expect(agentRun.rawMessage).toBe(BOUND_ELSEWHERE_MESSAGE);
+    expect(run.rawMessage).toBe(BOUND_ELSEWHERE_MESSAGE);
 
     const connect = await expectGrpcCode(
       () =>

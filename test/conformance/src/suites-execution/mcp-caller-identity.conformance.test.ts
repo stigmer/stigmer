@@ -26,7 +26,7 @@
 // real minted user; on an unconfigured local OSS server it is the "system"
 // sentinel — both are correct outcomes of one contract, so the same assertion
 // pins both editions without a capability flag.
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import type { CapturedMcpRequest, McpToolFixture } from "../harness/mcp-server";

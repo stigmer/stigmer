@@ -5,37 +5,37 @@
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+  RunSchema,
+  RunStatusSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,
   type AgentMessage,
   type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   SubAgentRunSchema,
   type SubAgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
-import { TodoItemSchema, type TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/todo_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
+import { TodoItemSchema, type TodoItem } from "@stigmer/protos/ai/stigmer/agentic/run/v1/todo_pb";
 import {
   PendingApprovalSchema,
   type PendingApproval,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
 import {
   ContextInfoSchema,
   SummarizationEventSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/context_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/context_pb";
 import {
   RunPhase,
   MessageType,
   SubAgentStatus,
   ToolCallStatus,
   TodoStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SnapshotDiffer } from "../diff.js";
 import type { StreamEvent } from "../events.js";
 
@@ -52,7 +52,7 @@ interface SnapshotOpts {
   error?: string;
 }
 
-function snapshot(opts: SnapshotOpts): AgentRun {
+function snapshot(opts: SnapshotOpts): Run {
   const contextInfo =
     opts.summarizations !== undefined
       ? create(ContextInfoSchema, {
@@ -65,9 +65,9 @@ function snapshot(opts: SnapshotOpts): AgentRun {
         })
       : undefined;
 
-  return create(AgentRunSchema, {
-    spec: create(AgentRunSpecSchema, { message: opts.message ?? "" }),
-    status: create(AgentRunStatusSchema, {
+  return create(RunSchema, {
+    spec: create(RunSpecSchema, { message: opts.message ?? "" }),
+    status: create(RunStatusSchema, {
       phase: opts.phase ?? RunPhase.RUN_IN_PROGRESS,
       messages: opts.messages ?? [],
       subAgentRuns: opts.subAgents ?? [],
@@ -129,7 +129,7 @@ function approval(toolCallId: string, toolName: string, message: string): Pendin
 }
 
 // Drive a snapshot sequence through one differ; return flattened event kinds.
-function kindsFor(snapshots: AgentRun[]): string[] {
+function kindsFor(snapshots: Run[]): string[] {
   const differ = new SnapshotDiffer();
   const out: string[] = [];
   for (const s of snapshots) out.push(...differ.next(s).map((e) => e.kind));
@@ -137,7 +137,7 @@ function kindsFor(snapshots: AgentRun[]): string[] {
 }
 
 // Drive a sequence and return the full event objects.
-function eventsFor(snapshots: AgentRun[]): StreamEvent[] {
+function eventsFor(snapshots: Run[]): StreamEvent[] {
   const differ = new SnapshotDiffer();
   const out: StreamEvent[] = [];
   for (const s of snapshots) out.push(...differ.next(s));

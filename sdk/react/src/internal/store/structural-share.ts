@@ -1,8 +1,8 @@
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 
 /**
  * Compares two `AgentRun` snapshots and returns a hybrid object
@@ -15,9 +15,9 @@ import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/me
  * When `prev` is `null` (first snapshot), returns `next` unchanged.
  */
 export function structuralShare(
-  prev: AgentRun | null,
-  next: AgentRun,
-): AgentRun {
+  prev: Run | null,
+  next: Run,
+): Run {
   if (prev === null) return next;
 
   const prevStatus = prev.status;

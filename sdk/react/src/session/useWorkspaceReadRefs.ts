@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { WorkspaceEntry } from "../workspace/useWorkspaceEntries.js";
 
 /**
@@ -46,7 +46,7 @@ import type { WorkspaceEntry } from "../workspace/useWorkspaceEntries.js";
  * @see WorkspaceEntry.readRef — the field this hook populates
  */
 export function useWorkspaceReadRefs(
-  executions: readonly AgentRun[],
+  executions: readonly Run[],
   entries: readonly WorkspaceEntry[],
 ): readonly WorkspaceEntry[] {
   // Cheap per-render pass; memoizing on `executions` would defeat the point —
@@ -78,7 +78,7 @@ export function useWorkspaceReadRefs(
 
 /** Latest non-empty write-back commit SHA per workspace entry name. */
 function collectLatestShas(
-  executions: readonly AgentRun[],
+  executions: readonly Run[],
 ): Map<string, string> {
   const refByName = new Map<string, string>();
   for (const execution of executions) {

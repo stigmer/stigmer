@@ -17,28 +17,28 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+  RunSchema,
+  RunStatusSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,
   FileContentSchema,
   type AgentMessage,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   SubAgentRunSchema,
   type SubAgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
   FileDecisionSchema,
   type FileChangeSet,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   DiffCompleteness,
   RunPhase,
@@ -49,7 +49,7 @@ import {
   MessageType,
   SubAgentStatus,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SubAgentSection } from "../SubAgentSection";
 import { ApprovalContext, type ApprovalContextValue } from "../ApprovalContext";
 import { FileReviewContext } from "../FileReviewContext";
@@ -232,12 +232,12 @@ describe("sub-agent row badges (MessageThread integration)", () => {
    * id) and the change set on `status.fileChangeSets`; the sub-agent (running,
    * so its card auto-opens) carries the stamped edit row.
    */
-  function makeExecWithSubAgentEdit(): AgentRun {
-    const exec = create(AgentRunSchema);
+  function makeExecWithSubAgentEdit(): Run {
+    const exec = create(RunSchema);
     exec.metadata = create(ApiResourceMetadataSchema, { id: "exec-1" });
-    exec.spec = create(AgentRunSpecSchema, { message: "Delegate an edit" });
+    exec.spec = create(RunSpecSchema, { message: "Delegate an edit" });
 
-    const status = create(AgentRunStatusSchema);
+    const status = create(RunStatusSchema);
     status.phase = RunPhase.RUN_IN_PROGRESS;
     const aiMsg: AgentMessage = create(AgentMessageSchema, {
       type: MessageType.MESSAGE_AI,

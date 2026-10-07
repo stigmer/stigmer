@@ -4,7 +4,7 @@
 // which keeps an explanatory prefix when the message has one, replaces a bare
 // raw error with the run-logs pointer, and leaves ordinary text untouched.
 
-import { SummarizationSource } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { SummarizationSource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { describe, expect, it } from "vitest";
 import { isApprovalNoiseMessage, mapSummarizationSource, sanitizeSystemContent } from "../convert.js";
 

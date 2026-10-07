@@ -18,7 +18,7 @@
 // multi-entry / absolute paths degrade to "no match" (never a wrong match),
 // the same honesty as `resolveWorkspaceFileSelection`. One resolver, one truth.
 
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { SelectedWorkspaceFile } from "../internal/store/workspace-file-selection-store.js";
 import { resolveWorkspaceFileSelection } from "./resolveWorkspaceFileSelection.js";
 import type { WorkspaceEntry } from "./useWorkspaceEntries.js";

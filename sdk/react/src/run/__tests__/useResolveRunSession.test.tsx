@@ -12,10 +12,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { AgentRunSpec } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+  RunSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { RunSpec } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { StigmerError } from "@stigmer/sdk";
 
@@ -24,22 +24,22 @@ vi.mock("../../hooks", () => ({
 }));
 
 import { useStigmer } from "../../hooks";
-import { useResolveAgentRunSession } from "../useResolveAgentRunSession";
+import { useResolveRunSession } from "../useResolveRunSession";
 
-function turn(target: AgentRunSpec["target"]): AgentRun {
-  return create(AgentRunSchema, {
+function turn(target: RunSpec["target"]): Run {
+  return create(RunSchema, {
     metadata: { id: "aex_1" },
     spec: { target, message: "go" },
   });
 }
 
-describe("useResolveAgentRunSession", () => {
-  const mockGet = vi.fn<(id: string) => Promise<AgentRun>>();
+describe("useResolveRunSession", () => {
+  const mockGet = vi.fn<(id: string) => Promise<Run>>();
 
   beforeEach(() => {
     mockGet.mockReset();
     (useStigmer as ReturnType<typeof vi.fn>).mockReturnValue({
-      agentRun: { get: mockGet },
+      run: { get: mockGet },
     });
   });
 
@@ -47,7 +47,7 @@ describe("useResolveAgentRunSession", () => {
     mockGet.mockResolvedValue(turn({ case: "sessionId", value: "ses_42" }));
 
     const { result } = renderHook(() =>
-      useResolveAgentRunSession("aex_1"),
+      useResolveRunSession("aex_1"),
     );
 
     await waitFor(() => expect(result.current.sessionId).toBe("ses_42"));
@@ -66,7 +66,7 @@ describe("useResolveAgentRunSession", () => {
     );
 
     const { result } = renderHook(() =>
-      useResolveAgentRunSession("aex_1"),
+      useResolveRunSession("aex_1"),
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -81,7 +81,7 @@ describe("useResolveAgentRunSession", () => {
   ] as const)("resolves no session, and no error, for a run the server answers %s", async (code, connectCode) => {
     mockGet.mockRejectedValue(new StigmerError(code, "no such run", connectCode));
 
-    const { result } = renderHook(() => useResolveAgentRunSession("aex_gone"));
+    const { result } = renderHook(() => useResolveRunSession("aex_gone"));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.sessionId).toBeNull();
@@ -92,7 +92,7 @@ describe("useResolveAgentRunSession", () => {
     mockGet.mockRejectedValueOnce(new StigmerError("unavailable", "connection refused", 14));
     mockGet.mockResolvedValueOnce(turn({ case: "sessionId", value: "ses_7" }));
 
-    const { result } = renderHook(() => useResolveAgentRunSession("aex_1"));
+    const { result } = renderHook(() => useResolveRunSession("aex_1"));
 
     await waitFor(() => expect(result.current.error).not.toBeNull());
     expect(result.current.sessionId).toBeNull();
@@ -105,7 +105,7 @@ describe("useResolveAgentRunSession", () => {
   });
 
   it("fetches nothing for a null id", () => {
-    const { result } = renderHook(() => useResolveAgentRunSession(null));
+    const { result } = renderHook(() => useResolveRunSession(null));
 
     expect(result.current.sessionId).toBeNull();
     expect(mockGet).not.toHaveBeenCalled();

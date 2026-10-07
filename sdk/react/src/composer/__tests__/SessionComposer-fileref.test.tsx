@@ -13,7 +13,7 @@ import { FILE_REF_MIME } from "../../internal/file-tree";
 
 function createMinimalStigmerMock(): Stigmer {
   return {
-    agentRun: { uploadAttachment: vi.fn() },
+    run: { uploadAttachment: vi.fn() },
     environment: { getPersonal: vi.fn().mockResolvedValue(null) },
     baseUrl: "http://localhost:8080",
     getAuthCredential: vi.fn().mockResolvedValue("test-token"),

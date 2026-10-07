@@ -19,8 +19,8 @@
 // is this server's answer (the agent's own description, a marker no other
 // source holds); a second run in the same session starts the stdio server
 // again and reads through it the same way.
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
@@ -118,7 +118,7 @@ function scriptRead(agent: StdioAgent, toolCallId: string): void {
   mock.enqueue(anthropicText(`The agent's description is ${agent.description}.`));
 }
 
-async function runRead(agent: StdioAgent): Promise<AgentRun> {
+async function runRead(agent: StdioAgent): Promise<Run> {
   const run = await clients.agentExecutionCommand.create(
     makeAgentExecution({
       org: agent.org,
@@ -140,7 +140,7 @@ async function runRead(agent: StdioAgent): Promise<AgentRun> {
 }
 
 // The run's get_agent ToolCall, or a named failure.
-function readCall(final: AgentRun) {
+function readCall(final: Run) {
   const call = allToolCalls(final).find((tc) => tc.name === STDIO_READ_TOOL);
   if (call === undefined) {
     throw new Error(

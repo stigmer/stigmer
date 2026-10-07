@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { SurfaceRailView } from "../workspace/WorkspaceSurface.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 import { useSessionWriteBacks } from "./useSessionWriteBacks.js";
@@ -17,7 +17,7 @@ import { UsageTab } from "./facets/UsageTab.js";
 /** Options for {@link useSessionRailViews}. */
 export interface UseSessionRailViewsOptions {
   /** All runs in the session — drives Changes/Artifacts/Usage. */
-  readonly allRuns: readonly AgentRun[];
+  readonly allRuns: readonly Run[];
   /** Organization id for artifact Apply CTA (a slug is also accepted). */
   readonly org: string;
   /** Session configuration for the Config facet. */

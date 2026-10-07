@@ -13,11 +13,11 @@ const asked = vi.hoisted(() => ({
   agentLoading: false,
 }));
 
-vi.mock("../useAgentRunSummary.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../useAgentRunSummary.js")>();
+vi.mock("../useRunSummary.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../useRunSummary.js")>();
   return {
     ...actual,
-    useAgentRunSummary: (options: { org: unknown }) => {
+    useRunSummary: (options: { org: unknown }) => {
       asked.agent.push(options.org);
       return { summary: null, isLoading: asked.agentLoading, error: null, refetch: () => {} };
     },

@@ -2,25 +2,25 @@
 
 import { create } from "@bufbuild/protobuf";
 import {
-  ListScheduleRunsRequestSchema,
-  type ScheduleRun,
+  ListScheduleFiresRequestSchema,
+  type ScheduleFire,
 } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 
-/** Options for {@link useScheduleRuns}. */
-export interface UseScheduleRunsOptions {
-  /** Maximum runs per page. @default 25 */
+/** Options for {@link useScheduleFires}. */
+export interface UseScheduleFiresOptions {
+  /** Maximum fires per page. @default 25 */
   readonly pageSize?: number;
   /** Page number (1-indexed). @default 1 */
   readonly page?: number;
 }
 
-/** Return value of {@link useScheduleRuns}. */
-export interface UseScheduleRunsReturn {
+/** Return value of {@link useScheduleFires}. */
+export interface UseScheduleFiresReturn {
   /** Recorded fires for the current page, newest first. */
-  readonly runs: readonly ScheduleRun[];
-  /** Total number of recorded runs for the schedule. */
+  readonly fires: readonly ScheduleFire[];
+  /** Total number of recorded fires for the schedule. */
   readonly totalCount: number;
   /** `true` while the initial fetch is in flight. */
   readonly isLoading: boolean;
@@ -32,22 +32,22 @@ export interface UseScheduleRunsReturn {
   readonly refetch: () => void;
 }
 
-interface RunsPage {
-  readonly runs: readonly ScheduleRun[];
+interface FiresPage {
+  readonly fires: readonly ScheduleFire[];
   readonly totalCount: number;
 }
 
-const INITIAL_PAGE: RunsPage = { runs: [], totalCount: 0 };
+const INITIAL_PAGE: FiresPage = { fires: [], totalCount: 0 };
 
 /**
- * Data hook that fetches a schedule's run history, newest first — the
+ * Data hook that fetches a schedule's fire history, newest first — the
  * fire ledger.
  *
  * Every fire leaves a row, INCLUDING the fires that created no run
  * (a refused launch gate, a missing target agent), carrying the refusing
  * gate's copy verbatim. This is the surface that finally explains
  * `status.consecutive_failures`: the reason is one row away instead of
- * buried in server logs. Rows for in-flight runs are enriched server-side
+ * buried in server logs. Rows for in-flight fires are enriched server-side
  * with the run's live phase, so outcomes never lie.
  *
  * Pass `null` as `scheduleId` to skip fetching (stable no-op) — the
@@ -55,27 +55,27 @@ const INITIAL_PAGE: RunsPage = { runs: [], totalCount: 0 };
  *
  * @example
  * ```tsx
- * const { runs, totalCount, isLoading } = useScheduleRuns(schedule?.metadata?.id ?? null);
+ * const { fires, totalCount, isLoading } = useScheduleFires(schedule?.metadata?.id ?? null);
  * ```
  */
-export function useScheduleRuns(
+export function useScheduleFires(
   scheduleId: string | null,
-  options?: UseScheduleRunsOptions,
-): UseScheduleRunsReturn {
+  options?: UseScheduleFiresOptions,
+): UseScheduleFiresReturn {
   const stigmer = useStigmer();
   const pageSize = options?.pageSize ?? 25;
   const page = options?.page ?? 1;
 
-  const { data, isLoading, isRefetching, error, refetch } = useFetch<RunsPage>(
+  const { data, isLoading, isRefetching, error, refetch } = useFetch<FiresPage>(
     scheduleId
       ? async () => {
-          const result = await stigmer.schedule.listRuns(
-            create(ListScheduleRunsRequestSchema, {
+          const result = await stigmer.schedule.listFires(
+            create(ListScheduleFiresRequestSchema, {
               scheduleId,
               pageInfo: { num: page, size: pageSize },
             }),
           );
-          return { runs: result.items, totalCount: result.totalCount };
+          return { fires: result.items, totalCount: result.totalCount };
         }
       : null,
     [stigmer, scheduleId, page, pageSize],
@@ -83,7 +83,7 @@ export function useScheduleRuns(
   );
 
   return {
-    runs: data.runs,
+    fires: data.fires,
     totalCount: data.totalCount,
     isLoading,
     isRefetching,

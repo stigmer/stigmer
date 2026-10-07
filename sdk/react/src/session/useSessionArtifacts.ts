@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { isTerminalPhase } from "../run/run-phases.js";
 
 /**
@@ -100,7 +100,7 @@ export function artifactKey(artifact: RunArtifact): string {
  * @see ArtifactsWidget — styled component that renders this data
  */
 export function useSessionArtifacts(
-  executions: readonly AgentRun[],
+  executions: readonly Run[],
 ): UseSessionArtifactsReturn {
   return useMemo(() => {
     const entryMap = new Map<string, SessionArtifactEntry>();

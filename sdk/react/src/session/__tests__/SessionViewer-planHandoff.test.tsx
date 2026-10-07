@@ -17,12 +17,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, act, fireEvent, waitFor } from "@testing-library/react";
 import { useImperativeHandle, type ReactElement, type Ref } from "react";
 import { create } from "@bufbuild/protobuf";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import {
   RunArtifactKind,
   RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { SessionComposerHandle } from "../../composer";
 import type { SessionPlan } from "../../library/detect-plan-artifact";
 import { PLAN_DOCUMENT_ENTRY_ID } from "../plan-document";
@@ -62,7 +62,7 @@ vi.mock("../../composer", async (importOriginal) => {
 });
 
 const client = vi.hoisted(() => ({
-  agentRun: {
+  run: {
     uploadAttachment: vi.fn(),
     getArtifactContent: vi.fn(),
   },
@@ -83,7 +83,7 @@ function planArtifact(runId: string) {
 }
 
 function completedRun(id: string, withPlan: boolean) {
-  return create(AgentRunSchema, {
+  return create(RunSchema, {
     metadata: { id },
     status: {
       phase: RunPhase.RUN_COMPLETED,
@@ -228,22 +228,22 @@ describe("SessionViewer — Open plan picks the plan tab's plan", () => {
 
 describe("SessionViewer — Build from plan attaches the approved plan", () => {
   it("reads the latest plan, uploads it, and submits the build turn with it mounted", async () => {
-    client.agentRun.getArtifactContent.mockResolvedValue({
+    client.run.getArtifactContent.mockResolvedValue({
       content: new TextEncoder().encode("# Plan\n\n1. Do it\n"),
       contentType: "text/markdown",
       truncated: false,
     });
-    client.agentRun.uploadAttachment.mockResolvedValue({ storageKey: "uploads/approved-plan.md" });
+    client.run.uploadAttachment.mockResolvedValue({ storageKey: "uploads/approved-plan.md" });
     render(<SessionViewer sessionId="ses_1" org="acme" />);
 
     act(() => (lastThread().onBuildFromPlan as () => void)());
 
     await waitFor(() => expect(composerSubmit).toHaveBeenCalledOnce());
-    expect(client.agentRun.getArtifactContent.mock.calls[0]![0]).toMatchObject({
+    expect(client.run.getArtifactContent.mock.calls[0]![0]).toMatchObject({
       runId: "aex_latest",
       storageKey: "artifacts/aex_latest/plan.md",
     });
-    const upload = client.agentRun.uploadAttachment.mock.calls[0]![0] as {
+    const upload = client.run.uploadAttachment.mock.calls[0]![0] as {
       filename: string;
       content: Uint8Array;
       contentType: string;
@@ -266,7 +266,7 @@ describe("SessionViewer — Build from plan attaches the approved plan", () => {
   });
 
   it("builds without an attachment and says so when the plan read is truncated", async () => {
-    client.agentRun.getArtifactContent.mockResolvedValue({
+    client.run.getArtifactContent.mockResolvedValue({
       content: new Uint8Array(),
       contentType: "text/markdown",
       truncated: true,
@@ -276,7 +276,7 @@ describe("SessionViewer — Build from plan attaches the approved plan", () => {
     act(() => (lastThread().onBuildFromPlan as () => void)());
 
     await waitFor(() => expect(composerSubmit).toHaveBeenCalledOnce());
-    expect(client.agentRun.uploadAttachment).not.toHaveBeenCalled();
+    expect(client.run.uploadAttachment).not.toHaveBeenCalled();
     expect(composerSubmit).toHaveBeenCalledWith("Build from plan", {
       interactionMode: "agent",
       buildFromPlan: true,

@@ -1,16 +1,16 @@
 "use client";
 
 import { useCallback, useMemo, useRef } from "react";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { isNotFound } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 import { isTerminalPhase } from "./run-phases.js";
 import { useRunStream } from "./useRunStream.js";
 
-/** Options for {@link useLiveAgentRun}. */
-export interface UseLiveAgentRunOptions {
+/** Options for {@link useLiveRun}. */
+export interface UseLiveRunOptions {
   /**
    * Whether the live stream may be open. Defaults to `true`.
    *
@@ -26,14 +26,14 @@ export interface UseLiveAgentRunOptions {
   readonly live?: boolean;
 }
 
-/** Return value of {@link useLiveAgentRun}. */
-export interface UseLiveAgentRunReturn {
+/** Return value of {@link useLiveRun}. */
+export interface UseLiveRunReturn {
   /**
    * The freshest run snapshot available: the live stream's while
    * streaming, the fetched one otherwise. `null` while loading or when the
    * run does not exist.
    */
-  readonly run: AgentRun | null;
+  readonly run: Run | null;
   /**
    * Convenience extraction of `execution.status.phase`; returns
    * `RUN_PHASE_UNSPECIFIED` when `execution` is `null`.
@@ -68,7 +68,7 @@ export interface UseLiveAgentRunReturn {
  * This is the single-execution analog of the session's canonical
  * composition (`useSessionRuns` GET for history + `useRunStream`
  * for the active turn): a terminal run is served entirely by one
- * `agentRun.get()` — never a subscription — while a running one layers
+ * `run.get()` — never a subscription — while a running one layers
  * the streaming pipeline on top of the fetched snapshot.
  *
  * - The snapshot fetch is cached (`agent-execution:<id>`), so a
@@ -82,17 +82,17 @@ export interface UseLiveAgentRunReturn {
  *
  * Pass `null` to skip entirely (stable no-op).
  */
-export function useLiveAgentRun(
+export function useLiveRun(
   executionId: string | null,
-  options?: UseLiveAgentRunOptions,
-): UseLiveAgentRunReturn {
+  options?: UseLiveRunOptions,
+): UseLiveRunReturn {
   const stigmer = useStigmer();
   const live = options?.live ?? true;
 
   const fetchFn = executionId
     ? async () => {
         try {
-          return await stigmer.agentRun.get(executionId);
+          return await stigmer.run.get(executionId);
         } catch (err) {
           if (isNotFound(err)) return null;
           throw err;
@@ -128,7 +128,7 @@ export function useLiveAgentRun(
   // id so a run switch never leaks the previous one's snapshot.
   const lastStreamedRef = useRef<{
     id: string;
-    execution: AgentRun;
+    execution: Run;
   } | null>(null);
   if (executionId && stream.run) {
     lastStreamedRef.current = { id: executionId, execution: stream.run };

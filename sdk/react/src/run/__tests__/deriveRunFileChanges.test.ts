@@ -1,15 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+  RunSchema,
+  RunStatusSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   FileChangeSchema,
   FileContentSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
@@ -18,7 +18,7 @@ import {
   FileReviewEventSchema,
   FileReviewEventStreamSchema,
   type CapturedFileChange,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   RunPhase,
   FileChangeCaptureLevel,
@@ -26,7 +26,7 @@ import {
   FileChangeSetStatus,
   FileChangeType,
   FileReviewEventType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   deriveRunFileChanges,
   toFileDiffEntry,
@@ -63,10 +63,10 @@ function captured(opts: {
   });
 }
 
-function execWith(id: string): AgentRun {
-  const exec = create(AgentRunSchema);
+function execWith(id: string): Run {
+  const exec = create(RunSchema);
   exec.metadata = create(ApiResourceMetadataSchema, { id });
-  exec.status = create(AgentRunStatusSchema);
+  exec.status = create(RunStatusSchema);
   return exec;
 }
 
@@ -74,7 +74,7 @@ function execWith(id: string): AgentRun {
 function execWithProjection(
   id: string,
   changes: CapturedFileChange[],
-): AgentRun {
+): Run {
   const exec = execWith(id);
   exec.status!.fileChangeSets = [
     create(FileChangeSetSchema, {
@@ -90,7 +90,7 @@ function execWithProjection(
 function execWithLedger(
   id: string,
   changes: CapturedFileChange[],
-): AgentRun {
+): Run {
   const exec = execWith(id);
   exec.status!.phase = RunPhase.RUN_COMPLETED;
   exec.status!.fileChangeSets = [];

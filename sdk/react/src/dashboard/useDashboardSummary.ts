@@ -1,13 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { useOrgUsageReport } from "../usage/useOrgUsageReport.js";
 import { dateRangeFromPreset } from "../usage/date-range.js";
 import {
-  useAgentRunSummary,
-  AgentRunSummaryTimeWindow,
-} from "./useAgentRunSummary.js";
+  useRunSummary,
+  RunSummaryTimeWindow,
+} from "./useRunSummary.js";
 import type { DashboardSummary } from "./types.js";
 
 /** Options for {@link useDashboardSummary}. */
@@ -42,9 +42,9 @@ export function useDashboardSummary(
   const refetchInterval = options.refetchInterval ?? 60_000;
 
   const { summary: agentSummary, isLoading: agLoading, error: agError, refetch: agRefetch } =
-    useAgentRunSummary({
+    useRunSummary({
       org: options.org,
-      timeWindow: AgentRunSummaryTimeWindow.LAST_7D,
+      timeWindow: RunSummaryTimeWindow.LAST_7D,
       refetchInterval,
     });
 

@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
-import type { FileChangeProgress, FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
-import { ApprovalAction, RunPhase, FileChangeSetStatus, FileDecisionAction } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
+import type { FileChangeProgress, FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import { ApprovalAction, RunPhase, FileChangeSetStatus, FileDecisionAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { McpServerUsage as ProtoMcpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 import type { WorkspaceEntry as ProtoWorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
@@ -24,11 +24,11 @@ import type { ThinkingModeOption } from "../models/thinking-mode.js";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { useConversationStoreRef } from "../internal/store/index.js";
-// Type-only import so the SharedAgentRunFields doc links below resolve;
+// Type-only import so the SharedRunFields doc links below resolve;
 // the strict tsdoc gate (tsdoc:check) guards it against removal.
-import { useCreateAgentRun, type SharedAgentRunFields } from "../run/useCreateAgentRun.js";
+import { useCreateRun, type SharedRunFields } from "../run/useCreateRun.js";
 import { useRunStream } from "../run/useRunStream.js";
-import { useAgentRunActions } from "../run/useAgentRunActions.js";
+import { useRunActions } from "../run/useRunActions.js";
 import { useSubmitApproval } from "../run/useSubmitApproval.js";
 import { useFileReview, type FileDecisionOptions } from "../run/useFileReview.js";
 import { useSession } from "./useSession.js";
@@ -61,7 +61,7 @@ export interface SendFollowUpOptions {
    * specific layer chooses (the agent's run defaults, the operator
    * profile, the engine's default).
    *
-   * @see {@link SharedAgentRunFields.modelName}
+   * @see {@link SharedRunFields.modelName}
    */
   readonly modelName?: string;
   /**
@@ -88,17 +88,17 @@ export interface SendFollowUpOptions {
    * declared in the agent's env declarations (a whitelist, not a value
    * source) or they are dropped.
    *
-   * @see {@link SharedAgentRunFields.runtimeEnv}
+   * @see {@link SharedRunFields.runtimeEnv}
    */
   readonly runtimeEnv?: Record<string, EnvVarInput>;
   /**
    * Pre-uploaded file attachments for this run.
    *
    * Each entry must include a `storageKey` from
-   * `agentRun.uploadAttachment()`. Forwarded directly to
+   * `run.uploadAttachment()`. Forwarded directly to
    * run creation.
    *
-   * @see {@link SharedAgentRunFields.attachments}
+   * @see {@link SharedRunFields.attachments}
    */
   readonly attachments?: AttachmentInput[];
   /**
@@ -113,7 +113,7 @@ export interface SendFollowUpOptions {
    * when the person chose one, `"standard"` as explicitly as `"fast"`;
    * `undefined` keeps the tier of the layer that chose the model.
    *
-   * @see {@link SharedAgentRunFields.serviceTier}
+   * @see {@link SharedRunFields.serviceTier}
    */
   readonly serviceTier?: ServiceTierOption;
   /**
@@ -121,19 +121,19 @@ export interface SendFollowUpOptions {
    * when the person chose one, `"disabled"` as explicitly as `"enabled"`;
    * `undefined` keeps the mode of the layer that chose the model.
    *
-   * @see {@link SharedAgentRunFields.thinkingMode}
+   * @see {@link SharedRunFields.thinkingMode}
    */
   readonly thinkingMode?: ThinkingModeOption;
   /**
    * Marks this run as a Build-from-plan turn.
    *
-   * @see {@link SharedAgentRunFields.buildFromPlan}
+   * @see {@link SharedRunFields.buildFromPlan}
    */
   readonly buildFromPlan?: boolean;
   /**
    * Auto-approve every tool call for this run (bypass the HITL gate).
    *
-   * @see {@link SharedAgentRunFields.autoApproveAll}
+   * @see {@link SharedRunFields.autoApproveAll}
    */
   readonly autoApproveAll?: boolean;
   /**
@@ -142,7 +142,7 @@ export interface SendFollowUpOptions {
    * Lightweight "attention" signals — no upload, no injection. The agent
    * reads these files directly from the workspace filesystem.
    *
-   * @see {@link SharedAgentRunFields.workspaceFileRefs}
+   * @see {@link SharedRunFields.workspaceFileRefs}
    */
   readonly workspaceFileRefs?: string[];
   /**
@@ -151,7 +151,7 @@ export interface SendFollowUpOptions {
    * The conversation read model hides the superseded run so the
    * edited message replaces the original in place.
    *
-   * @see {@link SharedAgentRunFields.supersedesRunId}
+   * @see {@link SharedRunFields.supersedesRunId}
    */
   readonly supersedesRunId?: string;
 }
@@ -183,9 +183,9 @@ export interface UseSessionConversationReturn {
    * message stands in the original's place. Superseded records remain in
    * run history surfaces; only the conversation view hides them.
    */
-  readonly completedRuns: readonly AgentRun[];
+  readonly completedRuns: readonly Run[];
   /** Currently streaming run (stream or fetch fallback), or null. */
-  readonly activeStreamRun: AgentRun | null;
+  readonly activeStreamRun: Run | null;
   /** Phase of the active run, or null if none active. */
   readonly activePhase: RunPhase | null;
   /** True while the active run's stream is delivering updates. */
@@ -384,7 +384,7 @@ export interface UseSessionConversationReturn {
  * follow-up messages, and updating session-level workspace entries.
  *
  * Composes {@link useSession}, {@link useSessionRuns},
- * {@link useCreateAgentRun}, {@link useRunStream}, and
+ * {@link useCreateRun}, {@link useRunStream}, and
  * {@link useUpdateSession} into a single return value that drives
  * both {@link MessageThread} and {@link SessionComposer}.
  *
@@ -456,7 +456,7 @@ export function useSessionConversation(
     create,
     isCreating,
     clearError: clearCreateError,
-  } = useCreateAgentRun();
+  } = useCreateRun();
   const { update: updateSession } = useUpdateSession();
   const turnOrg = session?.metadata?.org || org;
   const {
@@ -620,7 +620,7 @@ export function useSessionConversation(
     activePhase === RunPhase.RUN_PENDING ||
     activePhase === RunPhase.RUN_IN_PROGRESS;
 
-  const stopActions = useAgentRunActions(activeRunId, {
+  const stopActions = useRunActions(activeRunId, {
     // The cancel/terminate also broadcasts the new phase over the stream, but
     // refetch is the belt-and-suspenders that clears the active id even if the
     // stream has already ended.

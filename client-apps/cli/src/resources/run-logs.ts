@@ -8,8 +8,8 @@
 // Ctrl-C ends a follow cleanly: the SIGINT aborts the subscription and we treat
 // the abort as a normal exit (no stack trace).
 
-import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { shouldColorize, styler } from "../output/style.js";
 import { formatAgentPhase, isTerminalAgentPhase } from "./runs.js";
@@ -43,7 +43,7 @@ export async function streamRunLogs(
 }
 
 async function printAgentMessages(client: Stigmer, opts: LogsOptions, streams: LogsStreams): Promise<void> {
-  const exec = await client.agentRun.get(opts.runId);
+  const exec = await client.run.get(opts.runId);
   const messages = exec.status?.messages ?? [];
   if (messages.length === 0) {
     streams.out.write("No messages recorded for this run.\n");
@@ -60,7 +60,7 @@ async function followAgentLogs(
 ): Promise<void> {
   let lastMsgCount = 0;
   try {
-    for await (const exec of client.agentRun.subscribe(opts.runId, signal)) {
+    for await (const exec of client.run.subscribe(opts.runId, signal)) {
       const messages = exec.status?.messages ?? [];
       for (let i = lastMsgCount; i < messages.length; i++) renderAgentMessage(messages[i], streams);
       lastMsgCount = messages.length;

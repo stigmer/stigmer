@@ -77,8 +77,8 @@
 // cloud-execution target's runner is an embedded runner acting as the
 // primary user, a different shape whose proof is the composition's own.
 import { Code } from "@connectrpc/connect";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ConnectPhase } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -232,7 +232,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       script: AnthropicMessageBody[] = [
         anthropicText(`Hello from the ${label} run.`),
       ],
-    ): Promise<AgentRun> {
+    ): Promise<Run> {
       for (const turn of script) mock.enqueue(turn);
       const created = await by.agentExecutionCommand.create(
         makeAgentExecution({
@@ -273,7 +273,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       executionId: string,
     ): Promise<string> {
       const minted = await by.platformQuery.getRunnerScopedToken({
-        scope: { case: "agentRunId", value: executionId },
+        scope: { case: "runId", value: executionId },
       });
       expect(
         minted.runnerScopedToken,
@@ -401,7 +401,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
         () =>
           people.member.platformQuery.getRunnerScopedToken({
             scope: {
-              case: "agentRunId",
+              case: "runId",
               value: `aex_${uniqueName("missing")}`,
             },
           }),
@@ -412,7 +412,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       const refused = await expectGrpcCode(
         () =>
           people.member.platformQuery.getRunnerScopedToken({
-            scope: { case: "agentRunId", value: founderRun.metadata!.id },
+            scope: { case: "runId", value: founderRun.metadata!.id },
           }),
         Code.PermissionDenied,
         "the member asking for the operator's run credential",
@@ -549,7 +549,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
           lane
             .clientsPresenting(plaintextKeyOf(key))
             .platformQuery.getRunnerScopedToken({
-              scope: { case: "agentRunId", value: run.metadata!.id },
+              scope: { case: "runId", value: run.metadata!.id },
             }),
         Code.PermissionDenied,
         "a key limited to another organization asking for the run's credential",
@@ -816,7 +816,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       );
       expect(memory.spec?.subjectIdentityAccountId).toBe(people.memberId);
       expect(memory.spec?.provenance?.sessionId).toBe(sessionIdOf(settled));
-      expect(memory.spec?.provenance?.agentRunId).toBe(run.metadata!.id);
+      expect(memory.spec?.provenance?.runId).toBe(run.metadata!.id);
 
       // The operator — an organization owner, whose key the runner holds —
       // is not the memory's subject and sees nothing.

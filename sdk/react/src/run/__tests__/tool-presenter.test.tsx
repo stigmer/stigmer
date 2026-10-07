@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ToolKind } from "@stigmer/sdk";
 import { useToolPresentation, registerToolPresenter } from "../tool-presenter";
 

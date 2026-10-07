@@ -39,7 +39,7 @@ vi.mock("@stigmer/react", () => {
     useDeleteResource: () => ({ deleteResource: noop, isDeleting: false }),
     useExportResource: () => ({ copyYaml: noop, copyJson: noop, downloadYaml: noop }),
     useBreadcrumbOverride: () => ({ setLabel: noop }),
-    useResolveAgentRunSession: () => ({ sessionId: null }),
+    useResolveRunSession: () => ({ sessionId: null }),
     useActiveOrgId: () => "org_acme",
     // The person's organizations: the active one and a second one, so a
     // link proves it resolves the linked resource's own org.

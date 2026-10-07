@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
-import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+  RunSchema,
+  RunStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   isPlanArtifact,
@@ -24,15 +24,15 @@ function artifact(opts: { name: string; kind?: RunArtifactKind; storageKey?: str
 }
 
 function executionWith(...artifacts: ReturnType<typeof artifact>[]) {
-  return create(AgentRunSchema, {
-    status: create(AgentRunStatusSchema, { artifacts }),
+  return create(RunSchema, {
+    status: create(RunStatusSchema, { artifacts }),
   });
 }
 
 function executionWithId(id: string, ...artifacts: ReturnType<typeof artifact>[]) {
-  return create(AgentRunSchema, {
+  return create(RunSchema, {
     metadata: create(ApiResourceMetadataSchema, { id }),
-    status: create(AgentRunStatusSchema, { artifacts }),
+    status: create(RunStatusSchema, { artifacts }),
   });
 }
 

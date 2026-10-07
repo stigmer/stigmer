@@ -97,7 +97,7 @@ describe("Stigmer execution target defaults", () => {
       expect(proto.spec?.executionTarget).toBe(ExecutionTarget.LOCAL);
     });
 
-    it("injects LOCAL into agentRun.create's sessionSpec (one-call bootstrap)", async () => {
+    it("injects LOCAL into run.create's sessionSpec (one-call bootstrap)", async () => {
       await stigmer.run.create({
         name: "test",
         org: "test-org",
@@ -122,7 +122,7 @@ describe("Stigmer execution target defaults", () => {
       expect(sessionSpecOf(proto)?.executionTarget).toBe(ExecutionTarget.CLOUD);
     });
 
-    it("does not synthesize a sessionSpec on agentRun.create without one", async () => {
+    it("does not synthesize a sessionSpec on run.create without one", async () => {
       await stigmer.run.create({
         name: "test",
         org: "test-org",

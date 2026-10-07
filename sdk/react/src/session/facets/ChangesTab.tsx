@@ -1,12 +1,12 @@
 "use client";
 
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { UNSTYLED_LIST } from "../../internal/element-resets.js";
 import { useSessionWriteBacks } from "../useSessionWriteBacks.js";
 import { WriteBackCard } from "../../run/WriteBackCard.js";
 
 export interface ChangesTabProps {
-  readonly runs: readonly AgentRun[];
+  readonly runs: readonly Run[];
   /**
    * Whether this session is expected to push its approved changes back to a
    * git remote — a CLOUD session with at least one git workspace entry (local

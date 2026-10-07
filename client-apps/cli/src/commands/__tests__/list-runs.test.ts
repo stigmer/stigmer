@@ -5,9 +5,9 @@
 // the program, the alias routing and the renderer are real.
 
 import { create } from "@bufbuild/protobuf";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { AgentRunListSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunListSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Config } from "../../config/index.js";
 import { buildProgram } from "../../program.js";
@@ -31,10 +31,10 @@ vi.mock("../../resources/runs.js", async (importOriginal) => {
 });
 
 const agentRuns = {
-  schema: AgentRunListSchema,
-  message: create(AgentRunListSchema, {
+  schema: RunListSchema,
+  message: create(RunListSchema, {
     entries: [
-      create(AgentRunSchema, {
+      create(RunSchema, {
         metadata: { id: "aex_1" },
         status: { agentId: "agt_1", phase: RunPhase.RUN_COMPLETED },
       }),

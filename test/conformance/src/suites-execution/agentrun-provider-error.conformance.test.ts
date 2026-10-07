@@ -30,8 +30,8 @@
 // turn, to the provider SDK's error (stigmer/stigmer#1450). A 401 is not
 // retried, and both are scripted `persistent` so the turn's call, not a side
 // call, is the one that fails the run.
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -124,7 +124,7 @@ const ANTHROPIC_BILLING_BODY = {
 const FAILURE_BUDGET_MS = 180_000;
 const FAILURE_ARM_TIMEOUT_MS = FAILURE_BUDGET_MS + 30_000;
 
-async function runToFailure(): Promise<AgentRun> {
+async function runToFailure(): Promise<Run> {
   const { org } = await target.provisionTenancy();
   const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent-provider-error") }));
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
@@ -146,7 +146,7 @@ async function runToFailure(): Promise<AgentRun> {
 // The full attribution contract: platform code and wording present, provider
 // billing prose and the LangChain wrapper tag absent — on status.error and on
 // every message in the transcript.
-function expectPlatformAttributed(final: AgentRun): void {
+function expectPlatformAttributed(final: Run): void {
   const error = final.status?.error ?? "";
   expect(error, `the stable platform-capacity code (status.error was: ${error})`).toContain(PLATFORM_CAPACITY_CODE);
   expect(error, "the failure is attributed to the platform").toContain("platform-side issue");
@@ -207,7 +207,7 @@ describe("AgentRun provider-error attribution (proxy mode)", () => {
 // A failure the runner can only classify by its HTTP status: the stable code
 // present, and neither the wrapper class nor LangChain's troubleshooting link
 // on status.error or in the transcript.
-function expectClassifiedByStatus(final: AgentRun): void {
+function expectClassifiedByStatus(final: Run): void {
   const error = final.status?.error ?? "";
   expect(error, `the status-classified code (status.error was: ${error})`).toContain(AUTHENTICATION_CODE);
   expect(error, "the LangChain wrapper class never labels the user-visible error").not.toContain("MiddlewareError");

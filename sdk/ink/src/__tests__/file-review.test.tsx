@@ -8,16 +8,16 @@ import {
   FileContentSchema,
   ToolCallOutputRefSchema,
   AgentMessageSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import type { FileContent } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { FileContent } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   FileChangeSetSchema,
   CapturedFileChangeSchema,
   FileDecisionSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
-import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   FileChangeKind,
   FileChangeSetStatus,
@@ -27,7 +27,7 @@ import {
   DiffCompleteness,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ToolCallItem } from "../components/ToolCallItem.js";
 import { ToolCallGroup } from "../components/ToolCallGroup.js";
 import { FileReviewPrompt } from "../components/FileReviewPrompt.js";
@@ -476,7 +476,7 @@ describe("MessageThread — file-review integration", () => {
       content: "Editing notes",
       toolCalls: [stampedTool("notes.md", "cs-1")],
     });
-    return create(AgentRunSchema, {
+    return create(RunSchema, {
       metadata: { id: "aex-1" },
       status: {
         phase: undefined,
@@ -735,7 +735,7 @@ describe("FileDiffBody", () => {
   it("shows a loading notice while an offloaded side is in flight", () => {
     const change = changeWith({ id: "load", after: offloadedSide("artifacts/aex-1/after") });
     const client = fakeClient({
-      agentRun: { getArtifactContent: () => new Promise(() => {}) },
+      run: { getArtifactContent: () => new Promise(() => {}) },
     });
     const out = renderWithClient(<FileDiffBody change={change} />, client).lastFrame() ?? "";
     expect(out).toContain("Loading diff");
@@ -744,7 +744,7 @@ describe("FileDiffBody", () => {
   it("reports a server-truncated offloaded side as un-diffable inline", async () => {
     const change = changeWith({ id: "trunc", after: offloadedSide("artifacts/aex-1/after") });
     const client = fakeClient({
-      agentRun: {
+      run: {
         getArtifactContent: async () => ({
           content: new TextEncoder().encode("way too big"),
           contentType: "text/plain",
@@ -765,7 +765,7 @@ describe("FileDiffBody", () => {
   it("surfaces a fetch failure as an honest error notice", async () => {
     const change = changeWith({ id: "err", after: offloadedSide("artifacts/aex-1/after") });
     const client = fakeClient({
-      agentRun: {
+      run: {
         getArtifactContent: async () => {
           throw new Error("boom");
         },

@@ -1,4 +1,4 @@
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { resolveToolCategoryFromCall } from "./tool-categories.js";
 import type { ToolCategory } from "./tool-categories.js";
 import { resolveRunGroupable } from "./tool-presenter.js";

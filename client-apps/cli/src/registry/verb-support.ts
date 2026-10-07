@@ -58,7 +58,7 @@ export const VERB_SUPPORT: ReadonlyMap<
   // agent_run is special — uses dedicated AgentRunQueryController
   // RPCs, not the unified SearchService. delete maps to cancel.
   [
-    ApiResourceKind.agent_run,
+    ApiResourceKind.run,
     new Set<Verb>([Verb.Get, Verb.List, Verb.Delete, Verb.Download]),
   ],
   // IAM apps are configured declaratively; read/ops verbs are deliberately

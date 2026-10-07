@@ -57,15 +57,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunPhase,
   FileDecisionAction,
   FileDecisionScope,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { UploadAttachmentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { UploadAttachmentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -214,7 +214,7 @@ describe("AgentRun conformance — CRUD & identity", () => {
     expect(fetched.metadata?.id).toBe(created.metadata?.id);
     // Status advances as the run progresses, so parity (which ignores status, id,
     // and version) is the right equivalence here.
-    assertResourceParity(AgentRunSchema, created, fetched, "create vs get");
+    assertResourceParity(RunSchema, created, fetched, "create vs get");
 
     await awaitTerminal(clients, created.metadata!.id);
   });
@@ -567,7 +567,7 @@ describe("AgentRun conformance — lifecycle (running execution)", () => {
     // catches it when the rogue write lands FIRST. The release fires
     // inside the stream's first predicate call (the registration
     // snapshot), guaranteeing the subscription sees every later persist.
-    const hasResumedText = (e: AgentRun): boolean =>
+    const hasResumedText = (e: Run): boolean =>
       e.status?.messages.some((m) => m.content === "Working RESUMED...") ?? false;
     let released = false;
     const stream = await collectStream(
@@ -868,7 +868,7 @@ describe("AgentRun conformance — a turn's dispatch queue is the server's to de
 
     mock.enqueue(anthropicText("Done."));
     const request = create(
-      AgentRunSchema,
+      RunSchema,
       makeAgentExecution({ org, name: uniqueName("aex-queue"), agentRef: agentRefOf(agent) }),
     );
     // The retired field's bytes as a caller could still send them: a string
@@ -1270,7 +1270,7 @@ describe("AgentRun conformance — subscribe & populated read surfaces", () => {
     const err = await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitFileDecision({
-          agentRunId: created.metadata!.id,
+          runId: created.metadata!.id,
           changeSetId: "cs_x",
           expectedDigest: "digest",
           scope: FileDecisionScope.CHANGE_SET,

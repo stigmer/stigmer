@@ -5,14 +5,14 @@ import type {
   CapturedFileChange,
   FileChangeSet,
   FileDecision,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   FileCaptureClass,
   FileChangeKind,
   FileDecisionAction,
   FileDecisionOrigin,
   FileDecisionScope,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { toDisplayFileChange } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { FileChangeDiff } from "./FileChangesView.js";

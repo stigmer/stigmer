@@ -12,7 +12,7 @@
 // (no API key, no network), artifacts are on local disk, and the checkpointer is
 // in-memory. A single Anthropic text turn with stop_reason end_turn is the
 // smallest script that reaches RUN_COMPLETED.
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";

@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   GetSessionUsageReportInputSchema,
   type GetSessionUsageReportOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
-import type { ModelUsage, StreamingUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/usage_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import type { ModelUsage, StreamingUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
 import { useStigmer } from "../hooks.js";
 import { isTerminalPhase } from "../run/run-phases.js";
 import { useFetch } from "../internal/useFetch.js";
@@ -168,7 +168,7 @@ function mapReport(report: GetSessionUsageReportOutput): UseSessionUsageReturn {
  * (e.g., Cursor harness where the proxy does not capture main agent turns).
  */
 function aggregateStreamingUsage(
-  executions: readonly AgentRun[],
+  executions: readonly Run[],
 ): UseSessionUsageReturn {
   let inputTokens = 0;
   let outputTokens = 0;
@@ -242,7 +242,7 @@ function aggregateStreamingUsage(
  * @param runs - All runs for a session (completed + active).
  */
 export function useSessionUsage(
-  executions: readonly AgentRun[],
+  executions: readonly Run[],
 ): UseSessionUsageReturn {
   const stigmer = useStigmer();
 
@@ -269,7 +269,7 @@ export function useSessionUsage(
   // recreated on every streaming re-render (which would prevent it firing).
   const fetchReport = useCallback(
     () =>
-      stigmer.agentRun.getSessionUsageReport(
+      stigmer.run.getSessionUsageReport(
         create(GetSessionUsageReportInputSchema, { sessionId: sessionId! }),
       ),
     [sessionId, stigmer],

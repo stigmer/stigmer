@@ -281,7 +281,7 @@ subscribe loop:
 Replace the subscribe loop in `ask-agent.ts`:
 
 ```typescript
-for await (const snapshot of stigmer.agentRun.subscribe(run.metadata!.id)) {
+for await (const snapshot of stigmer.run.subscribe(run.metadata!.id)) {
   const phase = snapshot.status?.phase;
   const messages = snapshot.status?.messages ?? [];
   const pendingApprovals = snapshot.status?.pendingApprovals ?? [];
@@ -291,7 +291,7 @@ for await (const snapshot of stigmer.agentRun.subscribe(run.metadata!.id)) {
       console.log(`\nApproval required: ${pending.approvalMessage}`);
       console.log(`  Tool: ${pending.toolCallId}`);
 
-      await stigmer.agentRun.submitApproval({
+      await stigmer.run.submitApproval({
         agentRunId: snapshot.metadata!.id,
         toolCallId: pending.toolCallId,
         action: "APPROVAL_ACTION_APPROVE",
@@ -398,7 +398,7 @@ while (stream.hasNext()) {
         System.out.printf("%nApproval required: %s%n", p.getApprovalMessage());
         System.out.printf("  Tool: %s%n", p.getToolCallId());
 
-        client.agentRun.submitApproval(
+        client.run.submitApproval(
             SubmitApprovalInput.builder()
                 .agentRunId(snapshot.getMetadata().getId())
                 .toolCallId(p.getToolCallId())

@@ -11,12 +11,12 @@ import { readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { extname, join, relative, resolve, sep } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { zipSync } from "fflate";
-import { type Attachment, AttachmentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+import { type Attachment, AttachmentSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import {
   type UploadAttachmentRequest,
   UploadAttachmentRequestSchema,
   type UploadAttachmentResponse,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { UsageError } from "../../errors/index.js";
 
 // Must match the server's grpc.MaxRecvMsgSize (Go: maxAttachmentSize).

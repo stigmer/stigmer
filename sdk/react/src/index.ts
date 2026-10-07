@@ -267,11 +267,11 @@ export type {
 // Run — behavior hooks, styled components, and utilities (AgentRun aggregate)
 export {
   isTerminalPhase,
-  useCreateAgentRun,
+  useCreateRun,
   useRunStream,
-  useLiveAgentRun,
-  useAgentRunActions,
-  useResolveAgentRunSession,
+  useLiveRun,
+  useRunActions,
+  useResolveRunSession,
   useSubmitApproval,
   useFileReview,
   fileDecisionKey,
@@ -395,16 +395,16 @@ export {
 } from "./run/index.js";
 export type {
   BootstrapSessionSpec,
-  CreateAgentRunInput,
-  CreateAgentRunResult,
-  SharedAgentRunFields,
-  UseCreateAgentRunReturn,
+  CreateRunInput,
+  CreateRunResult,
+  SharedRunFields,
+  UseCreateRunReturn,
   UseRunStreamReturn,
-  UseLiveAgentRunOptions,
-  UseLiveAgentRunReturn,
-  UseAgentRunActionsOptions,
-  UseAgentRunActionsReturn,
-  UseResolveAgentRunSessionReturn,
+  UseLiveRunOptions,
+  UseLiveRunReturn,
+  UseRunActionsOptions,
+  UseRunActionsReturn,
+  UseResolveRunSessionReturn,
   UseSubmitApprovalReturn,
   UseFileReviewReturn,
   FileDecisionOptions,
@@ -501,8 +501,8 @@ export type {
 } from "./run/index.js";
 
 // Run — proto type re-exports for artifact consumers
-export type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
-export { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+export type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
+export { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 // Attachment — file upload behavior hook, styled chip list, clipboard paste,
 // vision-resolution image preparation, and vision preflight warnings
@@ -940,7 +940,7 @@ export {
   ScheduleRowActions,
   ScheduleDetailView,
   ScheduleIcon,
-  ScheduleRunsTable,
+  ScheduleFiresTable,
 } from "./schedule/index.js";
 export type {
   ScheduleState,
@@ -963,7 +963,7 @@ export type {
   ScheduleColumnsOptions,
   ScheduleRowActionsProps,
   ScheduleDetailViewProps,
-  ScheduleRunsTableProps,
+  ScheduleFiresTableProps,
   UseUpdateScheduleSpecReturn,
 } from "./schedule/index.js";
 
@@ -2086,10 +2086,10 @@ export {
   type DashboardSummary,
   type DashboardFailedRun,
   // Data Hooks
-  useAgentRunSummary,
-  AgentRunSummaryTimeWindow,
-  type UseAgentRunSummaryOptions,
-  type UseAgentRunSummaryReturn,
+  useRunSummary,
+  RunSummaryTimeWindow,
+  type UseRunSummaryOptions,
+  type UseRunSummaryReturn,
   useDashboardSummary,
   type UseDashboardSummaryOptions,
   type UseDashboardSummaryReturn,

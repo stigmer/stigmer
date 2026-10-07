@@ -33,13 +33,13 @@ import type { CSSProperties, ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { McpServerDetailView } from "@stigmer/react";
 import { samples, sampleInstant } from "@stigmer/react/test";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunPhase,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
-import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
+import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { BrowserView, CodeEditorView, TerminalView } from "@scenar/react";
 import { AppShell } from "../_shared/AppShell";
 import { SessionView } from "../_shared/SessionView";
@@ -133,7 +133,7 @@ const approvedSummary = samples.aiMessage(
     "- **Estimated refund date**: April 7, 2026",
 );
 
-function buildWaitingExecution(): AgentRun {
+function buildWaitingExecution(): Run {
   const exec = snapshot(
     [returnRequest, samples.aiMessage("", [pendingToolCall])],
     RunPhase.RUN_WAITING_FOR_APPROVAL,

@@ -11,10 +11,10 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+  RunSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 const jumpToLatestSpy = vi.fn();
@@ -44,12 +44,12 @@ afterEach(() => {
   jumpToLatestSpy.mockClear();
 });
 
-function makeExecution(id: string, message: string): AgentRun {
-  const exec = create(AgentRunSchema);
+function makeExecution(id: string, message: string): Run {
+  const exec = create(RunSchema);
   const meta = create(ApiResourceMetadataSchema);
   meta.id = id;
   exec.metadata = meta;
-  const spec = create(AgentRunSpecSchema);
+  const spec = create(RunSpecSchema);
   spec.message = message;
   exec.spec = spec;
   return exec;

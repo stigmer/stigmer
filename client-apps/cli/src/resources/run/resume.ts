@@ -5,8 +5,8 @@
 // The TTY path defers to Ink's SessionView, which loads history and offers a
 // follow-up composer for free.
 
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { ApprovalAction, RunPhase, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { ApprovalAction, RunPhase, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { BackendClient } from "../../client/index.js";
 import { getSessionById, listRunsBySession } from "../session.js";
 import { NdjsonRenderer } from "../stream/render-ndjson.js";
@@ -85,7 +85,7 @@ export async function openSession(deps: OpenSessionDeps): Promise<void> {
 async function replaySession(
   deps: OpenSessionDeps,
   org: string,
-  entries: readonly AgentRun[],
+  entries: readonly Run[],
   header: SessionHeaderInfo,
 ): Promise<void> {
   if (deps.outputMode === "inline" && isInkSupported(process.stdout)) {
@@ -111,7 +111,7 @@ async function replaySession(
 
 // Mirrors Go's resolveResumeMode: --mode wins; else infer "plan" from the last
 // run's InteractionMode; else default (agent).
-function resolveResumeMode(explicit: RunMode, latest: AgentRun): RunMode {
+function resolveResumeMode(explicit: RunMode, latest: Run): RunMode {
   if (explicit !== "") return explicit;
   if (latest.spec?.interactionMode === InteractionMode.PLAN) return "plan";
   return "";
