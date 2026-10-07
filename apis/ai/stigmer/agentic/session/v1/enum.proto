@@ -23,7 +23,7 @@ enum GitWriteBackMode {
   // creates a branch (stigmer/{run_id_short}), commits all changes,
   // pushes the branch to the remote, and creates a pull request targeting
   // the original branch. The write-back outcome is recorded in
-  // AgentRunStatus.workspace_write_backs.
+  // RunStatus.workspace_write_backs.
   GIT_WRITE_BACK_BRANCH_AND_PR = 1;
 }
 

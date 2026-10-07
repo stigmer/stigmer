@@ -15,7 +15,7 @@ enum LedgerEntryType {
   // Promotional credits granted (e.g., free trial, referral bonus).
   promotional_credit = 2;
 
-  // Debit for a single LLM call during agent run.
+  // Debit for a single LLM call during run.
   usage_debit = 3;
 
   // Hold placed at run start to reserve credits.

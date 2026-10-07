@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentrun.v1;
+package ai.stigmer.agentic.run.v1;
 
-// RunPhase defines the lifecycle phase of an agent run.
+// RunPhase defines the lifecycle phase of a run.
 //
 // Phase Transitions:
 //
@@ -196,7 +196,7 @@ enum ToolCallStatus {
   //
   // The tool requires user consent before execution. This status is set when:
   // - Tool has requires_approval=true (from approval policy chain)
-  // - AgentRunSpec.auto_approve_all is false
+  // - RunSpec.auto_approve_all is false
   //
   // While in this status:
   // - ToolCall.approval_message contains the approval prompt
@@ -556,7 +556,7 @@ enum ApprovalAction {
   // every subsequent tool call of the SAME class for the rest of this run
   // ("approve all of this kind, don't ask again").
   //
-  // This is the gate-time, scoped analog of AgentRunSpec.auto_approve_all:
+  // This is the gate-time, scoped analog of RunSpec.auto_approve_all:
   // it lets a human escalate from per-call approval to "trust this whole class"
   // at the moment of friction, without pre-arming a global bypass. The lease is
   // scoped to one class — a built-in approval category (write / delete / shell,
@@ -585,7 +585,7 @@ enum ApprovalAction {
   // is NOT persisted to the session or the agent; a subsequent run starts
   // gated again unless the caller sets it anew (interactive clients may carry a
   // session-scoped preference forward in-memory, but that is a client concern,
-  // not server-persisted state). AgentRunSpec.auto_approve_all remains the
+  // not server-persisted state). RunSpec.auto_approve_all remains the
   // single, explicit whole-run global bypass.
   //
   // ## Audit
@@ -627,7 +627,7 @@ enum ApprovalPolicySource {
   reserved 1, 2, 3;
   reserved "APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT", "APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE", "APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE";
 
-  // Layer 4: the pre-armed AgentRunSpec.auto_approve_all whole-run global
+  // Layer 4: the pre-armed RunSpec.auto_approve_all whole-run global
   // bypass cleared this call.
   APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL = 4;
 
@@ -645,7 +645,7 @@ enum ApprovalPolicySource {
   // annotation).
   APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN = 7;
 
-  // The unattended approval mode (AgentRunStatus.approval_mode =
+  // The unattended approval mode (RunStatus.approval_mode =
   // APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:
   // the lane the run came through (a schedule's fire, a messaging
   // channel, a guest share) has no approver, so the platform skipped the
@@ -735,7 +735,7 @@ enum ApprovalRetractionReason {
 //
 // Determines what the agent is allowed to do — analysis only, or full
 // read-write access. Mode is set per message
-// (AgentRunSpec.interaction_mode) and does not carry over between
+// (RunSpec.interaction_mode) and does not carry over between
 // runs.
 //
 // Enforcement:
@@ -779,7 +779,7 @@ enum InteractionMode {
 // would park the run in RUN_WAITING_FOR_APPROVAL forever.
 //
 // The mode is a fact of the lane the run came through, recorded by
-// the server on AgentRunStatus.approval_mode, never chosen by the
+// the server on RunStatus.approval_mode, never chosen by the
 // request or the external user: it is runtime policy owned by the lane,
 // exactly like the bounded execution profile. Every other turn (console,
 // CLI) is INTERACTIVE.

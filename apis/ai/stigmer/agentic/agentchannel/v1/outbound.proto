@@ -34,7 +34,7 @@ message ChannelOutboundMessage {
   // Denormalized from the channel so sweep/cap paths never join.
   string org = 3;
 
-  // Session of the originating agent run; empty for direct operator
+  // Session of the originating run; empty for direct operator
   // sends, which have no session.
   //
   // @internal
@@ -211,7 +211,7 @@ enum ChannelOutboundOrigin {
   // Default value when no origin is set.
   channel_outbound_origin_unspecified = 0;
 
-  // The send came from an agent run created by an inbound channel
+  // The send came from a run created by an inbound channel
   // message; the recipient must be a known sender on the channel.
   channel_conversation = 1;
 

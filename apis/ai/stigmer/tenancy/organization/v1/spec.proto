@@ -66,7 +66,7 @@ message OrganizationSpec {
 }
 
 // OrganizationPreferences holds organization-declared defaults that apply to
-// every eligible agent run in the organization.
+// every eligible run in the organization.
 //
 // @internal
 // Mutable through the existing update/apply RPCs under can_edit (admin) —
@@ -77,12 +77,12 @@ message OrganizationSpec {
 // if they ever accumulate they get a sibling `policies` message, never a
 // stretched `preferences`.
 message OrganizationPreferences {
-  // Free-text standing context injected into eligible agent runs in
+  // Free-text standing context injected into eligible runs in
   // this organization. Example: "We deploy to us-east-1."
   //
   // @internal
   // Snapshotted verbatim into
-  // AgentRunStatus.declared_preferences.org_context at run create,
+  // RunStatus.declared_preferences.org_context at run create,
   // for every run but a visitor's: the organization's own lanes carry
   // it, and a caller the edition classifies as a visitor (admitted to the
   // organization's agents without belonging to it) never does

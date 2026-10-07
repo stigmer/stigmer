@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.schedule.v1;
 
-import "ai/stigmer/agentic/agentrun/v1/invocation.proto";
+import "ai/stigmer/agentic/run/v1/invocation.proto";
 import "buf/validate/validate.proto";
 
 // ScheduleSpec defines when a schedule fires and what it runs.
@@ -16,7 +16,7 @@ import "buf/validate/validate.proto";
 // The target oneof is inline
 // (the AgentChannelSpec.provider_config shape) and the agent arm is
 // the shared AgentInvocation — the owner-settable subset of
-// an agent run, so the schedule speaks the composer's vocabulary instead
+// a run, so the schedule speaks the composer's vocabulary instead
 // of a schedule-only one. Apply-time cron validation is purely lexical
 // so no cron parser exists in either edition; the Temporal server
 // owns calendar/DST semantics.
@@ -97,6 +97,6 @@ message ScheduleSpec {
     // the server resolves it once, at create (ResolveRunConfig), under
     // the schedule profile as the lane's ceiling (RunConfig has the
     // rule).
-    ai.stigmer.agentic.agentrun.v1.AgentInvocation agent = 4;
+    ai.stigmer.agentic.run.v1.AgentInvocation agent = 4;
   }
 }

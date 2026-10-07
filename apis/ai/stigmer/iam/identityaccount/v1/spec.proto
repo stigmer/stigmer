@@ -89,7 +89,7 @@ message IdentityAccountSpec {
 }
 
 // IdentityAccountPreferences holds user-declared defaults that apply to the
-// user's own agent runs.
+// user's own runs.
 //
 // @internal
 // Self-service: mutable through the existing update RPC under FGA can_edit
@@ -110,7 +110,7 @@ message IdentityAccountPreferences {
   //
   // @internal
   // Snapshotted verbatim into
-  // AgentRunStatus.declared_preferences.user_context at run create
+  // RunStatus.declared_preferences.user_context at run create
   // (first-party human operators only). The runner
   // frames it as context, not instructions that override the task.
   string standing_context = 1 [(buf.validate.field).string.max_len = 2000];

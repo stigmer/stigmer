@@ -62,7 +62,7 @@ service BillingCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators and credit issuers can grant credits";
   }
 
-  // Reserve credits before starting an agent run.
+  // Reserve credits before starting a run.
   // Returns authorization status and reservation details.
   //
   // @internal

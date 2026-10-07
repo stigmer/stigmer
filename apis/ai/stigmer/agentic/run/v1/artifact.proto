@@ -1,14 +1,14 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentrun.v1;
+package ai.stigmer.agentic.run.v1;
 
-import "ai/stigmer/agentic/agentrun/v1/enum.proto";
+import "ai/stigmer/agentic/run/v1/enum.proto";
 import "buf/validate/validate.proto";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Run Artifacts (Artifact Lifecycle)
 //
-// These types support file artifacts from agent runs.
+// These types support file artifacts from runs.
 // ─────────────────────────────────────────────────────────────────────────────
 
 // RunArtifact represents a file or directory published by an agent.

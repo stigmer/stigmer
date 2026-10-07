@@ -1,20 +1,20 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentrun.v1;
+package ai.stigmer.agentic.run.v1;
 
-import "ai/stigmer/agentic/agentrun/v1/enum.proto";
-import "ai/stigmer/agentic/agentrun/v1/invocation.proto";
 import "ai/stigmer/agentic/executioncontext/v1/spec.proto";
+import "ai/stigmer/agentic/run/v1/enum.proto";
+import "ai/stigmer/agentic/run/v1/invocation.proto";
 import "ai/stigmer/agentic/session/v1/spec.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 
-// AgentRunSpec contains only user-provided inputs for triggering a run.
-// All run results and state live in AgentRunStatus (in api.proto).
-message AgentRunSpec {
+// RunSpec contains only user-provided inputs for triggering a run.
+// All run results and state live in RunStatus (in api.proto).
+message RunSpec {
   option (buf.validate.message).cel = {
-    id: "agent_run.session_spec_harness_state"
+    id: "run.session_spec_harness_state"
     message: "session_spec.harness_state_id must be empty — harness state is created by the runner after the first run"
     expression: "!has(this.session_spec) || this.session_spec.harness_state_id == ''"
   };
@@ -34,7 +34,7 @@ message AgentRunSpec {
   reserved "callback_token", "parent_workflow_id", "activity_task_queue", "parent";
 
   // Fields 15 and 16 held the preference and memory snapshots the server
-  // composes for each turn; they are AgentRunStatus fields 29 and 30.
+  // composes for each turn; they are RunStatus fields 29 and 30.
   reserved 15, 16;
   reserved "declared_preferences", "recalled_memories";
 
@@ -42,7 +42,7 @@ message AgentRunSpec {
   // its per-message intents and the lane's approval mode. The settings are
   // run_config (a RunConfig, the message every surface saves), the intents
   // are interaction_mode, build_from_plan and structured_output_schema, and
-  // the approval mode is the server's (AgentRunStatus.approval_mode).
+  // the approval mode is the server's (RunStatus.approval_mode).
   reserved 4;
   reserved "execution_config";
 
@@ -72,7 +72,7 @@ message AgentRunSpec {
     // full session shape (the agent, workspace_entries, harness,
     // execution_target, MCP servers, skills) together with the first
     // message, so embedders do not need to orchestrate session.create
-    // followed by agentRun.create. The created session's ID is
+    // followed by run.create. The created session's ID is
     // returned on the persisted run's session_id.
     //
     // session_spec.agent_ref names the agent the conversation runs (empty:
@@ -102,7 +102,7 @@ message AgentRunSpec {
   // thinking, and run bounds. Zero or empty fields are not set here.
   //
   // The server resolves the settings the turn runs with once, at create,
-  // and records them on AgentRunStatus.run_config. A choice (model,
+  // and records them on RunStatus.run_config. A choice (model,
   // tier, thinking) comes from the most specific layer that makes one: this
   // field, then the defaults of the agent the turn runs, then the lane's
   // operator profile. A bound (cost, tool rounds, result size) is the
@@ -178,7 +178,7 @@ message AgentRunSpec {
   // a later ref wins — then runtime_env (this field). The merged map is filtered to the keys declared in
   // Agent.spec.env (no filtering when the agent declares none); a missing
   // required key only logs a warning — the run is not failed. The merge is
-  // owned by backend/libs/go/envmerge and the agentrun controller's
+  // owned by backend/libs/go/envmerge and the run controller's
   // executionContextBuilder, and asserted by
   // test/conformance/src/suites-execution/envmerge.conformance.test.ts.
   map<string, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtime_env = 5;
@@ -310,10 +310,10 @@ message AgentRunSpec {
 // ─────────────────────────────────────────────────────────────────────────────
 // File Attachments (Artifact Lifecycle)
 //
-// These types support file input to agent runs.
+// These types support file input to runs.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Attachment represents a file attached to an agent run.
+// Attachment represents a file attached to a run.
 //
 // All files must be pre-uploaded via the uploadAttachment RPC and referenced
 // by storage_key. This ensures consistent behavior regardless of file size.
@@ -451,7 +451,7 @@ message DeclaredPreferences {
 // injection.
 //
 // @internal
-// See the AgentRunStatus.recalled_memories field comment for the full
+// See the RunStatus.recalled_memories field comment for the full
 // ownership and composition contract, and status.recalled_memories_report
 // for which candidates the runner actually injected. enabled=true with
 // zero facts is a meaningful state: memory is on for this caller, nothing

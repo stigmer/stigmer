@@ -65,7 +65,7 @@ message McpServerId {
 // - Web console: calls connect after saving credentials to personal environment.
 // - CLI: calls connect with runtime_env populated from local env vars.
 // - Runner backfill: calls connect with runtime_env from execution context
-//   when status.discovered_capabilities is empty on first agent run.
+//   when status.discovered_capabilities is empty on first run.
 //
 // Prerequisites:
 // - The MCP server must exist and have a valid server_type (stdio or http)

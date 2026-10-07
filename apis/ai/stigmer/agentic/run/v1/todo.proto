@@ -1,13 +1,13 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentrun.v1;
+package ai.stigmer.agentic.run.v1;
 
-import "ai/stigmer/agentic/agentrun/v1/enum.proto";
+import "ai/stigmer/agentic/run/v1/enum.proto";
 
 // Represents a single item in the agent's todo list.
 // Used by the write_todos tool to track multi-step tasks and progress.
 //
-// Shared by both AgentRunStatus (main agent) and SubAgentRun
+// Shared by both RunStatus (main agent) and SubAgentRun
 // (sub-agent), so it lives in its own file to avoid circular imports.
 message TodoItem {
   // Unique identifier for this todo item.

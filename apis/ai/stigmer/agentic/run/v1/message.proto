@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentrun.v1;
+package ai.stigmer.agentic.run.v1;
 
-import "ai/stigmer/agentic/agentrun/v1/enum.proto";
+import "ai/stigmer/agentic/run/v1/enum.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 
@@ -213,7 +213,7 @@ message ToolCall {
   // bytes to artifact storage and records a reference here instead of inlining
   // megabytes into `result` on every status update. Without this, a single
   // large result (e.g. a base64 screenshot or a multi-MB accessibility tree)
-  // pushes AgentRunStatus past the gRPC message-size limit, so status
+  // pushes RunStatus past the gRPC message-size limit, so status
   // persistence fails silently and the live UI freezes mid-run.
   //
   // When set, `result` holds only a short human-readable head/preview (so
@@ -226,7 +226,7 @@ message ToolCall {
   ToolCallOutputRef output_ref = 21;
 
   // Field 22 (file_changes) was removed: file review moved to
-  // the apply-then-review FileChangeSet ledger (AgentRunStatus.
+  // the apply-then-review FileChangeSet ledger (RunStatus.
   // file_change_sets + file_review_event_stream), so the tool-call-coupled
   // FileChange copy is obsolete.
   reserved 22;
@@ -331,7 +331,7 @@ message ToolCall {
 }
 
 // ToolCallOutputRef points to a tool call's full output after the runner
-// offloaded it to artifact storage to keep AgentRunStatus under the gRPC
+// offloaded it to artifact storage to keep RunStatus under the gRPC
 // message-size limit.
 //
 // This is deliberately distinct from RunArtifact (a file the agent

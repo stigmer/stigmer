@@ -12,7 +12,7 @@ import "google/protobuf/timestamp.proto";
 // no CRUD RPCs, no FGA (the OAuthGrant / RunReservation pattern).
 // Stored by the serving edition's channel runtime; the reply lane's
 // correctness backbone. Created at webhook time in the same motion as the
-// Session/AgentRun; claimed atomically by the delivery worker with a
+// Session/Run; claimed atomically by the delivery worker with a
 // status-guarded update; swept for runs whose terminal write raced or
 // bypassed the hook.
 message ChannelDelivery {
@@ -26,7 +26,7 @@ message ChannelDelivery {
   // Denormalized from the channel so sweep/worker paths never join.
   string org = 3;
 
-  // AgentRun whose terminal result this delivery carries.
+  // Run whose terminal result this delivery carries.
   string run_id = 4;
 
   // Session the run belongs to (conversation continuity + audit).

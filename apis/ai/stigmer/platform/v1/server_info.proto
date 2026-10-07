@@ -139,7 +139,7 @@ service PlatformQueryController {
   // key configured) — the runner falls back to its existing credential.
   //
   // @internal
-  // Cloud mints via SandboxTokenService: an agent_run_id yields a
+  // Cloud mints via SandboxTokenService: a run_id yields a
   // token_type=sandbox token carrying the run's parent session_id (one
   // session sandbox serves multi-turn runs). It is then bound by
   // RunnerScopeVerifier on the getByExecutionId decrypt path exactly like
@@ -307,7 +307,7 @@ message GetRunnerBootstrapConfigOutput {
 message GetRunnerScopedTokenInput {
   // The dispatched work the token will serve. The runner names only the id it
   // was dispatched; the server derives the token's scope from the resource
-  // itself (an agent run scopes to its parent session).
+  // itself (a run scopes to its parent session).
   //
   // Arm 2 held workflow_run_id, which scoped a token to one workflow run's
   // ExecutionContext, until the workflow product was removed platform-wide.
@@ -318,9 +318,9 @@ message GetRunnerScopedTokenInput {
   oneof scope {
     option (buf.validate.oneof).required = true;
 
-    // AgentRun id — yields a token scoped to the run's parent
+    // Run id — yields a token scoped to the run's parent
     // session, valid for every ExecutionContext in that session (multi-turn).
-    string agent_run_id = 1;
+    string run_id = 1;
 
     // Warm-pool claim — a pool sandbox exchanging its pool credential for the
     // session token of the session it has just been claimed for. Presented

@@ -64,7 +64,7 @@ message LocalPathSource {
 // ExecutionContext.runtime_env). As a workspace-provisioning key it is
 // re-injected past the Agent.spec.env declared-key filter when the session has
 // git_repo entries, with a fallback to the caller's personal environment (see
-// the agentrun controller's executionContextBuilder). The token is
+// the run controller's executionContextBuilder). The token is
 // injected into the clone URL, consumed by provisioning, and stripped before
 // forwarding to the agent runtime. SSH key authentication is a future
 // enhancement.

@@ -1,26 +1,26 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentrun.v1;
+package ai.stigmer.agentic.run.v1;
 
-import "ai/stigmer/agentic/agentrun/v1/api.proto";
-import "ai/stigmer/agentic/agentrun/v1/io.proto";
+import "ai/stigmer/agentic/run/v1/api.proto";
+import "ai/stigmer/agentic/run/v1/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
 
-// AgentRunQueryController handles read operations for agent runs.
-service AgentRunQueryController {
-  option (ai.stigmer.commons.apiresource.api_resource_kind) = agent_run;
+// RunQueryController handles read operations for runs.
+service RunQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = run;
 
-  // Get a single agent run by ID.
-  rpc get(AgentRunId) returns (AgentRun) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
+  // Get a single run by ID.
+  rpc get(RunId) returns (Run) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = run;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
     option (ai.stigmer.commons.rpc.config).field_path = "value";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get agent run";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get run";
   }
 
-  // List all agent runs with pagination and optional filtering.
-  rpc list(ListAgentRunsRequest) returns (AgentRunList) {
+  // List all runs with pagination and optional filtering.
+  rpc list(ListRunsRequest) returns (RunList) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
@@ -29,7 +29,7 @@ service AgentRunQueryController {
   // @internal
   // Authorization is handled in handler via FGA query for authorized agent_run_ids,
   // then filtered by session_id. This ensures consistent authorization pattern across all list operations.
-  rpc listBySession(ListAgentRunsBySessionRequest) returns (AgentRunList) {
+  rpc listBySession(ListRunsBySessionRequest) returns (RunList) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
@@ -37,17 +37,17 @@ service AgentRunQueryController {
   //
   // @internal
   // Authorization is handled by the FJ model via proto configuration.
-  rpc subscribe(AgentRunId) returns (stream AgentRun) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
+  rpc subscribe(RunId) returns (stream Run) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = run;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
     option (ai.stigmer.commons.rpc.config).field_path = "value";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to subscribe to agent run";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to subscribe to run";
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Artifact Lifecycle Operations
   //
-  // These RPCs support downloading artifacts created by agent runs.
+  // These RPCs support downloading artifacts created by runs.
   // ─────────────────────────────────────────────────────────────────────────────
 
   // Get a presigned download URL for a run artifact or attachment.
@@ -92,15 +92,15 @@ service AgentRunQueryController {
   //
   // ## Example Flow
   //
-  // 1. Get the run via AgentRunQueryController.get
+  // 1. Get the run via RunQueryController.get
   // 2. Find artifact in status.artifacts[] (or attachment in spec.attachments[])
   // 3. Call getArtifactDownloadUrl with run_id and storage_key
   // 4. Use returned download_url for HTTP GET
   rpc getArtifactDownloadUrl(GetArtifactDownloadUrlRequest) returns (GetArtifactDownloadUrlResponse) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
+    option (ai.stigmer.commons.rpc.config).resource_kind = run;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
     option (ai.stigmer.commons.rpc.config).field_path = "run_id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to download artifact from agent run";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to download artifact from run";
   }
 
   // Read the raw content of a run artifact.
@@ -133,16 +133,16 @@ service AgentRunQueryController {
   //
   // ## Example Flow
   //
-  // 1. Get the run via AgentRunQueryController.get
+  // 1. Get the run via RunQueryController.get
   // 2. Find artifact in status.artifacts[]
   // 3. Call getArtifactContent with run_id and storage_key
   // 4. Decode content bytes as UTF-8 for text artifacts
   // 5. Parse YAML to detect Stigmer resource kind (Agent, McpServer, etc.)
   rpc getArtifactContent(GetArtifactContentRequest) returns (GetArtifactContentResponse) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
+    option (ai.stigmer.commons.rpc.config).resource_kind = run;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
     option (ai.stigmer.commons.rpc.config).field_path = "run_id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to read artifact content from agent run";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to read artifact content from run";
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -157,7 +157,7 @@ service AgentRunQueryController {
   //
   // Returns aggregated tokens, cost, and per-model breakdown for one run.
   rpc getRunUsageReport(GetRunUsageReportInput) returns (GetRunUsageReportOutput) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent_run;
+    option (ai.stigmer.commons.rpc.config).resource_kind = run;
     option (ai.stigmer.commons.rpc.config).permission = can_view;
     option (ai.stigmer.commons.rpc.config).field_path = "run_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view run usage report";
@@ -214,7 +214,7 @@ service AgentRunQueryController {
   // from two sources.
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // Get aggregated run statistics for an organization's agent runs.
+  // Get aggregated run statistics for an organization's runs.
   //
   // Returns counts by phase, active count, average duration, and top failing
   // agents — scoped to a configurable time window (24h, 7d, 30d, all-time).
@@ -227,12 +227,12 @@ service AgentRunQueryController {
   // Use Cases:
   //
   // 1. Dashboard Overview:
-  //    - Display the agent run KPI cards
+  //    - Display the run KPI cards
   //
   // 2. Reliability Monitoring:
   //    - Surface top failing agents for investigation
   //    - Track failure rates across the organization
-  rpc getRunSummary(GetAgentRunSummaryRequest) returns (AgentRunSummary) {
+  rpc getRunSummary(GetRunSummaryRequest) returns (RunSummary) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 }

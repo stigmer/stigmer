@@ -1,35 +1,35 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentrun.v1;
+package ai.stigmer.agentic.run.v1;
 
-import "ai/stigmer/agentic/agentrun/v1/approval.proto";
-import "ai/stigmer/agentic/agentrun/v1/artifact.proto";
-import "ai/stigmer/agentic/agentrun/v1/context.proto";
-import "ai/stigmer/agentic/agentrun/v1/enum.proto";
-import "ai/stigmer/agentic/agentrun/v1/filereview.proto";
-import "ai/stigmer/agentic/agentrun/v1/invocation.proto";
-import "ai/stigmer/agentic/agentrun/v1/message.proto";
-import "ai/stigmer/agentic/agentrun/v1/spec.proto";
-import "ai/stigmer/agentic/agentrun/v1/subagent.proto";
-import "ai/stigmer/agentic/agentrun/v1/todo.proto";
-import "ai/stigmer/agentic/agentrun/v1/usage.proto";
-import "ai/stigmer/agentic/agentrun/v1/writeback.proto";
+import "ai/stigmer/agentic/run/v1/approval.proto";
+import "ai/stigmer/agentic/run/v1/artifact.proto";
+import "ai/stigmer/agentic/run/v1/context.proto";
+import "ai/stigmer/agentic/run/v1/enum.proto";
+import "ai/stigmer/agentic/run/v1/filereview.proto";
+import "ai/stigmer/agentic/run/v1/invocation.proto";
+import "ai/stigmer/agentic/run/v1/message.proto";
+import "ai/stigmer/agentic/run/v1/spec.proto";
+import "ai/stigmer/agentic/run/v1/subagent.proto";
+import "ai/stigmer/agentic/run/v1/todo.proto";
+import "ai/stigmer/agentic/run/v1/usage.proto";
+import "ai/stigmer/agentic/run/v1/writeback.proto";
 import "ai/stigmer/commons/apiresource/metadata.proto";
 import "ai/stigmer/commons/apiresource/status.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 
-// AgentRun represents a single agent run instance (conversational).
+// Run represents a single run instance (conversational).
 // Follows the standard pattern: spec contains user inputs, status contains run results.
-message AgentRun {
+message Run {
   // API version for this resource type.
   string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
 
   // Resource kind identifier.
-  string kind = 2 [(buf.validate.field).string.const = 'AgentRun'];
+  string kind = 2 [(buf.validate.field).string.const = 'Run'];
 
   // Standard resource metadata including name, id, labels, and tags.
-  // Agent runs belong to an organization and inherit permissions from the session.
+  // Runs belong to an organization and inherit permissions from the session.
   ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
 
   // User-provided inputs for this run.
@@ -38,16 +38,16 @@ message AgentRun {
   // the environments the server resolves for its run and from the
   // per-run runtime_env; see the runtime_env field docs in
   // spec.proto.
-  AgentRunSpec spec = 4;
+  RunSpec spec = 4;
 
   // System-managed run state and results.
   // Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
-  AgentRunStatus status = 5;
+  RunStatus status = 5;
 }
 
-// AgentRunStatus contains all run results and state.
+// RunStatus contains all run results and state.
 // Everything populated during or after the run goes here, not in spec.
-message AgentRunStatus {
+message RunStatus {
   // Standard audit information (created_at, updated_at, created_by, etc.)
   ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
 

@@ -1,15 +1,15 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentrun.v1;
+package ai.stigmer.agentic.run.v1;
 
-import "ai/stigmer/agentic/agentrun/v1/api.proto";
-import "ai/stigmer/agentic/agentrun/v1/enum.proto";
-import "ai/stigmer/agentic/agentrun/v1/usage.proto";
+import "ai/stigmer/agentic/run/v1/api.proto";
+import "ai/stigmer/agentic/run/v1/enum.proto";
+import "ai/stigmer/agentic/run/v1/usage.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/duration.proto";
 
-// AgentRunId wraps an agent run identifier.
-message AgentRunId {
+// RunId wraps a run identifier.
+message RunId {
   string value = 1 [(buf.validate.field).required = true];
 }
 
@@ -18,14 +18,14 @@ message SessionId {
   string value = 1 [(buf.validate.field).required = true];
 }
 
-// AgentRunList contains one page of agent runs, newest first.
-message AgentRunList {
+// RunList contains one page of runs, newest first.
+message RunList {
   // Not computed for this list: 1 when the response holds every run,
   // 0 when next_page_token is set. Follow next_page_token instead.
   int32 total_pages = 1;
 
-  // Agent runs in this page, newest first.
-  repeated AgentRun entries = 2;
+  // Runs in this page, newest first.
+  repeated Run entries = 2;
 
   // Set when more runs may follow: pass it as page_token to
   // continue. A page may hold fewer runs than page_size, even none,
@@ -34,8 +34,8 @@ message AgentRunList {
   string next_page_token = 3;
 }
 
-// ListAgentRunsRequest specifies parameters for listing runs.
-message ListAgentRunsRequest {
+// ListRunsRequest specifies parameters for listing runs.
+message ListRunsRequest {
   // The most runs to return, at most 100; zero returns them all.
   int32 page_size = 1 [(buf.validate.field).int32.gte = 0];
 
@@ -63,11 +63,11 @@ message ListAgentRunsRequest {
   string org = 5;
 }
 
-// ListAgentRunsBySessionRequest lists all runs in a session.
+// ListRunsBySessionRequest lists all runs in a session.
 //
 // A session's runs are returned whole, newest first: a conversation
 // is read as one, and every consumer of this list needs all of it.
-message ListAgentRunsBySessionRequest {
+message ListRunsBySessionRequest {
   // Session ID to filter by.
   string session_id = 1 [(buf.validate.field).required = true];
 
@@ -81,19 +81,19 @@ message ListAgentRunsBySessionRequest {
 // Input message for updateStatus RPC.
 // Contains only the run ID and the status fields to be updated.
 // This avoids validation errors on incomplete metadata/spec fields and makes the API contract clearer.
-message AgentRunUpdateStatusInput {
-  // ID of the agent run to update (required).
-  // Format: "aex_abc123xyz456"
+message RunUpdateStatusInput {
+  // ID of the run to update (required).
+  // Format: "run_abc123xyz456"
   string run_id = 1 [(buf.validate.field).string.min_len = 1];
 
   // Status fields to update.
   // The handler will merge these status fields with the existing run's status.
   // Only the fields present in this status object will be updated.
-  AgentRunStatus status = 2 [(buf.validate.field).required = true];
+  RunStatus status = 2 [(buf.validate.field).required = true];
 }
 
 // UpdateStatusResponse is the lightweight response returned by the
-// updateStatus RPC. It replaces the previous AgentRun return type
+// updateStatus RPC. It replaces the previous Run return type
 // to avoid serializing the full resource on every progressive update
 // (~every 2-3 seconds during streaming).
 //
@@ -118,15 +118,15 @@ message UpdateStatusResponse {
 //
 // Example:
 //   {
-//     "agent_run_id": "aex_abc123xyz456",
+//     "run_id": "run_abc123xyz456",
 //     "tool_call_id": "call_def789",
 //     "action": "APPROVAL_ACTION_APPROVE",
 //     "comment": "Verified safe to execute"
 //   }
 message SubmitApprovalInput {
-  // ID of the agent run.
-  // Format: "aex_abc123xyz456"
-  string agent_run_id = 1 [(buf.validate.field).string.min_len = 1];
+  // ID of the run.
+  // Format: "run_abc123xyz456"
+  string run_id = 1 [(buf.validate.field).string.min_len = 1];
 
   // ID of the tool call to approve/skip/reject.
   // Must match status.pending_approval.tool_call_id exactly.
@@ -171,7 +171,7 @@ message ApprovalDecisionList {
 //
 // Example:
 //   {
-//     "agent_run_id": "aex_abc123xyz456",
+//     "run_id": "run_abc123xyz456",
 //     "change_set_id": "fcs_def789",
 //     "scope": "FILE_DECISION_SCOPE_FILE",
 //     "file_change_id": "fc_001",
@@ -180,8 +180,8 @@ message ApprovalDecisionList {
 //     "reason": "Looks correct"
 //   }
 message SubmitFileDecisionInput {
-  // ID of the agent run.
-  string agent_run_id = 1 [(buf.validate.field).string.min_len = 1];
+  // ID of the run.
+  string run_id = 1 [(buf.validate.field).string.min_len = 1];
 
   // ID of the change set this decision targets. Must match
   // status.file_change_sets[].id.
@@ -229,12 +229,12 @@ message SubmitFileDecisionInput {
 // Lifecycle Control Input Messages
 //
 // These messages are used by lifecycle control RPCs (cancel, terminate, recover,
-// pause, resume) to manage agent run state.
+// pause, resume) to manage run state.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// CancelAgentRunInput requests graceful cancellation of an agent run.
+// CancelRunInput requests graceful cancellation of a run.
 //
-// Cancellation sends a signal to the agent run, allowing it to clean up
+// Cancellation sends a signal to the run, allowing it to clean up
 // gracefully. The agent can handle the cancellation signal (e.g., save checkpoint,
 // report status) before the run transitions to CANCELLED phase.
 //
@@ -248,7 +248,7 @@ message SubmitFileDecisionInput {
 // ## Preconditions
 //
 // - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
-// - User must have can_edit permission on the agent run
+// - User must have can_edit permission on the run
 //
 // ## Idempotency
 //
@@ -265,14 +265,14 @@ message SubmitFileDecisionInput {
 // ## Example
 //
 // {
-//   "id": "aex_abc123xyz456",
+//   "id": "run_abc123xyz456",
 //   "reason": "User requested cancellation - task no longer needed"
 // }
-message CancelAgentRunInput {
-  // Agent run ID to cancel.
+message CancelRunInput {
+  // Run ID to cancel.
   //
-  // Format: "aex_{ulid}" (auto-generated unique identifier)
-  // Example: "aex_abc123xyz456"
+  // Format: "run_{ulid}" (auto-generated unique identifier)
+  // Example: "run_abc123xyz456"
   //
   // Validation: Required, cannot be empty
   string id = 1 [(buf.validate.field).string.min_len = 1];
@@ -290,11 +290,11 @@ message CancelAgentRunInput {
   string reason = 2;
 }
 
-// TerminateAgentRunInput requests immediate termination of an agent run.
+// TerminateRunInput requests immediate termination of a run.
 //
-// Termination forcefully kills the agent run without allowing cleanup.
+// Termination forcefully kills the run without allowing cleanup.
 // Unlike cancellation, the agent cannot respond to termination - it is stopped
-// immediately. Use this for stuck or unresponsive agent runs.
+// immediately. Use this for stuck or unresponsive runs.
 //
 // ## Behavior
 //
@@ -307,7 +307,7 @@ message CancelAgentRunInput {
 // ## Preconditions
 //
 // - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
-// - User must have can_edit permission on the agent run
+// - User must have can_edit permission on the run
 //
 // ## Idempotency
 //
@@ -333,14 +333,14 @@ message CancelAgentRunInput {
 // ## Example
 //
 // {
-//   "id": "aex_abc123xyz456",
+//   "id": "run_abc123xyz456",
 //   "reason": "Agent stuck in infinite loop, not responding to cancel"
 // }
-message TerminateAgentRunInput {
-  // Agent run ID to terminate.
+message TerminateRunInput {
+  // Run ID to terminate.
   //
-  // Format: "aex_{ulid}" (auto-generated unique identifier)
-  // Example: "aex_abc123xyz456"
+  // Format: "run_{ulid}" (auto-generated unique identifier)
+  // Example: "run_abc123xyz456"
   //
   // Validation: Required, cannot be empty
   string id = 1 [(buf.validate.field).string.min_len = 1];
@@ -359,7 +359,7 @@ message TerminateAgentRunInput {
   string reason = 2;
 }
 
-// RecoverAgentRunInput requests recovery of a failed agent run.
+// RecoverRunInput requests recovery of a failed run.
 //
 // Recovery retries the failed run while preserving all completed work. The
 // agent continues from where it failed without re-executing successful steps.
@@ -378,7 +378,7 @@ message TerminateAgentRunInput {
 // - Run must be in RUN_FAILED phase
 // - TERMINATED runs cannot be recovered (incomplete checkpoint)
 // - CANCELLED runs cannot be recovered (intentional user action)
-// - User must have can_edit permission on the agent run
+// - User must have can_edit permission on the run
 //
 // ## Idempotency
 //
@@ -395,22 +395,22 @@ message TerminateAgentRunInput {
 // ## Example
 //
 // {
-//   "id": "aex_abc123xyz456"
+//   "id": "run_abc123xyz456"
 // }
-message RecoverAgentRunInput {
-  // Agent run ID to recover.
+message RecoverRunInput {
+  // Run ID to recover.
   //
   // Must be in FAILED phase. TERMINATED and CANCELLED runs
   // cannot be recovered.
   //
-  // Format: "aex_{ulid}" (auto-generated unique identifier)
-  // Example: "aex_abc123xyz456"
+  // Format: "run_{ulid}" (auto-generated unique identifier)
+  // Example: "run_abc123xyz456"
   //
   // Validation: Required, cannot be empty
   string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
-// PauseAgentRunInput requests temporarily pausing an agent run.
+// PauseRunInput requests temporarily pausing a run.
 //
 // Pauses the agent at its current checkpoint. Unlike cancel, the run
 // is NOT terminal and can be resumed later from where it left off.
@@ -447,17 +447,17 @@ message RecoverAgentRunInput {
 // ## Example
 //
 // {
-//   "id": "aex_abc123xyz456",
+//   "id": "run_abc123xyz456",
 //   "reason": "Pausing to review progress before continuing"
 // }
-message PauseAgentRunInput {
-  // Agent run ID to pause.
+message PauseRunInput {
+  // Run ID to pause.
   //
   // Must be in PENDING or IN_PROGRESS phase. Cannot pause
   // runs that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
   //
-  // Format: "aex_{ulid}" (auto-generated unique identifier)
-  // Example: "aex_abc123xyz456"
+  // Format: "run_{ulid}" (auto-generated unique identifier)
+  // Example: "run_abc123xyz456"
   //
   // Validation: Required, cannot be empty
   string id = 1 [(buf.validate.field).string.min_len = 1];
@@ -475,7 +475,7 @@ message PauseAgentRunInput {
   string reason = 2;
 }
 
-// ResumeAgentRunInput requests resuming a paused agent run.
+// ResumeRunInput requests resuming a paused run.
 //
 // Continues the run from the checkpoint where it was paused. The agent
 // re-invokes activities with the same thread_id, which loads from checkpoint
@@ -503,16 +503,16 @@ message PauseAgentRunInput {
 // ## Example
 //
 // {
-//   "id": "aex_abc123xyz456"
+//   "id": "run_abc123xyz456"
 // }
-message ResumeAgentRunInput {
-  // Agent run ID to resume.
+message ResumeRunInput {
+  // Run ID to resume.
   //
   // Must be in PAUSED phase. Cannot resume runs
   // that are not paused.
   //
-  // Format: "aex_{ulid}" (auto-generated unique identifier)
-  // Example: "aex_abc123xyz456"
+  // Format: "run_{ulid}" (auto-generated unique identifier)
+  // Example: "run_abc123xyz456"
   //
   // Validation: Required, cannot be empty
   string id = 1 [(buf.validate.field).string.min_len = 1];
@@ -522,14 +522,14 @@ message ResumeAgentRunInput {
 // Artifact Lifecycle Messages
 //
 // These messages support file attachments (inputs) and artifacts (outputs)
-// for agent runs. Attachments are files provided to agents before
+// for runs. Attachments are files provided to agents before
 // run; artifacts are files created by agents during the run.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// UploadAttachmentRequest uploads a file attachment for use in an agent run.
+// UploadAttachmentRequest uploads a file attachment for use in a run.
 //
 // This endpoint allows CLI and other clients to pre-upload large files (>4MB)
-// to artifact storage before creating an agent run. The returned storage_key
+// to artifact storage before creating a run. The returned storage_key
 // can then be used in the Attachment message when creating the run.
 //
 // ## Storage
@@ -546,7 +546,7 @@ message ResumeAgentRunInput {
 //
 // ## Use Cases
 //
-// - CLI uploading files before agent run
+// - CLI uploading files before run
 // - Pre-uploading large datasets for agent processing
 // - Uploading binary files that cannot be embedded inline
 //
@@ -604,7 +604,7 @@ message UploadAttachmentRequest {
 // UploadAttachmentResponse returns the storage key for the uploaded attachment.
 //
 // The storage_key should be used in the Attachment message when creating
-// an agent run. The key is opaque to clients - do not parse or
+// a run. The key is opaque to clients - do not parse or
 // construct keys manually.
 message UploadAttachmentResponse {
   // Storage key for the uploaded attachment.
@@ -645,8 +645,8 @@ message UploadAttachmentResponse {
 //
 // Request:
 // {
-//   "run_id": "aex_abc123xyz456",
-//   "storage_key": "artifacts/aex_abc123xyz456/generated-skill.zip"
+//   "run_id": "run_abc123xyz456",
+//   "storage_key": "artifacts/run_abc123xyz456/generated-skill.zip"
 // }
 //
 // Response:
@@ -655,12 +655,12 @@ message UploadAttachmentResponse {
 //   "expires_at": "2026-02-20T10:30:00Z"
 // }
 message GetArtifactDownloadUrlRequest {
-  // ID of the agent run that produced the artifact.
+  // ID of the run that produced the artifact.
   //
   // Used for authorization (can_view check) and storage_key validation.
   //
-  // Format: "aex_{ulid}"
-  // Example: "aex_abc123xyz456"
+  // Format: "run_{ulid}"
+  // Example: "run_abc123xyz456"
   //
   // Validation: Required, minimum 1 character
   string run_id = 1 [(buf.validate.field).string.min_len = 1];
@@ -674,7 +674,7 @@ message GetArtifactDownloadUrlRequest {
   // Obtain this value from RunArtifact.storage_key in the run status.
   //
   // Format: "artifacts/{run_id}/{filename}"
-  // Example: "artifacts/aex_abc123xyz456/generated-skill.zip"
+  // Example: "artifacts/run_abc123xyz456/generated-skill.zip"
   //
   // Validation: Required, minimum 1 character
   string storage_key = 2 [(buf.validate.field).string.min_len = 1];
@@ -761,8 +761,8 @@ message GetArtifactDownloadUrlResponse {
 //
 // Request:
 // {
-//   "run_id": "aex_abc123xyz456",
-//   "storage_key": "artifacts/aex_abc123xyz456/pr-review-agent.yaml"
+//   "run_id": "run_abc123xyz456",
+//   "storage_key": "artifacts/run_abc123xyz456/pr-review-agent.yaml"
 // }
 //
 // Response:
@@ -773,12 +773,12 @@ message GetArtifactDownloadUrlResponse {
 //   "truncated": false
 // }
 message GetArtifactContentRequest {
-  // ID of the agent run that produced the artifact.
+  // ID of the run that produced the artifact.
   //
   // Used for authorization (can_view check) and storage_key validation.
   //
-  // Format: "aex_{ulid}"
-  // Example: "aex_abc123xyz456"
+  // Format: "run_{ulid}"
+  // Example: "run_abc123xyz456"
   //
   // Validation: Required, minimum 1 character
   string run_id = 1 [(buf.validate.field).string.min_len = 1];
@@ -792,7 +792,7 @@ message GetArtifactContentRequest {
   // Obtain this value from RunArtifact.storage_key in the run status.
   //
   // Format: "artifacts/{run_id}/{filename}"
-  // Example: "artifacts/aex_abc123xyz456/pr-review-agent.yaml"
+  // Example: "artifacts/run_abc123xyz456/pr-review-agent.yaml"
   //
   // Validation: Required, minimum 1 character
   string storage_key = 2 [(buf.validate.field).string.min_len = 1];
@@ -1152,7 +1152,7 @@ message HarnessCostSummary {
 // ═══════════════════════════════════════════════════════════════════════════════
 // RUN SUMMARY (Dashboard Aggregation)
 //
-// Operational summary of agent runs scoped to an organization and time
+// Operational summary of runs scoped to an organization and time
 // window. Used by the platform dashboard to show run health. Cost is
 // intentionally excluded — the dashboard sources cost from
 // getOrgUsageReport (billing source of truth), so it shows what billing
@@ -1160,34 +1160,34 @@ message HarnessCostSummary {
 //
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Controls the time range for agent run summary queries.
-enum AgentRunSummaryTimeWindow {
-  AGENT_RUN_SUMMARY_TIME_WINDOW_UNSPECIFIED = 0;
-  AGENT_RUN_SUMMARY_TIME_WINDOW_LAST_24H = 1;
-  AGENT_RUN_SUMMARY_TIME_WINDOW_LAST_7D = 2;
-  AGENT_RUN_SUMMARY_TIME_WINDOW_LAST_30D = 3;
-  AGENT_RUN_SUMMARY_TIME_WINDOW_ALL_TIME = 4;
+// Controls the time range for run summary queries.
+enum RunSummaryTimeWindow {
+  RUN_SUMMARY_TIME_WINDOW_UNSPECIFIED = 0;
+  RUN_SUMMARY_TIME_WINDOW_LAST_24H = 1;
+  RUN_SUMMARY_TIME_WINDOW_LAST_7D = 2;
+  RUN_SUMMARY_TIME_WINDOW_LAST_30D = 3;
+  RUN_SUMMARY_TIME_WINDOW_ALL_TIME = 4;
 }
 
-// GetAgentRunSummaryRequest fetches aggregated run statistics
-// for an organization's agent runs.
-message GetAgentRunSummaryRequest {
+// GetRunSummaryRequest fetches aggregated run statistics
+// for an organization's runs.
+message GetRunSummaryRequest {
   // Organization slug to scope the summary.
   string org = 1 [(buf.validate.field).string.min_len = 1];
 
   // Time window for aggregation.
   //
   // Defaults to LAST_7D when unspecified.
-  AgentRunSummaryTimeWindow time_window = 2;
+  RunSummaryTimeWindow time_window = 2;
 }
 
-// AgentRunSummary contains aggregated operational statistics for agent
+// RunSummary contains aggregated operational statistics for agent
 // runs. Designed for the platform dashboard's unified health view.
 //
 // Cost is intentionally omitted. The dashboard sources cost from
 // getOrgUsageReport (billing source of truth), so it shows what billing
 // recorded and cost is never counted from two sources.
-message AgentRunSummary {
+message RunSummary {
   // Number of runs currently in a non-terminal phase
   // (PENDING, IN_PROGRESS, WAITING_FOR_APPROVAL, PAUSED).
   int32 active_count = 1;

@@ -1,13 +1,13 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentrun.v1;
+package ai.stigmer.agentic.run.v1;
 
-import "ai/stigmer/agentic/agentrun/v1/enum.proto";
+import "ai/stigmer/agentic/run/v1/enum.proto";
 
 // NOTE: This file previously also defined `ResolvedExecutionContext` and
 // `McpServerResolutionStatus`. That contract was retired
 // (2026-08, issue #600): nothing ever produced it after the Python runner
-// was deleted, so `AgentRunStatus.resolved_context` (field 12, now
+// was deleted, so `RunStatus.resolved_context` (field 12, now
 // reserved in api.proto) never carried data in any deployment.
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -114,7 +114,7 @@ message SummarizationEvent {
 // ContextInfo provides visibility into context window utilization.
 //
 // This message enables monitoring, debugging, and optimization of context
-// usage during agent runs. It tracks both the current state and
+// usage during runs. It tracks both the current state and
 // historical summarization events.
 //
 // ## Real-Time Updates

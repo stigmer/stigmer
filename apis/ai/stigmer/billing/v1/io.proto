@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package ai.stigmer.billing.v1;
 
-import "ai/stigmer/agentic/agentrun/v1/enum.proto";
-import "ai/stigmer/agentic/agentrun/v1/usage.proto";
+import "ai/stigmer/agentic/run/v1/enum.proto";
+import "ai/stigmer/agentic/run/v1/usage.proto";
 import "ai/stigmer/billing/v1/credit.proto";
 import "ai/stigmer/billing/v1/enum.proto";
 import "ai/stigmer/billing/v1/model_pricing_baseline.proto";
@@ -131,10 +131,10 @@ message RecordLlmCallUsageInput {
   string requested_model = 5;
 
   // Token usage extracted from the provider's SSE stream.
-  ai.stigmer.agentic.agentrun.v1.TokenUsage tokens = 6;
+  ai.stigmer.agentic.run.v1.TokenUsage tokens = 6;
 
   // Status of usage extraction.
-  ai.stigmer.agentic.agentrun.v1.UsageCompletionStatus usage_status = 7;
+  ai.stigmer.agentic.run.v1.UsageCompletionStatus usage_status = 7;
 
   // Provider request ID from response headers.
   string provider_request_id = 8;
@@ -149,7 +149,7 @@ message RecordLlmCallUsageInput {
   string finish_reason = 11;
 
   // Proxy-observed timing for this call.
-  ai.stigmer.agentic.agentrun.v1.ProxyTiming proxy_timing = 12;
+  ai.stigmer.agentic.run.v1.ProxyTiming proxy_timing = 12;
 
   // Raw provider usage JSON for audit/debug.
   string provider_usage_json = 13;
@@ -172,7 +172,7 @@ message RecordLlmCallUsageInput {
   // CursorAccount store is the only credential source, so a current
   // proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
   // caller.
-  ai.stigmer.agentic.agentrun.v1.CursorKeySource cursor_key_source = 17;
+  ai.stigmer.agentic.run.v1.CursorKeySource cursor_key_source = 17;
 
   // Provider-reported service tier that actually served this call
   // (native harness, stigmer/stigmer#361): Anthropic reports it in the
@@ -185,7 +185,7 @@ message RecordLlmCallUsageInput {
   // through the cursor path's pricing-variant resolution instead.
   string served_service_tier = 18;
 
-  // The agent run this call is metered under, as the proxy resolved
+  // The run this call is metered under, as the proxy resolved
   // it from the run's system of record — on the caller's own
   // credential, before reporting. The billing handler stamps these facts
   // onto the usage record and reconciles the requested tier and thinking
@@ -204,7 +204,7 @@ message RecordLlmCallUsageInput {
   // organization's own provider key served the call: it is recorded and
   // priced for visibility, and never debited. UNSPECIFIED from a proxy
   // that predates the field, read as the platform's key.
-  ai.stigmer.agentic.agentrun.v1.ProviderKeySource provider_key_source = 21;
+  ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 21;
 }
 
 // The run-side facts LLM metering denormalizes onto every usage
@@ -226,12 +226,12 @@ message MeteredRun {
   // The service tier the run resolved (status.run_config.
   // service_tier); UNSPECIFIED resolves to standard. Reconciled against
   // served_service_tier by the service_tier.mismatch counter.
-  ai.stigmer.agentic.agentrun.v1.ServiceTier requested_service_tier = 3;
+  ai.stigmer.agentic.run.v1.ServiceTier requested_service_tier = 3;
 
   // The thinking mode the run resolved (status.run_config.
   // thinking_mode). Reconciled against the served variant by the
   // thinking.mismatch counter.
-  ai.stigmer.agentic.agentrun.v1.ThinkingMode requested_thinking_mode = 4;
+  ai.stigmer.agentic.run.v1.ThinkingMode requested_thinking_mode = 4;
 }
 
 // RecordLlmCallUsageResponse returns the cost result so callers can

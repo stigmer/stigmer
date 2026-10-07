@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.agentrun.v1;
+package ai.stigmer.agentic.run.v1;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Workspace Write-Back (Platform-Owned Git Workflow)

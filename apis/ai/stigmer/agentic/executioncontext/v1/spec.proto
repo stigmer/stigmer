@@ -9,7 +9,7 @@ import "buf/validate/validate.proto";
 // @internal
 // Created by the execution engine, deleted when the run completes.
 message ExecutionContextSpec {
-  // ID of the parent AgentRun (or an MCP connect's execution id).
+  // ID of the parent Run (or an MCP connect's execution id).
   string execution_id = 1 [(buf.validate.field).string.min_len = 1];
 
   // Runtime key-value pairs, each marked as secret or plaintext.

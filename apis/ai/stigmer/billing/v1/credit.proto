@@ -50,7 +50,7 @@ message CreditLedgerEntry {
 // - adjustment_credit / adjustment_debit: adjusted_by, description
 // - reservation_hold / reservation_release: run_id, reservation_id
 message CreditLedgerSource {
-  // Agent run that generated this debit.
+  // Run that generated this debit.
   string run_id = 1;
 
   // Session containing the run.
@@ -141,7 +141,7 @@ message CreditPack {
   bool active = 5;
 }
 
-// RunReservation tracks credits held for an active agent run.
+// RunReservation tracks credits held for an active run.
 //
 // Created at run start (AuthorizeRun), consumed incrementally
 // by per-LLM-call debits (via proxy-observed usage metering), and settled
@@ -153,7 +153,7 @@ message RunReservation {
   // Organization that owns this reservation.
   string org = 2;
 
-  // Agent run this reservation is for.
+  // Run this reservation is for.
   string run_id = 3;
 
   // Total micro-USD reserved at run start.
