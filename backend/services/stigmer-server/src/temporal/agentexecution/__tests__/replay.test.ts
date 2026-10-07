@@ -5,7 +5,11 @@
  * logic is NOT replay-safe for in-flight executions: gate it with
  * patched()/deprecatePatch(), never regenerate the histories (regenerate
  * only when no producing release is still supported — the schedule
- * domain's rule).
+ * domain's rule). The one exception is a history whose path leaves with
+ * the feature that produced it: the parented HITL history went with the
+ * workflow product, whose parent runs an upgrade deletes, and the release
+ * notes tell operators to finish or cancel running workflows before
+ * upgrading, because an agent run a workflow step started cannot resume.
  *
  * Fully local: replay needs no Temporal server, so this gate runs in the
  * plain vitest suite (and the ci.stigmer-server workflow) on every
