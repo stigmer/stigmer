@@ -623,7 +623,7 @@ describe("a Claude plugin's tool lists, main agent and hooks", () => {
     ).toEqual([]);
   });
 
-  it("has the composed run its own plugin's Claude Code hooks, unversioned, and declare the variables they read", () => {
+  it("has the composed agent run its own plugin's Claude Code hooks, unversioned, and declare the variables they read", () => {
     const planned = plan(
       claudePlugin({
         skills: [{ name: "howto", description: "How to", body: "# How" }],
@@ -676,7 +676,7 @@ describe("a Claude plugin's tool lists, main agent and hooks", () => {
     });
   });
 
-  it("has a Cursor-format plugin's run its hooks too, and composes no agent for a plugin that is only hooks", () => {
+  it("has a Cursor-format plugin's agent run its hooks too, and composes no agent for a plugin that is only hooks", () => {
     const cursor = plan(
       cursorPlugin({
         skills: [{ name: "howto", description: "How to", body: "# How" }],

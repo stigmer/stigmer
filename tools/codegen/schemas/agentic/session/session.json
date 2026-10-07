@@ -135,7 +135,7 @@
           "CURSOR_MODE_CLOUD"
         ]
       },
-      "description": "Cursor SDK agent mode for this session.\n\n Determines whether the Cursor runs locally (Agent.create with\n local.cwd) or in the cloud (Agent.create with cloud.repos). Set once\n at session creation and never changed — switching mid-session would\n lose Cursor-side conversation state.\n\n Only meaningful when harness == HARNESS_CURSOR. Ignored for other\n harness types.",
+      "description": "Cursor SDK agent mode for this session.\n\n Determines whether the Cursor agent runs locally (Agent.create with\n local.cwd) or in the cloud (Agent.create with cloud.repos). Set once\n at session creation and never changed — switching mid-session would\n lose Cursor-side conversation state.\n\n Only meaningful when harness == HARNESS_CURSOR. Ignored for other\n harness types.",
       "required": false
     },
     {

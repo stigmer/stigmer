@@ -197,7 +197,7 @@ type RunConfig struct {
 	// message to continue" prompt, and the work done so far is kept. The agent
 	// is advised to wrap up at about 80% of the budget.
 	//
-	// 0 = not set at this layer; with no layer setting it the runs until
+	// 0 = not set at this layer; with no layer setting it the agent runs until
 	// the task completes or loop detection stops a repetitive pattern. When
 	// set, the valid range is 10–1000; values outside it are clamped to the
 	// nearest bound. The budget is per message: a follow-up message, or a run

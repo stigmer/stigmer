@@ -524,7 +524,7 @@ java.lang.String defaultValue);
    * <pre>
    * Cursor SDK agent mode for this session.
    *
-   * Determines whether the Cursor runs locally (Agent.create with
+   * Determines whether the Cursor agent runs locally (Agent.create with
    * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
    * at session creation and never changed — switching mid-session would
    * lose Cursor-side conversation state.
@@ -541,7 +541,7 @@ java.lang.String defaultValue);
    * <pre>
    * Cursor SDK agent mode for this session.
    *
-   * Determines whether the Cursor runs locally (Agent.create with
+   * Determines whether the Cursor agent runs locally (Agent.create with
    * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
    * at session creation and never changed — switching mid-session would
    * lose Cursor-side conversation state.
