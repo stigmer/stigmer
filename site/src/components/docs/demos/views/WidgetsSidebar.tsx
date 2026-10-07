@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   ArtifactsWidget,
   RunProgress,
@@ -13,9 +13,9 @@ import { DEMO_SIDEBAR_ZOOM } from "../shared/tokens";
 
 interface WidgetsSidebarProps {
   /** Active or most recent run (for phase badge / todos). */
-  readonly execution: AgentRun | null;
+  readonly execution: Run | null;
   /** All session runs (for aggregate widgets). */
-  readonly executions: readonly AgentRun[];
+  readonly executions: readonly Run[];
   readonly org: string;
 }
 
@@ -51,7 +51,7 @@ export function WidgetsSidebar({
  * Convenience wrapper that renders a `WidgetsSidebar` with standard
  * demo props for a single run.
  */
-export function renderWidgetsSidebar(execution: AgentRun): ReactNode {
+export function renderWidgetsSidebar(execution: Run): ReactNode {
   return (
     <WidgetsSidebar
       execution={execution}

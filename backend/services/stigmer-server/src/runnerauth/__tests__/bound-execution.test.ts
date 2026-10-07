@@ -4,14 +4,14 @@
  * by enumeration here and the verifier's and the decrypt lane's tests can
  * assert behavior rather than restate it:
  *
- *   - the kind is read off the id alone: the agent run by the contract's
+ *   - the kind is read off the id alone: the run by the contract's
  *     prefix table, the connect binding by its own predicate;
  *     anything else is `undefined` with no store read;
  *   - a connect binding resolves through the connect's ExecutionContext
  *     row (by `spec.executionId`), is live while that row exists, and is
  *     not a run (`bindsARun`) — the shape both no-`exp` lanes refuse; two
  *     rows naming one connect bind nothing (no first-match guess);
- *   - live is "not terminal" for the agent run's OWN terminal set (its
+ *   - live is "not terminal" for the run's OWN terminal set (its
  *     TERMINATED and WAITING_FOR_APPROVAL are the arms that differ from a
  *     naive set);
  *   - a terminal row is live within the grace of its `completed_at`, dead
@@ -101,7 +101,7 @@ function connectContext(executionId: string, createdBy: string, org = "acme") {
   });
 }
 
-function agentRun(
+function runRow(
   id: string,
   phase: AgentPhase,
   completedAt = "",
@@ -151,7 +151,7 @@ describe("bindsARun — what a no-`exp` credential may name", () => {
 describe("loadBoundExecution", () => {
   it("reads the row's facts the lane needs and nothing else", async () => {
     const store = storeOf({
-      aex_1: agentRun("aex_1", AgentPhase.RUN_IN_PROGRESS, "", {
+      aex_1: runRow("aex_1", AgentPhase.RUN_IN_PROGRESS, "", {
         createdBy: "ida_carol",
         sessionId: "ses_carol",
         org: "acme",
@@ -246,7 +246,7 @@ describe("loadBoundExecution", () => {
       ["WAITING_FOR_APPROVAL", AgentPhase.RUN_WAITING_FOR_APPROVAL],
       ["PAUSED", AgentPhase.RUN_PAUSED],
     ])("%s is live", async (_name, phase) => {
-      const store = storeOf({ aex_1: agentRun("aex_1", phase) });
+      const store = storeOf({ aex_1: runRow("aex_1", phase) });
       expect((await loadBoundExecution(store, "aex_1", NOW))?.live).toBe(true);
     });
 
@@ -258,7 +258,7 @@ describe("loadBoundExecution", () => {
     ])(
       "%s with no completed_at is dead at once — no grace without a timestamp",
       async (_name, phase) => {
-        const store = storeOf({ aex_1: agentRun("aex_1", phase) });
+        const store = storeOf({ aex_1: runRow("aex_1", phase) });
         expect((await loadBoundExecution(store, "aex_1", NOW))?.live).toBe(
           false,
         );
@@ -283,21 +283,21 @@ describe("loadBoundExecution", () => {
       ["long after", -(G * 10), false],
     ])("a run that ended %s → live=%s", async (_label, offset, live) => {
       const store = storeOf({
-        aex_1: agentRun("aex_1", AgentPhase.RUN_COMPLETED, iso(offset)),
+        aex_1: runRow("aex_1", AgentPhase.RUN_COMPLETED, iso(offset)),
       });
       expect((await loadBoundExecution(store, "aex_1", NOW))?.live).toBe(live);
     });
 
     it("a completed_at in the future (a skewed writer's clock) is inside the grace, not an error", async () => {
       const store = storeOf({
-        aex_1: agentRun("aex_1", AgentPhase.RUN_COMPLETED, iso(60_000)),
+        aex_1: runRow("aex_1", AgentPhase.RUN_COMPLETED, iso(60_000)),
       });
       expect((await loadBoundExecution(store, "aex_1", NOW))?.live).toBe(true);
     });
 
     it("an unparsable completed_at gets no grace — fail closed", async () => {
       const store = storeOf({
-        aex_1: agentRun(
+        aex_1: runRow(
           "aex_1",
           AgentPhase.RUN_COMPLETED,
           "yesterday-ish",

@@ -1,5 +1,5 @@
 /**
- * Pins the agent-run search extractor's two projections: a result is filed
+ * Pins the run search extractor's two projections: a result is filed
  * under the `run` kind with the run's identity and an empty
  * description (Go pins Description "" even though the summary is the run's
  * name), and the summary itself answers the run's name for any caller that
@@ -24,7 +24,7 @@ const run = create(RunSchema, {
 });
 
 describe("agentExecutionSearchExtractor", () => {
-  it("serves the agent_run kind", () => {
+  it("serves the run kind", () => {
     expect(agentExecutionSearchExtractor.kind).toBe(ApiResourceKind.run);
   });
 
@@ -37,7 +37,7 @@ describe("agentExecutionSearchExtractor", () => {
     ).toBe("");
   });
 
-  it("projects a result under agent_run with the run's identity and no description", () => {
+  it("projects a result under run with the run's identity and no description", () => {
     const result = agentExecutionSearchExtractor.toSearchResult(run, 0.5);
 
     expect(result?.kind).toBe(ApiResourceKind.run);

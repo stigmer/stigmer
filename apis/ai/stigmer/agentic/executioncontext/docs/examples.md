@@ -17,7 +17,7 @@ metadata:
   name: exec-ctx-aex-abc123
   org: acme-corp
 spec:
-  execution_id: "aex_abc123"
+  execution_id: "run_abc123"
   data:
     LOG_LEVEL:
       value: "info"
@@ -37,7 +37,7 @@ metadata:
   name: exec-ctx-aex-def456
   org: acme-corp
 spec:
-  execution_id: "aex_def456"
+  execution_id: "run_def456"
   data:
     GITHUB_TOKEN:
       value: "ghp_xxxxxxxxxxxxxxxxxxxx"
@@ -57,7 +57,7 @@ metadata:
   name: exec-ctx-aex-ghi789
   org: acme-corp
 spec:
-  execution_id: "aex_ghi789"
+  execution_id: "run_ghi789"
   data:
     AWS_REGION:
       value: "us-east-1"
@@ -86,7 +86,7 @@ metadata:
   name: exec-ctx-aex-jkl012
   org: planton
 spec:
-  execution_id: "aex_jkl012"
+  execution_id: "run_jkl012"
   data:
     PLANTON_API_TOKEN:
       value: "plt_xxxxxxxxxxxxxxxxxxxx"
@@ -128,7 +128,7 @@ metadata:
   name: exec-ctx-aex-mno345
   org: acme-corp
 spec:
-  execution_id: "aex_mno345"
+  execution_id: "run_mno345"
   data:
     LOG_LEVEL:
       value: "info"
@@ -193,7 +193,7 @@ metadata:
     - agent-run
     - platform-team
 spec:
-  execution_id: "aex_stu901"
+  execution_id: "run_stu901"
   data:
     GITHUB_TOKEN:
       value: "ghp_xxxxxxxxxxxxxxxxxxxx"

@@ -92,7 +92,7 @@ describe("read-surface authorization", () => {
           create(RunIdSchema, { value: "aexec_01denied" }),
           handlerContext(),
         ).next(),
-      "unauthorized to subscribe to agent run",
+      "unauthorized to subscribe to run",
     );
   });
 
@@ -107,7 +107,7 @@ describe("read-surface authorization", () => {
           }),
           testCallerIdentity(),
         ),
-      "unauthorized to download artifact from agent run",
+      "unauthorized to download artifact from run",
     );
   });
 
@@ -122,7 +122,7 @@ describe("read-surface authorization", () => {
           }),
           testCallerIdentity(),
         ),
-      "unauthorized to read artifact content from agent run",
+      "unauthorized to read artifact content from run",
     );
   });
 });

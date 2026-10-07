@@ -1,10 +1,10 @@
 // Execution-engine harness smoke test for the MCP tool fixture (Class B).
 // Domain: agentic / agentexecution — proves the tool surface is wired, not the
-// HITL contract (that lives in agentrun-approval.conformance.test.ts).
+// HITL contract (that lives in run-approval.conformance.test.ts).
 //
 // This is the cheap, permanent guard that the local-execution target's MCP
 // machinery works end-to-end: an HTTP McpServer is registered (create only — no
-// connect/discovery), an agent references it, and a real agent run dispatches the
+// connect/discovery), an agent references it, and a real run dispatches the
 // fixture's `echo` tool live. Approval is bypassed here (auto_approve_all) so the
 // path under test is purely connect-live -> list-tools -> dispatch -> result;
 // the approval dance is a separate suite.
@@ -27,7 +27,7 @@ import {
   makeAgentExecution,
   requireLlmProxy,
   requireMcpFixture,
-} from "../support/agentruns";
+} from "../support/runs";
 import { makeHttpMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";

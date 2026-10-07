@@ -7,7 +7,7 @@
  * An execution names its conversation one of two ways (an existing
  * session_id, or a new session_spec whose agent_ref names its agent) or
  * not at all: the empty target is the built-in assistant
- * (agentrun/v1/spec.proto), for which CreateSessionIfNeeded creates
+ * (run/v1/spec.proto), for which CreateSessionIfNeeded creates
  * a session with no agent and the runner resolves an agent-less blueprint.
  * Nothing here resolves a stored default agent into that shape.
  */

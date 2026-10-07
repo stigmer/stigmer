@@ -12,8 +12,8 @@
 export const glossary: Record<string, string> = {
   Agent:
     "A reusable definition of what an AI assistant knows and can do. Think of it as a recipe that describes the assistant's personality, tools, and knowledge.",
-  "Agent Run":
-    "One run of an Agent from start to finish. Each time an Agent handles a request, that is one run.",
+  Run:
+    "One run of an Agent from start to finish: what a user starts when they send a message, fire a schedule or open a share link.",
   Session:
     "An ongoing conversation with an Agent across multiple messages. A session remembers what was said earlier so the Agent can follow along.",
   Skill:

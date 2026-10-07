@@ -17,7 +17,7 @@ function isInterruptedError(error: string): boolean {
 
 /** Props for {@link RunErrorNotice} and its MessageThread slot. */
 export interface RunErrorNoticeProps {
-  /** The server-reported failure reason (`AgentRunStatus.error`), raw. */
+  /** The server-reported failure reason (`RunStatus.error`), raw. */
   readonly error: string;
   /**
    * The originating user message, resent verbatim on retry. Absent when the
@@ -34,7 +34,7 @@ export interface RunErrorNoticeProps {
 }
 
 /**
- * Renders the server-reported failure reason (`AgentRunStatus.error`)
+ * Renders the server-reported failure reason (`RunStatus.error`)
  * for a run that died — typically before producing any messages. The
  * reason can be a long Temporal error, so it is clamped by default with a
  * Show more / Show less toggle.

@@ -157,7 +157,7 @@ function generateId(): string {
 }
 
 /**
- * Behavior hook that manages file attachments for agent runs.
+ * Behavior hook that manages file attachments for runs.
  *
  * Handles the full lifecycle: file validation, upload via
  * `stigmer.run.uploadAttachment()`, progress tracking,

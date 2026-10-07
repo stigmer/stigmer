@@ -52,7 +52,7 @@ function formatCompactTokens(count: number): string {
 }
 
 /**
- * Visual gauge showing context window utilization during agent run.
+ * Visual gauge showing context window utilization during run.
  *
  * Renders a progress bar with threshold markers, token count labels, and
  * a health indicator derived from utilization percentage. The gauge updates

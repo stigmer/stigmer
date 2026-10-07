@@ -292,7 +292,7 @@ for await (const snapshot of stigmer.run.subscribe(run.metadata!.id)) {
       console.log(`  Tool: ${pending.toolCallId}`);
 
       await stigmer.run.submitApproval({
-        agentRunId: snapshot.metadata!.id,
+        runId: snapshot.metadata!.id,
         toolCallId: pending.toolCallId,
         action: "APPROVAL_ACTION_APPROVE",
       });
@@ -332,9 +332,9 @@ for {
         fmt.Printf("\nApproval required: %s\n", p.GetApprovalMessage())
         fmt.Printf("  Tool: %s\n", p.GetToolCallId())
 
-        _, err := client.AgentRun.SubmitApproval(ctx,
+        _, err := client.Run.SubmitApproval(ctx,
             &stigmer.SubmitApprovalInput{
-                AgentRunId: snapshot.GetMetadata().GetId(),
+                RunId:      snapshot.GetMetadata().GetId(),
                 ToolCallId: p.GetToolCallId(),
                 Action:     stigmer.ApprovalActionApprove,
             })
@@ -345,7 +345,7 @@ for {
     }
 
     phase := status.GetPhase()
-    if phase == agentrunv1.RunPhase_RUN_COMPLETED || phase == agentrunv1.RunPhase_RUN_FAILED {
+    if phase == runv1.RunPhase_RUN_COMPLETED || phase == runv1.RunPhase_RUN_FAILED {
         msgs := status.GetMessages()
         if len(msgs) > 0 {
             fmt.Println(msgs[len(msgs)-1].GetContent())
@@ -361,15 +361,15 @@ for {
 Replace the subscribe loop in `ask_agent.py`:
 
 ```python
-for snapshot in client.agent_runs.subscribe(run.metadata.id):
+for snapshot in client.runs.subscribe(run.metadata.id):
     pending = snapshot.status.pending_approvals
 
     for p in pending:
         print(f"\nApproval required: {p.approval_message}")
         print(f"  Tool: {p.tool_call_id}")
 
-        client.agent_runs.submit_approval(
-            agent_run_id=snapshot.metadata.id,
+        client.runs.submit_approval(
+            run_id=snapshot.metadata.id,
             tool_call_id=p.tool_call_id,
             action="APPROVAL_ACTION_APPROVE",
         )
@@ -400,7 +400,7 @@ while (stream.hasNext()) {
 
         client.run.submitApproval(
             SubmitApprovalInput.builder()
-                .agentRunId(snapshot.getMetadata().getId())
+                .runId(snapshot.getMetadata().getId())
                 .toolCallId(p.getToolCallId())
                 .action(ApprovalAction.APPROVE)
                 .build()

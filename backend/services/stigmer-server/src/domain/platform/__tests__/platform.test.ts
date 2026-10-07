@@ -187,7 +187,7 @@ describe("platform domain (composed server)", () => {
     expect(checkedAt).toBeLessThanOrEqual(after + 1000);
   });
 
-  it("mints for the agent_run_id arm, bound to exactly that run", async () => {
+  it("mints for the run_id arm, bound to exactly that run", async () => {
     const out = await client.getRunnerScopedToken({
       scope: { case: "runId", value: "aexec_01platformtest" },
     });

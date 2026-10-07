@@ -5,12 +5,12 @@ import { create } from "@bufbuild/protobuf";
 import { MessageThread } from "@stigmer/react";
 import { samples } from "@stigmer/react/test";
 import { cn, THEME_PRESETS, resolvePresetClass, type ThemePresetId } from "@stigmer/theme";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/approval_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
 import {
   RunPhase,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { DEMO_SHELL_HEIGHT } from "../../shared/tokens";
 import { useDocsColorMode, type StigmerColorMode } from "../../../useDocsColorMode";
 

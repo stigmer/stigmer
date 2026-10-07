@@ -43,7 +43,7 @@ export function ScheduleRowActions({
     const confirmed = await confirm({
       title: "Run this schedule now?",
       description:
-        `"${name}" starts a real agent run immediately, outside ` +
+        `"${name}" starts a real run immediately, outside ` +
         "the cron cadence.",
       confirmLabel: "Start run",
       variant: "default",

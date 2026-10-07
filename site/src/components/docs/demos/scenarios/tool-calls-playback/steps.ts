@@ -1,12 +1,12 @@
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { samples } from "@stigmer/react/test";
 import type { ScenarioStep } from "@scenar/react";
 import { snapshot } from "../../fixtures";
 
 export type ToolCallStep =
   | { view: "composer-typing"; message: string }
-  | { view: "conversation"; execution: AgentRun };
+  | { view: "conversation"; execution: Run };
 
 const user1 = samples.humanMessage(
   "What's the status of order #ORD-4821?",

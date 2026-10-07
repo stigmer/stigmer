@@ -119,7 +119,7 @@ function runIds(message: Message): string[] {
 }
 
 describe("getRun", () => {
-  it("reads a run through the agent-run controller, with its schema", async () => {
+  it("reads a run through the run controller, with its schema", async () => {
     const { client } = listingClient();
     const result = await getRun(client, "aex_9");
     expect(result.schema).toBe(RunSchema);
@@ -128,7 +128,7 @@ describe("getRun", () => {
 });
 
 describe("listAgentRuns", () => {
-  it("reads agent run pages until the limit, scoped to the organization", async () => {
+  it("reads run pages until the limit, scoped to the organization", async () => {
     const { client, agentRequests } = listingClient();
     const result = await listAgentRuns(client, 2, "acme");
     expect(result.schema).toBe(RunListSchema);

@@ -1,7 +1,7 @@
-// Agent-run start path for the run_agent tool.
+// Run start path for the run_agent tool.
 //
 // Mirrors the CLI's run stack (client-apps/cli/src/resources/run/create.ts):
-// starting an agent is a single AgentRunCommandController.create call
+// starting an agent is a single RunCommandController.create call
 // whose target is either an existing session (by id alone: the session pins
 // the agent it started on) or the session_spec of a new conversation naming
 // the agent by reference. The server bootstraps that session, pins the
@@ -64,7 +64,7 @@ export interface RunAgentArgs {
 }
 
 /**
- * Start an agent run: a follow-up in an existing session sends the
+ * Start a run: a follow-up in an existing session sends the
  * session id alone, once the session is shown to run the named agent; a new
  * conversation resolves org/slug and names the agent by reference. Returns
  * the created run as protojson (small at creation time — status is

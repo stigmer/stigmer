@@ -23,7 +23,7 @@ const DEFAULT_ORG = "default";
 export { getMockControlUrl, MockControl };
 
 // ---------------------------------------------------------------------------
-// Node-client seeding — gated AgentRun rendered + resolved in the browser
+// Node-client seeding — gated Run rendered + resolved in the browser
 // ---------------------------------------------------------------------------
 
 /** A seeded run sitting at (or heading toward) an approval gate. */
@@ -82,7 +82,7 @@ export function shellBlock(toolCallId: string, command: string): ToolUseBlock {
 }
 
 /**
- * Seeds an agent + a NATIVE-harness session + a gated AgentRun via the
+ * Seeds an agent + a NATIVE-harness session + a gated Run via the
  * node SDK client, and programs the mock LLM to drive the run to its gate.
  *
  * The browser is then used only to render and resolve the gate, so the test
@@ -213,7 +213,7 @@ export interface SeedToolRunSessionOptions {
 }
 
 /**
- * Seeds an agent + native session + an `auto_approve_all` AgentRun that
+ * Seeds an agent + native session + an `auto_approve_all` Run that
  * runs the given tool turns to completion, then a terminating text turn. Sibling
  * of {@link seedGatedSession} (the seeding shape is deliberately parallel; the
  * one difference is `autoApproveAll: true` + no gate), kept separate so the

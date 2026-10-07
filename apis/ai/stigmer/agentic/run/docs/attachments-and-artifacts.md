@@ -6,13 +6,13 @@ How to pass input files to agent runs (attachments) and download files created b
 
 ## Overview
 
-AgentRun supports a complete file lifecycle:
+Run supports a complete file lifecycle:
 
 - **Attachments** — input files you provide *before* run starts. The agent reads them from the sandbox.
 - **Artifacts** — output files the agent *creates during* run and publishes for download.
 
 ```
-You ──► uploadAttachment ──► storage_key ──► AgentRun.spec.attachments
+You ──► uploadAttachment ──► storage_key ──► Run.spec.attachments
                                                          │
                                                  sandbox: /inputs/...
                                                          │
@@ -20,7 +20,7 @@ You ──► uploadAttachment ──► storage_key ──► AgentRun.spec.att
                                                          │
                                               Agent calls publish_artifact
                                                          │
-                                         AgentRun.status.artifacts ──► download URL
+                                         Run.status.artifacts ──► download URL
 ```
 
 ---
@@ -149,7 +149,7 @@ stigmer run reviewer --workspace . --attach ./src/config.yaml -m "Review this"
 
 ## `uploadAttachment` RPC
 
-Pre-upload files before creating an AgentRun. The returned `storage_key` is used in `Attachment.storage_key`.
+Pre-upload files before creating a Run. The returned `storage_key` is used in `Attachment.storage_key`.
 
 **Request — `UploadAttachmentRequest`:**
 
@@ -202,10 +202,10 @@ Defined by `RunArtifact` in `api.proto`.
 
 ```bash
 # Download a specific artifact
-stigmer download run aex_abc123 --artifact generated-skill
+stigmer download run run_abc123 --artifact generated-skill
 
 # List all artifacts from a run
-stigmer runs get aex_abc123 --output yaml | grep -A5 artifacts
+stigmer runs get run_abc123 --output yaml | grep -A5 artifacts
 ```
 
 **Direct HTTP:**
@@ -220,8 +220,8 @@ curl -L "https://r2.cloudflarestorage.com/.../artifacts/..." -o output.zip
 Download URLs expire after 7 days. If a URL has expired, call `getArtifactDownloadUrl` to get a fresh one:
 
 ```bash
-stigmer runs get-artifact-url aex_abc123 \
-  --storage-key "artifacts/aex_abc123/generated-skill.zip"
+stigmer runs get-artifact-url run_abc123 \
+  --storage-key "artifacts/run_abc123/generated-skill.zip"
 ```
 
 ### `getArtifactDownloadUrl` RPC
@@ -281,5 +281,5 @@ The agent finds all files under `/inputs/src/` (extracted from the ZIP).
 stigmer run skill-creator "Create a skill for Kubernetes operations" -m "Generate SKILL.md"
 
 # Find the run ID from output, then download
-stigmer download run aex_abc123 --artifact kubernetes-skill
+stigmer download run run_abc123 --artifact kubernetes-skill
 ```

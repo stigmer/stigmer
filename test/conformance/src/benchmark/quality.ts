@@ -1,5 +1,5 @@
 // The judge of a quality task: hands a composed subject (subject.ts) to a
-// judge agent as one agent run, and reads its verdict off the terminal run's
+// judge agent as one run, and reads its verdict off the terminal run's
 // structured output.
 // Domain: conformance benchmark (the quality cells' grade).
 //
@@ -46,7 +46,7 @@ import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import type { ConformanceClients } from "../harness/clients";
 import type { FixtureTracker } from "../harness/fixtures";
-import { awaitTerminal, makeAgentExecution } from "../support/agentruns";
+import { awaitTerminal, makeAgentExecution } from "../support/runs";
 import { agentRefOf, makeAgent } from "../support/agents";
 import { uniqueName } from "../support/naming";
 import type { QualityCriterion, QualityTask } from "./quality-tasks";

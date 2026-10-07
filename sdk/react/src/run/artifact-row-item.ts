@@ -6,7 +6,7 @@ import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_
 
 /**
  * What an artifact row displays, mapped from the session's `RunArtifact`
- * (embedded in `AgentRun.status.artifacts`).
+ * (embedded in `Run.status.artifacts`).
  *
  * The view-model carries no identity; list keys and open/download behavior
  * stay with the hosts that render the row.

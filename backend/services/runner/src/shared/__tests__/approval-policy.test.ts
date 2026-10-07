@@ -58,7 +58,7 @@ interface TestToolCall {
 }
 
 /**
- * Builds a minimal AgentRun shaped just enough for deriveActiveLeases,
+ * Builds a minimal Run shaped just enough for deriveActiveLeases,
  * which reads each tool call's approval action plus its name / mcp_server_slug
  * (the scope inputs) on root and sub-agent messages, and spec.auto_approve_all.
  */

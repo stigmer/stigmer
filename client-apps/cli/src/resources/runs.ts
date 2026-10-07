@@ -43,7 +43,7 @@ export interface CancelRunResult {
 }
 
 /**
- * Cancel an agent run, surfacing whether it was already in a terminal
+ * Cancel a run, surfacing whether it was already in a terminal
  * state. Mirrors Go's execution.CancelWithResult: Get first to read the phase,
  * short-circuit if terminal, otherwise issue the cancel. Keeping the Get means
  * the success/already-terminal distinction is decided client-side from
@@ -80,7 +80,7 @@ export async function getRun(client: Stigmer, id: string): Promise<ResourceResul
 }
 
 /**
- * List the newest `limit` agent runs for the current context, reading
+ * List the newest `limit` runs for the current context, reading
  * as many pages as that takes.
  *
  * `org` scopes results to that organization; empty means permission-bounded
@@ -120,7 +120,7 @@ function dash(value: string): string {
   return value === "" ? "-" : value;
 }
 
-/** Human-readable agent-run phase, matching Go's execution.FormatPhase. */
+/** Human-readable run phase, matching Go's execution.FormatPhase. */
 export function formatAgentPhase(phase: RunPhase): string {
   switch (phase) {
     case RunPhase.RUN_PENDING:

@@ -319,7 +319,7 @@ export const samples = {
   },
 
   /**
-   * An agent run with status, messages, and optional artifacts.
+   * A run with status, messages, and optional artifacts.
    * Default: completed run with a short human/AI exchange.
    */
   run(o?: RunOverrides): Run {
@@ -333,7 +333,7 @@ export const samples = {
 
     return create(RunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "AgentRun",
+      kind: "Run",
       metadata: create(ApiResourceMetadataSchema, {
         id: o?.id ?? "aex-00000000-0000-0000-0000-000000000001",
         name: "demo-execution",
@@ -537,7 +537,7 @@ export const samples = {
     });
   },
 
-  /** An agent run list response. Defaults to one demo run. */
+  /** A run list response. Defaults to one demo run. */
   runList(entries?: Run[]): RunList {
     const items = entries ?? [samples.run()];
     return create(RunListSchema, {

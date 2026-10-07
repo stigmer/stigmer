@@ -1,4 +1,4 @@
-// Conformance suite for AgentRun recover (Class B).
+// Conformance suite for Run recover (Class B).
 // Domain: agentic / agentexecution — the recover RPC.
 //
 // recover is the operator's "try this run again" lever for a FAILED execution. The
@@ -17,7 +17,7 @@
 //   IN_PROGRESS when the queued second recover reads it; without the hold the
 //   run could complete first and the second recover would rightly be refused.
 //
-// Mechanism note (issue #200, fixed): AgentRun.recover terminates the
+// Mechanism note (issue #200, fixed): Run.recover terminates the
 // previous Temporal workflow and starts a fresh one. Temporal
 // ResetWorkflowExecution cannot work here because the runner activity RETURNS
 // its FAILED result (it does not throw), so a reset replays the preserved
@@ -25,7 +25,7 @@
 // Continuity of completed work is carried by the session's harness state
 // (LangGraph thread checkpoint / harness_state_id), not by Temporal history.
 //
-// Already covered in the main AgentRun suite (not re-asserted here):
+// Already covered in the main Run suite (not re-asserted here):
 // - recover of a non-FAILED terminal execution -> FailedPrecondition.
 // - recover with empty id -> InvalidArgument; missing execution -> NotFound.
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -35,7 +35,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText } from "@stigmer/test-support/mock-llm";
 import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
-import { awaitPhase, makeAgentExecution, requireLlmProxy } from "../support/agentruns";
+import { awaitPhase, makeAgentExecution, requireLlmProxy } from "../support/runs";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -45,7 +45,7 @@ let mock: MockLlmProxy;
 const fixtures = new FixtureTracker();
 
 // Holds a turn open so the run sits observably IN_PROGRESS for the no-op recover
-// test; mirrors the main AgentRun suite's HOLD_MS.
+// test; mirrors the main Run suite's HOLD_MS.
 const HOLD_MS = 30_000;
 
 beforeAll(async () => {
@@ -74,8 +74,8 @@ async function provisionAgent(org: string): Promise<AgentRefInit> {
   return agentRefOf(agent);
 }
 
-describe("AgentRun recover — happy path", () => {
-  it("[rpc:AgentRunCommandController.recover] recovers a FAILED execution back to IN_PROGRESS with the error cleared, then completes", async () => {
+describe("Run recover — happy path", () => {
+  it("[rpc:RunCommandController.recover] recovers a FAILED execution back to IN_PROGRESS with the error cleared, then completes", async () => {
     const { org } = await target.provisionTenancy();
     const agentRef = await provisionAgent(org);
 
@@ -119,8 +119,8 @@ describe("AgentRun recover — happy path", () => {
   });
 });
 
-describe("AgentRun recover — idempotency", () => {
-  it("[rpc:AgentRunCommandController.recover] is an idempotent no-op on an already-IN_PROGRESS execution", async () => {
+describe("Run recover — idempotency", () => {
+  it("[rpc:RunCommandController.recover] is an idempotent no-op on an already-IN_PROGRESS execution", async () => {
     const { org } = await target.provisionTenancy();
     const agentRef = await provisionAgent(org);
 
@@ -146,8 +146,8 @@ describe("AgentRun recover — idempotency", () => {
   });
 });
 
-describe("AgentRun recover — concurrency", () => {
-  it("[rpc:AgentRunCommandController.recover] two concurrent recovers of one FAILED execution both answer IN_PROGRESS, the runner is re-dispatched once, and the run completes", async () => {
+describe("Run recover — concurrency", () => {
+  it("[rpc:RunCommandController.recover] two concurrent recovers of one FAILED execution both answer IN_PROGRESS, the runner is re-dispatched once, and the run completes", async () => {
     const { org } = await target.provisionTenancy();
     const agentRef = await provisionAgent(org);
 

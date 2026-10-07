@@ -33,7 +33,7 @@ export interface ApplyResourceResult {
 export interface PushSkillParams {
   /** Organization that will own the skill. */
   readonly org: string;
-  /** ID of the run that produced the artifact (format: `aex_{ulid}`). */
+  /** ID of the run that produced the artifact (format: `run_{ulid}`). */
   readonly runId: string;
   /** Storage key of the directory artifact. Must start with `artifacts/{executionId}/`. */
   readonly storageKey: string;

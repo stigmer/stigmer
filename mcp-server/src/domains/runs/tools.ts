@@ -25,7 +25,7 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
     "run_agent",
     {
       description:
-        "Start an agent run (asynchronous). Returns immediately with the created run " +
+        "Start a run (asynchronous). Returns immediately with the created run " +
         "(run_* ID) while the run continues in the background — poll get_run to observe " +
         "progress, pending approvals, and the final result. Omit session_id to start a fresh " +
         "conversation on the agent; pass one to send a follow-up message into an existing session, " +

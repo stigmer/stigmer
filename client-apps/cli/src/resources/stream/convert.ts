@@ -199,7 +199,7 @@ export function sanitizeSystemContent(content: string): string {
     const prefix = content.slice(0, idx).trim().replace(/[:\-\s]+$/, "");
     if (prefix !== "") return `${prefix} (internal error — check run logs for details)`;
   }
-  return "Agent run encountered an internal error. Check run logs for details.";
+  return "Run encountered an internal error. Check run logs for details.";
 }
 
 /** True when the system message looks like an approval-received acknowledgement. Mirrors Go's isApprovalNoiseMessage. */

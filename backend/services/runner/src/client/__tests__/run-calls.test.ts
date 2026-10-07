@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 /**
  * Pins the run-scoped call the client composes for the control plane: the
- * agent run's status write, which names the run by `run_id`, the wire field
+ * run's status write, which names the run by `run_id`, the wire field
  * the run rename settled on. The transport and the generated clients are
  * replaced at their module seams, so the request the method builds is
  * observed without a server.
@@ -20,7 +20,7 @@ vi.mock("@connectrpc/connect", async (importOriginal) => {
     ...actual,
     createClient: (service: { typeName: string }) => {
       switch (service.typeName) {
-        case "ai.stigmer.agentic.agentrun.v1.AgentRunCommandController":
+        case "ai.stigmer.agentic.run.v1.RunCommandController":
           return { updateStatus: agentRunUpdateStatus };
         default:
           return {};
@@ -44,7 +44,7 @@ beforeEach(() => {
 });
 
 describe("StigmerClient.updateStatus", () => {
-  it("sends the agent run's status under run_id and answers the server's response", async () => {
+  it("sends the run's status under run_id and answers the server's response", async () => {
     const response = { signal: 0 };
     agentRunUpdateStatus.mockResolvedValue(response);
     const status = create(RunStatusSchema, {

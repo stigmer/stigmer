@@ -13,7 +13,7 @@ import { toError } from "../internal/toError.js";
 /** Return value of {@link useTriggerSchedule}. */
 export interface UseTriggerScheduleReturn {
   /**
-   * Fire the schedule once, now — a real agent run, outside the
+   * Fire the schedule once, now — a real run, outside the
    * cron cadence. Resolves with the {@link ScheduleTriggerResult}: the
    * run's REAL outcome (started with a run id, or refused with the
    * gate's copy), so a caller can navigate to the run or surface

@@ -15,7 +15,7 @@ export interface DashboardFailedRunsProps {
 }
 
 /**
- * Widget showing recent failed agent runs, newest first.
+ * Widget showing recent failed runs, newest first.
  *
  * Each row includes the run name, a truncated error, and a relative
  * timestamp.

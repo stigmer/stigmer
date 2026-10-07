@@ -9,7 +9,7 @@ import { buildThreadItems, type ThreadItem } from "../MessageThread";
 
 // ---------------------------------------------------------------------------
 // buildThreadItems: the agent version each turn ran
-// (`AgentRunStatus.agent_version_hash`).
+// (`RunStatus.agent_version_hash`).
 //
 // With a label function the thread marks the version where it starts and
 // wherever it changes, so every turn reads under the version it ran; a turn

@@ -231,7 +231,7 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
     expect(event?.ownerAttribution).toBe(OwnerAttributionType.INHERITED);
   });
 
-  it("agent_run with no session id fails the request (Java's missing-parent arm)", () => {
+  it("run with no session id fails the request (Java's missing-parent arm)", () => {
     const execution = create(RunSchema, {
       metadata: { id: "aexec_2", org: "acme" },
     });

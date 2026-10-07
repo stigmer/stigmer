@@ -48,7 +48,7 @@ import { GitWorkspace, requireGit } from "../harness/git-workspace";
 import type { AnthropicMessageBody, MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { awaitPhase, makeAgentExecution, requireLlmProxy } from "../support/agentruns";
+import { awaitPhase, makeAgentExecution, requireLlmProxy } from "../support/runs";
 import {
   awaitFileReview,
   awaitProgressEntries,
@@ -185,7 +185,7 @@ async function expectClearedAtBoundary(executionId: string, paths: string[]): Pr
   await awaitPhase(clients, executionId, RunPhase.RUN_COMPLETED);
 }
 
-describe("AgentRun file review — mid-run progress", () => {
+describe("Run file review — mid-run progress", () => {
   it("mid-run file_change_progress converges to the touched files with line counts during a held turn and clears at the review boundary", async () => {
     const workspace = await GitWorkspace.create();
     fixtures.defer(() => workspace.cleanup());

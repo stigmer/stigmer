@@ -35,7 +35,7 @@ export interface OrgPreferencesPanelProps {
  * Self-contained editor for an {@link Organization}'s declared
  * preferences (`spec.preferences.standing_context`).
  *
- * The declared text is snapshotted into every eligible agent run
+ * The declared text is snapshotted into every eligible run
  * run by the organization's members (first-party human operators only)
  * and delivered to the agent as background context. Editing requires
  * `can_edit` on the organization; viewers without it get a read-only

@@ -22,7 +22,7 @@ import {
  * An agent's run defaults reach a conversation in the console, and a person
  * can change them for one message.
  *
- * The journey: the author gives the agent run defaults (the native engine,
+ * The journey: the author gives the run defaults (the native engine,
  * Haiku 4.5, thinking on). A new chat on the agent opens on "Agent
  * default", and its first turn runs the agent's model and thinking, read
  * back over the API from `status.run_config` while the request names

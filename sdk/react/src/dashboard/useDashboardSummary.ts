@@ -27,10 +27,10 @@ export interface UseDashboardSummaryReturn {
 }
 
 /**
- * Composition hook that merges the agent run summary and the org usage
+ * Composition hook that merges the run summary and the org usage
  * report into a single {@link DashboardSummary}.
  *
- * - Run counts (active, completed, failed) come from the agent run
+ * - Run counts (active, completed, failed) come from the run
  *   summary over the last seven days.
  * - Cost comes from `getOrgUsageReport` (billing source of truth), not
  *   from summing per-run costs, so the dashboard shows what billing

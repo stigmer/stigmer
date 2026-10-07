@@ -1,6 +1,6 @@
 /**
  * useDashboardSummary reads one organization for both of its sources: the
- * agent run summary and the usage report the cost comes from, and it has no
+ * run summary and the usage report the cost comes from, and it has no
  * summary to show while the run summary is still loading. The two source
  * hooks are stubbed; each records the organization it was asked for.
  */

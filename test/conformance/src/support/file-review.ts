@@ -46,7 +46,7 @@ import type {
   FileChangeSet,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import type { ConformanceClients } from "../harness/clients";
-import { isTerminalPhase, pollExecution, type PollOptions } from "./agentruns";
+import { isTerminalPhase, pollExecution, type PollOptions } from "./runs";
 
 // Polls until a change set is offered for review. Fails — with the phase — if
 // the execution ends first (the agent edited nothing, or every edit landed on a

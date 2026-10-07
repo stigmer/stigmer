@@ -5,7 +5,7 @@
  *
  * Production: the runner authors BASELINE_CAPTURED and CANDIDATE_CAPTURED
  * onto `status.file_review_event_stream`; the server folds the stream into
- * `status.file_change_sets` (`stigmer-server/src/domain/agentrun/
+ * `status.file_change_sets` (`stigmer-server/src/domain/run/
  * filereview/project.ts` `applyEvent` and `deriveStatusAfterCandidate`);
  * `SubmitFileDecision` appends FILE_DECIDED events and re-folds; the runtime's
  * reinvocation reads the DECIDED sets back and reconciles the tree

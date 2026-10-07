@@ -39,16 +39,16 @@
       "useSessionList": "/docs/sdk/react/session"
     },
     "@stigmer/protos": {
-      "AgentRun": "/docs/sdk/resources/agent-run",
-      "AgentMessage": "/docs/sdk/resources/agent-run",
-      "ToolCall": "/docs/sdk/resources/agent-run",
-      "PendingApproval": "/docs/sdk/resources/agent-run",
-      "SubAgentRun": "/docs/sdk/resources/agent-run",
-      "TodoItem": "/docs/sdk/resources/agent-run",
-      "RunPhase": "/docs/sdk/resources/agent-run",
-      "ToolCallStatus": "/docs/sdk/resources/agent-run",
-      "ApprovalAction": "/docs/sdk/resources/agent-run",
-      "MessageType": "/docs/sdk/resources/agent-run",
+      "Run": "/docs/sdk/resources/run",
+      "AgentMessage": "/docs/sdk/resources/run",
+      "ToolCall": "/docs/sdk/resources/run",
+      "PendingApproval": "/docs/sdk/resources/run",
+      "SubAgentRun": "/docs/sdk/resources/run",
+      "TodoItem": "/docs/sdk/resources/run",
+      "RunPhase": "/docs/sdk/resources/run",
+      "ToolCallStatus": "/docs/sdk/resources/run",
+      "ApprovalAction": "/docs/sdk/resources/run",
+      "MessageType": "/docs/sdk/resources/run",
       "SearchResult": "/docs/sdk/resources/search",
       "Session": "/docs/sdk/resources/session"
     }

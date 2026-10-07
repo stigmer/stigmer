@@ -598,7 +598,7 @@ from every run. A fixture endpoint is a loopback harness component
 
 ### Execution engine (Class B, `src/suites-execution/`)
 
-The execution domain (AgentRun) is 100% Temporal-gated, so its suites run on their own config (`vitest.execution.config.ts`,
+The execution domain (Run) is 100% Temporal-gated, so its suites run on their own config (`vitest.execution.config.ts`,
 `test:execution`) rather than the dependency-light CRUD one. This split keeps the
 Class A signal fast (no Temporal/runner).
 
@@ -618,7 +618,7 @@ an execution **domain** enters the suite whole, on this same harness.
 Class B files run serially (`fileParallelism: false`) so multiple suites
 don't boot multiple Temporal+runner stacks at once.
 
-`agentrun.conformance.test.ts` is the whole execution domain. An
+`run.conformance.test.ts` is the whole execution domain. An
 agent run always hits an LLM, so the `local-execution` target also boots a
 **TS-pure mock-LLM proxy** (`test/support/src/mock-llm.ts`): a long-lived HTTP server with
 a programmable response queue that replays canned Anthropic SSE to the runner via
@@ -626,7 +626,7 @@ a base-URL override (`STIGMER_PROXY_ENDPOINT`) — no API key, no network. A sin
 text turn reaches COMPLETED; a `delayMs`-held turn keeps an execution genuinely
 IN_PROGRESS, the lever for the cancel/terminate/pause/resume happy paths. It
 asserts the **engine-present** contract — **no `AlreadyExists` on create**
-(repeated identical creates yield distinct `aex_` ids), runs are listed by
+(repeated identical creates yield distinct `run_` ids), runs are listed by
 conversation through **`listBySession`**, and a create with **no `target`** (neither a
 `session_id` nor a `session_spec`) is the **built-in assistant**: the server
 creates a session with no agent and the run completes on the runner's one
@@ -638,7 +638,7 @@ nothing — is only reachable with Temporal down, so it is covered by the
 server's controller unit tests rather than asserted here. Polling goes
 through one enum-agnostic core (`support/run-poll.ts`).
 
-`agentrun-approval.conformance.test.ts` adds the **HITL tool-approval**
+`run-approval.conformance.test.ts` adds the **HITL tool-approval**
 (`submitApproval`) contract. It is the first slice that exercises a real *tool*:
 an agent can only reach `EXECUTION_WAITING_FOR_APPROVAL` when it references an
 McpServer that exposes an approval-gated tool, so the `local-execution` target
@@ -664,24 +664,24 @@ draws.
 **The runner-behavior facets** replaced the Go `test/integration-offline`
 suite, arm for arm: a runner behavior a
 client reads off execution status is contract, and the execution class is its
-home. `agentrun-messages` (the transcript: text, thinking, MCP tool
+home. `run-messages` (the transcript: text, thinking, MCP tool
 calls that succeed or fail, the ToolCall field contract, and the model id the
-provider received after registry resolution), `agentrun-subagent`
-(`task` delegation and `sub_agent_runs`), `agentrun-provider-error`
+provider received after registry resolution), `run-subagent`
+(`task` delegation and `sub_agent_runs`), `run-provider-error`
 (who a proxy-mode provider fault is attributed to — the stigmer#330 incident
-shapes), `agentrun-structured-output` (what the final message becomes on
+shapes), `run-structured-output` (what the final message becomes on
 `structured_output`; the fallback's lack of schema validation is deliberately
-NOT pinned, see the file header), `agentrun-file-review` and
+NOT pinned, see the file header), `run-file-review` and
 `-file-review-progress` (apply-then-review: 15 decide-and-reconcile arms over a
 harness git workspace, the secret and binary rules, and the mid-run progress
-strip under the runner's capture throttle), `agentrun-memory-selection`
+strip under the runner's capture throttle), `run-memory-selection`
 (the embedder posture, beside `-memory-retrieval`'s no-embedder one),
-`agentrun-stigmer-mcp-stdio` (a fixture agent on the real
+`run-stigmer-mcp-stdio` (a fixture agent on the real
 `stigmer mcp-server` over stdio, the always-on proof of the stdio lane), plus additions to
-`agentrun` (idempotent cancel/terminate), `agentrun-approval` (the
+`run` (idempotent cancel/terminate), `run-approval` (the
 approval ledger, the APPROVE_ALL lease across turns, durable resume) and
 `mcpserver-connect` (the stored `destructive_hint` per tool, and a connect
-that asks no model). `agentrun-tool-lists` pins an agent's `tools` and
+that asks no model). `run-tool-lists` pins an agent's `tools` and
 `disallowed_tools` on the native engine: a tool outside them is never
 offered, a call to it anyway is a failed tool call with the out-of-scope
 message, and no approval is requested for it, under the default and under
@@ -689,7 +689,7 @@ message, and no approval is requested for it, under the default and under
 `runner-ipc.harness` proves the manager-mode `ready` handshake end to
 end.
 
-`agentrun-request-shape` reads the other direction of the wire: not
+`run-request-shape` reads the other direction of the wire: not
 what the client sees on status but what the MODEL receives from the native
 harness for a bare agent, photographed as two readable file goldens under
 `suites-execution/goldens/` (the system prompt as the provider gets it — the
@@ -714,7 +714,7 @@ src/
                     + cloud: cloud-env, cloud-fixtures, fake-llm-upstream, fake-stripe, fake-discord-webhook, global-setup-cloud
   targets/          target (interface + capabilities), local, local-execution, local-postgres, cloud, cloud-execution, index
   contract/         errors, parity
-  support/          naming, run-poll, agentruns, file-review, stigmer-mcp-stdio, working-agent (the benchmark's
+  support/          naming, run-poll, runs, file-review, stigmer-mcp-stdio, working-agent (the benchmark's
                     working agent), agents, mcpservers, memories, skills, environments, executioncontexts, sessions,
                     request-shape (the golden renderers), …
   benchmark/        report (the contract a run writes), cells, quality-tasks, run (the direct-mode stack and driver), session
@@ -722,7 +722,7 @@ src/
                     workspace-facts, and subject + quality (the judge)  (the live benchmark's library; pure parts unit-tested)
   suites/           *.conformance.test.ts            (Class A — CRUD, no Temporal)
   suites-execution/ *.harness.test.ts (agent, mcp, runner-ipc, benchmark-readers, temporal-port-loss)
-                    + agentrun*.conformance.test.ts (lifecycle, approval, recover, messages, subagent, provider-error,
+                    + run*.conformance.test.ts (lifecycle, approval, recover, messages, subagent, provider-error,
                       structured-output, file-review, file-review-progress, memory-retrieval, memory-selection, stigmer-mcp-stdio,
                       request-shape, tool-lists)
                     + mcpserver-connect, mcp-caller-identity, mcp-server-address, envmerge-*, session-immutability, schedule-firing, billing-*  (Class B)

@@ -27,7 +27,7 @@ describe("LowBalanceBanner", () => {
     expect(screen.getByText("Credit balance exhausted")).toBeTruthy();
     expect(
       screen.getByText(
-        "Your credit balance is zero. Credits pay for agent usage on every plan; purchase credits to keep agent runs going.",
+        "Your credit balance is zero. Credits pay for agent usage on every plan; purchase credits to keep runs going.",
       ),
     ).toBeTruthy();
   });

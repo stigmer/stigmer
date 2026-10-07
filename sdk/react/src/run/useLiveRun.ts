@@ -62,7 +62,7 @@ export interface UseLiveRunReturn {
 }
 
 /**
- * Behavior hook for a single {@link AgentRun} that is live only while
+ * Behavior hook for a single {@link Run} that is live only while
  * it needs to be: fetch the snapshot, stream only what is running.
  *
  * This is the single-execution analog of the session's canonical

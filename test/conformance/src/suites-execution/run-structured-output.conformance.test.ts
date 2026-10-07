@@ -1,4 +1,4 @@
-// Conformance suite for AgentRun structured output: with a
+// Conformance suite for Run structured output: with a
 // spec.structured_output_schema, what the agent's final text
 // becomes on status.structured_output.
 // Domain: agentic / agentexecution — the typed result an SDK consumer reads
@@ -43,7 +43,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse, type AnthropicMessageBody } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentruns";
+import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -157,7 +157,7 @@ function structuredOutputOf(final: Run): JsonObject | undefined {
   return final.status?.structuredOutput;
 }
 
-describe("AgentRun structured output — extraction from the final message", () => {
+describe("Run structured output — extraction from the final message", () => {
   it("a pure JSON final message populates structured_output with the schema's keys", async () => {
     const final = await runWithSchema(`{"summary": "Test analysis of hello", "score": 8}`, SUMMARY_SCORE_SCHEMA);
     expect(structuredOutputOf(final)).toEqual({ summary: "Test analysis of hello", score: 8 });
@@ -250,7 +250,7 @@ describe("AgentRun structured output — extraction from the final message", () 
   });
 });
 
-describe("AgentRun structured output — the schema round-trips on the spec", () => {
+describe("Run structured output — the schema round-trips on the spec", () => {
   const schemas: Array<[string, JsonObject, string]> = [
     ["SummaryScore", SUMMARY_SCORE_SCHEMA, `{"summary": "hello", "score": 5}`],
     ["NestedArray", NESTED_ARRAY_SCHEMA, `{"items": [{"name": "Go", "count": 1}]}`],
@@ -259,7 +259,7 @@ describe("AgentRun structured output — the schema round-trips on the spec", ()
   ];
 
   for (const [name, schema, answer] of schemas) {
-    it(`[rpc:AgentRunCommandController.create] spec.structured_output_schema is persisted with type and properties intact (${name})`, async () => {
+    it(`[rpc:RunCommandController.create] spec.structured_output_schema is persisted with type and properties intact (${name})`, async () => {
       const final = await runWithSchema(answer, schema);
       const persisted = final.spec?.structuredOutputSchema;
       expect(persisted, `schema ${name} must survive creation`).toBeDefined();

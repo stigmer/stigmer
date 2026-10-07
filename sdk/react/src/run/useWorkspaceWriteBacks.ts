@@ -16,7 +16,7 @@ export interface UseWorkspaceWriteBacksReturn {
 
 /**
  * Pure derivation hook that extracts workspace write-back data from an
- * {@link AgentRun} snapshot.
+ * {@link Run} snapshot.
  *
  * Follows the same `useMemo`-based derivation pattern as
  * {@link useRunArtifacts}: no side effects, no data fetching.

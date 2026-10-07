@@ -236,10 +236,9 @@ updates names the PlatformClient on its audit, beside the shared account.
 
 An embedded assistant often calls MCP servers that need a credential of your
 own, such as a shared API secret. Put that credential in an Environment and list
-the Environment in the PlatformClient's `environment_refs`. Every Agent Run a
-user signed in through that PlatformClient starts then receives the
-Environment's values, and so does a recovery of that run. The Agent stays as it
-is.
+the Environment in the PlatformClient's `environment_refs`. Every run a user
+signed in through that PlatformClient starts then receives the Environment's
+values, and so does a recovery of that run. The Agent stays as it is.
 
 - **Lowest priority.** The values the request passes at run time win on a
   conflicting key, so a PlatformClient supplies defaults. Keys it leaves empty

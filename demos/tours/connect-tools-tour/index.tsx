@@ -6,7 +6,7 @@
  * The connected server is the shared `ORDER_MGMT_CONNECTED` snapshot,
  * injected through `McpServerDetailView`'s `mcpServerState` prop (no
  * `getByReference` fires). The approval story's two
- * `AgentRun` snapshots are built once at module load, entirely from
+ * `Run` snapshots are built once at module load, entirely from
  * frozen data:
  *
  * - The pending tool call and its approval share the literal id

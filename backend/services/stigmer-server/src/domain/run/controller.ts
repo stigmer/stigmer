@@ -1,11 +1,11 @@
 /**
- * AgentRun controller — ports pkg/domain/agentexecution/controller
+ * Run controller — ports pkg/domain/agentexecution/controller
  * (command + query sides): the deepest domain's request surface. One Go
  * controller implements both services; this module mirrors that with one
  * deps object and one registration function.
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
- * Proven by agentrun.conformance.test.ts
+ * Proven by run.conformance.test.ts
  * (CONFORMANCE_TARGET=local) and __tests__/.
  *
  * Every chain opens with Authorize, and create also asks the run gate's

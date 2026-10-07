@@ -1,7 +1,7 @@
 // Bounded collection of server-streaming RPC responses.
 // Domain: conformance support (streaming lanes).
 //
-// The subscribe lane (AgentRun.subscribe) returns long-lived streams that only
+// The subscribe lane (Run.subscribe) returns long-lived streams that only
 // sometimes close on their own — the server ends them on a terminal-phase
 // UPDATE, but a stream
 // opened against an already-terminal execution replays its snapshot/events

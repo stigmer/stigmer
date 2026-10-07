@@ -1,5 +1,5 @@
 // `stigmer download <type> <id>` — download artifacts produced by a run.
-// Only agent runs (`aex_`) are supported today. Heavy modules are
+// Only runs (`run_`, or `aex_` from before the rename) are supported today. Heavy modules are
 // lazy-imported inside the action so `--help` stays fast.
 import type { Command } from "commander";
 import { ensureAuthenticated } from "../config/index.js";

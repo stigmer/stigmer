@@ -109,7 +109,7 @@ interface MockClient {
     getByReference: ReturnType<typeof vi.fn>;
     resume: ReturnType<typeof vi.fn>;
     trigger: ReturnType<typeof vi.fn>;
-    listRuns: ReturnType<typeof vi.fn>;
+    listFires: ReturnType<typeof vi.fn>;
     delete: ReturnType<typeof vi.fn>;
   };
   manifest: { apply: ReturnType<typeof vi.fn> };
@@ -131,7 +131,7 @@ function makeClient(schedule: Schedule): MockClient {
           schedule,
         }),
       ),
-      listRuns: vi.fn().mockResolvedValue(
+      listFires: vi.fn().mockResolvedValue(
         create(ScheduleFireListSchema, { items: [], totalCount: 0 }),
       ),
       delete: vi.fn().mockResolvedValue(schedule),
@@ -303,7 +303,7 @@ describe("ScheduleDetailView", () => {
 
   it("renders the run history from the fire ledger", async () => {
     const client = makeClient(makeSchedule());
-    client.schedule.listRuns.mockResolvedValue(
+    client.schedule.listFires.mockResolvedValue(
       create(ScheduleFireListSchema, {
         totalCount: 1,
         items: [
@@ -345,7 +345,7 @@ describe("ScheduleDetailView", () => {
   it("navigates to a ledger row's run from the recent-runs strip and the Runs table", async () => {
     const onNavigateToRun = vi.fn();
     const client = makeClient(makeSchedule({ lastRunId: "aex_01last" }));
-    client.schedule.listRuns.mockResolvedValue(
+    client.schedule.listFires.mockResolvedValue(
       create(ScheduleFireListSchema, {
         totalCount: 1,
         items: [
@@ -471,7 +471,7 @@ describe("ScheduleDetailView", () => {
 
   it("splits into Overview and Runs tabs, with the run count as badge", async () => {
     const client = makeClient(makeSchedule());
-    client.schedule.listRuns.mockResolvedValue(
+    client.schedule.listFires.mockResolvedValue(
       create(ScheduleFireListSchema, {
         totalCount: 12,
         items: [
@@ -502,7 +502,7 @@ describe("ScheduleDetailView", () => {
 
   it("pages through the run history (the hook's pagination, finally used)", async () => {
     const client = makeClient(makeSchedule());
-    client.schedule.listRuns.mockImplementation(
+    client.schedule.listFires.mockImplementation(
       async (req: { pageInfo?: { num: number; size: number } }) =>
         create(ScheduleFireListSchema, {
           totalCount: 30,
@@ -528,7 +528,7 @@ describe("ScheduleDetailView", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     await waitFor(() => {
-      const pageTwoCall = client.schedule.listRuns.mock.calls.find((call) => {
+      const pageTwoCall = client.schedule.listFires.mock.calls.find((call) => {
         const req = call[0] as { pageInfo?: { num: number; size: number } };
         return req.pageInfo?.num === 2 && req.pageInfo?.size === 25;
       });
@@ -539,7 +539,7 @@ describe("ScheduleDetailView", () => {
 
   it("links the Overview recent-runs strip to the Runs tab", async () => {
     const client = makeClient(makeSchedule());
-    client.schedule.listRuns.mockImplementation(
+    client.schedule.listFires.mockImplementation(
       async (req: { pageInfo?: { num: number; size: number } }) =>
         create(ScheduleFireListSchema, {
           totalCount: 12,

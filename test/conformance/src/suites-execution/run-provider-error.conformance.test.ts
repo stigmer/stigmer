@@ -1,4 +1,4 @@
-// Conformance suite for provider-error ATTRIBUTION on a failed AgentRun:
+// Conformance suite for provider-error ATTRIBUTION on a failed Run:
 // when the model call behind the platform proxy fails, whose fault does
 // status.error say it is?
 // Domain: agentic / agentexecution — the failure copy a customer reads.
@@ -37,7 +37,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentruns";
+import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -159,7 +159,7 @@ function expectPlatformAttributed(final: Run): void {
   }
 }
 
-describe("AgentRun provider-error attribution (proxy mode)", () => {
+describe("Run provider-error attribution (proxy mode)", () => {
   it("a platform-capacity 503 fails the run attributed to the platform: LLM_PLATFORM_CAPACITY, credits not charged, no provider prose", async () => {
     mock.enqueueError(503, {
       headers: { "x-should-retry": "false" },

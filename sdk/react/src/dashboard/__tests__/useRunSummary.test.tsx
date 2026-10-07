@@ -1,5 +1,5 @@
 /**
- * useRunSummary asks the agent-run service for one organization's
+ * useRunSummary asks the run service for one organization's
  * summary over the last seven days unless told another window, and asks
  * nothing when no organization is selected.
  */

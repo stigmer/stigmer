@@ -1,5 +1,5 @@
 /**
- * The listRuns query steps — port pkg/domain/schedule/controller/list_runs.go:
+ * The listFires query steps — port pkg/domain/schedule/controller/list_runs.go:
  * the fire-ledger surface. Every fire leaves a row, INCLUDING
  * fires that created no execution (a refused launch gate, a missing target
  * agent), with the refusing gate's copy verbatim: this is the RPC that
@@ -38,7 +38,7 @@ type ListRunsInput = typeof ScheduleQueryController.method.listFires.input;
 export const LIST_RUNS_RESULT_KEY = "listRunsResult";
 
 /**
- * Bounds an unpaginated listRuns read — history can hold a quarter's worth
+ * Bounds an unpaginated listFires read — history can hold a quarter's worth
  * of daily fires, and "the recent runs" is the question the surface
  * answers (Go defaultRunsPageSize).
  */

@@ -20,7 +20,7 @@
 //
 // A quality task runs as a real session on the working agent. After the last
 // turn, its end state is read (workspace-facts.ts), the judge's subject is
-// composed (subject.ts), and a judge agent run grades it (quality.ts). The
+// composed (subject.ts), and a judge run grades it (quality.ts). The
 // judge runs in a fresh organization of its own, with memory off, never the
 // working agent's: that one has memory on and confirmed facts, which recall
 // would put in front of the judge. A session with a failed turn is recorded,

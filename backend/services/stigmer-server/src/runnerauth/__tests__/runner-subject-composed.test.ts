@@ -19,7 +19,7 @@
  *     verifiers), and open source must not stamp identities beside it.
  *
  * The wire arms under the built-in posture prove the whole lane with no
- * engine: a live agent run row and the session it belongs to (the
+ * engine: a live run row and the session it belongs to (the
  * session's owner is DIRECT — the creator stamp — and the run inherits
  * it) are seeded in the composed server's store, stamped by a person who
  * provisioned over the wire; the
@@ -249,7 +249,7 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
     rmSync(dir, { recursive: true, force: true });
   });
 
-  /** Carol's agent run and the session it belongs to, written straight to the store. */
+  /** Carol's run and the session it belongs to, written straight to the store. */
   async function seedAgentRun(id: string, phase: RunPhase): Promise<void> {
     const sessionId = `ses_${id}`;
     const stamp = { audit: { specAudit: { createdBy: { id: carolId } } } };

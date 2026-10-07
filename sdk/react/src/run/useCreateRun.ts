@@ -24,7 +24,7 @@ import {
 
 /**
  * Spec for the session the server auto-creates on the one-call bootstrap
- * path (maps to `AgentRunSpec.session_spec` in the proto).
+ * path (maps to `RunSpec.session_spec` in the proto).
  *
  * Carries the session shape — workspace, harness, execution target, MCP
  * servers, skills — alongside the first message, so starting a session
@@ -92,7 +92,7 @@ export interface SharedRunFields {
    * specific layer chooses: the agent's run defaults when the conversation
    * runs the agent's engine, else the operator profile, else the engine's
    * own default. Maps to `RunConfig.model_name` on
-   * `AgentRunSpec.run_config`.
+   * `RunSpec.run_config`.
    */
   readonly modelName?: string;
   /**
@@ -128,7 +128,7 @@ export interface SharedRunFields {
    * - `"agent"` (default): full tool access.
    * - `"plan"`: read-only analysis, no file mutations.
    *
-   * Maps to `AgentRunSpec.interaction_mode` in the proto.
+   * Maps to `RunSpec.interaction_mode` in the proto.
    */
   readonly interactionMode?: "agent" | "plan";
   /**
@@ -145,7 +145,7 @@ export interface SharedRunFields {
    *   refuses the create otherwise, so gate the option on
    *   `ModelInfo.serviceTiers`.
    *
-   * Maps to `RunConfig.service_tier` on `AgentRunSpec.run_config`.
+   * Maps to `RunConfig.service_tier` on `RunSpec.run_config`.
    */
   readonly serviceTier?: ServiceTierOption;
   /**
@@ -163,7 +163,7 @@ export interface SharedRunFields {
    *   declares a thinking form — the backend refuses the create otherwise,
    *   so gate the option on `thinkingSelectable(model)`.
    *
-   * Maps to `RunConfig.thinking_mode` on `AgentRunSpec.run_config`.
+   * Maps to `RunConfig.thinking_mode` on `RunSpec.run_config`.
    */
   readonly thinkingMode?: ThinkingModeOption;
   /**
@@ -175,7 +175,7 @@ export interface SharedRunFields {
    * visible cause. Surfaces without that treatment (the CLI, history)
    * show the message text as-is.
    *
-   * Maps to `AgentRunSpec.build_from_plan` in the proto.
+   * Maps to `RunSpec.build_from_plan` in the proto.
    */
   readonly buildFromPlan?: boolean;
   /**
@@ -184,7 +184,7 @@ export interface SharedRunFields {
    * When `true`, the human-in-the-loop approval gate is bypassed and no tool
    * waits for approval. When `false` (default), mutating/destructive tools
    * require approval per the configured policies. Maps to
-   * `AgentRunSpec.auto_approve_all` in the proto.
+   * `RunSpec.auto_approve_all` in the proto.
    */
   readonly autoApproveAll?: boolean;
   /**
@@ -195,7 +195,7 @@ export interface SharedRunFields {
    * - Cursor harness: prompt injection + 3-tier extraction fallback
    *
    * The validated data is returned in `execution.status.structuredOutput`.
-   * Maps to `AgentRunSpec.structured_output_schema` in the proto.
+   * Maps to `RunSpec.structured_output_schema` in the proto.
    */
   readonly structuredOutputSchema?: JsonObject;
   /**
@@ -212,7 +212,7 @@ export interface SharedRunFields {
    * Set when the user stopped an in-flight turn, edited its message, and
    * resubmitted. Chat threads hide the superseded run so the edited
    * message replaces the original in place; history surfaces keep the full
-   * record. Maps to `AgentRunSpec.supersedes_run_id`.
+   * record. Maps to `RunSpec.supersedes_run_id`.
    *
    * Display-level only — the runner does not rewind model context.
    */
@@ -277,7 +277,7 @@ export interface UseCreateRunReturn {
  * Behavior hook that wraps `run.create()` with loading/error
  * state.
  *
- * Maps 1:1 to the AgentRun aggregate — a single run of an agent.
+ * Maps 1:1 to the Run aggregate — a single run of an agent.
  * Two session strategies are supported, mirroring the RPC contract:
  * pass `sessionId` to execute within an existing session (use
  * {@link useCreateSession} to create one), or pass `sessionSpec` to

@@ -22,7 +22,7 @@ const TERMINAL_PHASES: ReadonlySet<RunPhase> = new Set([
 ]);
 
 /**
- * Cancel an agent run. Returns a wrapper documenting whether a cancel was
+ * Cancel a run. Returns a wrapper documenting whether a cancel was
  * actually issued: `{"already_terminal": bool, "run": …}`, the run in the
  * compact projection (its status embeds the full message history).
  */
@@ -32,7 +32,7 @@ export async function cancelRun(
   id: string,
   reason: string,
 ): Promise<string> {
-  const desc = `agent run "${id}"`;
+  const desc = `run "${id}"`;
   return withTransport(serverAddress, token, async (transport, callOptions) => {
     try {
       const query = createClient(RunQueryController, transport);

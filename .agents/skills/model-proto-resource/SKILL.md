@@ -44,7 +44,7 @@ is the convention, not a fixed count of files:
   message, list inputs, and so on).
 - Further files as the kind needs them: an `enum.proto` for shared enums, a
   `version.proto` for versioned kinds, topic files for large sub-shapes
-  (`apis/ai/stigmer/agentic/agentrun/v1/` has `approval.proto`, `message.proto`,
+  (`apis/ai/stigmer/agentic/run/v1/` has `approval.proto`, `message.proto`,
   `usage.proto`), the overview file of step 7, and for kinds with a curl
   walkthrough a folder of scripts (`apis/ai/stigmer/iam/apikey/v1/curl/`).
 

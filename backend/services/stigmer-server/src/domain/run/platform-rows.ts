@@ -20,7 +20,7 @@
  *   it, runner/src/harness/turn-context.ts) and the runner only ever
  *   appends system rows, so a runner write never reads as a marker.
  *
- * Messages carry no id (agentrun/v1/message.proto), so rows are
+ * Messages carry no id (run/v1/message.proto), so rows are
  * identified by type and content: the stop copy is these exact
  * constants, defined once here for the workflow and the merge, and never
  * matched against copy some other component authors.

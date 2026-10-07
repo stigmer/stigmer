@@ -409,7 +409,7 @@ describe("run tools integration", () => {
     const result = await callTool("get_run", { run_id: "run_9" });
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toBe(
-      'agent run "run_9" not found. Verify the org and slug are correct.',
+      'run "run_9" not found. Verify the org and slug are correct.',
     );
   });
 
@@ -450,21 +450,21 @@ describe("run tools integration", () => {
     expect(result.content[0]?.text).toBe("tool call call_7 is not pending");
   });
 
-  it("cancel_run cancels a running agent run", async () => {
+  it("cancel_run cancels a running run", async () => {
     const body = parseText(await callTool("cancel_run", { run_id: "run_1" }));
     expect(agentCancelCalls).toBe(1);
     expect(body.already_terminal).toBe(false);
     expect(body.view).toBe("compact");
   });
 
-  it("cancel_run short-circuits a terminal agent run", async () => {
+  it("cancel_run short-circuits a terminal run", async () => {
     runState = runFixture(RunPhase.RUN_COMPLETED);
     const body = parseText(await callTool("cancel_run", { run_id: "run_1" }));
     expect(agentCancelCalls).toBe(0);
     expect(body.already_terminal).toBe(true);
   });
 
-  it("cancel_run reports an agent run the backend refuses to cancel", async () => {
+  it("cancel_run reports a run the backend refuses to cancel", async () => {
     failures.set("run.cancel", new ConnectError("run is finalizing", Code.FailedPrecondition));
     const result = await callTool("cancel_run", { run_id: "run_1" });
     expect(agentCancelCalls).toBe(1);
@@ -478,7 +478,7 @@ describe("run tools integration", () => {
     expect(agentCancelCalls).toBe(0);
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toBe(
-      'agent run "run_9" not found. Verify the org and slug are correct.',
+      'run "run_9" not found. Verify the org and slug are correct.',
     );
   });
 });

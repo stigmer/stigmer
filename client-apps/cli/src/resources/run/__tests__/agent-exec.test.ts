@@ -1,6 +1,6 @@
 // Orchestration tests for executeResolvedAgent: the one-call bootstrap
 // contract (stigmer/stigmer#249). A workspace-bearing run must issue exactly
-// one create RPC — the AgentRun carrying session_spec — instead of the
+// one create RPC — the Run carrying session_spec — instead of the
 // old session.create + run.create pair, and the flow must read the
 // canonical session id back from the returned run's target. A run on
 // an agent names it by reference (org and slug, no instance and no id); the
@@ -118,7 +118,7 @@ describe("executeResolvedAgent", () => {
     });
 
     const sent = creates();
-    expect(sent, "a workspace run is a single AgentRun create").toHaveLength(1);
+    expect(sent, "a workspace run is a single Run create").toHaveLength(1);
     const target = sent[0]?.spec?.target;
     expect(target?.case, "no client-created session id").toBe("sessionSpec");
     const sessionSpec = target?.case === "sessionSpec" ? target.value : undefined;

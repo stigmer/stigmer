@@ -1,5 +1,5 @@
 // Command-level contract for `stigmer download run <id>`: only the run type
-// downloads (`run` or `runs`, any case), only an agent run id is accepted, both
+// downloads (`run` or `runs`, any case), only a run id is accepted, both
 // refused as usage errors before any backend call; the artifact name and
 // output directory reach the download, progress goes to stderr, and the
 // outcome line (none found with its tip, all downloaded, or some of them) goes
@@ -114,7 +114,7 @@ describe("stigmer download run", () => {
     expect(download.downloadRunArtifacts).not.toHaveBeenCalled();
   });
 
-  it("refuses an id that is not an agent run id", async () => {
+  it("refuses an id that is not a run id", async () => {
     await expect(runDownload("run", "ses_1")).rejects.toThrow(
       new UsageError("invalid run ID: ses_1\n\nRuns must be referenced by ID (e.g., run_01abc123)"),
     );

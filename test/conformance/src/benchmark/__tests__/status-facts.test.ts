@@ -1,5 +1,5 @@
 // Unit arms for the status-borne facts of a sample, over hand-built
-// AgentRun messages.
+// Run messages.
 // Domain: conformance benchmark.
 //
 // Pinned: int64 token counts become numbers; the cost estimate becomes

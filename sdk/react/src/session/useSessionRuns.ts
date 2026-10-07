@@ -43,7 +43,7 @@ export interface UseSessionRunsReturn {
 }
 
 /**
- * Data hook that fetches all {@link AgentRun} entries for a session.
+ * Data hook that fetches all {@link Run} entries for a session.
  *
  * Pass `null` to skip fetching (stable no-op). Call `refetch()` to
  * re-query after a new run is created within the same session

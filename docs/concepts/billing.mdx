@@ -8,8 +8,8 @@ description:
 ## Overview
 
 Stigmer Cloud uses a **prepaid credit wallet**. You purchase credits before
-running Agents. Each LLM call during an Agent Run is metered and the cost is
-debited from your balance in real time.
+running Agents. Each LLM call during a run is metered and the cost is debited
+from your balance in real time.
 
 - **1 credit = $0.01 USD** (10,000 micro-USD internally)
 - Credits are dollar-denominated — no abstract unit conversion
@@ -181,8 +181,8 @@ conversation length:
 
 Stigmer caps spend automatically so a runaway Agent cannot drain your balance:
 
-- Each Agent Run **reserves** budget up front and stops when the balance is
-  exhausted — see [Run billing lifecycle](#run-billing-lifecycle).
+- Each run **reserves** budget up front and stops when the balance is exhausted
+  — see [Run billing lifecycle](#run-billing-lifecycle).
 - `low_balance_warning` then `stop_run` signals tell the Agent to wrap up as the
   balance runs down — see
   [Low balance and stop behavior](#low-balance-and-stop-behavior).
@@ -194,8 +194,7 @@ Stigmer caps spend automatically so a runaway Agent cannot drain your balance:
 
 ## Run billing lifecycle
 
-When an Agent Run happens on Stigmer Cloud, billing follows a four-phase
-lifecycle:
+When a run happens on Stigmer Cloud, billing follows a four-phase lifecycle:
 
 ### 1. Authorization
 

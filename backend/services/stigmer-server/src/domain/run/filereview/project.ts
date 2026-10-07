@@ -2,7 +2,7 @@
  * The file-change-set projection SEAM — ports filereview/project.go.
  *
  * projectFileChangeSets is the single entry point every status writer
- * uses to recompute AgentRunStatus.file_change_sets from the
+ * uses to recompute RunStatus.file_change_sets from the
  * append-only file_review ledger — exactly as projectPendingApprovals is
  * for approvals. A PURE read: authoring is the capture/reconcile
  * activities' and recordFileDecisionEvent's job, run before this

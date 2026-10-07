@@ -88,7 +88,7 @@ export interface InProcessClients {
   readonly executionContextCreator: ExecutionContextCreator;
   /**
    * The server's own delete of a run's ExecutionContext — the run-end
-   * activity on the agent run worker and the recover step
+   * activity on the run worker and the recover step
    * (domain/executioncontext/internal-delete.ts): the context's delete
    * chain, so its cleanup event and search-row delete run (stigmer#1647).
    */

@@ -34,7 +34,7 @@ import { createTransport, makeClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { anthropicText, openAiText } from "@stigmer/test-support/llm-wire";
 import { makeAgent, agentRefOf } from "../support/agents";
-import { makeAgentExecution } from "../support/agentruns";
+import { makeAgentExecution } from "../support/runs";
 import { requireCloudFixtures, type CloudFixturesClient } from "../support/cloud-fixtures-client";
 import { bidiHandshake, HTTP2_REFUSED_STREAM } from "../support/cursor-bidi";
 import { makeMcpServer } from "../support/mcpservers";

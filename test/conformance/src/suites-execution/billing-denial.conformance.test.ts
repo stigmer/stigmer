@@ -34,7 +34,7 @@ import {
   awaitTerminal,
   makeAgentExecution,
   requireLlmProxy,
-} from "../support/agentruns";
+} from "../support/runs";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile, type TenancyContext } from "../targets";
 

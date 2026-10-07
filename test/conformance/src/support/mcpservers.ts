@@ -137,7 +137,7 @@ export function makeOAuthMcpServer(opts: OAuthMcpServerOptions): InitShape<typeo
 }
 
 // A complete, valid HTTP McpServer resource. Used by the execution suites to
-// register the in-process MCP tool fixture so a tool-using agent run can dispatch
+// register the in-process MCP tool fixture so a tool-using run can dispatch
 // a real tool. To CALL a tool the resource only needs to be *created*: the
 // runner connects to the URL live at execution time. The approval default's
 // destructive mark is the exception; it comes from a stored discovery, so a

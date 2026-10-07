@@ -25,14 +25,14 @@
  *
  * An idle sweep asks every awake session on every pass, and a session's
  * full history is the store's fattest rows
- * (domain/agentrun/list-index.ts), so the reader keeps one entry
+ * (domain/run/list-index.ts), so the reader keeps one entry
  * per session it has read and offers a second, cheap read beside the
  * full one (stigmer#1803). `recentActivity` reads only the session's
  * executions created since its previous read, less RECENT_LOOKBACK_MS,
  * and re-reads by id the ones that were active and the one holding the
  * latest stamp. Every other execution had already ended when it was
  * folded, and an ended execution changes only through Recover
- * (domain/agentrun/lifecycle.ts), a late status report that
+ * (domain/run/lifecycle.ts), a late status report that
  * rewrites its completion (update-status.ts), or a delete. Any of those
  * can only lower the full read's latest stamp when it befalls the
  * execution holding it, which is why that one is re-read: when its

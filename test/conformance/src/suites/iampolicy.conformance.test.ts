@@ -1007,13 +1007,13 @@ describe.skipIf(!capabilities.authorizationQueries)(
         policy: policyTriple(
           { kind: "identity_account", id: me },
           "can_view_access",
-          { kind: "agent_run", id: ABSENT_AGENT_EXECUTION },
+          { kind: "run", id: ABSENT_AGENT_EXECUTION },
         ),
       });
       expect(held.isAuthorized).toBe(false);
       const listed = await clients.iamPolicyQuery.listAuthorizedResourceIds({
         principal: ref("identity_account", me),
-        resourceKind: "agent_run",
+        resourceKind: "run",
         relation: "can_view_access",
       });
       expect(listed.resourceIds).toEqual([]);
@@ -1220,7 +1220,7 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show",
             policyTriple(
               { kind: "identity_account", id: syntheticAccountId() },
               "viewer",
-              { kind: "agent_run", id: ABSENT_AGENT_EXECUTION },
+              { kind: "run", id: ABSENT_AGENT_EXECUTION },
             ),
           ),
         Code.NotFound,
@@ -1234,7 +1234,7 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show",
     it("[rpc:IamPolicyQueryController.checkMyPermission] checkMyPermission(can_view_access) on a run answers false, never an error", async (ctx) => {
       const lane = laneOrSkip(ctx);
       const result = await lane.clients.iamPolicyQuery.checkMyPermission({
-        resource: ref("agent_run", ABSENT_AGENT_EXECUTION),
+        resource: ref("run", ABSENT_AGENT_EXECUTION),
         relation: "can_view_access",
       });
       expect(result.isAuthorized).toBe(false);

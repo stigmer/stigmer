@@ -17,11 +17,11 @@ The `apis/` directory houses all `.proto` files that define:
 apis/
 ├── ai/stigmer/agentic/           # Agentic AI APIs
 │   ├── agent/                    # Agent definitions
-│   ├── agentrun/                 # Agent run tracking
 │   ├── environment/              # Execution environments
 │   ├── executioncontext/         # Execution context management
 │   ├── mcpserver/                # MCP server definitions
-│   ├── schedule/                 # Scheduled agent runs
+│   ├── run/                      # Run tracking
+│   ├── schedule/                 # Scheduled runs
 │   ├── session/                  # User sessions
 │   └── skill/                    # Agent skills
 ├── buf.yaml                      # Buf configuration

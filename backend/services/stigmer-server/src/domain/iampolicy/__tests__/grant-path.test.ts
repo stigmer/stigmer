@@ -664,7 +664,7 @@ describe("leaving an organization: the account's rows on its resources", () => {
 
     await path.revokeOrgAccess(ALICE, "acme", alice);
 
-    expect(aliceHolds(policies)).not.toContain(`viewer agent_run:${RUN}`);
+    expect(aliceHolds(policies)).not.toContain(`viewer run:${RUN}`);
   });
 
   it("a retried revokeOrgAccess still sweeps when the organization rows are already gone", async () => {

@@ -1,6 +1,6 @@
 # Human-in-the-Loop (HITL) Approvals
 
-How AgentRun gates destructive tool calls behind human approval — approve, skip, or reject per tool.
+How Run gates destructive tool calls behind human approval — approve, skip, or reject per tool.
 
 ---
 
@@ -33,7 +33,7 @@ To keep an agent away from a tool rather than asking about it, leave the tool ou
 
 An agent's hooks also decide which tools ask (`AgentSpec.hooks`, a plugin's hooks or a block written in the agent, in Claude Code's or Cursor's format). Before a call runs, a `PreToolUse` hook can refuse it, ask a person first, or let it run; whichever it answers replaces the default for that call. A hook that gives no answer leaves the call to the default. When several hooks answer, a refusal wins over an ask, and an ask over an allow. Both engines run hooks in both formats; on the Cursor engine a hook sees no sub-agent identity, and web fetch and web search, which reach no hook there, are left out of an agent whose `PreToolUse` hooks would match them (a `PostToolUse` hook on them does not run there). Hooks are the agent author's policy: a hook that lets a call run skips the approval the default would have asked of whoever runs the agent, so an agent shared with others carries that choice to them, and a hook's command runs in that person's workspace with their run values, without a prompt. An allow from a handler whose condition the runner cannot read for sure is not honoured; the call falls to the default.
 
-`AgentRun.auto_approve_all`, a lease, and the unattended mode decide only how a required approval is resolved, never which tools ask. None of them opens a call a hook refuses.
+`Run.auto_approve_all`, a lease, and the unattended mode decide only how a required approval is resolved, never which tools ask. None of them opens a call a hook refuses.
 
 ---
 
@@ -51,7 +51,7 @@ Agent is IN_PROGRESS
     ├── the github server marks delete_repository destructive
     │
     ├── ToolCall.status → TOOL_CALL_WAITING_APPROVAL
-    ├── AgentRun.status.phase → RUN_WAITING_FOR_APPROVAL
+    ├── Run.status.phase → RUN_WAITING_FOR_APPROVAL
     ├── status.pending_approvals populated with:
     │   - tool_call_id: "call_abc123"
     │   - tool_name: "delete_repository"
@@ -122,7 +122,7 @@ Every tool call the approval gate evaluates carries its **authorization provenan
 | Value | Meaning |
 |---|---|
 | `UNSPECIFIED` | Legacy run, or no approval was required (a read-only built-in, or an MCP tool its server does not mark destructive). Clients render no provenance. |
-| `AUTO_APPROVE_ALL` | The pre-armed `AgentRunSpec.auto_approve_all` whole-run bypass cleared the call. |
+| `AUTO_APPROVE_ALL` | The pre-armed `RunSpec.auto_approve_all` whole-run bypass cleared the call. |
 | `APPROVAL_LEASE` | A run-lifetime scoped lease (the successor to a global "approve all") cleared the call. |
 | `BUILTIN_CATEGORY` | The default asked for a built-in tool of the write / delete / shell categories. |
 | `ANNOTATION_DESTRUCTIVE_TIGHTEN` | The default asked for an MCP tool because its server marks it destructive (`destructiveHint: true`). |
@@ -139,17 +139,17 @@ Call the `submitApproval` RPC with the run ID, the tool call ID, and your decisi
 
 ```bash
 # Approve — tool executes normally
-stigmer runs approve aex_abc123 \
+stigmer runs approve run_abc123 \
   --tool-call call_abc123 \
   --comment "Verified the target repository is safe to delete"
 
 # Skip — tool is skipped, LLM adapts its plan
-stigmer runs skip aex_abc123 \
+stigmer runs skip run_abc123 \
   --tool-call-id call_abc123 \
   --comment "Will handle this operation manually"
 
 # Reject — run fails immediately
-stigmer runs reject aex_abc123 \
+stigmer runs reject run_abc123 \
   --tool-call-id call_abc123 \
   --comment "Wrong repository — this looks like a mistake"
 ```
@@ -198,7 +198,7 @@ This provides a complete audit trail: who approved or rejected what tool call, w
 
 ## Bypassing Approvals for Automation
 
-For CI/CD pipelines and trusted batch jobs where human approval is impractical, set `auto_approve_all: true` in the `AgentRunSpec`:
+For CI/CD pipelines and trusted batch jobs where human approval is impractical, set `auto_approve_all: true` in the `RunSpec`:
 
 ```yaml
 spec:
@@ -242,7 +242,7 @@ shared or sensitive surfaces should simply not set the prop.
 
 ## Sub-Agent Approvals
 
-When a sub-agent's tool requires approval, the approval is surfaced in the **parent** AgentRun's `status.pending_approvals`, with `from_sub_agent: true` and the sub-agent's name in `sub_agent_name`.
+When a sub-agent's tool requires approval, the approval is surfaced in the **parent** Run's `status.pending_approvals`, with `from_sub_agent: true` and the sub-agent's name in `sub_agent_name`.
 
 This allows a single approval UI to handle both parent and sub-agent approvals uniformly. The user does not need to know where in the agent hierarchy the approval originates.
 

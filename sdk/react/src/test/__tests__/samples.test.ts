@@ -41,7 +41,7 @@ describe("samples", () => {
   describe("run", () => {
     it("creates a completed execution with default messages", () => {
       const ex = samples.run();
-      expect(ex.kind).toBe("AgentRun");
+      expect(ex.kind).toBe("Run");
       expect(ex.status?.phase).toBe(RunPhase.RUN_COMPLETED);
       expect(ex.status?.messages.length).toBeGreaterThanOrEqual(2);
     });

@@ -49,16 +49,16 @@ Rows read `| Service.method | org |`, `| Service.method | metadata.org |` or `| 
 | ChannelMessageCommandController.sendMessage | org |
 | ChannelMessageQueryController.listTemplates | org |
 
-## `ai.stigmer.agentic.agentrun.v1`
+## `ai.stigmer.agentic.run.v1`
 
 | Method | Fills |
 |---|---|
-| AgentRunCommandController.create | metadata.org |
-| AgentRunCommandController.update | metadata.org |
-| AgentRunQueryController.getAgentUsageReport | org |
-| AgentRunQueryController.getRunSummary | org |
-| AgentRunQueryController.getOrgUsageReport | org |
-| AgentRunQueryController.list | org |
+| RunCommandController.create | metadata.org |
+| RunCommandController.update | metadata.org |
+| RunQueryController.getAgentUsageReport | org |
+| RunQueryController.getRunSummary | org |
+| RunQueryController.getOrgUsageReport | org |
+| RunQueryController.list | org |
 
 ## `ai.stigmer.agentic.agentshare.v1`
 

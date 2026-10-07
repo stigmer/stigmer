@@ -4,7 +4,7 @@
  * refused before a run exists. Here the run starter answers "started", and
  * the FireDirectRun step must answer STARTED naming the run, stamp
  * last_fire_at on the schedule, and leave a manual ledger row carrying the
- * run's id, so listRuns can later read the run's live phase.
+ * run's id, so listFires can later read the run's live phase.
  *
  * The store is a real throwaway SQLite store; the run starter is a stub
  * that records the schedule it was asked to fire.

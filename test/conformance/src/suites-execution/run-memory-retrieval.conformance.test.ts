@@ -27,7 +27,7 @@ import {
   awaitTerminal,
   makeAgentExecution,
   requireLlmProxy,
-} from "../support/agentruns";
+} from "../support/runs";
 import { provisionOrgWithConfirmedFacts } from "../support/memories";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
@@ -84,7 +84,7 @@ async function runExecution(org: string) {
   return settled;
 }
 
-describe("AgentRun memory retrieval (no-embedder posture)", () => {
+describe("Run memory retrieval (no-embedder posture)", () => {
   it.skipIf(!capabilities.firstPartyMemoryCapture)("injects wholesale below the threshold with an honest report and no embeddings attempt", async () => {
     const { org } = await provisionOrgWithConfirmedFacts(clients, fixtures, 1, fund);
     const settled = await runExecution(org);

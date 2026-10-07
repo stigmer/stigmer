@@ -24,7 +24,7 @@ export const MEMORY_ORG_HEADER = "x-stigmer-memory-org";
 export const MEMORY_AGENT_ID_HEADER = "x-stigmer-memory-agent-id";
 /** Header carrying the session id the run belongs to. */
 export const MEMORY_SESSION_ID_HEADER = "x-stigmer-memory-session-id";
-/** Header carrying the agent run id (the wire name keeps "execution"). */
+/** Header carrying the run id (the wire name keeps "execution"). */
 export const MEMORY_EXECUTION_ID_HEADER = "x-stigmer-memory-execution-id";
 
 /** Env var carrying the run's org (per-process, stdio child). */
@@ -33,7 +33,7 @@ export const MEMORY_ORG_ENV = "STIGMER_MEMORY_ORG";
 export const MEMORY_AGENT_ID_ENV = "STIGMER_MEMORY_AGENT_ID";
 /** Env var carrying the session id the run belongs to. */
 export const MEMORY_SESSION_ID_ENV = "STIGMER_MEMORY_SESSION_ID";
-/** Env var carrying the agent run id (the wire name keeps "execution"). */
+/** Env var carrying the run id (the wire name keeps "execution"). */
 export const MEMORY_EXECUTION_ID_ENV = "STIGMER_MEMORY_EXECUTION_ID";
 
 /**

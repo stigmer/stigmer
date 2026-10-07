@@ -1,12 +1,12 @@
 # Run Lifecycle
 
-The phase state machine for AgentRun — all phases, transitions, and lifecycle control operations.
+The phase state machine for Run — all phases, transitions, and lifecycle control operations.
 
 ---
 
 ## Phase State Machine
 
-Every AgentRun moves through a defined set of phases. The phase is stored in `status.phase` and updated in real time.
+Every Run moves through a defined set of phases. The phase is stored in `status.phase` and updated in real time.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
@@ -83,7 +83,7 @@ Stigmer exposes five control operations for managing runs in progress. Each oper
 Sends a cancellation signal to the running Temporal workflow. The agent activity receives the signal, saves its LangGraph checkpoint, and transitions to `RUN_CANCELLED`.
 
 ```bash
-stigmer runs cancel aex_abc123 --reason "Task no longer needed"
+stigmer runs cancel run_abc123 --reason "Task no longer needed"
 ```
 
 **Preconditions:**
@@ -99,7 +99,7 @@ stigmer runs cancel aex_abc123 --reason "Task no longer needed"
 
 **After cancellation:**
 - Checkpoint is preserved but the run is terminal — it cannot be recovered
-- If you need to re-run the work, create a new AgentRun
+- If you need to re-run the work, create a new Run
 
 ---
 
@@ -108,7 +108,7 @@ stigmer runs cancel aex_abc123 --reason "Task no longer needed"
 Force-kills the Temporal workflow immediately via `TerminateWorkflow`. The agent activity receives no signal and cannot clean up. Use this only for stuck or unresponsive agents.
 
 ```bash
-stigmer runs terminate aex_abc123 --reason "Stuck for 30 min, not responding to cancel"
+stigmer runs terminate run_abc123 --reason "Stuck for 30 min, not responding to cancel"
 ```
 
 **Preconditions:**
@@ -151,7 +151,7 @@ stigmer runs terminate aex_abc123 --reason "Stuck for 30 min, not responding to 
 Sends a "pause" signal to the Temporal workflow. The workflow gracefully cancels the running activity; LangGraph auto-saves the checkpoint on cancellation. The workflow then waits for a "resume" signal — no compute resources are consumed while paused.
 
 ```bash
-stigmer runs pause aex_abc123 --reason "Reviewing progress before continuing"
+stigmer runs pause run_abc123 --reason "Reviewing progress before continuing"
 ```
 
 **Preconditions:**
@@ -173,7 +173,7 @@ stigmer runs pause aex_abc123 --reason "Reviewing progress before continuing"
 Sends a "resume" signal to the paused Temporal workflow. The workflow re-invokes the activity with the same execution context; LangGraph loads the checkpoint automatically and continues from the exact pause point.
 
 ```bash
-stigmer runs resume aex_abc123
+stigmer runs resume run_abc123
 ```
 
 **Preconditions:**
@@ -205,7 +205,7 @@ stigmer runs resume aex_abc123
 Uses Temporal's `ResetWorkflow` to resume a `FAILED` run from its last checkpoint. Completed work is preserved — successful tool calls are not re-executed.
 
 ```bash
-stigmer runs recover aex_abc123
+stigmer runs recover run_abc123
 ```
 
 **Preconditions:**
@@ -261,6 +261,6 @@ TOOL_CALL_PENDING → TOOL_CALL_WAITING_APPROVAL → TOOL_CALL_RUNNING → TOOL_
 The run phase is reflected in:
 
 - `status.phase` on every `get` or `subscribe` response
-- Real-time streaming via the `subscribe` RPC — clients receive updated `AgentRun` messages as the phase changes
+- Real-time streaming via the `subscribe` RPC — clients receive updated `Run` messages as the phase changes
 - `status.started_at` and `status.completed_at` timestamps for duration measurement
 - `status.error` populated on `FAILED` and `TERMINATED` with the failure reason

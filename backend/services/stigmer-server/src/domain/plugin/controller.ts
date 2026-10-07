@@ -10,7 +10,7 @@
  * version steps bound to the plugin's digest and manifest version;
  * `getArtifact` and `getArtifactDownloadUrl` hand the runner the archive a
  * plugin was installed from, so it can mount the plugin whose hooks an
- * agent runs (the skill controller's pair, over the plugin store).
+ * runs (the skill controller's pair, over the plugin store).
  *
  * Wiring mirrors the skill controller's: the store and the archive store
  * are required; the transfer lane is an OPTIONAL modelled state (absent,

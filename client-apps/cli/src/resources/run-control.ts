@@ -1,7 +1,7 @@
 // Lifecycle control for runs (cancel / terminate / pause / resume).
 //
 // Mirrors Go's execution.Cancel/Terminate/Pause/Resume (cancel.go + pause.go):
-// each verb issues the agent-run controller RPC and returns the resulting
+// each verb issues the run controller RPC and returns the resulting
 // phase as a human label. The phase is read back from the RPC response so the
 // success line reports the authoritative post-mutation state, exactly as the
 // Go CLI does.

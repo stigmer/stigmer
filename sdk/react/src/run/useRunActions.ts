@@ -53,7 +53,7 @@ export interface UseRunActionsReturn {
 }
 
 /**
- * Behavior hook that encapsulates agent run lifecycle actions.
+ * Behavior hook that encapsulates run lifecycle actions.
  *
  * Each action calls the corresponding RPC and returns the updated run, or
  * `null` on failure (with `error` populated).

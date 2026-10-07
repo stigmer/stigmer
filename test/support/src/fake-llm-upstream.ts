@@ -24,7 +24,7 @@
 // and every suite resets in afterEach (the MockLlmProxy rule).
 //
 // Default-reply mode (stigmer/stigmer#1402) is for a local development stack,
-// not the suites: there an agent run makes calls nobody scripted, and an
+// not the suites: there a run makes calls nobody scripted, and an
 // empty queue's 500 would fail every run. With `defaultReply`, an unscripted
 // request gets one canned text turn in its provider's shape, echoing its
 // model, so the run completes offline and free. A scripted entry still wins,

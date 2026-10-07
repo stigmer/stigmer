@@ -14,7 +14,7 @@ export interface SetupProgressProps {
   readonly workspaceEntries?: readonly WorkspaceEntry[];
   /**
    * Server-reported setup phase label from
-   * `AgentRunStatus.setup_progress.current_phase`.
+   * `RunStatus.setup_progress.current_phase`.
    *
    * When non-empty, rendered directly — the timer-based fallback is
    * bypassed.  When absent or empty (older backends that don't emit

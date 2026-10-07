@@ -60,7 +60,7 @@ describe("createAgentRun", () => {
       harness: "",
     });
 
-    expect(exec.kind).toBe("AgentRun");
+    expect(exec.kind).toBe("Run");
     expect(exec.metadata?.org).toBe("acme");
     expect(exec.spec?.message).toBe("execute");
     expect(sessionSpecOf(exec)?.agentRef).toMatchObject({

@@ -68,7 +68,7 @@ import type { ExecutionStatusWriter } from "../activities.js";
 import { UPDATE_EXECUTION_STATUS_ACTIVITY_NAME } from "../names.js";
 
 const UPDATE_STATUS_PROCEDURE =
-  "/ai.stigmer.agentic.agentrun.v1.AgentRunCommandController/updateStatus";
+  "/ai.stigmer.agentic.run.v1.RunCommandController/updateStatus";
 
 type UpdateStatusActivity = (id: string, status: JsonValue) => Promise<void>;
 
@@ -169,7 +169,7 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
       RunSchema,
       create(RunSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
-        kind: "AgentRun",
+        kind: "Run",
         metadata: { id, name: "own-behalf", org: "acme" },
         spec: { target: { case: "sessionId", value: "ses_1" } },
         status: { agentId: "agt_1", phase, messages },

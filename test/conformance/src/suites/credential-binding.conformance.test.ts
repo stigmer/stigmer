@@ -41,7 +41,7 @@ import {
   plaintextKeyOf,
 } from "../support/apikeys";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { makeAgentExecution } from "../support/agentruns";
+import { makeAgentExecution } from "../support/runs";
 import { makeEnvironment } from "../support/environments";
 import { makeMcpServer } from "../support/mcpservers";
 import { makeSession } from "../support/sessions";
@@ -497,7 +497,7 @@ describe("credential binding — a credential that names an organization works t
     );
   });
 
-  it("[rpc:AgentRunCommandController.create] a key limited to A files no run and opens no connect in B, even with A's own agent or MCP server", async (ctx) => {
+  it("[rpc:RunCommandController.create] a key limited to A files no run and opens no connect in B, even with A's own agent or MCP server", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
     const a = await tenancy(on);
@@ -545,7 +545,7 @@ describe("credential binding — a credential that names an organization works t
           }),
         ),
       Code.PermissionDenied,
-      "file an agent run in B through a key limited to A",
+      "file a run in B through a key limited to A",
     );
     expect(run.rawMessage).toBe(BOUND_ELSEWHERE_MESSAGE);
 
@@ -603,7 +603,7 @@ describe("credential binding — a credential that names an organization works t
     ).toBe(await outcomeOf(person));
   });
 
-  it("[rpc:AgentRunCommandController.create] a run filed in A cannot use B's agent once B stops sharing it: its run credential, bound to A, could not read it", async (ctx) => {
+  it("[rpc:RunCommandController.create] a run filed in A cannot use B's agent once B stops sharing it: its run credential, bound to A, could not read it", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
     const b = await tenancy(on);

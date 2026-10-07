@@ -1,5 +1,5 @@
 /**
- * Size-bounding guard for the persisted AgentRunStatus payload.
+ * Size-bounding guard for the persisted RunStatus payload.
  *
  * Tool outputs (an MCP screenshot's base64 image, a giant accessibility-tree
  * dump, a multi-MB shell log, a huge file write) are stored inline in

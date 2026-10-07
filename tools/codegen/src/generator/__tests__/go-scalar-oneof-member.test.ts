@@ -34,7 +34,7 @@ describe("the Go generator's scalar oneof member", () => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), "codegen-go-oneof-"));
     const output = path.join(root, "internal", "gen");
     runSDKClientGeneration(SCHEMAS, output);
-    go = fs.readFileSync(path.join(output, "agentrun.go"), "utf8");
+    go = fs.readFileSync(path.join(output, "run.go"), "utf8");
   });
 
   afterAll(() => {
@@ -43,17 +43,17 @@ describe("the Go generator's scalar oneof member", () => {
 
   it("sets the oneof's wrapper only when the input carries a value", () => {
     expect(go).toContain(
-      "\tif i.SessionId != \"\" {\n\t\tresource.Spec.Target = &agentrunv1.AgentRunSpec_SessionId{SessionId: i.SessionId}\n\t}\n",
+      "\tif i.SessionId != \"\" {\n\t\tresource.Spec.Target = &agentrunv1.RunSpec_SessionId{SessionId: i.SessionId}\n\t}\n",
     );
     expect(go).not.toContain("resource.Spec.SessionId =");
   });
 
   it("assigns the first-declared member last, so it wins when both are set", () => {
     const spec = go.indexOf(
-      "resource.Spec.Target = &agentrunv1.AgentRunSpec_SessionSpec{",
+      "resource.Spec.Target = &agentrunv1.RunSpec_SessionSpec{",
     );
     const id = go.indexOf(
-      "resource.Spec.Target = &agentrunv1.AgentRunSpec_SessionId{",
+      "resource.Spec.Target = &agentrunv1.RunSpec_SessionId{",
     );
     expect(spec).toBeGreaterThan(-1);
     expect(id).toBeGreaterThan(spec);

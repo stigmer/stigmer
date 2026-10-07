@@ -1,4 +1,4 @@
-// Conformance suite for the AgentRun domain (Class B).
+// Conformance suite for the Run domain (Class B).
 // Domain: agentic / agentexecution — a single user message run through the agent
 // engine (Temporal orchestrator + TS runner + mock LLM), driven via the raw proto
 // stubs.
@@ -31,7 +31,7 @@
 // message. The bootstrap describe block below asserts the forwarding, the pin
 // the new session records for its agent, and the replacement of session_spec
 // by the created session's id; the validation negative lives in the CRUD-level
-// suite (suites/agentrun.conformance.test.ts) so it also gates the cloud
+// suite (suites/run.conformance.test.ts) so it also gates the cloud
 // edition.
 //
 // A turn's dispatch queue is the server's to derive, never a caller's: the
@@ -45,7 +45,7 @@
 //
 // Covered in a sibling file (kept separate because it needs the MCP tool
 // fixture and approval choreography, and this file is already large):
-// - submitApproval / HITL tool approval -> agentrun-approval.conformance.test.ts.
+// - submitApproval / HITL tool approval -> run-approval.conformance.test.ts.
 //
 // Deliberately out of scope (each needs machinery this suite doesn't build, and
 // is a conscious deferral, not shipped as a thin partial):
@@ -86,7 +86,7 @@ import {
   pollExecution,
   requireLlmProxy,
   sessionIdOf,
-} from "../support/agentruns";
+} from "../support/runs";
 import { pollUntil } from "../support/run-poll";
 import { foreignId, uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
@@ -161,8 +161,8 @@ async function createHeldExecution(org: string, agent: Agent, name = uniqueName(
   return execution;
 }
 
-describe("AgentRun conformance — CRUD & identity", () => {
-  it("[rpc:AgentRunCommandController.create] create assigns an aex_ id, stamps the agent it runs, and starts PENDING", async () => {
+describe("Run conformance — CRUD & identity", () => {
+  it("[rpc:RunCommandController.create] create assigns an aex_ id, stamps the agent it runs, and starts PENDING", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const name = uniqueName("aex");
@@ -182,7 +182,7 @@ describe("AgentRun conformance — CRUD & identity", () => {
 
   // The engine-backed half of the create-id rule (stigmer/stigmer#1489): the
   // Class A row for this create runs only where an engine backs Class A.
-  it("[rpc:AgentRunCommandController.create] create never keeps a metadata.id the caller sent", async () => {
+  it("[rpc:RunCommandController.create] create never keeps a metadata.id the caller sent", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const name = uniqueName("aex");
@@ -204,7 +204,7 @@ describe("AgentRun conformance — CRUD & identity", () => {
     await awaitTerminal(clients, id);
   });
 
-  it("[rpc:AgentRunQueryController.get] get round-trips the created resource (ignoring server-set fields)", async () => {
+  it("[rpc:RunQueryController.get] get round-trips the created resource (ignoring server-set fields)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createExecution(org, agent);
@@ -219,7 +219,7 @@ describe("AgentRun conformance — CRUD & identity", () => {
     await awaitTerminal(clients, created.metadata!.id);
   });
 
-  it("[rpc:AgentRunCommandController.delete] delete returns the resource and a subsequent get reports NotFound", async () => {
+  it("[rpc:RunCommandController.delete] delete returns the resource and a subsequent get reports NotFound", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createExecution(org, agent);
@@ -232,10 +232,10 @@ describe("AgentRun conformance — CRUD & identity", () => {
     await expectGrpcCode(() => clients.agentExecutionQuery.get({ value: id }), Code.NotFound, "get after delete");
   });
 
-  it("[rpc:AgentRunQueryController.get] get rejects an empty id with InvalidArgument", () =>
+  it("[rpc:RunQueryController.get] get rejects an empty id with InvalidArgument", () =>
     expectGrpcCode(() => clients.agentExecutionQuery.get({ value: "" }), Code.InvalidArgument, "get empty id"));
 
-  it("[rpc:AgentRunQueryController.get] get of a missing id returns NotFound", () =>
+  it("[rpc:RunQueryController.get] get of a missing id returns NotFound", () =>
     expectGrpcCode(
       () => clients.agentExecutionQuery.get({ value: "aex_doesnotexist" }),
       Code.NotFound,
@@ -243,8 +243,8 @@ describe("AgentRun conformance — CRUD & identity", () => {
     ));
 });
 
-describe("AgentRun conformance — distinctness (no duplicate check)", () => {
-  it("[rpc:AgentRunCommandController.create] two identical creates yield two distinct executions (no AlreadyExists)", async () => {
+describe("Run conformance — distinctness (no duplicate check)", () => {
+  it("[rpc:RunCommandController.create] two identical creates yield two distinct executions (no AlreadyExists)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const name = uniqueName("aex-dup");
@@ -265,7 +265,7 @@ describe("AgentRun conformance — distinctness (no duplicate check)", () => {
   });
 });
 
-describe("AgentRun conformance — completion", () => {
+describe("Run conformance — completion", () => {
   it("a completed run populates started_at and completed_at", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
@@ -311,8 +311,8 @@ describe("AgentRun conformance — completion", () => {
   });
 });
 
-describe("AgentRun conformance — queries", () => {
-  it("[rpc:AgentRunQueryController.list] list includes created executions", async () => {
+describe("Run conformance — queries", () => {
+  it("[rpc:RunQueryController.list] list includes created executions", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const a = await createExecution(org, agent);
@@ -327,7 +327,7 @@ describe("AgentRun conformance — queries", () => {
     expect(ids).toContain(b.metadata?.id);
   });
 
-  it("[rpc:AgentRunQueryController.list] list with a phase filter includes a matching completed execution", async () => {
+  it("[rpc:RunQueryController.list] list with a phase filter includes a matching completed execution", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createExecution(org, agent);
@@ -339,7 +339,7 @@ describe("AgentRun conformance — queries", () => {
     expect(listed.entries.map((e) => e.metadata?.id)).toContain(created.metadata?.id);
   });
 
-  it("[rpc:AgentRunQueryController.listBySession] listBySession returns only the executions for the given session", async () => {
+  it("[rpc:RunQueryController.listBySession] listBySession returns only the executions for the given session", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
 
@@ -370,12 +370,12 @@ describe("AgentRun conformance — queries", () => {
     expect(ids).not.toContain(other.metadata?.id);
   });
 
-  it("[rpc:AgentRunQueryController.listBySession] listBySession returns an empty list for an unknown session", async () => {
+  it("[rpc:RunQueryController.listBySession] listBySession returns an empty list for an unknown session", async () => {
     const listed = await clients.agentExecutionQuery.listBySession({ sessionId: "ses_doesnotexist" });
     expect(listed.entries).toHaveLength(0);
   });
 
-  it("[rpc:AgentRunQueryController.listBySession] listBySession rejects an empty session_id with InvalidArgument", () =>
+  it("[rpc:RunQueryController.listBySession] listBySession rejects an empty session_id with InvalidArgument", () =>
     expectGrpcCode(
       () => clients.agentExecutionQuery.listBySession({ sessionId: "" }),
       Code.InvalidArgument,
@@ -383,8 +383,8 @@ describe("AgentRun conformance — queries", () => {
     ));
 });
 
-describe("AgentRun conformance — a turn belongs to its session and its session's organization (#1580, #1588)", () => {
-  it("[rpc:AgentRunCommandController.create] a turn naming no organization in an existing session is filed under the session's organization (#1580)", async () => {
+describe("Run conformance — a turn belongs to its session and its session's organization (#1580, #1588)", () => {
+  it("[rpc:RunCommandController.create] a turn naming no organization in an existing session is filed under the session's organization (#1580)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const first = await createExecution(org, agent);
@@ -404,7 +404,7 @@ describe("AgentRun conformance — a turn belongs to its session and its session
     expect(listed.entries.map((e) => e.metadata?.id)).toContain(second.metadata?.id);
   });
 
-  it("[rpc:AgentRunCommandController.update] refuses moving an execution to another session (FailedPrecondition, #1588)", async () => {
+  it("[rpc:RunCommandController.update] refuses moving an execution to another session (FailedPrecondition, #1588)", async () => {
     const { org } = await target.provisionTenancy();
     const moved = await createExecution(org, await provisionAgent(org));
     const elsewhere = await createExecution(org, await provisionAgent(org));
@@ -428,7 +428,7 @@ describe("AgentRun conformance — a turn belongs to its session and its session
   });
 });
 
-describe("AgentRun conformance — lifecycle (running execution)", () => {
+describe("Run conformance — lifecycle (running execution)", () => {
   it("observes RUN_IN_PROGRESS once the runner picks the execution up", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
@@ -443,7 +443,7 @@ describe("AgentRun conformance — lifecycle (running execution)", () => {
     await awaitPhase(clients, created.metadata!.id, RunPhase.RUN_CANCELLED);
   });
 
-  it("[rpc:AgentRunCommandController.cancel] cancel transitions a running execution to CANCELLED with completed_at", async () => {
+  it("[rpc:RunCommandController.cancel] cancel transitions a running execution to CANCELLED with completed_at", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createHeldExecution(org, agent);
@@ -456,7 +456,7 @@ describe("AgentRun conformance — lifecycle (running execution)", () => {
     expect(cancelled.status?.completedAt, "cancel records completed_at").toBeTruthy();
   });
 
-  it("[rpc:AgentRunCommandController.terminate] terminate transitions a running execution to TERMINATED", async () => {
+  it("[rpc:RunCommandController.terminate] terminate transitions a running execution to TERMINATED", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createHeldExecution(org, agent);
@@ -475,7 +475,7 @@ describe("AgentRun conformance — lifecycle (running execution)", () => {
   // asked for. Distinct from a cancel on a COMPLETED run, which the negatives
   // below reject — the precondition is "not terminal by another outcome".
   // (From the Go offline suite's lifecycle arms.)
-  it("[rpc:AgentRunCommandController.cancel] a second cancel on a CANCELLED execution is a benign no-op", async () => {
+  it("[rpc:RunCommandController.cancel] a second cancel on a CANCELLED execution is a benign no-op", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createHeldExecution(org, agent);
@@ -490,7 +490,7 @@ describe("AgentRun conformance — lifecycle (running execution)", () => {
     );
   });
 
-  it("[rpc:AgentRunCommandController.terminate] a second terminate on a TERMINATED execution is a benign no-op", async () => {
+  it("[rpc:RunCommandController.terminate] a second terminate on a TERMINATED execution is a benign no-op", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createHeldExecution(org, agent);
@@ -505,7 +505,7 @@ describe("AgentRun conformance — lifecycle (running execution)", () => {
     );
   });
 
-  it("[rpc:AgentRunCommandController.pause] [rpc:AgentRunCommandController.resume] pause then resume moves a running execution PAUSED -> IN_PROGRESS", async () => {
+  it("[rpc:RunCommandController.pause] [rpc:RunCommandController.resume] pause then resume moves a running execution PAUSED -> IN_PROGRESS", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createHeldExecution(org, agent);
@@ -601,8 +601,8 @@ describe("AgentRun conformance — lifecycle (running execution)", () => {
   });
 });
 
-describe("AgentRun conformance — lifecycle preconditions & negatives", () => {
-  it("[rpc:AgentRunCommandController.cancel] cancel of a completed execution is rejected with FailedPrecondition", async () => {
+describe("Run conformance — lifecycle preconditions & negatives", () => {
+  it("[rpc:RunCommandController.cancel] cancel of a completed execution is rejected with FailedPrecondition", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createExecution(org, agent);
@@ -615,7 +615,7 @@ describe("AgentRun conformance — lifecycle preconditions & negatives", () => {
     );
   });
 
-  it("[rpc:AgentRunCommandController.terminate] terminate of a completed execution is rejected with FailedPrecondition", async () => {
+  it("[rpc:RunCommandController.terminate] terminate of a completed execution is rejected with FailedPrecondition", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createExecution(org, agent);
@@ -628,7 +628,7 @@ describe("AgentRun conformance — lifecycle preconditions & negatives", () => {
     );
   });
 
-  it("[rpc:AgentRunCommandController.recover] recover of a non-failed execution is rejected with FailedPrecondition", async () => {
+  it("[rpc:RunCommandController.recover] recover of a non-failed execution is rejected with FailedPrecondition", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createExecution(org, agent);
@@ -641,7 +641,7 @@ describe("AgentRun conformance — lifecycle preconditions & negatives", () => {
     );
   });
 
-  it("[rpc:AgentRunCommandController.resume] resume of a non-paused execution is rejected with FailedPrecondition", async () => {
+  it("[rpc:RunCommandController.resume] resume of a non-paused execution is rejected with FailedPrecondition", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createExecution(org, agent);
@@ -654,17 +654,17 @@ describe("AgentRun conformance — lifecycle preconditions & negatives", () => {
     );
   });
 
-  it("[rpc:AgentRunCommandController.cancel] cancel rejects an empty id with InvalidArgument", () =>
+  it("[rpc:RunCommandController.cancel] cancel rejects an empty id with InvalidArgument", () =>
     expectGrpcCode(() => clients.agentExecutionCommand.cancel({ id: "" }), Code.InvalidArgument, "cancel empty id"));
 
-  it("[rpc:AgentRunCommandController.cancel] cancel of a missing execution returns NotFound", () =>
+  it("[rpc:RunCommandController.cancel] cancel of a missing execution returns NotFound", () =>
     expectGrpcCode(
       () => clients.agentExecutionCommand.cancel({ id: "aex_doesnotexist" }),
       Code.NotFound,
       "cancel missing execution",
     ));
 
-  it("[rpc:AgentRunCommandController.pause] pause of a missing execution returns NotFound", () =>
+  it("[rpc:RunCommandController.pause] pause of a missing execution returns NotFound", () =>
     expectGrpcCode(
       () => clients.agentExecutionCommand.pause({ id: "aex_doesnotexist" }),
       Code.NotFound,
@@ -672,8 +672,8 @@ describe("AgentRun conformance — lifecycle preconditions & negatives", () => {
     ));
 });
 
-describe("AgentRun conformance — create negative paths", () => {
-  it("[rpc:AgentRunCommandController.create] rejects a wrong api_version (InvalidArgument)", async () => {
+describe("Run conformance — create negative paths", () => {
+  it("[rpc:RunCommandController.create] rejects a wrong api_version (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     await expectGrpcCode(
@@ -689,7 +689,7 @@ describe("AgentRun conformance — create negative paths", () => {
     );
   });
 
-  it("[rpc:AgentRunCommandController.create] rejects a wrong kind (InvalidArgument)", async () => {
+  it("[rpc:RunCommandController.create] rejects a wrong kind (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     await expectGrpcCode(
@@ -705,7 +705,7 @@ describe("AgentRun conformance — create negative paths", () => {
     );
   });
 
-  it("[rpc:AgentRunCommandController.create] rejects a create with no metadata (InvalidArgument)", async () => {
+  it("[rpc:RunCommandController.create] rejects a create with no metadata (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     await expectGrpcCode(
@@ -720,7 +720,7 @@ describe("AgentRun conformance — create negative paths", () => {
     );
   });
 
-  it("[rpc:AgentRunCommandController.create] rejects a create with an empty message (InvalidArgument)", async () => {
+  it("[rpc:RunCommandController.create] rejects a create with an empty message (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     // spec.message declares min_len=1, enforced by ValidateProtoStep.
@@ -737,7 +737,7 @@ describe("AgentRun conformance — create negative paths", () => {
     );
   });
 
-  it("[rpc:AgentRunCommandController.create] rejects a new conversation on an agent its organization does not hold (FailedPrecondition, naming the slug)", async () => {
+  it("[rpc:RunCommandController.create] rejects a new conversation on an agent its organization does not hold (FailedPrecondition, naming the slug)", async () => {
     const { org } = await target.provisionTenancy();
     const missing = uniqueName("agent-missing");
     // The reference rule's answer for a same-organization slug that names
@@ -753,7 +753,7 @@ describe("AgentRun conformance — create negative paths", () => {
     expect(refused.rawMessage).toContain(missing);
   });
 
-  it("[rpc:AgentRunCommandController.create] runs the built-in assistant to completion when neither session nor agent is named", async () => {
+  it("[rpc:RunCommandController.create] runs the built-in assistant to completion when neither session nor agent is named", async () => {
     const { org } = await target.provisionTenancy();
     // The empty target: no session, and no session_spec naming an agent.
     // The server creates a session with NO agent and the runner answers on
@@ -780,8 +780,8 @@ describe("AgentRun conformance — create negative paths", () => {
   });
 });
 
-describe("AgentRun conformance — one-call session bootstrap (session_spec)", () => {
-  it("[rpc:AgentRunCommandController.create] creates the session from session_spec, pinned to the agent its agent_ref names, and dispatches the first message in one call", async () => {
+describe("Run conformance — one-call session bootstrap (session_spec)", () => {
+  it("[rpc:RunCommandController.create] creates the session from session_spec, pinned to the agent its agent_ref names, and dispatches the first message in one call", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
 
@@ -841,7 +841,7 @@ describe("AgentRun conformance — one-call session bootstrap (session_spec)", (
   });
 
   // The validation negative (the harness_state_id server-owned-field guard)
-  // lives in the CRUD-level suite (suites/agentrun.conformance.test.ts):
+  // lives in the CRUD-level suite (suites/run.conformance.test.ts):
   // it needs no engine, and only src/suites/** runs against the cloud edition,
   // which is what gates cloud on the shared validation contract. Do not re-add
   // it here.
@@ -856,13 +856,13 @@ describe("AgentRun conformance — one-call session bootstrap (session_spec)", (
 // service's MinIO-backed artifact routes (stigmer#803), so every case here
 // runs unconditionally on every execution target (the retired
 // sharedRunnerArtifactStore gate — see target.ts).
-// The retired AgentRunSpec field that once let a caller name the
+// The retired RunSpec field that once let a caller name the
 // turn's dispatch queue (activity_task_queue, number 11). Reserved on the
 // wire: a request carrying it is read with the field as an unknown one.
 const RETIRED_ACTIVITY_TASK_QUEUE_FIELD = 11;
 
-describe("AgentRun conformance — a turn's dispatch queue is the server's to derive", () => {
-  it("[rpc:AgentRunCommandController.create] a request naming a dispatch queue in the retired field still runs on the shared runner pool", async () => {
+describe("Run conformance — a turn's dispatch queue is the server's to derive", () => {
+  it("[rpc:RunCommandController.create] a request naming a dispatch queue in the retired field still runs on the shared runner pool", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
 
@@ -891,8 +891,8 @@ describe("AgentRun conformance — a turn's dispatch queue is the server's to de
   });
 });
 
-describe("AgentRun conformance — attachments (#285)", () => {
-  it("[rpc:AgentRunCommandController.uploadAttachment] resolves a storage-key attachment (no local_path) the server wrote to the shared store", async () => {
+describe("Run conformance — attachments (#285)", () => {
+  it("[rpc:RunCommandController.uploadAttachment] resolves a storage-key attachment (no local_path) the server wrote to the shared store", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org, uniqueName("agent-attach"));
 
@@ -958,7 +958,7 @@ describe("AgentRun conformance — attachments (#285)", () => {
   // Attachment keys carry no execution id, so ownership is the execution's
   // spec.attachments referencing the key verbatim — and ONLY that: a key the
   // spec never referenced is rejected even when syntactically valid.
-  it("[rpc:AgentRunQueryController.getArtifactDownloadUrl] presigns a spec-referenced attachment key and rejects a foreign one (#372)", async () => {
+  it("[rpc:RunQueryController.getArtifactDownloadUrl] presigns a spec-referenced attachment key and rejects a foreign one (#372)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org, uniqueName("agent-presign"));
 
@@ -1015,7 +1015,7 @@ describe("AgentRun conformance — attachments (#285)", () => {
   // serves this lane (the targets with an on-disk store); cloud's links are
   // presigned object-store URLs, a different contract, so the case reports
   // SKIPPED there.
-  it("[rpc:AgentRunQueryController.getArtifactDownloadUrl] the local file server serves a run's file inline at the minted link, as an attachment when a download is asked for, and answers an altered, removed or re-dated signature 404 like a missing key", async (ctx) => {
+  it("[rpc:RunQueryController.getArtifactDownloadUrl] the local file server serves a run's file inline at the minted link, as an attachment when a download is asked for, and answers an altered, removed or re-dated signature 404 like a missing key", async (ctx) => {
     if (target.artifactStoreDir === undefined) {
       return ctx.skip("this target keeps run files in an object store, whose presigned links are not this lane");
     }
@@ -1194,8 +1194,8 @@ describe("AgentRun conformance — attachments (#285)", () => {
 // Streams are consumed through collectStream, the bounded reader that keeps
 // the idle-forever quirk (pinned below) from hanging the suite.
 
-describe("AgentRun conformance — subscribe & populated read surfaces", () => {
-  it("[rpc:AgentRunQueryController.subscribe] subscribe on a LIVE run streams the snapshot, its updates, and closes on the terminal one", async () => {
+describe("Run conformance — subscribe & populated read surfaces", () => {
+  it("[rpc:RunQueryController.subscribe] subscribe on a LIVE run streams the snapshot, its updates, and closes on the terminal one", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createExecution(org, agent);
@@ -1212,7 +1212,7 @@ describe("AgentRun conformance — subscribe & populated read surfaces", () => {
     expect(stream.messages.at(-1)?.status?.phase).toBe(RunPhase.RUN_COMPLETED);
   });
 
-  it("[rpc:AgentRunQueryController.subscribe] subscribe sends the snapshot but never closes on an already-terminal run (the pinned idle-forever quirk)", async () => {
+  it("[rpc:RunQueryController.subscribe] subscribe sends the snapshot but never closes on an already-terminal run (the pinned idle-forever quirk)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createExecution(org, agent);
@@ -1234,7 +1234,7 @@ describe("AgentRun conformance — subscribe & populated read surfaces", () => {
     expect(stream.messages[0]?.status?.phase).toBe(RunPhase.RUN_COMPLETED);
   });
 
-  it("[rpc:AgentRunQueryController.getRunUsageReport] a completed run's usage report answers the zero-valued aggregate (this edition records no usage)", async () => {
+  it("[rpc:RunQueryController.getRunUsageReport] a completed run's usage report answers the zero-valued aggregate (this edition records no usage)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createExecution(org, agent);
@@ -1254,7 +1254,7 @@ describe("AgentRun conformance — subscribe & populated read surfaces", () => {
     expect(report.modelBreakdown).toHaveLength(0);
   });
 
-  it("[rpc:AgentRunCommandController.submitFileDecision] submitFileDecision refuses a run with no actionable file change sets (FailedPrecondition)", async () => {
+  it("[rpc:RunCommandController.submitFileDecision] submitFileDecision refuses a run with no actionable file change sets (FailedPrecondition)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createExecution(org, agent);
@@ -1264,7 +1264,7 @@ describe("AgentRun conformance — subscribe & populated read surfaces", () => {
     // terminal phase — both fold into the same precondition refusal (there
     // is deliberately no separate wrong-phase arm). The deeper arms need
     // file-edit choreography; the digest-mismatch arm lives in
-    // agentrun-file-review.conformance.test.ts. Message prefix only:
+    // run-file-review.conformance.test.ts. Message prefix only:
     // the copy embeds the phase enum's rendering, which is the Go
     // formatter's, not a contract.
     const err = await expectGrpcCode(

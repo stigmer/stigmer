@@ -15,7 +15,7 @@
 // - Two provisionings of the working agent send the model byte-identical
 //   system prompts and tool surfaces: the instrument's own claim that its
 //   fixed names keep the provider's prompt cache as warm as a user's.
-// - A composed subject graded by the judge agent run, with a scripted
+// - A composed subject graded by the judge run, with a scripted
 //   verdict read back off the run's structured output with its criteria and
 //   their weighted score, and a verdict missing a criterion refused as a
 //   judge failure.
@@ -61,7 +61,7 @@ import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm"
 import { readAnthropicRequest, type AnthropicRequestBody } from "@stigmer/test-support/llm-wire";
 import { TEMPORAL_DEV_NAMESPACE } from "@stigmer/test-support/temporal";
 import { BARE_AGENT_INSTRUCTIONS, agentRefOf, makeAgent } from "../support/agents";
-import { makeAgentExecution, requireLlmProxy, requireMcpFixture } from "../support/agentruns";
+import { makeAgentExecution, requireLlmProxy, requireMcpFixture } from "../support/runs";
 import { uniqueName } from "../support/naming";
 import { renderSystemPrompt, renderToolSurface } from "../support/request-shape";
 import {

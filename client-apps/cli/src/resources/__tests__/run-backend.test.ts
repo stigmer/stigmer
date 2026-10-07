@@ -1,6 +1,6 @@
 // In-process test for the `runs` group resources.
 //
-// Stands up a real Connect backend over h2c serving the agent-run query and
+// Stands up a real Connect backend over h2c serving the run query and
 // command controllers (including the server-streaming subscribe method),
 // points an SDK node client at it, and drives the resource layer end to end:
 // lifecycle control, approval submission (asserting the comment carry), trace
@@ -38,7 +38,7 @@ beforeEach(() => {
   agentApproval = [];
 });
 
-// An agent run carrying two messages for the agent log + trace views.
+// A run carrying two messages for the agent log + trace views.
 const agentExec = create(RunSchema, {
   metadata: { id: "aex_1", name: "Reviewer" },
   status: {
@@ -103,13 +103,13 @@ afterAll(async () => {
 });
 
 describe("lifecycle control", () => {
-  it("cancels an agent run and reports the phase", async () => {
+  it("cancels a run and reports the phase", async () => {
     const result = await cancelRun(client, "aex_1", "no longer needed");
     expect(result).toEqual({ phase: "cancelled" });
     expect(agentControl).toEqual([{ verb: "cancel", id: "aex_1", reason: "no longer needed" }]);
   });
 
-  it("terminates / pauses an agent run, carrying the reason", async () => {
+  it("terminates / pauses a run, carrying the reason", async () => {
     expect(await terminateRun(client, "aex_1", "stuck")).toEqual({ phase: "terminated" });
     expect(await pauseRun(client, "aex_1", "maintenance")).toEqual({ phase: "paused" });
     expect(agentControl).toEqual([
@@ -118,7 +118,7 @@ describe("lifecycle control", () => {
     ]);
   });
 
-  it("resumes an agent run", async () => {
+  it("resumes a run", async () => {
     expect(await resumeRun(client, "aex_1")).toEqual({ phase: "running" });
     expect(agentControl).toEqual([{ verb: "resume", id: "aex_1", reason: "" }]);
   });
@@ -149,7 +149,7 @@ describe("trace", () => {
     expect(cap.text()).toContain("[done] Shell");
   });
 
-  it("emits the agent run envelope as json and as yaml", async () => {
+  it("emits the run envelope as json and as yaml", async () => {
     const json = capture();
     await traceRun(client, "aex_1", "json", json.streams);
     const parsed = JSON.parse(json.text());
@@ -170,7 +170,7 @@ describe("logs", () => {
   }
   const never = new AbortController().signal;
 
-  it("says so when an agent run has recorded no messages", async () => {
+  it("says so when a run has recorded no messages", async () => {
     const cap = capture();
     await streamRunLogs(client, { runId: "aex_empty", follow: false }, never, cap.streams);
     expect(cap.lines).toEqual(["No messages recorded for this run.\n"]);

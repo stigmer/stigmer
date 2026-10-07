@@ -36,7 +36,7 @@ import {
   requireLlmProxy,
   requireMcpFixture,
   submitApprovalPerContract,
-} from "../support/agentruns";
+} from "../support/runs";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 import type { TenancyContext } from "../targets/target";

@@ -23,7 +23,7 @@ import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/sub
 
 /**
  * The corpus root: this file lives at
- * backend/services/stigmer-server/src/domain/agentrun/approval/__tests__/,
+ * backend/services/stigmer-server/src/domain/run/approval/__tests__/,
  * eight directories above which is the repo root; the corpus lives under
  * apis/testdata/hitl.
  */

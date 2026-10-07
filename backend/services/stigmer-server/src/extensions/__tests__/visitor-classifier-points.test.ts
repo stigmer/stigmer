@@ -8,7 +8,7 @@
  *     a visitor, open source's own posture.
  *
  * What the step does with it is pinned beside the step
- * (domain/agentrun/__tests__/create-steps.test.ts).
+ * (domain/run/__tests__/create-steps.test.ts).
  */
 import { describe, expect, it } from "vitest";
 

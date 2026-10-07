@@ -24,7 +24,7 @@
  *     through, so a driver that evaluates the model over a candidate
  *     needs no second read of the row;
  *   - a kind whose authorization is its parent's (kind_meta PARENT scope
- *     + INHERITED owner; agent_run → session) carries
+ *     + INHERITED owner; run → session) carries
  *     `authorizationParent` on every candidate whose spec names it, the
  *     same ResolvedParentLink the tuple lifecycle wrote and one of the
  *     candidate's own parent links; every other kind and every parentless
@@ -344,7 +344,7 @@ describe("restrictListByReadScope", () => {
       return { scope, seen };
     }
 
-    it("an agent_run candidate carries its session as the ResolvedParentLink the tuple lifecycle wrote", async () => {
+    it("a run candidate carries its session as the ResolvedParentLink the tuple lifecycle wrote", async () => {
       const executions = [
         {
           metadata: { id: "aex_1", org: "acme", labels: {} },

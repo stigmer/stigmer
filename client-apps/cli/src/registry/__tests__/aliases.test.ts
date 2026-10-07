@@ -72,10 +72,10 @@ describe("generateAliases", () => {
   });
 
   it("derives the run kind's spellings from its renamed metadata", () => {
-    const agentRun = [...normalized(generateAliases("AgentRun", "Agent Run", "aex", "agent_run"))];
-    expect(agentRun).toEqual(expect.arrayContaining(["agentrun", "agent-run", "agent_run", "aex"]));
-    expect(agentRun).not.toContain("agent");
-    for (const alias of agentRun) {
+    const run = [...normalized(generateAliases("Run", "Run", "run", "run"))];
+    expect(run).toEqual(expect.arrayContaining(["run", "runs"]));
+    expect(run).not.toContain("agent");
+    for (const alias of run) {
       expect(alias).not.toContain("execution");
     }
   });
@@ -104,7 +104,7 @@ describe("case conversion", () => {
     ["McpServer", "mcp-server"],
     ["Agent", "agent"],
     ["AgentShare", "agent-share"],
-    ["AgentRun", "agent-run"],
+    ["ChannelApp", "channel-app"],
     ["", ""],
   ])("toKebabCase(%s) = %s", (input, expected) => {
     expect(toKebabCase(input)).toBe(expected);
@@ -114,7 +114,7 @@ describe("case conversion", () => {
     ["McpServer", "mcp_server"],
     ["Agent", "agent"],
     ["AgentShare", "agent_share"],
-    ["AgentRun", "agent_run"],
+    ["ChannelApp", "channel_app"],
     ["", ""],
   ])("toSnakeCase(%s) = %s", (input, expected) => {
     expect(toSnakeCase(input)).toBe(expected);

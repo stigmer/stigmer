@@ -24,11 +24,11 @@ export interface UseResolveRunSessionReturn {
 }
 
 /**
- * Resolves an AgentRun ID (`aex_*`) to its parent Session ID.
+ * Resolves a Run ID (`run_*`) to its parent Session ID.
  *
- * This hook fetches the AgentRun resource and extracts
+ * This hook fetches the Run resource and extracts
  * `spec.sessionId`. Use it when navigating from a context that
- * knows only the agent run ID (a schedule's run history, a run
+ * knows only the run ID (a schedule's run history, a run
  * link) to the session page (which requires the session ID).
  *
  * Pass `null` to skip fetching (stable no-op).

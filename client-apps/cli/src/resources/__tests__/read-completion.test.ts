@@ -142,7 +142,7 @@ describe("search integration", () => {
 });
 
 describe("run integration", () => {
-  it("gets an agent run by ID and renders backend protojson", async () => {
+  it("gets a run by ID and renders backend protojson", async () => {
     const { schema, message } = await getRun(client, "aex_1");
     expect(JSON.parse(renderResource(schema, message, "json"))).toEqual(
       toJson(RunSchema, knownExec, { useProtoFieldName: true }),
@@ -154,7 +154,7 @@ describe("run integration", () => {
     expect(classify(err)?.exitCode).toBe(ExitCode.NotFound);
   });
 
-  it("lists agent runs as protojson envelope", async () => {
+  it("lists runs as protojson envelope", async () => {
     const result = await listAgentRuns(client, 50);
     const json = JSON.parse(renderRunList(result, "json"));
     expect(json.entries[0].metadata.id).toBe("aex_1");

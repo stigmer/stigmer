@@ -8,7 +8,7 @@ An ExecutionContext is an **ephemeral, operator-managed collection of runtime co
 
 ```
 Schedule / PlatformClient (environment_refs)
-  + runtime_env + personal environment ──► [merge at start] ──► ExecutionContext ──► AgentRun runner
+  + runtime_env + personal environment ──► [merge at start] ──► ExecutionContext ──► runner
 ```
 
 | Resource | Lifecycle | Who creates it | Purpose |
@@ -21,7 +21,7 @@ ExecutionContexts are not created by end users. They are produced by the Stigmer
 ## Key Capabilities
 
 - **Ephemeral by design**: an ExecutionContext exists only for the duration of its run — created at start, deleted at completion or failure
-- **Tied to one run**: each ExecutionContext carries the `execution_id` of the `AgentRun` it serves
+- **Tied to one run**: each ExecutionContext carries the `execution_id` of the `Run` it serves
 - **Runtime secret injection**: supports B2B scenarios (e.g., Planton integrations) where secrets are injected at run time rather than stored in a persistent Environment
 - **Owner-scoped access, runner-gated secrets**: reads require `can_view` on the ExecutionContext (owner-only; the owner tuple is written at creation). In both editions, secret values are encrypted at rest and redacted on every read for user-class callers; only `getByExecutionId` returns decrypted values, and only to a platform-minted runner credential whose scope binds it to this very run. On cloud that credential is a sandbox token (`token_type` of `sandbox` or `connect_sandbox`; the unscoped `embedded_runner` bootstrap credential is refused and must be exchanged for a scoped token first). On OSS it is the execution-scoped token minted by `PlatformQueryController.getRunnerScopedToken` — a lane discriminator on a single-user server, not a trust boundary
 - **Consistent value model**: each entry uses the same `value` / `is_secret` pattern as `EnvironmentValue`, keeping the secret-vs-plaintext semantics uniform across the system

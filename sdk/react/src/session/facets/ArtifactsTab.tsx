@@ -19,7 +19,7 @@ export interface ArtifactsTabProps {
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /**
    * Implement a plan. When provided, the preview of a `plan.md` artifact
-   * shows an Implement action (turn the plan into an Agent run) — the same
+   * shows an Implement action (turn the plan into a Run) — the same
    * action as the message-thread plan card.
    */
   readonly onImplementPlan?: () => void;

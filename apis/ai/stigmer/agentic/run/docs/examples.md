@@ -1,4 +1,4 @@
-# AgentRun Examples
+# Run Examples
 
 Complete examples from minimal trigger to full-featured run spec. All CLI commands and YAML fragments reflect actual field names and enum values.
 
@@ -18,7 +18,7 @@ stigmer run my-agent "What files are in the current directory?"
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
-kind: AgentRun
+kind: Run
 metadata:
   org: acme
 spec:
@@ -252,7 +252,7 @@ A run with all optional fields populated — run settings, runtime secrets, atta
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
-kind: AgentRun
+kind: Run
 metadata:
   org: acme-corp
   name: migration-run-1

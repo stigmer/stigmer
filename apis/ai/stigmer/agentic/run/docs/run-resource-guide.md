@@ -1,6 +1,6 @@
-# AgentRun Resource Guide
+# Run Resource Guide
 
-Complete spec and status schema reference for the `agentic.stigmer.ai/v1` AgentRun resource.
+Complete spec and status schema reference for the `agentic.stigmer.ai/v1` Run resource.
 
 For conceptual overview, lifecycle, and documentation index, see [README.md](README.md).
 
@@ -8,10 +8,10 @@ For conceptual overview, lifecycle, and documentation index, see [README.md](REA
 
 ## Resource Structure
 
-An AgentRun follows the standard Stigmer resource pattern:
+A Run follows the standard Stigmer resource pattern:
 
 ```
-AgentRun
+Run
 ├── metadata    — system-managed identity and audit fields
 ├── spec        — user-provided inputs (what you supply when triggering)
 └── status      — system-managed outputs (what the system records during/after the run)
@@ -26,16 +26,16 @@ You never write `status` fields. They are populated by the agent runner and upda
 | Field | Required | Value |
 |---|---|---|
 | `apiVersion` | Yes | Must be exactly `agentic.stigmer.ai/v1` |
-| `kind` | Yes | Must be exactly `AgentRun` |
+| `kind` | Yes | Must be exactly `Run` |
 | `metadata` | Yes | Standard API resource metadata |
 | `spec` | Yes | User-provided run inputs |
 | `status` | No | System-managed; never set by users |
 
 ---
 
-## Spec Fields (`AgentRunSpec`)
+## Spec Fields (`RunSpec`)
 
-Defined in `ai/stigmer/agentic/agentrun/v1/spec.proto`.
+Defined in `ai/stigmer/agentic/run/v1/spec.proto`.
 
 ### Session and Agent Targeting
 
@@ -103,7 +103,7 @@ Use `runtime_env` for B2B integrations where secrets must be injected at runtime
 
 ## Attachment Fields (`Attachment`)
 
-Defined in `ai/stigmer/agentic/agentrun/v1/spec.proto`.
+Defined in `ai/stigmer/agentic/run/v1/spec.proto`.
 
 Files must be pre-uploaded via `uploadAttachment` RPC before creating the run. The returned `storage_key` is then referenced here.
 
@@ -120,7 +120,7 @@ Files must be pre-uploaded via `uploadAttachment` RPC before creating the run. T
 
 ## RunConfig Fields
 
-Defined in `ai/stigmer/agentic/agentrun/v1/invocation.proto`. The same message is a message's request (`spec.run_config`), a surface's saved settings (a schedule's invocation, a channel, a share), an agent's defaults (`Agent.spec.run_config`, versioned with the agent), and the settings a turn ran with (`status.run_config`). Zero or empty means "not set at this layer".
+Defined in `ai/stigmer/agentic/run/v1/invocation.proto`. The same message is a message's request (`spec.run_config`), a surface's saved settings (a schedule's invocation, a channel, a share), an agent's defaults (`Agent.spec.run_config`, versioned with the agent), and the settings a turn ran with (`status.run_config`). Zero or empty means "not set at this layer".
 
 | Field | Type | Description |
 |---|---|---|
@@ -142,9 +142,9 @@ The proto comment on `RunConfig` is the normative rule. The user-facing explanat
 
 ---
 
-## Status Fields (`AgentRunStatus`)
+## Status Fields (`RunStatus`)
 
-Defined in `ai/stigmer/agentic/agentrun/v1/api.proto`. All fields are system-managed.
+Defined in `ai/stigmer/agentic/run/v1/api.proto`. All fields are system-managed.
 
 ### Core Status
 
@@ -205,7 +205,7 @@ Defined in `ai/stigmer/agentic/agentrun/v1/api.proto`. All fields are system-man
 | `approved_by` | `string` | User ID of the person who made the approval decision. |
 | `approval_action` | `ApprovalAction` | `APPROVAL_ACTION_APPROVE`, `APPROVAL_ACTION_SKIP`, or `APPROVAL_ACTION_REJECT`. |
 
-### Sub-Agent Runs
+### Sub-runs
 
 | Field | Type | Description |
 |---|---|---|
@@ -306,50 +306,50 @@ stigmer run my-agent "Automated task" --auto-approve
 
 ```bash
 # Get a single run by ID
-stigmer runs get aex_abc123
+stigmer runs get run_abc123
 
 # List runs in a session
 stigmer runs list --session ses_abc123
 
 # Watch real-time streaming updates
-stigmer runs logs aex_abc123 --follow
+stigmer runs logs run_abc123 --follow
 ```
 
 ### Lifecycle Control
 
 ```bash
 # Pause a run in progress
-stigmer runs pause aex_abc123
+stigmer runs pause run_abc123
 
 # Resume a paused run
-stigmer runs resume aex_abc123
+stigmer runs resume run_abc123
 
 # Cancel gracefully
-stigmer runs cancel aex_abc123 --reason "Task no longer needed"
+stigmer runs cancel run_abc123 --reason "Task no longer needed"
 
 # Terminate immediately (stuck agents)
-stigmer runs terminate aex_abc123 --reason "Not responding to cancel"
+stigmer runs terminate run_abc123 --reason "Not responding to cancel"
 
 # Recover a failed run from last checkpoint
-stigmer runs recover aex_abc123
+stigmer runs recover run_abc123
 ```
 
 ### HITL Approvals
 
 ```bash
 # Approve a pending tool call
-stigmer runs approve aex_abc123 --tool-call call_def789
+stigmer runs approve run_abc123 --tool-call call_def789
 
 # Skip a pending tool call
-stigmer runs skip aex_abc123 --tool-call-id call_def789
+stigmer runs skip run_abc123 --tool-call-id call_def789
 
 # Reject — fails the run
-stigmer runs reject aex_abc123 --tool-call-id call_def789
+stigmer runs reject run_abc123 --tool-call-id call_def789
 ```
 
 ### Artifacts
 
 ```bash
 # Download an artifact
-stigmer download run aex_abc123 --artifact generated-report
+stigmer download run run_abc123 --artifact generated-report
 ```

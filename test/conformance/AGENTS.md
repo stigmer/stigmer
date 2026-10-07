@@ -45,7 +45,7 @@ too, read through run status against a scripted LLM. This guide is an index;
   header stating the contract it pins and what is deliberately out of scope.
 - The three shapes: a runner behaviour is scripted on the mock LLM and read from
   the terminal run status; every approval goes through
-  `submitApprovalPerContract` in `src/support/agentruns.ts`, never a bare submit
+  `submitApprovalPerContract` in `src/support/runs.ts`, never a bare submit
   followed by an expectation on pending approvals; a file-review turn attaches a
   `GitWorkspace` and decides through `src/support/file-review.ts`.
 - Determinism: poll with a timeout, never sleep; unique resource names per test

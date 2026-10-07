@@ -280,7 +280,7 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
 const PROTO_TYPE_TO_SLUG: Record<string, string> = {
   Session: "session",
   Agent: "agent",
-  AgentRun: "agent-run",
+  Run: "run",
   Environment: "environment",
   McpServer: "mcp-server",
   Skill: "skill",

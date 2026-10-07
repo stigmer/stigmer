@@ -175,7 +175,7 @@ export function registerScheduleServices(
     getByReference: (ref, ctx) => getByReference(deps, ref, ctx),
     getByAgent: (req, ctx) => getByAgent(deps, req, ctx),
     list: (req, ctx) => list(deps, req, ctx),
-    listFires: (req, ctx) => listRuns(deps, req, ctx),
+    listFires: (req, ctx) => listFires(deps, req, ctx),
   });
 }
 
@@ -732,7 +732,7 @@ function newListByOrgAndLabelsStep(
 }
 
 /** ListRuns — the fire-ledger surface (list_runs.go:44-61). */
-async function listRuns(
+async function listFires(
   deps: ScheduleControllerDeps,
   req: ListScheduleFiresRequest,
   ctx: HandlerContext,

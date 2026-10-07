@@ -27,11 +27,11 @@
 //
 // Two rows depend on the edition. An execution create needs a Temporal engine
 // behind the server: the plain local targets refuse it Unavailable before any
-// id is minted (pinned by the agent run suite), so that row runs where
+// id is minted (pinned by the run suite), so that row runs where
 // `scheduleFiring` (the engine-backed flag that suite gates the same boundary
 // on) holds. On the open-source server the execution class pins the same rule
 // with an engine behind it ("create never keeps a metadata.id the caller
-// sent" in the agent run suite). Memory
+// sent" in the run suite). Memory
 // create is refused for the cloud's platform-client-minted caller
 // (`firstPartyMemoryCapture`). Each gated group sits under its own
 // `describe.skipIf` on the flag itself, so the skip names its reason.
@@ -54,7 +54,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { declaredMethods } from "../inventory/rpc-contract";
 import { makeSlackAgentChannel } from "../support/agentchannels";
-import { makeAgentExecution } from "../support/agentruns";
+import { makeAgentExecution } from "../support/runs";
 import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
 import { makeAgentShare } from "../support/agentshares";
 import { makeApiKey } from "../support/apikeys";
@@ -231,8 +231,8 @@ const ROWS: readonly Row[] = [
     },
   },
   {
-    title: "[rpc:AgentRunCommandController.create] AgentRun",
-    key: "AgentRunCommandController.create",
+    title: "[rpc:RunCommandController.create] Run",
+    key: "RunCommandController.create",
     kind: ApiResourceKind.run,
     edition: "engine",
     async send({ org }, chosenId) {

@@ -1,4 +1,4 @@
-// The agent-run prelude: validate flags and resolve every input the
+// The run prelude: validate flags and resolve every input the
 // create step needs. Ports the Go CLI's prepareAgentExec (run_agent_exec.go).
 //
 // Order matters and mirrors Go: validate cheap flags first (mode, approve

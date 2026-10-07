@@ -460,7 +460,7 @@ describe.each(
 
 describe("the person admitted is the person the model lets report", () => {
   it("open source grants nobody a role on a session, so a run's creator is its session's owner — the fact the verifier's header rests on", () => {
-    // `agent_run.can_edit` is `owner from session`; this verifier
+    // `run.can_edit` is `owner from session`; this verifier
     // admits the execution's CREATOR. They are one person only while a
     // session's viewers are its owner alone. The contract lists `viewer`
     // as grantable on a session; open source's grant scope refuses it.

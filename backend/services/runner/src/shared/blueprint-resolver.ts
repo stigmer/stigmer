@@ -60,7 +60,7 @@ export interface RunAgent {
   readonly spec: AgentSpec;
 }
 
-/** The agent a turn recorded at create (AgentRunStatus). */
+/** The agent a turn recorded at create (RunStatus). */
 export type RecordedRunAgent = Pick<RunStatus, "agentId" | "agentVersionHash">;
 
 export interface ResolvedBlueprint {

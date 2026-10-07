@@ -686,7 +686,7 @@ function fenced(content: string, language = ""): string {
  * object here: int64 fields are `bigint` and would throw.
  *
  * The format is `stigmer.ai/session-transcript/v2`: each turn's `run` is an
- * AgentRun. v1 named it `execution` and held the AgentExecution shape that
+ * Run. v1 named it `execution` and held the AgentExecution shape that
  * executions had before they were named runs.
  */
 export function transcriptToJson(transcript: SessionTranscript): JsonValue {

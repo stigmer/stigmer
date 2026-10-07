@@ -255,7 +255,7 @@ function buildChangeSetsById(
 
 /**
  * Renders a continuous conversation thread from one or more
- * `AgentRun` snapshots in the terminal.
+ * `Run` snapshots in the terminal.
  *
  * Composes {@link MessageEntry}, {@link ToolCallGroup}, {@link SubAgentBlock},
  * {@link RunProgress}, {@link ApprovalPrompt}, and (for settled change

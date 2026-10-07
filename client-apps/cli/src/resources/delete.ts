@@ -2,7 +2,7 @@
 // confirmation prompt, then delete it. Mirrors the Go CLI's unified delete,
 // including its three special cases:
 //
-//   - run        → maps to a *cancel* (agent runs only, by ID)
+//   - run        → maps to a *cancel* (runs only, by ID)
 //   - organization → not org-scoped; resolved via findMyOrganizations
 //   - api_key    → addressable by ID only (not slug)
 //

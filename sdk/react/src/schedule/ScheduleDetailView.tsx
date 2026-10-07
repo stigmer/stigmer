@@ -94,7 +94,7 @@ export interface ScheduleDetailViewProps {
    */
   readonly onNavigateToAgent?: (org: string, slug: string) => void;
   /**
-   * Called when the user activates a run reference (`aex_…`),
+   * Called when the user activates a run reference (`run_…`),
    * from the status row or a run-history row. When omitted, ids render
    * as plain text.
    */
@@ -325,7 +325,7 @@ export function ScheduleDetailView({
     const confirmed = await confirm({
       title: "Run this schedule now?",
       description:
-        "This starts a real agent run immediately, outside the cron " +
+        "This starts a real run immediately, outside the cron " +
         "cadence. The run is recorded in this schedule's run history.",
       confirmLabel: "Start run",
       variant: "default",

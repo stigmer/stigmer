@@ -33,10 +33,10 @@ describe("sanitizeSystemContent", () => {
 
   it("replaces a bare raw error with the run-logs pointer", () => {
     expect(sanitizeSystemContent("Error code: 500 - {\"type\": \"error\"}")).toBe(
-      "Agent run encountered an internal error. Check run logs for details.",
+      "Run encountered an internal error. Check run logs for details.",
     );
     expect(sanitizeSystemContent("invalid_request_error: request_id=req_1")).toBe(
-      "Agent run encountered an internal error. Check run logs for details.",
+      "Run encountered an internal error. Check run logs for details.",
     );
   });
 });

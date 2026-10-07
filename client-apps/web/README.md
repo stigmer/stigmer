@@ -58,7 +58,7 @@ src/
 ├── auth/           # Auth module (configurable: disabled or OIDC)
 ├── components/     # UI components organized by domain
 │   ├── catalog/    # Resource catalog (agents, skills, MCP servers)
-│   ├── execution/  # Agent run streaming and controls
+│   ├── execution/  # Run streaming and controls
 │   ├── layout/     # App shell, sidebar, top bar
 │   └── ui/         # Shared primitives (shadcn-ui)
 ├── config/         # App configuration (env, navigation, draft)

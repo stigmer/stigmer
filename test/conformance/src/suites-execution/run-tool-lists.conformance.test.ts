@@ -44,7 +44,7 @@ import {
   pollExecution,
   requireLlmProxy,
   requireMcpFixture,
-} from "../support/agentruns";
+} from "../support/runs";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -80,7 +80,7 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-describe("AgentRun tool lists — out of scope is refused, never gated", () => {
+describe("Run tool lists — out of scope is refused, never gated", () => {
   it.each([
     { posture: "the approval default", autoApproveAll: false },
     { posture: "auto_approve_all", autoApproveAll: true },

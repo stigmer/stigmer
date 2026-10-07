@@ -400,7 +400,7 @@ async function getByReference(
  * GetByExecutionId — the runner's secret-delivery path: the unified TS
  * runner fetches the merged environment variables here before executing
  * an agent (and during MCP connect discovery). The execution_id
- * corresponds to an AgentRun ID or a connect-flow execution id.
+ * corresponds to a Run ID or a connect-flow execution id.
  *
  * The response carries DECRYPTED is_secret values only when the caller
  * presents an execution-scoped runner token whose binding matches this

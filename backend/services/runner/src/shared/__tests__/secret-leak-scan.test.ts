@@ -11,7 +11,7 @@
  * offline harness always runs a git workspace with LocalArtifactDir,
  * so deriveCaptureMode is always true and the no-storage deny-gate is unreachable).
  * This test exercises the exact function the turn runtime's persist chokepoint
- * invokes for both harnesses, over a full AgentRunStatus.
+ * invokes for both harnesses, over a full RunStatus.
  */
 
 import { describe, it, expect } from "vitest";

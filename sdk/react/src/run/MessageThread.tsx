@@ -299,7 +299,7 @@ export interface MessageThreadProps {
   readonly summarizationEvents?: readonly SummarizationEventView[];
   /**
    * Marks the agent version each turn ran
-   * (`AgentRunStatus.agent_version_hash`): a quiet divider before
+   * (`RunStatus.agent_version_hash`): a quiet divider before
    * the first turn that recorded one and wherever the version changes, so
    * every turn reads under the version it ran. Receives a version hash
    * and returns how it reads (a tag, else a short hash); the session view
@@ -1210,7 +1210,7 @@ export function buildThreadItems(
 
 /**
  * Renders a continuous conversation thread from one or more
- * {@link AgentRun} snapshots.
+ * {@link Run} snapshots.
  *
  * Composes {@link MessageEntry}, {@link ToolCallGroup}, and
  * {@link RunPhaseBadge} into a scrollable, auto-scrolling log

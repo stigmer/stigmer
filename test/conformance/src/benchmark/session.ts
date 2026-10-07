@@ -29,7 +29,7 @@ import { FileDecisionAction, ThinkingMode } from "@stigmer/protos/ai/stigmer/age
 import type { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import type { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { ConformanceClients } from "../harness/clients";
-import { makeAgentExecution, sessionIdOf } from "../support/agentruns";
+import { makeAgentExecution, sessionIdOf } from "../support/runs";
 import type { AgentRefInit } from "../support/agents";
 import { requireReviewSet, submitChangeSetDecision } from "../support/file-review";
 import { uniqueName } from "../support/naming";

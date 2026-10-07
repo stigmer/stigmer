@@ -136,7 +136,7 @@ export interface UseRunStreamOptions {
 }
 
 /**
- * Behavior hook that subscribes to real-time {@link AgentRun}
+ * Behavior hook that subscribes to real-time {@link Run}
  * updates via `stigmer.run.subscribe()`.
  *
  * Manages the full subscription lifecycle through a finite state

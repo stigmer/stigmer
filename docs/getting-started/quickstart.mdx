@@ -246,7 +246,7 @@ Add to `main.go`:
 		log.Fatal(err)
 	}
 
-	run, err := client.AgentRun.Create(ctx, &stigmer.RunInput{
+	run, err := client.Run.Create(ctx, &stigmer.RunInput{
 		Name:      "run-" + ts,
 		Org:       "my-org",
 		SessionId: session.GetMetadata().GetId(),
@@ -270,7 +270,7 @@ session = client.sessions.create(SessionInput(
     org="my-org",
 ))
 
-run = client.agent_runs.create(RunInput(
+run = client.runs.create(RunInput(
     name=f"run-{ts}",
     org="my-org",
     session_id=session.metadata.id,
@@ -344,7 +344,7 @@ main();
 Add to `main.go`:
 
 ```go
-	stream, err := client.AgentRun.Subscribe(ctx, run.GetMetadata().GetId())
+	stream, err := client.Run.Subscribe(ctx, run.GetMetadata().GetId())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -375,7 +375,7 @@ Add to `main.go`:
 Add to `ask_agent.py`:
 
 ```python
-for snapshot in client.agent_runs.subscribe(run.metadata.id):
+for snapshot in client.runs.subscribe(run.metadata.id):
     messages = snapshot.status.messages
     if messages and messages[-1].content:
         print(messages[-1].content)
@@ -491,7 +491,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	run, err := client.AgentRun.Create(ctx, &stigmer.RunInput{
+	run, err := client.Run.Create(ctx, &stigmer.RunInput{
 		Name:      "run-" + ts,
 		Org:       "my-org",
 		SessionId: session.GetMetadata().GetId(),
@@ -501,7 +501,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	stream, err := client.AgentRun.Subscribe(ctx, run.GetMetadata().GetId())
+	stream, err := client.Run.Subscribe(ctx, run.GetMetadata().GetId())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -546,14 +546,14 @@ session = client.sessions.create(SessionInput(
     org="my-org",
 ))
 
-run = client.agent_runs.create(RunInput(
+run = client.runs.create(RunInput(
     name=f"run-{ts}",
     org="my-org",
     session_id=session.metadata.id,
     message="What are some best practices for handling customer complaints?",
 ))
 
-for snapshot in client.agent_runs.subscribe(run.metadata.id):
+for snapshot in client.runs.subscribe(run.metadata.id):
     messages = snapshot.status.messages
     if messages and messages[-1].content:
         print(messages[-1].content)

@@ -114,7 +114,7 @@ issues one, a refresh token. The Environment is encrypted at rest and labeled as
 system-managed to prevent user mutation. Each grant has exactly one Managed
 Environment — deleting the grant deletes the Environment.
 
-**Why the split?** The backend checks token expiry before every Agent Run. This
+**Why the split?** The backend checks token expiry before every run. This
 pre-flight check reads the grant's expiry timestamp — a non-secret value —
 without accessing the encrypted secret store. The backend only touches the
 Managed Environment when it needs to refresh or use the actual token. This
@@ -180,10 +180,9 @@ the server marks destructive, the same process described in
 
 ### Pre-flight check
 
-Before every Agent Run, the backend reads the OAuthGrant and checks the token
-expiry timestamp. If the token is still valid, the run proceeds normally. If the
-token has expired, the backend attempts an automatic refresh before the run
-starts.
+Before every run, the backend reads the OAuthGrant and checks the token expiry
+timestamp. If the token is still valid, the run proceeds normally. If the token
+has expired, the backend attempts an automatic refresh before the run starts.
 
 ### Automatic refresh
 
@@ -202,9 +201,9 @@ Environment and updates the grant's expiry timestamp.
 ### When refresh fails
 
 If both the access token and refresh token have expired — or if the vendor has
-revoked the grant — the refresh fails. The Agent Run does not start. Instead,
-the connection status changes to **Re-auth needed**, and you re-authenticate
-from the MCP server's connect page with a single click.
+revoked the grant — the refresh fails. The run does not start. Instead, the
+connection status changes to **Re-auth needed**, and you re-authenticate from
+the MCP server's connect page with a single click.
 
 ### Connection health
 

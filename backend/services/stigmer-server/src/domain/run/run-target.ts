@@ -16,7 +16,7 @@
  *      through a conversation they still own, and nothing a client sends
  *      reaches the check: BuildNewState cleared status before the stamp.
  *
- * No agent is the built-in assistant (agentrun/v1/spec.proto): there
+ * No agent is the built-in assistant (run/v1/spec.proto): there
  * is no blueprint to spend, so the second resolver answers no target. Both
  * are pure over the record being built.
  */

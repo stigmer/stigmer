@@ -1,9 +1,9 @@
-// Conformance suite for AgentRun create-time validation (CRUD-level).
-// Domain: agentic / agentrun — the request-shape contract that fires
+// Conformance suite for Run create-time validation (CRUD-level).
+// Domain: agentic / run — the request-shape contract that fires
 // before any resource resolution, engine contact, or side effect.
 //
 // This file exists separately from the execution-engine suite
-// (suites-execution/agentrun.conformance.test.ts) because of how the
+// (suites-execution/run.conformance.test.ts) because of how the
 // suites are targeted: src/suites/** runs against every edition — including
 // `npm run test:cloud` — while suites-execution/** needs a provisioned engine
 // (Temporal + runner + mock LLM) and only runs against the local Go execution
@@ -33,7 +33,7 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { makeAgentExecution } from "../support/agentruns";
+import { makeAgentExecution } from "../support/runs";
 import { makeSession } from "../support/sessions";
 import { collectStream } from "../support/collect-stream";
 import { uniqueName, uniqueOrg } from "../support/naming";
@@ -52,8 +52,8 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-describe("AgentRun conformance — one-call session bootstrap validation (session_spec)", () => {
-  it("[rpc:AgentRunCommandController.create] rejects a session_spec carrying harness_state_id (InvalidArgument — server-owned field)", async () => {
+describe("Run conformance — one-call session bootstrap validation (session_spec)", () => {
+  it("[rpc:RunCommandController.create] rejects a session_spec carrying harness_state_id (InvalidArgument — server-owned field)", async () => {
     const { org } = await target.provisionTenancy();
     // harness_state_id is engine-owned conversation continuity state; a
     // caller-supplied value would fake state on a brand-new session and trip
@@ -73,7 +73,7 @@ describe("AgentRun conformance — one-call session bootstrap validation (sessio
   });
 });
 
-describe("AgentRun conformance — service-tier fail-closed validation (#357)", () => {
+describe("Run conformance — service-tier fail-closed validation (#357)", () => {
   // The tier exists to make pricing deterministic, so it is validated where
   // the price is decided — at create, against the model registry — with
   // identical rules and messages in every edition. It judges the settings
@@ -112,7 +112,7 @@ describe("AgentRun conformance — service-tier fail-closed validation (#357)", 
     }
   }
 
-  it("[rpc:AgentRunCommandController.create] rejects fast without a pinned model (InvalidArgument)", async () => {
+  it("[rpc:RunCommandController.create] rejects fast without a pinned model (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     await refusedWith(
       org,
@@ -123,7 +123,7 @@ describe("AgentRun conformance — service-tier fail-closed validation (#357)", 
     );
   });
 
-  it("[rpc:AgentRunCommandController.create] rejects fast on a model with no registry fast variant (InvalidArgument)", async () => {
+  it("[rpc:RunCommandController.create] rejects fast on a model with no registry fast variant (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     // claude-haiku-4-5 is registered but prices no fast variant — selecting
     // a tier billing cannot price would trip the undercharge guard, so
@@ -137,7 +137,7 @@ describe("AgentRun conformance — service-tier fail-closed validation (#357)", 
     );
   });
 
-  it("[rpc:AgentRunCommandController.create] judges a tier a message sets alone on the agent's model, naming both layers (InvalidArgument)", async () => {
+  it("[rpc:RunCommandController.create] judges a tier a message sets alone on the agent's model, naming both layers (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     // The agent's default model prices no fast variant; the message asks
     // for fast without naming a model, so the turn would run fast on the
@@ -154,7 +154,7 @@ describe("AgentRun conformance — service-tier fail-closed validation (#357)", 
   });
 });
 
-describe("AgentRun conformance — thinking-mode fail-closed validation (#772, #1280)", () => {
+describe("Run conformance — thinking-mode fail-closed validation (#772, #1280)", () => {
   // The tier suite's twin: thinking is capability-gated (it bills at base
   // per-token rates, so no priced variant exists to key on) and validated
   // at create, judged on the harness the execution will run on (the
@@ -196,7 +196,7 @@ describe("AgentRun conformance — thinking-mode fail-closed validation (#772, #
     }
   }
 
-  it("[rpc:AgentRunCommandController.create] rejects enabled without a pinned model (InvalidArgument)", async () => {
+  it("[rpc:RunCommandController.create] rejects enabled without a pinned model (InvalidArgument)", async () => {
     await expectRefused(
       "aex-thinking-no-model",
       { thinkingMode: ThinkingMode.ENABLED },
@@ -205,7 +205,7 @@ describe("AgentRun conformance — thinking-mode fail-closed validation (#772, #
     );
   });
 
-  it("[rpc:AgentRunCommandController.create] rejects enabled on a cursor model without the thinking capability (InvalidArgument)", async () => {
+  it("[rpc:RunCommandController.create] rejects enabled on a cursor model without the thinking capability (InvalidArgument)", async () => {
     // composer-2.5's cursor-harness registry entry declares no thinking form —
     // ENABLED there would silently serve the base variant, so it is refused
     // (selection and the served variant stay coupled).
@@ -217,7 +217,7 @@ describe("AgentRun conformance — thinking-mode fail-closed validation (#772, #
     );
   });
 
-  it("[rpc:AgentRunCommandController.create] rejects enabled on a native session for a model with no native registry entry (InvalidArgument)", async () => {
+  it("[rpc:RunCommandController.create] rejects enabled on a native session for a model with no native registry entry (InvalidArgument)", async () => {
     // The harness decides which entry is read: composer-2.5 has no native
     // entry, so a native session cannot ask it to think.
     await expectRefused(
@@ -228,7 +228,7 @@ describe("AgentRun conformance — thinking-mode fail-closed validation (#772, #
     );
   });
 
-  it("[rpc:AgentRunCommandController.create] rejects an explicit disabled on a model that always thinks (InvalidArgument)", async () => {
+  it("[rpc:RunCommandController.create] rejects an explicit disabled on a model that always thinks (InvalidArgument)", async () => {
     // claude-fable-5's native entry declares thinkingRequired: the provider
     // refuses a request to turn its thinking off, so the platform refuses the
     // execution that asks for it rather than fail the turn.
@@ -248,8 +248,8 @@ describe("AgentRun conformance — thinking-mode fail-closed validation (#772, #
 // truthful answers a fresh server owes before anything has ever run. The
 // populated arms live in suites-execution/.
 
-describe("AgentRun conformance — a turn belongs to its session's organization (#1580)", () => {
-  it("[rpc:AgentRunCommandController.create] refuses a turn in a session under another organization (FailedPrecondition, naming neither)", async () => {
+describe("Run conformance — a turn belongs to its session's organization (#1580)", () => {
+  it("[rpc:RunCommandController.create] refuses a turn in a session under another organization (FailedPrecondition, naming neither)", async () => {
     // One caller, two organizations: the session lives in the first, and the
     // turn names the second. The refusal comes right after the run gate,
     // before the engine gate, so no engine is needed.
@@ -280,12 +280,12 @@ describe("AgentRun conformance — a turn belongs to its session's organization 
   });
 });
 
-describe("AgentRun conformance — a turn runs the agent its session pinned", () => {
+describe("Run conformance — a turn runs the agent its session pinned", () => {
   // A session records the agent it runs by id (status.agent_id), and every
   // turn reaches it by that id, never by slug again. Both refusals come from
   // ResolveRunAgent, after the session's own run gate and before the engine
   // gate, so no engine is needed and no execution is created.
-  it("[rpc:AgentRunCommandController.create] a turn in a session whose agent was deleted is FailedPrecondition naming the session and the agent", async () => {
+  it("[rpc:RunCommandController.create] a turn in a session whose agent was deleted is FailedPrecondition naming the session and the agent", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent-gone") }));
     const session = await clients.sessionCommand.create(
@@ -310,7 +310,7 @@ describe("AgentRun conformance — a turn runs the agent its session pinned", ()
     }
   });
 
-  it("[rpc:AgentRunCommandController.create] an agent deleted and re-created under the same slug does not take over a live conversation: its next turn fails naming the old agent", async () => {
+  it("[rpc:RunCommandController.create] an agent deleted and re-created under the same slug does not take over a live conversation: its next turn fails naming the old agent", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("agent-reborn");
     const original = await clients.agentCommand.create(makeAgent({ org, name }));
@@ -342,8 +342,8 @@ describe("AgentRun conformance — a turn runs the agent its session pinned", ()
   });
 });
 
-describe("AgentRun conformance — the engine gate", () => {
-  it("[rpc:AgentRunCommandController.create] create refuses Unavailable before any side effect when no engine is connected", async (ctx) => {
+describe("Run conformance — the engine gate", () => {
+  it("[rpc:RunCommandController.create] create refuses Unavailable before any side effect when no engine is connected", async (ctx) => {
     // Only the engineless local CRUD targets observe this boundary —
     // scheduleFiring doubles as "a Temporal engine backs this target", and
     // the cloud CRUD target serves a live engine (and resolves the agent
@@ -367,8 +367,8 @@ describe("AgentRun conformance — the engine gate", () => {
   });
 });
 
-describe("AgentRun conformance — zero-record read surfaces", () => {
-  it("[rpc:AgentRunQueryController.getRunSummary] getRunSummary answers the pinned zero shape — no cost fields by design", async () => {
+describe("Run conformance — zero-record read surfaces", () => {
+  it("[rpc:RunQueryController.getRunSummary] getRunSummary answers the pinned zero shape — no cost fields by design", async () => {
     const { org } = await target.provisionTenancy();
     const summary = await clients.agentExecutionQuery.getRunSummary({ org });
 
@@ -380,7 +380,7 @@ describe("AgentRun conformance — zero-record read surfaces", () => {
     expect(summary.topFailingAgents).toHaveLength(0);
   });
 
-  it("[rpc:AgentRunQueryController.getRunUsageReport] the execution-scoped usage report validates and checks existence (the ONE report that 404s)", async () => {
+  it("[rpc:RunQueryController.getRunUsageReport] the execution-scoped usage report validates and checks existence (the ONE report that 404s)", async () => {
     await expectGrpcCode(
       () => clients.agentExecutionQuery.getRunUsageReport({ runId: "" }),
       Code.InvalidArgument,
@@ -400,7 +400,7 @@ describe("AgentRun conformance — zero-record read surfaces", () => {
     expect(err.rawMessage).toBe("Run not found: aexec_01conformancemissing");
   });
 
-  it("[rpc:AgentRunQueryController.getSessionUsageReport] [rpc:AgentRunQueryController.getAgentUsageReport] [rpc:AgentRunQueryController.getOrgUsageReport] the session/agent/org usage reports answer zero-valued SHAPES for nothing to aggregate", async (ctx) => {
+  it("[rpc:RunQueryController.getSessionUsageReport] [rpc:RunQueryController.getAgentUsageReport] [rpc:RunQueryController.getOrgUsageReport] the session/agent/org usage reports answer zero-valued SHAPES for nothing to aggregate", async (ctx) => {
     // Single-user posture only: where orgs are real, an unauthorized scope
     // answers PermissionDenied instead of a zero report — the aggregation
     // reads are authorization-gated per scope on the multi-tenant edition.
@@ -449,7 +449,7 @@ describe("AgentRun conformance — zero-record read surfaces", () => {
     expect(orgReport.dailyCosts).toHaveLength(0);
   });
 
-  it("[rpc:AgentRunQueryController.getAgentUsageReport] [rpc:AgentRunQueryController.getOrgUsageReport] the agent/org usage reports of an Organization that does not exist are NotFound with the load-first copy", async () => {
+  it("[rpc:RunQueryController.getAgentUsageReport] [rpc:RunQueryController.getOrgUsageReport] the agent/org usage reports of an Organization that does not exist are NotFound with the load-first copy", async () => {
     // Nothing to aggregate is a zero report (above); no Organization at all
     // is NOT_FOUND, the answer every edition gives for a scope it does not
     // hold, with or without sign-in (stigmer#1163).
@@ -470,7 +470,7 @@ describe("AgentRun conformance — zero-record read surfaces", () => {
     }
   });
 
-  it("[rpc:AgentRunQueryController.getAgentUsageReport] [rpc:AgentRunQueryController.getOrgUsageReport] the agent/org usage reports refuse missing scope fields (InvalidArgument)", async () => {
+  it("[rpc:RunQueryController.getAgentUsageReport] [rpc:RunQueryController.getOrgUsageReport] the agent/org usage reports refuse missing scope fields (InvalidArgument)", async () => {
     await expectGrpcCode(
       () => clients.agentExecutionQuery.getAgentUsageReport({ agentId: "agt_x" }),
       Code.InvalidArgument,
@@ -483,7 +483,7 @@ describe("AgentRun conformance — zero-record read surfaces", () => {
     );
   });
 
-  it("[rpc:AgentRunQueryController.subscribe] subscribe refuses an empty id (InvalidArgument) and an unknown id (NotFound)", async () => {
+  it("[rpc:RunQueryController.subscribe] subscribe refuses an empty id (InvalidArgument) and an unknown id (NotFound)", async () => {
     await expectGrpcCode(
       () =>
         collectStream((signal) => clients.agentExecutionQuery.subscribe({ value: "" }, { signal })),
@@ -506,12 +506,12 @@ describe("AgentRun conformance — zero-record read surfaces", () => {
   });
 });
 
-describe("AgentRun conformance — submitFileDecision negatives", () => {
+describe("Run conformance — submitFileDecision negatives", () => {
   // Single-user-posture arms: the multi-tenant edition's authorization
   // interceptor resolves the execution BEFORE proto validation, so invalid
   // or unknown ids surface as NotFound/PermissionDenied there instead — a
   // known ordering divergence.
-  it("[rpc:AgentRunCommandController.submitFileDecision] rejects structurally invalid inputs before any load (InvalidArgument)", async (ctx) => {
+  it("[rpc:RunCommandController.submitFileDecision] rejects structurally invalid inputs before any load (InvalidArgument)", async (ctx) => {
     if (target.capabilities.enforcingAuthorizer) return ctx.skip();
     await expectGrpcCode(
       () =>
@@ -539,7 +539,7 @@ describe("AgentRun conformance — submitFileDecision negatives", () => {
     );
   });
 
-  it("[rpc:AgentRunCommandController.submitFileDecision] an unknown execution answers NotFound", async (ctx) => {
+  it("[rpc:RunCommandController.submitFileDecision] an unknown execution answers NotFound", async (ctx) => {
     if (target.capabilities.enforcingAuthorizer) return ctx.skip();
     await expectGrpcCode(
       () =>

@@ -31,7 +31,7 @@ export interface UseRunSummaryReturn {
 }
 
 /**
- * Data hook that fetches aggregated agent run statistics for an
+ * Data hook that fetches aggregated run statistics for an
  * organization. Returns phase counts, active count, average duration,
  * and top failing agents.
  *

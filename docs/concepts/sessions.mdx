@@ -33,15 +33,15 @@ A Session names the Agent it talks to, and each message in it is one run:
   chart={`
 graph LR
   A["Agent"] --> S["Session"]
-  S --> E1["Agent Run 1"]
-  S --> E2["Agent Run 2"]
-  S --> E3["Agent Run 3"]
+  S --> E1["run 1"]
+  S --> E2["run 2"]
+  S --> E3["run 3"]
 `}
 />
 
 Each request-response cycle within a Session creates an
-[Agent Run](/docs/concepts/agents#blueprint-vs-runtime). The run sees all
-previous messages from the Session — this is how the Agent remembers context.
+[run](/docs/concepts/agents#blueprint-vs-runtime). The run sees all previous
+messages from the Session — this is how the Agent remembers context.
 
 ## Creating a Session
 
@@ -108,8 +108,7 @@ reaches them only when someone updates them:
 
 To start a conversation on a particular version instead of the current one, name
 a tag or a version hash in the reference (`version: stable`). Every
-[Agent Run](/docs/concepts/agents#versions) records the Agent and version it
-ran.
+[run](/docs/concepts/agents#versions) records the Agent and version it ran.
 
 ## Who may send a message
 
@@ -139,7 +138,7 @@ Cursor-specific models and coding tools).
 
 You set the Harness when creating a Session; when you set none, the Session
 starts on the Agent's own `harness`, or native when the Agent names none. Once
-the first Agent Run starts, the Harness is locked for that Session.
+the first run starts, the Harness is locked for that Session.
 
 ```yaml validate-as="Session"
 spec:

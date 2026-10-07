@@ -12,7 +12,7 @@ import { pyProtoFileToModule, pyProtoImportLine, pyProtoModuleAlias } from "../l
 
 describe("Python cross-package imports", () => {
   it("names the module after the declaring proto file", () => {
-    expect(pyProtoFileToModule("ai/stigmer/agentic/agentrun/v1/invocation.proto")).toBe(
+    expect(pyProtoFileToModule("ai/stigmer/agentic/run/v1/invocation.proto")).toBe(
       "invocation_pb2",
     );
     expect(pyProtoFileToModule("ai/stigmer/agentic/session/v1/workspace.proto")).toBe(
@@ -30,7 +30,7 @@ describe("Python cross-package imports", () => {
     expect(pyProtoModuleAlias("ai.stigmer.platform.v1", "license_pb2")).toBe(
       "platform_license_pb2",
     );
-    expect(pyProtoModuleAlias("ai.stigmer.agentic.agentrun.v1", "invocation_pb2")).toBe(
+    expect(pyProtoModuleAlias("ai.stigmer.agentic.run.v1", "invocation_pb2")).toBe(
       "agentrun_invocation_pb2",
     );
   });

@@ -1,4 +1,4 @@
-// Workspace flag parsing for agent runs.
+// Workspace flag parsing for runs.
 //
 // Ports the Go CLI's run_workspace.go: turns repeatable `--workspace` values
 // (plus `--branch`/`--commit`) into WorkspaceEntry protos. A workspace is either

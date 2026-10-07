@@ -28,7 +28,7 @@ describe("FinalCTA SDK snippets", () => {
   });
 
   it.each([
-    ["Go", "go get github.com/stigmer/stigmer/sdk/go/v3", "run, _ := client.AgentRun.Create(ctx,"],
+    ["Go", "go get github.com/stigmer/stigmer/sdk/go/v3", "run, _ := client.Run.Create(ctx,"],
     ["Python", "pip install stigmer", "run = client.agent_runs.create("],
     ["Java", 'implementation("ai.stigmer:stigmer-java:0.1.0")', "var run = client.run.create("],
   ])("switches to the %s install command and run snippet", (label, install, call) => {

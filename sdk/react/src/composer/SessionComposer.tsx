@@ -100,7 +100,7 @@ export interface SessionComposerHandle {
    *   in addition to any files attached in the composer. Used by "Build from
    *   plan" to deliver the approved `plan.md` to the implement run.
    * @param options.buildFromPlan - Marks this submission as the implement
-   *   turn of a Plan → Build handoff (`AgentRunSpec.build_from_plan`).
+   *   turn of a Plan → Build handoff (`RunSpec.build_from_plan`).
    *   The runner injects the implement-plan directive and the thread hides
    *   the turn's message; the message stays a short label for surfaces
    *   without that treatment (the CLI, history).
@@ -155,7 +155,7 @@ export interface SessionComposerSubmitContext {
    *
    * `undefined` when no mode picker is shown (defaults to `"agent"`).
    * Pass to run creation as `interactionMode`
-   * (`AgentRunSpec.interaction_mode`).
+   * (`RunSpec.interaction_mode`).
    */
   readonly interactionMode?: InteractionModeOption;
   /**

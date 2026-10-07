@@ -96,7 +96,7 @@ const EXECUTION_ID = "aex_storefault";
 const LOAD_FAULT_COPY = "failed to load agent execution";
 
 const MISSING = (): Error =>
-  new ResourceNotFoundError(`agent_run/${EXECUTION_ID}`);
+  new ResourceNotFoundError(`run/${EXECUTION_ID}`);
 const LOCKED = (): Error => new Error("SQLITE_BUSY: database is locked");
 
 function lifecycleDeps(store: Store): LifecycleDeps {

@@ -1,6 +1,6 @@
-// Agent-run read path: the polling primitive behind get_run.
+// Run read path: the polling primitive behind get_run.
 //
-// Agent runs have no event-log RPC — the platform's contract is: poll get
+// Runs have no event-log RPC — the platform's contract is: poll get
 // and read status.phase, status.messages[], and status.pending_approvals[].
 // That makes the response shape critical for MCP: a long conversation's
 // full protojson (every message, the resolved context snapshot, the approval
@@ -31,7 +31,7 @@ const COMPACT_PRUNED_STATUS_FIELDS = [
   "sub_agent_runs",
 ] as const;
 
-/** Fetch a single agent run by ID and shape it for the requested view. */
+/** Fetch a single run by ID and shape it for the requested view. */
 export async function fetchRun(
   serverAddress: string,
   token: string,
@@ -51,7 +51,7 @@ export async function fetchRun(
       try {
         run = await client.get({ value: runId }, callOptions);
       } catch (err) {
-        throw rpcError(err, `agent run "${runId}"`);
+        throw rpcError(err, `run "${runId}"`);
       }
       return view === "full"
         ? toProtoJson(RunSchema, run)
@@ -72,7 +72,7 @@ export interface CompactRun {
  * Exposed at the data level so wrappers (cancel_run's already_terminal
  * envelope) can compose it without double-nesting.
  *
- * Shared by the write tools that return an AgentRun (approve, cancel):
+ * Shared by the write tools that return a Run (approve, cancel):
  * their responses embed the same potentially-huge status.
  */
 export function compactRun(run: Run, messageLimit: number): CompactRun {

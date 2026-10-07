@@ -22,7 +22,7 @@ export interface UseDashboardFailedRunsReturn {
 }
 
 /**
- * Data hook that fetches an organization's recent failed agent runs,
+ * Data hook that fetches an organization's recent failed runs,
  * normalizes them into {@link DashboardFailedRun} entries, and orders
  * them newest first.
  *

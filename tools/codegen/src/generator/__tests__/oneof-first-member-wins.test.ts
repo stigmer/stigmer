@@ -65,8 +65,8 @@ describe("the Python input's target oneof", () => {
   it("never passes session_id to the constructor, and sets it when non-empty after session_spec", () => {
     const toProto = python.slice(python.indexOf("class RunInput"));
     const constructor = toProto.slice(
-      toProto.indexOf("spec = spec_pb2.AgentRunSpec("),
-      toProto.indexOf(")\n", toProto.indexOf("spec = spec_pb2.AgentRunSpec(")),
+      toProto.indexOf("spec = spec_pb2.RunSpec("),
+      toProto.indexOf(")\n", toProto.indexOf("spec = spec_pb2.RunSpec(")),
     );
     expect(constructor).not.toContain("session_id=");
     const spec = toProto.indexOf("spec.session_spec.CopyFrom(");

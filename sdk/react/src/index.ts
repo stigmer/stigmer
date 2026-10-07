@@ -264,7 +264,7 @@ export type {
   UseRecentActivityReturn,
 } from "./activity/index.js";
 
-// Run — behavior hooks, styled components, and utilities (AgentRun aggregate)
+// Run — behavior hooks, styled components, and utilities (Run aggregate)
 export {
   isTerminalPhase,
   useCreateRun,

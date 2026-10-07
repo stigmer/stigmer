@@ -1,6 +1,6 @@
-// Conformance suite for AgentRun HITL tool approval (Class B).
+// Conformance suite for Run HITL tool approval (Class B).
 // Domain: agentic / agentexecution — the submitApproval RPC and the
-// approval-gate lifecycle a tool-using agent run goes through.
+// approval-gate lifecycle a tool-using run goes through.
 //
 // This is the first suite that exercises a real *tool*: the engine can only
 // reach RUN_WAITING_FOR_APPROVAL when an agent references an McpServer that
@@ -26,8 +26,8 @@
 //
 // Asserted contract:
 // - submitApproval is on the Command controller; SubmitApprovalInput is
-//   {agent_run_id, tool_call_id, ApprovalAction action, comment}, and the
-//   response is the AgentRun with the decision recorded and
+//   {run_id, tool_call_id, ApprovalAction action, comment}, and the
+//   response is the Run with the decision recorded and
 //   pending_approvals recomputed synchronously.
 // - APPROVE / SKIP / REJECT each resolve the single gate (response
 //   pending_approvals empty) and the execution reaches RUN_COMPLETED.
@@ -93,7 +93,7 @@ import {
   requireMcpFixture,
   sessionIdOf,
   submitApprovalPerContract,
-} from "../support/agentruns";
+} from "../support/runs";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -186,8 +186,8 @@ function approvalStreamHas(exec: Run, toolCallId: string, type: ApprovalEventTyp
   );
 }
 
-describe("AgentRun submitApproval — gate resolution", () => {
-  it("[rpc:AgentRunCommandController.submitApproval] APPROVE resolves the gate and completes the execution", async () => {
+describe("Run submitApproval — gate resolution", () => {
+  it("[rpc:RunCommandController.submitApproval] APPROVE resolves the gate and completes the execution", async () => {
     const { org } = await target.provisionTenancy();
     const { agentRef } = await provisionGatedAgent(org);
     const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_echo_approve", "hello")]);
@@ -237,7 +237,7 @@ describe("AgentRun submitApproval — gate resolution", () => {
     );
   });
 
-  it("[rpc:AgentRunCommandController.submitApproval] SKIP resolves the gate and completes the execution", async () => {
+  it("[rpc:RunCommandController.submitApproval] SKIP resolves the gate and completes the execution", async () => {
     const { org } = await target.provisionTenancy();
     const { agentRef } = await provisionGatedAgent(org);
     const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_echo_skip", "hello")]);
@@ -258,7 +258,7 @@ describe("AgentRun submitApproval — gate resolution", () => {
     expect(final.status?.phase, "skipped execution should COMPLETE").toBe(RunPhase.RUN_COMPLETED);
   });
 
-  it("[rpc:AgentRunCommandController.submitApproval] REJECT resolves the gate; the agent continues to completion", async () => {
+  it("[rpc:RunCommandController.submitApproval] REJECT resolves the gate; the agent continues to completion", async () => {
     const { org } = await target.provisionTenancy();
     const { agentRef } = await provisionGatedAgent(org);
     const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_echo_reject", "hello")]);
@@ -296,7 +296,7 @@ describe("AgentRun submitApproval — gate resolution", () => {
     );
   });
 
-  it("[rpc:AgentRunCommandController.submitApproval] APPROVE_ALL resolves every co-pending gate in a single decision", async () => {
+  it("[rpc:RunCommandController.submitApproval] APPROVE_ALL resolves every co-pending gate in a single decision", async () => {
     const { org } = await target.provisionTenancy();
     const { agentRef } = await provisionGatedAgent(org);
     // Two echo calls in one assistant turn -> two co-pending approvals.
@@ -329,7 +329,7 @@ describe("AgentRun submitApproval — gate resolution", () => {
   });
 });
 
-describe("AgentRun submitApproval — spec bypass and read model", () => {
+describe("Run submitApproval — spec bypass and read model", () => {
   it("auto_approve_all bypasses the gate entirely (no submit needed)", async () => {
     const { org } = await target.provisionTenancy();
     const { agentRef } = await provisionGatedAgent(org);
@@ -382,7 +382,7 @@ describe("AgentRun submitApproval — spec bypass and read model", () => {
     await awaitTerminal(clients, executionId);
   });
 
-  it("[rpc:AgentRunCommandController.submitApproval] is idempotent: re-submitting the same decision before the gate resolves is benign", async () => {
+  it("[rpc:RunCommandController.submitApproval] is idempotent: re-submitting the same decision before the gate resolves is benign", async () => {
     const { org } = await target.provisionTenancy();
     const { agentRef } = await provisionGatedAgent(org);
     // Two co-pending calls: approving only the first leaves the gate open (the
@@ -436,8 +436,8 @@ describe("AgentRun submitApproval — spec bypass and read model", () => {
 // out: the lease APPROVE_ALL grants across TURNS, the ledger's shape on a
 // cancel at the gate, and the resumed transcript under the runner's durable
 // checkpointer.
-describe("AgentRun submitApproval — lease, cancel at the gate, durable resume", () => {
-  it("[rpc:AgentRunCommandController.submitApproval] APPROVE_ALL leases the MCP server: a later turn's tool on the same server is not re-gated", async () => {
+describe("Run submitApproval — lease, cancel at the gate, durable resume", () => {
+  it("[rpc:RunCommandController.submitApproval] APPROVE_ALL leases the MCP server: a later turn's tool on the same server is not re-gated", async () => {
     const { org } = await target.provisionTenancy();
     const { agentRef } = await provisionGatedAgent(org);
     // Turn 1 gates on echo; turn 2 is a SECOND echo in its own assistant turn;
@@ -474,7 +474,7 @@ describe("AgentRun submitApproval — lease, cancel at the gate, durable resume"
   // cross-edition contract question for the maintainers, not a test to bend
   // either way, so the arm stays unported until it is decided.
 
-  it("[rpc:AgentRunCommandController.submitApproval] the approved ToolCall survives the resume with TOOL_CALL_COMPLETED and a result — a true resume, not a replay", async () => {
+  it("[rpc:RunCommandController.submitApproval] the approved ToolCall survives the resume with TOOL_CALL_COMPLETED and a result — a true resume, not a replay", async () => {
     // Under the runner's durable checkpointer (its OSS default) the resumed
     // invocation continues the SAME graph state: the
     // gated call keeps its id, runs, and records its result; the model then
@@ -510,8 +510,8 @@ describe("AgentRun submitApproval — lease, cancel at the gate, durable resume"
   });
 });
 
-describe("AgentRun submitApproval — negatives", () => {
-  it("[rpc:AgentRunCommandController.submitApproval] rejects an UNSPECIFIED action with InvalidArgument", async () => {
+describe("Run submitApproval — negatives", () => {
+  it("[rpc:RunCommandController.submitApproval] rejects an UNSPECIFIED action with InvalidArgument", async () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitApproval({
@@ -524,7 +524,7 @@ describe("AgentRun submitApproval — negatives", () => {
     );
   });
 
-  it("[rpc:AgentRunCommandController.submitApproval] rejects an empty agent_run_id with InvalidArgument", async () => {
+  it("[rpc:RunCommandController.submitApproval] rejects an empty run_id with InvalidArgument", async () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitApproval({
@@ -533,11 +533,11 @@ describe("AgentRun submitApproval — negatives", () => {
           action: ApprovalAction.APPROVE,
         }),
       Code.InvalidArgument,
-      "empty agent_run_id",
+      "empty run_id",
     );
   });
 
-  it("[rpc:AgentRunCommandController.submitApproval] rejects an empty tool_call_id with InvalidArgument", async () => {
+  it("[rpc:RunCommandController.submitApproval] rejects an empty tool_call_id with InvalidArgument", async () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitApproval({
@@ -550,7 +550,7 @@ describe("AgentRun submitApproval — negatives", () => {
     );
   });
 
-  it("[rpc:AgentRunCommandController.submitApproval] returns NotFound for a missing execution", async () => {
+  it("[rpc:RunCommandController.submitApproval] returns NotFound for a missing execution", async () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitApproval({
@@ -563,7 +563,7 @@ describe("AgentRun submitApproval — negatives", () => {
     );
   });
 
-  it("[rpc:AgentRunCommandController.submitApproval] returns InvalidArgument for an unknown tool_call_id on a gated execution", async () => {
+  it("[rpc:RunCommandController.submitApproval] returns InvalidArgument for an unknown tool_call_id on a gated execution", async () => {
     const { org } = await target.provisionTenancy();
     const { agentRef } = await provisionGatedAgent(org);
     const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_echo_unknown", "hello")]);
@@ -594,7 +594,7 @@ describe("AgentRun submitApproval — negatives", () => {
     await awaitTerminal(clients, executionId);
   });
 
-  it("[rpc:AgentRunCommandController.submitApproval] returns FailedPrecondition for a submit on a terminal execution", async () => {
+  it("[rpc:RunCommandController.submitApproval] returns FailedPrecondition for a submit on a terminal execution", async () => {
     const { org } = await target.provisionTenancy();
     const { agentRef } = await provisionGatedAgent(org);
 
@@ -624,7 +624,7 @@ describe("AgentRun submitApproval — negatives", () => {
 // An agent's own hooks block, in Claude Code's format, over the same
 // destructive echo: the hook decides before the default does. Shell-form
 // commands run in bash on the runner, as Claude Code's do.
-describe("AgentRun — an agent's hooks decide at the gate", () => {
+describe("Run — an agent's hooks decide at the gate", () => {
   async function provisionHookedAgent(org: string, command: string): Promise<AgentRefInit> {
     const server = await createConnectedMcpServer(clients, mcp, fixtures, {
       org,
@@ -706,7 +706,7 @@ describe("AgentRun — an agent's hooks decide at the gate", () => {
 // is pushed, an agent references it, and the runner reads it by reference,
 // downloads its archive over the transfer lane, verifies and mounts it, and
 // runs the plugin's own extensionless script.
-describe("AgentRun — a pushed plugin's hooks decide at the gate", () => {
+describe("Run — a pushed plugin's hooks decide at the gate", () => {
   const GUARD = [
     "#!/usr/bin/env bash",
     "input=$(cat)",
@@ -788,7 +788,7 @@ describe("AgentRun — a pushed plugin's hooks decide at the gate", () => {
 // the runner as Cursor runs it (the call is `Shell`, the plugin's root is
 // `${CURSOR_PLUGIN_ROOT}`). Proves the plugin library and the runner agree
 // on which of Cursor's events run.
-describe("AgentRun — a pushed Cursor-format plugin's hooks decide at the gate", () => {
+describe("Run — a pushed Cursor-format plugin's hooks decide at the gate", () => {
   const GUARD = [
     "#!/usr/bin/env bash",
     "input=$(cat)",
@@ -887,7 +887,7 @@ describe("AgentRun — a pushed Cursor-format plugin's hooks decide at the gate"
 // artifact store, so every write is captured for review after the turn
 // (`deriveCaptureMode`), trusted or not: the person keeps the rule file, as
 // they would keep it in the console. The other calls write nothing there.
-describe("AgentRun — a real plugin, unchanged, refuses at the gate and survives a tamper", () => {
+describe("Run — a real plugin, unchanged, refuses at the gate and survives a tamper", () => {
   const RULE = hookifyExampleRule("dangerous-rm");
   const RULE_ENGINE = "core/rule_engine.py";
   const RULE_ENGINE_BLOB = upstreamManifest().plugins.hookify.files[RULE_ENGINE]!.blob;

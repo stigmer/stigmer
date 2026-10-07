@@ -1,4 +1,4 @@
-// Conformance suite for sub-agent delegation on an AgentRun: the parent's
+// Conformance suite for sub-agent delegation on a Run: the parent's
 // `task` tool call, the child's own transcript under status.sub_agent_executions,
 // and the field contract of a completed SubAgentRun.
 // Domain: agentic / agentexecution — the delegation surface a console renders
@@ -23,7 +23,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentruns";
+import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -55,7 +55,7 @@ const RESEARCHER = "researcher";
 const CHILD_ANSWER =
   "Renewable energy encompasses solar, wind and hydroelectric sources that replenish naturally.";
 
-describe("AgentRun sub-agent delegation", () => {
+describe("Run sub-agent delegation", () => {
   it("a task tool_use delegates to the named sub-agent: the parent's ToolCall completes and sub_agent_executions carries the child's full record", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await clients.agentCommand.create(

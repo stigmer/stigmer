@@ -577,7 +577,7 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
       );
     }
 
-    it("a wire create naming an existing agent run's id is refused with PermissionDenied", async () => {
+    it("a wire create naming an existing run's id is refused with PermissionDenied", async () => {
       await seedAgentRun("aex_bound_existing");
       const error = await grpcError(() =>
         ts.command.create(ecInput({ executionId: "aex_bound_existing" })),

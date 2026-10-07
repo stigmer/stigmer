@@ -362,7 +362,7 @@ export function decideReinvocation(
  * seeded-row match; the native builder's by-id flip).
  *
  * Why the OTHER collections must be seeded too — the server's merge rule
- * (`stigmer-server/src/domain/agentrun/update-status.ts`): every list
+ * (`stigmer-server/src/domain/run/update-status.ts`): every list
  * and singleton the runner owns is PRESENCE-GUARDED and then REPLACED
  * wholesale — `subAgentExecutions`, `todos`, `artifacts`,
  * `workspaceWriteBacks` when non-empty (L327-345); `streamingUsage`,

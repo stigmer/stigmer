@@ -1,5 +1,5 @@
 // The "run a resolved agent" flow (Go's executeResolvedAgent in
-// run_agent_exec.go): create the agent run (one call — a workspace rides
+// run_agent_exec.go): create the run (one call — a workspace rides
 // the embedded session_spec and the backend bootstraps the session), then
 // either detach (print header + re-attach hint) or stream and optionally
 // download artifacts, for `run`. A new conversation names its agent by

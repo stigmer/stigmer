@@ -1,7 +1,7 @@
 /**
- * Pins the empty-run-id refusal every agent-run entry point that names a run
+ * Pins the empty-run-id refusal every run entry point that names a run
  * by id shares: the call answers InvalidArgument whose copy names the wire
- * field (`run_id`, or `agent_run_id` on the two decision verbs), and it stops
+ * field (`run_id`, or `run_id` on the two decision verbs), and it stops
  * before any store read, broker or engine is touched. The copy is wire
  * contract: the run rename moved it from `execution_id`, and a client
  * that matches on it reads the new field name. The two decision verbs refuse
@@ -90,7 +90,7 @@ const ENTRY_POINTS: ReadonlyArray<
   ],
   [
     "submitApproval — ValidateProto",
-    "agent_run_id: must be at least 1 characters [string.min_len]",
+    "run_id: must be at least 1 characters [string.min_len]",
     () =>
       submitApproval(
         {
@@ -112,7 +112,7 @@ const ENTRY_POINTS: ReadonlyArray<
   ],
   [
     "submitFileDecision — ValidateProto",
-    "agent_run_id: must be at least 1 characters [string.min_len]",
+    "run_id: must be at least 1 characters [string.min_len]",
     () =>
       submitFileDecision(
         {

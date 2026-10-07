@@ -1,6 +1,6 @@
 // Framework-agnostic conversation-assembly rules for every Stigmer surface.
 //
-// A session's conversation is reassembled from its AgentRun list by
+// A session's conversation is reassembled from its Run list by
 // several independent consumers: the React thread (@stigmer/react
 // buildThreadItems / useSessionConversation), the CLI's session replay
 // (snapshotToEvents), and the canonical transcript assembler (transcript.ts).
@@ -23,8 +23,11 @@ import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
  * transcript, so a scrambled order drops the newest turns out of view (they no
  * longer sort to the bottom). The server orders this list, but consumers must
  * never depend on that alone. Resource ids are time-sortable ULIDs
- * (`aex_01k…`), so an ascending id sort is creation order without parsing
+ * (`run_01k…`), so an ascending id sort is creation order without parsing
  * timestamps; entries missing an id sort last but keep a stable relative order.
+ * A session older than the run kind's rename also holds runs minted `aex_…`;
+ * those are older than every `run_…` one and `aex` sorts before `run`, so the
+ * order holds across the rename.
  */
 export function sortChronologically(
   executions: readonly Run[],

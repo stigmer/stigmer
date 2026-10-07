@@ -1,7 +1,7 @@
 // A long-lived, programmable mock LLM proxy for the execution suites.
 // Domain: test support (model fakes).
 //
-// An AgentRun runs a real LLM loop in the runner, so it cannot be driven
+// A Run runs a real LLM loop in the runner, so it cannot be driven
 // offline without a model. This mock stands in for the upstream provider: the runner is pointed at it via
 // STIGMER_PROXY_ENDPOINT (a base-URL override, NOT a "mock" model name), and it
 // replays canned Anthropic responses as Server-Sent Events that the runner's
@@ -287,7 +287,7 @@ export class MockLlmProxy {
 
   // Append a turn that responds with an HTTP error instead of a body — the
   // lever for driving an execution to RUN_FAILED deterministically. Lands now
-  // to keep the deferred AgentRun-recover end-to-end slice cheap to add later
+  // to keep the deferred Run-recover end-to-end slice cheap to add later
   // (that slice is blocked on the recovery-mechanism redesign).
   //
   // Status choice matters: the runner's agent loop wraps the LLM call in

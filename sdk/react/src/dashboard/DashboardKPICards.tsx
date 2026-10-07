@@ -47,7 +47,7 @@ const STAT_CARDS: readonly StatCardDef[] = [
 ];
 
 /**
- * Stat cards showing an organization's agent run KPIs: active,
+ * Stat cards showing an organization's run KPIs: active,
  * completed and failed runs, and total cost.
  *
  * Cost comes from the billing source of truth (getOrgUsageReport),

@@ -1,5 +1,5 @@
 // Command-level contract for `stigmer list runs`: runs resolve before the
-// registry and list agent runs; the resolved organization and `--limit`
+// registry and list runs; the resolved organization and `--limit`
 // reach the list call, and the result renders through the run table on
 // stdout. The backend and the list read are replaced at their module seams;
 // the program, the alias routing and the renderer are real.
@@ -67,7 +67,7 @@ afterEach(() => {
 });
 
 describe("stigmer list runs", () => {
-  it("lists agent runs in the resolved organization, with the default limit", async () => {
+  it("lists runs in the resolved organization, with the default limit", async () => {
     const out = await listRuns();
     expect(reads.listAgentRuns).toHaveBeenCalledWith(stigmer, 50, "acme");
     expect(out).toContain("AGENT");

@@ -42,7 +42,7 @@ export interface ArtifactPreviewContentProps {
   /**
    * Optional plan-build action. When provided, a "Build" primary button
    * appears in the action bar (used for plan artifacts: turn the plan into
-   * an Agent run). Clicking it calls `onImplement` then closes the modal.
+   * a Run). Clicking it calls `onImplement` then closes the modal.
    * Omit for non-actionable artifacts.
    */
   readonly onImplement?: () => void;

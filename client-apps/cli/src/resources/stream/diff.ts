@@ -2,7 +2,7 @@
 // (run_stream_events.go:203-468).
 //
 // Go's version owns a gRPC loop and blocks on an approval channel. This is a
-// pure, stateful transformer instead: feed it each AgentRun snapshot and
+// pure, stateful transformer instead: feed it each Run snapshot and
 // it returns the discrete events for that snapshot, holding all cross-snapshot
 // state (message cursor, tool/sub-agent/todo trackers, prompted-approval dedup).
 // Approval *submission* is the renderer's job — the differ only emits

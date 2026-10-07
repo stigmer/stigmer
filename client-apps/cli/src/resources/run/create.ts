@@ -1,4 +1,4 @@
-// Resource creation for the run path: AgentRun.
+// Resource creation for the run path: Run.
 //
 // Ports the Go CLI's run_create.go. We build the full proto messages and drive
 // the generated command controllers directly — the fidelity rule
@@ -49,7 +49,7 @@ export interface AgentRefInput {
 }
 
 /**
- * Inputs for creating an agent run. The turn's target is one of two
+ * Inputs for creating a run. The turn's target is one of two
  * things: sessionId continues an existing conversation (whose agent the
  * session already pins), or a new conversation the backend creates from the
  * embedded session_spec. agentRef names the new conversation's agent; with
@@ -77,14 +77,14 @@ export interface CreateRunInput {
   readonly harness: HarnessFlag;
 }
 
-/** Create an agent run. Mirrors Go's createAgentExecution. */
+/** Create a run. Mirrors Go's createAgentExecution. */
 export async function createAgentRun(
   controller: ControllerFn,
   input: CreateRunInput,
 ): Promise<Run> {
   const run = create(RunSchema, {
     apiVersion: API_VERSION,
-    kind: "AgentRun",
+    kind: "Run",
     metadata: create(ApiResourceMetadataSchema, { name: runName(), org: input.orgId }),
     spec: create(RunSpecSchema, {
       message: input.message === "" ? "execute" : input.message,

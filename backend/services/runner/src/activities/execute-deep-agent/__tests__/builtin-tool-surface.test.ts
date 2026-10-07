@@ -10,7 +10,7 @@
 //  - a capture backend refuses a backend delete outright, the net for a graph
 //    whose model no profile resolves.
 // The parent's own surface is the request-shape conformance facet's
-// (`test/conformance/…/agentrun-request-shape.native-bare-agent.tool-surface.md`),
+// (`test/conformance/…/run-request-shape.native-bare-agent.tool-surface.md`),
 // which drives the real model client.
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

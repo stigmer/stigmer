@@ -1,4 +1,4 @@
-// Execution-engine harness smoke test for AgentRun (Class B).
+// Execution-engine harness smoke test for Run (Class B).
 // Domain: agentic / agentexecution — proves the engine is wired, not the
 // domain contract.
 //
@@ -6,7 +6,7 @@
 // + Temporal + runner + the mock LLM) actually runs an execution end-to-end:
 // server -> Temporal dispatch -> runner pickup -> hydration -> a real LLM
 // loop served by the mock proxy -> terminal status streamed back via gRPC.
-// The whole AgentRun domain contract lives in agentrun.conformance.test.ts.
+// The whole Run domain contract lives in run.conformance.test.ts.
 //
 // Hermetic by construction: the runner is pointed at the in-process mock proxy
 // (no API key, no network), artifacts are on local disk, and the checkpointer is
@@ -19,7 +19,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, MOCK_SESSION_TITLE } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { awaitTerminal, makeAgentExecution, requireLlmProxy, sessionIdOf } from "../support/agentruns";
+import { awaitTerminal, makeAgentExecution, requireLlmProxy, sessionIdOf } from "../support/runs";
 import { pollUntil } from "../support/run-poll";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";

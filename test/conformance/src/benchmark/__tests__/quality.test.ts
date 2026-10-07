@@ -1,5 +1,5 @@
 // Unit arms for the judge's request and its verdict reader, over hand-built
-// AgentRuns whose status carries the structured output a judge run writes.
+// Runs whose status carries the structured output a judge run writes.
 // Domain: conformance benchmark.
 //
 // Pinned: the judge's instructions carry the rubric and every criterion, and
@@ -29,8 +29,8 @@ import { judge, judgeInstructions, verdictOf, verdictSchema, weightedScore } fro
 import type { QualityCriterion, QualityTask } from "../quality-tasks";
 
 const terminal = vi.hoisted(() => ({ awaitTerminal: vi.fn() }));
-vi.mock("../../support/agentruns", async (actual) => ({
-  ...(await actual<typeof import("../../support/agentruns")>()),
+vi.mock("../../support/runs", async (actual) => ({
+  ...(await actual<typeof import("../../support/runs")>()),
   awaitTerminal: terminal.awaitTerminal,
 }));
 

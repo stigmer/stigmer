@@ -7,12 +7,14 @@ action:
 swap:
   # --- Agentic pillar ---
   '\bagent\b': Agent
-  agent run: Agent Run
-  # Former name of an Agent Run; the engine's own words stay in code spans.
-  agent execution: Agent Run
-  agent executions: Agent Runs
-  Agent Execution: Agent Run
-  Agent Executions: Agent Runs
+  # Former names of a run; the engine's own words stay in code spans. A bare
+  # "run" gets no rule of its own: it is also a verb ("let the agent run").
+  '\bAgent Run\b': run
+  '\bAgent Runs\b': runs
+  '\bagent execution\b': run
+  '\bagent executions\b': runs
+  '\bAgent Execution\b': run
+  '\bAgent Executions\b': runs
   agent instance: Agent Instance
   agent runner: Agent Runner
   execution context: Execution Context

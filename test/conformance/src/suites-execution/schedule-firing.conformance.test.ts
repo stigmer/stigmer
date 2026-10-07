@@ -9,7 +9,7 @@
 //   - NEWLY assertable: the outcome contract itself (a dangling target
 //     names itself in the result, synchronously); the rule that manual
 //     fires NEVER feed the failure streak; and the
-//     run-history surface (listRuns) — every fire leaves a row with the
+//     run-history surface (listFires) — every fire leaves a row with the
 //     reason verbatim, including fires that created no execution.
 //
 //   - NO LONGER reachable black-box: the failure-streak auto-pause
@@ -48,7 +48,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { anthropicText } from "@stigmer/test-support/mock-llm";
 import { makeAgent } from "../support/agents";
-import { sessionIdOf } from "../support/agentruns";
+import { sessionIdOf } from "../support/runs";
 import { uniqueName } from "../support/naming";
 import { makeSchedule, targetMissingReason } from "../support/schedules";
 import { pollUntil } from "../support/run-poll";
@@ -129,7 +129,7 @@ describe.skipIf(!firingEnabled)("Schedule trigger contract (scheduleFiring targe
     expect(fresh.status?.pausedReason ?? "").toBe("");
   });
 
-  it("[rpc:ScheduleCommandController.trigger] [rpc:ScheduleQueryController.listRuns] every fire leaves a run-history row with the reason verbatim — including fires that created no execution", async () => {
+  it("[rpc:ScheduleCommandController.trigger] [rpc:ScheduleQueryController.listFires] every fire leaves a run-history row with the reason verbatim — including fires that created no execution", async () => {
     const { org } = await target.provisionTenancy();
     const { schedule, agentSlug } = await createDanglingSchedule(org);
 
@@ -150,7 +150,7 @@ describe.skipIf(!firingEnabled)("Schedule trigger contract (scheduleFiring targe
     expect(run.completedAt, "a no-run fire is terminal at insert").toBeDefined();
   });
 
-  it("[rpc:ScheduleQueryController.listRuns] listing runs of a missing schedule is NotFound — an empty history never impersonates 'never fired'", async () => {
+  it("[rpc:ScheduleQueryController.listFires] listing runs of a missing schedule is NotFound — an empty history never impersonates 'never fired'", async () => {
     await expectGrpcCode(
       () => clients.scheduleQuery.listFires({ scheduleId: "sch_01conformancemissing" }),
       Code.NotFound,
@@ -178,7 +178,7 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
     await target?.teardown();
   });
 
-  it("[rpc:ScheduleCommandController.trigger] [rpc:ScheduleQueryController.listRuns] a real fire runs the agent to completion — the result carries the execution, and run history resolves it at read time", async () => {
+  it("[rpc:ScheduleCommandController.trigger] [rpc:ScheduleQueryController.listFires] a real fire runs the agent to completion — the result carries the execution, and run history resolves it at read time", async () => {
     const { org } = await target.provisionTenancy();
 
     const agent = await clients.agentCommand.create(

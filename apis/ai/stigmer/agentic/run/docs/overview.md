@@ -1,4 +1,4 @@
-An AgentRun represents a single turn in a conversation: one user message
+A Run represents a single turn in a conversation: one user message
 and the agent's response, with the messages exchanged, tool calls made,
 sub-agent delegations, approval decisions, and artifacts produced. A turn
 continues a session (`session_id`) or starts one (`session_spec`, whose
@@ -11,7 +11,7 @@ message's model and limits; unset fields fall to the agent's defaults, and
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
-kind: AgentRun
+kind: Run
 metadata:
   name: ask-about-deployment
   org: acme

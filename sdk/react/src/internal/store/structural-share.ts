@@ -5,7 +5,7 @@ import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 
 /**
- * Compares two `AgentRun` snapshots and returns a hybrid object
+ * Compares two `Run` snapshots and returns a hybrid object
  * that reuses old references for unchanged subtrees.
  *
  * The backend appends new messages and mutates the streaming tail.

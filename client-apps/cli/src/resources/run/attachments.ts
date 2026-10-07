@@ -1,4 +1,4 @@
-// Attachment processing for agent runs.
+// Attachment processing for runs.
 //
 // Ports the Go CLI's run_attachments.go + run_attachments_zip.go. Each `--attach`
 // path is either recorded as a workspace-relative reference (when it lives inside

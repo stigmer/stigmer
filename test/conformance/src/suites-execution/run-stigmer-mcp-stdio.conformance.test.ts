@@ -1,7 +1,7 @@
 // Conformance suite for an agent on the `stigmer mcp-server` over stdio: a
 // fixture agent that reads a Stigmer resource through the mcp-server's tools,
-// run as an ordinary AgentRun against the real mcp-server over stdio.
-// Domain: agentic / agentrun — an agent's tool loop over a stdio MCP server,
+// run as an ordinary Run against the real mcp-server over stdio.
+// Domain: agentic / run — an agent's tool loop over a stdio MCP server,
 // observed through the transcript. This is the one always-on CI proof of the
 // runner's stdio lane and the mcp-server roster.
 //
@@ -27,7 +27,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
-import { allToolCalls, awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentruns";
+import { allToolCalls, awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
 import { agentRefOf } from "../support/agents";
 import { uniqueName } from "../support/naming";
 import { makeSession } from "../support/sessions";

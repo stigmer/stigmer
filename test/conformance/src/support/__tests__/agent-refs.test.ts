@@ -20,7 +20,7 @@ import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { describe, expect, it } from "vitest";
 import { makeSlackAgentChannel } from "../agentchannels";
-import { makeAgentExecution, sessionIdOf } from "../agentruns";
+import { makeAgentExecution, sessionIdOf } from "../runs";
 import { agentRefOf, makeAgentRef } from "../agents";
 import { makeAgentShare } from "../agentshares";
 import { makeSessionSpec } from "../sessions";

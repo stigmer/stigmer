@@ -1,5 +1,5 @@
 /**
- * Pins how an agent run resolves to the session page it opens: the
+ * Pins how a run resolves to the session page it opens: the
  * turn's target names its session by id, and that id is the answer; a
  * turn whose target is anything else (a new conversation's session spec the
  * server has not yet replaced, or no target at all) resolves to no session

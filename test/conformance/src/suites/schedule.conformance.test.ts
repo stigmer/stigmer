@@ -12,7 +12,7 @@
 // agent-id-keyed getByAgent (unknown agent answers an empty list, not an
 // error), and the org-scoped list. The FIRING contract (a trigger records
 // last_fire_at, failed fires accumulate into the platform auto-pause, resume
-// + re-trigger fires again) and the run-history surface (listRuns) live in
+// + re-trigger fires again) and the run-history surface (listFires) live in
 // suites-execution/schedule-firing.conformance.test.ts, gated on the
 // scheduleFiring capability.
 import { Code } from "@connectrpc/connect";

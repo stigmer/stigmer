@@ -14,7 +14,7 @@
  *   - the trigger's two-level contract with the REAL launch gates: with no
  *     engine behind the server the fire happens and honestly reports the
  *     EnsureEngineAvailable refusal — never a gRPC error;
- *   - the fire ledger: manual rows, cascade on delete, listRuns paging,
+ *   - the fire ledger: manual rows, cascade on delete, listFires paging,
  *     and an in-flight row's outcome read from its run's live phase.
  */
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -436,7 +436,7 @@ describe("trigger — the two-level contract", () => {
   });
 });
 
-describe("queries — list, getByAgent, listRuns", () => {
+describe("queries — list, getByAgent, listFires", () => {
   it("list filters by org and labels (AND), newest first", async () => {
     await command.create(
       scheduleInput({ name: "Tagged A", slug: "tagged-a", labels: { team: "ops", tier: "1" } }),
@@ -481,12 +481,12 @@ describe("queries — list, getByAgent, listRuns", () => {
     }
   });
 
-  it("listRuns answers NOT_FOUND for a missing schedule (never an empty history)", async () => {
+  it("listFires answers NOT_FOUND for a missing schedule (never an empty history)", async () => {
     const err = await refusal(() => query.listFires({ scheduleId: "sch_missing" }));
     expect(err.code).toBe(Code.NotFound);
   });
 
-  it("listRuns pages newest-first with 1-indexed pages (fire-identity rows via the ledger)", async () => {
+  it("listFires pages newest-first with 1-indexed pages (fire-identity rows via the ledger)", async () => {
     const created = await command.create(scheduleInput({ name: "Paged Runs", slug: "paged-runs" }));
     const id = created.metadata?.id ?? "";
     // Three fires with distinct nominal times, inserted through the store
@@ -528,7 +528,7 @@ describe("queries — list, getByAgent, listRuns", () => {
   });
 });
 
-describe("listRuns — an in-flight row reads its run's live phase", () => {
+describe("listFires — an in-flight row reads its run's live phase", () => {
   it("resolves each started row from its run, and a row whose run is gone or silent stands as recorded", async () => {
     const created = await command.create(scheduleInput({ name: "Live Runs", slug: "live-runs" }));
     const id = created.metadata?.id ?? "";
@@ -609,7 +609,7 @@ describe("delete — teardown posture and the ledger cascade", () => {
 
     const err = await refusal(() => query.get({ value: id }));
     expect(err.code).toBe(Code.NotFound);
-    // The ledger cascade ran (listRuns on the deleted schedule is NOT_FOUND,
+    // The ledger cascade ran (listFires on the deleted schedule is NOT_FOUND,
     // so assert through the store).
     const { total } = await server.store.listScheduleFires(id, 0, 10);
     expect(total).toBe(0);

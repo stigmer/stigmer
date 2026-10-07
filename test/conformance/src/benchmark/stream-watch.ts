@@ -1,4 +1,4 @@
-// Watches one execution through `AgentRun.subscribe`, the lane a console
+// Watches one execution through `Run.subscribe`, the lane a console
 // reads a turn on, and stamps on the client's clock the instants the parity
 // work is judged by: when the user first saw something (a root AI or THINKING
 // row with content), when the agent's work was done and offered for review (a
@@ -24,7 +24,7 @@
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { ConformanceClients } from "../harness/clients";
 import { FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { isTerminalPhase } from "../support/agentruns";
+import { isTerminalPhase } from "../support/runs";
 import { collectStream, type CollectedStream } from "../support/collect-stream";
 import { findChangeSet } from "../support/file-review";
 import { visibleRows } from "./status-facts";

@@ -62,7 +62,7 @@ import {
 import { FixtureTracker } from "../harness/fixtures";
 import { expectGrpcCode } from "../contract/errors";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { makeAgentExecution } from "../support/agentruns";
+import { makeAgentExecution } from "../support/runs";
 import { policyTriple } from "../support/iampolicies";
 import {
   SESSION_API_VERSION,
@@ -176,7 +176,7 @@ describe("run gate — a member may run only what they can see (on the enforcing
     );
   });
 
-  it("[rpc:AgentRunCommandController.create] a new conversation on a PRIVATE agent is denied with the agent copy", async (ctx) => {
+  it("[rpc:RunCommandController.create] a new conversation on a PRIVATE agent is denied with the agent copy", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const context = await tenancy(lane);
     const member = await lane.provisionMember(context);
@@ -203,7 +203,7 @@ describe("run gate — a member may run only what they can see (on the enforcing
     );
   });
 
-  it("[rpc:AgentRunCommandController.create] execution create by session_id on a session the member cannot see is denied with the session copy", async (ctx) => {
+  it("[rpc:RunCommandController.create] execution create by session_id on a session the member cannot see is denied with the session copy", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const context = await tenancy(lane);
     const member = await lane.provisionMember(context);
@@ -284,7 +284,7 @@ describe("run gate — a member may run only what they can see (on the enforcing
 });
 
 describe("run gate — the agent is asked on every turn and every repoint (on the enforcing lane)", () => {
-  it("[rpc:AgentRunCommandController.create] a member who lost the agent is refused in their own session", async (ctx) => {
+  it("[rpc:RunCommandController.create] a member who lost the agent is refused in their own session", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const context = await tenancy(lane);
     const member = await lane.provisionMember(context);
@@ -323,7 +323,7 @@ describe("run gate — the agent is asked on every turn and every repoint (on th
     );
   });
 
-  it("[rpc:AgentRunCommandController.create] a viewer of a session who may not run its agent is refused", async (ctx) => {
+  it("[rpc:RunCommandController.create] a viewer of a session who may not run its agent is refused", async (ctx) => {
     // A viewer on one session is a per-resource grant: an edition whose
     // grant scope admits only organization roles (open source's default)
     // cannot make one, and skips with that reason.
@@ -486,7 +486,7 @@ describe("run gate — a client-sent status never reaches either check (on the e
     );
   });
 
-  it("[rpc:AgentRunCommandController.create] on execution create", async (ctx) => {
+  it("[rpc:RunCommandController.create] on execution create", async (ctx) => {
     const { context, member, open, closed } = await cast(ctx);
 
     const denied = await expectGrpcCode(
@@ -509,7 +509,7 @@ describe("run gate — a client-sent status never reaches either check (on the e
 });
 
 describe("run gate — a session the caller may not add to discloses nothing (on the enforcing lane)", () => {
-  it("[rpc:AgentRunCommandController.create] a forbidden session answers the session's own denial even when its agent is gone", async (ctx) => {
+  it("[rpc:RunCommandController.create] a forbidden session answers the session's own denial even when its agent is gone", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const context = await tenancy(lane);
     const member = await lane.provisionMember(context);
@@ -547,7 +547,7 @@ describe("run gate — a session the caller may not add to discloses nothing (on
     );
   });
 
-  it("[rpc:AgentRunCommandController.create] an unknown session answers NOT_FOUND naming only the id it was sent", async (ctx) => {
+  it("[rpc:RunCommandController.create] an unknown session answers NOT_FOUND naming only the id it was sent", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const context = await tenancy(lane);
     const member = await lane.provisionMember(context);

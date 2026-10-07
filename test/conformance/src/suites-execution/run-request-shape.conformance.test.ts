@@ -4,7 +4,7 @@
 // the provider receives on the first model call, photographed as file
 // goldens, and the facts about them that the platform's later work moves
 // deliberately.
-// Domain: agentic / agentrun — the runner's outbound contract with the
+// Domain: agentic / run — the runner's outbound contract with the
 // model, read at the one place it is observable offline: the mock proxy's
 // captured request bodies (test/support/src/mock-llm.ts), which are "everything the
 // model received over the wire".
@@ -35,7 +35,7 @@
 //   the `execute` schema at the same hook. The golden is the only photograph.
 //   The platform's memory-capture tool `remember` is NOT on a bare agent's
 //   surface: recall is an organization preference that defaults off
-//   (stigmer-server domain/agentrun/create-steps.ts,
+//   (stigmer-server domain/run/create-steps.ts,
 //   ComposeRecalledMemories), so the runner never synthesizes the attachment
 //   for it. An org that turns memory on adds one stdio MCP tool served by the
 //   `stigmer` command on PATH — a different photograph this facet does not
@@ -77,7 +77,7 @@
 // traverse the mock, so the surface it pays for is not observable here);
 // the number of model rounds a task takes (the mock's script fixes it, so
 // only a live run can measure it); the model id the provider received
-// (agentrun-messages' model-resolution arm); the `messages` array (the
+// (run-messages' model-resolution arm); the `messages` array (the
 // transcript facet's, read from status), except for the one fact status
 // cannot show: which user message a turn's payload rides.
 //
@@ -95,7 +95,7 @@ import { requireNativeRow, wireModelIdOf, type ModelRegistryDocument } from "../
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText } from "@stigmer/test-support/mock-llm";
 import { type AgentRefInit, BARE_AGENT_INSTRUCTIONS, agentRefOf, makeAgent } from "../support/agents";
-import { awaitTerminal, makeAgentExecution, requireLlmProxy, sessionIdOf } from "../support/agentruns";
+import { awaitTerminal, makeAgentExecution, requireLlmProxy, sessionIdOf } from "../support/runs";
 import { uniqueName } from "../support/naming";
 import { renderSystemPrompt, renderToolSurface } from "../support/request-shape";
 import { makeSkillArtifact } from "../support/skills";
@@ -213,7 +213,7 @@ const ADAPTIVE_MODEL = "claude-sonnet-5";
 const BUDGET_MODEL = "claude-haiku-4.5";
 const THINKING_REQUIRED_MODEL = "claude-fable-5";
 
-describe("AgentRun request shape — what the native harness sends the model for a bare agent", () => {
+describe("Run request shape — what the native harness sends the model for a bare agent", () => {
   it("the system prompt blocks, as the provider receives them, match the golden", async () => {
     const { org, agentRef } = await createBareAgent();
     const { request } = await runAgentTurn(org, agentRef);
@@ -222,7 +222,7 @@ describe("AgentRun request shape — what the native harness sends the model for
       true,
     );
     await expect(renderSystemPrompt(request)).toMatchFileSnapshot(
-      "./goldens/agentrun-request-shape.native-bare-agent.system-prompt.md",
+      "./goldens/run-request-shape.native-bare-agent.system-prompt.md",
     );
   });
 
@@ -232,7 +232,7 @@ describe("AgentRun request shape — what the native harness sends the model for
 
     expect(request.tools?.length ?? 0, "a bare native agent still binds the engine's built-in tools").toBeGreaterThan(0);
     await expect(renderToolSurface(request)).toMatchFileSnapshot(
-      "./goldens/agentrun-request-shape.native-bare-agent.tool-surface.md",
+      "./goldens/run-request-shape.native-bare-agent.tool-surface.md",
     );
   });
 
@@ -305,7 +305,7 @@ async function createAgentWithSkills(): Promise<{ org: string; agentRef: AgentRe
   return { org, agentRef: agentRefOf(agent) };
 }
 
-describe("AgentRun request shape — the system prompt is the session's, the payload the turn's", () => {
+describe("Run request shape — the system prompt is the session's, the payload the turn's", () => {
   it("nine skills, three turns with different messages, an attachment and a referenced file: system and tools stay byte-identical", async () => {
     const { org, agentRef } = await createAgentWithSkills();
     const filename = "cross-turn-notes.txt";
@@ -342,7 +342,7 @@ describe("AgentRun request shape — the system prompt is the session's, the pay
   });
 });
 
-describe("AgentRun request shape — thinking, per the model's native registry row", () => {
+describe("Run request shape — thinking, per the model's native registry row", () => {
   it("ENABLED on an adaptive row sends adaptive thinking with summarized display, and binds no think tool", async () => {
     const row = requireNativeRow(await registry(), ADAPTIVE_MODEL);
     expect(row.thinkingForm, `${ADAPTIVE_MODEL} is the adaptive row this arm pins`).toBe("adaptive");

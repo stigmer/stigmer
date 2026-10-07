@@ -214,7 +214,7 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | ScheduleQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy) |
 | ScheduleQueryController.getByAgent | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
 | ScheduleQueryController.list | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
-| ScheduleQueryController.listRuns | config: can_view on schedule (field schedule_id), error_msg yes | chain-with-Authorize |
+| ScheduleQueryController.listFires | config: can_view on schedule (field schedule_id), error_msg yes | chain-with-Authorize |
 
 ## 15. Memory (`src/domain/memory/controller.ts`)
 
@@ -228,33 +228,33 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | MemoryQueryController.get | config: can_view on memory (field value), error_msg yes | chain-with-Authorize |
 | MemoryQueryController.list | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
 
-## 16. AgentRun (`src/domain/agentrun/controller.ts` + lifecycle.ts, update-status.ts, submit-approval.ts, submit-file-decision.ts, usage.ts, artifacts.ts, subscribe.ts)
+## 16. Run (`src/domain/run/controller.ts` + lifecycle.ts, update-status.ts, submit-approval.ts, submit-file-decision.ts, usage.ts, artifacts.ts, subscribe.ts)
 
 | Method | Annotation | Handler |
 |---|---|---|
-| AgentRunCommandController.create | is_skip_authorization | chain-with-Authorize (guard: AuthorizeRunTarget — can_create_run_in on the session a turn continues, before anything about it is read; then guard: AuthorizeRunAgent — can_execute on the agent ResolveRunAgent stamped, the session's pinned agent or the new session_spec's agent_ref, none for the built-in assistant. The annotation cannot express either. Under the built-in posture every caller is checked as the person it acts for; guard: RefuseBoundElsewhere — a credential bound to one organization files no run in another (`src/pipeline/steps/refuse-bound-elsewhere.ts`; the run credential would be bound there).) |
-| AgentRunCommandController.update | config: can_edit on agent_run (field metadata.id), error_msg yes | chain-with-Authorize |
-| AgentRunCommandController.updateStatus | config: can_edit on agent_run (field run_id), error_msg yes | chain-with-Authorize (update-status.ts) |
-| AgentRunCommandController.submitApproval | config: can_edit on agent_run (field agent_run_id), error_msg yes | chain-with-Authorize (submit-approval.ts) |
-| AgentRunCommandController.submitFileDecision | config: can_edit on agent_run (field agent_run_id), error_msg yes | chain-with-Authorize (submit-file-decision.ts) |
-| AgentRunCommandController.cancel | config: can_edit on agent_run (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
-| AgentRunCommandController.terminate | config: can_edit on agent_run (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
-| AgentRunCommandController.recover | config: can_edit on agent_run (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
-| AgentRunCommandController.pause | config: can_edit on agent_run (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
-| AgentRunCommandController.resume | config: can_edit on agent_run (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
-| AgentRunCommandController.uploadAttachment | is_skip_authorization | direct (by design: a blob-store write whose returned storage_key is the capability token for the later create, which is where the run is authorized; deleting: inert, a blob write that names no organization and files no row; the run create that would name the stored key names its organization and is refused) |
-| AgentRunCommandController.delete | config: can_edit on agent_run (field value), error_msg yes | chain-with-Authorize |
-| AgentRunQueryController.get | config: can_view on agent_run (field value), error_msg yes | chain-with-Authorize |
-| AgentRunQueryController.list | is_skip_authorization | chain-with-Authorize (the request org through the list index, paged, phase filter per batch; driver: ListReadScope — a composed scope narrows each batch to the caller's authorized rows; the guest cookie rule is driver-internal) |
-| AgentRunQueryController.listBySession | is_skip_authorization | chain-with-Authorize (the session's runs through the list index's session key, whole; driver: ListReadScope — a composed scope narrows to the caller's authorized rows; the guest cookie rule is driver-internal; deleting: bindListReadScope) |
-| AgentRunQueryController.subscribe | config: can_view on agent_run (field value), error_msg yes | direct: stream subscribe over broker (register-before-snapshot; server-stream generator cannot run inside the pipeline executor); authorizeDirect once at subscription start |
-| AgentRunQueryController.getArtifactDownloadUrl | config: can_view on agent_run (field run_id), error_msg yes | direct: authorizeDirect, then key-prefix / attachment-membership ownership check, then time-limited URL mint |
-| AgentRunQueryController.getArtifactContent | config: can_view on agent_run (field run_id), error_msg yes | direct: authorizeDirect, then key-prefix ownership check, CAS-blob integrity check, truncated bytes in response |
-| AgentRunQueryController.getRunUsageReport | config: can_view on agent_run (field run_id), error_msg yes | chain-with-Authorize (usage.ts) |
-| AgentRunQueryController.getSessionUsageReport | config: can_view on session (field session_id), error_msg yes | chain-with-Authorize (usage.ts) |
-| AgentRunQueryController.getAgentUsageReport | config: can_view on organization (field org), error_msg yes | chain-with-Authorize (usage.ts) |
-| AgentRunQueryController.getOrgUsageReport | config: can_view on organization (field org), error_msg yes | chain-with-Authorize (usage.ts) |
-| AgentRunQueryController.getRunSummary | is_skip_authorization | direct: the requested org's runs within the window, read through the list index, aggregated for the dashboard (driver: ListReadScope's restrict verb — a composed scope keeps the caller's authorized rows; none kept = the default instance) |
+| RunCommandController.create | is_skip_authorization | chain-with-Authorize (guard: AuthorizeRunTarget — can_create_run_in on the session a turn continues, before anything about it is read; then guard: AuthorizeRunAgent — can_execute on the agent ResolveRunAgent stamped, the session's pinned agent or the new session_spec's agent_ref, none for the built-in assistant. The annotation cannot express either. Under the built-in posture every caller is checked as the person it acts for; guard: RefuseBoundElsewhere — a credential bound to one organization files no run in another (`src/pipeline/steps/refuse-bound-elsewhere.ts`; the run credential would be bound there).) |
+| RunCommandController.update | config: can_edit on run (field metadata.id), error_msg yes | chain-with-Authorize |
+| RunCommandController.updateStatus | config: can_edit on run (field run_id), error_msg yes | chain-with-Authorize (update-status.ts) |
+| RunCommandController.submitApproval | config: can_edit on run (field run_id), error_msg yes | chain-with-Authorize (submit-approval.ts) |
+| RunCommandController.submitFileDecision | config: can_edit on run (field run_id), error_msg yes | chain-with-Authorize (submit-file-decision.ts) |
+| RunCommandController.cancel | config: can_edit on run (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
+| RunCommandController.terminate | config: can_edit on run (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
+| RunCommandController.recover | config: can_edit on run (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
+| RunCommandController.pause | config: can_edit on run (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
+| RunCommandController.resume | config: can_edit on run (field id), error_msg yes | chain-with-Authorize (lifecycle.ts, own descriptor) |
+| RunCommandController.uploadAttachment | is_skip_authorization | direct (by design: a blob-store write whose returned storage_key is the capability token for the later create, which is where the run is authorized; deleting: inert, a blob write that names no organization and files no row; the run create that would name the stored key names its organization and is refused) |
+| RunCommandController.delete | config: can_edit on run (field value), error_msg yes | chain-with-Authorize |
+| RunQueryController.get | config: can_view on run (field value), error_msg yes | chain-with-Authorize |
+| RunQueryController.list | is_skip_authorization | chain-with-Authorize (the request org through the list index, paged, phase filter per batch; driver: ListReadScope — a composed scope narrows each batch to the caller's authorized rows; the guest cookie rule is driver-internal) |
+| RunQueryController.listBySession | is_skip_authorization | chain-with-Authorize (the session's runs through the list index's session key, whole; driver: ListReadScope — a composed scope narrows to the caller's authorized rows; the guest cookie rule is driver-internal; deleting: bindListReadScope) |
+| RunQueryController.subscribe | config: can_view on run (field value), error_msg yes | direct: stream subscribe over broker (register-before-snapshot; server-stream generator cannot run inside the pipeline executor); authorizeDirect once at subscription start |
+| RunQueryController.getArtifactDownloadUrl | config: can_view on run (field run_id), error_msg yes | direct: authorizeDirect, then key-prefix / attachment-membership ownership check, then time-limited URL mint |
+| RunQueryController.getArtifactContent | config: can_view on run (field run_id), error_msg yes | direct: authorizeDirect, then key-prefix ownership check, CAS-blob integrity check, truncated bytes in response |
+| RunQueryController.getRunUsageReport | config: can_view on run (field run_id), error_msg yes | chain-with-Authorize (usage.ts) |
+| RunQueryController.getSessionUsageReport | config: can_view on session (field session_id), error_msg yes | chain-with-Authorize (usage.ts) |
+| RunQueryController.getAgentUsageReport | config: can_view on organization (field org), error_msg yes | chain-with-Authorize (usage.ts) |
+| RunQueryController.getOrgUsageReport | config: can_view on organization (field org), error_msg yes | chain-with-Authorize (usage.ts) |
+| RunQueryController.getRunSummary | is_skip_authorization | direct: the requested org's runs within the window, read through the list index, aggregated for the dashboard (driver: ListReadScope's restrict verb — a composed scope keeps the caller's authorized rows; none kept = the default instance) |
 
 ## 20. McpServer (`src/domain/mcpserver/controller.ts` + connect.ts, start-connect.ts, initiate-oauth-connect.ts, complete-oauth-connect.ts, disconnect-oauth.ts, get-oauth-grant-status.ts)
 
@@ -400,7 +400,7 @@ These 22 methods declare a `(ai.stigmer.commons.rpc.config)` annotation and run 
 
 - Session: updateSubject
 - AgentChannel: initiateInstall, completeInstall (the OSS lane enforces after its load, so every composed runtime receives a pre-authorized caller)
-- AgentRun: subscribe, getArtifactDownloadUrl, getArtifactContent
+- Run: subscribe, getArtifactDownloadUrl, getArtifactContent
 - McpServer: connect, startConnect, initiateOAuthConnect, completeOAuthConnect, disconnectOAuth, getOAuthGrantStatus
 
 **Enforced by the composed channel runtime (7)** — this server's handlers delegate whole-method to `drivers.channelRuntime`; the OSS default serves the byte-pinned refusal/stub postures with nothing to protect, and the cloud runtime's served arms gate on the composed Authorizer as their first act (its own suite pins the deny paths):

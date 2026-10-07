@@ -1,7 +1,7 @@
 /**
  * Status-transition hook types — the execution-lifecycle seam, carried
  * by the extension registry and CONSUMED at
- * the updateStatus chokepoint (src/domain/agentrun/update-status.ts,
+ * the updateStatus chokepoint (src/domain/run/update-status.ts,
  * the single merge point every status transition funnels through).
  *
  * The contract: observers fire synchronously after the

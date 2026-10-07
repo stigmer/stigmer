@@ -1,8 +1,8 @@
 // Conformance suite for the settings a turn runs with (Class B).
 // Domain: agentic / agentexecution — status.run_config and status.approval_mode.
 //
-// The contract under test (RunConfig in agentrun/v1/invocation.proto,
-// AgentRunStatus.run_config and approval_mode in api.proto): the server
+// The contract under test (RunConfig in run/v1/invocation.proto,
+// RunStatus.run_config and approval_mode in api.proto): the server
 // resolves a turn's settings once, at create, from the message
 // (spec.run_config), the defaults of the agent version the turn runs
 // (AgentSpec.run_config, on the engine AgentSpec.harness names) and the lane's
@@ -42,7 +42,7 @@ import {
   makeAgentExecution,
   requireLlmProxy,
   sessionIdOf,
-} from "../support/agentruns";
+} from "../support/runs";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -104,8 +104,8 @@ async function turn(options: Omit<AgentExecutionOptions, "name">): Promise<Run> 
   return final;
 }
 
-describe("AgentRun — the settings a turn runs with", () => {
-  it("[rpc:AgentRunCommandController.create] runs the agent's default model when the message names none, and records it", async () => {
+describe("Run — the settings a turn runs with", () => {
+  it("[rpc:RunCommandController.create] runs the agent's default model when the message names none, and records it", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await agentWithDefaults(org, {
       harness: Harness.NATIVE,
@@ -121,7 +121,7 @@ describe("AgentRun — the settings a turn runs with", () => {
     expect(mock.requestModels()).toContain(await providerIdOf(AGENT_MODEL));
   });
 
-  it("[rpc:AgentRunCommandController.create] a message's model wins for that message, and a message cannot raise the agent's cap", async () => {
+  it("[rpc:RunCommandController.create] a message's model wins for that message, and a message cannot raise the agent's cap", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await agentWithDefaults(org, {
       harness: Harness.NATIVE,
@@ -139,7 +139,7 @@ describe("AgentRun — the settings a turn runs with", () => {
     expect(mock.requestModels()).toContain(await providerIdOf(MESSAGE_MODEL));
   });
 
-  it("[rpc:AgentRunCommandController.create] a message turns the agent's thinking off for the agent's model", async () => {
+  it("[rpc:RunCommandController.create] a message turns the agent's thinking off for the agent's model", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await agentWithDefaults(org, {
       harness: Harness.NATIVE,
@@ -156,7 +156,7 @@ describe("AgentRun — the settings a turn runs with", () => {
     expect(final.status?.runConfig?.thinkingMode).toBe(ThinkingMode.DISABLED);
   });
 
-  it("[rpc:AgentRunCommandController.create] on the other engine the agent's model is left out and its cap applies", async () => {
+  it("[rpc:RunCommandController.create] on the other engine the agent's model is left out and its cap applies", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await agentWithDefaults(org, {
       harness: Harness.CURSOR,
@@ -169,7 +169,7 @@ describe("AgentRun — the settings a turn runs with", () => {
     expect(final.status?.runConfig?.maxCostUsd).toBe(1);
   });
 
-  it("[rpc:AgentRunCommandController.create] a conversation keeps its version's defaults after the author saves another", async () => {
+  it("[rpc:RunCommandController.create] a conversation keeps its version's defaults after the author saves another", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await agentWithDefaults(org, {
       harness: Harness.NATIVE,
@@ -189,7 +189,7 @@ describe("AgentRun — the settings a turn runs with", () => {
     expect(second.status?.runConfig?.modelName).toBe(AGENT_MODEL);
   });
 
-  it("[rpc:AgentRunCommandController.create] a client-sent status run_config or approval mode never survives create", async () => {
+  it("[rpc:RunCommandController.create] a client-sent status run_config or approval mode never survives create", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await agentWithDefaults(org, { runConfig: { maxCostUsd: 2 } });
     mock.enqueue(anthropicText("Done."));

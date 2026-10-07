@@ -91,7 +91,7 @@ const run = await stigmer.run.create({
 client, _ := stigmer.NewClient("sk_...")
 defer client.Close()
 
-run, _ := client.AgentRun.Create(ctx,
+run, _ := client.Run.Create(ctx,
   &stigmer.RunInput{
     Org:     "my-org",
     Name:    "support-run",

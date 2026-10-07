@@ -274,7 +274,7 @@ describe("useTriggerSchedule", () => {
 
 describe("useScheduleFires", () => {
   it("fetches a schedule's run history, newest first", async () => {
-    const listRuns = vi.fn().mockResolvedValue(
+    const listFires = vi.fn().mockResolvedValue(
       create(ScheduleFireListSchema, {
         totalCount: 2,
         items: [
@@ -293,7 +293,7 @@ describe("useScheduleFires", () => {
         ],
       }),
     );
-    const client = { schedule: { listRuns } };
+    const client = { schedule: { listFires } };
 
     const { result } = renderHook(() => useScheduleFires("sch_01example"), {
       wrapper: wrapper(client),
@@ -306,15 +306,15 @@ describe("useScheduleFires", () => {
   });
 
   it("skips fetching when scheduleId is null", () => {
-    const listRuns = vi.fn();
-    const client = { schedule: { listRuns } };
+    const listFires = vi.fn();
+    const client = { schedule: { listFires } };
 
     const { result } = renderHook(() => useScheduleFires(null), {
       wrapper: wrapper(client),
     });
 
     expect(result.current.fires).toEqual([]);
-    expect(listRuns).not.toHaveBeenCalled();
+    expect(listFires).not.toHaveBeenCalled();
   });
 });
 

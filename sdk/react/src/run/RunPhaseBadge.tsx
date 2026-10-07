@@ -86,7 +86,7 @@ const PHASE_CONFIG: ReadonlyMap<RunPhase, PhaseConfig> = new Map([
 ]);
 
 /**
- * Displays the lifecycle phase of an `AgentRun` as an
+ * Displays the lifecycle phase of a `Run` as an
  * inline badge with a status icon and label.
  *
  * Renders nothing for `RUN_PHASE_UNSPECIFIED`.

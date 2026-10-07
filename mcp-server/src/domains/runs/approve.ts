@@ -1,9 +1,9 @@
-// Agent-run approval path: submit a decision for a tool call the run is
-// waiting on (AgentRunCommandController.submitApproval).
+// Run approval path: submit a decision for a tool call the run is
+// waiting on (RunCommandController.submitApproval).
 //
 // Pending approvals surface in get_run's status.pending_approvals[] —
-// there is no org-wide inbox for agent runs. The response reuses the
-// compact projection: the returned AgentRun embeds the full message history,
+// there is no org-wide inbox for runs. The response reuses the
+// compact projection: the returned Run embeds the full message history,
 // which the approval loop doesn't need.
 
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -58,7 +58,7 @@ export async function submitRunApproval(
         );
         return compactRunJson(run, DEFAULT_MESSAGE_LIMIT);
       } catch (err) {
-        throw rpcError(err, `approval for agent run "${args.runId}"`);
+        throw rpcError(err, `approval for run "${args.runId}"`);
       }
     },
   );

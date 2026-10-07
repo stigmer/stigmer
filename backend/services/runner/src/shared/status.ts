@@ -4,7 +4,7 @@
  * Both ExecuteCursor and ExecuteDeepAgent need to persist execution status
  * via gRPC, report setup progress phases, produce slim status payloads for
  * Temporal return values, and generate UTC timestamps. These thin utilities
- * are harness-agnostic — they operate on the common AgentRunStatus
+ * are harness-agnostic — they operate on the common RunStatus
  * proto without knowledge of Cursor SDK or LangGraph event shapes.
  */
 

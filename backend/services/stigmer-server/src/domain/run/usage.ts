@@ -1,12 +1,12 @@
 /**
- * AgentRun usage reports — ports usage_aggregation.go plus the four
+ * Run usage reports — ports usage_aggregation.go plus the four
  * report pipelines (get_execution_usage_report.go,
  * get_session_usage_report.go, get_agent_usage_report.go,
  * get_org_usage_report.go) and the dashboard summary
  * (get_execution_summary.go, a direct handler in Go too).
  *
  * The OSS zero-shapes contract, which the conformance suite's zero-record
- * read surfaces pin (agentrun.conformance.test.ts): runners record
+ * read surfaces pin (run.conformance.test.ts): runners record
  * no per-message llm_metrics and there is no llm_call_usage_record
  * collection (a cloud billing concern), so every aggregate is
  * structurally valid and zero-valued, and the session/agent/org reports
@@ -118,7 +118,7 @@ export function mergeModelBreakdowns(): ModelUsage[] {
 }
 
 /**
- * Projects a full AgentRun into the lightweight per-execution
+ * Projects a full Run into the lightweight per-execution
  * summary (Go buildExecutionSummary). Token/cost fields stay zero.
  */
 export function buildExecutionSummary(

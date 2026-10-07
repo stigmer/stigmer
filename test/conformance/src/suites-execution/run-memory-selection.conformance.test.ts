@@ -4,7 +4,7 @@
 // memories, observed through the RecalledMemoriesReport on execution status
 // and through the one embeddings call the retriever makes.
 //
-// agentrun-memory-retrieval.conformance.test.ts pins the NO-embedder
+// run-memory-retrieval.conformance.test.ts pins the NO-embedder
 // posture (the mock fences the OpenAI path, the retriever degrades to wholesale
 // with an honest report). This file flips the mock's embeddings posture on
 // (MockLlmProxy.serveEmbeddings, computed vectors — header of mock-llm.ts) and
@@ -28,7 +28,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentruns";
+import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
 import { provisionOrgWithConfirmedFacts } from "../support/memories";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
@@ -94,7 +94,7 @@ async function runExecution(org: string): Promise<Run> {
 }
 
 describe.skipIf(!canSeedMemories)(
-  "AgentRun memory retrieval (embedder posture)",
+  "Run memory retrieval (embedder posture)",
   () => {
     it("at the threshold with an embedder present: wholesale, no embeddings call, selection_active false", async () => {
       const { org } = await provisionOrgWithConfirmedFacts(clients, fixtures, RETRIEVAL_ACTIVATION_THRESHOLD, fund);

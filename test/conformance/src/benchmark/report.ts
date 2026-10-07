@@ -58,7 +58,7 @@
 //   turn's final to-do list by state (`todos`), because the counts alone say
 //   how many rounds a turn took and never why (schema v4; the derivation is
 //   `tool-call-facts.ts`'s). Targets are kept, results and file contents never.
-// - A quality grade names the judge's agent run it was read from
+// - A quality grade names the judge's run it was read from
 //   (`judge_run_id`, schema v5). A v5 grade and an earlier one come from
 //   different judging paths and are not compared.
 
@@ -352,7 +352,7 @@ export interface QualityCell {
   files_changed: FileChangeFact[];
   checks: QualityCheck[];
   turns: BenchmarkSample[];
-  /** The judge's AgentRun, the run the grade was read from. */
+  /** The judge's Run, the run the grade was read from. */
   judge_run_id: string;
   outcome: SampleOutcome;
   failure?: SampleFailure;

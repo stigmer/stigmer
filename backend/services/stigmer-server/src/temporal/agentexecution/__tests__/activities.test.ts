@@ -127,7 +127,7 @@ async function saveExecution(
     RunSchema,
     create(RunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "AgentRun",
+      kind: "Run",
       metadata: { id, name: "test-exec", org: "test-org" },
       spec: { target: { case: "sessionId", value: "ses_1" } },
       status: {

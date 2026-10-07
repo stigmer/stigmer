@@ -19,7 +19,7 @@
  * classification + a per-request abort timeout). That loop is the ONLY
  * retry layer between an agent execution and its checkpoints — the deep
  * agent activity is deliberately non-retryable at the Temporal level
- * (maximumAttempts: 1; replaying a whole agent run is not safe), so before
+ * (maximumAttempts: 1; replaying a whole run is not safe), so before
  * this existed a single dropped request killed the execution. Retrying puts
  * is safe by server contract:
  * CheckpointStore documents putCheckpoint/putWrite as keyed save-or-replace

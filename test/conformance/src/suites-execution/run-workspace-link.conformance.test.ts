@@ -31,7 +31,7 @@ import { GitWorkspace, requireGit } from "../harness/git-workspace";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/agentruns";
+import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
 import { pollUntil } from "../support/run-poll";
 import { uniqueName } from "../support/naming";
 import { makeSession } from "../support/sessions";

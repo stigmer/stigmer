@@ -34,7 +34,7 @@ import {
   makeAgentExecution,
   requireLlmProxy,
   requireMcpFixture,
-} from "../support/agentruns";
+} from "../support/runs";
 import { makeHttpMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
@@ -75,11 +75,11 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-describe("AgentRun run_config.max_tool_rounds", () => {
+describe("Run run_config.max_tool_rounds", () => {
   // The run passes its 80% advisory on the way to the limit, so this case is
   // also the end-to-end proof that the advisory reaches an Anthropic model as
   // a request it accepts (stigmer/stigmer#1354).
-  it("[rpc:AgentRunCommandController.create] ends the run at its budget, with exactly that many tool rounds made", async () => {
+  it("[rpc:RunCommandController.create] ends the run at its budget, with exactly that many tool rounds made", async () => {
     const { org } = await target.provisionTenancy();
 
     const server = await clients.mcpServerCommand.create(

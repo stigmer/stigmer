@@ -35,7 +35,7 @@ async function runList(type: string, options: ListFlags, command: Command): Prom
 
   // The one pre-gate alias family: runs resolve BEFORE the registry.
   // Adding another pre-gate alias here requires its kind to be
-  // non-registry-addressable (agent_run's posture) — an addressable
+  // non-registry-addressable (run's posture) — an addressable
   // kind must list through the registry dispatch instead, or its verb-matrix
   // row lies. The alias-shadowing pin in registry/registry.test.ts enforces
   // this; sessions shipped works-but-unadvertised through exactly such a

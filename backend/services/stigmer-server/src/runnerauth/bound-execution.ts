@@ -48,7 +48,7 @@
  * legitimate runner writes trail the terminal stamp (constants.ts). A
  * terminal row that does not say when it finished gets no grace: fail
  * closed. The terminal set is the run domain's own predicate
- * (agentrun/phases.ts), never restated here. A RECOVERED execution is live again, and so is its credential —
+ * (run/phases.ts), never restated here. A RECOVERED execution is live again, and so is its credential —
  * the same principal set as the token in Temporal history (the operator
  * who runs the engine and holds the signing key).
  *

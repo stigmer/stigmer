@@ -100,7 +100,7 @@ import {
   makeAgentExecution,
   requireMcpFixture,
   sessionIdOf,
-} from "../support/agentruns";
+} from "../support/runs";
 import { makeApiKey, plaintextKeyOf } from "../support/apikeys";
 import { makePersonalEnvironment } from "../support/environments";
 import { pollUntil } from "../support/run-poll";
@@ -337,7 +337,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       expect(session.spec?.subject).not.toBe(UNTITLED_SESSION_SUBJECT);
     });
 
-    it("[rpc:AgentRunCommandController.updateStatus] an API key alone is not a delegate: the operator's key on the member's run is refused", async (ctx) => {
+    it("[rpc:RunCommandController.updateStatus] an API key alone is not a delegate: the operator's key on the member's run is refused", async (ctx) => {
       const { lane, mock } = laneOrSkip(ctx);
       const people = await provisionPeople(lane);
       const agent = await createAgent(
@@ -696,7 +696,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
       expect(new Set(carried)).toEqual(new Set(["member-credential"]));
     });
 
-    it("[rpc:AgentRunCommandController.create] a key the agent declares and no layer carries is filled from the turn sender's personal environment, never the agent author's saved after it", async (ctx) => {
+    it("[rpc:RunCommandController.create] a key the agent declares and no layer carries is filled from the turn sender's personal environment, never the agent author's saved after it", async (ctx) => {
       const { lane, mock } = laneOrSkip(ctx);
       const people = await provisionPeople(lane);
 

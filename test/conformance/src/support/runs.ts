@@ -1,7 +1,7 @@
-// Canonical AgentRun fixtures + execution polling helpers.
+// Canonical Run fixtures + execution polling helpers.
 // Domain: conformance support (execution engine).
 //
-// An AgentRun is one user message and the agent's response (a turn),
+// A Run is one user message and the agent's response (a turn),
 // run through the engine (Temporal orchestrator + TS runner + a mock LLM). It
 // names its conversation through the spec's `target` oneof: an existing
 // session (`session_id`), or a new one (`session_spec`, the one-call
@@ -9,7 +9,7 @@
 // starts a conversation with the built-in assistant. The builder takes the
 // agent as a reference (`agentRef`, merged into the new session's spec), so
 // a turn on an agent never names an agent id: the server pins the agent and
-// version on the session and stamps them on the turn's status. An AgentRun
+// version on the session and stamps them on the turn's status. A Run
 // is a *running thing*, so this module also exposes phase-await helpers,
 // delegating the timing loop to the shared poll core — and the submit-approval
 // seam: the one place the approval read-model contract is
@@ -39,7 +39,7 @@ import { type PollCoreOptions, pollUntil } from "./run-poll";
 import { makeHttpMcpServer } from "./mcpservers";
 
 export const AGENT_EXECUTION_API_VERSION = "agentic.stigmer.ai/v1";
-export const AGENT_EXECUTION_KIND = "AgentRun";
+export const AGENT_EXECUTION_KIND = "Run";
 
 export interface AgentExecutionOptions {
   org: string;
@@ -80,7 +80,7 @@ export interface AgentExecutionOptions {
   workspaceFileRefs?: string[];
 }
 
-// A complete, valid AgentRun create request. run_config is left unset
+// A complete, valid Run create request. run_config is left unset
 // unless provided, so the only variable inputs are the target, the message,
 // and the optional overrides.
 export function makeAgentExecution(opts: AgentExecutionOptions): InitShape<typeof RunSchema> {
@@ -242,7 +242,7 @@ export function awaitTerminal(
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface SubmitApprovalPerContractOptions {
-  // Issues the decision. Resolves to the AgentRun whose read model the
+  // Issues the decision. Resolves to the Run whose read model the
   // contract is asserted on: the submit response.
   submit: () => Promise<Run>;
   // pending_approvals the response must carry after this decision: 0 for a

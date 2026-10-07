@@ -86,7 +86,7 @@ let stack: RunningStack | undefined;
 export async function startBackendStack(opts: {
   apiPort: number;
   // When set, the runner is pointed at this mock LLM proxy base URL
-  // (STIGMER_PROXY_ENDPOINT), so agent runs stay hermetic and
+  // (STIGMER_PROXY_ENDPOINT), so runs stay hermetic and
   // deterministic.
   mockLlmEndpoint?: string;
   // When set (with mockLlmEndpoint), the RUNNER boots with no artifact store

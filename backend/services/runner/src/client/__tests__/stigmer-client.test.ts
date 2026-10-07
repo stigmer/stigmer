@@ -194,9 +194,9 @@ describe("StigmerClient", () => {
       await runInterceptor(req);
       expect(req.header.get("authorization")).toBe("Bearer control-plane-tok");
 
-      // An agent-run create is not a runner-credential RPC: a runner starts
+      // A run create is not a runner-credential RPC: a runner starts
       // no child runs, so a create it sends presents the process credential.
-      const create = makeRequest("ai.stigmer.agentic.agentrun.v1.AgentRunCommandController", "create");
+      const create = makeRequest("ai.stigmer.agentic.run.v1.RunCommandController", "create");
       await runInterceptor(create);
       expect(create.header.get("authorization")).toBe("Bearer control-plane-tok");
     });
@@ -504,7 +504,7 @@ describe("StigmerClient", () => {
       await client.getRunnerScopedToken({ agentExecutionId: "aex_1" });
 
       const input = rpc.mock.calls[0]![0];
-      expect(input.scope).toEqual({ case: "agentRunId", value: "aex_1" });
+      expect(input.scope).toEqual({ case: "runId", value: "aex_1" });
     });
 
     it("maps poolClaimSessionId onto the pool_claim message arm", async () => {

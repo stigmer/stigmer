@@ -2,7 +2,7 @@
 // Domain: agentic / schedule, agentshare, agentchannel — the save-time rule
 // every surface that stores a RunConfig shares.
 //
-// The contract under test (RunConfig in agentrun/v1/invocation.proto):
+// The contract under test (RunConfig in run/v1/invocation.proto):
 // saved settings are self-contained. A schedule's, a share's or a channel's
 // run_config that asks for the fast tier or for thinking names the model it
 // is for; only a live message may set either alone, to adjust the model a

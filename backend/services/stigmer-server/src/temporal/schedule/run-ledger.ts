@@ -30,7 +30,7 @@ import {
 } from "./names.js";
 
 // Ledger vocabulary: the lowercase names of the
-// ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome / ScheduleRunOrigin
+// ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome / ScheduleFireOrigin
 // enum values, shared byte-for-byte with the cloud edition's rows.
 export const RUN_LEDGER_ORIGIN_CRON = "cron";
 export const RUN_LEDGER_ORIGIN_MANUAL = "manual";
@@ -158,7 +158,7 @@ export async function recordRunLedgerVerdict(
  * — exported for the trigger controller, so the ledger vocabulary and the
  * outcome mapping stay in ONE module (Go RecordManualFire). Manual rows
  * for started runs stay non-terminal forever in storage: manual fires are
- * untracked by design (the caller watches the execution), and listRuns
+ * untracked by design (the caller watches the execution), and listFires
  * resolves their outcome from the execution's live phase at read time.
  * Start failures are terminal at insert, exactly like cron.
  */

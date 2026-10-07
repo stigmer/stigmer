@@ -18,26 +18,26 @@ requests.
 
 Runners sit at the execution layer of the resource model. When you send a
 message to a [Session](/docs/concepts/sessions), Stigmer creates an
-[Agent Run](/docs/concepts/agents#blueprint-vs-runtime) and hands it to a
-runner. The runner processes the run — calling the LLM, running tools, pausing
-for [approval](/docs/concepts/approval-flows) — and streams the result back.
+[run](/docs/concepts/agents#blueprint-vs-runtime) and hands it to a runner. The
+runner processes the run — calling the LLM, running tools, pausing for
+[approval](/docs/concepts/approval-flows) — and streams the result back.
 
 {/* prettier-ignore */}
 <Mermaid
   chart={`
 graph LR
   A["Agent<br/>(blueprint)"] --> S["Session<br/>(conversation)"]
-  S --> AE["Agent Run"]
+  S --> AE["run"]
   AE --> R["Runner<br/>(compute)"]
 `}
 />
 
-| Resource      | What it represents             | Analogy                         |
-| ------------- | ------------------------------ | ------------------------------- |
-| **Agent**     | Instructions, Skills, tools    | A recipe                        |
-| **Session**   | Conversation with memory       | An order cooked from the recipe |
-| **Agent Run** | One request-response cycle     | Preparing one dish              |
-| **Runner**    | The process that does the work | The cook                        |
+| Resource    | What it represents             | Analogy                         |
+| ----------- | ------------------------------ | ------------------------------- |
+| **Agent**   | Instructions, Skills, tools    | A recipe                        |
+| **Session** | Conversation with memory       | An order cooked from the recipe |
+| **Run**     | One request-response cycle     | Preparing one dish              |
+| **Runner**  | The process that does the work | The cook                        |
 
 Unlike Agents and Skills, a Runner is not a resource. You don't write one in
 YAML, you can't `apply` one, and the server keeps no record of which runners
@@ -45,8 +45,8 @@ exist. A runner is a process that connects to the server and to Temporal and
 does the work that appears on its queue.
 
 A single runner serves both [Harnesses](/docs/concepts/harnesses). The Harness
-is a property of the Session, and it travels with each Agent Run to whichever
-runner takes it; there is no separate runner, process, or queue per Harness.
+is a property of the Session, and it travels with each run to whichever runner
+takes it; there is no separate runner, process, or queue per Harness.
 
 ## Where a runner comes from
 
@@ -75,11 +75,11 @@ work. A run carries two things with it: the Session's Harness, and a credential
 the server mints for that run alone, so that everything the runner does for the
 run is recorded as the person who started it.
 
-A runner that is absent is noticed only when a run has nobody to take it. An
-Agent Run waits five minutes for a runner and then fails with a message that
-names the runner as the likely cause. A runner that stops in the middle of an
-Agent turn is detected through the heartbeat it sends Temporal every 30 seconds,
-and the turn resumes from the runner's checkpoint once a runner is back.
+A runner that is absent is noticed only when a run has nobody to take it. An Run
+waits five minutes for a runner and then fails with a message that names the
+runner as the likely cause. A runner that stops in the middle of an Agent turn
+is detected through the heartbeat it sends Temporal every 30 seconds, and the
+turn resumes from the runner's checkpoint once a runner is back.
 
 ## What's next
 

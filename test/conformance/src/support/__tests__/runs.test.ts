@@ -1,4 +1,4 @@
-// Unit arms for the AgentRun support seams.
+// Unit arms for the Run support seams.
 // - The phase polls: a timeout names the run, the label awaited, the distinct
 //   phases the poll saw in order, the status error and the last message, and
 //   awaitPhase labels its wait with the phase it awaits.
@@ -30,7 +30,7 @@ import {
   createConnectedMcpServer,
   pollExecution,
   submitApprovalPerContract,
-} from "../agentruns";
+} from "../runs";
 
 function executionWithPending(toolCallIds: string[]): Run {
   return create(RunSchema, {

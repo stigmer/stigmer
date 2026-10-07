@@ -40,7 +40,7 @@ import { ECHO_TOOL_NAME } from "../harness/mcp-server";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { awaitTerminal, makeAgentExecution, requireLlmProxy, requireMcpFixture } from "../support/agentruns";
+import { awaitTerminal, makeAgentExecution, requireLlmProxy, requireMcpFixture } from "../support/runs";
 import { makePersonalEnvironment } from "../support/environments";
 import { makeHttpMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";

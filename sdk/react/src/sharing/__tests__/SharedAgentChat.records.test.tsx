@@ -8,7 +8,7 @@ import type { SessionComposerProps } from "../../composer";
 // What the hosted share page writes, end to end through the real launcher and
 // new-session flow down to the client call.
 //
-// A visitor's first message is one AgentRun create whose target is a
+// A visitor's first message is one Run create whose target is a
 // new session spec. It must name the share's organization explicitly
 // (`metadata.org = profile.org`) and start the session on the share's agent
 // reference exactly as the profile gives it, version included. The server's

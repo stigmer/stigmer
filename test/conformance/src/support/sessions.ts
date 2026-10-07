@@ -81,7 +81,7 @@ export function makeSessionSpec(opts: SessionSpecOptions = {}): InitShape<typeof
 
 // spec.workspace_entries for local-path workspaces, the one projection both
 // the Session builder above and an execution's one-call bootstrap
-// (AgentRun.spec.session_spec) mount a host directory through.
+// (Run.spec.session_spec) mount a host directory through.
 export function localWorkspaceEntries(
   workspaces: readonly LocalWorkspaceOption[],
 ): NonNullable<InitShape<typeof SessionSpecSchema>["workspaceEntries"]> {

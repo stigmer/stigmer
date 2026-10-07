@@ -32,7 +32,7 @@
  * cannot tell which it is, so its arm writes no phase and no row, and the
  * invoke workflow, which knows, writes the phase and the stop row that the
  * server's merge keeps last (stigmer#980;
- * `backend/services/stigmer-server/src/domain/agentrun/platform-rows.ts`).
+ * `backend/services/stigmer-server/src/domain/run/platform-rows.ts`).
  * The pause row lived here until then, and a cancelled run ended with an
  * instruction to resume it. The arm's throw messages keep their bytes: they
  * are the wire copy the control planes see on the activity failure.
