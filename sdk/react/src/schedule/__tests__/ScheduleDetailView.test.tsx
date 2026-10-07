@@ -342,7 +342,7 @@ describe("ScheduleDetailView", () => {
     expect(onNavigateToRun).toHaveBeenCalledWith("aex_01run");
   });
 
-  it("navigates to a ledger row's run from the recent-runs strip and the Runs table", async () => {
+  it("navigates to a ledger row's run from the recent-fires strip and the History table", async () => {
     const onNavigateToRun = vi.fn();
     const client = makeClient(makeSchedule({ lastRunId: "aex_01last" }));
     client.schedule.listFires.mockResolvedValue(
@@ -364,8 +364,8 @@ describe("ScheduleDetailView", () => {
     fireEvent.click(await screen.findByRole("button", { name: "aex_01ledger" }));
     expect(onNavigateToRun).toHaveBeenLastCalledWith("aex_01ledger");
 
-    fireEvent.click(screen.getByRole("tab", { name: /Runs/ }));
-    const table = await screen.findByRole("table", { name: "Run history" });
+    fireEvent.click(screen.getByRole("tab", { name: /History/ }));
+    const table = await screen.findByRole("table", { name: "Fire history" });
     fireEvent.click(within(table).getByRole("button", { name: "aex_01ledger" }));
     expect(onNavigateToRun).toHaveBeenCalledTimes(2);
     expect(onNavigateToRun).toHaveBeenLastCalledWith("aex_01ledger");
@@ -466,10 +466,10 @@ describe("ScheduleDetailView", () => {
   });
 
   // -------------------------------------------------------------------------
-  // Tabs — Overview and the paginated Runs tab
+  // Tabs — Overview and the paginated History tab
   // -------------------------------------------------------------------------
 
-  it("splits into Overview and Runs tabs, with the run count as badge", async () => {
+  it("splits into Overview and History tabs, with the fire count as badge", async () => {
     const client = makeClient(makeSchedule());
     client.schedule.listFires.mockResolvedValue(
       create(ScheduleFireListSchema, {
@@ -487,20 +487,20 @@ describe("ScheduleDetailView", () => {
     renderView(client);
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
-    // The badge fills in once the (separate) runs fetch resolves.
+    // The badge fills in once the (separate) fires fetch resolves.
     await waitFor(() => {
       const tabs = screen.getAllByRole("tab");
-      expect(tabs.map((t) => t.textContent)).toEqual(["Overview", "Runs12"]);
+      expect(tabs.map((t) => t.textContent)).toEqual(["Overview", "History12"]);
     });
     // Overview is the default: definition on screen, no full table.
     expect(screen.getByText("Target agent")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("tab", { name: /Runs/ }));
-    await screen.findByRole("table", { name: "Run history" });
+    fireEvent.click(screen.getByRole("tab", { name: /History/ }));
+    await screen.findByRole("table", { name: "Fire history" });
     expect(screen.queryByText("Target agent")).toBeNull();
   });
 
-  it("pages through the run history (the hook's pagination, finally used)", async () => {
+  it("pages through the fire history (the hook's pagination, finally used)", async () => {
     const client = makeClient(makeSchedule());
     client.schedule.listFires.mockImplementation(
       async (req: { pageInfo?: { num: number; size: number } }) =>
@@ -523,7 +523,7 @@ describe("ScheduleDetailView", () => {
     renderView(client);
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
-    fireEvent.click(screen.getByRole("tab", { name: /Runs/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /History/ }));
     await screen.findByText("Page 1 of 2");
 
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
@@ -537,7 +537,7 @@ describe("ScheduleDetailView", () => {
     await screen.findByText("Page 2 of 2");
   });
 
-  it("links the Overview recent-runs strip to the Runs tab", async () => {
+  it("links the Overview recent-fires strip to the History tab", async () => {
     const client = makeClient(makeSchedule());
     client.schedule.listFires.mockImplementation(
       async (req: { pageInfo?: { num: number; size: number } }) =>
@@ -561,9 +561,9 @@ describe("ScheduleDetailView", () => {
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
     fireEvent.click(
-      await screen.findByRole("button", { name: "View all 12 runs" }),
+      await screen.findByRole("button", { name: "View all 12 fires" }),
     );
-    await screen.findByRole("table", { name: "Run history" });
+    await screen.findByRole("table", { name: "Fire history" });
   });
 
   // -------------------------------------------------------------------------

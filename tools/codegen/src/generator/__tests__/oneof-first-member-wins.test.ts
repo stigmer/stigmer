@@ -31,7 +31,7 @@ beforeAll(() => {
   runSDKClientJavaGeneration(SCHEMAS, javaOut);
   runSDKClientPythonGeneration(SCHEMAS, pythonOut);
   java = fs.readFileSync(path.join(javaOut, "RunInput.java"), "utf8");
-  python = fs.readFileSync(path.join(pythonOut, "_agentrun.py"), "utf8");
+  python = fs.readFileSync(path.join(pythonOut, "_run.py"), "utf8");
 });
 
 afterAll(() => {

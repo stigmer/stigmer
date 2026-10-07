@@ -31,7 +31,7 @@ describe("Python cross-package imports", () => {
       "platform_license_pb2",
     );
     expect(pyProtoModuleAlias("ai.stigmer.agentic.run.v1", "invocation_pb2")).toBe(
-      "agentrun_invocation_pb2",
+      "run_invocation_pb2",
     );
   });
 
