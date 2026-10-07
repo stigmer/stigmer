@@ -115,7 +115,7 @@ const VERSION_TOKEN = /^v(\d+)$/;
  * values matching it must be rejected with INVALID_ARGUMENT before they
  * reach encrypt(), whose idempotent pass-through would otherwise persist
  * them verbatim (letting a client store forged ciphertext that
- * getSecretValue later decrypts with the deployment key). Module-level,
+ * a later reveal decrypts with the deployment key). Module-level,
  * like the redaction-marker constant, so boundary steps need no service
  * instance and the rejection stays unconditional on keyless deployments.
  */
