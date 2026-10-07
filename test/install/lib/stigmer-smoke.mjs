@@ -680,7 +680,8 @@ const READS = Object.freeze({
  * `{ ids, snapshot, workflowRun? }`: the ids to read again later, the
  * snapshot {@link compareState} holds the later read to, and, on a base that
  * still serves workflows, the completed workflow run recorded beside them
- * (`{ orgId, workflowId, executionId }`).
+ * (`{ orgId, workflowId, executionId }`), whose organization joins the ids
+ * so the read after the upgrade proves it survived the workflows it held.
  */
 export async function recordState(baseUrl, timeoutMs, { expectText, log = () => {} }) {
   const api = await runApiOf(baseUrl);
@@ -693,6 +694,7 @@ export async function recordState(baseUrl, timeoutMs, { expectText, log = () => 
     agentId: agent.agentId,
     agentSlug: agent.agentSlug,
     agentExecutionId: agent.executionId,
+    ...(workflowRun !== undefined ? { workflowOrgId: workflowRun.orgId } : {}),
   };
   const snapshot = await readState(baseUrl, ids);
   const problems = Object.entries(snapshot)
@@ -703,7 +705,8 @@ export async function recordState(baseUrl, timeoutMs, { expectText, log = () => 
 }
 
 /**
- * Every recorded resource read again, by id, and the agent once more by its
+ * Every recorded resource read again, by id (the legacy workflow run's
+ * organization too, when one was recorded), and the agent once more by its
  * `org/slug` reference (the lookup `stigmer run <agent>` makes). A read that
  * fails is kept as `{ error }` rather than thrown, so one comparison can name
  * everything that was lost.
@@ -733,6 +736,7 @@ export async function readState(baseUrl, ids) {
       : { error: "not read: the agent or its organization did not read back by id" };
   return {
     agentOrg,
+    ...(ids.workflowOrgId !== undefined ? { workflowOrg: await read(READS.organization, { value: ids.workflowOrgId }, identity) } : {}),
     agent,
     agentByReference,
     agentExecution: await read(`${api.agentService}QueryController/get`, { value: ids.agentExecutionId }, (resource) => ({
