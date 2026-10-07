@@ -83,6 +83,14 @@ describe("a kind's retired id prefixes", () => {
       slug: "aex-run",
     });
   });
+
+  it("leave an agent slug that starts with run- an agent reference", () => {
+    for (const slug of ["run-nightly-report", `run-${ULID}`]) {
+      expect(hasResourceIdPrefix(slug), slug).toBe(false);
+      expect(validateResourceId(slug), slug).toMatch(/not a recognized/);
+    }
+    expect(hasResourceIdPrefix(`aex-${ULID}`)).toBe(true);
+  });
 });
 
 describe("resource-ID classification", () => {

@@ -907,7 +907,7 @@ async function migrateToV13(client: PoolClient): Promise<void> {
 }
 
 /**
- * One rename of the run kind (run-rename.ts), shared by v13 and v15.
+ * One rename of the run kind (run-rename.ts), shared by v13 and v16.
  *
  * - Every run row is read in keyset pages under its old kind and rewritten
  *   when its bytes spell the kind the old way; then every table keyed by

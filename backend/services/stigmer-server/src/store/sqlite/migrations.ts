@@ -908,7 +908,7 @@ function migrateToV18(db: DatabaseSync): void {
 }
 
 /**
- * One rename of the run kind (run-rename.ts), shared by v18 and v20. Every
+ * One rename of the run kind (run-rename.ts), shared by v18 and v21. Every
  * run row is read in keyset pages under its old kind and rewritten when its
  * bytes spell the kind the old way; then every table keyed by kind renames
  * the run kind. Every IamPolicy row is read in keyset pages, and the ones

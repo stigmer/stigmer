@@ -25,7 +25,9 @@ import {
 describe("isRunId", () => {
   it.each([
     ["run_01ARZ3NDEKTSV4RRFFQ69G5FAV", true],
-    ["run-01ARZ3NDEKTSV4RRFFQ69G5FAV", true],
+    // No run id was minted with the legacy "-"; "run-…" is an agent slug.
+    ["run-01ARZ3NDEKTSV4RRFFQ69G5FAV", false],
+    ["run-nightly-report", false],
     ["run_", true],
     // A run minted before the run kind's prefix became `run` keeps its id.
     ["aex_01ARZ3NDEKTSV4RRFFQ69G5FAV", true],

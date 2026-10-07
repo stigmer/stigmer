@@ -69,12 +69,22 @@ const ALL_ID_PREFIXES: readonly string[] = (() => {
   return [...set];
 })();
 
-// Mirrors Go's reference.isResourceIDWithKind: a kind prefix followed by either
-// separator the backend accepts ("_" canonical, "-" legacy). Case-sensitive.
+// The legacy "-" separator (Go's reference package) predates the run kind's
+// "run" prefix: no id was ever minted "run-…", and "run-" is how an agent slug
+// such as "run-nightly-report" starts, so that prefix takes "_" only.
+const UNDERSCORE_ONLY_PREFIXES: ReadonlySet<string> = new Set(["run"]);
+
+/** The separators an id may carry after `prefix`: "_" canonical, "-" legacy. */
+function separatorsFor(prefix: string): readonly string[] {
+  return UNDERSCORE_ONLY_PREFIXES.has(prefix) ? ["_"] : ["_", "-"];
+}
+
+// Mirrors Go's reference.isResourceIDWithKind: a kind prefix followed by a
+// separator {@link separatorsFor} allows it. Case-sensitive.
 function hasKindPrefix(ref: string, prefix: string): boolean {
   if (prefix === "") return false;
   const trimmed = ref.trim();
-  return trimmed.startsWith(`${prefix}_`) || trimmed.startsWith(`${prefix}-`);
+  return separatorsFor(prefix).some((sep) => trimmed.startsWith(`${prefix}${sep}`));
 }
 
 /** True if `ref` carries one of `kind`'s id prefixes, current or retired. */
@@ -98,9 +108,9 @@ export function isScheduleId(ref: string): boolean {
 }
 
 /**
- * True if `ref` is a run ID: `run_…`, or `aex_…` for a run minted before the
- * run kind's prefix changed (either separator; case-sensitive, so "RUN_" is
- * not one).
+ * True if `ref` is a run ID: `run_…`, or `aex_…` (either separator) for a run
+ * minted before the run kind's prefix changed. Case-sensitive, so "RUN_" is
+ * not one.
  */
 export function isRunId(ref: string): boolean {
   return hasPrefixOf(ref, ApiResourceKind.run);
@@ -128,7 +138,7 @@ export function hasResourceIdPrefix(ref: string): boolean {
 export function validateResourceId(ref: string): string | null {
   const trimmed = ref.trim();
   for (const prefix of ALL_ID_PREFIXES) {
-    for (const sep of ["_", "-"]) {
+    for (const sep of separatorsFor(prefix)) {
       const pfx = `${prefix}${sep}`;
       if (!trimmed.startsWith(pfx)) continue;
       const body = trimmed.slice(pfx.length);

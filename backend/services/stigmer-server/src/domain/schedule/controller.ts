@@ -731,7 +731,7 @@ function newListByOrgAndLabelsStep(
   };
 }
 
-/** ListRuns — the fire-ledger surface (list_runs.go:44-61). */
+/** ListFires — the fire-ledger surface (list_runs.go:44-61). */
 async function listFires(
   deps: ScheduleControllerDeps,
   req: ListScheduleFiresRequest,
@@ -760,8 +760,8 @@ async function listFires(
   const result = reqCtx.get(LIST_FIRES_RESULT_KEY);
   if (result === undefined) {
     throw internalError(
-      new Error("schedule run list not found in context"),
-      "schedule run list not found in context",
+      new Error("schedule fire list not found in context"),
+      "schedule fire list not found in context",
     );
   }
   return result as ScheduleFireList;

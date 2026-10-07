@@ -335,7 +335,7 @@ export const samples = {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Run",
       metadata: create(ApiResourceMetadataSchema, {
-        id: o?.id ?? "aex-00000000-0000-0000-0000-000000000001",
+        id: o?.id ?? "run_00000000000000000000000001",
         name: "demo-execution",
         slug: "demo-execution",
         org: "demo",
