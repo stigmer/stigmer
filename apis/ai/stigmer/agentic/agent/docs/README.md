@@ -20,7 +20,7 @@ Agent ──► Session ──► Run
 | **Session** | Container runtime | Names the agent (`agent_ref`) and pins the version it resolved. Groups related runs into a conversational context. Maintains state across multiple runs. |
 | **Run** | Container run (`docker run`) | A single run of the session's agent, at the pinned version. Produces messages, tool calls, and results. |
 
-The Agent resource is the only one users author directly in YAML. Sessions and Runs are created via the API or CLI at runtime. The agent declares the environment keys it needs (`env`); values come from the Environments bound to what starts a run (a schedule, a PlatformClient), from the run's `runtime_env`, and, for keys still missing, from the personal environment of the person who sent the message.
+The Agent resource is the only one users author directly in YAML. Sessions and Runs are created via the API or CLI at runtime. The agent declares the keys it needs itself (`env`); each MCP server declares its own. Values come from Credentials when a run starts: the run's `runtime_env`, the credential assignments on the schedule, share link, channel or PlatformClient that started a run with no person, or the Credential of the person who sent the message that serves the agent or MCP server (or the organization's, when that person may use it).
 
 ## Documentation Index
 

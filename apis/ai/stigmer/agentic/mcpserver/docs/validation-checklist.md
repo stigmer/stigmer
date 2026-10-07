@@ -144,7 +144,7 @@ disallowed_tools:
 
 ### `env_spec` with values pre-filled for secrets
 
-Secret values should never be pre-filled in the McpServer spec — they belong in an Environment bound to what starts the run, or in a person's personal environment, and should never be in version control.
+Secret values should never be pre-filled in the McpServer spec — they belong in a Credential (a person's own, or the organization's assigned to what starts the run), and should never be in version control.
 
 ```yaml
 # Wrong — secret value in spec

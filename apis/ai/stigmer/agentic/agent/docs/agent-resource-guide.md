@@ -155,7 +155,7 @@ What holds:
 
 ## Environment Specification
 
-Agents can declare required environment variables via `env_spec`. This defines the **schema** — actual values are provided at runtime: from the Environments bound to the schedule or PlatformClient that started the run, from the run's `runtime_env`, and, for keys still missing, from the personal environment of the person who sent the message. Those keys reach the agent's tools and shell; the console names the keys an agent will read from a person's personal environment before their first message.
+Agents declare the values they need themselves via `env`. This defines the **schema** — actual values come from Credentials when the run starts: the run's `runtime_env`, the credential assignments on the schedule, share link, channel or PlatformClient that started a run with no person, or the Credential of the person who sent the message that serves the agent (or the organization's, when that person may use it). Those keys reach the agent's tools and shell. An MCP server's keys stay on the server and reach that server alone; the console names what an agent and its MCP servers need before the first message.
 
 ```yaml
 spec:

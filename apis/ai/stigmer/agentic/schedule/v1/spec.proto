@@ -87,13 +87,12 @@ message ScheduleSpec {
     // on the referenced agent); workspace sources must be
     // git_repo (no client is connected at fire time to serve a
     // local_path); agent_ref is immutable across updates while
-    // harness, model, workspace, message, and environments stay
+    // harness, model, workspace, message, and credentials stay
     // mutable — every fire builds a fresh session, so nothing
-    // session-immutable is ever mutated mid-flight. environment_refs
-    // resolution is the shared one: claim-driven in
-    // the execution-context step, org-shared environments only,
-    // LOWEST merge priority, enforcement solely at runtime
-    // resolution. run_config is written to the fire's turn unchanged;
+    // session-immutable is ever mutated mid-flight. A fire's run has no
+    // person, so its values are the ones the credential assignments
+    // give (domain/credential/resolve.ts in the server), each writer's
+    // can_use asked again at the fire. run_config is written to the fire's turn unchanged;
     // the server resolves it once, at create (ResolveRunConfig), under
     // the schedule profile as the lane's ceiling (RunConfig has the
     // rule).

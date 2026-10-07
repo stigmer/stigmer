@@ -16,7 +16,7 @@ Agent ──► Session ──► Run
 | **Session** | Terminal session | Names the agent it runs (`agent_ref`) and pins the version it resolved. Groups related runs into a conversational context and maintains message history across runs. |
 | **Run** | `docker run` | A single invocation of the session's agent, at the session's pinned version. Produces messages, tool calls, and results. |
 
-A run continues a session (`session_id`) or starts a new one (`session_spec`, whose `agent_ref` names the agent; empty runs the built-in assistant). Secrets and runtime values come from the Environments bound to whatever started the run (a schedule, a PlatformClient), from `runtime_env`, and, for declared keys still missing, from the personal environment of the person who sent the message.
+A run continues a session (`session_id`) or starts a new one (`session_spec`, whose `agent_ref` names the agent; empty runs the built-in assistant). Secrets and runtime values come from Credentials: `runtime_env`, the credential assignments on whatever started a run with no person (a schedule, a share link, a channel, a PlatformClient), or the Credential of the person who sent the message that serves the agent or MCP server.
 
 Runs are created via the API or CLI. You do not author them in YAML the way you author an Agent — you trigger them with a message and let the system manage the resource.
 

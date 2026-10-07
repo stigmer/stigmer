@@ -59,12 +59,12 @@ message LocalPathSource {
 // Only HTTPS clone URLs are supported. SSH URLs are rejected at validation time.
 //
 // @internal
-// Authentication: The provisioner resolves GITHUB_TOKEN from the merged
-// environment (the run's environment_refs layers <
-// ExecutionContext.runtime_env). As a workspace-provisioning key it is
-// re-injected past the Agent.spec.env declared-key filter when the session has
-// git_repo entries, with a fallback to the caller's personal environment (see
-// the run controller's executionContextBuilder). The token is
+// Authentication: the repository's git host is a requirement of the run,
+// GITHUB_TOKEN, optional (a public repository needs none), filled by the
+// run's one credential rule (domain/credential/resolve.ts in the server):
+// the run's runtime_env, the assignment on the surface that started a run
+// with no person, or the run's person's credential serving the host. The
+// token is
 // injected into the clone URL, consumed by provisioning, and stripped before
 // forwarding to the agent runtime. SSH key authentication is a future
 // enhancement.

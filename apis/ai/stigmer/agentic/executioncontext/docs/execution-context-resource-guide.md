@@ -121,12 +121,14 @@ ExecutionContexts contain the **merged secrets** a runner needs at run time, but
 Run starts
     │
     ▼
-Execution engine resolves environment_refs from what started the run
-(schedule, PlatformClient)
+Execution engine gathers the run's requirements per declarer (the agent,
+each MCP server, each workspace git host)
     │
     ▼
-Engine merges resolved values (later refs override earlier) + any B2B runtime-injected values,
-then fills declared keys still missing from OAuth tokens and the run's person's personal environment
+Engine fills each from runtime_env, then the credential assignments of the
+surface that started a run with no person, then the run's person's
+Credential serving the declarer; a required value with no source refuses
+the run
     │
     ▼
 Engine calls ExecutionContextCommandController.create(ExecutionContext)

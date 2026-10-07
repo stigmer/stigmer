@@ -82,7 +82,7 @@ No request sets an approval mode: it is a fact of the lane the turn came through
 
 | Field | Type | Description |
 |---|---|---|
-| `runtime_env` | `map<string, ExecutionValue>` | Run-scoped secrets and environment variables. Available only for this run. Deleted when the run completes. Highest merge priority: Environment values (the creating schedule's or PlatformClient's `environment_refs`) < `runtime_env`; declared keys still missing are filled from the run's person's personal environment. Keys must be declared in `Agent.spec.env` (a declaration whitelist, not a value source) or they are dropped. |
+| `runtime_env` | `map<string, ExecutionValue>` | Run-scoped secrets and values. Available only for this run. Deleted when the run completes. Fills every requirement with its key ahead of every saved Credential; a key that the agent, its MCP servers and the workspace's git hosts do not declare is dropped. |
 
 Use `runtime_env` for B2B integrations where secrets must be injected at runtime per-caller, not stored in the agent configuration.
 

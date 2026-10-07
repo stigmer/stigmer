@@ -111,10 +111,11 @@ At runtime, the Agent does not connect to MCP servers directly. The flow is:
 
 1. **Agent** declares `mcp_server_usages` (references only — no connections, no
    secrets)
-2. **The run** resolves the declared keys when it starts: from the Environments
-   bound to the schedule or PlatformClient that started it, from
-   `runtime_env`, then OAuth tokens and the personal environment of the person
-   who sent the message for keys still missing
+2. **The run** resolves the declared keys when it starts: from `runtime_env`,
+   the credential assignments on the schedule, share link, channel or
+   PlatformClient that started a run with no person, or the Credential (a
+   sign-in included) of the person who sent the message that serves the MCP
+   server
 3. **Agent Runner** resolves each McpServer reference, passes each server the
    keys it declares, and starts the actual MCP server process
 4. The running MCP server's tools become available to the agent during the

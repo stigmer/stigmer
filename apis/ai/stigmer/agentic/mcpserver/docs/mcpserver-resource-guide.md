@@ -138,7 +138,7 @@ A tool asks for approval before it runs when the server itself marks it destruct
 
 ### Environment Specification
 
-`env_spec` declares the schema of environment variables the MCP server requires at runtime. This is documentation + validation, not actual values. Values come from the run's resolved environment (the Environments bound to what started the run, `runtime_env`, then OAuth tokens and the personal environment of the person who sent the message for keys still missing).
+`env` declares the schema of the values the MCP server requires at runtime. This is documentation + validation, not actual values. Values come from Credentials when the run starts: `runtime_env`, the credential assignments on the surface that started a run with no person, or the Credential (a sign-in included) of the person who sent the message that serves the server.
 
 ```yaml
 spec:
