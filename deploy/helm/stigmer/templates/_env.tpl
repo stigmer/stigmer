@@ -28,11 +28,15 @@ becomes %20, the encoding a URL's user and path segments read.
 - name: GRPC_PORT
   value: "7234"
 # Non-empty DATABASE_URL selects the Postgres driver. It names
-# no password: node-postgres reads PGPASSWORD when the URL
-# carries none, so no character in the password can break the
-# URL, and the password stays in its Secret, never in YAML.
+# the user and the address only: node-postgres reads PGDATABASE
+# and PGPASSWORD when the URL carries no database and no
+# password, so no character in either can break it (a URL's
+# database is decoded with decodeURI, which keeps reserved
+# escapes), and the password stays in its Secret.
 - name: DATABASE_URL
-  value: {{ printf "postgres://%s@%s:%s/%s" (include "stigmer.urlEscape" (include "stigmer.postgresUser" .)) (include "stigmer.postgresHost" .) (include "stigmer.postgresPort" .) (include "stigmer.urlEscape" (include "stigmer.postgresDatabase" .)) | quote }}
+  value: {{ printf "postgres://%s@%s:%s" (include "stigmer.urlEscape" (include "stigmer.postgresUser" .)) (include "stigmer.postgresHost" .) (include "stigmer.postgresPort" .) | quote }}
+- name: PGDATABASE
+  value: {{ include "stigmer.postgresDatabase" . | quote }}
 - name: PGPASSWORD
   valueFrom:
     secretKeyRef:

@@ -49,10 +49,13 @@ spec:
       labels:
         {{- include "stigmer.selectorLabels" (dict "root" . "component" "postgres") | nindent 8 }}
     spec:
-      {{- with .Values.postgres.securityContext.runAsGroup }}
+      {{- with (.Values.postgres.securityContext | default dict).runAsGroup }}
       # The claim's group: a fresh volume is writable by the user above.
+      # OnRootMismatch: the kubelet re-owns the volume only when its root
+      # is not already the group's, never the whole database at each start.
       securityContext:
         fsGroup: {{ . }}
+        fsGroupChangePolicy: OnRootMismatch
       {{- end }}
       automountServiceAccountToken: false
       {{- with .Values.image.pullSecrets }}

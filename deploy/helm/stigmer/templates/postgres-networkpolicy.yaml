@@ -13,8 +13,12 @@ admitted; NetworkPolicies add up, so a policy of the operator's own that
 admits it is enough (the README, "Backup, restore, upgrade"). A cluster
 whose network plugin does not enforce NetworkPolicy ignores this object;
 the README says so.
+
+The value is read through dig, defaulting on: a release upgraded with
+--reuse-values keeps the values of a chart that had no postgres.networkPolicy,
+and it gets the fence rather than a failed render.
 */ -}}
-{{- if and .Values.postgres.enabled .Values.postgres.networkPolicy.enabled }}
+{{- if and .Values.postgres.enabled (dig "networkPolicy" "enabled" true .Values.postgres) }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:

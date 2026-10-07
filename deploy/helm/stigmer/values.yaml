@@ -131,9 +131,10 @@ server:
       type: RuntimeDefault
   # Verbatim EnvVar entries appended to the server container. The chart
   # models what compose sets; the server's wider surface (LOG_LEVEL, the
-  # OTel endpoint, STIGMER_OAUTH_REDIRECT_URI, …) goes here. A name the
-  # chart sets itself is refused here: Kubernetes keeps the last entry of a
-  # name, so a repeat would silently replace the chart's value. The parity
+  # OTel endpoint, STIGMER_OAUTH_REDIRECT_URI, PGSSLMODE, …) goes here. A
+  # name the chart sets itself (DATABASE_URL among them) is refused here:
+  # Kubernetes keeps the last entry of a name, so a repeat would silently
+  # replace the chart's value. The parity
   # test runs with this empty, so it cannot hide a contract drift.
   extraEnv: []
 
@@ -268,10 +269,13 @@ postgres:
 
 externalDatabase:
   # Used when postgres.enabled is false. The server's DATABASE_URL is
-  # postgres://<user>@host:port/db and the password reaches it as
-  # PGPASSWORD from the Secret, so it never lands in rendered YAML and no
-  # character in it can break the URL. Bundled Temporal creates its own two
-  # databases on this instance and needs CREATE DATABASE.
+  # postgres://<user>@host:port; the database reaches it as PGDATABASE and
+  # the password as PGPASSWORD from the Secret, so the password never
+  # lands in rendered YAML and no character in either can break the URL.
+  # Connection options node-postgres reads from the environment, such as
+  # PGSSLMODE=require for a managed Postgres, go through server.extraEnv.
+  # Bundled Temporal creates its own two databases on this instance and
+  # needs CREATE DATABASE.
   host: ""
   port: 5432
   user: postgres

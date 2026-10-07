@@ -304,11 +304,15 @@ spec:
             - name: GRPC_PORT
               value: "7234"
             # Non-empty DATABASE_URL selects the Postgres driver. It names
-            # no password: node-postgres reads PGPASSWORD when the URL
-            # carries none, so no character in the password can break the
-            # URL, and the password stays in its Secret, never in YAML.
+            # the user and the address only: node-postgres reads PGDATABASE
+            # and PGPASSWORD when the URL carries no database and no
+            # password, so no character in either can break it (a URL's
+            # database is decoded with decodeURI, which keeps reserved
+            # escapes), and the password stays in its Secret.
             - name: DATABASE_URL
-              value: "postgres://postgres@stigmer-postgres:5432/stigmer"
+              value: "postgres://postgres@stigmer-postgres:5432"
+            - name: PGDATABASE
+              value: "stigmer"
             - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
@@ -606,8 +610,11 @@ spec:
         app.kubernetes.io/component: postgres
     spec:
       # The claim's group: a fresh volume is writable by the user above.
+      # OnRootMismatch: the kubelet re-owns the volume only when its root
+      # is not already the group's, never the whole database at each start.
       securityContext:
         fsGroup: 999
+        fsGroupChangePolicy: OnRootMismatch
       automountServiceAccountToken: false
       containers:
         - name: postgres

@@ -25,10 +25,12 @@ machines (CI jobs, the runner, scripts) use API keys. The
   `http://localhost:7234` works too.
 - An OIDC provider you control: Keycloak, Okta, Auth0, Dex, or any server that
   supports OIDC discovery. You need three values from it: the **issuer URL**
-  (for example `https://auth.example.com/realms/main`), the **audience** your
-  provider stamps on access tokens minted for Stigmer (usually configured in the
-  provider as an "API" or "resource server" entry), and the **client ID** of the
-  console client you register in the first step.
+  (for example `https://auth.example.com/realms/main`; it must be `https`, since
+  the server fetches the provider's signing keys from it, and the server refuses
+  a plain-HTTP issuer at boot unless it is on `localhost`), the **audience**
+  your provider stamps on access tokens minted for Stigmer (usually configured
+  in the provider as an "API" or "resource server" entry), and the **client ID**
+  of the console client you register in the first step.
 
 Every setting on this page is one line in the file your shape already uses,
 `.env` for Compose and your values file for the chart:

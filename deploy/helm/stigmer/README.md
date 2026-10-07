@@ -228,12 +228,14 @@ key out of its environment at boot, so its agent tools cannot read them. They
 are Stigmer's own names, so a developer's `TEMPORAL_API_KEY` for their own
 Temporal work is never picked up.
 
-The server's `DATABASE_URL` names the user, host, port and database, and the
-password reaches the server as `PGPASSWORD` from its Secret, so it never appears
-in rendered manifests and no character in it can break the URL. When Temporal
-stays bundled and Postgres is yours, Temporal's `auto-setup` creates its two
-databases (`temporal`, `temporal_visibility`) on your instance at first boot and
-needs a user with `CREATE DATABASE`.
+The server's `DATABASE_URL` names the user, host and port. The database reaches
+the server as `PGDATABASE` and the password as `PGPASSWORD` from its Secret, so
+the password never appears in rendered manifests and no character in either can
+break the URL. Connection options the Postgres client reads from the
+environment, such as `PGSSLMODE=require` for a managed database, go through
+`server.extraEnv`. When Temporal stays bundled and Postgres is yours, Temporal's
+`auto-setup` creates its two databases (`temporal`, `temporal_visibility`) on
+your instance at first boot and needs a user with `CREATE DATABASE`.
 
 ## Backup, restore, upgrade
 
@@ -251,9 +253,13 @@ lifecycle state, not backup state.
 delete data, delete the claims yourself.
 
 Upgrading is `helm upgrade` to the new chart version; the chart version is the
-Stigmer version, and the images move with it. The pod is recreated, not rolled
-(it owns disks that can only be attached to one node), so there is a short
-interruption; in-flight agent turns resume from their Temporal checkpoints.
+Stigmer version, and the images move with it. An upgrade with `--reuse-values`
+keeps every value of the release, defaults included, so it does not pick up a
+new chart's new defaults (an image tag, a security context); use
+`--reset-then-reuse-values` to take the new chart's defaults with your own
+values on top. The pod is recreated, not rolled (it owns disks that can only be
+attached to one node), so there is a short interruption; in-flight agent turns
+resume from their Temporal checkpoints.
 
 Restoring a Compose stack's data here: the database dumps and restores as usual;
 copy the `artifacts` volume's contents into the `<release>-artifacts` disk
@@ -281,7 +287,14 @@ boundary, use your own with authentication on (`externalTemporal.tls`,
 
 The bundled Postgres holds everything Stigmer keeps and authenticates by
 password alone, so the chart fences it the same way (`postgres.networkPolicy`):
-the stigmer pod and the Temporal pod may connect, nothing else. The chart adds
+the stigmer pod and the Temporal pod may connect, nothing else.
+
+The bundled Postgres and Temporal run as their images' own non-root users. A
+fresh Postgres disk is made writable through the pod's `fsGroup`; storage that
+ignores `fsGroup` (a `hostPath` volume, or a CSI driver whose `fsGroupPolicy` is
+`None`) leaves the disk's root owned by root, and Postgres cannot create its
+data directory. Set `postgres.securityContext: null` there to start it as its
+image does, or set the context your cluster assigns (OpenShift). The chart adds
 no NetworkPolicy for the stigmer pod itself; add one at the namespace if your
 cluster's posture wants it.
 
