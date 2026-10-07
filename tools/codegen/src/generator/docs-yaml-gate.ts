@@ -59,6 +59,7 @@ function buildDocsYamlRegistries(): DocsYamlRegistries {
   }
 
   if (reg.manifestKinds.size === 0) {
+    /* v8 ignore next -- @preserve: the stub packages this module imports always carry manifest kinds; the throw names a broken import */
     throw new Error("descriptor scan found no manifest kinds; are the resource stub packages imported?");
   }
   return reg;

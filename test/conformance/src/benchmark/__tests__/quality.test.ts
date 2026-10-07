@@ -10,13 +10,25 @@
 // weighted mean; a missing, extra or malformed criterion, or a score outside
 // 0..1, refuses the grade as a judge failure with a null score, never a
 // number; a judge run that failed refuses the grade with the platform's
-// error, and one that was cancelled says so.
+// error, and one that was cancelled says so; the judge creates one agent with
+// the rubric on the native harness and one run with the subject, the pinned
+// model, the verdict schema and a set session subject, defers both deletes,
+// and refuses the grade as a timeout when the run never settles.
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { describe, expect, it } from "vitest";
-import { judgeInstructions, verdictOf, verdictSchema, weightedScore } from "../quality";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { ConformanceClients } from "../../harness/clients";
+import { FixtureTracker } from "../../harness/fixtures";
+import { judge, judgeInstructions, verdictOf, verdictSchema, weightedScore } from "../quality";
 import type { QualityCriterion, QualityTask } from "../quality-tasks";
+
+const terminal = vi.hoisted(() => ({ awaitTerminal: vi.fn() }));
+vi.mock("../../support/agentruns", async (actual) => ({
+  ...(await actual<typeof import("../../support/agentruns")>()),
+  awaitTerminal: terminal.awaitTerminal,
+}));
 
 const RUBRIC: QualityCriterion[] = [
   { name: "correct_fix", description: "The fix is right.", weight: 3 },
@@ -136,5 +148,81 @@ describe("verdictOf", () => {
     const verdict = verdictOf(judged(undefined, RunPhase.RUN_CANCELLED), RUBRIC);
     expect(verdict.outcome).toBe("cancelled");
     expect(verdict.failure).toEqual({ stage: "judge", message: "the judge run ended cancelled" });
+  });
+});
+
+describe("the judge's run", () => {
+  const created: { agent?: unknown; run?: unknown } = {};
+  const deleted: string[] = [];
+  const clients = {
+    agentCommand: {
+      create: async (agent: unknown) => {
+        created.agent = agent;
+        return { metadata: { id: "agt_judge", org: "org_bench", slug: "bench-judge" } };
+      },
+      delete: async ({ value }: { value: string }) => deleted.push(value),
+    },
+    agentExecutionCommand: {
+      create: async (run: unknown) => {
+        created.run = run;
+        return { metadata: { id: "aex_judge" } };
+      },
+      delete: async ({ value }: { value: string }) => deleted.push(value),
+    },
+  } as unknown as ConformanceClients;
+  const request = { org: "org_bench", task: TASK, subject: "the diff and its test", judgeModel: "claude-sonnet-4-6", timeoutMs: 1_000 };
+
+  beforeEach(() => {
+    created.agent = undefined;
+    created.run = undefined;
+    deleted.length = 0;
+    terminal.awaitTerminal.mockReset();
+  });
+
+  it("runs one native agent carrying the rubric on the subject, with the pinned model and the verdict schema, and cleans both up", async () => {
+    const both = { correct_fix: { score: 1, reasoning: "right" }, meaningful_test: { score: 0.5, reasoning: "thin" } };
+    terminal.awaitTerminal.mockResolvedValue(judged(both));
+    const fixtures = new FixtureTracker();
+
+    const verdict = await judge(clients, fixtures, request);
+
+    expect(created.agent).toMatchObject({
+      metadata: { org: "org_bench" },
+      spec: { instructions: judgeInstructions(TASK), harness: Harness.NATIVE },
+    });
+    expect(created.run).toMatchObject({
+      metadata: { org: "org_bench" },
+      spec: {
+        target: {
+          case: "sessionSpec",
+          value: { agentRef: { org: "org_bench", slug: "bench-judge" }, subject: "benchmark judge" },
+        },
+        message: "the diff and its test",
+        autoApproveAll: true,
+        runConfig: { modelName: "claude-sonnet-4-6" },
+        structuredOutputSchema: verdictSchema(RUBRIC),
+      },
+    });
+    expect(terminal.awaitTerminal).toHaveBeenCalledWith(clients, "aex_judge", { timeoutMs: 1_000 });
+    expect(verdict).toMatchObject({ judge_run_id: "aex_judge", outcome: "completed", score: weightedScore([
+      { name: "correct_fix", score: 1, weight: 3, reasoning: "right" },
+      { name: "meaningful_test", score: 0.5, weight: 2, reasoning: "thin" },
+    ]) });
+
+    await fixtures.cleanup();
+    expect(deleted).toEqual(["aex_judge", "agt_judge"]);
+  });
+
+  it("refuses the grade as a timeout, naming the run, when the run never reaches a terminal phase", async () => {
+    terminal.awaitTerminal.mockRejectedValue(new Error("timed out after 1000ms"));
+
+    const verdict = await judge(clients, new FixtureTracker(), request);
+
+    expect(verdict).toMatchObject({
+      judge_run_id: "aex_judge",
+      score: null,
+      outcome: "timeout",
+      failure: { stage: "judge", message: "the judge run did not reach a terminal phase: timed out after 1000ms" },
+    });
   });
 });

@@ -387,6 +387,30 @@ describe("a sandbox driver's background work", () => {
   });
 });
 
+describe("a sandbox provisioner without per-session routing", () => {
+  it("refuses to compose, naming the setting that reaches it", async () => {
+    vi.stubEnv("STIGMER_ACTIVITY_ROUTING", "global");
+    try {
+      await expect(
+        compose({ SANDBOX_PROVISIONER_TYPE: "recording" }, silentLogger, [
+          {
+            name: "recording-sandboxes",
+            drivers: {
+              sandboxProvisionerDrivers: new Map([
+                ["recording", () => ({}) as SandboxProvisioner],
+              ]),
+            },
+          },
+        ]),
+      ).rejects.toThrow(
+        "SANDBOX_PROVISIONER_TYPE='recording' requires per-session routing — set STIGMER_ACTIVITY_ROUTING=session (a provisioner no dispatch can reach must fail loudly, not sit dark)",
+      );
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});
+
 describe("the server's release in the sandbox driver bag", () => {
   it.each([
     ["3.42.0", "3.42.0"],

@@ -177,8 +177,6 @@ async function startStaticSandboxTokenRenewal(
       client.getRunnerScopedToken({ renewal: true }, currentToken),
     applyToken: (token) => {
       tokenRef.current = token;
-      // Store write replaced the process.env.STIGMER_TOKEN write (#508) —
-      // same per-call readers (the registry headers), no env exposure.
       setRunnerSecret("STIGMER_TOKEN", token);
     },
   });

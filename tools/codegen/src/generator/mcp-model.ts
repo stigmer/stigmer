@@ -300,14 +300,11 @@ const IDENTITY_FIELD_NAMES = new Set(["name", "slug", "org", "visibility", "labe
 /** Port of buildMcpGen: promote the resource spec and build the model. */
 export function buildMcpGen(gen: LoadedSchemas, outputDir: string): McpGen {
   // The resource's own spec is the one whose name, less "Spec", is the
-  // schema directory's name; a directory holding a single spec uses it.
+  // schema directory's name.
   const dirBase = baseName(gen.schemaDir).toLowerCase();
-  let resourceSpec: SpecSchema | undefined = gen.specs.find(
+  const resourceSpec: SpecSchema | undefined = gen.specs.find(
     (spec) => trimSuffix(spec.name, "Spec").toLowerCase() === dirBase,
   );
-  if (resourceSpec === undefined && gen.specs.length === 1) {
-    resourceSpec = gen.specs[0];
-  }
   if (resourceSpec === undefined) {
     throw new Error(`no resource spec found; expected one *Spec schema in ${gen.schemaDir}`);
   }
