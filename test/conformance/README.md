@@ -54,18 +54,28 @@ Covered against the `local` target:
   on disk after `delete` (so `getArtifact` still works post-delete), and
   `pushFromExecutionArtifact`'s happy path needs a real execution artifact and is
   covered at the integration layer instead.
-- **Environment** — a flat platform resource holding configuration and secrets in
-  `spec.data`. Coverage: CRUD & identity (`env_` id, slug derivation, apply
-  create/update branching, `getByReference`, cross-org slug reuse); **secret
-  handling** (redaction on every read in both editions since stigmer#405, the
-  always-preserved `is_secret` flag, and the `getSecretValue` reveal endpoint
-  that returns the unredacted value in every edition); the **redaction-marker preservation**
-  contract (re-submitting `***REDACTED***` for an existing secret on `update`
-  preserves the stored value, and using it for a non-existent secret is rejected);
-  incremental variable management (`updateVariables` merge, `removeVariables`); and
-  `list` filtering. Negatives include the shared duplicate/missing-name contract
-  checks plus the proper-code contrast that a duplicate **personal** environment
-  returns a real `AlreadyExists`.
+- **Credential** — saved values that belong to a person or to the organization
+  (`spec.person` / `spec.org`, fixed at create), each field filling the
+  requirement of the same name of an agent, MCP server or git host the
+  credential serves or is assigned to. Coverage: CRUD & identity (`cred_` id, a
+  slug minted from the name with a random suffix, no apply, private only);
+  **owner resolution** (an empty person is the caller and any other is refused;
+  an empty org is the credential's own organization and any other is refused;
+  the owner is fixed on update); **secret handling** (every non-empty secret
+  field leaves the server as `***REDACTED***` on every credential-returning RPC,
+  plain fields as they are; the marker sent back keeps the stored value and is
+  refused where there is nothing to keep; a ciphertext-shaped secret is refused;
+  `revealField` returns one field of one's own credential; an organization's
+  credential is write-only); `setFields` / `removeFields`; **one default per
+  owner and target**; a wire create is always `static`, never a sign-in; and
+  `list`. On the enforcing lane: a teammate can neither read, reveal, change,
+  delete nor list another person's credential, a member saves their own and not
+  the organization's, an admin cannot reveal the organization's, a member sees an
+  organization credential only once granted `user` (where per-resource grants
+  exist), and the server stamps a schedule assignment's writer. The sign-in a
+  real OAuth handshake writes (an `oauth` credential whose fields no person
+  edits, which signing out deletes and whose delete signs out) is pinned in
+  `mcpserver-connect`; which values a RUN receives in `run-credentials`.
 - **ExecutionContext** — the execution-scoped, flat resource the engine creates per
   run. Coverage: CRUD & identity (`ectx_` id, slug derivation); resolution by id,
   by reference, and by parent **`getByExecutionId`**; the distinctive **`apply` is
@@ -73,9 +83,9 @@ Covered against the `local` target:
   there is no `update` RPC); and secret handling (redacted on every user-shaped
   read in both editions since stigmer#535; decrypted values flow only through
   the scope-bound runner lane). The
-  *envmerge precedence* that populates `spec.data` at execution start is out of
-  scope here (it needs a live execution) and is covered by the execution-lifecycle
-  slice.
+  *credential resolution* that populates `spec.data` at execution start is out
+  of scope here (it needs a live execution) and is covered by the execution
+  class's `run-credentials` suite.
 - **Session** — the runtime conversation thread, on the agent it names by
   reference (`spec.agent_ref`) or on the built-in assistant. Coverage: CRUD &
   identity (`ses_` id, slug derivation, apply create/update branching, update
@@ -498,9 +508,9 @@ single-holder primitive), and
 open-source edition, where the single-organization suite runs (every other
 target spawns or reaches a server with many organizations).
 Capabilities are retired when a surface converges: secret redaction was gated
-per edition until the Environment (stigmer#405) and ExecutionContext
-(stigmer#535) surfaces converged, after which the suites assert redaction
-unconditionally.
+per edition until the saved-secrets surface (stigmer#405; the Credential kind
+today) and the ExecutionContext surface (stigmer#535) converged, after which the
+suites assert redaction unconditionally.
 
 **The enforcing lane** (`TargetProfile.enforcingLane()`, built by
 `harness/enforcing-lane.ts`): an authorization arm needs a server whose
@@ -689,6 +699,19 @@ message, and no approval is requested for it, under the default and under
 `runner-ipc.harness` proves the manager-mode `ready` handshake end to
 end.
 
+`run-credentials` pins the one rule that decides which values a run
+receives, read off the run's ExecutionContext at create: runtime_env first,
+then what the surface that started a person-less run assigns (a schedule's
+assignment of an organization credential reaches its fire's run; the fire
+never reaches its creator's own credential by default), then the run's
+person's own credential serving the agent or MCP server, and the
+organization's for an agent once the person may use it. A required key nothing
+provides refuses the create with FAILED_PRECONDITION naming it; only declared
+keys reach the run; two declarers that disagree on a key are refused naming
+both; recover rebuilds from the recorded person's credentials as they are now;
+and the agent's shell holds only the agent's own keys. Its two-person arms run
+on the enforcing lane: a member's run never uses a teammate's credential.
+
 `run-request-shape` reads the other direction of the wire: not
 what the client sees on status but what the MODEL receives from the native
 harness for a bare agent, photographed as two readable file goldens under
@@ -715,7 +738,7 @@ src/
   targets/          target (interface + capabilities), local, local-execution, local-postgres, cloud, cloud-execution, index
   contract/         errors, parity
   support/          naming, run-poll, runs, file-review, stigmer-mcp-stdio, working-agent (the benchmark's
-                    working agent), agents, mcpservers, memories, skills, environments, executioncontexts, sessions,
+                    working agent), agents, mcpservers, memories, skills, credentials, executioncontexts, sessions,
                     request-shape (the golden renderers), …
   benchmark/        report (the contract a run writes), cells, quality-tasks, run (the direct-mode stack and driver), session
                     (the per-turn driver), the readers stream-watch, status-facts, timing-lines, temporal-history,
@@ -725,7 +748,7 @@ src/
                     + run*.conformance.test.ts (lifecycle, approval, recover, messages, subagent, provider-error,
                       structured-output, file-review, file-review-progress, memory-retrieval, memory-selection, stigmer-mcp-stdio,
                       request-shape, tool-lists)
-                    + mcpserver-connect, mcp-caller-identity, mcp-server-address, envmerge-*, session-immutability, schedule-firing, billing-*  (Class B)
+                    + mcpserver-connect, mcp-caller-identity, mcp-server-address, run-credentials, session-immutability, schedule-firing, billing-*  (Class B)
                     + goldens/  (the request-shape facet's file goldens; regenerated only under a ruling)
 scripts/            check-inventory, cloud-fixtures-serve, benchmark-harnesses (+ benchmark-harnesses/quality-tasks.yaml)
 fixtures/           working-agent/ (the working agent's Go workspace and skills: data, outside the TypeScript include)

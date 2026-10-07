@@ -17,7 +17,7 @@ export const CHANNELAPP_API_VERSION = "agentic.stigmer.ai/v1";
 export const CHANNELAPP_KIND = "ChannelApp";
 
 // The redaction sentinel every read surface substitutes for stored secrets.
-// A CROSS-EDITION CONTRACT STRING (the oauthapp/environment marker); sending
+// A CROSS-EDITION CONTRACT STRING (the oauthapp/credential marker); sending
 // it back on update means "keep the stored value" — independently per field,
 // which is what makes single-secret rotation possible.
 export const CHANNELAPP_REDACTED_MARKER = "***REDACTED***";

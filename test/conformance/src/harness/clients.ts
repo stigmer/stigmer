@@ -32,8 +32,8 @@ import { SubscriptionCommandController } from "@stigmer/protos/ai/stigmer/billin
 import { SubscriptionQueryController } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/query_pb";
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
-import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
-import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
+import { CredentialCommandController } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/command_pb";
+import { CredentialQueryController } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/query_pb";
 import { ExecutionContextCommandController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/command_pb";
 import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
@@ -107,8 +107,8 @@ export interface ConformanceClients {
   agentExecutionQuery: Client<typeof RunQueryController>;
   agentCommand: Client<typeof AgentCommandController>;
   agentQuery: Client<typeof AgentQueryController>;
-  environmentCommand: Client<typeof EnvironmentCommandController>;
-  environmentQuery: Client<typeof EnvironmentQueryController>;
+  credentialCommand: Client<typeof CredentialCommandController>;
+  credentialQuery: Client<typeof CredentialQueryController>;
   executionContextCommand: Client<typeof ExecutionContextCommandController>;
   executionContextQuery: Client<typeof ExecutionContextQueryController>;
   mcpServerCommand: Client<typeof McpServerCommandController>;
@@ -234,8 +234,8 @@ export function makeClients(transport: Transport): ConformanceClients {
     agentExecutionQuery: createClient(RunQueryController, transport),
     agentCommand: createClient(AgentCommandController, transport),
     agentQuery: createClient(AgentQueryController, transport),
-    environmentCommand: createClient(EnvironmentCommandController, transport),
-    environmentQuery: createClient(EnvironmentQueryController, transport),
+    credentialCommand: createClient(CredentialCommandController, transport),
+    credentialQuery: createClient(CredentialQueryController, transport),
     executionContextCommand: createClient(
       ExecutionContextCommandController,
       transport,

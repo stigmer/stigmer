@@ -12,7 +12,7 @@
 // the OSS unit suites; this is the wire-level tenant-isolation contract):
 // session.list (the restrict verb, no org intersection, once walked page
 // by page so a token is shown to carry no authority), apikey.findAll
-// (the direct-read tail), environment.list (the org-intersecting family),
+// (the direct-read tail), credential.list (the org-intersecting family),
 // search + recent activity (the enumeration verb), and the
 // check-shaped lane (the listByChannel channel gate) refusing an outsider
 // with its byte-pinned Java copy.
@@ -40,7 +40,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { expectGrpcCode } from "../contract/errors";
 import { makeAgent, agentRefOf } from "../support/agents";
 import { makeSlackAgentChannel } from "../support/agentchannels";
-import { makeEnvironment } from "../support/environments";
+import { makeCredential } from "../support/credentials";
 import { makeSession } from "../support/sessions";
 import { uniqueName } from "../support/naming";
 
@@ -186,33 +186,36 @@ describe("list-read scoping — outsider isolation (on the enforcing lane)", () 
     ).not.toContain(key.metadata!.id);
   });
 
-  it("[rpc:EnvironmentQueryController.list] environment.list: the owner's environment is ABSENT from the outsider's org-scoped list", async (ctx) => {
+  it("[rpc:CredentialQueryController.list] credential.list: the organization's credential is ABSENT from the outsider's org-scoped list", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const { org } = await lane.provisionTenancy();
     const outsider = await lane.provisionIdentity();
 
-    const environment = await clients.environmentCommand.create(
-      makeEnvironment({ org, name: uniqueName("iso-env") }),
+    // The organization's own credential, not a person's: a person's is
+    // listed to that person alone before any read scope asks, so only an
+    // organization's credential puts the read scope itself under test.
+    const credential = await clients.credentialCommand.create(
+      makeCredential({ org, name: uniqueName("iso-cred"), owner: "org" }),
     );
     fixtures.defer(() =>
-      clients.environmentCommand.delete({
-        resourceId: environment.metadata!.id,
+      clients.credentialCommand.delete({
+        resourceId: credential.metadata!.id,
       }),
     );
 
-    const mine = await clients.environmentQuery.list({ org });
+    const mine = await clients.credentialQuery.list({ org });
     expect(
-      mine.items.map((e) => e.metadata?.id),
-      "owner must see the created environment",
-    ).toContain(environment.metadata!.id);
+      mine.items.map((c) => c.metadata?.id),
+      "the owner (an admin) must see the organization's credential",
+    ).toContain(credential.metadata!.id);
 
     // The outsider names the OWNER's org explicitly — the org filter is
     // caller-supplied and must never substitute for authorization.
-    const theirs = await outsider.environmentQuery.list({ org });
+    const theirs = await outsider.credentialQuery.list({ org });
     expect(
-      theirs.items.map((e) => e.metadata?.id),
-      "outsider list must not contain the owner's environment",
-    ).not.toContain(environment.metadata!.id);
+      theirs.items.map((c) => c.metadata?.id),
+      "outsider list must not contain the organization's credential",
+    ).not.toContain(credential.metadata!.id);
   });
 
   it("[rpc:SearchService.search] search: the owner's resource never surfaces for the outsider, even naming the owner's org", async (ctx) => {

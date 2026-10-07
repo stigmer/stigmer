@@ -12,9 +12,10 @@
 //     client_id;
 //   - `system-share-client` is refused on create, the sign-in role rules are
 //     refused on the contract, and a deleted client is gone;
-//   - `environment_refs` is held to the reference rule every spec reference
-//     is: a missing environment of the client's organization is refused
-//     FAILED_PRECONDITION with the rule's copy, the slug named;
+//   - a credential assignment (`credentials`) is held to the reference rule
+//     every spec reference is: a missing credential of the client's
+//     organization is refused FAILED_PRECONDITION with the rule's copy, the
+//     slug named;
 //   - on a server that trusts every request, mintUserToken is refused
 //     FAILED_PRECONDITION — nothing there would verify the token.
 //
@@ -34,6 +35,7 @@ import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
+import { assignCredential, gitHostTarget } from "../support/credentials";
 import { uniqueName } from "../support/naming";
 import {
   createPlatformClient,
@@ -229,28 +231,34 @@ describe("PlatformClient conformance — CRUD on the primary", () => {
     );
   });
 
-  it("[rpc:PlatformClientCommandController.create] an environment reference must name an existing environment of the client's organization", async () => {
+  it("[rpc:PlatformClientCommandController.create] a credential assignment must name an existing credential of the client's organization", async () => {
     const org = await organization();
     const err = await expectGrpcCode(
       () =>
         clients.platformClientCommand.create({
           apiVersion: "iam.stigmer.ai/v1",
           kind: "PlatformClient",
-          metadata: { name: uniqueName("ghost-env"), org },
+          metadata: { name: uniqueName("ghost-cred"), org },
           spec: {
             createAccountsOnSignIn: true,
-            environmentRefs: [
-              { kind: ApiResourceKind.environment, slug: "ghost-environment" },
+            // A git host declares the requirement, so the credential is the
+            // one reference in the assignment the rule can find missing.
+            credentials: [
+              assignCredential({
+                declarer: gitHostTarget("github.com"),
+                key: "GITHUB_TOKEN",
+                credential: { org: "", slug: "ghost-credential" },
+              }),
             ],
           },
         }),
       Code.FailedPrecondition,
-      "create a client naming a missing environment",
+      "create a client naming a missing credential",
     );
     expect(err.rawMessage).toBe(
-      `referenced environment(s) not found: 'ghost-environment' (org: ${await organizationSlug(clients.organizationQuery, org)}).` +
+      `referenced credential(s) not found: 'ghost-credential' (org: ${await organizationSlug(clients.organizationQuery, org)}).` +
         " Verify the slug and org are correct." +
-        " Use 'stigmer list environments' to list available environments.",
+        " Use 'stigmer list credentials' to list available credentials.",
     );
   });
 

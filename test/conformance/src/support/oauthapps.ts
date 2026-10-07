@@ -24,7 +24,7 @@ export const OAUTHAPP_KIND = "OAuthApp";
 // client_secret. A CROSS-EDITION CONTRACT STRING: the Go steps package and
 // the Java handler each pin it in their own unit tests; the suite asserts it
 // over the wire on both. Re-submitting it on apply/update means "keep the
-// stored secret" (the Environment redaction-marker convention).
+// stored secret" (the Credential redaction-marker convention).
 export const OAUTHAPP_REDACTED_MARKER = "***REDACTED***";
 
 export interface OAuthAppOptions {

@@ -37,9 +37,16 @@
 //     organization's slug exists or not, so the share lane is never an
 //     existence probe; another organization's agent is shared by installing
 //     the plugin that carries it and sharing the installed copy.
+//   - The CREDENTIAL ASSIGNMENTS a guest's runs use (`credentials`): only on
+//     a public-audience share (the CEL rule), and never a person's own
+//     credential, refused with the assignment rule's sentence — a guest's run
+//     has no person whose credential it could be.
 //
 // The agentshare boot migration is asserted separately, never here.
+import { create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
+import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
+import { CredentialAssignmentSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/requirement_pb";
 import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
@@ -47,6 +54,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
 import { makeAgentShare } from "../support/agentshares";
+import { agentTarget, assignCredential, makeCredential, refOf } from "../support/credentials";
 import { uniqueName } from "../support/naming";
 import { createTarget, enforcingLaneOf, type TargetProfile } from "../targets";
 
@@ -245,21 +253,62 @@ describe("AgentShare conformance — create validation", () => {
     expect(err.rawMessage).toBe("Agent not found: no-such-agent");
   });
 
-  it("[rpc:AgentShareCommandController.create] rejects environment_refs on an org-audience share (InvalidArgument — the CEL rule)", async () => {
+  it("[rpc:AgentShareCommandController.create] rejects credential assignments on an org-audience share (InvalidArgument — the CEL rule)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
 
-    const share = makeAgentShare(org, agent.metadata!.slug, {
-      audience: AgentShareAudience.org,
-    });
-    (share.spec as { environmentRefs?: unknown[] }).environmentRefs = [
-      { slug: "some-env", kind: 53 },
+    const share = create(
+      AgentShareSchema,
+      makeAgentShare(org, agent.metadata!.slug, {
+        audience: AgentShareAudience.org,
+      }),
+    );
+    share.spec!.credentials = [
+      create(
+        CredentialAssignmentSchema,
+        assignCredential({
+          declarer: agentTarget(refOf(agent)),
+          key: "SHARE_KEY",
+          credential: { org, slug: "some-credential" },
+        }),
+      ),
     ];
 
-    await expectGrpcCode(
+    const err = await expectGrpcCode(
       () => clients.agentShareCommand.create(share),
       Code.InvalidArgument,
-      "org-audience share carrying environment_refs",
+      "org-audience share carrying credential assignments",
+    );
+    expect(err.rawMessage).toContain("credentials can only be set on public-audience shares");
+  });
+
+  it("[rpc:AgentShareCommandController.create] refuses a person's own credential assigned on a share: a guest's run has no person behind it", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgentFixture(org);
+    const own = await clients.credentialCommand.create(
+      makeCredential({ org, name: uniqueName("share-own"), fields: { SHARE_KEY: { value: "mine" } } }),
+    );
+    fixtures.defer(() => clients.credentialCommand.delete({ resourceId: own.metadata!.id }));
+
+    const share = create(AgentShareSchema, makeAgentShare(org, agent.metadata!.slug));
+    share.spec!.credentials = [
+      create(
+        CredentialAssignmentSchema,
+        assignCredential({
+          declarer: agentTarget(refOf(agent)),
+          key: "SHARE_KEY",
+          credential: refOf(own),
+        }),
+      ),
+    ];
+
+    const err = await expectGrpcCode(
+      () => clients.agentShareCommand.create(share),
+      Code.FailedPrecondition,
+      "a public share assigning its writer's own credential",
+    );
+    expect(err.rawMessage).toBe(
+      `credential '${own.metadata!.slug}' is a person's own and cannot be assigned on a share link: its runs have no person behind them. Assign one of the organization's credentials instead`,
     );
   });
 });

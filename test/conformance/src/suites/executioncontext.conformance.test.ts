@@ -12,15 +12,16 @@
 //     shared CheckDuplicateStep, which returns a typed AlreadyExists on every
 //     target — same contract as apply, reached via a different path.
 //
-// envmerge precedence (how spec.data is populated from layered Environments at
-// execution start) is intentionally out of scope: it is only observable after a
-// live execution and is covered by the execution-lifecycle session. Here we test
+// How spec.data is populated at run start (the one credential rule: runtime_env,
+// the starting surface's assignments, the run's person's credentials) is
+// intentionally out of scope: it is only observable after a live execution and
+// is covered by the execution class's run-credentials suite. Here we test
 // the resource's own API contract by creating contexts directly. A context
 // bound to a run is the server's to create: a create naming a run's id
 // (`aex_…`) is refused, so these contexts name ids that bind none.
 //
 // Secret value handling is edition-CONVERGED since stigmer#535 (following
-// Environment, converged in stigmer#405): both editions encrypt EC values at
+// the saved-values kind, converged in stigmer#405): both editions encrypt EC values at
 // rest and redact every user-shaped read — get, getByReference, the
 // create/apply and delete echoes, and getByExecutionId for callers without a
 // scope-bound runner credential. Decrypted values flow only through the
@@ -28,7 +29,7 @@
 // execution-scoped token minted by getRunnerScopedToken). This harness
 // authenticates as a user, so redaction is asserted unconditionally; the
 // is_secret flag is preserved on every read. The runner lane's decrypt is
-// proven end to end by the envmerge execution suite's set_vars proof test.
+// proven end to end by the run-credentials execution suite's shell proof.
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { Code } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";

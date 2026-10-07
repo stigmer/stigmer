@@ -209,13 +209,10 @@ describe("Plugin conformance — install", () => {
       isSecret: true,
       optional: false,
     });
-    // The composed agent declares its tools' variables too: an execution
-    // passes an agent only the keys it declares, and every client's session
-    // start asks the user for the agent's declared keys.
-    expect(agent.spec?.env["GITHUB_TOKEN"]).toMatchObject({
-      isSecret: true,
-      optional: false,
-    });
+    // The server's variable stays the server's: the composed agent's env
+    // holds only what the agent itself needs, and a run gathers each
+    // server's requirements from the server, with the server as declarer.
+    expect(agent.spec?.env["GITHUB_TOKEN"]).toBeUndefined();
   });
 
   it("[rpc:PluginCommandController.push] [rpc:PluginQueryController.listMembers] materialises an MCP-only package as its server and no agent", async () => {

@@ -13,19 +13,22 @@
 //     channel-bind it, and an outsider is refused; the admin may;
 //   - Memory.create: an outsider naming an organization is refused; a member
 //     remembers there once both the organization and the member have
-//     turned memory on, the memory filed under the member.
+//     turned memory on, the memory filed under the member;
+//   - a credential assignment (`credentials` on a schedule's invocation):
+//     the writer clause of the reference rule, `can_use` on each credential
+//     the write introduces. An admin who schedules an agent assigns the
+//     organization's credential, which an admin may use, and is refused a
+//     member's own credential, which nobody but the member may use.
 //
 // Every refusal is asserted by code AND copy, because the copy is the wire
 // contract each lane has carried since the Java edition. Out of scope: the
 // run gate (its own suites), the reads by reference
-// (reference-read-authorization), and the writer clause on an environment
-// reference (a write attaches only an environment its writer can view):
-// on the open-source enforcing lane every write that carries one (a
-// schedule) is an admin's, and an admin can
-// view every environment of the organization, so the refusal cannot be
-// staged here; the server's reference unit pins it
-// (pipeline/steps/__tests__/references.test.ts).
+// (reference-read-authorization), and what a run does with an assignment
+// (the execution class's credential suites).
+import { create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
+import { CredentialAssignmentSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/requirement_pb";
+import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
@@ -35,6 +38,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
 import { makeSlackAgentChannel } from "../support/agentchannels";
 import { makeAgentShare } from "../support/agentshares";
+import { agentTarget, assignCredential, makeCredential, refOf } from "../support/credentials";
 import { makeMcpServer } from "../support/mcpservers";
 import {
   enableMyMemory,
@@ -43,6 +47,7 @@ import {
   makeMemory,
 } from "../support/memories";
 import { uniqueName } from "../support/naming";
+import { organizationSlug } from "../support/organizations";
 import { makeSchedule } from "../support/schedules";
 import {
   createTarget,
@@ -212,6 +217,78 @@ describe("Schedule, AgentShare and AgentChannel ask can_edit on the referenced a
         `${who} channel-binds the agent`,
       );
     }
+  });
+});
+
+describe("A credential assignment asks can_use on each credential it introduces", () => {
+  it("[rpc:ScheduleCommandController.create] an admin schedules an agent with the organization's credential, and is refused a member's own credential", async (ctx) => {
+    const lane = laneOrSkip(ctx);
+    const c = await castOf(lane);
+    const agent = await seedAgent(c, ORG_VISIBLE);
+    const slug = agent.metadata!.slug;
+    const orgs = await c.owner.credentialCommand.create(
+      makeCredential({
+        org: c.org,
+        name: uniqueName("gate-org-cred"),
+        owner: "org",
+        fields: { GATE_KEY: { value: "the-organization's" } },
+      }),
+    );
+    fixtures.defer(() =>
+      c.owner.credentialCommand.delete({ resourceId: orgs.metadata!.id }),
+    );
+    const members = await c.member.credentialCommand.create(
+      makeCredential({
+        org: c.org,
+        name: uniqueName("gate-own-cred"),
+        fields: { GATE_KEY: { value: "the-member's" } },
+      }),
+    );
+    fixtures.defer(() =>
+      c.member.credentialCommand.delete({ resourceId: members.metadata!.id }),
+    );
+    const scheduleAssigning = (credential: { org: string; slug: string }) => {
+      const input = create(
+        ScheduleSchema,
+        makeSchedule(c.org, uniqueName("gate-sched"), slug, { enabled: false }),
+      );
+      const target = input.spec?.target;
+      if (target?.case !== "agent") {
+        throw new Error("makeSchedule builds an agent target");
+      }
+      target.value.credentials = [
+        create(
+          CredentialAssignmentSchema,
+          assignCredential({
+            declarer: agentTarget(refOf(agent)),
+            key: "GATE_KEY",
+            credential,
+          }),
+        ),
+      ];
+      return input;
+    };
+
+    const schedule = await c.admin.scheduleCommand.create(
+      scheduleAssigning(refOf(orgs)),
+    );
+    fixtures.defer(() =>
+      c.owner.scheduleCommand.delete({ value: schedule.metadata!.id }),
+    );
+    const stored =
+      schedule.spec?.target.case === "agent"
+        ? schedule.spec.target.value.credentials
+        : [];
+    expect(
+      stored.map((assignment) => assignment.writer),
+      "the server stamps the admin as the assignment's writer",
+    ).toEqual([await lane.accountIdOf(c.admin)]);
+
+    await expectDenied(
+      () => c.admin.scheduleCommand.create(scheduleAssigning(refOf(members))),
+      `referenced credential '${await organizationSlug(c.owner.organizationQuery, c.org)}/${members.metadata!.slug}' is not one you may use; assign a credential of your own or one the organization lets you use.`,
+      "an admin assigns a member's own credential on a schedule",
+    );
   });
 });
 

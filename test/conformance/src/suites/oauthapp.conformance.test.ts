@@ -10,7 +10,7 @@
 //   - The SECRET contract: client_secret is encrypted at rest and REDACTED to
 //     the ***REDACTED*** marker on every response, the delete's included
 //     (stigmer/stigmer#1257); re-submitting the marker on apply means "keep
-//     the stored secret" (the Environment convention); and
+//     the stored secret" (the Credential convention); and
 //     a client-supplied enc:v<N>:-shaped secret is refused with
 //     InvalidArgument on every write door — the prefix is server-reserved, so
 //     a prefixed request value is either forged ciphertext or an attempt to

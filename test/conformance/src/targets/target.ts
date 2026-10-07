@@ -79,10 +79,10 @@ export interface CapabilityFlags {
   // rest, redact every user-shaped EC read, and decrypt only for a
   // scope-bound runner credential (cloud: ResolveExecutionContextValuesForCaller;
   // OSS: the execution-scoped token lane on getByExecutionId). The EC and
-  // envmerge suites assert redaction unconditionally, exactly like the
-  // environment suite — the flag that used to gate this
+  // run-credentials suites assert redaction unconditionally, exactly like
+  // the credential suite — the flag that used to gate this
   // (executionContextSecretRedaction) was retired at convergence, the same
-  // retirement the environment surface got in stigmer#405.
+  // retirement the saved-secrets surface got in stigmer#405.
   // Schedules actually FIRE here: a trigger records status.last_fire_at,
   // repeated failed fires accumulate status.consecutive_failures into the
   // platform auto-pause, and resume + re-trigger fires again. Requires a

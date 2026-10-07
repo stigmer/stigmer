@@ -59,8 +59,9 @@ export interface AgentExecutionOptions {
   // gates apply; true = the run never pauses for approval. The top of the
   // approval-policy chain.
   autoApproveAll?: boolean;
-  // Execution-scoped env overrides (spec.runtime_env) — the highest-precedence
-  // layer of the env merge, materialized into the ExecutionContext at create.
+  // Execution-scoped values (spec.runtime_env) — the first source of a declared
+  // key's value, resolved into the ExecutionContext at create; a key no
+  // declarer names never reaches the run.
   runtimeEnv?: Record<string, ExecutionValueInit>;
   // The settings this message asks for (spec.run_config): model, tier,
   // thinking, bounds. Left unset by default: the agent's defaults and the

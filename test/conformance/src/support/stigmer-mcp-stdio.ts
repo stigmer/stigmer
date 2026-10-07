@@ -5,7 +5,7 @@
 //
 // The agent is a fixture, not a product surface. The suite exists to pin the
 // runner's stdio lane and the `@stigmer/mcp-server` roster on CI, where they
-// are otherwise proven only by envmerge-agent (the desktop-only
+// are otherwise proven only by run-credentials (the desktop-only
 // open-computer-use suite does not run there). So the instructions live here,
 // reduced to the one tool the arms script by name, and the McpServer is the
 // real full roster spawned by the runner as a stdio child exactly as an OSS
@@ -14,11 +14,11 @@
 // wherever the execution class runs, see ci.conformance-execution.yaml).
 //
 // The stdio child needs the server's gRPC address (STIGMER_SERVER_ADDRESS,
-// mcp-server/src/config.ts). The runner hands a stdio server ONLY the merged
-// execution env filtered to the keys its spec declares — never the runner's
-// own process env — so the McpServer declares the key and the execution
-// supplies the value through runtime_env, the same envmerge lane
-// envmerge-agent.conformance.test.ts pins.
+// mcp-server/src/config.ts). The runner hands a stdio server ONLY the run's
+// values filtered to the keys its spec declares — never the runner's own
+// process env — so the McpServer declares the key and the run supplies the
+// value through runtime_env, the per-call source
+// run-credentials.conformance.test.ts pins.
 import type { InitShape } from "./init-shape";
 import type { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";

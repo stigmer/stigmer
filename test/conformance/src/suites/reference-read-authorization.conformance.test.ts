@@ -17,7 +17,7 @@
 // Out of scope: the version ladder (the agent and skill suites own it), the
 // redactions (each kind's own suite), and the create-side bars
 // (parent-gated-create-authorization). Kinds whose rows are personal
-// (environment, execution context) have no org-visible arm; kinds that carry
+// (a person's credential, execution context) have no org-visible arm; kinds that carry
 // no visibility (shares, channels, schedules, apps) are read by
 // their owner and by a member only when the model admits members.
 import { Code } from "@connectrpc/connect";
@@ -31,7 +31,7 @@ import { makeAgent } from "../support/agents";
 import { makeSlackAgentChannel } from "../support/agentchannels";
 import { makeAgentShare } from "../support/agentshares";
 import { makeSlackChannelApp } from "../support/channelapps";
-import { makeEnvironment } from "../support/environments";
+import { makeCredential } from "../support/credentials";
 import { makeExecutionContext } from "../support/executioncontexts";
 import { makeMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
@@ -172,20 +172,22 @@ const KINDS: ReadonlyArray<ReferenceKind> = [
     deniedCopy: "unauthorized to view mcp server",
   },
   {
-    name: "environment",
+    // The owner's own credential: a person's credential is read by that
+    // person alone.
+    name: "credential",
     visible: false,
     memberReads: false,
     async seed(using, org) {
-      const created = await using.environmentCommand.create(
-        makeEnvironment({ org, name: uniqueName("ref-env") }),
+      const created = await using.credentialCommand.create(
+        makeCredential({ org, name: uniqueName("ref-cred") }),
       );
       return { id: created.metadata!.id, slug: created.metadata!.slug };
     },
-    getById: (using, id) => using.environmentQuery.get({ value: id }),
+    getById: (using, id) => using.credentialQuery.get({ value: id }),
     getByReference: (using, org, slug) =>
-      using.environmentQuery.getByReference({ org, slug }),
-    cleanup: (using, id) => using.environmentCommand.delete({ resourceId: id }),
-    deniedCopy: "unauthorized to get environment",
+      using.credentialQuery.getByReference({ org, slug }),
+    cleanup: (using, id) => using.credentialCommand.delete({ resourceId: id }),
+    deniedCopy: "unauthorized to get credential",
   },
   {
     name: "execution_context",

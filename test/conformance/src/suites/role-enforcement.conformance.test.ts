@@ -29,12 +29,12 @@
 //     since the annotation and the model line landed; before that a member
 //     authored MCP servers in both editions, and this suite pinned the
 //     admission by name so the line's arrival flipped it visibly.
-//   - Personal rows (a session, an environment, an API key): the person's
+//   - Personal rows (a session, a credential, an API key): the person's
 //     own; another member and the organization's ADMIN are refused on
 //     `get`, and every list — theirs, the admin's — omits the row. The
 //     admin arm is the oracle the cloud's model gives: an admin manages the
 //     organization's blueprints and members and never reads a member's
-//     conversations, keys or environments.
+//     conversations, keys or credentials.
 //   - Administrative rows (an OAuth app, which carries its organization's
 //     vendor credentials, a platform client, which mints tokens into it,
 //     and a channel app, which carries its Slack or Meta app secrets): the
@@ -48,7 +48,7 @@
 //     `get` refused them).
 //   - Leaving the organization: a person removed from it (`revokeOrgAccess`)
 //     is refused what they made there on the next call (their session,
-//     their environment; an admin's private agent), and reads and edits it
+//     their credential; an admin's private agent), and reads and edits it
 //     again once invited back. The model admits a direct grant only while
 //     its holder has a role in the object's organization (`affiliated`),
 //     and a person's authorship is such a grant: derived from the creator
@@ -91,7 +91,7 @@ import {
   AGENT_KIND,
   agentRefOf,
 } from "../support/agents";
-import { makeEnvironment } from "../support/environments";
+import { makeCredential } from "../support/credentials";
 import { organizationRole, ref } from "../support/iampolicies";
 import {
   makeMcpServer,
@@ -413,19 +413,19 @@ const PERSONAL_KINDS: ReadonlyArray<PersonalKind> = [
     delete: (using, id) => using.sessionCommand.delete({ value: id }),
   },
   {
-    name: "environment",
+    name: "credential",
     async create(using, cast) {
-      const created = await using.environmentCommand.create(
-        makeEnvironment({ org: cast.org, name: uniqueName("role-env") }),
+      const created = await using.credentialCommand.create(
+        makeCredential({ org: cast.org, name: uniqueName("role-cred") }),
       );
       return created.metadata!.id;
     },
-    get: (using, id) => using.environmentQuery.get({ value: id }),
+    get: (using, id) => using.credentialQuery.get({ value: id }),
     listIds: async (using, org) =>
-      (await using.environmentQuery.list({ org })).items.map(
-        (e) => e.metadata?.id ?? "",
+      (await using.credentialQuery.list({ org })).items.map(
+        (c) => c.metadata?.id ?? "",
       ),
-    delete: (using, id) => using.environmentCommand.delete({ resourceId: id }),
+    delete: (using, id) => using.credentialCommand.delete({ resourceId: id }),
   },
   {
     name: "api_key",

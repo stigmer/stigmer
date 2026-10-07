@@ -10,13 +10,22 @@
 //    workflow-ID attach semantics (one discovery run shared by concurrent
 //    connects) and the refresh-on-connect OAuth pre-flight.
 // 2. completeOAuthConnect / getOAuthGrantStatus / disconnectOAuth happy paths
-//    — conceptually Temporal-free, but the Go server builds their managed
-//    environment service inside the Temporal-gated SetConnectDependencies, so
-//    on the Temporal-less local target complete refuses before validating
-//    input. The initiate lanes and Layer-1 guards (genuinely engine-free) live
-//    in suites/mcpserver-oauth.conformance.test.ts; everything that needs the
-//    managed-env service runs here. (The wiring gap is disclosed, not pinned:
-//    pinning it would force the TS port to reproduce a composition artifact.)
+//    — conceptually Temporal-free, but the server wires the sign-in lane with
+//    its connect dependencies, which the Temporal-less local target does not
+//    compose, so complete refuses there before validating input. The initiate
+//    lanes and Layer-1 guards (genuinely engine-free) live in
+//    suites/mcpserver-oauth.conformance.test.ts; everything that completes a
+//    sign-in runs here. (The wiring gap is disclosed, not pinned: pinning it
+//    would force a server to reproduce a composition artifact.)
+//
+// A completed sign-in IS a Credential of the person who signed in: `oauth`
+// source, serving the server, one secret field named by the server's
+// `target_env_var` holding the access token. Its fields are the platform's
+// (the refresh lane rewrites them): a person may rename it or read it back,
+// never set or remove a field. Signing out deletes it, and deleting it signs
+// out. A connect of a server that declares a required key resolves that key
+// through the same rule a run does, with the connecting person as the run's
+// person: their own credential serving the server, or runtime_env.
 //
 // What discovery stores about each tool: its name, its schema, and
 // destructive_hint, true exactly when the server's MCP annotations declare
@@ -27,7 +36,11 @@
 // own tool list, so the mock LLM's request log stays empty, which the suite
 // also pins. How the runner treats a `readOnlyHint` beside the destructive
 // mark is the runner's unit arm, not re-proven here.
+import { create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
+import type { Credential } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/api_pb";
+import { CredentialFieldSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/spec_pb";
+import { CredentialSource } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/status_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { ConnectPhase } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
@@ -49,7 +62,7 @@ import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { MockOAuthAuthorizationServer } from "@stigmer/test-support/oauth-authorization-server";
 import { HERMETIC_OAUTH_REDIRECT_URI } from "@stigmer/test-support/server-process";
 import { requireLlmProxy, requireMcpFixture } from "../support/runs";
-import { makePersonalEnvironment } from "../support/environments";
+import { REDACTED_MARKER, makeCredential, mcpServerTarget, refOf } from "../support/credentials";
 import {
   makeHttpMcpServer,
   makeOAuthMcpServer,
@@ -102,6 +115,12 @@ async function createOAuthMcpServer(opts: Omit<OAuthMcpServerOptions, "targetEnv
   );
   fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: created.metadata!.id }));
   return created;
+}
+
+// The sign-in credentials in `org` the harness's person may see.
+async function signInsOf(org: string): Promise<Credential[]> {
+  const listed = await clients.credentialQuery.list({ org });
+  return listed.items.filter((c) => c.status?.source === CredentialSource.oauth);
 }
 
 async function createVendorOAuthApp(org: string, name: string, opts: OAuthAppOptions = {}) {
@@ -317,13 +336,25 @@ describe("McpServer connect conformance — OAuth handshake completion", () => {
     expect(status.authMethod).toBe("mcp_oauth");
     expect(status.connectionHealth).toBe(OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY);
 
-    // The tokens rest in a managed Environment named for the server.
-    const managed = await clients.environmentQuery.list({
-      org,
-      labels: { "stigmer.ai/managed": "true" },
+    // The access token rests in a Credential of the person who signed in:
+    // an `oauth` sign-in serving the server, named for it, whose one field
+    // is the server's target variable.
+    const credentials = await signInsOf(org);
+    expect(credentials).toHaveLength(1);
+    const signIn = credentials[0]!;
+    expect(signIn.metadata?.name).toBe(server.metadata?.name);
+    expect(signIn.status?.source).toBe(CredentialSource.oauth);
+    expect(signIn.spec?.owner.case, "a personal sign-in is the person's own").toBe("person");
+    expect(signIn.spec?.serves.map((t) => (t.target.case === "mcpServer" ? t.target.value.slug : ""))).toEqual([
+      server.metadata!.slug,
+    ]);
+    expect(Object.keys(signIn.spec?.fields ?? {})).toEqual([TARGET_ENV_VAR]);
+    expect(signIn.spec?.fields[TARGET_ENV_VAR]?.value, "the token leaves the server redacted").toBe(REDACTED_MARKER);
+    const token = await clients.credentialQuery.revealField({
+      credentialId: signIn.metadata!.id,
+      field: TARGET_ENV_VAR,
     });
-    expect(managed.items).toHaveLength(1);
-    expect(managed.items[0]!.metadata?.name).toBe(`OAuth: ${name}`);
+    expect(token.value, "the person reveals their own access token").toMatch(/^mock-access-token-/);
   });
 
   it("[rpc:McpServerCommandController.completeOAuthConnect] vendor happy path: presents the client secret via Basic by default and via the form body on client_secret_post", async () => {
@@ -381,9 +412,14 @@ describe("McpServer connect conformance — OAuth handshake completion", () => {
     expect(status.authMethod).toBe("vendor_oauth");
   });
 
-  it("[rpc:McpServerCommandController.completeOAuthConnect] re-connect reuses the existing managed environment instead of creating a second one", async () => {
+  it("[rpc:McpServerCommandController.completeOAuthConnect] re-connect writes the new token into the same sign-in credential instead of creating a second one", async () => {
     const { org } = await target.provisionTenancy();
     const { server } = await completeDcrHandshake(org, uniqueName("dcrreuse"));
+    const first = (await signInsOf(org))[0]!;
+    const firstToken = await clients.credentialQuery.revealField({
+      credentialId: first.metadata!.id,
+      field: TARGET_ENV_VAR,
+    });
 
     const again = await clients.mcpServerCommand.initiateOAuthConnect({
       mcpServerId: server.metadata!.id,
@@ -395,11 +431,86 @@ describe("McpServer connect conformance — OAuth handshake completion", () => {
       authorizationCode: "second-code",
     });
 
-    const managed = await clients.environmentQuery.list({
-      org,
-      labels: { "stigmer.ai/managed": "true" },
+    const credentials = await signInsOf(org);
+    expect(credentials, "re-connect must reuse, not accumulate, sign-in credentials").toHaveLength(1);
+    expect(credentials[0]!.metadata?.id).toBe(first.metadata?.id);
+    const token = await clients.credentialQuery.revealField({
+      credentialId: first.metadata!.id,
+      field: TARGET_ENV_VAR,
     });
-    expect(managed.items, "re-connect must reuse, not accumulate, managed environments").toHaveLength(1);
+    expect(token.value, "the sign-in holds the second exchange's token").toMatch(/^mock-access-token-/);
+    expect(token.value).not.toBe(firstToken.value);
+  });
+});
+
+describe("McpServer connect conformance — a sign-in's fields are the platform's", () => {
+  // The refusal copy, byte-pinned in the server's credential constants.
+  const SIGN_IN_FIELDS_ARE_THE_PLATFORMS =
+    "this credential holds an MCP server sign-in; its values are kept fresh by the platform and cannot be set or removed by hand — sign out and sign in again instead";
+
+  it("[rpc:CredentialCommandController.setFields] [rpc:CredentialCommandController.removeFields] a sign-in's fields can be neither set nor removed by hand", async () => {
+    const { org } = await target.provisionTenancy();
+    await completeDcrHandshake(org, uniqueName("signin-fields"));
+    const signIn = (await signInsOf(org))[0]!;
+
+    const set = await expectGrpcCode(
+      () =>
+        clients.credentialCommand.setFields({
+          credentialId: signIn.metadata!.id,
+          fields: { [TARGET_ENV_VAR]: { value: "planted-token", plain: false, description: "" } },
+        }),
+      Code.FailedPrecondition,
+      "setFields on a sign-in",
+    );
+    expect(set.rawMessage).toBe(SIGN_IN_FIELDS_ARE_THE_PLATFORMS);
+    const removed = await expectGrpcCode(
+      () => clients.credentialCommand.removeFields({ credentialId: signIn.metadata!.id, fields: [TARGET_ENV_VAR] }),
+      Code.FailedPrecondition,
+      "removeFields on a sign-in",
+    );
+    expect(removed.rawMessage).toBe(SIGN_IN_FIELDS_ARE_THE_PLATFORMS);
+  });
+
+  it("[rpc:CredentialCommandController.update] an update may rename a sign-in, keeping its fields as the marker, and may not change a field", async () => {
+    const { org } = await target.provisionTenancy();
+    await completeDcrHandshake(org, uniqueName("signin-update"));
+    const signIn = (await signInsOf(org))[0]!;
+
+    const renamed = await clients.credentialCommand.update({
+      ...signIn,
+      metadata: { ...signIn.metadata!, name: uniqueName("renamed-sign-in") },
+    });
+    expect(renamed.status?.source, "a rename keeps the sign-in a sign-in").toBe(CredentialSource.oauth);
+    expect(renamed.spec?.fields[TARGET_ENV_VAR]?.value).toBe(REDACTED_MARKER);
+
+    const refused = await expectGrpcCode(
+      () =>
+        clients.credentialCommand.update({
+          ...renamed,
+          spec: {
+            ...renamed.spec!,
+            fields: { [TARGET_ENV_VAR]: create(CredentialFieldSchema, { value: "planted-token" }) },
+          },
+        }),
+      Code.FailedPrecondition,
+      "an update replacing a sign-in's token",
+    );
+    expect(refused.rawMessage).toBe(SIGN_IN_FIELDS_ARE_THE_PLATFORMS);
+  });
+
+  it("[rpc:CredentialCommandController.delete] deleting a sign-in's credential signs the person out", async () => {
+    const { org } = await target.provisionTenancy();
+    const { server } = await completeDcrHandshake(org, uniqueName("signin-delete"));
+    const signIn = (await signInsOf(org))[0]!;
+
+    await clients.credentialCommand.delete({ resourceId: signIn.metadata!.id });
+
+    const status = await clients.mcpServerQuery.getOAuthGrantStatus({
+      resourceId: server.metadata!.id,
+      org,
+    });
+    expect(status.connected).toBe(false);
+    expect(status.connectionHealth).toBe(OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT);
   });
 });
 
@@ -438,7 +549,7 @@ describe("McpServer connect conformance — grant health boundaries", () => {
     );
   });
 
-  it("[rpc:McpServerQueryController.getOAuthGrantStatus] reports TOKEN_EXPIRED_REFRESHABLE even without a refresh token (pinned current behavior)", async () => {
+  it("[rpc:McpServerQueryController.getOAuthGrantStatus] reports TOKEN_EXPIRED when the vendor issued no refresh token", async () => {
     const { org } = await target.provisionTenancy();
     mockAs.tokenExpiresIn = 30;
     mockAs.issueRefreshToken = false;
@@ -449,27 +560,16 @@ describe("McpServer connect conformance — grant health boundaries", () => {
       org,
     });
 
-    // TWO-ARMED implementation-lag pin (stigmer/stigmer#863; the multiTenant
-    // flag is only the edition discriminant here, not a tenancy semantic):
-    //  - OSS arm — PINNED CURRENT BEHAVIOR, arguably a bug: completeOAuthConnect
-    //    records the refresh-token ENV VAR NAME on the grant unconditionally
-    //    (the `_REFRESH_TOKEN` naming convention), and evaluateHealth keys
-    //    "refreshable" off that name being non-empty — so a grant whose vendor
-    //    never issued a refresh token still reports TOKEN_EXPIRED_REFRESHABLE,
-    //    and TOKEN_EXPIRED is unreachable through this flow.
-    //  - Cloud arm — already answers the correct TOKEN_EXPIRED.
-    // When #863 is fixed in OSS, collapse both arms to TOKEN_EXPIRED.
+    // The refresh token is sealed on the grant only when the vendor issued
+    // one, so a grant without one is honestly not refreshable (the two
+    // editions converged on this answer, stigmer/stigmer#863).
     expect(status.connected).toBe(true);
-    expect(status.connectionHealth).toBe(
-      target.capabilities.multiTenant
-        ? OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED
-        : OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE,
-    );
+    expect(status.connectionHealth).toBe(OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED);
   });
 });
 
 describe("McpServer connect conformance — disconnect teardown", () => {
-  it("[rpc:McpServerCommandController.disconnectOAuth] tears down the grant and its managed environment, then answers false on repeat", async () => {
+  it("[rpc:McpServerCommandController.disconnectOAuth] tears down the grant and its sign-in credential, then answers false on repeat", async () => {
     const { org } = await target.provisionTenancy();
     const { server } = await completeDcrHandshake(org, uniqueName("teardown"));
 
@@ -486,11 +586,7 @@ describe("McpServer connect conformance — disconnect teardown", () => {
     expect(status.connected).toBe(false);
     expect(status.connectionHealth).toBe(OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT);
 
-    const managed = await clients.environmentQuery.list({
-      org,
-      labels: { "stigmer.ai/managed": "true" },
-    });
-    expect(managed.items, "the token-holding managed environment must be deleted").toHaveLength(0);
+    expect(await signInsOf(org), "the token-holding sign-in credential must be deleted").toHaveLength(0);
 
     const second = await clients.mcpServerCommand.disconnectOAuth({
       resourceId: server.metadata!.id,
@@ -589,7 +685,7 @@ describe("McpServer connect conformance — blocking connect", () => {
     );
   });
 
-  it("[rpc:McpServerCommandController.connect] refuses connect when required credentials have no personal environment (pinned copy)", async () => {
+  it("[rpc:McpServerCommandController.connect] refuses a connect whose server needs a key the person has no credential for, naming the key", async () => {
     const { org } = await target.provisionTenancy();
     const server = await clients.mcpServerCommand.create(
       makeHttpMcpServer({
@@ -604,14 +700,13 @@ describe("McpServer connect conformance — blocking connect", () => {
     const err = await expectGrpcCode(
       () => clients.mcpServerCommand.connect({ mcpServerId: server.metadata!.id, org }),
       Code.FailedPrecondition,
-      "connect with missing personal environment",
+      "connect with no credential serving the server",
     );
-    expect(err.rawMessage).toBe(
-      `personal environment not found for org '${org}'; save required credentials first: [CONF_REQUIRED_KEY]`,
-    );
+    expect(err.rawMessage).toContain(`MCP server '${server.metadata!.slug}' needs CONF_REQUIRED_KEY`);
+    expect(err.rawMessage).toContain("save a credential of yours that serves it");
   });
 
-  it("[rpc:McpServerCommandController.connect] discovers a server that declares a credential once the personal environment holds it — the ephemeral ExecutionContext is created and decrypted for the runner", async () => {
+  it("[rpc:McpServerCommandController.connect] discovers a server that declares a key once the person's own credential serves it — the ephemeral ExecutionContext is created and decrypted for the runner", async () => {
     // The credentialed connect is the connect lane's whole reason to mint a
     // token: the declared key is saved as a secret, the server resolves it
     // into an ephemeral ExecutionContext for this connect, and the runner
@@ -620,14 +715,6 @@ describe("McpServer connect conformance — blocking connect", () => {
     // with tools proves the decrypt lane end to end. The row's deletion at
     // settle is the server's own unit arm (no list RPC exposes it here).
     const { org } = await target.provisionTenancy();
-    const personal = await clients.environmentCommand.create(
-      makePersonalEnvironment({
-        org,
-        name: uniqueName("personal"),
-        data: { CONF_REQUIRED_KEY: { value: "conformance-credential", isSecret: true } },
-      }),
-    );
-    fixtures.defer(() => clients.environmentCommand.delete({ resourceId: personal.metadata!.id }));
     const server = await clients.mcpServerCommand.create(
       makeHttpMcpServer({
         org,
@@ -637,6 +724,15 @@ describe("McpServer connect conformance — blocking connect", () => {
       }),
     );
     fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
+    const credential = await clients.credentialCommand.create(
+      makeCredential({
+        org,
+        name: uniqueName("credential"),
+        fields: { CONF_REQUIRED_KEY: { value: "conformance-credential" } },
+        serves: [mcpServerTarget(refOf(server))],
+      }),
+    );
+    fixtures.defer(() => clients.credentialCommand.delete({ resourceId: credential.metadata!.id }));
 
     const connected = await clients.mcpServerCommand.connect({
       mcpServerId: server.metadata!.id,
@@ -757,7 +853,7 @@ describe("McpServer connect conformance — refresh-on-connect pre-flight", () =
     );
   });
 
-  it("[rpc:McpServerCommandController.connect] silently skips the refresh when the grant has no refresh token (pinned current behavior)", async () => {
+  it("[rpc:McpServerCommandController.connect] refuses a connect on an expired grant with no refresh token, with the re-authenticate copy, asking the vendor nothing", async () => {
     const { org } = await target.provisionTenancy();
     mockAs.tokenExpiresIn = 30;
     mockAs.issueRefreshToken = false;
@@ -766,44 +862,19 @@ describe("McpServer connect conformance — refresh-on-connect pre-flight", () =
     });
     const exchangesBeforeConnect = mockAs.capturedTokenRequests().length;
 
-    // TWO-ARMED implementation-lag pin (stigmer/stigmer#863; multiTenant is
-    // only the edition discriminant, not a tenancy semantic):
-    //  - Cloud arm — refuses honestly: an expired grant with no refresh token
-    //    answers FailedPrecondition with the re-authenticate copy, before any
-    //    connect run starts. This is the behavior #863's fix converges on.
-    //  - OSS arm — PINNED CURRENT BEHAVIOR: with no refresh token stored, the
-    //    pre-flight's managed-env read fails and the refresh is SKIPPED
-    //    silently — connect proceeds with the expired token rather than
-    //    refusing (the refusal copy is unreachable through the wire: it fires
-    //    only when the managed env returns an EMPTY refresh token, which
-    //    completeOAuthConnect never writes). The stale token only fails
-    //    later, at the target server — which the echo fixture, needing no
-    //    auth, never does. The silent skip hides an expired, unrefreshable
-    //    grant.
-    // When #863 is fixed in OSS, collapse both arms to the cloud arm.
-    if (target.capabilities.multiTenant) {
-      const err = await expectGrpcCode(
-        () => clients.mcpServerCommand.connect({ mcpServerId: server.metadata!.id, org }),
-        Code.FailedPrecondition,
-        "connect with an expired, unrefreshable grant",
-      );
-      expect(err.rawMessage).toBe(
-        `Access token for MCP server '${server.metadata!.id}' has expired and no refresh ` +
-          "token is available. Please re-authenticate via OAuth Connect",
-      );
-      expect(
-        mockAs.capturedTokenRequests().length,
-        "no refresh attempt must reach the vendor",
-      ).toBe(exchangesBeforeConnect);
-      return;
-    }
-
-    const connected = await clients.mcpServerCommand.connect({
-      mcpServerId: server.metadata!.id,
-      org,
-    });
-
-    expect(connected.status?.connectStatus?.phase).toBe(ConnectPhase.succeeded);
+    // An expired grant with no refresh token is refused before any connect
+    // run starts, rather than proceeding with a token the target server
+    // would refuse later: the refresh token is sealed on the grant only when
+    // the vendor issued one (stigmer/stigmer#863, converged across editions).
+    const err = await expectGrpcCode(
+      () => clients.mcpServerCommand.connect({ mcpServerId: server.metadata!.id, org }),
+      Code.FailedPrecondition,
+      "connect with an expired, unrefreshable grant",
+    );
+    expect(err.rawMessage).toBe(
+      `access token for resource '${server.metadata!.id}' has expired and no refresh ` +
+        "token is available. Please re-authenticate via OAuth Connect",
+    );
     expect(mockAs.capturedTokenRequests().length, "no refresh attempt must reach the vendor").toBe(
       exchangesBeforeConnect,
     );

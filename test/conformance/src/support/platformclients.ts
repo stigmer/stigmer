@@ -2,7 +2,7 @@
 // Domain: conformance support.
 //
 // Every edition serves PlatformClient, so these helpers take the clients
-// to act through instead of reaching for an environment: the CRUD suite
+// to act through instead of reaching for a target: the CRUD suite
 // passes the target's primary clients, and the enforcement suite passes its
 // enforcing lane's founder (the cloud's primary; open source's sibling in
 // the OIDC posture, the only posture in which a server mints tokens). The

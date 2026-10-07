@@ -8,9 +8,10 @@
 //     getServerInfo answers single_org, and findMyOrganizations lists exactly
 //     one, whose own metadata.org is empty;
 //   - a request that names no organization acts in that one, for one method
-//     of each shape the contract has: an annotated create (agent, session), an
-//     apply (environment), a reference lookup (agent getByReference), a list
-//     with a top-level org (environment list), and search;
+//     of each shape the contract has: an annotated create (agent, session), a
+//     create that asks its permission after resolving its owner (credential),
+//     an apply (MCP server), a reference lookup (agent getByReference), a
+//     list with a top-level org (credential list), and search;
 //   - an explicit organization is honoured: one that does not exist is still
 //     refused by name;
 //   - a kind that belongs to no organization stays that way (an API key's
@@ -34,7 +35,8 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { makeAgent } from "../support/agents";
 import { makeApiKey } from "../support/apikeys";
-import { makeEnvironment } from "../support/environments";
+import { makeCredential } from "../support/credentials";
+import { makeMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import { makeSession } from "../support/sessions";
 import { createTarget, type TargetProfile } from "../targets";
@@ -86,16 +88,23 @@ describe.skipIf(!capabilities.singleOrganization)(
       expect(found.metadata?.id).toBe(created.metadata?.id);
     });
 
-    it("[rpc:EnvironmentCommandController.apply] [rpc:EnvironmentQueryController.list] an environment applied and listed with no organization lives in the one", async () => {
-      const applied = await clients.environmentCommand.apply(
-        makeEnvironment({ org: NOBODY, name: uniqueName("env") }),
+    it("[rpc:CredentialCommandController.create] [rpc:CredentialQueryController.list] a credential created and listed with no organization lives in the one", async () => {
+      const created = await clients.credentialCommand.create(
+        makeCredential({ org: NOBODY, name: uniqueName("cred") }),
+      );
+      expect(created.metadata?.org).toBe(theOrganization);
+
+      const listed = await clients.credentialQuery.list({ org: NOBODY });
+      expect(listed.items.map((credential) => credential.metadata?.id)).toContain(
+        created.metadata?.id,
+      );
+    });
+
+    it("[rpc:McpServerCommandController.apply] an MCP server applied with no organization lives in the one", async () => {
+      const applied = await clients.mcpServerCommand.apply(
+        makeMcpServer({ org: NOBODY, name: uniqueName("mcp") }),
       );
       expect(applied.metadata?.org).toBe(theOrganization);
-
-      const listed = await clients.environmentQuery.list({ org: NOBODY });
-      expect(listed.items.map((env) => env.metadata?.id)).toContain(
-        applied.metadata?.id,
-      );
     });
 
     it("[rpc:SessionCommandController.create] a session created with no organization lives in the one", async () => {

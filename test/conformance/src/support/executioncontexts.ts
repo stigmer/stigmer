@@ -5,13 +5,14 @@
 // carry a single run's merged runtime configuration and secrets. Its spec pairs
 // a required `execution_id` (the parent Run id) with
 // a `data` map of ExecutionValue entries (value + is_secret; no description,
-// unlike EnvironmentValue).
+// unlike a CredentialField).
 //
-// In normal operation the engine creates the context after envmerge runs; here
-// we exercise the resource's own API contract directly. There is no foreign-key
-// check on execution_id, so a synthetic id is sufficient for the lookup tests.
+// In normal operation the server creates the context after resolving the run's
+// credentials; here we exercise the resource's own API contract directly. There
+// is no foreign-key check on execution_id, so a synthetic id is sufficient for
+// the lookup tests.
 //
-// As with support/environments.ts, the canonical builder is SECRET-FREE so the
+// As with support/credentials.ts, the canonical builder is SECRET-FREE so the
 // create-vs-get parity check stays edition-stable; secret entries are opt-in via
 // `data` for the dedicated secret tests. Negatives are composed inline.
 import type { InitShape } from "./init-shape";

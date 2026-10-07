@@ -39,16 +39,16 @@
 //     org-visible server that declares a credential SUCCEEDS with the
 //     fixture's tools: the connect's ExecutionContext is created as the
 //     member and the connect token admits the runner as the member for the
-//     secret read from the member's personal environment (stigmer#1137's
-//     connect half). A key the run's agent declares and no layer carries
-//     is filled from the TURN SENDER's personal environment: a member's
-//     turn on the founder's org-visible agent reads the member's saved
-//     value, never the founder's saved after it. (The sharper form, a
-//     teammate's turn in someone else's session reading the teammate's
-//     value, needs a per-session viewer grant, which open source's
-//     organization-only grant scope refuses; the server's
-//     personal-environment-reach unit arms pin that the person is the
-//     turn's creator.) A member's run with memory
+//     secret read from the member's own credential serving the server
+//     (stigmer#1137's connect half). A key the run's agent declares and
+//     the run itself does not carry is filled from the TURN SENDER's own
+//     credential serving the agent: a member's turn on the founder's
+//     org-visible agent reads the member's saved value, never the
+//     founder's saved after it. (The sharper form, a teammate's turn in
+//     someone else's session reading the teammate's value, needs a
+//     per-session viewer grant, which open source's organization-only
+//     grant scope refuses; the server's run-credentials unit arms pin that
+//     the person is the turn's creator.) A member's run with memory
 //     on, whose agent calls `remember`, writes a Memory whose subject is the
 //     member and whose provenance session is the run's, which the operator —
 //     an organization owner — cannot list (stigmer#1147: the stdio child
@@ -102,7 +102,7 @@ import {
   sessionIdOf,
 } from "../support/runs";
 import { makeApiKey, plaintextKeyOf } from "../support/apikeys";
-import { makePersonalEnvironment } from "../support/environments";
+import { agentTarget, makeCredential, mcpServerTarget, refOf } from "../support/credentials";
 import { pollUntil } from "../support/run-poll";
 import { makeHttpMcpServer } from "../support/mcpservers";
 import {
@@ -568,23 +568,9 @@ describe.skipIf(!runnerActsAsRunCreator)(
       // ORG-VISIBLE server that declares a credential — authoring an MCP
       // server is the organization's blueprint bar, and a member holds
       // `can_connect` on an org-visible row and on no private one. The
-      // member saves the credential in their own personal environment for
-      // the organization; the connect reads it from THERE, as the member,
-      // through the connect token — the read this arm proves.
-      const personal = await people.member.environmentCommand.create(
-        makePersonalEnvironment({
-          org: people.org,
-          name: uniqueName("ras-personal"),
-          data: {
-            RAS_REQUIRED_KEY: { value: "member-credential", isSecret: true },
-          },
-        }),
-      );
-      fixtures.defer(() =>
-        people.member.environmentCommand.delete({
-          resourceId: personal.metadata!.id,
-        }),
-      );
+      // member saves the value as their own credential serving the server;
+      // the connect reads it from THERE, as the member, through the connect
+      // token — the read this arm proves.
       const input = makeHttpMcpServer({
         org: people.org,
         name: uniqueName("ras-credentialed"),
@@ -604,6 +590,19 @@ describe.skipIf(!runnerActsAsRunCreator)(
       fixtures.defer(() =>
         people.founder.mcpServerCommand.delete({
           resourceId: server.metadata!.id,
+        }),
+      );
+      const credential = await people.member.credentialCommand.create(
+        makeCredential({
+          org: people.org,
+          name: uniqueName("ras-credential"),
+          fields: { RAS_REQUIRED_KEY: { value: "member-credential" } },
+          serves: [mcpServerTarget(refOf(server))],
+        }),
+      );
+      fixtures.defer(() =>
+        people.member.credentialCommand.delete({
+          resourceId: credential.metadata!.id,
         }),
       );
 
@@ -631,28 +630,11 @@ describe.skipIf(!runnerActsAsRunCreator)(
       const people = await provisionPeople(lane);
       const mcpTools = requireMcpFixture(target);
 
-      // Both people save the credential the server declares, the founder
-      // LAST: a lookup that took the organization's newest personal
-      // environment would hand the member the founder's. The server
-      // templates the credential into a header, so the fixture shows on
-      // the wire whose value the connect carried.
-      for (const [who, client, value] of [
-        ["member", people.member, "member-credential"],
-        ["founder", people.founder, "founder-credential"],
-      ] as const) {
-        const personal = await client.environmentCommand.create(
-          makePersonalEnvironment({
-            org: people.org,
-            name: uniqueName(`ras-${who}-personal`),
-            data: { RAS_REQUIRED_KEY: { value, isSecret: true } },
-          }),
-        );
-        fixtures.defer(() =>
-          client.environmentCommand.delete({
-            resourceId: personal.metadata!.id,
-          }),
-        );
-      }
+      // Both people save a credential serving the server, the founder
+      // LAST: a lookup that took the organization's newest credential
+      // would hand the member the founder's. The server templates the
+      // credential into a header, so the fixture shows on the wire whose
+      // value the connect carried.
       const input = makeHttpMcpServer({
         org: people.org,
         name: uniqueName("ras-credential-header"),
@@ -675,6 +657,24 @@ describe.skipIf(!runnerActsAsRunCreator)(
           resourceId: server.metadata!.id,
         }),
       );
+      for (const [who, client, value] of [
+        ["member", people.member, "member-credential"],
+        ["founder", people.founder, "founder-credential"],
+      ] as const) {
+        const credential = await client.credentialCommand.create(
+          makeCredential({
+            org: people.org,
+            name: uniqueName(`ras-${who}-credential`),
+            fields: { RAS_REQUIRED_KEY: { value } },
+            serves: [mcpServerTarget(refOf(server))],
+          }),
+        );
+        fixtures.defer(() =>
+          client.credentialCommand.delete({
+            resourceId: credential.metadata!.id,
+          }),
+        );
+      }
 
       mcpTools.resetCaptured();
       const connected = await people.member.mcpServerCommand.connect({
@@ -696,30 +696,13 @@ describe.skipIf(!runnerActsAsRunCreator)(
       expect(new Set(carried)).toEqual(new Set(["member-credential"]));
     });
 
-    it("[rpc:RunCommandController.create] a key the agent declares and no layer carries is filled from the turn sender's personal environment, never the agent author's saved after it", async (ctx) => {
+    it("[rpc:RunCommandController.create] a key the agent declares is filled from the turn sender's own credential serving the agent, never the agent author's saved after it", async (ctx) => {
       const { lane, mock } = laneOrSkip(ctx);
       const people = await provisionPeople(lane);
 
-      // Both people save the key the agent declares, the founder (the agent's
-      // author) LAST: a fill that took the organization's newest personal
-      // environment, or the author's, would hand the member the founder's.
-      for (const [who, client, value] of [
-        ["member", people.member, "member-value"],
-        ["founder", people.founder, "founder-value"],
-      ] as const) {
-        const personal = await client.environmentCommand.create(
-          makePersonalEnvironment({
-            org: people.org,
-            name: uniqueName(`ras-bridge-${who}-personal`),
-            data: { RAS_BRIDGE_KEY: { value, isSecret: false } },
-          }),
-        );
-        fixtures.defer(() =>
-          client.environmentCommand.delete({
-            resourceId: personal.metadata!.id,
-          }),
-        );
-      }
+      // Both people save a credential serving the agent, the founder (the
+      // agent's author) LAST: a fill that took the organization's newest
+      // credential, or the author's, would hand the member the founder's.
       const input = makeAgent({
         org: people.org,
         name: uniqueName("ras-bridge-agent"),
@@ -733,6 +716,24 @@ describe.skipIf(!runnerActsAsRunCreator)(
       fixtures.defer(() =>
         people.founder.agentCommand.delete({ value: agent.metadata!.id }),
       );
+      for (const [who, client, value] of [
+        ["member", people.member, "member-value"],
+        ["founder", people.founder, "founder-value"],
+      ] as const) {
+        const credential = await client.credentialCommand.create(
+          makeCredential({
+            org: people.org,
+            name: uniqueName(`ras-bridge-${who}-credential`),
+            fields: { RAS_BRIDGE_KEY: { value, plain: true } },
+            serves: [agentTarget(refOf(agent))],
+          }),
+        );
+        fixtures.defer(() =>
+          client.credentialCommand.delete({
+            resourceId: credential.metadata!.id,
+          }),
+        );
+      }
 
       // The turn is held so its ExecutionContext outlives the read; the
       // member reads the context of their own turn (its owner).

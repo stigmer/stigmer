@@ -11,7 +11,7 @@
 // assistant is the builder with no reference.
 //
 // Negatives (duplicate, missing name, wrong const fields) are written inline in the
-// suite, matching support/agents.ts and support/environments.ts: this module is
+// suite, matching support/agents.ts and support/credentials.ts: this module is
 // validity-by-construction. harness_state_id is normally populated by the engine
 // after the first execution and gates the harness / execution_target immutability
 // validators; the Class B immutability suite sets it directly (it is a plain

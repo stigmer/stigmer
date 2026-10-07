@@ -6,7 +6,7 @@
 // parent's own identifier for it, `spec.external_id`). Nobody owns C: P's
 // admins manage it (its settings, members and access), see its billing,
 // and grant its people, but hold no role in it, so they read none of its
-// sessions, agents or environments. A P admin who needs to look inside grants
+// sessions, agents or credentials. A P admin who needs to look inside grants
 // themselves a role in C, which C's access list shows. Everyone in C reads
 // and runs what P shares at visibility_child_orgs; nobody in another
 // parent's child does. A parent with children is not deleted. A
@@ -28,7 +28,7 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
-import { makeEnvironment } from "../support/environments";
+import { makeCredential } from "../support/credentials";
 import { organizationRole } from "../support/iampolicies";
 import { uniqueName, uniqueOrg } from "../support/naming";
 import {
@@ -155,7 +155,7 @@ describe("child organizations — managed by the parent, never read by it", () =
     expect(listed.entries.map((org) => org.metadata?.id)).toEqual([child.org]);
   });
 
-  it("[rpc:SessionQueryController.get] a parent admin manages a child but cannot read its sessions, agents or environments", async (ctx) => {
+  it("[rpc:SessionQueryController.get] a parent admin manages a child but cannot read its sessions, agents or credentials", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
     const parent = await tenancy(on);
@@ -176,20 +176,18 @@ describe("child organizations — managed by the parent, never read by it", () =
     fixtures.defer(() =>
       customer.clients.agentCommand.delete({ value: agentId }),
     );
-    const environmentInput = makeEnvironment({
-      org: child.org,
-      name: uniqueName("child-env"),
-    });
-    const environment = await customer.clients.environmentCommand.create({
-      ...environmentInput,
-      metadata: {
-        ...environmentInput.metadata,
-        visibility: ApiResourceVisibility.visibility_org,
-      },
-    });
-    const environmentId = environment.metadata?.id ?? "";
+    // The child's own credential, which its admins manage: the one kind of
+    // credential an admin of the organization may read.
+    const credential = await customer.clients.credentialCommand.create(
+      makeCredential({
+        org: child.org,
+        name: uniqueName("child-cred"),
+        owner: "org",
+      }),
+    );
+    const credentialId = credential.metadata?.id ?? "";
     fixtures.defer(() =>
-      customer.clients.environmentCommand.delete({ resourceId: environmentId }),
+      customer.clients.credentialCommand.delete({ resourceId: credentialId }),
     );
 
     // Management: settings, members, access; billing is read only.
@@ -225,9 +223,9 @@ describe("child organizations — managed by the parent, never read by it", () =
       "the parent's admin reads the child's agent",
     );
     await expectGrpcCode(
-      () => on.clients.environmentQuery.get({ value: environmentId }),
+      () => on.clients.credentialQuery.get({ value: credentialId }),
       Code.PermissionDenied,
-      "the parent's admin reads the child's org-visible environment",
+      "the parent's admin reads the child's organization credential",
     );
     // The child's own admin reads all three.
     expect(
@@ -241,25 +239,27 @@ describe("child organizations — managed by the parent, never read by it", () =
     const on = lane;
     const parent = await tenancy(on);
     const child = await childOf(on, parent);
-    const customer = await personWith(on, child.org, "member");
-    const environmentInput = makeEnvironment({
+    const customer = await personWith(on, child.org, "admin");
+    // An org-visible agent of the child: what any role in the child reads,
+    // so the join's least role (viewer) is enough to read it.
+    const agentInput = makeAgent({
       org: child.org,
-      name: uniqueName("child-env"),
+      name: uniqueName("child-agent"),
     });
-    const environment = await customer.clients.environmentCommand.create({
-      ...environmentInput,
+    const agent = await customer.clients.agentCommand.create({
+      ...agentInput,
       metadata: {
-        ...environmentInput.metadata,
+        ...agentInput.metadata,
         visibility: ApiResourceVisibility.visibility_org,
       },
     });
-    const environmentId = environment.metadata?.id ?? "";
+    const agentId = agent.metadata?.id ?? "";
     fixtures.defer(() =>
-      customer.clients.environmentCommand.delete({ resourceId: environmentId }),
+      customer.clients.agentCommand.delete({ value: agentId }),
     );
     const founder = await on.accountIdOf(on.clients);
     await expectGrpcCode(
-      () => on.clients.environmentQuery.get({ value: environmentId }),
+      () => on.clients.agentQuery.get({ value: agentId }),
       Code.PermissionDenied,
       "before joining, the parent's admin reads nothing",
     );
@@ -272,9 +272,8 @@ describe("child organizations — managed by the parent, never read by it", () =
       "the join is visible to the child's own people",
     ).toContain(founder);
     expect(
-      (await on.clients.environmentQuery.get({ value: environmentId })).metadata
-        ?.id,
-    ).toBe(environmentId);
+      (await on.clients.agentQuery.get({ value: agentId })).metadata?.id,
+    ).toBe(agentId);
   });
 
   it("[rpc:AgentQueryController.get] everyone in a child reads and runs what the parent shares with child organizations; another parent's child does not", async (ctx) => {
@@ -451,18 +450,18 @@ describe("child organizations — managed by the parent, never read by it", () =
       mine.entries.map((organization) => organization.metadata?.id),
       "the minted user is the child's member and is bound to it",
     ).toEqual([child.org]);
-    const inChild = await asCustomer.environmentCommand.create(
-      makeEnvironment({ org: child.org, name: uniqueName("child-env") }),
+    const inChild = await asCustomer.credentialCommand.create(
+      makeCredential({ org: child.org, name: uniqueName("child-cred") }),
     );
     fixtures.defer(() =>
-      asCustomer.environmentCommand.delete({
+      asCustomer.credentialCommand.delete({
         resourceId: inChild.metadata?.id ?? "",
       }),
     );
     await expectGrpcCode(
       () =>
-        asCustomer.environmentCommand.create(
-          makeEnvironment({ org: parent.org, name: uniqueName("parent-env") }),
+        asCustomer.credentialCommand.create(
+          makeCredential({ org: parent.org, name: uniqueName("parent-cred") }),
         ),
       Code.PermissionDenied,
       "a token minted into the child works nowhere else",

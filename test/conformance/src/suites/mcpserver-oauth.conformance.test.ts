@@ -7,15 +7,13 @@
 // against a suite-owned mock OAuth authorization server
 // (test/support/src/oauth-authorization-server.ts).
 //
-// Why exactly this slice is Class A: the Go server injects the OAuth stores
-// and redirect URI unconditionally, so initiate works with no Temporal behind
-// the server — but completeOAuthConnect ALSO requires the managed environment
-// service, which server.go builds only inside the Temporal-gated
-// SetConnectDependencies. On the Temporal-less local target, complete
-// refuses before validating input. The handshake-completion scenarios
-// (complete/grant-health/disconnect-teardown) therefore live in
-// suites-execution/mcpserver-connect.conformance.test.ts, where the engine is
-// provisioned — see that suite's header for the full flow.
+// Why exactly this slice is Class A: initiate and the handshake's input
+// guards need no engine behind the server. The handshake-completion
+// scenarios (complete, grant health, disconnect teardown) live in
+// suites-execution/mcpserver-connect.conformance.test.ts, beside the connect
+// lane they set up: a completed sign-in is a credential of the person who
+// signed in, which the engine-backed connect and runs then read — see that
+// suite's header for the full flow.
 //
 // The refusal and guidance copy is byte-pinned: these strings are user-facing
 // (the SDK's getUserMessage passes initiate errors through verbatim) and they
