@@ -116,13 +116,12 @@ export interface ResolveInput {
 
 /**
  * Keeps a sign-in's access token fresh before a run reads it: the MCP
- * server domain's refresh (domain/mcpserver/oauth/sign-in-refresh.ts),
- * answered as the credential to read from (re-read after a refresh).
- * Throws a FailedPrecondition the run surfaces when the sign-in cannot be
- * renewed.
+ * server domain's refresh (domain/mcpserver/oauth/sign-in.ts), answered
+ * as the credential to read from (re-read after a refresh). Throws a
+ * FailedPrecondition the run surfaces when the sign-in cannot be renewed.
  */
 export interface SignInFreshener {
-  freshen(credential: Credential, mcpServerId: string): Promise<Credential>;
+  freshen(credential: Credential): Promise<Credential>;
 }
 
 export interface CredentialResolverDeps {
@@ -192,14 +191,16 @@ export async function resolveCredentials(
     return credentials;
   };
   const freshened = new Map<string, Promise<Credential>>();
-  const fresh = (credential: Credential, declarer: Declarer): Promise<Credential> => {
-    if (!isSignIn(credential) || declarer.kind !== "mcp_server") {
+  // A sign-in is freshened once per run, whichever declarer reads it
+  // first (one GitHub sign-in may serve the MCP server and github.com).
+  const fresh = (credential: Credential): Promise<Credential> => {
+    if (!isSignIn(credential)) {
       return Promise.resolve(credential);
     }
     const id = credential.metadata?.id ?? "";
     let held = freshened.get(id);
     if (held === undefined) {
-      held = deps.signIns.freshen(credential, declarer.id);
+      held = deps.signIns.freshen(credential);
       freshened.set(id, held);
     }
     return held;
@@ -336,7 +337,7 @@ async function assignedValue(
   credentials: ReadonlyArray<Credential>,
   assignment: CredentialAssignment,
   requirement: Requirement,
-  fresh: (credential: Credential, declarer: Declarer) => Promise<Credential>,
+  fresh: (credential: Credential) => Promise<Credential>,
 ): Promise<AssignedAnswer> {
   const surface = input.surface;
   const where = surface === undefined ? "the surface" : `the ${surface.noun}`;
@@ -366,7 +367,7 @@ async function assignedValue(
         }
       }
       const field = source.value.field === "" ? requirement.key : source.value.field;
-      const read = await fresh(credential, requirement.declarer);
+      const read = await fresh(credential);
       const value = await deps.values.fieldValue(read, field);
       if (value === undefined) {
         return {
@@ -428,7 +429,7 @@ async function defaultValue(
   person: string,
   credentials: ReadonlyArray<Credential>,
   requirement: Requirement,
-  fresh: (credential: Credential, declarer: Declarer) => Promise<Credential>,
+  fresh: (credential: Credential) => Promise<Credential>,
 ): Promise<string | undefined> {
   const target = targetKey(declarerTarget(requirement.declarer));
   const serving = credentials.filter((credential) =>
@@ -442,7 +443,7 @@ async function defaultValue(
   const read = async (credential: Credential | undefined): Promise<string | undefined> =>
     credential === undefined
       ? undefined
-      : deps.values.fieldValue(await fresh(credential, requirement.declarer), requirement.key);
+      : deps.values.fieldValue(await fresh(credential), requirement.key);
 
   const declarer = requirement.declarer;
   if (declarer.kind === "mcp_server") {

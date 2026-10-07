@@ -41,6 +41,7 @@ import {
   permissionDeniedError,
 } from "../../../pipeline/errors.js";
 import { evaluateAuthorizer } from "../../../pipeline/steps/authorize.js";
+import { findResourceBySlug } from "../../../pipeline/steps/helpers.js";
 import type { OAuthGrant, Store } from "../../../store/interface.js";
 import type { SignInFreshener } from "../../credential/resolve.js";
 import type { SignInCredentials } from "../../credential/sign-in.js";
@@ -153,21 +154,50 @@ export interface SignInRefresherDeps {
 export class SignInRefresher implements SignInFreshener {
   constructor(private readonly deps: SignInRefresherDeps) {}
 
-  async freshen(credential: Credential, mcpServerId: string): Promise<Credential> {
+  /**
+   * The sign-in's grant is found by the MCP server the credential serves
+   * (a sign-in serves exactly the server it signed in to, and may serve a
+   * git host too) and the credential's owner; a grant that names another
+   * credential is not this sign-in's.
+   */
+  async freshen(credential: Credential): Promise<Credential> {
     const credentialId = credential.metadata?.id ?? "";
     const org = credential.metadata?.org ?? "";
     const owner = ownerOf(credential);
     const identity = owner?.kind === "person" ? owner.person : "";
-    let grant: OAuthGrant | undefined;
-    try {
-      grant = await this.deps.store.oauthGrants.find(identity, mcpServerId, org);
-    } catch (error) {
-      throw internalError(error, "failed to read the sign-in's grant");
+    for (const target of credential.spec?.serves ?? []) {
+      if (target.target.case !== "mcpServer") {
+        continue;
+      }
+      const ref = target.target.value;
+      let grant: OAuthGrant | undefined;
+      try {
+        const server = await findResourceBySlug(
+          this.deps.store,
+          ApiResourceKind.mcp_server,
+          McpServerSchema,
+          ref.slug,
+          ref.org,
+        );
+        if (server === undefined) {
+          continue;
+        }
+        grant = await this.deps.store.oauthGrants.find(
+          identity,
+          server.metadata?.id ?? "",
+          org,
+        );
+      } catch (error) {
+        throw internalError(error, "failed to read the sign-in's grant");
+      }
+      if (grant === undefined || grant.credentialId !== credentialId) {
+        continue;
+      }
+      return (await this.refresh(grant))
+        ? this.reload(credentialId, credential)
+        : credential;
     }
-    if (grant === undefined || grant.credentialId !== credentialId) {
-      return credential;
-    }
-    return (await this.refresh(grant)) ? this.reload(credentialId, credential) : credential;
+    return credential;
   }
 
   /**
