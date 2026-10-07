@@ -849,7 +849,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Presigned URL for downloading the artifact.\n\n Valid for direct HTTP GET request without authentication.\n The URL includes embedded authorization that expires at expires_at.\n\n Example: \"https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=...\"",
+          "description": "Presigned URL for downloading the artifact.\n\n Valid for direct HTTP GET request without authentication.\n The URL includes embedded authorization that expires at expires_at.\n\n Example: \"https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=...\"\n With local storage the URL is the server's artifact file server,\n signed by the server: \"http://localhost:7235/artifacts/...?exp=...\u0026sig=...\"",
           "required": false
         },
         {

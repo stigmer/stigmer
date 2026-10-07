@@ -790,7 +790,6 @@ export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: 
     workspaceFileRefs: spec.workspaceFileRefs ?? [],
     attachments: attachments.results,
     vision: visionPromptInfoOf(attachments),
-    downloadUrlKind: input.artifactStorage?.downloadUrlKind,
     pendingApprovals: rows.adjudicatedApprovals,
     appliedToolCallIds,
     interactionMode,

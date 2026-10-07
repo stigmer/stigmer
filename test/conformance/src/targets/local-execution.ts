@@ -174,7 +174,6 @@ export class LocalExecutionTarget implements TargetProfile {
       // Share the server's local artifact store so a storage-key attachment the
       // server wrote resolves when the runner reads it back (#285).
       artifactDir: this.server.artifactBaseDir,
-      artifactServeUrl: this.server.artifactServeUrl,
     });
   }
 

@@ -3,7 +3,7 @@
  *
  * Every runner test that needs a fake storage should use this — do NOT hand-roll
  * another partial `ArtifactStorage` literal. Before this helper existed, ~16 test
- * files each invented their own fake (and their own `getDownloadUrl` convention:
+ * files each invented their own fake (and their own download-URL convention:
  * `mem://`, `https://artifacts.local/`, `mock://`, identity, …), which drifted
  * from the real port and from each other. This double is the one place the port
  * is modeled for tests.
@@ -16,8 +16,9 @@
  *    (`expect(storage.download).toHaveBeenCalledWith(key)`), and any method can
  *    be overridden per-test to force a failure
  *    (`storage.download.mockRejectedValueOnce(new Error("… HTTP 404 …"))`).
- *  - `getDownloadUrl` returns `${urlBase}${key}`; tests that assert on the URL
- *    string pass their own `urlBase`.
+ *  - `presignedDownloadUrl` returns `${urlBase}${key}`; tests that assert on
+ *    the URL string pass their own `urlBase`. A double built with
+ *    `presigned: false` has no such method, as the local backend has none.
  */
 
 import { vi } from "vitest";
@@ -28,17 +29,17 @@ export type InMemoryArtifactStorage = {
   [K in keyof ArtifactStorage as ArtifactStorage[K] extends (...args: never[]) => unknown
     ? K
     : never]: ReturnType<typeof vi.fn>;
-} & ArtifactStorage;
+} & { presignedDownloadUrl?: ReturnType<typeof vi.fn> } & ArtifactStorage;
 
 export interface InMemoryArtifactStorageOptions {
-  /** Prefix for the URLs `getDownloadUrl` returns. Defaults to `mem://`. */
+  /** Prefix for the URLs `presignedDownloadUrl` returns. Defaults to `mem://`. */
   readonly urlBase?: string;
   /**
-   * The URL kind the double self-describes as (attachment-download-urls.ts).
-   * Defaults to "presigned" — the backend whose URLs the hand-off story is
-   * built for; tests exercising the local-serve wording pass "local-serve".
+   * Whether the double offers presigned links, as the proxy backend does.
+   * Defaults to true — the backend the hand-off story is built for; false
+   * models the local backend, which offers none.
    */
-  readonly downloadUrlKind?: ArtifactStorage["downloadUrlKind"];
+  readonly presigned?: boolean;
 }
 
 export interface InMemoryArtifactStorageHandle {
@@ -63,12 +64,13 @@ export function makeInMemoryArtifactStorage(
   const blobs = new Map<string, Buffer>();
 
   const storage = {
-    downloadUrlKind: opts.downloadUrlKind ?? "presigned",
     upload: vi.fn(async (key: string, content: Buffer, _contentType?: string) => {
       blobs.set(key, Buffer.from(content));
       return key;
     }),
-    getDownloadUrl: vi.fn(async (key: string) => `${urlBase}${key}`),
+    ...(opts.presigned === false
+      ? {}
+      : { presignedDownloadUrl: vi.fn(async (key: string) => `${urlBase}${key}`) }),
     download: vi.fn(async (key: string) => {
       const b = blobs.get(key);
       if (!b) throw new Error(`Artifact not found for key '${key}'`);

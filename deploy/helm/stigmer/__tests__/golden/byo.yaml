@@ -313,8 +313,6 @@ spec:
               value: local
             - name: LOCAL_ARTIFACT_PATH
               value: /artifacts
-            - name: LOCAL_ARTIFACT_SERVE_URL
-              value: "http://localhost:7235"
           # No probes: the runner has no health surface (an OSS follow-up,
           # stigmer#1101); a probe that pretended would be worse than none.
           resources:

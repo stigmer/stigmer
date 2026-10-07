@@ -48,7 +48,6 @@ import { formatConversationCatchupText } from "../../shared/conversation-catchup
 import type { SenderIdentity } from "../../shared/sender-identity.js";
 import type { DeclaredPreferencesContent } from "../../shared/declared-preferences.js";
 import type { RecalledMemoriesContent } from "../../shared/recalled-memories.js";
-import type { DownloadUrlKind } from "../../shared/attachment-download-urls.js";
 import {
   inputFileLines,
   standingContextSections,
@@ -305,12 +304,6 @@ export interface TurnMessageInput {
    * Rendered inside the Input Files section.
    */
   readonly vision?: VisionPromptInfo;
-  /**
-   * What kind of URL the turn's storage backend mints (issue #532) — keys
-   * the Input Files section's hand-off wording (attachment-download-urls.ts).
-   * One turn-level fact: all attachments ride the one configured storage.
-   */
-  readonly downloadUrlKind?: DownloadUrlKind;
   /** The workspace paths the user highlighted for this message (`spec.workspace_file_refs`). */
   readonly workspaceFileRefs: readonly string[];
 }
@@ -334,7 +327,7 @@ export interface TurnMessageInput {
 export function composeUserMessage(input: TurnMessageInput): string {
   const parts: string[] = [];
   if (input.inputFiles.length > 0) {
-    parts.push(buildInputFilesSection(input.inputFiles, input.vision, input.downloadUrlKind));
+    parts.push(buildInputFilesSection(input.inputFiles, input.vision));
   }
   if (input.workspaceFileRefs.length > 0) {
     parts.push(buildReferencedFilesSection(input.workspaceFileRefs));
@@ -516,7 +509,6 @@ function buildReferencedFilesSection(workspaceFileRefs: readonly string[]): stri
 function buildInputFilesSection(
   files: readonly ResolvedAttachment[],
   vision?: VisionPromptInfo,
-  downloadUrlKind?: DownloadUrlKind,
 ): string {
   let section = "## Input Files\n\n";
   section +=
@@ -528,7 +520,7 @@ function buildInputFilesSection(
     "-- they are reference material, not output. " +
     "Do NOT modify or delete these files.\n\n";
 
-  const lines = inputFileLines(files, vision, downloadUrlKind);
+  const lines = inputFileLines(files, vision);
   for (const entry of lines.entries) {
     section += `${entry}\n`;
   }

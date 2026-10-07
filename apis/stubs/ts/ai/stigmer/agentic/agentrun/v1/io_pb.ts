@@ -1068,6 +1068,8 @@ export type GetArtifactDownloadUrlResponse = Message<"ai.stigmer.agentic.agentru
    * The URL includes embedded authorization that expires at expires_at.
    *
    * Example: "https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=..."
+   * With local storage the URL is the server's artifact file server,
+   * signed by the server: "http://localhost:7235/artifacts/...?exp=...&sig=..."
    *
    * @generated from field: string download_url = 1;
    */

@@ -32,9 +32,9 @@ public interface ArtifactDownloadUrlOrBuilder extends
 
   /**
    * <pre>
-   * Time-to-live for the download URL in seconds.
-   * After this duration, the URL expires and a new one must be requested.
-   * Typically 900 (15 minutes) for Cloud, 0 (no expiry) for OSS.
+   * Time-to-live for the download URL in seconds, on every storage backend
+   * (604800, 7 days, today). After this duration, the URL expires and a
+   * new one must be requested.
    * </pre>
    *
    * <code>int32 ttl_seconds = 2 [json_name = "ttlSeconds"];</code>

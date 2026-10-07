@@ -416,7 +416,7 @@ ArtifactDownloadUrl provides a URL for downloading artifact content.
 <TypeTable
   type={{
     url: { type: "string", description: "URL to download the artifact content via HTTP GET." },
-    ttlSeconds: { type: "number", description: "Time-to-live for the download URL in seconds." },
+    ttlSeconds: { type: "number", description: "Time-to-live for the download URL in seconds, on every storage backend (604800, 7 days, today)." },
     sizeBytes: { type: "number", description: "Size of the artifact content in bytes (convenience, same as status.size_bytes)." },
     contentType: { type: "string", description: "MIME content type (convenience, same as spec.content_type)." },
   }}

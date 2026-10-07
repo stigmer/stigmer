@@ -48,6 +48,7 @@ import { createLogger } from "../../../boot/logger.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import { MAX_CONTENT_BYTES, artifactNotFoundMessage } from "../constants.js";
 import { registerArtifactServices } from "../controller.js";
+import { testUrlSigner } from "../../../artifactstorage/__test-utils__/url-signer.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -232,6 +233,7 @@ describe("artifact domain — create & content addressing", () => {
             artifactStorage: new LocalArtifactStorage(
               path.join(storeDir, "artifacts"),
               "http://localhost:1",
+              testUrlSigner(),
             ),
             logger: silentLogger,
           });
@@ -371,7 +373,7 @@ describe("artifact domain — soft delete", () => {
 });
 
 describe("artifact domain — the local file-server lane", () => {
-  it("serves the blob inline; ?download= adds the attachment disposition", async () => {
+  it("serves the minted link inline; a filename added to it is refused, as the signature covers it", async () => {
     const content = new TextEncoder().encode("file-server domain test body\n");
     const created = await command.create(artifactInput({ content }));
     const download = await query.getDownloadUrl({
@@ -383,11 +385,11 @@ describe("artifact domain — the local file-server lane", () => {
     expect(inline.headers.get("content-disposition")).toBeNull();
     expect(new Uint8Array(await inline.arrayBuffer())).toEqual(content);
 
-    const attachment = await fetch(`${download.url}?download=report.txt`);
-    expect(attachment.status).toBe(200);
-    expect(attachment.headers.get("content-disposition")).toBe(
-      'attachment; filename="report.txt"',
-    );
+    // A named download is minted, never appended (file-server-signing.test.ts
+    // pins the disposition a minted filename gets).
+    const appended = new URL(download.url);
+    appended.searchParams.set("download", "report.txt");
+    expect((await fetch(appended)).status).toBe(404);
   });
 
   it("answers 404 for missing keys and refuses path traversal out of the root", async () => {

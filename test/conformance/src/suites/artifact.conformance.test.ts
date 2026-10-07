@@ -22,13 +22,14 @@
 // ENHANCE_YOUR_CALM that poisons the shared channel for unrelated RPCs. That
 // is an HTTP/2 artifact, not a wire contract, so the suite deliberately
 // asserts NO oversize arm; both caps stay unit-level in each edition. -
-// getDownloadUrl reports ttl_seconds 604800 unconditionally: local URLs never
-// actually expire — pinned as the wire contract, with the semantic mismatch
-// disclosed. - The FILE-SERVER lane (local artifact storage only): the
-// download URL serves the bytes inline; appending ?download=<name> adds the
-// attachment Content-Disposition. Runs only where the target exposes the lane
-// (artifactHttpBaseUrl — absent on cloud, whose artifact bytes travel
-// authenticated presigned routes instead).
+// getDownloadUrl reports ttl_seconds 604800 on every backend, and every
+// backend's URL expires with it. - The FILE-SERVER lane (local artifact
+// storage only): the minted download URL is signed and serves the bytes
+// inline; the same link unsigned, with its signature tampered, or with a
+// filename added is answered 404, exactly as a missing key, since the
+// signature covers the key, the expiry and the filename. Runs only where the
+// target exposes the lane (artifactHttpBaseUrl — absent on cloud, whose
+// artifact bytes travel authenticated presigned routes instead).
 import { createHash } from "node:crypto";
 import { Code } from "@connectrpc/connect";
 import { ArtifactStorageState } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/enum_pb";
@@ -244,7 +245,7 @@ describe("Artifact conformance — the soft-delete lifecycle", () => {
 });
 
 describe("Artifact conformance — the local file-server lane", () => {
-  it("[rpc:ArtifactQueryController.getDownloadUrl] serves the blob inline, and ?download=<name> adds the attachment disposition", async (ctx) => {
+  it("[rpc:ArtifactQueryController.getDownloadUrl] serves the blob inline at the signed link it mints, and answers that link unsigned, tampered or re-named 404 like a missing key", async (ctx) => {
     // Only local artifact storage has this lane; cloud serves artifact
     // bytes through authenticated presigned routes (a different contract),
     // so the accessor is absent there and this reports SKIPPED.
@@ -256,19 +257,32 @@ describe("Artifact conformance — the local file-server lane", () => {
       value: created.metadata!.id,
     });
 
-    // Inline serve: the URL getDownloadUrl mints (no download param — the
-    // inline disposition is this RPC's documented behavior).
+    // Inline serve: the URL getDownloadUrl mints (no download filename —
+    // the inline disposition is this RPC's documented behavior).
     const inline = await fetch(download.url);
     expect(inline.status).toBe(200);
     expect(inline.headers.get("content-disposition")).toBeNull();
     expect(new Uint8Array(await inline.arrayBuffer())).toEqual(content);
 
-    // Attachment disposition: the ?download= query the file server reads,
-    // mirroring the R2 backend's signed disposition.
-    const attachment = await fetch(`${download.url}?download=report.txt`);
-    expect(attachment.status).toBe(200);
-    expect(attachment.headers.get("content-disposition")).toBe(
-      'attachment; filename="report.txt"',
-    );
+    const minted = new URL(download.url);
+    const missing = await fetch(`${minted.origin}/not-a-stored-key`);
+    expect(missing.status).toBe(404);
+    const notFound = await missing.text();
+
+    const unsigned = new URL(minted);
+    unsigned.search = "";
+    const tampered = new URL(minted);
+    tampered.searchParams.set("exp", String(Number(tampered.searchParams.get("exp")) + 60));
+    const renamed = new URL(minted);
+    renamed.searchParams.set("download", "report.txt");
+    for (const [what, url] of [
+      ["unsigned", unsigned],
+      ["tampered", tampered],
+      ["renamed", renamed],
+    ] as const) {
+      const refused = await fetch(url);
+      expect(refused.status, what).toBe(404);
+      expect(await refused.text(), what).toBe(notFound);
+    }
   });
 });

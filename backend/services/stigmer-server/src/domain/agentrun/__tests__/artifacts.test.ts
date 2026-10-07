@@ -37,6 +37,7 @@ import {
   osMimeTypeByExtension,
   uploadAttachment,
 } from "../artifacts.js";
+import { testUrlSigner } from "../../../artifactstorage/__test-utils__/url-signer.js";
 
 // The two read RPCs now evaluate their can_view annotations;
 // these direct-call tests exercise them under the OSS permissive
@@ -71,6 +72,7 @@ beforeAll(() => {
     artifactStorage: new LocalArtifactStorage(
       path.join(dir, "artifacts"),
       "http://localhost:7235",
+      testUrlSigner(),
     ),
     authorizer: newPermissiveSingleTeamAuthorizer(),
   };

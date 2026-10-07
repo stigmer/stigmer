@@ -387,7 +387,7 @@ describe("resolveAttachments", () => {
         { filename: "readme.md", relativePath: ".stigmer/inputs/bundle.zip/notes/readme.md", sizeBytes: 7 },
       ]);
       expect(readFileSync(join(platformDir, "inputs", "bundle.zip", "notes", "readme.md"), "utf-8")).toBe("# notes");
-      expect(storage.getDownloadUrl, "no URL for entries: the stored object is the ZIP, not any listed file").not.toHaveBeenCalled();
+      expect(storage.presignedDownloadUrl, "no URL for entries: the stored object is the ZIP, not any listed file").not.toHaveBeenCalled();
     });
 
     it("extracts a local archive at the CLI's `inputs/<dirname>/` mount (the directory-attachment shape)", async () => {
@@ -423,7 +423,7 @@ describe("resolveAttachments", () => {
     it("degrades to no URL when the mint fails — file still materialized, turn proceeds", async () => {
       const { storage } = makeInMemoryArtifactStorage();
       await storage.upload("attachments/01ABC/plan.md", Buffer.from("# The Plan"), "text/markdown");
-      storage.getDownloadUrl.mockRejectedValueOnce(new Error("presign endpoint unreachable"));
+      storage.presignedDownloadUrl?.mockRejectedValueOnce(new Error("presign endpoint unreachable"));
 
       const result = await resolveAttachments([makeAttachment()], options({ storage }));
 

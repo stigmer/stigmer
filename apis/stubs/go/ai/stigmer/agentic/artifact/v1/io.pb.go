@@ -422,9 +422,9 @@ type ArtifactDownloadUrl struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// URL to download the artifact content via HTTP GET.
 	Url string `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
-	// Time-to-live for the download URL in seconds.
-	// After this duration, the URL expires and a new one must be requested.
-	// Typically 900 (15 minutes) for Cloud, 0 (no expiry) for OSS.
+	// Time-to-live for the download URL in seconds, on every storage backend
+	// (604800, 7 days, today). After this duration, the URL expires and a
+	// new one must be requested.
 	TtlSeconds int32 `protobuf:"varint,2,opt,name=ttl_seconds,json=ttlSeconds,proto3" json:"ttl_seconds,omitempty"`
 	// Size of the artifact content in bytes (convenience, same as status.size_bytes).
 	SizeBytes int64 `protobuf:"varint,3,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`

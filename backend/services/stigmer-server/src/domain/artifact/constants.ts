@@ -30,9 +30,10 @@ export const PERMANENT_TTL_MARKER = -1;
 export const DEFAULT_MAX_CONTENT_BYTES = 512n * 1024n;
 
 /**
- * Go downloadURLExpiration (7 days — the R2 maximum). Reported as
- * ttl_seconds UNCONDITIONALLY, even by the local backend whose URLs never
- * expire — pinned as wire contract.
+ * Go downloadURLExpiration (7 days — the R2 maximum, and the ceiling every
+ * backend's signed URLs share). Reported as ttl_seconds on every backend,
+ * and true on every one: the local backend's links are signed and expire
+ * with it (artifactstorage/url-signer.ts).
  */
 export const DOWNLOAD_URL_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000;
 

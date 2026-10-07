@@ -166,7 +166,6 @@ function everything(reason: AgentResolutionReason, overrides: Partial<BuildPromp
     workspaceFileRefs: ["app/src/deploy.ts", "docs/RELEASES.md"],
     attachments: ATTACHMENTS,
     vision: VISION,
-    downloadUrlKind: "presigned",
     pendingApprovals: [],
     contextBridge: "Earlier the user asked for a staging deploy; it succeeded.",
     senderIdentity: { value: "15550001111", kind: "whatsapp_phone" },
