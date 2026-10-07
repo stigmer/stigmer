@@ -47,7 +47,7 @@ import {
 } from "../shared/platform-server-address.js";
 import { startHeartbeat } from "../shared/heartbeat.js";
 import { withTimeout } from "../shared/with-timeout.js";
-import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/requirement_pb";
 import type { Config } from "../config.js";
 
 /**

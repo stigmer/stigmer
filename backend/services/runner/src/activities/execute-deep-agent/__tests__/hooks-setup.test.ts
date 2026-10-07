@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/requirement_pb";
 import { HookGroupSchema, HookHandlerSchema, type HookGroup } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";

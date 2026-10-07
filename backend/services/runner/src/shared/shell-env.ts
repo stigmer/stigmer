@@ -11,10 +11,9 @@
  * the same per-declarer filter every MCP server's environment passes,
  * less every key an MCP server of the run claims (its declared keys and
  * its OAuth token's target), plus the token a git clone of the workspace
- * consumed. Agent save copies its servers' declarations into the agent's
- * own `env` (MergeMcpServerEnvSpecs in the server), so a claimed key is
- * withheld even when the agent's `env` lists it: a value that exists for
- * an MCP server reaches that server and never the shell. An agent that
+ * consumed. A claimed key is withheld even when the agent's `env` lists
+ * it too: a value that exists for an MCP server reaches that server and
+ * never the shell. An agent that
  * declares nothing gets no run values: declare to receive, the rule MCP
  * servers already follow.
  *
