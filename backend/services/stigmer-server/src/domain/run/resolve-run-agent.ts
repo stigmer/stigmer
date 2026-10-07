@@ -267,7 +267,7 @@ export function newStampRecoveredRunAgentStep(
         );
       } catch (error) {
         if (error instanceof ResourceNotFoundError) {
-          throw notFoundError("agent_run", executionId);
+          throw notFoundError("Run", executionId);
         }
         throw internalError(error, "failed to record the agent this turn runs");
       }

@@ -802,7 +802,7 @@ export function describeStoreContract(
       expect(runs[0]!.completedAt).toBe("2026-08-20T00:00:05Z");
     });
 
-    it("markLatestScheduleRunTerminal stamps the newest non-terminal row of that origin only", async () => {
+    it("markLatestScheduleFireTerminal stamps the newest non-terminal row of that origin only", async () => {
       await fx.store.upsertScheduleFire(baseRun);
       // A newer MANUAL fire must not steal the cron run's verdict — the
       // origin filter is load-bearing (see the interface doc).

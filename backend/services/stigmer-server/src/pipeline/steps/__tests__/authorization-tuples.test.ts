@@ -210,7 +210,7 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
     expect(event?.requiresCreatorTuple).toBe(true);
   });
 
-  it("agent_run: PARENT scope resolves the session link from spec.session_id, owner INHERITED", () => {
+  it("run: PARENT scope resolves the session link from spec.session_id, owner INHERITED", () => {
     const execution = create(RunSchema, {
       metadata: { id: "aexec_1", org: "acme" },
       spec: { target: { case: "sessionId", value: "ses_parent" } },
@@ -347,7 +347,7 @@ describe("cleanUpDeletedResource (the delete cleanup every chain and cascade sha
         message:
           "authorization cleanup failed — orphaned IAM policies may remain",
         fields: {
-          kind: "AgentRun",
+          kind: "Run",
           resourceId: "aex_cleanup_subject",
           error: "fga is down",
         },

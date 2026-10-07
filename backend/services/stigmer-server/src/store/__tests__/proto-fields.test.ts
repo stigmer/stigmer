@@ -21,7 +21,7 @@ describe("apiResourceKindName", () => {
   it.each([
     [ApiResourceKind.organization, "organization"],
     [ApiResourceKind.agent, "agent"],
-    [ApiResourceKind.run, "agent_run"],
+    [ApiResourceKind.run, "run"],
     [ApiResourceKind.mcp_server, "mcp_server"],
     [ApiResourceKind.agent_share, "agent_share"],
     [ApiResourceKind.execution_context, "execution_context"],

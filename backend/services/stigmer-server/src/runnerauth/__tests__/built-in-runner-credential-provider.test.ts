@@ -304,7 +304,7 @@ describe("exchangeScopedToken — the mint gate", () => {
       exchange({ arm: "agent-execution", executionId: "aex_missing" }, carol),
     );
     expect(failure.code).toBe(Code.NotFound);
-    expect(failure.rawMessage).toBe("AgentRun not found: aex_missing");
+    expect(failure.rawMessage).toBe("Run not found: aex_missing");
   });
 
   it("a connect binding is NOT_FOUND — the exchange mints run credentials, and a connect is not a run", async () => {
@@ -312,7 +312,7 @@ describe("exchangeScopedToken — the mint gate", () => {
       exchange({ arm: "agent-execution", executionId: CONNECT_ID }, carol),
     );
     expect(failure.code).toBe(Code.NotFound);
-    expect(failure.rawMessage).toBe(`AgentRun not found: ${CONNECT_ID}`);
+    expect(failure.rawMessage).toBe(`Run not found: ${CONNECT_ID}`);
   });
 
   it("a runner already acting as the person may hold a credential for that person's other run (the credential's reach, pinned as a known fact)", async () => {

@@ -331,7 +331,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             ["aex_m1", "ses_member"],
             ["aex_orphan", "ses_gone"],
           ] as const) {
-            await save("agent_run", {
+            await save("run", {
               id,
               org: ORG,
               visibility: ApiResourceVisibility.visibility_private,

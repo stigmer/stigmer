@@ -88,7 +88,7 @@ const silentLogger = createLogger({
 });
 
 const API_VERSION = "agentic.stigmer.ai/v1";
-const KIND = "AgentRun";
+const KIND = "Run";
 const ORG = "acme";
 
 // Requests name organizations by slug, which the serving chain turns into
@@ -524,7 +524,7 @@ describe("usage reports over the wire", () => {
       () => query.getRunUsageReport({ runId: "aexec_missing" }),
       Code.NotFound,
     );
-    expect(err.rawMessage).toBe("agent_run not found: aexec_missing");
+    expect(err.rawMessage).toBe("Run not found: aexec_missing");
   });
 
   it("getRunUsageReport answers the zero aggregate for a seeded execution", async () => {
@@ -743,7 +743,7 @@ describe("subscribe — the first domain stream through the real transport", () 
       }
     }, Code.NotFound);
     expect(unknownErr.rawMessage).toBe(
-      "AgentRun not found: aexec_missing",
+      "Run not found: aexec_missing",
     );
   });
 

@@ -165,7 +165,7 @@ function createInput(
 ) {
   return {
     apiVersion: API_VERSION,
-    kind: "AgentRun",
+    kind: "Run",
     metadata: { name: "run-gate-exec", org: ORG },
     spec: { message: "hello", target, runConfig },
   };

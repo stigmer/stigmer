@@ -148,8 +148,8 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
   });
 
   it("a run is its session's: the session link (PARENT scope) and NO owner of its own (INHERITED attribution)", () => {
-    expect(derivedFor("agent_run", {})).toEqual([
-      "agent_run:agent_run-1#session@session:session-1",
+    expect(derivedFor("run", {})).toEqual([
+      "run:agent_run-1#session@session:session-1",
     ]);
   });
 

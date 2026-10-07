@@ -157,7 +157,7 @@ function newLoadExecutionByIdStep<Desc extends DescMessage>(
         );
       } catch (error) {
         if (error instanceof ResourceNotFoundError) {
-          throw notFoundError("agent_run", executionId);
+          throw notFoundError("Run", executionId);
         }
         throw internalError(error, "failed to load agent execution");
       }
@@ -392,7 +392,7 @@ function newUpdateExecutionPhaseAndPersistStep<Desc extends DescMessage>(
         );
       } catch (error) {
         if (error instanceof ResourceNotFoundError) {
-          throw notFoundError("agent_run", executionId);
+          throw notFoundError("Run", executionId);
         }
         throw internalError(error, "failed to persist execution");
       }

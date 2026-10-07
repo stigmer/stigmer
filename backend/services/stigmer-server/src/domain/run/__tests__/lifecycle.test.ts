@@ -355,7 +355,7 @@ let counter = 0;
 function gatedExecution(id: string, toolCallId: string): Run {
   return create(RunSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
-    kind: "AgentRun",
+    kind: "Run",
     metadata: { id, name: id },
     spec: {},
     status: {
@@ -390,7 +390,7 @@ async function seedExecution(init: {
     RunSchema,
     create(RunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "AgentRun",
+      kind: "Run",
       metadata: { id, name: id, org: "acme" },
       spec: {
         target:

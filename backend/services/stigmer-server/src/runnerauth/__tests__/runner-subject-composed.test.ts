@@ -451,7 +451,7 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
         }),
       );
       expect(failure.code).toBe(Code.NotFound);
-      expect(failure.rawMessage).toBe("AgentRun not found: aex_nowhere");
+      expect(failure.rawMessage).toBe("Run not found: aex_nowhere");
     });
   });
 });

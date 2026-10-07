@@ -180,7 +180,7 @@ describe("list read scope (composed server, fake scope)", () => {
         RunSchema,
         create(RunSchema, {
           apiVersion: "agentic.stigmer.ai/v1",
-          kind: "AgentRun",
+          kind: "Run",
           metadata: { id, name: id, org: acmeId },
           spec: { target: { case: "sessionId", value: "ses_mine" } },
           status: {

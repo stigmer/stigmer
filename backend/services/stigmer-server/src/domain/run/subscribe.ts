@@ -100,7 +100,7 @@ export async function* subscribeExecution(
       );
     } catch (error) {
       if (error instanceof ResourceNotFoundError) {
-        throw notFoundError("AgentRun", id);
+        throw notFoundError("Run", id);
       }
       throw internalError(error, "failed to load agent execution");
     }

@@ -17,7 +17,7 @@
  *   JSON-shaped source of truth would corrupt the audit hash chain.
  * - Ledger time columns that cross the Store interface (recorded_at,
  *   completed_at, expires_at, …) are TEXT holding the exact strings the
- *   contracts carry: markLatestScheduleRunTerminal picks "newest" by
+ *   contracts carry: markLatestScheduleFireTerminal picks "newest" by
  *   lexicographic RFC-3339 comparison, and timestamptz would silently
  *   reformat values. Driver-internal bookkeeping columns (updated_at,
  *   archived_at ordering) use native types freely.

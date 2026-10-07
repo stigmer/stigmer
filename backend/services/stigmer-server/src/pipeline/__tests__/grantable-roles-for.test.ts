@@ -61,7 +61,7 @@ describe("grantableRolesFor — the proto's grantable roles per kind", () => {
     ["api_key", ApiResourceKind.api_key],
     ["iam_policy", ApiResourceKind.iam_policy],
     ["invitation", ApiResourceKind.invitation],
-    ["agent_run", ApiResourceKind.run],
+    ["run", ApiResourceKind.run],
   ])(
     "%s is system-managed: no grantable roles",
     (_name, kind) => {

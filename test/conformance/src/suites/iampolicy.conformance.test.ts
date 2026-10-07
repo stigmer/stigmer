@@ -1227,7 +1227,7 @@ describe("IamPolicy conformance — what only an enforcing Authorizer can show",
         "a grant naming a nonexistent run",
       );
       expect(error.rawMessage).toBe(
-        `AgentRun not found: ${ABSENT_AGENT_EXECUTION}`,
+        `Run not found: ${ABSENT_AGENT_EXECUTION}`,
       );
     });
 

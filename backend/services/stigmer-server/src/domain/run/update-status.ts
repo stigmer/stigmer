@@ -176,7 +176,7 @@ export async function updateStatus(
           );
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
-            throw notFoundError("AgentRun", ctx.input.runId);
+            throw notFoundError("Run", ctx.input.runId);
           }
           throw internalError(error, "failed to update execution status");
         }

@@ -1456,7 +1456,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
           RunSchema,
           create(RunSchema, {
             apiVersion: "agentic.stigmer.ai/v1",
-            kind: "AgentRun",
+            kind: "Run",
             metadata: { id: runId, name: runId, org: seededOrgId },
             spec: { target: { case: "sessionId", value: sessionId } },
             status: { phase: RunPhase.RUN_COMPLETED },
@@ -1494,7 +1494,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
         RunSchema,
         create(RunSchema, {
           apiVersion: "agentic.stigmer.ai/v1",
-          kind: "AgentRun",
+          kind: "Run",
           metadata: { id: runId, name: runId, org: seededOrgId },
           spec: { target: { case: "sessionId", value: sessionId } },
           status: { phase: RunPhase.RUN_COMPLETED },

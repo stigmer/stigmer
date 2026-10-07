@@ -26,7 +26,7 @@ import {
   FileDecisionScope,
   ServiceTier,
   ThinkingMode,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
@@ -397,7 +397,7 @@ describe("AgentRun conformance — zero-record read surfaces", () => {
       Code.NotFound,
       "execution usage report for an unknown execution",
     );
-    expect(err.rawMessage).toBe("agent_run not found: aexec_01conformancemissing");
+    expect(err.rawMessage).toBe("Run not found: aexec_01conformancemissing");
   });
 
   it("[rpc:AgentRunQueryController.getSessionUsageReport] [rpc:AgentRunQueryController.getAgentUsageReport] [rpc:AgentRunQueryController.getOrgUsageReport] the session/agent/org usage reports answer zero-valued SHAPES for nothing to aggregate", async (ctx) => {
@@ -516,7 +516,7 @@ describe("AgentRun conformance — submitFileDecision negatives", () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitFileDecision({
-          agentRunId: "",
+          runId: "",
           changeSetId: "cs_x",
           expectedDigest: "digest",
           scope: FileDecisionScope.CHANGE_SET,
@@ -528,7 +528,7 @@ describe("AgentRun conformance — submitFileDecision negatives", () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitFileDecision({
-          agentRunId: "aexec_x",
+          runId: "aexec_x",
           changeSetId: "cs_x",
           expectedDigest: "digest",
           scope: FileDecisionScope.CHANGE_SET,
@@ -544,7 +544,7 @@ describe("AgentRun conformance — submitFileDecision negatives", () => {
     await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitFileDecision({
-          agentRunId: "aexec_01conformancemissing",
+          runId: "aexec_01conformancemissing",
           changeSetId: "cs_x",
           expectedDigest: "digest",
           scope: FileDecisionScope.CHANGE_SET,

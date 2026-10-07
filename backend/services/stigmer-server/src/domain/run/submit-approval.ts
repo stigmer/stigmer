@@ -120,7 +120,7 @@ export async function submitApproval(
     .addStep({
       name: "LoadExisting",
       async execute(ctx) {
-        // ValidateProto has already refused an empty agent_run_id (min_len).
+        // ValidateProto has already refused an empty run_id (min_len).
         const executionId = ctx.input.runId;
         let execution: Run;
         try {
@@ -131,7 +131,7 @@ export async function submitApproval(
           );
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
-            throw notFoundError("agent_run", executionId);
+            throw notFoundError("Run", executionId);
           }
           throw internalError(error, "failed to load agent execution");
         }
@@ -293,7 +293,7 @@ export async function submitApproval(
           );
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
-            throw notFoundError("agent_run", executionId);
+            throw notFoundError("Run", executionId);
           }
           throw internalError(error, "failed to persist approval decision");
         }

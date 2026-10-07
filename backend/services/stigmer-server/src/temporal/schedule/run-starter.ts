@@ -478,7 +478,7 @@ export class RunStarter {
 
     return create(RunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "AgentRun",
+      kind: "Run",
       metadata: create(ApiResourceMetadataSchema, {
         name: executionName,
         // Cloud deliberately omits the org (its token scope step forces it

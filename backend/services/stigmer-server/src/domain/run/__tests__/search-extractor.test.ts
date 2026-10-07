@@ -1,6 +1,6 @@
 /**
  * Pins the agent-run search extractor's two projections: a result is filed
- * under the `agent_run` kind with the run's identity and an empty
+ * under the `run` kind with the run's identity and an empty
  * description (Go pins Description "" even though the summary is the run's
  * name), and the summary itself answers the run's name for any caller that
  * asks. A run without metadata projects to nothing.

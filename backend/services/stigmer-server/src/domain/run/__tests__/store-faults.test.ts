@@ -172,7 +172,7 @@ describe.each(LIFECYCLE_VERBS)("%s — LoadExecutionById", (_verb, run) => {
     );
 
     expect(error.code).toBe(Code.NotFound);
-    expect(error.rawMessage).toBe(`agent_run not found: ${EXECUTION_ID}`);
+    expect(error.rawMessage).toBe(`Run not found: ${EXECUTION_ID}`);
   });
 
   it("any other store failure answers a sanitized Internal", async () => {
@@ -215,7 +215,7 @@ describe("subscribe — the snapshot read", () => {
     const error = await subscribeError(failingStore(MISSING()), broker);
 
     expect(error.code).toBe(Code.NotFound);
-    expect(error.rawMessage).toBe(`AgentRun not found: ${EXECUTION_ID}`);
+    expect(error.rawMessage).toBe(`Run not found: ${EXECUTION_ID}`);
     expect(broker.getSubscriberCount(EXECUTION_ID)).toBe(0);
   });
 
@@ -310,7 +310,7 @@ describe("getRunUsageReport — LoadExecution", () => {
     const error = await reportError(failingStore(MISSING()));
 
     expect(error.code).toBe(Code.NotFound);
-    expect(error.rawMessage).toBe(`agent_run not found: ${EXECUTION_ID}`);
+    expect(error.rawMessage).toBe(`Run not found: ${EXECUTION_ID}`);
   });
 
   it("any other store failure answers a sanitized Internal", async () => {
@@ -383,7 +383,7 @@ describe.each([
     const error = await errorOf(call);
 
     expect(error.code).toBe(Code.NotFound);
-    expect(error.rawMessage).toBe(`agent_run not found: ${EXECUTION_ID}`);
+    expect(error.rawMessage).toBe(`Run not found: ${EXECUTION_ID}`);
   });
 });
 
@@ -430,7 +430,7 @@ describe("a run deleted between the load and the locked write", () => {
     );
 
     expect(error.code).toBe(Code.NotFound);
-    expect(error.rawMessage).toBe(`agent_run not found: ${EXECUTION_ID}`);
+    expect(error.rawMessage).toBe(`Run not found: ${EXECUTION_ID}`);
   });
 
   it("an approval write answers NotFound naming the run", async () => {
@@ -455,7 +455,7 @@ describe("a run deleted between the load and the locked write", () => {
     const error = await errorOf(() => approveToolCall(approvalDeps(store)));
 
     expect(error.code).toBe(Code.NotFound);
-    expect(error.rawMessage).toBe(`agent_run not found: ${EXECUTION_ID}`);
+    expect(error.rawMessage).toBe(`Run not found: ${EXECUTION_ID}`);
   });
 
   it("a file-decision write answers NotFound naming the run", async () => {
@@ -469,6 +469,6 @@ describe("a run deleted between the load and the locked write", () => {
     );
 
     expect(error.code).toBe(Code.NotFound);
-    expect(error.rawMessage).toBe(`agent_run not found: ${EXECUTION_ID}`);
+    expect(error.rawMessage).toBe(`Run not found: ${EXECUTION_ID}`);
   });
 });

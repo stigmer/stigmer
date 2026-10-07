@@ -225,7 +225,7 @@ async function seedExecution(
   const id = `aex_sessiontest_${executionCounter}`;
   const execution = create(RunSchema, {
     apiVersion: API_VERSION,
-    kind: "AgentRun",
+    kind: "Run",
     metadata: { id, name: `Execution ${executionCounter}`, org: ORG },
     spec: { target: { case: "sessionId", value: sessionId } },
     status: { phase },
