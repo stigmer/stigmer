@@ -19,7 +19,11 @@
  * does to a database it has not reached yet (public-visibility-retired.ts
  * gives the same reason for its kind table). The derivation below, the
  * generator included, is a copy of the live one as of this step, and an
- * account created after it gets the same slug from the live function.
+ * account created after it with the same name, within 200 characters,
+ * gets the same slug from the live function. A longer name is cut before
+ * the live derivation hashes it, while this step hashes the name as stored,
+ * so the two slugs differ there; both are valid, and nothing reads an
+ * account by slug.
  *
  * What changes. Only `metadata.slug`, where the frozen rule refuses it or
  * it is empty, and `metadata.name`, where it is longer than 200 characters;
