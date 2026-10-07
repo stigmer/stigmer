@@ -40,7 +40,9 @@ import { ChannelConversationCommandController } from "@stigmer/protos/ai/stigmer
 import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_query_pb";
 import { AgentChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { CredentialCommandController } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/command_pb";
+import type { Credential } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/api_pb";
+import type { CredentialAssignment } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/requirement_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
@@ -84,6 +86,7 @@ let server: ComposedServer;
 let channels: Client<typeof AgentChannelCommandController>;
 let query: Client<typeof AgentChannelQueryController>;
 let agents: Client<typeof AgentCommandController>;
+let credentials: Client<typeof CredentialCommandController>;
 let messageCommand: Client<typeof ChannelMessageCommandController>;
 let messageQuery: Client<typeof ChannelMessageQueryController>;
 let conversationCommand: Client<typeof ChannelConversationCommandController>;
@@ -128,6 +131,7 @@ beforeAll(async () => {
   channels = createClient(AgentChannelCommandController, transport);
   query = createClient(AgentChannelQueryController, transport);
   agents = createClient(AgentCommandController, transport);
+  credentials = createClient(CredentialCommandController, transport);
   messageCommand = createClient(ChannelMessageCommandController, transport);
   messageQuery = createClient(ChannelMessageQueryController, transport);
   conversationCommand = createClient(
@@ -142,34 +146,12 @@ beforeAll(async () => {
 });
 
 /**
- * The environments and channel apps the specs below reference, seeded as
- * rows so the write-time reference rule finds them: a reference to a row
- * that does not exist is refused at create, and these tests are about the
- * binding's shape, not about a missing target.
+ * The channel apps the specs below reference, seeded as rows so the
+ * write-time reference rule finds them: a reference to a row that does
+ * not exist is refused at create, and these tests are about the binding's
+ * shape, not about a missing target.
  */
 async function seedReferencedRows(): Promise<void> {
-  for (const slug of [
-    "github-credentials",
-    "search-credentials",
-    "rotated-credentials",
-  ]) {
-    await server.store.saveResource(
-      ApiResourceKind.environment,
-      `env_${slug}`,
-      EnvironmentSchema,
-      create(EnvironmentSchema, {
-        apiVersion: "agentic.stigmer.ai/v1",
-        kind: "Environment",
-        metadata: {
-          id: `env_${slug}`,
-          name: slug,
-          slug,
-          org: ORG_ID,
-          visibility: ApiResourceVisibility.visibility_org,
-        },
-      }),
-    );
-  }
   for (const slug of [
     "acme-meta-app",
     "acme-support-app",
@@ -613,56 +595,119 @@ describe("apply semantics", () => {
 });
 
 // ---------------------------------------------------------------------------
-// environment_refs (Go TestAgentChannelController_EnvironmentRefs).
+// credentials (the channel's credential assignments).
 // ---------------------------------------------------------------------------
 
-describe("environment_refs (channel-bound credentials)", () => {
-  it("persist in order, empty org normalizes; apply replaces and unbinds; CEL kind check", async () => {
-    const agent = await createTestAgent(uniqueName("Env Refs Agent"));
-    const name = uniqueName("Env Refs Slack");
+/** A credential saved through the credential chain in ORG: a person's own (the caller's) or the organization's. */
+async function createCredential(owner: "person" | "organization"): Promise<Credential> {
+  return credentials.create({
+    apiVersion: API_VERSION,
+    kind: "Credential",
+    metadata: { name: uniqueName("Channel Credential"), org: ORG },
+    spec: {
+      owner: owner === "person" ? { case: "person", value: "" } : { case: "org", value: "" },
+      fields: { GITHUB_TOKEN: { value: "ghp-channel", plain: false, description: "" } },
+    },
+  });
+}
 
-    const withRefs = channelFor(agent, name, true);
-    (withRefs.spec as Record<string, unknown>).environmentRefs = [
-      { kind: ApiResourceKind.environment, slug: "github-credentials" },
-      {
-        kind: ApiResourceKind.environment,
-        org: ORG,
-        slug: "search-credentials",
+/** One assignment giving the agent's GITHUB_TOKEN requirement a credential's field; `org` may be left empty. */
+function assignmentOf(agent: Agent, credential: Credential, org: string) {
+  return {
+    requirement: {
+      declarer: {
+        target: {
+          case: "agent" as const,
+          value: { kind: ApiResourceKind.agent, org: ORG, slug: agent.metadata!.slug },
+        },
       },
+      key: "GITHUB_TOKEN",
+    },
+    source: {
+      case: "credential" as const,
+      value: {
+        credential: {
+          kind: ApiResourceKind.credential,
+          org,
+          slug: credential.metadata!.slug,
+        },
+        field: "",
+      },
+    },
+  };
+}
+
+/** The credential slug an assignment names, or "" for a literal. */
+function assignedSlug(assignment: CredentialAssignment | undefined): string {
+  return assignment?.source.case === "credential"
+    ? (assignment.source.value.credential?.slug ?? "")
+    : "";
+}
+
+describe("credentials (channel-bound credential assignments)", () => {
+  it("persist in order with the caller as writer, empty org normalizes; apply replaces and unbinds; CEL kind check", async () => {
+    const agent = await createTestAgent(uniqueName("Credentials Agent"));
+    const name = uniqueName("Credentials Slack");
+    const github = await createCredential("organization");
+    const search = await createCredential("organization");
+    const rotated = await createCredential("organization");
+
+    const withAssignments = channelFor(agent, name, true);
+    (withAssignments.spec as Record<string, unknown>).credentials = [
+      assignmentOf(agent, github, ""),
+      { ...assignmentOf(agent, search, ORG), writer: "someone-else" },
     ];
-    const created = await channels.create(withRefs);
-    expect(created.spec?.environmentRefs).toHaveLength(2);
-    expect(created.spec?.environmentRefs[0]?.org).toBe(ORG_ID);
-    expect(created.spec?.environmentRefs[0]?.slug).toBe("github-credentials");
-    expect(created.spec?.environmentRefs[1]?.slug).toBe("search-credentials");
+    const created = await channels.create(withAssignments);
+    const caller = created.status?.audit?.specAudit?.createdBy?.id ?? "";
+    expect(caller).not.toBe("");
+    expect(created.spec?.credentials).toHaveLength(2);
+    const first = created.spec?.credentials[0];
+    expect(
+      first?.source.case === "credential" ? first.source.value.credential?.org : "",
+    ).toBe(ORG_ID);
+    expect(assignedSlug(first)).toBe(github.metadata!.slug);
+    expect(assignedSlug(created.spec?.credentials[1])).toBe(search.metadata!.slug);
+    // The writer is the server's stamp on every introduced assignment, never the client's claim.
+    expect(created.spec?.credentials.map((a) => a.writer)).toEqual([caller, caller]);
 
     const fetched = await query.get({ value: created.metadata!.id });
-    expect(fetched.spec?.environmentRefs).toHaveLength(2);
+    expect(fetched.spec?.credentials).toHaveLength(2);
 
-    // Apply replaces the refs wholesale — credentials are mutable.
+    // Apply replaces the assignments wholesale.
     const rebound = channelFor(agent, name, true);
-    (rebound.spec as Record<string, unknown>).environmentRefs = [
-      {
-        kind: ApiResourceKind.environment,
-        org: ORG,
-        slug: "rotated-credentials",
-      },
+    (rebound.spec as Record<string, unknown>).credentials = [
+      assignmentOf(agent, rotated, ORG),
     ];
     const updated = await channels.apply(rebound);
-    expect(updated.spec?.environmentRefs).toHaveLength(1);
-    expect(updated.spec?.environmentRefs[0]?.slug).toBe("rotated-credentials");
+    expect(updated.spec?.credentials).toHaveLength(1);
+    expect(assignedSlug(updated.spec?.credentials[0])).toBe(rotated.metadata!.slug);
+    expect(updated.spec?.credentials[0]?.writer).toBe(caller);
 
-    // Apply omitting the refs unbinds them (declarative semantics).
+    // Apply omitting the assignments unbinds them (declarative semantics).
     const unbound = await channels.apply(channelFor(agent, name, true));
-    expect(unbound.spec?.environmentRefs).toHaveLength(0);
+    expect(unbound.spec?.credentials).toHaveLength(0);
 
-    // A non-environment ref kind is INVALID_ARGUMENT (proto CEL).
+    // A credential reference of another kind is INVALID_ARGUMENT (proto CEL).
     const wrongKind = channelFor(agent, uniqueName("Wrong Kind Slack"), true);
-    (wrongKind.spec as Record<string, unknown>).environmentRefs = [
-      { kind: ApiResourceKind.agent, org: ORG, slug: "not-an-environment" },
-    ];
+    const wrong = assignmentOf(agent, github, ORG);
+    wrong.source.value.credential.kind = ApiResourceKind.agent;
+    (wrongKind.spec as Record<string, unknown>).credentials = [wrong];
     const err = await grpcError(() => channels.create(wrongKind));
     expect(err.code).toBe(Code.InvalidArgument);
+  });
+
+  it("a person's own credential on a channel is FAILED_PRECONDITION: a channel's runs have no person behind them", async () => {
+    const agent = await createTestAgent(uniqueName("Personal Credential Agent"));
+    const credential = await createCredential("person");
+    const ch = channelFor(agent, uniqueName("Personal Credential Slack"), true);
+    (ch.spec as Record<string, unknown>).credentials = [
+      assignmentOf(agent, credential, ORG),
+    ];
+    const err = await grpcError(() => channels.create(ch));
+    expect(err.code).toBe(Code.FailedPrecondition);
+    expect(err.rawMessage).toBe(
+      `credential '${credential.metadata?.slug}' is a person's own and cannot be assigned on a channel: its runs have no person behind them. Assign one of the organization's credentials instead`,
+    );
   });
 });
 

@@ -11,7 +11,8 @@
  *     re-addresses every policy open source ever wrote;
  *   - `BLUEPRINT_KINDS` — the kinds an admin authors, the legacy-creator
  *     rule's whole scan; sessions and executions are personal
- *     and never appear here;
+ *     and never appear here, nor does a credential, whose owner its spec
+ *     names;
  *   - the byte-pinned copy moved from the cloud's handlers as-is, plus the
  *     new sentences (the two edition refusals, the unknown permission, the
  *     unknown principal kind, the malformed triple, the four principal
@@ -290,14 +291,17 @@ describe("the contract's identity strings", () => {
 });
 
 describe("BLUEPRINT_KINDS — the legacy-creator rule's scan", () => {
-  it("is exactly the five kinds an admin authors, in registry order", () => {
+  it("is exactly the four kinds an admin authors, in registry order", () => {
     expect([...BLUEPRINT_KINDS]).toEqual([
       ApiResourceKind.agent,
       ApiResourceKind.skill,
       ApiResourceKind.mcp_server,
-      ApiResourceKind.environment,
       ApiResourceKind.schedule,
     ]);
+  });
+
+  it("never names the credential kind — its owner is written in its spec, never derived from its creator", () => {
+    expect(BLUEPRINT_KINDS).not.toContain(ApiResourceKind.credential);
   });
 
   it("never names a personal kind — those stay with their creator, no role needed", () => {

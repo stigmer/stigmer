@@ -37,7 +37,8 @@ import { AgentShareQueryController } from "@stigmer/protos/ai/stigmer/agentic/ag
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { CredentialCommandController } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/command_pb";
+import type { Credential } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -68,11 +69,13 @@ const API_VERSION = "agentic.stigmer.ai/v1";
 type ShareCommand = Client<typeof AgentShareCommandController>;
 type ShareQuery = Client<typeof AgentShareQueryController>;
 type AgentCommand = Client<typeof AgentCommandController>;
+type CredentialCommand = Client<typeof CredentialCommandController>;
 
 let server: ComposedServer;
 let shares: ShareCommand;
 let query: ShareQuery;
 let agents: AgentCommand;
+let credentials: CredentialCommand;
 let dir: string;
 
 // Requests name organizations by slug, which the serving chain turns into
@@ -127,6 +130,7 @@ beforeAll(async () => {
   shares = createClient(AgentShareCommandController, transport);
   query = createClient(AgentShareQueryController, transport);
   agents = createClient(AgentCommandController, transport);
+  credentials = createClient(CredentialCommandController, transport);
 });
 
 afterAll(async () => {
@@ -189,6 +193,48 @@ function shareFor(agent: Agent, enabled: boolean) {
     spec: {
       agentRef: { kind: ApiResourceKind.agent, slug: agent.metadata!.slug },
       enabled,
+    },
+  };
+}
+
+/** A credential saved through the credential chain: a person's own (the caller's) or the organization's. */
+async function createCredential(
+  org: string,
+  owner: "person" | "organization",
+): Promise<Credential> {
+  return credentials.create({
+    apiVersion: API_VERSION,
+    kind: "Credential",
+    metadata: { name: uniqueName("Share Credential"), org },
+    spec: {
+      owner: owner === "person" ? { case: "person", value: "" } : { case: "org", value: "" },
+      fields: { API_KEY: { value: "sk-share", plain: false, description: "" } },
+    },
+  });
+}
+
+/** One assignment giving the agent's API_KEY requirement a credential's field. */
+function assignmentOf(agent: Agent, credential: Credential) {
+  return {
+    requirement: {
+      declarer: {
+        target: {
+          case: "agent" as const,
+          value: { kind: ApiResourceKind.agent, org: agent.metadata!.org, slug: agent.metadata!.slug },
+        },
+      },
+      key: "API_KEY",
+    },
+    source: {
+      case: "credential" as const,
+      value: {
+        credential: {
+          kind: ApiResourceKind.credential,
+          org: credential.metadata!.org,
+          slug: credential.metadata!.slug,
+        },
+        field: "",
+      },
     },
   };
 }
@@ -401,33 +447,13 @@ describe("launch-gate config", () => {
     expect(update.code).toBe(Code.InvalidArgument);
   });
 
-  it("environment_refs on an org-audience share is INVALID_ARGUMENT; public persists", async () => {
+  it("credentials on an org-audience share is INVALID_ARGUMENT; on a public share they persist with the caller as writer", async () => {
     const agent = await createTestAgent(
-      uniqueName("Env Refs Audience Agent"),
+      uniqueName("Credentials Audience Agent"),
       ORG,
     );
-    // The environment must exist when the share is written (the reference rule).
-    await server.store.saveResource(
-      ApiResourceKind.environment,
-      "env_shared_credentials",
-      EnvironmentSchema,
-      create(EnvironmentSchema, {
-        apiVersion: "agentic.stigmer.ai/v1",
-        kind: "Environment",
-        metadata: {
-          id: "env_shared_credentials",
-          name: "shared-credentials",
-          slug: "shared-credentials",
-          org: idOf(ORG),
-          visibility: ApiResourceVisibility.visibility_org,
-        },
-      }),
-    );
-    const envRef = {
-      kind: ApiResourceKind.environment,
-      org: ORG,
-      slug: "shared-credentials",
-    };
+    const credential = await createCredential(ORG, "organization");
+    const assignment = assignmentOf(agent, credential);
 
     const err = await grpcError(() =>
       shares.create({
@@ -435,7 +461,7 @@ describe("launch-gate config", () => {
         spec: {
           ...shareFor(agent, true).spec,
           audience: AgentShareAudience.org,
-          environmentRefs: [envRef],
+          credentials: [assignment],
         },
       }),
     );
@@ -446,11 +472,37 @@ describe("launch-gate config", () => {
       spec: {
         ...shareFor(agent, true).spec,
         audience: AgentShareAudience.public,
-        environmentRefs: [envRef],
+        credentials: [{ ...assignment, writer: "someone-else" }],
       },
     });
-    expect(created.spec?.environmentRefs).toHaveLength(1);
-    expect(created.spec?.environmentRefs[0]?.slug).toBe("shared-credentials");
+    expect(created.spec?.credentials).toHaveLength(1);
+    const held = created.spec?.credentials[0];
+    expect(held?.source.case).toBe("credential");
+    expect(
+      held?.source.case === "credential" ? held.source.value.credential?.slug : "",
+    ).toBe(credential.metadata?.slug);
+    // The writer is the server's stamp, never the client's claim: the caller.
+    expect(held?.writer).toBe(created.status?.audit?.specAudit?.createdBy?.id);
+    expect(held?.writer).not.toBe("");
+  });
+
+  it("a person's own credential on a share is FAILED_PRECONDITION: a share's runs have no person behind them", async () => {
+    const agent = await createTestAgent(uniqueName("Personal Credential Agent"), ORG);
+    const credential = await createCredential(ORG, "person");
+    const err = await grpcError(() =>
+      shares.create({
+        ...shareFor(agent, true),
+        spec: {
+          ...shareFor(agent, true).spec,
+          audience: AgentShareAudience.public,
+          credentials: [assignmentOf(agent, credential)],
+        },
+      }),
+    );
+    expect(err.code).toBe(Code.FailedPrecondition);
+    expect(err.rawMessage).toBe(
+      `credential '${credential.metadata?.slug}' is a person's own and cannot be assigned on a share link: its runs have no person behind them. Assign one of the organization's credentials instead`,
+    );
   });
 });
 

@@ -14,8 +14,9 @@
  * agent, the `mcpServers` key-to-slug rule, a skill archive rooted at its
  * SKILL.md with the plugin's labels on the request, a version the tag
  * pattern rejects becoming a warning, an overlay that redefines the
- * transport refused, the composed agent declaring its tools' variables
- * (OAuth targets excluded, an authored agent left as written), and each
+ * transport refused, the composed agent declaring only what its hooks
+ * read (its servers' variables stay on the servers, where a run gathers
+ * them per server; an authored agent left as written), and each
  * planned member's system flag read from its overlay and never from a
  * skill. The member rules themselves (the slug decision, convergence, the
  * dropped set) are members.test.ts's.
@@ -249,13 +250,12 @@ describe("planMaterialization", () => {
     expect(builtPlan.skills[0]!.request.tag).toBe("");
   });
 
-  it("declares the servers' variables on the composed agent so a session asks for them", () => {
-    expect(plan.agent!.resource.spec?.env).toEqual({
-      GITHUB_TOKEN: expect.objectContaining({
-        isSecret: true,
-        optional: false,
-      }),
+  it("leaves the servers' variables on the servers: the composed agent declares none of them", () => {
+    expect(plan.mcpServers[0]!.resource.spec?.env["GITHUB_TOKEN"]).toMatchObject({
+      isSecret: true,
+      optional: false,
     });
+    expect(plan.agent!.resource.spec?.env).toEqual({});
   });
 
   it("leaves an OAuth-managed target out of the agent's declarations", () => {
@@ -279,8 +279,8 @@ describe("planMaterialization", () => {
       IDENTITY,
       "",
     );
-    // The server still declares it (the connect flow reads it there); the
-    // agent does not, because the value comes from a managed environment.
+    // The server still declares it (the connect flow and a run read it
+    // there); the agent does not, because the value comes from a sign-in.
     expect(withOAuth.mcpServers[0]!.resource.spec?.env).toHaveProperty(
       "GITHUB_TOKEN",
     );
@@ -623,10 +623,17 @@ describe("a Claude plugin's tool lists, main agent and hooks", () => {
     ).toEqual([]);
   });
 
-  it("has the composed agent run its own plugin's Claude Code hooks, unversioned, and declare the variables they read", () => {
+  it("has the composed agent run its own plugin's Claude Code hooks, unversioned, and declare only the variables they read", () => {
     const planned = plan(
       claudePlugin({
         skills: [{ name: "howto", description: "How to", body: "# How" }],
+        mcpServers: {
+          search: {
+            type: "http",
+            url: "https://search.example.com/mcp",
+            headers: { Authorization: "Bearer ${SEARCH_TOKEN}" },
+          },
+        },
         userConfig: {
           WEBHOOK: {
             type: "string",
@@ -674,6 +681,9 @@ describe("a Claude plugin's tool lists, main agent and hooks", () => {
       isSecret: true,
       optional: false,
     });
+    // The server's variable stays on the server: the agent's env holds its hooks' variables alone.
+    expect(Object.keys(spec.env).sort()).toEqual(["UNDECLARED", "WEBHOOK"]);
+    expect(planned.mcpServers[0]!.resource.spec?.env).toHaveProperty("SEARCH_TOKEN");
   });
 
   it("has a Cursor-format plugin's agent run its hooks too, and composes no agent for a plugin that is only hooks", () => {

@@ -4,7 +4,8 @@
  * own writer from the library's fixture builders. Pins the install
  * contract the conformance suite proves per edition: a Cursor plugin with
  * skills, a sub-agent and an MCP server materialises exactly those
- * members with both labels; an MCP-only plugin materialises no agent; a
+ * members with both labels, the server's variables declared on the server
+ * and not on the agent; an MCP-only plugin materialises no agent; a
  * Claude plugin's hooks reach the status while its settings' main agent
  * and its agents' tool lists, rewritten to Stigmer's names, reach the
  * agent, which references the plugin's hooks and declares the variables
@@ -340,12 +341,10 @@ describe("Plugin push — materialisation", () => {
       isSecret: true,
       optional: false,
     });
-    // The agent declares the same variable, which is what makes a session
-    // ask for it and the execution's least-privilege filter pass it.
-    expect(agent.spec?.env["GITHUB_TOKEN"]).toMatchObject({
-      isSecret: true,
-      optional: false,
-    });
+    // The agent does not declare it: a run gathers the server's
+    // requirements from the server, and the agent's env holds only what
+    // its hooks read (none here).
+    expect(agent.spec?.env).toEqual({});
   });
 
   it("installs an MCP-only plugin as its servers and no agent", async () => {

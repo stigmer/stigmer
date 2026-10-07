@@ -4,8 +4,9 @@
  * client and the full interceptor chain.
  *
  * The load-bearing pins:
- *   - MCP env-merge semantics: agent-declared entries win, among servers
- *     first-encountered wins, only declaration fields are copied;
+ *   - the agent's env is kept exactly as written: its MCP servers'
+ *     declarations are never copied into it, because a run gathers each
+ *     server's requirements from the server itself, per declarer;
  *   - tool lists at apply: an entry whose shape is malformed is refused
  *     by the proto's per-item pattern, on the agent and on a sub-agent;
  *     well-formed lists are accepted and read back as written, and their
@@ -35,6 +36,7 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/requirement_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
@@ -211,8 +213,8 @@ async function grpcError(run: () => Promise<unknown>): Promise<ConnectError> {
   }
 }
 
-describe("agent MCP env merge (merge_mcp_env_specs)", () => {
-  it("merges declarations: agent-declared wins, first-encountered server wins, declaration fields copied", async () => {
+describe("agent env at save", () => {
+  it("keeps the agent's env exactly as written — its MCP servers' declarations are never copied in", async () => {
     await seedMcpServer({
       id: "mcp_env_one",
       slug: "env-srv-one",
@@ -232,12 +234,12 @@ describe("agent MCP env merge (merge_mcp_env_specs)", () => {
 
     const created = await command.create(
       agentInput({
-        name: "Env Merge Agent",
+        name: "Env Kept Agent",
         usages: [{ slug: "env-srv-one" }, { slug: "env-srv-two" }],
         env: {
           AGENT_VAR: { description: "declared on the agent", isSecret: true },
           ONLY_TWO: {
-            description: "agent wins",
+            description: "the agent's own",
             isSecret: true,
             optional: true,
           },
@@ -245,19 +247,26 @@ describe("agent MCP env merge (merge_mcp_env_specs)", () => {
       }),
     );
 
-    const env = created.spec!.env;
-    // Agent-declared entries always win over server declarations.
-    expect(env.AGENT_VAR?.description).toBe("declared on the agent");
-    expect(env.ONLY_TWO?.description).toBe("agent wins");
-    expect(env.ONLY_TWO?.isSecret).toBe(true);
-    expect(env.ONLY_TWO?.optional).toBe(true);
-    // Among servers, first-encountered (usage order) wins for overlaps.
-    expect(env.SHARED_VAR?.description).toBe("shared from one");
-    expect(env.SHARED_VAR?.isSecret).toBe(true);
-    // Declaration fields are copied verbatim from the server's spec.
-    expect(env.ONLY_ONE?.description).toBe("one only");
-    expect(env.ONLY_ONE?.isSecret).toBe(false);
-    expect(env.ONLY_ONE?.optional).toBe(true);
+    const expectWritten = (env: { [key: string]: EnvVarDeclaration }) => {
+      expect(Object.keys(env).sort()).toEqual(["AGENT_VAR", "ONLY_TWO"]);
+      expect(env.AGENT_VAR?.description).toBe("declared on the agent");
+      expect(env.AGENT_VAR?.isSecret).toBe(true);
+      expect(env.AGENT_VAR?.optional).toBe(false);
+      expect(env.ONLY_TWO?.description).toBe("the agent's own");
+      expect(env.ONLY_TWO?.isSecret).toBe(true);
+      expect(env.ONLY_TWO?.optional).toBe(true);
+    };
+    expectWritten(created.spec!.env);
+    expectWritten(
+      (await query.get({ value: created.metadata!.id })).spec!.env,
+    );
+
+    // An update keeps it as written too; a server's variable never appears.
+    const updated = await command.update({
+      ...created,
+      spec: { ...created.spec!, description: "updated" },
+    });
+    expectWritten(updated.spec!.env);
   });
 });
 

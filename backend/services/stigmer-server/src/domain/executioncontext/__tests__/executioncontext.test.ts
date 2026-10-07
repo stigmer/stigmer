@@ -61,10 +61,10 @@ import { createLogger } from "../../../boot/logger.js";
 import {
   ENCRYPTED_PREFIX,
   EncryptionScope,
+  REDACTED_MARKER,
   SecretService,
 } from "../../../encryption/encryption.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
-import { REDACTED_MARKER } from "../../environment/constants.js";
 import { newConnectExecutionId } from "../../mcpserver/connect-execution-id.js";
 import { deleteExecutionContextForExecution } from "../internal-delete.js";
 import type { ExecutionContextDeleter } from "../internal-delete.js";

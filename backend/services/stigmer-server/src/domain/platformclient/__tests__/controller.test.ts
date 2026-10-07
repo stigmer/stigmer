@@ -11,11 +11,15 @@
  *   - the reserved slug is refused, the two sign-in role rules are refused on
  *     the contract, and a system-managed client refuses update, delete and
  *     rotate with the cloud's copy;
- *   - create and update run the reference rule on `environment_refs`: a
- *     bare slug is stored under the client's organization, a missing
- *     environment is refused on either chain before anything is stored, and
- *     another organization's environment is refused with the rule's one
+ *   - create and update run the reference rule on `credentials`: a bare
+ *     credential slug is stored under the client's organization, a missing
+ *     credential is refused on either chain before anything is stored, and
+ *     another organization's credential is refused with the rule's one
  *     sentence;
+ *   - every assignment a write introduces carries the server's writer
+ *     stamp (the propagated person; "" for the server acting as itself),
+ *     never the client's claim, and a person's own credential is refused:
+ *     a client's users are not people whose credentials a run may use;
  *   - listByOrg answers the organization's clients, newest first.
  * Who may read a client is the enforcing lane's conformance suite's.
  */
@@ -30,10 +34,9 @@ import { clone, create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { CredentialSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/api_pb";
+import { CredentialAssignmentSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/requirement_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { PlatformClientCommandController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/command_pb";
 import { PlatformClientQueryController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/query_pb";
@@ -47,7 +50,12 @@ import {
   RESERVED_LABEL_TRUE,
 } from "../../../pipeline/apiresource-labels.js";
 import { buildInterceptorChain } from "../../../pipeline/chain.js";
-import { createInProcessCallerInterceptor } from "../../../pipeline/interceptors/auth.js";
+import {
+  createInProcessCallerInterceptor,
+  encodeInProcessCaller,
+  IN_PROCESS_CALLER_HEADER,
+} from "../../../pipeline/interceptors/auth.js";
+import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import {
   missingReferencesMessage,
@@ -120,35 +128,74 @@ async function refusal(promise: Promise<unknown>): Promise<ConnectError> {
   throw new Error("expected a ConnectError refusal");
 }
 
-async function seedEnvironment(org: string, slug: string): Promise<void> {
-  const id = `env_${org}_${slug}`;
+/** A credential row of `org`, owned by the organization or by `person`. */
+async function seedCredential(
+  org: string,
+  slug: string,
+  person?: string,
+): Promise<void> {
+  const id = `cred_${org}_${slug}`;
   await store.saveResource(
-    ApiResourceKind.environment,
+    ApiResourceKind.credential,
     id,
-    EnvironmentSchema,
-    create(EnvironmentSchema, {
+    CredentialSchema,
+    create(CredentialSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "Environment",
-      metadata: {
-        id,
-        name: slug,
-        slug,
-        org,
-        visibility: ApiResourceVisibility.visibility_org,
+      kind: "Credential",
+      metadata: { id, name: slug, slug, org },
+      spec: {
+        owner:
+          person === undefined
+            ? { case: "org", value: org }
+            : { case: "person", value: person },
+        fields: { GITHUB_TOKEN: { value: "ghp-client", plain: true } },
       },
     }),
   );
 }
 
-function environmentRef(slug: string, org = "") {
-  return { org, slug, kind: ApiResourceKind.environment };
+/** An assignment giving the github.com host's GITHUB_TOKEN a credential's field. */
+function assignmentOf(slug: string, org = "") {
+  return {
+    requirement: {
+      declarer: { target: { case: "gitHost" as const, value: "github.com" } },
+      key: "GITHUB_TOKEN",
+    },
+    source: {
+      case: "credential" as const,
+      value: {
+        credential: { org, slug, kind: ApiResourceKind.credential },
+        field: "",
+      },
+    },
+  };
 }
 
-function environmentTarget() {
-  const entry = referenceTargetKind(ApiResourceKind.environment);
+/** The `org/slug` each assignment of a spec names. */
+function assignedRefsOf(spec: PlatformClientSpec | undefined): string[] {
+  return (spec?.credentials ?? []).map((assignment) =>
+    assignment.source.case === "credential"
+      ? `${assignment.source.value.credential?.org ?? ""}/${assignment.source.value.credential?.slug ?? ""}`
+      : "",
+  );
+}
+
+function credentialTarget() {
+  const entry = referenceTargetKind(ApiResourceKind.credential);
   if (entry === undefined)
-    throw new Error("environment is not a reference target kind");
+    throw new Error("credential is not a reference target kind");
   return entry;
+}
+
+/** Call options presenting `identityId` as the propagated person the server composes for. */
+function asPerson(identityId: string) {
+  return {
+    headers: {
+      [IN_PROCESS_CALLER_HEADER]: encodeInProcessCaller(
+        testCallerIdentity({ identityId }),
+      ),
+    },
+  };
 }
 
 describe("PlatformClient chains", () => {
@@ -264,33 +311,58 @@ describe("PlatformClient chains", () => {
     expect(noProvision.code).toBe(Code.InvalidArgument);
   });
 
-  it("stores a bare environment slug under the client's organization", async () => {
-    await seedEnvironment("acme", "support-secrets");
+  it("stores a bare credential slug under the client's organization, the writer stamped by the server", async () => {
+    await seedCredential("acme", "support-secrets");
     const created = await command.create(
       input("Dashboard", {
-        environmentRefs: [environmentRef("support-secrets")],
+        credentials: [
+          { ...assignmentOf("support-secrets"), writer: "someone-else" },
+        ],
       }),
+      asPerson("alice"),
     );
-    const refsOf = (spec: PlatformClientSpec | undefined) =>
-      (spec?.environmentRefs ?? []).map((ref) => `${ref.org}/${ref.slug}`);
-    expect(refsOf(created.platformClient?.spec)).toEqual([
+    expect(assignedRefsOf(created.platformClient?.spec)).toEqual([
       "acme/support-secrets",
     ]);
+    expect(created.platformClient?.spec?.credentials[0]?.writer).toBe("alice");
     const id = created.platformClient?.metadata?.id ?? "";
-    expect(refsOf((await clients.findById(id))?.spec)).toEqual([
-      "acme/support-secrets",
-    ]);
+    const stored = (await clients.findById(id))?.spec;
+    expect(assignedRefsOf(stored)).toEqual(["acme/support-secrets"]);
+    expect(stored?.credentials[0]?.writer).toBe("alice");
   });
 
-  it("refuses a missing environment on create and on update, storing nothing", async () => {
-    const missing = missingReferencesMessage(environmentTarget(), [
+  it("stamps no writer when the server acting as itself writes the assignment", async () => {
+    await seedCredential("acme", "server-secrets");
+    const created = await command.create(
+      input("Dashboard", {
+        credentials: [{ ...assignmentOf("server-secrets"), writer: "someone-else" }],
+      }),
+    );
+    expect(created.platformClient?.spec?.credentials[0]?.writer).toBe("");
+  });
+
+  it("refuses a person's own credential: a client's users are not people whose credentials a run may use", async () => {
+    await seedCredential("acme", "alice-key", "alice");
+    const refused = await refusal(
+      command.create(
+        input("Dashboard", { credentials: [assignmentOf("alice-key")] }),
+        asPerson("alice"),
+      ),
+    );
+    expect(refused.code).toBe(Code.FailedPrecondition);
+    expect(refused.rawMessage).toBe(
+      "credential 'alice-key' is a person's own and cannot be assigned on a platform client: its runs have no person behind them. Assign one of the organization's credentials instead",
+    );
+    expect((await query.listByOrg({ org: "acme" })).entries).toEqual([]);
+  });
+
+  it("refuses a missing credential on create and on update, storing nothing", async () => {
+    const missing = missingReferencesMessage(credentialTarget(), [
       { slug: "ghost", org: "acme" },
     ]);
 
     const onCreate = await refusal(
-      command.create(
-        input("Dashboard", { environmentRefs: [environmentRef("ghost")] }),
-      ),
+      command.create(input("Dashboard", { credentials: [assignmentOf("ghost")] })),
     );
     expect(onCreate.code).toBe(Code.FailedPrecondition);
     expect(onCreate.rawMessage).toBe(missing);
@@ -301,31 +373,28 @@ describe("PlatformClient chains", () => {
     if (stored?.spec === undefined) throw new Error("create answered no spec");
     const withGhost = clone(PlatformClientSchema, stored);
     withGhost.spec = clone(PlatformClientSpecSchema, stored.spec);
-    withGhost.spec.environmentRefs = [
-      create(ApiResourceReferenceSchema, environmentRef("ghost")),
+    withGhost.spec.credentials = [
+      create(CredentialAssignmentSchema, assignmentOf("ghost")),
     ];
     const onUpdate = await refusal(command.update(withGhost));
     expect(onUpdate.code).toBe(Code.FailedPrecondition);
     expect(onUpdate.rawMessage).toBe(missing);
     expect(
-      (await clients.findById(stored.metadata?.id ?? ""))?.spec
-        ?.environmentRefs,
+      (await clients.findById(stored.metadata?.id ?? ""))?.spec?.credentials,
     ).toEqual([]);
   });
 
-  it("refuses another organization's environment with the rule's one sentence", async () => {
-    await seedEnvironment("globex", "shared");
+  it("refuses another organization's credential with the rule's one sentence", async () => {
+    await seedCredential("globex", "shared");
     const foreign = await refusal(
       command.create(
-        input("Dashboard", {
-          environmentRefs: [environmentRef("shared", "globex")],
-        }),
+        input("Dashboard", { credentials: [assignmentOf("shared", "globex")] }),
       ),
     );
     expect(foreign.code).toBe(Code.FailedPrecondition);
     expect(foreign.rawMessage).toBe(
-      notAvailableReferenceMessage(environmentTarget(), {
-        kind: ApiResourceKind.environment,
+      notAvailableReferenceMessage(credentialTarget(), {
+        kind: ApiResourceKind.credential,
         org: "globex",
         slug: "shared",
       }),
