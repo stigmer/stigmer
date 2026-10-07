@@ -16,7 +16,7 @@
  *     lookup (the grant store is untouchable under denial);
  *   - a credential bound to one organization, though authorized on the
  *     server, is refused with the binding's sentence on every lane that
- *     names another organization, before any engine, environment, grant or
+ *     names another organization, before any engine, credential, grant or
  *     context is touched (prepareConnect included, which connect's own
  *     check would otherwise hide).
  */
@@ -116,10 +116,10 @@ function deps(authorizer: Authorizer): McpServerConnectDeps {
       connected: true,
       engine: unreachable("engine"),
     }),
-    environmentReader: unreachable("environmentReader"),
     executionContext: unreachable("executionContext"),
     runnerAuth: unreachable("runnerAuth"),
-    managedEnv: unreachable("managedEnv"),
+    credentials: unreachable("credentials"),
+    signIns: unreachable("signIns"),
     oauthGrants: unreachable("oauthGrants"),
     pendingOAuthStates: store.pendingOAuthStates,
     secretService: unreachable("secretService"),
@@ -276,7 +276,7 @@ describe("connect lanes under a credential bound to another organization", () =>
   };
   const boundToA = { ...caller, boundOrg: "org_a" };
 
-  it("connect, startConnect and prepareConnect refuse before the engine or any environment is touched", async () => {
+  it("connect, startConnect and prepareConnect refuse before the engine or any credential is touched", async () => {
     await seedServer("mcps_shared");
     const input = create(ConnectInputSchema, {
       mcpServerId: "mcps_shared",

@@ -6,7 +6,10 @@
  * connect_status bookkeeping (attach skips CONNECTING; results and the
  * terminal phase ride ONE atomic write; failure_code in CamelCase),
  * each tool's destructive_hint persisted as the runner read it and
- * overwritten on reconnect, the ephemeral EC lifecycle, and
+ * overwritten on reconnect, the ephemeral EC lifecycle with its values
+ * resolved by the one credential rule (domain/credential/resolve.ts: a
+ * per-call value, then the person's own credential serving the server,
+ * never a teammate's; a required key with no source refused), and
  * startConnect's two-layer idempotency + dead-runner warning, and the
  * connect route (connect-sandbox.ts, stigmer/stigmer#1474): the shared
  * runner queue without a sandbox lane, and with one a connect sandbox
@@ -29,10 +32,10 @@ import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/
 import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { ConnectPhase } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
-import { EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { CredentialSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/api_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 
+import { LIST_INDEXES } from "../../../boot/list-indexes.js";
 import { createLogger } from "../../../boot/logger.js";
 import { SecretService } from "../../../encryption/encryption.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
@@ -51,7 +54,8 @@ import type {
   SandboxProvisioner,
 } from "../../../sandbox/provisioner.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
-import { PERSONAL_LABEL_KEY, PERSONAL_LABEL_VALUE } from "../../environment/constants.js";
+import { SignInCredentials } from "../../credential/sign-in.js";
+import { CredentialValues } from "../../credential/values.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import {
@@ -63,7 +67,6 @@ import {
 } from "../connect.js";
 import type { McpServerConnectDeps } from "../connect.js";
 import { isConnectExecutionId } from "../connect-execution-id.js";
-import { ManagedEnvironmentService } from "../oauth/managed-env.js";
 import {
   RUNNER_QUEUE_WARNING,
   startConnect as startConnectRpc,
@@ -203,7 +206,11 @@ let store: SqliteStore;
 
 beforeEach(() => {
   dir = mkdtempSync(path.join(tmpdir(), "mcpserver-connect-test-"));
-  store = SqliteStore.open(path.join(dir, "test.db"));
+  // The server's list indexes: the credential rule reads an
+  // organization's credentials through the credential list index.
+  store = SqliteStore.open(path.join(dir, "test.db"), undefined, {
+    listIndexes: LIST_INDEXES,
+  });
 });
 
 afterEach(() => {
@@ -248,11 +255,6 @@ function makeHarness(options: HarnessOptions = {}): Harness {
       logger: silentLogger,
       authorizer: newPermissiveSingleTeamAuthorizer(),
       engineState: () => ({ connected: true, engine }),
-      environmentReader: {
-        getSecretValue: async () => {
-          throw new Error("no secrets in this harness");
-        },
-      },
       executionContext: {
         create: async (_ec, caller) => {
           harness.ecCreates += 1;
@@ -267,25 +269,34 @@ function makeHarness(options: HarnessOptions = {}): Harness {
         },
       },
       runnerAuth,
-      // The REAL service over a client backed by nothing: the refresh
-      // pre-flight arms that need it are exercised in the handshake
-      // composed test; here every read throws, which the pre-flight
-      // treats as its silent-skip arm (oss#863).
-      managedEnv: new ManagedEnvironmentService(
+      // The one credential rule over the harness's store, keyless: a
+      // credential seeded here rests as written. No sign-in is seeded, so
+      // the refresh pre-flight passes every credential through.
+      credentials: {
+        store,
+        logger: silentLogger,
+        authorizer: newPermissiveSingleTeamAuthorizer(),
+        values: new CredentialValues(SecretService.create(undefined), silentLogger),
+        signIns: { freshen: async (credential) => credential },
+      },
+      // No arm in this harness signs in; a write is a test bug.
+      signIns: new SignInCredentials(
         {
-          getSecretValue: async () => {
-            throw new Error("no managed env in this harness");
-          },
-          updateVariables: async () => {
-            throw new Error("no managed env in this harness");
-          },
           create: async () => {
-            throw new Error("no managed env in this harness");
+            throw new Error("no sign-in in this harness");
+          },
+          setFields: async () => {
+            throw new Error("no sign-in in this harness");
+          },
+          removeFields: async () => {
+            throw new Error("no sign-in in this harness");
           },
           delete: async () => {
-            throw new Error("no managed env in this harness");
+            throw new Error("no sign-in in this harness");
           },
         },
+        store,
+        new CredentialValues(SecretService.create(undefined), silentLogger),
         silentLogger,
       ),
       oauthGrants: store.oauthGrants,
@@ -454,7 +465,7 @@ describe("connect (blocking lane)", () => {
 
   it("creates the ephemeral EC from runtime_env AS THE CALLER, mints the decrypt token, and deletes the EC after settle", async () => {
     const harness = makeHarness();
-    const server = await seedServer();
+    const server = await seedServer({ env: true });
     await connect(
       harness.deps,
       connectInput(server.metadata!.id, {
@@ -476,6 +487,17 @@ describe("connect (blocking lane)", () => {
     expect(input?.execution_context_token).toBeTruthy();
   });
 
+  it("delivers only what the server declares: a runtime_env key it does not declare creates no EC", async () => {
+    const harness = makeHarness();
+    const server = await seedServer();
+    await connect(
+      harness.deps,
+      connectInput(server.metadata!.id, { UNDECLARED: { value: "v", isSecret: true } }),
+    );
+    expect(harness.ecCreates).toBe(0);
+    expect(harness.engine.startedInputs[0]?.execution_context_id).toBeUndefined();
+  });
+
   it("skips EC creation entirely for an env-less server", async () => {
     const harness = makeHarness();
     const server = await seedServer();
@@ -484,76 +506,62 @@ describe("connect (blocking lane)", () => {
     expect(harness.engine.startedInputs[0]?.execution_context_id).toBeUndefined();
   });
 
-  it("refuses with the [key] list when required credentials have no personal environment", async () => {
+  it("refuses FailedPrecondition through the credential rule when a required key has no source", async () => {
     const harness = makeHarness();
-    harness.deps = {
-      ...harness.deps,
-      environmentReader: {
-        getSecretValue: async () => {
-          throw new Error("unreachable");
-        },
-      },
-    };
     const server = await seedServer({ env: true });
     await expectConnectError(
       connect(harness.deps, connectInput(server.metadata!.id)),
       Code.FailedPrecondition,
-      "personal environment not found for org 'acme'; save required credentials first: [API_KEY]",
+      `this run cannot start: MCP server '${server.metadata!.slug}' needs API_KEY, and you have not signed in to it: sign in, or save a credential of yours that serves it`,
     );
+    // Refused before anything was created or started.
+    expect(harness.ecCreates).toBe(0);
+    expect(harness.engine.startedInputs).toEqual([]);
   });
 
-  it("reads the connecting person's own personal environment, never a teammate's saved later", async () => {
-    // A teammate's personal environment, saved after the caller's, is the
-    // one an organization-wide newest-first list would answer first.
-    const personal = (id: string, creator: string, at: number) =>
-      create(EnvironmentSchema, {
-        metadata: {
-          id,
-          slug: id,
-          org: "acme",
-          labels: { [PERSONAL_LABEL_KEY]: PERSONAL_LABEL_VALUE },
-        },
-        spec: { data: { API_KEY: { value: "ciphertext", isSecret: true } } },
-        status: {
-          audit: {
-            specAudit: {
-              createdBy: { id: creator },
-              createdAt: { seconds: BigInt(at), nanos: 0 },
+  it("reads the connecting person's own credential serving the server, never a teammate's saved later", async () => {
+    const server = await seedServer({ env: true });
+    // A teammate's credential serving the same server, saved after the
+    // caller's: a personal-sign-in server takes the person's own only.
+    const personal = (id: string, person: string, value: string) =>
+      create(CredentialSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Credential",
+        metadata: { id, name: id, slug: id, org: "acme" },
+        spec: {
+          owner: { case: "person", value: person },
+          fields: { API_KEY: { value, plain: false } },
+          serves: [
+            {
+              target: {
+                case: "mcpServer",
+                value: {
+                  kind: ApiResourceKind.mcp_server,
+                  org: "acme",
+                  slug: server.metadata!.slug,
+                },
+              },
             },
-          },
+          ],
         },
       });
     await store.saveResource(
-      ApiResourceKind.environment,
-      "env_caller",
-      EnvironmentSchema,
-      personal("env_caller", testCaller.identityId, 1_000),
+      ApiResourceKind.credential,
+      "cred_caller",
+      CredentialSchema,
+      personal("cred_caller", testCaller.identityId, "caller-key"),
     );
     await store.saveResource(
-      ApiResourceKind.environment,
-      "env_teammate",
-      EnvironmentSchema,
-      personal("env_teammate", "acc_teammate", 2_000),
+      ApiResourceKind.credential,
+      "cred_teammate",
+      CredentialSchema,
+      personal("cred_teammate", "acc_teammate", "teammate-key"),
     );
-    const values: Record<string, string> = {
-      env_caller: "caller-key",
-      env_teammate: "teammate-key",
-    };
-    const reads: string[] = [];
     const created: Array<Parameters<McpServerConnectDeps["executionContext"]["create"]>[0]> = [];
     const harness = makeHarness();
     const recordCreate = harness.deps.executionContext.create;
     harness.deps = {
       ...harness.deps,
-      environmentReader: {
-        getSecretValue: async (input) => {
-          reads.push(input.environmentId ?? "");
-          return create(EnvironmentValueSchema, {
-            value: values[input.environmentId ?? ""] ?? "",
-            isSecret: true,
-          });
-        },
-      },
       executionContext: {
         ...harness.deps.executionContext,
         create: async (ec, caller) => {
@@ -562,10 +570,57 @@ describe("connect (blocking lane)", () => {
         },
       },
     };
-    const server = await seedServer({ env: true });
     await connect(harness.deps, connectInput(server.metadata!.id));
-    expect(reads).toEqual(["env_caller"]);
     expect(created[0]?.spec?.data?.["API_KEY"]?.value).toBe("caller-key");
+    expect(created[0]?.spec?.data?.["API_KEY"]?.isSecret).toBe(true);
+  });
+
+  it("a per-call runtime_env value wins over the person's own credential", async () => {
+    const server = await seedServer({ env: true });
+    await store.saveResource(
+      ApiResourceKind.credential,
+      "cred_saved",
+      CredentialSchema,
+      create(CredentialSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Credential",
+        metadata: { id: "cred_saved", name: "saved", slug: "saved", org: "acme" },
+        spec: {
+          owner: { case: "person", value: testCaller.identityId },
+          fields: { API_KEY: { value: "saved-key", plain: false } },
+          serves: [
+            {
+              target: {
+                case: "mcpServer",
+                value: {
+                  kind: ApiResourceKind.mcp_server,
+                  org: "acme",
+                  slug: server.metadata!.slug,
+                },
+              },
+            },
+          ],
+        },
+      }),
+    );
+    const created: Array<Parameters<McpServerConnectDeps["executionContext"]["create"]>[0]> = [];
+    const harness = makeHarness();
+    const recordCreate = harness.deps.executionContext.create;
+    harness.deps = {
+      ...harness.deps,
+      executionContext: {
+        ...harness.deps.executionContext,
+        create: async (ec, caller) => {
+          created.push(ec);
+          return recordCreate(ec, caller);
+        },
+      },
+    };
+    await connect(
+      harness.deps,
+      connectInput(server.metadata!.id, { API_KEY: { value: "per-call", isSecret: true } }),
+    );
+    expect(created[0]?.spec?.data?.["API_KEY"]?.value).toBe("per-call");
   });
 
   it("skips the CONNECTING write when attached to an in-flight run", async () => {
@@ -744,11 +799,11 @@ describe("startConnect (async lane)", () => {
   });
 
   it("attach path: deletes the just-created EC and returns the re-read resource", async () => {
-    const server = await seedServer();
+    const server = await seedServer({ env: true });
     const harness = makeHarness({ attached: true });
     const result = await startConnect(
       harness.deps,
-      connectInput(server.metadata!.id, { K: { value: "v", isSecret: false } }),
+      connectInput(server.metadata!.id, { API_KEY: { value: "v", isSecret: true } }),
     );
     expect(result.metadata?.id).toBe(server.metadata!.id);
     expect(harness.ecCreates).toBe(1);
@@ -874,7 +929,7 @@ describe("the connect route with a sandbox lane composed (stigmer/stigmer#1474)"
   it("blocking connect with runtime_env: the row carries the values and the payload names it, and the sandbox is released once", async () => {
     const provisioner = fakeConnectProvisioner();
     const harness = makeHarness({ provisioner });
-    const server = await seedServer();
+    const server = await seedServer({ env: true });
     await connect(
       harness.deps,
       connectInput(server.metadata!.id, { API_KEY: { value: "k", isSecret: true } }),

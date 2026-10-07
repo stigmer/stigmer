@@ -248,8 +248,8 @@ describe("refreshTokenIfExpired", () => {
       authMethod: "mcp_oauth",
       tokenEndpoint: "https://vendor.example/token",
       accessTokenEnvVar: "VENDOR_TOKEN",
-      refreshTokenEnvVar: "VENDOR_REFRESH_TOKEN",
-      environmentId: "env_managed",
+      credentialId: "cred_sign_in",
+      refreshToken: "enc:v1:sealed-refresh-token",
       createdAt: 0,
       updatedAt: 0,
     };

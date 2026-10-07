@@ -304,8 +304,8 @@ describe("updateVisibility (no conformance coverage for this domain, a known gap
     // validation, the cloud-parity rule) is untestable through this
     // domain — mcp_server's kind config supports EVERY visibility level,
     // so ValidateVisibilityUpdate can never fire here (same in Go). This
-    // is a plain NotFound pin; the ordering is pinned by the environment
-    // domain, whose kind DOES reject levels.
+    // is a plain NotFound pin; the ordering belongs to a domain whose kind
+    // rejects levels.
     await expectCode(
       command.updateVisibility({
         resourceId: "mcps_missing",

@@ -81,7 +81,7 @@ const LOCKED = (): Error => new Error("SQLITE_BUSY: database is locked");
 /**
  * The connect slice's dependencies with every field untouchable except the
  * ones a surface names: a load that fails must stop the call before the
- * engine, the environments, the grant store or the network.
+ * engine, the credentials, the sign-ins, the grant store or the network.
  */
 function connectDeps(
   overrides: Partial<McpServerConnectDeps>,
@@ -91,10 +91,10 @@ function connectDeps(
     logger: silentLogger,
     authorizer: newPermissiveSingleTeamAuthorizer(),
     engineState: untouchable("engineState"),
-    environmentReader: untouchable("environmentReader"),
     executionContext: untouchable("executionContext"),
     runnerAuth: untouchable("runnerAuth"),
-    managedEnv: untouchable("managedEnv"),
+    credentials: untouchable("credentials"),
+    signIns: untouchable("signIns"),
     oauthGrants: untouchable("oauthGrants"),
     pendingOAuthStates: untouchable("pendingOAuthStates"),
     secretService: untouchable("secretService"),
