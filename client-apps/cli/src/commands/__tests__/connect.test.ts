@@ -12,7 +12,9 @@
 // answer through a stand-in client the real guard asks; everything else stays real. The
 // guard runs before the push, so every case is deterministic and offline.
 // The result names the server's organization by slug where the caller can
-// see it, in place of the id the server stores.
+// see it, in place of the id the server stores. `--save` is refused before
+// anything is dialled when there is nothing to save (no `--env`) or nothing
+// was used (`--dry-run`).
 
 import { create } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -208,5 +210,19 @@ describe("connect mcp-server org guard", () => {
     // (no reachable backend) — never with the org guidance error.
     const outcome = await runConnect("mcp_test", "--dry-run");
     expect(outcome.message).not.toContain("organization not set");
+  });
+});
+
+describe("connect mcp-server --save", () => {
+  it("refuses --save with --dry-run, which uses nothing worth keeping", async () => {
+    const outcome = await runConnect("mcp_test", "--dry-run", "--save", "--env", "KEY=value");
+    expect(outcome.exitCode).toBe(ExitCode.Usage);
+    expect(outcome.message).toContain("cannot be combined with --dry-run");
+  });
+
+  it("refuses --save with no --env value to save", async () => {
+    const outcome = await runConnect("mcp_test", "--save");
+    expect(outcome.exitCode).toBe(ExitCode.Usage);
+    expect(outcome.message).toContain("give at least one --env KEY=VALUE");
   });
 });

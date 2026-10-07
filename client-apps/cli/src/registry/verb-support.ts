@@ -66,9 +66,11 @@ export const VERB_SUPPORT: ReadonlyMap<
   // dispatch entry + this line, in the same change.
   [ApiResourceKind.identity_provider, new Set<Verb>([Verb.Apply])],
   [ApiResourceKind.oauth_app, new Set<Verb>([Verb.Apply])],
+  // A credential is created with its values (`stigmer credential create`),
+  // never applied: a secret does not belong in a manifest file, so no Apply.
   [
-    ApiResourceKind.environment,
-    new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete]),
+    ApiResourceKind.credential,
+    new Set<Verb>([Verb.Get, Verb.List, Verb.Delete]),
   ],
   // Enable/disable flows through `stigmer share agent`, which is the whole
   // read/ops surface today; only the declarative apply path is promised

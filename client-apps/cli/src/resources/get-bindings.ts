@@ -7,7 +7,7 @@ import type { DescMessage, Message } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { CredentialSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
@@ -41,11 +41,11 @@ export const GET_BINDINGS: ReadonlyMap<ApiResourceKind, Getter> = new Map([
     refGetter(ApiResourceKind.mcp_server, McpServerSchema, (c) => c.mcpServer),
   ],
   [
-    ApiResourceKind.environment,
+    ApiResourceKind.credential,
     refGetter(
-      ApiResourceKind.environment,
-      EnvironmentSchema,
-      (c) => c.environment,
+      ApiResourceKind.credential,
+      CredentialSchema,
+      (c) => c.credential,
     ),
   ],
   [

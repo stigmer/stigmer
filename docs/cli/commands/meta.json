@@ -17,6 +17,7 @@
     "---Resource Management---",
     "apply",
     "connect",
+    "credential",
     "delete",
     "get",
     "list",

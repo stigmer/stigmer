@@ -39,6 +39,11 @@ Control the runtime environment your agent sees. Four flags work together:
 | `--env-file PATH` | Load variables from a dotenv-style file (repeatable) |
 | `--secret-file PATH` | Load secrets from a file — all values encrypted (repeatable) |
 
+A value passed with these flags is used for this run only, and wins over a
+[credential](./credential) that would otherwise provide the same key. Keys you
+don't pass come from your credentials, as described in
+[Credentials](/docs/concepts/credentials).
+
 **Precedence** (highest to lowest):
 
 1. `--env` and `--secret` flags (inline values)

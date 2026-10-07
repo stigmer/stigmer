@@ -9,7 +9,7 @@
 //
 // The one correctness invariant here: apply replaces the share's spec
 // WHOLESALE. A naive "set enabled" would silently wipe any allowed_origins,
-// visitor messages, audience, or credential bindings the owner configured in
+// visitor messages, audience, or credential assignments the owner configured in
 // the console. So this module always reads the current share first and sends
 // the complete spec back with only the requested fields flipped — the same
 // merge-preserve discipline as the web dialog. (The rotatable link token is
@@ -31,6 +31,7 @@ import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshar
 import {
   buildChatUrl,
   buildEmbedSnippet,
+  toAgentShareUpdateInput,
   type AgentShareInput,
   type Stigmer,
 } from "@stigmer/sdk";
@@ -216,7 +217,7 @@ function audienceFromProto(audience: AgentShareAudience | undefined): ShareAudie
 }
 
 // The full share input with the desired `enabled` and audience, preserving
-// origins, messages, and credential bindings (empty defaults when the agent
+// origins, messages, and credential assignments (empty defaults when the agent
 // was never shared before). Identity comes from the existing share when one
 // exists — a manifest-created share may carry a non-default slug, and
 // applying with the agent's slug would create a SECOND share — and from the
@@ -249,10 +250,7 @@ function preservingShareInput(
       unavailable: current?.messages?.unavailable ?? "",
       conversationEnded: current?.messages?.conversationEnded ?? "",
     },
-    environmentRefs: (current?.environmentRefs ?? []).map((envRef) => ({
-      org: envRef.org,
-      slug: envRef.slug,
-    })),
+    credentials: share === null ? [] : (toAgentShareUpdateInput(share).credentials ?? []),
   };
 }
 

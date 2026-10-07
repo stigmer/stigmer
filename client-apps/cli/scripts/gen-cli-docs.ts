@@ -80,6 +80,7 @@ const COMMAND_GROUP: Record<string, GroupId> = {
   validate: "resource",
   search: "resource",
   connect: "resource",
+  credential: "resource",
   tag: "resource",
   share: "resource",
   schedule: "resource",

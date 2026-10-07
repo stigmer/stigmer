@@ -5,7 +5,9 @@
 // LIST_HANDLERS — either because the kind is not search-indexed (API keys,
 // agent channels, channel apps, schedules) or because the dedicated RPC is
 // the better list surface than the kind's search index (organizations are
-// caller-scoped; sessions carry columns search results don't have). Same map-dispatch shape as the get, delete, and apply
+// caller-scoped; sessions carry columns search results don't have;
+// credentials are narrowed per caller, to their own and the organization's
+// they may use). Same map-dispatch shape as the get, delete, and apply
 // registries, so the conformance test in registry/registry.test.ts can hold
 // all four to the verb matrix.
 //
@@ -24,6 +26,8 @@ import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchan
 import { ListAgentChannelsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ListChannelAppsByOrgInputSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
+import { CredentialSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/api_pb";
+import { ListCredentialsInputSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/io_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ListSchedulesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -62,7 +66,6 @@ export const SEARCH_KINDS: ReadonlySet<ApiResourceKind> =
     ApiResourceKind.mcp_server,
     ApiResourceKind.skill,
     ApiResourceKind.plugin,
-    ApiResourceKind.environment,
   ]);
 
 // One fetched page of a listing: what to render (entries + schema) and how
@@ -145,6 +148,30 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
         schema: ChannelAppSchema,
         entries: result.entries,
         table: CHANNEL_APP_TABLE,
+      };
+    },
+  ],
+  [
+    ApiResourceKind.credential,
+    async (client, org, limit) => {
+      // ListCredentialsInput requires an org (min_len 1), as schedules do.
+      // The server narrows the listing to the caller: their own
+      // credentials, and the organization's they may use (an admin sees all
+      // of the organization's); nobody lists another person's.
+      await requireOrganization(client, org, [
+        "stigmer list credentials --org <org>",
+        "stigmer config context set --org <org>",
+      ]);
+      const result = await client.credential.list(
+        create(ListCredentialsInputSchema, {
+          org,
+          pageInfo: create(PageInfoSchema, { num: 1, size: limit }),
+        }),
+      );
+      return {
+        schema: CredentialSchema,
+        entries: result.items,
+        table: CREDENTIAL_TABLE,
       };
     },
   ],
@@ -350,6 +377,45 @@ const SCHEDULE_TABLE: TableShape = {
     ];
   },
 };
+
+// OWNER says whose the credential is: a person-owned row in a listing is
+// always the caller's own (nobody lists another person's). FIELDS names the
+// values it holds, never a value; SERVES is what it is used for by default,
+// in the `--serves` spelling `stigmer credential create` takes.
+const CREDENTIAL_TABLE: TableShape = {
+  resourceName: "credentials",
+  headers: ["NAME", "SLUG", "OWNER", "FIELDS", "SERVES"],
+  row: (json) => {
+    const metadata = obj(json, "metadata");
+    const spec = obj(json, "spec");
+    return [
+      str(metadata, "name"),
+      str(metadata, "slug"),
+      "org" in spec ? "organization" : "you",
+      Object.keys(obj(spec, "fields")).sort().join(", ") || "-",
+      servesWords(spec) || "-",
+    ];
+  },
+};
+
+// Each `serves` target in the `--serves` spelling.
+function servesWords(spec: JsonObject): string {
+  const serves = spec["serves"];
+  if (!Array.isArray(serves)) return "";
+  return serves
+    .map((entry) => {
+      const target: JsonObject =
+        typeof entry === "object" && entry !== null && !Array.isArray(entry) ? entry : {};
+      const host = str(target, "git_host");
+      if (host !== "") return `git-host:${host}`;
+      const agent = str(obj(target, "agent"), "slug");
+      if (agent !== "") return `agent:${agent}`;
+      const server = str(obj(target, "mcp_server"), "slug");
+      return server === "" ? "" : `mcp-server:${server}`;
+    })
+    .filter((words) => words !== "")
+    .join(", ");
+}
 
 // The schedule's target is the agent it runs.
 function scheduleAgentRef(json: JsonObject): JsonObject {

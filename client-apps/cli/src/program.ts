@@ -13,6 +13,7 @@ import { registerAuth } from "./commands/auth/index.js";
 import { registerCompletion } from "./commands/completion.js";
 import { registerConfig } from "./commands/config/index.js";
 import { registerConnect } from "./commands/connect.js";
+import { registerCredential } from "./commands/credential.js";
 import { registerDelete } from "./commands/delete.js";
 import { registerDown } from "./commands/down.js";
 import { registerDownload } from "./commands/download.js";
@@ -89,6 +90,7 @@ export function buildProgram(): Command {
   registerConfig(program);
   registerAuth(program);
   registerApiKey(program);
+  registerCredential(program);
   registerGet(program);
   registerList(program);
   registerSearch(program);

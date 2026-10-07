@@ -1,7 +1,7 @@
 // Unit tests for the share-agent resource layer. The critical contract is
 // merge-preservation: `agentShare.apply` replaces the share's spec wholesale,
 // so a CLI toggle must never wipe console-configured origins, visitor
-// messages, credential bindings, or the audience. A share from another
+// messages, credential assignments, or the audience. A share from another
 // organization's context is refused naming both organizations by slug, and
 // only when the server says they differ: a lookup that fails for another
 // reason is reported as itself. The printed chat link and embed name the
@@ -13,6 +13,11 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
+import {
+  type CredentialAssignment,
+  CredentialAssignmentSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/credential/v1/requirement_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { buildEmbedSnippet, type AgentShareInput, type Stigmer } from "@stigmer/sdk";
 import { describe, expect, it } from "vitest";
 import { classify, ExitCode, UsageError } from "../../errors/index.js";
@@ -34,9 +39,29 @@ interface ShareFixture {
   audience?: AgentShareAudience;
   allowedOrigins?: string[];
   messages?: { rateLimited?: string; unavailable?: string; conversationEnded?: string };
-  environmentRefs?: { org: string; slug: string }[];
+  credentials?: CredentialAssignment[];
   shareLinkToken?: string;
 }
+
+// Two assignments an admin made in the console: a field of the
+// organization's GitHub credential for the git host, and a plain literal
+// for an MCP server's key.
+const SHARED_GITHUB = create(CredentialAssignmentSchema, {
+  requirement: { declarer: { target: { case: "gitHost", value: "github.com" } }, key: "GITHUB_TOKEN" },
+  source: {
+    case: "credential",
+    value: { credential: { org: "acme", slug: "github-org-shared", kind: ApiResourceKind.credential }, field: "TOKEN" },
+  },
+  writer: "ida_admin",
+});
+const PLAIN_REGION = create(CredentialAssignmentSchema, {
+  requirement: {
+    declarer: { target: { case: "mcpServer", value: { org: "acme", slug: "weather", kind: ApiResourceKind.mcp_server } } },
+    key: "REGION",
+  },
+  source: { case: "literal", value: "eu-west-1" },
+  writer: "ida_admin",
+});
 
 // The fixture share's id: the one identity its hosted link carries.
 const SHARE_ID = "ash_01ARZ3NDEKTSV4RRFFQ69G5FAV";
@@ -137,7 +162,10 @@ function fakeClient(
             audience: input.audience ?? AgentShareAudience.unspecified,
             allowedOrigins: input.allowedOrigins ?? [],
             messages: input.messages as never,
-            environmentRefs: input.environmentRefs ?? [],
+            // The request carries the assignments in the SDK's input shape;
+            // the stored row keeps the proto ones it held, which is what a
+            // preserving apply sends back (the tests assert the request).
+            credentials: currentShare?.spec.credentials ?? [],
           },
           ...(currentShare?.status ? { status: currentShare.status } : {}),
         } as ReturnType<typeof makeShare>;
@@ -157,12 +185,12 @@ function fakeClient(
 }
 
 describe("shareAgent merge-preservation (fails closed)", () => {
-  it("enabling preserves console-configured origins, messages, and bindings verbatim", async () => {
+  it("enabling preserves console-configured origins, messages, and credential assignments verbatim", async () => {
     const share = makeShare({
       enabled: false,
       allowedOrigins: ["https://example.com", "https://docs.example.com"],
       messages: { rateLimited: "Slow down!", unavailable: "Back soon.", conversationEnded: "Bye!" },
-      environmentRefs: [{ org: "acme", slug: "github-org-shared" }],
+      credentials: [SHARED_GITHUB, PLAIN_REGION],
     });
     const { client, applies } = fakeClient(makeAgent(), share);
 
@@ -177,7 +205,20 @@ describe("shareAgent merge-preservation (fails closed)", () => {
     expect(applies[0].messages?.rateLimited).toBe("Slow down!");
     expect(applies[0].messages?.unavailable).toBe("Back soon.");
     expect(applies[0].messages?.conversationEnded).toBe("Bye!");
-    expect(applies[0].environmentRefs).toEqual([{ org: "acme", slug: "github-org-shared" }]);
+    expect(applies[0].credentials).toEqual([
+      {
+        requirement: { declarer: { gitHost: "github.com" }, key: "GITHUB_TOKEN" },
+        credential: { credential: { org: "acme", slug: "github-org-shared", kind: ApiResourceKind.credential }, field: "TOKEN" },
+        literal: undefined,
+        writer: "ida_admin",
+      },
+      {
+        requirement: { declarer: { mcpServer: { org: "acme", slug: "weather", kind: ApiResourceKind.mcp_server }, agent: undefined, gitHost: undefined }, key: "REGION" },
+        credential: undefined,
+        literal: "eu-west-1",
+        writer: "ida_admin",
+      },
+    ]);
   });
 
   it("disabling preserves origins and messages, flipping only enabled", async () => {
@@ -212,7 +253,7 @@ describe("shareAgent merge-preservation (fails closed)", () => {
     expect(applies[0].enabled).toBe(true);
     expect(applies[0].allowedOrigins).toEqual([]);
     expect(applies[0].messages?.rateLimited).toBe("");
-    expect(applies[0].environmentRefs).toEqual([]);
+    expect(applies[0].credentials).toEqual([]);
   });
 
   it("edits a renamed share under its own slug (never forks a second share)", async () => {

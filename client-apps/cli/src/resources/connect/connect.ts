@@ -27,6 +27,7 @@ import {
   CONNECT_SETTLE_BOUND_MS,
 } from "@stigmer/sdk";
 import { CliExitError, ExitCode, UsageError } from "../../errors/index.js";
+import { refuseOrganizationSignInSave } from "../credential.js";
 import { defaultRegistry } from "../../registry/index.js";
 import { PlaceholderResolutionError } from "../mcp/placeholder-resolver.js";
 import { buildRuntimeEnv } from "../mcp/runtime-env.js";
@@ -47,6 +48,13 @@ export interface ConnectOptions {
    */
   readonly pushTimeoutMs?: number;
   readonly dryRun: boolean;
+  /**
+   * The caller will save the `--env` values as their own credential serving
+   * the server once the connect succeeds. A server whose sign-in is the
+   * organization's would never use it, so that is refused before the
+   * connect rather than after it.
+   */
+  readonly saveValues?: boolean;
   readonly envOverrides: readonly string[];
   /** The web console origin for the OAuth flow (resolveConsoleURL). */
   readonly consoleURL: string;
@@ -83,7 +91,7 @@ export async function connectMcpServer(
         "MCP server has no spec; cannot discover capabilities",
       );
     // An oauth_only endpoint rejects static tokens, and the OAuth token lives in
-    // the backend's managed environment — never on the caller's machine. So local
+    // a credential on the backend — never on the caller's machine. So local
     // discovery cannot authenticate it; say so plainly instead of failing on a 401.
     if (isOAuthOnly(server)) throw oauthOnlyDryRunError(server, opts.reference);
     try {
@@ -103,6 +111,7 @@ export async function connectMcpServer(
     }
   }
 
+  if (opts.saveValues === true) refuseOrganizationSignInSave(server);
   await ensureOAuthSatisfied(client, server, opts);
 
   const input = create(ConnectInputSchema, {

@@ -18,8 +18,8 @@ import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/
 import { AgentChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
-import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
+import { CredentialSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/api_pb";
+import { CredentialQueryController } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/query_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
@@ -122,23 +122,39 @@ const unqualifiedSearchResult = create(SearchResultSchema, {
   description: "formats code",
 });
 
-// Three more kinds — wired into get-bindings and list alongside
-// this test. environment lists via the SearchService (it is search-indexed);
-// the two channel kinds list via their dedicated query RPCs.
-const knownEnvironment = create(EnvironmentSchema, {
+// Three more kinds — wired into get-bindings and list alongside this test.
+// All three list via their dedicated query RPCs: a credential listing is
+// narrowed per caller (their own, and the organization's they may use).
+// One credential of the organization's and one of the caller's own, so the
+// table's OWNER column shows both words.
+const knownCredential = create(CredentialSchema, {
   apiVersion: "agentic.stigmer.ai/v1",
-  kind: "Environment",
-  metadata: { name: "clinic-patient-db", slug: "clinic-patient-db", org: ACME_ID, id: "env_1" },
+  kind: "Credential",
+  metadata: { name: "Clinic patient DB", slug: "clinic-patient-db", org: ACME_ID, id: "cred_1" },
+  spec: {
+    owner: { case: "org", value: ACME_ID },
+    fields: {
+      DB_PASSWORD: { value: "***REDACTED***" },
+      DB_HOST: { value: "db.clinic.internal", plain: true },
+    },
+    serves: [
+      { target: { case: "agent", value: { org: ACME_ID, slug: "clinic-assistant", kind: ApiResourceKind.agent } } },
+      { target: { case: "gitHost", value: "github.com" } },
+    ],
+  },
 });
 
-const knownEnvironmentSearchResult = create(SearchResultSchema, {
-  kind: ApiResourceKind.environment,
-  id: "env_1",
-  name: "clinic-patient-db",
-  slug: "clinic-patient-db",
-  qualifiedSlug: `${ACME_ID}/clinic-patient-db`,
-  org: ACME_ID,
-  description: "clinic patient database credentials",
+const ownCredential = create(CredentialSchema, {
+  apiVersion: "agentic.stigmer.ai/v1",
+  kind: "Credential",
+  metadata: { name: "Linear", slug: "linear-3f9a", org: ACME_ID, id: "cred_2" },
+  spec: {
+    owner: { case: "person", value: "ida_1" },
+    fields: { LINEAR_API_KEY: { value: "***REDACTED***" } },
+    serves: [
+      { target: { case: "mcpServer", value: { org: ACME_ID, slug: "linear", kind: ApiResourceKind.mcp_server } } },
+    ],
+  },
 });
 
 // Spec/status populated to exercise every AGENT_CHANNEL_TABLE column:
@@ -231,6 +247,8 @@ let backend: Http2Server;
 let client: Stigmer;
 // Every value the organization get was asked for, so a test can count lookups.
 const orgGets: string[] = [];
+// The organization each credential listing named.
+const credentialListOrgs: string[] = [];
 const openSessions = new Set<ServerHttp2Session>();
 
 beforeAll(async () => {
@@ -246,12 +264,7 @@ beforeAll(async () => {
       },
     });
     router.service(SearchService, {
-      // Kind-aware: search-backed list sends a single-kind query, so the
-      // environment arm proves the kind actually rode the request.
-      search: (req) => {
-        if (req.kinds.length === 1 && req.kinds[0] === ApiResourceKind.environment) {
-          return { entries: [knownEnvironmentSearchResult], totalCount: 1, totalPages: 1 };
-        }
+      search: () => {
         return {
           entries: [knownSearchResult, hiddenSearchResult, unqualifiedSearchResult],
           totalCount: 3,
@@ -278,14 +291,18 @@ beforeAll(async () => {
     router.service(ApiKeyQueryController, {
       findAll: () => ({ entries: [knownApiKey, secondApiKey] }),
     });
-    router.service(EnvironmentQueryController, {
+    router.service(CredentialQueryController, {
       get: (req) => {
-        if (req.value !== "env_1") throw new ConnectError("environment not found", Code.NotFound);
-        return knownEnvironment;
+        if (req.value !== "cred_1") throw new ConnectError("credential not found", Code.NotFound);
+        return knownCredential;
       },
       getByReference: (req) => {
-        if (req.slug !== "clinic-patient-db") throw new ConnectError("environment not found", Code.NotFound);
-        return knownEnvironment;
+        if (req.slug !== "clinic-patient-db") throw new ConnectError("credential not found", Code.NotFound);
+        return knownCredential;
+      },
+      list: (req) => {
+        credentialListOrgs.push(req.org);
+        return { totalCount: 2, items: [knownCredential, ownCredential] };
       },
     });
     router.service(AgentChannelQueryController, {
@@ -423,20 +440,20 @@ describe("get integration", () => {
     expect(String(err)).not.toMatch(/not found/);
   });
 
-  it("fetches an environment by org/slug and renders backend protojson", async () => {
-    const { schema, message } = await fetchResource(client, ApiResourceKind.environment, {
+  it("fetches a credential by org/slug and renders backend protojson", async () => {
+    const { schema, message } = await fetchResource(client, ApiResourceKind.credential, {
       kind: "ref",
       org: "acme",
       slug: "clinic-patient-db",
     });
     const rendered = JSON.parse(renderResource(schema, message, "json"));
-    expect(rendered).toEqual(toJson(EnvironmentSchema, knownEnvironment, { useProtoFieldName: true }));
+    expect(rendered).toEqual(toJson(CredentialSchema, knownCredential, { useProtoFieldName: true }));
   });
 
-  it("fetches an environment by ID", async () => {
-    const { message } = await fetchResource(client, ApiResourceKind.environment, { kind: "id", id: "env_1" });
-    expect(JSON.parse(renderResource(EnvironmentSchema, message, "json"))).toMatchObject({
-      metadata: { id: "env_1" },
+  it("fetches a credential by ID", async () => {
+    const { message } = await fetchResource(client, ApiResourceKind.credential, { kind: "id", id: "cred_1" });
+    expect(JSON.parse(renderResource(CredentialSchema, message, "json"))).toMatchObject({
+      metadata: { id: "cred_1" },
     });
   });
 
@@ -564,17 +581,29 @@ describe("list integration", () => {
     expect([...orgGets].sort()).toEqual([ACME_ID, HIDDEN_ORG_ID]);
   });
 
-  it("lists environments via the search service as JSON", async () => {
-    const out = await listResources(client, ApiResourceKind.environment, "acme", 50, "json");
+  it("lists credentials via the dedicated list RPC in the named organization as JSON", async () => {
+    credentialListOrgs.length = 0;
+    const out = await listResources(client, ApiResourceKind.credential, "acme", 50, "json");
     expect(JSON.parse(out)).toEqual([
-      toJson(SearchResultSchema, knownEnvironmentSearchResult, { useProtoFieldName: true }),
+      toJson(CredentialSchema, knownCredential, { useProtoFieldName: true }),
+      toJson(CredentialSchema, ownCredential, { useProtoFieldName: true }),
     ]);
+    expect(credentialListOrgs).toEqual(["acme"]);
   });
 
-  it("renders a human table for environment lists", async () => {
-    const out = await listResources(client, ApiResourceKind.environment, "acme", 50, "table");
-    expect(out).toContain("NAME");
-    expect(out).toContain("acme/clinic-patient-db");
+  it("renders a credential table naming the owner, the field names and the targets, never a value", async () => {
+    const out = await listResources(client, ApiResourceKind.credential, "acme", 50, "table");
+    const lines = out.split("\n");
+    expect(lines.find((line) => line.includes("NAME"))).toMatch(/NAME\s+SLUG\s+OWNER\s+FIELDS\s+SERVES/);
+    const org = lines.find((line) => line.includes("clinic-patient-db")) ?? "";
+    expect(org).toContain("organization");
+    expect(org).toContain("DB_HOST, DB_PASSWORD");
+    expect(org).toContain("agent:clinic-assistant, git-host:github.com");
+    const own = lines.find((line) => line.includes("linear-3f9a")) ?? "";
+    expect(own).toContain("you");
+    expect(own).toContain("mcp-server:linear");
+    expect(out).not.toContain("REDACTED");
+    expect(out).not.toContain("db.clinic.internal");
   });
 
   it("lists agent channels via the dedicated list RPC as JSON", async () => {

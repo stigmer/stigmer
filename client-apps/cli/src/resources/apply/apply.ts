@@ -64,6 +64,18 @@ export function resolveApplyItems(path: string): ApplyItem[] {
 }
 
 /**
+ * Why a kind the CLI knows is never applied, and what to run instead, for
+ * the kinds whose refusal is a design and not a gap. A credential holds
+ * secrets, which never belong in a manifest file.
+ */
+const APPLY_REFUSALS: ReadonlyMap<ApiResourceKind, string> = new Map([
+  [
+    ApiResourceKind.credential,
+    "a credential holds secrets, which never belong in a manifest file. Create it with its values instead: `stigmer credential create <name> --field KEY=VALUE`, and delete this file.",
+  ],
+]);
+
+/**
  * Resolve a YAML `kind` to its apply handler, enforcing the verb-support gate.
  * The unknown-kind wording is the registry's (`unknownKindError`), shared
  * with `validate -f`, so a retired kind is refused with the same sentence on
@@ -72,7 +84,14 @@ export function resolveApplyItems(path: string): ApplyItem[] {
 export function resolveHandlerForKind(kind: string, where: string): ApplyHandler {
   const info = defaultRegistry().getByYamlKind(kind);
   if (info === undefined) throw unknownKindError(kind, where);
-  if (!info.supportedVerbs.has(Verb.Apply)) throw new UsageError(`${info.displayName} does not support 'apply'`);
+  if (!info.supportedVerbs.has(Verb.Apply)) {
+    const why = APPLY_REFUSALS.get(info.kind);
+    throw new UsageError(
+      why === undefined
+        ? `${info.displayName} does not support 'apply'`
+        : `${info.displayName} in ${where} cannot be applied: ${why}`,
+    );
+  }
   const handler = APPLY_HANDLERS.get(info.kind);
   if (handler === undefined) throw new UsageError(`apply not implemented for ${info.displayName}`);
   return handler;

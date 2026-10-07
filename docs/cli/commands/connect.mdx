@@ -32,13 +32,14 @@ stigmer connect mcp-server <slug-or-id> [flags]
 | Flag        | Type     | Default | Description                                                                                                                    |
 | ----------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `--dry-run` | `bool`   |         | discover and display results without pushing to the backend                                                                    |
-| `--env`     | `string` |         | environment variable for the MCP server (repeatable)                                                                           |
+| `--env`     | `string` |         | a value the MCP server reads, for this connect (repeatable)                                                                    |
+| `--save`    | `bool`   |         | save the --env values as your own credential serving this server, so later runs use them                                       |
 | `--timeout` | `string` | `30`    | bound the wait for connection and discovery (always bounds --dry-run; bounds the server-side connect only when set explicitly) |
 
 ### How connection works
 
 For **stdio-based servers**, the CLI spawns the server process locally.
-Environment variables from your shell are passed through, so credentials (e.g.,
+Environment variables from your shell are passed through, so secrets (e.g.,
 `GITHUB_TOKEN`) never leave your machine. Note that stdio servers are
 local-runner-only: connecting one while authenticated to Stigmer Cloud is
 refused, because cloud compute never spawns stdio subprocesses. Use `--dry-run`
@@ -47,16 +48,16 @@ refused, because cloud compute never spawns stdio subprocesses. Use `--dry-run`
 
 For **HTTP-based servers**, the CLI connects to the configured URL directly.
 
-### Passing credentials
+### Passing keys
 
-Use `--env` to pass credentials the MCP server needs. Values are merged on top
-of your shell environment (`--env` wins on collision).
+Use `--env` to pass the keys the MCP server needs. Values are merged on top of
+your shell environment (`--env` wins on collision).
 
 ```bash
-# Single credential
+# One key
 stigmer connect mcp-server planton --env PLANTON_API_KEY=pk-xxx
 
-# Multiple credentials
+# Several keys
 stigmer connect mcp-server my-server \
   --env GITHUB_TOKEN=ghp-xxx \
   --env API_URL=https://api.example.com
@@ -64,6 +65,19 @@ stigmer connect mcp-server my-server \
 
 You can also export variables in your shell before running the command. `--env`
 is more convenient and mirrors `stigmer run`.
+
+`--env` values serve this connect only. Add `--save` to keep them as your own
+[credential](./credential) serving the server, so your later runs use them
+without passing anything. The values are saved only after the connect succeeds,
+onto the credential that already serves the server, or a new one named after it:
+
+```bash
+stigmer connect mcp-server linear --env LINEAR_API_KEY=lin_api_xxx --save
+```
+
+A server whose runs all use one account for the organization is refused with
+`--save`: an admin saves the organization's credential with
+`stigmer credential create --org-owned` instead.
 
 ### Environment variable placeholders
 

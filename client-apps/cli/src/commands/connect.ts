@@ -2,6 +2,12 @@
 // its tools and resource templates, and push the results to the backend (or
 // preview locally with --dry-run). Mirrors Go's connect.go.
 //
+// `--save` keeps the `--env` values after a successful connect as the
+// caller's own credential serving the server (resources/credential.ts), so
+// later runs use them; without it the values serve this connect alone. It
+// saves only what was given with `--env`, never values read from the shell,
+// and only after the connect proved them.
+//
 // Thin handler: resolve the client/org, delegate to resources/connect, render.
 // Heavy modules (backend client, MCP SDK) are lazy-imported so `--help` stays
 // fast.
@@ -21,6 +27,7 @@ import { omitsOrganization, requireOrganization } from "../client/single-org.js"
 interface ConnectFlags {
   timeout?: string;
   dryRun?: boolean;
+  save?: boolean;
   env: string[];
 }
 
@@ -46,9 +53,13 @@ export function registerConnect(program: Command): void {
     )
     .option(
       "--env <KEY=VALUE>",
-      "environment variable for the MCP server (repeatable)",
+      "a value the MCP server reads, for this connect (repeatable)",
       (value: string, previous: string[]) => [...previous, value],
       [],
+    )
+    .option(
+      "--save",
+      "save the --env values as your own credential serving this server, so later runs use them",
     )
     .action((reference: string, options: ConnectFlags, command: Command) =>
       runConnect(reference, options, command),
@@ -61,6 +72,17 @@ async function runConnect(
   command: Command,
 ): Promise<void> {
   const timeoutMs = parseTimeout(options.timeout);
+  const save = options.save === true;
+  if (save && options.dryRun === true) {
+    throw new UsageError(
+      "--save keeps the values a real connect used, so it cannot be combined with --dry-run",
+    );
+  }
+  if (save && options.env.length === 0) {
+    throw new UsageError(
+      "--save saves the --env values: give at least one --env KEY=VALUE",
+    );
+  }
   // The 30s default exists for --dry-run's local discovery. A real connect
   // legitimately takes minutes (server-side sandbox boot + discovery + tool
   // classification), so bounding it by the DEFAULT would fail healthy
@@ -96,6 +118,7 @@ async function runConnect(
     timeoutMs,
     pushTimeoutMs: timeoutIsExplicit ? timeoutMs : undefined,
     dryRun: options.dryRun === true,
+    saveValues: save,
     envOverrides: options.env,
     consoleURL: resolveConsoleURL(client.config),
     probeLocalConsole: activeBackend(client.config).entry === undefined,
@@ -113,6 +136,23 @@ async function runConnect(
       ? undefined
       : await organizationLabel(client.stigmer, serverOrg),
   );
+
+  if (save) {
+    const [{ saveConnectCredential }, { parseEnvOverrides }, { credentialApi }, { renderResult }] =
+      await Promise.all([
+        import("../resources/credential.js"),
+        import("../resources/mcp/runtime-env.js"),
+        import("./credential.js"),
+        import("../output/command-result.js"),
+      ]);
+    const saved = await saveConnectCredential(
+      await credentialApi(client),
+      result.server,
+      parseEnvOverrides(options.env),
+      org,
+    );
+    renderResult(saved, "human");
+  }
 }
 
 // Parse --timeout seconds into milliseconds. Mirrors Go's DurationVar default

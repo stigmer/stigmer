@@ -282,7 +282,7 @@ describe("readNextSteps", () => {
     const { McpServerAuthSchema, McpServerSpecSchema } =
       await import("@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb");
     const { EnvVarDeclarationSchema } =
-      await import("@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb");
+      await import("@stigmer/protos/ai/stigmer/agentic/credential/v1/requirement_pb");
     const { PluginSchema } =
       await import("@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb");
     const { PluginMemberSchema } =

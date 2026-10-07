@@ -6,7 +6,9 @@
 // distinguishes an update from a create — must reach the backend intact. We
 // apply an Agent YAML with an id set plus spec fields and assert the server
 // received every one. Also covers dependency ordering, org injection, dry-run,
-// and the created-vs-updated signal.
+// and the created-vs-updated signal. A retired kind (Environment among them)
+// and a kind that is never applied (Credential, whose secrets never belong in
+// a file) are refused with a sentence naming what to run instead.
 
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Session } from "node:http2";
@@ -268,7 +270,7 @@ describe("file-mode apply — channel app (#353)", () => {
   });
 });
 
-describe("file-mode apply — kinds the registry does not know", () => {
+describe("file-mode apply — kinds the registry does not know, or never applies", () => {
   it("refuses a retired kind with what happened and what to run instead", () => {
     const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
     try {
@@ -307,6 +309,38 @@ describe("file-mode apply — kinds the registry does not know", () => {
       );
       expect(() => resolveApplyItems(dir)).toThrow(
         /kind 'WorkflowInstance' in .*workflow-instance\.yaml is no longer a Stigmer resource.*stigmer run <org>\/<agent>/,
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses an Environment manifest, naming credential create as where saved keys go", () => {
+    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
+    try {
+      writeYaml(
+        dir,
+        "environment.yaml",
+        ["kind: Environment", "metadata:", "  name: Shared keys", "  slug: shared-keys", ""].join("\n"),
+      );
+      expect(() => resolveApplyItems(dir)).toThrow(
+        /kind 'Environment' in .*environment\.yaml is no longer a Stigmer resource.*stigmer credential create/,
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses a Credential manifest: a secret is never applied from a file", () => {
+    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
+    try {
+      writeYaml(
+        dir,
+        "credential.yaml",
+        ["kind: Credential", "metadata:", "  name: OpenAI", "spec:", "  fields: {}", ""].join("\n"),
+      );
+      expect(() => resolveApplyItems(dir)).toThrow(
+        /Credential in .*credential\.yaml cannot be applied: a credential holds secrets.*stigmer credential create/,
       );
     } finally {
       rmSync(dir, { recursive: true, force: true });
