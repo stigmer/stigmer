@@ -11,7 +11,7 @@ set, zero included.
 
 from __future__ import annotations
 
-from stigmer._gen._agentrun import GitRepoSourceInput
+from stigmer._gen._run import GitRepoSourceInput
 from stigmer._gen._plan import EntitlementLimitsInput, PlanTermsInput
 
 
