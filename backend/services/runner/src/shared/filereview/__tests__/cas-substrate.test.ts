@@ -378,10 +378,10 @@ describe("casBlobReader — real LocalArtifactStorage serve path (OSS-local)", (
   it("reads uploaded bytes byte-exact straight off disk (no HTTP server running)", async () => {
     const basePath = mkdtempSync(join(tmpdir(), "cas-serve-"));
     try {
-      // Deliberately point the serve URL at an unroutable base: if the reader
-      // fetched over HTTP this would fail. Reading directly off disk proves the
-      // OSS-local reconcile read-back needs no serve endpoint at all.
-      const storage = new LocalArtifactStorage(basePath, "http://127.0.0.1:0");
+      // No server is running: if the reader fetched over HTTP this would fail.
+      // Reading directly off disk proves the OSS-local reconcile read-back
+      // needs no serve endpoint at all.
+      const storage = new LocalArtifactStorage(basePath);
 
       const payload = Buffer.from("SECRET_TREASURE=42\n", "utf8");
       const key = casBlobKey(EXEC, sha256Bytes(payload));

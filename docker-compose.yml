@@ -196,7 +196,6 @@ services:
       WORKSPACE_ROOT_DIR: /data/.stigmer/data/workspace
       ARTIFACT_STORAGE_TYPE: local
       LOCAL_ARTIFACT_PATH: *artifacts-path
-      LOCAL_ARTIFACT_SERVE_URL: *artifact-serve-url
       # LLM provider keys (optional at boot; agent executions need one —
       # see .env.example). Workflow executions without agent tasks run
       # key-free. ANTHROPIC_BASE_URL sends Anthropic calls to a gateway in

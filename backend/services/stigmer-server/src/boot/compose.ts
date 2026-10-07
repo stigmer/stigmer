@@ -19,6 +19,7 @@
  * extensions composed, every stage below behaves byte-identically to
  * before the parameter existed; the conformance rosters pin that.
  */
+import { randomBytes } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 
@@ -64,6 +65,10 @@ import {
   newArtifactStorage,
 } from "../artifactstorage/artifact-storage.js";
 import type { ArtifactStorage } from "../artifactstorage/artifact-storage.js";
+import {
+  DownloadUrlSigner,
+  loadDownloadUrlSigner,
+} from "../artifactstorage/url-signer.js";
 import { StreamBroker } from "../domain/agentrun/stream-broker.js";
 import { newExecutionEngineStateProvider } from "../temporal/agentexecution/engine-client.js";
 import { newMcpServerEngineStateProvider } from "../temporal/mcpserver/engine-client.js";
@@ -1165,6 +1170,18 @@ export async function composeServer(
     unifiedPort: options.portOverride ?? config.grpcPort,
   });
   let artifactLaneBoundPort: number | undefined;
+  // The key the local blob backend signs its download links with, and the
+  // two lanes that serve them verify by (artifactstorage/url-signer.ts):
+  // read from the key ladder when either store is local. A composition
+  // whose stores are both buckets signs nothing, so it writes no key file;
+  // its lanes then hold a key no link was ever signed with and refuse
+  // every download, which is all they are asked.
+  const downloadUrlSigner =
+    config.artifactStorageType === "local" ||
+    config.skillArtifactStorageType === "" ||
+    config.skillArtifactStorageType === "local"
+      ? loadDownloadUrlSigner()
+      : new DownloadUrlSigner(randomBytes(32));
   const artifactStorage = newArtifactStorage(
     {
       type: config.artifactStorageType,
@@ -1173,6 +1190,7 @@ export async function composeServer(
         config.artifactLocalServeUrl,
         () => artifactLaneBoundPort,
       ),
+      localUrlSigner: downloadUrlSigner,
       r2Bucket: config.r2Bucket,
       r2Endpoint: config.r2Endpoint,
       r2AccessKeyId: config.r2AccessKeyId,
@@ -1189,6 +1207,7 @@ export async function composeServer(
     config.artifactStorageType === "local"
       ? createArtifactFileServer({
           basePath: config.artifactLocalBasePath,
+          signer: downloadUrlSigner,
           logger,
         })
       : undefined;
@@ -1259,6 +1278,7 @@ export async function composeServer(
         typeof skillTransferBase === "function"
           ? () => transferServeUrl(skillTransferBase())
           : transferServeUrl(skillTransferBase),
+        downloadUrlSigner,
         {
           reserve: (key, declaredSizeBytes) => {
             const { ttlMs } = skillUploadSlots.reserve(key, declaredSizeBytes);
@@ -1277,6 +1297,7 @@ export async function composeServer(
         type: skillType,
         localBasePath: config.storagePath,
         localServeUrl: "",
+        localUrlSigner: downloadUrlSigner,
         r2Bucket: config.r2Bucket,
         r2Endpoint: config.r2Endpoint,
         r2AccessKeyId: config.r2AccessKeyId,
@@ -1303,6 +1324,7 @@ export async function composeServer(
   const skillTransferLane = newSkillTransferLane(
     skillUploadSlots,
     skillArtifactStorage,
+    downloadUrlSigner,
     logger,
   );
   // A hosted server relaying bytes through itself from its loopback

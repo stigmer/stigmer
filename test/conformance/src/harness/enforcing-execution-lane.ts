@@ -128,7 +128,6 @@ export async function newSiblingEnforcingExecutionLane(
       registryOrigin: sibling.engine.serverBaseUrl,
       proxy: { endpoint: mock.url(), token: key },
       artifactDir: sibling.artifactStore.dir,
-      artifactServeUrl: sibling.artifactStore.serveUrl,
     });
   } catch (error) {
     await runner?.stop().catch(() => undefined);

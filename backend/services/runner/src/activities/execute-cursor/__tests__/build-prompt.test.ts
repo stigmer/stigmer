@@ -607,7 +607,6 @@ describe("attachments on a resumed turn (the mid-session WhatsApp case)", () => 
           attachment(".stigmer/inputs/lease.pdf", { downloadUrl: "https://r2.example/lease?sig=abc" }),
           attachment(".stigmer/inputs/notes.md"),
         ],
-        downloadUrlKind: "presigned",
       }),
     );
     expect(prompt).toContain(
@@ -618,27 +617,11 @@ describe("attachments on a resumed turn (the mid-session WhatsApp case)", () => 
     expect(prompt).toContain("These URLs are time-limited");
   });
 
-  it("words a local-serve URL honestly — reachable only from this machine", () => {
-    const prompt = buildPrompt(
-      input({
-        ...RESUMED,
-        attachments: [
-          attachment(".stigmer/inputs/lease.pdf", { downloadUrl: "http://localhost:7235/attachments/01A/lease.pdf" }),
-        ],
-        downloadUrlKind: "local-serve",
-      }),
-    );
-    expect(prompt).toContain("download URL: http://localhost:7235/attachments/01A/lease.pdf");
-    expect(prompt).toContain("reachable only from this machine");
-    expect(prompt).not.toContain("time-limited");
-  });
-
-  it("renders no hand-off line when no listed file carries a URL (kind alone is not enough)", () => {
+  it("renders no hand-off line when no listed file carries a URL", () => {
     const prompt = buildPrompt(
       input({
         ...RESUMED,
         attachments: [attachment(".stigmer/inputs/local-only.csv")],
-        downloadUrlKind: "presigned",
       }),
     );
     expect(prompt).toContain("<input_files>");
@@ -653,7 +636,6 @@ describe("attachments on a resumed turn (the mid-session WhatsApp case)", () => 
         attachments: [
           attachment(".stigmer/inputs/lease.pdf", { downloadUrl: "https://r2.example/lease?sig=abc" }),
         ],
-        downloadUrlKind: "presigned",
       }),
     );
     expect(prompt).toContain("<input_files>");

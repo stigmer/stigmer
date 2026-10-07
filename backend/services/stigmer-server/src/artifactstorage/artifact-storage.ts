@@ -8,7 +8,8 @@
  * The LOCAL backend is the OSS default: the configured base path IS the
  * artifact root — a key K stores at <basePath>/<K> with no implicit
  * segment, so the server and the runner (LOCAL_ARTIFACT_PATH) share one
- * store by construction (#285).
+ * store by construction (#285). Its download links are signed and expire
+ * (url-signer.ts), as the R2 backend's presigned URLs do.
  *
  * The R2 backend (S3-compatible, AWS SDK) lives in r2-storage.ts.
  *
@@ -30,12 +31,12 @@ import {
 } from "node:fs/promises";
 import path from "node:path";
 
-import { goQueryEscape } from "../gocompat/query-escape.js";
 import { R2ArtifactStorage } from "./r2-storage.js";
+import { encodeKeyPath, type DownloadUrlSigner } from "./url-signer.js";
 
 /** Query key carrying the desired download filename on local URLs; the
  * artifact file server reads it to set Content-Disposition. */
-export const LOCAL_DOWNLOAD_QUERY_PARAM = "download";
+export { LOCAL_DOWNLOAD_QUERY_PARAM } from "./url-signer.js";
 
 /**
  * A storage key that addresses no stored blob. Consumers that must map
@@ -92,7 +93,8 @@ export interface ArtifactStorage {
    */
   size(key: string): Promise<number>;
   /**
-   * A time-limited download URL for `reader` (SignedUrlReader).
+   * A time-limited download URL for `reader` (SignedUrlReader), valid for
+   * `expiresInMs` clamped to MAX_SIGNED_URL_TTL_MS on every backend.
    * downloadFilename, when non-empty, bakes a browser-download disposition
    * into the URL (browsers ignore the HTML `download` attribute
    * cross-origin); empty serves inline.
@@ -171,6 +173,8 @@ export interface ArtifactStorageConfig {
    * (boot/artifact-lane.ts). "" = not configured.
    */
   readonly localServeUrl: string | (() => string);
+  /** Signs the local backend's download URLs; the lanes that serve them verify. */
+  readonly localUrlSigner: DownloadUrlSigner;
   /** Cloudflare R2 (S3-compatible) settings — required when type is "r2". */
   readonly r2Bucket: string;
   readonly r2Endpoint: string;
@@ -204,6 +208,7 @@ export function newArtifactStorage(
       return new LocalArtifactStorage(
         config.localBasePath,
         config.localServeUrl,
+        config.localUrlSigner,
       );
     case "r2":
       return new R2ArtifactStorage({
@@ -232,6 +237,8 @@ export class LocalArtifactStorage implements ArtifactStorage {
     private readonly basePath: string,
     /** Fixed, or resolved per mint (ArtifactStorageConfig.localServeUrl). */
     private readonly serveUrl: string | (() => string),
+    /** Signs every download URL; the lane serving serveUrl verifies it. */
+    private readonly signer: DownloadUrlSigner,
     /**
      * The staged-upload mechanism backing presignPut — optional because
      * only instances whose root the lane stages into can serve it (the
@@ -301,9 +308,11 @@ export class LocalArtifactStorage implements ArtifactStorage {
 
   // The reader is not part of the link: the serve URL is the lane's one
   // address, configured for whoever downloads (ARTIFACT_LOCAL_SERVE_URL).
+  // The key rides the path segment-encoded, which is how the lanes decode
+  // it before they verify the signature over it.
   async getSignedUrl(
     key: string,
-    _expiresInMs: number,
+    expiresInMs: number,
     downloadFilename: string,
     _reader: SignedUrlReader,
   ): Promise<string> {
@@ -312,11 +321,7 @@ export class LocalArtifactStorage implements ArtifactStorage {
     if (serveUrl === "") {
       throw new Error("local serve URL not configured");
     }
-    let url = `${serveUrl}/${key}`;
-    if (downloadFilename !== "") {
-      url += `?${LOCAL_DOWNLOAD_QUERY_PARAM}=${goQueryEscape(downloadFilename)}`;
-    }
-    return url;
+    return `${serveUrl}/${encodeKeyPath(key)}?${this.signer.signedQuery(key, expiresInMs, downloadFilename)}`;
   }
 
   async delete(key: string): Promise<void> {
@@ -408,7 +413,8 @@ export class LocalArtifactStorage implements ArtifactStorage {
 
 // goQueryEscape moved to src/gocompat/query-escape.ts when the github
 // broker became its second consumer — the shared-steps promotion
-// rule. Behavior unchanged; the URL parity tests below still pin it.
+// rule. The download filename a signed link carries still goes through it
+// (url-signer.ts).
 
 /**
  * Whether `p` is `root` itself or a descendant — cleaned-path comparison

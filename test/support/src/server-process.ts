@@ -71,9 +71,8 @@ export interface RunningServer {
   // runner must be pointed at this exact directory so a storage-key artifact the
   // server writes resolves when the runner reads it back (#285).
   readonly artifactBaseDir: string;
-  // Base URL of the server's artifact HTTP file server, for the runner's
-  // LOCAL_ARTIFACT_SERVE_URL (the runner's own reads go straight to disk, but
-  // the blob download path resolves through this).
+  // Base URL of the server's artifact HTTP file server: where the links the
+  // server mints point, for a suite that reaches the lane itself.
   readonly artifactServeUrl: string;
   // Last ~8KB of combined stdout/stderr, surfaced in failures for diagnosis.
   logTail(): string;

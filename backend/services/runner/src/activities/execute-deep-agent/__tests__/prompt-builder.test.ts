@@ -531,7 +531,6 @@ describe("composeUserMessage (the turn's payload rides the turn's message)", () 
         { filename: "lease.pdf", relativePath: ".stigmer/inputs/lease.pdf", sizeBytes: 2048, downloadUrl: "https://r2.example/lease?sig=abc" },
         { filename: "notes.md", relativePath: ".stigmer/inputs/notes.md", sizeBytes: 12 },
       ],
-      downloadUrlKind: "presigned",
     });
 
     expect(composed).toContain("`.stigmer/inputs/lease.pdf` (2048 bytes) — download URL: https://r2.example/lease?sig=abc");
@@ -540,28 +539,9 @@ describe("composeUserMessage (the turn's payload rides the turn's message)", () 
     expect(composed).toContain("These URLs are time-limited");
   });
 
-  it("words a local-serve URL honestly — reachable only from this machine", () => {
-    const composed = message({
-      inputFiles: [
-        {
-          filename: "lease.pdf",
-          relativePath: ".stigmer/inputs/lease.pdf",
-          sizeBytes: 2048,
-          downloadUrl: "http://localhost:7235/attachments/01A/lease.pdf",
-        },
-      ],
-      downloadUrlKind: "local-serve",
-    });
-
-    expect(composed).toContain("download URL: http://localhost:7235/attachments/01A/lease.pdf");
-    expect(composed).toContain("reachable only from this machine");
-    expect(composed).not.toContain("time-limited");
-  });
-
-  it("renders no hand-off line when no listed file carries a URL (kind alone is not enough)", () => {
+  it("renders no hand-off line when no listed file carries a URL", () => {
     const composed = message({
       inputFiles: [{ filename: "local.csv", relativePath: ".stigmer/inputs/local.csv", sizeBytes: 5 }],
-      downloadUrlKind: "presigned",
     });
 
     expect(composed).toContain("## Input Files");

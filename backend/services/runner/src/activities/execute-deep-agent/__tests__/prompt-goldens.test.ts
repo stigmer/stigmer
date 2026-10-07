@@ -206,7 +206,7 @@ function everythingInput(shape: EverythingShape): TurnInput {
       visionImages: [{ filename: "diagram.png", mimeType: "image/png", base64: "", byteSize: 4096 }],
       visionNotViewable: [{ path: ".stigmer/inputs/huge.png", reason: "too_large" }],
     },
-    artifactStorage: makeInMemoryArtifactStorage({ downloadUrlKind: "presigned" }).storage,
+    artifactStorage: makeInMemoryArtifactStorage().storage,
     standing: {
       contextBridge: "Earlier the user asked for a staging deploy; it succeeded.",
       senderIdentity: { value: "15550001111", kind: "whatsapp_phone" },

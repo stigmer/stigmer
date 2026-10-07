@@ -439,8 +439,6 @@ spec:
               value: local
             - name: LOCAL_ARTIFACT_PATH
               value: /artifacts
-            - name: LOCAL_ARTIFACT_SERVE_URL
-              value: "https://artifacts.stigmer.example.com"
             # Optional LLM keys, by explicit reference: agents need one,
             # workflows without agent tasks run key-free.
             - name: ANTHROPIC_API_KEY

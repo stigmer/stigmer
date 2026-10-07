@@ -126,7 +126,8 @@ With an Ingress, the URLs the server mints for browsers and the CLI
 `https` once a host has a TLS Secret. Set `server.publicUrl` and
 `server.artifactPublicUrl` yourself if you front the Service another way; a URL
 naming a host other than `localhost`, `127.0.0.1` or `[::1]` counts as exposure
-too.
+too. The download links the server mints are signed and expire, at most seven
+days after they are minted, so a link left in a chat or a log stops working.
 
 If something of yours already authenticates every caller before Stigmer (an
 authenticating proxy in front, a private network), set

@@ -22,9 +22,11 @@ import {
   ArtifactStorageNotFoundError,
   contentDispositionAttachment,
 } from "./artifact-storage.js";
+import { MAX_SIGNED_URL_TTL_MS } from "./url-signer.js";
 
-/** Go: "R2 has a maximum expiration of 7 days" — presigns clamp here. */
-export const R2_MAX_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000;
+/** Go: "R2 has a maximum expiration of 7 days" — presigns clamp here, the
+ * ceiling the local backend's signed links share (url-signer.ts). */
+export const R2_MAX_EXPIRATION_MS = MAX_SIGNED_URL_TTL_MS;
 
 /**
  * Go get_content/get_download_url wrap their storage calls in a 30s
