@@ -78,6 +78,7 @@ export function read(run: AgentRun): string {
 export function withSpread(flag: boolean, agentRunId: string): AgentRun {
   return { agentRunId, note: "n", target: { case: undefined }, ...(flag ? { note: "m" } : {}) };
 }
+export type ListFn = (typeof Query)["listRuns"];
 export function list(): number {
   return Query.listRuns("x").length;
 }
@@ -103,6 +104,7 @@ export const temporalName = "agent-execution";
     assert.match(after, /const \{ runId: agentRunId \} = run;/, "a binding keeps its local name");
     assert.match(after, /run\.runId \+ String\(Kind\.run\) \+ RunSchema\.typeName/);
     assert.match(after, /Query\.listFires\("x"\)/);
+    assert.match(after, /export type ListFn = \(typeof Query\)\["listFires"\];/, "a member named by a string");
     assert.match(
       after,
       /return \{ runId: agentRunId, note: "n", target: \{ case: undefined \}, \.\.\.\(flag/,

@@ -13,7 +13,8 @@
  * touched; that is the reason for the method, since text substitution cannot
  * tell `agentRunId` the proto field from `agentRunId` an engine key.
  *
- * Shapes it handles, each at its exact node: a plain identifier; a shorthand
+ * Shapes it handles, each at its exact node: a plain identifier, or a member
+ * named by a string (`Client["agentRun"]`); a shorthand
  * property or binding (`{ agentRunId }` becomes `{ runId: agentRunId }`, so
  * the local keeps its name); an import or export specifier (the import is
  * renamed, and the next round renames the file's uses); a module specifier,
@@ -143,6 +144,11 @@ export function editsForDiagnostic(ts, sourceFile, diagnostic, table, moves) {
   }
   if (NAME_CODES.has(code)) {
     const node = nodeAt(ts, sourceFile, start);
+    // A member named by a string (`Client["agentRun"]`, `client["agentRun"]`).
+    if (ts.isStringLiteral(node)) {
+      const named = renamedTo(identifiers, node.text);
+      return named === undefined ? [] : [{ start: node.getStart(sourceFile) + 1, end: node.getEnd() - 1, text: named }];
+    }
     if (!ts.isIdentifier(node)) return [];
     const to = renamedTo(identifiers, node.text);
     if (to === undefined) return [];
