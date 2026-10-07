@@ -26,9 +26,9 @@ export const GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole[]> =
   [ApiResourceKind.agent_share, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.agent_channel, [IamRole.owner, IamRole.viewer, IamRole.participant]],
   [ApiResourceKind.channel_app, [IamRole.viewer]],
-  [ApiResourceKind.environment, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.schedule, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.plugin, [IamRole.owner, IamRole.viewer]],
+  [ApiResourceKind.credential, [IamRole.user]],
 ]);
 
 /**
@@ -48,4 +48,5 @@ export const TEAM_GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole
   [ApiResourceKind.agent_channel, [IamRole.viewer, IamRole.participant]],
   [ApiResourceKind.schedule, [IamRole.viewer]],
   [ApiResourceKind.plugin, [IamRole.viewer]],
+  [ApiResourceKind.credential, [IamRole.user]],
 ]);

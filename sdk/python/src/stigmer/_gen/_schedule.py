@@ -19,6 +19,7 @@ from ai.stigmer.agentic.run.v1 import invocation_pb2 as run_invocation_pb2
 from ._errors import wrap_error
 from ._types import ResourceRef
 from ._agent import RunConfigInput
+from ._agentchannel import CredentialAssignmentInput, CredentialFieldRefInput, CredentialTargetInput, RequirementRefInput
 from ._run import GitRepoSourceInput, LocalPathSourceInput, WorkspaceEntryInput, WorkspaceSourceInput
 
 
@@ -149,7 +150,7 @@ class AgentInvocationInput:
     message: str = ""
     harness: int = 0
     workspace_entries: list[WorkspaceEntryInput] = field(default_factory=list)
-    environment_refs: list[ResourceRef] = field(default_factory=list)
+    credentials: list[CredentialAssignmentInput] = field(default_factory=list)
     run_config: RunConfigInput | None = None
 
     def _to_proto(self) -> run_invocation_pb2.AgentInvocation:
@@ -163,10 +164,8 @@ class AgentInvocationInput:
             msg.agent_ref.CopyFrom(_ref)
         for item in self.workspace_entries:
             msg.workspace_entries.append(item._to_proto())
-        for ref in self.environment_refs:
-            _ref = ref._to_proto()
-            _ref.kind = 53
-            msg.environment_refs.append(_ref)
+        for item in self.credentials:
+            msg.credentials.append(item._to_proto())
         if self.run_config is not None:
             msg.run_config.CopyFrom(self.run_config._to_proto())
         return msg

@@ -178,7 +178,6 @@ export {
   type Page,
   type ListParams,
   type ListResult,
-  type EnvSpecInput,
   type EnvVarInput,
 } from "./gen/types.js";
 
@@ -201,6 +200,9 @@ export {
   toAgentChannelUpdateInput,
   type AgentChannelInput,
   type SlackChannelConfigInput,
+  type CredentialAssignmentInput,
+  type RequirementRefInput,
+  type CredentialFieldRefInput,
 } from "./gen/agentchannel.js";
 export {
   RunClient,
@@ -226,10 +228,12 @@ export {
   type SlackChannelAppConfigInput,
 } from "./gen/channelapp.js";
 export {
-  EnvironmentClient,
-  toEnvironmentUpdateInput,
-  type EnvironmentInput,
-} from "./gen/environment.js";
+  CredentialClient,
+  toCredentialUpdateInput,
+  type CredentialInput,
+  type CredentialFieldInput,
+  type CredentialTargetInput,
+} from "./gen/credential.js";
 export {
   ExecutionContextClient,
   type ExecutionContextInput,

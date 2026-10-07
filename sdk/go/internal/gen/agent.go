@@ -6,7 +6,7 @@ import (
 	"context"
 
 	agentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1"
-	environmentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1"
+	credentialv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/credential/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1"
 	pluginv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugin/v1"
 	runv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1"
@@ -246,7 +246,7 @@ func (i *AgentInput) toProto() (*agentv1.Agent, error) {
 		resource.Spec.SubAgents = append(resource.Spec.SubAgents, v)
 	}
 	if len(i.Env) > 0 {
-		resource.Spec.Env = make(map[string]*environmentv1.EnvVarDeclaration, len(i.Env))
+		resource.Spec.Env = make(map[string]*credentialv1.EnvVarDeclaration, len(i.Env))
 		for k, val := range i.Env {
 			pv, err := val.toProto()
 			if err != nil {
@@ -301,8 +301,8 @@ func (i *SubAgentInput) toProto() (*agentv1.SubAgent, error) {
 	return p, nil
 }
 
-func (i *EnvVarDeclarationInput) toProto() (*environmentv1.EnvVarDeclaration, error) {
-	return &environmentv1.EnvVarDeclaration{
+func (i *EnvVarDeclarationInput) toProto() (*credentialv1.EnvVarDeclaration, error) {
+	return &credentialv1.EnvVarDeclaration{
 		IsSecret:    i.IsSecret,
 		Description: i.Description,
 		Optional:    i.Optional,
@@ -436,7 +436,7 @@ func subAgentInputFromProto(p *agentv1.SubAgent) *SubAgentInput {
 	return input
 }
 
-func envVarDeclarationInputFromProto(p *environmentv1.EnvVarDeclaration) *EnvVarDeclarationInput {
+func envVarDeclarationInputFromProto(p *credentialv1.EnvVarDeclaration) *EnvVarDeclarationInput {
 	if p == nil {
 		return nil
 	}

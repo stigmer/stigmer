@@ -1,9 +1,8 @@
-// In-process test for the apply tools. Drives apply_agent,
-// apply_mcp_server, and apply_environment through the full MCP boundary and
-// asserts the codegen projection (src/gen/*) reconstitutes the proto
-// correctly: metadata hoist + slug generation, the agent tool lists,
-// enum-string conversion, ApiResourceReference kind injection, the
-// stdio/http oneof, and the environment data map with secret flags.
+// In-process test for the apply tools. Drives apply_agent and
+// apply_mcp_server through the full MCP boundary and asserts the codegen
+// projection (src/gen/*) reconstitutes the proto correctly: metadata hoist
+// + slug generation, the agent tool lists, enum-string conversion,
+// ApiResourceReference kind injection, and the stdio/http oneof.
 
 import { clone } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
@@ -19,8 +18,6 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { type Agent, AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
-import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
 import type { McpServer as McpServerProto } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -37,7 +34,6 @@ let backend: Http2Server;
 let client: Client;
 let appliedAgent: Agent | undefined;
 let appliedMcpServer: McpServerProto | undefined;
-let appliedEnvironment: Environment | undefined;
 const visibilityUpdates: UpdateVisibilityInput[] = [];
 
 // The single-door contract (oss#573): a plain update preserves the STORED
@@ -83,12 +79,6 @@ beforeAll(async () => {
         return req;
       },
     });
-    router.service(EnvironmentCommandController, {
-      apply: (req) => {
-        appliedEnvironment = req;
-        return req;
-      },
-    });
   };
   backend = createHttp2Server(connectNodeAdapter({ routes }));
   backend.on("session", (session) => {
@@ -117,7 +107,6 @@ describe("apply tools integration", () => {
       expect.arrayContaining([
         "apply_agent",
         "apply_mcp_server",
-        "apply_environment",
       ]),
     );
   });
@@ -210,28 +199,5 @@ describe("apply tools integration", () => {
     // The echo backend returns the requested level (and no id) — no diff,
     // no follow-up.
     expect(visibilityUpdates).toHaveLength(0);
-  });
-
-  it("apply_environment rebuilds the data map with secret flags", async () => {
-    const result = await callTool("apply_environment", {
-      name: "GitHub Creds",
-      org: "acme",
-      data: {
-        API_KEY: { value: "sk-real-value", is_secret: true, description: "GitHub PAT" },
-        REGION: { value: "us-east-1" },
-      },
-    });
-    expect(result.isError).toBeFalsy();
-
-    const env = appliedEnvironment;
-    expect(env?.apiVersion).toBe("agentic.stigmer.ai/v1");
-    expect(env?.kind).toBe("Environment");
-    expect(env?.metadata?.slug).toBe("github-creds"); // auto-generated from name
-    expect(env?.spec?.data?.API_KEY).toMatchObject({
-      value: "sk-real-value",
-      isSecret: true,
-      description: "GitHub PAT",
-    });
-    expect(env?.spec?.data?.REGION?.isSecret).toBe(false);
   });
 });

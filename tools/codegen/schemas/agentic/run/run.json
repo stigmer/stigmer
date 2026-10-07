@@ -100,7 +100,7 @@
           "messageType": "ExecutionValue"
         }
       },
-      "description": "Runtime environment variables and secrets (run-scoped).\n These values are only available for this specific run and take the\n highest merge priority, overriding values from Environments bound via\n environment_refs. A key must be declared in Agent.spec.env to survive the\n merge: the agent env map is a declaration whitelist (name + is_secret +\n optional), never a value source — undeclared keys are dropped.\n Use case: B2B integrations where secrets are injected at runtime per call.\n These values are consumed into the ExecutionContext (deleted when the\n run completes) and cleared from the persisted run.",
+      "description": "Values for this run only, by key (run-scoped).\n A value fills every requirement with its key, declared by the agent,\n one of its MCP servers or the git host of a workspace repository, ahead\n of every saved credential. A key nothing declares is dropped.\n Use case: B2B integrations where secrets are injected at runtime per call.\n These values are consumed into the ExecutionContext (deleted when the\n run completes) and cleared from the persisted run.",
       "required": false
     },
     {

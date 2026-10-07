@@ -766,13 +766,13 @@ SubAgent defines a specialized agent that the parent can delegate to.
 
 ### EnvVarDeclarationInput
 
-EnvVarDeclaration declares an environment variable required (or optionally accepted) by a blueprint resource (McpServer, Agent).
+EnvVarDeclaration declares a value an agent or MCP server needs at run time.
 
 <TypeTable
   type={{
-    isSecret: { type: "boolean", description: "Whether the resolved value should be treated as a secret." },
-    description: { type: "string", description: "Human-readable description shown in the UI credential form." },
-    optional: { type: "boolean", description: "Whether this variable is optional." },
+    isSecret: { type: "boolean", description: "Whether the value is a secret." },
+    description: { type: "string", description: "Human-readable description shown when someone is asked for the value." },
+    optional: { type: "boolean", description: "Whether the value may be absent." },
   }}
 />
 

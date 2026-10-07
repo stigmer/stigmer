@@ -23,7 +23,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "The env var where the acquired access token is stored.\n Must correspond to an entry in env so the execution pipeline\n resolves it. The refresh token is stored as\n {target_env_var}_REFRESH_TOKEN\n by convention. Both are written to the grant's managed environment.",
+      "description": "The key the acquired access token fills.\n Must correspond to an entry in env so a run knows the server needs\n it. It names the one field of the sign-in's credential.",
       "required": false,
       "validation": {
         "minLength": 1

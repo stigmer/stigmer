@@ -62,7 +62,7 @@ Every resource type has a typed client accessible as a method on `StigmerClient`
 | `agents()`               | Agent              |
 | `runs()`                 | Run                |
 | `apiKeys()`              | ApiKey             |
-| `environments()`         | Environment        |
+| `credential`             | Credential         |
 | `executionContexts()`    | ExecutionContext    |
 | `iamPolicies()`          | IamPolicy          |
 | `identityAccounts()`     | IdentityAccount    |

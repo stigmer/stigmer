@@ -11,7 +11,7 @@ type Client struct {
 	AgentShare       *AgentShareClient
 	ApiKey           *ApiKeyClient
 	ChannelApp       *ChannelAppClient
-	Environment      *EnvironmentClient
+	Credential       *CredentialClient
 	ExecutionContext *ExecutionContextClient
 	IamPolicy        *IamPolicyClient
 	IdentityAccount  *IdentityAccountClient
@@ -42,7 +42,7 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		AgentShare:       NewAgentShareClient(conn),
 		ApiKey:           NewApiKeyClient(conn),
 		ChannelApp:       NewChannelAppClient(conn),
-		Environment:      NewEnvironmentClient(conn),
+		Credential:       NewCredentialClient(conn),
 		ExecutionContext: NewExecutionContextClient(conn),
 		IamPolicy:        NewIamPolicyClient(conn),
 		IdentityAccount:  NewIdentityAccountClient(conn),

@@ -9,7 +9,9 @@
  * the oneof holds the other member. On an input that sets both, the
  * first-declared member wins, as in the TypeScript input: `session_id` is
  * assigned after `session_spec`, so a follow-up turn never silently starts
- * a new conversation (firstMemberWinsOrder). The generator runs over the
+ * a new conversation (firstMemberWinsOrder). A nested input's scalar
+ * member (a credential assignment's literal, a credential target's git
+ * host) is held by its wrapper the same way. The generator runs over the
  * real schemas and the test reads what it wrote.
  */
 import * as fs from "node:fs";
@@ -69,6 +71,47 @@ describe("the Go generator's scalar oneof member", () => {
 
   it("reads the member back through its getter", () => {
     expect(go).toContain("\t\tinput.SessionId = s.GetSessionId()\n");
+  });
+});
+
+describe("the Go generator's scalar oneof member of a nested input", () => {
+  let root: string;
+  let channel: string;
+
+  beforeAll(() => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), "codegen-go-nested-oneof-"));
+    const output = path.join(root, "internal", "gen");
+    runSDKClientGeneration(SCHEMAS, output);
+    // The first resource to embed the credential assignment types writes
+    // their converters; the agent channel sorts first.
+    channel = fs.readFileSync(path.join(output, "agentchannel.go"), "utf8");
+  });
+
+  afterAll(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it("holds a literal source in the oneof's wrapper, set only when given", () => {
+    const fn = channel.slice(channel.indexOf("func (i *CredentialAssignmentInput) toProto()"));
+    expect(fn).toContain(
+      "\tif i.Literal != \"\" {\n\t\tp.Source = &credentialv1.CredentialAssignment_Literal{Literal: i.Literal}\n\t}\n",
+    );
+    expect(channel).not.toContain("p.Literal =");
+  });
+
+  it("orders the nested members first-wins: a credential source beats a literal", () => {
+    const fn = channel.slice(channel.indexOf("func (i *CredentialAssignmentInput) toProto()"));
+    const literal = fn.indexOf("p.Source = &credentialv1.CredentialAssignment_Literal{");
+    const credential = fn.indexOf("p.Source = &credentialv1.CredentialAssignment_Credential{");
+    expect(literal).toBeGreaterThan(-1);
+    expect(credential).toBeGreaterThan(literal);
+  });
+
+  it("holds a git host target in its wrapper", () => {
+    expect(channel).toContain(
+      "\tif i.GitHost != \"\" {\n\t\tp.Target = &credentialv1.CredentialTarget_GitHost{GitHost: i.GitHost}\n\t}\n",
+    );
+    expect(channel).not.toContain("p.GitHost =");
   });
 });
 

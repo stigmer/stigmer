@@ -2,7 +2,7 @@
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server for the
 Stigmer platform. It exposes Stigmer **agents, skills, MCP servers, and
-environments** as MCP tools and resources — covering both the
+credentials** as MCP tools and resources — covering both the
 authoring loop (create, read, update, delete, version) and the run loop
 (run, observe, approve, cancel) — so any MCP-capable client (Claude Desktop,
 Cursor, the Stigmer CLI, etc.) can build on Stigmer through a uniform protocol.
@@ -46,13 +46,13 @@ MCP client ──JSON-RPC──▶ stdio | HTTP (stateless) ──▶ tool handl
   flattening, oneof expansion) are produced at build time by the codegen in
   `tools/codegen/src/generator/mcp-ts.ts`. Never hand-edit `src/gen/`.
 
-## Tools (17)
+## Tools (16)
 
 ### Discovery
 
 | Tool | Description |
 | --- | --- |
-| `search` | Search across agents, skills, MCP servers, and environments; results are enriched with `stigmer://` resource URIs. |
+| `search` | Search across agents, skills and MCP servers; results are enriched with `stigmer://` resource URIs. |
 
 ### Authoring
 
@@ -67,9 +67,8 @@ MCP client ──JSON-RPC──▶ stdio | HTTP (stateless) ──▶ tool handl
 | `get_skill` | Read a skill (optionally a specific version). |
 | `delete_skill` | Delete a skill (all versions). |
 | `list_skill_versions` | List a skill's version history. |
-| `get_environment` | Read an environment (secret values arrive server-redacted). |
-| `apply_environment` | Create or update an environment; echoing `***REDACTED***` preserves existing secrets. |
-| `delete_environment` | Delete an environment. |
+| `get_credential` | Read a credential (secret values arrive server-redacted). |
+| `delete_credential` | Delete a credential. |
 
 ### Runs
 
@@ -93,7 +92,7 @@ Resource templates let clients discover and read resources by `stigmer://` URI:
 | `stigmer_mcp_server` | `stigmer://mcp-servers/{org}/{slug}` |
 | `stigmer_skill` | `stigmer://skills/{org}/{slug}` (latest) |
 | `stigmer_skill_version` | `stigmer://skills/{org}/{slug}/{version}` |
-| `stigmer_environment` | `stigmer://environments/{org}/{slug}` |
+| `stigmer_credential` | `stigmer://credentials/{org}/{slug}` |
 
 ## Configuration
 

@@ -170,6 +170,7 @@ class McpServerInput:
     repository_url: str = ""
     github_stars: int = 0
     auth: McpServerAuthInput | None = None
+    sign_in: int = 0
 
     def _to_proto(self) -> api_pb2.McpServer:
         spec = spec_pb2.McpServerSpec(
@@ -177,6 +178,7 @@ class McpServerInput:
             icon_url=self.icon_url,
             repository_url=self.repository_url,
             github_stars=self.github_stars,
+            sign_in=self.sign_in,
         )
         if self.tags:
             spec.tags.extend(self.tags)

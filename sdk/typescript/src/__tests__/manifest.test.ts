@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { clone, create, equals } from "@bufbuild/protobuf";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { EnvironmentSchema, type Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { AgentChannelSchema, type AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { ScheduleSchema, type Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -39,21 +39,6 @@ spec:
     Short messages. One question at a time.
 `;
 
-const ENVIRONMENT_YAML = `
-apiVersion: agentic.stigmer.ai/v1
-kind: Environment
-metadata:
-  name: clinic-patient-db
-  org: rakeshreddi098
-spec:
-  description: "Clinic records access for the patient assistant"
-  data:
-    POSTGRES_CONNECTION_URL:
-      value: "postgresql://patient_role:secret@host:5432/postgres"
-      is_secret: true
-      description: "Supabase Postgres connection URL for patient_role"
-`;
-
 const AGENT_CHANNEL_YAML = `
 apiVersion: agentic.stigmer.ai/v1
 kind: AgentChannel
@@ -72,10 +57,20 @@ spec:
     kind: channel_app
     org: rakeshreddi098
     slug: hosipital
-  environment_refs:
-    - kind: environment
-      org: rakeshreddi098
-      slug: clinic-patient-db
+  credentials:
+    - requirement:
+        declarer:
+          mcp_server:
+            kind: mcp_server
+            org: rakeshreddi098
+            slug: clinic-postgres
+        key: POSTGRES_CONNECTION_URL
+      credential:
+        credential:
+          kind: credential
+          org: rakeshreddi098
+          slug: clinic-patient-db
+        field: POSTGRES_CONNECTION_URL
 `;
 
 // ---------------------------------------------------------------------------
@@ -107,10 +102,10 @@ describe("parseManifest", () => {
   });
 
   it("sorts multi-document manifests into dependency apply order", () => {
-    // Authored channel-first; the Environment must still apply first.
-    const docs = parseManifest(`${AGENT_CHANNEL_YAML}\n---\n${ENVIRONMENT_YAML}`);
+    // Authored channel-first; the Agent it serves must still apply first.
+    const docs = parseManifest(`${AGENT_CHANNEL_YAML}\n---\n${AGENT_YAML}`);
     expect(docs.map((d) => d.handler.yamlKind)).toEqual([
-      "Environment",
+      "Agent",
       "AgentChannel",
     ]);
   });
@@ -240,26 +235,17 @@ describe("serializeManifest", () => {
     expect(equals(AgentSchema, docs[0].message as Agent, expected)).toBe(true);
   });
 
-  it("round-trips Environment secret values byte-identically", () => {
-    const env = create(EnvironmentSchema, {
-      metadata: { name: "clinic-patient-db", org: "rakeshreddi098" },
-      spec: {
-        data: {
-          POSTGRES_CONNECTION_URL: {
-            value: "***REDACTED***",
-            isSecret: true,
-            description: "Supabase Postgres connection URL",
-          },
-        },
-      },
-    });
+  it("round-trips an AgentChannel's credential assignments", () => {
+    const channel = parseManifest(AGENT_CHANNEL_YAML)[0].message as AgentChannel;
+    expect(channel.spec?.credentials).toHaveLength(1);
 
-    const docs = parseManifest(serializeManifest(env));
-    const roundTripped = docs[0].message as Environment;
-    expect(roundTripped.spec?.data.POSTGRES_CONNECTION_URL?.value).toBe(
-      "***REDACTED***",
+    const docs = parseManifest(serializeManifest(channel));
+    expect(equals(AgentChannelSchema, docs[0].message as AgentChannel, channel)).toBe(true);
+    const source = (docs[0].message as AgentChannel).spec?.credentials[0]?.source;
+    expect(source?.case).toBe("credential");
+    expect(source?.case === "credential" ? source.value.field : undefined).toBe(
+      "POSTGRES_CONNECTION_URL",
     );
-    expect(roundTripped.spec?.data.POSTGRES_CONNECTION_URL?.isSecret).toBe(true);
   });
 
   it("rejects messages of kinds outside the registry", () => {
@@ -362,7 +348,7 @@ describe("manifest registry", () => {
   });
 
   it("covers the kinds the console flows depend on", () => {
-    for (const kind of ["Agent", "McpServer", "Environment", "AgentChannel", "ChannelApp"]) {
+    for (const kind of ["Agent", "McpServer", "AgentChannel", "ChannelApp"]) {
       expect(manifestHandlerForYamlKind(kind), `missing handler for ${kind}`).toBeDefined();
     }
   });
@@ -378,6 +364,6 @@ describe("manifest registry", () => {
       .filter((h) => h.updateVisibility !== undefined)
       .map((h) => h.yamlKind)
       .sort();
-    expect(withBinding).toEqual(["Agent", "Environment", "McpServer"]);
+    expect(withBinding).toEqual(["Agent", "McpServer"]);
   });
 });

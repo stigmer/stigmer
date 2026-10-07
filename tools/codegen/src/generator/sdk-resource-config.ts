@@ -9,7 +9,7 @@ import * as path from "node:path";
 import type { ServiceSchemaFile } from "./gen-common.js";
 import { isIDType, pascalToSnake } from "./gen-common.js";
 import { isOrglessKind, isVersionedKind } from "./resource-kind.js";
-import type { SpecSchema, TypeSchema } from "./schema.js";
+import type { FieldSchema, SpecSchema, TypeSchema } from "./schema.js";
 import { readDirSorted } from "./schema.js";
 
 export interface SdkResourceConfig {
@@ -34,6 +34,29 @@ export interface SdkResourceConfig {
 // header. "Tags" is deliberately NOT here (McpServer has a real spec-level
 // tags field).
 export const META_FIELD_NAMES = new Set(["Name", "Org", "Visibility", "Labels"]);
+
+/**
+ * Whether a spec field takes its value from the input header's org rather
+ * than from an input field of its own: the contract spells every
+ * organization field `org`, and the header's org is the organization the
+ * resource is written in, so a spec `org` (a credential owned by its
+ * organization) is that same organization. The input declares no second
+ * org; the builders read the header's, and the update mappers carry it back
+ * through the header alone. A member of a real oneof keeps the oneof's
+ * first-member-wins order, so a set earlier member (a credential's person)
+ * still holds the oneof.
+ */
+export function isHeaderOrgSpecField(f: FieldSchema): boolean {
+  return f.name === "Org" && f.type.kind === "string" && (f.type.enumType ?? "") === "";
+}
+
+/**
+ * The spec fields a builder converts onto the proto: every field the input
+ * declares, plus a spec `org` filled from the header (isHeaderOrgSpecField).
+ */
+export function specBuildFields(fields: readonly FieldSchema[]): FieldSchema[] {
+  return fields.filter((f) => !META_FIELD_NAMES.has(f.name) || isHeaderOrgSpecField(f));
+}
 
 /** Tracks generated type names per resource for client.ts generation. */
 export interface ResourceGenInfo {

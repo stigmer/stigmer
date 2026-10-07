@@ -27,7 +27,7 @@ import { apiResourceKindEnumNames, versionedKinds } from "./resource-kind.js";
 
 // Resources the TS MCP server exposes an apply_* tool for; each entry is a
 // "<domain>/<resource>" schema directory.
-const MCP_TS_APPLY_RESOURCES = ["agentic/agent", "agentic/environment", "agentic/mcpserver"];
+const MCP_TS_APPLY_RESOURCES = ["agentic/agent", "agentic/mcpserver"];
 
 /** Port of runMCPTSGeneration. */
 export function runMCPTSGeneration(schemaDir: string, outputDir: string): void {

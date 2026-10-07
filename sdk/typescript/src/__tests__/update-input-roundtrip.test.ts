@@ -31,8 +31,8 @@ import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiKeySpecSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/spec_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/spec_pb";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
-import { EnvironmentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { CredentialSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/api_pb";
+import { CredentialSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/spec_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
@@ -40,7 +40,7 @@ import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityp
 import { IdentityProviderSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/spec_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { McpServerSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
+import { McpServerSignIn, McpServerSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import {
   OAuthAppSpecSchema,
@@ -68,7 +68,7 @@ import { buildRunProto, toRunUpdateInput } from "../gen/run";
 import { buildAgentShareProto, toAgentShareUpdateInput } from "../gen/agentshare";
 import { buildApiKeyProto, toApiKeyUpdateInput } from "../gen/apikey";
 import { buildChannelAppProto, toChannelAppUpdateInput } from "../gen/channelapp";
-import { buildEnvironmentProto, toEnvironmentUpdateInput } from "../gen/environment";
+import { buildCredentialProto, toCredentialUpdateInput } from "../gen/credential";
 import { buildIdentityAccountProto, toIdentityAccountUpdateInput } from "../gen/identityaccount";
 import { buildIdentityProviderProto, toIdentityProviderUpdateInput } from "../gen/identityprovider";
 import { buildMcpServerProto, toMcpServerUpdateInput } from "../gen/mcpserver";
@@ -166,6 +166,38 @@ const MCP_USAGE = {
     kind: ApiResourceKind.mcp_server,
   },
 };
+
+// One assignment of each source: a credential's field for an MCP server's
+// requirement, and a literal for a git host's, with the server-stamped
+// writer carried back as fetched.
+const CREDENTIALS = [
+  {
+    requirement: {
+      declarer: {
+        target: {
+          case: "mcpServer" as const,
+          value: { org: "acme", slug: "github-mcp", kind: ApiResourceKind.mcp_server },
+        },
+      },
+      key: "GITHUB_TOKEN",
+    },
+    source: {
+      case: "credential" as const,
+      value: {
+        credential: { org: "acme", slug: "prod", kind: ApiResourceKind.credential },
+        field: "GITHUB_TOKEN",
+      },
+    },
+    writer: "idac_ada",
+  },
+  {
+    requirement: {
+      declarer: { target: { case: "gitHost" as const, value: "github.com" } },
+      key: "GIT_USER",
+    },
+    source: { case: "literal" as const, value: "stigmer-bot" },
+  },
+];
 
 const WORKSPACE_ENTRIES = [
   {
@@ -277,9 +309,7 @@ describe("toAgentChannelUpdateInput", () => {
         agentRef: { org: "acme", slug: "support-bot", kind: ApiResourceKind.agent },
         enabled: true,
         providerConfig: { case: "slack", value: {} },
-        environmentRefs: [
-          { org: "acme", slug: "prod", kind: ApiResourceKind.environment },
-        ],
+        credentials: CREDENTIALS,
         appRef: { org: "acme", slug: "acme-slack", kind: ApiResourceKind.channel_app },
         proactiveMessagingEnabled: true,
         runConfig: RUN_CONFIG,
@@ -389,9 +419,7 @@ describe("toAgentShareUpdateInput", () => {
           unavailable: "Back soon.",
           conversationEnded: "Bye.",
         },
-        environmentRefs: [
-          { org: "acme", slug: "prod", kind: ApiResourceKind.environment },
-        ],
+        credentials: CREDENTIALS,
         runConfig: RUN_CONFIG,
       },
     });
@@ -483,29 +511,48 @@ describe("toChannelAppUpdateInput", () => {
   });
 });
 
-describe("toEnvironmentUpdateInput", () => {
+describe("toCredentialUpdateInput", () => {
   const fixture = () =>
-    create(EnvironmentSchema, {
+    create(CredentialSchema, {
       metadata: META,
       spec: {
-        description: "Prod secrets.",
-        data: {
-          API_KEY: { value: "shh", isSecret: true, description: "Vendor key" },
+        owner: { case: "person", value: "idac_ada" },
+        description: "Ada's GitHub token.",
+        fields: {
+          GITHUB_TOKEN: { value: "ghp_x", plain: false, description: "Repo scope" },
+          GIT_USER: { value: "ada", plain: true, description: "Commit author" },
         },
+        serves: [
+          { target: { case: "mcpServer", value: { org: "acme", slug: "github-mcp", kind: ApiResourceKind.mcp_server } } },
+          { target: { case: "agent", value: { org: "acme", slug: "support-bot", kind: ApiResourceKind.agent } } },
+          { target: { case: "gitHost", value: "github.com" } },
+        ],
       },
     });
 
-  it("fixture covers every EnvironmentSpec field (schema tripwire)", () => {
-    assertFixtureCoversSpec(EnvironmentSpecSchema, fixture().spec!);
+  it("fixture covers every CredentialSpec field (schema tripwire)", () => {
+    assertFixtureCoversSpec(CredentialSpecSchema, fixture().spec!);
   });
 
   it("round-trips the full spec and metadata through the builder", () => {
     const original = fixture();
     assertSpecRoundTrip(
-      EnvironmentSpecSchema,
+      CredentialSpecSchema,
       original,
-      buildEnvironmentProto(toEnvironmentUpdateInput(original)),
+      buildCredentialProto(toCredentialUpdateInput(original)),
     );
+  });
+
+  it("writes an organization's credential owned by the input's org", () => {
+    // The input declares no second org: a credential with no person
+    // belongs to the organization it is written in.
+    const original = create(CredentialSchema, {
+      metadata: META,
+      spec: { owner: { case: "org", value: META.org }, description: "Shared key." },
+    });
+    const rebuilt = buildCredentialProto(toCredentialUpdateInput(original));
+    expect(rebuilt.spec?.owner).toEqual({ case: "org", value: "acme" });
+    expect(rebuilt.metadata?.org).toBe("acme");
   });
 });
 
@@ -604,6 +651,7 @@ describe("toMcpServerUpdateInput", () => {
           discoveryUrl: "https://github.com/.well-known/oauth",
           oauthOnly: true,
         },
+        signIn: McpServerSignIn.organization,
       },
     });
 
@@ -719,9 +767,7 @@ describe("toPlatformClientUpdateInput", () => {
         createAccountsOnSignIn: true,
         signInRole: IamRole.owner,
         allowedOrigins: ["https://embed.acme.example"],
-        environmentRefs: [
-          { org: "acme", slug: "prod", kind: ApiResourceKind.environment },
-        ],
+        credentials: CREDENTIALS,
       },
     });
 
@@ -738,13 +784,16 @@ describe("toPlatformClientUpdateInput", () => {
     );
   });
 
-  it("preserves environment_refs when only origins change (live wipe bug)", () => {
+  it("preserves credentials when only origins change (live wipe bug)", () => {
     const original = fixture();
     const rebuilt = buildPlatformClientProto({
       ...toPlatformClientUpdateInput(original),
       allowedOrigins: ["https://other.acme.example"],
     });
-    expect(rebuilt.spec?.environmentRefs.map((r) => r.slug)).toEqual(["prod"]);
+    expect(rebuilt.spec?.credentials.map((c) => c.requirement?.key)).toEqual([
+      "GITHUB_TOKEN",
+      "GIT_USER",
+    ]);
     expect(rebuilt.spec?.allowedOrigins).toEqual(["https://other.acme.example"]);
   });
 });
@@ -764,9 +813,7 @@ describe("toScheduleUpdateInput", () => {
             message: "Weekly triage.",
             harness: Harness.NATIVE,
             workspaceEntries: WORKSPACE_ENTRIES,
-            environmentRefs: [
-              { org: "acme", slug: "prod", kind: ApiResourceKind.environment },
-            ],
+            credentials: CREDENTIALS,
             runConfig: RUN_CONFIG,
           },
         },

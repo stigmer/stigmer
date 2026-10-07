@@ -19,6 +19,7 @@ from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
 
 from ._errors import wrap_error
 from ._types import DeleteResourceInput, ResourceRef
+from ._agentchannel import CredentialAssignmentInput, CredentialFieldRefInput, CredentialTargetInput, RequirementRefInput
 
 
 class PlatformClientClient:
@@ -102,7 +103,7 @@ class PlatformClientInput:
     expires_at: str = ""
     never_expires: bool = False
     allowed_origins: list[str] = field(default_factory=list)
-    environment_refs: list[ResourceRef] = field(default_factory=list)
+    credentials: list[CredentialAssignmentInput] = field(default_factory=list)
     create_accounts_on_sign_in: bool = False
     sign_in_role: int = 0
 
@@ -119,10 +120,8 @@ class PlatformClientInput:
             spec.expires_at.FromJsonString(self.expires_at)
         if self.allowed_origins:
             spec.allowed_origins.extend(self.allowed_origins)
-        for ref in self.environment_refs:
-            _ref = ref._to_proto()
-            _ref.kind = 53
-            spec.environment_refs.append(_ref)
+        for item in self.credentials:
+            spec.credentials.append(item._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,

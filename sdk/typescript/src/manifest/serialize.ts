@@ -21,9 +21,9 @@ import { manifestHandlerForTypeName, manifestKinds } from "./registry.js";
  * Serialize a resource proto into the canonical, editable Stigmer YAML form.
  *
  * The resource kind is derived from the message's proto type, so any
- * registry-supported resource (an `Agent` from `stigmer.agent.get()`, an
- * `Environment` from `stigmer.environment.get()`, …) serializes with the
- * same call. `metadata.id` is preserved — the output is a full-fidelity
+ * registry-supported resource (an `Agent` from `stigmer.agent.get()`, a
+ * `McpServer` from `stigmer.mcpServer.get()`, …) serializes with the same
+ * call. `metadata.id` is preserved — the output is a full-fidelity
  * representation of the stored resource, minus system-managed state.
  *
  * @param message - A resource proto of a registry-supported kind.

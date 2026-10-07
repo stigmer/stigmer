@@ -8,7 +8,7 @@ package agentv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v11 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1"
+	v11 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/credential/v1"
 	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1"
 	v14 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugin/v1"
 	v12 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1"
@@ -417,7 +417,7 @@ var File_ai_stigmer_agentic_agent_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a+ai/stigmer/agentic/mcpserver/v1/usage.proto\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xac\n" +
+	"&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a2ai/stigmer/agentic/credential/v1/requirement.proto\x1a+ai/stigmer/agentic/mcpserver/v1/usage.proto\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xab\n" +
 	"\n" +
 	"\tAgentSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12\x19\n" +
@@ -438,10 +438,10 @@ const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\x05hooks\x18\f \x03(\v2'.ai.stigmer.agentic.agent.v1.HookSourceR\x05hooks\x12C\n" +
 	"\n" +
 	"run_config\x18\r \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfig\x12@\n" +
-	"\aharness\x18\x0e \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x1al\n" +
+	"\aharness\x18\x0e \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x1ak\n" +
 	"\bEnvEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12J\n" +
-	"\x05value\x18\x02 \x01(\v24.ai.stigmer.agentic.environment.v1.EnvVarDeclarationR\x05value:\x028\x01J\x04\b\b\x10\tJ\x04\b\t\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12I\n" +
+	"\x05value\x18\x02 \x01(\v23.ai.stigmer.agentic.credential.v1.EnvVarDeclarationR\x05value:\x028\x01J\x04\b\b\x10\tJ\x04\b\t\x10\n" +
 	"R\asharingR\x10datastore_usages\"\x9b\x02\n" +
 	"\n" +
 	"HookSource\x12\xb7\x01\n" +
@@ -486,7 +486,7 @@ var file_ai_stigmer_agentic_agent_v1_spec_proto_goTypes = []any{
 	(*v12.RunConfig)(nil),                    // 6: ai.stigmer.agentic.run.v1.RunConfig
 	(v13.Harness)(0),                         // 7: ai.stigmer.agentic.session.v1.Harness
 	(*v14.HookConfig)(nil),                   // 8: ai.stigmer.agentic.plugin.v1.HookConfig
-	(*v11.EnvVarDeclaration)(nil),            // 9: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	(*v11.EnvVarDeclaration)(nil),            // 9: ai.stigmer.agentic.credential.v1.EnvVarDeclaration
 }
 var file_ai_stigmer_agentic_agent_v1_spec_proto_depIdxs = []int32{
 	4,  // 0: ai.stigmer.agentic.agent.v1.AgentSpec.mcp_server_usages:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerUsage
@@ -499,7 +499,7 @@ var file_ai_stigmer_agentic_agent_v1_spec_proto_depIdxs = []int32{
 	5,  // 7: ai.stigmer.agentic.agent.v1.HookSource.plugin:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	8,  // 8: ai.stigmer.agentic.agent.v1.HookSource.inline:type_name -> ai.stigmer.agentic.plugin.v1.HookConfig
 	5,  // 9: ai.stigmer.agentic.agent.v1.SubAgent.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	9,  // 10: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	9,  // 10: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.credential.v1.EnvVarDeclaration
 	11, // [11:11] is the sub-list for method output_type
 	11, // [11:11] is the sub-list for method input_type
 	11, // [11:11] is the sub-list for extension type_name

@@ -74,7 +74,7 @@ describe("buildResourceURI", () => {
     expect(buildResourceURI("agent", "acme", "a")).toBe("stigmer://agents/acme/a");
     expect(buildResourceURI("mcp_server", "acme", "m")).toBe("stigmer://mcp-servers/acme/m");
     expect(buildResourceURI("skill", "acme", "s")).toBe("stigmer://skills/acme/s");
-    expect(buildResourceURI("environment", "acme", "e")).toBe("stigmer://environments/acme/e");
+    expect(buildResourceURI("credential", "acme", "c")).toBe("stigmer://credentials/acme/c");
   });
 
   it("round-trips with parseResourceURI", () => {
@@ -94,7 +94,7 @@ describe("buildResourceURI", () => {
   it("covers exactly the templated kinds", () => {
     expect(Object.keys(kindToAuthority).sort()).toEqual([
       "agent",
-      "environment",
+      "credential",
       "mcp_server",
       "skill",
     ]);

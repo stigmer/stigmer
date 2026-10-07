@@ -5,12 +5,12 @@ import { stripUndefined, toResourceRefInput } from "./proto-utils.js";
 import { type DeleteResourceInput, type ListParams, type ListResult, type ResourceRef } from "./types.js";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { EnvVarDeclarationSchema, type EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { EnvVarDeclarationSchema, type EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/requirement_pb";
 import { McpServerSchema, type McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { ConnectInputSchema, InitiateOAuthConnectInputSchema, InitiateOAuthConnectOutputSchema, CompleteOAuthConnectInputSchema, CompleteOAuthConnectOutputSchema, DisconnectOAuthInputSchema, DisconnectOAuthOutputSchema, SetOrgOAuthAppInputSchema, SetOrgOAuthAppOutputSchema, DeleteOrgOAuthAppInputSchema, DeleteOrgOAuthAppOutputSchema, GetOAuthGrantStatusInputSchema, GetOAuthGrantStatusOutputSchema, GetOrgOAuthAppInputSchema, GetOrgOAuthAppOutputSchema, type ConnectInput, type InitiateOAuthConnectInput, type InitiateOAuthConnectOutput, type CompleteOAuthConnectInput, type CompleteOAuthConnectOutput, type DisconnectOAuthInput, type DisconnectOAuthOutput, type SetOrgOAuthAppInput, type SetOrgOAuthAppOutput, type DeleteOrgOAuthAppInput, type DeleteOrgOAuthAppOutput, type GetOAuthGrantStatusInput, type GetOAuthGrantStatusOutput, type GetOrgOAuthAppInput, type GetOrgOAuthAppOutput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
-import { McpServerSpecSchema, StdioServerConfigSchema, HttpServerConfigSchema, McpServerAuthSchema, type StdioServerConfig, type HttpServerConfig, type McpServerAuth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
+import { McpServerSpecSchema, McpServerSignIn, StdioServerConfigSchema, HttpServerConfigSchema, McpServerAuthSchema, type StdioServerConfig, type HttpServerConfig, type McpServerAuth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -171,6 +171,7 @@ export interface McpServerInput {
   repositoryUrl?: string;
   githubStars?: number;
   auth?: McpServerAuthInput;
+  signIn?: McpServerSignIn;
 }
 
 /** SDK input type for StdioServerConfig. */
@@ -255,6 +256,7 @@ export function buildMcpServerProto(input: McpServerInput): McpServer {
     repositoryUrl: input.repositoryUrl,
     githubStars: input.githubStars,
     auth,
+    signIn: input.signIn,
   }));
   if (input.stdio) {
     spec.serverType = { case: "stdio", value: buildStdioServerConfigProto(input.stdio) };
@@ -346,5 +348,6 @@ export function toMcpServerUpdateInput(resource: McpServer): McpServerInput {
     repositoryUrl: spec.repositoryUrl || undefined,
     githubStars: spec.githubStars || undefined,
     auth: spec.auth ? toMcpServerAuthInput(spec.auth) : undefined,
+    signIn: spec.signIn || undefined,
   };
 }

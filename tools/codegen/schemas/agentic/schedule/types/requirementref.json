@@ -1,0 +1,37 @@
+{
+  "name": "RequirementRef",
+  "description": "RequirementRef names one value a declarer needs: the declarer and the key.",
+  "protoType": "ai.stigmer.agentic.credential.v1.RequirementRef",
+  "protoFile": "apis/ai/stigmer/agentic/credential/v1/requirement.proto",
+  "fields": [
+    {
+      "name": "Declarer",
+      "jsonName": "declarer",
+      "protoField": "declarer",
+      "type": {
+        "kind": "message",
+        "messageType": "CredentialTarget"
+      },
+      "description": "The agent, MCP server or git host that declares the value.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Key",
+      "jsonName": "key",
+      "protoField": "key",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The declared key (for example \"LINEAR_API_KEY\").",
+      "required": false,
+      "validation": {
+        "minLength": 1,
+        "maxLength": 128,
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+      }
+    }
+  ]
+}

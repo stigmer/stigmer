@@ -322,11 +322,11 @@
               "agent_share",
               "agent_channel",
               "channel_app",
-              "environment",
               "execution_context",
               "schedule",
               "memory",
               "plugin",
+              "credential",
               "plan",
               "subscription",
               "license"
@@ -691,11 +691,6 @@
           "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
         },
         {
-          "name": "environment",
-          "number": 53,
-          "description": "Named set of variables and secrets for a run."
-        },
-        {
           "name": "execution_context",
           "number": 54,
           "description": "User-owned runtime context for managing execution state."
@@ -714,6 +709,11 @@
           "name": "plugin",
           "number": 58,
           "description": "An installed Agent Plugins package: the archive Stigmer materialised into\n skills, MCP servers and an agent, and the handle that upgrades\n and removes them together. A plugin is what you install; an agent is what\n runs. Members are the resources labelled with the plugin's id."
+        },
+        {
+          "name": "credential",
+          "number": 59,
+          "description": "Saved secret values that belong to a person or to an organization."
         },
         {
           "name": "plan",

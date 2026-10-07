@@ -315,7 +315,12 @@ type ParentRelationConfig struct {
 	// Example: "session_id" for run, "subject_identity_account_id" for
 	// memory.
 	// This eliminates hardcoded parent ID extraction logic in the service.
-	SpecField     string `protobuf:"bytes,3,opt,name=spec_field,json=specField,proto3" json:"spec_field,omitempty"`
+	SpecField string `protobuf:"bytes,3,opt,name=spec_field,json=specField,proto3" json:"spec_field,omitempty"`
+	// Whether a row may name no parent here. An optional parent whose spec
+	// field is empty writes no link; a required one fails the create.
+	// Example: a credential links `owner` to a person or `org_owned` to an
+	// organization, whichever member of its owner oneof is set.
+	Optional      bool `protobuf:"varint,4,opt,name=optional,proto3" json:"optional,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -371,6 +376,13 @@ func (x *ParentRelationConfig) GetSpecField() string {
 	return ""
 }
 
+func (x *ParentRelationConfig) GetOptional() bool {
+	if x != nil {
+		return x.Optional
+	}
+	return false
+}
+
 // FGA authorization tuple configuration for a resource kind.
 // Embedded in ApiResourceKindMeta to drive tuple creation at runtime.
 //
@@ -407,15 +419,17 @@ func (x *ParentRelationConfig) GetSpecField() string {
 //	-> Creates: memory#subject@identity_account:<subject_identity_account_id>
 //	-> No owner tuple
 //
-// Personal resource with creator attribution (environment):
+// Resource owned by a person or by its organization (credential):
 //
 //	scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
-//	owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-//	requires_creator_tuple: true
-//	grantable_roles: [owner, viewer]
-//	-> Creates: environment#organization@organization:<org_id>
-//	-> Creates: environment#owner@identity_account:<creator_id>
-//	-> Creates: environment#creator@identity_account:<creator_id>
+//	owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+//	additional_parents: [
+//	  { kind: "identity_account", relation: "owner", spec_field: "person", optional: true },
+//	  { kind: "organization", relation: "org_owned", spec_field: "org", optional: true }
+//	]
+//	-> Creates: credential#organization@organization:<org_id>
+//	-> Creates: credential#owner@identity_account:<person> (a person's credential)
+//	-> Creates: credential#org_owned@organization:<org_id> (an organization's credential)
 //
 // Organization with three-tier role hierarchy:
 //
@@ -573,12 +587,13 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_p
 	"\x10VisibilityConfig\x12.\n" +
 	"\x13supports_child_orgs\x18\x02 \x01(\bR\x11supportsChildOrgs\x12!\n" +
 	"\fsupports_org\x18\x03 \x01(\bR\vsupportsOrg\x12;\n" +
-	"\x1adefaults_to_org_visibility\x18\x04 \x01(\bR\x17defaultsToOrgVisibilityJ\x04\b\x01\x10\x02R\x0fsupports_public\"e\n" +
+	"\x1adefaults_to_org_visibility\x18\x04 \x01(\bR\x17defaultsToOrgVisibilityJ\x04\b\x01\x10\x02R\x0fsupports_public\"\x81\x01\n" +
 	"\x14ParentRelationConfig\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x1a\n" +
 	"\brelation\x18\x02 \x01(\tR\brelation\x12\x1d\n" +
 	"\n" +
-	"spec_field\x18\x03 \x01(\tR\tspecField\"\xdf\x05\n" +
+	"spec_field\x18\x03 \x01(\tR\tspecField\x12\x1a\n" +
+	"\boptional\x18\x04 \x01(\bR\boptional\"\xdf\x05\n" +
 	"\x13AuthorizationConfig\x12e\n" +
 	"\n" +
 	"scope_type\x18\x01 \x01(\x0e2F.ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationScopeTypeR\tscopeType\x12c\n" +

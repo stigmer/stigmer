@@ -1302,7 +1302,7 @@ Input for creating or updating a Run.
     interactionMode: { type: "InteractionMode", description: "Interaction mode for this message.", typeDescriptionLink: "#interactionmode" },
     buildFromPlan: { type: "boolean", description: "Marks this message as a \"Build from plan\" turn: the user approved a plan produced by a prior Plan-mode run and asked the agent to implement it." },
     structuredOutputSchema: { type: "object", description: "JSON Schema that the agent's output must conform to (optional)." },
-    runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Runtime environment variables and secrets (run-scoped).", typeDescriptionLink: "#envvarinput" },
+    runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Values for this run only, by key (run-scoped).", typeDescriptionLink: "#envvarinput" },
     autoApproveAll: { type: "boolean", description: "Auto-approve all tool executions for this run." },
     attachments: { type: "AttachmentInput[]", description: "Files attached to this run.", typeDescriptionLink: "#attachmentinput" },
     workspaceFileRefs: { type: "string[]", description: "Workspace-relative file paths the user wants the agent to focus on." },
@@ -1847,6 +1847,7 @@ RunStatus contains all run results and state.
     recalledMemories: { type: "RecalledMemories", description: "The caller's confirmed memories, snapshotted into this run at create time: the candidate set the prompt was built from.", typeDescriptionLink: "#recalledmemories" },
     runConfig: { type: "RunConfig", description: "The settings this turn runs with: spec.run_config (or the saved settings of the surface it came through), the defaults of the agent version the turn runs, and the lane's operator profile, resolved by RunConfig's rule.", typeDescriptionLink: "#runconfig" },
     approvalMode: { type: "ApprovalMode", description: "How this turn resolves approval gates: INTERACTIVE or UNATTENDED, never UNSPECIFIED.", typeDescriptionLink: "#approvalmode" },
+    credentials: { type: "RunCredentials", description: "Whose credentials this run may use.", typeDescriptionLink: "#runcredentials" },
   }}
 />
 
@@ -2264,6 +2265,16 @@ RunConfig is the settings message for every run: a model, a speed tier, thinking
     serviceTier: { type: "ServiceTier", description: "Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.", typeDescriptionLink: "#servicetier" },
     thinkingMode: { type: "ThinkingMode", description: "Thinking mode for each run's model calls: disabled (the default) or enabled, where enabled selects the model's extended-reasoning variant (billed at base per-token rates — reasoning tokens bill as output).", typeDescriptionLink: "#thinkingmode" },
     maxToolResultChars: { type: "number", description: "Maximum number of characters for a single tool result before truncation." },
+  }}
+/>
+
+### RunCredentials
+
+RunCredentials records whose credentials a run may use.
+
+<TypeTable
+  type={{
+    person: { type: "string", description: "The person the run acts for, by identity account id; empty for a run with no person behind it." },
   }}
 />
 

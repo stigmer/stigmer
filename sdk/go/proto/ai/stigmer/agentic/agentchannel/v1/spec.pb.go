@@ -8,7 +8,8 @@ package agentchannelv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1"
+	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/credential/v1"
+	v11 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -28,7 +29,7 @@ const (
 //
 // The spec is deliberately small: which agent serves the channel, whether
 // serving is enabled, which provider the channel targets, and which
-// environments supply the agent's tool credentials. Workspace identity and
+// credentials supply the agent's tool values. Workspace identity and
 // provider credentials are produced by the install flow and live in
 // status — a declarative apply can never clobber them.
 type AgentChannelSpec struct {
@@ -48,14 +49,16 @@ type AgentChannelSpec struct {
 	Enabled bool `protobuf:"varint,2,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	// Provider this channel connects to. Exactly one must be specified.
 	ProviderConfig isAgentChannelSpec_ProviderConfig `protobuf_oneof:"provider_config"`
-	// References to Environment resources whose values are provided to
-	// conversations on this channel.
+	// The values this channel's conversations use for what the agent needs.
 	//
-	// This is how a tool-using agent becomes chattable over a channel: bind
-	// an org-shared environment holding the needed credentials (for example
-	// a read-only API token), and channel runs receive its values at
-	// runtime. The agent itself stays untouched.
-	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,4,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`
+	// A channel's runs have no person behind them, so they never use anyone's
+	// own credentials: they use what is assigned here.
+	//
+	// Each assignment gives one requirement of the agent, one of its MCP
+	// servers or a git host its value: a field of a credential the writer
+	// may use, or a plain literal. A person's own credential is never
+	// accepted here.
+	Credentials []*v1.CredentialAssignment `protobuf:"bytes,9,rep,name=credentials,proto3" json:"credentials,omitempty"`
 	// Reference to the ChannelApp this channel installs through.
 	//
 	// For Slack, absent means the channel uses the platform's shared
@@ -78,7 +81,7 @@ type AgentChannelSpec struct {
 	// max_cost_usd and max_tool_rounds can only lower the agent's and the
 	// platform's caps — a channel owner can reduce what one turn may spend,
 	// never raise it. What a sender's own request carries is never read.
-	RunConfig     *v1.RunConfig `protobuf:"bytes,8,opt,name=run_config,json=runConfig,proto3" json:"run_config,omitempty"`
+	RunConfig     *v11.RunConfig `protobuf:"bytes,8,opt,name=run_config,json=runConfig,proto3" json:"run_config,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -152,9 +155,9 @@ func (x *AgentChannelSpec) GetWhatsapp() *WhatsAppChannelConfig {
 	return nil
 }
 
-func (x *AgentChannelSpec) GetEnvironmentRefs() []*apiresource.ApiResourceReference {
+func (x *AgentChannelSpec) GetCredentials() []*v1.CredentialAssignment {
 	if x != nil {
-		return x.EnvironmentRefs
+		return x.Credentials
 	}
 	return nil
 }
@@ -173,7 +176,7 @@ func (x *AgentChannelSpec) GetProactiveMessagingEnabled() bool {
 	return false
 }
 
-func (x *AgentChannelSpec) GetRunConfig() *v1.RunConfig {
+func (x *AgentChannelSpec) GetRunConfig() *v11.RunConfig {
 	if x != nil {
 		return x.RunConfig
 	}
@@ -300,21 +303,20 @@ var File_ai_stigmer_agentic_agentchannel_v1_spec_proto protoreflect.FileDescript
 
 const file_ai_stigmer_agentic_agentchannel_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/agentic/agentchannel/v1/spec.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xd0\a\n" +
+	"-ai/stigmer/agentic/agentchannel/v1/spec.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a2ai/stigmer/agentic/credential/v1/requirement.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xf0\x06\n" +
 	"\x10AgentChannelSpec\x12\xb6\x01\n" +
 	"\tagent_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBc\xbaH\\\xba\x01V\n" +
 	"\x0eagent_ref.kind\x123agent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xc8\x01\x01\xe0\x85,(R\bagentRef\x12\x18\n" +
 	"\aenabled\x18\x02 \x01(\bR\aenabled\x12N\n" +
 	"\x05slack\x18\x03 \x01(\v26.ai.stigmer.agentic.agentchannel.v1.SlackChannelConfigH\x00R\x05slack\x12W\n" +
-	"\bwhatsapp\x18\x06 \x01(\v29.ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfigH\x00R\bwhatsapp\x12\xd9\x01\n" +
-	"\x10environment_refs\x18\x04 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n" +
-	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefs\x12\xc4\x01\n" +
+	"\bwhatsapp\x18\x06 \x01(\v29.ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfigH\x00R\bwhatsapp\x12b\n" +
+	"\vcredentials\x18\t \x03(\v26.ai.stigmer.agentic.credential.v1.CredentialAssignmentB\b\xbaH\x05\x92\x01\x02\x10@R\vcredentials\x12\xc4\x01\n" +
 	"\aapp_ref\x18\x05 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBu\xbaHn\xba\x01k\n" +
 	"\fapp_ref.kind\x127app_ref must reference a resource with kind=channel_app\x1a\"this.slug == '' || this.kind == 48\xe0\x85,0R\x06appRef\x12>\n" +
 	"\x1bproactive_messaging_enabled\x18\a \x01(\bR\x19proactiveMessagingEnabled\x12C\n" +
 	"\n" +
 	"run_config\x18\b \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfigB\x18\n" +
-	"\x0fprovider_config\x12\x05\xbaH\x02\b\x01\"\x14\n" +
+	"\x0fprovider_config\x12\x05\xbaH\x02\b\x01J\x04\b\x04\x10\x05R\x10environment_refs\"\x14\n" +
 	"\x12SlackChannelConfig\"H\n" +
 	"\x15WhatsAppChannelConfig\x12/\n" +
 	"\x0fphone_number_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\rphoneNumberIdB\xbe\x02\n" +
@@ -338,15 +340,16 @@ var file_ai_stigmer_agentic_agentchannel_v1_spec_proto_goTypes = []any{
 	(*SlackChannelConfig)(nil),               // 1: ai.stigmer.agentic.agentchannel.v1.SlackChannelConfig
 	(*WhatsAppChannelConfig)(nil),            // 2: ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig
 	(*apiresource.ApiResourceReference)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*v1.RunConfig)(nil),                     // 4: ai.stigmer.agentic.run.v1.RunConfig
+	(*v1.CredentialAssignment)(nil),          // 4: ai.stigmer.agentic.credential.v1.CredentialAssignment
+	(*v11.RunConfig)(nil),                    // 5: ai.stigmer.agentic.run.v1.RunConfig
 }
 var file_ai_stigmer_agentic_agentchannel_v1_spec_proto_depIdxs = []int32{
 	3, // 0: ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.agent_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	1, // 1: ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.slack:type_name -> ai.stigmer.agentic.agentchannel.v1.SlackChannelConfig
 	2, // 2: ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.whatsapp:type_name -> ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig
-	3, // 3: ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.environment_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	4, // 3: ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.credentials:type_name -> ai.stigmer.agentic.credential.v1.CredentialAssignment
 	3, // 4: ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.app_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	4, // 5: ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.run_config:type_name -> ai.stigmer.agentic.run.v1.RunConfig
+	5, // 5: ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.run_config:type_name -> ai.stigmer.agentic.run.v1.RunConfig
 	6, // [6:6] is the sub-list for method output_type
 	6, // [6:6] is the sub-list for method input_type
 	6, // [6:6] is the sub-list for extension type_name

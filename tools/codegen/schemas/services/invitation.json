@@ -234,7 +234,8 @@
               "member",
               "viewer",
               "participant",
-              "editor"
+              "editor",
+              "user"
             ]
           },
           "description": "The role that will be granted upon redemption.",
@@ -318,6 +319,11 @@
           "name": "editor",
           "number": 6,
           "description": "Editor of a blueprint (an agent or an MCP server): may change\n its definition and do whatever a viewer can, and may not delete it,\n change its visibility, publish it on a share link or a channel, or decide\n who else has access."
+        },
+        {
+          "name": "user",
+          "number": 7,
+          "description": "User of a credential: the runs this person or team starts may use\n the credential's values. Never reveals them."
         }
       ]
     },

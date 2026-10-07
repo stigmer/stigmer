@@ -21,8 +21,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// OAuthGrant tracks OAuth metadata for a user's OAuth connection to an
-// API resource.
+// OAuthGrant tracks one sign-in to an API resource: the metadata that
+// keeps its token fresh, and the refresh token itself.
 type OAuthGrant struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Which user owns this grant.
@@ -47,23 +47,20 @@ type OAuthGrant struct {
 	// For mcp_oauth: discovered via .well-known/oauth-authorization-server.
 	// For vendor_oauth: copied from OAuthApp.spec.token_url.
 	TokenEndpoint string `protobuf:"bytes,6,opt,name=token_endpoint,json=tokenEndpoint,proto3" json:"token_endpoint,omitempty"`
-	// Env var name where the access token is stored in the managed environment.
+	// The key the access token fills: the name of the credential's field.
 	AccessTokenEnvVar string `protobuf:"bytes,7,opt,name=access_token_env_var,json=accessTokenEnvVar,proto3" json:"access_token_env_var,omitempty"`
-	// Env var name where the refresh token is stored in the managed environment.
-	// Convention: {target_env_var}_REFRESH_TOKEN.
-	RefreshTokenEnvVar string `protobuf:"bytes,8,opt,name=refresh_token_env_var,json=refreshTokenEnvVar,proto3" json:"refresh_token_env_var,omitempty"`
-	// ID of the managed Environment resource that holds the tokens.
-	// The refresh mechanism reads/writes tokens in this environment.
-	// Created during completeOAuthConnect with the stigmer.ai/managed=true label.
-	// 1:1 with this grant — revoking the grant deletes this environment.
-	EnvironmentId string `protobuf:"bytes,9,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
 	// Kind of the API resource identified by resource_id (e.g., "mcp_server").
 	// Used for query filtering and handler routing.
 	ResourceKind string `protobuf:"bytes,10,opt,name=resource_kind,json=resourceKind,proto3" json:"resource_kind,omitempty"`
 	// Organization context for this grant. Part of the composite key:
 	// (identity_account_id, resource_id, org). Enables the same user to
 	// maintain separate OAuth connections for a shared resource across orgs.
-	Org           string `protobuf:"bytes,11,opt,name=org,proto3" json:"org,omitempty"`
+	Org string `protobuf:"bytes,11,opt,name=org,proto3" json:"org,omitempty"`
+	// ID of the Credential that holds the access token.
+	// Created by completeOAuthConnect; deleted with this grant.
+	CredentialId string `protobuf:"bytes,12,opt,name=credential_id,json=credentialId,proto3" json:"credential_id,omitempty"`
+	// The refresh token, sealed at rest.
+	RefreshToken  string `protobuf:"bytes,13,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -147,20 +144,6 @@ func (x *OAuthGrant) GetAccessTokenEnvVar() string {
 	return ""
 }
 
-func (x *OAuthGrant) GetRefreshTokenEnvVar() string {
-	if x != nil {
-		return x.RefreshTokenEnvVar
-	}
-	return ""
-}
-
-func (x *OAuthGrant) GetEnvironmentId() string {
-	if x != nil {
-		return x.EnvironmentId
-	}
-	return ""
-}
-
 func (x *OAuthGrant) GetResourceKind() string {
 	if x != nil {
 		return x.ResourceKind
@@ -171,6 +154,20 @@ func (x *OAuthGrant) GetResourceKind() string {
 func (x *OAuthGrant) GetOrg() string {
 	if x != nil {
 		return x.Org
+	}
+	return ""
+}
+
+func (x *OAuthGrant) GetCredentialId() string {
+	if x != nil {
+		return x.CredentialId
+	}
+	return ""
+}
+
+func (x *OAuthGrant) GetRefreshToken() string {
+	if x != nil {
+		return x.RefreshToken
 	}
 	return ""
 }
@@ -260,7 +257,7 @@ var File_ai_stigmer_agentic_mcpserver_v1_oauth_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/agentic/mcpserver/v1/oauth.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\"\xbb\x03\n" +
+	"+ai/stigmer/agentic/mcpserver/v1/oauth.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\"\xde\x03\n" +
 	"\n" +
 	"OAuthGrant\x12.\n" +
 	"\x13identity_account_id\x18\x01 \x01(\tR\x11identityAccountId\x12\x1f\n" +
@@ -271,12 +268,13 @@ const file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_rawDesc = "" +
 	"\vauth_method\x18\x05 \x01(\tR\n" +
 	"authMethod\x12%\n" +
 	"\x0etoken_endpoint\x18\x06 \x01(\tR\rtokenEndpoint\x12/\n" +
-	"\x14access_token_env_var\x18\a \x01(\tR\x11accessTokenEnvVar\x121\n" +
-	"\x15refresh_token_env_var\x18\b \x01(\tR\x12refreshTokenEnvVar\x12%\n" +
-	"\x0eenvironment_id\x18\t \x01(\tR\renvironmentId\x12#\n" +
+	"\x14access_token_env_var\x18\a \x01(\tR\x11accessTokenEnvVar\x12#\n" +
 	"\rresource_kind\x18\n" +
 	" \x01(\tR\fresourceKind\x12\x10\n" +
-	"\x03org\x18\v \x01(\tR\x03org\"\x8c\x01\n" +
+	"\x03org\x18\v \x01(\tR\x03org\x12#\n" +
+	"\rcredential_id\x18\f \x01(\tR\fcredentialId\x12#\n" +
+	"\rrefresh_token\x18\r \x01(\tR\frefreshTokenJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
+	"R\x15refresh_token_env_varR\x0eenvironment_id\"\x8c\x01\n" +
 	"\x10OAuthAppOverride\x12\x1f\n" +
 	"\vresource_id\x18\x01 \x01(\tR\n" +
 	"resourceId\x12#\n" +

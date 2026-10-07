@@ -6,7 +6,7 @@ import ai.stigmer.agentic.agent.v1.Agent;
 import ai.stigmer.agentic.agent.v1.AgentSpec;
 import ai.stigmer.agentic.agent.v1.HookSource;
 import ai.stigmer.agentic.agent.v1.SubAgent;
-import ai.stigmer.agentic.environment.v1.EnvVarDeclaration;
+import ai.stigmer.agentic.credential.v1.EnvVarDeclaration;
 import ai.stigmer.agentic.mcpserver.v1.McpServerUsage;
 import ai.stigmer.agentic.plugin.v1.HookConfig;
 import ai.stigmer.agentic.plugin.v1.HookFormat;

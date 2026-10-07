@@ -5,9 +5,9 @@
 
 import { generateSlug, enumFromString } from "./apply-runtime.js";
 import { create } from "@bufbuild/protobuf";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/requirement_pb";
 import { McpServerSchema, type McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { McpServerSpecSchema, StdioServerConfigSchema, HttpServerConfigSchema, McpServerAuthSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
+import { McpServerSpecSchema, McpServerSignIn, StdioServerConfigSchema, HttpServerConfigSchema, McpServerAuthSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -29,7 +29,8 @@ export const McpServerInputShape = {
   env: z.record(z.lazy(() => EnvVarDeclarationInputSchema)).optional().describe("Environment variable declarations for this MCP server. Keys are variable names; values describe their metadata and optionality."),
   repository_url: z.string().optional().describe("URL of the upstream source repository for this MCP server. Shown in the marketplace so users can inspect the implementation for trust and transparency. Example: 'https://github.com/modelcontextprotocol/servers'"),
   github_stars: z.number().optional().describe("GitHub star count at the time of curation. Used as a popularity signal in marketplace display. 0 if unknown or non-GitHub repository."),
-  auth: z.lazy(() => McpServerAuthInputSchema).optional().describe("OAuth authentication configuration for automated credential acquisition. When set, the MCP server's Connect page offers an OAuth flow instead of (or in addition to) manual credential entry. The acquired access token is stored in a system-managed environment (identified by grant.environment_id) as the env var named by auth.target_env_var. That env var must also be declared in env so the execution pipeline knows about it."),
+  auth: z.lazy(() => McpServerAuthInputSchema).optional().describe("OAuth authentication configuration for automated credential acquisition. When set, the MCP server's Connect page offers an OAuth flow instead of (or in addition to) manual credential entry. A sign-in saves the access token as a credential whose one field is named by auth.target_env_var. That key must also be declared in env so a run knows the server needs it."),
+  sign_in: z.string().optional().describe("Whose account the server's runs use: each person's own sign-in (the default), or one account the organization signs in once. With personal sign-in, a person's run uses that person's own credential for the server, and a run with no person behind it (a schedule, a shared link, a channel) uses only a credential assigned to it there. With organization sign-in, every run in the organization uses the organization's credential for the server. Allowed values: mcp_server_sign_in_personal, mcp_server_sign_in_organization."),
 } as const;
 
 export const McpServerInputSchema = z.object(McpServerInputShape);
@@ -51,9 +52,9 @@ const HttpServerConfigInputSchema = z.object({
 type HttpServerConfigInput = z.infer<typeof HttpServerConfigInputSchema>;
 
 const EnvVarDeclarationInputSchema = z.object({
-  is_secret: z.boolean().optional().describe("Whether the resolved value should be treated as a secret."),
-  description: z.string().optional().describe("Human-readable description shown in the UI credential form. Should explain what the variable is used for and where to obtain it."),
-  optional: z.boolean().optional().describe("Whether this variable is optional."),
+  is_secret: z.boolean().optional().describe("Whether the value is a secret."),
+  description: z.string().optional().describe("Human-readable description shown when someone is asked for the value. Should explain what the value is used for and where to obtain it."),
+  optional: z.boolean().optional().describe("Whether the value may be absent. A run whose required value has no source is refused when it is created, naming the value and who must provide it."),
 });
 type EnvVarDeclarationInput = z.infer<typeof EnvVarDeclarationInputSchema>;
 
@@ -65,7 +66,7 @@ type OauthAppRefInput = z.infer<typeof OauthAppRefInputSchema>;
 
 const McpServerAuthInputSchema = z.object({
   oauth_app_ref: z.lazy(() => OauthAppRefInputSchema).optional().describe("Reference to an OAuthApp for vendor-specific OAuth. When empty: the server supports the MCP Authorization spec (DCR + PKCE). Stigmer discovers the authorization server metadata, registers a client via DCR, and performs the authorization code flow with PKCE — all automatically at connect time. When set: Stigmer uses the referenced OAuthApp's client credentials to perform the OAuth authorization code flow with the vendor on behalf of the user. The OAuthApp must belong to the same organization as the McpServer: an OAuth app holds vendor credentials and is never shared with child organizations, so no cross-organization reference to one is accepted."),
-  target_env_var: z.string().optional().describe("The env var where the acquired access token is stored. Must correspond to an entry in env so the execution pipeline resolves it. The refresh token is stored as {target_env_var}_REFRESH_TOKEN by convention. Both are written to the grant's managed environment."),
+  target_env_var: z.string().optional().describe("The key the acquired access token fills. Must correspond to an entry in env so a run knows the server needs it. It names the one field of the sign-in's credential."),
   token_lifetime_hint: z.string().optional().describe("Informational hint about expected token lifetime for UI display. Helps users understand when re-authentication may be needed. Empty means unknown. Examples: '1h', '2h', '90d', 'never'."),
   scope_hints: z.array(z.string()).optional().describe("Optional scope hints for UI display before the OAuth flow starts. For DCR servers: shown to the user since actual scopes are discovered at connect time during authorization server metadata retrieval. For vendor OAuth: informational (scopes are defined on the OAuthApp)."),
   discovery_url: z.string().optional().describe("Optional URL for OAuth authorization server discovery on stdio servers. HTTP servers do not need this: the platform derives the discovery endpoint from http.url (fetching /.well-known/oauth-authorization-server relative to the server URL). Stdio servers have no URL, so DCR discovery has nothing to derive from. Set this field to the base URL of the vendor's OAuth authorization server to enable DCR for a stdio-based MCP server. Resolution priority: 1. discovery_url (if set — used for both stdio and HTTP) 2. http.url (default for HTTP servers) Ignored when oauth_app_ref is set (vendor OAuth uses OAuthApp endpoints directly, no discovery needed)."),
@@ -88,6 +89,7 @@ export function mcpServerInputToProto(input: McpServerInput): McpServer {
   if (input.repository_url !== undefined) spec.repositoryUrl = input.repository_url;
   if (input.github_stars !== undefined) spec.githubStars = input.github_stars;
   if (input.auth !== undefined) spec.auth = mcpServerAuthInputToProto(input.auth);
+  spec.signIn = enumFromString(McpServerSignIn, input.sign_in) as McpServerSignIn;
   return Object.assign(create(McpServerSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "McpServer",

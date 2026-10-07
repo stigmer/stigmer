@@ -1,3 +1,8 @@
+// IamRole conversions for role pickers and IAM policy writes: the FGA
+// relation string each role is granted as, its display name and its one-line
+// description. Records keyed by IamRole make a role added to the contract a
+// type error here until it has all three.
+
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 const ROLE_STRINGS: Record<IamRole, string> = {
@@ -8,6 +13,7 @@ const ROLE_STRINGS: Record<IamRole, string> = {
   [IamRole.viewer]: "viewer",
   [IamRole.participant]: "participant",
   [IamRole.editor]: "editor",
+  [IamRole.user]: "user",
 };
 
 const STRING_TO_ROLE: Record<string, IamRole> = {
@@ -17,6 +23,7 @@ const STRING_TO_ROLE: Record<string, IamRole> = {
   viewer: IamRole.viewer,
   participant: IamRole.participant,
   editor: IamRole.editor,
+  user: IamRole.user,
 };
 
 const ROLE_DISPLAY_NAMES: Record<IamRole, string> = {
@@ -27,6 +34,7 @@ const ROLE_DISPLAY_NAMES: Record<IamRole, string> = {
   [IamRole.viewer]: "Viewer",
   [IamRole.participant]: "Participant",
   [IamRole.editor]: "Editor",
+  [IamRole.user]: "User",
 };
 
 const ROLE_DESCRIPTIONS: Record<IamRole, string> = {
@@ -37,6 +45,7 @@ const ROLE_DESCRIPTIONS: Record<IamRole, string> = {
   [IamRole.viewer]: "Read-only access",
   [IamRole.participant]: "Reply to customers and manage conversation takeover",
   [IamRole.editor]: "Edit and run; cannot delete or change who has access",
+  [IamRole.user]: "Runs may use the credential's values; never reveals them",
 };
 
 /**

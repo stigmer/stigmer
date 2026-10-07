@@ -7,7 +7,7 @@
     "api-key",
     "channel-app",
     "commons",
-    "environment",
+    "credential",
     "execution-context",
     "iam-policy",
     "identity-account",

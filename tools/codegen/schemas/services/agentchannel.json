@@ -54,7 +54,7 @@
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannelId",
           "outputType": "AgentChannel",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
-          "description": "Delete an agent channel.\n\n Full teardown of the connection: inbound events for the workspace stop\n resolving, pending deliveries are abandoned, and the credentials\n environment is deleted with the grant. To pause serving while keeping\n the install, update the channel with enabled=false instead."
+          "description": "Delete an agent channel.\n\n Full teardown of the connection: inbound events for the workspace stop\n resolving, pending deliveries are abandoned, and the provider\n credential is deleted with the grant. To pause serving while keeping\n the install, update the channel with enabled=false instead."
         }
       ]
     },
@@ -1132,11 +1132,11 @@
               "agent_share",
               "agent_channel",
               "channel_app",
-              "environment",
               "execution_context",
               "schedule",
               "memory",
               "plugin",
+              "credential",
               "plan",
               "subscription",
               "license"
@@ -1452,11 +1452,6 @@
           "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
         },
         {
-          "name": "environment",
-          "number": 53,
-          "description": "Named set of variables and secrets for a run."
-        },
-        {
           "name": "execution_context",
           "number": 54,
           "description": "User-owned runtime context for managing execution state."
@@ -1475,6 +1470,11 @@
           "name": "plugin",
           "number": 58,
           "description": "An installed Agent Plugins package: the archive Stigmer materialised into\n skills, MCP servers and an agent, and the handle that upgrades\n and removes them together. A plugin is what you install; an agent is what\n runs. Members are the resources labelled with the plugin's id."
+        },
+        {
+          "name": "credential",
+          "number": 59,
+          "description": "Saved secret values that belong to a person or to an organization."
         },
         {
           "name": "plan",
@@ -1775,16 +1775,6 @@
         "description": "WhatsApp Business number install facts.",
         "required": false,
         "oneofGroup": "provider_status"
-      },
-      {
-        "name": "CredentialsEnvironmentId",
-        "jsonName": "credentialsEnvironmentId",
-        "protoField": "credentials_environment_id",
-        "type": {
-          "kind": "string"
-        },
-        "description": "ID of the system-managed Environment holding this connection's\n provider credentials (e.g. the Slack bot token).",
-        "required": false
       },
       {
         "name": "Audit",

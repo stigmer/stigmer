@@ -37,11 +37,6 @@ export interface ListResult {
   readonly totalPages: number;
 }
 
-/** Environment variable configuration. */
-export interface EnvSpecInput {
-  readonly variables: Record<string, EnvVarInput>;
-}
-
 /** A single environment variable. */
 export interface EnvVarInput {
   readonly value: string;

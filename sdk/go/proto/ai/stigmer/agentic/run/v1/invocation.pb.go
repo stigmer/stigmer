@@ -8,6 +8,7 @@ package runv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	v11 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/credential/v1"
 	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -28,7 +29,7 @@ const (
 //
 // It is the owner-settable subset of a run — the interactive
 // composer's vocabulary (agent, message, harness, workspace,
-// environments, run bounds) minus what an unattended surface makes
+// credentials, run bounds) minus what an unattended surface makes
 // structurally impossible. Surfaces that trigger agents on someone's
 // behalf embed this message instead of re-deriving the shape:
 // schedules embed it whole; channels and shares embed RunConfig.
@@ -49,14 +50,12 @@ type AgentInvocation struct {
 	Harness v1.Harness `protobuf:"varint,3,opt,name=harness,proto3,enum=ai.stigmer.agentic.session.v1.Harness" json:"harness,omitempty"`
 	// Workspace the run's session operates on. Empty means no workspace.
 	WorkspaceEntries []*v1.WorkspaceEntry `protobuf:"bytes,4,rep,name=workspace_entries,json=workspaceEntries,proto3" json:"workspace_entries,omitempty"`
-	// References to Environment resources whose values are provided to
-	// the runs this invocation creates.
+	// The values the runs this invocation creates use for what the agent needs.
 	//
-	// This is how a tool-using agent becomes runnable unattended: bind
-	// an org-shared environment holding the needed credentials (for
-	// example an MCP server's shared secret), and the runs receive its
-	// values at runtime. The agent itself stays untouched.
-	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,5,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`
+	// A schedule's runs have no person behind them: they use what is
+	// assigned here, and a credential of the schedule's own creator only
+	// when that person wrote the assignment.
+	Credentials []*v11.CredentialAssignment `protobuf:"bytes,7,rep,name=credentials,proto3" json:"credentials,omitempty"`
 	// Per-invocation model choice and run bounds. Unset fields fall to the
 	// agent's defaults, then to the lane's operator profile (RunConfig has the
 	// rule).
@@ -123,9 +122,9 @@ func (x *AgentInvocation) GetWorkspaceEntries() []*v1.WorkspaceEntry {
 	return nil
 }
 
-func (x *AgentInvocation) GetEnvironmentRefs() []*apiresource.ApiResourceReference {
+func (x *AgentInvocation) GetCredentials() []*v11.CredentialAssignment {
 	if x != nil {
-		return x.EnvironmentRefs
+		return x.Credentials
 	}
 	return nil
 }
@@ -311,18 +310,17 @@ var File_ai_stigmer_agentic_run_v1_invocation_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_invocation_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/run/v1/invocation.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xaf\x05\n" +
+	"*ai/stigmer/agentic/run/v1/invocation.proto\x12\x19ai.stigmer.agentic.run.v1\x1a2ai/stigmer/agentic/credential/v1/requirement.proto\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xcf\x04\n" +
 	"\x0fAgentInvocation\x12\xb6\x01\n" +
 	"\tagent_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBc\xbaH\\\xba\x01V\n" +
 	"\x0eagent_ref.kind\x123agent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xc8\x01\x01\xe0\x85,(R\bagentRef\x12$\n" +
 	"\amessage\x18\x02 \x01(\tB\n" +
 	"\xbaH\ar\x05\x10\x01\x18\x80@R\amessage\x12@\n" +
 	"\aharness\x18\x03 \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x12Z\n" +
-	"\x11workspace_entries\x18\x04 \x03(\v2-.ai.stigmer.agentic.session.v1.WorkspaceEntryR\x10workspaceEntries\x12\xd9\x01\n" +
-	"\x10environment_refs\x18\x05 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n" +
-	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefs\x12C\n" +
+	"\x11workspace_entries\x18\x04 \x03(\v2-.ai.stigmer.agentic.session.v1.WorkspaceEntryR\x10workspaceEntries\x12b\n" +
+	"\vcredentials\x18\a \x03(\v26.ai.stigmer.agentic.credential.v1.CredentialAssignmentB\b\xbaH\x05\x92\x01\x02\x10@R\vcredentials\x12C\n" +
 	"\n" +
-	"run_config\x18\x06 \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfig\"\xf6\x02\n" +
+	"run_config\x18\x06 \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfigJ\x04\b\x05\x10\x06R\x10environment_refs\"\xf6\x02\n" +
 	"\tRunConfig\x12\x1d\n" +
 	"\n" +
 	"model_name\x18\x01 \x01(\tR\tmodelName\x120\n" +
@@ -353,17 +351,18 @@ var file_ai_stigmer_agentic_run_v1_invocation_proto_goTypes = []any{
 	(*apiresource.ApiResourceReference)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceReference
 	(v1.Harness)(0),                          // 3: ai.stigmer.agentic.session.v1.Harness
 	(*v1.WorkspaceEntry)(nil),                // 4: ai.stigmer.agentic.session.v1.WorkspaceEntry
-	(ServiceTier)(0),                         // 5: ai.stigmer.agentic.run.v1.ServiceTier
-	(ThinkingMode)(0),                        // 6: ai.stigmer.agentic.run.v1.ThinkingMode
+	(*v11.CredentialAssignment)(nil),         // 5: ai.stigmer.agentic.credential.v1.CredentialAssignment
+	(ServiceTier)(0),                         // 6: ai.stigmer.agentic.run.v1.ServiceTier
+	(ThinkingMode)(0),                        // 7: ai.stigmer.agentic.run.v1.ThinkingMode
 }
 var file_ai_stigmer_agentic_run_v1_invocation_proto_depIdxs = []int32{
 	2, // 0: ai.stigmer.agentic.run.v1.AgentInvocation.agent_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	3, // 1: ai.stigmer.agentic.run.v1.AgentInvocation.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
 	4, // 2: ai.stigmer.agentic.run.v1.AgentInvocation.workspace_entries:type_name -> ai.stigmer.agentic.session.v1.WorkspaceEntry
-	2, // 3: ai.stigmer.agentic.run.v1.AgentInvocation.environment_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	5, // 3: ai.stigmer.agentic.run.v1.AgentInvocation.credentials:type_name -> ai.stigmer.agentic.credential.v1.CredentialAssignment
 	1, // 4: ai.stigmer.agentic.run.v1.AgentInvocation.run_config:type_name -> ai.stigmer.agentic.run.v1.RunConfig
-	5, // 5: ai.stigmer.agentic.run.v1.RunConfig.service_tier:type_name -> ai.stigmer.agentic.run.v1.ServiceTier
-	6, // 6: ai.stigmer.agentic.run.v1.RunConfig.thinking_mode:type_name -> ai.stigmer.agentic.run.v1.ThinkingMode
+	6, // 5: ai.stigmer.agentic.run.v1.RunConfig.service_tier:type_name -> ai.stigmer.agentic.run.v1.ServiceTier
+	7, // 6: ai.stigmer.agentic.run.v1.RunConfig.thinking_mode:type_name -> ai.stigmer.agentic.run.v1.ThinkingMode
 	7, // [7:7] is the sub-list for method output_type
 	7, // [7:7] is the sub-list for method input_type
 	7, // [7:7] is the sub-list for extension type_name

@@ -5,7 +5,7 @@ package gen
 import (
 	"context"
 
-	environmentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1"
+	credentialv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/credential/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
@@ -167,6 +167,7 @@ type McpServerInput struct {
 	RepositoryUrl string
 	GithubStars   int32
 	Auth          *McpServerAuthInput
+	SignIn        mcpserverv1.McpServerSignIn
 }
 
 // StdioServerConfigInput is the SDK input type for StdioServerConfig.
@@ -227,7 +228,7 @@ func (i *McpServerInput) toProto() (*mcpserverv1.McpServer, error) {
 		resource.Spec.ServerType = &mcpserverv1.McpServerSpec_Stdio{Stdio: m}
 	}
 	if len(i.Env) > 0 {
-		resource.Spec.Env = make(map[string]*environmentv1.EnvVarDeclaration, len(i.Env))
+		resource.Spec.Env = make(map[string]*credentialv1.EnvVarDeclaration, len(i.Env))
 		for k, val := range i.Env {
 			pv, err := val.toProto()
 			if err != nil {
@@ -245,6 +246,7 @@ func (i *McpServerInput) toProto() (*mcpserverv1.McpServer, error) {
 		}
 		resource.Spec.Auth = v
 	}
+	resource.Spec.SignIn = i.SignIn
 	return resource, nil
 }
 
@@ -290,6 +292,7 @@ func McpServerInputFromProto(p *mcpserverv1.McpServer) *McpServerInput {
 		input.RepositoryUrl = s.GetRepositoryUrl()
 		input.GithubStars = s.GetGithubStars()
 		input.Auth = mcpServerAuthInputFromProto(s.GetAuth())
+		input.SignIn = s.GetSignIn()
 		if ov := s.GetStdio(); ov != nil {
 			input.Stdio = stdioServerConfigInputFromProto(ov)
 		}

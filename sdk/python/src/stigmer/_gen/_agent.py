@@ -18,7 +18,7 @@ from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
 from ai.stigmer.search.v1 import query_pb2_grpc as search_query_pb2_grpc
 from ai.stigmer.search.v1 import io_pb2 as search_io_pb2
 from ai.stigmer.commons.rpc import pagination_pb2
-from ai.stigmer.agentic.environment.v1 import spec_pb2 as environment_spec_pb2
+from ai.stigmer.agentic.credential.v1 import requirement_pb2 as credential_requirement_pb2
 from ai.stigmer.agentic.mcpserver.v1 import usage_pb2 as mcpserver_usage_pb2
 from ai.stigmer.agentic.plugin.v1 import hooks_pb2 as plugin_hooks_pb2
 from ai.stigmer.agentic.run.v1 import invocation_pb2 as run_invocation_pb2
@@ -245,8 +245,8 @@ class EnvVarDeclarationInput:
     description: str = ""
     optional: bool = False
 
-    def _to_proto(self) -> environment_spec_pb2.EnvVarDeclaration:
-        msg = environment_spec_pb2.EnvVarDeclaration(
+    def _to_proto(self) -> credential_requirement_pb2.EnvVarDeclaration:
+        msg = credential_requirement_pb2.EnvVarDeclaration(
             is_secret=self.is_secret,
             description=self.description,
             optional=self.optional,

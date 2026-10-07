@@ -1,7 +1,7 @@
 // In-process test for the delete tools. Verifies the two-step
 // resolve→delete flow forwards the resolved id into the correct per-domain
 // delete-input shape: typed {value} for agent and skill, and
-// ApiResourceDeleteInput {resource_id} for mcp_server and environment.
+// ApiResourceDeleteInput {resource_id} for mcp_server and credential.
 
 import { create, toJson } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
@@ -18,9 +18,9 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
-import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
-import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
+import { CredentialSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/api_pb";
+import { CredentialCommandController } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/command_pb";
+import { CredentialQueryController } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/query_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
@@ -41,10 +41,10 @@ const resolvedMcpServer = create(McpServerSchema, {
   kind: "mcp_server",
   metadata: { name: "GitHub", slug: "github", org: "acme", id: "mcp-456" },
 });
-const resolvedEnvironment = create(EnvironmentSchema, {
+const resolvedCredential = create(CredentialSchema, {
   apiVersion: "v1",
-  kind: "environment",
-  metadata: { name: "GitHub Creds", slug: "github-creds", org: "acme", id: "env-789" },
+  kind: "credential",
+  metadata: { name: "GitHub Token", slug: "github-token", org: "acme", id: "cred-789" },
 });
 
 let backend: Http2Server;
@@ -52,7 +52,7 @@ let client: Client;
 let deletedAgentId: string | undefined;
 let lastAgentReferenceOrg: string | undefined;
 let deletedMcpResourceId: string | undefined;
-let deletedEnvironmentResourceId: string | undefined;
+let deletedCredentialResourceId: string | undefined;
 const openSessions = new Set<ServerHttp2Session>();
 
 interface ToolResult {
@@ -85,11 +85,11 @@ beforeAll(async () => {
         return resolvedMcpServer;
       },
     });
-    router.service(EnvironmentQueryController, { getByReference: () => resolvedEnvironment });
-    router.service(EnvironmentCommandController, {
+    router.service(CredentialQueryController, { getByReference: () => resolvedCredential });
+    router.service(CredentialCommandController, {
       delete: (req) => {
-        deletedEnvironmentResourceId = req.resourceId;
-        return resolvedEnvironment;
+        deletedCredentialResourceId = req.resourceId;
+        return resolvedCredential;
       },
     });
   };
@@ -121,7 +121,7 @@ describe("delete tools integration", () => {
         "delete_agent",
         "delete_skill",
         "delete_mcp_server",
-        "delete_environment",
+        "delete_credential",
       ]),
     );
   });
@@ -153,9 +153,9 @@ describe("delete tools integration", () => {
     );
   });
 
-  it("delete_environment resolves the id then deletes via ApiResourceDeleteInput", async () => {
-    const result = await callTool("delete_environment", { org: "acme", slug: "github-creds" });
+  it("delete_credential resolves the id then deletes via ApiResourceDeleteInput", async () => {
+    const result = await callTool("delete_credential", { org: "acme", slug: "github-token" });
     expect(result.isError).toBeFalsy();
-    expect(deletedEnvironmentResourceId).toBe("env-789");
+    expect(deletedCredentialResourceId).toBe("cred-789");
   });
 });

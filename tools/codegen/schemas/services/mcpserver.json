@@ -78,7 +78,7 @@
           "inputFullType": "ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput",
           "outputType": "CompleteOAuthConnectOutput",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput",
-          "description": "Complete the OAuth authorization flow by exchanging the authorization\n code for tokens.\n\n Called by the frontend after the user is redirected back from the\n OAuth authorization server. Exchanges the code for tokens, stores\n them in the user's personal environment, and creates an OAuthGrant\n record for pre-flight expiry checks.\n\n After success, the frontend should call connect() to trigger tool\n discovery using the freshly acquired token."
+          "description": "Complete the OAuth authorization flow by exchanging the authorization\n code for tokens.\n\n Called by the frontend after the user is redirected back from the\n OAuth authorization server. Exchanges the code for tokens, saves the\n access token as the caller's credential serving the server (the\n organization's, for a server with organization sign-in), and records\n an OAuthGrant for pre-flight expiry checks.\n\n After success, the frontend should call connect() to trigger tool\n discovery using the freshly acquired token."
         },
         {
           "name": "DisconnectOAuth",
@@ -86,7 +86,7 @@
           "inputFullType": "ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput",
           "outputType": "DisconnectOAuthOutput",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput",
-          "description": "Disconnect the authenticated user's OAuth connection for a resource.\n\n Tears down the user's personal OAuth connection by deleting the\n OAuthGrant and its associated managed environment (which holds the\n access and refresh tokens). The MCP server definition is unchanged —\n only the caller's credentials are removed.\n\n Other users' connections to the same resource are unaffected.\n\n Idempotent: returns disconnected=true when a grant was deleted,\n disconnected=false when no grant existed. Never returns an error\n for a missing grant."
+          "description": "Disconnect the authenticated user's OAuth connection for a resource.\n\n Tears down one sign-in by deleting the OAuthGrant (which keeps the\n refresh token) and the credential holding the access token. On a\n server with organization sign-in it is the organization's sign-in,\n and only an admin may end it. The MCP server definition is unchanged.\n\n Other users' connections to the same resource are unaffected.\n\n Idempotent: returns disconnected=true when a grant was deleted,\n disconnected=false when no grant existed. Never returns an error\n for a missing grant."
         },
         {
           "name": "SetOrgOAuthApp",
@@ -219,7 +219,7 @@
               "messageType": "ExecutionValue"
             }
           },
-          "description": "Optional environment variable values for one-time use.\n When empty, values are resolved from the user's personal environment.",
+          "description": "Optional values for one-time use, by key.\n Keys left out are resolved from the caller's credentials.",
           "required": false
         },
         {
@@ -229,7 +229,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization context for credential resolution.\n\n Used to look up the caller's OAuthGrant and personal environment\n during environment variable resolution. Must match the org used\n during initiateOAuthConnect so the grant composite key aligns.\n\n Required: the backend rejects the request when this field is empty.",
+          "description": "Organization context for credential resolution.\n\n The organization whose credentials the values are resolved from.\n\n Required: the backend rejects the request when this field is empty.",
           "required": false,
           "validation": {
             "minLength": 1
@@ -263,7 +263,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization context for token storage.\n Tokens are stored in the caller's personal environment within this org.\n Must be an org the caller belongs to.",
+          "description": "Organization the sign-in is saved in.\n The token is saved as the caller's own credential in this org, or as\n the org's credential for a server with organization sign-in (admins\n only). Must be an org the caller belongs to.",
           "required": false,
           "validation": {
             "minLength": 1
@@ -392,7 +392,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The environment variable name where the access token was stored.\n Matches McpServerAuth.target_env_var on the MCP server spec.",
+          "description": "The key the access token fills: the name of the credential's field.\n Matches McpServerAuth.target_env_var on the MCP server spec.",
           "required": false
         },
         {
@@ -454,7 +454,7 @@
           "type": {
             "kind": "bool"
           },
-          "description": "Whether an active grant was found and deleted.\n true: grant and its managed environment were deleted.\n false: no grant existed for this resource + org + caller. The desired\n state (no OAuth connection) was already achieved. This is not an error.",
+          "description": "Whether an active grant was found and deleted.\n true: the grant and its credential were deleted.\n false: no grant existed for this resource + org + caller. The desired\n state (no OAuth connection) was already achieved. This is not an error.",
           "required": false
         }
       ]
@@ -636,11 +636,11 @@
               "agent_share",
               "agent_channel",
               "channel_app",
-              "environment",
               "execution_context",
               "schedule",
               "memory",
               "plugin",
+              "credential",
               "plan",
               "subscription",
               "license"
@@ -747,7 +747,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The env var name where the access token is stored.\n Empty if no grant exists.",
+          "description": "The key the access token fills.\n Empty if no grant exists.",
           "required": false
         },
         {
@@ -981,11 +981,6 @@
           "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
         },
         {
-          "name": "environment",
-          "number": 53,
-          "description": "Named set of variables and secrets for a run."
-        },
-        {
           "name": "execution_context",
           "number": 54,
           "description": "User-owned runtime context for managing execution state."
@@ -1004,6 +999,11 @@
           "name": "plugin",
           "number": 58,
           "description": "An installed Agent Plugins package: the archive Stigmer materialised into\n skills, MCP servers and an agent, and the handle that upgrades\n and removes them together. A plugin is what you install; an agent is what\n runs. Members are the resources labelled with the plugin's id."
+        },
+        {
+          "name": "credential",
+          "number": 59,
+          "description": "Saved secret values that belong to a person or to an organization."
         },
         {
           "name": "plan",
@@ -1129,6 +1129,23 @@
           "name": "OAUTH_APP_SOURCE_NONE",
           "number": 3,
           "description": "No OAuthApp is available. The MCP server either uses DCR (mcp_oauth)\n or has no auth block at all."
+        }
+      ]
+    },
+    {
+      "name": "McpServerSignIn",
+      "description": "McpServerSignIn says whose account an MCP server's runs use.",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.McpServerSignIn",
+      "values": [
+        {
+          "name": "mcp_server_sign_in_personal",
+          "number": 1,
+          "description": "Each person signs in with their own account."
+        },
+        {
+          "name": "mcp_server_sign_in_organization",
+          "number": 2,
+          "description": "An admin signs the organization in once, and every run in the\n organization uses that account."
         }
       ]
     }

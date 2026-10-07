@@ -3,11 +3,11 @@
 from ._bidi import BidiStream
 from ._client import GeneratedClient
 from ._agent import AgentClient, AgentInput, McpServerUsageInput, SubAgentInput, EnvVarDeclarationInput, HookSourceInput, HookConfigInput, HookGroupInput, HookHandlerInput, RunConfigInput
-from ._agentchannel import AgentChannelClient, AgentChannelInput, SlackChannelConfigInput, WhatsAppChannelConfigInput
+from ._agentchannel import AgentChannelClient, AgentChannelInput, SlackChannelConfigInput, WhatsAppChannelConfigInput, CredentialAssignmentInput, RequirementRefInput, CredentialTargetInput, CredentialFieldRefInput
 from ._agentshare import AgentShareClient, AgentShareInput, AgentShareMessagesInput
 from ._apikey import ApiKeyClient, ApiKeyInput
 from ._channelapp import ChannelAppClient, ChannelAppInput, SlackChannelAppConfigInput, WhatsAppChannelAppConfigInput
-from ._environment import EnvironmentClient, EnvironmentInput
+from ._credential import CredentialClient, CredentialInput, CredentialFieldInput
 from ._executioncontext import ExecutionContextClient, ExecutionContextInput
 from ._iampolicy import IamPolicyClient, IamPolicyInput, ApiResourceRefInput
 from ._identityaccount import IdentityAccountClient, IdentityAccountInput, IdentityAccountPreferencesInput
@@ -30,7 +30,6 @@ from ._subscription import SubscriptionClient, SubscriptionInput
 from ._team import TeamClient, TeamInput
 from ._types import (
     DeleteResourceInput,
-    EnvSpecInput,
     EnvVarInput,
     ListParams,
     ListResult,
@@ -64,6 +63,10 @@ __all__ = [
     "AgentChannelInput",
     "SlackChannelConfigInput",
     "WhatsAppChannelConfigInput",
+    "CredentialAssignmentInput",
+    "RequirementRefInput",
+    "CredentialTargetInput",
+    "CredentialFieldRefInput",
     "AgentShareClient",
     "AgentShareInput",
     "AgentShareMessagesInput",
@@ -73,8 +76,9 @@ __all__ = [
     "ChannelAppInput",
     "SlackChannelAppConfigInput",
     "WhatsAppChannelAppConfigInput",
-    "EnvironmentClient",
-    "EnvironmentInput",
+    "CredentialClient",
+    "CredentialInput",
+    "CredentialFieldInput",
     "ExecutionContextClient",
     "ExecutionContextInput",
     "IamPolicyClient",
@@ -135,7 +139,6 @@ __all__ = [
     "TeamClient",
     "TeamInput",
     "DeleteResourceInput",
-    "EnvSpecInput",
     "EnvVarInput",
     "ListParams",
     "ListResult",

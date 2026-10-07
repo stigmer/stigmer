@@ -191,11 +191,6 @@ function tsUpdateInputFieldExpr(f: FieldSchema, access: string, imports: TsImpor
     if (required) return `${access} ?? ${tsZeroValueForScalar(t)}`;
     return `${access} || undefined`;
   }
-  if (t.kind === "message" && t.messageType === "EnvironmentSpec") {
-    imports.addValue("./proto-utils", "toEnvSpecInput");
-    if (required) return `toEnvSpecInput(${access}) ?? { variables: {} }`;
-    return `toEnvSpecInput(${access})`;
-  }
   if (t.kind === "message" && t.messageType === "ApiResourceReference") {
     imports.addValue("./proto-utils", "toResourceRefInput");
     if (required) return `toResourceRefInput(${access}) ?? { org: "", slug: "" }`;
@@ -219,11 +214,6 @@ function tsUpdateInputFieldExpr(f: FieldSchema, access: string, imports: TsImpor
   if (t.kind === "array") {
     if (required) return `[...(${access} ?? [])]`;
     return `${access}?.length ? [...${access}] : undefined`;
-  }
-  if (t.kind === "map" && t.valueType?.messageType === "EnvironmentValue") {
-    imports.addValue("./proto-utils", "toEnvVarInputMap");
-    if (required) return `toEnvVarInputMap(${access}) ?? {}`;
-    return `toEnvVarInputMap(${access})`;
   }
   if (t.kind === "map" && t.valueType?.messageType === "ExecutionValue") {
     imports.addValue("./proto-utils", "toExecVarInputMap");

@@ -45,11 +45,11 @@
           "agent_share",
           "agent_channel",
           "channel_app",
-          "environment",
           "execution_context",
           "schedule",
           "memory",
           "plugin",
+          "credential",
           "plan",
           "subscription",
           "license"

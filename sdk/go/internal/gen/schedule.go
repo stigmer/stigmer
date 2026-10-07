@@ -118,7 +118,7 @@ type AgentInvocationInput struct {
 	Message          string
 	Harness          sessionv1.Harness
 	WorkspaceEntries []*WorkspaceEntryInput
-	EnvironmentRefs  []ResourceRef
+	Credentials      []*CredentialAssignmentInput
 	RunConfig        *RunConfigInput
 }
 
@@ -155,10 +155,12 @@ func (i *ScheduleInput) toProto() (*schedulev1.Schedule, error) {
 			}
 			m.WorkspaceEntries = append(m.WorkspaceEntries, v)
 		}
-		for _, r := range i.Agent.EnvironmentRefs {
-			ref := r.toProto()
-			ref.Kind = apiresourcekind.ApiResourceKind_environment
-			m.EnvironmentRefs = append(m.EnvironmentRefs, ref)
+		for idx, item := range i.Agent.Credentials {
+			v, err := item.toProto()
+			if err != nil {
+				return nil, indexErr("Agent.Credentials", idx, err)
+			}
+			m.Credentials = append(m.Credentials, v)
 		}
 		if i.Agent.RunConfig != nil {
 			v, err := i.Agent.RunConfig.toProto()
@@ -208,8 +210,8 @@ func agentInvocationInputFromProto(p *runv1.AgentInvocation) *AgentInvocationInp
 	for _, item := range p.GetWorkspaceEntries() {
 		input.WorkspaceEntries = append(input.WorkspaceEntries, workspaceEntryInputFromProto(item))
 	}
-	for _, r := range p.GetEnvironmentRefs() {
-		input.EnvironmentRefs = append(input.EnvironmentRefs, resourceRefFromProto(r))
+	for _, item := range p.GetCredentials() {
+		input.Credentials = append(input.Credentials, credentialAssignmentInputFromProto(item))
 	}
 	input.RunConfig = runConfigInputFromProto(p.GetRunConfig())
 	return input

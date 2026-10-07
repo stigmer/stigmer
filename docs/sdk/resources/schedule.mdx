@@ -660,7 +660,7 @@ AgentInvocation is what a caller may ask an agent to do.
     message: { type: "string", description: "Prompt the run starts from." },
     harness: { type: "Harness", description: "Execution engine for the run's session.", typeDescriptionLink: "#harness" },
     workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace the run's session operates on.", typeDescriptionLink: "#workspaceentryinput" },
-    environmentRefs: { type: "ResourceRef[]", description: "References to Environment resources whose values are provided to the runs this invocation creates.", typeDescriptionLink: "#resourceref" },
+    credentials: { type: "CredentialAssignmentInput[]", description: "The values the runs this invocation creates use for what the agent needs.", typeDescriptionLink: "#credentialassignmentinput" },
     runConfig: { type: "RunConfigInput", description: "Per-invocation model choice and run bounds.", typeDescriptionLink: "#runconfiginput" },
   }}
 />
@@ -721,6 +721,53 @@ LocalPathSource uses an existing directory on the host filesystem as the workspa
 <TypeTable
   type={{
     path: { type: "string", description: "Absolute path to an existing directory on the host filesystem." },
+  }}
+/>
+
+### CredentialAssignmentInput
+
+CredentialAssignment gives one requirement its value on a surface that starts runs.
+
+<TypeTable
+  type={{
+    requirement: { type: "RequirementRefInput", description: "The requirement this assignment fills.", typeDescriptionLink: "#requirementrefinput", required: true },
+    credential: { type: "CredentialFieldRefInput", description: "A field of a credential the writer may use.", typeDescriptionLink: "#credentialfieldrefinput" },
+    literal: { type: "string", description: "A plain value written on the surface itself; never a secret." },
+    writer: { type: "string", description: "The identity account that wrote this assignment." },
+  }}
+/>
+
+### RequirementRefInput
+
+RequirementRef names one value a declarer needs: the declarer and the key.
+
+<TypeTable
+  type={{
+    declarer: { type: "CredentialTargetInput", description: "The agent, MCP server or git host that declares the value.", typeDescriptionLink: "#credentialtargetinput", required: true },
+    key: { type: "string", description: "The declared key (for example \"LINEAR_API_KEY\")." },
+  }}
+/>
+
+### CredentialTargetInput
+
+CredentialTarget names something a credential's values are for: an MCP server, an agent, or a git host.
+
+<TypeTable
+  type={{
+    mcpServer: { type: "ResourceRef", description: "An MCP server.", typeDescriptionLink: "#resourceref" },
+    agent: { type: "ResourceRef", description: "An agent.", typeDescriptionLink: "#resourceref" },
+    gitHost: { type: "string", description: "A git host, by host name (for example \"github.com\")." },
+  }}
+/>
+
+### CredentialFieldRefInput
+
+CredentialFieldRef names one field of a credential.
+
+<TypeTable
+  type={{
+    credential: { type: "ResourceRef", description: "The credential.", typeDescriptionLink: "#resourceref", required: true },
+    field: { type: "string", description: "The field." },
   }}
 />
 

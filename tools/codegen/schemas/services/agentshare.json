@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
           "outputType": "AgentShare",
           "outputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
-          "description": "Update an existing agent share.\n\n Replaces the spec wholesale: a manifest that omits audience resets the\n share to public, and one that omits environment_refs unbinds them\n (fails closed). The slug and referenced agent are immutable."
+          "description": "Update an existing agent share.\n\n Replaces the spec wholesale: a manifest that omits audience resets the\n share to public, and one that omits credentials unassigns them\n (fails closed). The slug and referenced agent are immutable."
         },
         {
           "name": "RotateShareLink",
@@ -175,11 +175,11 @@
               "agent_share",
               "agent_channel",
               "channel_app",
-              "environment",
               "execution_context",
               "schedule",
               "memory",
               "plugin",
+              "credential",
               "plan",
               "subscription",
               "license"
@@ -548,11 +548,6 @@
           "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
         },
         {
-          "name": "environment",
-          "number": 53,
-          "description": "Named set of variables and secrets for a run."
-        },
-        {
           "name": "execution_context",
           "number": 54,
           "description": "User-owned runtime context for managing execution state."
@@ -571,6 +566,11 @@
           "name": "plugin",
           "number": 58,
           "description": "An installed Agent Plugins package: the archive Stigmer materialised into\n skills, MCP servers and an agent, and the handle that upgrades\n and removes them together. A plugin is what you install; an agent is what\n runs. Members are the resources labelled with the plugin's id."
+        },
+        {
+          "name": "credential",
+          "number": 59,
+          "description": "Saved secret values that belong to a person or to an organization."
         },
         {
           "name": "plan",
@@ -668,7 +668,7 @@
       ]
     }
   ],
-  "resourceDescription": "AgentShare turns an agent into a hosted chat link with its own audience, embed origins, and tool credentials.\n\n A share is a distribution channel: it controls who can chat with the\n referenced agent over `/chat/\u003cshare id\u003e`, which sites may embed the\n chat widget, what visitors see when a limit refuses them, and which\n environment credentials guest conversations receive. Deleting the share\n tears the channel down; disabling it pauses serving while preserving\n configuration. The referenced agent is never modified by share\n operations.",
+  "resourceDescription": "AgentShare turns an agent into a hosted chat link with its own audience, embed origins, and tool credentials.\n\n A share is a distribution channel: it controls who can chat with the\n referenced agent over `/chat/\u003cshare id\u003e`, which sites may embed the\n chat widget, what visitors see when a limit refuses them, and which\n credentials guest conversations use. Deleting the share\n tears the channel down; disabling it pauses serving while preserving\n configuration. The referenced agent is never modified by share\n operations.",
   "statusType": {
     "name": "AgentShareStatus",
     "description": "AgentShareStatus contains system-managed state for an agent share.",

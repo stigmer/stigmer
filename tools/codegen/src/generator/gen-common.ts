@@ -152,8 +152,6 @@ export function pascalToSnake(s: string): string {
 
 export function isSpecialType(name: string): boolean {
   return (
-    name === "EnvironmentSpec" ||
-    name === "EnvironmentValue" ||
     name === "ExecutionValue" ||
     name === "ApiResourceReference"
   );

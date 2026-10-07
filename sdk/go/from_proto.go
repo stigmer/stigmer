@@ -8,7 +8,7 @@ import (
 	agentchannelv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentchannel/v1"
 	agentsharev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentshare/v1"
 	channelappv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channelapp/v1"
-	environmentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1"
+	credentialv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/credential/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1"
 	memoryv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/memory/v1"
@@ -56,9 +56,9 @@ func ChannelAppInputFromProto(p *channelappv1.ChannelApp) *ChannelAppInput {
 	return gen.ChannelAppInputFromProto(p)
 }
 
-// EnvironmentInputFromProto creates a EnvironmentInput from a proto Environment resource.
-func EnvironmentInputFromProto(p *environmentv1.Environment) *EnvironmentInput {
-	return gen.EnvironmentInputFromProto(p)
+// CredentialInputFromProto creates a CredentialInput from a proto Credential resource.
+func CredentialInputFromProto(p *credentialv1.Credential) *CredentialInput {
+	return gen.CredentialInputFromProto(p)
 }
 
 // ExecutionContextInputFromProto creates a ExecutionContextInput from a proto ExecutionContext resource.

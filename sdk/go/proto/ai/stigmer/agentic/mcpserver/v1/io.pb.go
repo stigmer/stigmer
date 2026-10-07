@@ -153,14 +153,12 @@ type ConnectInput struct {
 	// System-generated ID of the MCP server to connect to.
 	// Obtained from McpServer.metadata.id (e.g., via getByReference).
 	McpServerId string `protobuf:"bytes,1,opt,name=mcp_server_id,json=mcpServerId,proto3" json:"mcp_server_id,omitempty"`
-	// Optional environment variable values for one-time use.
-	// When empty, values are resolved from the user's personal environment.
+	// Optional values for one-time use, by key.
+	// Keys left out are resolved from the caller's credentials.
 	RuntimeEnv map[string]*v1.ExecutionValue `protobuf:"bytes,2,rep,name=runtime_env,json=runtimeEnv,proto3" json:"runtime_env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Organization context for credential resolution.
 	//
-	// Used to look up the caller's OAuthGrant and personal environment
-	// during environment variable resolution. Must match the org used
-	// during initiateOAuthConnect so the grant composite key aligns.
+	// The organization whose credentials the values are resolved from.
 	//
 	// Required: the backend rejects the request when this field is empty.
 	Org           string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
@@ -225,9 +223,10 @@ type InitiateOAuthConnectInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// System-generated ID of the MCP server to initiate OAuth for.
 	McpServerId string `protobuf:"bytes,1,opt,name=mcp_server_id,json=mcpServerId,proto3" json:"mcp_server_id,omitempty"`
-	// Organization context for token storage.
-	// Tokens are stored in the caller's personal environment within this org.
-	// Must be an org the caller belongs to.
+	// Organization the sign-in is saved in.
+	// The token is saved as the caller's own credential in this org, or as
+	// the org's credential for a server with organization sign-in (admins
+	// only). Must be an org the caller belongs to.
 	Org           string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -431,7 +430,7 @@ type CompleteOAuthConnectOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Whether the OAuth flow completed successfully and tokens are stored.
 	Connected bool `protobuf:"varint,1,opt,name=connected,proto3" json:"connected,omitempty"`
-	// The environment variable name where the access token was stored.
+	// The key the access token fills: the name of the credential's field.
 	// Matches McpServerAuth.target_env_var on the MCP server spec.
 	TargetEnvVar string `protobuf:"bytes,2,opt,name=target_env_var,json=targetEnvVar,proto3" json:"target_env_var,omitempty"`
 	// Informational hint about expected token lifetime.
@@ -556,7 +555,7 @@ type GetOAuthGrantStatusOutput struct {
 	// When the access token expires (Unix timestamp seconds).
 	// 0 if no grant exists or the token does not expire.
 	AccessTokenExpiresAt int64 `protobuf:"varint,2,opt,name=access_token_expires_at,json=accessTokenExpiresAt,proto3" json:"access_token_expires_at,omitempty"`
-	// The env var name where the access token is stored.
+	// The key the access token fills.
 	// Empty if no grant exists.
 	TargetEnvVar string `protobuf:"bytes,3,opt,name=target_env_var,json=targetEnvVar,proto3" json:"target_env_var,omitempty"`
 	// Which auth method was used ("mcp_oauth" or "vendor_oauth").
@@ -696,7 +695,7 @@ func (x *DisconnectOAuthInput) GetOrg() string {
 type DisconnectOAuthOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Whether an active grant was found and deleted.
-	// true: grant and its managed environment were deleted.
+	// true: the grant and its credential were deleted.
 	// false: no grant existed for this resource + org + caller. The desired
 	// state (no OAuth connection) was already achieved. This is not an error.
 	Disconnected  bool `protobuf:"varint,1,opt,name=disconnected,proto3" json:"disconnected,omitempty"`

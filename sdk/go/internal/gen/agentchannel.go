@@ -6,6 +6,7 @@ import (
 	"context"
 
 	agentchannelv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentchannel/v1"
+	credentialv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/credential/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
@@ -171,7 +172,7 @@ type AgentChannelInput struct {
 	Enabled                   bool
 	Slack                     *SlackChannelConfigInput
 	Whatsapp                  *WhatsAppChannelConfigInput
-	EnvironmentRefs           []ResourceRef
+	Credentials               []*CredentialAssignmentInput
 	AppRef                    ResourceRef
 	ProactiveMessagingEnabled bool
 	RunConfig                 *RunConfigInput
@@ -184,6 +185,33 @@ type SlackChannelConfigInput struct {
 // WhatsAppChannelConfigInput is the SDK input type for WhatsAppChannelConfig.
 type WhatsAppChannelConfigInput struct {
 	PhoneNumberId string
+}
+
+// CredentialAssignmentInput is the SDK input type for CredentialAssignment.
+type CredentialAssignmentInput struct {
+	Requirement *RequirementRefInput
+	Credential  *CredentialFieldRefInput
+	Literal     string
+	Writer      string
+}
+
+// RequirementRefInput is the SDK input type for RequirementRef.
+type RequirementRefInput struct {
+	Declarer *CredentialTargetInput
+	Key      string
+}
+
+// CredentialTargetInput is the SDK input type for CredentialTarget.
+type CredentialTargetInput struct {
+	McpServer ResourceRef
+	Agent     ResourceRef
+	GitHost   string
+}
+
+// CredentialFieldRefInput is the SDK input type for CredentialFieldRef.
+type CredentialFieldRefInput struct {
+	Credential ResourceRef
+	Field      string
 }
 
 func (i *AgentChannelInput) toProto() (*agentchannelv1.AgentChannel, error) {
@@ -215,10 +243,12 @@ func (i *AgentChannelInput) toProto() (*agentchannelv1.AgentChannel, error) {
 		m := &agentchannelv1.SlackChannelConfig{}
 		resource.Spec.ProviderConfig = &agentchannelv1.AgentChannelSpec_Slack{Slack: m}
 	}
-	for _, r := range i.EnvironmentRefs {
-		ref := r.toProto()
-		ref.Kind = apiresourcekind.ApiResourceKind_environment
-		resource.Spec.EnvironmentRefs = append(resource.Spec.EnvironmentRefs, ref)
+	for idx, item := range i.Credentials {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("Credentials", idx, err)
+		}
+		resource.Spec.Credentials = append(resource.Spec.Credentials, v)
 	}
 	if i.AppRef.Org != "" || i.AppRef.Slug != "" {
 		ref := i.AppRef.toProto()
@@ -234,6 +264,63 @@ func (i *AgentChannelInput) toProto() (*agentchannelv1.AgentChannel, error) {
 		resource.Spec.RunConfig = v
 	}
 	return resource, nil
+}
+
+func (i *CredentialAssignmentInput) toProto() (*credentialv1.CredentialAssignment, error) {
+	p := &credentialv1.CredentialAssignment{}
+	if i.Requirement != nil {
+		v, err := i.Requirement.toProto()
+		if err != nil {
+			return nil, fieldErr("Requirement", err)
+		}
+		p.Requirement = v
+	}
+	if i.Literal != "" {
+		p.Source = &credentialv1.CredentialAssignment_Literal{Literal: i.Literal}
+	}
+	if i.Credential != nil {
+		m := &credentialv1.CredentialFieldRef{}
+		if i.Credential.Credential.Org != "" || i.Credential.Credential.Slug != "" {
+			ref := i.Credential.Credential.toProto()
+			ref.Kind = apiresourcekind.ApiResourceKind_credential
+			m.Credential = ref
+		}
+		m.Field = i.Credential.Field
+		p.Source = &credentialv1.CredentialAssignment_Credential{Credential: m}
+	}
+	p.Writer = i.Writer
+	return p, nil
+}
+
+func (i *RequirementRefInput) toProto() (*credentialv1.RequirementRef, error) {
+	p := &credentialv1.RequirementRef{}
+	if i.Declarer != nil {
+		v, err := i.Declarer.toProto()
+		if err != nil {
+			return nil, fieldErr("Declarer", err)
+		}
+		p.Declarer = v
+	}
+	p.Key = i.Key
+	return p, nil
+}
+
+func (i *CredentialTargetInput) toProto() (*credentialv1.CredentialTarget, error) {
+	p := &credentialv1.CredentialTarget{}
+	if i.GitHost != "" {
+		p.Target = &credentialv1.CredentialTarget_GitHost{GitHost: i.GitHost}
+	}
+	if i.Agent.Org != "" || i.Agent.Slug != "" {
+		ref := i.Agent.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_agent
+		p.Target = &credentialv1.CredentialTarget_Agent{Agent: ref}
+	}
+	if i.McpServer.Org != "" || i.McpServer.Slug != "" {
+		ref := i.McpServer.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_mcp_server
+		p.Target = &credentialv1.CredentialTarget_McpServer{McpServer: ref}
+	}
+	return p, nil
 }
 
 // AgentChannelInputFromProto creates a AgentChannelInput from a proto AgentChannel resource.
@@ -253,8 +340,8 @@ func AgentChannelInputFromProto(p *agentchannelv1.AgentChannel) *AgentChannelInp
 	if s := p.GetSpec(); s != nil {
 		input.AgentRef = resourceRefFromProto(s.GetAgentRef())
 		input.Enabled = s.GetEnabled()
-		for _, r := range s.GetEnvironmentRefs() {
-			input.EnvironmentRefs = append(input.EnvironmentRefs, resourceRefFromProto(r))
+		for _, item := range s.GetCredentials() {
+			input.Credentials = append(input.Credentials, credentialAssignmentInputFromProto(item))
 		}
 		input.AppRef = resourceRefFromProto(s.GetAppRef())
 		input.ProactiveMessagingEnabled = s.GetProactiveMessagingEnabled()
@@ -283,5 +370,48 @@ func whatsAppChannelConfigInputFromProto(p *agentchannelv1.WhatsAppChannelConfig
 	}
 	input := &WhatsAppChannelConfigInput{}
 	input.PhoneNumberId = p.GetPhoneNumberId()
+	return input
+}
+
+func credentialAssignmentInputFromProto(p *credentialv1.CredentialAssignment) *CredentialAssignmentInput {
+	if p == nil {
+		return nil
+	}
+	input := &CredentialAssignmentInput{}
+	input.Requirement = requirementRefInputFromProto(p.GetRequirement())
+	input.Credential = credentialFieldRefInputFromProto(p.GetCredential())
+	input.Literal = p.GetLiteral()
+	input.Writer = p.GetWriter()
+	return input
+}
+
+func requirementRefInputFromProto(p *credentialv1.RequirementRef) *RequirementRefInput {
+	if p == nil {
+		return nil
+	}
+	input := &RequirementRefInput{}
+	input.Declarer = credentialTargetInputFromProto(p.GetDeclarer())
+	input.Key = p.GetKey()
+	return input
+}
+
+func credentialTargetInputFromProto(p *credentialv1.CredentialTarget) *CredentialTargetInput {
+	if p == nil {
+		return nil
+	}
+	input := &CredentialTargetInput{}
+	input.McpServer = resourceRefFromProto(p.GetMcpServer())
+	input.Agent = resourceRefFromProto(p.GetAgent())
+	input.GitHost = p.GetGitHost()
+	return input
+}
+
+func credentialFieldRefInputFromProto(p *credentialv1.CredentialFieldRef) *CredentialFieldRefInput {
+	if p == nil {
+		return nil
+	}
+	input := &CredentialFieldRefInput{}
+	input.Credential = resourceRefFromProto(p.GetCredential())
+	input.Field = p.GetField()
 	return input
 }

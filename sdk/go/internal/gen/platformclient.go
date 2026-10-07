@@ -105,7 +105,7 @@ type PlatformClientInput struct {
 	ExpiresAt              string
 	NeverExpires           bool
 	AllowedOrigins         []string
-	EnvironmentRefs        []ResourceRef
+	Credentials            []*CredentialAssignmentInput
 	CreateAccountsOnSignIn bool
 	SignInRole             iamv1.IamRole
 }
@@ -136,10 +136,12 @@ func (i *PlatformClientInput) toProto() (*platformclientv1.PlatformClient, error
 	}
 	resource.Spec.NeverExpires = i.NeverExpires
 	resource.Spec.AllowedOrigins = i.AllowedOrigins
-	for _, r := range i.EnvironmentRefs {
-		ref := r.toProto()
-		ref.Kind = apiresourcekind.ApiResourceKind_environment
-		resource.Spec.EnvironmentRefs = append(resource.Spec.EnvironmentRefs, ref)
+	for idx, item := range i.Credentials {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("Credentials", idx, err)
+		}
+		resource.Spec.Credentials = append(resource.Spec.Credentials, v)
 	}
 	resource.Spec.CreateAccountsOnSignIn = i.CreateAccountsOnSignIn
 	resource.Spec.SignInRole = i.SignInRole
@@ -169,8 +171,8 @@ func PlatformClientInputFromProto(p *platformclientv1.PlatformClient) *PlatformC
 		}
 		input.NeverExpires = s.GetNeverExpires()
 		input.AllowedOrigins = s.GetAllowedOrigins()
-		for _, r := range s.GetEnvironmentRefs() {
-			input.EnvironmentRefs = append(input.EnvironmentRefs, resourceRefFromProto(r))
+		for _, item := range s.GetCredentials() {
+			input.Credentials = append(input.Credentials, credentialAssignmentInputFromProto(item))
 		}
 		input.CreateAccountsOnSignIn = s.GetCreateAccountsOnSignIn()
 		input.SignInRole = s.GetSignInRole()

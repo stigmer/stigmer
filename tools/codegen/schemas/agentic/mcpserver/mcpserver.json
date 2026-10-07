@@ -106,7 +106,22 @@
         "kind": "message",
         "messageType": "McpServerAuth"
       },
-      "description": "OAuth authentication configuration for automated credential acquisition.\n When set, the MCP server's Connect page offers an OAuth flow instead of\n (or in addition to) manual credential entry.\n\n The acquired access token is stored in a system-managed environment\n (identified by grant.environment_id) as the env var named by\n auth.target_env_var. That env var must also be declared in env so the\n execution pipeline knows about it.",
+      "description": "OAuth authentication configuration for automated credential acquisition.\n When set, the MCP server's Connect page offers an OAuth flow instead of\n (or in addition to) manual credential entry.\n\n A sign-in saves the access token as a credential whose one field is\n named by auth.target_env_var. That key must also be declared in env so\n a run knows the server needs it.",
+      "required": false
+    },
+    {
+      "name": "SignIn",
+      "jsonName": "signIn",
+      "protoField": "sign_in",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.mcpserver.v1.McpServerSignIn",
+        "enumValues": [
+          "mcp_server_sign_in_personal",
+          "mcp_server_sign_in_organization"
+        ]
+      },
+      "description": "Whose account the server's runs use: each person's own sign-in (the\n default), or one account the organization signs in once.\n\n With personal sign-in, a person's run uses that person's own credential\n for the server, and a run with no person behind it (a schedule, a\n shared link, a channel) uses only a credential assigned to it there.\n With organization sign-in, every run in the organization uses the\n organization's credential for the server.",
       "required": false
     }
   ]

@@ -192,7 +192,7 @@ async function assertSessionRunsAgent(
  * Convert the tool's plain string map to the proto ExecutionValue map. Values
  * arriving through an MCP tool call have already passed through the model's
  * context, so they are never secrets by definition — secrets reach runs
- * through Environments, not through this tool.
+ * through credentials, not through this tool.
  */
 export function toExecutionValues(
   env: Record<string, string> | undefined,

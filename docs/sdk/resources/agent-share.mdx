@@ -7,8 +7,8 @@ title: Agent Share
 An AgentShare turns an agent into a hosted chat link. It controls who can
 chat with the agent at `/chat/<share id>` (anyone with the link, or org
 members only), which sites may embed the chat widget, the messages visitors
-see when a limit refuses them, and the environment credentials guest
-conversations receive. The link names the share only by its permanent ID, so
+see when a limit refuses them, and the credentials guest conversations
+use for what the agent needs. The link names the share only by its permanent ID, so
 renaming the organization never breaks it; the share's slug names it within
 its organization for the CLI and API. Each guest conversation starts on the
 version `agent_ref` names, or on the agent's current version when it names none,
@@ -31,10 +31,20 @@ spec:
     - "https://docs.example.com"
   messages:
     rate_limited: "You're sending messages too quickly — give it a moment."
-  environment_refs:
-    - kind: environment
-      org: workshop
-      slug: github-org-shared
+  credentials:
+    - requirement:
+        declarer:
+          mcp_server:
+            kind: mcp_server
+            org: workshop
+            slug: github
+        key: GITHUB_TOKEN
+      credential:
+        credential:
+          kind: credential
+          org: workshop
+          slug: github-org-shared
+        field: GITHUB_TOKEN
 ```
 
 ## Client Access
@@ -363,7 +373,7 @@ const agentShare = await stigmer.agentShare.apply({
   audience: "...",
   allowedOrigins: [],
   messages: {},
-  environmentRefs: [],
+  credentials: [],
   runConfig: {},
 });
 ```
@@ -371,17 +381,17 @@ const agentShare = await stigmer.agentShare.apply({
 <Tab value="Go">
 ```go
 agentShare, err := client.AgentShare.Apply(ctx, &stigmer.AgentShareInput{
-  Name:            "my-agent-share",
-  Org:             "acme",
-  Slug:            "...",
-  Labels:          map[string]string{},
-  AgentRef:        &stigmer.ResourceRef{},
-  Enabled:         false,
-  Audience:        "...",
-  AllowedOrigins:  []string{},
-  Messages:        &stigmer.AgentShareMessagesInput{},
-  EnvironmentRefs: []stigmer.ResourceRef{},
-  RunConfig:       &stigmer.RunConfigInput{},
+  Name:           "my-agent-share",
+  Org:            "acme",
+  Slug:           "...",
+  Labels:         map[string]string{},
+  AgentRef:       &stigmer.ResourceRef{},
+  Enabled:        false,
+  Audience:       "...",
+  AllowedOrigins: []string{},
+  Messages:       &stigmer.AgentShareMessagesInput{},
+  Credentials:    []stigmer.CredentialAssignmentInput{},
+  RunConfig:      &stigmer.RunConfigInput{},
 })
 ```
 </Tab>
@@ -397,7 +407,7 @@ agent_share = client.agent_shares.apply(AgentShareInput(
     audience="...",
     allowed_origins=[],
     messages=None,
-    environment_refs=[],
+    credentials=[],
     run_config=None,
 ))
 ```
@@ -414,7 +424,7 @@ AgentShare agentShare = client.agentShares().apply(AgentShareInput.builder()
     .audience("...")
     .allowedOrigins(List.of())
     .messages(null)
-    .environmentRefs(List.of())
+    .credentials(List.of())
     .runConfig(null)
     .build());
 ```
@@ -444,7 +454,7 @@ const agentShare = await stigmer.agentShare.create({
   audience: "...",
   allowedOrigins: [],
   messages: {},
-  environmentRefs: [],
+  credentials: [],
   runConfig: {},
 });
 ```
@@ -452,17 +462,17 @@ const agentShare = await stigmer.agentShare.create({
 <Tab value="Go">
 ```go
 agentShare, err := client.AgentShare.Create(ctx, &stigmer.AgentShareInput{
-  Name:            "my-agent-share",
-  Org:             "acme",
-  Slug:            "...",
-  Labels:          map[string]string{},
-  AgentRef:        &stigmer.ResourceRef{},
-  Enabled:         false,
-  Audience:        "...",
-  AllowedOrigins:  []string{},
-  Messages:        &stigmer.AgentShareMessagesInput{},
-  EnvironmentRefs: []stigmer.ResourceRef{},
-  RunConfig:       &stigmer.RunConfigInput{},
+  Name:           "my-agent-share",
+  Org:            "acme",
+  Slug:           "...",
+  Labels:         map[string]string{},
+  AgentRef:       &stigmer.ResourceRef{},
+  Enabled:        false,
+  Audience:       "...",
+  AllowedOrigins: []string{},
+  Messages:       &stigmer.AgentShareMessagesInput{},
+  Credentials:    []stigmer.CredentialAssignmentInput{},
+  RunConfig:      &stigmer.RunConfigInput{},
 })
 ```
 </Tab>
@@ -478,7 +488,7 @@ agent_share = client.agent_shares.create(AgentShareInput(
     audience="...",
     allowed_origins=[],
     messages=None,
-    environment_refs=[],
+    credentials=[],
     run_config=None,
 ))
 ```
@@ -495,7 +505,7 @@ AgentShare agentShare = client.agentShares().create(AgentShareInput.builder()
     .audience("...")
     .allowedOrigins(List.of())
     .messages(null)
-    .environmentRefs(List.of())
+    .credentials(List.of())
     .runConfig(null)
     .build());
 ```
@@ -510,7 +520,7 @@ AgentShare agentShare = client.agentShares().create(AgentShareInput.builder()
 
 Update an existing agent share.
 
-Replaces the spec wholesale: a manifest that omits audience resets the share to public, and one that omits environment_refs unbinds them (fails closed). The slug and referenced agent are immutable.
+Replaces the spec wholesale: a manifest that omits audience resets the share to public, and one that omits credentials unassigns them (fails closed). The slug and referenced agent are immutable.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -525,7 +535,7 @@ const agentShare = await stigmer.agentShare.update({
   audience: "...",
   allowedOrigins: [],
   messages: {},
-  environmentRefs: [],
+  credentials: [],
   runConfig: {},
 });
 ```
@@ -533,17 +543,17 @@ const agentShare = await stigmer.agentShare.update({
 <Tab value="Go">
 ```go
 agentShare, err := client.AgentShare.Update(ctx, &stigmer.AgentShareInput{
-  Name:            "my-agent-share",
-  Org:             "acme",
-  Slug:            "...",
-  Labels:          map[string]string{},
-  AgentRef:        &stigmer.ResourceRef{},
-  Enabled:         false,
-  Audience:        "...",
-  AllowedOrigins:  []string{},
-  Messages:        &stigmer.AgentShareMessagesInput{},
-  EnvironmentRefs: []stigmer.ResourceRef{},
-  RunConfig:       &stigmer.RunConfigInput{},
+  Name:           "my-agent-share",
+  Org:            "acme",
+  Slug:           "...",
+  Labels:         map[string]string{},
+  AgentRef:       &stigmer.ResourceRef{},
+  Enabled:        false,
+  Audience:       "...",
+  AllowedOrigins: []string{},
+  Messages:       &stigmer.AgentShareMessagesInput{},
+  Credentials:    []stigmer.CredentialAssignmentInput{},
+  RunConfig:      &stigmer.RunConfigInput{},
 })
 ```
 </Tab>
@@ -559,7 +569,7 @@ agent_share = client.agent_shares.update(AgentShareInput(
     audience="...",
     allowed_origins=[],
     messages=None,
-    environment_refs=[],
+    credentials=[],
     run_config=None,
 ))
 ```
@@ -576,7 +586,7 @@ AgentShare agentShare = client.agentShares().update(AgentShareInput.builder()
     .audience("...")
     .allowedOrigins(List.of())
     .messages(null)
-    .environmentRefs(List.of())
+    .credentials(List.of())
     .runConfig(null)
     .build());
 ```
@@ -684,7 +694,7 @@ Input for creating or updating an Agent Share.
     audience: { type: "AgentShareAudience", description: "Who can chat over this share.", typeDescriptionLink: "#agentshareaudience" },
     allowedOrigins: { type: "string[]", description: "Origins permitted to embed this share's chat widget." },
     messages: { type: "AgentShareMessagesInput", description: "Owner-customizable copy shown to visitors when a launch-gate limit refuses their message.", typeDescriptionLink: "#agentsharemessagesinput" },
-    environmentRefs: { type: "ResourceRef[]", description: "References to Environment resources whose values are provided to guest conversations on this share.", typeDescriptionLink: "#resourceref" },
+    credentials: { type: "CredentialAssignmentInput[]", description: "The values guest conversations on this share use for what the agent needs.", typeDescriptionLink: "#credentialassignmentinput" },
     runConfig: { type: "RunConfigInput", description: "Per-turn model choice and run bounds for guest conversations on this share.", typeDescriptionLink: "#runconfiginput" },
   }}
 />
@@ -711,6 +721,53 @@ AgentShareMessages holds owner-customizable visitor-facing copy for shared-agent
     rateLimited: { type: "string", description: "Shown when a visitor or the org exceeds the message rate limit." },
     unavailable: { type: "string", description: "Shown when the share cannot serve the conversation — the org's credits are exhausted or the agent's tools are not ready (fails closed)." },
     conversationEnded: { type: "string", description: "Shown when a conversation hits its turn limit or inactivity timeout." },
+  }}
+/>
+
+### CredentialAssignmentInput
+
+CredentialAssignment gives one requirement its value on a surface that starts runs.
+
+<TypeTable
+  type={{
+    requirement: { type: "RequirementRefInput", description: "The requirement this assignment fills.", typeDescriptionLink: "#requirementrefinput", required: true },
+    credential: { type: "CredentialFieldRefInput", description: "A field of a credential the writer may use.", typeDescriptionLink: "#credentialfieldrefinput" },
+    literal: { type: "string", description: "A plain value written on the surface itself; never a secret." },
+    writer: { type: "string", description: "The identity account that wrote this assignment." },
+  }}
+/>
+
+### RequirementRefInput
+
+RequirementRef names one value a declarer needs: the declarer and the key.
+
+<TypeTable
+  type={{
+    declarer: { type: "CredentialTargetInput", description: "The agent, MCP server or git host that declares the value.", typeDescriptionLink: "#credentialtargetinput", required: true },
+    key: { type: "string", description: "The declared key (for example \"LINEAR_API_KEY\")." },
+  }}
+/>
+
+### CredentialTargetInput
+
+CredentialTarget names something a credential's values are for: an MCP server, an agent, or a git host.
+
+<TypeTable
+  type={{
+    mcpServer: { type: "ResourceRef", description: "An MCP server.", typeDescriptionLink: "#resourceref" },
+    agent: { type: "ResourceRef", description: "An agent.", typeDescriptionLink: "#resourceref" },
+    gitHost: { type: "string", description: "A git host, by host name (for example \"github.com\")." },
+  }}
+/>
+
+### CredentialFieldRefInput
+
+CredentialFieldRef names one field of a credential.
+
+<TypeTable
+  type={{
+    credential: { type: "ResourceRef", description: "The credential.", typeDescriptionLink: "#resourceref", required: true },
+    field: { type: "string", description: "The field." },
   }}
 />
 

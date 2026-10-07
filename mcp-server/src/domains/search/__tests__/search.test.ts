@@ -34,11 +34,6 @@ const allKindsResponse = create(SearchResponseSchema, {
     create(SearchResultSchema, { kind: ApiResourceKind.agent, org: "acme", slug: "code-reviewer" }),
     create(SearchResultSchema, { kind: ApiResourceKind.skill, org: "acme", slug: "code-review" }),
     create(SearchResultSchema, { kind: ApiResourceKind.mcp_server, org: "acme", slug: "github" }),
-    create(SearchResultSchema, {
-      kind: ApiResourceKind.environment,
-      org: "acme",
-      slug: "github-creds",
-    }),
   ],
 });
 const emptyResponse = create(SearchResponseSchema, { entries: [] });
@@ -99,7 +94,6 @@ describe("search tool integration", () => {
       "stigmer://agents/acme/code-reviewer",
       "stigmer://skills/acme/code-review",
       "stigmer://mcp-servers/acme/github",
-      "stigmer://environments/acme/github-creds",
     ]);
   });
 
@@ -116,15 +110,13 @@ describe("search tool integration", () => {
     const result = await callSearch({ kinds: ["bogus"] });
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toContain('unknown resource kind "bogus"');
-    expect(result.content[0]?.text).toContain(
-      "valid kinds: agent, skill, mcp_server, environment",
-    );
+    expect(result.content[0]?.text).toContain("valid kinds: agent, skill, mcp_server");
   });
 
-  it("accepts the environment kind", async () => {
-    nextResponse = emptyResponse;
-    const result = await callSearch({ kinds: ["environment"] });
-    expect(result.isError).toBeFalsy();
+  it("rejects the credential kind, which is never search-indexed", async () => {
+    const result = await callSearch({ kinds: ["credential"] });
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain('unknown resource kind "credential"');
   });
 
   it("forwards pagination only when requested", async () => {

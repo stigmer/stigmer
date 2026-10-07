@@ -2,6 +2,10 @@
 
 package ai.stigmer.sdk.gen;
 
+import ai.stigmer.agentic.credential.v1.CredentialAssignment;
+import ai.stigmer.agentic.credential.v1.CredentialFieldRef;
+import ai.stigmer.agentic.credential.v1.CredentialTarget;
+import ai.stigmer.agentic.credential.v1.RequirementRef;
 import ai.stigmer.agentic.run.v1.AgentInvocation;
 import ai.stigmer.agentic.run.v1.RunConfig;
 import ai.stigmer.agentic.run.v1.ServiceTier;
@@ -122,7 +126,7 @@ public final class ScheduleInput {
         private final String message;
         private final Harness harness;
         private final java.util.List<WorkspaceEntryInput> workspaceEntries;
-        private final java.util.List<ResourceRef> environmentRefs;
+        private final java.util.List<CredentialAssignmentInput> credentials;
         private final RunConfigInput runConfig;
 
         private AgentInvocationInput(Builder builder) {
@@ -130,7 +134,7 @@ public final class ScheduleInput {
             this.message = builder.message;
             this.harness = builder.harness;
             this.workspaceEntries = builder.workspaceEntries;
-            this.environmentRefs = builder.environmentRefs;
+            this.credentials = builder.credentials;
             this.runConfig = builder.runConfig;
         }
 
@@ -151,10 +155,9 @@ public final class ScheduleInput {
                     builder.addWorkspaceEntries(item.toProto());
                 }
             }
-            if (this.environmentRefs != null) {
-                for (ResourceRef item : this.environmentRefs) {
-                    builder.addEnvironmentRefs(item.toProto().toBuilder()
-                        .setKind(ApiResourceKind.environment).build());
+            if (this.credentials != null) {
+                for (CredentialAssignmentInput item : this.credentials) {
+                    builder.addCredentials(item.toProto());
                 }
             }
             if (this.runConfig != null) {
@@ -170,7 +173,7 @@ public final class ScheduleInput {
             private String message;
             private Harness harness;
             private java.util.List<WorkspaceEntryInput> workspaceEntries;
-            private java.util.List<ResourceRef> environmentRefs;
+            private java.util.List<CredentialAssignmentInput> credentials;
             private RunConfigInput runConfig;
 
             private Builder() {}
@@ -179,7 +182,7 @@ public final class ScheduleInput {
             public Builder message(String message) { this.message = message; return this; }
             public Builder harness(Harness harness) { this.harness = harness; return this; }
             public Builder workspaceEntries(java.util.List<WorkspaceEntryInput> workspaceEntries) { this.workspaceEntries = workspaceEntries; return this; }
-            public Builder environmentRefs(java.util.List<ResourceRef> environmentRefs) { this.environmentRefs = environmentRefs; return this; }
+            public Builder credentials(java.util.List<CredentialAssignmentInput> credentials) { this.credentials = credentials; return this; }
             public Builder runConfig(RunConfigInput runConfig) { this.runConfig = runConfig; return this; }
 
             public AgentInvocationInput build() { return new AgentInvocationInput(this); }
@@ -341,6 +344,174 @@ public final class ScheduleInput {
             public Builder path(String path) { this.path = path; return this; }
 
             public LocalPathSourceInput build() { return new LocalPathSourceInput(this); }
+        }
+    }
+
+    /** SDK input type for CredentialAssignment. */
+    public static final class CredentialAssignmentInput {
+        private final RequirementRefInput requirement;
+        private final CredentialFieldRefInput credential;
+        private final String literal;
+        private final String writer;
+
+        private CredentialAssignmentInput(Builder builder) {
+            this.requirement = builder.requirement;
+            this.credential = builder.credential;
+            this.literal = builder.literal;
+            this.writer = builder.writer;
+        }
+
+        CredentialAssignment toProto() {
+            CredentialAssignment.Builder builder = CredentialAssignment.newBuilder();
+            if (this.requirement != null) {
+                builder.setRequirement(this.requirement.toProto());
+            }
+            if (this.literal != null && !this.literal.isEmpty()) {
+                builder.setLiteral(this.literal);
+            }
+            if (this.credential != null) {
+                builder.setCredential(this.credential.toProto());
+            }
+            if (this.writer != null) {
+                builder.setWriter(this.writer);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private RequirementRefInput requirement;
+            private CredentialFieldRefInput credential;
+            private String literal;
+            private String writer;
+
+            private Builder() {}
+
+            public Builder requirement(RequirementRefInput requirement) { this.requirement = requirement; return this; }
+            public Builder credential(CredentialFieldRefInput credential) { this.credential = credential; return this; }
+            public Builder literal(String literal) { this.literal = literal; return this; }
+            public Builder writer(String writer) { this.writer = writer; return this; }
+
+            public CredentialAssignmentInput build() { return new CredentialAssignmentInput(this); }
+        }
+    }
+
+    /** SDK input type for RequirementRef. */
+    public static final class RequirementRefInput {
+        private final CredentialTargetInput declarer;
+        private final String key;
+
+        private RequirementRefInput(Builder builder) {
+            this.declarer = builder.declarer;
+            this.key = builder.key;
+        }
+
+        RequirementRef toProto() {
+            RequirementRef.Builder builder = RequirementRef.newBuilder();
+            if (this.declarer != null) {
+                builder.setDeclarer(this.declarer.toProto());
+            }
+            if (this.key != null) {
+                builder.setKey(this.key);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private CredentialTargetInput declarer;
+            private String key;
+
+            private Builder() {}
+
+            public Builder declarer(CredentialTargetInput declarer) { this.declarer = declarer; return this; }
+            public Builder key(String key) { this.key = key; return this; }
+
+            public RequirementRefInput build() { return new RequirementRefInput(this); }
+        }
+    }
+
+    /** SDK input type for CredentialTarget. */
+    public static final class CredentialTargetInput {
+        private final ResourceRef mcpServer;
+        private final ResourceRef agent;
+        private final String gitHost;
+
+        private CredentialTargetInput(Builder builder) {
+            this.mcpServer = builder.mcpServer;
+            this.agent = builder.agent;
+            this.gitHost = builder.gitHost;
+        }
+
+        CredentialTarget toProto() {
+            CredentialTarget.Builder builder = CredentialTarget.newBuilder();
+            if (this.gitHost != null && !this.gitHost.isEmpty()) {
+                builder.setGitHost(this.gitHost);
+            }
+            if (this.agent != null && this.agent.hasIdentifier()) {
+                builder.setAgent(this.agent.toProto().toBuilder()
+                    .setKind(ApiResourceKind.agent).build());
+            }
+            if (this.mcpServer != null && this.mcpServer.hasIdentifier()) {
+                builder.setMcpServer(this.mcpServer.toProto().toBuilder()
+                    .setKind(ApiResourceKind.mcp_server).build());
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private ResourceRef mcpServer;
+            private ResourceRef agent;
+            private String gitHost;
+
+            private Builder() {}
+
+            public Builder mcpServer(ResourceRef mcpServer) { this.mcpServer = mcpServer; return this; }
+            public Builder agent(ResourceRef agent) { this.agent = agent; return this; }
+            public Builder gitHost(String gitHost) { this.gitHost = gitHost; return this; }
+
+            public CredentialTargetInput build() { return new CredentialTargetInput(this); }
+        }
+    }
+
+    /** SDK input type for CredentialFieldRef. */
+    public static final class CredentialFieldRefInput {
+        private final ResourceRef credential;
+        private final String field;
+
+        private CredentialFieldRefInput(Builder builder) {
+            this.credential = builder.credential;
+            this.field = builder.field;
+        }
+
+        CredentialFieldRef toProto() {
+            CredentialFieldRef.Builder builder = CredentialFieldRef.newBuilder();
+            if (this.credential != null && this.credential.hasIdentifier()) {
+                builder.setCredential(this.credential.toProto().toBuilder()
+                    .setKind(ApiResourceKind.credential).build());
+            }
+            if (this.field != null) {
+                builder.setField(this.field);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private ResourceRef credential;
+            private String field;
+
+            private Builder() {}
+
+            public Builder credential(ResourceRef credential) { this.credential = credential; return this; }
+            public Builder field(String field) { this.field = field; return this; }
+
+            public CredentialFieldRefInput build() { return new CredentialFieldRefInput(this); }
         }
     }
 

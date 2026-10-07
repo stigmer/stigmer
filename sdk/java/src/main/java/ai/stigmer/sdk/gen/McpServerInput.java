@@ -2,10 +2,11 @@
 
 package ai.stigmer.sdk.gen;
 
-import ai.stigmer.agentic.environment.v1.EnvVarDeclaration;
+import ai.stigmer.agentic.credential.v1.EnvVarDeclaration;
 import ai.stigmer.agentic.mcpserver.v1.HttpServerConfig;
 import ai.stigmer.agentic.mcpserver.v1.McpServer;
 import ai.stigmer.agentic.mcpserver.v1.McpServerAuth;
+import ai.stigmer.agentic.mcpserver.v1.McpServerSignIn;
 import ai.stigmer.agentic.mcpserver.v1.McpServerSpec;
 import ai.stigmer.agentic.mcpserver.v1.StdioServerConfig;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
@@ -29,6 +30,7 @@ public final class McpServerInput {
     private final String repositoryUrl;
     private final int githubStars;
     private final McpServerAuthInput auth;
+    private final McpServerSignIn signIn;
 
     private McpServerInput(Builder builder) {
         this.id = builder.id;
@@ -46,6 +48,7 @@ public final class McpServerInput {
         this.repositoryUrl = builder.repositoryUrl;
         this.githubStars = builder.githubStars;
         this.auth = builder.auth;
+        this.signIn = builder.signIn;
     }
 
     McpServer toProto() {
@@ -76,6 +79,9 @@ public final class McpServerInput {
         spec.setGithubStars(this.githubStars);
         if (this.auth != null) {
             spec.setAuth(this.auth.toProto());
+        }
+        if (this.signIn != null) {
+            spec.setSignIn(this.signIn);
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
@@ -120,6 +126,7 @@ public final class McpServerInput {
         private String repositoryUrl;
         private int githubStars;
         private McpServerAuthInput auth;
+        private McpServerSignIn signIn;
 
         private Builder() {}
 
@@ -143,6 +150,7 @@ public final class McpServerInput {
         public Builder repositoryUrl(String repositoryUrl) { this.repositoryUrl = repositoryUrl; return this; }
         public Builder githubStars(int githubStars) { this.githubStars = githubStars; return this; }
         public Builder auth(McpServerAuthInput auth) { this.auth = auth; return this; }
+        public Builder signIn(McpServerSignIn signIn) { this.signIn = signIn; return this; }
 
         public McpServerInput build() { return new McpServerInput(this); }
     }

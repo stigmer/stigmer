@@ -1,8 +1,8 @@
 {
   "name": "EnvVarDeclaration",
-  "description": "EnvVarDeclaration declares an environment variable required (or optionally\n accepted) by a blueprint resource (McpServer, Agent).\n\n Unlike EnvironmentValue (which stores actual values), this message describes\n what a blueprint *needs* — its schema, not its data. This separation keeps\n the blueprint layer free of runtime values and enables the platform to\n validate completeness before a run.",
-  "protoType": "ai.stigmer.agentic.environment.v1.EnvVarDeclaration",
-  "protoFile": "apis/ai/stigmer/agentic/environment/v1/spec.proto",
+  "description": "EnvVarDeclaration declares a value an agent or MCP server needs at run time.\n\n It describes what a blueprint needs, never the value itself: the value\n comes from a credential when the run starts.",
+  "protoType": "ai.stigmer.agentic.credential.v1.EnvVarDeclaration",
+  "protoFile": "apis/ai/stigmer/agentic/credential/v1/requirement.proto",
   "fields": [
     {
       "name": "IsSecret",
@@ -11,7 +11,7 @@
       "type": {
         "kind": "bool"
       },
-      "description": "Whether the resolved value should be treated as a secret.",
+      "description": "Whether the value is a secret.",
       "required": false
     },
     {
@@ -21,7 +21,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Human-readable description shown in the UI credential form.\n Should explain what the variable is used for and where to obtain it.",
+      "description": "Human-readable description shown when someone is asked for the value.\n Should explain what the value is used for and where to obtain it.",
       "required": false
     },
     {
@@ -31,7 +31,7 @@
       "type": {
         "kind": "bool"
       },
-      "description": "Whether this variable is optional.",
+      "description": "Whether the value may be absent.\n\n A run whose required value has no source is refused when it is\n created, naming the value and who must provide it.",
       "required": false
     }
   ]

@@ -1,6 +1,6 @@
 {
   "name": "AgentChannelSpec",
-  "description": "AgentChannelSpec defines the configurable properties of an agent channel.\n\n The spec is deliberately small: which agent serves the channel, whether\n serving is enabled, which provider the channel targets, and which\n environments supply the agent's tool credentials. Workspace identity and\n provider credentials are produced by the install flow and live in\n status — a declarative apply can never clobber them.",
+  "description": "AgentChannelSpec defines the configurable properties of an agent channel.\n\n The spec is deliberately small: which agent serves the channel, whether\n serving is enabled, which provider the channel targets, and which\n credentials supply the agent's tool values. Workspace identity and\n provider credentials are produced by the install flow and live in\n status — a declarative apply can never clobber them.",
   "protoType": "ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec",
   "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/spec.proto",
   "fields": [
@@ -54,19 +54,21 @@
       "oneofGroup": "provider_config"
     },
     {
-      "name": "EnvironmentRefs",
-      "jsonName": "environmentRefs",
-      "protoField": "environment_refs",
+      "name": "Credentials",
+      "jsonName": "credentials",
+      "protoField": "credentials",
       "type": {
         "kind": "array",
         "elementType": {
           "kind": "message",
-          "messageType": "ApiResourceReference"
+          "messageType": "CredentialAssignment"
         }
       },
-      "description": "References to Environment resources whose values are provided to\n conversations on this channel.\n\n This is how a tool-using agent becomes chattable over a channel: bind\n an org-shared environment holding the needed credentials (for example\n a read-only API token), and channel runs receive its values at\n runtime. The agent itself stays untouched.",
+      "description": "The values this channel's conversations use for what the agent needs.\n\n A channel's runs have no person behind them, so they never use anyone's\n own credentials: they use what is assigned here.\n\n Each assignment gives one requirement of the agent, one of its MCP\n servers or a git host its value: a field of a credential the writer\n may use, or a plain literal. A person's own credential is never\n accepted here.",
       "required": false,
-      "referenceKind": 53
+      "validation": {
+        "maxItems": 64
+      }
     },
     {
       "name": "AppRef",

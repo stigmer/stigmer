@@ -7,8 +7,8 @@ title: Agent Channel
 An AgentChannel connects an agent to an external messaging platform so
 people can chat with it where they already work. The spec declares which
 agent serves the channel, whether serving is enabled, the provider (Slack
-or WhatsApp), optional environment references that supply the agent's tool
-credentials for channel conversations, and an `app_ref` to a ChannelApp
+or WhatsApp), optional credential assignments that give channel
+conversations the values the agent's tools need, and an `app_ref` to a ChannelApp
 when the channel installs through your own provider app — optional for
 Slack (absent means the shared Stigmer app), required for WhatsApp.
 Provider identity facts and credentials are produced by the install flow
@@ -28,10 +28,20 @@ spec:
     slug: support-agent
   enabled: true
   slack: {}
-  environment_refs:
-    - kind: environment
-      org: workshop
-      slug: support-tools-credentials
+  credentials:
+    - requirement:
+        declarer:
+          mcp_server:
+            kind: mcp_server
+            org: workshop
+            slug: linear
+        key: LINEAR_API_KEY
+      credential:
+        credential:
+          kind: credential
+          org: workshop
+          slug: support-tools
+        field: LINEAR_API_KEY
 ```
 
 A WhatsApp channel names the Business phone number it serves and always
@@ -593,7 +603,7 @@ const agentChannel = await stigmer.agentChannel.apply({
   enabled: false,
   slack: {},
   whatsapp: {},
-  environmentRefs: [],
+  credentials: [],
   appRef: {},
   proactiveMessagingEnabled: false,
   runConfig: {},
@@ -611,7 +621,7 @@ agentChannel, err := client.AgentChannel.Apply(ctx, &stigmer.AgentChannelInput{
   Enabled:                   false,
   Slack:                     &stigmer.SlackChannelConfigInput{},
   Whatsapp:                  &stigmer.WhatsAppChannelConfigInput{},
-  EnvironmentRefs:           []stigmer.ResourceRef{},
+  Credentials:               []stigmer.CredentialAssignmentInput{},
   AppRef:                    &stigmer.ResourceRef{},
   ProactiveMessagingEnabled: false,
   RunConfig:                 &stigmer.RunConfigInput{},
@@ -629,7 +639,7 @@ agent_channel = client.agent_channels.apply(AgentChannelInput(
     enabled=False,
     slack=None,
     whatsapp=None,
-    environment_refs=[],
+    credentials=[],
     app_ref=None,
     proactive_messaging_enabled=False,
     run_config=None,
@@ -647,7 +657,7 @@ AgentChannel agentChannel = client.agentChannels().apply(AgentChannelInput.build
     .enabled(false)
     .slack(null)
     .whatsapp(null)
-    .environmentRefs(List.of())
+    .credentials(List.of())
     .appRef(null)
     .proactiveMessagingEnabled(false)
     .runConfig(null)
@@ -678,7 +688,7 @@ const agentChannel = await stigmer.agentChannel.create({
   enabled: false,
   slack: {},
   whatsapp: {},
-  environmentRefs: [],
+  credentials: [],
   appRef: {},
   proactiveMessagingEnabled: false,
   runConfig: {},
@@ -696,7 +706,7 @@ agentChannel, err := client.AgentChannel.Create(ctx, &stigmer.AgentChannelInput{
   Enabled:                   false,
   Slack:                     &stigmer.SlackChannelConfigInput{},
   Whatsapp:                  &stigmer.WhatsAppChannelConfigInput{},
-  EnvironmentRefs:           []stigmer.ResourceRef{},
+  Credentials:               []stigmer.CredentialAssignmentInput{},
   AppRef:                    &stigmer.ResourceRef{},
   ProactiveMessagingEnabled: false,
   RunConfig:                 &stigmer.RunConfigInput{},
@@ -714,7 +724,7 @@ agent_channel = client.agent_channels.create(AgentChannelInput(
     enabled=False,
     slack=None,
     whatsapp=None,
-    environment_refs=[],
+    credentials=[],
     app_ref=None,
     proactive_messaging_enabled=False,
     run_config=None,
@@ -732,7 +742,7 @@ AgentChannel agentChannel = client.agentChannels().create(AgentChannelInput.buil
     .enabled(false)
     .slack(null)
     .whatsapp(null)
-    .environmentRefs(List.of())
+    .credentials(List.of())
     .appRef(null)
     .proactiveMessagingEnabled(false)
     .runConfig(null)
@@ -763,7 +773,7 @@ const agentChannel = await stigmer.agentChannel.update({
   enabled: false,
   slack: {},
   whatsapp: {},
-  environmentRefs: [],
+  credentials: [],
   appRef: {},
   proactiveMessagingEnabled: false,
   runConfig: {},
@@ -781,7 +791,7 @@ agentChannel, err := client.AgentChannel.Update(ctx, &stigmer.AgentChannelInput{
   Enabled:                   false,
   Slack:                     &stigmer.SlackChannelConfigInput{},
   Whatsapp:                  &stigmer.WhatsAppChannelConfigInput{},
-  EnvironmentRefs:           []stigmer.ResourceRef{},
+  Credentials:               []stigmer.CredentialAssignmentInput{},
   AppRef:                    &stigmer.ResourceRef{},
   ProactiveMessagingEnabled: false,
   RunConfig:                 &stigmer.RunConfigInput{},
@@ -799,7 +809,7 @@ agent_channel = client.agent_channels.update(AgentChannelInput(
     enabled=False,
     slack=None,
     whatsapp=None,
-    environment_refs=[],
+    credentials=[],
     app_ref=None,
     proactive_messaging_enabled=False,
     run_config=None,
@@ -817,7 +827,7 @@ AgentChannel agentChannel = client.agentChannels().update(AgentChannelInput.buil
     .enabled(false)
     .slack(null)
     .whatsapp(null)
-    .environmentRefs(List.of())
+    .credentials(List.of())
     .appRef(null)
     .proactiveMessagingEnabled(false)
     .runConfig(null)
@@ -834,7 +844,7 @@ AgentChannel agentChannel = client.agentChannels().update(AgentChannelInput.buil
 
 Delete an agent channel.
 
-Full teardown of the connection: inbound events for the workspace stop resolving, pending deliveries are abandoned, and the credentials environment is deleted with the grant. To pause serving while keeping the install, update the channel with enabled=false instead.
+Full teardown of the connection: inbound events for the workspace stop resolving, pending deliveries are abandoned, and the provider credential is deleted with the grant. To pause serving while keeping the install, update the channel with enabled=false instead.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -1261,7 +1271,7 @@ Input for creating or updating an Agent Channel.
     enabled: { type: "boolean", description: "Whether serving traffic on this channel is enabled." },
     slack: { type: "SlackChannelConfigInput", description: "Slack workspace connection (multi-tenant Stigmer Slack app).", typeDescriptionLink: "#slackchannelconfiginput" },
     whatsapp: { type: "WhatsAppChannelConfigInput", description: "WhatsApp Business number connection (Meta Cloud API).", typeDescriptionLink: "#whatsappchannelconfiginput" },
-    environmentRefs: { type: "ResourceRef[]", description: "References to Environment resources whose values are provided to conversations on this channel.", typeDescriptionLink: "#resourceref" },
+    credentials: { type: "CredentialAssignmentInput[]", description: "The values this channel's conversations use for what the agent needs.", typeDescriptionLink: "#credentialassignmentinput" },
     appRef: { type: "ResourceRef", description: "Reference to the ChannelApp this channel installs through.", typeDescriptionLink: "#resourceref" },
     proactiveMessagingEnabled: { type: "boolean", description: "Whether the serving agent may send business-initiated (proactive) messages on this channel." },
     runConfig: { type: "RunConfigInput", description: "Per-turn model choice and run bounds for conversations on this channel.", typeDescriptionLink: "#runconfiginput" },
@@ -1292,6 +1302,53 @@ WhatsAppChannelConfig selects WhatsApp as the channel provider and names the Wha
 <TypeTable
   type={{
     phoneNumberId: { type: "string", description: "Phone number ID of the WhatsApp Business number this channel serves, from Meta's WhatsApp Manager (API Setup), e.g. \"106540352242922\"." },
+  }}
+/>
+
+### CredentialAssignmentInput
+
+CredentialAssignment gives one requirement its value on a surface that starts runs.
+
+<TypeTable
+  type={{
+    requirement: { type: "RequirementRefInput", description: "The requirement this assignment fills.", typeDescriptionLink: "#requirementrefinput", required: true },
+    credential: { type: "CredentialFieldRefInput", description: "A field of a credential the writer may use.", typeDescriptionLink: "#credentialfieldrefinput" },
+    literal: { type: "string", description: "A plain value written on the surface itself; never a secret." },
+    writer: { type: "string", description: "The identity account that wrote this assignment." },
+  }}
+/>
+
+### RequirementRefInput
+
+RequirementRef names one value a declarer needs: the declarer and the key.
+
+<TypeTable
+  type={{
+    declarer: { type: "CredentialTargetInput", description: "The agent, MCP server or git host that declares the value.", typeDescriptionLink: "#credentialtargetinput", required: true },
+    key: { type: "string", description: "The declared key (for example \"LINEAR_API_KEY\")." },
+  }}
+/>
+
+### CredentialTargetInput
+
+CredentialTarget names something a credential's values are for: an MCP server, an agent, or a git host.
+
+<TypeTable
+  type={{
+    mcpServer: { type: "ResourceRef", description: "An MCP server.", typeDescriptionLink: "#resourceref" },
+    agent: { type: "ResourceRef", description: "An agent.", typeDescriptionLink: "#resourceref" },
+    gitHost: { type: "string", description: "A git host, by host name (for example \"github.com\")." },
+  }}
+/>
+
+### CredentialFieldRefInput
+
+CredentialFieldRef names one field of a credential.
+
+<TypeTable
+  type={{
+    credential: { type: "ResourceRef", description: "The credential.", typeDescriptionLink: "#resourceref", required: true },
+    field: { type: "string", description: "The field." },
   }}
 />
 
@@ -1601,7 +1658,6 @@ AgentChannelStatus contains system-managed state for an agent channel.
     installState: { type: "AgentChannelInstallState", description: "Install lifecycle of the provider connection.", typeDescriptionLink: "#agentchannelinstallstate" },
     slack: { type: "SlackInstallStatus", description: "Slack workspace install facts.", typeDescriptionLink: "#slackinstallstatus" },
     whatsapp: { type: "WhatsAppInstallStatus", description: "WhatsApp Business number install facts.", typeDescriptionLink: "#whatsappinstallstatus" },
-    credentialsEnvironmentId: { type: "string", description: "ID of the system-managed Environment holding this connection's provider credentials (e.g. the Slack bot token)." },
     audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
   }}
 />

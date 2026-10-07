@@ -24,8 +24,8 @@ import { registerAgentTools } from "./domains/agents/tools.js";
 import { registerChannelTools } from "./domains/channels/tools.js";
 import type { BackendTarget } from "./domains/client.js";
 import { registerConversationTools } from "./domains/conversation/tools.js";
-import { registerEnvironmentResources } from "./domains/environments/resources.js";
-import { registerEnvironmentTools } from "./domains/environments/tools.js";
+import { registerCredentialResources } from "./domains/credentials/resources.js";
+import { registerCredentialTools } from "./domains/credentials/tools.js";
 import { registerMcpServerResources } from "./domains/mcpservers/resources.js";
 import { registerMcpServerTools } from "./domains/mcpservers/tools.js";
 import {
@@ -173,7 +173,7 @@ function registerTools(server: McpServer, target: BackendTarget): string[] {
     ...registerMcpServerTools(server, target),
     ...registerSkillTools(server, target),
     ...registerRunControlTools(server, target),
-    ...registerEnvironmentTools(server, target),
+    ...registerCredentialTools(server, target),
   ];
 }
 
@@ -186,7 +186,7 @@ function registerResources(server: McpServer, target: BackendTarget): string[] {
     ...registerAgentResources(server, target),
     ...registerMcpServerResources(server, target),
     ...registerSkillResources(server, target),
-    ...registerEnvironmentResources(server, target),
+    ...registerCredentialResources(server, target),
   ];
 }
 

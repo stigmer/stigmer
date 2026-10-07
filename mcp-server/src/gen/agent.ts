@@ -7,7 +7,7 @@ import { generateSlug, enumFromString } from "./apply-runtime.js";
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema, SubAgentSchema, HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/requirement_pb";
 import { McpServerUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 import { HookHandlerSchema, HookGroupSchema, HookConfigSchema, HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -74,9 +74,9 @@ const SubAgentInputSchema = z.object({
 type SubAgentInput = z.infer<typeof SubAgentInputSchema>;
 
 const EnvVarDeclarationInputSchema = z.object({
-  is_secret: z.boolean().optional().describe("Whether the resolved value should be treated as a secret."),
-  description: z.string().optional().describe("Human-readable description shown in the UI credential form. Should explain what the variable is used for and where to obtain it."),
-  optional: z.boolean().optional().describe("Whether this variable is optional."),
+  is_secret: z.boolean().optional().describe("Whether the value is a secret."),
+  description: z.string().optional().describe("Human-readable description shown when someone is asked for the value. Should explain what the value is used for and where to obtain it."),
+  optional: z.boolean().optional().describe("Whether the value may be absent. A run whose required value has no source is refused when it is created, naming the value and who must provide it."),
 });
 type EnvVarDeclarationInput = z.infer<typeof EnvVarDeclarationInputSchema>;
 

@@ -322,7 +322,7 @@ const platformClientCreateResponse = await stigmer.platformclient.create({
   expiresAt: "...",
   neverExpires: false,
   allowedOrigins: [],
-  environmentRefs: [],
+  credentials: [],
   createAccountsOnSignIn: false,
   signInRole: "...",
 });
@@ -341,7 +341,7 @@ platformClientCreateResponse, err := client.PlatformClient.Create(ctx, &stigmer.
   ExpiresAt:              "...",
   NeverExpires:           false,
   AllowedOrigins:         []string{},
-  EnvironmentRefs:        []stigmer.ResourceRef{},
+  Credentials:            []stigmer.CredentialAssignmentInput{},
   CreateAccountsOnSignIn: false,
   SignInRole:             "...",
 })
@@ -360,7 +360,7 @@ platform_client_create_response = client.platformclients.create(PlatformClientIn
     expires_at="...",
     never_expires=False,
     allowed_origins=[],
-    environment_refs=[],
+    credentials=[],
     create_accounts_on_sign_in=False,
     sign_in_role="...",
 ))
@@ -379,7 +379,7 @@ PlatformClient platformClientCreateResponse = client.platformclients().create(Pl
     .expiresAt("...")
     .neverExpires(false)
     .allowedOrigins(List.of())
-    .environmentRefs(List.of())
+    .credentials(List.of())
     .createAccountsOnSignIn(false)
     .signInRole("...")
     .build());
@@ -411,7 +411,7 @@ const platformClient = await stigmer.platformclient.update({
   expiresAt: "...",
   neverExpires: false,
   allowedOrigins: [],
-  environmentRefs: [],
+  credentials: [],
   createAccountsOnSignIn: false,
   signInRole: "...",
 });
@@ -430,7 +430,7 @@ platformClient, err := client.PlatformClient.Update(ctx, &stigmer.PlatformClient
   ExpiresAt:              "...",
   NeverExpires:           false,
   AllowedOrigins:         []string{},
-  EnvironmentRefs:        []stigmer.ResourceRef{},
+  Credentials:            []stigmer.CredentialAssignmentInput{},
   CreateAccountsOnSignIn: false,
   SignInRole:             "...",
 })
@@ -449,7 +449,7 @@ platform_client = client.platformclients.update(PlatformClientInput(
     expires_at="...",
     never_expires=False,
     allowed_origins=[],
-    environment_refs=[],
+    credentials=[],
     create_accounts_on_sign_in=False,
     sign_in_role="...",
 ))
@@ -468,7 +468,7 @@ PlatformClient platformClient = client.platformclients().update(PlatformClientIn
     .expiresAt("...")
     .neverExpires(false)
     .allowedOrigins(List.of())
-    .environmentRefs(List.of())
+    .credentials(List.of())
     .createAccountsOnSignIn(false)
     .signInRole("...")
     .build());
@@ -700,9 +700,45 @@ Input for creating or updating a Platform Client.
     expiresAt: { type: "string", description: "Expiration time for the client secret." },
     neverExpires: { type: "boolean", description: "When true, the client secret never expires regardless of expires_at." },
     allowedOrigins: { type: "string[]", description: "Web origins allowed for browser-based requests using tokens minted by this PlatformClient." },
-    environmentRefs: { type: "ResourceRef[]", description: "Environments whose values are delivered to every run a user signed in through this PlatformClient creates.", typeDescriptionLink: "#resourceref" },
+    credentials: { type: "CredentialAssignmentInput[]", description: "The values the runs of this client's users use for what an agent needs.", typeDescriptionLink: "#credentialassignmentinput" },
     createAccountsOnSignIn: { type: "boolean", description: "Whether mintUserToken creates an identity account for a user_id that has none yet." },
     signInRole: { type: "IamRole", description: "The role an account mintUserToken creates receives on the client's owning organization.", typeDescriptionLink: "#iamrole" },
+  }}
+/>
+
+### CredentialAssignmentInput
+
+CredentialAssignment gives one requirement its value on a surface that starts runs.
+
+<TypeTable
+  type={{
+    requirement: { type: "RequirementRefInput", description: "The requirement this assignment fills.", typeDescriptionLink: "#requirementrefinput", required: true },
+    credential: { type: "CredentialFieldRefInput", description: "A field of a credential the writer may use.", typeDescriptionLink: "#credentialfieldrefinput" },
+    literal: { type: "string", description: "A plain value written on the surface itself; never a secret." },
+    writer: { type: "string", description: "The identity account that wrote this assignment." },
+  }}
+/>
+
+### RequirementRefInput
+
+RequirementRef names one value a declarer needs: the declarer and the key.
+
+<TypeTable
+  type={{
+    declarer: { type: "CredentialTargetInput", description: "The agent, MCP server or git host that declares the value.", typeDescriptionLink: "#credentialtargetinput", required: true },
+    key: { type: "string", description: "The declared key (for example \"LINEAR_API_KEY\")." },
+  }}
+/>
+
+### CredentialTargetInput
+
+CredentialTarget names something a credential's values are for: an MCP server, an agent, or a git host.
+
+<TypeTable
+  type={{
+    mcpServer: { type: "ResourceRef", description: "An MCP server.", typeDescriptionLink: "#resourceref" },
+    agent: { type: "ResourceRef", description: "An agent.", typeDescriptionLink: "#resourceref" },
+    gitHost: { type: "string", description: "A git host, by host name (for example \"github.com\")." },
   }}
 />
 
@@ -716,6 +752,17 @@ Generic reference to any API resource by org and slug.
     kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+  }}
+/>
+
+### CredentialFieldRefInput
+
+CredentialFieldRef names one field of a credential.
+
+<TypeTable
+  type={{
+    credential: { type: "ResourceRef", description: "The credential.", typeDescriptionLink: "#resourceref", required: true },
+    field: { type: "string", description: "The field." },
   }}
 />
 
@@ -840,4 +887,5 @@ IamRole defines the roles that can be assigned to principals on resources via IA
 | `viewer` | Read-only access to the resource. |
 | `participant` | Conversation participant on an agent channel: may read the channel's conversations and speak to its customers as the business (reply, take over, hand back, clear attention). |
 | `editor` | Editor of a blueprint (an agent or an MCP server): may change its definition and do whatever a viewer can, and may not delete it, change its visibility, publish it on a share link or a channel, or decide who else has access. |
+| `user` | User of a credential: the runs this person or team starts may use the credential's values. |
 

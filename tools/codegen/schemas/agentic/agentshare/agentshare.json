@@ -72,19 +72,21 @@
       "required": false
     },
     {
-      "name": "EnvironmentRefs",
-      "jsonName": "environmentRefs",
-      "protoField": "environment_refs",
+      "name": "Credentials",
+      "jsonName": "credentials",
+      "protoField": "credentials",
       "type": {
         "kind": "array",
         "elementType": {
           "kind": "message",
-          "messageType": "ApiResourceReference"
+          "messageType": "CredentialAssignment"
         }
       },
-      "description": "References to Environment resources whose values are provided to guest\n conversations on this share.\n\n This is how a tool-using agent becomes chattable over a share link:\n bind an org-shared environment holding the needed credentials (for\n example a read-only API token), and guest runs receive its\n values at runtime. The agent itself stays untouched.\n Valid on public-audience shares only.",
+      "description": "The values guest conversations on this share use for what the agent needs.\n\n A guest has no credentials of their own, so a guest's runs use what\n is assigned here. Valid on public-audience shares only.\n\n Each assignment gives one requirement of the agent, one of its MCP\n servers or a git host its value: a field of a credential the writer\n may use, or a plain literal. A person's own credential is never\n accepted here.",
       "required": false,
-      "referenceKind": 53
+      "validation": {
+        "maxItems": 64
+      }
     },
     {
       "name": "RunConfig",

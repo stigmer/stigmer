@@ -17,8 +17,8 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
-import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
+import { CredentialSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/api_pb";
+import { CredentialQueryController } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/query_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
@@ -37,10 +37,10 @@ const mcpServer = create(McpServerSchema, {
   metadata: { slug: "m", org: "acme" },
 });
 const skill = create(SkillSchema, { apiVersion: "v1", kind: "skill", metadata: { slug: "s", org: "acme" } });
-const environment = create(EnvironmentSchema, {
+const credential = create(CredentialSchema, {
   apiVersion: "v1",
-  kind: "environment",
-  metadata: { slug: "e", org: "acme" },
+  kind: "credential",
+  metadata: { slug: "c", org: "acme" },
 });
 
 let backend: Http2Server;
@@ -62,7 +62,7 @@ beforeAll(async () => {
         return skill;
       },
     });
-    router.service(EnvironmentQueryController, { getByReference: () => environment });
+    router.service(CredentialQueryController, { getByReference: () => credential });
   };
   backend = createHttp2Server(connectNodeAdapter({ routes }));
   backend.on("session", (session) => {
@@ -93,7 +93,7 @@ describe("resource templates integration", () => {
         "stigmer_mcp_server",
         "stigmer_skill",
         "stigmer_skill_version",
-        "stigmer_environment",
+        "stigmer_credential",
       ]),
     );
   });
@@ -128,12 +128,12 @@ describe("resource templates integration", () => {
     expect(lastSkillVersion).toBe("v2.0.0");
   });
 
-  it("reads an environment resource", async () => {
+  it("reads a credential resource", async () => {
     const result = (await client.readResource({
-      uri: "stigmer://environments/acme/e",
+      uri: "stigmer://credentials/acme/c",
     })) as ResourceResult;
     expect(JSON.parse(result.contents[0]?.text ?? "{}")).toEqual(
-      toJson(EnvironmentSchema, environment, { useProtoFieldName: true }),
+      toJson(CredentialSchema, credential, { useProtoFieldName: true }),
     );
   });
 });

@@ -1,6 +1,6 @@
 {
   "name": "AgentInvocation",
-  "description": "AgentInvocation is what a caller may ask an agent to do.\n\n It is the owner-settable subset of a run — the interactive\n composer's vocabulary (agent, message, harness, workspace,\n environments, run bounds) minus what an unattended surface makes\n structurally impossible. Surfaces that trigger agents on someone's\n behalf embed this message instead of re-deriving the shape:\n schedules embed it whole; channels and shares embed RunConfig.",
+  "description": "AgentInvocation is what a caller may ask an agent to do.\n\n It is the owner-settable subset of a run — the interactive\n composer's vocabulary (agent, message, harness, workspace,\n credentials, run bounds) minus what an unattended surface makes\n structurally impossible. Surfaces that trigger agents on someone's\n behalf embed this message instead of re-deriving the shape:\n schedules embed it whole; channels and shares embed RunConfig.",
   "protoType": "ai.stigmer.agentic.run.v1.AgentInvocation",
   "protoFile": "apis/ai/stigmer/agentic/run/v1/invocation.proto",
   "fields": [
@@ -63,19 +63,21 @@
       "required": false
     },
     {
-      "name": "EnvironmentRefs",
-      "jsonName": "environmentRefs",
-      "protoField": "environment_refs",
+      "name": "Credentials",
+      "jsonName": "credentials",
+      "protoField": "credentials",
       "type": {
         "kind": "array",
         "elementType": {
           "kind": "message",
-          "messageType": "ApiResourceReference"
+          "messageType": "CredentialAssignment"
         }
       },
-      "description": "References to Environment resources whose values are provided to\n the runs this invocation creates.\n\n This is how a tool-using agent becomes runnable unattended: bind\n an org-shared environment holding the needed credentials (for\n example an MCP server's shared secret), and the runs receive its\n values at runtime. The agent itself stays untouched.",
+      "description": "The values the runs this invocation creates use for what the agent needs.\n\n A schedule's runs have no person behind them: they use what is\n assigned here, and a credential of the schedule's own creator only\n when that person wrote the assignment.",
       "required": false,
-      "referenceKind": 53
+      "validation": {
+        "maxItems": 64
+      }
     },
     {
       "name": "RunConfig",

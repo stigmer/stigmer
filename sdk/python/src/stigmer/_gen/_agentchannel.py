@@ -20,6 +20,7 @@ from ai.stigmer.agentic.agentchannel.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
+from ai.stigmer.agentic.credential.v1 import requirement_pb2 as credential_requirement_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
@@ -186,7 +187,7 @@ class AgentChannelInput:
     enabled: bool = False
     slack: SlackChannelConfigInput | None = None
     whatsapp: WhatsAppChannelConfigInput | None = None
-    environment_refs: list[ResourceRef] = field(default_factory=list)
+    credentials: list[CredentialAssignmentInput] = field(default_factory=list)
     app_ref: ResourceRef | None = None
     proactive_messaging_enabled: bool = False
     run_config: RunConfigInput | None = None
@@ -200,10 +201,8 @@ class AgentChannelInput:
             _ref = self.agent_ref._to_proto()
             _ref.kind = 40
             spec.agent_ref.CopyFrom(_ref)
-        for ref in self.environment_refs:
-            _ref = ref._to_proto()
-            _ref.kind = 53
-            spec.environment_refs.append(_ref)
+        for item in self.credentials:
+            spec.credentials.append(item._to_proto())
         if self.app_ref is not None and (self.app_ref.org or self.app_ref.slug):
             _ref = self.app_ref._to_proto()
             _ref.kind = 48
@@ -254,5 +253,84 @@ class WhatsAppChannelConfigInput:
         msg = spec_pb2.WhatsAppChannelConfig(
             phone_number_id=self.phone_number_id,
         )
+        return msg
+
+
+@dataclass
+class CredentialAssignmentInput:
+    """SDK input type for CredentialAssignment."""
+
+    requirement: RequirementRefInput | None
+    credential: CredentialFieldRefInput | None = None
+    literal: str = ""
+    writer: str = ""
+
+    def _to_proto(self) -> credential_requirement_pb2.CredentialAssignment:
+        msg = credential_requirement_pb2.CredentialAssignment(
+            writer=self.writer,
+        )
+        if self.requirement is not None:
+            msg.requirement.CopyFrom(self.requirement._to_proto())
+        if self.literal:
+            setattr(msg, "literal", self.literal)
+        if self.credential is not None:
+            msg.credential.CopyFrom(self.credential._to_proto())
+        return msg
+
+
+@dataclass
+class RequirementRefInput:
+    """SDK input type for RequirementRef."""
+
+    declarer: CredentialTargetInput | None
+    key: str = ""
+
+    def _to_proto(self) -> credential_requirement_pb2.RequirementRef:
+        msg = credential_requirement_pb2.RequirementRef(
+            key=self.key,
+        )
+        if self.declarer is not None:
+            msg.declarer.CopyFrom(self.declarer._to_proto())
+        return msg
+
+
+@dataclass
+class CredentialTargetInput:
+    """SDK input type for CredentialTarget."""
+
+    mcp_server: ResourceRef | None = None
+    agent: ResourceRef | None = None
+    git_host: str = ""
+
+    def _to_proto(self) -> credential_requirement_pb2.CredentialTarget:
+        msg = credential_requirement_pb2.CredentialTarget()
+        if self.git_host:
+            setattr(msg, "git_host", self.git_host)
+        if self.agent is not None and (self.agent.org or self.agent.slug):
+            _ref = self.agent._to_proto()
+            _ref.kind = 40
+            msg.agent.CopyFrom(_ref)
+        if self.mcp_server is not None and (self.mcp_server.org or self.mcp_server.slug):
+            _ref = self.mcp_server._to_proto()
+            _ref.kind = 44
+            msg.mcp_server.CopyFrom(_ref)
+        return msg
+
+
+@dataclass
+class CredentialFieldRefInput:
+    """SDK input type for CredentialFieldRef."""
+
+    credential: ResourceRef | None
+    field: str = ""
+
+    def _to_proto(self) -> credential_requirement_pb2.CredentialFieldRef:
+        msg = credential_requirement_pb2.CredentialFieldRef(
+            field=self.field,
+        )
+        if self.credential is not None and (self.credential.org or self.credential.slug):
+            _ref = self.credential._to_proto()
+            _ref.kind = 59
+            msg.credential.CopyFrom(_ref)
         return msg
 

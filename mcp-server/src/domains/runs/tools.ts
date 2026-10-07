@@ -56,9 +56,8 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
           .optional()
           .describe(
             "Non-secret runtime environment values (name → value) injected into the run. Every key the agent " +
-              "declares that is not passed here is read from the personal Environment of the caller (the person " +
-              "the run belongs to), when the agent is in the run's organization; a secret belongs there, never in " +
-              "this tool.",
+              "declares that is not passed here comes from the credentials the run may use (those of the person " +
+              "the run belongs to, and the organization's); a secret belongs in a credential, never in this tool.",
           ),
       },
     },

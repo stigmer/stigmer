@@ -2585,11 +2585,6 @@
           "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
         },
         {
-          "name": "environment",
-          "number": 53,
-          "description": "Named set of variables and secrets for a run."
-        },
-        {
           "name": "execution_context",
           "number": 54,
           "description": "User-owned runtime context for managing execution state."
@@ -2608,6 +2603,11 @@
           "name": "plugin",
           "number": 58,
           "description": "An installed Agent Plugins package: the archive Stigmer materialised into\n skills, MCP servers and an agent, and the handle that upgrades\n and removes them together. A plugin is what you install; an agent is what\n runs. Members are the resources labelled with the plugin's id."
+        },
+        {
+          "name": "credential",
+          "number": 59,
+          "description": "Saved secret values that belong to a person or to an organization."
         },
         {
           "name": "plan",
@@ -2962,6 +2962,17 @@
           ]
         },
         "description": "How this turn resolves approval gates: INTERACTIVE or UNATTENDED, never\n UNSPECIFIED.\n\n A fact of the lane the turn came through, never of the request: a\n schedule's turn and the hosted edition's shared-agent guest and channel\n turns are UNATTENDED (nobody is present to approve); every other turn is\n INTERACTIVE.",
+        "required": false
+      },
+      {
+        "name": "Credentials",
+        "jsonName": "credentials",
+        "protoField": "credentials",
+        "type": {
+          "kind": "message",
+          "messageType": "RunCredentials"
+        },
+        "description": "Whose credentials this run may use.\n\n Decided once, when the run is created, and never re-derived: recover\n reads it, so a recovered run uses the same person's credentials.",
         "required": false
       }
     ]
@@ -5230,6 +5241,24 @@
             "kind": "int32"
           },
           "description": "Maximum number of characters for a single tool result before truncation.\n When a tool result exceeds this limit, it is truncated and a marker is\n appended: \"[truncated — result exceeded {limit} chars, ask for specific sections]\"\n\n 0 = not set at this layer; with no layer setting it the platform default\n applies (30,000 chars, about 7,500 tokens). Applies to all tool results\n (shell, read, write, MCP tools), except built-in tools that already\n manage their output size.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "RunCredentials",
+      "description": "RunCredentials records whose credentials a run may use.",
+      "protoType": "ai.stigmer.agentic.run.v1.RunCredentials",
+      "protoFile": "apis/ai/stigmer/agentic/run/v1/api.proto",
+      "fields": [
+        {
+          "name": "Person",
+          "jsonName": "person",
+          "protoField": "person",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The person the run acts for, by identity account id; empty for a run\n with no person behind it.\n\n A run has a person only when a person started it directly. A schedule\n fire, a channel message, a shared-link guest, a machine account and a\n platform client's user have none: their runs use only the credentials\n assigned on the surface that started them.",
           "required": false
         }
       ]

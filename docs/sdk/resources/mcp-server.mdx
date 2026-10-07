@@ -277,6 +277,7 @@ const mcpServer = await stigmer.mcpServer.apply({
   repositoryUrl: "...",
   githubStars: 0,
   auth: {},
+  signIn: "...",
 });
 ```
 </Tab>
@@ -296,6 +297,7 @@ mcpServer, err := client.McpServer.Apply(ctx, &stigmer.McpServerInput{
   RepositoryUrl: "...",
   GithubStars:   0,
   Auth:          &stigmer.McpServerAuthInput{},
+  SignIn:        "...",
 })
 ```
 </Tab>
@@ -315,6 +317,7 @@ mcp_server = client.mcp_servers.apply(McpServerInput(
     repository_url="...",
     github_stars=0,
     auth=None,
+    sign_in="...",
 ))
 ```
 </Tab>
@@ -334,6 +337,7 @@ McpServer mcpServer = client.mcpServers().apply(McpServerInput.builder()
     .repositoryUrl("...")
     .githubStars(0)
     .auth(null)
+    .signIn("...")
     .build());
 ```
 </Tab>
@@ -366,6 +370,7 @@ const mcpServer = await stigmer.mcpServer.create({
   repositoryUrl: "...",
   githubStars: 0,
   auth: {},
+  signIn: "...",
 });
 ```
 </Tab>
@@ -385,6 +390,7 @@ mcpServer, err := client.McpServer.Create(ctx, &stigmer.McpServerInput{
   RepositoryUrl: "...",
   GithubStars:   0,
   Auth:          &stigmer.McpServerAuthInput{},
+  SignIn:        "...",
 })
 ```
 </Tab>
@@ -404,6 +410,7 @@ mcp_server = client.mcp_servers.create(McpServerInput(
     repository_url="...",
     github_stars=0,
     auth=None,
+    sign_in="...",
 ))
 ```
 </Tab>
@@ -423,6 +430,7 @@ McpServer mcpServer = client.mcpServers().create(McpServerInput.builder()
     .repositoryUrl("...")
     .githubStars(0)
     .auth(null)
+    .signIn("...")
     .build());
 ```
 </Tab>
@@ -453,6 +461,7 @@ const mcpServer = await stigmer.mcpServer.update({
   repositoryUrl: "...",
   githubStars: 0,
   auth: {},
+  signIn: "...",
 });
 ```
 </Tab>
@@ -472,6 +481,7 @@ mcpServer, err := client.McpServer.Update(ctx, &stigmer.McpServerInput{
   RepositoryUrl: "...",
   GithubStars:   0,
   Auth:          &stigmer.McpServerAuthInput{},
+  SignIn:        "...",
 })
 ```
 </Tab>
@@ -491,6 +501,7 @@ mcp_server = client.mcp_servers.update(McpServerInput(
     repository_url="...",
     github_stars=0,
     auth=None,
+    sign_in="...",
 ))
 ```
 </Tab>
@@ -510,6 +521,7 @@ McpServer mcpServer = client.mcpServers().update(McpServerInput.builder()
     .repositoryUrl("...")
     .githubStars(0)
     .auth(null)
+    .signIn("...")
     .build());
 ```
 </Tab>
@@ -611,7 +623,7 @@ McpServer mcpServer = client.mcpServers().delete(DeleteResourceInput.builder()
 
 Complete the OAuth authorization flow by exchanging the authorization code for tokens.
 
-Called by the frontend after the user is redirected back from the OAuth authorization server. Exchanges the code for tokens, stores them in the user's personal environment, and creates an OAuthGrant record for pre-flight expiry checks.
+Called by the frontend after the user is redirected back from the OAuth authorization server. Exchanges the code for tokens, saves the access token as the caller's credential serving the server (the organization's, for a server with organization sign-in), and records an OAuthGrant for pre-flight expiry checks.
 
 After success, the frontend should call connect() to trigger tool discovery using the freshly acquired token.
 
@@ -762,7 +774,7 @@ DeleteOrgOAuthAppOutput deleteOrgOAuthAppOutput = client.mcpServers().deleteOrgO
 
 Disconnect the authenticated user's OAuth connection for a resource.
 
-Tears down the user's personal OAuth connection by deleting the OAuthGrant and its associated managed environment (which holds the access and refresh tokens). The MCP server definition is unchanged — only the caller's credentials are removed.
+Tears down one sign-in by deleting the OAuthGrant (which keeps the refresh token) and the credential holding the access token. On a server with organization sign-in it is the organization's sign-in, and only an admin may end it. The MCP server definition is unchanged.
 
 Other users' connections to the same resource are unaffected.
 
@@ -981,6 +993,7 @@ Input for creating or updating a MCP Server.
     repositoryUrl: { type: "string", description: "URL of the upstream source repository for this MCP server." },
     githubStars: { type: "number", description: "GitHub star count at the time of curation." },
     auth: { type: "McpServerAuthInput", description: "OAuth authentication configuration for automated credential acquisition.", typeDescriptionLink: "#mcpserverauthinput" },
+    signIn: { type: "McpServerSignIn", description: "Whose account the server's runs use: each person's own sign-in (the default), or one account the organization signs in once.", typeDescriptionLink: "#mcpserversignin" },
   }}
 />
 
@@ -1011,13 +1024,13 @@ HttpServerConfig defines an MCP server accessible via HTTP + Server-Sent Events.
 
 ### EnvVarDeclarationInput
 
-EnvVarDeclaration declares an environment variable required (or optionally accepted) by a blueprint resource (McpServer, Agent).
+EnvVarDeclaration declares a value an agent or MCP server needs at run time.
 
 <TypeTable
   type={{
-    isSecret: { type: "boolean", description: "Whether the resolved value should be treated as a secret." },
-    description: { type: "string", description: "Human-readable description shown in the UI credential form." },
-    optional: { type: "boolean", description: "Whether this variable is optional." },
+    isSecret: { type: "boolean", description: "Whether the value is a secret." },
+    description: { type: "string", description: "Human-readable description shown when someone is asked for the value." },
+    optional: { type: "boolean", description: "Whether the value may be absent." },
   }}
 />
 
@@ -1028,7 +1041,7 @@ McpServerAuth configures automated credential acquisition via OAuth.
 <TypeTable
   type={{
     oauthAppRef: { type: "ResourceRef", description: "Reference to an OAuthApp for vendor-specific OAuth.", typeDescriptionLink: "#resourceref" },
-    targetEnvVar: { type: "string", description: "The env var where the acquired access token is stored." },
+    targetEnvVar: { type: "string", description: "The key the acquired access token fills." },
     tokenLifetimeHint: { type: "string", description: "Informational hint about expected token lifetime for UI display." },
     scopeHints: { type: "string[]", description: "Optional scope hints for UI display before the OAuth flow starts." },
     discoveryUrl: { type: "string", description: "Optional URL for OAuth authorization server discovery on stdio servers." },
@@ -1067,7 +1080,7 @@ ConnectInput is the request for the connect RPC.
 <TypeTable
   type={{
     mcpServerId: { type: "string", description: "System-generated ID of the MCP server to connect to.", required: true },
-    runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Optional environment variable values for one-time use." },
+    runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Optional values for one-time use, by key." },
     org: { type: "string", description: "Organization context for credential resolution." },
   }}
 />
@@ -1079,7 +1092,7 @@ InitiateOAuthConnectInput starts the OAuth authorization flow for an MCP server 
 <TypeTable
   type={{
     mcpServerId: { type: "string", description: "System-generated ID of the MCP server to initiate OAuth for.", required: true },
-    org: { type: "string", description: "Organization context for token storage." },
+    org: { type: "string", description: "Organization the sign-in is saved in." },
   }}
 />
 
@@ -1115,7 +1128,7 @@ CompleteOAuthConnectOutput confirms that tokens were successfully acquired and s
 <TypeTable
   type={{
     connected: { type: "boolean", description: "Whether the OAuth flow completed successfully and tokens are stored." },
-    targetEnvVar: { type: "string", description: "The environment variable name where the access token was stored." },
+    targetEnvVar: { type: "string", description: "The key the access token fills: the name of the credential's field." },
     tokenLifetimeHint: { type: "string", description: "Informational hint about expected token lifetime." },
   }}
 />
@@ -1204,7 +1217,7 @@ GetOAuthGrantStatusOutput returns the current OAuth grant status.
   type={{
     connected: { type: "boolean", description: "Whether the user has an active OAuth grant for this resource + org." },
     accessTokenExpiresAt: { type: "number", description: "When the access token expires (Unix timestamp seconds)." },
-    targetEnvVar: { type: "string", description: "The env var name where the access token is stored." },
+    targetEnvVar: { type: "string", description: "The key the access token fills." },
     authMethod: { type: "string", description: "Which auth method was used (\"mcp_oauth\" or \"vendor_oauth\")." },
     connectionHealth: { type: "OAuthConnectionHealth", description: "Evaluated health of the OAuth connection.", typeDescriptionLink: "#oauthconnectionhealth" },
   }}
@@ -1378,4 +1391,13 @@ OAuthAppSource identifies where the effective OAuth app for an MCP server was re
 | `OAUTH_APP_SOURCE_PLATFORM` | The platform-default OAuthApp is in use (McpServerAuth.oauth_app_ref). |
 | `OAUTH_APP_SOURCE_ORG_OVERRIDE` | An org-level BYOA override is in use (OAuthAppOverride binding). |
 | `OAUTH_APP_SOURCE_NONE` | No OAuthApp is available. |
+
+### McpServerSignIn
+
+McpServerSignIn says whose account an MCP server's runs use.
+
+| Value | Description |
+|-------|-------------|
+| `mcp_server_sign_in_personal` | Each person signs in with their own account. |
+| `mcp_server_sign_in_organization` | An admin signs the organization in once, and every run in the organization uses that account. |
 

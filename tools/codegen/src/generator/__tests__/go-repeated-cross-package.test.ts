@@ -3,8 +3,9 @@
  * field whose element lives in another proto package: the agent spec's
  * `mcp_server_usages` is `repeated mcpserver.v1.McpServerUsage`, so the
  * generated agent client must import that package or the SDK does not
- * build. The generator runs over the real schemas and the test reads what
- * it wrote.
+ * build. A map of such messages imports its package the same way: the
+ * agent spec's `env` maps to credential.v1's EnvVarDeclaration. The
+ * generator runs over the real schemas and the test reads what it wrote.
  */
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -34,5 +35,10 @@ describe("the Go generator's repeated cross-package message", () => {
   it("imports the element's package and uses it", () => {
     expect(go).toMatch(/mcpserverv1 "[^"]*\/ai\/stigmer\/agentic\/mcpserver\/v1"/);
     expect(go).toContain("mcpserverv1.McpServerUsage");
+  });
+
+  it("imports a map value's package and uses it", () => {
+    expect(go).toMatch(/credentialv1 "[^"]*\/ai\/stigmer\/agentic\/credential\/v1"/);
+    expect(go).toContain("make(map[string]*credentialv1.EnvVarDeclaration, len(i.Env))");
   });
 });
