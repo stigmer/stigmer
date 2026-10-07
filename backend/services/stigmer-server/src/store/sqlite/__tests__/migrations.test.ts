@@ -2402,7 +2402,7 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
   );
 });
 
-describe("v20: every identity account's slug held to the slug rules", () => {
+describe("v20: every identity account's slug and name held to their rules", () => {
   function accountBytes(id: string, name: string, slug: string): Uint8Array {
     return toBinary(
       IdentityAccountSchema,
@@ -2447,5 +2447,50 @@ describe("v20: every identity account's slug held to the slug rules", () => {
     expect(
       db.prepare(`SELECT data, updated_at FROM resources WHERE id = 'ida_valid'`).get(),
     ).toEqual({ data: valid, updated_at: "2026-09-01 00:00:00" });
+  });
+
+  it("cuts a name longer than 200 characters to 200 and keeps the slug it already had", () => {
+    const dbPath = tempDbPath();
+    const setup = new DatabaseSync(dbPath);
+    runMigrations(setup, SCHEMA_VERSION_19);
+    const longName = `${"n".repeat(230)}@example.com`;
+    setup
+      .prepare(
+        `INSERT INTO resources (kind, id, data, updated_at) VALUES ('identity_account', 'ida_name', ?, '2026-09-01 00:00:00')`,
+      )
+      .run(accountBytes("ida_name", longName, "long-name-person"));
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_20);
+
+    const row = db
+      .prepare(`SELECT data FROM resources WHERE kind = 'identity_account' AND id = 'ida_name'`)
+      .get() as { data: Uint8Array };
+    const repaired = fromBinary(IdentityAccountSchema, row.data);
+    expect(repaired.metadata?.name).toBe(longName.slice(0, 200));
+    expect(repaired.metadata?.slug).toBe("long-name-person");
+    expect(repaired.spec?.email).toBe(longName);
+  });
+
+  it("stops at a row it cannot decode, naming the row, and leaves the database at v19", () => {
+    const dbPath = tempDbPath();
+    const setup = new DatabaseSync(dbPath);
+    runMigrations(setup, SCHEMA_VERSION_19);
+    // Field 1, length-delimited, claims 5 bytes and carries 1.
+    setup
+      .prepare(
+        `INSERT INTO resources (kind, id, data, updated_at) VALUES ('identity_account', 'ida_corrupt', ?, '2026-09-01 00:00:00')`,
+      )
+      .run(new Uint8Array([0x0a, 0x05, 0x01]));
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    expect(() => runMigrations(db, SCHEMA_VERSION_20)).toThrow(
+      "identity_account 'ida_corrupt' cannot have its slug repaired",
+    );
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_19);
   });
 });

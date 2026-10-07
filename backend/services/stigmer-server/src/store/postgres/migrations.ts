@@ -127,7 +127,7 @@ export const SCHEMA_VERSION_12 = 12;
 export const SCHEMA_VERSION_13 = 13;
 /** v14: the workflow, workflow run and artifact rows removed, with the tables only workflows wrote. */
 export const SCHEMA_VERSION_14 = 14;
-/** v15: every identity account's slug held to the slug rules. */
+/** v15: every identity account's slug and name held to their rules. */
 export const SCHEMA_VERSION_15 = 15;
 
 /** Target version for new databases. */

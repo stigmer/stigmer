@@ -461,6 +461,14 @@ describe("mintUserToken — the user", () => {
     expect(verified.token.tokenType).toBeUndefined();
   });
 
+  it("mints for a user whose email is past the name's bound, the account named by the email cut to 200", async () => {
+    const h = harness({ client: platformClient({ signInRole: IamRole.member }) });
+    const email = `${"p".repeat(240)}@example.com`;
+    await mintUserToken(h.deps, request({ userEmail: email }));
+    expect(h.created[0]?.input.name).toBe(email.slice(0, 200));
+    expect(h.created[0]?.input.spec.email).toBe(email);
+  });
+
   it("grants nothing when no sign-in role is set, and refuses an owner sign-in role", async () => {
     const h = harness({ client: platformClient({}) });
     await mintUserToken(h.deps, request());

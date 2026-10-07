@@ -2440,7 +2440,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       );
     });
 
-    describe("v15: every identity account's slug held to the slug rules", () => {
+    describe("v15: every identity account's slug and name held to their rules", () => {
       function accountBytes(id: string, name: string, slug: string): Buffer {
         return Buffer.from(
           toBinary(
@@ -2491,6 +2491,54 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           );
           expect(untouched.rows[0]!.data.equals(valid)).toBe(true);
           expect(untouched.rows[0]!.updated_at.getTime()).toBe(seededAt.getTime());
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("cuts a name longer than 200 characters to 200 and keeps the slug it already had", async () => {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_15 - 1);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        try {
+          const longName = `${"n".repeat(230)}@example.com`;
+          await client.query(
+            `INSERT INTO resources (kind, id, data, updated_at) VALUES ('identity_account', 'ida_name', $1, now())`,
+            [accountBytes("ida_name", longName, "long-name-person")],
+          );
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_15);
+
+          const result = await client.query<{ data: Buffer }>(
+            `SELECT data FROM resources WHERE kind = 'identity_account' AND id = 'ida_name'`,
+          );
+          const repaired = fromBinary(IdentityAccountSchema, new Uint8Array(result.rows[0]!.data));
+          expect(repaired.metadata?.name).toBe(longName.slice(0, 200));
+          expect(repaired.metadata?.slug).toBe("long-name-person");
+          expect(repaired.spec?.email).toBe(longName);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("stops at a row it cannot decode, naming the row, and leaves the database before v15", async () => {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_15 - 1);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        try {
+          // Field 1, length-delimited, claims 5 bytes and carries 1.
+          await client.query(
+            `INSERT INTO resources (kind, id, data, updated_at) VALUES ('identity_account', 'ida_corrupt', $1, now())`,
+            [Buffer.from([0x0a, 0x05, 0x01])],
+          );
+
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_15)).rejects.toThrow(
+            "identity_account 'ida_corrupt' cannot have its slug repaired",
+          );
+          const stamped = await client.query<{ version: number }>(
+            `SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`,
+          );
+          expect(Number(stamped.rows[0]!.version)).toBe(SCHEMA_VERSION_15 - 1);
         } finally {
           await client.end();
         }

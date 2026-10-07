@@ -14,17 +14,20 @@ import { create } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
 
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import { serverActingFor } from "../../../pipeline/interceptors/auth.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
+import { validator } from "../../../pipeline/steps/validation.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import { accountIdFor, reservedSubjectMessage } from "../constants.js";
 import { newCreateAccountPath } from "../controller.js";
 import type { CreateAccount } from "../provisioning.js";
+import { newDirectAccountProvisioner } from "../provisioning.js";
 import { newResourceIdentityAccountStore } from "../resource-store.js";
 import type { IdentityAccountStore } from "../store.js";
 
@@ -91,6 +94,27 @@ describe("the create path's account slug, from a name the server chose", () => {
     );
     expect(account.metadata?.name).toBe(email.slice(0, 200));
     expect(account.spec?.email).toBe(email);
+  });
+
+  it("signs in a person whose email is past the name's bound: the account is named by the email cut to 200, and validates as an update sends it back", async () => {
+    const email = `${"m".repeat(240)}@acme.example`;
+    const provisioner = newDirectAccountProvisioner({
+      accounts,
+      createAccount,
+      userInfo: {
+        fetchUserProfile: async () => ({ email, firstName: "", lastName: "", pictureUrl: "" }),
+      },
+    });
+    const { account, created } = await provisioner.provisionDirectAccount("auth0|long-email-person", {
+      identityId: "auth0|long-email-person",
+      callerClass: "user",
+      issuer: "https://issuer.test",
+      rawToken: "token",
+    });
+    expect(created).toBe(true);
+    expect(account.metadata?.name).toBe(email.slice(0, 200));
+    expect(account.spec?.email).toBe(email);
+    expect(validator().validate(IdentityAccountSchema, account).kind).toBe("valid");
   });
 
   it("provisions a platform-client user whose external id is numeric, and one named by a UUID", async () => {
