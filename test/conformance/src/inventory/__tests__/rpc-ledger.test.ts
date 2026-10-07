@@ -38,8 +38,8 @@ describe("servedRpcs", () => {
     ].join("\n");
     expect([...servedRpcs(log)].sort()).toEqual([
       "AgentQueryController.get",
-      "RunCommandController.updateStatus",
       "Health.Check",
+      "RunCommandController.updateStatus",
     ]);
   });
 });

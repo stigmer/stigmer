@@ -218,16 +218,16 @@ test.describe("Schedule detail tabs and inline editing", () => {
   }) => {
     const seeded = await createTestSchedule(stigmerClient);
     try {
-      // The ?tab= deep link lands directly on the Runs tab (the
+      // The ?tab= deep link lands directly on the History tab (the
       // AgentDetailPage precedent, wired for schedules too).
       await page.goto(
-        `/library/schedules/${SCHEDULES_ORG}/${seeded.scheduleSlug}?tab=runs`,
+        `/library/schedules/${SCHEDULES_ORG}/${seeded.scheduleSlug}?tab=history`,
       );
       await expect(
         page.getByRole("tab", { name: "Overview" }),
       ).toBeVisible({ timeout: 15_000 });
       // A fresh schedule has an empty fire ledger — stated, not blank.
-      await expect(page.getByText("No runs yet.")).toBeVisible();
+      await expect(page.getByText("No fires yet.")).toBeVisible();
 
       // Overview: the cadence humanizes; the raw cron stays visible.
       await page.getByRole("tab", { name: "Overview" }).click();

@@ -12,7 +12,7 @@
 // thing.
 //
 // Contract points encoded as assertions below:
-// - No AlreadyExists on create: repeated identical creates yield distinct aex_
+// - No AlreadyExists on create: repeated identical creates yield distinct run_
 //   ids (there is no CheckDuplicateStep in the agent-execution pipeline).
 // - An empty target (neither session_id nor a session_spec naming an agent)
 //   is a VALID request shape: the built-in assistant. The server creates a session with no
@@ -162,14 +162,14 @@ async function createHeldExecution(org: string, agent: Agent, name = uniqueName(
 }
 
 describe("Run conformance — CRUD & identity", () => {
-  it("[rpc:RunCommandController.create] create assigns an aex_ id, stamps the agent it runs, and starts PENDING", async () => {
+  it("[rpc:RunCommandController.create] create assigns a run_ id, stamps the agent it runs, and starts PENDING", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const name = uniqueName("aex");
 
     const created = await createExecution(org, agent, name);
 
-    expect(created.metadata?.id, "create should assign a prefixed id").toMatch(/^aex_[0-9a-z]+$/);
+    expect(created.metadata?.id, "create should assign a prefixed id").toMatch(/^run_[0-9a-z]+$/);
     expect(created.metadata?.name).toBe(name);
     expect(created.metadata?.org).toBe(org);
     expect(created.status?.agentId, "the turn records the agent its conversation pins").toBe(agent.metadata!.id);
@@ -186,7 +186,7 @@ describe("Run conformance — CRUD & identity", () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const name = uniqueName("aex");
-    const chosenId = foreignId("aex");
+    const chosenId = foreignId("run");
 
     mock.enqueue(anthropicText("Done."));
     const created = await clients.agentExecutionCommand.create({
@@ -197,7 +197,7 @@ describe("Run conformance — CRUD & identity", () => {
 
     const id = created.metadata?.id ?? "";
     expect(id, `create kept the caller's id ${chosenId}; the server must assign its own`).not.toBe(chosenId);
-    expect(id, `create answered ${id}, not an id the server minted`).toMatch(/^aex_[0-9a-hjkmnp-tv-z]{26}$/);
+    expect(id, `create answered ${id}, not an id the server minted`).toMatch(/^run_[0-9a-hjkmnp-tv-z]{26}$/);
     const read = await clients.agentExecutionQuery.get({ value: id });
     expect(read.metadata?.id, `a read of ${id} answers the execution it names`).toBe(id);
 
@@ -258,7 +258,7 @@ describe("Run conformance — distinctness (no duplicate check)", () => {
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: second.metadata!.id }));
 
     expect(second.metadata?.id, "second create gets a distinct id").not.toBe(first.metadata?.id);
-    expect(second.metadata?.id).toMatch(/^aex_[0-9a-z]+$/);
+    expect(second.metadata?.id).toMatch(/^run_[0-9a-z]+$/);
 
     await awaitTerminal(clients, first.metadata!.id);
     await awaitTerminal(clients, second.metadata!.id);

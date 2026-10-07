@@ -65,7 +65,7 @@ describe("Execution harness smoke — agent text turn", () => {
     // transition to COMPLETED proves the full path ran, including the LLM loop
     // against the mock. (We assert the deterministic endpoints, PENDING and
     // COMPLETED, not the sub-second IN_PROGRESS transient.)
-    expect(execution.metadata?.id, "create assigns a prefixed execution id").toMatch(/^aex_[0-9a-z]+$/);
+    expect(execution.metadata?.id, "create assigns a prefixed execution id").toMatch(/^run_[0-9a-z]+$/);
     expect(execution.status?.phase, "create returns a PENDING execution").toBe(RunPhase.RUN_PENDING);
 
     const final = await awaitTerminal(clients, executionId);
