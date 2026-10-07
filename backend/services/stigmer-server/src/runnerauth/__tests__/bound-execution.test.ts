@@ -126,7 +126,9 @@ describe("boundExecutionKindOf", () => {
     expect(boundExecutionKindOf(id)).toBe(kind);
   });
 
-  it.each([["ses_1"], ["agt_1"], ["zzz_1"], [""], ["aex"], ["connect"]])(
+  // `wex_1`: a retired workflow run's credential carries no expiry, so it
+  // must bind nothing rather than fall back to a kind.
+  it.each([["ses_1"], ["agt_1"], ["zzz_1"], [""], ["aex"], ["connect"], ["wex_1"]])(
     "%s binds nothing",
     (id) => {
       expect(boundExecutionKindOf(id)).toBeUndefined();

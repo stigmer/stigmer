@@ -7,8 +7,9 @@
 # workflows), upgrades to this change built from source by the guide's own
 # procedure, then proves every recorded agent resource reads back unchanged,
 # the workflow API is gone from a server that booted over the stored run, and
-# the old agent and a fresh one still reach the model's reply. A change that loses what the last release stored, or
-# breaks the documented upgrade, turns this lane red before it merges.
+# the old agent and a fresh one still reach the model's reply. A change that
+# loses what the last release stored, or breaks the documented upgrade, turns
+# this lane red before it merges.
 #
 # One job per install, each on its own machine: compose, Helm and the CLI
 # serve the product's port 7234, so two of them cannot share a host.

@@ -215,13 +215,13 @@ export class StigmerClient {
         //    run — which is every RPC but the process-bound bootstrap read.
         //    The server minted it for exactly this execution at dispatch and,
         //    with sign-in on, admits its bearer as the run's own human: the
-        //    status write and the session title are the member's, whoever's API key this process holds. It is
-        //    read from the async context, never from a ref: one process serves
-        //    many runs at once and a shared ref would be the wrong run's the
-        //    moment two overlap — the same reason rule 1 exists. Absent
-        //    outside an activity and when the dispatch carried none (an older
-        //    server; the cloud, whose runner credential is provisioned), so
-        //    the rules below are exactly what they were.
+        //    status write and the session title are the member's, whoever's API
+        //    key this process holds. It is read from the async context, never
+        //    from a ref: one process serves many runs at once and a shared ref
+        //    would be the wrong run's the moment two overlap — the same reason
+        //    rule 1 exists. Absent outside an activity and when the dispatch
+        //    carried none (an older server; the cloud, whose runner credential
+        //    is provisioned), so the rules below are exactly what they were.
         //
         // 3. The runner credential (runnerTokenRef) authenticates the services
         //    that require a runner-class token_type claim: ExecutionContext

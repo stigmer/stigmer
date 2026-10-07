@@ -193,6 +193,12 @@ describe("StigmerClient", () => {
       const req = makeRequest();
       await runInterceptor(req);
       expect(req.header.get("authorization")).toBe("Bearer control-plane-tok");
+
+      // An agent-run create is not a runner-credential RPC: a runner starts
+      // no child runs, so a create it sends presents the process credential.
+      const create = makeRequest("ai.stigmer.agentic.agentrun.v1.AgentRunCommandController", "create");
+      await runInterceptor(create);
+      expect(create.header.get("authorization")).toBe("Bearer control-plane-tok");
     });
 
     it("falls back to the control-plane token when no runner credential exists (OSS/local)", async () => {

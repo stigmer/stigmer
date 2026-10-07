@@ -9,7 +9,9 @@
 // settings. The subject is the run's message, and the run's
 // `structured_output_schema` names exactly the task's criteria, each a score
 // in 0..1 and a reason (`verdictSchema`). One agent and one run per sample,
-// both deferred for cleanup.
+// both deferred for cleanup. The subject is another model's output, so the run
+// approves nothing: a tool call it makes parks the run, and the grade is
+// refused as a timeout instead of running a tool on that text.
 //
 // The verdict is read STRICTLY, because a model's structured reply can still
 // miss the schema (the runner's extraction tiers fall back to the reply's
@@ -76,7 +78,6 @@ export async function judge(
       agentRef: agentRefOf(agent),
       sessionSpec: { subject: JUDGE_SESSION_SUBJECT },
       message: request.subject,
-      autoApproveAll: true,
       runConfig: { modelName: request.judgeModel },
       structuredOutputSchema: verdictSchema(request.task.criteria),
     }),

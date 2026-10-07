@@ -198,11 +198,11 @@ describe("the judge's run", () => {
           value: { agentRef: { org: "org_bench", slug: "bench-judge" }, subject: "benchmark judge" },
         },
         message: "the diff and its test",
-        autoApproveAll: true,
         runConfig: { modelName: "claude-sonnet-4-6" },
         structuredOutputSchema: verdictSchema(RUBRIC),
       },
     });
+    expect((created.run as { spec: { autoApproveAll?: boolean } }).spec.autoApproveAll, "the judge approves no tool").toBeFalsy();
     expect(terminal.awaitTerminal).toHaveBeenCalledWith(clients, "aex_judge", { timeoutMs: 1_000 });
     expect(verdict).toMatchObject({ judge_run_id: "aex_judge", outcome: "completed", score: weightedScore([
       { name: "correct_fix", score: 1, weight: 3, reasoning: "right" },

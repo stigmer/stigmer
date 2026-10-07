@@ -1,16 +1,16 @@
 /**
  * Self-renewal of a cloud sandbox's control-plane credential (STIGMER_TOKEN).
  *
- * A sandbox token is minted with a fixed TTL, but the sandbox it serves has
- * no fixed lifetime: an active conversation extends a session sandbox
- * indefinitely, past any TTL chosen at provisioning. Before this module, the only refresh path was the control
- * plane's Secret-rewrite + pod restart — which the 2026-08-05 incident
- * showed both sacrifices the turn that trips it (the old pod picks up the
- * work holding the dead env token) and wipes an ephemeral sandbox's
- * workspace. Renewal decouples credential lifetime from sandbox lifetime:
- * the runner re-mints in-process before expiry via the getRunnerScopedToken
- * `renewal` arm, and the server bounds renewability by the live sandbox
- * record (a reaped sandbox's credential dies with it).
+ * A sandbox token is minted with a fixed TTL, but the sandbox it serves has no
+ * fixed lifetime: an active conversation extends a session sandbox
+ * indefinitely, past any TTL chosen at provisioning. Before this module, the
+ * only refresh path was the control plane's Secret-rewrite + pod restart —
+ * which the 2026-08-05 incident showed both sacrifices the turn that trips it
+ * (the old pod picks up the work holding the dead env token) and wipes an
+ * ephemeral sandbox's workspace. Renewal decouples credential lifetime from
+ * sandbox lifetime: the runner re-mints in-process before expiry via the
+ * getRunnerScopedToken `renewal` arm, and the server bounds renewability by
+ * the live sandbox record (a reaped sandbox's credential dies with it).
  *
  * Relationship to {@link createRunnerTokenCoordinator}
  * (runner-token-coordinator.ts): the coordinator owns the PROXY credential
