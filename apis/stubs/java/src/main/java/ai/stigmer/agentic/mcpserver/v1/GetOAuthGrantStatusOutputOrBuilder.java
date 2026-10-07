@@ -33,7 +33,7 @@ public interface GetOAuthGrantStatusOutputOrBuilder extends
 
   /**
    * <pre>
-   * The env var name where the access token is stored.
+   * The key the access token fills.
    * Empty if no grant exists.
    * </pre>
    *
@@ -43,7 +43,7 @@ public interface GetOAuthGrantStatusOutputOrBuilder extends
   java.lang.String getTargetEnvVar();
   /**
    * <pre>
-   * The env var name where the access token is stored.
+   * The key the access token fills.
    * Empty if no grant exists.
    * </pre>
    *

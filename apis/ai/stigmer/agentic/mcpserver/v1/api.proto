@@ -19,9 +19,9 @@ import "buf/validate/validate.proto";
 // Lifecycle:
 // 1. Create McpServer definition (this resource) with server type and env requirements
 // 2. Reference in Agent via mcp_server_usages
-// 3. Provide the declared values through an Environment the run resolves (a
-//    personal environment, a schedule's or PlatformClient's environment_refs)
-//    or the turn's runtime_env
+// 3. Provide the declared values through a credential: each person's own
+//    (signed in, or serving the server), the organization's, a credential
+//    assigned on the surface that starts the run, or the turn's runtime_env
 // 4. Agent runner resolves McpServer, gets the values, starts server
 message McpServer {
   // API version for this resource type.

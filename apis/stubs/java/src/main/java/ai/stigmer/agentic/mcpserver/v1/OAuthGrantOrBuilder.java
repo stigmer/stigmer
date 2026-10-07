@@ -140,7 +140,7 @@ public interface OAuthGrantOrBuilder extends
 
   /**
    * <pre>
-   * Env var name where the access token is stored in the managed environment.
+   * The key the access token fills: the name of the credential's field.
    * </pre>
    *
    * <code>string access_token_env_var = 7 [json_name = "accessTokenEnvVar"];</code>
@@ -149,7 +149,7 @@ public interface OAuthGrantOrBuilder extends
   java.lang.String getAccessTokenEnvVar();
   /**
    * <pre>
-   * Env var name where the access token is stored in the managed environment.
+   * The key the access token fills: the name of the credential's field.
    * </pre>
    *
    * <code>string access_token_env_var = 7 [json_name = "accessTokenEnvVar"];</code>
@@ -157,54 +157,6 @@ public interface OAuthGrantOrBuilder extends
    */
   com.google.protobuf.ByteString
       getAccessTokenEnvVarBytes();
-
-  /**
-   * <pre>
-   * Env var name where the refresh token is stored in the managed environment.
-   * Convention: {target_env_var}_REFRESH_TOKEN.
-   * </pre>
-   *
-   * <code>string refresh_token_env_var = 8 [json_name = "refreshTokenEnvVar"];</code>
-   * @return The refreshTokenEnvVar.
-   */
-  java.lang.String getRefreshTokenEnvVar();
-  /**
-   * <pre>
-   * Env var name where the refresh token is stored in the managed environment.
-   * Convention: {target_env_var}_REFRESH_TOKEN.
-   * </pre>
-   *
-   * <code>string refresh_token_env_var = 8 [json_name = "refreshTokenEnvVar"];</code>
-   * @return The bytes for refreshTokenEnvVar.
-   */
-  com.google.protobuf.ByteString
-      getRefreshTokenEnvVarBytes();
-
-  /**
-   * <pre>
-   * ID of the managed Environment resource that holds the tokens.
-   * The refresh mechanism reads/writes tokens in this environment.
-   * Created during completeOAuthConnect with the stigmer.ai/managed=true label.
-   * 1:1 with this grant — revoking the grant deletes this environment.
-   * </pre>
-   *
-   * <code>string environment_id = 9 [json_name = "environmentId"];</code>
-   * @return The environmentId.
-   */
-  java.lang.String getEnvironmentId();
-  /**
-   * <pre>
-   * ID of the managed Environment resource that holds the tokens.
-   * The refresh mechanism reads/writes tokens in this environment.
-   * Created during completeOAuthConnect with the stigmer.ai/managed=true label.
-   * 1:1 with this grant — revoking the grant deletes this environment.
-   * </pre>
-   *
-   * <code>string environment_id = 9 [json_name = "environmentId"];</code>
-   * @return The bytes for environmentId.
-   */
-  com.google.protobuf.ByteString
-      getEnvironmentIdBytes();
 
   /**
    * <pre>
@@ -251,4 +203,46 @@ public interface OAuthGrantOrBuilder extends
    */
   com.google.protobuf.ByteString
       getOrgBytes();
+
+  /**
+   * <pre>
+   * ID of the Credential that holds the access token.
+   * Created by completeOAuthConnect; deleted with this grant.
+   * </pre>
+   *
+   * <code>string credential_id = 12 [json_name = "credentialId"];</code>
+   * @return The credentialId.
+   */
+  java.lang.String getCredentialId();
+  /**
+   * <pre>
+   * ID of the Credential that holds the access token.
+   * Created by completeOAuthConnect; deleted with this grant.
+   * </pre>
+   *
+   * <code>string credential_id = 12 [json_name = "credentialId"];</code>
+   * @return The bytes for credentialId.
+   */
+  com.google.protobuf.ByteString
+      getCredentialIdBytes();
+
+  /**
+   * <pre>
+   * The refresh token, sealed at rest.
+   * </pre>
+   *
+   * <code>string refresh_token = 13 [json_name = "refreshToken"];</code>
+   * @return The refreshToken.
+   */
+  java.lang.String getRefreshToken();
+  /**
+   * <pre>
+   * The refresh token, sealed at rest.
+   * </pre>
+   *
+   * <code>string refresh_token = 13 [json_name = "refreshToken"];</code>
+   * @return The bytes for refreshToken.
+   */
+  com.google.protobuf.ByteString
+      getRefreshTokenBytes();
 }

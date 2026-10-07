@@ -51,18 +51,19 @@ message McpServerId {
 // @internal
 // Triggers server-side MCP discovery:
 // the backend creates an ephemeral ExecutionContext with the resolved
-// environment variables, starts a Temporal workflow that connects to the
+// values, starts a Temporal workflow that connects to the
 // MCP server (via the runner), enumerates tools and resource
 // templates, and stores the results in status.discovered_capabilities.
 //
-// Environment variable resolution:
-// - When runtime_env is provided, the backend creates an ExecutionContext directly
-//   from these values (one-time use, values are not persisted to any environment).
-// - When runtime_env is empty, the backend resolves values from the authenticated
-//   user's personal environment.
+// Value resolution is the run's own rule (domain/credential/resolve.ts),
+// with the connecting caller as the person: runtime_env first, then the
+// caller's credential serving the server (or the organization's, for a
+// server with organization sign-in). A connecting caller that is not a
+// person (a machine account, a platform client's user) reaches no
+// personal credential.
 //
 // Callers:
-// - Web console: calls connect after saving credentials to personal environment.
+// - Web console: calls connect after saving a credential that serves the server.
 // - CLI: calls connect with runtime_env populated from local env vars.
 // - Runner backfill: calls connect with runtime_env from execution context
 //   when status.discovered_capabilities is empty on first run.
@@ -70,22 +71,20 @@ message McpServerId {
 // Prerequisites:
 // - The MCP server must exist and have a valid server_type (stdio or http)
 // - org must be provided (the caller's active organization)
-// - Either runtime_env must contain all required keys, or the keys must be
-//   present in the user's personal environment / managed OAuth environment
+// - Either runtime_env must contain all required keys, or a credential the
+//   caller may use must serve the server
 message ConnectInput {
   // System-generated ID of the MCP server to connect to.
   // Obtained from McpServer.metadata.id (e.g., via getByReference).
   string mcp_server_id = 1 [(buf.validate.field).required = true];
 
-  // Optional environment variable values for one-time use.
-  // When empty, values are resolved from the user's personal environment.
+  // Optional values for one-time use, by key.
+  // Keys left out are resolved from the caller's credentials.
   map<string, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtime_env = 2;
 
   // Organization context for credential resolution.
   //
-  // Used to look up the caller's OAuthGrant and personal environment
-  // during environment variable resolution. Must match the org used
-  // during initiateOAuthConnect so the grant composite key aligns.
+  // The organization whose credentials the values are resolved from.
   //
   // Required: the backend rejects the request when this field is empty.
   string org = 3 [(buf.validate.field).string.min_len = 1];
@@ -108,9 +107,10 @@ message InitiateOAuthConnectInput {
   // System-generated ID of the MCP server to initiate OAuth for.
   string mcp_server_id = 1 [(buf.validate.field).required = true];
 
-  // Organization context for token storage.
-  // Tokens are stored in the caller's personal environment within this org.
-  // Must be an org the caller belongs to.
+  // Organization the sign-in is saved in.
+  // The token is saved as the caller's own credential in this org, or as
+  // the org's credential for a server with organization sign-in (admins
+  // only). Must be an org the caller belongs to.
   string org = 2 [(buf.validate.field).string.min_len = 1];
 }
 
@@ -148,13 +148,13 @@ message InitiateOAuthConnectOutput {
 // The backend:
 // 1. Validates the state parameter against the stored PendingOAuthState
 // 2. Exchanges the authorization code for tokens (using PKCE code_verifier)
-// 3. Stores the access token in the user's personal environment
-// 4. Stores the refresh token (if present) in the personal environment
-// 5. Creates an OAuthGrant record for pre-flight expiry checks
+// 3. Saves the access token as the caller's credential serving the
+//    server (the organization's, for organization sign-in)
+// 4. Keeps the refresh token (if present) sealed on the OAuthGrant
+// 5. Records the OAuthGrant for pre-flight expiry checks
 //
 // After this succeeds, the frontend should call the regular connect RPC
-// to trigger tool discovery (which will find the fresh token in the
-// personal environment).
+// to trigger tool discovery (which will find the fresh credential).
 message CompleteOAuthConnectInput {
   // System-generated ID of the MCP server.
   // Must match the mcp_server_id used in the preceding initiateOAuthConnect.
@@ -174,7 +174,7 @@ message CompleteOAuthConnectOutput {
   // Whether the OAuth flow completed successfully and tokens are stored.
   bool connected = 1;
 
-  // The environment variable name where the access token was stored.
+  // The key the access token fills: the name of the credential's field.
   // Matches McpServerAuth.target_env_var on the MCP server spec.
   string target_env_var = 2;
 
@@ -187,7 +187,8 @@ message CompleteOAuthConnectOutput {
 //
 // @internal
 // Returns whether the authenticated user has an active OAuth grant for the
-// specified resource in the given org. Used by the frontend to determine
+// specified resource in the given org (the organization's grant, for a
+// server with organization sign-in). Used by the frontend to determine
 // whether to show "Connected" vs. "Connect with OAuth" UI states.
 message GetOAuthGrantStatusInput {
   // System-generated ID of the resource to check grant status for.
@@ -207,7 +208,7 @@ message GetOAuthGrantStatusOutput {
   // 0 if no grant exists or the token does not expire.
   int64 access_token_expires_at = 2;
 
-  // The env var name where the access token is stored.
+  // The key the access token fills.
   // Empty if no grant exists.
   string target_env_var = 3;
 
@@ -226,13 +227,14 @@ message GetOAuthGrantStatusOutput {
 //
 // @internal
 // The handler:
-// 1. Finds the OAuthGrant for (caller, resource_id, org)
-// 2. Deletes the managed Environment that holds the tokens
-// 3. Deletes the OAuthGrant record
+// 1. Finds the OAuthGrant for (caller, resource_id, org), or the
+//    organization's grant for a server with organization sign-in (admins only)
+// 2. Deletes the credential that holds the access token
+// 3. Deletes the OAuthGrant record, and its sealed refresh token with it
 //
-// After this, the user's access token and refresh token are gone. The
-// MCP server remains configured — only the user's personal OAuth connection
-// is removed. Other users' connections to the same resource are unaffected.
+// After this, the access token and refresh token are gone. The MCP server
+// remains configured — only this one sign-in is removed. Other users'
+// connections to the same resource are unaffected.
 //
 // Idempotent: if no OAuthGrant exists for the (caller, resource_id, org)
 // tuple, the handler returns disconnected=false without error. This
@@ -250,7 +252,7 @@ message DisconnectOAuthInput {
 // DisconnectOAuthOutput reports the result of a disconnect request.
 message DisconnectOAuthOutput {
   // Whether an active grant was found and deleted.
-  // true: grant and its managed environment were deleted.
+  // true: the grant and its credential were deleted.
   // false: no grant existed for this resource + org + caller. The desired
   // state (no OAuth connection) was already achieved. This is not an error.
   bool disconnected = 1;

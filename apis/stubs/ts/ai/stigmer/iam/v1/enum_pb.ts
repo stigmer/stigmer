@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/iam/v1/enum.proto.
  */
 export const file_ai_stigmer_iam_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("ChxhaS9zdGlnbWVyL2lhbS92MS9lbnVtLnByb3RvEhFhaS5zdGlnbWVyLmlhbS52MSrmCQoNSWFtUGVybWlzc2lvbhIPCgt1bnNwZWNpZmllZBAAEgwKCGNhbl92aWV3EAESDAoIY2FuX2VkaXQQAhIOCgpjYW5fZGVsZXRlEAMSFAoQY2FuX2dyYW50X2FjY2VzcxAEEhMKD2Nhbl92aWV3X2FjY2VzcxAFEhQKEGNhbl9hc3NpZ25fcm9sZXMQLxIXChNjYW5fbWFuYWdlX2F1ZGllbmNlEDASFAoQY2FuX2NyZWF0ZV9hZ2VudBAGEhYKEmNhbl9jcmVhdGVfc2Vzc2lvbhAIEhQKEGNhbl9jcmVhdGVfc2tpbGwQCRISCg5jYW5fY3JlYXRlX2lkcBALEhoKFmNhbl9jcmVhdGVfZW52aXJvbm1lbnQQDBIfChtjYW5fY3JlYXRlX2lkZW50aXR5X2FjY291bnQQFRIYChRjYW5fY3JlYXRlX29hdXRoX2FwcBAXEh4KGmNhbl9jcmVhdGVfcGxhdGZvcm1fY2xpZW50EBgSFQoRY2FuX2NyZWF0ZV9ydW5faW4QDRIPCgtjYW5fZXhlY3V0ZRAPEhQKEGNhbl9yZWFkX3NlY3JldHMQEBIVChFjYW5fYm9vdHN0cmFwX2lhbRAREg8KC2Nhbl9jb25uZWN0EBYSFAoQY2FuX3ZpZXdfYmlsbGluZxAbEhYKEmNhbl9tYW5hZ2VfYmlsbGluZxAcEhsKF2Nhbl9leGVjdXRlX2JpbGxpbmdfb3BzEB0SGgoWY2FuX2NyZWF0ZV9hZ2VudF9zaGFyZRAeEhoKFmNhbl9jcmVhdGVfY2hhbm5lbF9hcHAQHxIcChhjYW5fbWFuYWdlX21vZGVsX3ByaWNpbmcQIBIeChpjYW5fbWFuYWdlX2N1cnNvcl9hY2NvdW50cxAjEhMKD2Nhbl9wYXJ0aWNpcGF0ZRAkEh0KGWNhbl93cml0ZV9yZXNlcnZlZF9sYWJlbHMQJRIeChpjYW5fdmlld19wcm92aWRlcl9zdGFuZGluZxAmEhUKEWNhbl9jcmVhdGVfcGx1Z2luECgSFAoQY2FuX21hbmFnZV9wbGFucxApEhUKEWNhbl9pc3N1ZV9saWNlbnNlECoSGQoVY2FuX2NyZWF0ZV9tY3Bfc2VydmVyECsSEwoPY2FuX2NyZWF0ZV90ZWFtEC0SFgoSY2FuX21hbmFnZV9jcmVkaXRzEC4SGQoVY2FuX21hbmFnZV9jaGlsZF9vcmdzEDESFQoRY2FuX3ZpZXdfc2V0dGluZ3MQMiIECA4QDiIECAcQByIECBIQEiIECBQQFCIECBkQGSIECBoQGiIECCEQISIECCIQIiIECAoQCiIECCcQJyIECCwQLCoTY2FuX2NyZWF0ZV9pbnN0YW5jZSoTY2FuX2NyZWF0ZV93b3JrZmxvdyocY2FuX21hbmFnZV9pZGVudGl0eV9hY2NvdW50cyoUbG9naW5fdG9fYmFja19vZmZpY2UqEWNhbl9jcmVhdGVfcnVubmVyKhJjYW5fZGVsZXRlX3Nlc3Npb24qD2Nhbl91c2VfcmVjb3JkcyoUY2FuX2NyZWF0ZV9kYXRhc3RvcmUqEmNhbl9jcmVhdGVfcHJvamVjdCoZY2FuX3NldF9wdWJsaWNfdmlzaWJpbGl0eSoZY2FuX2NyZWF0ZV9hZ2VudF9pbnN0YW5jZSpuCgdJYW1Sb2xlEhgKFGlhbV9yb2xlX3Vuc3BlY2lmaWVkEAASCQoFb3duZXIQARIJCgVhZG1pbhACEgoKBm1lbWJlchADEgoKBnZpZXdlchAEEg8KC3BhcnRpY2lwYW50EAUSCgoGZWRpdG9yEAZiBnByb3RvMw");
+  fileDesc("ChxhaS9zdGlnbWVyL2lhbS92MS9lbnVtLnByb3RvEhFhaS5zdGlnbWVyLmlhbS52MSqvCgoNSWFtUGVybWlzc2lvbhIPCgt1bnNwZWNpZmllZBAAEgwKCGNhbl92aWV3EAESDAoIY2FuX2VkaXQQAhIOCgpjYW5fZGVsZXRlEAMSFAoQY2FuX2dyYW50X2FjY2VzcxAEEhMKD2Nhbl92aWV3X2FjY2VzcxAFEhQKEGNhbl9hc3NpZ25fcm9sZXMQLxIXChNjYW5fbWFuYWdlX2F1ZGllbmNlEDASFAoQY2FuX2NyZWF0ZV9hZ2VudBAGEhYKEmNhbl9jcmVhdGVfc2Vzc2lvbhAIEhQKEGNhbl9jcmVhdGVfc2tpbGwQCRISCg5jYW5fY3JlYXRlX2lkcBALEh8KG2Nhbl9jcmVhdGVfaWRlbnRpdHlfYWNjb3VudBAVEhgKFGNhbl9jcmVhdGVfb2F1dGhfYXBwEBcSHgoaY2FuX2NyZWF0ZV9wbGF0Zm9ybV9jbGllbnQQGBIVChFjYW5fY3JlYXRlX3J1bl9pbhANEhkKFWNhbl9jcmVhdGVfY3JlZGVudGlhbBA0Eh0KGWNhbl9jcmVhdGVfb3JnX2NyZWRlbnRpYWwQNRILCgdjYW5fdXNlEDMSDwoLY2FuX2V4ZWN1dGUQDxIUChBjYW5fcmVhZF9zZWNyZXRzEBASFQoRY2FuX2Jvb3RzdHJhcF9pYW0QERIPCgtjYW5fY29ubmVjdBAWEhQKEGNhbl92aWV3X2JpbGxpbmcQGxIWChJjYW5fbWFuYWdlX2JpbGxpbmcQHBIbChdjYW5fZXhlY3V0ZV9iaWxsaW5nX29wcxAdEhoKFmNhbl9jcmVhdGVfYWdlbnRfc2hhcmUQHhIaChZjYW5fY3JlYXRlX2NoYW5uZWxfYXBwEB8SHAoYY2FuX21hbmFnZV9tb2RlbF9wcmljaW5nECASHgoaY2FuX21hbmFnZV9jdXJzb3JfYWNjb3VudHMQIxITCg9jYW5fcGFydGljaXBhdGUQJBIdChljYW5fd3JpdGVfcmVzZXJ2ZWRfbGFiZWxzECUSHgoaY2FuX3ZpZXdfcHJvdmlkZXJfc3RhbmRpbmcQJhIVChFjYW5fY3JlYXRlX3BsdWdpbhAoEhQKEGNhbl9tYW5hZ2VfcGxhbnMQKRIVChFjYW5faXNzdWVfbGljZW5zZRAqEhkKFWNhbl9jcmVhdGVfbWNwX3NlcnZlchArEhMKD2Nhbl9jcmVhdGVfdGVhbRAtEhYKEmNhbl9tYW5hZ2VfY3JlZGl0cxAuEhkKFWNhbl9tYW5hZ2VfY2hpbGRfb3JncxAxEhUKEWNhbl92aWV3X3NldHRpbmdzEDIiBAgOEA4iBAgMEAwiBAgHEAciBAgSEBIiBAgUEBQiBAgZEBkiBAgaEBoiBAghECEiBAgiECIiBAgKEAoiBAgnECciBAgsECwqE2Nhbl9jcmVhdGVfaW5zdGFuY2UqFmNhbl9jcmVhdGVfZW52aXJvbm1lbnQqE2Nhbl9jcmVhdGVfd29ya2Zsb3cqHGNhbl9tYW5hZ2VfaWRlbnRpdHlfYWNjb3VudHMqFGxvZ2luX3RvX2JhY2tfb2ZmaWNlKhFjYW5fY3JlYXRlX3J1bm5lcioSY2FuX2RlbGV0ZV9zZXNzaW9uKg9jYW5fdXNlX3JlY29yZHMqFGNhbl9jcmVhdGVfZGF0YXN0b3JlKhJjYW5fY3JlYXRlX3Byb2plY3QqGWNhbl9zZXRfcHVibGljX3Zpc2liaWxpdHkqGWNhbl9jcmVhdGVfYWdlbnRfaW5zdGFuY2UqeAoHSWFtUm9sZRIYChRpYW1fcm9sZV91bnNwZWNpZmllZBAAEgkKBW93bmVyEAESCQoFYWRtaW4QAhIKCgZtZW1iZXIQAxIKCgZ2aWV3ZXIQBBIPCgtwYXJ0aWNpcGFudBAFEgoKBmVkaXRvchAGEggKBHVzZXIQB2IGcHJvdG8z");
 
 /**
  * IamPermission defines the permissions checked by the authorization
@@ -99,11 +99,6 @@ export enum IamPermission {
   can_create_idp = 11,
 
   /**
-   * @generated from enum value: can_create_environment = 12;
-   */
-  can_create_environment = 12,
-
-  /**
    * @generated from enum value: can_create_identity_account = 21;
    */
   can_create_identity_account = 21,
@@ -124,6 +119,29 @@ export enum IamPermission {
    * @generated from enum value: can_create_run_in = 13;
    */
   can_create_run_in = 13,
+
+  /**
+   * Organization-level permission to save a credential of your own.
+   *
+   * @generated from enum value: can_create_credential = 52;
+   */
+  can_create_credential = 52,
+
+  /**
+   * Organization-level permission to save a credential that belongs to
+   * the organization. Admin-gated: an organization's credential is the
+   * organization's to share.
+   *
+   * @generated from enum value: can_create_org_credential = 53;
+   */
+  can_create_org_credential = 53,
+
+  /**
+   * Whether the caller's runs may use a credential's values.
+   *
+   * @generated from enum value: can_use = 51;
+   */
+  can_use = 51,
 
   /**
    * Execution permission.
@@ -392,6 +410,14 @@ export enum IamRole {
    * @generated from enum value: editor = 6;
    */
   editor = 6,
+
+  /**
+   * User of a credential: the runs this person or team starts may use
+   * the credential's values. Never reveals them.
+   *
+   * @generated from enum value: user = 7;
+   */
+  user = 7,
 }
 
 /**

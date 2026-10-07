@@ -7,8 +7,8 @@ package ai.stigmer.agentic.mcpserver.v1;
 
 /**
  * <pre>
- * OAuthGrant tracks OAuth metadata for a user's OAuth connection to an
- * API resource.
+ * OAuthGrant tracks one sign-in to an API resource: the metadata that
+ * keeps its token fresh, and the refresh token itself.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.OAuthGrant}
@@ -39,10 +39,10 @@ private static final long serialVersionUID = 0L;
     authMethod_ = "";
     tokenEndpoint_ = "";
     accessTokenEnvVar_ = "";
-    refreshTokenEnvVar_ = "";
-    environmentId_ = "";
     resourceKind_ = "";
     org_ = "";
+    credentialId_ = "";
+    refreshToken_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -336,7 +336,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object accessTokenEnvVar_ = "";
   /**
    * <pre>
-   * Env var name where the access token is stored in the managed environment.
+   * The key the access token fills: the name of the credential's field.
    * </pre>
    *
    * <code>string access_token_env_var = 7 [json_name = "accessTokenEnvVar"];</code>
@@ -357,7 +357,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Env var name where the access token is stored in the managed environment.
+   * The key the access token fills: the name of the credential's field.
    * </pre>
    *
    * <code>string access_token_env_var = 7 [json_name = "accessTokenEnvVar"];</code>
@@ -372,108 +372,6 @@ private static final long serialVersionUID = 0L;
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
       accessTokenEnvVar_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
-  public static final int REFRESH_TOKEN_ENV_VAR_FIELD_NUMBER = 8;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object refreshTokenEnvVar_ = "";
-  /**
-   * <pre>
-   * Env var name where the refresh token is stored in the managed environment.
-   * Convention: {target_env_var}_REFRESH_TOKEN.
-   * </pre>
-   *
-   * <code>string refresh_token_env_var = 8 [json_name = "refreshTokenEnvVar"];</code>
-   * @return The refreshTokenEnvVar.
-   */
-  @java.lang.Override
-  public java.lang.String getRefreshTokenEnvVar() {
-    java.lang.Object ref = refreshTokenEnvVar_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      refreshTokenEnvVar_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * Env var name where the refresh token is stored in the managed environment.
-   * Convention: {target_env_var}_REFRESH_TOKEN.
-   * </pre>
-   *
-   * <code>string refresh_token_env_var = 8 [json_name = "refreshTokenEnvVar"];</code>
-   * @return The bytes for refreshTokenEnvVar.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getRefreshTokenEnvVarBytes() {
-    java.lang.Object ref = refreshTokenEnvVar_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      refreshTokenEnvVar_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
-  public static final int ENVIRONMENT_ID_FIELD_NUMBER = 9;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object environmentId_ = "";
-  /**
-   * <pre>
-   * ID of the managed Environment resource that holds the tokens.
-   * The refresh mechanism reads/writes tokens in this environment.
-   * Created during completeOAuthConnect with the stigmer.ai/managed=true label.
-   * 1:1 with this grant — revoking the grant deletes this environment.
-   * </pre>
-   *
-   * <code>string environment_id = 9 [json_name = "environmentId"];</code>
-   * @return The environmentId.
-   */
-  @java.lang.Override
-  public java.lang.String getEnvironmentId() {
-    java.lang.Object ref = environmentId_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      environmentId_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * ID of the managed Environment resource that holds the tokens.
-   * The refresh mechanism reads/writes tokens in this environment.
-   * Created during completeOAuthConnect with the stigmer.ai/managed=true label.
-   * 1:1 with this grant — revoking the grant deletes this environment.
-   * </pre>
-   *
-   * <code>string environment_id = 9 [json_name = "environmentId"];</code>
-   * @return The bytes for environmentId.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getEnvironmentIdBytes() {
-    java.lang.Object ref = environmentId_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      environmentId_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -580,6 +478,102 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int CREDENTIAL_ID_FIELD_NUMBER = 12;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object credentialId_ = "";
+  /**
+   * <pre>
+   * ID of the Credential that holds the access token.
+   * Created by completeOAuthConnect; deleted with this grant.
+   * </pre>
+   *
+   * <code>string credential_id = 12 [json_name = "credentialId"];</code>
+   * @return The credentialId.
+   */
+  @java.lang.Override
+  public java.lang.String getCredentialId() {
+    java.lang.Object ref = credentialId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      credentialId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * ID of the Credential that holds the access token.
+   * Created by completeOAuthConnect; deleted with this grant.
+   * </pre>
+   *
+   * <code>string credential_id = 12 [json_name = "credentialId"];</code>
+   * @return The bytes for credentialId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getCredentialIdBytes() {
+    java.lang.Object ref = credentialId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      credentialId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int REFRESH_TOKEN_FIELD_NUMBER = 13;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object refreshToken_ = "";
+  /**
+   * <pre>
+   * The refresh token, sealed at rest.
+   * </pre>
+   *
+   * <code>string refresh_token = 13 [json_name = "refreshToken"];</code>
+   * @return The refreshToken.
+   */
+  @java.lang.Override
+  public java.lang.String getRefreshToken() {
+    java.lang.Object ref = refreshToken_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      refreshToken_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The refresh token, sealed at rest.
+   * </pre>
+   *
+   * <code>string refresh_token = 13 [json_name = "refreshToken"];</code>
+   * @return The bytes for refreshToken.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getRefreshTokenBytes() {
+    java.lang.Object ref = refreshToken_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      refreshToken_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -615,17 +609,17 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(accessTokenEnvVar_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 7, accessTokenEnvVar_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(refreshTokenEnvVar_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 8, refreshTokenEnvVar_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(environmentId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 9, environmentId_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(resourceKind_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 10, resourceKind_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 11, org_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(credentialId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 12, credentialId_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(refreshToken_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 13, refreshToken_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -658,17 +652,17 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(accessTokenEnvVar_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(7, accessTokenEnvVar_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(refreshTokenEnvVar_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(8, refreshTokenEnvVar_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(environmentId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(9, environmentId_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(resourceKind_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(10, resourceKind_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(11, org_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(credentialId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(12, credentialId_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(refreshToken_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(13, refreshToken_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -699,14 +693,14 @@ private static final long serialVersionUID = 0L;
         .equals(other.getTokenEndpoint())) return false;
     if (!getAccessTokenEnvVar()
         .equals(other.getAccessTokenEnvVar())) return false;
-    if (!getRefreshTokenEnvVar()
-        .equals(other.getRefreshTokenEnvVar())) return false;
-    if (!getEnvironmentId()
-        .equals(other.getEnvironmentId())) return false;
     if (!getResourceKind()
         .equals(other.getResourceKind())) return false;
     if (!getOrg()
         .equals(other.getOrg())) return false;
+    if (!getCredentialId()
+        .equals(other.getCredentialId())) return false;
+    if (!getRefreshToken()
+        .equals(other.getRefreshToken())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -733,14 +727,14 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getTokenEndpoint().hashCode();
     hash = (37 * hash) + ACCESS_TOKEN_ENV_VAR_FIELD_NUMBER;
     hash = (53 * hash) + getAccessTokenEnvVar().hashCode();
-    hash = (37 * hash) + REFRESH_TOKEN_ENV_VAR_FIELD_NUMBER;
-    hash = (53 * hash) + getRefreshTokenEnvVar().hashCode();
-    hash = (37 * hash) + ENVIRONMENT_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getEnvironmentId().hashCode();
     hash = (37 * hash) + RESOURCE_KIND_FIELD_NUMBER;
     hash = (53 * hash) + getResourceKind().hashCode();
     hash = (37 * hash) + ORG_FIELD_NUMBER;
     hash = (53 * hash) + getOrg().hashCode();
+    hash = (37 * hash) + CREDENTIAL_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getCredentialId().hashCode();
+    hash = (37 * hash) + REFRESH_TOKEN_FIELD_NUMBER;
+    hash = (53 * hash) + getRefreshToken().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -840,8 +834,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * OAuthGrant tracks OAuth metadata for a user's OAuth connection to an
-   * API resource.
+   * OAuthGrant tracks one sign-in to an API resource: the metadata that
+   * keeps its token fresh, and the refresh token itself.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.OAuthGrant}
@@ -884,10 +878,10 @@ private static final long serialVersionUID = 0L;
       authMethod_ = "";
       tokenEndpoint_ = "";
       accessTokenEnvVar_ = "";
-      refreshTokenEnvVar_ = "";
-      environmentId_ = "";
       resourceKind_ = "";
       org_ = "";
+      credentialId_ = "";
+      refreshToken_ = "";
       return this;
     }
 
@@ -943,16 +937,16 @@ private static final long serialVersionUID = 0L;
         result.accessTokenEnvVar_ = accessTokenEnvVar_;
       }
       if (((from_bitField0_ & 0x00000080) != 0)) {
-        result.refreshTokenEnvVar_ = refreshTokenEnvVar_;
-      }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
-        result.environmentId_ = environmentId_;
-      }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
         result.resourceKind_ = resourceKind_;
       }
-      if (((from_bitField0_ & 0x00000400) != 0)) {
+      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.org_ = org_;
+      }
+      if (((from_bitField0_ & 0x00000200) != 0)) {
+        result.credentialId_ = credentialId_;
+      }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
+        result.refreshToken_ = refreshToken_;
       }
     }
 
@@ -1001,23 +995,23 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000040;
         onChanged();
       }
-      if (!other.getRefreshTokenEnvVar().isEmpty()) {
-        refreshTokenEnvVar_ = other.refreshTokenEnvVar_;
-        bitField0_ |= 0x00000080;
-        onChanged();
-      }
-      if (!other.getEnvironmentId().isEmpty()) {
-        environmentId_ = other.environmentId_;
-        bitField0_ |= 0x00000100;
-        onChanged();
-      }
       if (!other.getResourceKind().isEmpty()) {
         resourceKind_ = other.resourceKind_;
-        bitField0_ |= 0x00000200;
+        bitField0_ |= 0x00000080;
         onChanged();
       }
       if (!other.getOrg().isEmpty()) {
         org_ = other.org_;
+        bitField0_ |= 0x00000100;
+        onChanged();
+      }
+      if (!other.getCredentialId().isEmpty()) {
+        credentialId_ = other.credentialId_;
+        bitField0_ |= 0x00000200;
+        onChanged();
+      }
+      if (!other.getRefreshToken().isEmpty()) {
+        refreshToken_ = other.refreshToken_;
         bitField0_ |= 0x00000400;
         onChanged();
       }
@@ -1082,26 +1076,26 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000040;
               break;
             } // case 58
-            case 66: {
-              refreshTokenEnvVar_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000080;
-              break;
-            } // case 66
-            case 74: {
-              environmentId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000100;
-              break;
-            } // case 74
             case 82: {
               resourceKind_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00000080;
               break;
             } // case 82
             case 90: {
               org_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000400;
+              bitField0_ |= 0x00000100;
               break;
             } // case 90
+            case 98: {
+              credentialId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000200;
+              break;
+            } // case 98
+            case 106: {
+              refreshToken_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000400;
+              break;
+            } // case 106
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1672,7 +1666,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object accessTokenEnvVar_ = "";
     /**
      * <pre>
-     * Env var name where the access token is stored in the managed environment.
+     * The key the access token fills: the name of the credential's field.
      * </pre>
      *
      * <code>string access_token_env_var = 7 [json_name = "accessTokenEnvVar"];</code>
@@ -1692,7 +1686,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Env var name where the access token is stored in the managed environment.
+     * The key the access token fills: the name of the credential's field.
      * </pre>
      *
      * <code>string access_token_env_var = 7 [json_name = "accessTokenEnvVar"];</code>
@@ -1713,7 +1707,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Env var name where the access token is stored in the managed environment.
+     * The key the access token fills: the name of the credential's field.
      * </pre>
      *
      * <code>string access_token_env_var = 7 [json_name = "accessTokenEnvVar"];</code>
@@ -1730,7 +1724,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Env var name where the access token is stored in the managed environment.
+     * The key the access token fills: the name of the credential's field.
      * </pre>
      *
      * <code>string access_token_env_var = 7 [json_name = "accessTokenEnvVar"];</code>
@@ -1744,7 +1738,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Env var name where the access token is stored in the managed environment.
+     * The key the access token fills: the name of the credential's field.
      * </pre>
      *
      * <code>string access_token_env_var = 7 [json_name = "accessTokenEnvVar"];</code>
@@ -1757,210 +1751,6 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       accessTokenEnvVar_ = value;
       bitField0_ |= 0x00000040;
-      onChanged();
-      return this;
-    }
-
-    private java.lang.Object refreshTokenEnvVar_ = "";
-    /**
-     * <pre>
-     * Env var name where the refresh token is stored in the managed environment.
-     * Convention: {target_env_var}_REFRESH_TOKEN.
-     * </pre>
-     *
-     * <code>string refresh_token_env_var = 8 [json_name = "refreshTokenEnvVar"];</code>
-     * @return The refreshTokenEnvVar.
-     */
-    public java.lang.String getRefreshTokenEnvVar() {
-      java.lang.Object ref = refreshTokenEnvVar_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        refreshTokenEnvVar_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Env var name where the refresh token is stored in the managed environment.
-     * Convention: {target_env_var}_REFRESH_TOKEN.
-     * </pre>
-     *
-     * <code>string refresh_token_env_var = 8 [json_name = "refreshTokenEnvVar"];</code>
-     * @return The bytes for refreshTokenEnvVar.
-     */
-    public com.google.protobuf.ByteString
-        getRefreshTokenEnvVarBytes() {
-      java.lang.Object ref = refreshTokenEnvVar_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        refreshTokenEnvVar_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Env var name where the refresh token is stored in the managed environment.
-     * Convention: {target_env_var}_REFRESH_TOKEN.
-     * </pre>
-     *
-     * <code>string refresh_token_env_var = 8 [json_name = "refreshTokenEnvVar"];</code>
-     * @param value The refreshTokenEnvVar to set.
-     * @return This builder for chaining.
-     */
-    public Builder setRefreshTokenEnvVar(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      refreshTokenEnvVar_ = value;
-      bitField0_ |= 0x00000080;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Env var name where the refresh token is stored in the managed environment.
-     * Convention: {target_env_var}_REFRESH_TOKEN.
-     * </pre>
-     *
-     * <code>string refresh_token_env_var = 8 [json_name = "refreshTokenEnvVar"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearRefreshTokenEnvVar() {
-      refreshTokenEnvVar_ = getDefaultInstance().getRefreshTokenEnvVar();
-      bitField0_ = (bitField0_ & ~0x00000080);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Env var name where the refresh token is stored in the managed environment.
-     * Convention: {target_env_var}_REFRESH_TOKEN.
-     * </pre>
-     *
-     * <code>string refresh_token_env_var = 8 [json_name = "refreshTokenEnvVar"];</code>
-     * @param value The bytes for refreshTokenEnvVar to set.
-     * @return This builder for chaining.
-     */
-    public Builder setRefreshTokenEnvVarBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      refreshTokenEnvVar_ = value;
-      bitField0_ |= 0x00000080;
-      onChanged();
-      return this;
-    }
-
-    private java.lang.Object environmentId_ = "";
-    /**
-     * <pre>
-     * ID of the managed Environment resource that holds the tokens.
-     * The refresh mechanism reads/writes tokens in this environment.
-     * Created during completeOAuthConnect with the stigmer.ai/managed=true label.
-     * 1:1 with this grant — revoking the grant deletes this environment.
-     * </pre>
-     *
-     * <code>string environment_id = 9 [json_name = "environmentId"];</code>
-     * @return The environmentId.
-     */
-    public java.lang.String getEnvironmentId() {
-      java.lang.Object ref = environmentId_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        environmentId_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * ID of the managed Environment resource that holds the tokens.
-     * The refresh mechanism reads/writes tokens in this environment.
-     * Created during completeOAuthConnect with the stigmer.ai/managed=true label.
-     * 1:1 with this grant — revoking the grant deletes this environment.
-     * </pre>
-     *
-     * <code>string environment_id = 9 [json_name = "environmentId"];</code>
-     * @return The bytes for environmentId.
-     */
-    public com.google.protobuf.ByteString
-        getEnvironmentIdBytes() {
-      java.lang.Object ref = environmentId_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        environmentId_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * ID of the managed Environment resource that holds the tokens.
-     * The refresh mechanism reads/writes tokens in this environment.
-     * Created during completeOAuthConnect with the stigmer.ai/managed=true label.
-     * 1:1 with this grant — revoking the grant deletes this environment.
-     * </pre>
-     *
-     * <code>string environment_id = 9 [json_name = "environmentId"];</code>
-     * @param value The environmentId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setEnvironmentId(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      environmentId_ = value;
-      bitField0_ |= 0x00000100;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * ID of the managed Environment resource that holds the tokens.
-     * The refresh mechanism reads/writes tokens in this environment.
-     * Created during completeOAuthConnect with the stigmer.ai/managed=true label.
-     * 1:1 with this grant — revoking the grant deletes this environment.
-     * </pre>
-     *
-     * <code>string environment_id = 9 [json_name = "environmentId"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearEnvironmentId() {
-      environmentId_ = getDefaultInstance().getEnvironmentId();
-      bitField0_ = (bitField0_ & ~0x00000100);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * ID of the managed Environment resource that holds the tokens.
-     * The refresh mechanism reads/writes tokens in this environment.
-     * Created during completeOAuthConnect with the stigmer.ai/managed=true label.
-     * 1:1 with this grant — revoking the grant deletes this environment.
-     * </pre>
-     *
-     * <code>string environment_id = 9 [json_name = "environmentId"];</code>
-     * @param value The bytes for environmentId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setEnvironmentIdBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      environmentId_ = value;
-      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -2023,7 +1813,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       resourceKind_ = value;
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -2038,7 +1828,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearResourceKind() {
       resourceKind_ = getDefaultInstance().getResourceKind();
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000080);
       onChanged();
       return this;
     }
@@ -2057,7 +1847,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       resourceKind_ = value;
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -2123,7 +1913,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       org_ = value;
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -2139,7 +1929,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearOrg() {
       org_ = getDefaultInstance().getOrg();
-      bitField0_ = (bitField0_ & ~0x00000400);
+      bitField0_ = (bitField0_ & ~0x00000100);
       onChanged();
       return this;
     }
@@ -2159,6 +1949,195 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       org_ = value;
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object credentialId_ = "";
+    /**
+     * <pre>
+     * ID of the Credential that holds the access token.
+     * Created by completeOAuthConnect; deleted with this grant.
+     * </pre>
+     *
+     * <code>string credential_id = 12 [json_name = "credentialId"];</code>
+     * @return The credentialId.
+     */
+    public java.lang.String getCredentialId() {
+      java.lang.Object ref = credentialId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        credentialId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * ID of the Credential that holds the access token.
+     * Created by completeOAuthConnect; deleted with this grant.
+     * </pre>
+     *
+     * <code>string credential_id = 12 [json_name = "credentialId"];</code>
+     * @return The bytes for credentialId.
+     */
+    public com.google.protobuf.ByteString
+        getCredentialIdBytes() {
+      java.lang.Object ref = credentialId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        credentialId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * ID of the Credential that holds the access token.
+     * Created by completeOAuthConnect; deleted with this grant.
+     * </pre>
+     *
+     * <code>string credential_id = 12 [json_name = "credentialId"];</code>
+     * @param value The credentialId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setCredentialId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      credentialId_ = value;
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * ID of the Credential that holds the access token.
+     * Created by completeOAuthConnect; deleted with this grant.
+     * </pre>
+     *
+     * <code>string credential_id = 12 [json_name = "credentialId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearCredentialId() {
+      credentialId_ = getDefaultInstance().getCredentialId();
+      bitField0_ = (bitField0_ & ~0x00000200);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * ID of the Credential that holds the access token.
+     * Created by completeOAuthConnect; deleted with this grant.
+     * </pre>
+     *
+     * <code>string credential_id = 12 [json_name = "credentialId"];</code>
+     * @param value The bytes for credentialId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setCredentialIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      credentialId_ = value;
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object refreshToken_ = "";
+    /**
+     * <pre>
+     * The refresh token, sealed at rest.
+     * </pre>
+     *
+     * <code>string refresh_token = 13 [json_name = "refreshToken"];</code>
+     * @return The refreshToken.
+     */
+    public java.lang.String getRefreshToken() {
+      java.lang.Object ref = refreshToken_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        refreshToken_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The refresh token, sealed at rest.
+     * </pre>
+     *
+     * <code>string refresh_token = 13 [json_name = "refreshToken"];</code>
+     * @return The bytes for refreshToken.
+     */
+    public com.google.protobuf.ByteString
+        getRefreshTokenBytes() {
+      java.lang.Object ref = refreshToken_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        refreshToken_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The refresh token, sealed at rest.
+     * </pre>
+     *
+     * <code>string refresh_token = 13 [json_name = "refreshToken"];</code>
+     * @param value The refreshToken to set.
+     * @return This builder for chaining.
+     */
+    public Builder setRefreshToken(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      refreshToken_ = value;
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The refresh token, sealed at rest.
+     * </pre>
+     *
+     * <code>string refresh_token = 13 [json_name = "refreshToken"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearRefreshToken() {
+      refreshToken_ = getDefaultInstance().getRefreshToken();
+      bitField0_ = (bitField0_ & ~0x00000400);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The refresh token, sealed at rest.
+     * </pre>
+     *
+     * <code>string refresh_token = 13 [json_name = "refreshToken"];</code>
+     * @param value The bytes for refreshToken to set.
+     * @return This builder for chaining.
+     */
+    public Builder setRefreshTokenBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      refreshToken_ = value;
       bitField0_ |= 0x00000400;
       onChanged();
       return this;

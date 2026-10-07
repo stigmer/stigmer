@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.mcpserver.v1;
 
-import "ai/stigmer/agentic/environment/v1/spec.proto";
+import "ai/stigmer/agentic/credential/v1/requirement.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "buf/validate/validate.proto";
@@ -63,7 +63,7 @@ message McpServerSpec {
   // tools/list for anonymous callers and gate tool CALLS instead. The
   // injected header is runner-asserted, not signed: pair it with a shared
   // secret and treat it as trustworthy only for servers you operate.
-  map<string, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> env = 8;
+  map<string, ai.stigmer.agentic.credential.v1.EnvVarDeclaration> env = 8;
 
   // URL of the upstream source repository for this MCP server.
   // Shown in the marketplace so users can inspect the implementation
@@ -80,11 +80,20 @@ message McpServerSpec {
   // When set, the MCP server's Connect page offers an OAuth flow instead of
   // (or in addition to) manual credential entry.
   //
-  // The acquired access token is stored in a system-managed environment
-  // (identified by grant.environment_id) as the env var named by
-  // auth.target_env_var. That env var must also be declared in env so the
-  // execution pipeline knows about it.
+  // A sign-in saves the access token as a credential whose one field is
+  // named by auth.target_env_var. That key must also be declared in env so
+  // a run knows the server needs it.
   McpServerAuth auth = 14;
+
+  // Whose account the server's runs use: each person's own sign-in (the
+  // default), or one account the organization signs in once.
+  //
+  // With personal sign-in, a person's run uses that person's own credential
+  // for the server, and a run with no person behind it (a schedule, a
+  // shared link, a channel) uses only a credential assigned to it there.
+  // With organization sign-in, every run in the organization uses the
+  // organization's credential for the server.
+  McpServerSignIn sign_in = 15;
 
   // Field 7 held default_enabled_tools and field 11 pinned_tool_approvals:
   // a server-level tool allow-list and a list of tools forced to ask. Both
@@ -94,6 +103,19 @@ message McpServerSpec {
   // its tools with AgentSpec.tools and AgentSpec.disallowed_tools.
   reserved 7, 11;
   reserved "default_enabled_tools", "pinned_tool_approvals";
+}
+
+// McpServerSignIn says whose account an MCP server's runs use.
+enum McpServerSignIn {
+  // Each person signs in with their own account (the default).
+  mcp_server_sign_in_unspecified = 0;
+
+  // Each person signs in with their own account.
+  mcp_server_sign_in_personal = 1;
+
+  // An admin signs the organization in once, and every run in the
+  // organization uses that account.
+  mcp_server_sign_in_organization = 2;
 }
 
 // StdioServerConfig defines an MCP server that runs as a subprocess.
@@ -218,11 +240,11 @@ message HttpServerConfig {
 //   The referenced OAuthApp holds the client_id, client_secret, and endpoint
 //   URLs needed for the authorization code flow.
 //
-// In both cases, the acquired access token is stored in a system-managed
-// environment (labeled stigmer.ai/managed=true) as target_env_var. A refresh
-// token (if issued by the vendor) is stored alongside as
-// {target_env_var}_REFRESH_TOKEN by convention. The managed environment ID
-// is recorded on the OAuthGrant for all subsequent reads and refreshes.
+// In both cases, the acquired access token is saved as a credential of
+// the person who signed in (or of the organization, for a server with
+// organization sign-in), in one field named target_env_var. A refresh
+// token (if issued by the vendor) is kept sealed on the sign-in itself:
+// no run receives it and nobody can reveal it.
 //
 // Token lifecycle:
 // - Pre-flight check before a run: if the access token is expired,
@@ -252,11 +274,9 @@ message McpServerAuth {
     }
   ];
 
-  // The env var where the acquired access token is stored.
-  // Must correspond to an entry in env so the execution pipeline
-  // resolves it. The refresh token is stored as
-  // {target_env_var}_REFRESH_TOKEN
-  // by convention. Both are written to the grant's managed environment.
+  // The key the acquired access token fills.
+  // Must correspond to an entry in env so a run knows the server needs
+  // it. It names the one field of the sign-in's credential.
   string target_env_var = 2 [(buf.validate.field).string.min_len = 1];
 
   // Informational hint about expected token lifetime for UI display.

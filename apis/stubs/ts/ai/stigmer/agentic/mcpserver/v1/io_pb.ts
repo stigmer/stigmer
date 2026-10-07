@@ -55,8 +55,8 @@ export type ConnectInput = Message<"ai.stigmer.agentic.mcpserver.v1.ConnectInput
   mcpServerId: string;
 
   /**
-   * Optional environment variable values for one-time use.
-   * When empty, values are resolved from the user's personal environment.
+   * Optional values for one-time use, by key.
+   * Keys left out are resolved from the caller's credentials.
    *
    * @generated from field: map<string, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtime_env = 2;
    */
@@ -65,9 +65,7 @@ export type ConnectInput = Message<"ai.stigmer.agentic.mcpserver.v1.ConnectInput
   /**
    * Organization context for credential resolution.
    *
-   * Used to look up the caller's OAuthGrant and personal environment
-   * during environment variable resolution. Must match the org used
-   * during initiateOAuthConnect so the grant composite key aligns.
+   * The organization whose credentials the values are resolved from.
    *
    * Required: the backend rejects the request when this field is empty.
    *
@@ -98,9 +96,10 @@ export type InitiateOAuthConnectInput = Message<"ai.stigmer.agentic.mcpserver.v1
   mcpServerId: string;
 
   /**
-   * Organization context for token storage.
-   * Tokens are stored in the caller's personal environment within this org.
-   * Must be an org the caller belongs to.
+   * Organization the sign-in is saved in.
+   * The token is saved as the caller's own credential in this org, or as
+   * the org's credential for a server with organization sign-in (admins
+   * only). Must be an org the caller belongs to.
    *
    * @generated from field: string org = 2;
    */
@@ -217,7 +216,7 @@ export type CompleteOAuthConnectOutput = Message<"ai.stigmer.agentic.mcpserver.v
   connected: boolean;
 
   /**
-   * The environment variable name where the access token was stored.
+   * The key the access token fills: the name of the credential's field.
    * Matches McpServerAuth.target_env_var on the MCP server spec.
    *
    * @generated from field: string target_env_var = 2;
@@ -291,7 +290,7 @@ export type GetOAuthGrantStatusOutput = Message<"ai.stigmer.agentic.mcpserver.v1
   accessTokenExpiresAt: bigint;
 
   /**
-   * The env var name where the access token is stored.
+   * The key the access token fills.
    * Empty if no grant exists.
    *
    * @generated from field: string target_env_var = 3;
@@ -361,7 +360,7 @@ export const DisconnectOAuthInputSchema: GenMessage<DisconnectOAuthInput> = /*@_
 export type DisconnectOAuthOutput = Message<"ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput"> & {
   /**
    * Whether an active grant was found and deleted.
-   * true: grant and its managed environment were deleted.
+   * true: the grant and its credential were deleted.
    * false: no grant existed for this resource + org + caller. The desired
    * state (no OAuth connection) was already achieved. This is not an error.
    *

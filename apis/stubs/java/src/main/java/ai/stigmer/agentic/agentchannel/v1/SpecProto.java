@@ -52,46 +52,46 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n-ai/stigmer/agentic/agentchannel/v1/spe" +
       "c.proto\022\"ai.stigmer.agentic.agentchannel" +
-      ".v1\032*ai/stigmer/agentic/run/v1/invocatio" +
-      "n.proto\0322ai/stigmer/commons/apiresource/" +
-      "field_options.proto\032\'ai/stigmer/commons/" +
-      "apiresource/io.proto\032\033buf/validate/valid" +
-      "ate.proto\"\320\007\n\020AgentChannelSpec\022\266\001\n\tagent" +
-      "_ref\030\001 \001(\01324.ai.stigmer.commons.apiresou" +
-      "rce.ApiResourceReferenceBc\272H\\\272\001V\n\016agent_" +
-      "ref.kind\0223agent_ref must reference a res" +
-      "ource with kind=agent\032\017this.kind == 40\310\001" +
-      "\001\340\205,(R\010agentRef\022\030\n\007enabled\030\002 \001(\010R\007enable" +
-      "d\022N\n\005slack\030\003 \001(\01326.ai.stigmer.agentic.ag" +
-      "entchannel.v1.SlackChannelConfigH\000R\005slac" +
-      "k\022W\n\010whatsapp\030\006 \001(\01329.ai.stigmer.agentic" +
-      ".agentchannel.v1.WhatsAppChannelConfigH\000" +
-      "R\010whatsapp\022\331\001\n\020environment_refs\030\004 \003(\01324." +
-      "ai.stigmer.commons.apiresource.ApiResour" +
-      "ceReferenceBx\272Hq\222\001n\"l\272\001i\n\025environment_re" +
-      "fs.kind\022?environment_refs must reference" +
-      " resources with kind=environment\032\017this.k" +
-      "ind == 53\340\205,5R\017environmentRefs\022\304\001\n\007app_r" +
-      "ef\030\005 \001(\01324.ai.stigmer.commons.apiresourc" +
-      "e.ApiResourceReferenceBu\272Hn\272\001k\n\014app_ref." +
-      "kind\0227app_ref must reference a resource " +
-      "with kind=channel_app\032\"this.slug == \'\' |" +
-      "| this.kind == 48\340\205,0R\006appRef\022>\n\033proacti" +
-      "ve_messaging_enabled\030\007 \001(\010R\031proactiveMes" +
-      "sagingEnabled\022C\n\nrun_config\030\010 \001(\0132$.ai.s" +
-      "tigmer.agentic.run.v1.RunConfigR\trunConf" +
-      "igB\030\n\017provider_config\022\005\272H\002\010\001\"\024\n\022SlackCha" +
-      "nnelConfig\"H\n\025WhatsAppChannelConfig\022/\n\017p" +
-      "hone_number_id\030\001 \001(\tB\007\272H\004r\002\020\001R\rphoneNumb" +
-      "erIdB\270\001B\tSpecProtoP\001\242\002\004ASAA\252\002\"Ai.Stigmer" +
-      ".Agentic.Agentchannel.V1\312\002\"Ai\\Stigmer\\Ag" +
-      "entic\\Agentchannel\\V1\342\002.Ai\\Stigmer\\Agent" +
-      "ic\\Agentchannel\\V1\\GPBMetadata\352\002&Ai::Sti" +
-      "gmer::Agentic::Agentchannel::V1b\006proto3"
+      ".v1\0322ai/stigmer/agentic/credential/v1/re" +
+      "quirement.proto\032*ai/stigmer/agentic/run/" +
+      "v1/invocation.proto\0322ai/stigmer/commons/" +
+      "apiresource/field_options.proto\032\'ai/stig" +
+      "mer/commons/apiresource/io.proto\032\033buf/va" +
+      "lidate/validate.proto\"\360\006\n\020AgentChannelSp" +
+      "ec\022\266\001\n\tagent_ref\030\001 \001(\01324.ai.stigmer.comm" +
+      "ons.apiresource.ApiResourceReferenceBc\272H" +
+      "\\\272\001V\n\016agent_ref.kind\0223agent_ref must ref" +
+      "erence a resource with kind=agent\032\017this." +
+      "kind == 40\310\001\001\340\205,(R\010agentRef\022\030\n\007enabled\030\002" +
+      " \001(\010R\007enabled\022N\n\005slack\030\003 \001(\01326.ai.stigme" +
+      "r.agentic.agentchannel.v1.SlackChannelCo" +
+      "nfigH\000R\005slack\022W\n\010whatsapp\030\006 \001(\01329.ai.sti" +
+      "gmer.agentic.agentchannel.v1.WhatsAppCha" +
+      "nnelConfigH\000R\010whatsapp\022b\n\013credentials\030\t " +
+      "\003(\01326.ai.stigmer.agentic.credential.v1.C" +
+      "redentialAssignmentB\010\272H\005\222\001\002\020@R\013credentia" +
+      "ls\022\304\001\n\007app_ref\030\005 \001(\01324.ai.stigmer.common" +
+      "s.apiresource.ApiResourceReferenceBu\272Hn\272" +
+      "\001k\n\014app_ref.kind\0227app_ref must reference" +
+      " a resource with kind=channel_app\032\"this." +
+      "slug == \'\' || this.kind == 48\340\205,0R\006appRe" +
+      "f\022>\n\033proactive_messaging_enabled\030\007 \001(\010R\031" +
+      "proactiveMessagingEnabled\022C\n\nrun_config\030" +
+      "\010 \001(\0132$.ai.stigmer.agentic.run.v1.RunCon" +
+      "figR\trunConfigB\030\n\017provider_config\022\005\272H\002\010\001" +
+      "J\004\010\004\020\005R\020environment_refs\"\024\n\022SlackChannel" +
+      "Config\"H\n\025WhatsAppChannelConfig\022/\n\017phone" +
+      "_number_id\030\001 \001(\tB\007\272H\004r\002\020\001R\rphoneNumberId" +
+      "B\270\001B\tSpecProtoP\001\242\002\004ASAA\252\002\"Ai.Stigmer.Age" +
+      "ntic.Agentchannel.V1\312\002\"Ai\\Stigmer\\Agenti" +
+      "c\\Agentchannel\\V1\342\002.Ai\\Stigmer\\Agentic\\A" +
+      "gentchannel\\V1\\GPBMetadata\352\002&Ai::Stigmer" +
+      "::Agentic::Agentchannel::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
+          ai.stigmer.agentic.credential.v1.RequirementProto.getDescriptor(),
           ai.stigmer.agentic.run.v1.InvocationProto.getDescriptor(),
           ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor(),
           ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
@@ -102,7 +102,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentchannel_v1_AgentChannelSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentchannel_v1_AgentChannelSpec_descriptor,
-        new java.lang.String[] { "AgentRef", "Enabled", "Slack", "Whatsapp", "EnvironmentRefs", "AppRef", "ProactiveMessagingEnabled", "RunConfig", "ProviderConfig", });
+        new java.lang.String[] { "AgentRef", "Enabled", "Slack", "Whatsapp", "Credentials", "AppRef", "ProactiveMessagingEnabled", "RunConfig", "ProviderConfig", });
     internal_static_ai_stigmer_agentic_agentchannel_v1_SlackChannelConfig_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_agentic_agentchannel_v1_SlackChannelConfig_fieldAccessorTable = new
@@ -116,6 +116,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
         internal_static_ai_stigmer_agentic_agentchannel_v1_WhatsAppChannelConfig_descriptor,
         new java.lang.String[] { "PhoneNumberId", });
     descriptor.resolveAllFeaturesImmutable();
+    ai.stigmer.agentic.credential.v1.RequirementProto.getDescriptor();
     ai.stigmer.agentic.run.v1.InvocationProto.getDescriptor();
     ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();

@@ -95,9 +95,6 @@ type AgentChannelStatus struct {
 	InstallState AgentChannelInstallState `protobuf:"varint,1,opt,name=install_state,json=installState,proto3,enum=ai.stigmer.agentic.agentchannel.v1.AgentChannelInstallState" json:"install_state,omitempty"`
 	// Provider-specific install facts observed during the install flow.
 	ProviderStatus isAgentChannelStatus_ProviderStatus `protobuf_oneof:"provider_status"`
-	// ID of the system-managed Environment holding this connection's
-	// provider credentials (e.g. the Slack bot token).
-	CredentialsEnvironmentId string `protobuf:"bytes,3,opt,name=credentials_environment_id,json=credentialsEnvironmentId,proto3" json:"credentials_environment_id,omitempty"`
 	// Standard audit information (created_at, updated_at, created_by, etc.)
 	Audit         *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -164,13 +161,6 @@ func (x *AgentChannelStatus) GetWhatsapp() *WhatsAppInstallStatus {
 		}
 	}
 	return nil
-}
-
-func (x *AgentChannelStatus) GetCredentialsEnvironmentId() string {
-	if x != nil {
-		return x.CredentialsEnvironmentId
-	}
-	return ""
 }
 
 func (x *AgentChannelStatus) GetAudit() *apiresource.ApiResourceAudit {
@@ -389,14 +379,13 @@ var File_ai_stigmer_agentic_agentchannel_v1_status_proto protoreflect.FileDescri
 
 const file_ai_stigmer_agentic_agentchannel_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/agentchannel/v1/status.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb9\x03\n" +
+	"/ai/stigmer/agentic/agentchannel/v1/status.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9d\x03\n" +
 	"\x12AgentChannelStatus\x12a\n" +
 	"\rinstall_state\x18\x01 \x01(\x0e2<.ai.stigmer.agentic.agentchannel.v1.AgentChannelInstallStateR\finstallState\x12N\n" +
 	"\x05slack\x18\x02 \x01(\v26.ai.stigmer.agentic.agentchannel.v1.SlackInstallStatusH\x00R\x05slack\x12W\n" +
-	"\bwhatsapp\x18\x04 \x01(\v29.ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatusH\x00R\bwhatsapp\x12<\n" +
-	"\x1acredentials_environment_id\x18\x03 \x01(\tR\x18credentialsEnvironmentId\x12F\n" +
+	"\bwhatsapp\x18\x04 \x01(\v29.ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatusH\x00R\bwhatsapp\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05auditB\x11\n" +
-	"\x0fprovider_status\"\xad\x02\n" +
+	"\x0fprovider_statusJ\x04\b\x03\x10\x04R\x1acredentials_environment_id\"\xad\x02\n" +
 	"\x12SlackInstallStatus\x12\x17\n" +
 	"\ateam_id\x18\x01 \x01(\tR\x06teamId\x12\x1b\n" +
 	"\tteam_name\x18\x02 \x01(\tR\bteamName\x12\x1e\n" +

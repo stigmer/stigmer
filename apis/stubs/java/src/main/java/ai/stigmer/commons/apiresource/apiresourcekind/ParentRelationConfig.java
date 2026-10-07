@@ -213,6 +213,24 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int OPTIONAL_FIELD_NUMBER = 4;
+  private boolean optional_ = false;
+  /**
+   * <pre>
+   * Whether a row may name no parent here. An optional parent whose spec
+   * field is empty writes no link; a required one fails the create.
+   * Example: a credential links `owner` to a person or `org_owned` to an
+   * organization, whichever member of its owner oneof is set.
+   * </pre>
+   *
+   * <code>bool optional = 4 [json_name = "optional"];</code>
+   * @return The optional.
+   */
+  @java.lang.Override
+  public boolean getOptional() {
+    return optional_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -236,6 +254,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(specField_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, specField_);
     }
+    if (optional_ != false) {
+      output.writeBool(4, optional_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -253,6 +274,10 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(specField_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, specField_);
+    }
+    if (optional_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(4, optional_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -275,6 +300,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getRelation())) return false;
     if (!getSpecField()
         .equals(other.getSpecField())) return false;
+    if (getOptional()
+        != other.getOptional()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -292,6 +319,9 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getRelation().hashCode();
     hash = (37 * hash) + SPEC_FIELD_FIELD_NUMBER;
     hash = (53 * hash) + getSpecField().hashCode();
+    hash = (37 * hash) + OPTIONAL_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getOptional());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -431,6 +461,7 @@ private static final long serialVersionUID = 0L;
       kind_ = "";
       relation_ = "";
       specField_ = "";
+      optional_ = false;
       return this;
     }
 
@@ -473,6 +504,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.specField_ = specField_;
       }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.optional_ = optional_;
+      }
     }
 
     @java.lang.Override
@@ -501,6 +535,9 @@ private static final long serialVersionUID = 0L;
         specField_ = other.specField_;
         bitField0_ |= 0x00000004;
         onChanged();
+      }
+      if (other.getOptional() != false) {
+        setOptional(other.getOptional());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -543,6 +580,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 26
+            case 32: {
+              optional_ = input.readBool();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 32
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -872,6 +914,59 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       specField_ = value;
       bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+
+    private boolean optional_ ;
+    /**
+     * <pre>
+     * Whether a row may name no parent here. An optional parent whose spec
+     * field is empty writes no link; a required one fails the create.
+     * Example: a credential links `owner` to a person or `org_owned` to an
+     * organization, whichever member of its owner oneof is set.
+     * </pre>
+     *
+     * <code>bool optional = 4 [json_name = "optional"];</code>
+     * @return The optional.
+     */
+    @java.lang.Override
+    public boolean getOptional() {
+      return optional_;
+    }
+    /**
+     * <pre>
+     * Whether a row may name no parent here. An optional parent whose spec
+     * field is empty writes no link; a required one fails the create.
+     * Example: a credential links `owner` to a person or `org_owned` to an
+     * organization, whichever member of its owner oneof is set.
+     * </pre>
+     *
+     * <code>bool optional = 4 [json_name = "optional"];</code>
+     * @param value The optional to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOptional(boolean value) {
+
+      optional_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether a row may name no parent here. An optional parent whose spec
+     * field is empty writes no link; a required one fails the create.
+     * Example: a credential links `owner` to a person or `org_owned` to an
+     * organization, whichever member of its owner oneof is set.
+     * </pre>
+     *
+     * <code>bool optional = 4 [json_name = "optional"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearOptional() {
+      bitField0_ = (bitField0_ & ~0x00000008);
+      optional_ = false;
       onChanged();
       return this;
     }

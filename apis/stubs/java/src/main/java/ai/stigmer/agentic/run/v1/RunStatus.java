@@ -1591,6 +1591,53 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     return result == null ? ai.stigmer.agentic.run.v1.ApprovalMode.UNRECOGNIZED : result;
   }
 
+  public static final int CREDENTIALS_FIELD_NUMBER = 33;
+  private ai.stigmer.agentic.run.v1.RunCredentials credentials_;
+  /**
+   * <pre>
+   * Whose credentials this run may use.
+   *
+   * Decided once, when the run is created, and never re-derived: recover
+   * reads it, so a recovered run uses the same person's credentials.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
+   * @return Whether the credentials field is set.
+   */
+  @java.lang.Override
+  public boolean hasCredentials() {
+    return ((bitField0_ & 0x00001000) != 0);
+  }
+  /**
+   * <pre>
+   * Whose credentials this run may use.
+   *
+   * Decided once, when the run is created, and never re-derived: recover
+   * reads it, so a recovered run uses the same person's credentials.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
+   * @return The credentials.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.run.v1.RunCredentials getCredentials() {
+    return credentials_ == null ? ai.stigmer.agentic.run.v1.RunCredentials.getDefaultInstance() : credentials_;
+  }
+  /**
+   * <pre>
+   * Whose credentials this run may use.
+   *
+   * Decided once, when the run is created, and never re-derived: recover
+   * reads it, so a recovered run uses the same person's credentials.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.run.v1.RunCredentialsOrBuilder getCredentialsOrBuilder() {
+    return credentials_ == null ? ai.stigmer.agentic.run.v1.RunCredentials.getDefaultInstance() : credentials_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1682,6 +1729,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     }
     if (approvalMode_ != ai.stigmer.agentic.run.v1.ApprovalMode.APPROVAL_MODE_UNSPECIFIED.getNumber()) {
       output.writeEnum(32, approvalMode_);
+    }
+    if (((bitField0_ & 0x00001000) != 0)) {
+      output.writeMessage(33, getCredentials());
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -1826,6 +1876,10 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(32, approvalMode_);
     }
+    if (((bitField0_ & 0x00001000) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(33, getCredentials());
+    }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(99, getAudit());
@@ -1931,6 +1985,11 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
           .equals(other.getRunConfig())) return false;
     }
     if (approvalMode_ != other.approvalMode_) return false;
+    if (hasCredentials() != other.hasCredentials()) return false;
+    if (hasCredentials()) {
+      if (!getCredentials()
+          .equals(other.getCredentials())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -2032,6 +2091,10 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     }
     hash = (37 * hash) + APPROVAL_MODE_FIELD_NUMBER;
     hash = (53 * hash) + approvalMode_;
+    if (hasCredentials()) {
+      hash = (37 * hash) + CREDENTIALS_FIELD_NUMBER;
+      hash = (53 * hash) + getCredentials().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -2207,6 +2270,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         internalGetDeclaredPreferencesFieldBuilder();
         internalGetRecalledMemoriesFieldBuilder();
         internalGetRunConfigFieldBuilder();
+        internalGetCredentialsFieldBuilder();
       }
     }
     @java.lang.Override
@@ -2323,6 +2387,11 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         runConfigBuilder_ = null;
       }
       approvalMode_ = 0;
+      credentials_ = null;
+      if (credentialsBuilder_ != null) {
+        credentialsBuilder_.dispose();
+        credentialsBuilder_ = null;
+      }
       return this;
     }
 
@@ -2510,6 +2579,12 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       }
       if (((from_bitField0_ & 0x02000000) != 0)) {
         result.approvalMode_ = approvalMode_;
+      }
+      if (((from_bitField0_ & 0x04000000) != 0)) {
+        result.credentials_ = credentialsBuilder_ == null
+            ? credentials_
+            : credentialsBuilder_.build();
+        to_bitField0_ |= 0x00001000;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -2752,6 +2827,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       if (other.approvalMode_ != 0) {
         setApprovalModeValue(other.getApprovalModeValue());
       }
+      if (other.hasCredentials()) {
+        mergeCredentials(other.getCredentials());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -2977,6 +3055,13 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
               bitField0_ |= 0x02000000;
               break;
             } // case 256
+            case 266: {
+              input.readMessage(
+                  internalGetCredentialsFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x04000000;
+              break;
+            } // case 266
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -8520,6 +8605,190 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       approvalMode_ = 0;
       onChanged();
       return this;
+    }
+
+    private ai.stigmer.agentic.run.v1.RunCredentials credentials_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.run.v1.RunCredentials, ai.stigmer.agentic.run.v1.RunCredentials.Builder, ai.stigmer.agentic.run.v1.RunCredentialsOrBuilder> credentialsBuilder_;
+    /**
+     * <pre>
+     * Whose credentials this run may use.
+     *
+     * Decided once, when the run is created, and never re-derived: recover
+     * reads it, so a recovered run uses the same person's credentials.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
+     * @return Whether the credentials field is set.
+     */
+    public boolean hasCredentials() {
+      return ((bitField0_ & 0x04000000) != 0);
+    }
+    /**
+     * <pre>
+     * Whose credentials this run may use.
+     *
+     * Decided once, when the run is created, and never re-derived: recover
+     * reads it, so a recovered run uses the same person's credentials.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
+     * @return The credentials.
+     */
+    public ai.stigmer.agentic.run.v1.RunCredentials getCredentials() {
+      if (credentialsBuilder_ == null) {
+        return credentials_ == null ? ai.stigmer.agentic.run.v1.RunCredentials.getDefaultInstance() : credentials_;
+      } else {
+        return credentialsBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Whose credentials this run may use.
+     *
+     * Decided once, when the run is created, and never re-derived: recover
+     * reads it, so a recovered run uses the same person's credentials.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
+     */
+    public Builder setCredentials(ai.stigmer.agentic.run.v1.RunCredentials value) {
+      if (credentialsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        credentials_ = value;
+      } else {
+        credentialsBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x04000000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whose credentials this run may use.
+     *
+     * Decided once, when the run is created, and never re-derived: recover
+     * reads it, so a recovered run uses the same person's credentials.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
+     */
+    public Builder setCredentials(
+        ai.stigmer.agentic.run.v1.RunCredentials.Builder builderForValue) {
+      if (credentialsBuilder_ == null) {
+        credentials_ = builderForValue.build();
+      } else {
+        credentialsBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x04000000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whose credentials this run may use.
+     *
+     * Decided once, when the run is created, and never re-derived: recover
+     * reads it, so a recovered run uses the same person's credentials.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
+     */
+    public Builder mergeCredentials(ai.stigmer.agentic.run.v1.RunCredentials value) {
+      if (credentialsBuilder_ == null) {
+        if (((bitField0_ & 0x04000000) != 0) &&
+          credentials_ != null &&
+          credentials_ != ai.stigmer.agentic.run.v1.RunCredentials.getDefaultInstance()) {
+          getCredentialsBuilder().mergeFrom(value);
+        } else {
+          credentials_ = value;
+        }
+      } else {
+        credentialsBuilder_.mergeFrom(value);
+      }
+      if (credentials_ != null) {
+        bitField0_ |= 0x04000000;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Whose credentials this run may use.
+     *
+     * Decided once, when the run is created, and never re-derived: recover
+     * reads it, so a recovered run uses the same person's credentials.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
+     */
+    public Builder clearCredentials() {
+      bitField0_ = (bitField0_ & ~0x04000000);
+      credentials_ = null;
+      if (credentialsBuilder_ != null) {
+        credentialsBuilder_.dispose();
+        credentialsBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whose credentials this run may use.
+     *
+     * Decided once, when the run is created, and never re-derived: recover
+     * reads it, so a recovered run uses the same person's credentials.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.RunCredentials.Builder getCredentialsBuilder() {
+      bitField0_ |= 0x04000000;
+      onChanged();
+      return internalGetCredentialsFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Whose credentials this run may use.
+     *
+     * Decided once, when the run is created, and never re-derived: recover
+     * reads it, so a recovered run uses the same person's credentials.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.RunCredentialsOrBuilder getCredentialsOrBuilder() {
+      if (credentialsBuilder_ != null) {
+        return credentialsBuilder_.getMessageOrBuilder();
+      } else {
+        return credentials_ == null ?
+            ai.stigmer.agentic.run.v1.RunCredentials.getDefaultInstance() : credentials_;
+      }
+    }
+    /**
+     * <pre>
+     * Whose credentials this run may use.
+     *
+     * Decided once, when the run is created, and never re-derived: recover
+     * reads it, so a recovered run uses the same person's credentials.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.run.v1.RunCredentials, ai.stigmer.agentic.run.v1.RunCredentials.Builder, ai.stigmer.agentic.run.v1.RunCredentialsOrBuilder> 
+        internalGetCredentialsFieldBuilder() {
+      if (credentialsBuilder_ == null) {
+        credentialsBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.run.v1.RunCredentials, ai.stigmer.agentic.run.v1.RunCredentials.Builder, ai.stigmer.agentic.run.v1.RunCredentialsOrBuilder>(
+                getCredentials(),
+                getParentForChildren(),
+                isClean());
+        credentials_ = null;
+      }
+      return credentialsBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.run.v1.RunStatus)

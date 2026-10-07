@@ -47,59 +47,59 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n+ai/stigmer/agentic/agentshare/v1/spec." +
       "proto\022 ai.stigmer.agentic.agentshare.v1\032" +
-      "*ai/stigmer/agentic/run/v1/invocation.pr" +
-      "oto\0322ai/stigmer/commons/apiresource/fiel" +
-      "d_options.proto\032\'ai/stigmer/commons/apir" +
-      "esource/io.proto\032\033buf/validate/validate." +
-      "proto\"\236\n\n\016AgentShareSpec\022\266\001\n\tagent_ref\030\001" +
-      " \001(\01324.ai.stigmer.commons.apiresource.Ap" +
-      "iResourceReferenceBc\272H\\\272\001V\n\016agent_ref.ki" +
-      "nd\0223agent_ref must reference a resource " +
-      "with kind=agent\032\017this.kind == 40\310\001\001\340\205,(R" +
-      "\010agentRef\022\030\n\007enabled\030\002 \001(\010R\007enabled\022P\n\010a" +
-      "udience\030\003 \001(\01624.ai.stigmer.agentic.agent" +
-      "share.v1.AgentShareAudienceR\010audience\022\300\002" +
-      "\n\017allowed_origins\030\004 \003(\tB\226\002\272H\222\002\222\001\216\002\020 \"\211\002\272" +
-      "\001\205\002\n\026allowed_origins.format\022nallowed_ori" +
-      "gins entries must be exact web origins l" +
-      "ike https://example.com (no path, query," +
-      " or trailing slash)\032{this.matches(\'^http" +
-      "s?://[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9" +
-      "])?(\\\\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0" +
-      "-9])?)*(:[0-9]{1,5})?$\')R\016allowedOrigins" +
-      "\022P\n\010messages\030\005 \001(\01324.ai.stigmer.agentic." +
-      "agentshare.v1.AgentShareMessagesR\010messag" +
-      "es\022\331\001\n\020environment_refs\030\006 \003(\01324.ai.stigm" +
-      "er.commons.apiresource.ApiResourceRefere" +
-      "nceBx\272Hq\222\001n\"l\272\001i\n\025environment_refs.kind\022" +
-      "?environment_refs must reference resourc" +
-      "es with kind=environment\032\017this.kind == 5" +
-      "3\340\205,5R\017environmentRefs\022C\n\nrun_config\030\007 \001" +
-      "(\0132$.ai.stigmer.agentic.run.v1.RunConfig" +
-      "R\trunConfig:\260\002\272H\254\002\032\237\001\n(agent_share.envir" +
-      "onment_refs_public_only\022:environment_ref" +
-      "s can only be set on public-audience sha" +
-      "res\0327this.audience != 2 || this.environm" +
-      "ent_refs.size() == 0\032\207\001\n\"agent_share.run" +
-      "_config_public_only\0224run_config can only" +
-      " be set on public-audience shares\032+this." +
-      "audience != 2 || !has(this.run_config)\"\246" +
-      "\001\n\022AgentShareMessages\022+\n\014rate_limited\030\001 " +
-      "\001(\tB\010\272H\005r\003\030\254\002R\013rateLimited\022*\n\013unavailabl" +
-      "e\030\002 \001(\tB\010\272H\005r\003\030\254\002R\013unavailable\0227\n\022conver" +
-      "sation_ended\030\003 \001(\tB\010\272H\005r\003\030\254\002R\021conversati" +
-      "onEnded*y\n\022AgentShareAudience\022$\n agent_s" +
-      "hare_audience_unspecified\020\000\022\037\n\033agent_sha" +
-      "re_audience_public\020\001\022\034\n\030agent_share_audi" +
-      "ence_org\020\002B\260\001B\tSpecProtoP\001\242\002\004ASAA\252\002 Ai.S" +
-      "tigmer.Agentic.Agentshare.V1\312\002 Ai\\Stigme" +
-      "r\\Agentic\\Agentshare\\V1\342\002,Ai\\Stigmer\\Age" +
-      "ntic\\Agentshare\\V1\\GPBMetadata\352\002$Ai::Sti" +
-      "gmer::Agentic::Agentshare::V1b\006proto3"
+      "2ai/stigmer/agentic/credential/v1/requir" +
+      "ement.proto\032*ai/stigmer/agentic/run/v1/i" +
+      "nvocation.proto\0322ai/stigmer/commons/apir" +
+      "esource/field_options.proto\032\'ai/stigmer/" +
+      "commons/apiresource/io.proto\032\033buf/valida" +
+      "te/validate.proto\"\257\t\n\016AgentShareSpec\022\266\001\n" +
+      "\tagent_ref\030\001 \001(\01324.ai.stigmer.commons.ap" +
+      "iresource.ApiResourceReferenceBc\272H\\\272\001V\n\016" +
+      "agent_ref.kind\0223agent_ref must reference" +
+      " a resource with kind=agent\032\017this.kind =" +
+      "= 40\310\001\001\340\205,(R\010agentRef\022\030\n\007enabled\030\002 \001(\010R\007" +
+      "enabled\022P\n\010audience\030\003 \001(\01624.ai.stigmer.a" +
+      "gentic.agentshare.v1.AgentShareAudienceR" +
+      "\010audience\022\300\002\n\017allowed_origins\030\004 \003(\tB\226\002\272H" +
+      "\222\002\222\001\216\002\020 \"\211\002\272\001\205\002\n\026allowed_origins.format\022" +
+      "nallowed_origins entries must be exact w" +
+      "eb origins like https://example.com (no " +
+      "path, query, or trailing slash)\032{this.ma" +
+      "tches(\'^https?://[A-Za-z0-9]([A-Za-z0-9-" +
+      "]*[A-Za-z0-9])?(\\\\.[A-Za-z0-9]([A-Za-z0-" +
+      "9-]*[A-Za-z0-9])?)*(:[0-9]{1,5})?$\')R\016al" +
+      "lowedOrigins\022P\n\010messages\030\005 \001(\01324.ai.stig" +
+      "mer.agentic.agentshare.v1.AgentShareMess" +
+      "agesR\010messages\022b\n\013credentials\030\010 \003(\01326.ai" +
+      ".stigmer.agentic.credential.v1.Credentia" +
+      "lAssignmentB\010\272H\005\222\001\002\020@R\013credentials\022C\n\nru" +
+      "n_config\030\007 \001(\0132$.ai.stigmer.agentic.run." +
+      "v1.RunConfigR\trunConfig:\241\002\272H\235\002\032\220\001\n#agent" +
+      "_share.credentials_public_only\0225credenti" +
+      "als can only be set on public-audience s" +
+      "hares\0322this.audience != 2 || this.creden" +
+      "tials.size() == 0\032\207\001\n\"agent_share.run_co" +
+      "nfig_public_only\0224run_config can only be" +
+      " set on public-audience shares\032+this.aud" +
+      "ience != 2 || !has(this.run_config)J\004\010\006\020" +
+      "\007R\020environment_refs\"\246\001\n\022AgentShareMessag" +
+      "es\022+\n\014rate_limited\030\001 \001(\tB\010\272H\005r\003\030\254\002R\013rate" +
+      "Limited\022*\n\013unavailable\030\002 \001(\tB\010\272H\005r\003\030\254\002R\013" +
+      "unavailable\0227\n\022conversation_ended\030\003 \001(\tB" +
+      "\010\272H\005r\003\030\254\002R\021conversationEnded*y\n\022AgentSha" +
+      "reAudience\022$\n agent_share_audience_unspe" +
+      "cified\020\000\022\037\n\033agent_share_audience_public\020" +
+      "\001\022\034\n\030agent_share_audience_org\020\002B\260\001B\tSpec" +
+      "ProtoP\001\242\002\004ASAA\252\002 Ai.Stigmer.Agentic.Agen" +
+      "tshare.V1\312\002 Ai\\Stigmer\\Agentic\\Agentshar" +
+      "e\\V1\342\002,Ai\\Stigmer\\Agentic\\Agentshare\\V1\\" +
+      "GPBMetadata\352\002$Ai::Stigmer::Agentic::Agen" +
+      "tshare::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
+          ai.stigmer.agentic.credential.v1.RequirementProto.getDescriptor(),
           ai.stigmer.agentic.run.v1.InvocationProto.getDescriptor(),
           ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor(),
           ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
@@ -110,7 +110,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentshare_v1_AgentShareSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentshare_v1_AgentShareSpec_descriptor,
-        new java.lang.String[] { "AgentRef", "Enabled", "Audience", "AllowedOrigins", "Messages", "EnvironmentRefs", "RunConfig", });
+        new java.lang.String[] { "AgentRef", "Enabled", "Audience", "AllowedOrigins", "Messages", "Credentials", "RunConfig", });
     internal_static_ai_stigmer_agentic_agentshare_v1_AgentShareMessages_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_agentic_agentshare_v1_AgentShareMessages_fieldAccessorTable = new
@@ -118,6 +118,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
         internal_static_ai_stigmer_agentic_agentshare_v1_AgentShareMessages_descriptor,
         new java.lang.String[] { "RateLimited", "Unavailable", "ConversationEnded", });
     descriptor.resolveAllFeaturesImmutable();
+    ai.stigmer.agentic.credential.v1.RequirementProto.getDescriptor();
     ai.stigmer.agentic.run.v1.InvocationProto.getDescriptor();
     ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();

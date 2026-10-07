@@ -225,7 +225,7 @@ public interface AgentSpecOrBuilder extends
    * Keys are variable names; values describe their metadata and optionality.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 7 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.credential.v1.EnvVarDeclaration&gt; env = 7 [json_name = "env"];</code>
    */
   int getEnvCount();
   /**
@@ -234,7 +234,7 @@ public interface AgentSpecOrBuilder extends
    * Keys are variable names; values describe their metadata and optionality.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 7 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.credential.v1.EnvVarDeclaration&gt; env = 7 [json_name = "env"];</code>
    */
   boolean containsEnv(
       java.lang.String key);
@@ -242,7 +242,7 @@ public interface AgentSpecOrBuilder extends
    * Use {@link #getEnvMap()} instead.
    */
   @java.lang.Deprecated
-  java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration>
+  java.util.Map<java.lang.String, ai.stigmer.agentic.credential.v1.EnvVarDeclaration>
   getEnv();
   /**
    * <pre>
@@ -250,9 +250,9 @@ public interface AgentSpecOrBuilder extends
    * Keys are variable names; values describe their metadata and optionality.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 7 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.credential.v1.EnvVarDeclaration&gt; env = 7 [json_name = "env"];</code>
    */
-  java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration>
+  java.util.Map<java.lang.String, ai.stigmer.agentic.credential.v1.EnvVarDeclaration>
   getEnvMap();
   /**
    * <pre>
@@ -260,22 +260,22 @@ public interface AgentSpecOrBuilder extends
    * Keys are variable names; values describe their metadata and optionality.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 7 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.credential.v1.EnvVarDeclaration&gt; env = 7 [json_name = "env"];</code>
    */
   /* nullable */
-ai.stigmer.agentic.environment.v1.EnvVarDeclaration getEnvOrDefault(
+ai.stigmer.agentic.credential.v1.EnvVarDeclaration getEnvOrDefault(
       java.lang.String key,
       /* nullable */
-ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
+ai.stigmer.agentic.credential.v1.EnvVarDeclaration defaultValue);
   /**
    * <pre>
    * Environment variable declarations for this agent.
    * Keys are variable names; values describe their metadata and optionality.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 7 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.credential.v1.EnvVarDeclaration&gt; env = 7 [json_name = "env"];</code>
    */
-  ai.stigmer.agentic.environment.v1.EnvVarDeclaration getEnvOrThrow(
+  ai.stigmer.agentic.credential.v1.EnvVarDeclaration getEnvOrThrow(
       java.lang.String key);
 
   /**

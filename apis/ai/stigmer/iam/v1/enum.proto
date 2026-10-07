@@ -51,7 +51,6 @@ enum IamPermission {
   can_create_session = 8;
   can_create_skill = 9;
   can_create_idp = 11;
-  can_create_environment = 12;
   can_create_identity_account = 21;
   can_create_oauth_app = 23;
   can_create_platform_client = 24;
@@ -63,6 +62,30 @@ enum IamPermission {
   // removed with the instance kind.
   reserved 14;
   reserved "can_create_instance";
+
+  // Value 12 held can_create_environment until credentials replaced
+  // environments. Reserved so the number and name are never reused for a
+  // different permission.
+  reserved 12;
+  reserved "can_create_environment";
+
+  // Organization-level permission to save a credential of your own.
+  can_create_credential = 52;
+
+  // Organization-level permission to save a credential that belongs to
+  // the organization. Admin-gated: an organization's credential is the
+  // organization's to share.
+  can_create_org_credential = 53;
+
+  // Whether the caller's runs may use a credential's values.
+  //
+  // @internal
+  // The credential's owner, its `user` grantees (people and teams) and, on
+  // an organization's credential, the organization's admins. Asked when a
+  // surface is assigned a credential, again when a run starts from it,
+  // and when a person's run takes an organization's credential by
+  // default.
+  can_use = 51;
 
   // Value 7 held can_create_workflow until the workflow product was
   // removed platform-wide. Reserved so the number is never reused for a
@@ -301,4 +324,13 @@ enum IamRole {
   // an edition that widens the policy grant scope beyond the organization
   // grants it; the open-source server does not.
   editor = 6;
+
+  // User of a credential: the runs this person or team starts may use
+  // the credential's values. Never reveals them.
+  //
+  // @internal
+  // Grantable only on credential (its grantable_roles and
+  // team_grantable_roles), the third kind-scoped role after participant
+  // and editor. Bounded by the organization like every direct grant.
+  user = 7;
 }

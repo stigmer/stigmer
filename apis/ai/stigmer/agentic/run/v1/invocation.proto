@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.run.v1;
 
+import "ai/stigmer/agentic/credential/v1/requirement.proto";
 import "ai/stigmer/agentic/run/v1/enum.proto";
 import "ai/stigmer/agentic/session/v1/enum.proto";
 import "ai/stigmer/agentic/session/v1/workspace.proto";
@@ -13,7 +14,7 @@ import "buf/validate/validate.proto";
 //
 // It is the owner-settable subset of a run — the interactive
 // composer's vocabulary (agent, message, harness, workspace,
-// environments, run bounds) minus what an unattended surface makes
+// credentials, run bounds) minus what an unattended surface makes
 // structurally impossible. Surfaces that trigger agents on someone's
 // behalf embed this message instead of re-deriving the shape:
 // schedules embed it whole; channels and shares embed RunConfig.
@@ -27,7 +28,7 @@ import "buf/validate/validate.proto";
 // — the rejected alternative was embedding RunSpec /
 // SessionSpec and validating the illegal fields away. Exclusions,
 // each with its reason: runtime_env (plaintext secrets
-// in manifests leak; environments are the vehicle), attachments
+// in manifests leak; credential assignments are the vehicle), attachments
 // (one-shot uploads don't recur), mcp_server_usages/skill_refs (the
 // agent blueprint owns its tool set), interaction_mode (Plan mode's
 // deliverable is a plan for a human who isn't there), cursor_mode
@@ -93,38 +94,32 @@ message AgentInvocation {
   // creates. Unattended surfaces constrain sources in their handlers:
   // schedules accept git_repo only (no client is connected at fire
   // time to serve a local_path). Credentials: the
-  // provisioner resolves GITHUB_TOKEN from the merged environment;
-  // for surfaces with no interactive caller the one supported
-  // contract is an org-visibility Environment holding GITHUB_TOKEN
-  // bound via environment_refs — the personal-environment fallback
-  // resolves as-caller and is structurally closed to synthetic
-  // accounts. Public repos need no token.
+  // provisioner clones with the GITHUB_TOKEN the run resolved for the
+  // repository's git host; a run with no person behind it takes it only
+  // from a credential assigned in `credentials`. Public repos need no
+  // token.
   repeated ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4;
 
-  // References to Environment resources whose values are provided to
-  // the runs this invocation creates.
+  // Field 5 held environment_refs, references to environments whose
+  // values the invocation's runs received, until credentials replaced
+  // environments. Reserved so the number and name are never reused.
+  reserved 5;
+  reserved "environment_refs";
+
+  // The values the runs this invocation creates use for what the agent needs.
   //
-  // This is how a tool-using agent becomes runnable unattended: bind
-  // an org-shared environment holding the needed credentials (for
-  // example an MCP server's shared secret), and the runs receive its
-  // values at runtime. The agent itself stays untouched.
+  // A schedule's runs have no person behind them: they use what is
+  // assigned here, and a credential of the schedule's own creator only
+  // when that person wrote the assignment.
   //
   // @internal
-  // The AgentShare/AgentChannel/Schedule environment_refs lineage.
-  // Resolution stays with the embedding
-  // surface's pipeline (CreateExecutionContextStep branch, claim-
-  // driven, LOWEST merge priority — runtime_env overrides on key
-  // conflicts). No write-time existence or visibility
-  // check: enforcement lives solely at runtime resolution, which
-  // fails closed.
-  repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [
-    (ai.stigmer.commons.apiresource.reference_kind) = environment,
-    (buf.validate.field).repeated.items.cel = {
-      id: "environment_refs.kind"
-      message: "environment_refs must reference resources with kind=environment"
-      expression: "this.kind == 53"
-    }
-  ];
+  // Judged at write by the reference rule (pipeline/steps/references.ts):
+  // the writer must hold can_use on each credential an assignment
+  // introduces, and the server stamps the writer. A person's own
+  // credential is accepted only from that person on a schedule they
+  // created. A run re-checks the writer's can_use when it starts and is
+  // refused, naming the assignment, when it no longer holds.
+  repeated ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7 [(buf.validate.field).repeated.max_items = 64];
 
   // Per-invocation model choice and run bounds. Unset fields fall to the
   // agent's defaults, then to the lane's operator profile (RunConfig has the

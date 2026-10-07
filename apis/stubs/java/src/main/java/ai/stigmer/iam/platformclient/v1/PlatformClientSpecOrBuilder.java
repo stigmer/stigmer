@@ -244,76 +244,96 @@ public interface PlatformClientSpecOrBuilder extends
 
   /**
    * <pre>
-   * Environments whose values are delivered to every run a
-   * user signed in through this PlatformClient creates. This is how an
-   * embedded assistant reaches secret-gated MCP servers: the client — the
-   * connection resource — carries the credentials (for example a shared
-   * API secret), and minted-user runs receive its values at
-   * runtime, at the lowest priority, so the request's runtime values win on
-   * a key conflict. The agent stays untouched.
+   * The values the runs of this client's users use for what an agent needs.
+   *
+   * A client's users act through the client, not as people of their own,
+   * so their runs never use a person's credentials: they use what is
+   * assigned here. A run in an organization other than the client's
+   * receives nothing.
+   *
+   * Each assignment gives one requirement of the agent, one of its MCP
+   * servers or a git host its value: a field of a credential the writer
+   * may use, or a plain literal. A person's own credential is never
+   * accepted here.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 13 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
    */
-  java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> 
-      getEnvironmentRefsList();
+  java.util.List<ai.stigmer.agentic.credential.v1.CredentialAssignment> 
+      getCredentialsList();
   /**
    * <pre>
-   * Environments whose values are delivered to every run a
-   * user signed in through this PlatformClient creates. This is how an
-   * embedded assistant reaches secret-gated MCP servers: the client — the
-   * connection resource — carries the credentials (for example a shared
-   * API secret), and minted-user runs receive its values at
-   * runtime, at the lowest priority, so the request's runtime values win on
-   * a key conflict. The agent stays untouched.
+   * The values the runs of this client's users use for what an agent needs.
+   *
+   * A client's users act through the client, not as people of their own,
+   * so their runs never use a person's credentials: they use what is
+   * assigned here. A run in an organization other than the client's
+   * receives nothing.
+   *
+   * Each assignment gives one requirement of the agent, one of its MCP
+   * servers or a git host its value: a field of a credential the writer
+   * may use, or a plain literal. A person's own credential is never
+   * accepted here.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 13 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
    */
-  ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRefs(int index);
+  ai.stigmer.agentic.credential.v1.CredentialAssignment getCredentials(int index);
   /**
    * <pre>
-   * Environments whose values are delivered to every run a
-   * user signed in through this PlatformClient creates. This is how an
-   * embedded assistant reaches secret-gated MCP servers: the client — the
-   * connection resource — carries the credentials (for example a shared
-   * API secret), and minted-user runs receive its values at
-   * runtime, at the lowest priority, so the request's runtime values win on
-   * a key conflict. The agent stays untouched.
+   * The values the runs of this client's users use for what an agent needs.
+   *
+   * A client's users act through the client, not as people of their own,
+   * so their runs never use a person's credentials: they use what is
+   * assigned here. A run in an organization other than the client's
+   * receives nothing.
+   *
+   * Each assignment gives one requirement of the agent, one of its MCP
+   * servers or a git host its value: a field of a credential the writer
+   * may use, or a plain literal. A person's own credential is never
+   * accepted here.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 13 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
    */
-  int getEnvironmentRefsCount();
+  int getCredentialsCount();
   /**
    * <pre>
-   * Environments whose values are delivered to every run a
-   * user signed in through this PlatformClient creates. This is how an
-   * embedded assistant reaches secret-gated MCP servers: the client — the
-   * connection resource — carries the credentials (for example a shared
-   * API secret), and minted-user runs receive its values at
-   * runtime, at the lowest priority, so the request's runtime values win on
-   * a key conflict. The agent stays untouched.
+   * The values the runs of this client's users use for what an agent needs.
+   *
+   * A client's users act through the client, not as people of their own,
+   * so their runs never use a person's credentials: they use what is
+   * assigned here. A run in an organization other than the client's
+   * receives nothing.
+   *
+   * Each assignment gives one requirement of the agent, one of its MCP
+   * servers or a git host its value: a field of a credential the writer
+   * may use, or a plain literal. A person's own credential is never
+   * accepted here.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 13 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
    */
-  java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
-      getEnvironmentRefsOrBuilderList();
+  java.util.List<? extends ai.stigmer.agentic.credential.v1.CredentialAssignmentOrBuilder> 
+      getCredentialsOrBuilderList();
   /**
    * <pre>
-   * Environments whose values are delivered to every run a
-   * user signed in through this PlatformClient creates. This is how an
-   * embedded assistant reaches secret-gated MCP servers: the client — the
-   * connection resource — carries the credentials (for example a shared
-   * API secret), and minted-user runs receive its values at
-   * runtime, at the lowest priority, so the request's runtime values win on
-   * a key conflict. The agent stays untouched.
+   * The values the runs of this client's users use for what an agent needs.
+   *
+   * A client's users act through the client, not as people of their own,
+   * so their runs never use a person's credentials: they use what is
+   * assigned here. A run in an organization other than the client's
+   * receives nothing.
+   *
+   * Each assignment gives one requirement of the agent, one of its MCP
+   * servers or a git host its value: a field of a credential the writer
+   * may use, or a plain literal. A person's own credential is never
+   * accepted here.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 13 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
    */
-  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefsOrBuilder(
+  ai.stigmer.agentic.credential.v1.CredentialAssignmentOrBuilder getCredentialsOrBuilder(
       int index);
 
   /**

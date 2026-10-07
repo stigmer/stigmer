@@ -56,82 +56,82 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n&ai/stigmer/agentic/agent/v1/spec.proto" +
-      "\022\033ai.stigmer.agentic.agent.v1\032,ai/stigme" +
-      "r/agentic/environment/v1/spec.proto\032+ai/" +
-      "stigmer/agentic/mcpserver/v1/usage.proto" +
-      "\032(ai/stigmer/agentic/plugin/v1/hooks.pro" +
-      "to\032*ai/stigmer/agentic/run/v1/invocation" +
-      ".proto\032(ai/stigmer/agentic/session/v1/en" +
-      "um.proto\0322ai/stigmer/commons/apiresource" +
-      "/field_options.proto\032\'ai/stigmer/commons" +
-      "/apiresource/io.proto\032\033buf/validate/vali" +
-      "date.proto\"\254\n\n\tAgentSpec\022 \n\013description\030" +
-      "\001 \001(\tR\013description\022\031\n\010icon_url\030\002 \001(\tR\007ic" +
-      "onUrl\022+\n\014instructions\030\003 \001(\tB\007\272H\004r\002\020\nR\014in" +
-      "structions\022\343\001\n\021mcp_server_usages\030\004 \003(\0132/" +
-      ".ai.stigmer.agentic.mcpserver.v1.McpServ" +
-      "erUsageB\205\001\272H\201\001\222\001~\"|\272\001y\n\026mcp_server_usage" +
-      "s.kind\022?mcp_server_usages must reference" +
-      " resources with kind=mcp_server\032\036this.mc" +
-      "p_server_ref.kind == 44R\017mcpServerUsages" +
-      "\022\273\001\n\nskill_refs\030\005 \003(\01324.ai.stigmer.commo" +
-      "ns.apiresource.ApiResourceReferenceBf\272H_" +
-      "\222\001\\\"Z\272\001W\n\017skill_refs.kind\0223skill_refs mu" +
-      "st reference resources with kind=skill\032\017" +
-      "this.kind == 43\340\205,+R\tskillRefs\022D\n\nsub_ag" +
-      "ents\030\006 \003(\0132%.ai.stigmer.agentic.agent.v1" +
-      ".SubAgentR\tsubAgents\022A\n\003env\030\007 \003(\0132/.ai.s" +
-      "tigmer.agentic.agent.v1.AgentSpec.EnvEnt" +
-      "ryR\003env\022\212\001\n\005tools\030\n \003(\tBt\272Hq\222\001n\"lrj\030\200\0022e" +
-      "^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](_" +
-      "_(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_" +
-      "]*(\\([^()\\r\\n]+\\))?)$R\005tools\022\237\001\n\020disallo" +
-      "wed_tools\030\013 \003(\tBt\272Hq\222\001n\"lrj\030\200\0022e^(mcp__\\" +
-      "*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-" +
-      "Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^(" +
-      ")\\r\\n]+\\))?)$R\017disallowedTools\022=\n\005hooks\030" +
-      "\014 \003(\0132\'.ai.stigmer.agentic.agent.v1.Hook" +
-      "SourceR\005hooks\022C\n\nrun_config\030\r \001(\0132$.ai.s" +
-      "tigmer.agentic.run.v1.RunConfigR\trunConf" +
-      "ig\022@\n\007harness\030\016 \001(\0162&.ai.stigmer.agentic" +
-      ".session.v1.HarnessR\007harness\032l\n\010EnvEntry" +
-      "\022\020\n\003key\030\001 \001(\tR\003key\022J\n\005value\030\002 \001(\01324.ai.s" +
-      "tigmer.agentic.environment.v1.EnvVarDecl" +
-      "arationR\005value:\0028\001J\004\010\010\020\tJ\004\010\t\020\nR\007sharingR" +
-      "\020datastore_usages\"\233\002\n\nHookSource\022\267\001\n\006plu" +
-      "gin\030\001 \001(\01324.ai.stigmer.commons.apiresour" +
-      "ce.ApiResourceReferenceBg\272H`\272\001]\n\027hook_so" +
-      "urce_plugin.kind\0221plugin must reference " +
-      "a resource with kind=plugin\032\017this.kind =" +
-      "= 58\340\205,:H\000R\006plugin\022B\n\006inline\030\002 \001(\0132(.ai." +
-      "stigmer.agentic.plugin.v1.HookConfigH\000R\006" +
-      "inlineB\017\n\006source\022\005\272H\002\010\001\"\233\005\n\010SubAgent\022\032\n\004" +
-      "name\030\001 \001(\tB\006\272H\003\310\001\001R\004name\022 \n\013description\030" +
-      "\002 \001(\tR\013description\022+\n\014instructions\030\003 \001(\t" +
-      "B\007\272H\004r\002\020\nR\014instructions\022\273\001\n\nskill_refs\030\005" +
-      " \003(\01324.ai.stigmer.commons.apiresource.Ap" +
-      "iResourceReferenceBf\272H_\222\001\\\"Z\272\001W\n\017skill_r" +
-      "efs.kind\0223skill_refs must reference reso" +
-      "urces with kind=skill\032\017this.kind == 43\340\205" +
-      ",+R\tskillRefs\022%\n\016model_override\030\006 \001(\tR\rm" +
-      "odelOverride\022\212\001\n\005tools\030\007 \003(\tBt\272Hq\222\001n\"lrj" +
-      "\030\200\0022e^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0" +
-      "-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-" +
-      "z0-9_]*(\\([^()\\r\\n]+\\))?)$R\005tools\022\237\001\n\020di" +
-      "sallowed_tools\030\010 \003(\tBt\272Hq\222\001n\"lrj\030\200\0022e^(m" +
-      "cp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\" +
-      "*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(" +
-      "\\([^()\\r\\n]+\\))?)$R\017disallowedToolsJ\004\010\004\020" +
-      "\005R\nmcp_accessB\234\001B\tSpecProtoP\001\242\002\004ASAA\252\002\033A" +
-      "i.Stigmer.Agentic.Agent.V1\312\002\033Ai\\Stigmer\\" +
-      "Agentic\\Agent\\V1\342\002\'Ai\\Stigmer\\Agentic\\Ag" +
-      "ent\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agenti" +
-      "c::Agent::V1b\006proto3"
+      "\022\033ai.stigmer.agentic.agent.v1\0322ai/stigme" +
+      "r/agentic/credential/v1/requirement.prot" +
+      "o\032+ai/stigmer/agentic/mcpserver/v1/usage" +
+      ".proto\032(ai/stigmer/agentic/plugin/v1/hoo" +
+      "ks.proto\032*ai/stigmer/agentic/run/v1/invo" +
+      "cation.proto\032(ai/stigmer/agentic/session" +
+      "/v1/enum.proto\0322ai/stigmer/commons/apire" +
+      "source/field_options.proto\032\'ai/stigmer/c" +
+      "ommons/apiresource/io.proto\032\033buf/validat" +
+      "e/validate.proto\"\253\n\n\tAgentSpec\022 \n\013descri" +
+      "ption\030\001 \001(\tR\013description\022\031\n\010icon_url\030\002 \001" +
+      "(\tR\007iconUrl\022+\n\014instructions\030\003 \001(\tB\007\272H\004r\002" +
+      "\020\nR\014instructions\022\343\001\n\021mcp_server_usages\030\004" +
+      " \003(\0132/.ai.stigmer.agentic.mcpserver.v1.M" +
+      "cpServerUsageB\205\001\272H\201\001\222\001~\"|\272\001y\n\026mcp_server" +
+      "_usages.kind\022?mcp_server_usages must ref" +
+      "erence resources with kind=mcp_server\032\036t" +
+      "his.mcp_server_ref.kind == 44R\017mcpServer" +
+      "Usages\022\273\001\n\nskill_refs\030\005 \003(\01324.ai.stigmer" +
+      ".commons.apiresource.ApiResourceReferenc" +
+      "eBf\272H_\222\001\\\"Z\272\001W\n\017skill_refs.kind\0223skill_r" +
+      "efs must reference resources with kind=s" +
+      "kill\032\017this.kind == 43\340\205,+R\tskillRefs\022D\n\n" +
+      "sub_agents\030\006 \003(\0132%.ai.stigmer.agentic.ag" +
+      "ent.v1.SubAgentR\tsubAgents\022A\n\003env\030\007 \003(\0132" +
+      "/.ai.stigmer.agentic.agent.v1.AgentSpec." +
+      "EnvEntryR\003env\022\212\001\n\005tools\030\n \003(\tBt\272Hq\222\001n\"lr" +
+      "j\030\200\0022e^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z" +
+      "0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za" +
+      "-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\005tools\022\237\001\n\020d" +
+      "isallowed_tools\030\013 \003(\tBt\272Hq\222\001n\"lrj\030\200\0022e^(" +
+      "mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(" +
+      "\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*" +
+      "(\\([^()\\r\\n]+\\))?)$R\017disallowedTools\022=\n\005" +
+      "hooks\030\014 \003(\0132\'.ai.stigmer.agentic.agent.v" +
+      "1.HookSourceR\005hooks\022C\n\nrun_config\030\r \001(\0132" +
+      "$.ai.stigmer.agentic.run.v1.RunConfigR\tr" +
+      "unConfig\022@\n\007harness\030\016 \001(\0162&.ai.stigmer.a" +
+      "gentic.session.v1.HarnessR\007harness\032k\n\010En" +
+      "vEntry\022\020\n\003key\030\001 \001(\tR\003key\022I\n\005value\030\002 \001(\0132" +
+      "3.ai.stigmer.agentic.credential.v1.EnvVa" +
+      "rDeclarationR\005value:\0028\001J\004\010\010\020\tJ\004\010\t\020\nR\007sha" +
+      "ringR\020datastore_usages\"\233\002\n\nHookSource\022\267\001" +
+      "\n\006plugin\030\001 \001(\01324.ai.stigmer.commons.apir" +
+      "esource.ApiResourceReferenceBg\272H`\272\001]\n\027ho" +
+      "ok_source_plugin.kind\0221plugin must refer" +
+      "ence a resource with kind=plugin\032\017this.k" +
+      "ind == 58\340\205,:H\000R\006plugin\022B\n\006inline\030\002 \001(\0132" +
+      "(.ai.stigmer.agentic.plugin.v1.HookConfi" +
+      "gH\000R\006inlineB\017\n\006source\022\005\272H\002\010\001\"\233\005\n\010SubAgen" +
+      "t\022\032\n\004name\030\001 \001(\tB\006\272H\003\310\001\001R\004name\022 \n\013descrip" +
+      "tion\030\002 \001(\tR\013description\022+\n\014instructions\030" +
+      "\003 \001(\tB\007\272H\004r\002\020\nR\014instructions\022\273\001\n\nskill_r" +
+      "efs\030\005 \003(\01324.ai.stigmer.commons.apiresour" +
+      "ce.ApiResourceReferenceBf\272H_\222\001\\\"Z\272\001W\n\017sk" +
+      "ill_refs.kind\0223skill_refs must reference" +
+      " resources with kind=skill\032\017this.kind ==" +
+      " 43\340\205,+R\tskillRefs\022%\n\016model_override\030\006 \001" +
+      "(\tR\rmodelOverride\022\212\001\n\005tools\030\007 \003(\tBt\272Hq\222\001" +
+      "n\"lrj\030\200\0022e^(mcp__\\*|mcp__[a-z][a-z0-9-]*" +
+      "[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][" +
+      "A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\005tools\022\237" +
+      "\001\n\020disallowed_tools\030\010 \003(\tBt\272Hq\222\001n\"lrj\030\200\002" +
+      "2e^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9]" +
+      "(__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-" +
+      "9_]*(\\([^()\\r\\n]+\\))?)$R\017disallowedTools" +
+      "J\004\010\004\020\005R\nmcp_accessB\234\001B\tSpecProtoP\001\242\002\004ASA" +
+      "A\252\002\033Ai.Stigmer.Agentic.Agent.V1\312\002\033Ai\\Sti" +
+      "gmer\\Agentic\\Agent\\V1\342\002\'Ai\\Stigmer\\Agent" +
+      "ic\\Agent\\V1\\GPBMetadata\352\002\037Ai::Stigmer::A" +
+      "gentic::Agent::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
-          ai.stigmer.agentic.environment.v1.SpecProto.getDescriptor(),
+          ai.stigmer.agentic.credential.v1.RequirementProto.getDescriptor(),
           ai.stigmer.agentic.mcpserver.v1.UsageProto.getDescriptor(),
           ai.stigmer.agentic.plugin.v1.HooksProto.getDescriptor(),
           ai.stigmer.agentic.run.v1.InvocationProto.getDescriptor(),
@@ -165,7 +165,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
         internal_static_ai_stigmer_agentic_agent_v1_SubAgent_descriptor,
         new java.lang.String[] { "Name", "Description", "Instructions", "SkillRefs", "ModelOverride", "Tools", "DisallowedTools", });
     descriptor.resolveAllFeaturesImmutable();
-    ai.stigmer.agentic.environment.v1.SpecProto.getDescriptor();
+    ai.stigmer.agentic.credential.v1.RequirementProto.getDescriptor();
     ai.stigmer.agentic.mcpserver.v1.UsageProto.getDescriptor();
     ai.stigmer.agentic.plugin.v1.HooksProto.getDescriptor();
     ai.stigmer.agentic.run.v1.InvocationProto.getDescriptor();

@@ -115,8 +115,8 @@ service AgentChannelCommandController {
   // @internal
   // Authorization: requires can_edit on the agent channel — the same bar
   // as initiateInstall (the two halves of one flow). The handler consumes
-  // the state atomically, exchanges the code, stores credentials in the
-  // system-managed Environment, records the grant, and writes the status
+  // the state atomically, exchanges the code, keeps the provider credential
+  // sealed under the channel's id, records the grant, and writes the status
   // facts (sole writer). The OSS edition returns FAILED_PRECONDITION
   // (documented posture).
   rpc completeInstall(CompleteChannelInstallInput) returns (AgentChannel) {
@@ -129,8 +129,8 @@ service AgentChannelCommandController {
   // Delete an agent channel.
   //
   // Full teardown of the connection: inbound events for the workspace stop
-  // resolving, pending deliveries are abandoned, and the credentials
-  // environment is deleted with the grant. To pause serving while keeping
+  // resolving, pending deliveries are abandoned, and the provider
+  // credential is deleted with the grant. To pause serving while keeping
   // the install, update the channel with enabled=false instead.
   //
   // @internal

@@ -1100,4 +1100,40 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue);
    * @return The approvalMode.
    */
   ai.stigmer.agentic.run.v1.ApprovalMode getApprovalMode();
+
+  /**
+   * <pre>
+   * Whose credentials this run may use.
+   *
+   * Decided once, when the run is created, and never re-derived: recover
+   * reads it, so a recovered run uses the same person's credentials.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
+   * @return Whether the credentials field is set.
+   */
+  boolean hasCredentials();
+  /**
+   * <pre>
+   * Whose credentials this run may use.
+   *
+   * Decided once, when the run is created, and never re-derived: recover
+   * reads it, so a recovered run uses the same person's credentials.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
+   * @return The credentials.
+   */
+  ai.stigmer.agentic.run.v1.RunCredentials getCredentials();
+  /**
+   * <pre>
+   * Whose credentials this run may use.
+   *
+   * Decided once, when the run is created, and never re-derived: recover
+   * reads it, so a recovered run uses the same person's credentials.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
+   */
+  ai.stigmer.agentic.run.v1.RunCredentialsOrBuilder getCredentialsOrBuilder();
 }

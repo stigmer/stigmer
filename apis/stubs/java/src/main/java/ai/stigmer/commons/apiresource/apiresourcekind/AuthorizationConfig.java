@@ -39,14 +39,16 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
  * -&gt; Creates: memory#subject&#64;identity_account:&lt;subject_identity_account_id&gt;
  * -&gt; No owner tuple
  *
- * Personal resource with creator attribution (environment):
+ * Resource owned by a person or by its organization (credential):
  * scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
- * owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
- * requires_creator_tuple: true
- * grantable_roles: [owner, viewer]
- * -&gt; Creates: environment#organization&#64;organization:&lt;org_id&gt;
- * -&gt; Creates: environment#owner&#64;identity_account:&lt;creator_id&gt;
- * -&gt; Creates: environment#creator&#64;identity_account:&lt;creator_id&gt;
+ * owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+ * additional_parents: [
+ * { kind: "identity_account", relation: "owner", spec_field: "person", optional: true },
+ * { kind: "organization", relation: "org_owned", spec_field: "organization", optional: true }
+ * ]
+ * -&gt; Creates: credential#organization&#64;organization:&lt;org_id&gt;
+ * -&gt; Creates: credential#owner&#64;identity_account:&lt;person&gt; (a person's credential)
+ * -&gt; Creates: credential#org_owned&#64;organization:&lt;org_id&gt; (an organization's credential)
  *
  * Organization with three-tier role hierarchy:
  * scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
@@ -895,14 +897,16 @@ private static final long serialVersionUID = 0L;
    * -&gt; Creates: memory#subject&#64;identity_account:&lt;subject_identity_account_id&gt;
    * -&gt; No owner tuple
    *
-   * Personal resource with creator attribution (environment):
+   * Resource owned by a person or by its organization (credential):
    * scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
-   * owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-   * requires_creator_tuple: true
-   * grantable_roles: [owner, viewer]
-   * -&gt; Creates: environment#organization&#64;organization:&lt;org_id&gt;
-   * -&gt; Creates: environment#owner&#64;identity_account:&lt;creator_id&gt;
-   * -&gt; Creates: environment#creator&#64;identity_account:&lt;creator_id&gt;
+   * owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+   * additional_parents: [
+   * { kind: "identity_account", relation: "owner", spec_field: "person", optional: true },
+   * { kind: "organization", relation: "org_owned", spec_field: "organization", optional: true }
+   * ]
+   * -&gt; Creates: credential#organization&#64;organization:&lt;org_id&gt;
+   * -&gt; Creates: credential#owner&#64;identity_account:&lt;person&gt; (a person's credential)
+   * -&gt; Creates: credential#org_owned&#64;organization:&lt;org_id&gt; (an organization's credential)
    *
    * Organization with three-tier role hierarchy:
    * scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY

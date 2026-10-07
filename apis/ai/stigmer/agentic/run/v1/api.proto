@@ -472,6 +472,12 @@ message RunStatus {
   // turns are UNATTENDED (nobody is present to approve); every other turn is
   // INTERACTIVE.
   ApprovalMode approval_mode = 32;
+
+  // Whose credentials this run may use.
+  //
+  // Decided once, when the run is created, and never re-derived: recover
+  // reads it, so a recovered run uses the same person's credentials.
+  RunCredentials credentials = 33;
 }
 
 // Setup progress reported during the RUN_PENDING phase.
@@ -518,4 +524,21 @@ message RecalledMemoriesReport {
   // Example: "text-embedding-3-small". Empty when selection_active is
   // false.
   string embedding_model = 3;
+}
+
+// RunCredentials records whose credentials a run may use.
+message RunCredentials {
+  // The person the run acts for, by identity account id; empty for a run
+  // with no person behind it.
+  //
+  // A run has a person only when a person started it directly. A schedule
+  // fire, a channel message, a shared-link guest, a machine account and a
+  // platform client's user have none: their runs use only the credentials
+  // assigned on the surface that started them.
+  //
+  // @internal
+  // isFirstPartyHumanOperator (extensions/identity.ts in the server)
+  // applied to the creating caller, the platform's one "is this a person"
+  // rule for every edition.
+  string person = 1;
 }

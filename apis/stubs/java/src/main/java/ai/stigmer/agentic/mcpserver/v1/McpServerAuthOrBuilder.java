@@ -75,11 +75,9 @@ public interface McpServerAuthOrBuilder extends
 
   /**
    * <pre>
-   * The env var where the acquired access token is stored.
-   * Must correspond to an entry in env so the execution pipeline
-   * resolves it. The refresh token is stored as
-   * {target_env_var}_REFRESH_TOKEN
-   * by convention. Both are written to the grant's managed environment.
+   * The key the acquired access token fills.
+   * Must correspond to an entry in env so a run knows the server needs
+   * it. It names the one field of the sign-in's credential.
    * </pre>
    *
    * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>
@@ -88,11 +86,9 @@ public interface McpServerAuthOrBuilder extends
   java.lang.String getTargetEnvVar();
   /**
    * <pre>
-   * The env var where the acquired access token is stored.
-   * Must correspond to an entry in env so the execution pipeline
-   * resolves it. The refresh token is stored as
-   * {target_env_var}_REFRESH_TOKEN
-   * by convention. Both are written to the grant's managed environment.
+   * The key the acquired access token fills.
+   * Must correspond to an entry in env so a run knows the server needs
+   * it. It names the one field of the sign-in's credential.
    * </pre>
    *
    * <code>string target_env_var = 2 [json_name = "targetEnvVar", (.buf.validate.field) = { ... }</code>

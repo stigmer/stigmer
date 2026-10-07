@@ -158,7 +158,7 @@ spec:
 | `is_secret` | `true`: encrypted at rest, redacted in logs, requires special permissions to read. `false`: stored as plaintext, visible in audit logs. |
 | `description` | Shown in the UI when a person supplies the value. Be specific about the required format and permissions (e.g., "GitHub PAT with `repo` and `read:org` scopes"). |
 
-The `EnvironmentSpec` and `EnvironmentValue` types are defined in `ai/stigmer/agentic/environment/v1/spec.proto` and are shared across McpServers and Agents.
+Each entry is an `EnvVarDeclaration`, defined in `ai/stigmer/agentic/credential/v1/requirement.proto` and shared by McpServers and Agents. The value comes from a Credential when the run starts.
 
 ## Status Fields
 

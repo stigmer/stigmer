@@ -10,11 +10,11 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/mcpserver/v1/oauth.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_oauth: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL29hdXRoLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxIpgCCgpPQXV0aEdyYW50EhsKE2lkZW50aXR5X2FjY291bnRfaWQYASABKAkSEwoLcmVzb3VyY2VfaWQYAiABKAkSHwoXYWNjZXNzX3Rva2VuX2V4cGlyZXNfYXQYAyABKAMSEQoJY2xpZW50X2lkGAQgASgJEhMKC2F1dGhfbWV0aG9kGAUgASgJEhYKDnRva2VuX2VuZHBvaW50GAYgASgJEhwKFGFjY2Vzc190b2tlbl9lbnZfdmFyGAcgASgJEh0KFXJlZnJlc2hfdG9rZW5fZW52X3ZhchgIIAEoCRIWCg5lbnZpcm9ubWVudF9pZBgJIAEoCRIVCg1yZXNvdXJjZV9raW5kGAogASgJEgsKA29yZxgLIAEoCSJhChBPQXV0aEFwcE92ZXJyaWRlEhMKC3Jlc291cmNlX2lkGAEgASgJEhUKDXJlc291cmNlX2tpbmQYAiABKAkSCwoDb3JnGAMgASgJEhQKDG9hdXRoX2FwcF9pZBgEIAEoCWIGcHJvdG8z");
+  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL29hdXRoLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxIsICCgpPQXV0aEdyYW50EhsKE2lkZW50aXR5X2FjY291bnRfaWQYASABKAkSEwoLcmVzb3VyY2VfaWQYAiABKAkSHwoXYWNjZXNzX3Rva2VuX2V4cGlyZXNfYXQYAyABKAMSEQoJY2xpZW50X2lkGAQgASgJEhMKC2F1dGhfbWV0aG9kGAUgASgJEhYKDnRva2VuX2VuZHBvaW50GAYgASgJEhwKFGFjY2Vzc190b2tlbl9lbnZfdmFyGAcgASgJEhUKDXJlc291cmNlX2tpbmQYCiABKAkSCwoDb3JnGAsgASgJEhUKDWNyZWRlbnRpYWxfaWQYDCABKAkSFQoNcmVmcmVzaF90b2tlbhgNIAEoCUoECAgQCUoECAkQClIVcmVmcmVzaF90b2tlbl9lbnZfdmFyUg5lbnZpcm9ubWVudF9pZCJhChBPQXV0aEFwcE92ZXJyaWRlEhMKC3Jlc291cmNlX2lkGAEgASgJEhUKDXJlc291cmNlX2tpbmQYAiABKAkSCwoDb3JnGAMgASgJEhQKDG9hdXRoX2FwcF9pZBgEIAEoCWIGcHJvdG8z");
 
 /**
- * OAuthGrant tracks OAuth metadata for a user's OAuth connection to an
- * API resource.
+ * OAuthGrant tracks one sign-in to an API resource: the metadata that
+ * keeps its token fresh, and the refresh token itself.
  *
  * @generated from message ai.stigmer.agentic.mcpserver.v1.OAuthGrant
  */
@@ -72,29 +72,11 @@ export type OAuthGrant = Message<"ai.stigmer.agentic.mcpserver.v1.OAuthGrant"> &
   tokenEndpoint: string;
 
   /**
-   * Env var name where the access token is stored in the managed environment.
+   * The key the access token fills: the name of the credential's field.
    *
    * @generated from field: string access_token_env_var = 7;
    */
   accessTokenEnvVar: string;
-
-  /**
-   * Env var name where the refresh token is stored in the managed environment.
-   * Convention: {target_env_var}_REFRESH_TOKEN.
-   *
-   * @generated from field: string refresh_token_env_var = 8;
-   */
-  refreshTokenEnvVar: string;
-
-  /**
-   * ID of the managed Environment resource that holds the tokens.
-   * The refresh mechanism reads/writes tokens in this environment.
-   * Created during completeOAuthConnect with the stigmer.ai/managed=true label.
-   * 1:1 with this grant — revoking the grant deletes this environment.
-   *
-   * @generated from field: string environment_id = 9;
-   */
-  environmentId: string;
 
   /**
    * Kind of the API resource identified by resource_id (e.g., "mcp_server").
@@ -112,6 +94,21 @@ export type OAuthGrant = Message<"ai.stigmer.agentic.mcpserver.v1.OAuthGrant"> &
    * @generated from field: string org = 11;
    */
   org: string;
+
+  /**
+   * ID of the Credential that holds the access token.
+   * Created by completeOAuthConnect; deleted with this grant.
+   *
+   * @generated from field: string credential_id = 12;
+   */
+  credentialId: string;
+
+  /**
+   * The refresh token, sealed at rest.
+   *
+   * @generated from field: string refresh_token = 13;
+   */
+  refreshToken: string;
 };
 
 /**

@@ -4,9 +4,9 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { CredentialAssignment } from "../../../agentic/credential/v1/requirement_pb.js";
+import { file_ai_stigmer_agentic_credential_v1_requirement } from "../../../agentic/credential/v1/requirement_pb.js";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
-import type { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
-import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
 import type { IamRole } from "../../v1/enum_pb.js";
 import { file_ai_stigmer_iam_v1_enum } from "../../v1/enum_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
@@ -18,7 +18,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/platformclient/v1/spec.proto.
  */
 export const file_ai_stigmer_iam_platformclient_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS9zcGVjLnByb3RvEiBhaS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MSK7BwoSUGxhdGZvcm1DbGllbnRTcGVjEhcKCWNsaWVudF9pZBgBIAEoCUIEyIUsARIgChJjbGllbnRfc2VjcmV0X2hhc2gYAiABKAlCBMiFLAESIAoSc2VjcmV0X2ZpbmdlcnByaW50GAMgASgJQgTIhSwBEi4KCmV4cGlyZXNfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhUKDW5ldmVyX2V4cGlyZXMYBSABKAgSFwoPYWxsb3dlZF9vcmlnaW5zGAkgAygJEsgBChBlbnZpcm9ubWVudF9yZWZzGAogAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQni6SHGSAW4ibLoBaQoVZW52aXJvbm1lbnRfcmVmcy5raW5kEj9lbnZpcm9ubWVudF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9ZW52aXJvbm1lbnQaD3RoaXMua2luZCA9PSA1M+CFLDUSIgoaY3JlYXRlX2FjY291bnRzX29uX3NpZ25faW4YCyABKAgSMAoMc2lnbl9pbl9yb2xlGAwgASgOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZTr3ArpI8wIa2wEKNnBsYXRmb3JtX2NsaWVudC5zaWduX2luX3JvbGVfcmVxdWlyZXNfYWNjb3VudF9jcmVhdGlvbhJmc2lnbl9pbl9yb2xlIHJlcXVpcmVzIGNyZWF0ZV9hY2NvdW50c19vbl9zaWduX2luOiBvbmx5IGFuIGFjY291bnQgdGhlIGNsaWVudCBjcmVhdGVzIHJlY2VpdmVzIHRoZSByb2xlGjl0aGlzLnNpZ25faW5fcm9sZSA9PSAwIHx8IHRoaXMuY3JlYXRlX2FjY291bnRzX29uX3NpZ25faW4akgEKJnBsYXRmb3JtX2NsaWVudC5zaWduX2luX3JvbGVfbm90X293bmVyElBzaWduX2luX3JvbGUgY2Fubm90IGJlIG93bmVyOyBvcmdhbml6YXRpb24gb3duZXJzaGlwIG11c3QgYmUgYXNzaWduZWQgZXhwbGljaXRseRoWdGhpcy5zaWduX2luX3JvbGUgIT0gMUoECAYQB0oECAcQCEoECAgQCVIXYXV0b19wcm92aXNpb25fYWNjb3VudHNSEWF1dG9fZ3JhbnRfb25fb3JnUg9hdXRvX2dyYW50X3JvbGViBnByb3RvMw", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_iam_v1_enum, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CithaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS9zcGVjLnByb3RvEiBhaS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MSLfBgoSUGxhdGZvcm1DbGllbnRTcGVjEhcKCWNsaWVudF9pZBgBIAEoCUIEyIUsARIgChJjbGllbnRfc2VjcmV0X2hhc2gYAiABKAlCBMiFLAESIAoSc2VjcmV0X2ZpbmdlcnByaW50GAMgASgJQgTIhSwBEi4KCmV4cGlyZXNfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhUKDW5ldmVyX2V4cGlyZXMYBSABKAgSFwoPYWxsb3dlZF9vcmlnaW5zGAkgAygJElUKC2NyZWRlbnRpYWxzGA0gAygLMjYuYWkuc3RpZ21lci5hZ2VudGljLmNyZWRlbnRpYWwudjEuQ3JlZGVudGlhbEFzc2lnbm1lbnRCCLpIBZIBAhBAEiIKGmNyZWF0ZV9hY2NvdW50c19vbl9zaWduX2luGAsgASgIEjAKDHNpZ25faW5fcm9sZRgMIAEoDjIaLmFpLnN0aWdtZXIuaWFtLnYxLklhbVJvbGU69wK6SPMCGtsBCjZwbGF0Zm9ybV9jbGllbnQuc2lnbl9pbl9yb2xlX3JlcXVpcmVzX2FjY291bnRfY3JlYXRpb24SZnNpZ25faW5fcm9sZSByZXF1aXJlcyBjcmVhdGVfYWNjb3VudHNfb25fc2lnbl9pbjogb25seSBhbiBhY2NvdW50IHRoZSBjbGllbnQgY3JlYXRlcyByZWNlaXZlcyB0aGUgcm9sZRo5dGhpcy5zaWduX2luX3JvbGUgPT0gMCB8fCB0aGlzLmNyZWF0ZV9hY2NvdW50c19vbl9zaWduX2luGpIBCiZwbGF0Zm9ybV9jbGllbnQuc2lnbl9pbl9yb2xlX25vdF9vd25lchJQc2lnbl9pbl9yb2xlIGNhbm5vdCBiZSBvd25lcjsgb3JnYW5pemF0aW9uIG93bmVyc2hpcCBtdXN0IGJlIGFzc2lnbmVkIGV4cGxpY2l0bHkaFnRoaXMuc2lnbl9pbl9yb2xlICE9IDFKBAgGEAdKBAgHEAhKBAgIEAlKBAgKEAtSF2F1dG9fcHJvdmlzaW9uX2FjY291bnRzUhFhdXRvX2dyYW50X29uX29yZ1IPYXV0b19ncmFudF9yb2xlUhBlbnZpcm9ubWVudF9yZWZzYgZwcm90bzM", [file_ai_stigmer_agentic_credential_v1_requirement, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_iam_v1_enum, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * PlatformClientSpec defines the configuration for a platform client credential.
@@ -132,17 +132,21 @@ export type PlatformClientSpec = Message<"ai.stigmer.iam.platformclient.v1.Platf
   allowedOrigins: string[];
 
   /**
-   * Environments whose values are delivered to every run a
-   * user signed in through this PlatformClient creates. This is how an
-   * embedded assistant reaches secret-gated MCP servers: the client — the
-   * connection resource — carries the credentials (for example a shared
-   * API secret), and minted-user runs receive its values at
-   * runtime, at the lowest priority, so the request's runtime values win on
-   * a key conflict. The agent stays untouched.
+   * The values the runs of this client's users use for what an agent needs.
    *
-   * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10;
+   * A client's users act through the client, not as people of their own,
+   * so their runs never use a person's credentials: they use what is
+   * assigned here. A run in an organization other than the client's
+   * receives nothing.
+   *
+   * Each assignment gives one requirement of the agent, one of its MCP
+   * servers or a git host its value: a field of a credential the writer
+   * may use, or a plain literal. A person's own credential is never
+   * accepted here.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 13;
    */
-  environmentRefs: ApiResourceReference[];
+  credentials: CredentialAssignment[];
 
   /**
    * Whether mintUserToken creates an identity account for a user_id that has

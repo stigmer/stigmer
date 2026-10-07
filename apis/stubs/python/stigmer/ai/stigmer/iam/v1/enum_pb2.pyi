@@ -18,11 +18,13 @@ class IamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     can_create_session: _ClassVar[IamPermission]
     can_create_skill: _ClassVar[IamPermission]
     can_create_idp: _ClassVar[IamPermission]
-    can_create_environment: _ClassVar[IamPermission]
     can_create_identity_account: _ClassVar[IamPermission]
     can_create_oauth_app: _ClassVar[IamPermission]
     can_create_platform_client: _ClassVar[IamPermission]
     can_create_run_in: _ClassVar[IamPermission]
+    can_create_credential: _ClassVar[IamPermission]
+    can_create_org_credential: _ClassVar[IamPermission]
+    can_use: _ClassVar[IamPermission]
     can_execute: _ClassVar[IamPermission]
     can_read_secrets: _ClassVar[IamPermission]
     can_bootstrap_iam: _ClassVar[IamPermission]
@@ -55,6 +57,7 @@ class IamRole(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     viewer: _ClassVar[IamRole]
     participant: _ClassVar[IamRole]
     editor: _ClassVar[IamRole]
+    user: _ClassVar[IamRole]
 unspecified: IamPermission
 can_view: IamPermission
 can_edit: IamPermission
@@ -67,11 +70,13 @@ can_create_agent: IamPermission
 can_create_session: IamPermission
 can_create_skill: IamPermission
 can_create_idp: IamPermission
-can_create_environment: IamPermission
 can_create_identity_account: IamPermission
 can_create_oauth_app: IamPermission
 can_create_platform_client: IamPermission
 can_create_run_in: IamPermission
+can_create_credential: IamPermission
+can_create_org_credential: IamPermission
+can_use: IamPermission
 can_execute: IamPermission
 can_read_secrets: IamPermission
 can_bootstrap_iam: IamPermission
@@ -101,3 +106,4 @@ member: IamRole
 viewer: IamRole
 participant: IamRole
 editor: IamRole
+user: IamRole

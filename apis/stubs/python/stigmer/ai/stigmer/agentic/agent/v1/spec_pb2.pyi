@@ -1,4 +1,4 @@
-from ai.stigmer.agentic.environment.v1 import spec_pb2 as _spec_pb2
+from ai.stigmer.agentic.credential.v1 import requirement_pb2 as _requirement_pb2
 from ai.stigmer.agentic.mcpserver.v1 import usage_pb2 as _usage_pb2
 from ai.stigmer.agentic.plugin.v1 import hooks_pb2 as _hooks_pb2
 from ai.stigmer.agentic.run.v1 import invocation_pb2 as _invocation_pb2
@@ -21,8 +21,8 @@ class AgentSpec(_message.Message):
         KEY_FIELD_NUMBER: _ClassVar[int]
         VALUE_FIELD_NUMBER: _ClassVar[int]
         key: str
-        value: _spec_pb2.EnvVarDeclaration
-        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[_spec_pb2.EnvVarDeclaration, _Mapping]] = ...) -> None: ...
+        value: _requirement_pb2.EnvVarDeclaration
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[_requirement_pb2.EnvVarDeclaration, _Mapping]] = ...) -> None: ...
     DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
     ICON_URL_FIELD_NUMBER: _ClassVar[int]
     INSTRUCTIONS_FIELD_NUMBER: _ClassVar[int]
@@ -41,13 +41,13 @@ class AgentSpec(_message.Message):
     mcp_server_usages: _containers.RepeatedCompositeFieldContainer[_usage_pb2.McpServerUsage]
     skill_refs: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
     sub_agents: _containers.RepeatedCompositeFieldContainer[SubAgent]
-    env: _containers.MessageMap[str, _spec_pb2.EnvVarDeclaration]
+    env: _containers.MessageMap[str, _requirement_pb2.EnvVarDeclaration]
     tools: _containers.RepeatedScalarFieldContainer[str]
     disallowed_tools: _containers.RepeatedScalarFieldContainer[str]
     hooks: _containers.RepeatedCompositeFieldContainer[HookSource]
     run_config: _invocation_pb2.RunConfig
     harness: _enum_pb2.Harness
-    def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., instructions: _Optional[str] = ..., mcp_server_usages: _Optional[_Iterable[_Union[_usage_pb2.McpServerUsage, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., sub_agents: _Optional[_Iterable[_Union[SubAgent, _Mapping]]] = ..., env: _Optional[_Mapping[str, _spec_pb2.EnvVarDeclaration]] = ..., tools: _Optional[_Iterable[str]] = ..., disallowed_tools: _Optional[_Iterable[str]] = ..., hooks: _Optional[_Iterable[_Union[HookSource, _Mapping]]] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ..., harness: _Optional[_Union[_enum_pb2.Harness, str]] = ...) -> None: ...
+    def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., instructions: _Optional[str] = ..., mcp_server_usages: _Optional[_Iterable[_Union[_usage_pb2.McpServerUsage, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., sub_agents: _Optional[_Iterable[_Union[SubAgent, _Mapping]]] = ..., env: _Optional[_Mapping[str, _requirement_pb2.EnvVarDeclaration]] = ..., tools: _Optional[_Iterable[str]] = ..., disallowed_tools: _Optional[_Iterable[str]] = ..., hooks: _Optional[_Iterable[_Union[HookSource, _Mapping]]] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ..., harness: _Optional[_Union[_enum_pb2.Harness, str]] = ...) -> None: ...
 
 class HookSource(_message.Message):
     __slots__ = ("plugin", "inline")

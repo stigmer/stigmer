@@ -71,25 +71,27 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n*ai/stigmer/agentic/mcpserver/v1/spec.p" +
-      "roto\022\037ai.stigmer.agentic.mcpserver.v1\032,a" +
-      "i/stigmer/agentic/environment/v1/spec.pr" +
-      "oto\0322ai/stigmer/commons/apiresource/fiel" +
-      "d_options.proto\032\'ai/stigmer/commons/apir" +
-      "esource/io.proto\032\033buf/validate/validate." +
-      "proto\"\214\005\n\rMcpServerSpec\022 \n\013description\030\001" +
-      " \001(\tR\013description\022\031\n\010icon_url\030\002 \001(\tR\007ico" +
-      "nUrl\022\022\n\004tags\030\003 \003(\tR\004tags\022J\n\005stdio\030\004 \001(\0132" +
-      "2.ai.stigmer.agentic.mcpserver.v1.StdioS" +
-      "erverConfigH\000R\005stdio\022G\n\004http\030\005 \001(\01321.ai." +
-      "stigmer.agentic.mcpserver.v1.HttpServerC" +
-      "onfigH\000R\004http\022I\n\003env\030\010 \003(\01327.ai.stigmer." +
-      "agentic.mcpserver.v1.McpServerSpec.EnvEn" +
-      "tryR\003env\022%\n\016repository_url\030\014 \001(\tR\rreposi" +
-      "toryUrl\022!\n\014github_stars\030\r \001(\005R\013githubSta" +
-      "rs\022B\n\004auth\030\016 \001(\0132..ai.stigmer.agentic.mc" +
-      "pserver.v1.McpServerAuthR\004auth\032l\n\010EnvEnt" +
-      "ry\022\020\n\003key\030\001 \001(\tR\003key\022J\n\005value\030\002 \001(\01324.ai" +
-      ".stigmer.agentic.environment.v1.EnvVarDe" +
+      "roto\022\037ai.stigmer.agentic.mcpserver.v1\0322a" +
+      "i/stigmer/agentic/credential/v1/requirem" +
+      "ent.proto\0322ai/stigmer/commons/apiresourc" +
+      "e/field_options.proto\032\'ai/stigmer/common" +
+      "s/apiresource/io.proto\032\033buf/validate/val" +
+      "idate.proto\"\326\005\n\rMcpServerSpec\022 \n\013descrip" +
+      "tion\030\001 \001(\tR\013description\022\031\n\010icon_url\030\002 \001(" +
+      "\tR\007iconUrl\022\022\n\004tags\030\003 \003(\tR\004tags\022J\n\005stdio\030" +
+      "\004 \001(\01322.ai.stigmer.agentic.mcpserver.v1." +
+      "StdioServerConfigH\000R\005stdio\022G\n\004http\030\005 \001(\013" +
+      "21.ai.stigmer.agentic.mcpserver.v1.HttpS" +
+      "erverConfigH\000R\004http\022I\n\003env\030\010 \003(\01327.ai.st" +
+      "igmer.agentic.mcpserver.v1.McpServerSpec" +
+      ".EnvEntryR\003env\022%\n\016repository_url\030\014 \001(\tR\r" +
+      "repositoryUrl\022!\n\014github_stars\030\r \001(\005R\013git" +
+      "hubStars\022B\n\004auth\030\016 \001(\0132..ai.stigmer.agen" +
+      "tic.mcpserver.v1.McpServerAuthR\004auth\022I\n\007" +
+      "sign_in\030\017 \001(\01620.ai.stigmer.agentic.mcpse" +
+      "rver.v1.McpServerSignInR\006signIn\032k\n\010EnvEn" +
+      "try\022\020\n\003key\030\001 \001(\tR\003key\022I\n\005value\030\002 \001(\01323.a" +
+      "i.stigmer.agentic.credential.v1.EnvVarDe" +
       "clarationR\005value:\0028\001B\024\n\013server_type\022\005\272H\002" +
       "\010\001J\004\010\007\020\010J\004\010\013\020\014R\025default_enabled_toolsR\025p" +
       "inned_tool_approvals\"j\n\021StdioServerConfi" +
@@ -117,16 +119,19 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "int\022\037\n\013scope_hints\030\004 \003(\tR\nscopeHints\022#\n\r" +
       "discovery_url\030\007 \001(\tR\014discoveryUrl\022\035\n\noau" +
       "th_only\030\n \001(\010R\toauthOnlyJ\004\010\005\020\006J\004\010\006\020\007J\004\010\010" +
-      "\020\tJ\004\010\t\020\nB\254\001B\tSpecProtoP\001\242\002\004ASAM\252\002\037Ai.Sti" +
-      "gmer.Agentic.Mcpserver.V1\312\002\037Ai\\Stigmer\\A" +
-      "gentic\\Mcpserver\\V1\342\002+Ai\\Stigmer\\Agentic" +
-      "\\Mcpserver\\V1\\GPBMetadata\352\002#Ai::Stigmer:" +
-      ":Agentic::Mcpserver::V1b\006proto3"
+      "\020\tJ\004\010\t\020\n*{\n\017McpServerSignIn\022\"\n\036mcp_serve" +
+      "r_sign_in_unspecified\020\000\022\037\n\033mcp_server_si" +
+      "gn_in_personal\020\001\022#\n\037mcp_server_sign_in_o" +
+      "rganization\020\002B\254\001B\tSpecProtoP\001\242\002\004ASAM\252\002\037A" +
+      "i.Stigmer.Agentic.Mcpserver.V1\312\002\037Ai\\Stig" +
+      "mer\\Agentic\\Mcpserver\\V1\342\002+Ai\\Stigmer\\Ag" +
+      "entic\\Mcpserver\\V1\\GPBMetadata\352\002#Ai::Sti" +
+      "gmer::Agentic::Mcpserver::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
-          ai.stigmer.agentic.environment.v1.SpecProto.getDescriptor(),
+          ai.stigmer.agentic.credential.v1.RequirementProto.getDescriptor(),
           ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor(),
           ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
@@ -136,7 +141,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerSpec_descriptor,
-        new java.lang.String[] { "Description", "IconUrl", "Tags", "Stdio", "Http", "Env", "RepositoryUrl", "GithubStars", "Auth", "ServerType", });
+        new java.lang.String[] { "Description", "IconUrl", "Tags", "Stdio", "Http", "Env", "RepositoryUrl", "GithubStars", "Auth", "SignIn", "ServerType", });
     internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerSpec_EnvEntry_descriptor =
       internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerSpec_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerSpec_EnvEntry_fieldAccessorTable = new
@@ -174,7 +179,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
         internal_static_ai_stigmer_agentic_mcpserver_v1_McpServerAuth_descriptor,
         new java.lang.String[] { "OauthAppRef", "TargetEnvVar", "TokenLifetimeHint", "ScopeHints", "DiscoveryUrl", "OauthOnly", });
     descriptor.resolveAllFeaturesImmutable();
-    ai.stigmer.agentic.environment.v1.SpecProto.getDescriptor();
+    ai.stigmer.agentic.credential.v1.RequirementProto.getDescriptor();
     ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

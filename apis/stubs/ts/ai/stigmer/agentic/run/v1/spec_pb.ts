@@ -172,12 +172,10 @@ export type RunSpec = Message<"ai.stigmer.agentic.run.v1.RunSpec"> & {
   structuredOutputSchema?: JsonObject;
 
   /**
-   * Runtime environment variables and secrets (run-scoped).
-   * These values are only available for this specific run and take the
-   * highest merge priority, overriding values from Environments bound via
-   * environment_refs. A key must be declared in Agent.spec.env to survive the
-   * merge: the agent env map is a declaration whitelist (name + is_secret +
-   * optional), never a value source — undeclared keys are dropped.
+   * Values for this run only, by key (run-scoped).
+   * A value fills every requirement with its key, declared by the agent,
+   * one of its MCP servers or the git host of a workspace repository, ahead
+   * of every saved credential. A key nothing declares is dropped.
    * Use case: B2B integrations where secrets are injected at runtime per call.
    * These values are consumed into the ExecutionContext (deleted when the
    * run completes) and cleared from the persisted run.

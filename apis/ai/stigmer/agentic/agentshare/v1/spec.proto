@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.agentshare.v1;
 
+import "ai/stigmer/agentic/credential/v1/requirement.proto";
 import "ai/stigmer/agentic/run/v1/invocation.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
@@ -25,9 +26,9 @@ import "buf/validate/validate.proto";
 // example YAML.
 message AgentShareSpec {
   option (buf.validate.message).cel = {
-    id: "agent_share.environment_refs_public_only"
-    message: "environment_refs can only be set on public-audience shares"
-    expression: "this.audience != 2 || this.environment_refs.size() == 0"
+    id: "agent_share.credentials_public_only"
+    message: "credentials can only be set on public-audience shares"
+    expression: "this.audience != 2 || this.credentials.size() == 0"
   };
   option (buf.validate.message).cel = {
     id: "agent_share.run_config_public_only"
@@ -52,9 +53,9 @@ message AgentShareSpec {
   // editions (spec-level CEL cannot see metadata.org), the same rule the
   // schedule and channel kinds apply to their agent reference. The sharing
   // org is the billing org and guest tool credentials
-  // resolve in the share's org (secrets never cross orgs — org A's
-  // environments are structurally unreachable from org B's runs via
-  // OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
+  // resolve in the share's org (secrets never cross orgs: a credential
+  // assignment must name a credential of the share's own organization).
+  // status.agent_id pins the resolved agent
   // against slug-reuse rebind.
   ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [
     (ai.stigmer.commons.apiresource.reference_kind) = agent,
@@ -131,33 +132,31 @@ message AgentShareSpec {
   // embed, CLI) through the existing error-message path.
   AgentShareMessages messages = 5;
 
-  // References to Environment resources whose values are provided to guest
-  // conversations on this share.
+  // Field 6 held environment_refs, references to environments whose
+  // values guest conversations received, until credentials replaced
+  // environments. Reserved so the number and name are never reused.
+  reserved 6;
+  reserved "environment_refs";
+
+  // The values guest conversations on this share use for what the agent needs.
   //
-  // This is how a tool-using agent becomes chattable over a share link:
-  // bind an org-shared environment holding the needed credentials (for
-  // example a read-only API token), and guest runs receive its
-  // values at runtime. The agent itself stays untouched.
-  // Valid on public-audience shares only.
+  // A guest has no credentials of their own, so a guest's runs use what
+  // is assigned here. Valid on public-audience shares only.
+  //
+  // Each assignment gives one requirement of the agent, one of its MCP
+  // servers or a git host its value: a field of a credential the writer
+  // may use, or a plain literal. A person's own credential is never
+  // accepted here.
   //
   // @internal
-  // Resolved in the share's org through the org-shared environment
-  // resolution seam (EnvironmentRuntimeResolutionService /
-  // OrgSharedEnvironmentPolicy): each referenced environment
-  // must be visibility_org in the share's org, or the merge skips it with
-  // a diagnostic. Merged at guest execution-context build time only —
-  // never written to the agent, so org members' own conversations on it
-  // never read them. Org-audience shares reject this field via
-  // the message-level CEL rule: member sessions carry no share linkage,
-  // so bound credentials would silently never apply.
-  repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [
-    (ai.stigmer.commons.apiresource.reference_kind) = environment,
-    (buf.validate.field).repeated.items.cel = {
-      id: "environment_refs.kind"
-      message: "environment_refs must reference resources with kind=environment"
-      expression: "this.kind == 53"
-    }
-  ];
+  // Judged at write by the reference rule (pipeline/steps/references.ts):
+  // the writer must hold can_use on each credential an assignment
+  // introduces, and the server stamps the writer. A run re-checks the
+  // writer's can_use when it starts and is refused, naming the
+  // assignment, when it no longer holds.
+  // Org-audience shares reject this field via the message-level CEL
+  // rule: a member's run is the member's own and takes their credentials.
+  repeated ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 8 [(buf.validate.field).repeated.max_items = 64];
 
   // Per-turn model choice and run bounds for guest conversations on this
   // share.
@@ -175,7 +174,7 @@ message AgentShareSpec {
   // are never read; the edition's run-lane driver loads this field
   // server-side from the share and hands it to the server's one
   // resolution. The trust posture is unchanged. Org-audience shares reject the field via the
-  // message-level CEL rule for the same reason as environment_refs:
+  // message-level CEL rule for the same reason as credentials:
   // member sessions carry no share linkage, so it would be stored but
   // silently never applied. Enforcement is cloud-only — guest runtime
   // is a cloud concept; OSS stores and echoes the field.

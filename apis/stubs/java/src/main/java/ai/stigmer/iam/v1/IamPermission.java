@@ -95,10 +95,6 @@ public enum IamPermission
    */
   can_create_idp(11),
   /**
-   * <code>can_create_environment = 12;</code>
-   */
-  can_create_environment(12),
-  /**
    * <code>can_create_identity_account = 21;</code>
    */
   can_create_identity_account(21),
@@ -118,6 +114,32 @@ public enum IamPermission
    * <code>can_create_run_in = 13;</code>
    */
   can_create_run_in(13),
+  /**
+   * <pre>
+   * Organization-level permission to save a credential of your own.
+   * </pre>
+   *
+   * <code>can_create_credential = 52;</code>
+   */
+  can_create_credential(52),
+  /**
+   * <pre>
+   * Organization-level permission to save a credential that belongs to
+   * the organization. Admin-gated: an organization's credential is the
+   * organization's to share.
+   * </pre>
+   *
+   * <code>can_create_org_credential = 53;</code>
+   */
+  can_create_org_credential(53),
+  /**
+   * <pre>
+   * Whether the caller's runs may use a credential's values.
+   * </pre>
+   *
+   * <code>can_use = 51;</code>
+   */
+  can_use(51),
   /**
    * <pre>
    * Execution permission.
@@ -415,10 +437,6 @@ public enum IamPermission
    */
   public static final int can_create_idp_VALUE = 11;
   /**
-   * <code>can_create_environment = 12;</code>
-   */
-  public static final int can_create_environment_VALUE = 12;
-  /**
    * <code>can_create_identity_account = 21;</code>
    */
   public static final int can_create_identity_account_VALUE = 21;
@@ -438,6 +456,32 @@ public enum IamPermission
    * <code>can_create_run_in = 13;</code>
    */
   public static final int can_create_run_in_VALUE = 13;
+  /**
+   * <pre>
+   * Organization-level permission to save a credential of your own.
+   * </pre>
+   *
+   * <code>can_create_credential = 52;</code>
+   */
+  public static final int can_create_credential_VALUE = 52;
+  /**
+   * <pre>
+   * Organization-level permission to save a credential that belongs to
+   * the organization. Admin-gated: an organization's credential is the
+   * organization's to share.
+   * </pre>
+   *
+   * <code>can_create_org_credential = 53;</code>
+   */
+  public static final int can_create_org_credential_VALUE = 53;
+  /**
+   * <pre>
+   * Whether the caller's runs may use a credential's values.
+   * </pre>
+   *
+   * <code>can_use = 51;</code>
+   */
+  public static final int can_use_VALUE = 51;
   /**
    * <pre>
    * Execution permission.
@@ -690,11 +734,13 @@ public enum IamPermission
       case 8: return can_create_session;
       case 9: return can_create_skill;
       case 11: return can_create_idp;
-      case 12: return can_create_environment;
       case 21: return can_create_identity_account;
       case 23: return can_create_oauth_app;
       case 24: return can_create_platform_client;
       case 13: return can_create_run_in;
+      case 52: return can_create_credential;
+      case 53: return can_create_org_credential;
+      case 51: return can_use;
       case 15: return can_execute;
       case 16: return can_read_secrets;
       case 17: return can_bootstrap_iam;

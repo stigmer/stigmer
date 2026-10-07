@@ -8,7 +8,7 @@ package mcpserverv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
+	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/credential/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -23,6 +23,60 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+// McpServerSignIn says whose account an MCP server's runs use.
+type McpServerSignIn int32
+
+const (
+	// Each person signs in with their own account (the default).
+	McpServerSignIn_mcp_server_sign_in_unspecified McpServerSignIn = 0
+	// Each person signs in with their own account.
+	McpServerSignIn_mcp_server_sign_in_personal McpServerSignIn = 1
+	// An admin signs the organization in once, and every run in the
+	// organization uses that account.
+	McpServerSignIn_mcp_server_sign_in_organization McpServerSignIn = 2
+)
+
+// Enum value maps for McpServerSignIn.
+var (
+	McpServerSignIn_name = map[int32]string{
+		0: "mcp_server_sign_in_unspecified",
+		1: "mcp_server_sign_in_personal",
+		2: "mcp_server_sign_in_organization",
+	}
+	McpServerSignIn_value = map[string]int32{
+		"mcp_server_sign_in_unspecified":  0,
+		"mcp_server_sign_in_personal":     1,
+		"mcp_server_sign_in_organization": 2,
+	}
+)
+
+func (x McpServerSignIn) Enum() *McpServerSignIn {
+	p := new(McpServerSignIn)
+	*p = x
+	return p
+}
+
+func (x McpServerSignIn) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (McpServerSignIn) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_mcpserver_v1_spec_proto_enumTypes[0].Descriptor()
+}
+
+func (McpServerSignIn) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_mcpserver_v1_spec_proto_enumTypes[0]
+}
+
+func (x McpServerSignIn) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use McpServerSignIn.Descriptor instead.
+func (McpServerSignIn) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescGZIP(), []int{0}
+}
 
 // McpServerSpec defines the configurable properties of an MCP server.
 type McpServerSpec struct {
@@ -63,11 +117,19 @@ type McpServerSpec struct {
 	// When set, the MCP server's Connect page offers an OAuth flow instead of
 	// (or in addition to) manual credential entry.
 	//
-	// The acquired access token is stored in a system-managed environment
-	// (identified by grant.environment_id) as the env var named by
-	// auth.target_env_var. That env var must also be declared in env so the
-	// execution pipeline knows about it.
-	Auth          *McpServerAuth `protobuf:"bytes,14,opt,name=auth,proto3" json:"auth,omitempty"`
+	// A sign-in saves the access token as a credential whose one field is
+	// named by auth.target_env_var. That key must also be declared in env so
+	// a run knows the server needs it.
+	Auth *McpServerAuth `protobuf:"bytes,14,opt,name=auth,proto3" json:"auth,omitempty"`
+	// Whose account the server's runs use: each person's own sign-in (the
+	// default), or one account the organization signs in once.
+	//
+	// With personal sign-in, a person's run uses that person's own credential
+	// for the server, and a run with no person behind it (a schedule, a
+	// shared link, a channel) uses only a credential assigned to it there.
+	// With organization sign-in, every run in the organization uses the
+	// organization's credential for the server.
+	SignIn        McpServerSignIn `protobuf:"varint,15,opt,name=sign_in,json=signIn,proto3,enum=ai.stigmer.agentic.mcpserver.v1.McpServerSignIn" json:"sign_in,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -174,6 +236,13 @@ func (x *McpServerSpec) GetAuth() *McpServerAuth {
 		return x.Auth
 	}
 	return nil
+}
+
+func (x *McpServerSpec) GetSignIn() McpServerSignIn {
+	if x != nil {
+		return x.SignIn
+	}
+	return McpServerSignIn_mcp_server_sign_in_unspecified
 }
 
 type isMcpServerSpec_ServerType interface {
@@ -400,11 +469,9 @@ type McpServerAuth struct {
 	// shared with child organizations, so no cross-organization reference to one is
 	// accepted.
 	OauthAppRef *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=oauth_app_ref,json=oauthAppRef,proto3" json:"oauth_app_ref,omitempty"`
-	// The env var where the acquired access token is stored.
-	// Must correspond to an entry in env so the execution pipeline
-	// resolves it. The refresh token is stored as
-	// {target_env_var}_REFRESH_TOKEN
-	// by convention. Both are written to the grant's managed environment.
+	// The key the acquired access token fills.
+	// Must correspond to an entry in env so a run knows the server needs
+	// it. It names the one field of the sign-in's credential.
 	TargetEnvVar string `protobuf:"bytes,2,opt,name=target_env_var,json=targetEnvVar,proto3" json:"target_env_var,omitempty"`
 	// Informational hint about expected token lifetime for UI display.
 	// Helps users understand when re-authentication may be needed.
@@ -528,7 +595,7 @@ var File_ai_stigmer_agentic_mcpserver_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\x8c\x05\n" +
+	"*ai/stigmer/agentic/mcpserver/v1/spec.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a2ai/stigmer/agentic/credential/v1/requirement.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xd6\x05\n" +
 	"\rMcpServerSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12\x19\n" +
 	"\bicon_url\x18\x02 \x01(\tR\aiconUrl\x12\x12\n" +
@@ -538,10 +605,11 @@ const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\x03env\x18\b \x03(\v27.ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntryR\x03env\x12%\n" +
 	"\x0erepository_url\x18\f \x01(\tR\rrepositoryUrl\x12!\n" +
 	"\fgithub_stars\x18\r \x01(\x05R\vgithubStars\x12B\n" +
-	"\x04auth\x18\x0e \x01(\v2..ai.stigmer.agentic.mcpserver.v1.McpServerAuthR\x04auth\x1al\n" +
+	"\x04auth\x18\x0e \x01(\v2..ai.stigmer.agentic.mcpserver.v1.McpServerAuthR\x04auth\x12I\n" +
+	"\asign_in\x18\x0f \x01(\x0e20.ai.stigmer.agentic.mcpserver.v1.McpServerSignInR\x06signIn\x1ak\n" +
 	"\bEnvEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12J\n" +
-	"\x05value\x18\x02 \x01(\v24.ai.stigmer.agentic.environment.v1.EnvVarDeclarationR\x05value:\x028\x01B\x14\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12I\n" +
+	"\x05value\x18\x02 \x01(\v23.ai.stigmer.agentic.credential.v1.EnvVarDeclarationR\x05value:\x028\x01B\x14\n" +
 	"\vserver_type\x12\x05\xbaH\x02\b\x01J\x04\b\a\x10\bJ\x04\b\v\x10\fR\x15default_enabled_toolsR\x15pinned_tool_approvals\"j\n" +
 	"\x11StdioServerConfig\x12 \n" +
 	"\acommand\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\acommand\x12\x12\n" +
@@ -571,7 +639,11 @@ const file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc = "" +
 	"\n" +
 	"oauth_only\x18\n" +
 	" \x01(\bR\toauthOnlyJ\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
-	"B\xa7\x02\n" +
+	"*{\n" +
+	"\x0fMcpServerSignIn\x12\"\n" +
+	"\x1emcp_server_sign_in_unspecified\x10\x00\x12\x1f\n" +
+	"\x1bmcp_server_sign_in_personal\x10\x01\x12#\n" +
+	"\x1fmcp_server_sign_in_organization\x10\x02B\xa7\x02\n" +
 	"#com.ai.stigmer.agentic.mcpserver.v1B\tSpecProtoP\x01ZTgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
 var (
@@ -586,32 +658,35 @@ func file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDescData
 }
 
+var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_goTypes = []any{
-	(*McpServerSpec)(nil),                    // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec
-	(*StdioServerConfig)(nil),                // 1: ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
-	(*HttpServerConfig)(nil),                 // 2: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
-	(*McpServerAuth)(nil),                    // 3: ai.stigmer.agentic.mcpserver.v1.McpServerAuth
-	nil,                                      // 4: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry
-	nil,                                      // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
-	nil,                                      // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
-	(*apiresource.ApiResourceReference)(nil), // 7: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*v1.EnvVarDeclaration)(nil),             // 8: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	(McpServerSignIn)(0),                     // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSignIn
+	(*McpServerSpec)(nil),                    // 1: ai.stigmer.agentic.mcpserver.v1.McpServerSpec
+	(*StdioServerConfig)(nil),                // 2: ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
+	(*HttpServerConfig)(nil),                 // 3: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
+	(*McpServerAuth)(nil),                    // 4: ai.stigmer.agentic.mcpserver.v1.McpServerAuth
+	nil,                                      // 5: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry
+	nil,                                      // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
+	nil,                                      // 7: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
+	(*apiresource.ApiResourceReference)(nil), // 8: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*v1.EnvVarDeclaration)(nil),             // 9: ai.stigmer.agentic.credential.v1.EnvVarDeclaration
 }
 var file_ai_stigmer_agentic_mcpserver_v1_spec_proto_depIdxs = []int32{
-	1, // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.stdio:type_name -> ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
-	2, // 1: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.http:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
-	4, // 2: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.env:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry
-	3, // 3: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.auth:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerAuth
-	5, // 4: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.headers:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
-	6, // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.query_params:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
-	7, // 6: ai.stigmer.agentic.mcpserver.v1.McpServerAuth.oauth_app_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	8, // 7: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
-	8, // [8:8] is the sub-list for method output_type
-	8, // [8:8] is the sub-list for method input_type
-	8, // [8:8] is the sub-list for extension type_name
-	8, // [8:8] is the sub-list for extension extendee
-	0, // [0:8] is the sub-list for field type_name
+	2, // 0: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.stdio:type_name -> ai.stigmer.agentic.mcpserver.v1.StdioServerConfig
+	3, // 1: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.http:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig
+	5, // 2: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.env:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry
+	4, // 3: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.auth:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerAuth
+	0, // 4: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.sign_in:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServerSignIn
+	6, // 5: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.headers:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.HeadersEntry
+	7, // 6: ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.query_params:type_name -> ai.stigmer.agentic.mcpserver.v1.HttpServerConfig.QueryParamsEntry
+	8, // 7: ai.stigmer.agentic.mcpserver.v1.McpServerAuth.oauth_app_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	9, // 8: ai.stigmer.agentic.mcpserver.v1.McpServerSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.credential.v1.EnvVarDeclaration
+	9, // [9:9] is the sub-list for method output_type
+	9, // [9:9] is the sub-list for method input_type
+	9, // [9:9] is the sub-list for extension type_name
+	9, // [9:9] is the sub-list for extension extendee
+	0, // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_mcpserver_v1_spec_proto_init() }
@@ -628,13 +703,14 @@ func file_ai_stigmer_agentic_mcpserver_v1_spec_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_mcpserver_v1_spec_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_ai_stigmer_agentic_mcpserver_v1_spec_proto_goTypes,
 		DependencyIndexes: file_ai_stigmer_agentic_mcpserver_v1_spec_proto_depIdxs,
+		EnumInfos:         file_ai_stigmer_agentic_mcpserver_v1_spec_proto_enumTypes,
 		MessageInfos:      file_ai_stigmer_agentic_mcpserver_v1_spec_proto_msgTypes,
 	}.Build()
 	File_ai_stigmer_agentic_mcpserver_v1_spec_proto = out.File

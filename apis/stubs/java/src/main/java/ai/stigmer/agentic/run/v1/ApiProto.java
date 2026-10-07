@@ -51,6 +51,11 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_run_v1_RecalledMemoriesReport_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_run_v1_RunCredentials_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_run_v1_RunCredentials_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -85,7 +90,7 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "aB\006\272H\003\310\001\001R\010metadata\0226\n\004spec\030\004 \001(\0132\".ai.s" +
       "tigmer.agentic.run.v1.RunSpecR\004spec\022<\n\006s" +
       "tatus\030\005 \001(\0132$.ai.stigmer.agentic.run.v1." +
-      "RunStatusR\006status\"\240\020\n\tRunStatus\022F\n\005audit" +
+      "RunStatusR\006status\"\355\020\n\tRunStatus\022F\n\005audit" +
       "\030c \001(\01320.ai.stigmer.commons.apiresource." +
       "ApiResourceAuditR\005audit\022C\n\010messages\030\001 \003(" +
       "\0132\'.ai.stigmer.agentic.run.v1.AgentMessa" +
@@ -133,20 +138,23 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "lledMemories\022C\n\nrun_config\030\037 \001(\0132$.ai.st" +
       "igmer.agentic.run.v1.RunConfigR\trunConfi" +
       "g\022L\n\rapproval_mode\030  \001(\0162\'.ai.stigmer.ag" +
-      "entic.run.v1.ApprovalModeR\014approvalMode\032" +
-      "]\n\nTodosEntry\022\020\n\003key\030\001 \001(\tR\003key\0229\n\005value" +
-      "\030\002 \001(\0132#.ai.stigmer.agentic.run.v1.TodoI" +
-      "temR\005value:\0028\001J\004\010\n\020\013J\004\010\014\020\rR\016callback_tok" +
-      "enR\020resolved_context\"4\n\rSetupProgress\022#\n" +
-      "\rcurrent_phase\030\001 \001(\tR\014currentPhase\"\234\001\n\026R" +
-      "ecalledMemoriesReport\022)\n\020selection_activ" +
-      "e\030\001 \001(\010R\017selectionActive\022.\n\023injected_mem" +
-      "ory_ids\030\002 \003(\tR\021injectedMemoryIds\022\'\n\017embe" +
-      "dding_model\030\003 \001(\tR\016embeddingModelB\223\001B\010Ap" +
-      "iProtoP\001\242\002\004ASAR\252\002\031Ai.Stigmer.Agentic.Run" +
-      ".V1\312\002\031Ai\\Stigmer\\Agentic\\Run\\V1\342\002%Ai\\Sti" +
-      "gmer\\Agentic\\Run\\V1\\GPBMetadata\352\002\035Ai::St" +
-      "igmer::Agentic::Run::V1b\006proto3"
+      "entic.run.v1.ApprovalModeR\014approvalMode\022" +
+      "K\n\013credentials\030! \001(\0132).ai.stigmer.agenti" +
+      "c.run.v1.RunCredentialsR\013credentials\032]\n\n" +
+      "TodosEntry\022\020\n\003key\030\001 \001(\tR\003key\0229\n\005value\030\002 " +
+      "\001(\0132#.ai.stigmer.agentic.run.v1.TodoItem" +
+      "R\005value:\0028\001J\004\010\n\020\013J\004\010\014\020\rR\016callback_tokenR" +
+      "\020resolved_context\"4\n\rSetupProgress\022#\n\rcu" +
+      "rrent_phase\030\001 \001(\tR\014currentPhase\"\234\001\n\026Reca" +
+      "lledMemoriesReport\022)\n\020selection_active\030\001" +
+      " \001(\010R\017selectionActive\022.\n\023injected_memory" +
+      "_ids\030\002 \003(\tR\021injectedMemoryIds\022\'\n\017embeddi" +
+      "ng_model\030\003 \001(\tR\016embeddingModel\"(\n\016RunCre" +
+      "dentials\022\026\n\006person\030\001 \001(\tR\006personB\223\001B\010Api" +
+      "ProtoP\001\242\002\004ASAR\252\002\031Ai.Stigmer.Agentic.Run." +
+      "V1\312\002\031Ai\\Stigmer\\Agentic\\Run\\V1\342\002%Ai\\Stig" +
+      "mer\\Agentic\\Run\\V1\\GPBMetadata\352\002\035Ai::Sti" +
+      "gmer::Agentic::Run::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -179,7 +187,7 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_run_v1_RunStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_RunStatus_descriptor,
-        new java.lang.String[] { "Audit", "Messages", "Phase", "SubAgentRuns", "Error", "StartedAt", "CompletedAt", "Todos", "PendingApprovals", "ApprovalEventStream", "ContextInfo", "Artifacts", "WorkspaceWriteBacks", "SetupProgress", "StreamingUsage", "StructuredOutput", "FileChangeSets", "FileReviewEventStream", "FileChangeProgress", "RecalledMemoriesReport", "AgentId", "AgentVersionHash", "DeclaredPreferences", "RecalledMemories", "RunConfig", "ApprovalMode", });
+        new java.lang.String[] { "Audit", "Messages", "Phase", "SubAgentRuns", "Error", "StartedAt", "CompletedAt", "Todos", "PendingApprovals", "ApprovalEventStream", "ContextInfo", "Artifacts", "WorkspaceWriteBacks", "SetupProgress", "StreamingUsage", "StructuredOutput", "FileChangeSets", "FileReviewEventStream", "FileChangeProgress", "RecalledMemoriesReport", "AgentId", "AgentVersionHash", "DeclaredPreferences", "RecalledMemories", "RunConfig", "ApprovalMode", "Credentials", });
     internal_static_ai_stigmer_agentic_run_v1_RunStatus_TodosEntry_descriptor =
       internal_static_ai_stigmer_agentic_run_v1_RunStatus_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_run_v1_RunStatus_TodosEntry_fieldAccessorTable = new
@@ -198,6 +206,12 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_RecalledMemoriesReport_descriptor,
         new java.lang.String[] { "SelectionActive", "InjectedMemoryIds", "EmbeddingModel", });
+    internal_static_ai_stigmer_agentic_run_v1_RunCredentials_descriptor =
+      getDescriptor().getMessageType(4);
+    internal_static_ai_stigmer_agentic_run_v1_RunCredentials_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_run_v1_RunCredentials_descriptor,
+        new java.lang.String[] { "Person", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.run.v1.ApprovalProto.getDescriptor();
     ai.stigmer.agentic.run.v1.ArtifactProto.getDescriptor();

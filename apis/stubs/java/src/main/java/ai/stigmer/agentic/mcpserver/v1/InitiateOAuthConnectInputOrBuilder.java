@@ -32,9 +32,10 @@ public interface InitiateOAuthConnectInputOrBuilder extends
 
   /**
    * <pre>
-   * Organization context for token storage.
-   * Tokens are stored in the caller's personal environment within this org.
-   * Must be an org the caller belongs to.
+   * Organization the sign-in is saved in.
+   * The token is saved as the caller's own credential in this org, or as
+   * the org's credential for a server with organization sign-in (admins
+   * only). Must be an org the caller belongs to.
    * </pre>
    *
    * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -43,9 +44,10 @@ public interface InitiateOAuthConnectInputOrBuilder extends
   java.lang.String getOrg();
   /**
    * <pre>
-   * Organization context for token storage.
-   * Tokens are stored in the caller's personal environment within this org.
-   * Must be an org the caller belongs to.
+   * Organization the sign-in is saved in.
+   * The token is saved as the caller's own credential in this org, or as
+   * the org's credential for a server with organization sign-in (admins
+   * only). Must be an org the caller belongs to.
    * </pre>
    *
    * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>

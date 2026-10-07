@@ -16,7 +16,7 @@
 # credentials, so `owner` is the organization's admins alone and a creator
 # keeps nothing past the role (channel-app-administration.fga.yaml).
 #
-# The two personal/secret kinds — environment and session — deliberately
+# The two personal kinds — a person's credential and a session — deliberately
 # do NOT inherit. Their fixtures below
 # carry the organization tuple, so these tests would fail loudly if
 # inheritance were ever wrongly added to them.
@@ -106,13 +106,10 @@ tuples:
   #     wrongly-added inheritance WOULD resolve — these must stay denied) ---
   - user: organization:acme
     relation: organization
-    object: environment:carols-secrets
+    object: credential:carols-secrets
   - user: identity_account:carol
     relation: owner
-    object: environment:carols-secrets
-  - user: identity_account:carol
-    relation: creator
-    object: environment:carols-secrets
+    object: credential:carols-secrets
   - user: organization:acme
     relation: organization
     object: session:carols-chat
@@ -228,12 +225,14 @@ tests:
   - name: personal kinds stay admin-excluded (privacy invariant)
     check:
       - user: identity_account:ana
-        object: environment:carols-secrets
+        object: credential:carols-secrets
         assertions:
           can_view: false
+          can_use: false
           can_edit: false
           can_delete: false
           can_read_secrets: false
+          can_grant_access: false
       - user: identity_account:ana
         object: session:carols-chat
         assertions:
@@ -243,9 +242,10 @@ tests:
       # The org OWNER is admin-and-above — the exclusion must hold for
       # them too.
       - user: identity_account:root
-        object: environment:carols-secrets
+        object: credential:carols-secrets
         assertions:
           can_view: false
+          can_use: false
           can_read_secrets: false
 
   - name: creator keeps everything (inheritance adds, never subtracts)

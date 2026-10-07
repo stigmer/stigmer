@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto.
  */
 export const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config: GenFile = /*@__PURE__*/
-  fileDesc("CklhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvYXBpcmVzb3VyY2VraW5kL2F1dGhvcml6YXRpb25fY29uZmlnLnByb3RvEi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kIoABChBWaXNpYmlsaXR5Q29uZmlnEhsKE3N1cHBvcnRzX2NoaWxkX29yZ3MYAiABKAgSFAoMc3VwcG9ydHNfb3JnGAMgASgIEiIKGmRlZmF1bHRzX3RvX29yZ192aXNpYmlsaXR5GAQgASgISgQIARACUg9zdXBwb3J0c19wdWJsaWMiSgoUUGFyZW50UmVsYXRpb25Db25maWcSDAoEa2luZBgBIAEoCRIQCghyZWxhdGlvbhgCIAEoCRISCgpzcGVjX2ZpZWxkGAMgASgJIugEChNBdXRob3JpemF0aW9uQ29uZmlnEloKCnNjb3BlX3R5cGUYASABKA4yRi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkF1dGhvcml6YXRpb25TY29wZVR5cGUSWAoKb3duZXJfdHlwZRgCIAEoDjJELmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5hcGlyZXNvdXJjZWtpbmQuT3duZXJBdHRyaWJ1dGlvblR5cGUSVAoGcGFyZW50GAMgASgLMkQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5QYXJlbnRSZWxhdGlvbkNvbmZpZxJgChJhZGRpdGlvbmFsX3BhcmVudHMYBCADKAsyRC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLlBhcmVudFJlbGF0aW9uQ29uZmlnElQKCnZpc2liaWxpdHkYBSABKAsyQC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLlZpc2liaWxpdHlDb25maWcSHgoWcmVxdWlyZXNfY3JlYXRvcl90dXBsZRgGIAEoCBIzCg9ncmFudGFibGVfcm9sZXMYByADKA4yGi5haS5zdGlnbWVyLmlhbS52MS5JYW1Sb2xlEjgKFHRlYW1fZ3JhbnRhYmxlX3JvbGVzGAggAygOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZSqFAgoWQXV0aG9yaXphdGlvblNjb3BlVHlwZRIoCiRBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfVU5TUEVDSUZJRUQQABIlCiFBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfUExBVEZPUk0QARIpCiVBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfT1JHQU5JWkFUSU9OEAISIwofQVVUSE9SSVpBVElPTl9TQ09QRV9UWVBFX1BBUkVOVBADEicKI0FVVEhPUklaQVRJT05fU0NPUEVfVFlQRV9PV05FUl9PTkxZEAQSIQodQVVUSE9SSVpBVElPTl9TQ09QRV9UWVBFX05PTkUQBSrJAQoUT3duZXJBdHRyaWJ1dGlvblR5cGUSJgoiT1dORVJfQVRUUklCVVRJT05fVFlQRV9VTlNQRUNJRklFRBAAEiEKHU9XTkVSX0FUVFJJQlVUSU9OX1RZUEVfRElSRUNUEAESJAogT1dORVJfQVRUUklCVVRJT05fVFlQRV9JTkhFUklURUQQAhIfChtPV05FUl9BVFRSSUJVVElPTl9UWVBFX1NFTEYQAxIfChtPV05FUl9BVFRSSUJVVElPTl9UWVBFX05PTkUQBEIaQhhBdXRob3JpemF0aW9uQ29uZmlnUHJvdG9iBnByb3RvMw", [file_ai_stigmer_iam_v1_enum]);
+  fileDesc("CklhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvYXBpcmVzb3VyY2VraW5kL2F1dGhvcml6YXRpb25fY29uZmlnLnByb3RvEi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kIoABChBWaXNpYmlsaXR5Q29uZmlnEhsKE3N1cHBvcnRzX2NoaWxkX29yZ3MYAiABKAgSFAoMc3VwcG9ydHNfb3JnGAMgASgIEiIKGmRlZmF1bHRzX3RvX29yZ192aXNpYmlsaXR5GAQgASgISgQIARACUg9zdXBwb3J0c19wdWJsaWMiXAoUUGFyZW50UmVsYXRpb25Db25maWcSDAoEa2luZBgBIAEoCRIQCghyZWxhdGlvbhgCIAEoCRISCgpzcGVjX2ZpZWxkGAMgASgJEhAKCG9wdGlvbmFsGAQgASgIIugEChNBdXRob3JpemF0aW9uQ29uZmlnEloKCnNjb3BlX3R5cGUYASABKA4yRi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkF1dGhvcml6YXRpb25TY29wZVR5cGUSWAoKb3duZXJfdHlwZRgCIAEoDjJELmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5hcGlyZXNvdXJjZWtpbmQuT3duZXJBdHRyaWJ1dGlvblR5cGUSVAoGcGFyZW50GAMgASgLMkQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5QYXJlbnRSZWxhdGlvbkNvbmZpZxJgChJhZGRpdGlvbmFsX3BhcmVudHMYBCADKAsyRC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLlBhcmVudFJlbGF0aW9uQ29uZmlnElQKCnZpc2liaWxpdHkYBSABKAsyQC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLlZpc2liaWxpdHlDb25maWcSHgoWcmVxdWlyZXNfY3JlYXRvcl90dXBsZRgGIAEoCBIzCg9ncmFudGFibGVfcm9sZXMYByADKA4yGi5haS5zdGlnbWVyLmlhbS52MS5JYW1Sb2xlEjgKFHRlYW1fZ3JhbnRhYmxlX3JvbGVzGAggAygOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZSqFAgoWQXV0aG9yaXphdGlvblNjb3BlVHlwZRIoCiRBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfVU5TUEVDSUZJRUQQABIlCiFBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfUExBVEZPUk0QARIpCiVBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfT1JHQU5JWkFUSU9OEAISIwofQVVUSE9SSVpBVElPTl9TQ09QRV9UWVBFX1BBUkVOVBADEicKI0FVVEhPUklaQVRJT05fU0NPUEVfVFlQRV9PV05FUl9PTkxZEAQSIQodQVVUSE9SSVpBVElPTl9TQ09QRV9UWVBFX05PTkUQBSrJAQoUT3duZXJBdHRyaWJ1dGlvblR5cGUSJgoiT1dORVJfQVRUUklCVVRJT05fVFlQRV9VTlNQRUNJRklFRBAAEiEKHU9XTkVSX0FUVFJJQlVUSU9OX1RZUEVfRElSRUNUEAESJAogT1dORVJfQVRUUklCVVRJT05fVFlQRV9JTkhFUklURUQQAhIfChtPV05FUl9BVFRSSUJVVElPTl9UWVBFX1NFTEYQAxIfChtPV05FUl9BVFRSSUJVVElPTl9UWVBFX05PTkUQBEIaQhhBdXRob3JpemF0aW9uQ29uZmlnUHJvdG9iBnByb3RvMw", [file_ai_stigmer_iam_v1_enum]);
 
 /**
  * Visibility configuration: the set of visibility levels a resource kind
@@ -154,6 +154,16 @@ export type ParentRelationConfig = Message<"ai.stigmer.commons.apiresource.apire
    * @generated from field: string spec_field = 3;
    */
   specField: string;
+
+  /**
+   * Whether a row may name no parent here. An optional parent whose spec
+   * field is empty writes no link; a required one fails the create.
+   * Example: a credential links `owner` to a person or `org_owned` to an
+   * organization, whichever member of its owner oneof is set.
+   *
+   * @generated from field: bool optional = 4;
+   */
+  optional: boolean;
 };
 
 /**
@@ -196,14 +206,16 @@ export const ParentRelationConfigSchema: GenMessage<ParentRelationConfig> = /*@_
  *   -> Creates: memory#subject@identity_account:<subject_identity_account_id>
  *   -> No owner tuple
  *
- * Personal resource with creator attribution (environment):
+ * Resource owned by a person or by its organization (credential):
  *   scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
- *   owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
- *   requires_creator_tuple: true
- *   grantable_roles: [owner, viewer]
- *   -> Creates: environment#organization@organization:<org_id>
- *   -> Creates: environment#owner@identity_account:<creator_id>
- *   -> Creates: environment#creator@identity_account:<creator_id>
+ *   owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+ *   additional_parents: [
+ *     { kind: "identity_account", relation: "owner", spec_field: "person", optional: true },
+ *     { kind: "organization", relation: "org_owned", spec_field: "organization", optional: true }
+ *   ]
+ *   -> Creates: credential#organization@organization:<org_id>
+ *   -> Creates: credential#owner@identity_account:<person> (a person's credential)
+ *   -> Creates: credential#org_owned@organization:<org_id> (an organization's credential)
  *
  * Organization with three-tier role hierarchy:
  *   scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY

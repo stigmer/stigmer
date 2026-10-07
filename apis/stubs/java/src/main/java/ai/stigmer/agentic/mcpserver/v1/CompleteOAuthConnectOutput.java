@@ -75,7 +75,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object targetEnvVar_ = "";
   /**
    * <pre>
-   * The environment variable name where the access token was stored.
+   * The key the access token fills: the name of the credential's field.
    * Matches McpServerAuth.target_env_var on the MCP server spec.
    * </pre>
    *
@@ -97,7 +97,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The environment variable name where the access token was stored.
+   * The key the access token fills: the name of the credential's field.
    * Matches McpServerAuth.target_env_var on the MCP server spec.
    * </pre>
    *
@@ -562,7 +562,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object targetEnvVar_ = "";
     /**
      * <pre>
-     * The environment variable name where the access token was stored.
+     * The key the access token fills: the name of the credential's field.
      * Matches McpServerAuth.target_env_var on the MCP server spec.
      * </pre>
      *
@@ -583,7 +583,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The environment variable name where the access token was stored.
+     * The key the access token fills: the name of the credential's field.
      * Matches McpServerAuth.target_env_var on the MCP server spec.
      * </pre>
      *
@@ -605,7 +605,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The environment variable name where the access token was stored.
+     * The key the access token fills: the name of the credential's field.
      * Matches McpServerAuth.target_env_var on the MCP server spec.
      * </pre>
      *
@@ -623,7 +623,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The environment variable name where the access token was stored.
+     * The key the access token fills: the name of the credential's field.
      * Matches McpServerAuth.target_env_var on the MCP server spec.
      * </pre>
      *
@@ -638,7 +638,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The environment variable name where the access token was stored.
+     * The key the access token fills: the name of the credential's field.
      * Matches McpServerAuth.target_env_var on the MCP server spec.
      * </pre>
      *

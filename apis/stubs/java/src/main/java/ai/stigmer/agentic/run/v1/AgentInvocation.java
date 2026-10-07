@@ -11,7 +11,7 @@ package ai.stigmer.agentic.run.v1;
  *
  * It is the owner-settable subset of a run — the interactive
  * composer's vocabulary (agent, message, harness, workspace,
- * environments, run bounds) minus what an unattended surface makes
+ * credentials, run bounds) minus what an unattended surface makes
  * structurally impossible. Surfaces that trigger agents on someone's
  * behalf embed this message instead of re-deriving the shape:
  * schedules embed it whole; channels and shares embed RunConfig.
@@ -42,7 +42,7 @@ private static final long serialVersionUID = 0L;
     message_ = "";
     harness_ = 0;
     workspaceEntries_ = java.util.Collections.emptyList();
-    environmentRefs_ = java.util.Collections.emptyList();
+    credentials_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -254,95 +254,85 @@ private static final long serialVersionUID = 0L;
     return workspaceEntries_.get(index);
   }
 
-  public static final int ENVIRONMENT_REFS_FIELD_NUMBER = 5;
+  public static final int CREDENTIALS_FIELD_NUMBER = 7;
   @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> environmentRefs_;
+  private java.util.List<ai.stigmer.agentic.credential.v1.CredentialAssignment> credentials_;
   /**
    * <pre>
-   * References to Environment resources whose values are provided to
-   * the runs this invocation creates.
+   * The values the runs this invocation creates use for what the agent needs.
    *
-   * This is how a tool-using agent becomes runnable unattended: bind
-   * an org-shared environment holding the needed credentials (for
-   * example an MCP server's shared secret), and the runs receive its
-   * values at runtime. The agent itself stays untouched.
+   * A schedule's runs have no person behind them: they use what is
+   * assigned here, and a credential of the schedule's own creator only
+   * when that person wrote the assignment.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
-  public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getEnvironmentRefsList() {
-    return environmentRefs_;
+  public java.util.List<ai.stigmer.agentic.credential.v1.CredentialAssignment> getCredentialsList() {
+    return credentials_;
   }
   /**
    * <pre>
-   * References to Environment resources whose values are provided to
-   * the runs this invocation creates.
+   * The values the runs this invocation creates use for what the agent needs.
    *
-   * This is how a tool-using agent becomes runnable unattended: bind
-   * an org-shared environment holding the needed credentials (for
-   * example an MCP server's shared secret), and the runs receive its
-   * values at runtime. The agent itself stays untouched.
+   * A schedule's runs have no person behind them: they use what is
+   * assigned here, and a credential of the schedule's own creator only
+   * when that person wrote the assignment.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
-  public java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
-      getEnvironmentRefsOrBuilderList() {
-    return environmentRefs_;
+  public java.util.List<? extends ai.stigmer.agentic.credential.v1.CredentialAssignmentOrBuilder> 
+      getCredentialsOrBuilderList() {
+    return credentials_;
   }
   /**
    * <pre>
-   * References to Environment resources whose values are provided to
-   * the runs this invocation creates.
+   * The values the runs this invocation creates use for what the agent needs.
    *
-   * This is how a tool-using agent becomes runnable unattended: bind
-   * an org-shared environment holding the needed credentials (for
-   * example an MCP server's shared secret), and the runs receive its
-   * values at runtime. The agent itself stays untouched.
+   * A schedule's runs have no person behind them: they use what is
+   * assigned here, and a credential of the schedule's own creator only
+   * when that person wrote the assignment.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
-  public int getEnvironmentRefsCount() {
-    return environmentRefs_.size();
+  public int getCredentialsCount() {
+    return credentials_.size();
   }
   /**
    * <pre>
-   * References to Environment resources whose values are provided to
-   * the runs this invocation creates.
+   * The values the runs this invocation creates use for what the agent needs.
    *
-   * This is how a tool-using agent becomes runnable unattended: bind
-   * an org-shared environment holding the needed credentials (for
-   * example an MCP server's shared secret), and the runs receive its
-   * values at runtime. The agent itself stays untouched.
+   * A schedule's runs have no person behind them: they use what is
+   * assigned here, and a credential of the schedule's own creator only
+   * when that person wrote the assignment.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
-  public ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRefs(int index) {
-    return environmentRefs_.get(index);
+  public ai.stigmer.agentic.credential.v1.CredentialAssignment getCredentials(int index) {
+    return credentials_.get(index);
   }
   /**
    * <pre>
-   * References to Environment resources whose values are provided to
-   * the runs this invocation creates.
+   * The values the runs this invocation creates use for what the agent needs.
    *
-   * This is how a tool-using agent becomes runnable unattended: bind
-   * an org-shared environment holding the needed credentials (for
-   * example an MCP server's shared secret), and the runs receive its
-   * values at runtime. The agent itself stays untouched.
+   * A schedule's runs have no person behind them: they use what is
+   * assigned here, and a credential of the schedule's own creator only
+   * when that person wrote the assignment.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
-  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefsOrBuilder(
+  public ai.stigmer.agentic.credential.v1.CredentialAssignmentOrBuilder getCredentialsOrBuilder(
       int index) {
-    return environmentRefs_.get(index);
+    return credentials_.get(index);
   }
 
   public static final int RUN_CONFIG_FIELD_NUMBER = 6;
@@ -415,11 +405,11 @@ private static final long serialVersionUID = 0L;
     for (int i = 0; i < workspaceEntries_.size(); i++) {
       output.writeMessage(4, workspaceEntries_.get(i));
     }
-    for (int i = 0; i < environmentRefs_.size(); i++) {
-      output.writeMessage(5, environmentRefs_.get(i));
-    }
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(6, getRunConfig());
+    }
+    for (int i = 0; i < credentials_.size(); i++) {
+      output.writeMessage(7, credentials_.get(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -450,19 +440,19 @@ private static final long serialVersionUID = 0L;
           }
           size += 1 * count;
         }
-
-        {
-          final int count = environmentRefs_.size();
-          for (int i = 0; i < count; i++) {
-            size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(environmentRefs_.get(i));
-          }
-          size += 1 * count;
-        }
     if (((bitField0_ & 0x00000002) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(6, getRunConfig());
     }
+
+        {
+          final int count = credentials_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(credentials_.get(i));
+          }
+          size += 1 * count;
+        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -488,8 +478,8 @@ private static final long serialVersionUID = 0L;
     if (harness_ != other.harness_) return false;
     if (!getWorkspaceEntriesList()
         .equals(other.getWorkspaceEntriesList())) return false;
-    if (!getEnvironmentRefsList()
-        .equals(other.getEnvironmentRefsList())) return false;
+    if (!getCredentialsList()
+        .equals(other.getCredentialsList())) return false;
     if (hasRunConfig() != other.hasRunConfig()) return false;
     if (hasRunConfig()) {
       if (!getRunConfig()
@@ -518,9 +508,9 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + WORKSPACE_ENTRIES_FIELD_NUMBER;
       hash = (53 * hash) + getWorkspaceEntriesList().hashCode();
     }
-    if (getEnvironmentRefsCount() > 0) {
-      hash = (37 * hash) + ENVIRONMENT_REFS_FIELD_NUMBER;
-      hash = (53 * hash) + getEnvironmentRefsList().hashCode();
+    if (getCredentialsCount() > 0) {
+      hash = (37 * hash) + CREDENTIALS_FIELD_NUMBER;
+      hash = (53 * hash) + getCredentialsList().hashCode();
     }
     if (hasRunConfig()) {
       hash = (37 * hash) + RUN_CONFIG_FIELD_NUMBER;
@@ -629,7 +619,7 @@ private static final long serialVersionUID = 0L;
    *
    * It is the owner-settable subset of a run — the interactive
    * composer's vocabulary (agent, message, harness, workspace,
-   * environments, run bounds) minus what an unattended surface makes
+   * credentials, run bounds) minus what an unattended surface makes
    * structurally impossible. Surfaces that trigger agents on someone's
    * behalf embed this message instead of re-deriving the shape:
    * schedules embed it whole; channels and shares embed RunConfig.
@@ -669,7 +659,7 @@ private static final long serialVersionUID = 0L;
               .alwaysUseFieldBuilders) {
         internalGetAgentRefFieldBuilder();
         internalGetWorkspaceEntriesFieldBuilder();
-        internalGetEnvironmentRefsFieldBuilder();
+        internalGetCredentialsFieldBuilder();
         internalGetRunConfigFieldBuilder();
       }
     }
@@ -691,11 +681,11 @@ private static final long serialVersionUID = 0L;
         workspaceEntriesBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000008);
-      if (environmentRefsBuilder_ == null) {
-        environmentRefs_ = java.util.Collections.emptyList();
+      if (credentialsBuilder_ == null) {
+        credentials_ = java.util.Collections.emptyList();
       } else {
-        environmentRefs_ = null;
-        environmentRefsBuilder_.clear();
+        credentials_ = null;
+        credentialsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000010);
       runConfig_ = null;
@@ -745,14 +735,14 @@ private static final long serialVersionUID = 0L;
       } else {
         result.workspaceEntries_ = workspaceEntriesBuilder_.build();
       }
-      if (environmentRefsBuilder_ == null) {
+      if (credentialsBuilder_ == null) {
         if (((bitField0_ & 0x00000010) != 0)) {
-          environmentRefs_ = java.util.Collections.unmodifiableList(environmentRefs_);
+          credentials_ = java.util.Collections.unmodifiableList(credentials_);
           bitField0_ = (bitField0_ & ~0x00000010);
         }
-        result.environmentRefs_ = environmentRefs_;
+        result.credentials_ = credentials_;
       } else {
-        result.environmentRefs_ = environmentRefsBuilder_.build();
+        result.credentials_ = credentialsBuilder_.build();
       }
     }
 
@@ -829,29 +819,29 @@ private static final long serialVersionUID = 0L;
           }
         }
       }
-      if (environmentRefsBuilder_ == null) {
-        if (!other.environmentRefs_.isEmpty()) {
-          if (environmentRefs_.isEmpty()) {
-            environmentRefs_ = other.environmentRefs_;
+      if (credentialsBuilder_ == null) {
+        if (!other.credentials_.isEmpty()) {
+          if (credentials_.isEmpty()) {
+            credentials_ = other.credentials_;
             bitField0_ = (bitField0_ & ~0x00000010);
           } else {
-            ensureEnvironmentRefsIsMutable();
-            environmentRefs_.addAll(other.environmentRefs_);
+            ensureCredentialsIsMutable();
+            credentials_.addAll(other.credentials_);
           }
           onChanged();
         }
       } else {
-        if (!other.environmentRefs_.isEmpty()) {
-          if (environmentRefsBuilder_.isEmpty()) {
-            environmentRefsBuilder_.dispose();
-            environmentRefsBuilder_ = null;
-            environmentRefs_ = other.environmentRefs_;
+        if (!other.credentials_.isEmpty()) {
+          if (credentialsBuilder_.isEmpty()) {
+            credentialsBuilder_.dispose();
+            credentialsBuilder_ = null;
+            credentials_ = other.credentials_;
             bitField0_ = (bitField0_ & ~0x00000010);
-            environmentRefsBuilder_ = 
+            credentialsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetEnvironmentRefsFieldBuilder() : null;
+                 internalGetCredentialsFieldBuilder() : null;
           } else {
-            environmentRefsBuilder_.addAllMessages(other.environmentRefs_);
+            credentialsBuilder_.addAllMessages(other.credentials_);
           }
         }
       }
@@ -914,19 +904,6 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 34
-            case 42: {
-              ai.stigmer.commons.apiresource.ApiResourceReference m =
-                  input.readMessage(
-                      ai.stigmer.commons.apiresource.ApiResourceReference.parser(),
-                      extensionRegistry);
-              if (environmentRefsBuilder_ == null) {
-                ensureEnvironmentRefsIsMutable();
-                environmentRefs_.add(m);
-              } else {
-                environmentRefsBuilder_.addMessage(m);
-              }
-              break;
-            } // case 42
             case 50: {
               input.readMessage(
                   internalGetRunConfigFieldBuilder().getBuilder(),
@@ -934,6 +911,19 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000020;
               break;
             } // case 50
+            case 58: {
+              ai.stigmer.agentic.credential.v1.CredentialAssignment m =
+                  input.readMessage(
+                      ai.stigmer.agentic.credential.v1.CredentialAssignment.parser(),
+                      extensionRegistry);
+              if (credentialsBuilder_ == null) {
+                ensureCredentialsIsMutable();
+                credentials_.add(m);
+              } else {
+                credentialsBuilder_.addMessage(m);
+              }
+              break;
+            } // case 58
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1635,424 +1625,388 @@ private static final long serialVersionUID = 0L;
       return workspaceEntriesBuilder_;
     }
 
-    private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> environmentRefs_ =
+    private java.util.List<ai.stigmer.agentic.credential.v1.CredentialAssignment> credentials_ =
       java.util.Collections.emptyList();
-    private void ensureEnvironmentRefsIsMutable() {
+    private void ensureCredentialsIsMutable() {
       if (!((bitField0_ & 0x00000010) != 0)) {
-        environmentRefs_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(environmentRefs_);
+        credentials_ = new java.util.ArrayList<ai.stigmer.agentic.credential.v1.CredentialAssignment>(credentials_);
         bitField0_ |= 0x00000010;
        }
     }
 
     private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> environmentRefsBuilder_;
+        ai.stigmer.agentic.credential.v1.CredentialAssignment, ai.stigmer.agentic.credential.v1.CredentialAssignment.Builder, ai.stigmer.agentic.credential.v1.CredentialAssignmentOrBuilder> credentialsBuilder_;
 
     /**
      * <pre>
-     * References to Environment resources whose values are provided to
-     * the runs this invocation creates.
+     * The values the runs this invocation creates use for what the agent needs.
      *
-     * This is how a tool-using agent becomes runnable unattended: bind
-     * an org-shared environment holding the needed credentials (for
-     * example an MCP server's shared secret), and the runs receive its
-     * values at runtime. The agent itself stays untouched.
+     * A schedule's runs have no person behind them: they use what is
+     * assigned here, and a credential of the schedule's own creator only
+     * when that person wrote the assignment.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
      */
-    public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getEnvironmentRefsList() {
-      if (environmentRefsBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(environmentRefs_);
+    public java.util.List<ai.stigmer.agentic.credential.v1.CredentialAssignment> getCredentialsList() {
+      if (credentialsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(credentials_);
       } else {
-        return environmentRefsBuilder_.getMessageList();
+        return credentialsBuilder_.getMessageList();
       }
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to
-     * the runs this invocation creates.
+     * The values the runs this invocation creates use for what the agent needs.
      *
-     * This is how a tool-using agent becomes runnable unattended: bind
-     * an org-shared environment holding the needed credentials (for
-     * example an MCP server's shared secret), and the runs receive its
-     * values at runtime. The agent itself stays untouched.
+     * A schedule's runs have no person behind them: they use what is
+     * assigned here, and a credential of the schedule's own creator only
+     * when that person wrote the assignment.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
      */
-    public int getEnvironmentRefsCount() {
-      if (environmentRefsBuilder_ == null) {
-        return environmentRefs_.size();
+    public int getCredentialsCount() {
+      if (credentialsBuilder_ == null) {
+        return credentials_.size();
       } else {
-        return environmentRefsBuilder_.getCount();
+        return credentialsBuilder_.getCount();
       }
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to
-     * the runs this invocation creates.
+     * The values the runs this invocation creates use for what the agent needs.
      *
-     * This is how a tool-using agent becomes runnable unattended: bind
-     * an org-shared environment holding the needed credentials (for
-     * example an MCP server's shared secret), and the runs receive its
-     * values at runtime. The agent itself stays untouched.
+     * A schedule's runs have no person behind them: they use what is
+     * assigned here, and a credential of the schedule's own creator only
+     * when that person wrote the assignment.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRefs(int index) {
-      if (environmentRefsBuilder_ == null) {
-        return environmentRefs_.get(index);
+    public ai.stigmer.agentic.credential.v1.CredentialAssignment getCredentials(int index) {
+      if (credentialsBuilder_ == null) {
+        return credentials_.get(index);
       } else {
-        return environmentRefsBuilder_.getMessage(index);
+        return credentialsBuilder_.getMessage(index);
       }
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to
-     * the runs this invocation creates.
+     * The values the runs this invocation creates use for what the agent needs.
      *
-     * This is how a tool-using agent becomes runnable unattended: bind
-     * an org-shared environment holding the needed credentials (for
-     * example an MCP server's shared secret), and the runs receive its
-     * values at runtime. The agent itself stays untouched.
+     * A schedule's runs have no person behind them: they use what is
+     * assigned here, and a credential of the schedule's own creator only
+     * when that person wrote the assignment.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
      */
-    public Builder setEnvironmentRefs(
-        int index, ai.stigmer.commons.apiresource.ApiResourceReference value) {
-      if (environmentRefsBuilder_ == null) {
+    public Builder setCredentials(
+        int index, ai.stigmer.agentic.credential.v1.CredentialAssignment value) {
+      if (credentialsBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureEnvironmentRefsIsMutable();
-        environmentRefs_.set(index, value);
+        ensureCredentialsIsMutable();
+        credentials_.set(index, value);
         onChanged();
       } else {
-        environmentRefsBuilder_.setMessage(index, value);
+        credentialsBuilder_.setMessage(index, value);
       }
       return this;
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to
-     * the runs this invocation creates.
+     * The values the runs this invocation creates use for what the agent needs.
      *
-     * This is how a tool-using agent becomes runnable unattended: bind
-     * an org-shared environment holding the needed credentials (for
-     * example an MCP server's shared secret), and the runs receive its
-     * values at runtime. The agent itself stays untouched.
+     * A schedule's runs have no person behind them: they use what is
+     * assigned here, and a credential of the schedule's own creator only
+     * when that person wrote the assignment.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
      */
-    public Builder setEnvironmentRefs(
-        int index, ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
-      if (environmentRefsBuilder_ == null) {
-        ensureEnvironmentRefsIsMutable();
-        environmentRefs_.set(index, builderForValue.build());
+    public Builder setCredentials(
+        int index, ai.stigmer.agentic.credential.v1.CredentialAssignment.Builder builderForValue) {
+      if (credentialsBuilder_ == null) {
+        ensureCredentialsIsMutable();
+        credentials_.set(index, builderForValue.build());
         onChanged();
       } else {
-        environmentRefsBuilder_.setMessage(index, builderForValue.build());
+        credentialsBuilder_.setMessage(index, builderForValue.build());
       }
       return this;
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to
-     * the runs this invocation creates.
+     * The values the runs this invocation creates use for what the agent needs.
      *
-     * This is how a tool-using agent becomes runnable unattended: bind
-     * an org-shared environment holding the needed credentials (for
-     * example an MCP server's shared secret), and the runs receive its
-     * values at runtime. The agent itself stays untouched.
+     * A schedule's runs have no person behind them: they use what is
+     * assigned here, and a credential of the schedule's own creator only
+     * when that person wrote the assignment.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
      */
-    public Builder addEnvironmentRefs(ai.stigmer.commons.apiresource.ApiResourceReference value) {
-      if (environmentRefsBuilder_ == null) {
+    public Builder addCredentials(ai.stigmer.agentic.credential.v1.CredentialAssignment value) {
+      if (credentialsBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureEnvironmentRefsIsMutable();
-        environmentRefs_.add(value);
+        ensureCredentialsIsMutable();
+        credentials_.add(value);
         onChanged();
       } else {
-        environmentRefsBuilder_.addMessage(value);
+        credentialsBuilder_.addMessage(value);
       }
       return this;
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to
-     * the runs this invocation creates.
+     * The values the runs this invocation creates use for what the agent needs.
      *
-     * This is how a tool-using agent becomes runnable unattended: bind
-     * an org-shared environment holding the needed credentials (for
-     * example an MCP server's shared secret), and the runs receive its
-     * values at runtime. The agent itself stays untouched.
+     * A schedule's runs have no person behind them: they use what is
+     * assigned here, and a credential of the schedule's own creator only
+     * when that person wrote the assignment.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
      */
-    public Builder addEnvironmentRefs(
-        int index, ai.stigmer.commons.apiresource.ApiResourceReference value) {
-      if (environmentRefsBuilder_ == null) {
+    public Builder addCredentials(
+        int index, ai.stigmer.agentic.credential.v1.CredentialAssignment value) {
+      if (credentialsBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureEnvironmentRefsIsMutable();
-        environmentRefs_.add(index, value);
+        ensureCredentialsIsMutable();
+        credentials_.add(index, value);
         onChanged();
       } else {
-        environmentRefsBuilder_.addMessage(index, value);
+        credentialsBuilder_.addMessage(index, value);
       }
       return this;
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to
-     * the runs this invocation creates.
+     * The values the runs this invocation creates use for what the agent needs.
      *
-     * This is how a tool-using agent becomes runnable unattended: bind
-     * an org-shared environment holding the needed credentials (for
-     * example an MCP server's shared secret), and the runs receive its
-     * values at runtime. The agent itself stays untouched.
+     * A schedule's runs have no person behind them: they use what is
+     * assigned here, and a credential of the schedule's own creator only
+     * when that person wrote the assignment.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
      */
-    public Builder addEnvironmentRefs(
-        ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
-      if (environmentRefsBuilder_ == null) {
-        ensureEnvironmentRefsIsMutable();
-        environmentRefs_.add(builderForValue.build());
+    public Builder addCredentials(
+        ai.stigmer.agentic.credential.v1.CredentialAssignment.Builder builderForValue) {
+      if (credentialsBuilder_ == null) {
+        ensureCredentialsIsMutable();
+        credentials_.add(builderForValue.build());
         onChanged();
       } else {
-        environmentRefsBuilder_.addMessage(builderForValue.build());
+        credentialsBuilder_.addMessage(builderForValue.build());
       }
       return this;
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to
-     * the runs this invocation creates.
+     * The values the runs this invocation creates use for what the agent needs.
      *
-     * This is how a tool-using agent becomes runnable unattended: bind
-     * an org-shared environment holding the needed credentials (for
-     * example an MCP server's shared secret), and the runs receive its
-     * values at runtime. The agent itself stays untouched.
+     * A schedule's runs have no person behind them: they use what is
+     * assigned here, and a credential of the schedule's own creator only
+     * when that person wrote the assignment.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
      */
-    public Builder addEnvironmentRefs(
-        int index, ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
-      if (environmentRefsBuilder_ == null) {
-        ensureEnvironmentRefsIsMutable();
-        environmentRefs_.add(index, builderForValue.build());
+    public Builder addCredentials(
+        int index, ai.stigmer.agentic.credential.v1.CredentialAssignment.Builder builderForValue) {
+      if (credentialsBuilder_ == null) {
+        ensureCredentialsIsMutable();
+        credentials_.add(index, builderForValue.build());
         onChanged();
       } else {
-        environmentRefsBuilder_.addMessage(index, builderForValue.build());
+        credentialsBuilder_.addMessage(index, builderForValue.build());
       }
       return this;
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to
-     * the runs this invocation creates.
+     * The values the runs this invocation creates use for what the agent needs.
      *
-     * This is how a tool-using agent becomes runnable unattended: bind
-     * an org-shared environment holding the needed credentials (for
-     * example an MCP server's shared secret), and the runs receive its
-     * values at runtime. The agent itself stays untouched.
+     * A schedule's runs have no person behind them: they use what is
+     * assigned here, and a credential of the schedule's own creator only
+     * when that person wrote the assignment.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
      */
-    public Builder addAllEnvironmentRefs(
-        java.lang.Iterable<? extends ai.stigmer.commons.apiresource.ApiResourceReference> values) {
-      if (environmentRefsBuilder_ == null) {
-        ensureEnvironmentRefsIsMutable();
+    public Builder addAllCredentials(
+        java.lang.Iterable<? extends ai.stigmer.agentic.credential.v1.CredentialAssignment> values) {
+      if (credentialsBuilder_ == null) {
+        ensureCredentialsIsMutable();
         com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, environmentRefs_);
+            values, credentials_);
         onChanged();
       } else {
-        environmentRefsBuilder_.addAllMessages(values);
+        credentialsBuilder_.addAllMessages(values);
       }
       return this;
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to
-     * the runs this invocation creates.
+     * The values the runs this invocation creates use for what the agent needs.
      *
-     * This is how a tool-using agent becomes runnable unattended: bind
-     * an org-shared environment holding the needed credentials (for
-     * example an MCP server's shared secret), and the runs receive its
-     * values at runtime. The agent itself stays untouched.
+     * A schedule's runs have no person behind them: they use what is
+     * assigned here, and a credential of the schedule's own creator only
+     * when that person wrote the assignment.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
      */
-    public Builder clearEnvironmentRefs() {
-      if (environmentRefsBuilder_ == null) {
-        environmentRefs_ = java.util.Collections.emptyList();
+    public Builder clearCredentials() {
+      if (credentialsBuilder_ == null) {
+        credentials_ = java.util.Collections.emptyList();
         bitField0_ = (bitField0_ & ~0x00000010);
         onChanged();
       } else {
-        environmentRefsBuilder_.clear();
+        credentialsBuilder_.clear();
       }
       return this;
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to
-     * the runs this invocation creates.
+     * The values the runs this invocation creates use for what the agent needs.
      *
-     * This is how a tool-using agent becomes runnable unattended: bind
-     * an org-shared environment holding the needed credentials (for
-     * example an MCP server's shared secret), and the runs receive its
-     * values at runtime. The agent itself stays untouched.
+     * A schedule's runs have no person behind them: they use what is
+     * assigned here, and a credential of the schedule's own creator only
+     * when that person wrote the assignment.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
      */
-    public Builder removeEnvironmentRefs(int index) {
-      if (environmentRefsBuilder_ == null) {
-        ensureEnvironmentRefsIsMutable();
-        environmentRefs_.remove(index);
+    public Builder removeCredentials(int index) {
+      if (credentialsBuilder_ == null) {
+        ensureCredentialsIsMutable();
+        credentials_.remove(index);
         onChanged();
       } else {
-        environmentRefsBuilder_.remove(index);
+        credentialsBuilder_.remove(index);
       }
       return this;
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to
-     * the runs this invocation creates.
+     * The values the runs this invocation creates use for what the agent needs.
      *
-     * This is how a tool-using agent becomes runnable unattended: bind
-     * an org-shared environment holding the needed credentials (for
-     * example an MCP server's shared secret), and the runs receive its
-     * values at runtime. The agent itself stays untouched.
+     * A schedule's runs have no person behind them: they use what is
+     * assigned here, and a credential of the schedule's own creator only
+     * when that person wrote the assignment.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getEnvironmentRefsBuilder(
+    public ai.stigmer.agentic.credential.v1.CredentialAssignment.Builder getCredentialsBuilder(
         int index) {
-      return internalGetEnvironmentRefsFieldBuilder().getBuilder(index);
+      return internalGetCredentialsFieldBuilder().getBuilder(index);
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to
-     * the runs this invocation creates.
+     * The values the runs this invocation creates use for what the agent needs.
      *
-     * This is how a tool-using agent becomes runnable unattended: bind
-     * an org-shared environment holding the needed credentials (for
-     * example an MCP server's shared secret), and the runs receive its
-     * values at runtime. The agent itself stays untouched.
+     * A schedule's runs have no person behind them: they use what is
+     * assigned here, and a credential of the schedule's own creator only
+     * when that person wrote the assignment.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefsOrBuilder(
+    public ai.stigmer.agentic.credential.v1.CredentialAssignmentOrBuilder getCredentialsOrBuilder(
         int index) {
-      if (environmentRefsBuilder_ == null) {
-        return environmentRefs_.get(index);  } else {
-        return environmentRefsBuilder_.getMessageOrBuilder(index);
+      if (credentialsBuilder_ == null) {
+        return credentials_.get(index);  } else {
+        return credentialsBuilder_.getMessageOrBuilder(index);
       }
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to
-     * the runs this invocation creates.
+     * The values the runs this invocation creates use for what the agent needs.
      *
-     * This is how a tool-using agent becomes runnable unattended: bind
-     * an org-shared environment holding the needed credentials (for
-     * example an MCP server's shared secret), and the runs receive its
-     * values at runtime. The agent itself stays untouched.
+     * A schedule's runs have no person behind them: they use what is
+     * assigned here, and a credential of the schedule's own creator only
+     * when that person wrote the assignment.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
      */
-    public java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
-         getEnvironmentRefsOrBuilderList() {
-      if (environmentRefsBuilder_ != null) {
-        return environmentRefsBuilder_.getMessageOrBuilderList();
+    public java.util.List<? extends ai.stigmer.agentic.credential.v1.CredentialAssignmentOrBuilder> 
+         getCredentialsOrBuilderList() {
+      if (credentialsBuilder_ != null) {
+        return credentialsBuilder_.getMessageOrBuilderList();
       } else {
-        return java.util.Collections.unmodifiableList(environmentRefs_);
+        return java.util.Collections.unmodifiableList(credentials_);
       }
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to
-     * the runs this invocation creates.
+     * The values the runs this invocation creates use for what the agent needs.
      *
-     * This is how a tool-using agent becomes runnable unattended: bind
-     * an org-shared environment holding the needed credentials (for
-     * example an MCP server's shared secret), and the runs receive its
-     * values at runtime. The agent itself stays untouched.
+     * A schedule's runs have no person behind them: they use what is
+     * assigned here, and a credential of the schedule's own creator only
+     * when that person wrote the assignment.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addEnvironmentRefsBuilder() {
-      return internalGetEnvironmentRefsFieldBuilder().addBuilder(
-          ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance());
+    public ai.stigmer.agentic.credential.v1.CredentialAssignment.Builder addCredentialsBuilder() {
+      return internalGetCredentialsFieldBuilder().addBuilder(
+          ai.stigmer.agentic.credential.v1.CredentialAssignment.getDefaultInstance());
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to
-     * the runs this invocation creates.
+     * The values the runs this invocation creates use for what the agent needs.
      *
-     * This is how a tool-using agent becomes runnable unattended: bind
-     * an org-shared environment holding the needed credentials (for
-     * example an MCP server's shared secret), and the runs receive its
-     * values at runtime. The agent itself stays untouched.
+     * A schedule's runs have no person behind them: they use what is
+     * assigned here, and a credential of the schedule's own creator only
+     * when that person wrote the assignment.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addEnvironmentRefsBuilder(
+    public ai.stigmer.agentic.credential.v1.CredentialAssignment.Builder addCredentialsBuilder(
         int index) {
-      return internalGetEnvironmentRefsFieldBuilder().addBuilder(
-          index, ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance());
+      return internalGetCredentialsFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.credential.v1.CredentialAssignment.getDefaultInstance());
     }
     /**
      * <pre>
-     * References to Environment resources whose values are provided to
-     * the runs this invocation creates.
+     * The values the runs this invocation creates use for what the agent needs.
      *
-     * This is how a tool-using agent becomes runnable unattended: bind
-     * an org-shared environment holding the needed credentials (for
-     * example an MCP server's shared secret), and the runs receive its
-     * values at runtime. The agent itself stays untouched.
+     * A schedule's runs have no person behind them: they use what is
+     * assigned here, and a credential of the schedule's own creator only
+     * when that person wrote the assignment.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
      */
-    public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference.Builder> 
-         getEnvironmentRefsBuilderList() {
-      return internalGetEnvironmentRefsFieldBuilder().getBuilderList();
+    public java.util.List<ai.stigmer.agentic.credential.v1.CredentialAssignment.Builder> 
+         getCredentialsBuilderList() {
+      return internalGetCredentialsFieldBuilder().getBuilderList();
     }
     private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
-        internalGetEnvironmentRefsFieldBuilder() {
-      if (environmentRefsBuilder_ == null) {
-        environmentRefsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
-                environmentRefs_,
+        ai.stigmer.agentic.credential.v1.CredentialAssignment, ai.stigmer.agentic.credential.v1.CredentialAssignment.Builder, ai.stigmer.agentic.credential.v1.CredentialAssignmentOrBuilder> 
+        internalGetCredentialsFieldBuilder() {
+      if (credentialsBuilder_ == null) {
+        credentialsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.credential.v1.CredentialAssignment, ai.stigmer.agentic.credential.v1.CredentialAssignment.Builder, ai.stigmer.agentic.credential.v1.CredentialAssignmentOrBuilder>(
+                credentials_,
                 ((bitField0_ & 0x00000010) != 0),
                 getParentForChildren(),
                 isClean());
-        environmentRefs_ = null;
+        credentials_ = null;
       }
-      return environmentRefsBuilder_;
+      return credentialsBuilder_;
     }
 
     private ai.stigmer.agentic.run.v1.RunConfig runConfig_;

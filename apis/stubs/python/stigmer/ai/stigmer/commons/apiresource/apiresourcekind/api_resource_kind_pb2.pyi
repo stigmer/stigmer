@@ -49,11 +49,11 @@ class ApiResourceKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     agent_share: _ClassVar[ApiResourceKind]
     agent_channel: _ClassVar[ApiResourceKind]
     channel_app: _ClassVar[ApiResourceKind]
-    environment: _ClassVar[ApiResourceKind]
     execution_context: _ClassVar[ApiResourceKind]
     schedule: _ClassVar[ApiResourceKind]
     memory: _ClassVar[ApiResourceKind]
     plugin: _ClassVar[ApiResourceKind]
+    credential: _ClassVar[ApiResourceKind]
     plan: _ClassVar[ApiResourceKind]
     subscription: _ClassVar[ApiResourceKind]
     license: _ClassVar[ApiResourceKind]
@@ -85,11 +85,11 @@ mcp_server: ApiResourceKind
 agent_share: ApiResourceKind
 agent_channel: ApiResourceKind
 channel_app: ApiResourceKind
-environment: ApiResourceKind
 execution_context: ApiResourceKind
 schedule: ApiResourceKind
 memory: ApiResourceKind
 plugin: ApiResourceKind
+credential: ApiResourceKind
 plan: ApiResourceKind
 subscription: ApiResourceKind
 license: ApiResourceKind

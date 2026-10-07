@@ -204,81 +204,86 @@ public interface AgentShareSpecOrBuilder extends
 
   /**
    * <pre>
-   * References to Environment resources whose values are provided to guest
-   * conversations on this share.
+   * The values guest conversations on this share use for what the agent needs.
    *
-   * This is how a tool-using agent becomes chattable over a share link:
-   * bind an org-shared environment holding the needed credentials (for
-   * example a read-only API token), and guest runs receive its
-   * values at runtime. The agent itself stays untouched.
-   * Valid on public-audience shares only.
+   * A guest has no credentials of their own, so a guest's runs use what
+   * is assigned here. Valid on public-audience shares only.
+   *
+   * Each assignment gives one requirement of the agent, one of its MCP
+   * servers or a git host its value: a field of a credential the writer
+   * may use, or a plain literal. A person's own credential is never
+   * accepted here.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 8 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
    */
-  java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> 
-      getEnvironmentRefsList();
+  java.util.List<ai.stigmer.agentic.credential.v1.CredentialAssignment> 
+      getCredentialsList();
   /**
    * <pre>
-   * References to Environment resources whose values are provided to guest
-   * conversations on this share.
+   * The values guest conversations on this share use for what the agent needs.
    *
-   * This is how a tool-using agent becomes chattable over a share link:
-   * bind an org-shared environment holding the needed credentials (for
-   * example a read-only API token), and guest runs receive its
-   * values at runtime. The agent itself stays untouched.
-   * Valid on public-audience shares only.
+   * A guest has no credentials of their own, so a guest's runs use what
+   * is assigned here. Valid on public-audience shares only.
+   *
+   * Each assignment gives one requirement of the agent, one of its MCP
+   * servers or a git host its value: a field of a credential the writer
+   * may use, or a plain literal. A person's own credential is never
+   * accepted here.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 8 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
    */
-  ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRefs(int index);
+  ai.stigmer.agentic.credential.v1.CredentialAssignment getCredentials(int index);
   /**
    * <pre>
-   * References to Environment resources whose values are provided to guest
-   * conversations on this share.
+   * The values guest conversations on this share use for what the agent needs.
    *
-   * This is how a tool-using agent becomes chattable over a share link:
-   * bind an org-shared environment holding the needed credentials (for
-   * example a read-only API token), and guest runs receive its
-   * values at runtime. The agent itself stays untouched.
-   * Valid on public-audience shares only.
+   * A guest has no credentials of their own, so a guest's runs use what
+   * is assigned here. Valid on public-audience shares only.
+   *
+   * Each assignment gives one requirement of the agent, one of its MCP
+   * servers or a git host its value: a field of a credential the writer
+   * may use, or a plain literal. A person's own credential is never
+   * accepted here.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 8 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
    */
-  int getEnvironmentRefsCount();
+  int getCredentialsCount();
   /**
    * <pre>
-   * References to Environment resources whose values are provided to guest
-   * conversations on this share.
+   * The values guest conversations on this share use for what the agent needs.
    *
-   * This is how a tool-using agent becomes chattable over a share link:
-   * bind an org-shared environment holding the needed credentials (for
-   * example a read-only API token), and guest runs receive its
-   * values at runtime. The agent itself stays untouched.
-   * Valid on public-audience shares only.
+   * A guest has no credentials of their own, so a guest's runs use what
+   * is assigned here. Valid on public-audience shares only.
+   *
+   * Each assignment gives one requirement of the agent, one of its MCP
+   * servers or a git host its value: a field of a credential the writer
+   * may use, or a plain literal. A person's own credential is never
+   * accepted here.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 8 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
    */
-  java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
-      getEnvironmentRefsOrBuilderList();
+  java.util.List<? extends ai.stigmer.agentic.credential.v1.CredentialAssignmentOrBuilder> 
+      getCredentialsOrBuilderList();
   /**
    * <pre>
-   * References to Environment resources whose values are provided to guest
-   * conversations on this share.
+   * The values guest conversations on this share use for what the agent needs.
    *
-   * This is how a tool-using agent becomes chattable over a share link:
-   * bind an org-shared environment holding the needed credentials (for
-   * example a read-only API token), and guest runs receive its
-   * values at runtime. The agent itself stays untouched.
-   * Valid on public-audience shares only.
+   * A guest has no credentials of their own, so a guest's runs use what
+   * is assigned here. Valid on public-audience shares only.
+   *
+   * Each assignment gives one requirement of the agent, one of its MCP
+   * servers or a git host its value: a field of a credential the writer
+   * may use, or a plain literal. A person's own credential is never
+   * accepted here.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 8 [json_name = "credentials", (.buf.validate.field) = { ... }</code>
    */
-  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefsOrBuilder(
+  ai.stigmer.agentic.credential.v1.CredentialAssignmentOrBuilder getCredentialsOrBuilder(
       int index);
 
   /**

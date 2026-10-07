@@ -4,6 +4,8 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { CredentialAssignment } from "../../credential/v1/requirement_pb.js";
+import { file_ai_stigmer_agentic_credential_v1_requirement } from "../../credential/v1/requirement_pb.js";
 import type { RunConfig } from "../../run/v1/invocation_pb.js";
 import { file_ai_stigmer_agentic_run_v1_invocation } from "../../run/v1/invocation_pb.js";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
@@ -16,14 +18,14 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentchannel/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEi7QYKEEFnZW50Q2hhbm5lbFNwZWMSrAEKCWFnZW50X3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJjukhcugFWCg5hZ2VudF9yZWYua2luZBIzYWdlbnRfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWFnZW50Gg90aGlzLmtpbmQgPT0gNDDIAQHghSwoEg8KB2VuYWJsZWQYAiABKAgSRwoFc2xhY2sYAyABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLlNsYWNrQ2hhbm5lbENvbmZpZ0gAEk0KCHdoYXRzYXBwGAYgASgLMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5XaGF0c0FwcENoYW5uZWxDb25maWdIABLIAQoQZW52aXJvbm1lbnRfcmVmcxgEIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJ4ukhxkgFuImy6AWkKFWVudmlyb25tZW50X3JlZnMua2luZBI/ZW52aXJvbm1lbnRfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPWVudmlyb25tZW50Gg90aGlzLmtpbmQgPT0gNTPghSw1ErwBCgdhcHBfcmVmGAUgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQnW6SG66AWsKDGFwcF9yZWYua2luZBI3YXBwX3JlZiBtdXN0IHJlZmVyZW5jZSBhIHJlc291cmNlIHdpdGgga2luZD1jaGFubmVsX2FwcBoidGhpcy5zbHVnID09ICcnIHx8IHRoaXMua2luZCA9PSA0OOCFLDASIwobcHJvYWN0aXZlX21lc3NhZ2luZ19lbmFibGVkGAcgASgIEjgKCnJ1bl9jb25maWcYCCABKAsyJC5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1bkNvbmZpZ0IYCg9wcm92aWRlcl9jb25maWcSBbpIAggBIhQKElNsYWNrQ2hhbm5lbENvbmZpZyI5ChVXaGF0c0FwcENoYW5uZWxDb25maWcSIAoPcGhvbmVfbnVtYmVyX2lkGAEgASgJQge6SARyAhABYgZwcm90bzM", [file_ai_stigmer_agentic_run_v1_invocation, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEikQYKEEFnZW50Q2hhbm5lbFNwZWMSrAEKCWFnZW50X3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJjukhcugFWCg5hZ2VudF9yZWYua2luZBIzYWdlbnRfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWFnZW50Gg90aGlzLmtpbmQgPT0gNDDIAQHghSwoEg8KB2VuYWJsZWQYAiABKAgSRwoFc2xhY2sYAyABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLlNsYWNrQ2hhbm5lbENvbmZpZ0gAEk0KCHdoYXRzYXBwGAYgASgLMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5XaGF0c0FwcENoYW5uZWxDb25maWdIABJVCgtjcmVkZW50aWFscxgJIAMoCzI2LmFpLnN0aWdtZXIuYWdlbnRpYy5jcmVkZW50aWFsLnYxLkNyZWRlbnRpYWxBc3NpZ25tZW50Qgi6SAWSAQIQQBK8AQoHYXBwX3JlZhgFIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJ1ukhuugFrCgxhcHBfcmVmLmtpbmQSN2FwcF9yZWYgbXVzdCByZWZlcmVuY2UgYSByZXNvdXJjZSB3aXRoIGtpbmQ9Y2hhbm5lbF9hcHAaInRoaXMuc2x1ZyA9PSAnJyB8fCB0aGlzLmtpbmQgPT0gNDjghSwwEiMKG3Byb2FjdGl2ZV9tZXNzYWdpbmdfZW5hYmxlZBgHIAEoCBI4CgpydW5fY29uZmlnGAggASgLMiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5Db25maWdCGAoPcHJvdmlkZXJfY29uZmlnEgW6SAIIAUoECAQQBVIQZW52aXJvbm1lbnRfcmVmcyIUChJTbGFja0NoYW5uZWxDb25maWciOQoVV2hhdHNBcHBDaGFubmVsQ29uZmlnEiAKD3Bob25lX251bWJlcl9pZBgBIAEoCUIHukgEcgIQAWIGcHJvdG8z", [file_ai_stigmer_agentic_credential_v1_requirement, file_ai_stigmer_agentic_run_v1_invocation, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentChannelSpec defines the configurable properties of an agent channel.
  *
  * The spec is deliberately small: which agent serves the channel, whether
  * serving is enabled, which provider the channel targets, and which
- * environments supply the agent's tool credentials. Workspace identity and
+ * credentials supply the agent's tool values. Workspace identity and
  * provider credentials are produced by the install flow and live in
  * status — a declarative apply can never clobber them.
  *
@@ -77,17 +79,19 @@ export type AgentChannelSpec = Message<"ai.stigmer.agentic.agentchannel.v1.Agent
   } | { case: undefined; value?: undefined };
 
   /**
-   * References to Environment resources whose values are provided to
-   * conversations on this channel.
+   * The values this channel's conversations use for what the agent needs.
    *
-   * This is how a tool-using agent becomes chattable over a channel: bind
-   * an org-shared environment holding the needed credentials (for example
-   * a read-only API token), and channel runs receive its values at
-   * runtime. The agent itself stays untouched.
+   * A channel's runs have no person behind them, so they never use anyone's
+   * own credentials: they use what is assigned here.
    *
-   * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4;
+   * Each assignment gives one requirement of the agent, one of its MCP
+   * servers or a git host its value: a field of a credential the writer
+   * may use, or a plain literal. A person's own credential is never
+   * accepted here.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 9;
    */
-  environmentRefs: ApiResourceReference[];
+  credentials: CredentialAssignment[];
 
   /**
    * Reference to the ChannelApp this channel installs through.

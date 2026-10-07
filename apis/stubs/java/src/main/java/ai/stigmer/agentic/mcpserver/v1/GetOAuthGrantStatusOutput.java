@@ -91,7 +91,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object targetEnvVar_ = "";
   /**
    * <pre>
-   * The env var name where the access token is stored.
+   * The key the access token fills.
    * Empty if no grant exists.
    * </pre>
    *
@@ -113,7 +113,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The env var name where the access token is stored.
+   * The key the access token fills.
    * Empty if no grant exists.
    * </pre>
    *
@@ -702,7 +702,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object targetEnvVar_ = "";
     /**
      * <pre>
-     * The env var name where the access token is stored.
+     * The key the access token fills.
      * Empty if no grant exists.
      * </pre>
      *
@@ -723,7 +723,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The env var name where the access token is stored.
+     * The key the access token fills.
      * Empty if no grant exists.
      * </pre>
      *
@@ -745,7 +745,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The env var name where the access token is stored.
+     * The key the access token fills.
      * Empty if no grant exists.
      * </pre>
      *
@@ -763,7 +763,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The env var name where the access token is stored.
+     * The key the access token fills.
      * Empty if no grant exists.
      * </pre>
      *
@@ -778,7 +778,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The env var name where the access token is stored.
+     * The key the access token fills.
      * Empty if no grant exists.
      * </pre>
      *

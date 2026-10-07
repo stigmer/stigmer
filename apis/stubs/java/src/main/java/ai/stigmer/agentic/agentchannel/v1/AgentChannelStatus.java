@@ -33,7 +33,6 @@ private static final long serialVersionUID = 0L;
   }
   private AgentChannelStatus() {
     installState_ = 0;
-    credentialsEnvironmentId_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -209,55 +208,6 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus.getDefaultInstance();
   }
 
-  public static final int CREDENTIALS_ENVIRONMENT_ID_FIELD_NUMBER = 3;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object credentialsEnvironmentId_ = "";
-  /**
-   * <pre>
-   * ID of the system-managed Environment holding this connection's
-   * provider credentials (e.g. the Slack bot token).
-   * </pre>
-   *
-   * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
-   * @return The credentialsEnvironmentId.
-   */
-  @java.lang.Override
-  public java.lang.String getCredentialsEnvironmentId() {
-    java.lang.Object ref = credentialsEnvironmentId_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      credentialsEnvironmentId_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * ID of the system-managed Environment holding this connection's
-   * provider credentials (e.g. the Slack bot token).
-   * </pre>
-   *
-   * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
-   * @return The bytes for credentialsEnvironmentId.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getCredentialsEnvironmentIdBytes() {
-    java.lang.Object ref = credentialsEnvironmentId_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      credentialsEnvironmentId_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
   public static final int AUDIT_FIELD_NUMBER = 99;
   private ai.stigmer.commons.apiresource.ApiResourceAudit audit_;
   /**
@@ -316,9 +266,6 @@ private static final long serialVersionUID = 0L;
     if (providerStatusCase_ == 2) {
       output.writeMessage(2, (ai.stigmer.agentic.agentchannel.v1.SlackInstallStatus) providerStatus_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(credentialsEnvironmentId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 3, credentialsEnvironmentId_);
-    }
     if (providerStatusCase_ == 4) {
       output.writeMessage(4, (ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus) providerStatus_);
     }
@@ -341,9 +288,6 @@ private static final long serialVersionUID = 0L;
     if (providerStatusCase_ == 2) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(2, (ai.stigmer.agentic.agentchannel.v1.SlackInstallStatus) providerStatus_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(credentialsEnvironmentId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, credentialsEnvironmentId_);
     }
     if (providerStatusCase_ == 4) {
       size += com.google.protobuf.CodedOutputStream
@@ -369,8 +313,6 @@ private static final long serialVersionUID = 0L;
     ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus other = (ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus) obj;
 
     if (installState_ != other.installState_) return false;
-    if (!getCredentialsEnvironmentId()
-        .equals(other.getCredentialsEnvironmentId())) return false;
     if (hasAudit() != other.hasAudit()) return false;
     if (hasAudit()) {
       if (!getAudit()
@@ -402,8 +344,6 @@ private static final long serialVersionUID = 0L;
     hash = (19 * hash) + getDescriptor().hashCode();
     hash = (37 * hash) + INSTALL_STATE_FIELD_NUMBER;
     hash = (53 * hash) + installState_;
-    hash = (37 * hash) + CREDENTIALS_ENVIRONMENT_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getCredentialsEnvironmentId().hashCode();
     if (hasAudit()) {
       hash = (37 * hash) + AUDIT_FIELD_NUMBER;
       hash = (53 * hash) + getAudit().hashCode();
@@ -568,7 +508,6 @@ private static final long serialVersionUID = 0L;
       if (whatsappBuilder_ != null) {
         whatsappBuilder_.clear();
       }
-      credentialsEnvironmentId_ = "";
       audit_ = null;
       if (auditBuilder_ != null) {
         auditBuilder_.dispose();
@@ -613,11 +552,8 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000001) != 0)) {
         result.installState_ = installState_;
       }
-      if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.credentialsEnvironmentId_ = credentialsEnvironmentId_;
-      }
       int to_bitField0_ = 0;
-      if (((from_bitField0_ & 0x00000010) != 0)) {
+      if (((from_bitField0_ & 0x00000008) != 0)) {
         result.audit_ = auditBuilder_ == null
             ? audit_
             : auditBuilder_.build();
@@ -653,11 +589,6 @@ private static final long serialVersionUID = 0L;
       if (other == ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus.getDefaultInstance()) return this;
       if (other.installState_ != 0) {
         setInstallStateValue(other.getInstallStateValue());
-      }
-      if (!other.getCredentialsEnvironmentId().isEmpty()) {
-        credentialsEnvironmentId_ = other.credentialsEnvironmentId_;
-        bitField0_ |= 0x00000008;
-        onChanged();
       }
       if (other.hasAudit()) {
         mergeAudit(other.getAudit());
@@ -713,11 +644,6 @@ private static final long serialVersionUID = 0L;
               providerStatusCase_ = 2;
               break;
             } // case 18
-            case 26: {
-              credentialsEnvironmentId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000008;
-              break;
-            } // case 26
             case 34: {
               input.readMessage(
                   internalGetWhatsappFieldBuilder().getBuilder(),
@@ -729,7 +655,7 @@ private static final long serialVersionUID = 0L;
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000010;
+              bitField0_ |= 0x00000008;
               break;
             } // case 794
             default: {
@@ -1192,103 +1118,6 @@ private static final long serialVersionUID = 0L;
       return whatsappBuilder_;
     }
 
-    private java.lang.Object credentialsEnvironmentId_ = "";
-    /**
-     * <pre>
-     * ID of the system-managed Environment holding this connection's
-     * provider credentials (e.g. the Slack bot token).
-     * </pre>
-     *
-     * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
-     * @return The credentialsEnvironmentId.
-     */
-    public java.lang.String getCredentialsEnvironmentId() {
-      java.lang.Object ref = credentialsEnvironmentId_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        credentialsEnvironmentId_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * ID of the system-managed Environment holding this connection's
-     * provider credentials (e.g. the Slack bot token).
-     * </pre>
-     *
-     * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
-     * @return The bytes for credentialsEnvironmentId.
-     */
-    public com.google.protobuf.ByteString
-        getCredentialsEnvironmentIdBytes() {
-      java.lang.Object ref = credentialsEnvironmentId_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        credentialsEnvironmentId_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * ID of the system-managed Environment holding this connection's
-     * provider credentials (e.g. the Slack bot token).
-     * </pre>
-     *
-     * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
-     * @param value The credentialsEnvironmentId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCredentialsEnvironmentId(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      credentialsEnvironmentId_ = value;
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * ID of the system-managed Environment holding this connection's
-     * provider credentials (e.g. the Slack bot token).
-     * </pre>
-     *
-     * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearCredentialsEnvironmentId() {
-      credentialsEnvironmentId_ = getDefaultInstance().getCredentialsEnvironmentId();
-      bitField0_ = (bitField0_ & ~0x00000008);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * ID of the system-managed Environment holding this connection's
-     * provider credentials (e.g. the Slack bot token).
-     * </pre>
-     *
-     * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
-     * @param value The bytes for credentialsEnvironmentId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCredentialsEnvironmentIdBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      credentialsEnvironmentId_ = value;
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-
     private ai.stigmer.commons.apiresource.ApiResourceAudit audit_;
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.commons.apiresource.ApiResourceAudit, ai.stigmer.commons.apiresource.ApiResourceAudit.Builder, ai.stigmer.commons.apiresource.ApiResourceAuditOrBuilder> auditBuilder_;
@@ -1301,7 +1130,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the audit field is set.
      */
     public boolean hasAudit() {
-      return ((bitField0_ & 0x00000010) != 0);
+      return ((bitField0_ & 0x00000008) != 0);
     }
     /**
      * <pre>
@@ -1334,7 +1163,7 @@ private static final long serialVersionUID = 0L;
       } else {
         auditBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -1352,7 +1181,7 @@ private static final long serialVersionUID = 0L;
       } else {
         auditBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -1365,7 +1194,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeAudit(ai.stigmer.commons.apiresource.ApiResourceAudit value) {
       if (auditBuilder_ == null) {
-        if (((bitField0_ & 0x00000010) != 0) &&
+        if (((bitField0_ & 0x00000008) != 0) &&
           audit_ != null &&
           audit_ != ai.stigmer.commons.apiresource.ApiResourceAudit.getDefaultInstance()) {
           getAuditBuilder().mergeFrom(value);
@@ -1376,7 +1205,7 @@ private static final long serialVersionUID = 0L;
         auditBuilder_.mergeFrom(value);
       }
       if (audit_ != null) {
-        bitField0_ |= 0x00000010;
+        bitField0_ |= 0x00000008;
         onChanged();
       }
       return this;
@@ -1389,7 +1218,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
      */
     public Builder clearAudit() {
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000008);
       audit_ = null;
       if (auditBuilder_ != null) {
         auditBuilder_.dispose();
@@ -1406,7 +1235,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceAudit.Builder getAuditBuilder() {
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return internalGetAuditFieldBuilder().getBuilder();
     }

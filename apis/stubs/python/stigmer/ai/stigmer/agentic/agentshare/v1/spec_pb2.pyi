@@ -1,3 +1,4 @@
+from ai.stigmer.agentic.credential.v1 import requirement_pb2 as _requirement_pb2
 from ai.stigmer.agentic.run.v1 import invocation_pb2 as _invocation_pb2
 from ai.stigmer.commons.apiresource import field_options_pb2 as _field_options_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as _io_pb2
@@ -21,22 +22,22 @@ agent_share_audience_public: AgentShareAudience
 agent_share_audience_org: AgentShareAudience
 
 class AgentShareSpec(_message.Message):
-    __slots__ = ("agent_ref", "enabled", "audience", "allowed_origins", "messages", "environment_refs", "run_config")
+    __slots__ = ("agent_ref", "enabled", "audience", "allowed_origins", "messages", "credentials", "run_config")
     AGENT_REF_FIELD_NUMBER: _ClassVar[int]
     ENABLED_FIELD_NUMBER: _ClassVar[int]
     AUDIENCE_FIELD_NUMBER: _ClassVar[int]
     ALLOWED_ORIGINS_FIELD_NUMBER: _ClassVar[int]
     MESSAGES_FIELD_NUMBER: _ClassVar[int]
-    ENVIRONMENT_REFS_FIELD_NUMBER: _ClassVar[int]
+    CREDENTIALS_FIELD_NUMBER: _ClassVar[int]
     RUN_CONFIG_FIELD_NUMBER: _ClassVar[int]
     agent_ref: _io_pb2.ApiResourceReference
     enabled: bool
     audience: AgentShareAudience
     allowed_origins: _containers.RepeatedScalarFieldContainer[str]
     messages: AgentShareMessages
-    environment_refs: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
+    credentials: _containers.RepeatedCompositeFieldContainer[_requirement_pb2.CredentialAssignment]
     run_config: _invocation_pb2.RunConfig
-    def __init__(self, agent_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., enabled: bool = ..., audience: _Optional[_Union[AgentShareAudience, str]] = ..., allowed_origins: _Optional[_Iterable[str]] = ..., messages: _Optional[_Union[AgentShareMessages, _Mapping]] = ..., environment_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ...) -> None: ...
+    def __init__(self, agent_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., enabled: bool = ..., audience: _Optional[_Union[AgentShareAudience, str]] = ..., allowed_origins: _Optional[_Iterable[str]] = ..., messages: _Optional[_Union[AgentShareMessages, _Mapping]] = ..., credentials: _Optional[_Iterable[_Union[_requirement_pb2.CredentialAssignment, _Mapping]]] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ...) -> None: ...
 
 class AgentShareMessages(_message.Message):
     __slots__ = ("rate_limited", "unavailable", "conversation_ended")

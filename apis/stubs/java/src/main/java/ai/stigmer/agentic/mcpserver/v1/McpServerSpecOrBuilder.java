@@ -173,7 +173,7 @@ public interface McpServerSpecOrBuilder extends
    * Keys are variable names; values describe their metadata and optionality.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.credential.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
    */
   int getEnvCount();
   /**
@@ -182,7 +182,7 @@ public interface McpServerSpecOrBuilder extends
    * Keys are variable names; values describe their metadata and optionality.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.credential.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
    */
   boolean containsEnv(
       java.lang.String key);
@@ -190,7 +190,7 @@ public interface McpServerSpecOrBuilder extends
    * Use {@link #getEnvMap()} instead.
    */
   @java.lang.Deprecated
-  java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration>
+  java.util.Map<java.lang.String, ai.stigmer.agentic.credential.v1.EnvVarDeclaration>
   getEnv();
   /**
    * <pre>
@@ -198,9 +198,9 @@ public interface McpServerSpecOrBuilder extends
    * Keys are variable names; values describe their metadata and optionality.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.credential.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
    */
-  java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration>
+  java.util.Map<java.lang.String, ai.stigmer.agentic.credential.v1.EnvVarDeclaration>
   getEnvMap();
   /**
    * <pre>
@@ -208,22 +208,22 @@ public interface McpServerSpecOrBuilder extends
    * Keys are variable names; values describe their metadata and optionality.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.credential.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
    */
   /* nullable */
-ai.stigmer.agentic.environment.v1.EnvVarDeclaration getEnvOrDefault(
+ai.stigmer.agentic.credential.v1.EnvVarDeclaration getEnvOrDefault(
       java.lang.String key,
       /* nullable */
-ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
+ai.stigmer.agentic.credential.v1.EnvVarDeclaration defaultValue);
   /**
    * <pre>
    * Environment variable declarations for this MCP server.
    * Keys are variable names; values describe their metadata and optionality.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.credential.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
    */
-  ai.stigmer.agentic.environment.v1.EnvVarDeclaration getEnvOrThrow(
+  ai.stigmer.agentic.credential.v1.EnvVarDeclaration getEnvOrThrow(
       java.lang.String key);
 
   /**
@@ -270,10 +270,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * When set, the MCP server's Connect page offers an OAuth flow instead of
    * (or in addition to) manual credential entry.
    *
-   * The acquired access token is stored in a system-managed environment
-   * (identified by grant.environment_id) as the env var named by
-   * auth.target_env_var. That env var must also be declared in env so the
-   * execution pipeline knows about it.
+   * A sign-in saves the access token as a credential whose one field is
+   * named by auth.target_env_var. That key must also be declared in env so
+   * a run knows the server needs it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
@@ -286,10 +285,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * When set, the MCP server's Connect page offers an OAuth flow instead of
    * (or in addition to) manual credential entry.
    *
-   * The acquired access token is stored in a system-managed environment
-   * (identified by grant.environment_id) as the env var named by
-   * auth.target_env_var. That env var must also be declared in env so the
-   * execution pipeline knows about it.
+   * A sign-in saves the access token as a credential whose one field is
+   * named by auth.target_env_var. That key must also be declared in env so
+   * a run knows the server needs it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
@@ -302,15 +300,47 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * When set, the MCP server's Connect page offers an OAuth flow instead of
    * (or in addition to) manual credential entry.
    *
-   * The acquired access token is stored in a system-managed environment
-   * (identified by grant.environment_id) as the env var named by
-   * auth.target_env_var. That env var must also be declared in env so the
-   * execution pipeline knows about it.
+   * A sign-in saves the access token as a credential whose one field is
+   * named by auth.target_env_var. That key must also be declared in env so
+   * a run knows the server needs it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerAuth auth = 14 [json_name = "auth"];</code>
    */
   ai.stigmer.agentic.mcpserver.v1.McpServerAuthOrBuilder getAuthOrBuilder();
+
+  /**
+   * <pre>
+   * Whose account the server's runs use: each person's own sign-in (the
+   * default), or one account the organization signs in once.
+   *
+   * With personal sign-in, a person's run uses that person's own credential
+   * for the server, and a run with no person behind it (a schedule, a
+   * shared link, a channel) uses only a credential assigned to it there.
+   * With organization sign-in, every run in the organization uses the
+   * organization's credential for the server.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSignIn sign_in = 15 [json_name = "signIn"];</code>
+   * @return The enum numeric value on the wire for signIn.
+   */
+  int getSignInValue();
+  /**
+   * <pre>
+   * Whose account the server's runs use: each person's own sign-in (the
+   * default), or one account the organization signs in once.
+   *
+   * With personal sign-in, a person's run uses that person's own credential
+   * for the server, and a run with no person behind it (a schedule, a
+   * shared link, a channel) uses only a credential assigned to it there.
+   * With organization sign-in, every run in the organization uses the
+   * organization's credential for the server.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.mcpserver.v1.McpServerSignIn sign_in = 15 [json_name = "signIn"];</code>
+   * @return The signIn.
+   */
+  ai.stigmer.agentic.mcpserver.v1.McpServerSignIn getSignIn();
 
   ai.stigmer.agentic.mcpserver.v1.McpServerSpec.ServerTypeCase getServerTypeCase();
 }

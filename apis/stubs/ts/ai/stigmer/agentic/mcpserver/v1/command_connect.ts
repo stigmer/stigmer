@@ -153,9 +153,10 @@ export const McpServerCommandController = {
      * code for tokens.
      *
      * Called by the frontend after the user is redirected back from the
-     * OAuth authorization server. Exchanges the code for tokens, stores
-     * them in the user's personal environment, and creates an OAuthGrant
-     * record for pre-flight expiry checks.
+     * OAuth authorization server. Exchanges the code for tokens, saves the
+     * access token as the caller's credential serving the server (the
+     * organization's, for a server with organization sign-in), and records
+     * an OAuthGrant for pre-flight expiry checks.
      *
      * After success, the frontend should call connect() to trigger tool
      * discovery using the freshly acquired token.
@@ -171,10 +172,10 @@ export const McpServerCommandController = {
     /**
      * Disconnect the authenticated user's OAuth connection for a resource.
      *
-     * Tears down the user's personal OAuth connection by deleting the
-     * OAuthGrant and its associated managed environment (which holds the
-     * access and refresh tokens). The MCP server definition is unchanged —
-     * only the caller's credentials are removed.
+     * Tears down one sign-in by deleting the OAuthGrant (which keeps the
+     * refresh token) and the credential holding the access token. On a
+     * server with organization sign-in it is the organization's sign-in,
+     * and only an admin may end it. The MCP server definition is unchanged.
      *
      * Other users' connections to the same resource are unaffected.
      *

@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.agentchannel.v1;
 
+import "ai/stigmer/agentic/credential/v1/requirement.proto";
 import "ai/stigmer/agentic/run/v1/invocation.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
@@ -11,7 +12,7 @@ import "buf/validate/validate.proto";
 //
 // The spec is deliberately small: which agent serves the channel, whether
 // serving is enabled, which provider the channel targets, and which
-// environments supply the agent's tool credentials. Workspace identity and
+// credentials supply the agent's tool values. Workspace identity and
 // provider credentials are produced by the install flow and live in
 // status — a declarative apply can never clobber them.
 //
@@ -74,37 +75,29 @@ message AgentChannelSpec {
     WhatsAppChannelConfig whatsapp = 6;
   }
 
-  // References to Environment resources whose values are provided to
-  // conversations on this channel.
+  // Field 4 held environment_refs, references to environments whose
+  // values a channel's conversations received, until credentials replaced
+  // environments. Reserved so the number and name are never reused.
+  reserved 4;
+  reserved "environment_refs";
+
+  // The values this channel's conversations use for what the agent needs.
   //
-  // This is how a tool-using agent becomes chattable over a channel: bind
-  // an org-shared environment holding the needed credentials (for example
-  // a read-only API token), and channel runs receive its values at
-  // runtime. The agent itself stays untouched.
+  // A channel's runs have no person behind them, so they never use anyone's
+  // own credentials: they use what is assigned here.
+  //
+  // Each assignment gives one requirement of the agent, one of its MCP
+  // servers or a git host its value: a field of a credential the writer
+  // may use, or a plain literal. A person's own credential is never
+  // accepted here.
   //
   // @internal
-  // The AgentShareSpec.environment_refs analog (sharing is a channel —
-  // both connection kinds carry their own credentials).
-  // Resolved in the channel's org through the org-shared environment
-  // resolution seam (EnvironmentRuntimeResolutionService /
-  // OrgSharedEnvironmentPolicy): each referenced environment must be
-  // visibility_org in the channel's org, or the merge skips it with a
-  // diagnostic. Merged at channel execution-context build time only,
-  // lowest priority (runtime_env overrides on key conflicts) — never
-  // written to the agent, so the agent's other conversations never read
-  // them. No write-time existence or visibility check, matching the
-  // share: enforcement lives solely at runtime resolution, which fails
-  // closed. Unlike the share there is no audience CEL — channels have no
-  // audience concept, and the same-org invariant (agent_ref.org ==
-  // metadata.org) already scopes resolution.
-  repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [
-    (ai.stigmer.commons.apiresource.reference_kind) = environment,
-    (buf.validate.field).repeated.items.cel = {
-      id: "environment_refs.kind"
-      message: "environment_refs must reference resources with kind=environment"
-      expression: "this.kind == 53"
-    }
-  ];
+  // Judged at write by the reference rule (pipeline/steps/references.ts):
+  // the writer must hold can_use on each credential an assignment
+  // introduces, and the server stamps the writer. A run re-checks the
+  // writer's can_use when it starts and is refused, naming the
+  // assignment, when it no longer holds.
+  repeated ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 9 [(buf.validate.field).repeated.max_items = 64];
 
   // Reference to the ChannelApp this channel installs through.
   //
@@ -121,8 +114,7 @@ message AgentChannelSpec {
   // agent_ref rule), and the ref is immutable while install_state ==
   // installed (the workspace granted THAT app; switching apps requires
   // re-install, so pending/revoked channels may rebind freely). No
-  // write-time existence or provider-match check, matching the
-  // environment_refs posture: the install flow resolves the app and
+  // write-time existence or provider-match check: the install flow resolves the app and
   // fails closed on a missing or wrong-provider reference.
   ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [
     (ai.stigmer.commons.apiresource.reference_kind) = channel_app,

@@ -15,7 +15,7 @@
 # What the suite pins: `left` reaches nothing, however the grant was
 # made; `stays` and `back` keep what they authored; a system account that
 # holds only `guest` keeps the session it owns; a memory's subject reaches
-# the memory only while in the organization; environment's `creator` is
+# the memory only while in the organization; a credential's `user` grant is
 # bounded the same way.
 name: organization-affiliation-bound
 model_file: ../../src/authorization/model/data/authorization-model.json
@@ -66,11 +66,14 @@ tuples:
   - {user: identity_account:left, relation: owner, object: schedule:x}
   - {user: identity_account:back, relation: owner, object: schedule:x}
   - {user: identity_account:left, relation: viewer, object: schedule:x}
-  - {user: organization:acme, relation: organization, object: environment:x}
-  - {user: identity_account:stays, relation: owner, object: environment:x}
-  - {user: identity_account:left, relation: owner, object: environment:x}
-  - {user: identity_account:back, relation: owner, object: environment:x}
-  - {user: identity_account:left, relation: viewer, object: environment:x}
+  - {user: organization:acme, relation: organization, object: credential:x}
+  - {user: identity_account:stays, relation: owner, object: credential:x}
+  - {user: identity_account:left, relation: owner, object: credential:x}
+  - {user: identity_account:back, relation: owner, object: credential:x}
+  - {user: organization:acme, relation: organization, object: credential:org}
+  - {user: organization:acme, relation: org_owned, object: credential:org}
+  - {user: identity_account:left, relation: user, object: credential:org}
+  - {user: identity_account:stays, relation: user, object: credential:org}
   - {user: organization:acme, relation: organization, object: session:x}
   - {user: identity_account:stays, relation: owner, object: session:x}
   - {user: identity_account:left, relation: owner, object: session:x}
@@ -88,8 +91,6 @@ tuples:
   - {user: identity_account:left, relation: participant, object: agent_channel:x}
   - {user: identity_account:left, relation: editor, object: agent:x}
   - {user: identity_account:left, relation: editor, object: mcp_server:x}
-  - {user: identity_account:left, relation: creator, object: environment:x}
-  - {user: identity_account:stays, relation: creator, object: environment:x}
   - {user: organization:acme, relation: organization, object: session:guest-chat}
   - {user: identity_account:sys-guest, relation: owner, object: session:guest-chat}
   - {user: organization:acme, relation: organization, object: memory:x}
@@ -111,7 +112,7 @@ tests:
       - {user: identity_account:left, object: agent_share:x, assertions: {owner: false, viewer: false, can_view: false}}
       - {user: identity_account:left, object: channel_app:x, assertions: {viewer: false, can_view: false}}
       - {user: identity_account:left, object: schedule:x, assertions: {owner: false, viewer: false, can_view: false}}
-      - {user: identity_account:left, object: environment:x, assertions: {owner: false, viewer: false, can_view: false}}
+      - {user: identity_account:left, object: credential:x, assertions: {owner: false, can_view: false, can_use: false}}
       - {user: identity_account:left, object: session:x, assertions: {owner: false, viewer: false, can_view: false}}
       - {user: identity_account:left, object: identity_provider:x, assertions: {viewer: false, can_view: false}}
       - {user: identity_account:left, object: oauth_app:x, assertions: {viewer: false, can_view: false}}
@@ -119,7 +120,7 @@ tests:
       - {user: identity_account:left, object: agent_channel:x, assertions: {participant: false}}
       - {user: identity_account:left, object: agent:x, assertions: {editor: false, can_edit: false}}
       - {user: identity_account:left, object: mcp_server:x, assertions: {editor: false, can_edit: false}}
-      - {user: identity_account:left, object: environment:x, assertions: {creator: false}}
+      - {user: identity_account:left, object: credential:org, assertions: {user: false, can_use: false}}
       - {user: identity_account:left, object: memory:left, assertions: {can_view: false, can_edit: false, can_delete: false}}
   - name: a member keeps what they authored
     check:
@@ -131,12 +132,12 @@ tests:
       - {user: identity_account:stays, object: agent_share:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:stays, object: channel_app:x, assertions: {viewer: true, can_view: true}}
       - {user: identity_account:stays, object: schedule:x, assertions: {owner: true, can_view: true}}
-      - {user: identity_account:stays, object: environment:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:stays, object: credential:x, assertions: {owner: true, can_view: true, can_use: true}}
       - {user: identity_account:stays, object: session:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:stays, object: identity_provider:x, assertions: {viewer: true, can_view: true}}
       - {user: identity_account:stays, object: oauth_app:x, assertions: {viewer: true, can_view: true}}
       - {user: identity_account:stays, object: platform_client:x, assertions: {viewer: true, can_view: true}}
-      - {user: identity_account:stays, object: environment:x, assertions: {creator: true}}
+      - {user: identity_account:stays, object: credential:org, assertions: {user: true, can_use: true}}
       - {user: identity_account:stays, object: memory:x, assertions: {can_view: true}}
   - name: rejoining gives back what the person authored
     check:
@@ -147,7 +148,7 @@ tests:
       - {user: identity_account:back, object: agent_channel:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:back, object: agent_share:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:back, object: schedule:x, assertions: {owner: true, can_view: true}}
-      - {user: identity_account:back, object: environment:x, assertions: {owner: true, can_view: true}}
+      - {user: identity_account:back, object: credential:x, assertions: {owner: true, can_view: true}}
       - {user: identity_account:back, object: session:x, assertions: {owner: true, can_view: true}}
   - name: a system account that holds only guest keeps the session it owns
     check:

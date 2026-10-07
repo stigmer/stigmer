@@ -4,6 +4,8 @@
 
 import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { CredentialAssignment } from "../../credential/v1/requirement_pb.js";
+import { file_ai_stigmer_agentic_credential_v1_requirement } from "../../credential/v1/requirement_pb.js";
 import type { RunConfig } from "../../run/v1/invocation_pb.js";
 import { file_ai_stigmer_agentic_run_v1_invocation } from "../../run/v1/invocation_pb.js";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
@@ -16,7 +18,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentshare/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agentshare_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRzaGFyZS92MS9zcGVjLnByb3RvEiBhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MSLLCQoOQWdlbnRTaGFyZVNwZWMSrAEKCWFnZW50X3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJjukhcugFWCg5hZ2VudF9yZWYua2luZBIzYWdlbnRfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWFnZW50Gg90aGlzLmtpbmQgPT0gNDDIAQHghSwoEg8KB2VuYWJsZWQYAiABKAgSRgoIYXVkaWVuY2UYAyABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5BZ2VudFNoYXJlQXVkaWVuY2USsAIKD2FsbG93ZWRfb3JpZ2lucxgEIAMoCUKWArpIkgKSAY4CECAiiQK6AYUCChZhbGxvd2VkX29yaWdpbnMuZm9ybWF0Em5hbGxvd2VkX29yaWdpbnMgZW50cmllcyBtdXN0IGJlIGV4YWN0IHdlYiBvcmlnaW5zIGxpa2UgaHR0cHM6Ly9leGFtcGxlLmNvbSAobm8gcGF0aCwgcXVlcnksIG9yIHRyYWlsaW5nIHNsYXNoKRp7dGhpcy5tYXRjaGVzKCdeaHR0cHM/Oi8vW0EtWmEtejAtOV0oW0EtWmEtejAtOS1dKltBLVphLXowLTldKT8oXFwuW0EtWmEtejAtOV0oW0EtWmEtejAtOS1dKltBLVphLXowLTldKT8pKig6WzAtOV17MSw1fSk/JCcpEkYKCG1lc3NhZ2VzGAUgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuQWdlbnRTaGFyZU1lc3NhZ2VzEsgBChBlbnZpcm9ubWVudF9yZWZzGAYgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQni6SHGSAW4ibLoBaQoVZW52aXJvbm1lbnRfcmVmcy5raW5kEj9lbnZpcm9ubWVudF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9ZW52aXJvbm1lbnQaD3RoaXMua2luZCA9PSA1M+CFLDUSOAoKcnVuX2NvbmZpZxgHIAEoCzIkLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuQ29uZmlnOrACukisAhqfAQooYWdlbnRfc2hhcmUuZW52aXJvbm1lbnRfcmVmc19wdWJsaWNfb25seRI6ZW52aXJvbm1lbnRfcmVmcyBjYW4gb25seSBiZSBzZXQgb24gcHVibGljLWF1ZGllbmNlIHNoYXJlcxo3dGhpcy5hdWRpZW5jZSAhPSAyIHx8IHRoaXMuZW52aXJvbm1lbnRfcmVmcy5zaXplKCkgPT0gMBqHAQoiYWdlbnRfc2hhcmUucnVuX2NvbmZpZ19wdWJsaWNfb25seRI0cnVuX2NvbmZpZyBjYW4gb25seSBiZSBzZXQgb24gcHVibGljLWF1ZGllbmNlIHNoYXJlcxordGhpcy5hdWRpZW5jZSAhPSAyIHx8ICFoYXModGhpcy5ydW5fY29uZmlnKSJ5ChJBZ2VudFNoYXJlTWVzc2FnZXMSHgoMcmF0ZV9saW1pdGVkGAEgASgJQgi6SAVyAxisAhIdCgt1bmF2YWlsYWJsZRgCIAEoCUIIukgFcgMYrAISJAoSY29udmVyc2F0aW9uX2VuZGVkGAMgASgJQgi6SAVyAxisAip5ChJBZ2VudFNoYXJlQXVkaWVuY2USJAogYWdlbnRfc2hhcmVfYXVkaWVuY2VfdW5zcGVjaWZpZWQQABIfChthZ2VudF9zaGFyZV9hdWRpZW5jZV9wdWJsaWMQARIcChhhZ2VudF9zaGFyZV9hdWRpZW5jZV9vcmcQAmIGcHJvdG8z", [file_ai_stigmer_agentic_run_v1_invocation, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRzaGFyZS92MS9zcGVjLnByb3RvEiBhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MSLgCAoOQWdlbnRTaGFyZVNwZWMSrAEKCWFnZW50X3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJjukhcugFWCg5hZ2VudF9yZWYua2luZBIzYWdlbnRfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWFnZW50Gg90aGlzLmtpbmQgPT0gNDDIAQHghSwoEg8KB2VuYWJsZWQYAiABKAgSRgoIYXVkaWVuY2UYAyABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5BZ2VudFNoYXJlQXVkaWVuY2USsAIKD2FsbG93ZWRfb3JpZ2lucxgEIAMoCUKWArpIkgKSAY4CECAiiQK6AYUCChZhbGxvd2VkX29yaWdpbnMuZm9ybWF0Em5hbGxvd2VkX29yaWdpbnMgZW50cmllcyBtdXN0IGJlIGV4YWN0IHdlYiBvcmlnaW5zIGxpa2UgaHR0cHM6Ly9leGFtcGxlLmNvbSAobm8gcGF0aCwgcXVlcnksIG9yIHRyYWlsaW5nIHNsYXNoKRp7dGhpcy5tYXRjaGVzKCdeaHR0cHM/Oi8vW0EtWmEtejAtOV0oW0EtWmEtejAtOS1dKltBLVphLXowLTldKT8oXFwuW0EtWmEtejAtOV0oW0EtWmEtejAtOS1dKltBLVphLXowLTldKT8pKig6WzAtOV17MSw1fSk/JCcpEkYKCG1lc3NhZ2VzGAUgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuQWdlbnRTaGFyZU1lc3NhZ2VzElUKC2NyZWRlbnRpYWxzGAggAygLMjYuYWkuc3RpZ21lci5hZ2VudGljLmNyZWRlbnRpYWwudjEuQ3JlZGVudGlhbEFzc2lnbm1lbnRCCLpIBZIBAhBAEjgKCnJ1bl9jb25maWcYByABKAsyJC5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1bkNvbmZpZzqhArpInQIakAEKI2FnZW50X3NoYXJlLmNyZWRlbnRpYWxzX3B1YmxpY19vbmx5EjVjcmVkZW50aWFscyBjYW4gb25seSBiZSBzZXQgb24gcHVibGljLWF1ZGllbmNlIHNoYXJlcxoydGhpcy5hdWRpZW5jZSAhPSAyIHx8IHRoaXMuY3JlZGVudGlhbHMuc2l6ZSgpID09IDAahwEKImFnZW50X3NoYXJlLnJ1bl9jb25maWdfcHVibGljX29ubHkSNHJ1bl9jb25maWcgY2FuIG9ubHkgYmUgc2V0IG9uIHB1YmxpYy1hdWRpZW5jZSBzaGFyZXMaK3RoaXMuYXVkaWVuY2UgIT0gMiB8fCAhaGFzKHRoaXMucnVuX2NvbmZpZylKBAgGEAdSEGVudmlyb25tZW50X3JlZnMieQoSQWdlbnRTaGFyZU1lc3NhZ2VzEh4KDHJhdGVfbGltaXRlZBgBIAEoCUIIukgFcgMYrAISHQoLdW5hdmFpbGFibGUYAiABKAlCCLpIBXIDGKwCEiQKEmNvbnZlcnNhdGlvbl9lbmRlZBgDIAEoCUIIukgFcgMYrAIqeQoSQWdlbnRTaGFyZUF1ZGllbmNlEiQKIGFnZW50X3NoYXJlX2F1ZGllbmNlX3Vuc3BlY2lmaWVkEAASHwobYWdlbnRfc2hhcmVfYXVkaWVuY2VfcHVibGljEAESHAoYYWdlbnRfc2hhcmVfYXVkaWVuY2Vfb3JnEAJiBnByb3RvMw", [file_ai_stigmer_agentic_credential_v1_requirement, file_ai_stigmer_agentic_run_v1_invocation, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentShareSpec defines the configurable properties of an agent share.
@@ -90,18 +92,19 @@ export type AgentShareSpec = Message<"ai.stigmer.agentic.agentshare.v1.AgentShar
   messages?: AgentShareMessages;
 
   /**
-   * References to Environment resources whose values are provided to guest
-   * conversations on this share.
+   * The values guest conversations on this share use for what the agent needs.
    *
-   * This is how a tool-using agent becomes chattable over a share link:
-   * bind an org-shared environment holding the needed credentials (for
-   * example a read-only API token), and guest runs receive its
-   * values at runtime. The agent itself stays untouched.
-   * Valid on public-audience shares only.
+   * A guest has no credentials of their own, so a guest's runs use what
+   * is assigned here. Valid on public-audience shares only.
    *
-   * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6;
+   * Each assignment gives one requirement of the agent, one of its MCP
+   * servers or a git host its value: a field of a credential the writer
+   * may use, or a plain literal. A person's own credential is never
+   * accepted here.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 8;
    */
-  environmentRefs: ApiResourceReference[];
+  credentials: CredentialAssignment[];
 
   /**
    * Per-turn model choice and run bounds for guest conversations on this

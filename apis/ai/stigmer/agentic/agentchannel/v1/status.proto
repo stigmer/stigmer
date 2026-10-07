@@ -9,11 +9,11 @@ import "google/protobuf/timestamp.proto";
 //
 // @internal
 // Server-owned: install facts and the
-// credentials reference survive every apply/update verbatim (the
+// install facts survive every apply/update verbatim (the
 // share_link_token precedent), so a routine manifest apply can never
 // clobber an install or leak a secret. Secrets themselves NEVER appear
-// here — the bot token lives encrypted in the referenced managed
-// Environment; status is readable by anyone with can_view.
+// here — the edition that installs channels keeps the bot token sealed,
+// keyed by the channel's id; status is readable by anyone with can_view.
 message AgentChannelStatus {
   // Install lifecycle of the provider connection.
   AgentChannelInstallState install_state = 1;
@@ -31,16 +31,13 @@ message AgentChannelStatus {
     WhatsAppInstallStatus whatsapp = 4;
   }
 
-  // ID of the system-managed Environment holding this connection's
-  // provider credentials (e.g. the Slack bot token).
-  //
-  // @internal
-  // Created via ManagedEnvironmentService in the
-  // connection's org (stigmer.ai/managed=true), non-secret grant metadata
-  // in the resource-agnostic OAuthGrant document. The webhook receiver and
-  // delivery worker resolve the token through this reference — never from
-  // the channel resource itself.
-  string credentials_environment_id = 3;
+  // Field 3 named the system-managed environment that held the
+  // connection's provider credential (the Slack bot token), until that
+  // token came to be kept by the edition that installs channels, sealed
+  // and keyed by the channel's id. Reserved so the number and name are
+  // never reused.
+  reserved 3;
+  reserved "credentials_environment_id";
 
   // Standard audit information (created_at, updated_at, created_by, etc.)
   ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;

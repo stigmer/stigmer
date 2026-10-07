@@ -22,6 +22,7 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
+from ai.stigmer.agentic.credential.v1 import requirement_pb2 as ai_dot_stigmer_dot_agentic_dot_credential_dot_v1_dot_requirement__pb2
 from ai.stigmer.agentic.run.v1 import enum_pb2 as ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_enum__pb2
 from ai.stigmer.agentic.session.v1 import enum_pb2 as ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_enum__pb2
 from ai.stigmer.agentic.session.v1 import workspace_pb2 as ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_workspace__pb2
@@ -30,7 +31,7 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*ai/stigmer/agentic/run/v1/invocation.proto\x12\x19\x61i.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x1b\x62uf/validate/validate.proto\"\xaf\x05\n\x0f\x41gentInvocation\x12\xb6\x01\n\tagent_ref\x18\x01 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBc\xbaH\\\xba\x01V\n\x0e\x61gent_ref.kind\x12\x33\x61gent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xc8\x01\x01\xe0\x85,(R\x08\x61gentRef\x12$\n\x07message\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80@R\x07message\x12@\n\x07harness\x18\x03 \x01(\x0e\x32&.ai.stigmer.agentic.session.v1.HarnessR\x07harness\x12Z\n\x11workspace_entries\x18\x04 \x03(\x0b\x32-.ai.stigmer.agentic.session.v1.WorkspaceEntryR\x10workspaceEntries\x12\xd9\x01\n\x10\x65nvironment_refs\x18\x05 \x03(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n\x15\x65nvironment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0f\x65nvironmentRefs\x12\x43\n\nrun_config\x18\x06 \x01(\x0b\x32$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfig\"\xf6\x02\n\tRunConfig\x12\x1d\n\nmodel_name\x18\x01 \x01(\tR\tmodelName\x12\x30\n\x0cmax_cost_usd\x18\x02 \x01(\x01\x42\x0e\xbaH\x0b\x12\t)\x00\x00\x00\x00\x00\x00\x00\x00R\nmaxCostUsd\x12/\n\x0fmax_tool_rounds\x18\x03 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\rmaxToolRounds\x12S\n\x0cservice_tier\x18\x04 \x01(\x0e\x32&.ai.stigmer.agentic.run.v1.ServiceTierB\x08\xbaH\x05\x82\x01\x02\x10\x01R\x0bserviceTier\x12V\n\rthinking_mode\x18\x05 \x01(\x0e\x32\'.ai.stigmer.agentic.run.v1.ThinkingModeB\x08\xbaH\x05\x82\x01\x02\x10\x01R\x0cthinkingMode\x12:\n\x15max_tool_result_chars\x18\x06 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x12maxToolResultCharsB\xb9\x01\n\x1d\x63om.ai.stigmer.agentic.run.v1B\x0fInvocationProtoP\x01\xa2\x02\x04\x41SAR\xaa\x02\x19\x41i.Stigmer.Agentic.Run.V1\xca\x02\x19\x41i\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1d\x41i::Stigmer::Agentic::Run::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*ai/stigmer/agentic/run/v1/invocation.proto\x12\x19\x61i.stigmer.agentic.run.v1\x1a\x32\x61i/stigmer/agentic/credential/v1/requirement.proto\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x1b\x62uf/validate/validate.proto\"\xcf\x04\n\x0f\x41gentInvocation\x12\xb6\x01\n\tagent_ref\x18\x01 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBc\xbaH\\\xba\x01V\n\x0e\x61gent_ref.kind\x12\x33\x61gent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xc8\x01\x01\xe0\x85,(R\x08\x61gentRef\x12$\n\x07message\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80@R\x07message\x12@\n\x07harness\x18\x03 \x01(\x0e\x32&.ai.stigmer.agentic.session.v1.HarnessR\x07harness\x12Z\n\x11workspace_entries\x18\x04 \x03(\x0b\x32-.ai.stigmer.agentic.session.v1.WorkspaceEntryR\x10workspaceEntries\x12\x62\n\x0b\x63redentials\x18\x07 \x03(\x0b\x32\x36.ai.stigmer.agentic.credential.v1.CredentialAssignmentB\x08\xbaH\x05\x92\x01\x02\x10@R\x0b\x63redentials\x12\x43\n\nrun_config\x18\x06 \x01(\x0b\x32$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfigJ\x04\x08\x05\x10\x06R\x10\x65nvironment_refs\"\xf6\x02\n\tRunConfig\x12\x1d\n\nmodel_name\x18\x01 \x01(\tR\tmodelName\x12\x30\n\x0cmax_cost_usd\x18\x02 \x01(\x01\x42\x0e\xbaH\x0b\x12\t)\x00\x00\x00\x00\x00\x00\x00\x00R\nmaxCostUsd\x12/\n\x0fmax_tool_rounds\x18\x03 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\rmaxToolRounds\x12S\n\x0cservice_tier\x18\x04 \x01(\x0e\x32&.ai.stigmer.agentic.run.v1.ServiceTierB\x08\xbaH\x05\x82\x01\x02\x10\x01R\x0bserviceTier\x12V\n\rthinking_mode\x18\x05 \x01(\x0e\x32\'.ai.stigmer.agentic.run.v1.ThinkingModeB\x08\xbaH\x05\x82\x01\x02\x10\x01R\x0cthinkingMode\x12:\n\x15max_tool_result_chars\x18\x06 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x12maxToolResultCharsB\xb9\x01\n\x1d\x63om.ai.stigmer.agentic.run.v1B\x0fInvocationProtoP\x01\xa2\x02\x04\x41SAR\xaa\x02\x19\x41i.Stigmer.Agentic.Run.V1\xca\x02\x19\x41i\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1d\x41i::Stigmer::Agentic::Run::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -42,8 +43,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_AGENTINVOCATION'].fields_by_name['agent_ref']._serialized_options = b'\272H\\\272\001V\n\016agent_ref.kind\0223agent_ref must reference a resource with kind=agent\032\017this.kind == 40\310\001\001\340\205,('
   _globals['_AGENTINVOCATION'].fields_by_name['message']._loaded_options = None
   _globals['_AGENTINVOCATION'].fields_by_name['message']._serialized_options = b'\272H\007r\005\020\001\030\200@'
-  _globals['_AGENTINVOCATION'].fields_by_name['environment_refs']._loaded_options = None
-  _globals['_AGENTINVOCATION'].fields_by_name['environment_refs']._serialized_options = b'\272Hq\222\001n\"l\272\001i\n\025environment_refs.kind\022?environment_refs must reference resources with kind=environment\032\017this.kind == 53\340\205,5'
+  _globals['_AGENTINVOCATION'].fields_by_name['credentials']._loaded_options = None
+  _globals['_AGENTINVOCATION'].fields_by_name['credentials']._serialized_options = b'\272H\005\222\001\002\020@'
   _globals['_RUNCONFIG'].fields_by_name['max_cost_usd']._loaded_options = None
   _globals['_RUNCONFIG'].fields_by_name['max_cost_usd']._serialized_options = b'\272H\013\022\t)\000\000\000\000\000\000\000\000'
   _globals['_RUNCONFIG'].fields_by_name['max_tool_rounds']._loaded_options = None
@@ -54,8 +55,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_RUNCONFIG'].fields_by_name['thinking_mode']._serialized_options = b'\272H\005\202\001\002\020\001'
   _globals['_RUNCONFIG'].fields_by_name['max_tool_result_chars']._loaded_options = None
   _globals['_RUNCONFIG'].fields_by_name['max_tool_result_chars']._serialized_options = b'\272H\004\032\002(\000'
-  _globals['_AGENTINVOCATION']._serialized_start=323
-  _globals['_AGENTINVOCATION']._serialized_end=1010
-  _globals['_RUNCONFIG']._serialized_start=1013
-  _globals['_RUNCONFIG']._serialized_end=1387
+  _globals['_AGENTINVOCATION']._serialized_start=375
+  _globals['_AGENTINVOCATION']._serialized_end=966
+  _globals['_RUNCONFIG']._serialized_start=969
+  _globals['_RUNCONFIG']._serialized_end=1343
 # @@protoc_insertion_point(module_scope)

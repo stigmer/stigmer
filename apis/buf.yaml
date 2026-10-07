@@ -29,3 +29,30 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
+  # One pull request replaces environments with credentials: the
+  # environment/v1 package is deleted and credential/v1 added, the four
+  # environment_refs fields give way to credentials, EnvVarDeclaration moves
+  # to credential/v1 with its bytes unchanged, the environment kind value and
+  # can_create_environment are reserved, and so are OAuthGrant's environment
+  # fields and AgentChannelStatus.credentials_environment_id. It is made
+  # before launch: the release notes name every change under Upgrading. This
+  # block exists for that one pull request. While it stays, buf breaking does
+  # not report these rules on the listed files, so the pull request that
+  # removes it lands straight after the merge
+  # (https://github.com/stigmer/stigmer/issues/2021).
+  ignore_only:
+    ENUM_VALUE_NO_DELETE:
+      - ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto
+      - ai/stigmer/iam/v1/enum.proto
+    FIELD_NO_DELETE:
+      - ai/stigmer/agentic/agentchannel/v1/spec.proto
+      - ai/stigmer/agentic/agentchannel/v1/status.proto
+      - ai/stigmer/agentic/agentshare/v1/spec.proto
+      - ai/stigmer/agentic/mcpserver/v1/oauth.proto
+      - ai/stigmer/agentic/run/v1/invocation.proto
+      - ai/stigmer/iam/platformclient/v1/spec.proto
+    FIELD_SAME_TYPE:
+      - ai/stigmer/agentic/agent/v1/spec.proto
+      - ai/stigmer/agentic/mcpserver/v1/spec.proto
+    FILE_NO_DELETE:
+      - ai/stigmer/agentic/environment

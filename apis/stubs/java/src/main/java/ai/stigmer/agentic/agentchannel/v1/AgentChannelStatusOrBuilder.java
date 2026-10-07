@@ -85,28 +85,6 @@ public interface AgentChannelStatusOrBuilder extends
 
   /**
    * <pre>
-   * ID of the system-managed Environment holding this connection's
-   * provider credentials (e.g. the Slack bot token).
-   * </pre>
-   *
-   * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
-   * @return The credentialsEnvironmentId.
-   */
-  java.lang.String getCredentialsEnvironmentId();
-  /**
-   * <pre>
-   * ID of the system-managed Environment holding this connection's
-   * provider credentials (e.g. the Slack bot token).
-   * </pre>
-   *
-   * <code>string credentials_environment_id = 3 [json_name = "credentialsEnvironmentId"];</code>
-   * @return The bytes for credentialsEnvironmentId.
-   */
-  com.google.protobuf.ByteString
-      getCredentialsEnvironmentIdBytes();
-
-  /**
-   * <pre>
    * Standard audit information (created_at, updated_at, created_by, etc.)
    * </pre>
    *

@@ -53,12 +53,19 @@ const (
 	IamPermission_can_create_session          IamPermission = 8
 	IamPermission_can_create_skill            IamPermission = 9
 	IamPermission_can_create_idp              IamPermission = 11
-	IamPermission_can_create_environment      IamPermission = 12
 	IamPermission_can_create_identity_account IamPermission = 21
 	IamPermission_can_create_oauth_app        IamPermission = 23
 	IamPermission_can_create_platform_client  IamPermission = 24
 	// Resource-level create permissions.
 	IamPermission_can_create_run_in IamPermission = 13
+	// Organization-level permission to save a credential of your own.
+	IamPermission_can_create_credential IamPermission = 52
+	// Organization-level permission to save a credential that belongs to
+	// the organization. Admin-gated: an organization's credential is the
+	// organization's to share.
+	IamPermission_can_create_org_credential IamPermission = 53
+	// Whether the caller's runs may use a credential's values.
+	IamPermission_can_use IamPermission = 51
 	// Execution permission.
 	IamPermission_can_execute IamPermission = 15
 	// Secret access permission.
@@ -161,11 +168,13 @@ var (
 		8:  "can_create_session",
 		9:  "can_create_skill",
 		11: "can_create_idp",
-		12: "can_create_environment",
 		21: "can_create_identity_account",
 		23: "can_create_oauth_app",
 		24: "can_create_platform_client",
 		13: "can_create_run_in",
+		52: "can_create_credential",
+		53: "can_create_org_credential",
+		51: "can_use",
 		15: "can_execute",
 		16: "can_read_secrets",
 		17: "can_bootstrap_iam",
@@ -202,11 +211,13 @@ var (
 		"can_create_session":          8,
 		"can_create_skill":            9,
 		"can_create_idp":              11,
-		"can_create_environment":      12,
 		"can_create_identity_account": 21,
 		"can_create_oauth_app":        23,
 		"can_create_platform_client":  24,
 		"can_create_run_in":           13,
+		"can_create_credential":       52,
+		"can_create_org_credential":   53,
+		"can_use":                     51,
 		"can_execute":                 15,
 		"can_read_secrets":            16,
 		"can_bootstrap_iam":           17,
@@ -290,6 +301,9 @@ const (
 	// change its visibility, publish it on a share link or a channel, or decide
 	// who else has access.
 	IamRole_editor IamRole = 6
+	// User of a credential: the runs this person or team starts may use
+	// the credential's values. Never reveals them.
+	IamRole_user IamRole = 7
 )
 
 // Enum value maps for IamRole.
@@ -302,6 +316,7 @@ var (
 		4: "viewer",
 		5: "participant",
 		6: "editor",
+		7: "user",
 	}
 	IamRole_value = map[string]int32{
 		"iam_role_unspecified": 0,
@@ -311,6 +326,7 @@ var (
 		"viewer":               4,
 		"participant":          5,
 		"editor":               6,
+		"user":                 7,
 	}
 )
 
@@ -345,7 +361,8 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xe6\t\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xaf\n" +
+	"\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -359,12 +376,14 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x10can_create_agent\x10\x06\x12\x16\n" +
 	"\x12can_create_session\x10\b\x12\x14\n" +
 	"\x10can_create_skill\x10\t\x12\x12\n" +
-	"\x0ecan_create_idp\x10\v\x12\x1a\n" +
-	"\x16can_create_environment\x10\f\x12\x1f\n" +
+	"\x0ecan_create_idp\x10\v\x12\x1f\n" +
 	"\x1bcan_create_identity_account\x10\x15\x12\x18\n" +
 	"\x14can_create_oauth_app\x10\x17\x12\x1e\n" +
 	"\x1acan_create_platform_client\x10\x18\x12\x15\n" +
-	"\x11can_create_run_in\x10\r\x12\x0f\n" +
+	"\x11can_create_run_in\x10\r\x12\x19\n" +
+	"\x15can_create_credential\x104\x12\x1d\n" +
+	"\x19can_create_org_credential\x105\x12\v\n" +
+	"\acan_use\x103\x12\x0f\n" +
 	"\vcan_execute\x10\x0f\x12\x14\n" +
 	"\x10can_read_secrets\x10\x10\x12\x15\n" +
 	"\x11can_bootstrap_iam\x10\x11\x12\x0f\n" +
@@ -386,9 +405,9 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x0fcan_create_team\x10-\x12\x16\n" +
 	"\x12can_manage_credits\x10.\x12\x19\n" +
 	"\x15can_manage_child_orgs\x101\x12\x15\n" +
-	"\x11can_view_settings\x102\"\x04\b\x0e\x10\x0e\"\x04\b\a\x10\a\"\x04\b\x12\x10\x12\"\x04\b\x14\x10\x14\"\x04\b\x19\x10\x19\"\x04\b\x1a\x10\x1a\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
+	"\x11can_view_settings\x102\"\x04\b\x0e\x10\x0e\"\x04\b\f\x10\f\"\x04\b\a\x10\a\"\x04\b\x12\x10\x12\"\x04\b\x14\x10\x14\"\x04\b\x19\x10\x19\"\x04\b\x1a\x10\x1a\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
 	"\x10\n" +
-	"\"\x04\b'\x10'\"\x04\b,\x10,*\x13can_create_instance*\x13can_create_workflow*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x19can_set_public_visibility*\x19can_create_agent_instance*n\n" +
+	"\"\x04\b'\x10'\"\x04\b,\x10,*\x13can_create_instance*\x16can_create_environment*\x13can_create_workflow*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x19can_set_public_visibility*\x19can_create_agent_instance*x\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12\t\n" +
 	"\x05owner\x10\x01\x12\t\n" +
@@ -399,7 +418,8 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x06viewer\x10\x04\x12\x0f\n" +
 	"\vparticipant\x10\x05\x12\n" +
 	"\n" +
-	"\x06editor\x10\x06B\xcb\x01\n" +
+	"\x06editor\x10\x06\x12\b\n" +
+	"\x04user\x10\aB\xcb\x01\n" +
 	"\x15com.ai.stigmer.iam.v1B\tEnumProtoP\x01Z@github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/v1;iamv1\xa2\x02\x03ASI\xaa\x02\x11Ai.Stigmer.Iam.V1\xca\x02\x11Ai\\Stigmer\\Iam\\V1\xe2\x02\x1dAi\\Stigmer\\Iam\\V1\\GPBMetadata\xea\x02\x14Ai::Stigmer::Iam::V1b\x06proto3"
 
 var (

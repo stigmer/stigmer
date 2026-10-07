@@ -34,8 +34,8 @@ public interface ConnectInputOrBuilder extends
 
   /**
    * <pre>
-   * Optional environment variable values for one-time use.
-   * When empty, values are resolved from the user's personal environment.
+   * Optional values for one-time use, by key.
+   * Keys left out are resolved from the caller's credentials.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
@@ -43,8 +43,8 @@ public interface ConnectInputOrBuilder extends
   int getRuntimeEnvCount();
   /**
    * <pre>
-   * Optional environment variable values for one-time use.
-   * When empty, values are resolved from the user's personal environment.
+   * Optional values for one-time use, by key.
+   * Keys left out are resolved from the caller's credentials.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
@@ -59,8 +59,8 @@ public interface ConnectInputOrBuilder extends
   getRuntimeEnv();
   /**
    * <pre>
-   * Optional environment variable values for one-time use.
-   * When empty, values are resolved from the user's personal environment.
+   * Optional values for one-time use, by key.
+   * Keys left out are resolved from the caller's credentials.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
@@ -69,8 +69,8 @@ public interface ConnectInputOrBuilder extends
   getRuntimeEnvMap();
   /**
    * <pre>
-   * Optional environment variable values for one-time use.
-   * When empty, values are resolved from the user's personal environment.
+   * Optional values for one-time use, by key.
+   * Keys left out are resolved from the caller's credentials.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
@@ -82,8 +82,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrDefault(
 ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
   /**
    * <pre>
-   * Optional environment variable values for one-time use.
-   * When empty, values are resolved from the user's personal environment.
+   * Optional values for one-time use, by key.
+   * Keys left out are resolved from the caller's credentials.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
@@ -95,9 +95,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    * <pre>
    * Organization context for credential resolution.
    *
-   * Used to look up the caller's OAuthGrant and personal environment
-   * during environment variable resolution. Must match the org used
-   * during initiateOAuthConnect so the grant composite key aligns.
+   * The organization whose credentials the values are resolved from.
    *
    * Required: the backend rejects the request when this field is empty.
    * </pre>
@@ -110,9 +108,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    * <pre>
    * Organization context for credential resolution.
    *
-   * Used to look up the caller's OAuthGrant and personal environment
-   * during environment variable resolution. Must match the org used
-   * during initiateOAuthConnect so the grant composite key aligns.
+   * The organization whose credentials the values are resolved from.
    *
    * Required: the backend rejects the request when this field is empty.
    * </pre>

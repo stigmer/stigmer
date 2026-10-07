@@ -107,9 +107,10 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object org_ = "";
   /**
    * <pre>
-   * Organization context for token storage.
-   * Tokens are stored in the caller's personal environment within this org.
-   * Must be an org the caller belongs to.
+   * Organization the sign-in is saved in.
+   * The token is saved as the caller's own credential in this org, or as
+   * the org's credential for a server with organization sign-in (admins
+   * only). Must be an org the caller belongs to.
    * </pre>
    *
    * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -130,9 +131,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Organization context for token storage.
-   * Tokens are stored in the caller's personal environment within this org.
-   * Must be an org the caller belongs to.
+   * Organization the sign-in is saved in.
+   * The token is saved as the caller's own credential in this org, or as
+   * the org's credential for a server with organization sign-in (admins
+   * only). Must be an org the caller belongs to.
    * </pre>
    *
    * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -571,9 +573,10 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object org_ = "";
     /**
      * <pre>
-     * Organization context for token storage.
-     * Tokens are stored in the caller's personal environment within this org.
-     * Must be an org the caller belongs to.
+     * Organization the sign-in is saved in.
+     * The token is saved as the caller's own credential in this org, or as
+     * the org's credential for a server with organization sign-in (admins
+     * only). Must be an org the caller belongs to.
      * </pre>
      *
      * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -593,9 +596,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization context for token storage.
-     * Tokens are stored in the caller's personal environment within this org.
-     * Must be an org the caller belongs to.
+     * Organization the sign-in is saved in.
+     * The token is saved as the caller's own credential in this org, or as
+     * the org's credential for a server with organization sign-in (admins
+     * only). Must be an org the caller belongs to.
      * </pre>
      *
      * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -616,9 +620,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization context for token storage.
-     * Tokens are stored in the caller's personal environment within this org.
-     * Must be an org the caller belongs to.
+     * Organization the sign-in is saved in.
+     * The token is saved as the caller's own credential in this org, or as
+     * the org's credential for a server with organization sign-in (admins
+     * only). Must be an org the caller belongs to.
      * </pre>
      *
      * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -635,9 +640,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization context for token storage.
-     * Tokens are stored in the caller's personal environment within this org.
-     * Must be an org the caller belongs to.
+     * Organization the sign-in is saved in.
+     * The token is saved as the caller's own credential in this org, or as
+     * the org's credential for a server with organization sign-in (admins
+     * only). Must be an org the caller belongs to.
      * </pre>
      *
      * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -651,9 +657,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization context for token storage.
-     * Tokens are stored in the caller's personal environment within this org.
-     * Must be an org the caller belongs to.
+     * Organization the sign-in is saved in.
+     * The token is saved as the caller's own credential in this org, or as
+     * the org's credential for a server with organization sign-in (admins
+     * only). Must be an org the caller belongs to.
      * </pre>
      *
      * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>

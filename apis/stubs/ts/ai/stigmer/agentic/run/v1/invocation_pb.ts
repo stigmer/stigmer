@@ -4,6 +4,8 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { CredentialAssignment } from "../../credential/v1/requirement_pb.js";
+import { file_ai_stigmer_agentic_credential_v1_requirement } from "../../credential/v1/requirement_pb.js";
 import type { ServiceTier, ThinkingMode } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_run_v1_enum } from "./enum_pb.js";
 import type { Harness } from "../../session/v1/enum_pb.js";
@@ -20,14 +22,14 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/run/v1/invocation.proto.
  */
 export const file_ai_stigmer_agentic_run_v1_invocation: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL2ludm9jYXRpb24ucHJvdG8SGWFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEi5QQKD0FnZW50SW52b2NhdGlvbhKsAQoJYWdlbnRfcmVmGAEgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQmO6SFy6AVYKDmFnZW50X3JlZi5raW5kEjNhZ2VudF9yZWYgbXVzdCByZWZlcmVuY2UgYSByZXNvdXJjZSB3aXRoIGtpbmQ9YWdlbnQaD3RoaXMua2luZCA9PSA0MMgBAeCFLCgSGwoHbWVzc2FnZRgCIAEoCUIKukgHcgUQARiAQBI3CgdoYXJuZXNzGAMgASgOMiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuSGFybmVzcxJIChF3b3Jrc3BhY2VfZW50cmllcxgEIAMoCzItLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLldvcmtzcGFjZUVudHJ5EsgBChBlbnZpcm9ubWVudF9yZWZzGAUgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQni6SHGSAW4ibLoBaQoVZW52aXJvbm1lbnRfcmVmcy5raW5kEj9lbnZpcm9ubWVudF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9ZW52aXJvbm1lbnQaD3RoaXMua2luZCA9PSA1M+CFLDUSOAoKcnVuX2NvbmZpZxgGIAEoCzIkLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuQ29uZmlnIqECCglSdW5Db25maWcSEgoKbW9kZWxfbmFtZRgBIAEoCRIkCgxtYXhfY29zdF91c2QYAiABKAFCDrpICxIJKQAAAAAAAAAAEiAKD21heF90b29sX3JvdW5kcxgDIAEoBUIHukgEGgIoABJGCgxzZXJ2aWNlX3RpZXIYBCABKA4yJi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlNlcnZpY2VUaWVyQgi6SAWCAQIQARJICg10aGlua2luZ19tb2RlGAUgASgOMicuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5UaGlua2luZ01vZGVCCLpIBYIBAhABEiYKFW1heF90b29sX3Jlc3VsdF9jaGFycxgGIAEoBUIHukgEGgIoAGIGcHJvdG8z", [file_ai_stigmer_agentic_run_v1_enum, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL2ludm9jYXRpb24ucHJvdG8SGWFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEiiQQKD0FnZW50SW52b2NhdGlvbhKsAQoJYWdlbnRfcmVmGAEgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQmO6SFy6AVYKDmFnZW50X3JlZi5raW5kEjNhZ2VudF9yZWYgbXVzdCByZWZlcmVuY2UgYSByZXNvdXJjZSB3aXRoIGtpbmQ9YWdlbnQaD3RoaXMua2luZCA9PSA0MMgBAeCFLCgSGwoHbWVzc2FnZRgCIAEoCUIKukgHcgUQARiAQBI3CgdoYXJuZXNzGAMgASgOMiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuSGFybmVzcxJIChF3b3Jrc3BhY2VfZW50cmllcxgEIAMoCzItLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLldvcmtzcGFjZUVudHJ5ElUKC2NyZWRlbnRpYWxzGAcgAygLMjYuYWkuc3RpZ21lci5hZ2VudGljLmNyZWRlbnRpYWwudjEuQ3JlZGVudGlhbEFzc2lnbm1lbnRCCLpIBZIBAhBAEjgKCnJ1bl9jb25maWcYBiABKAsyJC5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1bkNvbmZpZ0oECAUQBlIQZW52aXJvbm1lbnRfcmVmcyKhAgoJUnVuQ29uZmlnEhIKCm1vZGVsX25hbWUYASABKAkSJAoMbWF4X2Nvc3RfdXNkGAIgASgBQg66SAsSCSkAAAAAAAAAABIgCg9tYXhfdG9vbF9yb3VuZHMYAyABKAVCB7pIBBoCKAASRgoMc2VydmljZV90aWVyGAQgASgOMiYuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5TZXJ2aWNlVGllckIIukgFggECEAESSAoNdGhpbmtpbmdfbW9kZRgFIAEoDjInLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVGhpbmtpbmdNb2RlQgi6SAWCAQIQARImChVtYXhfdG9vbF9yZXN1bHRfY2hhcnMYBiABKAVCB7pIBBoCKABiBnByb3RvMw", [file_ai_stigmer_agentic_credential_v1_requirement, file_ai_stigmer_agentic_run_v1_enum, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentInvocation is what a caller may ask an agent to do.
  *
  * It is the owner-settable subset of a run — the interactive
  * composer's vocabulary (agent, message, harness, workspace,
- * environments, run bounds) minus what an unattended surface makes
+ * credentials, run bounds) minus what an unattended surface makes
  * structurally impossible. Surfaces that trigger agents on someone's
  * behalf embed this message instead of re-deriving the shape:
  * schedules embed it whole; channels and shares embed RunConfig.
@@ -71,17 +73,15 @@ export type AgentInvocation = Message<"ai.stigmer.agentic.run.v1.AgentInvocation
   workspaceEntries: WorkspaceEntry[];
 
   /**
-   * References to Environment resources whose values are provided to
-   * the runs this invocation creates.
+   * The values the runs this invocation creates use for what the agent needs.
    *
-   * This is how a tool-using agent becomes runnable unattended: bind
-   * an org-shared environment holding the needed credentials (for
-   * example an MCP server's shared secret), and the runs receive its
-   * values at runtime. The agent itself stays untouched.
+   * A schedule's runs have no person behind them: they use what is
+   * assigned here, and a credential of the schedule's own creator only
+   * when that person wrote the assignment.
    *
-   * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5;
+   * @generated from field: repeated ai.stigmer.agentic.credential.v1.CredentialAssignment credentials = 7;
    */
-  environmentRefs: ApiResourceReference[];
+  credentials: CredentialAssignment[];
 
   /**
    * Per-invocation model choice and run bounds. Unset fields fall to the
