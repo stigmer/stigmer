@@ -45,7 +45,10 @@ public interface ApiResourceMetadataOrBuilder extends
    * characters, the length every reference to a resource holds; must start
    * with a letter and end with a letter or digit. When empty, the server
    * derives the slug from the name, and refuses a name whose derived slug
-   * breaks these rules, never shortening it.
+   * breaks these rules, never shortening it. An identity account is the
+   * exception: its name is the server's choice (an email or a subject), so
+   * its derived slug is made to fit instead (a letter in front, a fallback
+   * to the subject, or a cut with a short hash).
    * </pre>
    *
    * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
@@ -63,7 +66,10 @@ public interface ApiResourceMetadataOrBuilder extends
    * characters, the length every reference to a resource holds; must start
    * with a letter and end with a letter or digit. When empty, the server
    * derives the slug from the name, and refuses a name whose derived slug
-   * breaks these rules, never shortening it.
+   * breaks these rules, never shortening it. An identity account is the
+   * exception: its name is the server's choice (an email or a subject), so
+   * its derived slug is made to fit instead (a letter in front, a fallback
+   * to the subject, or a cut with a short hash).
    * </pre>
    *
    * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>

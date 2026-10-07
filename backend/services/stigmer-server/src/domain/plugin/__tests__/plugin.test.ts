@@ -20,8 +20,9 @@
  * unmanaged resource holds refuses the install, and a user's row is never
  * adopted whichever side declares system content; a bad overlay refuses
  * before any write, and so does a plugin or member name whose derived slug
- * breaks the slug rules, named in the refusal. A second composition, under an authorizer that decides
- * `can_write_reserved_labels` per test, pins the reserved-label refusal the
+ * breaks the slug rules, named in the refusal. A second composition,
+ * under an authorizer that decides `can_write_reserved_labels` per test,
+ * pins the reserved-label refusal the
  * open-source posture allows by design, and the one adoption the platform
  * makes: an operator's plugin taking over the system-content row it
  * replaces in place, the row's id kept, a member's

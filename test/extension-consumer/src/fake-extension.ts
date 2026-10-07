@@ -66,6 +66,7 @@ import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_inf
 
 import {
   accountIdFor,
+  accountSlugFor,
   ArtifactStorageNotFoundError,
   callerIdentityKey,
   callerIdentityOf,
@@ -112,6 +113,7 @@ import {
   verifyPlatformToken,
   RequestContext,
   ResourceNotFoundError,
+  repairAccountSlug,
   rethrownStatusError,
   newSubstrateSandboxDriver,
   newSubstrateSettingsFromEnv,
@@ -1125,6 +1127,17 @@ const consumerVaultCodec: SecretCodec = {
     );
   },
 };
+
+/**
+ * An edition that writes its own account rows derives a new account's slug
+ * through the library and repairs a stored one through the same frozen
+ * rule the library's store migration applies, so both editions' accounts
+ * hold slugs the rules admit.
+ */
+export const consumerAccountSlugs: {
+  readonly derive: (name: string, ...fallbacks: string[]) => string;
+  readonly repair: typeof repairAccountSlug;
+} = { derive: accountSlugFor, repair: repairAccountSlug };
 
 /**
  * A consumer-shaped schedule-fire caller mint — the identity a schedule

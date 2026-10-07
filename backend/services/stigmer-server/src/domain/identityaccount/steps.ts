@@ -14,9 +14,14 @@
  *
  * The domain's own rules:
  *   - DefaultAccountName: `metadata.name` falls back to the email, then
- *     the subject. ResolveSlug refuses an empty name and the field is not
- *     proto-required, and a machine subject whose IdP releases no email
- *     must still provision.
+ *     the subject. The field is not proto-required, and a machine subject
+ *     whose IdP releases no email must still provision.
+ *   - ResolveAccountSlug: an empty `metadata.slug` is derived by
+ *     `accountSlugFor` (slug.ts), which always yields a valid slug: the
+ *     name is the server's choice, not the caller's, so the shared
+ *     ResolveSlug's refusal of an invalid derived slug would refuse a
+ *     sign-in. A slug the caller sent was held to the rules by
+ *     ValidateProto already.
  *   - DeriveAccountId: `metadata.id = accountIdFor(spec.idp_id)`,
  *     replacing whatever the caller sent (`metadata.proto`'s documented
  *     exception). Runs BEFORE
@@ -74,6 +79,7 @@ import {
   isPlatformClientSubject,
   reservedSubjectMessage,
 } from "./constants.js";
+import { accountSlugFor } from "./slug.js";
 import type { AccountProvisioning } from "./provisioning.js";
 import { DuplicateAccountError } from "./store.js";
 import type { IdentityAccountStore } from "./store.js";
@@ -101,6 +107,18 @@ export function newDefaultAccountNameStep(): AccountStep {
       if (metadata.name === "") {
         const spec = specOf(ctx);
         metadata.name = spec.email !== "" ? spec.email : spec.idpId;
+      }
+    },
+  };
+}
+
+export function newResolveAccountSlugStep(): AccountStep {
+  return {
+    name: "ResolveAccountSlug",
+    execute(ctx: AccountContext): void {
+      const metadata = requireMetadata(ctx, "resolve account slug");
+      if (metadata.slug === "") {
+        metadata.slug = accountSlugFor(metadata.name, specOf(ctx).idpId);
       }
     },
   };

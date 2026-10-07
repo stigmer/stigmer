@@ -91,6 +91,10 @@ import {
   unreadableRunRenameRowError,
 } from "../run-rename.js";
 import type { RekeyedPolicy } from "../run-rename.js";
+import {
+  IDENTITY_ACCOUNT_KIND,
+  repairedAccountSlugRow,
+} from "../account-slugs-repaired.js";
 
 export const SCHEMA_VERSION_1 = 1;
 export const SCHEMA_VERSION_2 = 2;
@@ -122,9 +126,11 @@ export const SCHEMA_VERSION_16 = 16;
 export const SCHEMA_VERSION_17 = 17;
 /** v18: agent and workflow executions are runs, in the store and the workflow language. */
 export const SCHEMA_VERSION_18 = 18;
+/** v19: every identity account's slug held to the slug rules. */
+export const SCHEMA_VERSION_19 = 19;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_18;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_19;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -167,6 +173,7 @@ export function runMigrations(
     [SCHEMA_VERSION_16, migrateToV16],
     [SCHEMA_VERSION_17, migrateToV17],
     [SCHEMA_VERSION_18, migrateToV18],
+    [SCHEMA_VERSION_19, migrateToV19],
   ];
 
   for (const [version, migrate] of chain) {
@@ -1056,5 +1063,35 @@ function migrateToV18(db: DatabaseSync): void {
       break;
     }
     after = rows[rows.length - 1]!.id;
+  }
+}
+
+/**
+ * v19: identity-account slugs repaired, the Postgres driver's v14 in this
+ * engine's terms (../account-slugs-repaired.ts says what changes and why).
+ * One read of the kind, one UPDATE per repaired row with `updated_at`
+ * bumped; runs inside applyInTransaction's BEGIN, so a throw rolls the
+ * step back and the boot stops on the row it names.
+ */
+function migrateToV19(db: DatabaseSync): void {
+  const update = db.prepare(
+    `UPDATE resources SET data = ?, updated_at = datetime('now') WHERE kind = ? AND id = ?`,
+  );
+  const rows = db
+    .prepare(`SELECT id, data FROM resources WHERE kind = ?`)
+    .all(IDENTITY_ACCOUNT_KIND) as Array<{ id: string; data: Uint8Array }>;
+  for (const row of rows) {
+    let repaired: Uint8Array | undefined;
+    try {
+      repaired = repairedAccountSlugRow(row.data);
+    } catch (error) {
+      throw new Error(
+        `${IDENTITY_ACCOUNT_KIND} '${row.id}' cannot have its slug repaired: ${String(error)}`,
+        { cause: error },
+      );
+    }
+    if (repaired !== undefined) {
+      update.run(repaired, IDENTITY_ACCOUNT_KIND, row.id);
+    }
   }
 }

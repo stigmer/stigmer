@@ -63,6 +63,40 @@ async function refusal(promise: Promise<unknown>): Promise<ConnectError> {
   throw new Error("expected a ConnectError refusal");
 }
 
+describe("the create path's account slug, from a name the server chose", () => {
+  it("provisions a direct account whose email starts with a digit", async () => {
+    const account = await createAccount(
+      {
+        name: "2024intern@acme.com",
+        spec: create(IdentityAccountSpecSchema, {
+          idpId: "auth0|2024intern",
+          email: "2024intern@acme.com",
+        }),
+        provisioning: { mode: "direct" },
+      },
+      CLIENT,
+    );
+    expect(account.metadata?.slug).toBe("a-2024internacme-com");
+  });
+
+  it("provisions a platform-client user whose external id is numeric, and one named by a UUID", async () => {
+    for (const [external, slug] of [
+      ["12345", "a-12345"],
+      ["550e8400-e29b-41d4-a716-446655440000", "a-550e8400-e29b-41d4-a716-446655440000"],
+    ] as const) {
+      const account = await createAccount(
+        {
+          name: external,
+          spec: create(IdentityAccountSpecSchema, { idpId: `stgm_pc|acme|${external}` }),
+          provisioning: { mode: "platform_client", org: "acme" },
+        },
+        CLIENT,
+      );
+      expect(account.metadata?.slug).toBe(slug);
+    }
+  });
+});
+
 describe("the create path's platform-client arm", () => {
   it("writes the mode, the owning organization and the derived id, stamped as the client", async () => {
     const account = await createAccount(

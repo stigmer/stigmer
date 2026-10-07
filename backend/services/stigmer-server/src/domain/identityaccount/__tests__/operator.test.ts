@@ -98,6 +98,17 @@ describe("ensureOperatorAccount", () => {
     ).toHaveLength(1);
   });
 
+  it("an operator name with no ASCII letters still provisions, its slug derived from the subject", async () => {
+    const accounts = domainOver(temp.store);
+    const account = await ensureOperatorAccount(accounts, {
+      email: "2024ops@example.com",
+      displayName: "李明",
+    });
+
+    expect(account.metadata?.name).toBe("李明");
+    expect(account.metadata?.slug).toBe("local2024opsexample-com");
+  });
+
   it("the unconfigured laptop is the 'system' operator with an empty profile", async () => {
     const accounts = domainOver(temp.store);
     const account = await ensureOperatorAccount(accounts, {

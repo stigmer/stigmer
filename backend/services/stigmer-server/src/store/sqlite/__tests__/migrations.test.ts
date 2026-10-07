@@ -69,6 +69,7 @@ import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/a
 import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 
 import {
   CONTRACT_SESSION_INDEX,
@@ -86,6 +87,7 @@ import {
   SCHEMA_VERSION_15,
   SCHEMA_VERSION_17,
   SCHEMA_VERSION_18,
+  SCHEMA_VERSION_19,
   getSchemaVersion,
   runMigrations,
 } from "../migrations.js";
@@ -281,7 +283,7 @@ describe("fresh database", () => {
       .prepare(`SELECT version FROM schema_version ORDER BY version`)
       .all() as Array<{ version: number }>;
     expect(rows.map((row) => row.version)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
     ]);
   });
 
@@ -2197,5 +2199,53 @@ describe("v18: agent and workflow executions are runs", () => {
     for (const version of versions) {
       expect(version.data).toEqual(migratedWorkflow);
     }
+  });
+});
+
+describe("v19: every identity account's slug held to the slug rules", () => {
+  function accountBytes(id: string, name: string, slug: string): Uint8Array {
+    return toBinary(
+      IdentityAccountSchema,
+      create(IdentityAccountSchema, {
+        apiVersion: "iam.stigmer.ai/v1",
+        kind: "IdentityAccount",
+        metadata: { id, name, slug, org: "acme" },
+        spec: { idpId: `auth0|${id}`, email: name },
+      }),
+    );
+  }
+
+  function slugOf(db: DatabaseSync, id: string): string {
+    const row = db
+      .prepare(`SELECT data FROM resources WHERE kind = 'identity_account' AND id = ?`)
+      .get(id) as { data: Uint8Array };
+    return fromBinary(IdentityAccountSchema, row.data).metadata?.slug ?? "";
+  }
+
+  it("repairs a slug too long, one starting with a digit, and an empty one, and leaves a valid one byte for byte", () => {
+    const dbPath = tempDbPath();
+    const setup = new DatabaseSync(dbPath);
+    runMigrations(setup, SCHEMA_VERSION_18);
+    const insert = setup.prepare(
+      `INSERT INTO resources (kind, id, data, updated_at) VALUES ('identity_account', ?, ?, '2026-09-01 00:00:00')`,
+    );
+    const valid = accountBytes("ida_valid", "pat@example.com", "patexample-com");
+    insert.run("ida_valid", valid);
+    insert.run("ida_long", accountBytes("ida_long", `${"x".repeat(70)}@example.com`, `${"x".repeat(70)}example-com`));
+    insert.run("ida_digit", accountBytes("ida_digit", "2024intern@acme.com", "2024internacme-com"));
+    insert.run("ida_empty", accountBytes("ida_empty", "李明", ""));
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_19);
+
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_19);
+    expect(slugOf(db, "ida_long")).toMatch(/^x{54}-[0-9a-f]{8}$/);
+    expect(slugOf(db, "ida_digit")).toBe("a-2024internacme-com");
+    expect(slugOf(db, "ida_empty")).toBe("auth0idaempty");
+    expect(
+      db.prepare(`SELECT data, updated_at FROM resources WHERE id = 'ida_valid'`).get(),
+    ).toEqual({ data: valid, updated_at: "2026-09-01 00:00:00" });
   });
 });

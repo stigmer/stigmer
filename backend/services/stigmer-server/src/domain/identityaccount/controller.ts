@@ -97,7 +97,6 @@ import { newExtractResourceIdStep } from "../../pipeline/steps/delete.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
-import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { accountDisplayName } from "./actor.js";
 import {
@@ -122,6 +121,7 @@ import {
   accountNotFoundError,
   newAssignBackendFieldsStep,
   newCheckDuplicateStep,
+  newResolveAccountSlugStep,
   newDefaultAccountNameStep,
   newDeleteAccountStep,
   newDeriveAccountIdStep,
@@ -254,7 +254,7 @@ async function runCreateChain(
     )
     .addStep(newValidateProtoStep())
     .addStep(newDefaultAccountNameStep())
-    .addStep(newResolveSlugStep())
+    .addStep(newResolveAccountSlugStep())
     .addStep(newDeriveAccountIdStep())
     .addStep(newCheckDuplicateStep(deps.accounts))
     .addStep(newBuildNewStateStep())

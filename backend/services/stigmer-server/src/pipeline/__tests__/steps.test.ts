@@ -204,7 +204,7 @@ describe("ResolveSlug", () => {
 
   it("refuses a name with no letters or digits, which derives no slug", async () => {
     expect((await resolveError("!!!")).rawMessage).toBe(
-      "the name '!!!' derives no slug: it has no letters or digits; set metadata.slug",
+      "the name '!!!' derives no slug: it has no ASCII letters or digits; set metadata.slug",
     );
   });
 });

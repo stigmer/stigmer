@@ -82,7 +82,7 @@ export interface DerivedSlugSource {
  * caller written it, with InvalidArgument naming the source and the fix.
  * The rules come from `ApiResourceMetadata` itself, validated through the
  * shared validator, so the bound and the pattern have one home: the proto.
- * An empty slug (a name with no letters or digits) is refused too, since
+ * An empty slug (a name with no ASCII letters or digits) is refused too, since
  * the proto ignores an empty slug and the resource would have none.
  */
 export function checkDerivedSlug(
@@ -91,7 +91,7 @@ export function checkDerivedSlug(
 ): void {
   if (slug === "") {
     throw invalidArgumentError(
-      `${source.from} derives no slug: it has no letters or digits; ${source.fix}`,
+      `${source.from} derives no slug: it has no ASCII letters or digits; ${source.fix}`,
     );
   }
   const result = validator().validate(
