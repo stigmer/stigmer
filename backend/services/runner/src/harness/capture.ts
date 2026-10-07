@@ -62,10 +62,10 @@
  * BASELINE for the same change set. Both predate the lift on both harnesses.
  */
 
-import { ApprovalAction, FileCaptureClass, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import type { TurnCommandProvenance } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+import { ApprovalAction, FileCaptureClass, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { TurnCommandProvenance } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
 import { captureBaselineToLedger, captureCandidateToLedger } from "../shared/filereview/capture.js";
@@ -133,7 +133,7 @@ const NOTHING_OBSERVED: CasTouchedSnapshot = { before: new Map(), blockedSecretP
  * capture, the classic deny-gate governs writes.
  */
 export async function pinCaptureBaseline(args: {
-  readonly status: AgentRunStatus;
+  readonly status: RunStatus;
   readonly executionId: string;
   readonly workspace: TurnWorkspace;
   readonly fileReview: FileReviewIdentity;
@@ -242,7 +242,7 @@ function buildShapedProgressSubstrate(args: {
  * (`reconcileReinvocation`). Returns whether a review is now pending.
  */
 export async function captureCandidate(args: {
-  readonly status: AgentRunStatus;
+  readonly status: RunStatus;
   readonly executionId: string;
   readonly workspace: TurnWorkspace;
   readonly fileReview: FileReviewIdentity;
@@ -306,7 +306,7 @@ function isCompletedRow(tc: ToolCall): boolean {
  * over the status and the pre-turn snapshots; exported for its own tests.
  */
 export function deriveCommandProvenance(
-  status: AgentRunStatus,
+  status: RunStatus,
   capture: Pick<TurnCapture, "priorSettledToolCallIds" | "priorSubAgentToolCallIds">,
   globalBypass: boolean,
 ): TurnCommandProvenance | undefined {

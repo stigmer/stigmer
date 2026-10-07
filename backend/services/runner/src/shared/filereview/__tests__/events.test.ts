@@ -6,14 +6,14 @@
 
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   DiffCompleteness,
   FileCaptureClass,
   FileChangeKind,
   FileReviewBlockReason,
   FileReviewEventType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   appendFileReviewEvents,
   buildBaselineCapturedEvent,
@@ -335,7 +335,7 @@ describe("deriveDiffCompleteness", () => {
 
 describe("appendFileReviewEvents", () => {
   it("seeds the stream and appends append-only by event_id", () => {
-    const status = create(AgentRunStatusSchema, {});
+    const status = create(RunStatusSchema, {});
     const baseline = buildBaselineCapturedEvent(ctx, undefined);
     const candidate = buildCandidateCapturedEvent(ctx, undefined, []);
 

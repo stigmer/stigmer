@@ -31,7 +31,7 @@ import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import {
-  ScheduleRunOutcome,
+  ScheduleFireOutcome,
   ScheduleTriggerResultSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { ScheduleStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/status_pb";
@@ -191,7 +191,7 @@ export function newFireDirectRunStep<Desc extends DescMessage>(
       const result = create(ScheduleTriggerResultSchema);
       switch (outcome.kind) {
         case "started":
-          result.outcome = ScheduleRunOutcome.STARTED;
+          result.outcome = ScheduleFireOutcome.STARTED;
           result.runId = outcome.executionId;
           deps.logger.info("Schedule triggered manually — run started", {
             schedule_id: scheduleId,
@@ -200,7 +200,7 @@ export function newFireDirectRunStep<Desc extends DescMessage>(
           });
           break;
         case "targetMissing":
-          result.outcome = ScheduleRunOutcome.TARGET_MISSING;
+          result.outcome = ScheduleFireOutcome.TARGET_MISSING;
           result.refusalReason = outcome.reason;
           deps.logger.warn("Schedule triggered manually — target missing", {
             schedule_id: scheduleId,
@@ -208,7 +208,7 @@ export function newFireDirectRunStep<Desc extends DescMessage>(
           });
           break;
         case "refused":
-          result.outcome = ScheduleRunOutcome.REFUSED;
+          result.outcome = ScheduleFireOutcome.REFUSED;
           result.refusalReason = outcome.reason;
           deps.logger.warn(
             "Schedule triggered manually — run refused by a launch gate",

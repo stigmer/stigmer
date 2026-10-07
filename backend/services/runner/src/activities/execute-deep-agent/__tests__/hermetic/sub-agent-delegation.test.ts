@@ -67,13 +67,13 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { create, toJson } from "@bufbuild/protobuf";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunPhase,
   MessageType,
   SubAgentStatus,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
@@ -178,7 +178,7 @@ describe("ExecuteDeepAgent hermetic — sub-agent delegation", () => {
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/sub-agent-delegation.status.json");
   });
 });

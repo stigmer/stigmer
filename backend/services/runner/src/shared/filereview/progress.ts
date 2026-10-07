@@ -57,16 +57,16 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type {
   FileChangeProgress,
   FileChangeProgressEntry,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   FileChangeProgressEntrySchema,
   FileChangeProgressSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import { utcTimestamp } from "../status.js";
 import { toFileChangeKind } from "./capture.js";
 import {
@@ -244,7 +244,7 @@ export function newProgressCaptureState(): ProgressCaptureState {
  * last capture that succeeded, so the next one converges.
  */
 export async function captureFileChangeProgress(opts: {
-  readonly status: AgentRunStatus;
+  readonly status: RunStatus;
   readonly changeSetId: string;
   readonly substrate: ProgressSubstrate;
   readonly state: ProgressCaptureState;

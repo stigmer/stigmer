@@ -69,8 +69,8 @@ import {
   ApprovalMode,
   InteractionMode,
   RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -125,7 +125,7 @@ import {
   retiredWorkflowRunRow,
 } from "../../__tests__/retired-workflow-rows.js";
 import { materializeGoFixture } from "./support.js";
-import { agentExecutionListIndex } from "../../../domain/agentrun/list-index.js";
+import { agentExecutionListIndex } from "../../../domain/run/list-index.js";
 import { iamPolicyListIndex } from "../../../domain/iampolicy/list-index.js";
 import { RUN_KIND_TABLES, RUN_RENAME_PAGE_SIZE } from "../../run-rename.js";
 import {
@@ -2148,7 +2148,7 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
     expect(data(db, "agent_run", "aex_parented")).toEqual(parented);
     const waitingBytes = data(db, "agent_run", "aex_waiting");
     expect(waitingBytes, "the unfinished parented run is kept").toBeDefined();
-    const waiting = fromBinary(AgentRunSchema, waitingBytes!);
+    const waiting = fromBinary(RunSchema, waitingBytes!);
     expect(waiting.status?.phase).toBe(RunPhase.RUN_FAILED);
     expect(waiting.status?.error).toBe(WORKFLOW_CHILD_ENDED_ERROR);
     expect(Number.isNaN(Date.parse(waiting.status?.completedAt ?? ""))).toBe(false);
@@ -2165,11 +2165,11 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
       }),
     );
     expect(
-      await store.getResource(ApiResourceKind.agent_run, "aex_parented", AgentRunSchema),
-    ).toEqual(fromBinary(AgentRunSchema, parented));
+      await store.getResource(ApiResourceKind.run, "aex_parented", RunSchema),
+    ).toEqual(fromBinary(RunSchema, parented));
     expect(
-      await store.getResource(ApiResourceKind.agent_run, "aex_plain", AgentRunSchema),
-    ).toEqual(fromBinary(AgentRunSchema, plain));
+      await store.getResource(ApiResourceKind.run, "aex_plain", RunSchema),
+    ).toEqual(fromBinary(RunSchema, plain));
     expect(
       (
         await store.queryResources(agentExecutionListIndex, {

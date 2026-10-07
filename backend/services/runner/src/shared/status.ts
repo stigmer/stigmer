@@ -10,14 +10,14 @@
 
 import { create, toJson } from "@bufbuild/protobuf";
 import {
-  AgentRunStatusSchema,
+  RunStatusSchema,
   SetupProgressSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunControlSignal,
   RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import {
   offloadOversizedToolOutputs,
@@ -102,7 +102,7 @@ function defaultDelay(ms: number): Promise<void> {
 export async function persistStatus(
   client: StigmerClient,
   executionId: string,
-  status: AgentRunStatus,
+  status: RunStatus,
   options: PersistStatusOptions = {},
 ): Promise<RunControlSignal> {
   const { offload, retry } = options;
@@ -210,7 +210,7 @@ export async function reportSetupProgress(
   executionId: string,
   phase: string,
 ): Promise<void> {
-  const status = create(AgentRunStatusSchema, {
+  const status = create(RunStatusSchema, {
     setupProgress: create(SetupProgressSchema, { currentPhase: phase }),
   });
   await persistStatus(client, executionId, status);
@@ -228,8 +228,8 @@ export async function reportSetupProgress(
  * which serializes Uint8Array bytes fields as {} — invalid protobuf JSON
  * that the Java workflow's JsonFormat.Parser rejects.
  */
-export function slimStatus(full: AgentRunStatus): unknown {
-  const slim = create(AgentRunStatusSchema, {
+export function slimStatus(full: RunStatus): unknown {
+  const slim = create(RunStatusSchema, {
     phase: full.phase,
     error: full.error,
     startedAt: full.startedAt,
@@ -237,7 +237,7 @@ export function slimStatus(full: AgentRunStatus): unknown {
     pendingApprovals: full.pendingApprovals,
     structuredOutput: full.structuredOutput,
   });
-  const json = toJson(AgentRunStatusSchema, slim);
+  const json = toJson(RunStatusSchema, slim);
   if (full.structuredOutput) {
     const jsonObj = json as Record<string, unknown>;
     const hasField = "structuredOutput" in jsonObj;

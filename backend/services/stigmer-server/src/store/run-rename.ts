@@ -45,7 +45,7 @@
  */
 import { fromBinary, toBinary } from "@bufbuild/protobuf";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 
 import { policyIdFor } from "../domain/iampolicy/constants.js";
@@ -82,13 +82,13 @@ const RUN_KIND_STRINGS: ReadonlyMap<string, string> = new Map([
  * string is already current. Throws when the bytes do not decode.
  */
 export function renamedAgentRunRow(data: Uint8Array): Uint8Array | undefined {
-  const run = fromBinary(AgentRunSchema, data);
+  const run = fromBinary(RunSchema, data);
   const kind = RUN_KIND_STRINGS.get(run.kind);
   if (kind === undefined) {
     return undefined;
   }
   run.kind = kind;
-  return toBinary(AgentRunSchema, run);
+  return toBinary(RunSchema, run);
 }
 
 /** What the step made of one grant row. */

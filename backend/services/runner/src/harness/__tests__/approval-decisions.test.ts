@@ -12,17 +12,17 @@
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
-import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
+import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { REJECTED_BY_USER_ERROR, terminalizeNonExecutingDecisions } from "../approval-decisions.js";
 
 describe("terminalizeNonExecutingDecisions", () => {
   function statusWith(
     toolCalls: Array<{ id: string; status: ToolCallStatus; approvalAction: ApprovalAction }>,
   ) {
-    return create(AgentRunStatusSchema, {
+    return create(RunStatusSchema, {
       messages: [
         create(AgentMessageSchema, {
           toolCalls: toolCalls.map(tc =>
@@ -80,7 +80,7 @@ describe("terminalizeNonExecutingDecisions", () => {
   });
 
   it("settles sub-agent transcripts too", () => {
-    const status = create(AgentRunStatusSchema, {
+    const status = create(RunStatusSchema, {
       subAgentRuns: [
         create(SubAgentRunSchema, {
           id: "sub-1",

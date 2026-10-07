@@ -22,20 +22,20 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   FileChangeSetStatus,
   FileDecisionAction,
   FileDecisionOrigin,
   FileDecisionScope,
   FileReviewEventType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   FileChangeSetSchema,
   FileDecisionSchema,
   type FileChangeSet,
   type FileReviewEvent,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 
 /** Fold the ledger into change sets, in first-seen order (`project.ts` `projectFileChangeSets`). */
 export function projectFileChangeSets(events: readonly FileReviewEvent[]): FileChangeSet[] {
@@ -120,7 +120,7 @@ export interface FileReviewVerdicts {
  * the mistake). Returns the number of decisions written.
  */
 export function decideCapturedFileChanges(
-  status: AgentRunStatus,
+  status: RunStatus,
   verdicts: FileReviewVerdicts,
   decidedAt: string,
 ): number {

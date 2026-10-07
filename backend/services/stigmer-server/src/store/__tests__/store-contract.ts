@@ -775,27 +775,27 @@ export function describeStoreContract(
     };
 
     it("upsert converges retried writes onto the fire-identity row", async () => {
-      await fx.store.upsertScheduleRun(baseRun);
-      await fx.store.upsertScheduleRun({
+      await fx.store.upsertScheduleFire(baseRun);
+      await fx.store.upsertScheduleFire({
         ...baseRun,
         outcome: "completed",
         completedAt: "2026-08-20T00:00:05Z",
       });
 
-      const { runs, total } = await fx.store.listScheduleRuns("sch_1", 0, 0);
+      const { runs, total } = await fx.store.listScheduleFires("sch_1", 0, 0);
       expect(total).toBe(1);
       expect(runs[0]!.outcome).toBe("completed");
     });
 
     it("terminal rows are never downgraded by a replayed 'started' write", async () => {
-      await fx.store.upsertScheduleRun({
+      await fx.store.upsertScheduleFire({
         ...baseRun,
         outcome: "completed",
         completedAt: "2026-08-20T00:00:05Z",
       });
-      await fx.store.upsertScheduleRun(baseRun); // the replay
+      await fx.store.upsertScheduleFire(baseRun); // the replay
 
-      const { runs } = await fx.store.listScheduleRuns("sch_1", 0, 0);
+      const { runs } = await fx.store.listScheduleFires("sch_1", 0, 0);
       expect(runs[0]!.outcome, "the verdict survives the replay").toBe(
         "completed",
       );
@@ -803,16 +803,16 @@ export function describeStoreContract(
     });
 
     it("markLatestScheduleRunTerminal stamps the newest non-terminal row of that origin only", async () => {
-      await fx.store.upsertScheduleRun(baseRun);
+      await fx.store.upsertScheduleFire(baseRun);
       // A newer MANUAL fire must not steal the cron run's verdict — the
       // origin filter is load-bearing (see the interface doc).
-      await fx.store.upsertScheduleRun({
+      await fx.store.upsertScheduleFire({
         ...baseRun,
         nominalFireTime: "2026-08-20T00:05:00Z",
         origin: "manual",
       });
 
-      await fx.store.markLatestScheduleRunTerminal(
+      await fx.store.markLatestScheduleFireTerminal(
         "sch_1",
         "cron",
         "failed",
@@ -820,7 +820,7 @@ export function describeStoreContract(
         "2026-08-20T00:01:00Z",
       );
 
-      const { runs } = await fx.store.listScheduleRuns("sch_1", 0, 0);
+      const { runs } = await fx.store.listScheduleFires("sch_1", 0, 0);
       const cron = runs.find((run) => run.origin === "cron")!;
       const manual = runs.find((run) => run.origin === "manual")!;
       expect(cron.outcome).toBe("failed");
@@ -830,7 +830,7 @@ export function describeStoreContract(
 
     it("marking with no non-terminal row is a silent no-op", async () => {
       await expect(
-        fx.store.markLatestScheduleRunTerminal(
+        fx.store.markLatestScheduleFireTerminal(
           "sch_ghost",
           "cron",
           "failed",
@@ -842,22 +842,22 @@ export function describeStoreContract(
 
     it("lists newest first with pagination totals; prune and delete report counts", async () => {
       for (const minute of ["00", "01", "02"]) {
-        await fx.store.upsertScheduleRun({
+        await fx.store.upsertScheduleFire({
           ...baseRun,
           nominalFireTime: `2026-08-20T00:${minute}:00Z`,
           recordedAt: `2026-08-20T00:${minute}:01Z`,
         });
       }
 
-      const page = await fx.store.listScheduleRuns("sch_1", 0, 2);
+      const page = await fx.store.listScheduleFires("sch_1", 0, 2);
       expect(page.total).toBe(3);
       expect(page.runs.map((run) => run.nominalFireTime)).toEqual([
         "2026-08-20T00:02:00Z",
         "2026-08-20T00:01:00Z",
       ]);
 
-      expect(await fx.store.pruneScheduleRuns("2026-08-20T00:01:00Z")).toBe(1);
-      expect(await fx.store.deleteScheduleRunsBySchedule("sch_1")).toBe(2);
+      expect(await fx.store.pruneScheduleFires("2026-08-20T00:01:00Z")).toBe(1);
+      expect(await fx.store.deleteScheduleFiresBySchedule("sch_1")).toBe(2);
     });
   });
 
@@ -1692,7 +1692,7 @@ export function describeStoreContract(
           visibility: "visibility_private",
           createdAt: 1_700_000_000,
         });
-        await fx.store.upsertScheduleRun({
+        await fx.store.upsertScheduleFire({
           scheduleId: `sch_${org}`,
           org,
           nominalFireTime: "2026-08-20T00:00:00Z",
@@ -1706,9 +1706,9 @@ export function describeStoreContract(
       }
       expect(await fx.store.deleteSearchIndexByOrg("org_a")).toBe(1);
       expect(await fx.store.deleteSearchIndexByOrg("")).toBe(0);
-      expect(await fx.store.deleteScheduleRunsByOrg("org_a")).toBe(1);
-      expect((await fx.store.listScheduleRuns("sch_org_a", 0, 0)).total).toBe(0);
-      expect((await fx.store.listScheduleRuns("sch_org_b", 0, 0)).total).toBe(1);
+      expect(await fx.store.deleteScheduleFiresByOrg("org_a")).toBe(1);
+      expect((await fx.store.listScheduleFires("sch_org_a", 0, 0)).total).toBe(0);
+      expect((await fx.store.listScheduleFires("sch_org_b", 0, 0)).total).toBe(1);
       const left = await fx.store.querySearchIndex({
         kinds: ["agent"],
         terms: ["kubernetes"],

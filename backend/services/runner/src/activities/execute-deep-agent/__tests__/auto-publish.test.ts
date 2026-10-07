@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { autoPublishWrittenFiles } from "../auto-publish.js";
 import type { InlinePublisher } from "../inline-publisher.js";
 
-function makeStatus(toolCalls: { name: string; args?: Record<string, unknown> }[]): AgentRunStatus {
-  const status = create(AgentRunStatusSchema, {});
+function makeStatus(toolCalls: { name: string; args?: Record<string, unknown> }[]): RunStatus {
+  const status = create(RunStatusSchema, {});
   const msg = create(AgentMessageSchema, {
     type: MessageType.MESSAGE_AI,
     content: "test",
@@ -118,7 +118,7 @@ describe("autoPublishWrittenFiles", () => {
   });
 
   it("handles empty tool calls", async () => {
-    const status = create(AgentRunStatusSchema, {});
+    const status = create(RunStatusSchema, {});
     const publisher = mockInlinePublisher();
 
     const count = await autoPublishWrittenFiles(status, publisher);

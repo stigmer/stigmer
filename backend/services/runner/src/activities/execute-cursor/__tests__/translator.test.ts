@@ -16,9 +16,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import type { InteractionUpdate, SDKMessage } from "@cursor/sdk";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { ApprovalAction, ApprovalPolicySource, MessageType, SubAgentStatus, ToolCallStatus, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { ApprovalAction, ApprovalPolicySource, MessageType, SubAgentStatus, ToolCallStatus, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { TranscriptEvent } from "../../../harness/transcript/events.js";
 import type { McpApprovalDefault } from "../../../shared/approval-policy.js";
 import type { ToolApprovalCategory } from "../../../shared/tool-kind.js";
@@ -30,7 +30,7 @@ import { CursorTranslator, extractSubagentName } from "../translator.js";
 const RUN = "run-1";
 const ev = sdkEvents("agent-1", RUN);
 
-function translator(seeded = create(AgentRunStatusSchema, {})): CursorTranslator {
+function translator(seeded = create(RunStatusSchema, {})): CursorTranslator {
   return new CursorTranslator({ mcpDefault: { destructive: new Set(), leasedServers: new Set() }, leases: { global: false, categories: new Set() }, seeded: seeded.messages });
 }
 
@@ -431,7 +431,7 @@ describe("CursorTranslator — a task tool call is a sub-agent, its transcript d
 
 describe("CursorTranslator — a resumed agent's re-run lands on its seeded WAITING row by identity", () => {
   function seededStatus(rows: Array<{ id: string; action?: ApprovalAction; path?: string }>) {
-    return create(AgentRunStatusSchema, {
+    return create(RunStatusSchema, {
       messages: [
         create(AgentMessageSchema, {
           type: MessageType.MESSAGE_AI,
@@ -490,7 +490,7 @@ describe("CursorTranslator — a resumed agent's re-run lands on its seeded WAIT
   });
 
   it("the identity is the hook's token space: a seeded shell row matches a re-run of the same command", () => {
-    const status = create(AgentRunStatusSchema, {
+    const status = create(RunStatusSchema, {
       messages: [create(AgentMessageSchema, {
         type: MessageType.MESSAGE_AI,
         content: "Building.",
@@ -610,7 +610,7 @@ describe("CursorTranslator — the delta channel is queued, held for unannounced
   });
 
   it("a held completion for a resumed agent's re-run is re-targeted at the seeded row it aliases to", () => {
-    const status = create(AgentRunStatusSchema, {
+    const status = create(RunStatusSchema, {
       messages: [create(AgentMessageSchema, {
         type: MessageType.MESSAGE_AI, content: "Building.",
         toolCalls: [create(ToolCallSchema, { id: "sh-seeded", name: "shell", status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL, args: { command: "make" }, approvalAction: ApprovalAction.APPROVE })],

@@ -38,8 +38,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { ActivityQueryController } from "@stigmer/protos/ai/stigmer/activity/v1/query_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -175,10 +175,10 @@ describe("list read scope (composed server, fake scope)", () => {
     // conversation's executions asks listBySession for.
     for (const id of ["aex_turn_1", "aex_turn_2"]) {
       await server.store.saveResource(
-        ApiResourceKind.agent_run,
+        ApiResourceKind.run,
         id,
-        AgentRunSchema,
-        create(AgentRunSchema, {
+        RunSchema,
+        create(RunSchema, {
           apiVersion: "agentic.stigmer.ai/v1",
           kind: "AgentRun",
           metadata: { id, name: id, org: acmeId },
@@ -329,7 +329,7 @@ describe("list read scope (composed server, fake scope)", () => {
       // The scope would hide everything if it were asked.
       allowed = new Set();
       const query = createClient(
-        AgentRunQueryController,
+        RunQueryController,
         server.inProcessTransport,
       );
       const turns = await query.listBySession({ sessionId: "ses_mine" });
@@ -343,7 +343,7 @@ describe("list read scope (composed server, fake scope)", () => {
     it("a caller propagated through the in-process header keeps its class and is narrowed like the wire", async () => {
       allowed = new Set(["aex_turn_2"]);
       const query = createClient(
-        AgentRunQueryController,
+        RunQueryController,
         server.inProcessTransport,
       );
       const turns = await query.listBySession(
@@ -357,7 +357,7 @@ describe("list read scope (composed server, fake scope)", () => {
         },
       );
       expect(turns.entries.map((e) => e.metadata?.id)).toEqual(["aex_turn_2"]);
-      expect(seenKinds).toEqual([ApiResourceKind.agent_run]);
+      expect(seenKinds).toEqual([ApiResourceKind.run]);
     });
   });
 });

@@ -14,26 +14,26 @@
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
 import {
-  ScheduleRunListSchema,
-  ScheduleRunOrigin,
-  ScheduleRunOutcome,
-  ScheduleRunSchema,
+  ScheduleFireListSchema,
+  ScheduleFireOrigin,
+  ScheduleFireOutcome,
+  ScheduleFireSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
-import type { ScheduleRun } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+import type { ScheduleFire } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { internalError, notFoundError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
-import type { ScheduleRunRecord, Store } from "../../store/interface.js";
+import type { ScheduleFireRecord, Store } from "../../store/interface.js";
 
-type ListRunsInput = typeof ScheduleQueryController.method.listRuns.input;
+type ListRunsInput = typeof ScheduleQueryController.method.listFires.input;
 
 export const LIST_RUNS_RESULT_KEY = "listRunsResult";
 
@@ -92,10 +92,10 @@ export function newListRunsFromLedgerStep(store: Store): PipelineStep<ListRunsIn
       }
       const offset = (num - 1) * size;
 
-      let runs: ScheduleRunRecord[];
+      let runs: ScheduleFireRecord[];
       let total: number;
       try {
-        ({ runs, total } = await store.listScheduleRuns(
+        ({ runs, total } = await store.listScheduleFires(
           req.scheduleId,
           offset,
           size,
@@ -104,14 +104,14 @@ export function newListRunsFromLedgerStep(store: Store): PipelineStep<ListRunsIn
         throw internalError(error, "failed to list schedule runs");
       }
 
-      const items: ScheduleRun[] = [];
+      const items: ScheduleFire[] = [];
       for (const record of runs) {
         items.push(await toProtoRun(store, record));
       }
 
       ctx.set(
         LIST_RUNS_RESULT_KEY,
-        create(ScheduleRunListSchema, { totalCount: total, items }),
+        create(ScheduleFireListSchema, { totalCount: total, items }),
       );
     },
   };
@@ -124,9 +124,9 @@ export function newListRunsFromLedgerStep(store: Store): PipelineStep<ListRunsIn
  */
 async function toProtoRun(
   store: Store,
-  record: ScheduleRunRecord,
-): Promise<ScheduleRun> {
-  const run = create(ScheduleRunSchema, {
+  record: ScheduleFireRecord,
+): Promise<ScheduleFire> {
+  const run = create(ScheduleFireSchema, {
     scheduleId: record.scheduleId,
     org: record.org,
     origin: runOriginFromLabel(record.origin),
@@ -157,9 +157,9 @@ async function toProtoRun(
   let phase: RunPhase;
   try {
     const execution = await store.getResource(
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
       record.executionId,
-      AgentRunSchema,
+      RunSchema,
     );
     phase = execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   } catch {
@@ -169,12 +169,12 @@ async function toProtoRun(
   }
   switch (phase) {
     case RunPhase.RUN_COMPLETED:
-      run.outcome = ScheduleRunOutcome.COMPLETED;
+      run.outcome = ScheduleFireOutcome.COMPLETED;
       break;
     case RunPhase.RUN_FAILED:
     case RunPhase.RUN_CANCELLED:
     case RunPhase.RUN_TERMINATED:
-      run.outcome = ScheduleRunOutcome.FAILED;
+      run.outcome = ScheduleFireOutcome.FAILED;
       run.reason = `run ${record.executionId} ended ${executionPhaseWord(phase)}`;
       break;
     default:
@@ -202,36 +202,36 @@ function executionPhaseWord(phase: RunPhase): string {
 }
 
 /** Maps the ledger's lowercase origin vocabulary back to the wire enum. */
-function runOriginFromLabel(origin: string): ScheduleRunOrigin {
+function runOriginFromLabel(origin: string): ScheduleFireOrigin {
   switch (origin) {
     case "cron":
-      return ScheduleRunOrigin.CRON;
+      return ScheduleFireOrigin.CRON;
     case "manual":
-      return ScheduleRunOrigin.MANUAL;
+      return ScheduleFireOrigin.MANUAL;
     default:
-      return ScheduleRunOrigin.UNSPECIFIED;
+      return ScheduleFireOrigin.UNSPECIFIED;
   }
 }
 
 /** Maps the ledger's lowercase outcome vocabulary back to the wire enum. */
-function runOutcomeFromLabel(outcome: string): ScheduleRunOutcome {
+function runOutcomeFromLabel(outcome: string): ScheduleFireOutcome {
   switch (outcome) {
     case "started":
-      return ScheduleRunOutcome.STARTED;
+      return ScheduleFireOutcome.STARTED;
     case "refused":
-      return ScheduleRunOutcome.REFUSED;
+      return ScheduleFireOutcome.REFUSED;
     case "target_missing":
-      return ScheduleRunOutcome.TARGET_MISSING;
+      return ScheduleFireOutcome.TARGET_MISSING;
     case "skipped":
-      return ScheduleRunOutcome.SKIPPED;
+      return ScheduleFireOutcome.SKIPPED;
     case "completed":
-      return ScheduleRunOutcome.COMPLETED;
+      return ScheduleFireOutcome.COMPLETED;
     case "failed":
-      return ScheduleRunOutcome.FAILED;
+      return ScheduleFireOutcome.FAILED;
     case "timed_out":
-      return ScheduleRunOutcome.TIMED_OUT;
+      return ScheduleFireOutcome.TIMED_OUT;
     default:
-      return ScheduleRunOutcome.UNSPECIFIED;
+      return ScheduleFireOutcome.UNSPECIFIED;
   }
 }
 

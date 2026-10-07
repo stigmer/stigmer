@@ -73,7 +73,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   DiffCompleteness,
   RunPhase,
@@ -81,7 +81,7 @@ import {
   FileChangeKind,
   SnapshotKind,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -220,12 +220,12 @@ describe("ExecuteDeepAgent hermetic — file-review capture", () => {
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
-    const json = JSON.stringify(toJson(AgentRunStatusSchema, final));
+    const json = JSON.stringify(toJson(RunStatusSchema, final));
     expect(json, "no temp path reaches the status itself").not.toContain(env.workspaceRootDir);
     expect(json, "no host path reaches the status itself").not.toContain(env.home);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const pretty = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
+    const pretty = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(pretty).toMatchFileSnapshot("./goldens/file-review-capture.status.json");
   });
 });

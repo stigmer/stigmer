@@ -8,11 +8,11 @@
 
 import { describe, it, expect } from "vitest";
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   ToolCallStatus,
   ToolKind,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { normalizeToolResult } from "../tool-view";
 
 function readCall(result: string) {

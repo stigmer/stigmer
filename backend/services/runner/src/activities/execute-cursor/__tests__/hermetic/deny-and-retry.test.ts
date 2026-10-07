@@ -40,13 +40,13 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   ApprovalAction,
   MessageType,
   RunPhase,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -182,7 +182,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — deny-and-retry approval ro
     // The model's post-denial narration never reaches the user as fact.
     expect(record.status?.messages.some((m) => m.content === "The build was blocked.")).toBe(false);
 
-    const turn1Json = JSON.stringify(toJson(AgentRunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
+    const turn1Json = JSON.stringify(toJson(RunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
     await expect(turn1Json).toMatchFileSnapshot("./goldens/deny-and-retry.turn1.status.json");
 
     // ── The user approves (the server's SubmitApproval effect on the row) ────
@@ -226,7 +226,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — deny-and-retry approval ro
     // ── Assert: hermeticity ──────────────────────────────────────────────────
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
-    const turn2Json = JSON.stringify(toJson(AgentRunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
+    const turn2Json = JSON.stringify(toJson(RunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
     await expect(turn2Json).toMatchFileSnapshot("./goldens/deny-and-retry.turn2.status.json");
   });
 });

@@ -15,7 +15,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import {
-  ScheduleRunOutcome,
+  ScheduleFireOutcome,
   ScheduleTriggerResultSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import type { ScheduleTriggerResult } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
@@ -92,13 +92,13 @@ describe("FireDirectRun — a run the starter started", () => {
     expect(fired.map((target) => target.metadata?.id)).toEqual([SCHEDULE_ID]);
     const result = ctx.get(TRIGGER_RESULT_KEY) as ScheduleTriggerResult;
     expect(result.$typeName).toBe(ScheduleTriggerResultSchema.typeName);
-    expect(result.outcome).toBe(ScheduleRunOutcome.STARTED);
+    expect(result.outcome).toBe(ScheduleFireOutcome.STARTED);
     expect(result.runId).toBe(RUN_ID);
     expect(result.refusalReason).toBe("");
     // The answer is the post-fire row, its fire instant stamped.
     expect(result.schedule?.status?.lastFireAt).toBeDefined();
 
-    const { runs, total } = await store.listScheduleRuns(SCHEDULE_ID, 0, 10);
+    const { runs, total } = await store.listScheduleFires(SCHEDULE_ID, 0, 10);
     expect(total).toBe(1);
     expect(runs[0]).toMatchObject({
       scheduleId: SCHEDULE_ID,

@@ -13,7 +13,7 @@
 // This module has no React or framework dependency so it can be shared by
 // @stigmer/react, @stigmer/ink, and the CLI.
 
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 
 /**
  * Returns the runs in chronological (oldest-first) order — the order a
@@ -27,8 +27,8 @@ import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/ap
  * timestamps; entries missing an id sort last but keep a stable relative order.
  */
 export function sortChronologically(
-  executions: readonly AgentRun[],
-): AgentRun[] {
+  executions: readonly Run[],
+): Run[] {
   return [...executions].sort((a, b) => {
     const aId = a.metadata?.id ?? "";
     const bId = b.metadata?.id ?? "";
@@ -54,7 +54,7 @@ export function sortChronologically(
  * streams before the list refetch delivers it.
  */
 export function supersededRunIds(
-  executions: readonly AgentRun[],
+  executions: readonly Run[],
   extraSupersededId?: string | null,
 ): Set<string> {
   const ids = new Set<string>();
@@ -75,7 +75,7 @@ export function supersededRunIds(
  * attribute words to the user they never typed; the plan the turn builds from
  * is the visible cause.
  */
-export function isBuildFromPlanTurn(exec: AgentRun): boolean {
+export function isBuildFromPlanTurn(exec: Run): boolean {
   return exec.spec?.buildFromPlan === true;
 }
 
@@ -91,7 +91,7 @@ export function isBuildFromPlanTurn(exec: AgentRun): boolean {
  *  - a Build-from-plan turn's machine-written label (see
  *    {@link isBuildFromPlanTurn}).
  */
-export function syntheticUserPrompt(exec: AgentRun): string | null {
+export function syntheticUserPrompt(exec: Run): string | null {
   const specMessage = exec.spec?.message;
   if (!specMessage || specMessage === "execute" || isBuildFromPlanTurn(exec)) {
     return null;

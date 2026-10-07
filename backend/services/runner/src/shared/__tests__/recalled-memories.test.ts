@@ -12,7 +12,7 @@
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { RecalledMemoriesSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+import { RecalledMemoriesSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 
 import {
   formatRecalledMemoriesText,

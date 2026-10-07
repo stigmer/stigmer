@@ -19,7 +19,7 @@
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { agentSearchExtractor } from "../../domain/agent/search-extractor.js";
-import { agentExecutionSearchExtractor } from "../../domain/agentrun/search-extractor.js";
+import { agentExecutionSearchExtractor } from "../../domain/run/search-extractor.js";
 import { environmentSearchExtractor } from "../../domain/environment/search-extractor.js";
 import { executionContextSearchExtractor } from "../../domain/executioncontext/search-extractor.js";
 import { mcpServerSearchExtractor } from "../../domain/mcpserver/search-extractor.js";

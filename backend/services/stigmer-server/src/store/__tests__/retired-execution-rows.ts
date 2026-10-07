@@ -16,10 +16,10 @@ import type { JsonObject } from "@bufbuild/protobuf";
 import { fromJson } from "@bufbuild/protobuf";
 
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+  RunSchema,
+  RunStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** The retired ExecutionConfig's values, as a test names them. */
@@ -86,14 +86,14 @@ export function retiredConfigBytes(config: RetiredConfig): Uint8Array {
  */
 export function retiredExecutionRow(options: {
   readonly metadata: MessageInitShape<typeof ApiResourceMetadataSchema>;
-  readonly spec?: MessageInitShape<typeof AgentRunSpecSchema>;
-  readonly status?: MessageInitShape<typeof AgentRunStatusSchema>;
+  readonly spec?: MessageInitShape<typeof RunSpecSchema>;
+  readonly status?: MessageInitShape<typeof RunStatusSchema>;
   readonly config?: RetiredConfig;
 }): Uint8Array {
   const spec = new BinaryWriter().raw(
     toBinary(
-      AgentRunSpecSchema,
-      create(AgentRunSpecSchema, options.spec ?? { message: "hello" }),
+      RunSpecSchema,
+      create(RunSpecSchema, options.spec ?? { message: "hello" }),
     ),
   );
   if (options.config !== undefined) {
@@ -112,7 +112,7 @@ export function retiredExecutionRow(options: {
     .bytes(spec.finish());
   if (options.status !== undefined) {
     w.tag(5, WireType.LengthDelimited).bytes(
-      toBinary(AgentRunStatusSchema, create(AgentRunStatusSchema, options.status)),
+      toBinary(RunStatusSchema, create(RunStatusSchema, options.status)),
     );
   }
   return w.finish();
@@ -120,11 +120,11 @@ export function retiredExecutionRow(options: {
 
 /** The bytes the current release writes for the same execution. */
 export function executionBytes(
-  init: MessageInitShape<typeof AgentRunSchema>,
+  init: MessageInitShape<typeof RunSchema>,
 ): Uint8Array {
   return toBinary(
-    AgentRunSchema,
-    create(AgentRunSchema, {
+    RunSchema,
+    create(RunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "AgentExecution",
       ...init,

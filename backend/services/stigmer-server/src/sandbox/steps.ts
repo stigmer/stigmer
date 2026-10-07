@@ -24,16 +24,16 @@
  */
 import { create } from "@bufbuild/protobuf";
 
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+  RunSchema,
+  RunStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../boot/logger.js";
-import type { AgentExecutionTemporalConfig } from "../domain/agentrun/temporal/config.js";
+import type { AgentExecutionTemporalConfig } from "../domain/run/temporal/config.js";
 import type { CallerIdentity } from "../extensions/identity.js";
 import type { PipelineStep } from "../pipeline/pipeline.js";
 import {
@@ -42,7 +42,7 @@ import {
 } from "../temporal/agentexecution/dispatch.js";
 import type { Store } from "../store/interface.js";
 import { mintSandboxToken, type SandboxLane } from "./lane.js";
-import { sessionIdOf } from "../domain/agentrun/target.js";
+import { sessionIdOf } from "../domain/run/target.js";
 
 /**
  * The pre-stamped root-cause prefix — the cloud edition's
@@ -63,7 +63,7 @@ export const SANDBOX_PROVISIONING_FAILED_PREFIX =
  */
 export type SandboxCaller = Pick<CallerIdentity, "identityId" | "callerClass">;
 
-type AgentExecutionCreateDesc = typeof AgentRunSchema;
+type AgentExecutionCreateDesc = typeof RunSchema;
 
 export interface EnsureSessionSandboxDeps {
   readonly store: Store;
@@ -115,7 +115,7 @@ export function newEnsureSessionSandboxStep(
  */
 export async function ensureSessionSandboxForExecution(
   deps: EnsureSessionSandboxDeps,
-  execution: AgentRun,
+  execution: Run,
   caller: SandboxCaller,
 ): Promise<void> {
   if (!deps.lane.enabled) {
@@ -197,11 +197,11 @@ async function stampProvisioningFailure(
     (cause instanceof Error ? cause.message : String(cause));
   try {
     await store.updateResource(
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
       executionId,
-      AgentRunSchema,
-      (execution: AgentRun) => {
-        execution.status ??= create(AgentRunStatusSchema);
+      RunSchema,
+      (execution: Run) => {
+        execution.status ??= create(RunStatusSchema);
         if (execution.status.error === "") {
           execution.status.error = message;
         }

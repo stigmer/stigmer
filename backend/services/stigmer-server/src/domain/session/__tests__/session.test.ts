@@ -51,9 +51,9 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -81,7 +81,7 @@ import {
   DEFAULT_EXECUTION_TARGET_LOCAL,
   ROUTING_GLOBAL,
   newConfigFromEnv,
-} from "../../agentrun/temporal/config.js";
+} from "../../run/temporal/config.js";
 import {
   newFilterByAgentStep,
   newValidateExecutionTargetImmutabilityStep,
@@ -223,7 +223,7 @@ async function seedExecution(
 ): Promise<string> {
   executionCounter += 1;
   const id = `aex_sessiontest_${executionCounter}`;
-  const execution = create(AgentRunSchema, {
+  const execution = create(RunSchema, {
     apiVersion: API_VERSION,
     kind: "AgentRun",
     metadata: { id, name: `Execution ${executionCounter}`, org: ORG },
@@ -231,9 +231,9 @@ async function seedExecution(
     status: { phase },
   });
   await server.store.saveResource(
-    ApiResourceKind.agent_run,
+    ApiResourceKind.run,
     id,
-    AgentRunSchema,
+    RunSchema,
     execution,
   );
   return id;
@@ -830,7 +830,7 @@ describe("session delete — active-execution guard and cascade", () => {
 
       // Unblock and converge: the retried delete succeeds and cascades.
       await server.store.deleteResource(
-        ApiResourceKind.agent_run,
+        ApiResourceKind.run,
         executionId,
       );
       await command.delete({ value: session.metadata!.id });
@@ -860,24 +860,24 @@ describe("session delete — active-execution guard and cascade", () => {
     // The doomed session's executions are gone (children before parent)...
     await expect(
       server.store.getResource(
-        ApiResourceKind.agent_run,
+        ApiResourceKind.run,
         completedId,
-        AgentRunSchema,
+        RunSchema,
       ),
     ).rejects.toBeInstanceOf(ResourceNotFoundError);
     await expect(
       server.store.getResource(
-        ApiResourceKind.agent_run,
+        ApiResourceKind.run,
         failedId,
-        AgentRunSchema,
+        RunSchema,
       ),
     ).rejects.toBeInstanceOf(ResourceNotFoundError);
 
     // ...while the other session's execution is untouched.
     const untouched = await server.store.getResource(
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
       survivorExecutionId,
-      AgentRunSchema,
+      RunSchema,
     );
     expect(untouched.spec?.target).toEqual({
       case: "sessionId",

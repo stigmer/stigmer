@@ -16,16 +16,16 @@
 
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { ApprovalAction, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { ApprovalAction, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { approvalDecisionsOf } from "../../../harness/approval-decisions.js";
 import { reconstructAdjudicatedApprovals } from "../approval-state.js";
 
 describe("the runtime's approvalDecisionsOf and the adapter's reconstructAdjudicatedApprovals", () => {
   it("select the same rows in the same order over every row shape a transcript carries", () => {
-    const status = create(AgentRunStatusSchema, {
+    const status = create(RunStatusSchema, {
       messages: [
         create(AgentMessageSchema, {
           type: MessageType.MESSAGE_AI,
@@ -83,7 +83,7 @@ describe("the runtime's approvalDecisionsOf and the adapter's reconstructAdjudic
   });
 
   it("both read nothing from a fresh transcript", () => {
-    const status = create(AgentRunStatusSchema, {});
+    const status = create(RunStatusSchema, {});
     expect(approvalDecisionsOf(status).size).toBe(0);
     expect(reconstructAdjudicatedApprovals(status.messages).decisions.size).toBe(0);
   });

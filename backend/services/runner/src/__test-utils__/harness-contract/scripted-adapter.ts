@@ -52,8 +52,8 @@
 
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 
 import type { Config } from "../../config.js";
 import type { HarnessCapabilities, PausePrimitive, StateIdSource } from "../../harness/capabilities.js";

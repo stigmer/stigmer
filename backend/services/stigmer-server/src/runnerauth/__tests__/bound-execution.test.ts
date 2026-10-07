@@ -24,8 +24,8 @@ import { create, toBinary } from "@bufbuild/protobuf";
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { describe, expect, it, vi } from "vitest";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase as AgentPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase as AgentPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -107,7 +107,7 @@ function agentRun(
   completedAt = "",
   extra: { createdBy?: string; sessionId?: string; org?: string } = {},
 ) {
-  return create(AgentRunSchema, {
+  return create(RunSchema, {
     metadata: { id, name: id, org: extra.org ?? "acme" },
     spec: { target: { case: "sessionId", value: extra.sessionId ?? "" } },
     status: {
@@ -264,7 +264,7 @@ describe("loadBoundExecution", () => {
 
     it("a row with no status has not started, which is live", async () => {
       const store = storeOf({
-        aex_1: create(AgentRunSchema, { metadata: { id: "aex_1" } }),
+        aex_1: create(RunSchema, { metadata: { id: "aex_1" } }),
       });
       expect((await loadBoundExecution(store, "aex_1", NOW))?.live).toBe(true);
     });

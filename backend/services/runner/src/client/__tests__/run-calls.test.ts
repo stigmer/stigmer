@@ -30,8 +30,8 @@ vi.mock("@connectrpc/connect", async (importOriginal) => {
 });
 
 import { create } from "@bufbuild/protobuf";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { StigmerClient } from "../stigmer-client.js";
 
@@ -47,7 +47,7 @@ describe("StigmerClient.updateStatus", () => {
   it("sends the agent run's status under run_id and answers the server's response", async () => {
     const response = { signal: 0 };
     agentRunUpdateStatus.mockResolvedValue(response);
-    const status = create(AgentRunStatusSchema, {
+    const status = create(RunStatusSchema, {
       phase: RunPhase.RUN_IN_PROGRESS,
     });
 

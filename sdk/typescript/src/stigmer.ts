@@ -143,15 +143,15 @@ export class Stigmer extends GeneratedClient {
     const target = this.defaultExecutionTarget!;
     const origSessionCreate = this.session.create.bind(this.session);
     const origSessionApply = this.session.apply.bind(this.session);
-    const origExecutionCreate = this.agentRun.create.bind(
-      this.agentRun,
+    const origExecutionCreate = this.run.create.bind(
+      this.run,
     );
 
     this.session.create = (input) =>
       origSessionCreate(applySessionDefault(input, target));
     this.session.apply = (input) =>
       origSessionApply(applySessionDefault(input, target));
-    this.agentRun.create = (input) =>
+    this.run.create = (input) =>
       origExecutionCreate(
         input.sessionSpec
           ? {

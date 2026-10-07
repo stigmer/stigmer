@@ -410,7 +410,7 @@ describe.each(
     ApiResourceKind.team,
     ApiResourceKind.agent,
     ApiResourceKind.session,
-    ApiResourceKind.agent_run,
+    ApiResourceKind.run,
   ]),
 )("the built-in evaluator's cost on $name", (fixture) => {
   describe.skipIf(fixture.skip)("measured", () => {

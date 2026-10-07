@@ -13,7 +13,7 @@ import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import { createValidator } from "@bufbuild/protovalidate";
 import { describe, expect, it } from "vitest";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 
 import { policyIdFor } from "../../domain/iampolicy/constants.js";
@@ -25,9 +25,9 @@ describe("renamedAgentRunRow", () => {
   it("rewrites the kind string, and the fetched run then passes its own validation", () => {
     const migrated = renamedAgentRunRow(agentRunBytes("aex_1", "ses_1", OLD_RUN_NAMES));
     expect(migrated).toEqual(agentRunBytes("aex_1", "ses_1", NEW_RUN_NAMES));
-    const run = fromBinary(AgentRunSchema, migrated!);
+    const run = fromBinary(RunSchema, migrated!);
     const kindViolations = createValidator()
-      .validate(AgentRunSchema, run)
+      .validate(RunSchema, run)
       .violations?.filter((v) => v.toString().startsWith("kind:"));
     expect(kindViolations ?? []).toEqual([]);
   });

@@ -44,7 +44,7 @@ import type { Command } from "@langchain/langgraph";
 import { createDeepAgent } from "deepagents";
 import { providerStrategy } from "langchain";
 import { transformJSONSchema } from "@anthropic-ai/sdk/lib/transform-json-schema";
-import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import type { Config } from "../../config.js";
 import type { TurnInput, TurnSink } from "../../harness/types.js";

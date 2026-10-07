@@ -203,11 +203,11 @@ export {
   type SlackChannelConfigInput,
 } from "./gen/agentchannel.js";
 export {
-  AgentRunClient,
-  toAgentRunUpdateInput,
-  type AgentRunInput,
+  RunClient,
+  toRunUpdateInput,
+  type RunInput,
   type AttachmentInput,
-} from "./gen/agentrun.js";
+} from "./gen/run.js";
 export {
   AgentShareClient,
   toAgentShareUpdateInput,

@@ -12,9 +12,9 @@
  */
 
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import { ApprovalPolicySource, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { AgentMessageSchema, ToolCallSchema, type ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
+import { ApprovalPolicySource, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { AgentMessageSchema, ToolCallSchema, type ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 import { describe, expect, it } from "vitest";
 import { contentToken, grantToken, type DeniedLedgerEntry } from "../approval-state.js";
 import { collapseRedundantToolCallTwins, stampHookRefusedToolCalls } from "../boundary-rows.js";

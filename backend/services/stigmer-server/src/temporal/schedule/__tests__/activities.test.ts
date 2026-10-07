@@ -14,8 +14,8 @@ import path from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -117,7 +117,7 @@ beforeEach(async () => {
   ensureCalls = [];
   startRunOutcome = { kind: "started", executionId: "aex_01x", alreadyExisted: false };
   await store.deleteResource(ApiResourceKind.schedule, "sch_01act");
-  await store.deleteScheduleRunsBySchedule("sch_01act");
+  await store.deleteScheduleFiresBySchedule("sch_01act");
 });
 
 describe("recordTick — the revalidation matrix", () => {
@@ -164,14 +164,14 @@ describe("startScheduledRun — re-validation and the ledger", () => {
     expect(result.outcome).toBe(RUN_SKIPPED);
     // The budget rides the RESULT even on skips (replay-safe timing).
     expect(result.trackingTimeoutMinutes).toBe(60);
-    const { total } = await store.listScheduleRuns("sch_01act", 0, 10);
+    const { total } = await store.listScheduleFires("sch_01act", 0, 10);
     expect(total).toBe(1); // the skip left its ledger row (row exists)
   });
 
   it("the deleted-row skip leaves NO ledger row (the cascade already ran)", async () => {
     const result = await activities()[START_SCHEDULED_RUN_ACTIVITY_NAME]("sch_01act", NOMINAL);
     expect(result.outcome).toBe(RUN_SKIPPED);
-    const { total } = await store.listScheduleRuns("sch_01act", 0, 10);
+    const { total } = await store.listScheduleFires("sch_01act", 0, 10);
     expect(total).toBe(0);
   });
 
@@ -180,7 +180,7 @@ describe("startScheduledRun — re-validation and the ledger", () => {
     const result = await activities()[START_SCHEDULED_RUN_ACTIVITY_NAME]("sch_01act", NOMINAL);
     expect(result.outcome).toBe(RUN_STARTED);
     expect(result.executionId).toBe("aex_01x");
-    const { runs } = await store.listScheduleRuns("sch_01act", 0, 10);
+    const { runs } = await store.listScheduleFires("sch_01act", 0, 10);
     expect(runs).toHaveLength(1);
     expect(runs[0]?.outcome).toBe("started");
     expect(runs[0]?.origin).toBe("cron");
@@ -193,7 +193,7 @@ describe("startScheduledRun — re-validation and the ledger", () => {
     const result = await activities()[START_SCHEDULED_RUN_ACTIVITY_NAME]("sch_01act", NOMINAL);
     expect(result.outcome).toBe(RUN_REFUSED);
     expect(result.failureReason).toBe("run refused: gate said no");
-    const { runs } = await store.listScheduleRuns("sch_01act", 0, 10);
+    const { runs } = await store.listScheduleFires("sch_01act", 0, 10);
     expect(runs[0]?.outcome).toBe("refused");
     expect(runs[0]?.reason).toBe("run refused: gate said no");
     expect(runs[0]?.completedAt).not.toBe("");
@@ -210,10 +210,10 @@ describe("pollExecutionPhase — one row read, GONE distinct from RUNNING", () =
     [RunPhase.RUN_PENDING, PHASE_RUNNING],
   ])("classifies phase %d as %s", async (phase, want) => {
     await store.saveResource(
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
       "aex_01poll",
-      AgentRunSchema,
-      create(AgentRunSchema, {
+      RunSchema,
+      create(RunSchema, {
         metadata: { id: "aex_01poll", org: "acme" },
         status: { phase },
       }),
@@ -234,7 +234,7 @@ describe("recordSuccessfulRun — the absorbing zero", () => {
     await activities()[RECORD_SUCCESSFUL_RUN_ACTIVITY_NAME]("sch_01act");
     let row = await store.getResource(ApiResourceKind.schedule, "sch_01act", ScheduleSchema);
     expect(row.status?.consecutiveFailures).toBe(0);
-    const { runs } = await store.listScheduleRuns("sch_01act", 0, 10);
+    const { runs } = await store.listScheduleFires("sch_01act", 0, 10);
     expect(runs[0]?.outcome).toBe("completed");
 
     // Retried freely: a second call is harmless.
@@ -294,7 +294,7 @@ describe("recordFailedRun — the one-closure verdict", () => {
     await activities()[START_SCHEDULED_RUN_ACTIVITY_NAME]("sch_01act", NOMINAL);
 
     await activities()[RECORD_FAILED_RUN_ACTIVITY_NAME]("sch_01act", "run aex_01x ended failed", FAILURE_RUN_FAILED);
-    const { runs } = await store.listScheduleRuns("sch_01act", 0, 10);
+    const { runs } = await store.listScheduleFires("sch_01act", 0, 10);
     expect(runs[0]?.outcome).toBe("failed");
     expect(runs[0]?.reason).toBe("run aex_01x ended failed");
   });

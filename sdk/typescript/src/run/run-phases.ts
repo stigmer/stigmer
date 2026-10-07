@@ -5,7 +5,7 @@
 // parity test reproduces the server's terminal-phase gate). @stigmer/react
 // re-exports it so its public API is unchanged.
 
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 const TERMINAL_PHASES: ReadonlySet<RunPhase> = new Set([
   RunPhase.RUN_COMPLETED,

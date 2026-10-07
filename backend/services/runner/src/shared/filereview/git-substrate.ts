@@ -65,7 +65,7 @@ import { execFile } from "node:child_process";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
-import { FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { bytesLookBinary } from "../file-change.js";
 import { sha256Bytes } from "./digest.js";
 import type { CapturedContent } from "./events.js";

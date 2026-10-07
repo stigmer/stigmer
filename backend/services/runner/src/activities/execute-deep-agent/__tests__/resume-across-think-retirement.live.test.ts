@@ -20,8 +20,8 @@
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { fromJson } from "@bufbuild/protobuf";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { ApprovalAction, RunPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { ApprovalAction, RunPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../client/stigmer-client.js", async () =>
   (await import("../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
@@ -69,7 +69,7 @@ describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("ExecuteDeepAgent live — a s
     // live posture's default is the in-memory saver.
     const scenario = beginLiveDeepAgentScenario({ env, record, config: { checkpointerType: "sqlite" } });
     await loadRows(getCheckpointDbPath(FIXTURE.sessionId), fixture);
-    record.applyStatusUpdate(fromJson(AgentRunStatusSchema, fixture.status));
+    record.applyStatusUpdate(fromJson(RunStatusSchema, fixture.status));
     expect(record.waitingToolCalls().map((tc) => tc.id)).toEqual([EXECUTE_CALL_A.id]);
     expect(record.decideWaitingToolCalls(ApprovalAction.APPROVE, new Date().toISOString())).toBe(1);
 

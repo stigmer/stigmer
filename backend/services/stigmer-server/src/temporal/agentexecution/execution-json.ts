@@ -39,9 +39,9 @@ import {
   type MessageShape,
 } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  type AgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+  RunSchema,
+  type Run,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 
 export const RETIRED_FIELD_NAMES: ReadonlyMap<string, string> = new Map([
   ["executionId", "runId"],
@@ -166,8 +166,8 @@ export function renameRetiredRunJson(desc: DescMessage, raw: JsonValue): JsonVal
 }
 
 /** The workflow's load of its run: retired names renamed, reserved names dropped. */
-export function decodeLoadedExecution(raw: JsonValue): AgentRun {
-  return fromJson(AgentRunSchema, renameRetiredRunJson(AgentRunSchema, raw), {
+export function decodeLoadedExecution(raw: JsonValue): Run {
+  return fromJson(RunSchema, renameRetiredRunJson(RunSchema, raw), {
     ignoreUnknownFields: true,
   });
 }

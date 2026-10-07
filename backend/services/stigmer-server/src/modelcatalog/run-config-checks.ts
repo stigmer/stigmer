@@ -18,8 +18,8 @@
  * model that always thinks; unknown enum values
  * never reach these functions (proto validation refuses them first).
  */
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { RunConfig } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 
 import type { ModelCatalogProvider } from "./model-catalog-provider.js";
 import {

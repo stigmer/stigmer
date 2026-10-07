@@ -43,8 +43,8 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
@@ -111,7 +111,7 @@ afterAll(dropPostgresFixture);
 
 describe.each(
   driverFixtures([
-    ApiResourceKind.agent_run,
+    ApiResourceKind.run,
     ApiResourceKind.execution_context,
     ApiResourceKind.identity_account,
   ]),
@@ -147,10 +147,10 @@ describe.each(
       phase: RunPhase = RunPhase.RUN_IN_PROGRESS,
     ): Promise<void> {
       await opened.store.saveResource(
-        ApiResourceKind.agent_run,
+        ApiResourceKind.run,
         id,
-        AgentRunSchema,
-        create(AgentRunSchema, {
+        RunSchema,
+        create(RunSchema, {
           metadata: { id, name: id, org: "acme" },
           status: {
             phase,
@@ -333,10 +333,10 @@ describe.each(
 
       it("a run that ended moments ago still admits — the grace covers the writes that trail the terminal stamp", async () => {
         await opened.store.saveResource(
-          ApiResourceKind.agent_run,
+          ApiResourceKind.run,
           "aex_just_over",
-          AgentRunSchema,
-          create(AgentRunSchema, {
+          RunSchema,
+          create(RunSchema, {
             metadata: {
               id: "aex_just_over",
               name: "aex_just_over",
@@ -357,10 +357,10 @@ describe.each(
 
       it("a run that ended past the grace is refused — the grace is a constant, not a second clock", async () => {
         await opened.store.saveResource(
-          ApiResourceKind.agent_run,
+          ApiResourceKind.run,
           "aex_long_over",
-          AgentRunSchema,
-          create(AgentRunSchema, {
+          RunSchema,
+          create(RunSchema, {
             metadata: {
               id: "aex_long_over",
               name: "aex_long_over",

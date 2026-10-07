@@ -26,15 +26,15 @@ import { clone, create } from "@bufbuild/protobuf";
 
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import {
   RunConfigSchema,
   type AgentInvocation,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -92,9 +92,9 @@ export type RunOutcomeResult =
  */
 export interface ScheduleExecutionCreator {
   create(
-    execution: AgentRun,
+    execution: Run,
     fireCaller?: CallerIdentity,
-  ): Promise<AgentRun>;
+  ): Promise<Run>;
 }
 
 /**
@@ -265,8 +265,8 @@ export class RunStarter {
     try {
       existing = await findResourceBySlug(
         store,
-        ApiResourceKind.agent_run,
-        AgentRunSchema,
+        ApiResourceKind.run,
+        RunSchema,
         executionName,
         org,
       );
@@ -323,7 +323,7 @@ export class RunStarter {
       }
     }
 
-    let created: AgentRun;
+    let created: Run;
     try {
       created = await this.deps.executions.create(
         this.buildExecutionRequest(
@@ -348,8 +348,8 @@ export class RunStarter {
           try {
             winner = await findResourceBySlug(
               store,
-              ApiResourceKind.agent_run,
-              AgentRunSchema,
+              ApiResourceKind.run,
+              RunSchema,
               executionName,
               org,
             );
@@ -447,7 +447,7 @@ export class RunStarter {
     agent: Agent,
     executionName: string,
     nominalFireTime: Date,
-  ): AgentRun {
+  ): Run {
     const invocation = invocationOf(schedule);
     const runConfig = invocation?.runConfig;
 
@@ -476,7 +476,7 @@ export class RunStarter {
       sessionSpec.harness = invocation.harness;
     }
 
-    return create(AgentRunSchema, {
+    return create(RunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "AgentRun",
       metadata: create(ApiResourceMetadataSchema, {
@@ -490,7 +490,7 @@ export class RunStarter {
         // environment-resolution key — see SCHEDULE_ID_LABEL_KEY.
         labels: { [SCHEDULE_ID_LABEL_KEY]: schedule.metadata?.id ?? "" },
       }),
-      spec: create(AgentRunSpecSchema, {
+      spec: create(RunSpecSchema, {
         target: { case: "sessionSpec", value: sessionSpec },
         message: composeMessage(schedule, nominalFireTime),
         runConfig:

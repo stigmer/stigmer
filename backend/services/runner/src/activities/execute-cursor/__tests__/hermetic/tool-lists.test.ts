@@ -52,7 +52,7 @@ import {
   ApprovalPolicySource,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   FIXTURE,
   SDK_CATALOG,

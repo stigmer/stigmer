@@ -48,7 +48,7 @@ import { existsSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { create, toJson } from "@bufbuild/protobuf";
 import { ConnectError, Code } from "@connectrpc/connect";
-import { AgentRunSchema, AgentRunStatusSchema, type AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunSchema, RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
   ApprovalAction,
@@ -56,7 +56,7 @@ import {
   RunPhase,
   MessageType,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { HookConfigSchema, HookFormat, HookGroupSchema, HookHandlerSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { GetArtifactResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
@@ -116,8 +116,8 @@ const DELETE: ScriptedToolCall = { id: "call-hooks-delete", name: "execute", arg
 const LIST: ScriptedToolCall = { id: "call-hooks-list", name: "execute", args: { command: "ls" } };
 const PUBLISH: ScriptedToolCall = { id: "call-hooks-publish", name: "execute", args: { command: "echo publish" } };
 
-function statusJson(status: AgentRunStatus): string {
-  return JSON.stringify(toJson(AgentRunStatusSchema, status), null, 2) + "\n";
+function statusJson(status: RunStatus): string {
+  return JSON.stringify(toJson(RunStatusSchema, status), null, 2) + "\n";
 }
 
 describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks", () => {
@@ -173,7 +173,7 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
 
     const run1 = record.lastFullStatus!;
-    const row = (status: AgentRunStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
+    const row = (status: RunStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
 
     const deleted = row(run1, DELETE.id);
     expect(deleted.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
@@ -244,7 +244,7 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
         ],
       }),
     });
-    const row = (status: AgentRunStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
+    const row = (status: RunStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
 
     await runDeepAgentTurn(scenario, { turnSeq: 0 });
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
@@ -269,7 +269,7 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
     expect(held.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
     expect(held.approvalPolicySource).toBe(ApprovalPolicySource.BUILTIN_CATEGORY);
 
-    const leases = deriveActiveLeases(create(AgentRunSchema, { status }));
+    const leases = deriveActiveLeases(create(RunSchema, { status }));
     expect([...leases.categories]).toEqual([]);
     expect([...leases.servers]).toEqual([]);
     expect([...leases.hooks]).toEqual([hookLeaseKey("safety", "", "execute")]);
@@ -334,7 +334,7 @@ fi
         ],
       }),
     });
-    const row = (status: AgentRunStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
+    const row = (status: RunStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
 
     await runDeepAgentTurn(scenario, { turnSeq: 0 });
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);

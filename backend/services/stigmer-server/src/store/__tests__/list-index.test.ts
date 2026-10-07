@@ -11,7 +11,7 @@
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -157,12 +157,12 @@ describe("listIndexFactsOf", () => {
     expect(() =>
       listIndexFactsOf(
         {
-          kind: ApiResourceKind.agent_run,
-          schema: AgentRunSchema,
+          kind: ApiResourceKind.run,
+          schema: RunSchema,
           revision: 1,
           keys: {},
         },
-        create(AgentRunSchema, {}),
+        create(RunSchema, {}),
       ),
     ).toThrow("was not made by declareListIndex");
   });

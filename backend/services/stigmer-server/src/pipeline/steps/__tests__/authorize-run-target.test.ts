@@ -255,7 +255,7 @@ describe("isRunGateCheck — the one definition of the run-gate check set", () =
     ["agent#can_view", ApiResourceKind.agent, IamPermission.can_view],
     [
       "agent_run#can_execute",
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
       IamPermission.can_execute,
     ],
     [

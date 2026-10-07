@@ -43,9 +43,9 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { create, toJson } from "@bufbuild/protobuf";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -133,14 +133,14 @@ describe("ExecuteDeepAgent hermetic — plain turn", () => {
     expect(primaryBuild?.proxyEndpoint, "the OSS posture has no proxy").toBeUndefined();
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
+    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot(GOLDEN);
   });
 
   it("produces the same status from the legacy positional wire shape", async () => {
     const { record, invocation } = await runPlainTurn({ positional: true });
     expect(invocation.outcome.kind).toBe("returned");
-    const json = JSON.stringify(toJson(AgentRunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
+    const json = JSON.stringify(toJson(RunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot(GOLDEN);
   });
 

@@ -8,10 +8,10 @@
 
 import { describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { RunControlSignal, FileChangeKind, MessageType, ServiceTier, ThinkingMode, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { RunControlSignal, FileChangeKind, MessageType, ServiceTier, ThinkingMode, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { TurnProgress } from "../capture.js";
@@ -50,7 +50,7 @@ function chokepointOver(
   client: StigmerClient,
   options: { usage?: UsageAccumulator; progress?: TurnProgress; onPlatformStop?: () => void } = {},
 ) {
-  const status = create(AgentRunStatusSchema, {});
+  const status = create(RunStatusSchema, {});
   const heartbeat = vi.fn();
   const onPlatformStop = options.onPlatformStop ?? vi.fn();
   const chokepoint = new PersistChokepoint({

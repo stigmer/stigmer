@@ -28,8 +28,8 @@ import {
 import type { ToolApprovalCategory } from "../tool-kind.js";
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
 import { create } from "@bufbuild/protobuf";
-import { AgentRunSchema, type AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { ApprovalAction, ApprovalMode, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { ApprovalAction, ApprovalMode, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 /** No active leases. */
 const NO_LEASES: ActiveLeases = { global: false, categories: new Set(), servers: new Set(), hooks: new Set() };
@@ -67,11 +67,11 @@ function makeExecution(opts: {
   subAgentCalls?: TestToolCall[];
   autoApproveAll?: boolean;
   hasStatus?: boolean;
-}): AgentRun {
+}): Run {
   const hasStatus = opts.hasStatus ?? true;
   const spec = { autoApproveAll: opts.autoApproveAll ?? false };
   if (!hasStatus) {
-    return { spec, status: undefined } as unknown as AgentRun;
+    return { spec, status: undefined } as unknown as Run;
   }
   const toCalls = (calls: TestToolCall[] = []) =>
     calls.map(c => ({
@@ -89,7 +89,7 @@ function makeExecution(opts: {
         { messages: [{ toolCalls: toCalls(opts.subAgentCalls) }] },
       ],
     },
-  } as unknown as AgentRun;
+  } as unknown as Run;
 }
 
 function makeServer(slug: string, destructiveTools: string[] = []): ResolvedMcpServer {
@@ -477,8 +477,8 @@ describe("hookLeaseKey", () => {
 });
 
 describe("isUnattendedApprovalMode", () => {
-  const withMode = (approvalMode: ApprovalMode | undefined): AgentRun =>
-    create(AgentRunSchema, {
+  const withMode = (approvalMode: ApprovalMode | undefined): Run =>
+    create(RunSchema, {
       spec: { message: "hi" },
       ...(approvalMode === undefined ? {} : { status: { approvalMode } }),
     });

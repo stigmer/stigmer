@@ -75,24 +75,24 @@ import {
   workflowInfo,
 } from "@temporalio/workflow";
 
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { decodeLoadedExecution } from "../execution-json.js";
 import {
   RunPhase,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
 import {
   hasDecidedAwaitingReconcile,
   unresolvedGateCount,
-} from "../../../domain/agentrun/filereview/gate.js";
+} from "../../../domain/run/filereview/gate.js";
 import {
   CANCEL_STOP_ROW,
   PAUSE_STOP_ROW,
-} from "../../../domain/agentrun/platform-rows.js";
+} from "../../../domain/run/platform-rows.js";
 import {
   isWorkerShutdown,
   WORKER_SHUTDOWN_STATUS_ERROR,
@@ -670,7 +670,7 @@ async function runWithPauseAndRecovery(
       // the runner's settle write, whichever lands first (stigmer#980).
       await persistFinalStatus(
         executionId,
-        create(AgentRunStatusSchema, {
+        create(RunStatusSchema, {
           phase: RunPhase.RUN_PAUSED,
           messages: [{ type: MessageType.MESSAGE_SYSTEM, content: PAUSE_STOP_ROW }],
         }),
@@ -746,7 +746,7 @@ async function runWithPauseAndRecovery(
     });
     await persistFinalStatus(
       executionId,
-      create(AgentRunStatusSchema, {
+      create(RunStatusSchema, {
         phase: RunPhase.RUN_FAILED,
         error: finalError,
       }),
@@ -868,7 +868,7 @@ async function executeWithHitlLoop(
 
     await persistFinalStatus(
       executionId,
-      create(AgentRunStatusSchema, {
+      create(RunStatusSchema, {
         phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
       }),
       "Failed to persist WAITING_FOR_APPROVAL status before signal wait (non-fatal)",
@@ -878,12 +878,12 @@ async function executeWithHitlLoop(
     // defaults to 1 (wait for the signal — failing open would re-invoke
     // against an undecided gate).
     let gateCount: number;
-    let loadedStatus: AgentRunStatus | undefined;
+    let loadedStatus: RunStatus | undefined;
     try {
       const execution = await loadExecution(executionId);
       loadedStatus = execution.status;
       gateCount = unresolvedGateCount(
-        execution.status ?? create(AgentRunStatusSchema),
+        execution.status ?? create(RunStatusSchema),
       );
     } catch (error) {
       log.warn(
@@ -988,7 +988,7 @@ async function updateStatusOnFailure(
     ? WORKER_SHUTDOWN_STATUS_ERROR
     : errorMessage(originalError);
 
-  const failedStatus = create(AgentRunStatusSchema, {
+  const failedStatus = create(RunStatusSchema, {
     phase: RunPhase.RUN_FAILED,
     error: statusError,
     messages:
@@ -1009,7 +1009,7 @@ async function updateStatusOnFailure(
 
   await failurePathActivities[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME](
     executionId,
-    toJson(AgentRunStatusSchema, failedStatus),
+    toJson(RunStatusSchema, failedStatus),
   );
   log.info("Updated execution status to FAILED", { executionId });
 }
@@ -1037,7 +1037,7 @@ async function handleCancellation(executionId: string): Promise<void> {
  * replay-safety reasons as updateStatusOnFailure.
  */
 async function updateStatusOnCancellation(executionId: string): Promise<void> {
-  const cancelledStatus = create(AgentRunStatusSchema, {
+  const cancelledStatus = create(RunStatusSchema, {
     phase: RunPhase.RUN_CANCELLED,
     messages: [
       {
@@ -1050,7 +1050,7 @@ async function updateStatusOnCancellation(executionId: string): Promise<void> {
   try {
     await failurePathActivities[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME](
       executionId,
-      toJson(AgentRunStatusSchema, cancelledStatus),
+      toJson(RunStatusSchema, cancelledStatus),
     );
     log.info("Updated execution status to CANCELLED", { executionId });
   } catch (error) {
@@ -1070,13 +1070,13 @@ async function updateStatusOnCancellation(executionId: string): Promise<void> {
  */
 async function persistFinalStatus(
   executionId: string,
-  status: AgentRunStatus,
+  status: RunStatus,
   warnMessage: string,
 ): Promise<void> {
   try {
     await localActivities[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME](
       executionId,
-      toJson(AgentRunStatusSchema, status),
+      toJson(RunStatusSchema, status),
     );
     log.info("Persisted final status via fallback", {
       executionId,
@@ -1096,7 +1096,7 @@ async function persistFinalStatus(
 async function persistInterruptedStatus(executionId: string): Promise<void> {
   await persistFinalStatus(
     executionId,
-    create(AgentRunStatusSchema, {
+    create(RunStatusSchema, {
       phase: RunPhase.RUN_IN_PROGRESS,
     }),
     "Failed to persist interrupted/resuming status (non-fatal)",
@@ -1114,7 +1114,7 @@ async function persistInterruptedStatus(executionId: string): Promise<void> {
 async function persistResumedStatus(executionId: string): Promise<void> {
   await persistFinalStatus(
     executionId,
-    create(AgentRunStatusSchema, {
+    create(RunStatusSchema, {
       phase: RunPhase.RUN_IN_PROGRESS,
     }),
     "Failed to persist resumed status (non-fatal)",
@@ -1126,7 +1126,7 @@ async function persistResumedStatus(executionId: string): Promise<void> {
  * input snapshot is stale by completion time). Proto-JSON at the payload
  * boundary; parsed to the typed message here.
  */
-async function loadExecution(executionId: string): Promise<AgentRun> {
+async function loadExecution(executionId: string): Promise<Run> {
   let raw: JsonValue;
   try {
     raw = await localActivities[LOAD_AGENT_EXECUTION_ACTIVITY_NAME](executionId);

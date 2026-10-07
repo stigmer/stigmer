@@ -62,10 +62,10 @@ import {
   ApprovalMode,
   InteractionMode,
   RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
@@ -115,7 +115,7 @@ import {
   retiredWorkflowRunRow,
 } from "../../__tests__/retired-workflow-rows.js";
 import { PostgresStore } from "../store.js";
-import { agentExecutionListIndex } from "../../../domain/agentrun/list-index.js";
+import { agentExecutionListIndex } from "../../../domain/run/list-index.js";
 import { policyIdFor } from "../../../domain/iampolicy/constants.js";
 import { iamPolicyListIndex } from "../../../domain/iampolicy/list-index.js";
 import { RUN_RENAME_PAGE_SIZE } from "../../run-rename.js";
@@ -2184,7 +2184,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         expect(await row(client, "agent_run", "aex_child")).toEqual(child);
         const waitingBytes = await row(client, "agent_run", "aex_waiting");
         expect(waitingBytes, "the unfinished parented run is kept").toBeDefined();
-        const waiting = fromBinary(AgentRunSchema, waitingBytes!);
+        const waiting = fromBinary(RunSchema, waitingBytes!);
         expect(waiting.status?.phase).toBe(RunPhase.RUN_FAILED);
         expect(waiting.status?.error).toBe(WORKFLOW_CHILD_ENDED_ERROR);
         expect(Number.isNaN(Date.parse(waiting.status?.completedAt ?? ""))).toBe(false);
@@ -2211,8 +2211,8 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             ["aex_plain", plain],
             ["aex_child", child],
           ] as const) {
-            const run = await store.getResource(ApiResourceKind.agent_run, id, AgentRunSchema);
-            expect(toBinary(AgentRunSchema, run), id).toEqual(bytes);
+            const run = await store.getResource(ApiResourceKind.run, id, RunSchema);
+            expect(toBinary(RunSchema, run), id).toEqual(bytes);
           }
           const agent = await store.getResource(ApiResourceKind.agent, "agt_1", AgentSchema);
           expect(toBinary(AgentSchema, agent)).toEqual(agentBytes);

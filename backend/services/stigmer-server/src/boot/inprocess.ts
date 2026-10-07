@@ -36,17 +36,17 @@ import { ExecutionContextCommandController } from "@stigmer/protos/ai/stigmer/ag
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionIdSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
+import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
 
 import type {
   AgentLoader,
   SessionCreator,
-} from "../domain/agentrun/create-steps.js";
+} from "../domain/run/create-steps.js";
 import type {
   EnvironmentReader,
   ExecutionContextCreator,
   SessionLoader,
-} from "../domain/agentrun/create-execution-context-step.js";
+} from "../domain/run/create-execution-context-step.js";
 import type { ExecutionContextDeleter } from "../domain/executioncontext/internal-delete.js";
 import type { ConnectExecutionContextClient } from "../domain/mcpserver/connect.js";
 import type { ManagedEnvironmentClient } from "../domain/mcpserver/oauth/managed-env.js";
@@ -193,7 +193,7 @@ export function createInProcessClients(
     transport,
   );
   const agentExecutionCommand = createClient(
-    AgentRunCommandController,
+    RunCommandController,
     transport,
   );
   const agentCommand = createClient(AgentCommandController, transport);

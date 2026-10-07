@@ -15,9 +15,9 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { type AgentRunStatus, AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/subagent_pb";
-import { SubAgentStatus, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { type RunStatus, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
+import { SubAgentStatus, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { cancelInProgressSubAgentProtos } from "../../../shared/subagent-rows.js";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import { DeepAgentTranslator } from "../translator.js";
@@ -36,8 +36,8 @@ import {
 } from "../__test-utils__/v3-event-fixtures.js";
 
 /** A builder and the status it builds into: the test writes through `sb` and reads `status`, as production reads `TurnSink.status`. */
-function makeBuilder(): { sb: TranscriptBuilder; status: AgentRunStatus } {
-  const status = create(AgentRunStatusSchema, {});
+function makeBuilder(): { sb: TranscriptBuilder; status: RunStatus } {
+  const status = create(RunStatusSchema, {});
   return { sb: new TranscriptBuilder("exec-test", status), status };
 }
 
@@ -193,7 +193,7 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
 
   describe("the status's array is built into by reference", () => {
     it("new rows are pushed onto the array the builder was handed, never a replacement", () => {
-      const status = create(AgentRunStatusSchema, {});
+      const status = create(RunStatusSchema, {});
       const rows = status.subAgentRuns;
       const sb = new TranscriptBuilder("exec-test", status);
       feedAll(sb, [makeTaskToolStarted("call_sub_1", "researcher", "Task 1")]);
@@ -207,7 +207,7 @@ describe("sub-agent transcripts (the translator and the builder together)", () =
         name: "researcher",
         status: SubAgentStatus.SUB_AGENT_IN_PROGRESS,
       });
-      const status = create(AgentRunStatusSchema, { subAgentRuns: [seeded] });
+      const status = create(RunStatusSchema, { subAgentRuns: [seeded] });
       const sb = new TranscriptBuilder("exec-test", status);
       feedAll(sb, [
         makeTaskToolStarted("call_sub_1", "researcher", "Task 1"),

@@ -11,7 +11,7 @@
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { ConversationCatchupSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+import { ConversationCatchupSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { TimestampSchema } from "@bufbuild/protobuf/wkt";
 
 import {

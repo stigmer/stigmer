@@ -28,7 +28,7 @@ import { getIdPrefix, kindByIdPrefix } from "../apiresource-meta.js";
 
 describe("kindByIdPrefix — a minted id names its kind by prefix", () => {
   it.each([
-    ["aex_01m2mp45efcjvq2z1e1yn4cyz7", ApiResourceKind.agent_run],
+    ["aex_01m2mp45efcjvq2z1e1yn4cyz7", ApiResourceKind.run],
     ["ses_x", ApiResourceKind.session],
     ["ida_carol", ApiResourceKind.identity_account],
   ])("%s is %s", (id, kind) => {

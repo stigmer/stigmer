@@ -17,9 +17,9 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
-import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
+import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 
 vi.mock("../../shared/model-registry.js", () => ({
   getDefaultModel: vi.fn(async () => "registry-default-model"),
@@ -35,7 +35,7 @@ import { TranscriptBuilder } from "../transcript/builder.js";
 import { resolveTurnAttachments, type ResolutionDeps } from "../turn-context.js";
 
 function deps(): ResolutionDeps {
-  const status = create(AgentRunStatusSchema, {});
+  const status = create(RunStatusSchema, {});
   return {
     input: { executionId: "aex_1", threadId: "", turnSeq: 0 },
     client: mockStigmerClient(),
@@ -54,7 +54,7 @@ function deps(): ResolutionDeps {
 async function resolveWithModel(modelName: string | undefined, requestedModelName?: string): Promise<void> {
   await resolveTurnAttachments(deps(), {
     spec: create(
-      AgentRunSpecSchema,
+      RunSpecSchema,
       requestedModelName === undefined ? {} : { runConfig: { modelName: requestedModelName } },
     ),
     runConfig: modelName === undefined ? undefined : create(RunConfigSchema, { modelName }),

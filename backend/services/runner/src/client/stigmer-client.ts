@@ -11,8 +11,8 @@
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { context as otelContext, propagation } from "@opentelemetry/api";
-import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
-import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
+import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
+import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
 import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
@@ -25,7 +25,7 @@ import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb
 import type { GetArtifactResponse as GetPluginArtifactResponse, PluginArtifactDownloadUrl } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
 import { BillingCommandController } from "@stigmer/protos/ai/stigmer/billing/v1/command_pb";
 import type { RecordLlmCallUsageInput, RecordLlmCallUsageResponse } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
-import type { AgentRun, AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { Run, RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { ExecutionContextExecutionIdInputSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/io_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -38,8 +38,8 @@ import type { GetArtifactResponse, SkillArtifactDownloadUrl } from "@stigmer/pro
 import { create } from "@bufbuild/protobuf";
 import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
-import { AgentRunUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
-import type { UpdateStatusResponse } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+import { RunUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import type { UpdateStatusResponse } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { PlatformQueryController, GetRunnerScopedTokenInputSchema, TokenRenewalSchema } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_query_pb";
 import type { ChannelTemplate, MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
@@ -130,7 +130,7 @@ export type RunnerScopedTokenScope =
  */
 function toRunnerScopedTokenOneof(scope: RunnerScopedTokenScope) {
   if ("agentExecutionId" in scope) {
-    return { case: "agentRunId", value: scope.agentExecutionId } as const;
+    return { case: "runId", value: scope.agentExecutionId } as const;
   }
   if ("poolClaimSessionId" in scope) {
     return { case: "poolClaim", value: { sessionId: scope.poolClaimSessionId } } as const;
@@ -163,8 +163,8 @@ export interface StigmerClientOptions {
 export class StigmerClient {
   readonly transport: Transport;
   private readonly fixedToken: string | null;
-  private readonly executionQuery: Client<typeof AgentRunQueryController>;
-  private readonly executionCommand: Client<typeof AgentRunCommandController>;
+  private readonly executionQuery: Client<typeof RunQueryController>;
+  private readonly executionCommand: Client<typeof RunCommandController>;
   private readonly executionContextQuery: Client<typeof ExecutionContextQueryController>;
   private readonly sessionQuery: Client<typeof SessionQueryController>;
   private readonly sessionCommand: Client<typeof SessionCommandController>;
@@ -259,8 +259,8 @@ export class StigmerClient {
       ],
     });
 
-    this.executionQuery = createClient(AgentRunQueryController, this.transport);
-    this.executionCommand = createClient(AgentRunCommandController, this.transport);
+    this.executionQuery = createClient(RunQueryController, this.transport);
+    this.executionCommand = createClient(RunCommandController, this.transport);
     this.executionContextQuery = createClient(ExecutionContextQueryController, this.transport);
     this.sessionQuery = createClient(SessionQueryController, this.transport);
     this.sessionCommand = createClient(SessionCommandController, this.transport);
@@ -309,15 +309,15 @@ export class StigmerClient {
     };
   }
 
-  async getExecution(executionId: string): Promise<AgentRun> {
+  async getExecution(executionId: string): Promise<Run> {
     return this.executionQuery.get({ value: executionId });
   }
 
   async updateStatus(
     executionId: string,
-    status: AgentRunStatus,
+    status: RunStatus,
   ): Promise<UpdateStatusResponse> {
-    const input = create(AgentRunUpdateStatusInputSchema, {
+    const input = create(RunUpdateStatusInputSchema, {
       runId: executionId,
       status,
     });

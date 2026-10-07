@@ -26,14 +26,14 @@
 import { create, fromBinary } from "@bufbuild/protobuf";
 import { afterAll, describe, expect, it } from "vitest";
 
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { LIST_INDEXES } from "../../boot/list-indexes.js";
-import { agentExecutionListIndex } from "../../domain/agentrun/list-index.js";
+import { agentExecutionListIndex } from "../../domain/run/list-index.js";
 import { sessionListIndex } from "../../domain/session/list-index.js";
 import type { Store } from "../interface.js";
 import { PostgresStore } from "../postgres/store.js";
@@ -88,10 +88,10 @@ async function seed(store: Store): Promise<void> {
     const id = `aex_${String(i).padStart(26, "0")}`;
     const session = i % SESSIONS;
     await store.saveResource(
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
       id,
-      AgentRunSchema,
-      create(AgentRunSchema, {
+      RunSchema,
+      create(RunSchema, {
         metadata: { id, org: orgOf(session) },
         spec: {
           target: { case: "sessionId", value: sessionIdOf(session) },
@@ -126,8 +126,8 @@ async function median(
   return { ms: Math.round(samples[Math.floor(RUNS / 2)] ?? 0), rows };
 }
 
-function decodeExecutions(rows: ReadonlyArray<Uint8Array>): AgentRun[] {
-  return rows.map((row) => fromBinary(AgentRunSchema, row));
+function decodeExecutions(rows: ReadonlyArray<Uint8Array>): Run[] {
+  return rows.map((row) => fromBinary(RunSchema, row));
 }
 
 interface Shape {
@@ -140,7 +140,7 @@ const TODAY: ReadonlyArray<Shape> = [
   {
     name: "agentExecution.list(org) — whole kind, org in memory",
     async run(store) {
-      const rows = await store.listResources(ApiResourceKind.agent_run);
+      const rows = await store.listResources(ApiResourceKind.run);
       return decodeExecutions(rows).filter((e) => e.metadata?.org === BUSY_ORG)
         .length;
     },
@@ -148,7 +148,7 @@ const TODAY: ReadonlyArray<Shape> = [
   {
     name: "agentExecution.listBySession — whole kind, session in memory",
     async run(store) {
-      const rows = await store.listResources(ApiResourceKind.agent_run);
+      const rows = await store.listResources(ApiResourceKind.run);
       return decodeExecutions(rows).filter(
         (e) =>
           e.spec?.target.case === "sessionId" &&
@@ -215,9 +215,9 @@ async function timeStatusWrites(store: Store): Promise<number> {
   const started = performance.now();
   for (let i = 0; i < STATUS_WRITES; i++) {
     await store.updateResource(
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
       id,
-      AgentRunSchema,
+      RunSchema,
       (execution) => {
         execution.status!.error = `write ${i}`;
       },

@@ -46,8 +46,8 @@ import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
@@ -87,14 +87,14 @@ function stampedBy(id: string) {
 }
 
 /** The one agent execution the capture arms read: Carol's run in `acme`, on session `ses_carol`. */
-const AGENT_RUN = create(AgentRunSchema, {
+const AGENT_RUN = create(RunSchema, {
   metadata: { id: "aex_agent_run", name: "aex_agent_run", org: "acme" },
   spec: { target: { case: "sessionId", value: "ses_carol" } },
   status: { phase: RunPhase.RUN_IN_PROGRESS, ...stampedBy(HUMAN) },
 });
 
 /** A run created before sign-in was on: its stamp names nobody the server recognizes. */
-const NOBODYS_RUN = create(AgentRunSchema, {
+const NOBODYS_RUN = create(RunSchema, {
   metadata: { id: "aex_nobodys_run", name: "aex_nobodys_run", org: "acme" },
   spec: { target: { case: "sessionId", value: "ses_old" } },
   status: {
@@ -104,7 +104,7 @@ const NOBODYS_RUN = create(AgentRunSchema, {
 });
 
 /** A run whose row names no organization: no credential may be bound to nothing. */
-const ORGLESS_RUN = create(AgentRunSchema, {
+const ORGLESS_RUN = create(RunSchema, {
   metadata: { id: "aex_orgless_run", name: "aex_orgless_run", org: "" },
   spec: { target: { case: "sessionId", value: "ses_orgless" } },
   status: { phase: RunPhase.RUN_IN_PROGRESS, ...stampedBy(HUMAN) },

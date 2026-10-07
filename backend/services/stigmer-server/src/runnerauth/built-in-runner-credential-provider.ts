@@ -176,7 +176,7 @@ export function newBuiltInRunnerCredentialProvider(
           // credentials, and the requested kind's row does not exist.
           if (execution === undefined || !bindsARun(execution.kind)) {
             throw notFoundError(
-              getKindName(ApiResourceKind.agent_run),
+              getKindName(ApiResourceKind.run),
               request.executionId,
             );
           }

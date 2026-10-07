@@ -22,7 +22,7 @@ import { inheritedAuthorizationParentOf } from "../apiresource-meta.js";
 describe("inheritedAuthorizationParentOf — the parent a kind's authorization is", () => {
   it("agent_run's authorization is its session's: relation `session`, spec field `session_id`", () => {
     const parent = inheritedAuthorizationParentOf(
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
     );
     expect(parent).toBeDefined();
     expect(parent?.kind).toBe("session");

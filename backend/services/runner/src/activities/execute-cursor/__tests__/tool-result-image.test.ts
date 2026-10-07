@@ -25,8 +25,8 @@
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { SDKMessage } from "@cursor/sdk";
 import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
 import {
@@ -184,7 +184,7 @@ describe("cursor image flows through the persist-time offload", () => {
     } as unknown as Extract<SDKMessage, { type: "tool_call" }>;
 
     const tc = foldCursorEvents([event]).rows()[0];
-    const status = create(AgentRunStatusSchema, {
+    const status = create(RunStatusSchema, {
       messages: [create(AgentMessageSchema, { toolCalls: [tc] })],
     });
 

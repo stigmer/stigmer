@@ -84,7 +84,7 @@ const SEEDED_KINDS = [
   ApiResourceKind.organization,
   ApiResourceKind.agent,
   ApiResourceKind.session,
-  ApiResourceKind.agent_run,
+  ApiResourceKind.run,
   ApiResourceKind.memory,
   ApiResourceKind.api_key,
   ApiResourceKind.environment,
@@ -423,13 +423,13 @@ describe.each(driverFixtures(SEEDED_KINDS))(
 
           it("an execution is its SESSION's (`can_view from session`): each person lists the runs of their own sessions; an orphaned execution is nobody's", async () => {
             expect(
-              await listAs(resolved(FOUNDER), ApiResourceKind.agent_run),
+              await listAs(resolved(FOUNDER), ApiResourceKind.run),
             ).toEqual(["aex_f1", "aex_f2"]);
             expect(
-              await listAs(resolved(MEMBER), ApiResourceKind.agent_run),
+              await listAs(resolved(MEMBER), ApiResourceKind.run),
             ).toEqual(["aex_m1"]);
             expect(
-              await listAs(resolved(ADMIN), ApiResourceKind.agent_run),
+              await listAs(resolved(ADMIN), ApiResourceKind.run),
             ).toEqual([]);
           });
 
@@ -674,7 +674,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
 
         describe("cost", () => {
           it("a list of executions reads each DISTINCT session once and no execution row at all — the candidates' facts are the entries'", async () => {
-            await listAs(resolved(FOUNDER), ApiResourceKind.agent_run);
+            await listAs(resolved(FOUNDER), ApiResourceKind.run);
             // Three sessions named across four candidates (one of them
             // gone); the organization row is not walked for an execution.
             expect(storeReads).toEqual({ rows: 3, scans: 0 });

@@ -20,7 +20,7 @@
 import { createHash } from "node:crypto";
 import { create } from "@bufbuild/protobuf";
 import { ConnectError, Code } from "@connectrpc/connect";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { AgentSpecSchema, HookSourceSchema, type HookSource } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { GetArtifactResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
@@ -85,7 +85,7 @@ function clientWith(plugins: readonly Plugin[]) {
 let session = 0;
 function deps(client: ResolutionDeps["client"]): { deps: ResolutionDeps; labels: string[] } {
   const labels: string[] = [];
-  const status = create(AgentRunStatusSchema, {});
+  const status = create(RunStatusSchema, {});
   return {
     labels,
     deps: {

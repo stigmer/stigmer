@@ -42,7 +42,7 @@
  */
 
 import { relative } from "node:path";
-import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ProvisionResult, GitMetadata } from "../../shared/workspace/types.js";
 import { formatConversationCatchupText } from "../../shared/conversation-catchup.js";
 import type { SenderIdentity } from "../../shared/sender-identity.js";

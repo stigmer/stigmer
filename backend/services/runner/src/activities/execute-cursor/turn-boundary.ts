@@ -39,7 +39,7 @@
  * persist, and the terminal result mapping.
  */
 
-import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { TranscriptBuilder } from "../../harness/transcript/builder.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import type { McpApprovalDefault } from "../../shared/approval-policy.js";
@@ -70,7 +70,7 @@ const FIRST_DENIAL_CANCEL_TIMEOUT_MS = 5_000;
 
 export interface TurnBoundaryOptions {
   /** Read, and AMENDED in place by identity: gate rows overlaid, twins collapsed, narration redacted. */
-  readonly status: AgentRunStatus;
+  readonly status: RunStatus;
   /**
    * The turn's transcript builder over `status`: every row the boundary
    * CREATES — the gate it proposes for a denial no streamed call matched, the

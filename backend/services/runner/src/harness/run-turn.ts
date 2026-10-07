@@ -39,8 +39,8 @@
 import { setMaxListeners } from "node:events";
 import { heartbeat, CancelledFailure, Context } from "@temporalio/activity";
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase, InteractionMode, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase, InteractionMode, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import type { Config } from "../config.js";
 import type { StigmerClient } from "../client/stigmer-client.js";
@@ -148,7 +148,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
   const { adapter, activityName, client, config } = deps;
   const { executionId } = input;
 
-  const status = create(AgentRunStatusSchema, {
+  const status = create(RunStatusSchema, {
     phase: RunPhase.RUN_IN_PROGRESS,
     startedAt: utcTimestamp(),
   });

@@ -24,8 +24,8 @@ import { fromBinary, toBinary } from "@bufbuild/protobuf";
 import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 import { describe, expect, it } from "vitest";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import {
   RETIRED_WORKFLOW_KINDS,
@@ -79,7 +79,7 @@ describe("migrateAgentRunRow", () => {
         labels: OWN_LABELS,
       }),
     );
-    const run = fromBinary(AgentRunSchema, migrated!);
+    const run = fromBinary(RunSchema, migrated!);
     expect(run.spec?.$unknown).toBeUndefined();
     expect(run.status?.$unknown).toBeUndefined();
     expect(run.status?.todos["t1"]?.content).toBe("read the ticket");
@@ -100,7 +100,7 @@ describe("migrateAgentRunRow", () => {
 
   it("keeps an unknown field it does not retire", () => {
     const run = fromBinary(
-      AgentRunSchema,
+      RunSchema,
       agentRunRow({ id: "aex_1", org: ORG, sessionId: "ses_1", parent: "wex_1" }),
     );
     run.spec!.$unknown = [
@@ -111,9 +111,9 @@ describe("migrateAgentRunRow", () => {
         data: new BinaryWriter().int32(7).finish(),
       },
     ];
-    const migrated = migrateAgentRunRow(toBinary(AgentRunSchema, run), ENDED_AT);
+    const migrated = migrateAgentRunRow(toBinary(RunSchema, run), ENDED_AT);
     expect(
-      fromBinary(AgentRunSchema, migrated!).spec?.$unknown?.map((f) => f.no),
+      fromBinary(RunSchema, migrated!).spec?.$unknown?.map((f) => f.no),
     ).toEqual([40]);
   });
 
@@ -193,7 +193,7 @@ describe("migrateAgentRunRow", () => {
 
   it("gives a run a workflow step started that has no status one that ends it", () => {
     const migrated = fromBinary(
-      AgentRunSchema,
+      RunSchema,
       migrateAgentRunRow(
         agentRunRow({ id: "aex_child", org: ORG, sessionId: "ses_1", parent: "wex_parent", noStatus: true }),
         ENDED_AT,

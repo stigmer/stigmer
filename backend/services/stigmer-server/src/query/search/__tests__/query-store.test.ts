@@ -16,7 +16,7 @@ import { create, toBinary } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -202,22 +202,22 @@ describe("write→index→query pins (Go's query_test.go)", () => {
 
   it("a newly-searchable kind serves list AND query mode (#439)", async () => {
     const newExecution = (id: string, org: string) =>
-      create(AgentRunSchema, {
+      create(RunSchema, {
         metadata: { id, name: id, slug: id, org },
         status: {
           audit: { specAudit: { createdAt: { seconds: 1_700_000_000n } } },
         },
       });
     await seed(
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
       "exe-acme-1",
-      AgentRunSchema,
+      RunSchema,
       newExecution("exe-acme-1", "acme"),
     );
     await seed(
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
       "exe-other-1",
-      AgentRunSchema,
+      RunSchema,
       newExecution("exe-other-1", "otherorg"),
     );
     await seed(
@@ -232,13 +232,13 @@ describe("write→index→query pins (Go's query_test.go)", () => {
     for (const query of ["", "exe-acme-1"]) {
       const result = await queryStore.search(
         criteria({
-          kinds: [ApiResourceKind.agent_run],
+          kinds: [ApiResourceKind.run],
           query,
           org: "acme",
         }),
       );
       expect(result.totalCount).toBe(1);
-      expect(result.results[0]?.kind).toBe(ApiResourceKind.agent_run);
+      expect(result.results[0]?.kind).toBe(ApiResourceKind.run);
       expect(result.results[0]?.id).toBe("exe-acme-1");
     }
   });

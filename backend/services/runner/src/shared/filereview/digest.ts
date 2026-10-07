@@ -12,7 +12,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 /**
  * The proto enum value NAME for a {@link FileChangeKind}, e.g.

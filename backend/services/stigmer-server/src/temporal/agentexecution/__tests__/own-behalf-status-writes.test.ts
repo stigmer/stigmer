@@ -42,27 +42,27 @@ import { createClient } from "@connectrpc/connect";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
+  RunSchema,
+  RunStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
 import {
   RunPhase,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { AgentRunUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
-import type { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import type { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { loadConfig } from "../../../boot/config.js";
-import { CANCEL_STOP_ROW } from "../../../domain/agentrun/platform-rows.js";
+import { CANCEL_STOP_ROW } from "../../../domain/run/platform-rows.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import type { AuthzCheck } from "../../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import type { ServerExtension } from "../../../extensions/registry.js";
-import type { AgentRunStatusTransition } from "../../../extensions/status-hooks.js";
+import type { RunStatusTransition } from "../../../extensions/status-hooks.js";
 import { createAgentExecutionActivities } from "../activities.js";
 import type { ExecutionStatusWriter } from "../activities.js";
 import { UPDATE_EXECUTION_STATUS_ACTIVITY_NAME } from "../names.js";
@@ -83,7 +83,7 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
     identity: CallerIdentity;
     check: AuthzCheck;
   }> = [];
-  const transitions: AgentRunStatusTransition[] = [];
+  const transitions: RunStatusTransition[] = [];
 
   // The cloud's shape: every check that reaches the Authorizer is a
   // genuine denial (an FGA store holds no grant for the server's own
@@ -132,7 +132,7 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
     // The worker's edge, built exactly as boot/inprocess.ts builds it:
     // the plain UpdateStatus RPC over the in-process transport.
     const command = createClient(
-      AgentRunCommandController,
+      RunCommandController,
       server.inProcessTransport,
     );
     statusWriter = { updateStatus: (input) => command.updateStatus(input) };
@@ -164,10 +164,10 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
     // Seeded through the store: the create path is not under test, and
     // the denying Authorizer would refuse it over the wire.
     await server.store.saveResource(
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
       id,
-      AgentRunSchema,
-      create(AgentRunSchema, {
+      RunSchema,
+      create(RunSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "AgentRun",
         metadata: { id, name: "own-behalf", org: "acme" },
@@ -179,15 +179,15 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
 
   async function persisted(id: string) {
     return server.store.getResource(
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
       id,
-      AgentRunSchema,
+      RunSchema,
     );
   }
 
   it("stamps FAILED with updateStatusOnFailure's payload; the Authorizer is never asked", async () => {
     await seedExecution("aex_ownbehalf_failed");
-    const failed = create(AgentRunStatusSchema, {
+    const failed = create(RunStatusSchema, {
       phase: RunPhase.RUN_FAILED,
       error: "agent execution failed: runner refused",
       messages: [
@@ -206,7 +206,7 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
 
     await updateStatus(
       "aex_ownbehalf_failed",
-      toJson(AgentRunStatusSchema, failed),
+      toJson(RunStatusSchema, failed),
     );
 
     const execution = await persisted("aex_ownbehalf_failed");
@@ -238,8 +238,8 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
     await updateStatus(
       "aex_ownbehalf_observed",
       toJson(
-        AgentRunStatusSchema,
-        create(AgentRunStatusSchema, {
+        RunStatusSchema,
+        create(RunStatusSchema, {
           phase: RunPhase.RUN_FAILED,
           error: "boom",
         }),
@@ -260,8 +260,8 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
     await updateStatus(
       "aex_ownbehalf_cancelled",
       toJson(
-        AgentRunStatusSchema,
-        create(AgentRunStatusSchema, {
+        RunStatusSchema,
+        create(RunStatusSchema, {
           phase: RunPhase.RUN_CANCELLED,
           messages: [
             {
@@ -285,9 +285,9 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
     // The recovery path's first write: a transient FAILED the interrupted
     // runner activity may have left behind …
     await server.store.updateResource(
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
       "aex_ownbehalf_interrupted",
-      AgentRunSchema,
+      RunSchema,
       (execution) => {
         execution.status!.phase = RunPhase.RUN_PAUSED;
       },
@@ -297,8 +297,8 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
     await updateStatus(
       "aex_ownbehalf_interrupted",
       toJson(
-        AgentRunStatusSchema,
-        create(AgentRunStatusSchema, {
+        RunStatusSchema,
+        create(RunStatusSchema, {
           phase: RunPhase.RUN_IN_PROGRESS,
         }),
       ),
@@ -331,8 +331,8 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
       await updateStatus(
         "aex_ownbehalf_cancel_race",
         toJson(
-          AgentRunStatusSchema,
-          create(AgentRunStatusSchema, {
+          RunStatusSchema,
+          create(RunStatusSchema, {
             phase: RunPhase.RUN_CANCELLED,
             messages: [
               { type: MessageType.MESSAGE_SYSTEM, content: CANCEL_STOP_ROW },
@@ -349,7 +349,7 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
       // The runner learns of the cancel on its next heartbeat and settles
       // its transcript over the same handler, with no row and no phase.
       await statusWriter.updateStatus(
-        create(AgentRunUpdateStatusInputSchema, {
+        create(RunUpdateStatusInputSchema, {
           runId: "aex_ownbehalf_cancel_race",
           status: {
             messages: [
@@ -377,8 +377,8 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
       await updateStatus(
         "aex_ownbehalf_broken_flow",
         toJson(
-          AgentRunStatusSchema,
-          create(AgentRunStatusSchema, {
+          RunStatusSchema,
+          create(RunStatusSchema, {
             phase: RunPhase.RUN_FAILED,
             error: "activity crashed",
             messages: [
@@ -421,8 +421,8 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
       await updateStatus(
         "aex_ownbehalf_runner_failed",
         toJson(
-          AgentRunStatusSchema,
-          create(AgentRunStatusSchema, {
+          RunStatusSchema,
+          create(RunStatusSchema, {
             phase: RunPhase.RUN_FAILED,
             error: "agent execution failed: the tool refused",
           }),

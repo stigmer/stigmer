@@ -49,8 +49,8 @@
  */
 import { create, fromBinary } from "@bufbuild/protobuf";
 
-import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -79,10 +79,10 @@ import type {
   ListIndexCursor,
   ListIndexDeclaration,
 } from "../../../store/list-index.js";
-import type { ExecutionEngineStateProvider } from "../../agentrun/engine.js";
-import { EngineWorkflowNotFoundError } from "../../agentrun/engine.js";
-import { agentExecutionListIndex } from "../../agentrun/list-index.js";
-import { isTerminalExecutionPhase } from "../../agentrun/phases.js";
+import type { ExecutionEngineStateProvider } from "../../run/engine.js";
+import { EngineWorkflowNotFoundError } from "../../run/engine.js";
+import { agentExecutionListIndex } from "../../run/list-index.js";
+import { isTerminalExecutionPhase } from "../../run/phases.js";
 import type { IamPolicyGrantPath } from "../../iampolicy/grant-path.js";
 import { sessionListIndex } from "../../session/list-index.js";
 import { newReleaseExternalIdStep } from "../children.js";
@@ -172,7 +172,7 @@ async function terminateAgentExecutions(
     agentExecutionListIndex,
     context.org.id,
   )) {
-    const execution: AgentRun = fromBinary(AgentRunSchema, data);
+    const execution: Run = fromBinary(RunSchema, data);
     if (isTerminalExecutionPhase(execution.status?.phase ?? 0)) {
       continue;
     }
@@ -340,7 +340,7 @@ export function newFinalStage(deps: FinalStageDeps): OrganizationPurgeStage {
       // fire ledger through steps that log a fault and go on; both tables
       // name the organization, so a sweep here leaves neither behind.
       await deps.store.deleteSearchIndexByOrg(id);
-      await deps.store.deleteScheduleRunsByOrg(id);
+      await deps.store.deleteScheduleFiresByOrg(id);
       await newPipeline<DeleteInput>("organization-purge-final", deps.logger)
         .addStep(newRevokeOrganizationPoliciesStep<DeleteInput>(deps.grantPath))
         .addStep(newDeleteSearchIndexStep(deps.store, deps.logger))

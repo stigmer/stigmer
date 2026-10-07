@@ -22,8 +22,8 @@ import { create, toBinary } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiResourceAuditStatusSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
@@ -181,7 +181,7 @@ export function agentRunRow(options: {
   readonly completedAt?: string;
   readonly noStatus?: boolean;
 }): Uint8Array {
-  const run = create(AgentRunSchema, {
+  const run = create(RunSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: options.kindString ?? "AgentRun",
     metadata: {
@@ -237,7 +237,7 @@ export function agentRunRow(options: {
       },
     ];
   }
-  return toBinary(AgentRunSchema, run);
+  return toBinary(RunSchema, run);
 }
 
 /** The resource envelope every kind shares, around a spec and a status already encoded. */

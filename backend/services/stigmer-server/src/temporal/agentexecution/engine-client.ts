@@ -42,8 +42,8 @@ import {
   type ExecutionEngineState,
   type ExecutionEngineStateProvider,
   type StartInvokeWorkflowInput,
-} from "../../domain/agentrun/engine.js";
-import type { AgentExecutionTemporalConfig } from "../../domain/agentrun/temporal/config.js";
+} from "../../domain/run/engine.js";
+import type { AgentExecutionTemporalConfig } from "../../domain/run/temporal/config.js";
 import { runCredentialForDispatch } from "../../runnerauth/dispatch-credential.js";
 import type { RunCredentialMint } from "../../runnerauth/dispatch-credential.js";
 import type { Store } from "../../store/interface.js";

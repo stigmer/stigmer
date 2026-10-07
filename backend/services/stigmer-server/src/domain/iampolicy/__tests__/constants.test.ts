@@ -303,7 +303,7 @@ describe("BLUEPRINT_KINDS — the legacy-creator rule's scan", () => {
   it("never names a personal kind — those stay with their creator, no role needed", () => {
     for (const personal of [
       ApiResourceKind.session,
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
       ApiResourceKind.api_key,
       ApiResourceKind.memory,
     ]) {

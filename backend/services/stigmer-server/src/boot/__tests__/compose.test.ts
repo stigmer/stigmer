@@ -38,9 +38,9 @@ import {
   Health,
   HealthCheckResponse_ServingStatus as ServingStatus,
 } from "@stigmer/protos/grpc/health/v1/health_pb";
-import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
-import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
+import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { create } from "@bufbuild/protobuf";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
@@ -189,8 +189,8 @@ describe("the artifact download lane", () => {
       });
       // A run's attachment: uploaded through the run's own lane, named on
       // a stored run, and handed back as a minted download URL.
-      const command = createClient(AgentRunCommandController, transport);
-      const query = createClient(AgentRunQueryController, transport);
+      const command = createClient(RunCommandController, transport);
+      const query = createClient(RunQueryController, transport);
       const content = new TextEncoder().encode("ephemeral lane body\n");
       const { storageKey } = await command.uploadAttachment({
         filename: "ephemeral-lane.txt",
@@ -199,10 +199,10 @@ describe("the artifact download lane", () => {
       });
       const runId = "aex_01ephemerallane";
       await server.store.saveResource(
-        ApiResourceKind.agent_run,
+        ApiResourceKind.run,
         runId,
-        AgentRunSchema,
-        create(AgentRunSchema, {
+        RunSchema,
+        create(RunSchema, {
           metadata: { id: runId, name: runId },
           spec: {
             attachments: [{ filename: "ephemeral-lane.txt", storageKey }],

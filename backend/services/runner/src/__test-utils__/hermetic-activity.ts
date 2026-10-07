@@ -85,19 +85,19 @@ import { CancelledFailure } from "@temporalio/activity";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { clone, create } from "@bufbuild/protobuf";
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-  type AgentRun,
-  type AgentRunStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+  RunSchema,
+  RunStatusSchema,
+  type Run,
+  type RunStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   ApprovalAction,
   RunControlSignal,
   RunPhase,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentVersionEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
@@ -124,7 +124,7 @@ import { mockStigmerClient } from "./mock-client.js";
  * message.
  */
 export interface ExecutionRecordInput {
-  readonly execution: AgentRun;
+  readonly execution: Run;
   readonly session: Session;
   readonly agent: Agent | undefined;
   /**
@@ -135,7 +135,7 @@ export interface ExecutionRecordInput {
    * policy can key on the transcript ("stop once the first assistant message
    * is in"). Defaults to UNSPECIFIED: keep going.
    */
-  readonly controlSignal?: (status: AgentRunStatus) => RunControlSignal;
+  readonly controlSignal?: (status: RunStatus) => RunControlSignal;
 }
 
 /**
@@ -162,12 +162,12 @@ export interface ExecutionRecordInput {
  * assert the phase sequence the activity wrote, independent of the final state.
  */
 export class ExecutionRecord {
-  readonly execution: AgentRun;
+  readonly execution: Run;
   readonly session: Session;
   readonly agent: Agent | undefined;
-  private readonly controlSignal: (status: AgentRunStatus) => RunControlSignal;
+  private readonly controlSignal: (status: RunStatus) => RunControlSignal;
   /** Every `updateStatus` payload, in order, snapshotted at write time. */
-  readonly persisted: AgentRunStatus[] = [];
+  readonly persisted: RunStatus[] = [];
   /** Fired after every full-status `applyStatusUpdate`; {@link whenToolCallsSettled} subscribes here. */
   private readonly persistListeners = new Set<() => void>();
   /** Setup-progress labels reported before the stream started, in order. */
@@ -180,7 +180,7 @@ export class ExecutionRecord {
   readonly sessionUpdates: Session[] = [];
 
   constructor(input: ExecutionRecordInput) {
-    this.execution = clone(AgentRunSchema, input.execution);
+    this.execution = clone(RunSchema, input.execution);
     this.session = input.session;
     this.agent = input.agent;
     this.controlSignal = input.controlSignal ?? (() => RunControlSignal.UNSPECIFIED);
@@ -191,12 +191,12 @@ export class ExecutionRecord {
   }
 
   /** The status the server would currently hold (what `getExecution` returns). */
-  get status(): AgentRunStatus | undefined {
+  get status(): RunStatus | undefined {
     return this.execution.status;
   }
 
   /** The last FULL status written (phase set), or undefined if none yet. */
-  get lastFullStatus(): AgentRunStatus | undefined {
+  get lastFullStatus(): RunStatus | undefined {
     for (let i = this.persisted.length - 1; i >= 0; i--) {
       const s = this.persisted[i];
       if (s.phase !== RunPhase.RUN_PHASE_UNSPECIFIED) return s;
@@ -339,8 +339,8 @@ export class ExecutionRecord {
    * workflow does, stigmer#980): the server's merge applies the transcript and
    * leaves the phase to its writers, so the double keeps the held phase.
    */
-  applyStatusUpdate(status: AgentRunStatus): RunControlSignal {
-    const snapshot = clone(AgentRunStatusSchema, status);
+  applyStatusUpdate(status: RunStatus): RunControlSignal {
+    const snapshot = clone(RunStatusSchema, status);
     this.persisted.push(snapshot);
     if (snapshot.phase === RunPhase.RUN_PHASE_UNSPECIFIED) {
       if (snapshot.setupProgress?.currentPhase) {
@@ -360,8 +360,8 @@ export class ExecutionRecord {
   }
 
   /** The runner's write with the server-stamped fields of the held status carried over. */
-  private keepServerStamp(snapshot: AgentRunStatus): AgentRunStatus {
-    const next = clone(AgentRunStatusSchema, snapshot);
+  private keepServerStamp(snapshot: RunStatus): RunStatus {
+    const next = clone(RunStatusSchema, snapshot);
     const held = this.execution.status;
     if (held === undefined) return next;
     next.agentId = held.agentId;
@@ -386,7 +386,7 @@ export class ExecutionRecord {
    */
   client(overrides: Partial<StigmerClient> = {}): StigmerClient {
     return mockStigmerClient({
-      getExecution: vi.fn(async () => clone(AgentRunSchema, this.execution)),
+      getExecution: vi.fn(async () => clone(RunSchema, this.execution)),
       getSession: vi.fn(async () => this.session),
       getAgent: vi.fn(async () => {
         if (this.agent === undefined) {
@@ -403,7 +403,7 @@ export class ExecutionRecord {
         }
         return create(AgentVersionEntrySchema, { versionHash, specSnapshot: this.agent.spec });
       }),
-      updateStatus: vi.fn(async (_id: string, status: AgentRunStatus) => {
+      updateStatus: vi.fn(async (_id: string, status: RunStatus) => {
         // The activity reads only `.signal`; UNSPECIFIED means "keep going".
         return create(UpdateStatusResponseSchema, { signal: this.applyStatusUpdate(status) });
       }),

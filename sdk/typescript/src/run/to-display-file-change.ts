@@ -20,14 +20,14 @@
 // @stigmer/ink, and mirror-able by the Go CLI, alongside tool-view.ts.
 
 import { create } from "@bufbuild/protobuf";
-import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import { FileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { FileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   FileChangeCaptureLevel,
   FileChangeKind,
   FileChangeType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 /**
  * Adapts a {@link CapturedFileChange} to the {@link FileChange} the diff

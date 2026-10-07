@@ -12,7 +12,7 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   CapturedFileChangeSchema,
   FileReviewBaselineCapturedSchema,
@@ -21,18 +21,18 @@ import {
   FileReviewEventStreamSchema,
   FileReviewFailureSchema,
   FileReviewReconciledSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import type {
   CapturedFileChange,
   FileReviewEvent,
   SnapshotRef,
   TurnCommandProvenance,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/filereview_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   FileContentSchema,
   ToolCallOutputRefSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
-import type { FileContent } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/message_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { FileContent } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   DiffCompleteness,
   FileCaptureClass,
@@ -40,7 +40,7 @@ import {
   FileReviewBlockReason,
   FileReviewEventType,
   FileReviewFailureKind,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { aggregateDigest, fileDigest, sha256Bytes } from "./digest.js";
 import { countLineChanges, type LineChangeCounts } from "./line-counts.js";
 import { looksBinary } from "../file-change.js";
@@ -461,7 +461,7 @@ export function buildFailedEvent(
  * never reference a change set that does not exist.
  */
 export function hasCandidateCaptured(
-  status: AgentRunStatus,
+  status: RunStatus,
   changeSetId: string,
 ): boolean {
   return (status.fileReviewEventStream?.events ?? []).some(
@@ -478,7 +478,7 @@ export function hasCandidateCaptured(
  * persists is safe; this keeps the in-runner status consistent between persists.
  */
 export function appendFileReviewEvents(
-  status: AgentRunStatus,
+  status: RunStatus,
   executionId: string,
   events: readonly FileReviewEvent[],
 ): void {

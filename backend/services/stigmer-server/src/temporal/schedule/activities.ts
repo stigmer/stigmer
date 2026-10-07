@@ -13,8 +13,8 @@
  */
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -336,9 +336,9 @@ async function pollExecutionPhase(
   let phase: RunPhase;
   try {
     const execution = await deps.store.getResource(
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
       executionId,
-      AgentRunSchema,
+      RunSchema,
     );
     phase = execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   } catch (error) {

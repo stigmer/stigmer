@@ -7,7 +7,7 @@
  */
 import { create, toBinary } from "@bufbuild/protobuf";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 
 export const RUN_RENAME_ORG = "org_01jz0000000000000000000000";
 
@@ -24,8 +24,8 @@ export const NEW_RUN_NAMES: RunNames = { agentRunKind: "AgentRun" };
 /** An agent run of a session, as a turn's row stores it. */
 export function agentRunBytes(id: string, sessionId: string, names: RunNames): Uint8Array {
   return toBinary(
-    AgentRunSchema,
-    create(AgentRunSchema, {
+    RunSchema,
+    create(RunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: names.agentRunKind,
       metadata: { id, name: id, org: RUN_RENAME_ORG },

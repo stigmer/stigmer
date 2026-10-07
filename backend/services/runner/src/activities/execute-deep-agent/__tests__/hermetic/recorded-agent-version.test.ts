@@ -19,8 +19,8 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import { AgentVersionEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -51,7 +51,7 @@ const ANSWER = "Reviewed.";
 /** Stamps the agent and version on the record's execution, as ResolveRunAgent does at create. */
 function recordVersion(record: ExecutionRecord, versionHash: string): string {
   const agentId = record.agent!.metadata!.id;
-  record.execution.status ??= create(AgentRunStatusSchema);
+  record.execution.status ??= create(RunStatusSchema);
   record.execution.status.agentId = agentId;
   record.execution.status.agentVersionHash = versionHash;
   return agentId;

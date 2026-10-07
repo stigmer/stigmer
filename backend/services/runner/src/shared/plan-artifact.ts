@@ -46,12 +46,12 @@
 
 import { createHash } from "node:crypto";
 import { create } from "@bufbuild/protobuf";
-import type { AgentRunStatus } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import {
   RunArtifactKind,
   MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ArtifactStorage } from "./artifact-storage.js";
 import { utcTimestamp } from "./status.js";
 
@@ -184,7 +184,7 @@ export function planArtifactSandboxPath(name: string): string {
  * Returns `undefined` when there is no AI message with content — the plan was
  * empty and nothing should be published.
  */
-export function extractFinalPlanText(status: AgentRunStatus): string | undefined {
+export function extractFinalPlanText(status: RunStatus): string | undefined {
   for (let i = status.messages.length - 1; i >= 0; i--) {
     const msg = status.messages[i];
     if (msg.type === MessageType.MESSAGE_AI && msg.content.trim().length > 0) {
@@ -205,7 +205,7 @@ export function extractFinalPlanText(status: AgentRunStatus): string | undefined
  * execution. Errors are logged and swallowed.
  */
 export async function publishPlanArtifact(opts: {
-  readonly status: AgentRunStatus;
+  readonly status: RunStatus;
   readonly executionId: string;
   readonly planText: string;
   readonly artifactStorage: ArtifactStorage;

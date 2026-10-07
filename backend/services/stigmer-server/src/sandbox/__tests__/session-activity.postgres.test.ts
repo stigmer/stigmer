@@ -17,8 +17,8 @@ import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import {
@@ -44,7 +44,7 @@ const silentLogger = createLogger({
 
 afterAll(dropPostgresFixture);
 
-describe.each(driverFixtures([ApiResourceKind.agent_run]))(
+describe.each(driverFixtures([ApiResourceKind.run]))(
   "the cheap read's look-back on $name",
   (fixture) => {
     describe.skipIf(fixture.skip)("recentActivity", () => {
@@ -73,10 +73,10 @@ describe.each(driverFixtures([ApiResourceKind.agent_run]))(
         completedAt?: number,
       ): Promise<void> {
         await opened.store.saveResource(
-          ApiResourceKind.agent_run,
+          ApiResourceKind.run,
           id,
-          AgentRunSchema,
-          create(AgentRunSchema, {
+          RunSchema,
+          create(RunSchema, {
             apiVersion: "agentic.stigmer.ai/v1",
             kind: "AgentRun",
             metadata: { id, name: id, org: "org-a" },

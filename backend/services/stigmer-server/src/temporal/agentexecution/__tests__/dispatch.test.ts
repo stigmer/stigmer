@@ -27,7 +27,7 @@ import {
   DEFAULT_EXECUTION_TARGET_LOCAL,
   ROUTING_GLOBAL,
   ROUTING_SESSION,
-} from "../../../domain/agentrun/temporal/config.js";
+} from "../../../domain/run/temporal/config.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 import { formatSessionTaskQueue, resolveActivityTaskQueue } from "../dispatch.js";

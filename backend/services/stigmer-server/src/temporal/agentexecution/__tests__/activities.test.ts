@@ -27,12 +27,12 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
-  AgentRunSchema,
-  AgentRunStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import type { AgentRunUpdateStatusInput } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
-import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
+  RunSchema,
+  RunStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { RunUpdateStatusInput } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -76,7 +76,7 @@ function newFixture() {
   // The in-process status edge as a recording fake: these are UNIT pins
   // of the activity's payload boundary, so the lane is a seam here (the
   // real lane is exercised in own-behalf-status-writes.test.ts).
-  const writes: AgentRunUpdateStatusInput[] = [];
+  const writes: RunUpdateStatusInput[] = [];
   let writerFault: ConnectError | undefined;
   const statusWriter: ExecutionStatusWriter = {
     updateStatus: (input) => {
@@ -122,10 +122,10 @@ async function saveExecution(
   phase = RunPhase.RUN_IN_PROGRESS,
 ): Promise<void> {
   await store.saveResource(
-    ApiResourceKind.agent_run,
+    ApiResourceKind.run,
     id,
-    AgentRunSchema,
-    create(AgentRunSchema, {
+    RunSchema,
+    create(RunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "AgentRun",
       metadata: { id, name: "test-exec", org: "test-org" },
@@ -142,7 +142,7 @@ async function saveExecution(
 describe("UpdateExecutionStatus activity", () => {
   it("decodes the proto-JSON status into a typed UpdateStatus input for the in-process edge", async () => {
     const { activities, writes } = newFixture();
-    const update = create(AgentRunStatusSchema, {
+    const update = create(RunStatusSchema, {
       phase: RunPhase.RUN_FAILED,
       error: "boom",
       // An int64 field crossing the payload boundary as JSON and coming
@@ -155,7 +155,7 @@ describe("UpdateExecutionStatus activity", () => {
         id: string,
         status: JsonValue,
       ) => Promise<void>
-    )("aex_upd_1", toJson(AgentRunStatusSchema, update));
+    )("aex_upd_1", toJson(RunStatusSchema, update));
 
     expect(writes).toHaveLength(1);
     expect(writes[0]?.runId).toBe("aex_upd_1");
@@ -240,7 +240,7 @@ describe("LoadAgentExecution activity", () => {
     // The wire form must be plain JSON — bigint would crash the default
     // payload converter's JSON.stringify.
     expect(() => JSON.stringify(raw)).not.toThrow();
-    const parsed = fromJson(AgentRunSchema, raw);
+    const parsed = fromJson(RunSchema, raw);
     expect(parsed.metadata?.id).toBe("aex_load_1");
     expect(parsed.status?.streamingUsage?.totalTokens).toBe(1234n);
   });

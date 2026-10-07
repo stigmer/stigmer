@@ -22,12 +22,12 @@ import {
   ApprovalPolicySource,
   RunPhase,
   ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 
 import type { DescMessage } from "@bufbuild/protobuf";
-import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 
 import {
   RETIRED_ENUM_VALUE_NAMES,
@@ -100,28 +100,28 @@ describe("decodeLoadedExecution", () => {
   });
 
   it("leaves a value that is not the shape its field declares to the decoder", () => {
-    expect(renameRetiredRunJson(AgentRunSchema, "not an object")).toBe("not an object");
-    expect(renameRetiredRunJson(AgentRunSchema, { status: ["not", "an", "object"] })).toEqual({
+    expect(renameRetiredRunJson(RunSchema, "not an object")).toBe("not an object");
+    expect(renameRetiredRunJson(RunSchema, { status: ["not", "an", "object"] })).toEqual({
       status: ["not", "an", "object"],
     });
     expect(
-      renameRetiredRunJson(AgentRunSchema, { status: { subAgentExecutions: "not a list" } }),
+      renameRetiredRunJson(RunSchema, { status: { subAgentExecutions: "not a list" } }),
     ).toEqual({ status: { subAgentRuns: "not a list" } });
-    expect(renameRetiredRunJson(AgentRunSchema, { metadata: { labels: ["not", "a", "map"] } })).toEqual({
+    expect(renameRetiredRunJson(RunSchema, { metadata: { labels: ["not", "a", "map"] } })).toEqual({
       metadata: { labels: ["not", "a", "map"] },
     });
   });
 
   it("keeps an enum value given by number, and a retired name that is not this enum's", () => {
     expect(decodeLoadedExecution({ status: { phase: 3 } }).status?.phase).toBe(RunPhase.RUN_COMPLETED);
-    expect(renameRetiredRunJson(AgentRunSchema, { status: { phase: "agent_execution" } })).toEqual({
+    expect(renameRetiredRunJson(RunSchema, { status: { phase: "agent_execution" } })).toEqual({
       status: { phase: "agent_execution" },
     });
   });
 
   it("rewrites a kind string only where the contract declares one: a run's own kind, not an enum named kind", () => {
     expect(
-      renameRetiredRunJson(AgentRunSchema, {
+      renameRetiredRunJson(RunSchema, {
         kind: "AgentExecution",
         status: { artifacts: [{ kind: "AgentExecution" }] },
       }),
@@ -133,7 +133,7 @@ describe("decodeLoadedExecution", () => {
       { supersedesExecutionId: "aex_a", supersedesRunId: "aex_b" },
       { supersedesRunId: "aex_b", supersedesExecutionId: "aex_a" },
     ]) {
-      expect(() => renameRetiredRunJson(AgentRunSchema, { spec })).toThrow(
+      expect(() => renameRetiredRunJson(RunSchema, { spec })).toThrow(
         /ai\.stigmer\.agentic\.agentrun\.v1\.AgentRunSpec sets the field supersedesRunId twice/,
       );
     }
@@ -203,7 +203,7 @@ describe("the retired-names tables", () => {
         if (field.message !== undefined) visit(field.message);
       }
     };
-    [AgentRunSchema, AgentRunStatusSchema].forEach(visit);
+    [RunSchema, RunStatusSchema].forEach(visit);
     return { fields, values };
   }
 

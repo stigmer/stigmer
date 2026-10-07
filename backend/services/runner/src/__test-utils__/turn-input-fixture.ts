@@ -21,12 +21,12 @@ import { create } from "@bufbuild/protobuf";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  AgentRunSchema,
-  type AgentRun,
-  type AgentRunStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+  RunSchema,
+  type Run,
+  type RunStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
@@ -46,7 +46,7 @@ export const TURN_INPUT_FIXTURE_IDS = {
 } as const;
 
 export interface TurnInputFixtureOverrides extends Partial<Omit<TurnInput, "execution" | "session" | "blueprint">> {
-  readonly execution?: AgentRun;
+  readonly execution?: Run;
   readonly session?: Session;
   readonly blueprint?: Partial<ResolvedBlueprint>;
   /**
@@ -61,7 +61,7 @@ export interface TurnInputFixtureOverrides extends Partial<Omit<TurnInput, "exec
    * (`seedFromPersistedStatus`) and an adapter may read the record's own
    * copy for its facts, so a test standing in for the runtime hands both.
    */
-  readonly persistedStatus?: AgentRunStatus;
+  readonly persistedStatus?: RunStatus;
   /**
    * Where the default workspace lives (ignored when a whole `workspace` is
    * given). A test that only needs "my workspace is here" — because its
@@ -87,9 +87,9 @@ export function turnInputFixture(overrides: TurnInputFixtureOverrides = {}): Tur
     });
   const execution =
     overrides.execution ??
-    create(AgentRunSchema, {
+    create(RunSchema, {
       metadata: create(ApiResourceMetadataSchema, { id: executionId, org: TURN_INPUT_FIXTURE_IDS.org, name: executionId }),
-      spec: create(AgentRunSpecSchema, { target: { case: "sessionId", value: sessionId }, message: overrides.message ?? "" }),
+      spec: create(RunSpecSchema, { target: { case: "sessionId", value: sessionId }, message: overrides.message ?? "" }),
       status: overrides.persistedStatus,
     });
   const agent: RunAgent = {

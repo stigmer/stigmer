@@ -56,9 +56,9 @@ import { SignJWT, exportJWK, generateKeyPair } from "jose";
 import type { GenerateKeyPairResult } from "jose";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
@@ -263,10 +263,10 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
       }),
     );
     await server.store.saveResource(
-      ApiResourceKind.agent_run,
+      ApiResourceKind.run,
       id,
-      AgentRunSchema,
-      create(AgentRunSchema, {
+      RunSchema,
+      create(RunSchema, {
         metadata: { id, name: id, org: orgId },
         spec: { target: { case: "sessionId", value: sessionId } },
         status: { phase, ...stamp },
@@ -328,7 +328,7 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
     });
 
     const asRunner = createClient(
-      AgentRunQueryController,
+      RunQueryController,
       transportFor(port, credential),
     );
     const row = await asRunner.get({ value: "aex_live" });
@@ -342,7 +342,7 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
     );
     const credential = server.runnerAuthService.mintRunCredential("aex_done");
     const asRunner = createClient(
-      AgentRunQueryController,
+      RunQueryController,
       transportFor(port, credential),
     );
     expect((await asRunner.get({ value: "aex_done" })).metadata?.id).toBe(
@@ -366,7 +366,7 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
     );
     const credential = server.runnerAuthService.mintRunCredential("aex_mine");
     const asRunner = createClient(
-      AgentRunQueryController,
+      RunQueryController,
       transportFor(port, credential),
     );
     // Admitted as Carol, who created both rows — so the read of the OTHER
@@ -405,7 +405,7 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
       );
       const failure = await failureOf(
         platform.getRunnerScopedToken({
-          scope: { case: "agentRunId", value: "aex_carols" },
+          scope: { case: "runId", value: "aex_carols" },
         }),
       );
       expect(failure.code).toBe(Code.PermissionDenied);
@@ -421,7 +421,7 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
         ),
       );
       const minted = await platform.getRunnerScopedToken({
-        scope: { case: "agentRunId", value: "aex_carols" },
+        scope: { case: "runId", value: "aex_carols" },
       });
       expect(minted.runnerScopedToken).not.toBe("");
       expect(minted.tokenType).toBe("Bearer");
@@ -447,7 +447,7 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
       );
       const failure = await failureOf(
         platform.getRunnerScopedToken({
-          scope: { case: "agentRunId", value: "aex_nowhere" },
+          scope: { case: "runId", value: "aex_nowhere" },
         }),
       );
       expect(failure.code).toBe(Code.NotFound);

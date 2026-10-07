@@ -52,9 +52,9 @@
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
-import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
+import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ChannelTemplate, MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
@@ -172,9 +172,9 @@ interface EverythingShape {
 function everythingInput(shape: EverythingShape): TurnInput {
   const sessionId = TURN_INPUT_FIXTURE_IDS.sessionId;
   const executionId = TURN_INPUT_FIXTURE_IDS.executionId;
-  const execution = create(AgentRunSchema, {
+  const execution = create(RunSchema, {
     metadata: create(ApiResourceMetadataSchema, { id: executionId, org: TURN_INPUT_FIXTURE_IDS.org, name: executionId }),
-    spec: create(AgentRunSpecSchema, {
+    spec: create(RunSpecSchema, {
       target: { case: "sessionId", value: sessionId },
       message: USER_MESSAGE,
       workspaceFileRefs: ["app/src/deploy.ts", "docs/RELEASES.md"],

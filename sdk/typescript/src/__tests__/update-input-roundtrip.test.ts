@@ -15,13 +15,13 @@ import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spe
 import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentChannelSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/spec_pb";
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { AgentRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import {
   InteractionMode,
   ServiceTier,
   ThinkingMode,
-} from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import {
   AgentShareSpecSchema,
@@ -64,7 +64,7 @@ import {
 
 import { buildAgentProto, toAgentUpdateInput } from "../gen/agent";
 import { buildAgentChannelProto, toAgentChannelUpdateInput } from "../gen/agentchannel";
-import { buildAgentRunProto, toAgentRunUpdateInput } from "../gen/agentrun";
+import { buildRunProto, toRunUpdateInput } from "../gen/run";
 import { buildAgentShareProto, toAgentShareUpdateInput } from "../gen/agentshare";
 import { buildApiKeyProto, toApiKeyUpdateInput } from "../gen/apikey";
 import { buildChannelAppProto, toChannelAppUpdateInput } from "../gen/channelapp";
@@ -302,7 +302,7 @@ describe("toAgentChannelUpdateInput", () => {
 
 describe("toAgentExecutionUpdateInput", () => {
   const fixture = () =>
-    create(AgentRunSchema, {
+    create(RunSchema, {
       metadata: META,
       spec: {
         target: {
@@ -350,27 +350,27 @@ describe("toAgentExecutionUpdateInput", () => {
     });
 
   it("fixture covers every AgentExecutionSpec field (schema tripwire)", () => {
-    assertFixtureCoversSpec(AgentRunSpecSchema, fixture().spec!);
+    assertFixtureCoversSpec(RunSpecSchema, fixture().spec!);
   });
 
   it("round-trips the full spec and metadata through the builder", () => {
     const original = fixture();
     assertSpecRoundTrip(
-      AgentRunSpecSchema,
+      RunSpecSchema,
       original,
-      buildAgentRunProto(toAgentRunUpdateInput(original)),
+      buildRunProto(toRunUpdateInput(original)),
     );
   });
 
   it("round-trips the existing-session arm of the target oneof", () => {
-    const original = create(AgentRunSchema, {
+    const original = create(RunSchema, {
       metadata: META,
       spec: { target: { case: "sessionId", value: "ses-1" }, message: "Again." },
     });
     assertSpecRoundTrip(
-      AgentRunSpecSchema,
+      RunSpecSchema,
       original,
-      buildAgentRunProto(toAgentRunUpdateInput(original)),
+      buildRunProto(toRunUpdateInput(original)),
     );
   });
 });

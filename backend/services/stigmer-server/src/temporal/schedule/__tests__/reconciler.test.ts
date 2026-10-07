@@ -272,12 +272,12 @@ describe("runPass — the four phases", () => {
       executionId: "aex_x",
       completedAt: "2020-01-01T00:00:00Z",
     };
-    await store.upsertScheduleRun({
+    await store.upsertScheduleFire({
       ...base,
       nominalFireTime: "2020-01-01T00:00:00Z",
       recordedAt: "2020-01-01T00:00:00Z", // ancient — beyond any retention
     });
-    await store.upsertScheduleRun({
+    await store.upsertScheduleFire({
       ...base,
       nominalFireTime: "2099-01-01T00:00:00Z",
       recordedAt: "2099-01-01T00:00:00Z", // future-fresh — must survive
@@ -285,7 +285,7 @@ describe("runPass — the four phases", () => {
 
     await reconciler().runPass();
 
-    const { runs, total } = await store.listScheduleRuns("sch_prune", 0, 10);
+    const { runs, total } = await store.listScheduleFires("sch_prune", 0, 10);
     expect(total).toBe(1);
     expect(runs[0]?.nominalFireTime).toBe("2099-01-01T00:00:00Z");
   });

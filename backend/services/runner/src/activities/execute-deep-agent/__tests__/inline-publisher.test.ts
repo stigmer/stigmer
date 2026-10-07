@@ -4,9 +4,9 @@ import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { create } from "@bufbuild/protobuf";
-import { type AgentRunStatus, AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/artifact_pb";
+import { type RunStatus, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import { InlinePublisher } from "../inline-publisher.js";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import { LocalWorkspaceBackend } from "../../../shared/workspace/local-backend.js";
@@ -17,8 +17,8 @@ import type { WorkspaceBackend } from "../../../shared/workspace/types.js";
 // The publisher registers artifacts on the transcript builder (`addArtifact`);
 // the one builder since #1096.
 /** A builder and the status it builds into: the test writes through `sb` and reads `status`, as production reads `TurnSink.status`. */
-function makeStatusBuilder(): { sb: TranscriptBuilder; status: AgentRunStatus } {
-  const status = create(AgentRunStatusSchema, {});
+function makeStatusBuilder(): { sb: TranscriptBuilder; status: RunStatus } {
+  const status = create(RunStatusSchema, {});
   return { sb: new TranscriptBuilder("exec-test", status), status };
 }
 
@@ -59,7 +59,7 @@ function sha256(content: string): string {
 
 describe("InlinePublisher", () => {
   let sb: TranscriptBuilder;
-  let status: AgentRunStatus;
+  let status: RunStatus;
   let storage: ReturnType<typeof mockArtifactStorage>;
   let backend: WorkspaceBackend;
   let publisher: InlinePublisher;
@@ -294,7 +294,7 @@ describe("InlinePublisher with LocalWorkspaceBackend (disk-backed)", () => {
     await mkdir(join(dir, "src"), { recursive: true });
     await writeFile(join(dir, "src/app.ts"), "export const x = 42;", "utf-8");
 
-    const status = create(AgentRunStatusSchema, {});
+    const status = create(RunStatusSchema, {});
     const sb = new TranscriptBuilder("exec-disk", status);
     const storage = mockArtifactStorage();
     const backend = new LocalWorkspaceBackend(dir);
@@ -324,7 +324,7 @@ describe("InlinePublisher with LocalWorkspaceBackend (disk-backed)", () => {
     const dir = join(tmpdir(), `stigmer-publisher-test-${Date.now()}`);
     await mkdir(dir, { recursive: true });
 
-    const status = create(AgentRunStatusSchema, {});
+    const status = create(RunStatusSchema, {});
     const sb = new TranscriptBuilder("exec-miss", status);
     const storage = mockArtifactStorage();
     const backend = new LocalWorkspaceBackend(dir);

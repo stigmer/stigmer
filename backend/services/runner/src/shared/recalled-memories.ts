@@ -24,7 +24,7 @@
  * this module renders recall, and an empty recall renders nothing.
  */
 
-import type { RecalledMemories } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+import type { RecalledMemories } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 
 /**
  * How the facts are introduced to the model, shared by both harnesses so

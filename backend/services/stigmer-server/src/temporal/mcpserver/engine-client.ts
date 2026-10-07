@@ -30,7 +30,7 @@ import {
 import temporalProto from "@temporalio/proto";
 
 import type { Logger } from "../../boot/logger.js";
-import type { AgentExecutionTemporalConfig } from "../../domain/agentrun/temporal/config.js";
+import type { AgentExecutionTemporalConfig } from "../../domain/run/temporal/config.js";
 import type {
   ConnectRun,
   ConnectRunFailure,

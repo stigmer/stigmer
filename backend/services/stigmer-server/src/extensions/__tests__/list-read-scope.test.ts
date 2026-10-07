@@ -363,7 +363,7 @@ describe("restrictListByReadScope", () => {
       const kept = await restrictListByReadScope(
         scope,
         caller,
-        ApiResourceKind.agent_run,
+        ApiResourceKind.run,
         executions,
         "",
       );
@@ -396,7 +396,7 @@ describe("restrictListByReadScope", () => {
       const kept = await restrictListByReadScope(
         scope,
         caller,
-        ApiResourceKind.agent_run,
+        ApiResourceKind.run,
         executions,
         "",
       );
@@ -451,7 +451,7 @@ describe("restrictListByReadScope", () => {
       const kept = await restrictListByReadScope(
         undefined,
         caller,
-        ApiResourceKind.agent_run,
+        ApiResourceKind.run,
         executions,
         "acme",
       );

@@ -13,7 +13,7 @@
  * Bundle-safe (pure proto enum import) — the workflow reads phases from
  * every activity result.
  */
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { currentRunEnumValueName } from "./execution-json.js";
 
