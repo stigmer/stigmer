@@ -19,7 +19,7 @@ describe("refined brand mark", () => {
       ),
     );
     expect(markup.match(/<svg\b/g)).toHaveLength(2);
-    expect(markup.match(/<path\b/g)).toHaveLength(16);
+    expect(markup.match(/<path\b/g)).toHaveLength(2);
     expect(markup).not.toMatch(/<(?:defs|mask)\b|url\(#/);
   });
 

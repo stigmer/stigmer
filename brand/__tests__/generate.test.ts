@@ -164,7 +164,7 @@ for (const [name, invalid] of [
         assert.equal(error.code, 1);
         assert.match(
           String(error.stderr),
-          /eight filled outlines with no masks or reinforcing strokes/,
+          /one filled outline with no masks or reinforcing strokes/,
         );
         return true;
       });

@@ -1,4 +1,4 @@
-/** Animate each continuous brand outline, preserving the eight-part reveal. */
+/** Reveal the unified three-fin mark without separating its enclosure and interior. */
 import { MARK_PATHS } from "../../../../../brand/geometry";
 
 export const StigmerMark = ({

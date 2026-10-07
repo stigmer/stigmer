@@ -34,19 +34,19 @@ avatar services can crop the square into a circle without clipping the mark.
 ## Maintenance
 
 Edit `logo.svg`, then run `npm run generate:brand` from the repository root. The
-refined artwork retains the four organic forms and four separate dots, with
-continuous smooth curves, circular dots, and balanced opposing forms. Each form
-is one filled outline; no reinforcing strokes or masks are needed. `geometry.ts`
-is generated for the inline UI marks; do not edit it directly.
+three-fin mark is a closed hexagonal enclosure with three broad, angled fins
+joined to its lower-right wall. The inner negative space gives the impression of
+a cube. It is one filled outline with a transparent interior; no strokes, masks,
+gradients or separate dots are needed. `geometry.ts` is generated for the inline
+UI marks; do not edit it directly.
 
 The horizontal exports combine this same symbol with `source/wordmark.svg`, the
 outlined lettering in a 260 × 96 frame. The lettering uses a 48-unit capital
-height and -0.35-unit tracking, paired with a 96-unit symbol frame. The generator
-lowers the lettering by 7.2 units for optical centering, equivalent to 3 px at
-the website header's 40 px height. Regenerate
-the exports with the same `npm run generate:brand` command; do not edit the
-generated lockups or their website copy. Changing this pairing does not change
-the symbol or the favicons.
+height and -0.35-unit tracking, paired with a 96-unit symbol frame. The
+generator lowers the lettering by 7.2 units for optical centering, equivalent to
+3 px at the website header's 40 px height. Regenerate the exports with the same
+`npm run generate:brand` command; do not edit the generated lockups or their
+website copy. Changing this pairing does not change the symbol or the favicons.
 
 Typeface credit:
 [Instrument Sans](https://github.com/Instrument/instrument-sans), Copyright 2022
@@ -67,3 +67,13 @@ npm run generate:icons -w desktop
 Desktop ICNS generation requires macOS's `iconutil`. The desktop generator also
 refreshes the monochrome tray icon. The website generator refreshes the README
 banner. Test the pipeline with `npm run test:brand`.
+
+## Artwork provenance
+
+The mark adapts [Cubicle from Logodust](https://www.logodust.com/), replacing
+its four fine interior bars with three broader fins. The underlying artwork is
+available for commercial and noncommercial use under the
+[Logodust license](https://www.logodust.com/license.html). Downloaded marks are
+nonexclusive and cannot be claimed or trademarked. The repository's software
+license does not supersede these artwork terms. See `LICENSE.txt` for the source
+and the published terms.

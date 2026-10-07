@@ -20,9 +20,9 @@ async function main(): Promise<void> {
   const paths = [...original.matchAll(/<path d="([^"]+)"\/>/g)].map(
     (match) => match[1],
   );
-  if (paths.length !== 8 || /<(?:mask|defs)\b|\bstroke=/.test(original)) {
+  if (paths.length !== 1 || /<(?:mask|defs)\b|\bstroke=/.test(original)) {
     throw new Error(
-      "The brand source must contain eight filled outlines with no masks or reinforcing strokes.",
+      "The brand source must contain one filled outline with no masks or reinforcing strokes.",
     );
   }
   await write(
