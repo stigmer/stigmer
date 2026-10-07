@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  * observed without a server.
  */
 
-const agentRunUpdateStatus = vi.fn();
+const runUpdateStatus = vi.fn();
 
 vi.mock("@connectrpc/connect-node", () => ({
   createGrpcTransport: () => ({}),
@@ -21,7 +21,7 @@ vi.mock("@connectrpc/connect", async (importOriginal) => {
     createClient: (service: { typeName: string }) => {
       switch (service.typeName) {
         case "ai.stigmer.agentic.run.v1.RunCommandController":
-          return { updateStatus: agentRunUpdateStatus };
+          return { updateStatus: runUpdateStatus };
         default:
           return {};
       }
@@ -40,21 +40,21 @@ function newClient(): StigmerClient {
 }
 
 beforeEach(() => {
-  agentRunUpdateStatus.mockReset();
+  runUpdateStatus.mockReset();
 });
 
 describe("StigmerClient.updateStatus", () => {
   it("sends the run's status under run_id and answers the server's response", async () => {
     const response = { signal: 0 };
-    agentRunUpdateStatus.mockResolvedValue(response);
+    runUpdateStatus.mockResolvedValue(response);
     const status = create(RunStatusSchema, {
       phase: RunPhase.RUN_IN_PROGRESS,
     });
 
     const answered = await newClient().updateStatus("aex_1", status);
 
-    expect(agentRunUpdateStatus).toHaveBeenCalledTimes(1);
-    const input = agentRunUpdateStatus.mock.calls[0]![0] as {
+    expect(runUpdateStatus).toHaveBeenCalledTimes(1);
+    const input = runUpdateStatus.mock.calls[0]![0] as {
       runId: string;
       status: unknown;
     };

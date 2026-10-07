@@ -760,8 +760,8 @@ async function listFires(
   const result = reqCtx.get(LIST_FIRES_RESULT_KEY);
   if (result === undefined) {
     throw internalError(
-      new Error("schedule fire list not found in context"),
-      "schedule fire list not found in context",
+      new Error("schedule run list not found in context"),
+      "schedule run list not found in context",
     );
   }
   return result as ScheduleFireList;
