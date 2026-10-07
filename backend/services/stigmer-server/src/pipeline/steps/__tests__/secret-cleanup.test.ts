@@ -6,13 +6,13 @@
  * silent no-ops by the facade's own dispatch (the property that keeps the
  * OSS default codec set conformance-invisible). The step arm reads the
  * doomed resource from EXISTING_RESOURCE_KEY and no-ops when it is
- * absent. The end-to-end wiring through the delete/update/removeVariables
+ * absent. The end-to-end wiring through the delete/update/removeFields
  * chains is pinned in extensions/__tests__/secret-cleanup-composed.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { CredentialSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
@@ -105,7 +105,7 @@ describe("destroySecretBackingState (the SecretValueCleanup port)", () => {
     await destroySecretBackingState(
       secrets,
       captureLogger(errorLines),
-      { kind: "environment", resourceId: "env_1" },
+      { kind: "credential", resourceId: "cred_1" },
       [a, "", b],
     );
 
@@ -119,7 +119,7 @@ describe("destroySecretBackingState (the SecretValueCleanup port)", () => {
     await destroySecretBackingState(
       secrets,
       captureLogger(errorLines),
-      { kind: "environment", resourceId: "env_2" },
+      { kind: "credential", resourceId: "cred_2" },
       ["just-plaintext", REDACTED_MARKER],
     );
 
@@ -144,7 +144,7 @@ describe("destroySecretBackingState (the SecretValueCleanup port)", () => {
       destroySecretBackingState(
         secrets,
         captureLogger(errorLines),
-        { kind: "environment", resourceId: "env_3" },
+        { kind: "credential", resourceId: "cred_3" },
         [a, b],
       ),
     ).resolves.toBeUndefined();
@@ -154,7 +154,7 @@ describe("destroySecretBackingState (the SecretValueCleanup port)", () => {
     expect(errorLines[0]).toContain(
       "secret backing-state destruction failed after persist",
     );
-    expect(errorLines[0]).toContain("env_3");
+    expect(errorLines[0]).toContain("cred_3");
   });
 
   it("an unregistered version refuses on the unavailable arm and is contained", async () => {
@@ -164,7 +164,7 @@ describe("destroySecretBackingState (the SecretValueCleanup port)", () => {
       destroySecretBackingState(
         secrets,
         captureLogger(errorLines),
-        { kind: "environment", resourceId: "env_4" },
+        { kind: "credential", resourceId: "cred_4" },
         ["enc:v1:AAAA"],
       ),
     ).resolves.toBeUndefined();
@@ -181,31 +181,31 @@ describe("DestroySecretBackingState (the delete-chain step)", () => {
       "alpha",
       EncryptionScope.forOrganization("acme"),
     );
-    const env = create(EnvironmentSchema, {
-      metadata: { id: "env_5", org: "acme" },
+    const credential = create(CredentialSchema, {
+      metadata: { id: "cred_5", org: "acme" },
       spec: {
-        data: {
-          SEALED: { value: sealed, isSecret: true },
-          PLAIN: { value: "visible", isSecret: false },
+        fields: {
+          SEALED: { value: sealed, plain: false },
+          PLAIN: { value: "visible", plain: true },
         },
       },
     });
 
     const ctx = new RequestContext(
-      EnvironmentSchema,
-      create(EnvironmentSchema, {}),
+      CredentialSchema,
+      create(CredentialSchema, {}),
       caller,
-      ApiResourceKind.environment,
+      ApiResourceKind.credential,
     );
-    ctx.set(EXISTING_RESOURCE_KEY, env);
+    ctx.set(EXISTING_RESOURCE_KEY, credential);
 
     const step = newDestroySecretBackingStateStep<
-      typeof EnvironmentSchema,
-      typeof EnvironmentSchema
+      typeof CredentialSchema,
+      typeof CredentialSchema
     >(secrets, captureLogger(errorLines), (resource) =>
-      Object.values(resource.spec?.data ?? {})
-        .filter((value) => value.isSecret)
-        .map((value) => value.value),
+      Object.values(resource.spec?.fields ?? {})
+        .filter((field) => !field.plain)
+        .map((field) => field.value),
     );
     expect(step.name).toBe("DestroySecretBackingState");
     await step.execute(ctx);
@@ -217,15 +217,15 @@ describe("DestroySecretBackingState (the delete-chain step)", () => {
   it("no-ops when the doomed resource is absent from context", async () => {
     const { codec, secrets, errorLines } = newFixture();
     const ctx = new RequestContext(
-      EnvironmentSchema,
-      create(EnvironmentSchema, {}),
+      CredentialSchema,
+      create(CredentialSchema, {}),
       caller,
-      ApiResourceKind.environment,
+      ApiResourceKind.credential,
     );
 
     const step = newDestroySecretBackingStateStep<
-      typeof EnvironmentSchema,
-      typeof EnvironmentSchema
+      typeof CredentialSchema,
+      typeof CredentialSchema
     >(secrets, captureLogger(errorLines), () => {
       throw new Error("extractor must not run without a resource");
     });

@@ -4,7 +4,9 @@
  * (re-pinning the Java VisibilityTupleReconcilerTest transition matrix),
  * and the config-driven creation-event resolution
  * (CreateAuthorizationTuplesStepV2's scope/owner/parent semantics,
- * including every failure arm), and the one delete cleanup every delete
+ * including every failure arm, and the optional additional parent a
+ * credential's owner oneof needs: the link its spec names is written, the
+ * one it leaves empty is not, and nobody is its DIRECT owner), and the one delete cleanup every delete
  * chain and every cascade hands its deleted resource to: best-effort, a
  * driver's failure logged and never raised. The driver-facing behavior of
  * the steps themselves, the cascades' cleanup included, is pinned end to
@@ -15,7 +17,7 @@ import { describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { CredentialSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/api_pb";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OwnerAttributionType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
@@ -64,7 +66,7 @@ describe("visibilityShapesFor (the reconciler's level→shape policy)", () => {
   it("the retired public level expands to nothing for every kind — no wildcard shape exists", () => {
     for (const kind of [
       ApiResourceKind.agent,
-      ApiResourceKind.environment,
+      ApiResourceKind.credential,
       ApiResourceKind.plugin,
       ApiResourceKind.session,
     ]) {
@@ -81,13 +83,13 @@ describe("visibilityShapesFor (the reconciler's level→shape policy)", () => {
     ]).toEqual([]);
   });
 
-  it("environment supports org but never child_orgs (tenant isolation)", () => {
+  it("credential (no visibility config): no level shares it — a grant of `user` does", () => {
     expect([
-      ...visibilityShapesFor(ApiResourceKind.environment, V.visibility_org),
-    ]).toEqual(["org-viewer"]);
+      ...visibilityShapesFor(ApiResourceKind.credential, V.visibility_org),
+    ]).toEqual([]);
     expect([
       ...visibilityShapesFor(
-        ApiResourceKind.environment,
+        ApiResourceKind.credential,
         V.visibility_child_orgs,
       ),
     ]).toEqual([]);
@@ -197,17 +199,80 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
     expect(event?.ownerAttribution).toBe(OwnerAttributionType.DIRECT);
   });
 
-  it("environment: the one requires_creator_tuple kind", () => {
-    const env = create(EnvironmentSchema, {
-      metadata: { id: "env_1", org: "acme" },
+  it("a person's credential: the organization link and owner@identity_account from spec.person, never org_owned, no DIRECT owner", () => {
+    const credential = create(CredentialSchema, {
+      metadata: { id: "cred_1", org: "acme" },
+      spec: { owner: { case: "person", value: "ida_alice" } },
     });
     const event = resolveResourceCreatedEvent(
-      ApiResourceKind.environment,
-      env,
+      ApiResourceKind.credential,
+      credential,
       caller,
       logger,
     );
-    expect(event?.requiresCreatorTuple).toBe(true);
+    expect(event?.parentLinks).toEqual([
+      {
+        relation: "organization",
+        parentKind: ApiResourceKind.organization,
+        parentId: "acme",
+      },
+      {
+        relation: "owner",
+        parentKind: ApiResourceKind.identity_account,
+        parentId: "ida_alice",
+      },
+    ]);
+    expect(event?.ownerAttribution).toBe(OwnerAttributionType.NONE);
+    expect(event?.requiresCreatorTuple).toBe(false);
+    expect(event?.visibilityShapes).toEqual([]);
+  });
+
+  it("an organization's credential: the organization link and org_owned@organization from spec.org, never owner, no DIRECT owner", () => {
+    const credential = create(CredentialSchema, {
+      metadata: { id: "cred_2", org: "acme" },
+      spec: { owner: { case: "org", value: "acme" } },
+    });
+    const event = resolveResourceCreatedEvent(
+      ApiResourceKind.credential,
+      credential,
+      caller,
+      logger,
+    );
+    expect(event?.parentLinks).toEqual([
+      {
+        relation: "organization",
+        parentKind: ApiResourceKind.organization,
+        parentId: "acme",
+      },
+      {
+        relation: "org_owned",
+        parentKind: ApiResourceKind.organization,
+        parentId: "acme",
+      },
+    ]);
+    expect(event?.ownerAttribution).toBe(OwnerAttributionType.NONE);
+    expect(event?.requiresCreatorTuple).toBe(false);
+  });
+
+  it("an optional additional parent whose spec field is empty writes no link and does not fail the create", () => {
+    // Both of a credential's owner links are optional; a row naming
+    // neither (the owner steps refuse it before persist) still resolves.
+    const credential = create(CredentialSchema, {
+      metadata: { id: "cred_3", org: "acme" },
+    });
+    const event = resolveResourceCreatedEvent(
+      ApiResourceKind.credential,
+      credential,
+      caller,
+      logger,
+    );
+    expect(event?.parentLinks).toEqual([
+      {
+        relation: "organization",
+        parentKind: ApiResourceKind.organization,
+        parentId: "acme",
+      },
+    ]);
   });
 
   it("run: PARENT scope resolves the session link from spec.session_id, owner INHERITED", () => {
@@ -262,6 +327,20 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
       parentKind: ApiResourceKind.identity_account,
       parentId: "ida_subject",
     });
+  });
+
+  it("a required additional parent whose spec field is empty still fails the request", () => {
+    const memory = create(MemorySchema, {
+      metadata: { id: "mem_2", org: "acme" },
+    });
+    expect(() =>
+      resolveResourceCreatedEvent(
+        ApiResourceKind.memory,
+        memory,
+        caller,
+        logger,
+      ),
+    ).toThrowError(/failed to create authorization tuples/);
   });
 
   it("NONE-scoped kinds resolve to no event at all (Java's early return)", () => {

@@ -21,7 +21,10 @@
  * references the stored row does not already carry, loading nothing when
  * the write introduces none; and
  * the escalation door asks the floor alone — a dependency that has left is
- * not its question — and only when the level is being raised.
+ * not its question — and only when the level is being raised; and the
+ * writer clause: a credential a write introduces must be one its writer
+ * holds `can_use` on, refused PERMISSION_DENIED with its own sentence,
+ * while an assignment the stored row already carries passes.
  */
 import { create } from "@bufbuild/protobuf";
 import type { DescField, DescMessage } from "@bufbuild/protobuf";
@@ -33,7 +36,7 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { CredentialSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/api_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
@@ -64,7 +67,7 @@ import {
   newValidateReferencesStep,
   noOrgReferenceMessage,
   notAvailableReferenceMessage,
-  notViewableReferenceMessage,
+  notPermittedReferenceMessage,
   referenceRefusal,
   referenceTargetKind,
   resolvedReferenceTargets,
@@ -100,7 +103,7 @@ async function failureOf(run: () => void | Promise<void>): Promise<unknown> {
 const SCHEMAS_UNDER_THE_RULE: ReadonlyArray<DescMessage> = [
   AgentSchema,
   McpServerSchema,
-  EnvironmentSchema,
+  CredentialSchema,
   ScheduleSchema,
   AgentChannelSchema,
   AgentShareSchema,
@@ -169,7 +172,7 @@ describe("REFERENCE_TARGET_KINDS against the contract", () => {
     ).toEqual([K.skill, K.mcp_server, K.agent, K.plugin]);
     expect(
       REFERENCE_TARGET_KINDS.filter((e) => !e.readByRun).map((e) => e.kind),
-    ).toEqual([K.environment, K.channel_app, K.oauth_app]);
+    ).toEqual([K.credential, K.channel_app, K.oauth_app]);
   });
 });
 
@@ -245,9 +248,9 @@ describe("checkReference", () => {
       visibility: V.visibility_org,
     },
     {
-      kind: K.environment,
+      kind: K.credential,
       org: "acme",
-      slug: "personal",
+      slug: "my-keys",
       visibility: V.visibility_private,
     },
     {
@@ -269,10 +272,10 @@ describe("checkReference", () => {
       visibility: V.visibility_org,
     },
     {
-      kind: K.environment,
+      kind: K.credential,
       org: "globex",
       slug: "theirs",
-      visibility: V.visibility_org,
+      visibility: V.visibility_private,
     },
   ], "globex");
 
@@ -360,10 +363,10 @@ describe("checkReference", () => {
   });
 
   it("(ii) the floor does not apply to what the server resolves on the run's behalf", () => {
-    // An org-visible resource over a private personal environment: a
-    // person attaching their own keys, admitted.
+    // An org-visible resource assigned a credential: who may use it is the
+    // writer clause's question, never a level.
     expect(
-      checkReference(targets, ACME_ORG, ref(K.environment, "acme", "personal")),
+      checkReference(targets, ACME_ORG, ref(K.credential, "acme", "my-keys")),
     ).toEqual({ kind: "ok" });
   });
 
@@ -404,7 +407,7 @@ describe("checkReference", () => {
     ).toEqual({ kind: "not-available" });
     // A kind that is never shared with child organizations: every cross-organization reference to it.
     expect(
-      checkReference(targets, ACME_ORG, ref(K.environment, "globex", "theirs")),
+      checkReference(targets, ACME_ORG, ref(K.credential, "globex", "theirs")),
     ).toEqual({ kind: "not-available" });
   });
 
@@ -1122,7 +1125,7 @@ describe("GuardReferenceFloorOnEscalation", () => {
   });
 });
 
-describe("the writer clause: a write may introduce only an environment its writer can view", () => {
+describe("the writer clause: a write may introduce only a credential its writer may use", () => {
   let store: SqliteStore;
   let cleanup: () => Promise<void>;
 
@@ -1130,18 +1133,18 @@ describe("the writer clause: a write may introduce only an environment its write
     const temp = tempStore();
     store = temp.store;
     cleanup = temp.cleanup;
-    for (const [id, slug, visibility] of [
-      ["env_ana_keys", "ana-keys", V.visibility_private],
-      ["env_team_keys", "team-keys", V.visibility_org],
-      ["env_flaky", "flaky", V.visibility_private],
-      ["env_left", "left", V.visibility_private],
+    for (const [id, slug] of [
+      ["cred_ana_keys", "ana-keys"],
+      ["cred_team_keys", "team-keys"],
+      ["cred_flaky", "flaky"],
+      ["cred_left", "left"],
     ] as const) {
       await store.saveResource(
-        K.environment,
+        K.credential,
         id,
-        EnvironmentSchema,
-        create(EnvironmentSchema, {
-          metadata: { id, name: slug, slug, org: "acme", visibility },
+        CredentialSchema,
+        create(CredentialSchema, {
+          metadata: { id, name: slug, slug, org: "acme" },
         }),
       );
     }
@@ -1152,32 +1155,47 @@ describe("the writer clause: a write may introduce only an environment its write
   });
 
   /**
-   * An authorizer over the model's answer for environments: Ana views her
-   * private row, every member views the org-visible one, nobody else views
-   * hers; one row's evaluation is down. Every check is recorded.
+   * An authorizer over the model's answer for credentials: Ana uses her
+   * own, every member uses the organization's one they were granted,
+   * nobody else uses hers; one row's evaluation is down. Every check is
+   * recorded.
    */
-  function environmentViews(checks: string[]): Authorizer {
+  function credentialUses(checks: string[]): Authorizer {
     return {
       authorize: async (caller, check) => {
         checks.push(
           `${caller.identityId}:${IamPermission[check.permission]}:${check.resourceId}`,
         );
-        if (check.resourceId === "env_flaky") {
+        if (check.resourceId === "cred_flaky") {
           return {
             kind: "unavailable",
             cause: new Error("authorization store offline"),
           };
         }
-        if (check.resourceId === "env_left") {
+        if (check.resourceId === "cred_left") {
           return { kind: "not-found" };
         }
         if (
-          check.resourceId === "env_ana_keys" &&
+          check.resourceId === "cred_ana_keys" &&
           caller.identityId !== "acc_ana"
         ) {
-          return { kind: "deny", reason: "not a viewer" };
+          return { kind: "deny", reason: "not a user" };
         }
         return { kind: "allow" };
+      },
+    };
+  }
+
+  /** A credential assignment giving the git host's token from `slug` (a git-host declarer names no row). */
+  function assignment(org: string, slug: string) {
+    return {
+      requirement: {
+        declarer: { target: { case: "gitHost" as const, value: "github.com" } },
+        key: "GITHUB_TOKEN",
+      },
+      source: {
+        case: "credential" as const,
+        value: { credential: { kind: K.credential, org, slug } },
       },
     };
   }
@@ -1192,11 +1210,7 @@ describe("the writer clause: a write may introduce only an environment its write
         visibility: V.visibility_org,
       },
       spec: {
-        environmentRefs: slugs.map((slug) => ({
-          kind: K.environment,
-          org: "acme",
-          slug,
-        })),
+        credentials: slugs.map((slug) => assignment("acme", slug)),
       },
     });
   }
@@ -1223,28 +1237,34 @@ describe("the writer clause: a write may introduce only an environment its write
     return failureOf(() =>
       newValidateReferencesStep<typeof AgentChannelSchema>(
         store,
-        environmentViews(opts.checks ?? []),
+        credentialUses(opts.checks ?? []),
       ).execute(ctx),
     );
   }
 
-  it("refuses a teammate's private environment PERMISSION_DENIED, naming it and what may be attached", async () => {
-    const error = await write({ writer: "acc_ben", names: ["ana-keys"] });
+  it("refuses a credential the writer may not use PERMISSION_DENIED, naming it and what may be assigned", async () => {
+    const checks: string[] = [];
+    const error = await write({
+      writer: "acc_ben",
+      names: ["ana-keys"],
+      checks,
+    });
     expect(error).toBeInstanceOf(ConnectError);
     expect((error as ConnectError).code).toBe(Code.PermissionDenied);
     expect((error as ConnectError).rawMessage).toBe(
-      notViewableReferenceMessage(
-        referenceTargetKind(K.environment)!,
-        ref(K.environment, "acme", "ana-keys"),
+      notPermittedReferenceMessage(
+        referenceTargetKind(K.credential)!,
+        ref(K.credential, "acme", "ana-keys"),
       ),
     );
     expect((error as ConnectError).rawMessage).toBe(
-      "referenced environment 'acme/ana-keys' is not one you can view; " +
-        "attach an environment you own or one shared with the organization.",
+      "referenced credential 'acme/ana-keys' is not one you may use; " +
+        "assign a credential of your own or one the organization lets you use.",
     );
+    expect(checks).toEqual(["acc_ben:can_use:cred_ana_keys"]);
   });
 
-  it("admits the owner's own private environment on an org-visible channel, and an org-visible one for any member", async () => {
+  it("admits a credential its writer may use, asking can_use of each", async () => {
     const checks: string[] = [];
     expect(
       await write({ writer: "acc_ana", names: ["ana-keys"], checks }),
@@ -1253,12 +1273,12 @@ describe("the writer clause: a write may introduce only an environment its write
       await write({ writer: "acc_ben", names: ["team-keys"], checks }),
     ).toBeUndefined();
     expect(checks).toEqual([
-      "acc_ana:can_view:env_ana_keys",
-      "acc_ben:can_view:env_team_keys",
+      "acc_ana:can_use:cred_ana_keys",
+      "acc_ben:can_use:cred_team_keys",
     ]);
   });
 
-  it("judges only what the write introduces: an edit that keeps a teammate's attachment passes, a new one does not", async () => {
+  it("judges only what the write introduces: an edit that keeps another writer's assignment passes, a new one does not", async () => {
     const checks: string[] = [];
     expect(
       await write({
@@ -1269,7 +1289,7 @@ describe("the writer clause: a write may introduce only an environment its write
       }),
     ).toBeUndefined();
     // Only the introduced reference was asked about.
-    expect(checks).toEqual(["acc_ben:can_view:env_team_keys"]);
+    expect(checks).toEqual(["acc_ben:can_use:cred_team_keys"]);
     const error = await write({
       writer: "acc_ben",
       names: ["ana-keys"],
@@ -1300,7 +1320,7 @@ describe("the writer clause: a write may introduce only an environment its write
     const error = await write({ writer: "acc_ben", names: ["left"] });
     expect((error as ConnectError).code).toBe(Code.FailedPrecondition);
     expect((error as ConnectError).rawMessage).toBe(
-      missingReferencesMessage(referenceTargetKind(K.environment)!, [
+      missingReferencesMessage(referenceTargetKind(K.credential)!, [
         { slug: "left", org: "acme" },
       ]),
     );
@@ -1313,9 +1333,7 @@ describe("the writer clause: a write may introduce only an environment its write
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "AgentChannel",
         metadata: { name: "No org", org: "", visibility: V.visibility_org },
-        spec: {
-          environmentRefs: [{ kind: K.environment, org: "", slug: "ana-keys" }],
-        },
+        spec: { credentials: [assignment("", "ana-keys")] },
       }),
       testCallerIdentity({ identityId: "acc_ben" }),
       K.agent_channel,
@@ -1323,16 +1341,16 @@ describe("the writer clause: a write may introduce only an environment its write
     const error = await failureOf(() =>
       newValidateReferencesStep<typeof AgentChannelSchema>(
         store,
-        environmentViews([]),
+        credentialUses([]),
       ).execute(ctx),
     );
     expect((error as ConnectError).code).toBe(Code.InvalidArgument);
   });
 
-  it("only environments carry the clause: other kinds are judged by existence and the floor alone", () => {
+  it("only credentials carry the clause: other kinds are judged by existence and the floor alone", () => {
     for (const entry of REFERENCE_TARGET_KINDS) {
       expect(entry.writerMust).toBe(
-        entry.kind === K.environment ? IamPermission.can_view : undefined,
+        entry.kind === K.credential ? IamPermission.can_use : undefined,
       );
     }
   });

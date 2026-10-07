@@ -9,8 +9,8 @@
  * `kind_meta` and asserts the level is refused; the door is one function,
  * and this is the pin that it holds for kinds nobody thought to try. The
  * rest of the file pins the levels that remain against the proto's
- * declarations for the kinds whose configs differ (a blueprint, an
- * org-only kind, a kind with no config), and the copy fragment both
+ * declarations for the kinds whose configs differ (a blueprint, a
+ * credential, a kind with no config), and the copy fragment both
  * editions build the INVALID_ARGUMENT sentence from.
  */
 import { describe, expect, it } from "vitest";
@@ -64,12 +64,12 @@ describe("supportsVisibility", () => {
     ).toBe(true);
   });
 
-  it("an org-only kind holds org alone (environment: secrets never cross the org)", () => {
+  it("a credential holds no shared level (its owner and grants decide who reaches it, never a visibility level)", () => {
     expect(
-      supportsVisibility(ApiResourceKind.environment, V.visibility_org),
-    ).toBe(true);
+      supportsVisibility(ApiResourceKind.credential, V.visibility_org),
+    ).toBe(false);
     expect(
-      supportsVisibility(ApiResourceKind.environment, V.visibility_child_orgs),
+      supportsVisibility(ApiResourceKind.credential, V.visibility_child_orgs),
     ).toBe(false);
   });
 
@@ -88,8 +88,8 @@ describe("supportedVisibilityLevels (the copy fragment)", () => {
     expect(supportedVisibilityLevels(ApiResourceKind.agent)).toBe(
       "visibility_private, visibility_org, visibility_child_orgs",
     );
-    expect(supportedVisibilityLevels(ApiResourceKind.environment)).toBe(
-      "visibility_private, visibility_org",
+    expect(supportedVisibilityLevels(ApiResourceKind.credential)).toBe(
+      "visibility_private",
     );
     expect(supportedVisibilityLevels(ApiResourceKind.session)).toBe(
       "visibility_private",

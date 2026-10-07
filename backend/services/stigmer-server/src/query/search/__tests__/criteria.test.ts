@@ -38,7 +38,7 @@ function criteria(overrides?: {
 }
 
 describe("searchIndexedKinds derivation (kind_meta)", () => {
-  it("derives exactly the 9 searchable kinds, plugin included", () => {
+  it("derives exactly the 8 searchable kinds, plugin included", () => {
     // Go's SearchableKinds map, pinned by its invariant test against the
     // same kind_meta derivation.
     expect([...searchIndexedKinds()].sort((a, b) => a - b)).toEqual(
@@ -46,7 +46,6 @@ describe("searchIndexedKinds derivation (kind_meta)", () => {
         ApiResourceKind.agent,
         ApiResourceKind.skill,
         ApiResourceKind.mcp_server,
-        ApiResourceKind.environment,
         ApiResourceKind.session,
         ApiResourceKind.run,
         ApiResourceKind.execution_context,
@@ -61,6 +60,8 @@ describe("searchIndexedKinds derivation (kind_meta)", () => {
     expect(kinds).not.toContain(ApiResourceKind.agent_channel);
     expect(kinds).not.toContain(ApiResourceKind.channel_app);
     expect(kinds).not.toContain(ApiResourceKind.memory);
+    // A credential's name is not searched: its owner lists their own.
+    expect(kinds).not.toContain(ApiResourceKind.credential);
   });
 
   it("contains no kind above the open_source tier — the index is the core's", () => {
