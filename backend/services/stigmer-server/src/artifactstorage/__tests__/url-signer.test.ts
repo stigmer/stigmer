@@ -4,9 +4,11 @@
  * minted while it is live and nothing else: no expiry, a malformed or past
  * one, no signature, a signature of the wrong length or over different
  * fields, and another key's. Also pins where the key comes from: the env
- * var, else the key file it persists at 0600 on first use.
+ * var, else the key file it persists at 0600 on first use; and that a
+ * composition with no local store reads and writes no key file and refuses
+ * every link.
  */
-import { mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -16,6 +18,7 @@ import {
   DOWNLOAD_URL_KEY_ENV_VAR,
   DOWNLOAD_URL_KEY_FILE_NAME,
   DownloadUrlSigner,
+  downloadUrlSignerFor,
   encodeKeyPath,
   loadDownloadUrlSigner,
   MAX_SIGNED_URL_TTL_MS,
@@ -113,6 +116,19 @@ describe("loadDownloadUrlSigner", () => {
     });
     const query = params(signer.signedQuery(KEY, 60_000, ""));
     expect(testUrlSigner().verify(KEY, query)).toBe(true);
+  });
+
+  it("reads the ladder only for a composition with a local store; with none it writes no key file and refuses every link", () => {
+    const keyFile = path.join(home, ".stigmer", DOWNLOAD_URL_KEY_FILE_NAME);
+    const envOnly = { env: { [DOWNLOAD_URL_KEY_ENV_VAR]: TEST_URL_SIGNING_KEY.toString("base64") }, homeDir: home };
+    const minted = params(testUrlSigner().signedQuery(KEY, 60_000, ""));
+
+    const buckets = downloadUrlSignerFor(false, envOnly);
+    expect(buckets.verify(KEY, minted)).toBe(false);
+    expect(downloadUrlSignerFor(false, { env: {}, homeDir: home }).verify(KEY, minted)).toBe(false);
+    expect(existsSync(keyFile)).toBe(false);
+
+    expect(downloadUrlSignerFor(true, envOnly).verify(KEY, minted)).toBe(true);
   });
 
   it("generates a key on first use, persists it at 0600, and reads it back", () => {

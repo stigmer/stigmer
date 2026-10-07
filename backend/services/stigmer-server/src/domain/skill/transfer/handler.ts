@@ -53,8 +53,9 @@ export function uploadUrl(baseUrl: string, ref: string): string {
 
 /**
  * The lane's download origin: the local skill driver's serve URL, so that
- * `${serveUrl}/${storageKey}` (LocalArtifactStorage.getSignedUrl's shape)
- * is exactly the GET route this handler dispatches.
+ * the links LocalArtifactStorage.getSignedUrl mints there
+ * (`${serveUrl}/<segment-encoded key>?exp=…&sig=…`) are exactly the GET
+ * route this handler dispatches and verifies.
  */
 export function transferServeUrl(baseUrl: string): string {
   return `${trimTrailingSlash(baseUrl)}${SKILL_ARTIFACTS_PATH_PREFIX}`;

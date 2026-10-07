@@ -502,7 +502,7 @@ No other mismatch exists: every other `newAuthorizeStep` call site passes the de
 
 ### skillTransferLane (`src/domain/skill/transfer/handler.ts`)
 
-`PUT /v1/skill-artifacts/uploads/{ref}` and `GET /v1/skill-artifacts/{storage_key}` on the unified port. Deliberately URL-as-credential — the handler header documents this: neither route carries bearer auth, mirroring cloud's pre-signed R2 URLs. Minting an upload URL requires the same gRPC authorization as push (createArtifactUploadUrl's chain); download keys are unguessable content hashes handed out by authorized skill reads.
+`PUT /v1/skill-artifacts/uploads/{ref}` and `GET /v1/skill-artifacts/{storage_key}` on the unified port. Deliberately URL-as-credential — the handler header documents this: neither route carries bearer auth, mirroring cloud's pre-signed R2 URLs. Minting an upload URL requires the same gRPC authorization as push (createArtifactUploadUrl's chain), and the slot it names is single-use and short-lived. A download URL is signed by the local skill driver and expires (`src/artifactstorage/url-signer.ts`: HMAC-SHA256 over the key, the expiry and the filename, under the server's download-URL key); it is handed out by authorized skill and plugin reads, and the GET route verifies it before reading, answering an unsigned, tampered or expired link the 404 a missing key gets. With both stores on buckets the lane holds a key no link was signed with and refuses every download.
 
 ### consoleLane (`src/transport/console/handler.ts`)
 
@@ -510,7 +510,7 @@ Static web-console assets on the unified port, present only when a console expor
 
 ### Artifact HTTP file server (`src/domain/artifact/file-server.ts`)
 
-A SECOND listener, not a unified-port lane: `GET /<storage_key>` on `127.0.0.1:ARTIFACT_HTTP_PORT` (unset: the unified port + 1, or ephemeral beside an ephemeral unified port; `src/boot/artifact-lane.ts`), started only when artifact storage is local, before the server reports SERVING; a lane that cannot bind fails the boot. Serves the exact bytes local artifact storage wrote; the loopback bind is the posture (download URLs are minted for the local machine; 0.0.0.0 only inside the official container).
+A SECOND listener, not a unified-port lane: `GET /<storage_key>` on `127.0.0.1:ARTIFACT_HTTP_PORT` (unset: the unified port + 1, or ephemeral beside an ephemeral unified port; `src/boot/artifact-lane.ts`), started only when artifact storage is local, before the server reports SERVING; a lane that cannot bind fails the boot. Serves the exact bytes local artifact storage wrote, to a link that storage signed: the URL's signature and expiry are the credential (`src/artifactstorage/url-signer.ts`), checked before the disk is touched, and an unsigned, tampered, expired or re-named link is answered the 404 a missing key gets. The loopback bind is the default (0.0.0.0 inside the official container; the Helm chart exposes the lane through its artifacts host).
 
 ## Notes on the authorization chain
 

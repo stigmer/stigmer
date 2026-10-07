@@ -15,7 +15,8 @@
  * as a separate listener, and so does
  * this port).
  *
- * Disposition contract (proven by the artifact suite's file-server block):
+ * Disposition contract (proven by file-server-signing.test.ts on links the
+ * storage mints):
  * a request carrying ?download=<name> (set by getSignedUrl) is served as a
  * browser download named by that parameter — mirroring the R2 backend,
  * which signs Content-Disposition into the presigned URL. Requests without

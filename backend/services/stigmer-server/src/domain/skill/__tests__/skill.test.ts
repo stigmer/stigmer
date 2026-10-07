@@ -559,6 +559,12 @@ describe("transfer lane (#675) — mint → PUT → push-by-ref → download", (
     expect(await refused.text()).toBe(notFound);
 
     expect((await fetch(minted)).status).toBe(200);
+
+    // A key the lane cannot decode is refused the same way, before the
+    // signature is read.
+    const malformed = await fetch(`${baseUrl}/v1/skill-artifacts/skills/%E0%A4%A.zip?${minted.searchParams}`);
+    expect(malformed.status).toBe(404);
+    expect(await malformed.text()).toBe(notFound);
   });
 });
 

@@ -224,9 +224,9 @@ export class LocalTarget implements TargetProfile {
     return this.server.baseUrl;
   }
 
-  // The artifact file server's own port (local artifact storage only) — the
-  // harness already pins it for the runner's serve URL; the artifact suite
-  // drives its download-disposition contract through the same address.
+  // The artifact file server's own port (local artifact storage only): where
+  // the links the server mints point; the artifact suite drives the lane's
+  // signed-link contract through the same address.
   artifactHttpBaseUrl(): string {
     if (this.server === undefined) {
       throw new Error("LocalTarget.setup() must be called before artifactHttpBaseUrl()");

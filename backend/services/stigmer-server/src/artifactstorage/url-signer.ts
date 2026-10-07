@@ -20,7 +20,7 @@
  * story. It is never the runner-token key: one key for two protocols would
  * let a rotation of either silently void the other.
  */
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 import {
   getOrCreateNamedKey,
@@ -118,6 +118,22 @@ export class DownloadUrlSigner {
       .update(JSON.stringify([SIGNATURE_VERSION, key, expires, downloadFilename]))
       .digest();
   }
+}
+
+/**
+ * The signer a composition shares between its stores and the two lanes that
+ * serve local blobs. With a local store, the key comes from the ladder. With
+ * none (both stores on buckets), the composition signs nothing, so it reads
+ * and writes no key file; its lanes then hold a fresh key no link was ever
+ * signed with and refuse every download, which is all they are asked.
+ */
+export function downloadUrlSignerFor(
+  anyLocalStore: boolean,
+  options: KeyLoaderOptions = {},
+): DownloadUrlSigner {
+  return anyLocalStore
+    ? loadDownloadUrlSigner(options)
+    : new DownloadUrlSigner(randomBytes(SIGNATURE_BYTES));
 }
 
 /** The server's signer, its key read from the ladder (env, key file, generated). */
