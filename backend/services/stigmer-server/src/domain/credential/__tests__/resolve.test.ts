@@ -28,7 +28,10 @@
  *   - a sign-in is freshened before its field is read, once per run
  *     whichever declarer reads it first, and the fresh value is the one
  *     every declarer receives;
- *   - credentials are read in the run's organization only.
+ *   - credentials are read in the run's organization only;
+ *   - an assignment with no source provides nothing, and the faults are
+ *     Internal, never a refusal or a pass: a writer check the Authorizer
+ *     cannot answer, an organization whose credentials cannot be read.
  *
  * Every refusal is FailedPrecondition: the create fails naming what to
  * fix, rather than a run starting without what it needs.
@@ -1332,5 +1335,96 @@ describe("organizations", () => {
       "no longer exists in this organization",
     );
     expect(asked).toEqual([]);
+  });
+});
+
+describe("faults and empty assignments", () => {
+  it("an assignment with no source provides nothing: a required key is refused as unassigned", async () => {
+    const org = freshOrg();
+    const agent = agentDeclarer(org);
+    const empty = create(CredentialAssignmentSchema, {
+      requirement: { declarer: declarerTarget(agent), key: "API_KEY" },
+    });
+
+    const refusal = await refusalOf(
+      resolveCredentials(
+        resolverDeps(authorizerAllowing([]).authorizer),
+        resolveInput({
+          org,
+          surface: scheduleSurface([empty]),
+          requirements: [requirement(agent, "API_KEY")],
+        }),
+      ),
+    );
+
+    expect(refusal.rawMessage).toBe(
+      "this run cannot start: agent 'helper' needs API_KEY, and a run with no person behind it uses only what is assigned on the schedule that started it: assign API_KEY there",
+    );
+  });
+
+  it("a writer check the Authorizer cannot answer is Internal, never a refusal or a pass", async () => {
+    const org = freshOrg();
+    const agent = agentDeclarer(org);
+    await saveCredential({
+      org,
+      id: "cred_team_key",
+      owner: { org },
+      fields: { API_KEY: "team-key" },
+    });
+    const failing: Authorizer = {
+      authorize: () => Promise.reject(new Error("fga down")),
+    };
+
+    const failure = await resolveCredentials(
+      resolverDeps(failing),
+      resolveInput({
+        org,
+        surface: scheduleSurface([
+          credentialAssignment({
+            declarer: agent,
+            key: "API_KEY",
+            credentialOrg: org,
+            credentialSlug: "cred_team_key",
+            writer: BEN,
+          }),
+        ]),
+        requirements: [requirement(agent, "API_KEY")],
+      }),
+    ).then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+
+    expect(failure).toBeInstanceOf(ConnectError);
+    expect((failure as ConnectError).code).toBe(Code.Internal);
+    expect((failure as ConnectError).rawMessage).toBe(
+      "failed to check an assigned credential",
+    );
+  });
+
+  it("an organization whose credentials cannot be read is Internal, never a run without them", async () => {
+    const org = freshOrg();
+    const agent = agentDeclarer(org);
+    const faulty = {
+      queryResources: () => Promise.reject(new Error("SQLITE_BUSY")),
+    } as unknown as Store;
+
+    const failure = await resolveCredentials(
+      { ...resolverDeps(authorizerAllowing([]).authorizer), store: faulty },
+      resolveInput({
+        org,
+        person: ANA,
+        requirements: [requirement(agent, "API_KEY")],
+      }),
+    ).then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+
+    expect(failure).toBeInstanceOf(ConnectError);
+    expect((failure as ConnectError).code).toBe(Code.Internal);
+    expect((failure as ConnectError).rawMessage).toBe(
+      "failed to read the organization's credentials",
+    );
   });
 });

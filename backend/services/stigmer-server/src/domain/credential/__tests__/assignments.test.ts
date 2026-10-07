@@ -18,7 +18,10 @@
  *     a platform client, whose runs belong to nobody; on a schedule it is
  *     admitted only on a schedule its owner created, written by that owner;
  *     an edit that keeps another person's personal assignment is refused;
- *   - the server acting as itself writes the writer "" and asks nothing.
+ *   - the server acting as itself writes the writer "" and asks nothing;
+ *   - an assignment with no source is keyed by its requirement alone; a
+ *     credential read or a can_use the Authorizer cannot answer is
+ *     Internal, never a pass or a denial.
  *
  * The surfaces here mirror the four controllers' (the noun, whether a
  * person's own credential may be assigned, where the assignments live and
@@ -625,5 +628,78 @@ describe("the server acting as itself", () => {
     );
     expect(writersOf(row.spec?.credentials ?? [])).toEqual([""]);
     expect(authorizer.checks).toEqual([]);
+  });
+});
+
+describe("an assignment with no source, and the faults", () => {
+  function unsourced(writer = "forged-by-the-client"): CredentialAssignment {
+    return create(CredentialAssignmentSchema, {
+      requirement: {
+        declarer: { target: { case: "gitHost", value: "github.com" } },
+        key: "GITHUB_TOKEN",
+      },
+      writer,
+    });
+  }
+
+  it("an assignment with no source is stamped and asks nothing; an edit keeps it by its requirement", async () => {
+    const created = await guard(
+      AgentShareSchema,
+      SHARE,
+      person(ALICE),
+      shareRow([unsourced()]),
+    );
+    expect(writersOf(created.spec?.credentials ?? [])).toEqual([ALICE]);
+
+    const edited = await guard(
+      AgentShareSchema,
+      SHARE,
+      person(BOB),
+      shareRow([unsourced()]),
+      shareRow([unsourced(ALICE)], { createdBy: ALICE }),
+    );
+    expect(writersOf(edited.spec?.credentials ?? [])).toEqual([ALICE]);
+    expect(authorizer.useChecks()).toEqual([]);
+  });
+
+  /** Runs the step on a new share as Alice over `store` and `deciding`. */
+  async function guardWith(
+    store: typeof ts.store,
+    deciding: Authorizer,
+  ): Promise<ConnectError> {
+    const ctx = new RequestContext(
+      AgentShareSchema,
+      shareRow([assigned(ORG_KEY)]),
+      person(ALICE),
+    );
+    return refusal(async () => {
+      await newGuardCredentialAssignmentsStep(store, deciding, SHARE).execute(
+        ctx,
+      );
+    });
+  }
+
+  it("credentials that cannot be read are Internal, never an assignment let through", async () => {
+    const faulty = {
+      queryResources: () => Promise.reject(new Error("SQLITE_BUSY")),
+    } as unknown as typeof ts.store;
+
+    const error = await guardWith(faulty, authorizer);
+
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toBe(
+      "failed to read the organization's credentials",
+    );
+  });
+
+  it("a can_use the Authorizer cannot answer is Internal, never a denial", async () => {
+    const failing: Authorizer = {
+      authorize: () => Promise.reject(new Error("fga down")),
+    };
+
+    const error = await guardWith(ts.store, failing);
+
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toBe("failed to authorize an assigned credential");
   });
 });

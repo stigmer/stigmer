@@ -18,7 +18,8 @@
  * minting platform client named by the run's audit stamp, else the
  * schedule, share or channel its lineage label names. A run with a person
  * reads no surface at all. A surface that is gone, or belongs to another
- * organization, assigns nothing.
+ * organization, assigns nothing; one that cannot be read fails the create
+ * naming it.
  *
  * Recovery rebuilds from the persisted run alone: the person recorded at
  * create and the minting client's stamp survive the runner's status writes.
@@ -982,6 +983,38 @@ describe("the surface of a run with no person", () => {
     expect((failure as Error).message).toBe(
       "load platform client pcl_dashboard for credential resolution: connection reset",
     );
+  });
+
+  it("a schedule that cannot be read fails the create naming it, never a run without its assignments", async () => {
+    const getResource: Store["getResource"] = (kind, id, schema) =>
+      kind === ApiResourceKind.schedule
+        ? Promise.reject(new Error("connection reset"))
+        : store.getResource(kind, id, schema);
+    const faulty = new Proxy(store, {
+      get(target, prop) {
+        if (prop === "getResource") {
+          return getResource;
+        }
+        const value: unknown = Reflect.get(target, prop, target);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    const createdEcs: ExecutionContext[] = [];
+
+    const failure = await buildAndPersistExecutionContext(
+      { ...builderDeps({ createdEcs, agent: HELPER }), store: faulty },
+      run({
+        id: "run_schedule_fault",
+        agentId: "agt_helper",
+        labels: { [SCHEDULE_ID_LABEL_KEY]: "sch_unreadable" },
+      }),
+    ).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(Error);
+    expect((failure as Error).message).toBe(
+      "load schedule sch_unreadable for credential resolution: connection reset",
+    );
+    expect(createdEcs).toEqual([]);
   });
 });
 

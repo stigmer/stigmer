@@ -704,6 +704,55 @@ describe("completeOAuthConnect → grant → disconnect (the full lifecycle)", (
     );
   });
 
+  it("a re-connect after the server names another variable keeps the credential and moves its token to the new field", async () => {
+    mockAs.reset();
+    const id = await applyServer();
+    const initiated = await command.initiateOAuthConnect({ mcpServerId: id, org: ORG });
+    await command.completeOAuthConnect({
+      mcpServerId: id,
+      state: initiated.state,
+      authorizationCode: "auth-code-rename-1",
+    });
+    const credentialId =
+      (await server.store.oauthGrants.find(OPERATOR, id, ORG_ID))?.credentialId ?? "";
+    expect(credentialId).not.toBe("");
+
+    const mcp = await server.store.getResource(ApiResourceKind.mcp_server, id, McpServerSchema);
+    await command.apply({
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "McpServer",
+      metadata: { name: mcp.metadata?.name ?? "", slug: mcp.metadata?.slug ?? "", org: ORG },
+      spec: {
+        description: "handshake test server",
+        serverType: { case: "http" as const, value: { url: `${asBaseUrl}/mcp` } },
+        auth: { targetEnvVar: "RENAMED_TOKEN" },
+      },
+    });
+    mockAs.levers.tokenBody = {
+      access_token: "at-renamed",
+      token_type: "bearer",
+      expires_in: 3600,
+      refresh_token: "rt-renamed",
+    };
+    const again = await command.initiateOAuthConnect({ mcpServerId: id, org: ORG });
+    await command.completeOAuthConnect({
+      mcpServerId: id,
+      state: again.state,
+      authorizationCode: "auth-code-rename-2",
+    });
+    mockAs.reset();
+
+    const regrant = await server.store.oauthGrants.find(OPERATOR, id, ORG_ID);
+    expect(regrant?.credentialId).toBe(credentialId);
+    expect(regrant?.accessTokenEnvVar).toBe("RENAMED_TOKEN");
+    // The stale field is removed, not left beside the new one for a run to read.
+    const saved = await storedCredential(credentialId);
+    expect(Object.keys(saved.spec?.fields ?? {})).toEqual(["RENAMED_TOKEN"]);
+    expect(await opener.decrypt(saved.spec?.fields["RENAMED_TOKEN"]?.value ?? "")).toBe(
+      "at-renamed",
+    );
+  });
+
   it("deleting the sign-in's credential ends its grant", async () => {
     mockAs.reset();
     const id = await applyServer();
