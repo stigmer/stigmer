@@ -862,7 +862,7 @@ export interface Store {
     scheduleId: string,
     offset: number,
     limit: number,
-  ): Promise<{ runs: ScheduleFireRecord[]; total: number }>;
+  ): Promise<{ fires: ScheduleFireRecord[]; total: number }>;
 
   /** Delete-cascade twin, called after the resource row delete succeeds. */
   deleteScheduleFiresBySchedule(scheduleId: string): Promise<number>;

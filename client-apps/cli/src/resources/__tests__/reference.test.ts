@@ -4,6 +4,7 @@ import {
   hasResourceIdPrefix,
   idPrefixesFor,
   isAgentId,
+  isScheduleId,
   isSessionId,
   parseReference,
   validateResourceId,
@@ -65,6 +66,10 @@ describe("a kind's retired id prefixes", () => {
     expect(idPrefixesFor(ApiResourceKind.agent)).toEqual(["agt"]);
   });
 
+  it("are none for a kind the CLI's table does not carry", () => {
+    expect(idPrefixesFor(ApiResourceKind.iam_policy)).toEqual([]);
+  });
+
   it("classify a stored id as an id of the kind, for every reader", () => {
     for (const id of [`run_${ULID}`, `aex_${ULID}`]) {
       expect(hasResourceIdPrefix(id), id).toBe(true);
@@ -85,6 +90,8 @@ describe("resource-ID classification", () => {
     expect(isAgentId(`agt_${ULID}`)).toBe(true);
     expect(isAgentId(`agt-${ULID}`)).toBe(true);
     expect(isSessionId(`ses_${ULID}`)).toBe(true);
+    expect(isScheduleId(`sch_${ULID}`)).toBe(true);
+    expect(isScheduleId(`ses_${ULID}`)).toBe(false);
   });
 
   it("does not classify cross-kind prefixes", () => {

@@ -326,6 +326,42 @@ describe("ScheduleDetailView", () => {
     expect(screen.getByText("Refused")).toBeTruthy();
   });
 
+  it("states an empty fire history in the History tab, not a blank table", async () => {
+    const client = makeClient(makeSchedule());
+    client.schedule.listFires.mockResolvedValue(create(ScheduleFireListSchema, { totalCount: 0, items: [] }));
+    renderView(client);
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    fireEvent.click(screen.getByRole("tab", { name: /History/ }));
+    expect(await screen.findByText(/No fires yet\./)).toBeTruthy();
+    expect(screen.queryByRole("table", { name: "Fire history" })).toBeNull();
+  });
+
+  it("shows how long a fire's run took, recorded to completed", async () => {
+    const client = makeClient(makeSchedule());
+    client.schedule.listFires.mockResolvedValue(
+      create(ScheduleFireListSchema, {
+        totalCount: 1,
+        items: [
+          create(ScheduleFireSchema, {
+            scheduleId: "sch_01example",
+            origin: ScheduleFireOrigin.CRON,
+            outcome: ScheduleFireOutcome.COMPLETED,
+            nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 60_000)),
+            recordedAt: timestampFromDate(new Date(NOW.getTime() - 60_000)),
+            completedAt: timestampFromDate(new Date(NOW.getTime() - 18_000)),
+          }),
+        ],
+      }),
+    );
+    renderView(client);
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    fireEvent.click(screen.getByRole("tab", { name: /History/ }));
+    const table = await screen.findByRole("table", { name: "Fire history" });
+    expect(within(table).getByText("42s")).toBeTruthy();
+  });
+
   it("navigates through the callback seams", async () => {
     const onNavigateToAgent = vi.fn();
     const onNavigateToRun = vi.fn();

@@ -114,10 +114,10 @@ import {
   type ClockProvider,
 } from "./clock.js";
 import {
-  LIST_RUNS_RESULT_KEY,
-  newListRunsFromLedgerStep,
-  newLoadScheduleForRunsStep,
-} from "./list-runs.js";
+  LIST_FIRES_RESULT_KEY,
+  newListFiresFromLedgerStep,
+  newLoadScheduleForFiresStep,
+} from "./list-fires.js";
 import { newPersistScheduleUpdateStep } from "./persist-update.js";
 import { newClearSchedulePauseStep } from "./resume.js";
 import {
@@ -737,14 +737,14 @@ async function listFires(
   req: ListScheduleFiresRequest,
   ctx: HandlerContext,
 ): Promise<ScheduleFireList> {
-  type ListRunsInput = typeof ScheduleQueryController.method.listFires.input;
+  type ListFiresInput = typeof ScheduleQueryController.method.listFires.input;
   const reqCtx = new RequestContext(
     ScheduleQueryController.method.listFires.input,
     req,
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  await newPipeline<ListRunsInput>("schedule-list-runs", deps.logger)
+  await newPipeline<ListFiresInput>("schedule-list-runs", deps.logger)
     .addStep(
       newAuthorizeStep(
         ScheduleQueryController.method.listFires,
@@ -752,12 +752,12 @@ async function listFires(
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newLoadScheduleForRunsStep(deps.store))
-    .addStep(newListRunsFromLedgerStep(deps.store))
+    .addStep(newLoadScheduleForFiresStep(deps.store))
+    .addStep(newListFiresFromLedgerStep(deps.store))
     .build()
     .execute(reqCtx);
 
-  const result = reqCtx.get(LIST_RUNS_RESULT_KEY);
+  const result = reqCtx.get(LIST_FIRES_RESULT_KEY);
   if (result === undefined) {
     throw internalError(
       new Error("schedule run list not found in context"),

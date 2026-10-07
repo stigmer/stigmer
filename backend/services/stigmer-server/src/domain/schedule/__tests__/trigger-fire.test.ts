@@ -1,10 +1,12 @@
 /**
- * Pins the manual fire's success arm, the one the composed suite cannot
- * reach: its server has no engine behind it, so every run start there is
- * refused before a run exists. Here the run starter answers "started", and
- * the FireDirectRun step must answer STARTED naming the run, stamp
- * last_fire_at on the schedule, and leave a manual ledger row carrying the
- * run's id, so listFires can later read the run's live phase.
+ * Pins the manual fire's arms the composed suite cannot reach: its server
+ * has no engine behind it, so every run start there fails before a run
+ * exists. Here the run starter answers "started", and the FireDirectRun
+ * step must answer STARTED naming the run, stamp last_fire_at on the
+ * schedule, and leave a manual ledger row carrying the run's id, so
+ * listFires can later read the run's live phase; and it answers "refused",
+ * and the step must answer REFUSED with the gate's copy verbatim and no run,
+ * and record the refused fire.
  *
  * The store is a real throwaway SQLite store; the run starter is a stub
  * that records the schedule it was asked to fire.
@@ -98,7 +100,7 @@ describe("FireDirectRun — a run the starter started", () => {
     // The answer is the post-fire row, its fire instant stamped.
     expect(result.schedule?.status?.lastFireAt).toBeDefined();
 
-    const { runs, total } = await store.listScheduleFires(SCHEDULE_ID, 0, 10);
+    const { fires: runs, total } = await store.listScheduleFires(SCHEDULE_ID, 0, 10);
     expect(total).toBe(1);
     expect(runs[0]).toMatchObject({
       scheduleId: SCHEDULE_ID,
@@ -108,5 +110,41 @@ describe("FireDirectRun — a run the starter started", () => {
       executionId: RUN_ID,
       completedAt: "",
     });
+  });
+});
+
+describe("FireDirectRun — a run a launch gate refused", () => {
+  it("answers REFUSED with the gate's copy and no run, and records the refused fire", async () => {
+    temp = tempStore();
+    const store = temp.store;
+    const schedule = create(ScheduleSchema, {
+      metadata: { id: SCHEDULE_ID, org: "org_acme", name: "Fire" },
+      spec: { enabled: true },
+    });
+    await store.saveResource(ApiResourceKind.schedule, SCHEDULE_ID, ScheduleSchema, schedule);
+
+    const step = newFireDirectRunStep<typeof ScheduleCommandController.method.trigger.input>({
+      store,
+      logger: silentLogger,
+      runner: () => ({
+        startRun: () => Promise.resolve({ kind: "refused", reason: "over budget for the month" }),
+      }),
+    });
+    const ctx = new RequestContext(
+      ScheduleCommandController.method.trigger.input,
+      create(ScheduleCommandController.method.trigger.input, { value: SCHEDULE_ID }),
+      testCallerIdentity(),
+    );
+    ctx.set(EXISTING_RESOURCE_KEY, schedule);
+
+    await step.execute(ctx);
+
+    const result = ctx.get(TRIGGER_RESULT_KEY) as ScheduleTriggerResult;
+    expect(result.outcome).toBe(ScheduleFireOutcome.REFUSED);
+    expect(result.refusalReason).toBe("over budget for the month");
+    expect(result.runId).toBe("");
+    const { fires, total } = await store.listScheduleFires(SCHEDULE_ID, 0, 10);
+    expect(total).toBe(1);
+    expect(fires[0]).toMatchObject({ origin: "manual", outcome: "refused", executionId: "" });
   });
 });

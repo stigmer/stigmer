@@ -972,7 +972,7 @@ export class SqliteStore implements Store {
     scheduleId: string,
     offset: number,
     limit: number,
-  ): Promise<{ runs: ScheduleFireRecord[]; total: number }> {
+  ): Promise<{ fires: ScheduleFireRecord[]; total: number }> {
     const db = this.open();
     const effectiveLimit = limit <= 0 ? 50 : limit;
     const effectiveOffset = offset < 0 ? 0 : offset;
@@ -1005,7 +1005,7 @@ export class SqliteStore implements Store {
 
     return {
       total: totalRow.total,
-      runs: rows.map((row) => ({
+      fires: rows.map((row) => ({
         scheduleId: row.schedule_id,
         org: row.org,
         nominalFireTime: row.nominal_fire_time,

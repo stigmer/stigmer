@@ -782,7 +782,7 @@ export function describeStoreContract(
         completedAt: "2026-08-20T00:00:05Z",
       });
 
-      const { runs, total } = await fx.store.listScheduleFires("sch_1", 0, 0);
+      const { fires: runs, total } = await fx.store.listScheduleFires("sch_1", 0, 0);
       expect(total).toBe(1);
       expect(runs[0]!.outcome).toBe("completed");
     });
@@ -795,7 +795,7 @@ export function describeStoreContract(
       });
       await fx.store.upsertScheduleFire(baseRun); // the replay
 
-      const { runs } = await fx.store.listScheduleFires("sch_1", 0, 0);
+      const { fires: runs } = await fx.store.listScheduleFires("sch_1", 0, 0);
       expect(runs[0]!.outcome, "the verdict survives the replay").toBe(
         "completed",
       );
@@ -820,7 +820,7 @@ export function describeStoreContract(
         "2026-08-20T00:01:00Z",
       );
 
-      const { runs } = await fx.store.listScheduleFires("sch_1", 0, 0);
+      const { fires: runs } = await fx.store.listScheduleFires("sch_1", 0, 0);
       const cron = runs.find((run) => run.origin === "cron")!;
       const manual = runs.find((run) => run.origin === "manual")!;
       expect(cron.outcome).toBe("failed");
@@ -851,7 +851,7 @@ export function describeStoreContract(
 
       const page = await fx.store.listScheduleFires("sch_1", 0, 2);
       expect(page.total).toBe(3);
-      expect(page.runs.map((run) => run.nominalFireTime)).toEqual([
+      expect(page.fires.map((run) => run.nominalFireTime)).toEqual([
         "2026-08-20T00:02:00Z",
         "2026-08-20T00:01:00Z",
       ]);

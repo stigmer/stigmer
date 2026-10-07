@@ -33,26 +33,26 @@ import type { RequestContext } from "../../pipeline/request-context.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { ScheduleFireRecord, Store } from "../../store/interface.js";
 
-type ListRunsInput = typeof ScheduleQueryController.method.listFires.input;
+type ListFiresInput = typeof ScheduleQueryController.method.listFires.input;
 
-export const LIST_RUNS_RESULT_KEY = "listRunsResult";
+export const LIST_FIRES_RESULT_KEY = "listFiresResult";
 
 /**
  * Bounds an unpaginated listFires read — history can hold a quarter's worth
  * of daily fires, and "the recent runs" is the question the surface
  * answers (Go defaultRunsPageSize).
  */
-export const DEFAULT_RUNS_PAGE_SIZE = 50;
+export const DEFAULT_FIRES_PAGE_SIZE = 50;
 
 /**
  * Confirms the schedule exists — a missing schedule answers NOT_FOUND,
  * never an empty history that reads as "exists but never fired" (Go
  * loadScheduleForRunsStep).
  */
-export function newLoadScheduleForRunsStep(store: Store): PipelineStep<ListRunsInput> {
+export function newLoadScheduleForFiresStep(store: Store): PipelineStep<ListFiresInput> {
   return {
     name: "LoadScheduleForRuns",
-    async execute(ctx: RequestContext<ListRunsInput>): Promise<void> {
+    async execute(ctx: RequestContext<ListFiresInput>): Promise<void> {
       const scheduleId = ctx.input.scheduleId;
       try {
         await store.getResource(
@@ -74,17 +74,17 @@ export function newLoadScheduleForRunsStep(store: Store): PipelineStep<ListRunsI
  * Pages the fire ledger (newest first) and enriches in-flight rows with
  * the execution's live phase (Go listRunsFromLedgerStep).
  */
-export function newListRunsFromLedgerStep(store: Store): PipelineStep<ListRunsInput> {
+export function newListFiresFromLedgerStep(store: Store): PipelineStep<ListFiresInput> {
   return {
     name: "ListRunsFromLedger",
-    async execute(ctx: RequestContext<ListRunsInput>): Promise<void> {
+    async execute(ctx: RequestContext<ListFiresInput>): Promise<void> {
       const req = ctx.input;
 
       // PageInfo.num is 1-indexed by contract (pagination.proto); a
       // zero/absent page reads as the first.
       let size = req.pageInfo?.size ?? 0;
       if (size <= 0) {
-        size = DEFAULT_RUNS_PAGE_SIZE;
+        size = DEFAULT_FIRES_PAGE_SIZE;
       }
       let num = req.pageInfo?.num ?? 0;
       if (num < 1) {
@@ -92,25 +92,25 @@ export function newListRunsFromLedgerStep(store: Store): PipelineStep<ListRunsIn
       }
       const offset = (num - 1) * size;
 
-      let runs: ScheduleFireRecord[];
+      let fires: ScheduleFireRecord[];
       let total: number;
       try {
-        ({ runs, total } = await store.listScheduleFires(
+        ({ fires, total } = await store.listScheduleFires(
           req.scheduleId,
           offset,
           size,
         ));
       } catch (error) {
-        throw internalError(error, "failed to list schedule runs");
+        throw internalError(error, "failed to list schedule fires");
       }
 
       const items: ScheduleFire[] = [];
-      for (const record of runs) {
-        items.push(await toProtoRun(store, record));
+      for (const record of fires) {
+        items.push(await toProtoFire(store, record));
       }
 
       ctx.set(
-        LIST_RUNS_RESULT_KEY,
+        LIST_FIRES_RESULT_KEY,
         create(ScheduleFireListSchema, { totalCount: total, items }),
       );
     },
@@ -122,37 +122,37 @@ export function newListRunsFromLedgerStep(store: Store): PipelineStep<ListRunsIn
  * carries an execution id with the execution's live phase — the read-time
  * honesty rule (Go toProtoRun).
  */
-async function toProtoRun(
+async function toProtoFire(
   store: Store,
   record: ScheduleFireRecord,
 ): Promise<ScheduleFire> {
-  const run = create(ScheduleFireSchema, {
+  const fire = create(ScheduleFireSchema, {
     scheduleId: record.scheduleId,
     org: record.org,
-    origin: runOriginFromLabel(record.origin),
-    outcome: runOutcomeFromLabel(record.outcome),
+    origin: fireOriginFromLabel(record.origin),
+    outcome: fireOutcomeFromLabel(record.outcome),
     reason: record.reason,
     runId: record.executionId,
   });
   const nominal = parseTime(record.nominalFireTime);
   if (nominal !== undefined) {
-    run.nominalFireTime = timestampFromDate(nominal);
+    fire.nominalFireTime = timestampFromDate(nominal);
   }
   const recordedAt = parseTime(record.recordedAt);
   if (recordedAt !== undefined) {
-    run.recordedAt = timestampFromDate(recordedAt);
+    fire.recordedAt = timestampFromDate(recordedAt);
   }
   if (record.completedAt !== "") {
     const completedAt = parseTime(record.completedAt);
     if (completedAt !== undefined) {
-      run.completedAt = timestampFromDate(completedAt);
+      fire.completedAt = timestampFromDate(completedAt);
     }
-    return run;
+    return fire;
   }
 
   // In flight on paper — ask the execution row what actually happened.
   if (record.executionId === "") {
-    return run;
+    return fire;
   }
   let phase: RunPhase;
   try {
@@ -165,23 +165,23 @@ async function toProtoRun(
   } catch {
     // Execution deleted (or unreadable): the ledger row stands as
     // recorded — deleting a run must not rewrite its history.
-    return run;
+    return fire;
   }
   switch (phase) {
     case RunPhase.RUN_COMPLETED:
-      run.outcome = ScheduleFireOutcome.COMPLETED;
+      fire.outcome = ScheduleFireOutcome.COMPLETED;
       break;
     case RunPhase.RUN_FAILED:
     case RunPhase.RUN_CANCELLED:
     case RunPhase.RUN_TERMINATED:
-      run.outcome = ScheduleFireOutcome.FAILED;
-      run.reason = `run ${record.executionId} ended ${executionPhaseWord(phase)}`;
+      fire.outcome = ScheduleFireOutcome.FAILED;
+      fire.reason = `run ${record.executionId} ended ${executionPhaseWord(phase)}`;
       break;
     default:
       // Genuinely still running — "started" is the honest answer.
       break;
   }
-  return run;
+  return fire;
 }
 
 /**
@@ -202,7 +202,7 @@ function executionPhaseWord(phase: RunPhase): string {
 }
 
 /** Maps the ledger's lowercase origin vocabulary back to the wire enum. */
-function runOriginFromLabel(origin: string): ScheduleFireOrigin {
+function fireOriginFromLabel(origin: string): ScheduleFireOrigin {
   switch (origin) {
     case "cron":
       return ScheduleFireOrigin.CRON;
@@ -214,7 +214,7 @@ function runOriginFromLabel(origin: string): ScheduleFireOrigin {
 }
 
 /** Maps the ledger's lowercase outcome vocabulary back to the wire enum. */
-function runOutcomeFromLabel(outcome: string): ScheduleFireOutcome {
+function fireOutcomeFromLabel(outcome: string): ScheduleFireOutcome {
   switch (outcome) {
     case "started":
       return ScheduleFireOutcome.STARTED;

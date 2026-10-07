@@ -925,7 +925,7 @@ export class PostgresStore implements Store {
     scheduleId: string,
     offset: number,
     limit: number,
-  ): Promise<{ runs: ScheduleFireRecord[]; total: number }> {
+  ): Promise<{ fires: ScheduleFireRecord[]; total: number }> {
     const effectiveLimit = limit <= 0 ? 50 : limit;
     const effectiveOffset = offset < 0 ? 0 : offset;
 
@@ -945,7 +945,7 @@ export class PostgresStore implements Store {
 
     return {
       total: Number((totalResult.rows[0] as { total: string | number }).total),
-      runs: (
+      fires: (
         result.rows as Array<{
           schedule_id: string;
           org: string;
