@@ -21,8 +21,12 @@ vi.mock("@temporalio/worker", () => ({
 }));
 
 vi.mock("../workflow-source.js", () => ({
-  resolveWorkflowSource: () => ({ kind: "prebuilt", codePath: "/runner/workflow-bundle.js" }),
-  OTEL_WORKFLOW_INTERCEPTOR_MODULE: "@temporalio/interceptors-opentelemetry/lib/workflow",
+  resolveWorkflowSource: () => ({
+    kind: "prebuilt",
+    codePath: "/runner/workflow-bundle.js",
+  }),
+  OTEL_WORKFLOW_INTERCEPTOR_MODULE:
+    "@temporalio/interceptors-opentelemetry/lib/workflow",
 }));
 
 import type { Config } from "../config.js";
@@ -53,7 +57,8 @@ describe("startWorker", () => {
   });
 
   afterEach(() => {
-    if (otelEndpoint === undefined) delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+    if (otelEndpoint === undefined)
+      delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
     else process.env.OTEL_EXPORTER_OTLP_ENDPOINT = otelEndpoint;
   });
 
@@ -63,7 +68,9 @@ describe("startWorker", () => {
     expect(sdk.connect).toHaveBeenCalledWith({ address: "127.0.0.1:7233" });
     expect(sdk.create).toHaveBeenCalledTimes(1);
     const options = sdk.create.mock.calls[0]![0];
-    expect(options.interceptors).toEqual({ activity: [runCredentialActivityInterceptor] });
+    expect(options.interceptors).toEqual({
+      activity: [runCredentialActivityInterceptor],
+    });
     expect(options.sinks).toEqual({});
     expect(options.dataConverter).toBeUndefined();
     expect(started).toEqual({ worker: sdk.worker, connection: sdk.connection });
@@ -74,7 +81,9 @@ describe("startWorker", () => {
     await startWorker({ config, activities, payloadCodecs: [codec] });
 
     const options = sdk.create.mock.calls[0]![0];
-    expect(options.workflowBundle).toEqual({ codePath: "/runner/workflow-bundle.js" });
+    expect(options.workflowBundle).toEqual({
+      codePath: "/runner/workflow-bundle.js",
+    });
     expect(options.workflowsPath).toBeUndefined();
     expect(options.taskQueue).toBe("stigmer_runner");
     expect(options.namespace).toBe("default");

@@ -24,7 +24,8 @@ const AGENT = [
   "  instructions: Answer clearly.",
 ].join("\n");
 
-const fence = (meta: string, body: string): string => ["```yaml" + (meta === "" ? "" : ` ${meta}`), body, "```", ""].join("\n");
+const fence = (meta: string, body: string): string =>
+  ["```yaml" + (meta === "" ? "" : ` ${meta}`), body, "```", ""].join("\n");
 
 let root: string;
 let printed: string;
@@ -32,10 +33,12 @@ let printed: string;
 beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), "docs-yaml-gate-"));
   printed = "";
-  vi.spyOn(process.stdout, "write").mockImplementation((chunk: string | Uint8Array) => {
-    printed += String(chunk);
-    return true;
-  });
+  vi.spyOn(process.stdout, "write").mockImplementation(
+    (chunk: string | Uint8Array) => {
+      printed += String(chunk);
+      return true;
+    },
+  );
 });
 
 afterEach(() => {
@@ -64,12 +67,18 @@ describe("the docs YAML gate", () => {
     writeDoc("examples/agent.yaml", AGENT);
     writeDoc("examples/notes.txt", "not yaml");
 
-    runDocsYamlCheck(path.join(root, "docs"), [path.join(root, "examples")], "off");
+    runDocsYamlCheck(
+      path.join(root, "docs"),
+      [path.join(root, "examples")],
+      "off",
+    );
 
     expect(printed).toContain(
       "✓ docs YAML gate: 3 blocks across 1 files — 1 manifests, 1 anchored fragments, 1 skipped with no-validate, 0 unclassified",
     );
-    expect(printed).toContain(`✓ authoring surfaces (${path.join(root, "examples")}): 1 files scanned, 1 raw manifests validated`);
+    expect(printed).toContain(
+      `✓ authoring surfaces (${path.join(root, "examples")}): 1 files scanned, 1 raw manifests validated`,
+    );
   });
 
   it("fails on an unclassified block, an unknown anchor, a marker with no reason and a manifest that does not decode, naming each", () => {
@@ -83,22 +92,39 @@ describe("the docs YAML gate", () => {
       ].join("\n"),
     );
 
-    expect(() => runDocsYamlCheck(path.join(root, "docs"), [], "off")).toThrow("docs YAML validation failed with 4 problem(s)");
-    expect(printed).toContain("unclassified yaml block: not a resource manifest (apiVersion/kind)");
-    expect(printed).toContain('validate-as "Workflow.spec": unknown resource kind "Workflow"');
-    expect(printed).toContain('validate-as marker requires an anchor: use validate-as="<Kind>[.<field>]"');
+    expect(() => runDocsYamlCheck(path.join(root, "docs"), [], "off")).toThrow(
+      "docs YAML validation failed with 4 problem(s)",
+    );
+    expect(printed).toContain(
+      "unclassified yaml block: not a resource manifest (apiVersion/kind)",
+    );
+    expect(printed).toContain(
+      'validate-as "Workflow.spec": unknown resource kind "Workflow"',
+    );
+    expect(printed).toContain(
+      'validate-as marker requires an anchor: use validate-as="<Kind>[.<field>]"',
+    );
     expect(printed).toContain("Agent manifest does not validate against");
-    expect(printed).toContain('no-validate="reason" marker in the fence info string.');
+    expect(printed).toContain(
+      'no-validate="reason" marker in the fence info string.',
+    );
   });
 
   it("reports a protovalidate violation in report mode without failing the build", () => {
-    writeDoc("docs/guide.md", fence("", AGENT.replace("  name: my-first-agent\n", "")));
+    writeDoc(
+      "docs/guide.md",
+      fence("", AGENT.replace("  name: my-first-agent\n", "")),
+    );
 
     runDocsYamlCheck(path.join(root, "docs"), [], "report");
 
-    expect(printed).toMatch(/docs YAML rule report: \d+ violation\(s\) in 1 block\(s\)/);
+    expect(printed).toMatch(
+      /docs YAML rule report: \d+ violation\(s\) in 1 block\(s\)/,
+    );
     expect(printed).toContain("(rule: ");
     expect(printed).toContain("report mode never fails the build");
-    expect(printed).toContain("✓ docs YAML gate: 1 blocks across 1 files — 1 manifests");
+    expect(printed).toContain(
+      "✓ docs YAML gate: 1 blocks across 1 files — 1 manifests",
+    );
   });
 });
