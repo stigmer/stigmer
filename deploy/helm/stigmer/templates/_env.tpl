@@ -121,8 +121,7 @@ becomes %20, the encoding a URL's user and path segments read.
 - name: LOCAL_ARTIFACT_SERVE_URL
   value: {{ include "stigmer.artifactPublicUrl" . | quote }}
 {{- with .Values.runner.llm.existingSecret }}
-# Optional LLM keys, by explicit reference: agents need one,
-# workflows without agent tasks run key-free.
+# Optional LLM keys, by explicit reference: agents need one.
 - name: ANTHROPIC_API_KEY
   valueFrom:
     secretKeyRef:
