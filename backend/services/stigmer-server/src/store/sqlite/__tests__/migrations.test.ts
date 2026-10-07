@@ -2033,9 +2033,10 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
   }
 
   /**
-   * A plain agent run, one a workflow step started, and one a workflow step
-   * started that was still waiting on an approval, under the kind string
-   * given.
+   * A plain agent run, one a workflow step started, one a workflow step
+   * started that was still waiting on an approval, and one still running
+   * that carries the link as every release through 3.41 wrote it, under the
+   * kind string given.
    */
   function seedAgentRuns(
     db: DatabaseSync,
@@ -2068,6 +2069,20 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
         sessionId: "ses_1",
         parent: "wex_direct",
         phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
+      }),
+    );
+    insert(
+      db,
+      kind,
+      "aex_released",
+      agentRunRow({
+        id: "aex_released",
+        kindString,
+        org: ORG,
+        sessionId: "ses_1",
+        labels: { ...OWN_LABELS, ...WORKFLOW_LINEAGE_LABELS },
+        released: { callbackToken: TOKEN, parentWorkflowId: "wex_direct", activityTaskQueue: "wfexec:wex_direct" },
+        phase: RunPhase.RUN_IN_PROGRESS,
       }),
     );
   }
@@ -2138,6 +2153,17 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
     expect(waiting.status?.error).toBe(WORKFLOW_CHILD_ENDED_ERROR);
     expect(Number.isNaN(Date.parse(waiting.status?.completedAt ?? ""))).toBe(false);
     expect(waiting.spec?.$unknown).toBeUndefined();
+    expect(data(db, "agent_run", "aex_released"), "the released link is stripped and the run ended").toEqual(
+      agentRunRow({
+        id: "aex_released",
+        org: ORG,
+        sessionId: "ses_1",
+        labels: OWN_LABELS,
+        phase: RunPhase.RUN_FAILED,
+        error: WORKFLOW_CHILD_ENDED_ERROR,
+        completedAt: waiting.status?.completedAt,
+      }),
+    );
     expect(
       await store.getResource(ApiResourceKind.agent_run, "aex_parented", AgentRunSchema),
     ).toEqual(fromBinary(AgentRunSchema, parented));
@@ -2152,7 +2178,7 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
       )
         .map((r) => r.id)
         .sort(),
-    ).toEqual(["aex_parented", "aex_plain", "aex_waiting"]);
+    ).toEqual(["aex_parented", "aex_plain", "aex_released", "aex_waiting"]);
     return db;
   }
 

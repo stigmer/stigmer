@@ -23,20 +23,25 @@
  * (`signal_dedupe`) are dropped; nothing else wrote or read them. Search
  * entries of the removed rows are boot's rebuild's to drop.
  *
- * What an agent run becomes. A run a workflow step started holds its
- * parent in AgentRunSpec field 17 (`parent`) and may hold the step's task
- * token in AgentRunStatus field 10 (`callback_token`); the contract now
- * reserves both, so the current schema decodes them as unknown fields
- * (protobuf-es keeps unknown fields through `fromBinary`). They are read by
- * wire number, never through a schema that no longer exists, and dropped,
- * with the two lineage labels the workflow runner stamped
- * (`stigmer.ai/workflow-execution-id`, `stigmer.ai/workflow-task`). Every
+ * What an agent run becomes. A run a workflow step started holds its link
+ * to the step in AgentRunSpec fields the contract now reserves: as every
+ * release through 3.41 wrote it, field 6 (`callback_token`, the step's task
+ * token), 8 (`parent_workflow_id`) and 11 (`activity_task_queue`, the
+ * parent's sandbox queue); as builds between the run rename and this
+ * removal wrote it, field 17 (`parent`). It may also hold the step's task
+ * token in AgentRunStatus field 10 (`callback_token`). The current schema
+ * decodes each as an unknown field (protobuf-es keeps unknown fields
+ * through `fromBinary`); they are read by wire number, never through a
+ * schema that no longer exists, and dropped, with the two lineage labels
+ * the workflow runner stamped (`stigmer.ai/workflow-execution-id`,
+ * `stigmer.ai/workflow-task`). A run carrying any of the spec fields or the
+ * workflow-execution label was started by a workflow step. Every
  * other field is kept, and a run that carries none of them is left byte
  * for byte as it is. A run a workflow step started that had not finished
  * cannot resume (its parent leaves with this step, and its Temporal history
  * replays only under code that signals that parent), so it ends here:
  * FAILED, with `WORKFLOW_CHILD_ENDED_ERROR` saying why and `completed_at`
- * the step's time, which also lets its run credential lapse after the
+ * the step's time (a run with no status gets one saying so), which also lets its run credential lapse after the
  * terminal grace (runnerauth/bound-execution.ts). A finished run keeps its
  * phase. Its `updated_at` is left alone: no list key of a run reads what
  * changes (the run index keys the session only), so the list index stays
@@ -46,9 +51,9 @@
  * keep (public-visibility-retired.ts): the driver's transaction rolls back
  * and the boot stops on the row it names.
  */
-import { fromBinary, toBinary } from "@bufbuild/protobuf";
+import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 
-import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { AgentRunSchema, AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 
@@ -83,10 +88,17 @@ export const WORKFLOW_RETIRED_PAGE_SIZE = 500;
  */
 export const AGENT_RUN_RETIRED_PAGE_SIZE = 100;
 
-/** The retired AgentRunSpec field that held the run's workflow parent. */
-const RUN_SPEC_PARENT_FIELD = 17;
+/**
+ * The retired AgentRunSpec fields that tied a run to the workflow step that
+ * started it: 6 (`callback_token`), 8 (`parent_workflow_id`) and 11
+ * (`activity_task_queue`) as every release through 3.41 wrote them, and 17
+ * (`parent`) as the builds after the run rename wrote it.
+ */
+const RUN_SPEC_WORKFLOW_FIELDS: ReadonlySet<number> = new Set([6, 8, 11, 17]);
 /** The retired AgentRunStatus field that held the workflow step's task token. */
 const RUN_STATUS_CALLBACK_TOKEN_FIELD = 10;
+/** The lineage label a workflow step's run carried naming its workflow run. */
+const WORKFLOW_EXECUTION_LABEL = "stigmer.ai/workflow-execution-id";
 /** The lineage labels the workflow runner stamped on a run it started. */
 const WORKFLOW_LINEAGE_LABELS: ReadonlyArray<string> = [
   "stigmer.ai/workflow-execution-id",
@@ -121,8 +133,8 @@ export function migrateAgentRunRow(data: Uint8Array, endedAt: string): Uint8Arra
   const spec = run.spec;
   const status = run.status;
   const labels = run.metadata?.labels;
-  const parentHeld = (spec?.$unknown ?? []).some(
-    (f) => f.no === RUN_SPEC_PARENT_FIELD,
+  const specHeld = (spec?.$unknown ?? []).some((f) =>
+    RUN_SPEC_WORKFLOW_FIELDS.has(f.no),
   );
   const tokenHeld = (status?.$unknown ?? []).some(
     (f) => f.no === RUN_STATUS_CALLBACK_TOKEN_FIELD,
@@ -130,17 +142,20 @@ export function migrateAgentRunRow(data: Uint8Array, endedAt: string): Uint8Arra
   const lineage = WORKFLOW_LINEAGE_LABELS.filter(
     (key) => labels !== undefined && Object.hasOwn(labels, key),
   );
-  if (!parentHeld && !tokenHeld && lineage.length === 0) {
+  if (!specHeld && !tokenHeld && lineage.length === 0) {
     return undefined;
   }
-  if (parentHeld && status !== undefined && !FINISHED_RUN_PHASES.has(status.phase)) {
-    status.phase = RunPhase.RUN_FAILED;
-    status.error = WORKFLOW_CHILD_ENDED_ERROR;
-    status.completedAt = endedAt;
+  const workflowStarted = specHeld || lineage.includes(WORKFLOW_EXECUTION_LABEL);
+  if (workflowStarted && !FINISHED_RUN_PHASES.has(run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED)) {
+    const ended = run.status ?? create(AgentRunStatusSchema);
+    ended.phase = RunPhase.RUN_FAILED;
+    ended.error = WORKFLOW_CHILD_ENDED_ERROR;
+    ended.completedAt = endedAt;
+    run.status = ended;
   }
-  if (spec !== undefined && parentHeld) {
+  if (spec !== undefined && specHeld) {
     spec.$unknown = (spec.$unknown ?? []).filter(
-      (f) => f.no !== RUN_SPEC_PARENT_FIELD,
+      (f) => !RUN_SPEC_WORKFLOW_FIELDS.has(f.no),
     );
     if (spec.$unknown.length === 0) {
       delete spec.$unknown;

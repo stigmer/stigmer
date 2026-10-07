@@ -154,8 +154,11 @@ export function retiredArtifactRow(options: {
  * under the kind string given (`AgentRun` unless a test seeds a store from
  * before the run rename, which wrote `AgentExecution`); with `parent`, the
  * retired AgentRunSpec field 17 naming the workflow run whose step started
- * it, and with `callbackToken`, the retired AgentRunStatus field 10. The
- * run is COMPLETED unless `phase` says otherwise, and `error` and
+ * it, and with `callbackToken`, the retired AgentRunStatus field 10; with
+ * `released`, the link as every release through 3.41 wrote it instead:
+ * AgentRunSpec fields 6 (`callback_token`), 8 (`parent_workflow_id`) and 11
+ * (`activity_task_queue`). The run is COMPLETED unless `phase` says
+ * otherwise, and has no status at all with `noStatus`; and `error` and
  * `completedAt` are stamped on its status when given. Without a parent or a
  * token, these are the bytes the current release writes, the ones a
  * migrated run must equal.
@@ -168,9 +171,15 @@ export function agentRunRow(options: {
   readonly labels?: Readonly<Record<string, string>>;
   readonly parent?: string;
   readonly callbackToken?: Uint8Array;
+  readonly released?: {
+    readonly callbackToken: Uint8Array;
+    readonly parentWorkflowId: string;
+    readonly activityTaskQueue: string;
+  };
   readonly phase?: RunPhase;
   readonly error?: string;
   readonly completedAt?: string;
+  readonly noStatus?: boolean;
 }): Uint8Array {
   const run = create(AgentRunSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
@@ -206,6 +215,18 @@ export function agentRunRow(options: {
         data: new BinaryWriter().bytes(parent).finish(),
       },
     ];
+  }
+  if (options.released !== undefined && run.spec !== undefined) {
+    const { callbackToken, parentWorkflowId, activityTaskQueue } = options.released;
+    run.spec.$unknown = [
+      ...(run.spec.$unknown ?? []),
+      { no: 6, wireType: WireType.LengthDelimited, data: new BinaryWriter().bytes(callbackToken).finish() },
+      { no: 8, wireType: WireType.LengthDelimited, data: new BinaryWriter().string(parentWorkflowId).finish() },
+      { no: 11, wireType: WireType.LengthDelimited, data: new BinaryWriter().string(activityTaskQueue).finish() },
+    ];
+  }
+  if (options.noStatus === true) {
+    run.status = undefined;
   }
   if (options.callbackToken !== undefined && run.status !== undefined) {
     run.status.$unknown = [

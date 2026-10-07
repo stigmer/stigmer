@@ -8,9 +8,12 @@
  *   - an agent run a workflow step started loses its retired parent, its
  *     retired task token and the two lineage labels, keeping every other
  *     field and label; each is dropped alone too;
- *   - an unfinished run a workflow step started ends FAILED with the
- *     error saying why, completed at the step's time; a finished one keeps
- *     its phase, and an unfinished run no workflow started is left alone;
+ *   - the link as every release through 3.41 wrote it (spec fields 6, 8
+ *     and 11) is stripped like the later field 17;
+ *   - an unfinished run a workflow step started (paused or with no status
+ *     among them) ends FAILED with the error saying why, completed at the
+ *     step's time; a finished one keeps its phase, and an unfinished run no
+ *     workflow started is left alone;
  *   - an unknown field the step does not retire is kept;
  *   - an agent run that carries none of them is left alone;
  *   - a grant naming a retired kind as resource or principal is found, and
@@ -128,7 +131,7 @@ describe("migrateAgentRunRow", () => {
     ).toBeUndefined();
   });
 
-  it.each([RunPhase.RUN_PENDING, RunPhase.RUN_IN_PROGRESS, RunPhase.RUN_WAITING_FOR_APPROVAL, RunPhase.RUN_PHASE_UNSPECIFIED])(
+  it.each([RunPhase.RUN_PENDING, RunPhase.RUN_IN_PROGRESS, RunPhase.RUN_WAITING_FOR_APPROVAL, RunPhase.RUN_PAUSED, RunPhase.RUN_PHASE_UNSPECIFIED])(
     "ends an unfinished run a workflow step started (phase %s) FAILED, saying why, at the step's time",
     (phase) => {
       expect(
@@ -148,6 +151,59 @@ describe("migrateAgentRunRow", () => {
       );
     },
   );
+
+  it("strips the link every release through 3.41 wrote (spec fields 6, 8 and 11) and ends the run it marks, as for the later field", () => {
+    const released = {
+      callbackToken: TOKEN,
+      parentWorkflowId: "wfx_parent",
+      activityTaskQueue: "wfexec:wfx_parent",
+    };
+    expect(
+      migrateAgentRunRow(
+        agentRunRow({
+          id: "aex_child",
+          org: ORG,
+          sessionId: "ses_1",
+          labels: { ...OWN_LABELS, ...WORKFLOW_LINEAGE_LABELS },
+          released,
+          callbackToken: TOKEN,
+          phase: RunPhase.RUN_IN_PROGRESS,
+        }),
+        ENDED_AT,
+      ),
+    ).toEqual(
+      agentRunRow({
+        id: "aex_child",
+        org: ORG,
+        sessionId: "ses_1",
+        labels: OWN_LABELS,
+        phase: RunPhase.RUN_FAILED,
+        error: WORKFLOW_CHILD_ENDED_ERROR,
+        completedAt: ENDED_AT,
+      }),
+    );
+    expect(
+      migrateAgentRunRow(
+        agentRunRow({ id: "aex_done", org: ORG, sessionId: "ses_1", released }),
+        ENDED_AT,
+      ),
+      "a finished one keeps its phase and loses only the link",
+    ).toEqual(agentRunRow({ id: "aex_done", org: ORG, sessionId: "ses_1" }));
+  });
+
+  it("gives a run a workflow step started that has no status one that ends it", () => {
+    const migrated = fromBinary(
+      AgentRunSchema,
+      migrateAgentRunRow(
+        agentRunRow({ id: "aex_child", org: ORG, sessionId: "ses_1", parent: "wex_parent", noStatus: true }),
+        ENDED_AT,
+      )!,
+    );
+    expect(migrated.status?.phase).toBe(RunPhase.RUN_FAILED);
+    expect(migrated.status?.error).toBe(WORKFLOW_CHILD_ENDED_ERROR);
+    expect(migrated.status?.completedAt).toBe(ENDED_AT);
+    expect(migrated.spec?.$unknown).toBeUndefined();
+  });
 
   it("keeps the phase of a finished run a workflow step started, and never ends a run no workflow started", () => {
     expect(

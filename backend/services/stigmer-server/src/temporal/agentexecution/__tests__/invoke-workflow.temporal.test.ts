@@ -8,7 +8,9 @@
  *   - the happy path (EnsureThread → ExecuteDeepAgent → EC cleanup), and
  *     the same run from an input that still carries the retired
  *     `callback_token` and `parent_workflow_id` keys (an older server's
- *     dispatch): the keys are ignored and it runs as an ordinary run;
+ *     dispatch): the keys are ignored and it runs as an ordinary run,
+ *     its own history recording no signal or cancel to another workflow
+ *     and no activity beyond an ordinary run's;
  *   - the HITL loop (WAITING persist → gate re-read → approvalGateResolved
  *     → re-invoke with TurnSeq = approvalCycle — the deterministic
  *     change-set id input);
@@ -46,6 +48,7 @@
  */
 import { fromJson, toJson, create } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
+import proto from "@temporalio/proto";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import {
@@ -66,6 +69,9 @@ import {
 } from "../../../domain/agentrun/platform-rows.js";
 
 import {
+  ENSURE_THREAD_ACTIVITY_NAME,
+  EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
+  GENERATE_SESSION_SUBJECT_ACTIVITY_NAME,
   INVOKE_AGENT_EXECUTION_WORKFLOW_NAME,
   MEMO_ACTIVITY_TASK_QUEUE,
   SIGNAL_APPROVAL_GATE_RESOLVED,
@@ -443,6 +449,47 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
 
     expect(script.executeCalls).toEqual([{ thread_id: "thread-1", turn_seq: 0 }]);
     expectExecutionContextDeleted();
+
+    // The run's own history: a reintroduced signal or cancel to the
+    // parent the retired keys named, or an activity that completes the
+    // parent's step by its callback token, would be recorded here.
+    const history = await handle.fetchHistory();
+    const events = history.events ?? [];
+    const { EventType } = proto.temporal.api.enums.v1;
+    expect(
+      events
+        .filter(
+          (event) =>
+            event.eventType ===
+              EventType.EVENT_TYPE_SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_INITIATED ||
+            event.eventType ===
+              EventType.EVENT_TYPE_REQUEST_CANCEL_EXTERNAL_WORKFLOW_EXECUTION_INITIATED,
+        )
+        .map((event) => EventType[event.eventType ?? 0]),
+      "no event may reach another workflow",
+    ).toEqual([]);
+    expect(
+      [
+        ...new Set(
+          events
+            .filter(
+              (event) =>
+                event.eventType === EventType.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED,
+            )
+            .map(
+              (event) =>
+                event.activityTaskScheduledEventAttributes?.activityType?.name,
+            ),
+        ),
+      ].sort(),
+      "the run schedules only an ordinary run's activities",
+    ).toEqual(
+      [
+        ENSURE_THREAD_ACTIVITY_NAME,
+        EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
+        GENERATE_SESSION_SUBJECT_ACTIVITY_NAME,
+      ].sort(),
+    );
   }, 30_000);
 
   it("re-invokes after approvalGateResolved with TurnSeq = approvalCycle", async (testCtx) => {    if (!envReady) return testCtx.skip();

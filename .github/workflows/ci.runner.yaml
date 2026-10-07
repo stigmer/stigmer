@@ -42,9 +42,10 @@ permissions:
   contents: read
 
 env:
-  # Inside the gate a missing test dependency fails instead of skipping
-  # (the Postgres and Temporal helpers read it); a caller's env does not
-  # reach a called workflow, so each lane sets it itself.
+  # Inside the gate a missing test dependency fails instead of skipping (the
+  # runner layer's start-script test requires shellcheck under it); a
+  # caller's env does not reach a called workflow, so each lane sets it
+  # itself (scripts/ci-lanes.test.mjs holds every lane to it).
   STIGMER_TEST_GATE: "1"
 
 jobs:

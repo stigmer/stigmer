@@ -10,6 +10,9 @@
  *   - the oss#535 FAIL-SOFT matrix: execution-id arms mint; pool_claim/
  *     renewal/unset/empty-id/keyless all answer the presence-based
  *     "not minted" EMPTY output, never a gRPC error;
+ *   - a request carrying only the reserved field 2 (the retired
+ *     workflow_run_id arm) gets the unset-scope InvalidArgument, the
+ *     same code and message as a request naming no scope, never a token;
  *   - a minted token actually verifies against the SAME key the
  *     executioncontext decrypt lane uses, bound to exactly the named
  *     execution id;
@@ -40,8 +43,9 @@ import type { Client, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { create } from "@bufbuild/protobuf";
+import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
+import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 import { timestampDate, timestampFromDate } from "@bufbuild/protobuf/wkt";
 import {
   LicenseClaimsSchema,
@@ -224,6 +228,46 @@ describe("platform domain (composed server)", () => {
       expect(error).toBeInstanceOf(ConnectError);
       expect((error as ConnectError).code).toBe(Code.InvalidArgument);
     }
+  });
+
+  it("a request naming only the retired workflow_run_id field (2) is answered as one naming no scope", async () => {
+    // Field 2 held workflow_run_id until the workflow product was
+    // removed; it is now reserved. An older runner that still sends it
+    // names no arm this server knows, so it gets the unset-scope answer,
+    // never a token. The bytes are built by wire number because the
+    // schema no longer names the field; decoding keeps it as an unknown
+    // field, which the client writes back onto the wire unchanged.
+    const retiredBytes = new BinaryWriter()
+      .tag(2, WireType.LengthDelimited)
+      .string("wex_01platformtest")
+      .finish();
+    const retiredOnly = fromBinary(
+      GetRunnerScopedTokenInputSchema,
+      retiredBytes,
+    );
+    expect(retiredOnly.scope.case).toBeUndefined();
+    expect(toBinary(GetRunnerScopedTokenInputSchema, retiredOnly)).toEqual(
+      retiredBytes,
+    );
+
+    const answer = async (
+      input: MessageInitShape<typeof GetRunnerScopedTokenInputSchema>,
+    ): Promise<ConnectError> => {
+      try {
+        await client.getRunnerScopedToken(input);
+      } catch (error) {
+        return ConnectError.from(error);
+      }
+      throw new Error("expected the call to fail");
+    };
+    const noScope = await answer({});
+    const retired = await answer(retiredOnly);
+
+    expect(retired.code).toBe(Code.InvalidArgument);
+    expect(retired.rawMessage).toBe(noScope.rawMessage);
+    expect(retired.rawMessage).toBe(
+      "scope: exactly one field is required in oneof [required]",
+    );
   });
 });
 

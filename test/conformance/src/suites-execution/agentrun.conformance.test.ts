@@ -40,8 +40,8 @@
 // A run's file reaches a browser through the link getArtifactDownloadUrl
 // mints. Where artifact storage is local, the attachments block below fetches
 // that link from the server's file server: inline by default, an attachment
-// when a download is asked for, and an altered link answered like a missing
-// key.
+// when a download is asked for, and an altered, unsigned or re-dated link
+// answered like a missing key.
 //
 // Covered in a sibling file (kept separate because it needs the MCP tool
 // fixture and approval choreography, and this file is already large):
@@ -1009,12 +1009,13 @@ describe("AgentRun conformance — attachments (#285)", () => {
   // mints is fetched as a browser would, with no credentials. Inline by
   // default (no disposition header), an attachment named by the key's file
   // name when the caller asks for a download, and the same link with its
-  // signature altered, or with its download name changed, answered 404
-  // exactly as a missing key: the signature covers the key, the expiry and
-  // the download name. Only local artifact storage serves this lane (the
-  // targets with an on-disk store); cloud's links are presigned object-store
-  // URLs, a different contract, so the case reports SKIPPED there.
-  it("[rpc:AgentRunQueryController.getArtifactDownloadUrl] the local file server serves a run's file inline at the minted link, as an attachment when a download is asked for, and answers an altered signature 404 like a missing key", async (ctx) => {
+  // signature altered or removed, its expiry moved, or its download name
+  // changed, answered 404 exactly as a missing key: the signature covers
+  // the key, the expiry and the download name. Only local artifact storage
+  // serves this lane (the targets with an on-disk store); cloud's links are
+  // presigned object-store URLs, a different contract, so the case reports
+  // SKIPPED there.
+  it("[rpc:AgentRunQueryController.getArtifactDownloadUrl] the local file server serves a run's file inline at the minted link, as an attachment when a download is asked for, and answers an altered, removed or re-dated signature 404 like a missing key", async (ctx) => {
     if (target.artifactStoreDir === undefined) return ctx.skip();
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org, uniqueName("agent-fileserver"));
@@ -1072,9 +1073,19 @@ describe("AgentRun conformance — attachments (#285)", () => {
     tampered.searchParams.set("sig", `${signature.startsWith("A") ? "B" : "A"}${signature.slice(1)}`);
     const renamed = new URL(attachmentLink.downloadUrl);
     renamed.searchParams.set("download", "renamed.txt");
+    const unsigned = new URL(minted);
+    unsigned.searchParams.delete("sig");
+    const expiry = minted.searchParams.get("exp") ?? "";
+    expect(expiry, "the minted link carries its expiry").toMatch(/^\d+$/);
+    // Later, not earlier: extending a link's life is the alteration a
+    // holder would want, and a past expiry is refused for that alone.
+    const extended = new URL(minted);
+    extended.searchParams.set("exp", String(Number(expiry) + 3600));
     for (const [what, url] of [
       ["the inline link with its signature altered", tampered],
       ["the download link with another download name", renamed],
+      ["the inline link with its signature removed", unsigned],
+      ["the inline link with its expiry moved later", extended],
     ] as const) {
       const refused = await fetch(url);
       expect(refused.status, what).toBe(404);

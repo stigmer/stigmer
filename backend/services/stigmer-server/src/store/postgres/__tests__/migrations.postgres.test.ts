@@ -2137,6 +2137,20 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
           }),
         );
+        await insert(
+          client,
+          runKind,
+          "aex_released",
+          agentRunRow({
+            id: "aex_released",
+            kindString,
+            org: ORG,
+            sessionId: "ses_1",
+            labels: { ...OWN_LABELS, ...WORKFLOW_LINEAGE_LABELS },
+            released: { callbackToken: TOKEN, parentWorkflowId: "wex_direct", activityTaskQueue: "wfexec:wex_direct" },
+            phase: RunPhase.RUN_IN_PROGRESS,
+          }),
+        );
       }
 
       /**
@@ -2175,6 +2189,17 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         expect(waiting.status?.error).toBe(WORKFLOW_CHILD_ENDED_ERROR);
         expect(Number.isNaN(Date.parse(waiting.status?.completedAt ?? ""))).toBe(false);
         expect(waiting.spec?.$unknown).toBeUndefined();
+        expect(await row(client, "agent_run", "aex_released"), "the released link is stripped and the run ended").toEqual(
+          agentRunRow({
+            id: "aex_released",
+            org: ORG,
+            sessionId: "ses_1",
+            labels: OWN_LABELS,
+            phase: RunPhase.RUN_FAILED,
+            error: WORKFLOW_CHILD_ENDED_ERROR,
+            completedAt: waiting.status?.completedAt,
+          }),
+        );
 
         // The store the server opens reads each back through the API and
         // finds each through the keys its lists read.
@@ -2204,6 +2229,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           expect(await ids(agentExecutionListIndex, "session", "ses_1")).toEqual([
             "aex_child",
             "aex_plain",
+            "aex_released",
             "aex_waiting",
           ]);
           expect(await ids(sessionListIndex, "agent", "agt_1")).toEqual(["ses_1"]);
