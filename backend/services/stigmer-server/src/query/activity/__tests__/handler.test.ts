@@ -1,6 +1,7 @@
 /**
  * Pins the activity handler against Go's
- * pkg/query/activity/handler/handler_test.go: the newest-first order, the
+ * pkg/query/activity/handler/handler_test.go: the newest-first order (equal
+ * instants keep their load order), the
  * projection fields, the subject sentinels, the runtime-origin
  * exclusions, the page-size table (default 30 / cap 100 — the constants
  * conformance deliberately does not drive over the wire), the timestamp
@@ -109,6 +110,18 @@ describe("listRecentActivity (Go handler_test.go)", () => {
       "ses_mid",
       "ses_old",
     ]);
+  });
+
+  it("keeps the load order for sessions updated at the same instant (a stable sort)", async () => {
+    for (const id of ["ses_a", "ses_b", "ses_c"]) {
+      await seedSession(id, { subject: id, statusUpdatedAtSeconds: 500 });
+    }
+
+    const response = await handler.listRecentActivity(request(100), testCallerIdentity());
+
+    // The session index lists newest-created first; a tie-break by id would
+    // read a, b, c instead.
+    expect(response.entries.map((entry) => entry.id)).toEqual(["ses_c", "ses_b", "ses_a"]);
   });
 
   it("projects the sidebar fields", async () => {

@@ -7,9 +7,11 @@
  * only when no producing release is still supported — the schedule
  * domain's rule). The one exception is a history whose path leaves with
  * the feature that produced it: the parented HITL history went with the
- * workflow product, whose parent runs an upgrade deletes, and the release
- * notes tell operators to finish or cancel running workflows before
- * upgrading, because an agent run a workflow step started cannot resume.
+ * workflow product, whose parent runs an upgrade deletes; the Upgrading
+ * section of the pull request that removed them (stigmer#1995), which the
+ * release notes carry, tells operators to finish or cancel running
+ * workflows before upgrading, because an agent run a workflow step started
+ * cannot resume.
  *
  * Fully local: replay needs no Temporal server, so this gate runs in the
  * plain vitest suite (and the ci.stigmer-server workflow) on every

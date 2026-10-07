@@ -27,7 +27,7 @@ export function newConnectExecutionId(mcpServerId: string): string {
   return `${CONNECT_EXECUTION_ID_PREFIX}${mcpServerId}-${randomUUID().slice(0, 8)}`;
 }
 
-/** Whether `executionId` is a connect's — the runner-credential lane's recognition of the third binding. */
+/** Whether `executionId` is a connect's — the runner-credential lane's recognition of the connect binding. */
 export function isConnectExecutionId(executionId: string): boolean {
   return executionId.startsWith(CONNECT_EXECUTION_ID_PREFIX);
 }

@@ -1016,7 +1016,9 @@ describe("AgentRun conformance — attachments (#285)", () => {
   // presigned object-store URLs, a different contract, so the case reports
   // SKIPPED there.
   it("[rpc:AgentRunQueryController.getArtifactDownloadUrl] the local file server serves a run's file inline at the minted link, as an attachment when a download is asked for, and answers an altered, removed or re-dated signature 404 like a missing key", async (ctx) => {
-    if (target.artifactStoreDir === undefined) return ctx.skip();
+    if (target.artifactStoreDir === undefined) {
+      return ctx.skip("this target keeps run files in an object store, whose presigned links are not this lane");
+    }
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org, uniqueName("agent-fileserver"));
 

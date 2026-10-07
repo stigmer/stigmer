@@ -629,6 +629,8 @@ test("recorded state that reads back whole survives", async () => {
     assert.equal(recorded.snapshot.agentExecution.reply, REPLY);
     assert.equal(recorded.snapshot.agentByReference.id, recorded.ids.agentId);
     assert.equal(recorded.workflowRun, undefined, "a base that serves no workflows records no workflow run");
+    assert.equal(recorded.ids.workflowOrgId, undefined);
+    assert.equal(recorded.snapshot.workflowOrg, undefined);
     await assertStateSurvived(lane.baseUrl, recorded);
   } finally {
     await lane.close();
@@ -722,6 +724,9 @@ test("a base that still serves workflows records one completed workflow run, und
       const recorded = await recordState(lane.baseUrl, 10_000, { expectText: REPLY });
       assert.match(recorded.workflowRun?.executionId ?? "", /^wex_/);
       assert.match(recorded.workflowRun?.workflowId ?? "", /^wfl_/);
+      // The run's organization joins the ids, and reads back with the rest.
+      assert.equal(recorded.ids.workflowOrgId, recorded.workflowRun?.orgId);
+      assert.equal(recorded.snapshot.workflowOrg?.id, recorded.workflowRun?.orgId);
       assert.equal(recorded.snapshot.agentExecution.reply, REPLY);
     } finally {
       await lane.close();

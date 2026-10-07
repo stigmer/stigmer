@@ -34,7 +34,8 @@ breaking:
   # deletes the workflow/v1, workflowrun/v1 and artifact/v1 packages, the
   # fields and enum values that named a workflow, a workflow run or the
   # Artifact kind, and the agent run's workflow-parent link and the retired
-  # child approval signal shape (each number and name reserved). It is made
+  # child approval signal shape (each removed field's and enum value's number
+  # and name reserved). It is made
   # before launch: the release notes name every change under Upgrading. This
   # block exists for that one pull request. While it stays, buf breaking does
   # not report these rules on the listed files, so the pull request that
