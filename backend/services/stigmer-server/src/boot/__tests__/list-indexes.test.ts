@@ -18,10 +18,6 @@ import { LIST_INDEXES } from "../list-indexes.js";
 const PINNED: Readonly<
   Record<string, { revision: number; fingerprint: string }>
 > = {
-  agent_run: {
-    revision: 1,
-    fingerprint: "agent_run{session=field:spec.session_id}",
-  },
   iam_policy: {
     revision: 1,
     fingerprint: "iam_policy{principal=field:spec.principal.id}",
@@ -33,6 +29,13 @@ const PINNED: Readonly<
   organization: {
     revision: 1,
     fingerprint: "organization{parent_org=field:spec.parent_org}",
+  },
+  // The run kind's stored name changed (SQLite v20, Postgres v15) and its
+  // keys did not; the step renames the rows' kind column, so the facts
+  // already derived stay trusted under the same revision.
+  run: {
+    revision: 1,
+    fingerprint: "run{session=field:spec.session_id}",
   },
   session: {
     revision: 2,

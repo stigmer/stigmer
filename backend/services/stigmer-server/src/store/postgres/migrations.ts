@@ -76,16 +76,16 @@ import {
   unreadableWorkflowRowError,
 } from "../workflow-instance-retired.js";
 import {
-  RETIRED_AGENT_RUN_KIND,
-  RUN_KIND_RENAMES,
   RUN_KIND_TABLES,
   RUN_RENAME_PAGE_SIZE,
   RUN_RENAME_POLICY_KIND,
+  RUN_RENAME_V18,
+  RUN_RENAME_V20,
   rekeyedRunPolicy,
-  renamedAgentRunRow,
+  renamedRunRow,
   unreadableRunRenameRowError,
 } from "../run-rename.js";
-import type { RekeyedPolicy } from "../run-rename.js";
+import type { RekeyedPolicy, RunRename } from "../run-rename.js";
 import {
   AGENT_RUN_KIND,
   AGENT_RUN_RETIRED_PAGE_SIZE,
@@ -123,9 +123,11 @@ export const SCHEMA_VERSION_12 = 12;
 export const SCHEMA_VERSION_13 = 13;
 /** v14: the workflow, workflow run and artifact rows removed, with the tables only workflows wrote. */
 export const SCHEMA_VERSION_14 = 14;
+/** v15: the agent run is a run. */
+export const SCHEMA_VERSION_15 = 15;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_14;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_15;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -179,6 +181,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_12, migrateToV12],
       [SCHEMA_VERSION_13, migrateToV13],
       [SCHEMA_VERSION_14, migrateToV14],
+      [SCHEMA_VERSION_15, migrateToV15],
     ];
 
     for (const [version, migrate] of chain) {
@@ -890,16 +893,23 @@ async function migrateToV12(client: PoolClient): Promise<void> {
 
 /**
  * v13: agent executions are runs. run-rename.ts says what each row becomes
- * and why an unreadable row fails the step.
+ * and why an unreadable row fails the step; `renameRunKind` applies it.
+ */
+async function migrateToV13(client: PoolClient): Promise<void> {
+  await renameRunKind(client, RUN_RENAME_V18);
+}
+
+/**
+ * One rename of the run kind (run-rename.ts), shared by v13 and v15.
  *
  * - Every run row is read in keyset pages under its old kind and rewritten
  *   when its bytes spell the kind the old way; then every table keyed by
  *   kind renames the run kind.
- * - Every IamPolicy row is read in keyset pages, and the ones naming a run
- *   kind are re-keyed: the old row leaves with its list keys, its history
- *   kept, and the new row is written unproven with `updated_at` stamped,
- *   so the list index derives its keys the way it derives any unproven
- *   row.
+ * - Every IamPolicy row is read in keyset pages, and the ones naming the
+ *   old kind are re-keyed: the old row leaves with its list keys, its
+ *   history kept, and the new row is written unproven with `updated_at`
+ *   stamped, so the list index derives its keys the way it derives any
+ *   unproven row.
  * - The search index is left to boot's RebuildIndex (the v9 precedent).
  *
  * Each page compares and orders `id` under the column's own collation, so
@@ -907,7 +917,8 @@ async function migrateToV12(client: PoolClient): Promise<void> {
  * key serves it. The chain's advisory lock keeps a second instance's boot
  * out of the step, and the transaction makes it whole or nothing.
  */
-async function migrateToV13(client: PoolClient): Promise<void> {
+async function renameRunKind(client: PoolClient, rename: RunRename): Promise<void> {
+  const [fromKind, toKind] = rename.kind;
   const forEachRow = async (
     kind: string,
     visit: (row: { id: string; data: Buffer }) => Promise<void> | void,
@@ -932,38 +943,36 @@ async function migrateToV13(client: PoolClient): Promise<void> {
     }
   };
 
-  await forEachRow(RETIRED_AGENT_RUN_KIND, async (row) => {
+  await forEachRow(fromKind, async (row) => {
     let data: Uint8Array | undefined;
     try {
-      data = renamedAgentRunRow(new Uint8Array(row.data));
+      data = renamedRunRow(rename, new Uint8Array(row.data));
     } catch (error) {
-      throw unreadableRunRenameRowError(RETIRED_AGENT_RUN_KIND, row.id, error);
+      throw unreadableRunRenameRowError(rename, fromKind, row.id, error);
     }
     if (data !== undefined) {
       await client.query(
         `UPDATE resources SET data = $1 WHERE kind = $2 AND id = $3`,
-        [Buffer.from(data), RETIRED_AGENT_RUN_KIND, row.id],
+        [Buffer.from(data), fromKind, row.id],
       );
     }
   });
-  for (const [from, to] of RUN_KIND_RENAMES) {
-    for (const table of RUN_KIND_TABLES) {
-      await client.query(`UPDATE ${table} SET kind = $1 WHERE kind = $2`, [
-        to,
-        from,
-      ]);
-    }
+  for (const table of RUN_KIND_TABLES) {
+    await client.query(`UPDATE ${table} SET kind = $1 WHERE kind = $2`, [
+      toKind,
+      fromKind,
+    ]);
   }
 
   const rekeyed: Array<{ from: string; policy: RekeyedPolicy }> = [];
   await forEachRow(RUN_RENAME_POLICY_KIND, (row) => {
     try {
-      const policy = rekeyedRunPolicy(new Uint8Array(row.data));
+      const policy = rekeyedRunPolicy(rename, new Uint8Array(row.data));
       if (policy !== undefined) {
         rekeyed.push({ from: row.id, policy });
       }
     } catch (error) {
-      throw unreadableRunRenameRowError(RUN_RENAME_POLICY_KIND, row.id, error);
+      throw unreadableRunRenameRowError(rename, RUN_RENAME_POLICY_KIND, row.id, error);
     }
   });
   for (const { from, policy } of rekeyed) {
@@ -1077,4 +1086,15 @@ async function migrateToV14(client: PoolClient): Promise<void> {
   for (const table of RETIRED_WORKFLOW_TABLES) {
     await client.query(`DROP TABLE ${table}`);
   }
+}
+
+/**
+ * v15: the agent run is a run. The kind `agent_run` and its kind string
+ * `AgentRun` become `run` and `Run` by the same transformation as v13
+ * (`renameRunKind`), with this step's frozen names (run-rename.ts
+ * `RUN_RENAME_V20`, the SQLite step's number). Runs keep their ids, the
+ * `aex_` ones included.
+ */
+async function migrateToV15(client: PoolClient): Promise<void> {
+  await renameRunKind(client, RUN_RENAME_V20);
 }

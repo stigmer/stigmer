@@ -41,6 +41,16 @@
  * reading back unchanged but for what a workflow left; agent runs and
  * grants are read across keyset pages; an agent run or grant it cannot
  * decode fails the step, naming the row, and leaves the database at v13.
+ * v15 renames the agent run kind again, to run, by v13's transformation:
+ * from a store at v14 every table keyed by kind names run, every run reads
+ * the contract's kind string `Run` with its `aex_` id and its stamp kept,
+ * its history keeps its bytes, and every grant on a run is re-keyed
+ * (history kept under the old id); the store opened at the head reads each
+ * run by its `aex_` id, finds it through its session and each re-keyed
+ * grant through its principal; a chain from v12 (before v13) reaches the
+ * same rows; across keyset pages whatever the collation orders first; a run
+ * or grant it cannot decode fails the step, naming the row, and leaves the
+ * database at v14.
  * A step's starting database is built by running the chain up to the step
  * before it.
  * Newer schemas are refused without writes or reconciliation; refusal
@@ -85,6 +95,7 @@ import {
   SCHEMA_VERSION_12,
   SCHEMA_VERSION_13,
   SCHEMA_VERSION_14,
+  SCHEMA_VERSION_15,
   runMigrations,
 } from "../migrations.js";
 import { RETIREMENT_PAGE_SIZE } from "../../agent-instance-retired.js";
@@ -118,12 +129,14 @@ import { PostgresStore } from "../store.js";
 import { agentExecutionListIndex } from "../../../domain/run/list-index.js";
 import { policyIdFor } from "../../../domain/iampolicy/constants.js";
 import { iamPolicyListIndex } from "../../../domain/iampolicy/list-index.js";
-import { RUN_RENAME_PAGE_SIZE } from "../../run-rename.js";
+import { RUN_KIND_TABLES, RUN_RENAME_PAGE_SIZE } from "../../run-rename.js";
 import {
-  NEW_RUN_NAMES,
-  OLD_RUN_NAMES,
+  AGENT_RUN_NAMES,
+  EXECUTION_NAMES,
+  RUN_NAMES,
   RUN_RENAME_ORG,
-  agentRunBytes,
+  runBytes,
+  type RunNames,
 } from "../../__tests__/run-rename-rows.js";
 import {
   createTestDatabase,
@@ -1754,7 +1767,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             client,
             "agent_execution",
             "aex_1",
-            agentRunBytes("aex_1", "ses_1", OLD_RUN_NAMES),
+            runBytes("aex_1", "ses_1", EXECUTION_NAMES),
             { session: "ses_1" },
           );
           const runAudit = new Uint8Array([0x0a, 0x01, 0x61]);
@@ -1787,7 +1800,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           // The run reads the contract's kind string under its new kind,
           // and keeps its stamp: no list key reads what changed.
           expect(await row(client, "agent_run", "aex_1")).toEqual({
-            data: agentRunBytes("aex_1", "ses_1", NEW_RUN_NAMES),
+            data: runBytes("aex_1", "ses_1", AGENT_RUN_NAMES),
             updatedAt: seededAt,
           });
           const audit = await client.query<{ kind: string; data: Buffer }>(
@@ -1822,8 +1835,12 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           );
           expect(policyHistory.rows).toEqual([{ resource_id: runGrant.id }]);
 
-          // The store the server opens finds the run through the key its
-          // list reads, and the re-keyed grant through its principal.
+          // The store the server opens (at the head, past v15) finds the
+          // run through the key its list reads, and the grant through its
+          // principal under the id v15 derived for it in turn.
+          const headId = policyIdFor(
+            fromBinary(IamPolicySchema, policyRow({ ...runGrant, resource: "run:aex_1" })).spec!,
+          );
           const store = await PostgresStore.open(db.databaseUrl, undefined, {
             listIndexes: [agentExecutionListIndex, iamPolicyListIndex],
           });
@@ -1835,7 +1852,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             ): Promise<string[]> =>
               (await store.queryResources(index, { anyKey: [{ name, value }] })).map((r) => r.id);
             expect(await ids(agentExecutionListIndex, "session", "ses_1")).toEqual(["aex_1"]);
-            expect(await ids(iamPolicyListIndex, "principal", "ida_2")).toEqual([rekeyedId]);
+            expect(await ids(iamPolicyListIndex, "principal", "ida_2")).toEqual([headId]);
             expect(await ids(iamPolicyListIndex, "principal", "ida_3")).toEqual([keptGrant.id]);
           } finally {
             await store.close();
@@ -1854,7 +1871,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             // linguistic collation than as bytes; the keyset compares and
             // orders under one collation, so it misses none either way.
             const id = `${i % 2 === 0 ? "aex_" : "AEX-"}${String(i).padStart(4, "0")}`;
-            await insertPlain(client, "agent_execution", id, agentRunBytes(id, "ses_1", OLD_RUN_NAMES));
+            await insertPlain(client, "agent_execution", id, runBytes(id, "ses_1", EXECUTION_NAMES));
           }
 
           await migrateTo(db.databaseUrl, SCHEMA_VERSION_13);
@@ -1864,7 +1881,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           );
           expect(rows.rowCount).toBe(total);
           for (const r of rows.rows) {
-            expect(new Uint8Array(r.data)).toEqual(agentRunBytes(r.id, "ses_1", NEW_RUN_NAMES));
+            expect(new Uint8Array(r.data)).toEqual(runBytes(r.id, "ses_1", AGENT_RUN_NAMES));
           }
         } finally {
           await client.end();
@@ -1878,7 +1895,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             client,
             "agent_execution",
             "aex_good",
-            agentRunBytes("aex_good", "ses_1", OLD_RUN_NAMES),
+            runBytes("aex_good", "ses_1", EXECUTION_NAMES),
           );
           await insertPlain(client, "agent_execution", "aex_bad", new Uint8Array([0x22, 0xff]));
           await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_13)).rejects.toThrow(
@@ -1886,7 +1903,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           );
           expect(await version(client)).toBe(SCHEMA_VERSION_12);
           expect((await row(client, "agent_execution", "aex_good"))?.data).toEqual(
-            agentRunBytes("aex_good", "ses_1", OLD_RUN_NAMES),
+            runBytes("aex_good", "ses_1", EXECUTION_NAMES),
           );
         } finally {
           await client.end();
@@ -2201,8 +2218,9 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           }),
         );
 
-        // The store the server opens reads each back through the API and
-        // finds each through the keys its lists read.
+        // The store the server opens migrates on to the head (v15 renames
+        // the kind and its kind string), reads each back through the API
+        // and finds each through the keys its lists read.
         const store = await PostgresStore.open(db.databaseUrl, undefined, {
           listIndexes: [agentExecutionListIndex, iamPolicyListIndex, sessionListIndex],
         });
@@ -2212,7 +2230,9 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             ["aex_child", child],
           ] as const) {
             const run = await store.getResource(ApiResourceKind.run, id, RunSchema);
-            expect(toBinary(RunSchema, run), id).toEqual(bytes);
+            const atHead = fromBinary(RunSchema, bytes);
+            atHead.kind = "Run";
+            expect(toBinary(RunSchema, run), id).toEqual(toBinary(RunSchema, atHead));
           }
           const agent = await store.getResource(ApiResourceKind.agent, "agt_1", AgentSchema);
           expect(toBinary(AgentSchema, agent)).toEqual(agentBytes);
@@ -2436,6 +2456,211 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           }
         },
       );
+    });
+    describe("v15: the agent run is a run", () => {
+      const seededAt = new Date("2026-10-07T00:00:00Z");
+
+      async function clientAt(version: number): Promise<pg.Client> {
+        await migrateTo(db.databaseUrl, version);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        return client;
+      }
+
+      async function insertRow(client: pg.Client, kind: string, id: string, data: Uint8Array): Promise<void> {
+        await client.query(
+          `INSERT INTO resources (kind, id, data, updated_at, list_org, list_created_at, list_index_revision, list_indexed_at)
+           VALUES ($1, $2, $3, $4, $5, '', 1, $4)`,
+          [kind, id, Buffer.from(data), seededAt, RUN_RENAME_ORG],
+        );
+      }
+
+      async function row(client: pg.Client, kind: string, id: string): Promise<{ data: Uint8Array; updatedAt: Date } | undefined> {
+        const found = (
+          await client.query<{ data: Buffer; updated_at: Date }>(
+            `SELECT data, updated_at FROM resources WHERE kind = $1 AND id = $2`,
+            [kind, id],
+          )
+        ).rows[0];
+        return found === undefined ? undefined : { data: new Uint8Array(found.data), updatedAt: found.updated_at };
+      }
+
+      async function count(client: pg.Client, table: string, kind: string): Promise<number> {
+        return Number(
+          (await client.query<{ n: string }>(`SELECT COUNT(*) AS n FROM ${table} WHERE kind = $1`, [kind])).rows[0]!.n,
+        );
+      }
+
+      async function version(client: pg.Client): Promise<number> {
+        return Number(
+          (await client.query(`SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`)).rows[0].version,
+        );
+      }
+
+      const runGrant = (kind: string) => ({
+        id: "iamp_on_run",
+        principal: "identity_account:ida_2",
+        relation: "viewer",
+        resource: `${kind}:aex_1`,
+      });
+      const ownerGrant = (kind: string) => ({
+        id: "iamp_run_principal",
+        principal: `${kind}:aex_1`,
+        relation: "viewer",
+        resource: "session:ses_1",
+      });
+      const keptGrant = {
+        id: "iamp_on_agent",
+        principal: "identity_account:ida_3",
+        relation: "viewer",
+        resource: "agent:agt_1",
+      };
+      const headId = (grant: { id: string; principal: string; relation: string; resource: string }) =>
+        policyIdFor(fromBinary(IamPolicySchema, policyRow(grant)).spec!);
+
+      /** Seeds one run of `kind` as that release stored it, with its audit, list key, name and grants. */
+      async function seedRun(client: pg.Client, kind: string, names: RunNames): Promise<Uint8Array> {
+        await insertRow(client, kind, "aex_1", runBytes("aex_1", "ses_1", names));
+        const audit = new Uint8Array([0x0a, 0x01, 0x62]);
+        await client.query(
+          `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ($1, 'aex_1', $2, '', '')`,
+          [kind, Buffer.from(audit)],
+        );
+        await client.query(
+          `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ($1, 'aex_1', 'session', 'ses_1', '')`,
+          [kind],
+        );
+        await client.query(
+          `INSERT INTO resource_names (kind, org, name, id, state, claimed_at) VALUES ($1, $2, 'aex_1', 'aex_1', 'current', $3)`,
+          [kind, RUN_RENAME_ORG, seededAt],
+        );
+        for (const grant of [runGrant(kind), ownerGrant(kind), keptGrant]) {
+          await client.query(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('iam_policy', $1, $2, $3)`, [
+            grant.id,
+            Buffer.from(policyRow(grant)),
+            seededAt,
+          ]);
+          await client.query(
+            `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('iam_policy', $1, 'principal', $2, '')`,
+            [grant.id, grant.principal.split(":")[1] ?? ""],
+          );
+        }
+        return audit;
+      }
+
+      /** What every store reaching the head from before v15 holds, read raw and through the store. */
+      async function expectRuns(client: pg.Client, audit: Uint8Array): Promise<void> {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_15);
+        expect(await version(client)).toBe(SCHEMA_VERSION_15);
+        for (const table of RUN_KIND_TABLES) {
+          expect(await count(client, table, "agent_run"), table).toBe(0);
+          expect(await count(client, table, "agent_execution"), table).toBe(0);
+        }
+        expect(await row(client, "run", "aex_1")).toEqual({
+          data: runBytes("aex_1", "ses_1", RUN_NAMES),
+          updatedAt: seededAt,
+        });
+        const history = await client.query<{ kind: string; data: Buffer }>(
+          `SELECT kind, data FROM resource_audit WHERE resource_id = 'aex_1'`,
+        );
+        expect(history.rows.map((r) => ({ kind: r.kind, data: new Uint8Array(r.data) }))).toEqual([
+          { kind: "run", data: audit },
+        ]);
+        expect((await client.query(`SELECT kind, name FROM resource_names WHERE id = 'aex_1'`)).rows).toEqual([
+          { kind: "run", name: "aex_1" },
+        ]);
+        const onRun = headId(runGrant("run"));
+        const ofRun = headId(ownerGrant("run"));
+        const policies = (
+          await client.query<{ id: string }>(`SELECT id FROM resources WHERE kind = 'iam_policy' ORDER BY id COLLATE "C"`)
+        ).rows.map((p) => p.id);
+        expect(policies).toEqual([keptGrant.id, ofRun, onRun].sort());
+        expect(fromBinary(IamPolicySchema, (await row(client, "iam_policy", onRun))!.data).spec?.resource).toMatchObject({
+          kind: "run",
+          id: "aex_1",
+        });
+        expect(fromBinary(IamPolicySchema, (await row(client, "iam_policy", ofRun))!.data).spec?.principal).toMatchObject({
+          kind: "run",
+          id: "aex_1",
+        });
+        expect((await row(client, "iam_policy", keptGrant.id))?.data).toEqual(policyRow(keptGrant));
+
+        const store = await PostgresStore.open(db.databaseUrl, undefined, {
+          listIndexes: [agentExecutionListIndex, iamPolicyListIndex],
+        });
+        try {
+          const run = await store.getResource(ApiResourceKind.run, "aex_1", RunSchema);
+          expect(run?.kind).toBe("Run");
+          expect(run?.metadata?.id).toBe("aex_1");
+          const ids = async (index: Parameters<typeof store.queryResources>[0], name: string, value: string) =>
+            (await store.queryResources(index, { anyKey: [{ name, value }] })).map((r) => r.id);
+          expect(await ids(agentExecutionListIndex, "session", "ses_1")).toEqual(["aex_1"]);
+          expect(await ids(iamPolicyListIndex, "principal", "ida_2")).toEqual([onRun]);
+          expect(await ids(iamPolicyListIndex, "principal", "ida_3")).toEqual([keptGrant.id]);
+        } finally {
+          await store.close();
+        }
+      }
+
+      it("renames the run kind in every table, rewrites the rows that spell it and re-keys grants on runs, from a store at v14", async () => {
+        const client = await clientAt(SCHEMA_VERSION_14);
+        try {
+          await expectRuns(client, await seedRun(client, "agent_run", AGENT_RUN_NAMES));
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("reaches the same rows from a store at v12, before the run kind's first rename", async () => {
+        const client = await clientAt(SCHEMA_VERSION_13 - 1);
+        try {
+          await expectRuns(client, await seedRun(client, "agent_execution", EXECUTION_NAMES));
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("reads runs across keyset pages, missing none past the first page", async () => {
+        const client = await clientAt(SCHEMA_VERSION_14);
+        try {
+          const total = RUN_RENAME_PAGE_SIZE + 3;
+          for (let i = 0; i < total; i++) {
+            // Mixed case and punctuation order differently under a
+            // linguistic collation than as bytes; the keyset compares and
+            // orders under one collation, so it misses none either way.
+            const id = `${i % 2 === 0 ? "aex_" : "AEX-"}${String(i).padStart(4, "0")}`;
+            await insertRow(client, "agent_run", id, runBytes(id, "ses_1", AGENT_RUN_NAMES));
+          }
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_15);
+          const rows = await client.query<{ id: string; data: Buffer }>(`SELECT id, data FROM resources WHERE kind = 'run'`);
+          expect(rows.rowCount).toBe(total);
+          for (const r of rows.rows) {
+            expect(new Uint8Array(r.data), r.id).toEqual(runBytes(r.id, "ses_1", RUN_NAMES));
+          }
+        } finally {
+          await client.end();
+        }
+      });
+
+      it.each([
+        ["agent_run", "aex_bad"],
+        ["iam_policy", "iamp_bad"],
+      ])("the %s row %s does not decode: the step fails, names the row, and leaves the database at v14", async (kind, id) => {
+        const client = await clientAt(SCHEMA_VERSION_14);
+        try {
+          await insertRow(client, "agent_run", "aex_good", runBytes("aex_good", "ses_1", AGENT_RUN_NAMES));
+          await insertRow(client, kind, id, new Uint8Array([0x22, 0xff]));
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_15)).rejects.toThrow(
+            new RegExp(`the ${kind} row ${id} cannot be read for the rename of the agent run to a run`),
+          );
+          expect(await version(client)).toBe(SCHEMA_VERSION_14);
+          expect((await row(client, "agent_run", "aex_good"))?.data).toEqual(
+            runBytes("aex_good", "ses_1", AGENT_RUN_NAMES),
+          );
+        } finally {
+          await client.end();
+        }
+      });
     });
   },
 );

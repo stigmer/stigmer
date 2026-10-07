@@ -165,7 +165,7 @@ export function retiredArtifactRow(options: {
  */
 export function agentRunRow(options: {
   readonly id: string;
-  readonly kindString?: "AgentExecution" | "AgentRun";
+  readonly kindString?: "AgentExecution" | "AgentRun" | "Run";
   readonly org: string;
   readonly sessionId: string;
   readonly labels?: Readonly<Record<string, string>>;
