@@ -52,23 +52,23 @@ public interface MemoryProvenanceOrBuilder extends
 
   /**
    * <pre>
-   * ID of the agent run in which this memory was proposed.
+   * ID of the run in which this memory was proposed.
    * </pre>
    *
-   * <code>string agent_run_id = 3 [json_name = "agentRunId"];</code>
-   * @return The agentRunId.
+   * <code>string run_id = 3 [json_name = "runId"];</code>
+   * @return The runId.
    */
-  java.lang.String getAgentRunId();
+  java.lang.String getRunId();
   /**
    * <pre>
-   * ID of the agent run in which this memory was proposed.
+   * ID of the run in which this memory was proposed.
    * </pre>
    *
-   * <code>string agent_run_id = 3 [json_name = "agentRunId"];</code>
-   * @return The bytes for agentRunId.
+   * <code>string run_id = 3 [json_name = "runId"];</code>
+   * @return The bytes for runId.
    */
   com.google.protobuf.ByteString
-      getAgentRunIdBytes();
+      getRunIdBytes();
 
   /**
    * <pre>

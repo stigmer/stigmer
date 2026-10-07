@@ -74,7 +74,7 @@ public interface ChannelOutboundMessageOrBuilder extends
 
   /**
    * <pre>
-   * Session of the originating agent run; empty for direct operator
+   * Session of the originating run; empty for direct operator
    * sends, which have no session.
    * </pre>
    *
@@ -84,7 +84,7 @@ public interface ChannelOutboundMessageOrBuilder extends
   java.lang.String getSessionId();
   /**
    * <pre>
-   * Session of the originating agent run; empty for direct operator
+   * Session of the originating run; empty for direct operator
    * sends, which have no session.
    * </pre>
    *

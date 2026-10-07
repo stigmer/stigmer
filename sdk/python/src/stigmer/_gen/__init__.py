@@ -4,7 +4,6 @@ from ._bidi import BidiStream
 from ._client import GeneratedClient
 from ._agent import AgentClient, AgentInput, McpServerUsageInput, SubAgentInput, EnvVarDeclarationInput, HookSourceInput, HookConfigInput, HookGroupInput, HookHandlerInput, RunConfigInput
 from ._agentchannel import AgentChannelClient, AgentChannelInput, SlackChannelConfigInput, WhatsAppChannelConfigInput
-from ._agentrun import AgentRunClient, AgentRunInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, AttachmentInput, ConversationCatchupInput
 from ._agentshare import AgentShareClient, AgentShareInput, AgentShareMessagesInput
 from ._apikey import ApiKeyClient, ApiKeyInput
 from ._channelapp import ChannelAppClient, ChannelAppInput, SlackChannelAppConfigInput, WhatsAppChannelAppConfigInput
@@ -23,6 +22,7 @@ from ._plan import PlanClient, PlanInput, PlanTermsInput
 from ._platformclient import PlatformClientClient, PlatformClientInput
 from ._plugin import PluginClient, PluginInput, PluginAuthorInput
 from ._providerkey import ProviderKeyClient
+from ._run import RunClient, RunInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, AttachmentInput, ConversationCatchupInput
 from ._schedule import ScheduleClient, ScheduleInput, AgentInvocationInput
 from ._session import SessionClient, SessionInput
 from ._skill import SkillClient, SkillInput
@@ -64,15 +64,6 @@ __all__ = [
     "AgentChannelInput",
     "SlackChannelConfigInput",
     "WhatsAppChannelConfigInput",
-    "AgentRunClient",
-    "AgentRunInput",
-    "SessionSpecInput",
-    "WorkspaceEntryInput",
-    "WorkspaceSourceInput",
-    "GitRepoSourceInput",
-    "LocalPathSourceInput",
-    "AttachmentInput",
-    "ConversationCatchupInput",
     "AgentShareClient",
     "AgentShareInput",
     "AgentShareMessagesInput",
@@ -123,6 +114,15 @@ __all__ = [
     "PluginInput",
     "PluginAuthorInput",
     "ProviderKeyClient",
+    "RunClient",
+    "RunInput",
+    "SessionSpecInput",
+    "WorkspaceEntryInput",
+    "WorkspaceSourceInput",
+    "GitRepoSourceInput",
+    "LocalPathSourceInput",
+    "AttachmentInput",
+    "ConversationCatchupInput",
     "ScheduleClient",
     "ScheduleInput",
     "AgentInvocationInput",

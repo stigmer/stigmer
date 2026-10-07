@@ -177,7 +177,7 @@ func (x *IdentityAccountSpec) GetPreferences() *IdentityAccountPreferences {
 }
 
 // IdentityAccountPreferences holds user-declared defaults that apply to the
-// user's own agent runs.
+// user's own runs.
 type IdentityAccountPreferences struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Free-text standing context injected into this user's eligible agent

@@ -26,7 +26,7 @@ public enum ChannelOutboundOrigin
   channel_outbound_origin_unspecified(0),
   /**
    * <pre>
-   * The send came from an agent run created by an inbound channel
+   * The send came from a run created by an inbound channel
    * message; the recipient must be a known sender on the channel.
    * </pre>
    *
@@ -82,7 +82,7 @@ public enum ChannelOutboundOrigin
   public static final int channel_outbound_origin_unspecified_VALUE = 0;
   /**
    * <pre>
-   * The send came from an agent run created by an inbound channel
+   * The send came from a run created by an inbound channel
    * message; the recipient must be a known sender on the channel.
    * </pre>
    *

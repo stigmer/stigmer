@@ -217,7 +217,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object sessionId_ = "";
   /**
    * <pre>
-   * Session of the originating agent run; empty for direct operator
+   * Session of the originating run; empty for direct operator
    * sends, which have no session.
    * </pre>
    *
@@ -239,7 +239,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Session of the originating agent run; empty for direct operator
+   * Session of the originating run; empty for direct operator
    * sends, which have no session.
    * </pre>
    *
@@ -2103,7 +2103,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object sessionId_ = "";
     /**
      * <pre>
-     * Session of the originating agent run; empty for direct operator
+     * Session of the originating run; empty for direct operator
      * sends, which have no session.
      * </pre>
      *
@@ -2124,7 +2124,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Session of the originating agent run; empty for direct operator
+     * Session of the originating run; empty for direct operator
      * sends, which have no session.
      * </pre>
      *
@@ -2146,7 +2146,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Session of the originating agent run; empty for direct operator
+     * Session of the originating run; empty for direct operator
      * sends, which have no session.
      * </pre>
      *
@@ -2164,7 +2164,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Session of the originating agent run; empty for direct operator
+     * Session of the originating run; empty for direct operator
      * sends, which have no session.
      * </pre>
      *
@@ -2179,7 +2179,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Session of the originating agent run; empty for direct operator
+     * Session of the originating run; empty for direct operator
      * sends, which have no session.
      * </pre>
      *

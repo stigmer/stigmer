@@ -247,7 +247,7 @@ public final class AgentQueryControllerGrpc {
      * <pre>
      * Get a specific version of an agent by its content hash.
      * Used by the runner and the server to run a turn on the version it
-     * recorded (AgentRunStatus.agent_version_hash), and by clients to
+     * recorded (RunStatus.agent_version_hash), and by clients to
      * show what a past version said.
      * </pre>
      */
@@ -335,7 +335,7 @@ public final class AgentQueryControllerGrpc {
      * <pre>
      * Get a specific version of an agent by its content hash.
      * Used by the runner and the server to run a turn on the version it
-     * recorded (AgentRunStatus.agent_version_hash), and by clients to
+     * recorded (RunStatus.agent_version_hash), and by clients to
      * show what a past version said.
      * </pre>
      */
@@ -407,7 +407,7 @@ public final class AgentQueryControllerGrpc {
      * <pre>
      * Get a specific version of an agent by its content hash.
      * Used by the runner and the server to run a turn on the version it
-     * recorded (AgentRunStatus.agent_version_hash), and by clients to
+     * recorded (RunStatus.agent_version_hash), and by clients to
      * show what a past version said.
      * </pre>
      */
@@ -478,7 +478,7 @@ public final class AgentQueryControllerGrpc {
      * <pre>
      * Get a specific version of an agent by its content hash.
      * Used by the runner and the server to run a turn on the version it
-     * recorded (AgentRunStatus.agent_version_hash), and by clients to
+     * recorded (RunStatus.agent_version_hash), and by clients to
      * show what a past version said.
      * </pre>
      */
@@ -552,7 +552,7 @@ public final class AgentQueryControllerGrpc {
      * <pre>
      * Get a specific version of an agent by its content hash.
      * Used by the runner and the server to run a turn on the version it
-     * recorded (AgentRunStatus.agent_version_hash), and by clients to
+     * recorded (RunStatus.agent_version_hash), and by clients to
      * show what a past version said.
      * </pre>
      */

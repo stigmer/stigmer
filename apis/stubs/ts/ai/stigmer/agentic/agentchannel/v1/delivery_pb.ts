@@ -44,7 +44,7 @@ export type ChannelDelivery = Message<"ai.stigmer.agentic.agentchannel.v1.Channe
   org: string;
 
   /**
-   * AgentRun whose terminal result this delivery carries.
+   * Run whose terminal result this delivery carries.
    *
    * @generated from field: string run_id = 4;
    */

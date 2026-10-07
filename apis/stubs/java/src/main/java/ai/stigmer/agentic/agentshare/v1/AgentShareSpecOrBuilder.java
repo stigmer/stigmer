@@ -294,7 +294,7 @@ public interface AgentShareSpecOrBuilder extends
    * spend, never raise it. Valid on public-audience shares only.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
    * @return Whether the runConfig field is set.
    */
   boolean hasRunConfig();
@@ -311,10 +311,10 @@ public interface AgentShareSpecOrBuilder extends
    * spend, never raise it. Valid on public-audience shares only.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
    * @return The runConfig.
    */
-  ai.stigmer.agentic.agentrun.v1.RunConfig getRunConfig();
+  ai.stigmer.agentic.run.v1.RunConfig getRunConfig();
   /**
    * <pre>
    * Per-turn model choice and run bounds for guest conversations on this
@@ -328,7 +328,7 @@ public interface AgentShareSpecOrBuilder extends
    * spend, never raise it. Valid on public-audience shares only.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
    */
-  ai.stigmer.agentic.agentrun.v1.RunConfigOrBuilder getRunConfigOrBuilder();
+  ai.stigmer.agentic.run.v1.RunConfigOrBuilder getRunConfigOrBuilder();
 }

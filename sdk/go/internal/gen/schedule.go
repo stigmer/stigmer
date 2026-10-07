@@ -5,7 +5,7 @@ package gen
 import (
 	"context"
 
-	agentrunv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentrun/v1"
+	runv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1"
 	schedulev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/schedule/v1"
 	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
@@ -89,8 +89,8 @@ func (s *ScheduleClient) List(ctx context.Context, input *schedulev1.ListSchedul
 	return resp, wrapErr(err)
 }
 
-func (s *ScheduleClient) ListRuns(ctx context.Context, input *schedulev1.ListScheduleRunsRequest) (*schedulev1.ScheduleRunList, error) {
-	resp, err := s.query.ListRuns(ctx, input)
+func (s *ScheduleClient) ListFires(ctx context.Context, input *schedulev1.ListScheduleFiresRequest) (*schedulev1.ScheduleFireList, error) {
+	resp, err := s.query.ListFires(ctx, input)
 	return resp, wrapErr(err)
 }
 
@@ -140,7 +140,7 @@ func (i *ScheduleInput) toProto() (*schedulev1.Schedule, error) {
 	resource.Spec.TimeZone = i.TimeZone
 	resource.Spec.Enabled = i.Enabled
 	if i.Agent != nil {
-		m := &agentrunv1.AgentInvocation{}
+		m := &runv1.AgentInvocation{}
 		if i.Agent.AgentRef.Org != "" || i.Agent.AgentRef.Slug != "" {
 			ref := i.Agent.AgentRef.toProto()
 			ref.Kind = apiresourcekind.ApiResourceKind_agent
@@ -197,7 +197,7 @@ func ScheduleInputFromProto(p *schedulev1.Schedule) *ScheduleInput {
 	return input
 }
 
-func agentInvocationInputFromProto(p *agentrunv1.AgentInvocation) *AgentInvocationInput {
+func agentInvocationInputFromProto(p *runv1.AgentInvocation) *AgentInvocationInput {
 	if p == nil {
 		return nil
 	}

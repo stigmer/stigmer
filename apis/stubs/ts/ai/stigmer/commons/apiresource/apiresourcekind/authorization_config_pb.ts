@@ -147,7 +147,7 @@ export type ParentRelationConfig = Message<"ai.stigmer.commons.apiresource.apire
   /**
    * Field name in the resource's spec message that contains the parent ID.
    * The service extracts this field from resource.spec to resolve the parent ID.
-   * Example: "session_id" for agent_run, "subject_identity_account_id" for
+   * Example: "session_id" for run, "subject_identity_account_id" for
    * memory.
    * This eliminates hardcoded parent ID extraction logic in the service.
    *
@@ -181,11 +181,11 @@ export const ParentRelationConfigSchema: GenMessage<ParentRelationConfig> = /*@_
  *   -> Creates: organization#platform@platform:stigmer
  *   -> Creates: organization#owner@identity_account:<creator_id>
  *
- * Parent-bound resource (agent_run):
+ * Parent-bound resource (run):
  *   scope_type: AUTHORIZATION_SCOPE_TYPE_PARENT
  *   owner_type: OWNER_ATTRIBUTION_TYPE_INHERITED
  *   parent: { kind: "session", relation: "session", spec_field: "session_id" }
- *   -> Creates: agent_run#session@session:<session_id>
+ *   -> Creates: run#session@session:<session_id>
  *   -> No owner tuple (inherited from session)
  *
  * Resource with additional parent (memory):
@@ -282,7 +282,7 @@ export type AuthorizationConfig = Message<"ai.stigmer.commons.apiresource.apires
    *
    * Empty means no user-grantable roles: the resource is either owner-only
    * (api_key, execution_context), inherits authorization from a parent
-   * (agent_run), is self-owned (identity_account), or has no
+   * (run), is self-owned (identity_account), or has no
    * authorization (platform, api_resource_version).
    *
    * @generated from field: repeated ai.stigmer.iam.v1.IamRole grantable_roles = 7;
@@ -343,7 +343,7 @@ export enum AuthorizationScopeType {
 
   /**
    * Links to a parent resource.
-   * Used for: agent_run (links to session)
+   * Used for: run (links to session)
    * FGA tuple: resource#<relation>@<parent_kind>:<parent_id>
    *
    * @generated from enum value: AUTHORIZATION_SCOPE_TYPE_PARENT = 3;
@@ -397,7 +397,7 @@ export enum OwnerAttributionType {
 
   /**
    * Owner is computed from parent - no tuple created.
-   * Used for: agent_run (inherits owner from session)
+   * Used for: run (inherits owner from session)
    * FGA: owner relation derived via "owner from session"
    *
    * @generated from enum value: OWNER_ATTRIBUTION_TYPE_INHERITED = 2;

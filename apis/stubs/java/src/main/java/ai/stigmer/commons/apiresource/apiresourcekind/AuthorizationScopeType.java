@@ -43,7 +43,7 @@ public enum AuthorizationScopeType
   /**
    * <pre>
    * Links to a parent resource.
-   * Used for: agent_run (links to session)
+   * Used for: run (links to session)
    * FGA tuple: resource#&lt;relation&gt;&#64;&lt;parent_kind&gt;:&lt;parent_id&gt;
    * </pre>
    *
@@ -108,7 +108,7 @@ public enum AuthorizationScopeType
   /**
    * <pre>
    * Links to a parent resource.
-   * Used for: agent_run (links to session)
+   * Used for: run (links to session)
    * FGA tuple: resource#&lt;relation&gt;&#64;&lt;parent_kind&gt;:&lt;parent_id&gt;
    * </pre>
    *

@@ -105,13 +105,13 @@ public final class MemoryInput {
     public static final class MemoryProvenanceInput {
         private final String agentId;
         private final String sessionId;
-        private final String agentRunId;
+        private final String runId;
         private final String toolCallId;
 
         private MemoryProvenanceInput(Builder builder) {
             this.agentId = builder.agentId;
             this.sessionId = builder.sessionId;
-            this.agentRunId = builder.agentRunId;
+            this.runId = builder.runId;
             this.toolCallId = builder.toolCallId;
         }
 
@@ -123,8 +123,8 @@ public final class MemoryInput {
             if (this.sessionId != null) {
                 builder.setSessionId(this.sessionId);
             }
-            if (this.agentRunId != null) {
-                builder.setAgentRunId(this.agentRunId);
+            if (this.runId != null) {
+                builder.setRunId(this.runId);
             }
             if (this.toolCallId != null) {
                 builder.setToolCallId(this.toolCallId);
@@ -137,14 +137,14 @@ public final class MemoryInput {
         public static final class Builder {
             private String agentId;
             private String sessionId;
-            private String agentRunId;
+            private String runId;
             private String toolCallId;
 
             private Builder() {}
 
             public Builder agentId(String agentId) { this.agentId = agentId; return this; }
             public Builder sessionId(String sessionId) { this.sessionId = sessionId; return this; }
-            public Builder agentRunId(String agentRunId) { this.agentRunId = agentRunId; return this; }
+            public Builder runId(String runId) { this.runId = runId; return this; }
             public Builder toolCallId(String toolCallId) { this.toolCallId = toolCallId; return this; }
 
             public MemoryProvenanceInput build() { return new MemoryProvenanceInput(this); }

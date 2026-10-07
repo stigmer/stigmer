@@ -225,7 +225,7 @@ private static final long serialVersionUID = 0L;
    * Run an agent with a configured prompt at each fire.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentrun.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
    * @return Whether the agent field is set.
    */
   @java.lang.Override
@@ -237,29 +237,29 @@ private static final long serialVersionUID = 0L;
    * Run an agent with a configured prompt at each fire.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentrun.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
    * @return The agent.
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentrun.v1.AgentInvocation getAgent() {
+  public ai.stigmer.agentic.run.v1.AgentInvocation getAgent() {
     if (targetCase_ == 4) {
-       return (ai.stigmer.agentic.agentrun.v1.AgentInvocation) target_;
+       return (ai.stigmer.agentic.run.v1.AgentInvocation) target_;
     }
-    return ai.stigmer.agentic.agentrun.v1.AgentInvocation.getDefaultInstance();
+    return ai.stigmer.agentic.run.v1.AgentInvocation.getDefaultInstance();
   }
   /**
    * <pre>
    * Run an agent with a configured prompt at each fire.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentrun.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentrun.v1.AgentInvocationOrBuilder getAgentOrBuilder() {
+  public ai.stigmer.agentic.run.v1.AgentInvocationOrBuilder getAgentOrBuilder() {
     if (targetCase_ == 4) {
-       return (ai.stigmer.agentic.agentrun.v1.AgentInvocation) target_;
+       return (ai.stigmer.agentic.run.v1.AgentInvocation) target_;
     }
-    return ai.stigmer.agentic.agentrun.v1.AgentInvocation.getDefaultInstance();
+    return ai.stigmer.agentic.run.v1.AgentInvocation.getDefaultInstance();
   }
 
   private byte memoizedIsInitialized = -1;
@@ -286,7 +286,7 @@ private static final long serialVersionUID = 0L;
       output.writeBool(3, enabled_);
     }
     if (targetCase_ == 4) {
-      output.writeMessage(4, (ai.stigmer.agentic.agentrun.v1.AgentInvocation) target_);
+      output.writeMessage(4, (ai.stigmer.agentic.run.v1.AgentInvocation) target_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -309,7 +309,7 @@ private static final long serialVersionUID = 0L;
     }
     if (targetCase_ == 4) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(4, (ai.stigmer.agentic.agentrun.v1.AgentInvocation) target_);
+        .computeMessageSize(4, (ai.stigmer.agentic.run.v1.AgentInvocation) target_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -940,13 +940,13 @@ private static final long serialVersionUID = 0L;
     }
 
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentrun.v1.AgentInvocation, ai.stigmer.agentic.agentrun.v1.AgentInvocation.Builder, ai.stigmer.agentic.agentrun.v1.AgentInvocationOrBuilder> agentBuilder_;
+        ai.stigmer.agentic.run.v1.AgentInvocation, ai.stigmer.agentic.run.v1.AgentInvocation.Builder, ai.stigmer.agentic.run.v1.AgentInvocationOrBuilder> agentBuilder_;
     /**
      * <pre>
      * Run an agent with a configured prompt at each fire.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
      * @return Whether the agent field is set.
      */
     @java.lang.Override
@@ -958,21 +958,21 @@ private static final long serialVersionUID = 0L;
      * Run an agent with a configured prompt at each fire.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
      * @return The agent.
      */
     @java.lang.Override
-    public ai.stigmer.agentic.agentrun.v1.AgentInvocation getAgent() {
+    public ai.stigmer.agentic.run.v1.AgentInvocation getAgent() {
       if (agentBuilder_ == null) {
         if (targetCase_ == 4) {
-          return (ai.stigmer.agentic.agentrun.v1.AgentInvocation) target_;
+          return (ai.stigmer.agentic.run.v1.AgentInvocation) target_;
         }
-        return ai.stigmer.agentic.agentrun.v1.AgentInvocation.getDefaultInstance();
+        return ai.stigmer.agentic.run.v1.AgentInvocation.getDefaultInstance();
       } else {
         if (targetCase_ == 4) {
           return agentBuilder_.getMessage();
         }
-        return ai.stigmer.agentic.agentrun.v1.AgentInvocation.getDefaultInstance();
+        return ai.stigmer.agentic.run.v1.AgentInvocation.getDefaultInstance();
       }
     }
     /**
@@ -980,9 +980,9 @@ private static final long serialVersionUID = 0L;
      * Run an agent with a configured prompt at each fire.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
      */
-    public Builder setAgent(ai.stigmer.agentic.agentrun.v1.AgentInvocation value) {
+    public Builder setAgent(ai.stigmer.agentic.run.v1.AgentInvocation value) {
       if (agentBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
@@ -1000,10 +1000,10 @@ private static final long serialVersionUID = 0L;
      * Run an agent with a configured prompt at each fire.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
      */
     public Builder setAgent(
-        ai.stigmer.agentic.agentrun.v1.AgentInvocation.Builder builderForValue) {
+        ai.stigmer.agentic.run.v1.AgentInvocation.Builder builderForValue) {
       if (agentBuilder_ == null) {
         target_ = builderForValue.build();
         onChanged();
@@ -1018,13 +1018,13 @@ private static final long serialVersionUID = 0L;
      * Run an agent with a configured prompt at each fire.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
      */
-    public Builder mergeAgent(ai.stigmer.agentic.agentrun.v1.AgentInvocation value) {
+    public Builder mergeAgent(ai.stigmer.agentic.run.v1.AgentInvocation value) {
       if (agentBuilder_ == null) {
         if (targetCase_ == 4 &&
-            target_ != ai.stigmer.agentic.agentrun.v1.AgentInvocation.getDefaultInstance()) {
-          target_ = ai.stigmer.agentic.agentrun.v1.AgentInvocation.newBuilder((ai.stigmer.agentic.agentrun.v1.AgentInvocation) target_)
+            target_ != ai.stigmer.agentic.run.v1.AgentInvocation.getDefaultInstance()) {
+          target_ = ai.stigmer.agentic.run.v1.AgentInvocation.newBuilder((ai.stigmer.agentic.run.v1.AgentInvocation) target_)
               .mergeFrom(value).buildPartial();
         } else {
           target_ = value;
@@ -1045,7 +1045,7 @@ private static final long serialVersionUID = 0L;
      * Run an agent with a configured prompt at each fire.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
      */
     public Builder clearAgent() {
       if (agentBuilder_ == null) {
@@ -1068,9 +1068,9 @@ private static final long serialVersionUID = 0L;
      * Run an agent with a configured prompt at each fire.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
      */
-    public ai.stigmer.agentic.agentrun.v1.AgentInvocation.Builder getAgentBuilder() {
+    public ai.stigmer.agentic.run.v1.AgentInvocation.Builder getAgentBuilder() {
       return internalGetAgentFieldBuilder().getBuilder();
     }
     /**
@@ -1078,17 +1078,17 @@ private static final long serialVersionUID = 0L;
      * Run an agent with a configured prompt at each fire.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
      */
     @java.lang.Override
-    public ai.stigmer.agentic.agentrun.v1.AgentInvocationOrBuilder getAgentOrBuilder() {
+    public ai.stigmer.agentic.run.v1.AgentInvocationOrBuilder getAgentOrBuilder() {
       if ((targetCase_ == 4) && (agentBuilder_ != null)) {
         return agentBuilder_.getMessageOrBuilder();
       } else {
         if (targetCase_ == 4) {
-          return (ai.stigmer.agentic.agentrun.v1.AgentInvocation) target_;
+          return (ai.stigmer.agentic.run.v1.AgentInvocation) target_;
         }
-        return ai.stigmer.agentic.agentrun.v1.AgentInvocation.getDefaultInstance();
+        return ai.stigmer.agentic.run.v1.AgentInvocation.getDefaultInstance();
       }
     }
     /**
@@ -1096,18 +1096,18 @@ private static final long serialVersionUID = 0L;
      * Run an agent with a configured prompt at each fire.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentrun.v1.AgentInvocation, ai.stigmer.agentic.agentrun.v1.AgentInvocation.Builder, ai.stigmer.agentic.agentrun.v1.AgentInvocationOrBuilder> 
+        ai.stigmer.agentic.run.v1.AgentInvocation, ai.stigmer.agentic.run.v1.AgentInvocation.Builder, ai.stigmer.agentic.run.v1.AgentInvocationOrBuilder> 
         internalGetAgentFieldBuilder() {
       if (agentBuilder_ == null) {
         if (!(targetCase_ == 4)) {
-          target_ = ai.stigmer.agentic.agentrun.v1.AgentInvocation.getDefaultInstance();
+          target_ = ai.stigmer.agentic.run.v1.AgentInvocation.getDefaultInstance();
         }
         agentBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.agentrun.v1.AgentInvocation, ai.stigmer.agentic.agentrun.v1.AgentInvocation.Builder, ai.stigmer.agentic.agentrun.v1.AgentInvocationOrBuilder>(
-                (ai.stigmer.agentic.agentrun.v1.AgentInvocation) target_,
+            ai.stigmer.agentic.run.v1.AgentInvocation, ai.stigmer.agentic.run.v1.AgentInvocation.Builder, ai.stigmer.agentic.run.v1.AgentInvocationOrBuilder>(
+                (ai.stigmer.agentic.run.v1.AgentInvocation) target_,
                 getParentForChildren(),
                 isClean());
         target_ = null;

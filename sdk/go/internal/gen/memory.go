@@ -87,7 +87,7 @@ type MemoryInput struct {
 type MemoryProvenanceInput struct {
 	AgentId    string
 	SessionId  string
-	AgentRunId string
+	RunId      string
 	ToolCallId string
 }
 
@@ -121,7 +121,7 @@ func (i *MemoryProvenanceInput) toProto() (*memoryv1.MemoryProvenance, error) {
 	return &memoryv1.MemoryProvenance{
 		AgentId:    i.AgentId,
 		SessionId:  i.SessionId,
-		AgentRunId: i.AgentRunId,
+		RunId:      i.RunId,
 		ToolCallId: i.ToolCallId,
 	}, nil
 }
@@ -155,7 +155,7 @@ func memoryProvenanceInputFromProto(p *memoryv1.MemoryProvenance) *MemoryProvena
 	input := &MemoryProvenanceInput{}
 	input.AgentId = p.GetAgentId()
 	input.SessionId = p.GetSessionId()
-	input.AgentRunId = p.GetAgentRunId()
+	input.RunId = p.GetRunId()
 	input.ToolCallId = p.GetToolCallId()
 	return input
 }

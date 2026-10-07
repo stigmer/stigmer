@@ -76,7 +76,7 @@ export const BillingCommandController: GenService<{
     output: typeof CreditLedgerEntrySchema;
   },
   /**
-   * Reserve credits before starting an agent run.
+   * Reserve credits before starting a run.
    * Returns authorization status and reservation details.
    *
    * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.authorizeRun

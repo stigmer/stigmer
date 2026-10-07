@@ -396,7 +396,7 @@ private static final long serialVersionUID = 0L;
   }
 
   public static final int RUN_CONFIG_FIELD_NUMBER = 7;
-  private ai.stigmer.agentic.agentrun.v1.RunConfig runConfig_;
+  private ai.stigmer.agentic.run.v1.RunConfig runConfig_;
   /**
    * <pre>
    * Per-turn model choice and run bounds for guest conversations on this
@@ -410,7 +410,7 @@ private static final long serialVersionUID = 0L;
    * spend, never raise it. Valid on public-audience shares only.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
    * @return Whether the runConfig field is set.
    */
   @java.lang.Override
@@ -430,12 +430,12 @@ private static final long serialVersionUID = 0L;
    * spend, never raise it. Valid on public-audience shares only.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
    * @return The runConfig.
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentrun.v1.RunConfig getRunConfig() {
-    return runConfig_ == null ? ai.stigmer.agentic.agentrun.v1.RunConfig.getDefaultInstance() : runConfig_;
+  public ai.stigmer.agentic.run.v1.RunConfig getRunConfig() {
+    return runConfig_ == null ? ai.stigmer.agentic.run.v1.RunConfig.getDefaultInstance() : runConfig_;
   }
   /**
    * <pre>
@@ -450,11 +450,11 @@ private static final long serialVersionUID = 0L;
    * spend, never raise it. Valid on public-audience shares only.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentrun.v1.RunConfigOrBuilder getRunConfigOrBuilder() {
-    return runConfig_ == null ? ai.stigmer.agentic.agentrun.v1.RunConfig.getDefaultInstance() : runConfig_;
+  public ai.stigmer.agentic.run.v1.RunConfigOrBuilder getRunConfigOrBuilder() {
+    return runConfig_ == null ? ai.stigmer.agentic.run.v1.RunConfig.getDefaultInstance() : runConfig_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -2217,9 +2217,9 @@ private static final long serialVersionUID = 0L;
       return environmentRefsBuilder_;
     }
 
-    private ai.stigmer.agentic.agentrun.v1.RunConfig runConfig_;
+    private ai.stigmer.agentic.run.v1.RunConfig runConfig_;
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentrun.v1.RunConfig, ai.stigmer.agentic.agentrun.v1.RunConfig.Builder, ai.stigmer.agentic.agentrun.v1.RunConfigOrBuilder> runConfigBuilder_;
+        ai.stigmer.agentic.run.v1.RunConfig, ai.stigmer.agentic.run.v1.RunConfig.Builder, ai.stigmer.agentic.run.v1.RunConfigOrBuilder> runConfigBuilder_;
     /**
      * <pre>
      * Per-turn model choice and run bounds for guest conversations on this
@@ -2233,7 +2233,7 @@ private static final long serialVersionUID = 0L;
      * spend, never raise it. Valid on public-audience shares only.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
      * @return Whether the runConfig field is set.
      */
     public boolean hasRunConfig() {
@@ -2252,12 +2252,12 @@ private static final long serialVersionUID = 0L;
      * spend, never raise it. Valid on public-audience shares only.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
      * @return The runConfig.
      */
-    public ai.stigmer.agentic.agentrun.v1.RunConfig getRunConfig() {
+    public ai.stigmer.agentic.run.v1.RunConfig getRunConfig() {
       if (runConfigBuilder_ == null) {
-        return runConfig_ == null ? ai.stigmer.agentic.agentrun.v1.RunConfig.getDefaultInstance() : runConfig_;
+        return runConfig_ == null ? ai.stigmer.agentic.run.v1.RunConfig.getDefaultInstance() : runConfig_;
       } else {
         return runConfigBuilder_.getMessage();
       }
@@ -2275,9 +2275,9 @@ private static final long serialVersionUID = 0L;
      * spend, never raise it. Valid on public-audience shares only.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
      */
-    public Builder setRunConfig(ai.stigmer.agentic.agentrun.v1.RunConfig value) {
+    public Builder setRunConfig(ai.stigmer.agentic.run.v1.RunConfig value) {
       if (runConfigBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
@@ -2303,10 +2303,10 @@ private static final long serialVersionUID = 0L;
      * spend, never raise it. Valid on public-audience shares only.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
      */
     public Builder setRunConfig(
-        ai.stigmer.agentic.agentrun.v1.RunConfig.Builder builderForValue) {
+        ai.stigmer.agentic.run.v1.RunConfig.Builder builderForValue) {
       if (runConfigBuilder_ == null) {
         runConfig_ = builderForValue.build();
       } else {
@@ -2329,13 +2329,13 @@ private static final long serialVersionUID = 0L;
      * spend, never raise it. Valid on public-audience shares only.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
      */
-    public Builder mergeRunConfig(ai.stigmer.agentic.agentrun.v1.RunConfig value) {
+    public Builder mergeRunConfig(ai.stigmer.agentic.run.v1.RunConfig value) {
       if (runConfigBuilder_ == null) {
         if (((bitField0_ & 0x00000040) != 0) &&
           runConfig_ != null &&
-          runConfig_ != ai.stigmer.agentic.agentrun.v1.RunConfig.getDefaultInstance()) {
+          runConfig_ != ai.stigmer.agentic.run.v1.RunConfig.getDefaultInstance()) {
           getRunConfigBuilder().mergeFrom(value);
         } else {
           runConfig_ = value;
@@ -2362,7 +2362,7 @@ private static final long serialVersionUID = 0L;
      * spend, never raise it. Valid on public-audience shares only.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
      */
     public Builder clearRunConfig() {
       bitField0_ = (bitField0_ & ~0x00000040);
@@ -2387,9 +2387,9 @@ private static final long serialVersionUID = 0L;
      * spend, never raise it. Valid on public-audience shares only.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
      */
-    public ai.stigmer.agentic.agentrun.v1.RunConfig.Builder getRunConfigBuilder() {
+    public ai.stigmer.agentic.run.v1.RunConfig.Builder getRunConfigBuilder() {
       bitField0_ |= 0x00000040;
       onChanged();
       return internalGetRunConfigFieldBuilder().getBuilder();
@@ -2407,14 +2407,14 @@ private static final long serialVersionUID = 0L;
      * spend, never raise it. Valid on public-audience shares only.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
      */
-    public ai.stigmer.agentic.agentrun.v1.RunConfigOrBuilder getRunConfigOrBuilder() {
+    public ai.stigmer.agentic.run.v1.RunConfigOrBuilder getRunConfigOrBuilder() {
       if (runConfigBuilder_ != null) {
         return runConfigBuilder_.getMessageOrBuilder();
       } else {
         return runConfig_ == null ?
-            ai.stigmer.agentic.agentrun.v1.RunConfig.getDefaultInstance() : runConfig_;
+            ai.stigmer.agentic.run.v1.RunConfig.getDefaultInstance() : runConfig_;
       }
     }
     /**
@@ -2430,14 +2430,14 @@ private static final long serialVersionUID = 0L;
      * spend, never raise it. Valid on public-audience shares only.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentrun.v1.RunConfig, ai.stigmer.agentic.agentrun.v1.RunConfig.Builder, ai.stigmer.agentic.agentrun.v1.RunConfigOrBuilder> 
+        ai.stigmer.agentic.run.v1.RunConfig, ai.stigmer.agentic.run.v1.RunConfig.Builder, ai.stigmer.agentic.run.v1.RunConfigOrBuilder> 
         internalGetRunConfigFieldBuilder() {
       if (runConfigBuilder_ == null) {
         runConfigBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.agentrun.v1.RunConfig, ai.stigmer.agentic.agentrun.v1.RunConfig.Builder, ai.stigmer.agentic.agentrun.v1.RunConfigOrBuilder>(
+            ai.stigmer.agentic.run.v1.RunConfig, ai.stigmer.agentic.run.v1.RunConfig.Builder, ai.stigmer.agentic.run.v1.RunConfigOrBuilder>(
                 getRunConfig(),
                 getParentForChildren(),
                 isClean());

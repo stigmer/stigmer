@@ -70,7 +70,7 @@ func (x *ExecutionContextId) GetValue() string {
 // Input for looking up an ExecutionContext by its parent execution ID.
 type ExecutionContextExecutionIdInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// AgentRun ID (or an MCP connect's execution id) to look up.
+	// Run ID (or an MCP connect's execution id) to look up.
 	ExecutionId   string `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

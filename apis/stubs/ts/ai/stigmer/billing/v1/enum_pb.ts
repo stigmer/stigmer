@@ -40,7 +40,7 @@ export enum LedgerEntryType {
   promotional_credit = 2,
 
   /**
-   * Debit for a single LLM call during agent run.
+   * Debit for a single LLM call during run.
    *
    * @generated from enum value: usage_debit = 3;
    */

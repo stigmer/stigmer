@@ -404,7 +404,7 @@ type PushSkillFromRunArtifactRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization that will own the skill.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// ID of the agent run that produced the artifact (e.g., "aex_abc123xyz456").
+	// ID of the run that produced the artifact (e.g., "run_abc123xyz456").
 	RunId string `protobuf:"bytes,2,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	// Storage key of the directory artifact (ZIP) to push as a skill.
 	// Obtain this from RunArtifact.storage_key in the run status.

@@ -96,12 +96,12 @@
           "description": "List schedules with optional label filtering."
         },
         {
-          "name": "ListRuns",
-          "inputType": "ListScheduleRunsRequest",
-          "inputFullType": "ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest",
-          "outputType": "ScheduleRunList",
-          "outputFullType": "ai.stigmer.agentic.schedule.v1.ScheduleRunList",
-          "description": "List a schedule's run history, newest first.\n\n Every fire leaves a row — including fires that created no run\n (a refused launch gate, a missing target agent) — with the refusing\n gate's copy verbatim. This is the surface that explains\n status.consecutive_failures."
+          "name": "ListFires",
+          "inputType": "ListScheduleFiresRequest",
+          "inputFullType": "ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest",
+          "outputType": "ScheduleFireList",
+          "outputFullType": "ai.stigmer.agentic.schedule.v1.ScheduleFireList",
+          "description": "List a schedule's fire history, newest first.\n\n Every fire leaves a row — including fires that created no run\n (a refused launch gate, a missing target agent) — with the refusing\n gate's copy verbatim. This is the surface that explains\n status.consecutive_failures."
         }
       ]
     }
@@ -130,18 +130,18 @@
           "protoField": "outcome",
           "type": {
             "kind": "string",
-            "enumType": "ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome",
+            "enumType": "ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome",
             "enumValues": [
-              "SCHEDULE_RUN_OUTCOME_STARTED",
-              "SCHEDULE_RUN_OUTCOME_REFUSED",
-              "SCHEDULE_RUN_OUTCOME_TARGET_MISSING",
-              "SCHEDULE_RUN_OUTCOME_SKIPPED",
-              "SCHEDULE_RUN_OUTCOME_COMPLETED",
-              "SCHEDULE_RUN_OUTCOME_FAILED",
-              "SCHEDULE_RUN_OUTCOME_TIMED_OUT"
+              "SCHEDULE_FIRE_OUTCOME_STARTED",
+              "SCHEDULE_FIRE_OUTCOME_REFUSED",
+              "SCHEDULE_FIRE_OUTCOME_TARGET_MISSING",
+              "SCHEDULE_FIRE_OUTCOME_SKIPPED",
+              "SCHEDULE_FIRE_OUTCOME_COMPLETED",
+              "SCHEDULE_FIRE_OUTCOME_FAILED",
+              "SCHEDULE_FIRE_OUTCOME_TIMED_OUT"
             ]
           },
-          "description": "What the fire produced: STARTED, REFUSED, or TARGET_MISSING (the\n terminal outcomes belong to run history — a manual fire answers at\n run start).",
+          "description": "What the fire produced: STARTED, REFUSED, or TARGET_MISSING (the\n terminal outcomes belong to fire history — a manual fire answers at\n run start).",
           "required": false
         },
         {
@@ -206,7 +206,7 @@
               "organization",
               "platform",
               "agent",
-              "agent_run",
+              "run",
               "session",
               "skill",
               "mcp_server",
@@ -380,9 +380,9 @@
       ]
     },
     {
-      "name": "ListScheduleRunsRequest",
-      "description": "Input for listing a schedule's run history.",
-      "protoType": "ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest",
+      "name": "ListScheduleFiresRequest",
+      "description": "Input for listing a schedule's fire history.",
+      "protoType": "ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest",
       "protoFile": "apis/ai/stigmer/agentic/schedule/v1/io.proto",
       "fields": [
         {
@@ -392,7 +392,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Schedule whose runs to list.",
+          "description": "Schedule whose fires to list.",
           "required": true,
           "validation": {
             "required": true
@@ -406,15 +406,15 @@
             "kind": "message",
             "messageType": "PageInfo"
           },
-          "description": "Pagination options. Runs are returned newest first.",
+          "description": "Pagination options. Fires are returned newest first.",
           "required": false
         }
       ]
     },
     {
-      "name": "ScheduleRunList",
-      "description": "Response containing a paginated list of schedule runs, newest first.",
-      "protoType": "ai.stigmer.agentic.schedule.v1.ScheduleRunList",
+      "name": "ScheduleFireList",
+      "description": "Response containing a paginated list of schedule fires, newest first.",
+      "protoType": "ai.stigmer.agentic.schedule.v1.ScheduleFireList",
       "protoFile": "apis/ai/stigmer/agentic/schedule/v1/io.proto",
       "fields": [
         {
@@ -424,7 +424,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "Total number of recorded runs for the schedule.",
+          "description": "Total number of recorded fires for the schedule.",
           "required": false
         },
         {
@@ -435,10 +435,10 @@
             "kind": "array",
             "elementType": {
               "kind": "message",
-              "messageType": "ScheduleRun"
+              "messageType": "ScheduleFire"
             }
           },
-          "description": "Runs in the current page.",
+          "description": "Fires in the current page.",
           "required": false
         }
       ]
@@ -446,42 +446,42 @@
   ],
   "enumTypes": [
     {
-      "name": "ScheduleRunOutcome",
+      "name": "ScheduleFireOutcome",
       "description": "What one schedule fire produced.",
-      "protoType": "ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome",
+      "protoType": "ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome",
       "values": [
         {
-          "name": "SCHEDULE_RUN_OUTCOME_STARTED",
+          "name": "SCHEDULE_FIRE_OUTCOME_STARTED",
           "number": 1,
           "description": "A run was created (or idempotently re-found) and is running."
         },
         {
-          "name": "SCHEDULE_RUN_OUTCOME_REFUSED",
+          "name": "SCHEDULE_FIRE_OUTCOME_REFUSED",
           "number": 2,
           "description": "A launch gate refused the run deterministically; reason carries the\n gate's copy verbatim."
         },
         {
-          "name": "SCHEDULE_RUN_OUTCOME_TARGET_MISSING",
+          "name": "SCHEDULE_FIRE_OUTCOME_TARGET_MISSING",
           "number": 3,
           "description": "The schedule's agent_ref no longer resolves."
         },
         {
-          "name": "SCHEDULE_RUN_OUTCOME_SKIPPED",
+          "name": "SCHEDULE_FIRE_OUTCOME_SKIPPED",
           "number": 4,
           "description": "The fire no-opped: the row was deleted, disabled, or paused between\n the fire being recorded and the run starting."
         },
         {
-          "name": "SCHEDULE_RUN_OUTCOME_COMPLETED",
+          "name": "SCHEDULE_FIRE_OUTCOME_COMPLETED",
           "number": 5,
           "description": "The tracked run reached RUN_COMPLETED."
         },
         {
-          "name": "SCHEDULE_RUN_OUTCOME_FAILED",
+          "name": "SCHEDULE_FIRE_OUTCOME_FAILED",
           "number": 6,
           "description": "The tracked run ended terminal-but-not-completed (failed, cancelled,\n or terminated); reason names the terminal phase."
         },
         {
-          "name": "SCHEDULE_RUN_OUTCOME_TIMED_OUT",
+          "name": "SCHEDULE_FIRE_OUTCOME_TIMED_OUT",
           "number": 7,
           "description": "The tracked run outlived the fire's tracking budget."
         }
@@ -553,7 +553,7 @@
           "description": "AI assistant with instructions, tools, skills, and a delegation model."
         },
         {
-          "name": "agent_run",
+          "name": "run",
           "number": 41,
           "description": "Single run of an agent within a session, tracking tool calls and responses."
         },
@@ -590,7 +590,7 @@
         {
           "name": "environment",
           "number": 53,
-          "description": "Named set of variables and secrets for an agent run."
+          "description": "Named set of variables and secrets for a run."
         },
         {
           "name": "execution_context",
@@ -688,7 +688,7 @@
     {
       "name": "ServiceTier",
       "description": "ServiceTier selects the provider-side speed/service tier for a run's\n model calls.\n\n Providers spell this differently — Cursor exposes per-model \"fast\" variants\n at higher per-token rates, Anthropic and OpenAI expose service tiers — but\n the platform semantic is uniform: the tier is a deterministic, user-selected\n attribute validated against the model registry at create time. A tier is\n selectable for a model only when the registry prices it\n (pricingVariants.\u003ctier\u003e), so a selected tier is always billable.\n\n The load-bearing rule: UNSPECIFIED resolves to SERVICE_TIER_STANDARD — never\n the provider account default. The runner always sends the provider an\n explicit variant selection, so an out-of-band account setting can never\n silently change what a run pays (stigmer/stigmer#357).",
-      "protoType": "ai.stigmer.agentic.agentrun.v1.ServiceTier",
+      "protoType": "ai.stigmer.agentic.run.v1.ServiceTier",
       "values": [
         {
           "name": "SERVICE_TIER_STANDARD",
@@ -705,7 +705,7 @@
     {
       "name": "ThinkingMode",
       "description": "ThinkingMode selects the model's extended-reasoning (\"thinking\") variant\n for a run's model calls — the second variant dimension alongside\n ServiceTier (stigmer/stigmer#772).\n\n Unlike the fast tier, thinking is NOT a separately priced dimension:\n Cursor bills thinking variants at the model's base per-token rates\n (verified against the live pricing page and 277 team-ledger events on\n 2026-08-15 — thinking wire ids bill exactly base; thinking+fast bills\n exactly the fast variant rate). Thinking costs more only by generating\n additional reasoning tokens, billed as ordinary output. Selectability is\n therefore CAPABILITY-gated, not pricing-gated: ENABLED is valid only for\n models whose registry entry on the run's harness declares a\n thinking capability (capabilities.thinking or capabilities.adaptive_thinking),\n refused at create time otherwise. ENABLED means \"the model reasons before\n it answers\", in the form its entry declares: a fixed budget or adaptive\n depth.\n\n The load-bearing rule mirrors ServiceTier: UNSPECIFIED resolves to\n THINKING_MODE_DISABLED — never the provider account default. Several\n catalog default variants are thinking=true (claude-haiku-4-5), so an\n unpinned selection would silently follow an out-of-band account setting;\n the runner always sends an explicit thinking pin where the model declares\n the parameter. The one exception is a model whose entry declares\n capabilities.thinking_required: it always thinks, so an explicit DISABLED\n is refused at create and UNSPECIFIED runs with thinking on.",
-      "protoType": "ai.stigmer.agentic.agentrun.v1.ThinkingMode",
+      "protoType": "ai.stigmer.agentic.run.v1.ThinkingMode",
       "values": [
         {
           "name": "THINKING_MODE_DISABLED",
@@ -720,17 +720,17 @@
       ]
     },
     {
-      "name": "ScheduleRunOrigin",
+      "name": "ScheduleFireOrigin",
       "description": "How a schedule fire was initiated.",
-      "protoType": "ai.stigmer.agentic.schedule.v1.ScheduleRunOrigin",
+      "protoType": "ai.stigmer.agentic.schedule.v1.ScheduleFireOrigin",
       "values": [
         {
-          "name": "SCHEDULE_RUN_ORIGIN_CRON",
+          "name": "SCHEDULE_FIRE_ORIGIN_CRON",
           "number": 1,
           "description": "The clock fired the schedule on its cron cadence."
         },
         {
-          "name": "SCHEDULE_RUN_ORIGIN_MANUAL",
+          "name": "SCHEDULE_FIRE_ORIGIN_MANUAL",
           "number": 2,
           "description": "A caller fired the schedule through the trigger command."
         }
@@ -771,7 +771,7 @@
         "type": {
           "kind": "string"
         },
-        "description": "ID of the agent run created by the most recent fire.",
+        "description": "ID of the run created by the most recent fire.",
         "required": false
       },
       {

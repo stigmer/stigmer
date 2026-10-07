@@ -33,7 +33,7 @@ const (
 	LedgerEntryType_purchase_credit LedgerEntryType = 1
 	// Promotional credits granted (e.g., free trial, referral bonus).
 	LedgerEntryType_promotional_credit LedgerEntryType = 2
-	// Debit for a single LLM call during agent run.
+	// Debit for a single LLM call during run.
 	LedgerEntryType_usage_debit LedgerEntryType = 3
 	// Hold placed at run start to reserve credits.
 	LedgerEntryType_reservation_hold LedgerEntryType = 4

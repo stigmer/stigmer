@@ -155,7 +155,7 @@ func (x *CreditLedgerEntry) GetCreatedAt() *timestamppb.Timestamp {
 // - reservation_hold / reservation_release: run_id, reservation_id
 type CreditLedgerSource struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Agent run that generated this debit.
+	// Run that generated this debit.
 	RunId string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	// Session containing the run.
 	SessionId string `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
@@ -485,7 +485,7 @@ func (x *CreditPack) GetActive() bool {
 	return false
 }
 
-// RunReservation tracks credits held for an active agent run.
+// RunReservation tracks credits held for an active run.
 //
 // Created at run start (AuthorizeRun), consumed incrementally
 // by per-LLM-call debits (via proxy-observed usage metering), and settled
@@ -496,7 +496,7 @@ type RunReservation struct {
 	ReservationId string `protobuf:"bytes,1,opt,name=reservation_id,json=reservationId,proto3" json:"reservation_id,omitempty"`
 	// Organization that owns this reservation.
 	Org string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
-	// Agent run this reservation is for.
+	// Run this reservation is for.
 	RunId string `protobuf:"bytes,3,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	// Total micro-USD reserved at run start.
 	ReservedMicros int64 `protobuf:"varint,4,opt,name=reserved_micros,json=reservedMicros,proto3" json:"reserved_micros,omitempty"`

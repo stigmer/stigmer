@@ -5,13 +5,13 @@ import { stripUndefined, toResourceRefInput, toResourceRefInputs } from "./proto
 import { type ResourceRef } from "./types.js";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
-import { RunConfigSchema, type RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
 import { AgentShareSchema, type AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
 import { AgentShareIdSchema, RotateShareLinkInputSchema, GetAgentSharesByAgentRequestSchema, AgentShareListSchema, ListAgentSharesRequestSchema, GetSharedProfileRequestSchema, SharedAgentProfileSchema, type RotateShareLinkInput, type GetAgentSharesByAgentRequest, type AgentShareList, type ListAgentSharesRequest, type GetSharedProfileRequest, type SharedAgentProfile } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
 import { AgentShareQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/query_pb";
 import { AgentShareSpecSchema, AgentShareAudience, AgentShareMessagesSchema, type AgentShareMessages } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
+import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunConfigSchema, type RunConfig } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";

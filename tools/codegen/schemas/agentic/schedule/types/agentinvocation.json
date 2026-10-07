@@ -1,8 +1,8 @@
 {
   "name": "AgentInvocation",
-  "description": "AgentInvocation is what a caller may ask an agent to do.\n\n It is the owner-settable subset of an agent run — the interactive\n composer's vocabulary (agent, message, harness, workspace,\n environments, run bounds) minus what an unattended surface makes\n structurally impossible. Surfaces that trigger agents on someone's\n behalf embed this message instead of re-deriving the shape:\n schedules embed it whole; channels and shares embed RunConfig.",
-  "protoType": "ai.stigmer.agentic.agentrun.v1.AgentInvocation",
-  "protoFile": "apis/ai/stigmer/agentic/agentrun/v1/invocation.proto",
+  "description": "AgentInvocation is what a caller may ask an agent to do.\n\n It is the owner-settable subset of a run — the interactive\n composer's vocabulary (agent, message, harness, workspace,\n environments, run bounds) minus what an unattended surface makes\n structurally impossible. Surfaces that trigger agents on someone's\n behalf embed this message instead of re-deriving the shape:\n schedules embed it whole; channels and shares embed RunConfig.",
+  "protoType": "ai.stigmer.agentic.run.v1.AgentInvocation",
+  "protoFile": "apis/ai/stigmer/agentic/run/v1/invocation.proto",
   "fields": [
     {
       "name": "AgentRef",

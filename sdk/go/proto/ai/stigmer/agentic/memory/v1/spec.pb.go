@@ -97,8 +97,8 @@ type MemoryProvenance struct {
 	AgentId string `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
 	// ID of the session in which this memory was proposed.
 	SessionId string `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	// ID of the agent run in which this memory was proposed.
-	AgentRunId string `protobuf:"bytes,3,opt,name=agent_run_id,json=agentRunId,proto3" json:"agent_run_id,omitempty"`
+	// ID of the run in which this memory was proposed.
+	RunId string `protobuf:"bytes,3,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	// ID of the remember tool call that proposed this memory.
 	ToolCallId    string `protobuf:"bytes,4,opt,name=tool_call_id,json=toolCallId,proto3" json:"tool_call_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -149,9 +149,9 @@ func (x *MemoryProvenance) GetSessionId() string {
 	return ""
 }
 
-func (x *MemoryProvenance) GetAgentRunId() string {
+func (x *MemoryProvenance) GetRunId() string {
 	if x != nil {
-		return x.AgentRunId
+		return x.RunId
 	}
 	return ""
 }
@@ -175,13 +175,12 @@ const file_ai_stigmer_agentic_memory_v1_spec_proto_rawDesc = "" +
 	"\x1bsubject_identity_account_id\x18\x02 \x01(\tR\x18subjectIdentityAccountId\x12N\n" +
 	"\n" +
 	"provenance\x18\x03 \x01(\v2..ai.stigmer.agentic.memory.v1.MemoryProvenanceR\n" +
-	"provenance\"\x90\x01\n" +
+	"provenance\"\x85\x01\n" +
 	"\x10MemoryProvenance\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x02 \x01(\tR\tsessionId\x12 \n" +
-	"\fagent_run_id\x18\x03 \x01(\tR\n" +
-	"agentRunId\x12 \n" +
+	"session_id\x18\x02 \x01(\tR\tsessionId\x12\x15\n" +
+	"\x06run_id\x18\x03 \x01(\tR\x05runId\x12 \n" +
 	"\ftool_call_id\x18\x04 \x01(\tR\n" +
 	"toolCallIdB\x94\x02\n" +
 	" com.ai.stigmer.agentic.memory.v1B\tSpecProtoP\x01ZPgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/memory/v1;memoryv1\xa2\x02\x04ASAM\xaa\x02\x1cAi.Stigmer.Agentic.Memory.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Memory\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Memory\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Memory::V1b\x06proto3"

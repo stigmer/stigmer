@@ -16,7 +16,7 @@ from ai.stigmer.commons.apiresource import metadata_pb2
 from ._errors import wrap_error
 from ._types import ResourceRef
 from ._agent import McpServerUsageInput
-from ._agentrun import GitRepoSourceInput, LocalPathSourceInput, WorkspaceEntryInput, WorkspaceSourceInput
+from ._run import GitRepoSourceInput, LocalPathSourceInput, WorkspaceEntryInput, WorkspaceSourceInput
 
 
 class SessionClient:

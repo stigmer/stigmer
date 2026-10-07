@@ -8,7 +8,6 @@ import io.grpc.Channel;
 public class GeneratedClient {
     public final AgentClient agent;
     public final AgentChannelClient agentChannel;
-    public final AgentRunClient agentRun;
     public final AgentShareClient agentShare;
     public final ApiKeyClient apiKey;
     public final ChannelAppClient channelapp;
@@ -27,6 +26,7 @@ public class GeneratedClient {
     public final PlatformClientClient platformclient;
     public final PluginClient plugin;
     public final ProviderKeyClient providerkey;
+    public final RunClient run;
     public final ScheduleClient schedule;
     public final SessionClient session;
     public final SkillClient skill;
@@ -36,7 +36,6 @@ public class GeneratedClient {
     public GeneratedClient(Channel channel) {
         this.agent = new AgentClient(channel);
         this.agentChannel = new AgentChannelClient(channel);
-        this.agentRun = new AgentRunClient(channel);
         this.agentShare = new AgentShareClient(channel);
         this.apiKey = new ApiKeyClient(channel);
         this.channelapp = new ChannelAppClient(channel);
@@ -55,6 +54,7 @@ public class GeneratedClient {
         this.platformclient = new PlatformClientClient(channel);
         this.plugin = new PluginClient(channel);
         this.providerkey = new ProviderKeyClient(channel);
+        this.run = new RunClient(channel);
         this.schedule = new ScheduleClient(channel);
         this.session = new SessionClient(channel);
         this.skill = newSkillClient(channel);

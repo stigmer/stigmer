@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetSchedulesByAgentRequest, ListScheduleRunsRequest, ListSchedulesRequest, ScheduleId, ScheduleList, ScheduleRunList } from "./io_pbjs";
+import { GetSchedulesByAgentRequest, ListScheduleFiresRequest, ListSchedulesRequest, ScheduleFireList, ScheduleId, ScheduleList } from "./io_pbjs";
 import { Schedule } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
@@ -65,19 +65,19 @@ export const ScheduleQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * List a schedule's run history, newest first.
+     * List a schedule's fire history, newest first.
      *
      * Every fire leaves a row — including fires that created no run
      * (a refused launch gate, a missing target agent) — with the refusing
      * gate's copy verbatim. This is the surface that explains
      * status.consecutive_failures.
      *
-     * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleQueryController.listRuns
+     * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleQueryController.listFires
      */
-    listRuns: {
-      name: "listRuns",
-      I: ListScheduleRunsRequest,
-      O: ScheduleRunList,
+    listFires: {
+      name: "listFires",
+      I: ListScheduleFiresRequest,
+      O: ScheduleFireList,
       kind: MethodKind.Unary,
     },
   }

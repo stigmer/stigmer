@@ -103,11 +103,11 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * What the fire produced: STARTED, REFUSED, or TARGET_MISSING (the
-   * terminal outcomes belong to run history — a manual fire answers at
+   * terminal outcomes belong to fire history — a manual fire answers at
    * run start).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome outcome = 2 [json_name = "outcome"];</code>
+   * <code>.ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome outcome = 2 [json_name = "outcome"];</code>
    * @return The enum numeric value on the wire for outcome.
    */
   @java.lang.Override public int getOutcomeValue() {
@@ -116,16 +116,16 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * What the fire produced: STARTED, REFUSED, or TARGET_MISSING (the
-   * terminal outcomes belong to run history — a manual fire answers at
+   * terminal outcomes belong to fire history — a manual fire answers at
    * run start).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome outcome = 2 [json_name = "outcome"];</code>
+   * <code>.ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome outcome = 2 [json_name = "outcome"];</code>
    * @return The outcome.
    */
-  @java.lang.Override public ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome getOutcome() {
-    ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome result = ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome.forNumber(outcome_);
-    return result == null ? ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome.UNRECOGNIZED : result;
+  @java.lang.Override public ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome getOutcome() {
+    ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome result = ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome.forNumber(outcome_);
+    return result == null ? ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome.UNRECOGNIZED : result;
   }
 
   public static final int RUN_ID_FIELD_NUMBER = 3;
@@ -241,7 +241,7 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(1, getSchedule());
     }
-    if (outcome_ != ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome.SCHEDULE_RUN_OUTCOME_UNSPECIFIED.getNumber()) {
+    if (outcome_ != ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome.SCHEDULE_FIRE_OUTCOME_UNSPECIFIED.getNumber()) {
       output.writeEnum(2, outcome_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runId_)) {
@@ -263,7 +263,7 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(1, getSchedule());
     }
-    if (outcome_ != ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome.SCHEDULE_RUN_OUTCOME_UNSPECIFIED.getNumber()) {
+    if (outcome_ != ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome.SCHEDULE_FIRE_OUTCOME_UNSPECIFIED.getNumber()) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(2, outcome_);
     }
@@ -778,11 +778,11 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * What the fire produced: STARTED, REFUSED, or TARGET_MISSING (the
-     * terminal outcomes belong to run history — a manual fire answers at
+     * terminal outcomes belong to fire history — a manual fire answers at
      * run start).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome outcome = 2 [json_name = "outcome"];</code>
+     * <code>.ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome outcome = 2 [json_name = "outcome"];</code>
      * @return The enum numeric value on the wire for outcome.
      */
     @java.lang.Override public int getOutcomeValue() {
@@ -791,11 +791,11 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * What the fire produced: STARTED, REFUSED, or TARGET_MISSING (the
-     * terminal outcomes belong to run history — a manual fire answers at
+     * terminal outcomes belong to fire history — a manual fire answers at
      * run start).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome outcome = 2 [json_name = "outcome"];</code>
+     * <code>.ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome outcome = 2 [json_name = "outcome"];</code>
      * @param value The enum numeric value on the wire for outcome to set.
      * @throws IllegalArgumentException if UNRECOGNIZED is provided.
      * @return This builder for chaining.
@@ -809,30 +809,30 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * What the fire produced: STARTED, REFUSED, or TARGET_MISSING (the
-     * terminal outcomes belong to run history — a manual fire answers at
+     * terminal outcomes belong to fire history — a manual fire answers at
      * run start).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome outcome = 2 [json_name = "outcome"];</code>
+     * <code>.ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome outcome = 2 [json_name = "outcome"];</code>
      * @return The outcome.
      */
     @java.lang.Override
-    public ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome getOutcome() {
-      ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome result = ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome.forNumber(outcome_);
-      return result == null ? ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome.UNRECOGNIZED : result;
+    public ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome getOutcome() {
+      ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome result = ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome.forNumber(outcome_);
+      return result == null ? ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome.UNRECOGNIZED : result;
     }
     /**
      * <pre>
      * What the fire produced: STARTED, REFUSED, or TARGET_MISSING (the
-     * terminal outcomes belong to run history — a manual fire answers at
+     * terminal outcomes belong to fire history — a manual fire answers at
      * run start).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome outcome = 2 [json_name = "outcome"];</code>
+     * <code>.ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome outcome = 2 [json_name = "outcome"];</code>
      * @param value The outcome to set.
      * @return This builder for chaining.
      */
-    public Builder setOutcome(ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome value) {
+    public Builder setOutcome(ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome value) {
       if (value == null) { throw new NullPointerException(); }
       bitField0_ |= 0x00000002;
       outcome_ = value.getNumber();
@@ -842,11 +842,11 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * What the fire produced: STARTED, REFUSED, or TARGET_MISSING (the
-     * terminal outcomes belong to run history — a manual fire answers at
+     * terminal outcomes belong to fire history — a manual fire answers at
      * run start).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome outcome = 2 [json_name = "outcome"];</code>
+     * <code>.ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome outcome = 2 [json_name = "outcome"];</code>
      * @return This builder for chaining.
      */
     public Builder clearOutcome() {

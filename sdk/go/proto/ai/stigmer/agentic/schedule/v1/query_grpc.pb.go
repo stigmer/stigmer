@@ -24,7 +24,7 @@ const (
 	ScheduleQueryController_GetByReference_FullMethodName = "/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/getByReference"
 	ScheduleQueryController_GetByAgent_FullMethodName     = "/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/getByAgent"
 	ScheduleQueryController_List_FullMethodName           = "/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/list"
-	ScheduleQueryController_ListRuns_FullMethodName       = "/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/listRuns"
+	ScheduleQueryController_ListFires_FullMethodName      = "/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/listFires"
 )
 
 // ScheduleQueryControllerClient is the client API for ScheduleQueryController service.
@@ -45,13 +45,13 @@ type ScheduleQueryControllerClient interface {
 	GetByAgent(ctx context.Context, in *GetSchedulesByAgentRequest, opts ...grpc.CallOption) (*ScheduleList, error)
 	// List schedules with optional label filtering.
 	List(ctx context.Context, in *ListSchedulesRequest, opts ...grpc.CallOption) (*ScheduleList, error)
-	// List a schedule's run history, newest first.
+	// List a schedule's fire history, newest first.
 	//
 	// Every fire leaves a row — including fires that created no run
 	// (a refused launch gate, a missing target agent) — with the refusing
 	// gate's copy verbatim. This is the surface that explains
 	// status.consecutive_failures.
-	ListRuns(ctx context.Context, in *ListScheduleRunsRequest, opts ...grpc.CallOption) (*ScheduleRunList, error)
+	ListFires(ctx context.Context, in *ListScheduleFiresRequest, opts ...grpc.CallOption) (*ScheduleFireList, error)
 }
 
 type scheduleQueryControllerClient struct {
@@ -102,10 +102,10 @@ func (c *scheduleQueryControllerClient) List(ctx context.Context, in *ListSchedu
 	return out, nil
 }
 
-func (c *scheduleQueryControllerClient) ListRuns(ctx context.Context, in *ListScheduleRunsRequest, opts ...grpc.CallOption) (*ScheduleRunList, error) {
+func (c *scheduleQueryControllerClient) ListFires(ctx context.Context, in *ListScheduleFiresRequest, opts ...grpc.CallOption) (*ScheduleFireList, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ScheduleRunList)
-	err := c.cc.Invoke(ctx, ScheduleQueryController_ListRuns_FullMethodName, in, out, cOpts...)
+	out := new(ScheduleFireList)
+	err := c.cc.Invoke(ctx, ScheduleQueryController_ListFires_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -130,13 +130,13 @@ type ScheduleQueryControllerServer interface {
 	GetByAgent(context.Context, *GetSchedulesByAgentRequest) (*ScheduleList, error)
 	// List schedules with optional label filtering.
 	List(context.Context, *ListSchedulesRequest) (*ScheduleList, error)
-	// List a schedule's run history, newest first.
+	// List a schedule's fire history, newest first.
 	//
 	// Every fire leaves a row — including fires that created no run
 	// (a refused launch gate, a missing target agent) — with the refusing
 	// gate's copy verbatim. This is the surface that explains
 	// status.consecutive_failures.
-	ListRuns(context.Context, *ListScheduleRunsRequest) (*ScheduleRunList, error)
+	ListFires(context.Context, *ListScheduleFiresRequest) (*ScheduleFireList, error)
 }
 
 // UnimplementedScheduleQueryControllerServer should be embedded to have
@@ -158,8 +158,8 @@ func (UnimplementedScheduleQueryControllerServer) GetByAgent(context.Context, *G
 func (UnimplementedScheduleQueryControllerServer) List(context.Context, *ListSchedulesRequest) (*ScheduleList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
-func (UnimplementedScheduleQueryControllerServer) ListRuns(context.Context, *ListScheduleRunsRequest) (*ScheduleRunList, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListRuns not implemented")
+func (UnimplementedScheduleQueryControllerServer) ListFires(context.Context, *ListScheduleFiresRequest) (*ScheduleFireList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListFires not implemented")
 }
 func (UnimplementedScheduleQueryControllerServer) testEmbeddedByValue() {}
 
@@ -253,20 +253,20 @@ func _ScheduleQueryController_List_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ScheduleQueryController_ListRuns_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListScheduleRunsRequest)
+func _ScheduleQueryController_ListFires_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListScheduleFiresRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ScheduleQueryControllerServer).ListRuns(ctx, in)
+		return srv.(ScheduleQueryControllerServer).ListFires(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ScheduleQueryController_ListRuns_FullMethodName,
+		FullMethod: ScheduleQueryController_ListFires_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ScheduleQueryControllerServer).ListRuns(ctx, req.(*ListScheduleRunsRequest))
+		return srv.(ScheduleQueryControllerServer).ListFires(ctx, req.(*ListScheduleFiresRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -295,8 +295,8 @@ var ScheduleQueryController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ScheduleQueryController_List_Handler,
 		},
 		{
-			MethodName: "listRuns",
-			Handler:    _ScheduleQueryController_ListRuns_Handler,
+			MethodName: "listFires",
+			Handler:    _ScheduleQueryController_ListFires_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -12,7 +12,7 @@ public interface CreditLedgerSourceOrBuilder extends
 
   /**
    * <pre>
-   * Agent run that generated this debit.
+   * Run that generated this debit.
    * </pre>
    *
    * <code>string run_id = 1 [json_name = "runId"];</code>
@@ -21,7 +21,7 @@ public interface CreditLedgerSourceOrBuilder extends
   java.lang.String getRunId();
   /**
    * <pre>
-   * Agent run that generated this debit.
+   * Run that generated this debit.
    * </pre>
    *
    * <code>string run_id = 1 [json_name = "runId"];</code>

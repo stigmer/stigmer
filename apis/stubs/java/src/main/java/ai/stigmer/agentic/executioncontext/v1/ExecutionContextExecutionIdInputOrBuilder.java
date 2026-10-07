@@ -12,7 +12,7 @@ public interface ExecutionContextExecutionIdInputOrBuilder extends
 
   /**
    * <pre>
-   * AgentRun ID (or an MCP connect's execution id) to look up.
+   * Run ID (or an MCP connect's execution id) to look up.
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface ExecutionContextExecutionIdInputOrBuilder extends
   java.lang.String getExecutionId();
   /**
    * <pre>
-   * AgentRun ID (or an MCP connect's execution id) to look up.
+   * Run ID (or an MCP connect's execution id) to look up.
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>

@@ -8,7 +8,7 @@ package ai.stigmer.tenancy.organization.v1;
 /**
  * <pre>
  * OrganizationPreferences holds organization-declared defaults that apply to
- * every eligible agent run in the organization.
+ * every eligible run in the organization.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.tenancy.organization.v1.OrganizationPreferences}
@@ -59,7 +59,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object standingContext_ = "";
   /**
    * <pre>
-   * Free-text standing context injected into eligible agent runs in
+   * Free-text standing context injected into eligible runs in
    * this organization. Example: "We deploy to us-east-1."
    * </pre>
    *
@@ -81,7 +81,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Free-text standing context injected into eligible agent runs in
+   * Free-text standing context injected into eligible runs in
    * this organization. Example: "We deploy to us-east-1."
    * </pre>
    *
@@ -291,7 +291,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * OrganizationPreferences holds organization-declared defaults that apply to
-   * every eligible agent run in the organization.
+   * every eligible run in the organization.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.tenancy.organization.v1.OrganizationPreferences}
@@ -446,7 +446,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object standingContext_ = "";
     /**
      * <pre>
-     * Free-text standing context injected into eligible agent runs in
+     * Free-text standing context injected into eligible runs in
      * this organization. Example: "We deploy to us-east-1."
      * </pre>
      *
@@ -467,7 +467,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Free-text standing context injected into eligible agent runs in
+     * Free-text standing context injected into eligible runs in
      * this organization. Example: "We deploy to us-east-1."
      * </pre>
      *
@@ -489,7 +489,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Free-text standing context injected into eligible agent runs in
+     * Free-text standing context injected into eligible runs in
      * this organization. Example: "We deploy to us-east-1."
      * </pre>
      *
@@ -507,7 +507,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Free-text standing context injected into eligible agent runs in
+     * Free-text standing context injected into eligible runs in
      * this organization. Example: "We deploy to us-east-1."
      * </pre>
      *
@@ -522,7 +522,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Free-text standing context injected into eligible agent runs in
+     * Free-text standing context injected into eligible runs in
      * this organization. Example: "We deploy to us-east-1."
      * </pre>
      *

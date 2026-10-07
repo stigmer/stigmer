@@ -76,7 +76,7 @@ public interface ScheduleSpecOrBuilder extends
    * Run an agent with a configured prompt at each fire.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentrun.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
    * @return Whether the agent field is set.
    */
   boolean hasAgent();
@@ -85,18 +85,18 @@ public interface ScheduleSpecOrBuilder extends
    * Run an agent with a configured prompt at each fire.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentrun.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
    * @return The agent.
    */
-  ai.stigmer.agentic.agentrun.v1.AgentInvocation getAgent();
+  ai.stigmer.agentic.run.v1.AgentInvocation getAgent();
   /**
    * <pre>
    * Run an agent with a configured prompt at each fire.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentrun.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
    */
-  ai.stigmer.agentic.agentrun.v1.AgentInvocationOrBuilder getAgentOrBuilder();
+  ai.stigmer.agentic.run.v1.AgentInvocationOrBuilder getAgentOrBuilder();
 
   ai.stigmer.agentic.schedule.v1.ScheduleSpec.TargetCase getTargetCase();
 }

@@ -197,7 +197,7 @@ public interface AuthorizationConfigOrBuilder extends
    *
    * Empty means no user-grantable roles: the resource is either owner-only
    * (api_key, execution_context), inherits authorization from a parent
-   * (agent_run), is self-owned (identity_account), or has no
+   * (run), is self-owned (identity_account), or has no
    * authorization (platform, api_resource_version).
    * </pre>
    *
@@ -216,7 +216,7 @@ public interface AuthorizationConfigOrBuilder extends
    *
    * Empty means no user-grantable roles: the resource is either owner-only
    * (api_key, execution_context), inherits authorization from a parent
-   * (agent_run), is self-owned (identity_account), or has no
+   * (run), is self-owned (identity_account), or has no
    * authorization (platform, api_resource_version).
    * </pre>
    *
@@ -235,7 +235,7 @@ public interface AuthorizationConfigOrBuilder extends
    *
    * Empty means no user-grantable roles: the resource is either owner-only
    * (api_key, execution_context), inherits authorization from a parent
-   * (agent_run), is self-owned (identity_account), or has no
+   * (run), is self-owned (identity_account), or has no
    * authorization (platform, api_resource_version).
    * </pre>
    *
@@ -255,7 +255,7 @@ public interface AuthorizationConfigOrBuilder extends
    *
    * Empty means no user-grantable roles: the resource is either owner-only
    * (api_key, execution_context), inherits authorization from a parent
-   * (agent_run), is self-owned (identity_account), or has no
+   * (run), is self-owned (identity_account), or has no
    * authorization (platform, api_resource_version).
    * </pre>
    *
@@ -275,7 +275,7 @@ public interface AuthorizationConfigOrBuilder extends
    *
    * Empty means no user-grantable roles: the resource is either owner-only
    * (api_key, execution_context), inherits authorization from a parent
-   * (agent_run), is self-owned (identity_account), or has no
+   * (run), is self-owned (identity_account), or has no
    * authorization (platform, api_resource_version).
    * </pre>
    *

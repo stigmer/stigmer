@@ -40,25 +40,25 @@ public interface ScheduleTriggerResultOrBuilder extends
   /**
    * <pre>
    * What the fire produced: STARTED, REFUSED, or TARGET_MISSING (the
-   * terminal outcomes belong to run history — a manual fire answers at
+   * terminal outcomes belong to fire history — a manual fire answers at
    * run start).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome outcome = 2 [json_name = "outcome"];</code>
+   * <code>.ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome outcome = 2 [json_name = "outcome"];</code>
    * @return The enum numeric value on the wire for outcome.
    */
   int getOutcomeValue();
   /**
    * <pre>
    * What the fire produced: STARTED, REFUSED, or TARGET_MISSING (the
-   * terminal outcomes belong to run history — a manual fire answers at
+   * terminal outcomes belong to fire history — a manual fire answers at
    * run start).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome outcome = 2 [json_name = "outcome"];</code>
+   * <code>.ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome outcome = 2 [json_name = "outcome"];</code>
    * @return The outcome.
    */
-  ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome getOutcome();
+  ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome getOutcome();
 
   /**
    * <pre>

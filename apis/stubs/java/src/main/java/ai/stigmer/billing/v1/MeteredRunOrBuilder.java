@@ -67,7 +67,7 @@ public interface MeteredRunOrBuilder extends
    * served_service_tier by the service_tier.mismatch counter.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentrun.v1.ServiceTier requested_service_tier = 3 [json_name = "requestedServiceTier"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.ServiceTier requested_service_tier = 3 [json_name = "requestedServiceTier"];</code>
    * @return The enum numeric value on the wire for requestedServiceTier.
    */
   int getRequestedServiceTierValue();
@@ -78,10 +78,10 @@ public interface MeteredRunOrBuilder extends
    * served_service_tier by the service_tier.mismatch counter.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentrun.v1.ServiceTier requested_service_tier = 3 [json_name = "requestedServiceTier"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.ServiceTier requested_service_tier = 3 [json_name = "requestedServiceTier"];</code>
    * @return The requestedServiceTier.
    */
-  ai.stigmer.agentic.agentrun.v1.ServiceTier getRequestedServiceTier();
+  ai.stigmer.agentic.run.v1.ServiceTier getRequestedServiceTier();
 
   /**
    * <pre>
@@ -90,7 +90,7 @@ public interface MeteredRunOrBuilder extends
    * thinking.mismatch counter.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentrun.v1.ThinkingMode requested_thinking_mode = 4 [json_name = "requestedThinkingMode"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.ThinkingMode requested_thinking_mode = 4 [json_name = "requestedThinkingMode"];</code>
    * @return The enum numeric value on the wire for requestedThinkingMode.
    */
   int getRequestedThinkingModeValue();
@@ -101,8 +101,8 @@ public interface MeteredRunOrBuilder extends
    * thinking.mismatch counter.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentrun.v1.ThinkingMode requested_thinking_mode = 4 [json_name = "requestedThinkingMode"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.ThinkingMode requested_thinking_mode = 4 [json_name = "requestedThinkingMode"];</code>
    * @return The requestedThinkingMode.
    */
-  ai.stigmer.agentic.agentrun.v1.ThinkingMode getRequestedThinkingMode();
+  ai.stigmer.agentic.run.v1.ThinkingMode getRequestedThinkingMode();
 }

@@ -7,7 +7,6 @@ import "github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
 // Resource clients -- one per API resource.
 type AgentClient = gen.AgentClient
 type AgentChannelClient = gen.AgentChannelClient
-type AgentRunClient = gen.AgentRunClient
 type AgentShareClient = gen.AgentShareClient
 type ApiKeyClient = gen.ApiKeyClient
 type ChannelAppClient = gen.ChannelAppClient
@@ -26,6 +25,7 @@ type PlanClient = gen.PlanClient
 type PlatformClientClient = gen.PlatformClientClient
 type PluginClient = gen.PluginClient
 type ProviderKeyClient = gen.ProviderKeyClient
+type RunClient = gen.RunClient
 type ScheduleClient = gen.ScheduleClient
 type SessionClient = gen.SessionClient
 
@@ -48,14 +48,6 @@ type RunConfigInput = gen.RunConfigInput
 type AgentChannelInput = gen.AgentChannelInput
 type SlackChannelConfigInput = gen.SlackChannelConfigInput
 type WhatsAppChannelConfigInput = gen.WhatsAppChannelConfigInput
-type AgentRunInput = gen.AgentRunInput
-type SessionSpecInput = gen.SessionSpecInput
-type WorkspaceEntryInput = gen.WorkspaceEntryInput
-type WorkspaceSourceInput = gen.WorkspaceSourceInput
-type GitRepoSourceInput = gen.GitRepoSourceInput
-type LocalPathSourceInput = gen.LocalPathSourceInput
-type AttachmentInput = gen.AttachmentInput
-type ConversationCatchupInput = gen.ConversationCatchupInput
 type AgentShareInput = gen.AgentShareInput
 type AgentShareMessagesInput = gen.AgentShareMessagesInput
 type ApiKeyInput = gen.ApiKeyInput
@@ -88,6 +80,14 @@ type PlanTermsInput = gen.PlanTermsInput
 type PlatformClientInput = gen.PlatformClientInput
 type PluginInput = gen.PluginInput
 type PluginAuthorInput = gen.PluginAuthorInput
+type RunInput = gen.RunInput
+type SessionSpecInput = gen.SessionSpecInput
+type WorkspaceEntryInput = gen.WorkspaceEntryInput
+type WorkspaceSourceInput = gen.WorkspaceSourceInput
+type GitRepoSourceInput = gen.GitRepoSourceInput
+type LocalPathSourceInput = gen.LocalPathSourceInput
+type AttachmentInput = gen.AttachmentInput
+type ConversationCatchupInput = gen.ConversationCatchupInput
 type ScheduleInput = gen.ScheduleInput
 type AgentInvocationInput = gen.AgentInvocationInput
 type SessionInput = gen.SessionInput
@@ -96,7 +96,7 @@ type SubscriptionInput = gen.SubscriptionInput
 type TeamInput = gen.TeamInput
 
 // Streaming types.
-type AgentRunSubscribeStream = gen.AgentRunSubscribeStream
+type RunSubscribeStream = gen.RunSubscribeStream
 
 // Shared SDK types.
 type DeleteResourceInput = gen.DeleteResourceInput

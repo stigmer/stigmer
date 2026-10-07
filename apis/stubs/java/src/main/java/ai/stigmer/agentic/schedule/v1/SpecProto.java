@@ -41,24 +41,24 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n)ai/stigmer/agentic/schedule/v1/spec.pr" +
-      "oto\022\036ai.stigmer.agentic.schedule.v1\032/ai/" +
-      "stigmer/agentic/agentrun/v1/invocation.p" +
-      "roto\032\033buf/validate/validate.proto\"\305\001\n\014Sc" +
-      "heduleSpec\022\033\n\004cron\030\001 \001(\tB\007\272H\004r\002\020\001R\004cron\022" +
-      "$\n\ttime_zone\030\002 \001(\tB\007\272H\004r\002\020\001R\010timeZone\022\030\n" +
-      "\007enabled\030\003 \001(\010R\007enabled\022G\n\005agent\030\004 \001(\0132/" +
-      ".ai.stigmer.agentic.agentrun.v1.AgentInv" +
-      "ocationH\000R\005agentB\017\n\006target\022\005\272H\002\010\001B\250\001B\tSp" +
-      "ecProtoP\001\242\002\004ASAS\252\002\036Ai.Stigmer.Agentic.Sc" +
-      "hedule.V1\312\002\036Ai\\Stigmer\\Agentic\\Schedule\\" +
-      "V1\342\002*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBM" +
-      "etadata\352\002\"Ai::Stigmer::Agentic::Schedule" +
-      "::V1b\006proto3"
+      "oto\022\036ai.stigmer.agentic.schedule.v1\032*ai/" +
+      "stigmer/agentic/run/v1/invocation.proto\032" +
+      "\033buf/validate/validate.proto\"\300\001\n\014Schedul" +
+      "eSpec\022\033\n\004cron\030\001 \001(\tB\007\272H\004r\002\020\001R\004cron\022$\n\tti" +
+      "me_zone\030\002 \001(\tB\007\272H\004r\002\020\001R\010timeZone\022\030\n\007enab" +
+      "led\030\003 \001(\010R\007enabled\022B\n\005agent\030\004 \001(\0132*.ai.s" +
+      "tigmer.agentic.run.v1.AgentInvocationH\000R" +
+      "\005agentB\017\n\006target\022\005\272H\002\010\001B\250\001B\tSpecProtoP\001\242" +
+      "\002\004ASAS\252\002\036Ai.Stigmer.Agentic.Schedule.V1\312" +
+      "\002\036Ai\\Stigmer\\Agentic\\Schedule\\V1\342\002*Ai\\St" +
+      "igmer\\Agentic\\Schedule\\V1\\GPBMetadata\352\002\"" +
+      "Ai::Stigmer::Agentic::Schedule::V1b\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
-          ai.stigmer.agentic.agentrun.v1.InvocationProto.getDescriptor(),
+          ai.stigmer.agentic.run.v1.InvocationProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
         });
     internal_static_ai_stigmer_agentic_schedule_v1_ScheduleSpec_descriptor =
@@ -68,7 +68,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
         internal_static_ai_stigmer_agentic_schedule_v1_ScheduleSpec_descriptor,
         new java.lang.String[] { "Cron", "TimeZone", "Enabled", "Agent", "Target", });
     descriptor.resolveAllFeaturesImmutable();
-    ai.stigmer.agentic.agentrun.v1.InvocationProto.getDescriptor();
+    ai.stigmer.agentic.run.v1.InvocationProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();

@@ -6,7 +6,6 @@ import (
 	"github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
 	agentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1"
 	agentchannelv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentchannel/v1"
-	agentrunv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentrun/v1"
 	agentsharev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentshare/v1"
 	channelappv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channelapp/v1"
 	environmentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1"
@@ -14,6 +13,7 @@ import (
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1"
 	memoryv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/memory/v1"
 	pluginv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugin/v1"
+	runv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1"
 	schedulev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/schedule/v1"
 	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
 	skillv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/skill/v1"
@@ -39,11 +39,6 @@ func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
 // AgentChannelInputFromProto creates a AgentChannelInput from a proto AgentChannel resource.
 func AgentChannelInputFromProto(p *agentchannelv1.AgentChannel) *AgentChannelInput {
 	return gen.AgentChannelInputFromProto(p)
-}
-
-// AgentRunInputFromProto creates a AgentRunInput from a proto AgentRun resource.
-func AgentRunInputFromProto(p *agentrunv1.AgentRun) *AgentRunInput {
-	return gen.AgentRunInputFromProto(p)
 }
 
 // AgentShareInputFromProto creates a AgentShareInput from a proto AgentShare resource.
@@ -129,6 +124,11 @@ func PlatformClientInputFromProto(p *platformclientv1.PlatformClient) *PlatformC
 // PluginInputFromProto creates a PluginInput from a proto Plugin resource.
 func PluginInputFromProto(p *pluginv1.Plugin) *PluginInput {
 	return gen.PluginInputFromProto(p)
+}
+
+// RunInputFromProto creates a RunInput from a proto Run resource.
+func RunInputFromProto(p *runv1.Run) *RunInput {
+	return gen.RunInputFromProto(p)
 }
 
 // ScheduleInputFromProto creates a ScheduleInput from a proto Schedule resource.

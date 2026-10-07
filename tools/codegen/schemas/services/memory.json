@@ -191,7 +191,7 @@
       ]
     }
   ],
-  "resourceDescription": "Memory is a single fact the platform remembers about a person.\n\n A memory is proposed by an agent during a session, and becomes active\n only after the person it is about confirms it. Confirmed memories are\n recalled into that person's future agent runs as background\n context. Every memory is individually listable, editable, and\n deletable — the record is the trust surface over the recall seam.",
+  "resourceDescription": "Memory is a single fact the platform remembers about a person.\n\n A memory is proposed by an agent during a session, and becomes active\n only after the person it is about confirms it. Confirmed memories are\n recalled into that person's future runs as background\n context. Every memory is individually listable, editable, and\n deletable — the record is the trust surface over the recall seam.",
   "statusType": {
     "name": "MemoryStatus",
     "description": "MemoryStatus contains system-managed state for a memory.",

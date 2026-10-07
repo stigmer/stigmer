@@ -1,6 +1,6 @@
 {
   "name": "IdentityAccountPreferences",
-  "description": "IdentityAccountPreferences holds user-declared defaults that apply to the\n user's own agent runs.",
+  "description": "IdentityAccountPreferences holds user-declared defaults that apply to the\n user's own runs.",
   "protoType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences",
   "protoFile": "apis/ai/stigmer/iam/identityaccount/v1/spec.proto",
   "fields": [

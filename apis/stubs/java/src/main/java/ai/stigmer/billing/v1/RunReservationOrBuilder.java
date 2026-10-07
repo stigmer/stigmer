@@ -52,7 +52,7 @@ public interface RunReservationOrBuilder extends
 
   /**
    * <pre>
-   * Agent run this reservation is for.
+   * Run this reservation is for.
    * </pre>
    *
    * <code>string run_id = 3 [json_name = "runId"];</code>
@@ -61,7 +61,7 @@ public interface RunReservationOrBuilder extends
   java.lang.String getRunId();
   /**
    * <pre>
-   * Agent run this reservation is for.
+   * Run this reservation is for.
    * </pre>
    *
    * <code>string run_id = 3 [json_name = "runId"];</code>

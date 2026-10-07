@@ -39,7 +39,7 @@ export const ExecutionContextIdSchema: GenMessage<ExecutionContextId> = /*@__PUR
  */
 export type ExecutionContextExecutionIdInput = Message<"ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput"> & {
   /**
-   * AgentRun ID (or an MCP connect's execution id) to look up.
+   * Run ID (or an MCP connect's execution id) to look up.
    *
    * @generated from field: string execution_id = 1;
    */

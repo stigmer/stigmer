@@ -1,0 +1,28 @@
+{
+  "name": "ConversationCatchup",
+  "description": "ConversationCatchup carries the channel-conversation events an agent\n missed, composed fresh for one run.",
+  "protoType": "ai.stigmer.agentic.run.v1.ConversationCatchup",
+  "protoFile": "apis/ai/stigmer/agentic/run/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Digest",
+      "jsonName": "digest",
+      "protoField": "digest",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Plain-text digest of what the agent missed, oldest first; empty when\n nothing was missed.",
+      "required": false
+    },
+    {
+      "name": "WindowEnd",
+      "jsonName": "windowEnd",
+      "protoField": "window_end",
+      "type": {
+        "kind": "timestamp"
+      },
+      "description": "The timeline instant this digest conveys through.",
+      "required": false
+    }
+  ]
+}

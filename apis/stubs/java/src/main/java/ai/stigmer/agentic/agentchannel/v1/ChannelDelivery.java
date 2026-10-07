@@ -257,7 +257,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object runId_ = "";
   /**
    * <pre>
-   * AgentRun whose terminal result this delivery carries.
+   * Run whose terminal result this delivery carries.
    * </pre>
    *
    * <code>string run_id = 4 [json_name = "runId"];</code>
@@ -278,7 +278,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * AgentRun whose terminal result this delivery carries.
+   * Run whose terminal result this delivery carries.
    * </pre>
    *
    * <code>string run_id = 4 [json_name = "runId"];</code>
@@ -2023,7 +2023,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object runId_ = "";
     /**
      * <pre>
-     * AgentRun whose terminal result this delivery carries.
+     * Run whose terminal result this delivery carries.
      * </pre>
      *
      * <code>string run_id = 4 [json_name = "runId"];</code>
@@ -2043,7 +2043,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * AgentRun whose terminal result this delivery carries.
+     * Run whose terminal result this delivery carries.
      * </pre>
      *
      * <code>string run_id = 4 [json_name = "runId"];</code>
@@ -2064,7 +2064,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * AgentRun whose terminal result this delivery carries.
+     * Run whose terminal result this delivery carries.
      * </pre>
      *
      * <code>string run_id = 4 [json_name = "runId"];</code>
@@ -2081,7 +2081,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * AgentRun whose terminal result this delivery carries.
+     * Run whose terminal result this delivery carries.
      * </pre>
      *
      * <code>string run_id = 4 [json_name = "runId"];</code>
@@ -2095,7 +2095,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * AgentRun whose terminal result this delivery carries.
+     * Run whose terminal result this delivery carries.
      * </pre>
      *
      * <code>string run_id = 4 [json_name = "runId"];</code>

@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/memory/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_memory_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvbWVtb3J5L3YxL3NwZWMucHJvdG8SHGFpLnN0aWdtZXIuYWdlbnRpYy5tZW1vcnkudjEikgEKCk1lbW9yeVNwZWMSGwoHY29udGVudBgBIAEoCUIKukgHcgUQARj0AxIjChtzdWJqZWN0X2lkZW50aXR5X2FjY291bnRfaWQYAiABKAkSQgoKcHJvdmVuYW5jZRgDIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5tZW1vcnkudjEuTWVtb3J5UHJvdmVuYW5jZSJkChBNZW1vcnlQcm92ZW5hbmNlEhAKCGFnZW50X2lkGAEgASgJEhIKCnNlc3Npb25faWQYAiABKAkSFAoMYWdlbnRfcnVuX2lkGAMgASgJEhQKDHRvb2xfY2FsbF9pZBgEIAEoCWIGcHJvdG8z", [file_buf_validate_validate]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvbWVtb3J5L3YxL3NwZWMucHJvdG8SHGFpLnN0aWdtZXIuYWdlbnRpYy5tZW1vcnkudjEikgEKCk1lbW9yeVNwZWMSGwoHY29udGVudBgBIAEoCUIKukgHcgUQARj0AxIjChtzdWJqZWN0X2lkZW50aXR5X2FjY291bnRfaWQYAiABKAkSQgoKcHJvdmVuYW5jZRgDIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5tZW1vcnkudjEuTWVtb3J5UHJvdmVuYW5jZSJeChBNZW1vcnlQcm92ZW5hbmNlEhAKCGFnZW50X2lkGAEgASgJEhIKCnNlc3Npb25faWQYAiABKAkSDgoGcnVuX2lkGAMgASgJEhQKDHRvb2xfY2FsbF9pZBgEIAEoCWIGcHJvdG8z", [file_buf_validate_validate]);
 
 /**
  * MemorySpec holds the remembered fact, who it is about, and where it
@@ -73,11 +73,11 @@ export type MemoryProvenance = Message<"ai.stigmer.agentic.memory.v1.MemoryProve
   sessionId: string;
 
   /**
-   * ID of the agent run in which this memory was proposed.
+   * ID of the run in which this memory was proposed.
    *
-   * @generated from field: string agent_run_id = 3;
+   * @generated from field: string run_id = 3;
    */
-  agentRunId: string;
+  runId: string;
 
   /**
    * ID of the remember tool call that proposed this memory.

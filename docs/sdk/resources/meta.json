@@ -3,7 +3,6 @@
   "pages": [
     "agent",
     "agent-channel",
-    "agent-run",
     "agent-share",
     "api-key",
     "channel-app",
@@ -23,6 +22,7 @@
     "platform-client",
     "plugin",
     "provider-key",
+    "run",
     "schedule",
     "session",
     "skill",

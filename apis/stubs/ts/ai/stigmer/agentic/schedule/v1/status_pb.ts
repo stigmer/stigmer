@@ -38,7 +38,7 @@ export type ScheduleStatus = Message<"ai.stigmer.agentic.schedule.v1.ScheduleSta
   lastFireAt?: Timestamp;
 
   /**
-   * ID of the agent run created by the most recent fire.
+   * ID of the run created by the most recent fire.
    *
    * @generated from field: string last_run_id = 3;
    */

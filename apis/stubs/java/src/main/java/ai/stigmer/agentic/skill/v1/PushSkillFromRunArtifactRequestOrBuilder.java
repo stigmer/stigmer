@@ -32,7 +32,7 @@ public interface PushSkillFromRunArtifactRequestOrBuilder extends
 
   /**
    * <pre>
-   * ID of the agent run that produced the artifact (e.g., "aex_abc123xyz456").
+   * ID of the run that produced the artifact (e.g., "run_abc123xyz456").
    * </pre>
    *
    * <code>string run_id = 2 [json_name = "runId", (.buf.validate.field) = { ... }</code>
@@ -41,7 +41,7 @@ public interface PushSkillFromRunArtifactRequestOrBuilder extends
   java.lang.String getRunId();
   /**
    * <pre>
-   * ID of the agent run that produced the artifact (e.g., "aex_abc123xyz456").
+   * ID of the run that produced the artifact (e.g., "run_abc123xyz456").
    * </pre>
    *
    * <code>string run_id = 2 [json_name = "runId", (.buf.validate.field) = { ... }</code>

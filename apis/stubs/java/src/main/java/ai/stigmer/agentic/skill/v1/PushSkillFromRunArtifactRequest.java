@@ -109,7 +109,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object runId_ = "";
   /**
    * <pre>
-   * ID of the agent run that produced the artifact (e.g., "aex_abc123xyz456").
+   * ID of the run that produced the artifact (e.g., "run_abc123xyz456").
    * </pre>
    *
    * <code>string run_id = 2 [json_name = "runId", (.buf.validate.field) = { ... }</code>
@@ -130,7 +130,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ID of the agent run that produced the artifact (e.g., "aex_abc123xyz456").
+   * ID of the run that produced the artifact (e.g., "run_abc123xyz456").
    * </pre>
    *
    * <code>string run_id = 2 [json_name = "runId", (.buf.validate.field) = { ... }</code>
@@ -715,7 +715,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object runId_ = "";
     /**
      * <pre>
-     * ID of the agent run that produced the artifact (e.g., "aex_abc123xyz456").
+     * ID of the run that produced the artifact (e.g., "run_abc123xyz456").
      * </pre>
      *
      * <code>string run_id = 2 [json_name = "runId", (.buf.validate.field) = { ... }</code>
@@ -735,7 +735,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the agent run that produced the artifact (e.g., "aex_abc123xyz456").
+     * ID of the run that produced the artifact (e.g., "run_abc123xyz456").
      * </pre>
      *
      * <code>string run_id = 2 [json_name = "runId", (.buf.validate.field) = { ... }</code>
@@ -756,7 +756,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the agent run that produced the artifact (e.g., "aex_abc123xyz456").
+     * ID of the run that produced the artifact (e.g., "run_abc123xyz456").
      * </pre>
      *
      * <code>string run_id = 2 [json_name = "runId", (.buf.validate.field) = { ... }</code>
@@ -773,7 +773,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the agent run that produced the artifact (e.g., "aex_abc123xyz456").
+     * ID of the run that produced the artifact (e.g., "run_abc123xyz456").
      * </pre>
      *
      * <code>string run_id = 2 [json_name = "runId", (.buf.validate.field) = { ... }</code>
@@ -787,7 +787,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the agent run that produced the artifact (e.g., "aex_abc123xyz456").
+     * ID of the run that produced the artifact (e.g., "run_abc123xyz456").
      * </pre>
      *
      * <code>string run_id = 2 [json_name = "runId", (.buf.validate.field) = { ... }</code>

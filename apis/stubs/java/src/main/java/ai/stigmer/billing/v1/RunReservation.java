@@ -7,7 +7,7 @@ package ai.stigmer.billing.v1;
 
 /**
  * <pre>
- * RunReservation tracks credits held for an active agent run.
+ * RunReservation tracks credits held for an active run.
  *
  * Created at run start (AuthorizeRun), consumed incrementally
  * by per-LLM-call debits (via proxy-observed usage metering), and settled
@@ -160,7 +160,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object runId_ = "";
   /**
    * <pre>
-   * Agent run this reservation is for.
+   * Run this reservation is for.
    * </pre>
    *
    * <code>string run_id = 3 [json_name = "runId"];</code>
@@ -181,7 +181,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Agent run this reservation is for.
+   * Run this reservation is for.
    * </pre>
    *
    * <code>string run_id = 3 [json_name = "runId"];</code>
@@ -566,7 +566,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * RunReservation tracks credits held for an active agent run.
+   * RunReservation tracks credits held for an active run.
    *
    * Created at run start (AuthorizeRun), consumed incrementally
    * by per-LLM-call debits (via proxy-observed usage metering), and settled
@@ -1012,7 +1012,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object runId_ = "";
     /**
      * <pre>
-     * Agent run this reservation is for.
+     * Run this reservation is for.
      * </pre>
      *
      * <code>string run_id = 3 [json_name = "runId"];</code>
@@ -1032,7 +1032,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent run this reservation is for.
+     * Run this reservation is for.
      * </pre>
      *
      * <code>string run_id = 3 [json_name = "runId"];</code>
@@ -1053,7 +1053,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent run this reservation is for.
+     * Run this reservation is for.
      * </pre>
      *
      * <code>string run_id = 3 [json_name = "runId"];</code>
@@ -1070,7 +1070,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent run this reservation is for.
+     * Run this reservation is for.
      * </pre>
      *
      * <code>string run_id = 3 [json_name = "runId"];</code>
@@ -1084,7 +1084,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent run this reservation is for.
+     * Run this reservation is for.
      * </pre>
      *
      * <code>string run_id = 3 [json_name = "runId"];</code>

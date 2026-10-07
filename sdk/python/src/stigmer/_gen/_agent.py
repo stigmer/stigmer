@@ -18,10 +18,10 @@ from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
 from ai.stigmer.search.v1 import query_pb2_grpc as search_query_pb2_grpc
 from ai.stigmer.search.v1 import io_pb2 as search_io_pb2
 from ai.stigmer.commons.rpc import pagination_pb2
-from ai.stigmer.agentic.agentrun.v1 import invocation_pb2 as agentrun_invocation_pb2
 from ai.stigmer.agentic.environment.v1 import spec_pb2 as environment_spec_pb2
 from ai.stigmer.agentic.mcpserver.v1 import usage_pb2 as mcpserver_usage_pb2
 from ai.stigmer.agentic.plugin.v1 import hooks_pb2 as plugin_hooks_pb2
+from ai.stigmer.agentic.run.v1 import invocation_pb2 as run_invocation_pb2
 
 from ._errors import wrap_error
 from ._types import ListParams, ListResult, ResourceRef
@@ -339,8 +339,8 @@ class RunConfigInput:
     thinking_mode: int = 0
     max_tool_result_chars: int = 0
 
-    def _to_proto(self) -> agentrun_invocation_pb2.RunConfig:
-        msg = agentrun_invocation_pb2.RunConfig(
+    def _to_proto(self) -> run_invocation_pb2.RunConfig:
+        msg = run_invocation_pb2.RunConfig(
             model_name=self.model_name,
             max_cost_usd=self.max_cost_usd,
             max_tool_rounds=self.max_tool_rounds,

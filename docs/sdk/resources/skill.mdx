@@ -478,7 +478,7 @@ Skill skill = client.skills().push(PushSkillRequest.builder()
 
 ### pushFromRunArtifact
 
-Push a skill from a run artifact already in storage. Use this when an agent run has already produced a skill artifact and you want to publish it without downloading and re-uploading the ZIP.
+Push a skill from a run artifact already in storage. Use this when a run has already produced a skill artifact and you want to publish it without downloading and re-uploading the ZIP.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -591,7 +591,7 @@ PushSkillFromRunArtifactRequest publishes a skill from a run artifact already in
 <TypeTable
   type={{
     org: { type: "string", description: "Organization that will own the skill.", required: true },
-    runId: { type: "string", description: "ID of the agent run that produced the artifact (e.g., \"aex_abc123xyz456\")." },
+    runId: { type: "string", description: "ID of the run that produced the artifact (e.g., \"run_abc123xyz456\")." },
     storageKey: { type: "string", description: "Storage key of the directory artifact (ZIP) to push as a skill." },
     tag: { type: "string", description: "Optional version tag (same semantics as PushSkillRequest.tag)." },
   }}

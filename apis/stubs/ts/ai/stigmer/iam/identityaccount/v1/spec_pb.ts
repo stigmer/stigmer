@@ -131,7 +131,7 @@ export const IdentityAccountSpecSchema: GenMessage<IdentityAccountSpec> = /*@__P
 
 /**
  * IdentityAccountPreferences holds user-declared defaults that apply to the
- * user's own agent runs.
+ * user's own runs.
  *
  * @generated from message ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences
  */

@@ -96,7 +96,7 @@ type SessionSpec struct {
 	// Execution harness for this session.
 	//
 	// Determines which Temporal activity type is dispatched when an
-	// AgentRun is created in this session:
+	// Run is created in this session:
 	// - NATIVE (default): ExecuteDeepAgent activity -> Stigmer unified runner
 	// - CURSOR: ExecuteCursor activity -> TypeScript/Cursor SDK worker
 	//
@@ -109,7 +109,7 @@ type SessionSpec struct {
 	Harness Harness `protobuf:"varint,10,opt,name=harness,proto3,enum=ai.stigmer.agentic.session.v1.Harness" json:"harness,omitempty"`
 	// Cursor SDK agent mode for this session.
 	//
-	// Determines whether the Cursor agent runs locally (Agent.create with
+	// Determines whether the Cursor runs locally (Agent.create with
 	// local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
 	// at session creation and never changed — switching mid-session would
 	// lose Cursor-side conversation state.

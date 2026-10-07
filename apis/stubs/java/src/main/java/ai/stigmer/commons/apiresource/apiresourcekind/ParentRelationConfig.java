@@ -165,7 +165,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Field name in the resource's spec message that contains the parent ID.
    * The service extracts this field from resource.spec to resolve the parent ID.
-   * Example: "session_id" for agent_run, "subject_identity_account_id" for
+   * Example: "session_id" for run, "subject_identity_account_id" for
    * memory.
    * This eliminates hardcoded parent ID extraction logic in the service.
    * </pre>
@@ -190,7 +190,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Field name in the resource's spec message that contains the parent ID.
    * The service extracts this field from resource.spec to resolve the parent ID.
-   * Example: "session_id" for agent_run, "subject_identity_account_id" for
+   * Example: "session_id" for run, "subject_identity_account_id" for
    * memory.
    * This eliminates hardcoded parent ID extraction logic in the service.
    * </pre>
@@ -769,7 +769,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Field name in the resource's spec message that contains the parent ID.
      * The service extracts this field from resource.spec to resolve the parent ID.
-     * Example: "session_id" for agent_run, "subject_identity_account_id" for
+     * Example: "session_id" for run, "subject_identity_account_id" for
      * memory.
      * This eliminates hardcoded parent ID extraction logic in the service.
      * </pre>
@@ -793,7 +793,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Field name in the resource's spec message that contains the parent ID.
      * The service extracts this field from resource.spec to resolve the parent ID.
-     * Example: "session_id" for agent_run, "subject_identity_account_id" for
+     * Example: "session_id" for run, "subject_identity_account_id" for
      * memory.
      * This eliminates hardcoded parent ID extraction logic in the service.
      * </pre>
@@ -818,7 +818,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Field name in the resource's spec message that contains the parent ID.
      * The service extracts this field from resource.spec to resolve the parent ID.
-     * Example: "session_id" for agent_run, "subject_identity_account_id" for
+     * Example: "session_id" for run, "subject_identity_account_id" for
      * memory.
      * This eliminates hardcoded parent ID extraction logic in the service.
      * </pre>
@@ -839,7 +839,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Field name in the resource's spec message that contains the parent ID.
      * The service extracts this field from resource.spec to resolve the parent ID.
-     * Example: "session_id" for agent_run, "subject_identity_account_id" for
+     * Example: "session_id" for run, "subject_identity_account_id" for
      * memory.
      * This eliminates hardcoded parent ID extraction logic in the service.
      * </pre>
@@ -857,7 +857,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Field name in the resource's spec message that contains the parent ID.
      * The service extracts this field from resource.spec to resolve the parent ID.
-     * Example: "session_id" for agent_run, "subject_identity_account_id" for
+     * Example: "session_id" for run, "subject_identity_account_id" for
      * memory.
      * This eliminates hardcoded parent ID extraction logic in the service.
      * </pre>

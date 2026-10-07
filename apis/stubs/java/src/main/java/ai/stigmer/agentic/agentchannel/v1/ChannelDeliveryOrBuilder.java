@@ -74,7 +74,7 @@ public interface ChannelDeliveryOrBuilder extends
 
   /**
    * <pre>
-   * AgentRun whose terminal result this delivery carries.
+   * Run whose terminal result this delivery carries.
    * </pre>
    *
    * <code>string run_id = 4 [json_name = "runId"];</code>
@@ -83,7 +83,7 @@ public interface ChannelDeliveryOrBuilder extends
   java.lang.String getRunId();
   /**
    * <pre>
-   * AgentRun whose terminal result this delivery carries.
+   * Run whose terminal result this delivery carries.
    * </pre>
    *
    * <code>string run_id = 4 [json_name = "runId"];</code>

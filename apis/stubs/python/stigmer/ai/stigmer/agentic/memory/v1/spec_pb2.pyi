@@ -17,13 +17,13 @@ class MemorySpec(_message.Message):
     def __init__(self, content: _Optional[str] = ..., subject_identity_account_id: _Optional[str] = ..., provenance: _Optional[_Union[MemoryProvenance, _Mapping]] = ...) -> None: ...
 
 class MemoryProvenance(_message.Message):
-    __slots__ = ("agent_id", "session_id", "agent_run_id", "tool_call_id")
+    __slots__ = ("agent_id", "session_id", "run_id", "tool_call_id")
     AGENT_ID_FIELD_NUMBER: _ClassVar[int]
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]
-    AGENT_RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    RUN_ID_FIELD_NUMBER: _ClassVar[int]
     TOOL_CALL_ID_FIELD_NUMBER: _ClassVar[int]
     agent_id: str
     session_id: str
-    agent_run_id: str
+    run_id: str
     tool_call_id: str
-    def __init__(self, agent_id: _Optional[str] = ..., session_id: _Optional[str] = ..., agent_run_id: _Optional[str] = ..., tool_call_id: _Optional[str] = ...) -> None: ...
+    def __init__(self, agent_id: _Optional[str] = ..., session_id: _Optional[str] = ..., run_id: _Optional[str] = ..., tool_call_id: _Optional[str] = ...) -> None: ...

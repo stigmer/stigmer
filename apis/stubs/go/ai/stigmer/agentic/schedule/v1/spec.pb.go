@@ -8,7 +8,7 @@ package schedulev1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentrun/v1"
+	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/run/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -131,12 +131,12 @@ var File_ai_stigmer_agentic_schedule_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_schedule_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/schedule/v1/spec.proto\x12\x1eai.stigmer.agentic.schedule.v1\x1a/ai/stigmer/agentic/agentrun/v1/invocation.proto\x1a\x1bbuf/validate/validate.proto\"\xc5\x01\n" +
+	")ai/stigmer/agentic/schedule/v1/spec.proto\x12\x1eai.stigmer.agentic.schedule.v1\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a\x1bbuf/validate/validate.proto\"\xc0\x01\n" +
 	"\fScheduleSpec\x12\x1b\n" +
 	"\x04cron\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04cron\x12$\n" +
 	"\ttime_zone\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\btimeZone\x12\x18\n" +
-	"\aenabled\x18\x03 \x01(\bR\aenabled\x12G\n" +
-	"\x05agent\x18\x04 \x01(\v2/.ai.stigmer.agentic.agentrun.v1.AgentInvocationH\x00R\x05agentB\x0f\n" +
+	"\aenabled\x18\x03 \x01(\bR\aenabled\x12B\n" +
+	"\x05agent\x18\x04 \x01(\v2*.ai.stigmer.agentic.run.v1.AgentInvocationH\x00R\x05agentB\x0f\n" +
 	"\x06target\x12\x05\xbaH\x02\b\x01B\xa0\x02\n" +
 	"\"com.ai.stigmer.agentic.schedule.v1B\tSpecProtoP\x01ZRgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/schedule/v1;schedulev1\xa2\x02\x04ASAS\xaa\x02\x1eAi.Stigmer.Agentic.Schedule.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Schedule\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Schedule::V1b\x06proto3"
 
@@ -155,10 +155,10 @@ func file_ai_stigmer_agentic_schedule_v1_spec_proto_rawDescGZIP() []byte {
 var file_ai_stigmer_agentic_schedule_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_ai_stigmer_agentic_schedule_v1_spec_proto_goTypes = []any{
 	(*ScheduleSpec)(nil),       // 0: ai.stigmer.agentic.schedule.v1.ScheduleSpec
-	(*v1.AgentInvocation)(nil), // 1: ai.stigmer.agentic.agentrun.v1.AgentInvocation
+	(*v1.AgentInvocation)(nil), // 1: ai.stigmer.agentic.run.v1.AgentInvocation
 }
 var file_ai_stigmer_agentic_schedule_v1_spec_proto_depIdxs = []int32{
-	1, // 0: ai.stigmer.agentic.schedule.v1.ScheduleSpec.agent:type_name -> ai.stigmer.agentic.agentrun.v1.AgentInvocation
+	1, // 0: ai.stigmer.agentic.schedule.v1.ScheduleSpec.agent:type_name -> ai.stigmer.agentic.run.v1.AgentInvocation
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
