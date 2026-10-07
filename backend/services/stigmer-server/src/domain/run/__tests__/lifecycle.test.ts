@@ -18,6 +18,8 @@
  *     pinning none leaves the turn the built-in assistant's; a caller who
  *     may no longer run the agent is refused before the previous workflow
  *     is terminated, the pre-side-effect slot runs, or anything is written;
+ *   - recover rebuilds the context for the person the run recorded at
+ *     create, never the caller who recovers it;
  *   - recover runs one at a time per execution (stigmer#1672): a second
  *     concurrent recover waits for the first and then takes the idempotent
  *     arm, a recover queued behind a failed one retries in full, and two
@@ -71,15 +73,18 @@ import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/sub
 import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
+import { CredentialSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
 import type { RunStatusTransition } from "../../../extensions/status-hooks.js";
 import { KeyedSerializer } from "../../../pipeline/keyed-serializer.js";
+import { SecretService } from "../../../encryption/encryption.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
-import type { ManagedEnvironmentService } from "../../mcpserver/oauth/managed-env.js";
+import { credentialListIndex } from "../../credential/list-index.js";
+import { CredentialValues } from "../../credential/values.js";
 
 import {
   ensureApprovalRequests,
@@ -116,7 +121,9 @@ let store: Store;
 
 beforeAll(() => {
   dir = mkdtempSync(path.join(tmpdir(), "aexec-lifecycle-test-"));
-  store = SqliteStore.open(path.join(dir, "stigmer.db"));
+  store = SqliteStore.open(path.join(dir, "stigmer.db"), undefined, {
+    listIndexes: [credentialListIndex],
+  });
 });
 
 afterAll(() => {
@@ -419,10 +426,11 @@ function stubBuilderDeps(overrides?: {
   onEcCreate?: (ec: ExecutionContext) => void;
   onEcDelete?: (contextId: string) => void;
   onAgentGet?: (agentId: string) => void;
+  agentSpec?: Agent["spec"];
 }): ExecutionContextBuilderDeps {
   const agent: Agent = create(AgentSchema, {
     metadata: { id: "agt_lc", org: "acme", slug: "lc-agent" },
-    spec: {},
+    spec: overrides?.agentSpec ?? {},
   });
   return {
     store,
@@ -443,17 +451,6 @@ function stubBuilderDeps(overrides?: {
           status: { agentId: "agt_lc" },
         }),
     }),
-    environmentReader: () => ({
-      getSecretValue: async () => {
-        throw new Error("no secrets in this test");
-      },
-    }),
-    environmentResolution: {
-      resolveByReference: async () => {
-        throw new Error("no environment refs in this test");
-      },
-      // Only resolveByReference is consumed by the builder.
-    } as unknown as ExecutionContextBuilderDeps["environmentResolution"],
     executionContextCreator: () => ({
       create: async (ec) => {
         overrides?.onEcCreate?.(ec);
@@ -465,12 +462,18 @@ function stubBuilderDeps(overrides?: {
         overrides?.onEcDelete?.(contextId);
       },
     }),
-    managedEnvService: {
-      readSecretValue: async () => "",
-      updateSecrets: async () => {},
-    } as unknown as ManagedEnvironmentService,
-    // No execution here was created by a minted user, so the minting
-    // client's layer answers from the audit without reading a client.
+    credentials: {
+      store,
+      logger: silentLogger,
+      authorizer: newPermissiveSingleTeamAuthorizer(),
+      values: new CredentialValues(SecretService.create(undefined), silentLogger),
+      signIns: {
+        freshen: async () => {
+          throw new Error("no sign-in in this test");
+        },
+      },
+    },
+    // No execution here was created by a minted user, so no client is read.
     platformClients: {
       findById: async () => {
         throw new Error("no minting client in this test");
@@ -885,6 +888,87 @@ describe("lifecycle pipelines", () => {
     expect(result.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
     expect(result.status?.error).toBe("");
     expect(result.status?.completedAt).toBe("");
+  });
+
+  it("recover rebuilds the context with the person the run recorded at create, never the recoverer", async () => {
+    // Ana's run, recovered by an admin: both hold a credential serving the
+    // agent; the rebuilt context must carry Ana's.
+    for (const [person, value] of [
+      ["acc_ana", "ana-lc"],
+      ["acc_admin", "admin-lc"],
+    ] as const) {
+      const credentialId = `cred_lc_${person}`;
+      await store.saveResource(
+        ApiResourceKind.credential,
+        credentialId,
+        CredentialSchema,
+        create(CredentialSchema, {
+          metadata: { id: credentialId, org: "acme", slug: credentialId },
+          spec: {
+            owner: { case: "person", value: person },
+            fields: { LC_KEY: { value, plain: true } },
+            serves: [
+              {
+                target: {
+                  case: "agent",
+                  value: {
+                    kind: ApiResourceKind.agent,
+                    org: "acme",
+                    slug: "lc-agent",
+                  },
+                },
+              },
+            ],
+          },
+        }),
+      );
+    }
+    const createdEcs: ExecutionContext[] = [];
+    const deps: LifecycleDeps = {
+      ...lifecycleDeps(
+        connected(
+          stubConnectedEngine({
+            terminateWorkflow: async () => {},
+            startInvokeWorkflow: async () => {},
+          }),
+        ),
+      ),
+      executionContextBuilder: stubBuilderDeps({
+        onEcCreate: (ec) => createdEcs.push(ec),
+        agentSpec: create(AgentSchema, {
+          spec: { env: { LC_KEY: { isSecret: true } } },
+        }).spec,
+      }),
+    };
+    const id = "aexec_lifecycle_recorded_person";
+    await store.saveResource(
+      ApiResourceKind.run,
+      id,
+      RunSchema,
+      create(RunSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Run",
+        metadata: { id, name: id, org: "acme" },
+        spec: {
+          target: { case: "sessionId", value: "ses_lc" },
+          message: "hi",
+        },
+        status: {
+          phase: RunPhase.RUN_FAILED,
+          agentId: "agt_lc",
+          credentials: { person: "acc_ana" },
+        },
+      }),
+    );
+
+    await recoverExecution(
+      deps,
+      recoverInput(id),
+      testCallerIdentity({ identityId: "acc_admin" }),
+    );
+
+    expect(createdEcs).toHaveLength(1);
+    expect(createdEcs[0]?.spec?.data["LC_KEY"]?.value).toBe("ana-lc");
   });
 
   it("recover deletes the run's stale context through the server's delete edge before recreating it", async () => {
