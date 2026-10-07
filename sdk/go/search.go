@@ -18,7 +18,7 @@ const (
 	KindSkill     = apiresourcekind.ApiResourceKind_skill
 	KindMcpServer = apiresourcekind.ApiResourceKind_mcp_server
 	KindSession   = apiresourcekind.ApiResourceKind_session
-	KindRun       = apiresourcekind.ApiResourceKind_agent_run
+	KindRun       = apiresourcekind.ApiResourceKind_run
 )
 
 // SearchParams configures a cross-resource search query.

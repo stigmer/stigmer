@@ -43,7 +43,7 @@ func main() {
 
     // Start a conversation on the agent: the server creates its session
     // and pins the agent's current version on it
-    run, err := client.AgentRun.Create(ctx, &stigmer.AgentRunInput{
+    run, err := client.Run.Create(ctx, &stigmer.RunInput{
         SessionSpec: &stigmer.SessionSpecInput{
             AgentRef: stigmer.ResourceRef{
                 Org:  agent.GetMetadata().GetOrg(),
@@ -69,7 +69,7 @@ The client provides sub-clients for each resource type:
 | `client.Skill`          | Skill           | Get, GetByReference, Push, GetArtifact, Delete, List |
 | `client.McpServer`      | MCP Server      | Get, GetByReference, Create, Update, Apply, Delete, List |
 | `client.Session`        | Session         | Get, Create, Update, Apply, Delete, List, ListByAgent |
-| `client.AgentRun`       | AgentRun        | Get, Create, Subscribe, List, ListBySession, Cancel, Pause, Resume, Terminate, Recover, SubmitApproval, UploadAttachment, GetArtifactDownloadUrl |
+| `client.Run`            | Run             | Get, Create, Subscribe, List, ListBySession, Cancel, Pause, Resume, Terminate, Recover, SubmitApproval, UploadAttachment, GetArtifactDownloadUrl |
 | `client.Search`         | Cross-resource  | Query |
 | `client.Billing`        | Billing         | GetOrCreateBillingAccount, GetBillingAccount, GetCreditBalance, AdjustCredits, GetCreditLedger, GetBillingUsageReport, CreateCreditCheckoutSession, CreateBillingPortalSession, CreatePaymentMethodSetupSession, SetAutoRechargeConfig, GetCustomerModelPricing + operator pricing methods |
 
@@ -128,7 +128,7 @@ if stigmer.IsPermissionDenied(err) {
 Subscribe to real-time run updates:
 
 ```go
-stream, err := client.AgentRun.Subscribe(ctx, "run-id")
+stream, err := client.Run.Subscribe(ctx, "run-id")
 for {
     run, err := stream.Recv()
     if err == io.EOF {
@@ -140,7 +140,7 @@ for {
 
 ## Types
 
-- **Input types** (`AgentInput`, `AgentRunInput`, etc.) are SDK types that flatten proto construction.
+- **Input types** (`AgentInput`, `RunInput`, etc.) are SDK types that flatten proto construction.
 - **Response types** are proto types directly (e.g., `*agentv1.Agent`). Access fields via generated getters.
 - **Search/List results** use `*stigmer.ListResult` (for SearchService-backed lists) or the native list response types.
 

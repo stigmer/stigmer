@@ -8,7 +8,7 @@ package stigmer
 // These tests exercise the *checked-in generated code* against the real proto
 // stubs — the layer where the bug actually bit. The SDK's toProto() is
 // unexported, so the forward direction is driven through the public
-// Session/AgentRun Create calls against an in-memory gRPC server that
+// Session/Run Create calls against an in-memory gRPC server that
 // captures the exact wire message the server would validate. The reverse
 // direction uses the exported *InputFromProto constructors.
 //
@@ -21,7 +21,7 @@ import (
 	"net"
 	"testing"
 
-	agentrunv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentrun/v1"
+	runv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1"
 	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
@@ -39,8 +39,8 @@ const (
 // captureState records the last Create request seen by the fake command
 // controllers. A single instance is shared across both controller shims.
 type captureState struct {
-	lastSession        *sessionv1.Session
-	lastAgentExecution *agentrunv1.AgentRun
+	lastSession *sessionv1.Session
+	lastRun     *runv1.Run
 }
 
 // The session and agent-run command controllers each require a method
@@ -57,13 +57,13 @@ func (s *sessionCaptureServer) Create(_ context.Context, req *sessionv1.Session)
 	return req, nil
 }
 
-type agentExecutionCaptureServer struct {
-	agentrunv1.UnimplementedAgentRunCommandControllerServer
+type runSourceCaptureServer struct {
+	runv1.UnimplementedRunCommandControllerServer
 	state *captureState
 }
 
-func (s *agentExecutionCaptureServer) Create(_ context.Context, req *agentrunv1.AgentRun) (*agentrunv1.AgentRun, error) {
-	s.state.lastAgentExecution = req
+func (s *runSourceCaptureServer) Create(_ context.Context, req *runv1.Run) (*runv1.Run, error) {
+	s.state.lastRun = req
 	return req, nil
 }
 
@@ -78,7 +78,7 @@ func newCaptureClient(t *testing.T) (*Client, *captureState) {
 	lis := bufconn.Listen(1024 * 1024)
 	srv := grpc.NewServer()
 	sessionv1.RegisterSessionCommandControllerServer(srv, &sessionCaptureServer{state: state})
-	agentrunv1.RegisterAgentRunCommandControllerServer(srv, &agentExecutionCaptureServer{state: state})
+	runv1.RegisterRunCommandControllerServer(srv, &runSourceCaptureServer{state: state})
 
 	go func() { _ = srv.Serve(lis) }()
 
@@ -230,10 +230,10 @@ func TestWorkspaceSourceOneof_SessionCreate(t *testing.T) {
 	})
 }
 
-func TestWorkspaceSourceOneof_AgentRunSessionSpec(t *testing.T) {
+func TestWorkspaceSourceOneof_RunSessionSpec(t *testing.T) {
 	t.Run("git_repo", func(t *testing.T) {
 		client, state := newCaptureClient(t)
-		if _, err := client.AgentRun.Create(context.Background(), &AgentRunInput{
+		if _, err := client.Run.Create(context.Background(), &RunInput{
 			Org:     "acme",
 			Message: "hello",
 			SessionSpec: &SessionSpecInput{
@@ -241,9 +241,9 @@ func TestWorkspaceSourceOneof_AgentRunSessionSpec(t *testing.T) {
 				WorkspaceEntries: []*WorkspaceEntryInput{gitRepoEntry()},
 			},
 		}); err != nil {
-			t.Fatalf("AgentRun.Create: %v", err)
+			t.Fatalf("Run.Create: %v", err)
 		}
-		sessionSpec := state.lastAgentExecution.GetSpec().GetSessionSpec()
+		sessionSpec := state.lastRun.GetSpec().GetSessionSpec()
 		// The new conversation names its agent by reference, stamped with
 		// the agent kind, alongside the workspace.
 		ref := sessionSpec.GetAgentRef()
@@ -259,7 +259,7 @@ func TestWorkspaceSourceOneof_AgentRunSessionSpec(t *testing.T) {
 
 	t.Run("local_path", func(t *testing.T) {
 		client, state := newCaptureClient(t)
-		if _, err := client.AgentRun.Create(context.Background(), &AgentRunInput{
+		if _, err := client.Run.Create(context.Background(), &RunInput{
 			Org:     "acme",
 			Message: "hello",
 			SessionSpec: &SessionSpecInput{
@@ -267,9 +267,9 @@ func TestWorkspaceSourceOneof_AgentRunSessionSpec(t *testing.T) {
 				WorkspaceEntries: []*WorkspaceEntryInput{localPathEntry()},
 			},
 		}); err != nil {
-			t.Fatalf("AgentRun.Create: %v", err)
+			t.Fatalf("Run.Create: %v", err)
 		}
-		entries := state.lastAgentExecution.GetSpec().GetSessionSpec().GetWorkspaceEntries()
+		entries := state.lastRun.GetSpec().GetSessionSpec().GetWorkspaceEntries()
 		if len(entries) != 1 {
 			t.Fatalf("workspace entries = %d, want 1", len(entries))
 		}
