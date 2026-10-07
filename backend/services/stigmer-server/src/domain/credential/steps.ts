@@ -196,36 +196,23 @@ export function newGuardCredentialOwnerFixedStep(): PipelineStep<
   return {
     name: "GuardCredentialOwnerFixed",
     execute(ctx: RequestContext<typeof CredentialSchema>): void {
-      const existing = ctx.get(EXISTING_RESOURCE_KEY) as Credential | undefined;
-      if (existing === undefined) {
-        throw internalError(
-          new Error("GuardCredentialOwnerFixed ran without the stored credential"),
-          "credential owner guard requires the stored credential",
-        );
-      }
+      // LoadExisting precedes this step, and protovalidate requires the
+      // owner on every write, so both owners are named here.
+      const existing = ctx.get(EXISTING_RESOURCE_KEY) as Credential;
       const stored = ownerOf(existing);
-      const spec = (ctx.newState.spec ??= create(CredentialSpecSchema));
       const requested = ownerOf(ctx.newState);
-      if (stored === undefined) {
-        throw internalError(
-          new Error(`stored credential ${existing.metadata?.id ?? ""} names no owner`),
-          "stored credential names no owner",
-        );
-      }
-      // An update that omits the owner keeps it; one that names another is refused.
-      if (requested === undefined || ownerValue(requested) === "") {
-        if (requested !== undefined && requested.kind !== stored.kind) {
-          throw failedPreconditionError(OWNER_IS_FIXED);
-        }
-        spec.owner = existing.spec?.owner ?? { case: undefined };
-        return;
-      }
-      if (
-        requested.kind !== stored.kind ||
-        ownerValue(requested) !== ownerValue(stored)
-      ) {
+      const keeps =
+        stored !== undefined &&
+        requested?.kind === stored.kind &&
+        (ownerValue(requested) === "" ||
+          ownerValue(requested) === ownerValue(stored));
+      if (!keeps) {
         throw failedPreconditionError(OWNER_IS_FIXED);
       }
+      // An empty member means "as stored", as it means "me" or "this
+      // organization" on create.
+      (ctx.newState.spec ??= create(CredentialSpecSchema)).owner =
+        existing.spec?.owner ?? { case: undefined };
     },
   };
 }
