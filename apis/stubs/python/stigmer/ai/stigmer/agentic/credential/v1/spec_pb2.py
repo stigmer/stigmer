@@ -26,7 +26,7 @@ from ai.stigmer.agentic.credential.v1 import requirement_pb2 as ai_dot_stigmer_d
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/agentic/credential/v1/spec.proto\x12 ai.stigmer.agentic.credential.v1\x1a\x32\x61i/stigmer/agentic/credential/v1/requirement.proto\x1a\x1b\x62uf/validate/validate.proto\"\xd4\x03\n\x0e\x43redentialSpec\x12\x18\n\x06person\x18\x01 \x01(\tH\x00R\x06person\x12$\n\x0corganization\x18\x02 \x01(\tH\x00R\x0corganization\x12*\n\x0b\x64\x65scription\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\xe8\x07R\x0b\x64\x65scription\x12\x81\x01\n\x06\x66ields\x18\x04 \x03(\x0b\x32<.ai.stigmer.agentic.credential.v1.CredentialSpec.FieldsEntryB+\xbaH(\x9a\x01%\x10@\"!r\x1f\x10\x01\x18\x80\x01\x32\x18^[A-Za-z_][A-Za-z0-9_]*$R\x06\x66ields\x12T\n\x06serves\x18\x05 \x03(\x0b\x32\x32.ai.stigmer.agentic.credential.v1.CredentialTargetB\x08\xbaH\x05\x92\x01\x02\x10@R\x06serves\x1al\n\x0b\x46ieldsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12G\n\x05value\x18\x02 \x01(\x0b\x32\x31.ai.stigmer.agentic.credential.v1.CredentialFieldR\x05value:\x02\x38\x01\x42\x0e\n\x05owner\x12\x05\xbaH\x02\x08\x01\"i\n\x0f\x43redentialField\x12\x14\n\x05value\x18\x01 \x01(\tR\x05value\x12\x14\n\x05plain\x18\x02 \x01(\x08R\x05plain\x12*\n\x0b\x64\x65scription\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\xe8\x07R\x0b\x64\x65scriptionB\xd6\x01\n$com.ai.stigmer.agentic.credential.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAC\xaa\x02 Ai.Stigmer.Agentic.Credential.V1\xca\x02 Ai\\Stigmer\\Agentic\\Credential\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Credential\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Credential::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/agentic/credential/v1/spec.proto\x12 ai.stigmer.agentic.credential.v1\x1a\x32\x61i/stigmer/agentic/credential/v1/requirement.proto\x1a\x1b\x62uf/validate/validate.proto\"\xc2\x03\n\x0e\x43redentialSpec\x12\x18\n\x06person\x18\x01 \x01(\tH\x00R\x06person\x12\x12\n\x03org\x18\x02 \x01(\tH\x00R\x03org\x12*\n\x0b\x64\x65scription\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\xe8\x07R\x0b\x64\x65scription\x12\x81\x01\n\x06\x66ields\x18\x04 \x03(\x0b\x32<.ai.stigmer.agentic.credential.v1.CredentialSpec.FieldsEntryB+\xbaH(\x9a\x01%\x10@\"!r\x1f\x10\x01\x18\x80\x01\x32\x18^[A-Za-z_][A-Za-z0-9_]*$R\x06\x66ields\x12T\n\x06serves\x18\x05 \x03(\x0b\x32\x32.ai.stigmer.agentic.credential.v1.CredentialTargetB\x08\xbaH\x05\x92\x01\x02\x10@R\x06serves\x1al\n\x0b\x46ieldsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12G\n\x05value\x18\x02 \x01(\x0b\x32\x31.ai.stigmer.agentic.credential.v1.CredentialFieldR\x05value:\x02\x38\x01\x42\x0e\n\x05owner\x12\x05\xbaH\x02\x08\x01\"i\n\x0f\x43redentialField\x12\x14\n\x05value\x18\x01 \x01(\tR\x05value\x12\x14\n\x05plain\x18\x02 \x01(\x08R\x05plain\x12*\n\x0b\x64\x65scription\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\xe8\x07R\x0b\x64\x65scriptionB\xd6\x01\n$com.ai.stigmer.agentic.credential.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAC\xaa\x02 Ai.Stigmer.Agentic.Credential.V1\xca\x02 Ai\\Stigmer\\Agentic\\Credential\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Credential\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Credential::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -47,9 +47,9 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_CREDENTIALFIELD'].fields_by_name['description']._loaded_options = None
   _globals['_CREDENTIALFIELD'].fields_by_name['description']._serialized_options = b'\272H\005r\003\030\350\007'
   _globals['_CREDENTIALSPEC']._serialized_start=163
-  _globals['_CREDENTIALSPEC']._serialized_end=631
-  _globals['_CREDENTIALSPEC_FIELDSENTRY']._serialized_start=507
-  _globals['_CREDENTIALSPEC_FIELDSENTRY']._serialized_end=615
-  _globals['_CREDENTIALFIELD']._serialized_start=633
-  _globals['_CREDENTIALFIELD']._serialized_end=738
+  _globals['_CREDENTIALSPEC']._serialized_end=613
+  _globals['_CREDENTIALSPEC_FIELDSENTRY']._serialized_start=489
+  _globals['_CREDENTIALSPEC_FIELDSENTRY']._serialized_end=597
+  _globals['_CREDENTIALFIELD']._serialized_start=615
+  _globals['_CREDENTIALFIELD']._serialized_end=720
 # @@protoc_insertion_point(module_scope)

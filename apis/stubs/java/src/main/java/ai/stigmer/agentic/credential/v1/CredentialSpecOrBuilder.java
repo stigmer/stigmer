@@ -50,41 +50,41 @@ public interface CredentialSpecOrBuilder extends
 
   /**
    * <pre>
-   * The organization the credential belongs to, by organization id.
+   * The organization the credential belongs to.
    *
    * Empty means the credential's own organization (metadata.org); any
-   * other value must be that organization's id.
+   * other value must name that organization.
    * </pre>
    *
-   * <code>string organization = 2 [json_name = "organization"];</code>
-   * @return Whether the organization field is set.
+   * <code>string org = 2 [json_name = "org"];</code>
+   * @return Whether the org field is set.
    */
-  boolean hasOrganization();
+  boolean hasOrg();
   /**
    * <pre>
-   * The organization the credential belongs to, by organization id.
+   * The organization the credential belongs to.
    *
    * Empty means the credential's own organization (metadata.org); any
-   * other value must be that organization's id.
+   * other value must name that organization.
    * </pre>
    *
-   * <code>string organization = 2 [json_name = "organization"];</code>
-   * @return The organization.
+   * <code>string org = 2 [json_name = "org"];</code>
+   * @return The org.
    */
-  java.lang.String getOrganization();
+  java.lang.String getOrg();
   /**
    * <pre>
-   * The organization the credential belongs to, by organization id.
+   * The organization the credential belongs to.
    *
    * Empty means the credential's own organization (metadata.org); any
-   * other value must be that organization's id.
+   * other value must name that organization.
    * </pre>
    *
-   * <code>string organization = 2 [json_name = "organization"];</code>
-   * @return The bytes for organization.
+   * <code>string org = 2 [json_name = "org"];</code>
+   * @return The bytes for org.
    */
   com.google.protobuf.ByteString
-      getOrganizationBytes();
+      getOrgBytes();
 
   /**
    * <pre>

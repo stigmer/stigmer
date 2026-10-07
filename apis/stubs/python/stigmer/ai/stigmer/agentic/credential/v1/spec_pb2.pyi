@@ -9,7 +9,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class CredentialSpec(_message.Message):
-    __slots__ = ("person", "organization", "description", "fields", "serves")
+    __slots__ = ("person", "org", "description", "fields", "serves")
     class FieldsEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -18,16 +18,16 @@ class CredentialSpec(_message.Message):
         value: CredentialField
         def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[CredentialField, _Mapping]] = ...) -> None: ...
     PERSON_FIELD_NUMBER: _ClassVar[int]
-    ORGANIZATION_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
     DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
     FIELDS_FIELD_NUMBER: _ClassVar[int]
     SERVES_FIELD_NUMBER: _ClassVar[int]
     person: str
-    organization: str
+    org: str
     description: str
     fields: _containers.MessageMap[str, CredentialField]
     serves: _containers.RepeatedCompositeFieldContainer[_requirement_pb2.CredentialTarget]
-    def __init__(self, person: _Optional[str] = ..., organization: _Optional[str] = ..., description: _Optional[str] = ..., fields: _Optional[_Mapping[str, CredentialField]] = ..., serves: _Optional[_Iterable[_Union[_requirement_pb2.CredentialTarget, _Mapping]]] = ...) -> None: ...
+    def __init__(self, person: _Optional[str] = ..., org: _Optional[str] = ..., description: _Optional[str] = ..., fields: _Optional[_Mapping[str, CredentialField]] = ..., serves: _Optional[_Iterable[_Union[_requirement_pb2.CredentialTarget, _Mapping]]] = ...) -> None: ...
 
 class CredentialField(_message.Message):
     __slots__ = ("value", "plain", "description")

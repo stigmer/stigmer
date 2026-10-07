@@ -92,10 +92,10 @@ func (x *CredentialSpec) GetPerson() string {
 	return ""
 }
 
-func (x *CredentialSpec) GetOrganization() string {
+func (x *CredentialSpec) GetOrg() string {
 	if x != nil {
-		if x, ok := x.Owner.(*CredentialSpec_Organization); ok {
-			return x.Organization
+		if x, ok := x.Owner.(*CredentialSpec_Org); ok {
+			return x.Org
 		}
 	}
 	return ""
@@ -134,17 +134,17 @@ type CredentialSpec_Person struct {
 	Person string `protobuf:"bytes,1,opt,name=person,proto3,oneof"`
 }
 
-type CredentialSpec_Organization struct {
-	// The organization the credential belongs to, by organization id.
+type CredentialSpec_Org struct {
+	// The organization the credential belongs to.
 	//
 	// Empty means the credential's own organization (metadata.org); any
-	// other value must be that organization's id.
-	Organization string `protobuf:"bytes,2,opt,name=organization,proto3,oneof"`
+	// other value must name that organization.
+	Org string `protobuf:"bytes,2,opt,name=org,proto3,oneof"`
 }
 
 func (*CredentialSpec_Person) isCredentialSpec_Owner() {}
 
-func (*CredentialSpec_Organization) isCredentialSpec_Owner() {}
+func (*CredentialSpec_Org) isCredentialSpec_Owner() {}
 
 // CredentialField is one value a credential holds.
 type CredentialField struct {
@@ -217,10 +217,10 @@ var File_ai_stigmer_agentic_credential_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_credential_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/agentic/credential/v1/spec.proto\x12 ai.stigmer.agentic.credential.v1\x1a2ai/stigmer/agentic/credential/v1/requirement.proto\x1a\x1bbuf/validate/validate.proto\"\xd4\x03\n" +
+	"+ai/stigmer/agentic/credential/v1/spec.proto\x12 ai.stigmer.agentic.credential.v1\x1a2ai/stigmer/agentic/credential/v1/requirement.proto\x1a\x1bbuf/validate/validate.proto\"\xc2\x03\n" +
 	"\x0eCredentialSpec\x12\x18\n" +
-	"\x06person\x18\x01 \x01(\tH\x00R\x06person\x12$\n" +
-	"\forganization\x18\x02 \x01(\tH\x00R\forganization\x12*\n" +
+	"\x06person\x18\x01 \x01(\tH\x00R\x06person\x12\x12\n" +
+	"\x03org\x18\x02 \x01(\tH\x00R\x03org\x12*\n" +
 	"\vdescription\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\xe8\aR\vdescription\x12\x81\x01\n" +
 	"\x06fields\x18\x04 \x03(\v2<.ai.stigmer.agentic.credential.v1.CredentialSpec.FieldsEntryB+\xbaH(\x9a\x01%\x10@\"!r\x1f\x10\x01\x18\x80\x012\x18^[A-Za-z_][A-Za-z0-9_]*$R\x06fields\x12T\n" +
 	"\x06serves\x18\x05 \x03(\v22.ai.stigmer.agentic.credential.v1.CredentialTargetB\b\xbaH\x05\x92\x01\x02\x10@R\x06serves\x1al\n" +
@@ -272,7 +272,7 @@ func file_ai_stigmer_agentic_credential_v1_spec_proto_init() {
 	file_ai_stigmer_agentic_credential_v1_requirement_proto_init()
 	file_ai_stigmer_agentic_credential_v1_spec_proto_msgTypes[0].OneofWrappers = []any{
 		(*CredentialSpec_Person)(nil),
-		(*CredentialSpec_Organization)(nil),
+		(*CredentialSpec_Org)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

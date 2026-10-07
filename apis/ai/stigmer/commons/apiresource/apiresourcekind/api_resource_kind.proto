@@ -777,7 +777,7 @@ enum ApiResourceKind {
         {
           kind: "organization"
           relation: "org_owned"
-          spec_field: "organization"
+          spec_field: "org"
           optional: true
         }
       ]

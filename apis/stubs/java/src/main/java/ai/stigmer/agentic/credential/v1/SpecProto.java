@@ -54,26 +54,25 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "proto\022 ai.stigmer.agentic.credential.v1\032" +
       "2ai/stigmer/agentic/credential/v1/requir" +
       "ement.proto\032\033buf/validate/validate.proto" +
-      "\"\324\003\n\016CredentialSpec\022\030\n\006person\030\001 \001(\tH\000R\006p" +
-      "erson\022$\n\014organization\030\002 \001(\tH\000R\014organizat" +
-      "ion\022*\n\013description\030\003 \001(\tB\010\272H\005r\003\030\350\007R\013desc" +
-      "ription\022\201\001\n\006fields\030\004 \003(\0132<.ai.stigmer.ag" +
-      "entic.credential.v1.CredentialSpec.Field" +
-      "sEntryB+\272H(\232\001%\020@\"!r\037\020\001\030\200\0012\030^[A-Za-z_][A-" +
-      "Za-z0-9_]*$R\006fields\022T\n\006serves\030\005 \003(\01322.ai" +
-      ".stigmer.agentic.credential.v1.Credentia" +
-      "lTargetB\010\272H\005\222\001\002\020@R\006serves\032l\n\013FieldsEntry" +
-      "\022\020\n\003key\030\001 \001(\tR\003key\022G\n\005value\030\002 \001(\01321.ai.s" +
-      "tigmer.agentic.credential.v1.CredentialF" +
-      "ieldR\005value:\0028\001B\016\n\005owner\022\005\272H\002\010\001\"i\n\017Crede" +
-      "ntialField\022\024\n\005value\030\001 \001(\tR\005value\022\024\n\005plai" +
-      "n\030\002 \001(\010R\005plain\022*\n\013description\030\003 \001(\tB\010\272H\005" +
-      "r\003\030\350\007R\013descriptionB\260\001B\tSpecProtoP\001\242\002\004ASA" +
-      "C\252\002 Ai.Stigmer.Agentic.Credential.V1\312\002 A" +
-      "i\\Stigmer\\Agentic\\Credential\\V1\342\002,Ai\\Sti" +
-      "gmer\\Agentic\\Credential\\V1\\GPBMetadata\352\002" +
-      "$Ai::Stigmer::Agentic::Credential::V1b\006p" +
-      "roto3"
+      "\"\302\003\n\016CredentialSpec\022\030\n\006person\030\001 \001(\tH\000R\006p" +
+      "erson\022\022\n\003org\030\002 \001(\tH\000R\003org\022*\n\013description" +
+      "\030\003 \001(\tB\010\272H\005r\003\030\350\007R\013description\022\201\001\n\006fields" +
+      "\030\004 \003(\0132<.ai.stigmer.agentic.credential.v" +
+      "1.CredentialSpec.FieldsEntryB+\272H(\232\001%\020@\"!" +
+      "r\037\020\001\030\200\0012\030^[A-Za-z_][A-Za-z0-9_]*$R\006field" +
+      "s\022T\n\006serves\030\005 \003(\01322.ai.stigmer.agentic.c" +
+      "redential.v1.CredentialTargetB\010\272H\005\222\001\002\020@R" +
+      "\006serves\032l\n\013FieldsEntry\022\020\n\003key\030\001 \001(\tR\003key" +
+      "\022G\n\005value\030\002 \001(\01321.ai.stigmer.agentic.cre" +
+      "dential.v1.CredentialFieldR\005value:\0028\001B\016\n" +
+      "\005owner\022\005\272H\002\010\001\"i\n\017CredentialField\022\024\n\005valu" +
+      "e\030\001 \001(\tR\005value\022\024\n\005plain\030\002 \001(\010R\005plain\022*\n\013" +
+      "description\030\003 \001(\tB\010\272H\005r\003\030\350\007R\013description" +
+      "B\260\001B\tSpecProtoP\001\242\002\004ASAC\252\002 Ai.Stigmer.Age" +
+      "ntic.Credential.V1\312\002 Ai\\Stigmer\\Agentic\\" +
+      "Credential\\V1\342\002,Ai\\Stigmer\\Agentic\\Crede" +
+      "ntial\\V1\\GPBMetadata\352\002$Ai::Stigmer::Agen" +
+      "tic::Credential::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -86,7 +85,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_credential_v1_CredentialSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_credential_v1_CredentialSpec_descriptor,
-        new java.lang.String[] { "Person", "Organization", "Description", "Fields", "Serves", "Owner", });
+        new java.lang.String[] { "Person", "Org", "Description", "Fields", "Serves", "Owner", });
     internal_static_ai_stigmer_agentic_credential_v1_CredentialSpec_FieldsEntry_descriptor =
       internal_static_ai_stigmer_agentic_credential_v1_CredentialSpec_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_credential_v1_CredentialSpec_FieldsEntry_fieldAccessorTable = new

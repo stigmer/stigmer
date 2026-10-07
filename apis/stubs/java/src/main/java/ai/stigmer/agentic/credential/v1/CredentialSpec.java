@@ -73,7 +73,7 @@ private static final long serialVersionUID = 0L;
       implements com.google.protobuf.Internal.EnumLite,
           com.google.protobuf.AbstractMessage.InternalOneOfEnum {
     PERSON(1),
-    ORGANIZATION(2),
+    ORG(2),
     OWNER_NOT_SET(0);
     private final int value;
     private OwnerCase(int value) {
@@ -92,7 +92,7 @@ private static final long serialVersionUID = 0L;
     public static OwnerCase forNumber(int value) {
       switch (value) {
         case 1: return PERSON;
-        case 2: return ORGANIZATION;
+        case 2: return ORG;
         case 0: return OWNER_NOT_SET;
         default: return null;
       }
@@ -177,33 +177,33 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int ORGANIZATION_FIELD_NUMBER = 2;
+  public static final int ORG_FIELD_NUMBER = 2;
   /**
    * <pre>
-   * The organization the credential belongs to, by organization id.
+   * The organization the credential belongs to.
    *
    * Empty means the credential's own organization (metadata.org); any
-   * other value must be that organization's id.
+   * other value must name that organization.
    * </pre>
    *
-   * <code>string organization = 2 [json_name = "organization"];</code>
-   * @return Whether the organization field is set.
+   * <code>string org = 2 [json_name = "org"];</code>
+   * @return Whether the org field is set.
    */
-  public boolean hasOrganization() {
+  public boolean hasOrg() {
     return ownerCase_ == 2;
   }
   /**
    * <pre>
-   * The organization the credential belongs to, by organization id.
+   * The organization the credential belongs to.
    *
    * Empty means the credential's own organization (metadata.org); any
-   * other value must be that organization's id.
+   * other value must name that organization.
    * </pre>
    *
-   * <code>string organization = 2 [json_name = "organization"];</code>
-   * @return The organization.
+   * <code>string org = 2 [json_name = "org"];</code>
+   * @return The org.
    */
-  public java.lang.String getOrganization() {
+  public java.lang.String getOrg() {
     if (ownerCase_ != 2) {
       return "";
     }
@@ -220,17 +220,17 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The organization the credential belongs to, by organization id.
+   * The organization the credential belongs to.
    *
    * Empty means the credential's own organization (metadata.org); any
-   * other value must be that organization's id.
+   * other value must name that organization.
    * </pre>
    *
-   * <code>string organization = 2 [json_name = "organization"];</code>
-   * @return The bytes for organization.
+   * <code>string org = 2 [json_name = "org"];</code>
+   * @return The bytes for org.
    */
   public com.google.protobuf.ByteString
-      getOrganizationBytes() {
+      getOrgBytes() {
     if (ownerCase_ != 2) {
       return com.google.protobuf.ByteString.copyFromUtf8("");
     }
@@ -587,8 +587,8 @@ ai.stigmer.agentic.credential.v1.CredentialField defaultValue) {
             .equals(other.getPerson())) return false;
         break;
       case 2:
-        if (!getOrganization()
-            .equals(other.getOrganization())) return false;
+        if (!getOrg()
+            .equals(other.getOrg())) return false;
         break;
       case 0:
       default:
@@ -620,8 +620,8 @@ ai.stigmer.agentic.credential.v1.CredentialField defaultValue) {
         hash = (53 * hash) + getPerson().hashCode();
         break;
       case 2:
-        hash = (37 * hash) + ORGANIZATION_FIELD_NUMBER;
-        hash = (53 * hash) + getOrganization().hashCode();
+        hash = (37 * hash) + ORG_FIELD_NUMBER;
+        hash = (53 * hash) + getOrg().hashCode();
         break;
       case 0:
       default:
@@ -907,7 +907,7 @@ ai.stigmer.agentic.credential.v1.CredentialField defaultValue) {
           onChanged();
           break;
         }
-        case ORGANIZATION: {
+        case ORG: {
           ownerCase_ = 2;
           owner_ = other.owner_;
           onChanged();
@@ -1145,32 +1145,32 @@ ai.stigmer.agentic.credential.v1.CredentialField defaultValue) {
 
     /**
      * <pre>
-     * The organization the credential belongs to, by organization id.
+     * The organization the credential belongs to.
      *
      * Empty means the credential's own organization (metadata.org); any
-     * other value must be that organization's id.
+     * other value must name that organization.
      * </pre>
      *
-     * <code>string organization = 2 [json_name = "organization"];</code>
-     * @return Whether the organization field is set.
+     * <code>string org = 2 [json_name = "org"];</code>
+     * @return Whether the org field is set.
      */
     @java.lang.Override
-    public boolean hasOrganization() {
+    public boolean hasOrg() {
       return ownerCase_ == 2;
     }
     /**
      * <pre>
-     * The organization the credential belongs to, by organization id.
+     * The organization the credential belongs to.
      *
      * Empty means the credential's own organization (metadata.org); any
-     * other value must be that organization's id.
+     * other value must name that organization.
      * </pre>
      *
-     * <code>string organization = 2 [json_name = "organization"];</code>
-     * @return The organization.
+     * <code>string org = 2 [json_name = "org"];</code>
+     * @return The org.
      */
     @java.lang.Override
-    public java.lang.String getOrganization() {
+    public java.lang.String getOrg() {
       if (ownerCase_ != 2) {
         return "";
       }
@@ -1187,18 +1187,18 @@ ai.stigmer.agentic.credential.v1.CredentialField defaultValue) {
     }
     /**
      * <pre>
-     * The organization the credential belongs to, by organization id.
+     * The organization the credential belongs to.
      *
      * Empty means the credential's own organization (metadata.org); any
-     * other value must be that organization's id.
+     * other value must name that organization.
      * </pre>
      *
-     * <code>string organization = 2 [json_name = "organization"];</code>
-     * @return The bytes for organization.
+     * <code>string org = 2 [json_name = "org"];</code>
+     * @return The bytes for org.
      */
     @java.lang.Override
     public com.google.protobuf.ByteString
-        getOrganizationBytes() {
+        getOrgBytes() {
       if (ownerCase_ != 2) {
         return com.google.protobuf.ByteString.copyFromUtf8(        "");
       }
@@ -1215,17 +1215,17 @@ ai.stigmer.agentic.credential.v1.CredentialField defaultValue) {
     }
     /**
      * <pre>
-     * The organization the credential belongs to, by organization id.
+     * The organization the credential belongs to.
      *
      * Empty means the credential's own organization (metadata.org); any
-     * other value must be that organization's id.
+     * other value must name that organization.
      * </pre>
      *
-     * <code>string organization = 2 [json_name = "organization"];</code>
-     * @param value The organization to set.
+     * <code>string org = 2 [json_name = "org"];</code>
+     * @param value The org to set.
      * @return This builder for chaining.
      */
-    public Builder setOrganization(
+    public Builder setOrg(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       ownerCase_ = 2;
@@ -1235,16 +1235,16 @@ ai.stigmer.agentic.credential.v1.CredentialField defaultValue) {
     }
     /**
      * <pre>
-     * The organization the credential belongs to, by organization id.
+     * The organization the credential belongs to.
      *
      * Empty means the credential's own organization (metadata.org); any
-     * other value must be that organization's id.
+     * other value must name that organization.
      * </pre>
      *
-     * <code>string organization = 2 [json_name = "organization"];</code>
+     * <code>string org = 2 [json_name = "org"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearOrganization() {
+    public Builder clearOrg() {
       if (ownerCase_ == 2) {
         ownerCase_ = 0;
         owner_ = null;
@@ -1254,17 +1254,17 @@ ai.stigmer.agentic.credential.v1.CredentialField defaultValue) {
     }
     /**
      * <pre>
-     * The organization the credential belongs to, by organization id.
+     * The organization the credential belongs to.
      *
      * Empty means the credential's own organization (metadata.org); any
-     * other value must be that organization's id.
+     * other value must name that organization.
      * </pre>
      *
-     * <code>string organization = 2 [json_name = "organization"];</code>
-     * @param value The bytes for organization to set.
+     * <code>string org = 2 [json_name = "org"];</code>
+     * @param value The bytes for org to set.
      * @return This builder for chaining.
      */
-    public Builder setOrganizationBytes(
+    public Builder setOrgBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);

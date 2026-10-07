@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/credential/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_credential_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvY3JlZGVudGlhbC92MS9zcGVjLnByb3RvEiBhaS5zdGlnbWVyLmFnZW50aWMuY3JlZGVudGlhbC52MSKUAwoOQ3JlZGVudGlhbFNwZWMSEAoGcGVyc29uGAEgASgJSAASFgoMb3JnYW5pemF0aW9uGAIgASgJSAASHQoLZGVzY3JpcHRpb24YAyABKAlCCLpIBXIDGOgHEnkKBmZpZWxkcxgEIAMoCzI8LmFpLnN0aWdtZXIuYWdlbnRpYy5jcmVkZW50aWFsLnYxLkNyZWRlbnRpYWxTcGVjLkZpZWxkc0VudHJ5Qiu6SCiaASUQQCIhch8QARiAATIYXltBLVphLXpfXVtBLVphLXowLTlfXSokEkwKBnNlcnZlcxgFIAMoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5jcmVkZW50aWFsLnYxLkNyZWRlbnRpYWxUYXJnZXRCCLpIBZIBAhBAGmAKC0ZpZWxkc0VudHJ5EgsKA2tleRgBIAEoCRJACgV2YWx1ZRgCIAEoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5jcmVkZW50aWFsLnYxLkNyZWRlbnRpYWxGaWVsZDoCOAFCDgoFb3duZXISBbpIAggBIk4KD0NyZWRlbnRpYWxGaWVsZBINCgV2YWx1ZRgBIAEoCRINCgVwbGFpbhgCIAEoCBIdCgtkZXNjcmlwdGlvbhgDIAEoCUIIukgFcgMY6AdiBnByb3RvMw", [file_ai_stigmer_agentic_credential_v1_requirement, file_buf_validate_validate]);
+  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvY3JlZGVudGlhbC92MS9zcGVjLnByb3RvEiBhaS5zdGlnbWVyLmFnZW50aWMuY3JlZGVudGlhbC52MSKLAwoOQ3JlZGVudGlhbFNwZWMSEAoGcGVyc29uGAEgASgJSAASDQoDb3JnGAIgASgJSAASHQoLZGVzY3JpcHRpb24YAyABKAlCCLpIBXIDGOgHEnkKBmZpZWxkcxgEIAMoCzI8LmFpLnN0aWdtZXIuYWdlbnRpYy5jcmVkZW50aWFsLnYxLkNyZWRlbnRpYWxTcGVjLkZpZWxkc0VudHJ5Qiu6SCiaASUQQCIhch8QARiAATIYXltBLVphLXpfXVtBLVphLXowLTlfXSokEkwKBnNlcnZlcxgFIAMoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5jcmVkZW50aWFsLnYxLkNyZWRlbnRpYWxUYXJnZXRCCLpIBZIBAhBAGmAKC0ZpZWxkc0VudHJ5EgsKA2tleRgBIAEoCRJACgV2YWx1ZRgCIAEoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5jcmVkZW50aWFsLnYxLkNyZWRlbnRpYWxGaWVsZDoCOAFCDgoFb3duZXISBbpIAggBIk4KD0NyZWRlbnRpYWxGaWVsZBINCgV2YWx1ZRgBIAEoCRINCgVwbGFpbhgCIAEoCBIdCgtkZXNjcmlwdGlvbhgDIAEoCUIIukgFcgMY6AdiBnByb3RvMw", [file_ai_stigmer_agentic_credential_v1_requirement, file_buf_validate_validate]);
 
 /**
  * CredentialSpec defines who a credential belongs to, the values it holds, and what it serves.
@@ -39,15 +39,15 @@ export type CredentialSpec = Message<"ai.stigmer.agentic.credential.v1.Credentia
     case: "person";
   } | {
     /**
-     * The organization the credential belongs to, by organization id.
+     * The organization the credential belongs to.
      *
      * Empty means the credential's own organization (metadata.org); any
-     * other value must be that organization's id.
+     * other value must name that organization.
      *
-     * @generated from field: string organization = 2;
+     * @generated from field: string org = 2;
      */
     value: string;
-    case: "organization";
+    case: "org";
   } | { case: undefined; value?: undefined };
 
   /**

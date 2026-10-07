@@ -16,7 +16,7 @@ metadata:
   name: Datadog (on-call)
   org: acme-corp
 spec:
-  organization: org_01jq8m6z4v3k2x9w7t5r1n0p8c
+  org: org_01jq8m6z4v3k2x9w7t5r1n0p8c
   description: "Read-only Datadog key for the incident agent"
   fields:
     DD_API_KEY:

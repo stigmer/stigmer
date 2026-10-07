@@ -44,7 +44,7 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
  * owner_type: OWNER_ATTRIBUTION_TYPE_NONE
  * additional_parents: [
  * { kind: "identity_account", relation: "owner", spec_field: "person", optional: true },
- * { kind: "organization", relation: "org_owned", spec_field: "organization", optional: true }
+ * { kind: "organization", relation: "org_owned", spec_field: "org", optional: true }
  * ]
  * -&gt; Creates: credential#organization&#64;organization:&lt;org_id&gt;
  * -&gt; Creates: credential#owner&#64;identity_account:&lt;person&gt; (a person's credential)
@@ -902,7 +902,7 @@ private static final long serialVersionUID = 0L;
    * owner_type: OWNER_ATTRIBUTION_TYPE_NONE
    * additional_parents: [
    * { kind: "identity_account", relation: "owner", spec_field: "person", optional: true },
-   * { kind: "organization", relation: "org_owned", spec_field: "organization", optional: true }
+   * { kind: "organization", relation: "org_owned", spec_field: "org", optional: true }
    * ]
    * -&gt; Creates: credential#organization&#64;organization:&lt;org_id&gt;
    * -&gt; Creates: credential#owner&#64;identity_account:&lt;person&gt; (a person's credential)
