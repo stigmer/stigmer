@@ -75,6 +75,9 @@ export function read(run: AgentRun): string {
   const { agentRunId } = run;
   return agentRunId + run.agentRunId + String(Kind.agent_run) + AgentRunSchema.typeName + helper;
 }
+export function withSpread(flag: boolean, agentRunId: string): AgentRun {
+  return { agentRunId, note: "n", target: { case: undefined }, ...(flag ? { note: "m" } : {}) };
+}
 export function list(): number {
   return Query.listRuns("x").length;
 }
@@ -100,6 +103,11 @@ export const temporalName = "agent-execution";
     assert.match(after, /const \{ runId: agentRunId \} = run;/, "a binding keeps its local name");
     assert.match(after, /run\.runId \+ String\(Kind\.run\) \+ RunSchema\.typeName/);
     assert.match(after, /Query\.listFires\("x"\)/);
+    assert.match(
+      after,
+      /return \{ runId: agentRunId, note: "n", target: \{ case: undefined \}, \.\.\.\(flag/,
+      "an excess key reported on the whole literal",
+    );
     assert.match(after, /enginePayload\.agentRunId \?\? "agentRunId"/, "an engine key the compiler never flags stays");
     assert.match(after, /as \{ agentRunId\?: string \}/);
     assert.match(after, /"agent-execution"/);

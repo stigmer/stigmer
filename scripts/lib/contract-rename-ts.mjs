@@ -160,11 +160,53 @@ export function editsForDiagnostic(ts, sourceFile, diagnostic, table, moves) {
     if (ts.isIdentifier(node) && node.parent && ts.isPropertyAssignment(node.parent)) {
       span = [node.parent.getStart(sourceFile), node.parent.getEnd()];
     }
-    return literalsIn(ts, sourceFile, span[0], span[1])
+    const literals = literalsIn(ts, sourceFile, span[0], span[1])
       .filter((lit) => identifiers[lit.text] !== undefined)
       .map((lit) => ({ start: lit.getStart(sourceFile) + 1, end: lit.getEnd() - 1, text: identifiers[lit.text] }));
+    // An excess key reported on a whole argument (a literal with a
+    // conditional spread): the message quotes the key, the span holds it.
+    const excess = /Object literal may only specify known properties, and '([A-Za-z_$][\w$]*)' does not exist/.exec(
+      typeof diagnostic.messageText === "string" ? diagnostic.messageText : flatten(diagnostic.messageText),
+    );
+    const keys =
+      excess && identifiers[excess[1]] !== undefined
+        ? propertiesIn(ts, sourceFile, span[0], span[1], excess[1]).map((p) => keyEdit(ts, sourceFile, p, identifiers))
+        : [];
+    return [...literals, ...keys];
   }
   return [];
+}
+
+function flatten(chain) {
+  let out = chain.messageText;
+  for (const next of chain.next ?? []) out += ` ${flatten(next)}`;
+  return out;
+}
+
+/** Every property named `name` inside [start, end): an assignment or a shorthand. */
+function propertiesIn(ts, sourceFile, start, end, name) {
+  const out = [];
+  const visit = (node) => {
+    if (node.getEnd() <= start || node.getStart(sourceFile) >= end) return;
+    if (
+      (ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === name
+    ) {
+      out.push(node);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return out;
+}
+
+/** The edit that renames a property's key, keeping a shorthand's local. */
+function keyEdit(ts, sourceFile, property, identifiers) {
+  const key = property.name;
+  const to = identifiers[key.text];
+  const at = { start: key.getStart(sourceFile), end: key.getEnd() };
+  return ts.isShorthandPropertyAssignment(property) ? { ...at, text: `${to}: ${key.text}` } : { ...at, text: to };
 }
 
 /** Apply edits to one text, last first; overlapping or repeated edits keep the first. */
