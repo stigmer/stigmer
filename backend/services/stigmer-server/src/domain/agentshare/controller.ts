@@ -122,6 +122,18 @@ import {
   loadLinkedShare,
   RESOLVED_SHARE_KEY,
 } from "./steps.js";
+import { newGuardCredentialAssignmentsStep } from "../credential/assignments.js";
+import type { AssignmentSurface } from "../credential/assignments.js";
+import type { MessageShape } from "@bufbuild/protobuf";
+
+/** Where this kind keeps the credentials its runs use, and what consumes them (credential/assignments.ts). */
+const SHARE_ASSIGNMENTS: AssignmentSurface<MessageShape<typeof AgentShareSchema>> = {
+  noun: "share link",
+  personsOwn: false,
+  assignmentsOf: (row) => row.spec?.credentials ?? [],
+  consumerOf: (row) =>
+    `${row.spec?.agentRef?.org ?? ""}/${row.spec?.agentRef?.slug ?? ""}`,
+};
 
 export interface AgentShareControllerDeps {
   readonly store: Store;
@@ -202,6 +214,9 @@ async function createShare(
     .addStep(newStampAgentPinStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(
+      newGuardCredentialAssignmentsStep(deps.store, deps.authorizer, SHARE_ASSIGNMENTS),
+    )
     .addStep(newPersistStep(deps.store))
     .addStep(
       newCreateAuthorizationTuplesStep(
@@ -247,6 +262,9 @@ async function update(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(
+      newGuardCredentialAssignmentsStep(deps.store, deps.authorizer, SHARE_ASSIGNMENTS),
+    )
     .addStep(newPersistStep(deps.store))
     .build()
     .execute(reqCtx);

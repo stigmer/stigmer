@@ -1566,7 +1566,7 @@ class PostgresOAuthGrantStore implements OAuthGrantStore {
       `INSERT INTO oauth_grant (
         identity_account_id, resource_id, resource_kind, org_id,
         access_token_expires_at, client_id, auth_method, token_endpoint,
-        access_token_env_var, refresh_token_env_var, environment_id,
+        access_token_env_var, credential_id, refresh_token,
         created_at, updated_at
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       ON CONFLICT (identity_account_id, resource_id, org_id) DO UPDATE SET
@@ -1576,8 +1576,8 @@ class PostgresOAuthGrantStore implements OAuthGrantStore {
         auth_method = excluded.auth_method,
         token_endpoint = excluded.token_endpoint,
         access_token_env_var = excluded.access_token_env_var,
-        refresh_token_env_var = excluded.refresh_token_env_var,
-        environment_id = excluded.environment_id,
+        credential_id = excluded.credential_id,
+        refresh_token = excluded.refresh_token,
         updated_at = excluded.updated_at`,
       [
         grant.identityAccountId,
@@ -1589,8 +1589,8 @@ class PostgresOAuthGrantStore implements OAuthGrantStore {
         grant.authMethod,
         grant.tokenEndpoint,
         grant.accessTokenEnvVar,
-        grant.refreshTokenEnvVar,
-        grant.environmentId,
+        grant.credentialId,
+        grant.refreshToken,
         createdAt,
         now,
       ],
@@ -1605,7 +1605,7 @@ class PostgresOAuthGrantStore implements OAuthGrantStore {
     const result = await this.open().query(
       `SELECT identity_account_id, resource_id, resource_kind, org_id,
         access_token_expires_at, client_id, auth_method, token_endpoint,
-        access_token_env_var, refresh_token_env_var, environment_id,
+        access_token_env_var, credential_id, refresh_token,
         created_at, updated_at
        FROM oauth_grant
        WHERE identity_account_id = $1 AND resource_id = $2 AND org_id = $3`,
@@ -1622,8 +1622,8 @@ class PostgresOAuthGrantStore implements OAuthGrantStore {
           auth_method: string;
           token_endpoint: string;
           access_token_env_var: string;
-          refresh_token_env_var: string;
-          environment_id: string;
+          credential_id: string;
+          refresh_token: string;
           created_at: string | number;
           updated_at: string | number;
         }
@@ -1641,8 +1641,8 @@ class PostgresOAuthGrantStore implements OAuthGrantStore {
       authMethod: row.auth_method,
       tokenEndpoint: row.token_endpoint,
       accessTokenEnvVar: row.access_token_env_var,
-      refreshTokenEnvVar: row.refresh_token_env_var,
-      environmentId: row.environment_id,
+      credentialId: row.credential_id,
+      refreshToken: row.refresh_token,
       createdAt: Number(row.created_at),
       updatedAt: Number(row.updated_at),
     };

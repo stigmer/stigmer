@@ -1,8 +1,8 @@
 /**
  * McpServer connect (blocking lane) + the shared connect machinery —
  * ports pkg/domain/mcpserver/controller/connect.go: the Connect RPC,
- * prepareConnect (OAuth refresh pre-flight, ephemeral ExecutionContext,
- * decrypt-lane token minting), environment resolution, the workflow
+ * prepareConnect (credential resolution, ephemeral ExecutionContext,
+ * decrypt-lane token minting), the workflow
  * failure→gRPC mapping, and apply's best-effort auto-connect tail. The
  * async lane lives in start-connect.ts; the connect_status persistence
  * family in connect-status.ts.
@@ -22,16 +22,9 @@ import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 
-import type { EnvironmentSecretValueInputSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
-import type {
-  EnvironmentValue as EnvironmentSpecValue,
-  EnvVarDeclaration,
-} from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
-import { EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import type { ExecutionValue } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
-import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
@@ -39,10 +32,13 @@ import type { ConnectInput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/
 import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import type { ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { TokenEndpointAuthMethod } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
+import { McpServerSignIn } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 
 import type { Logger } from "../../boot/logger.js";
-import { resolveDeclaredFromPersonalEnvironment } from "../environment/personal.js";
+import { resolveCredentials } from "../credential/resolve.js";
+import type { CredentialResolverDeps, Requirement } from "../credential/resolve.js";
+import type { SignInCredentials } from "../credential/sign-in.js";
+import { personOfCaller } from "../run/run-credentials.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
@@ -64,7 +60,6 @@ import type {
   Store,
 } from "../../store/interface.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
-import { resolveOAuthAppRef } from "../oauthapp/refresolution.js";
 import { newConnectExecutionId } from "./connect-execution-id.js";
 import { acquireConnectRoute } from "./connect-sandbox.js";
 import type { ConnectRoute, ConnectRouteRequest } from "./connect-sandbox.js";
@@ -80,12 +75,10 @@ import type {
   McpServerConnectEngine,
   McpServerEngineStateProvider,
 } from "./engine.js";
-import { refreshTokenIfExpired } from "./oauth/refresh.js";
-import {
-  TOKEN_AUTH_METHOD_BASIC,
-  TOKEN_AUTH_METHOD_POST,
-} from "./oauth/token.js";
-import type { ManagedEnvironmentService } from "./oauth/managed-env.js";
+export {
+  loadOAuthAppClientCredentials,
+  tokenAuthMethodFromSpec,
+} from "./oauth/client-credentials.js";
 
 /**
  * A connect budget: the workflow run timeout in milliseconds plus its Go
@@ -152,17 +145,6 @@ export const ASYNC_CONNECT_TIMEOUT: ConnectBudget = {
 export const BEST_EFFORT_CONNECT_GET_BUFFER_MS = 15_000;
 
 /**
- * The narrow environment read surface the connect lanes consume for
- * personal-environment resolution — satisfied by the composition root's
- * in-process clients (full interceptor traversal).
- */
-export interface ConnectEnvironmentReader {
-  getSecretValue(
-    input: MessageInitShape<typeof EnvironmentSecretValueInputSchema>,
-  ): Promise<EnvironmentSpecValue>;
-}
-
-/**
  * The ExecutionContext lifecycle surface for the ephemeral connect EC —
  * Go's downstream executioncontext client (create + delete).
  *
@@ -192,7 +174,7 @@ export interface ConnectExecutionContextClient {
  * constructor-style parameters per the composition-root idiom
  * (guidelines §4): "Temporal is down" is the engine-state provider's
  * modeled state, never a missing dependency. A deliberate consequence:
- * the OAuth RPCs (managed-env service included) work on a Temporal-less
+ * the OAuth RPCs (the sign-in credentials included) work on a Temporal-less
  * server where Go's composition gate refuses completeOAuthConnect —
  * disclosed, deliberately unpinned divergence.
  */
@@ -206,10 +188,16 @@ export interface McpServerConnectDeps {
    */
   readonly authorizer: Authorizer;
   readonly engineState: McpServerEngineStateProvider;
-  readonly environmentReader: ConnectEnvironmentReader;
   readonly executionContext: ConnectExecutionContextClient;
   readonly runnerAuth: RunnerCredentialProvider;
-  readonly managedEnv: ManagedEnvironmentService;
+  /**
+   * The one credential rule (domain/credential/resolve.ts): a connect
+   * resolves the server's requirements as a run does, with the connecting
+   * caller as its person.
+   */
+  readonly credentials: CredentialResolverDeps;
+  /** Where a sign-in keeps its access token: a credential (domain/credential/sign-in.ts). */
+  readonly signIns: SignInCredentials;
   readonly oauthGrants: OAuthGrantStore;
   readonly pendingOAuthStates: PendingOAuthStateStore;
   readonly secretService: SecretService;
@@ -444,8 +432,8 @@ export async function acquireConnectRouteFor(
  *
  * Both the blocking (connect) and async (startConnect) lanes run this
  * synchronously inside the RPC handler, because everything here needs the
- * caller's identity: OAuth refresh and personal-environment resolution
- * read the caller's grant and secrets, which a background task has no
+ * caller's identity: credential resolution (a sign-in's refresh included)
+ * reads the caller's credentials, which a background task has no
  * request context to do (the same constraint that scopes
  * startBestEffortConnect to env-less servers).
  *
@@ -484,14 +472,6 @@ export async function prepareConnect(
   // organization and files its context there: a credential bound to
   // another may not (refuse-bound-elsewhere.ts).
   refuseBoundElsewhere(identity, callerOrg);
-
-  // Pre-flight: refresh expired OAuth tokens before env resolution. Only
-  // applies when runtime_env is empty and the MCP server has an auth
-  // block with an existing OAuthGrant. Tokens are refreshed in the
-  // grant's managed environment.
-  if (Object.keys(input.runtimeEnv).length === 0) {
-    await refreshOAuthTokenIfNeeded(deps, mcpServer, callerOrg);
-  }
 
   const executionId = newConnectExecutionId(mcpServerId);
 
@@ -567,11 +547,13 @@ interface ConnectExecutionContextRow {
  * Builds and persists an ephemeral ExecutionContext for the connect
  * activity (Go createConnectExecutionContext).
  *
- * When runtime_env is provided, the values are used directly (one-time
- * use). When runtime_env is empty, variables are resolved from two
- * sources: OAuth-managed variables from the grant's managed environment,
- * the remainder from the user's personal environment. When nothing
- * resolves (no env declarations and no runtime_env, or no values) it
+ * The server's requirements resolve by the run's one rule
+ * (domain/credential/resolve.ts) with the connecting caller as the
+ * person: runtime_env first, then the caller's credential serving the
+ * server (a sign-in refreshed first), or the organization's for a server
+ * with organization sign-in. A required value nothing provides refuses
+ * the connect with FailedPrecondition. When nothing
+ * resolves (no env declarations, or no values) it
  * creates no row and returns undefined, unless `bindingRowRequired`: the
  * sandbox lane's connect needs the row as its credential's binding, so it
  * is created with empty `data` and reported binding-only.
@@ -589,36 +571,24 @@ async function createConnectExecutionContext(
   caller: CallerIdentity,
   bindingRowRequired: boolean,
 ): Promise<ConnectExecutionContextRow | undefined> {
-  let ecData: { [key: string]: ExecutionValue } = {};
-
-  if (Object.keys(runtimeEnv).length > 0) {
-    ecData = runtimeEnv;
-    deps.logger.info(
-      "Using runtime_env for connect ExecutionContext (one-time use)",
-      {
-        execution_id: executionId,
-        runtime_env_count: Object.keys(runtimeEnv).length,
-      },
+  const envDecls = mcpServer.spec?.env ?? {};
+  if (Object.keys(envDecls).length === 0 && !bindingRowRequired) {
+    deps.logger.debug(
+      "MCP server has no env declarations — skipping ExecutionContext creation",
+      { execution_id: executionId },
     );
-  } else {
-    const envDecls = mcpServer.spec?.env ?? {};
-    if (Object.keys(envDecls).length > 0) {
-      ecData = await resolveConnectEnvironment(
-        deps,
-        mcpServer,
-        executionId,
-        callerOrg,
-        caller.identityId,
-        envDecls,
-      );
-    } else if (!bindingRowRequired) {
-      deps.logger.debug(
-        "MCP server has no env declarations — skipping ExecutionContext creation",
-        { execution_id: executionId },
-      );
-      return undefined;
-    }
+    return undefined;
   }
+  const ecData = Object.fromEntries(
+    await resolveCredentials(deps.credentials, {
+      runId: executionId,
+      org: callerOrg,
+      person: personOfCaller(caller) === "" ? undefined : caller.identityId,
+      runtimeEnv,
+      surface: undefined,
+      requirements: serverRequirements(mcpServer),
+    }),
+  );
 
   const bindingOnly = Object.keys(ecData).length === 0;
   if (bindingOnly && !bindingRowRequired) {
@@ -656,180 +626,20 @@ async function createConnectExecutionContext(
   return { resourceId, bindingOnly };
 }
 
-/**
- * Resolves a server's declared env for its connect: OAuth-managed
- * variables from the grant's managed environment, the remainder from the
- * connecting person's own personal environment (Go
- * createConnectExecutionContext's resolution half). `person` is the
- * connecting caller's identity — the stamp their personal environment
- * carries — so a member's connect reads their own saved keys, never a
- * teammate's.
- */
-async function resolveConnectEnvironment(
-  deps: McpServerConnectDeps,
-  mcpServer: McpServer,
-  executionId: string,
-  callerOrg: string,
-  person: string,
-  envDecls: { [key: string]: EnvVarDeclaration },
-): Promise<{ [key: string]: ExecutionValue }> {
-  const mcpServerId = mcpServer.metadata?.id ?? "";
-
-  // Split resolution: OAuth vars from managed env, rest from personal.
-  const { oauthVars, remainingDecls } = await resolveOAuthVarsFromManagedEnv(
-    deps,
-    mcpServerId,
-    callerOrg,
-    envDecls,
-  );
-
-  let personalVars: { [key: string]: ExecutionValue } = {};
-  if (Object.keys(remainingDecls).length > 0) {
-    personalVars = await resolveFromPersonalEnvironment(
-      deps,
-      callerOrg,
-      person,
-      remainingDecls,
-    );
-  }
-
-  deps.logger.info("Resolved env vars for connect ExecutionContext", {
-    execution_id: executionId,
-    oauth_count: Object.keys(oauthVars).length,
-    personal_count: Object.keys(personalVars).length,
-  });
-
-  return { ...personalVars, ...oauthVars };
-}
-
-/**
- * Reads OAuth-managed variables from the grant's managed environment and
- * returns them along with the remaining declarations that still need the
- * personal environment (Go resolveOAuthVarsFromManagedEnv). If no grant
- * exists or reads fail, all declarations are returned as "remaining" —
- * the personal-env fallback Go takes on the same arms.
- */
-async function resolveOAuthVarsFromManagedEnv(
-  deps: McpServerConnectDeps,
-  mcpServerId: string,
-  org: string,
-  envDecls: { [key: string]: EnvVarDeclaration },
-): Promise<{
-  oauthVars: { [key: string]: ExecutionValue };
-  remainingDecls: { [key: string]: EnvVarDeclaration };
-}> {
-  let grant;
-  try {
-    grant = await deps.oauthGrants.find("", mcpServerId, org);
-  } catch {
-    // A grant-store read failure falls through to the personal env,
-    // exactly Go's err-folded arm.
-    return { oauthVars: {}, remainingDecls: envDecls };
-  }
-  if (grant === undefined || grant.environmentId === "") {
-    return { oauthVars: {}, remainingDecls: envDecls };
-  }
-
-  const oauthKey = grant.accessTokenEnvVar;
-  if (!(oauthKey in envDecls)) {
-    return { oauthVars: {}, remainingDecls: envDecls };
-  }
-
-  let tokenValue = "";
-  try {
-    tokenValue = await deps.managedEnv.readSecretValue(
-      grant.environmentId,
-      oauthKey,
-    );
-  } catch (error) {
-    deps.logger.warn(
-      "Failed to read OAuth token from managed environment — falling back to personal env",
-      {
-        mcp_server_id: mcpServerId,
-        oauth_key: oauthKey,
-        managed_env_id: grant.environmentId,
-        error: error instanceof Error ? error.message : String(error),
-      },
-    );
-    return { oauthVars: {}, remainingDecls: envDecls };
-  }
-  if (tokenValue === "") {
-    deps.logger.warn(
-      "Failed to read OAuth token from managed environment — falling back to personal env",
-      {
-        mcp_server_id: mcpServerId,
-        oauth_key: oauthKey,
-        managed_env_id: grant.environmentId,
-      },
-    );
-    return { oauthVars: {}, remainingDecls: envDecls };
-  }
-
-  const remainingDecls: { [key: string]: EnvVarDeclaration } = {};
-  for (const [k, v] of Object.entries(envDecls)) {
-    if (k !== oauthKey) {
-      remainingDecls[k] = v;
-    }
-  }
-
-  deps.logger.debug("Resolved OAuth token from managed environment", {
-    mcp_server_id: mcpServerId,
-    oauth_key: oauthKey,
-    managed_env_id: grant.environmentId,
-  });
-
-  return {
-    oauthVars: {
-      [oauthKey]: create(ExecutionValueSchema, {
-        value: tokenValue,
-        isSecret: true,
-      }),
+/** A server's requirements for its own connect: its `env`, declared by the server. */
+function serverRequirements(mcpServer: McpServer): Requirement[] {
+  return Object.entries(mcpServer.spec?.env ?? {}).map(([key, declaration]) => ({
+    declarer: {
+      kind: "mcp_server" as const,
+      id: mcpServer.metadata?.id ?? "",
+      org: mcpServer.metadata?.org ?? "",
+      slug: mcpServer.metadata?.slug ?? "",
+      signIn:
+        mcpServer.spec?.signIn ?? McpServerSignIn.unspecified,
     },
-    remainingDecls,
-  };
-}
-
-/**
- * Reads a server's declared variables from the user's personal environment
- * (Go resolveFromPersonalEnvironment) through the shared lookup in
- * domain/environment/personal.ts, and gives its outcomes the connect
- * lane's meaning: a person asked to connect a server and cannot without
- * the credential, so a missing personal environment and a missing required
- * key both refuse with FailedPrecondition. Optional variables are included
- * when available and silently skipped when missing.
- */
-async function resolveFromPersonalEnvironment(
-  deps: McpServerConnectDeps,
-  org: string,
-  person: string,
-  envDecls: { [key: string]: EnvVarDeclaration },
-): Promise<{ [key: string]: ExecutionValue }> {
-  const resolution = await resolveDeclaredFromPersonalEnvironment(
-    deps.environmentReader,
-    deps.store,
-    deps.logger,
-    org,
-    person,
-    envDecls,
-  );
-  if (resolution.kind === "no-personal-environment") {
-    const requiredKeys = Object.entries(envDecls)
-      .filter(([, decl]) => !decl.optional)
-      .map(([key]) => key);
-    if (requiredKeys.length === 0) {
-      return {};
-    }
-    // Go renders the key list with %v — bracketed, space-separated.
-    throw failedPreconditionError(
-      `personal environment not found for org '${org}'; save required credentials first: [${requiredKeys.join(" ")}]`,
-    );
-  }
-  if (resolution.missing.length > 0) {
-    throw failedPreconditionError(
-      `missing required credentials in personal environment: [${resolution.missing.join(" ")}]`,
-    );
-  }
-  return { ...resolution.values };
+    key,
+    declaration,
+  }));
 }
 
 /**
@@ -959,209 +769,6 @@ export function buildConnectFailureMessage(
     `connect failed for MCP server '${name}': ${cause}. Check that the server URL is ` +
     "reachable and your credentials are valid."
   );
-}
-
-/**
- * Checks whether the MCP server has an auth block with an existing
- * OAuthGrant, and if the access token is expired, refreshes it using the
- * refresh token from the grant's managed environment (Go
- * refreshOAuthTokenIfNeeded) — the pre-flight that ensures the connect
- * workflow (and agent execution) always sees a fresh token.
- */
-export async function refreshOAuthTokenIfNeeded(
-  deps: McpServerConnectDeps,
-  mcpServer: McpServer,
-  callerOrg: string,
-): Promise<void> {
-  const auth = mcpServer.spec?.auth;
-  if (auth === undefined) {
-    return;
-  }
-
-  const mcpServerId = mcpServer.metadata?.id ?? "";
-
-  // OSS mode: single user, empty identity_account_id. Org comes from the
-  // caller's active org (matches how the grant was stored).
-  let grant;
-  try {
-    grant = await deps.oauthGrants.find("", mcpServerId, callerOrg);
-  } catch (error) {
-    deps.logger.warn(
-      "Failed to load OAuth grant for pre-flight check (non-fatal)",
-      {
-        mcp_server_id: mcpServerId,
-        error: error instanceof Error ? error.message : String(error),
-      },
-    );
-    return;
-  }
-  if (grant === undefined) {
-    return;
-  }
-
-  if (grant.environmentId === "") {
-    deps.logger.warn(
-      "OAuth grant has no managed environment ID — user must re-authenticate via OAuth Connect",
-      { mcp_server_id: mcpServerId },
-    );
-    return;
-  }
-
-  let refreshTokenValue: string;
-  try {
-    refreshTokenValue = await deps.managedEnv.readSecretValue(
-      grant.environmentId,
-      grant.refreshTokenEnvVar,
-    );
-  } catch (error) {
-    // Silent skip, ported as-is (oss#863's second half): a failed
-    // refresh-token read proceeds with the stale token instead of
-    // failing fast with the re-authenticate message — which is why
-    // refresh.ts's empty-token error is unreachable through this path.
-    deps.logger.debug(
-      "No refresh token found in managed environment (may not be OAuth-connected)",
-      {
-        mcp_server_id: mcpServerId,
-        refresh_token_var: grant.refreshTokenEnvVar,
-        managed_env_id: grant.environmentId,
-        error: error instanceof Error ? error.message : String(error),
-      },
-    );
-    return;
-  }
-
-  // For vendor OAuth, the client_secret and its token-endpoint auth
-  // method come from the OAuthApp. For DCR, both are empty (public
-  // client).
-  let clientSecret = "";
-  let tokenAuthMethod = "";
-  if (grant.authMethod === "vendor_oauth") {
-    try {
-      ({ clientSecret, tokenAuthMethod } = await loadOAuthAppClientCredentials(
-        deps,
-        mcpServer,
-      ));
-    } catch (error) {
-      deps.logger.warn("Failed to load OAuthApp client secret for refresh", {
-        mcp_server_id: mcpServerId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
-
-  let result;
-  try {
-    result = await refreshTokenIfExpired(
-      grant,
-      refreshTokenValue,
-      clientSecret,
-      tokenAuthMethod,
-      deps.logger,
-      deps.outboundFetch,
-    );
-  } catch (error) {
-    throw failedPreconditionError(
-      error instanceof Error ? error.message : String(error),
-    );
-  }
-
-  if (!result.refreshed) {
-    return;
-  }
-
-  // Write refreshed tokens to the grant's managed environment.
-  const tokenVars: { [key: string]: EnvironmentSpecValue } = {
-    [grant.accessTokenEnvVar]: create(EnvironmentValueSchema, {
-      value: result.newAccessToken,
-      isSecret: true,
-    }),
-  };
-  if (result.newRefreshToken !== refreshTokenValue) {
-    tokenVars[grant.refreshTokenEnvVar] = create(EnvironmentValueSchema, {
-      value: result.newRefreshToken,
-      isSecret: true,
-    });
-  }
-
-  try {
-    await deps.managedEnv.updateSecrets(grant.environmentId, tokenVars);
-  } catch (error) {
-    throw internalError(
-      error,
-      "failed to update refreshed tokens in managed environment",
-    );
-  }
-
-  try {
-    await deps.oauthGrants.upsert({
-      ...grant,
-      accessTokenExpiresAt: result.newExpiresAt,
-    });
-  } catch (error) {
-    deps.logger.warn("Failed to update OAuth grant after refresh (non-fatal)", {
-      mcp_server_id: mcpServerId,
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
-}
-
-/**
- * Loads the decrypted client_secret and the token-endpoint auth method
- * from the referenced OAuthApp for vendor OAuth token refresh (Go
- * loadOAuthAppClientCredentials). The method is read LIVE (not
- * snapshotted on the grant) so an admin correcting a misconfigured
- * OAuthApp fixes refreshes immediately.
- *
- * Resolution goes through refresolution — the same lookup the initiate
- * path used when the grant was minted — so the refresh always runs
- * against the credentials the user actually signed in with (the old
- * slug-only scan could load a same-slug app from a different org,
- * stigmer/stigmer#584).
- */
-export async function loadOAuthAppClientCredentials(
-  deps: McpServerConnectDeps,
-  mcpServer: McpServer,
-): Promise<{ clientSecret: string; tokenAuthMethod: string }> {
-  const ref = mcpServer.spec?.auth?.oauthAppRef;
-  if (ref === undefined || ref.slug === "") {
-    return { clientSecret: "", tokenAuthMethod: "" };
-  }
-
-  let app;
-  try {
-    app = await resolveOAuthAppRef(deps.store, ref, deps.logger);
-  } catch (error) {
-    throw new Error(
-      `failed to list oauth apps: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
-  if (app === undefined) {
-    throw new Error(`OAuthApp '${ref.slug}' not found`);
-  }
-
-  const tokenAuthMethod = tokenAuthMethodFromSpec(
-    app.spec?.tokenEndpointAuthMethod ?? TokenEndpointAuthMethod.UNSPECIFIED,
-  );
-
-  let secret = app.spec?.clientSecret ?? "";
-  if (deps.secretService.isEncrypted(secret)) {
-    secret = await deps.secretService.decrypt(secret);
-  }
-  return { clientSecret: secret, tokenAuthMethod };
-}
-
-/**
- * Maps the OAuthAppSpec enum onto the oauth package's RFC 8414 strings
- * (Go tokenAuthMethodFromSpec). UNSPECIFIED means Basic — every OAuthApp
- * created before the field existed authenticated via HTTP Basic.
- */
-export function tokenAuthMethodFromSpec(
-  method: TokenEndpointAuthMethod,
-): string {
-  if (method === TokenEndpointAuthMethod.CLIENT_SECRET_POST) {
-    return TOKEN_AUTH_METHOD_POST;
-  }
-  return TOKEN_AUTH_METHOD_BASIC;
 }
 
 /**

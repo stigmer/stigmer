@@ -9,13 +9,14 @@
  * and the public-visibility mover (public-visibility-retired.ts) are
  * statements about the store as it was when they arrived, and each forbids
  * a later release from changing what it does; between them they list
- * `agent_instance`, `workflow_instance`, `workflow`, `workflow_execution`
- * and `artifact` among their kinds. Those kinds have since been removed
- * from the contract, so their generated schemas no longer exist, but a
- * store that replays the migration chain from an old version still holds
- * their rows when those two steps run (the later migrations that remove the
- * rows, agent-instance-retired.ts, workflow-instance-retired.ts and
- * workflow-retired.ts, run after them). Both steps read and edit `metadata`
+ * `agent_instance`, `workflow_instance`, `workflow`, `workflow_execution`,
+ * `artifact` and `environment` among their kinds. Those kinds have since
+ * been removed from the contract, so their generated schemas no longer
+ * exist, but a store that replays the migration chain from an old version
+ * still holds their rows when those two steps run (the later migrations
+ * that remove the rows, agent-instance-retired.ts,
+ * workflow-instance-retired.ts, workflow-retired.ts and
+ * environment-retired.ts, run after them). Both steps read and edit `metadata`
  * only, through reflection, so an envelope is exactly what they need:
  * protobuf-es keeps the fields it does not declare (spec = 4, status = 5)
  * as unknown fields through `fromBinary` and writes them back verbatim in
@@ -62,6 +63,11 @@ export const FrozenWorkflowExecutionEnvelopeSchema = frozenEnvelope(
 /** The envelope of a retired Artifact row. */
 export const FrozenArtifactEnvelopeSchema = frozenEnvelope(
   "ai.stigmer.agentic.artifact.v1.Artifact",
+);
+
+/** The envelope of a retired Environment row. */
+export const FrozenEnvironmentEnvelopeSchema = frozenEnvelope(
+  "ai.stigmer.agentic.environment.v1.Environment",
 );
 
 /** The envelope's schema under `typeName`, a retired message's full name (the module header). */

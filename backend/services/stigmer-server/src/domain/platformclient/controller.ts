@@ -112,6 +112,19 @@ import {
   storedClientOf,
 } from "./steps.js";
 import type { PlatformClientStore } from "./store.js";
+import { newGuardCredentialAssignmentsStep } from "../credential/assignments.js";
+import type { AssignmentSurface } from "../credential/assignments.js";
+import type { MessageShape } from "@bufbuild/protobuf";
+
+/** Where this kind keeps the credentials its runs use, and what consumes them (credential/assignments.ts). */
+const PLATFORM_CLIENT_ASSIGNMENTS: AssignmentSurface<MessageShape<typeof PlatformClientSchema>> = {
+  noun: "platform client",
+  personsOwn: false,
+  assignmentsOf: (row) => row.spec?.credentials ?? [],
+  // A client's users may run any agent the organization lets them, so no
+  // one agent consumes its assignments.
+  consumerOf: () => "",
+};
 
 export interface PlatformClientControllerDeps {
   /** The composed store — a driver's, or the OSS adapter over the generic Store. */
@@ -185,6 +198,9 @@ async function createClient(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(
+      newGuardCredentialAssignmentsStep(deps.store, deps.authorizer, PLATFORM_CLIENT_ASSIGNMENTS),
+    )
     .addStep(newGenerateClientCredentialsStep())
     .addStep(newPersistNewClientStep(deps.clients))
     .addStep(
@@ -241,6 +257,9 @@ async function updateClient(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(
+      newGuardCredentialAssignmentsStep(deps.store, deps.authorizer, PLATFORM_CLIENT_ASSIGNMENTS),
+    )
     .addStep(newPreserveClientCredentialsStep())
     .addStep(newPersistUpdatedClientStep(deps.clients))
     .build()

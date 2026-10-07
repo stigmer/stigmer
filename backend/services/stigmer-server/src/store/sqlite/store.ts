@@ -1628,7 +1628,7 @@ class SqliteOAuthGrantStore implements OAuthGrantStore {
         `INSERT INTO oauth_grant (
           identity_account_id, resource_id, resource_kind, org_id,
           access_token_expires_at, client_id, auth_method, token_endpoint,
-          access_token_env_var, refresh_token_env_var, environment_id,
+          access_token_env_var, credential_id, refresh_token,
           created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT (identity_account_id, resource_id, org_id) DO UPDATE SET
@@ -1638,8 +1638,8 @@ class SqliteOAuthGrantStore implements OAuthGrantStore {
           auth_method = excluded.auth_method,
           token_endpoint = excluded.token_endpoint,
           access_token_env_var = excluded.access_token_env_var,
-          refresh_token_env_var = excluded.refresh_token_env_var,
-          environment_id = excluded.environment_id,
+          credential_id = excluded.credential_id,
+          refresh_token = excluded.refresh_token,
           updated_at = excluded.updated_at`,
       )
       .run(
@@ -1652,8 +1652,8 @@ class SqliteOAuthGrantStore implements OAuthGrantStore {
         grant.authMethod,
         grant.tokenEndpoint,
         grant.accessTokenEnvVar,
-        grant.refreshTokenEnvVar,
-        grant.environmentId,
+        grant.credentialId,
+        grant.refreshToken,
         createdAt,
         now,
       );
@@ -1668,7 +1668,7 @@ class SqliteOAuthGrantStore implements OAuthGrantStore {
       .prepare(
         `SELECT identity_account_id, resource_id, resource_kind, org_id,
           access_token_expires_at, client_id, auth_method, token_endpoint,
-          access_token_env_var, refresh_token_env_var, environment_id,
+          access_token_env_var, credential_id, refresh_token,
           created_at, updated_at
          FROM oauth_grant
          WHERE identity_account_id = ? AND resource_id = ? AND org_id = ?`,
@@ -1684,8 +1684,8 @@ class SqliteOAuthGrantStore implements OAuthGrantStore {
           auth_method: string;
           token_endpoint: string;
           access_token_env_var: string;
-          refresh_token_env_var: string;
-          environment_id: string;
+          credential_id: string;
+          refresh_token: string;
           created_at: number;
           updated_at: number;
         }
@@ -1703,8 +1703,8 @@ class SqliteOAuthGrantStore implements OAuthGrantStore {
       authMethod: row.auth_method,
       tokenEndpoint: row.token_endpoint,
       accessTokenEnvVar: row.access_token_env_var,
-      refreshTokenEnvVar: row.refresh_token_env_var,
-      environmentId: row.environment_id,
+      credentialId: row.credential_id,
+      refreshToken: row.refresh_token,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

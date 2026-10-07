@@ -25,35 +25,27 @@
  *        the resource's on the order private < org < child_orgs — the FLOOR.
  *        What a person can run they must also be able to read: an
  *        org-visible agent over a private MCP server would run for every
- *        member and be readable by one. Environments, OAuth apps and
+ *        member and be readable by one. Credentials, OAuth apps and
  *        channel apps are resolved by the server on the run's behalf, so
- *        their level is not a leak the floor closes, and an org-visible
- *        channel may hold its owner's private environment: attaching it
- *        is the owner's choice to let its runs use it.
+ *        their level is not a leak the floor closes.
  *
  *        The WRITER clause, for the kinds whose row says what the writer
  *        must hold (`writerMust`): a same-organization reference the write
  *        INTRODUCES — one the stored row does not already carry — must
  *        name a target the writer holds that permission on, asked of the
- *        edition's Authorizer. Environments carry it with `can_view`: the
- *        server resolves an environment for the run, and the run is a
- *        person with a shell, so attaching a teammate's private
- *        environment by name would hand its values to the attacher. A
- *        refusal is PERMISSION_DENIED with its own sentence, the answer
- *        the read by reference already gives that writer. Judging only
- *        what a write introduces is the reserved-label guard's echo rule
- *        (guard-reserved-labels.ts): an edit that keeps an attachment
- *        someone else made passes. The server acting as itself (the
- *        `internal` class) is exempt, as at every authorization step.
- *        Two limits hold until access to an environment is its own
- *        permission: `can_view` is held by every member on an org-visible
- *        environment and by an explicit viewer grantee on a private one,
- *        and each of them may attach it; and an editor who keeps an
- *        attachment someone else made may change what consumes it (a
- *        schedule's agent), since who may edit
- *        the row is that kind's own permission. Grant view on an
- *        environment, and edit on a row that carries one, as you would its
- *        values.
+ *        edition's Authorizer. Credentials carry it with `can_use`: the
+ *        server resolves a credential for the run, and the run has a
+ *        shell, so assigning a credential the writer may not use would
+ *        hand its values to the writer. A refusal is PERMISSION_DENIED
+ *        with its own sentence. Judging only what a write introduces is
+ *        the reserved-label guard's echo rule (guard-reserved-labels.ts):
+ *        an edit that keeps an assignment someone else made passes here.
+ *        What a kept assignment may still do is credential-assignments.ts'
+ *        rule: a write that changes what consumes it (a schedule's agent)
+ *        re-judges every assignment it keeps, and a person's own
+ *        credential is kept only by that person. The server acting as
+ *        itself (the `internal` class) is exempt, as at every
+ *        authorization step.
  *   (iii) Another organization: the target must exist, be shared with
  *        child organizations (visibility_child_orgs), AND belong to the
  *        writing organization's own parent, answered with ONE sentence
@@ -62,7 +54,7 @@
  *        AgentShare lane set first). The writer's parent is read once, from
  *        its organization's row, only when a reference crosses
  *        organizations, so a reference no run of the writer's could use is
- *        refused at write instead of stored. No Environment, OAuth app or
+ *        refused at write instead of stored. No credential, OAuth app or
  *        channel app is ever shared with child organizations, so every
  *        cross-organization reference to one is refused here.
  *
@@ -129,7 +121,7 @@ import type { ReflectMessage } from "@bufbuild/protobuf/reflect";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { CredentialSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
@@ -216,12 +208,12 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     writerMust: undefined,
   },
   {
-    kind: ApiResourceKind.environment,
-    schema: EnvironmentSchema,
+    kind: ApiResourceKind.credential,
+    schema: CredentialSchema,
     readByRun: false,
-    label: "environment(s)",
-    listHint: "stigmer list environments",
-    writerMust: IamPermission.can_view,
+    label: "credential(s)",
+    listHint: "stigmer list credentials",
+    writerMust: IamPermission.can_use,
   },
   {
     kind: ApiResourceKind.channel_app,
@@ -281,7 +273,7 @@ export type ReferenceVerdict =
   /** Clause (iii): the other-organization target is missing, not shared with child organizations, or not the writer's parent's — one answer. */
   | { readonly kind: "not-available" }
   /** The writer clause: the writer does not hold the kind's `writerMust` on the target. */
-  | { readonly kind: "not-viewable" };
+  | { readonly kind: "not-permitted" };
 
 /** The visibility and id of every referenced row the rule may need, one scan per kind (the module header). */
 export interface ReferenceTargets {
@@ -457,7 +449,7 @@ export async function checkWriter(
     return { kind: "ok" };
   }
   if (decision.kind === "deny") {
-    return { kind: "not-viewable" };
+    return { kind: "not-permitted" };
   }
   if (decision.kind === "not-found") {
     return { kind: "missing" };
@@ -558,12 +550,12 @@ export function notAvailableReferenceMessage(
   return `referenced ${singular(entry)} '${ref.slug}' of another organization is not available to this organization; another organization's resource can be referenced only when it is this organization's parent and shares it with its child organizations.`;
 }
 
-/** The writer clause's sentence: the target, and what the writer may attach instead. */
-export function notViewableReferenceMessage(
+/** The writer clause's sentence: the target, and what the writer may assign instead. */
+export function notPermittedReferenceMessage(
   entry: ReferenceTargetKind,
   ref: SpecReference,
 ): string {
-  return `referenced ${singular(entry)} '${ref.org}/${ref.slug}' is not one you can view; attach ${article(entry)} ${singular(entry)} you own or one shared with the organization.`;
+  return `referenced ${singular(entry)} '${ref.org}/${ref.slug}' is not one you may use; assign ${article(entry)} ${singular(entry)} of your own or one the organization lets you use.`;
 }
 
 /** The indefinite article before the kind's singular label. */
@@ -648,9 +640,9 @@ export function referenceRefusal(
       case "not-available":
         sentences.push(notAvailableReferenceMessage(entry, ref));
         break;
-      case "not-viewable":
+      case "not-permitted":
         notPermitted = true;
-        sentences.push(notViewableReferenceMessage(entry, ref));
+        sentences.push(notPermittedReferenceMessage(entry, ref));
         break;
       default: {
         const exhaustive: never = verdict;

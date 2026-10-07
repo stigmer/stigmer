@@ -414,8 +414,10 @@ export interface OrganizationDeletionStore {
 
 /**
  * OAuth grant infrastructure record — not an API resource; keyed by
- * (identityAccountId, resourceId, orgId). Resource-agnostic: resourceId can
- * refer to any kind that requires OAuth credentials.
+ * (identityAccountId, resourceId, orgId), where an empty identity is the
+ * organization's own sign-in. Resource-agnostic: resourceId can refer to
+ * any kind that requires OAuth credentials. The access token lives in the
+ * credential it names; the refresh token is sealed here.
  */
 export interface OAuthGrant {
   readonly identityAccountId: string;
@@ -429,9 +431,12 @@ export interface OAuthGrant {
   /** "mcp_oauth" or "vendor_oauth". */
   readonly authMethod: string;
   readonly tokenEndpoint: string;
+  /** The key the access token fills: the name of the credential's field. */
   readonly accessTokenEnvVar: string;
-  readonly refreshTokenEnvVar: string;
-  readonly environmentId: string;
+  /** The credential holding the access token. */
+  readonly credentialId: string;
+  /** The refresh token, sealed at rest (ciphertext); "" when the vendor issued none. */
+  readonly refreshToken: string;
   /** Unix seconds; 0 lets the driver stamp now on first insert. */
   readonly createdAt: number;
   /** Unix seconds; the driver stamps now on every upsert. */

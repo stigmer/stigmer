@@ -150,8 +150,13 @@ function resolveParentLink(
   kind: ApiResourceKind,
   resource: Message,
   parentConfig: ParentRelationConfig,
-): ResolvedParentLink {
+): ResolvedParentLink | undefined {
   const parentId = parentIdOf(resource, parentConfig.specField);
+  if (parentId === "" && parentConfig.optional) {
+    // An optional parent the row does not name writes no link (a
+    // credential links `owner` or `org_owned`, whichever its owner names).
+    return undefined;
+  }
   if (parentId === "") {
     // Java: "Parent ID required for X but not found" → the request fails.
     throw internalError(
@@ -206,7 +211,10 @@ function resolveParentLinks(
           "failed to create authorization tuples",
         );
       }
-      links.push(resolveParentLink(kind, resource, config.parent));
+      const link = resolveParentLink(kind, resource, config.parent);
+      if (link !== undefined) {
+        links.push(link);
+      }
       break;
     }
     case AuthorizationScopeType.OWNER_ONLY:
@@ -223,7 +231,10 @@ function resolveParentLinks(
       break;
   }
   for (const parent of config.additionalParents) {
-    links.push(resolveParentLink(kind, resource, parent));
+    const link = resolveParentLink(kind, resource, parent);
+    if (link !== undefined) {
+      links.push(link);
+    }
   }
   return links;
 }

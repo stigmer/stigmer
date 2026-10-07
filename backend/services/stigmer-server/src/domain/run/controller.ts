@@ -112,6 +112,7 @@ import type { SandboxLane } from "../../sandbox/lane.js";
 import { newEnsureSessionSandboxStep } from "../../sandbox/steps.js";
 import type { ExecutionContextBuilderDeps } from "./create-execution-context-step.js";
 import { newCreateExecutionContextStep } from "./create-execution-context-step.js";
+import { newRecordRunPersonStep } from "./run-credentials.js";
 import { newResolveRunAgentStep } from "./resolve-run-agent.js";
 import type { AgentExecutionTemporalConfig } from "./temporal/config.js";
 import type { ExecutionEngineStateProvider } from "./engine.js";
@@ -433,6 +434,7 @@ async function createExecution(
       ),
     )
     .addStep(newSetInitialPhaseStep())
+    .addStep(newRecordRunPersonStep())
     .addStep(newCreateExecutionContextStep(deps.executionContextBuilder))
     .addStep(newProcessAttachmentsStep(deps.logger))
     .addStep(newPersistStep(deps.store))

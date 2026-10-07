@@ -80,8 +80,10 @@ import { RunStarter } from "../temporal/schedule/run-starter.js";
 import { ScheduleSyncer } from "../temporal/schedule/syncer.js";
 import { newScheduleWorkerFactory } from "../temporal/schedule/worker.js";
 import { registerScheduleServices } from "../domain/schedule/controller.js";
-import { RuntimeResolutionService } from "../domain/environment/resolution/resolution.js";
-import { ManagedEnvironmentService } from "../domain/mcpserver/oauth/managed-env.js";
+import { CredentialValues } from "../domain/credential/values.js";
+import { SignInCredentials } from "../domain/credential/sign-in.js";
+import type { CredentialResolverDeps } from "../domain/credential/resolve.js";
+import { SignInRefresher } from "../domain/mcpserver/oauth/sign-in.js";
 import { registerAgentChannelServices } from "../domain/agentchannel/controller.js";
 import { registerChannelConversationServices } from "../domain/agentchannel/conversation.js";
 import { registerChannelMessageServices } from "../domain/agentchannel/message.js";
@@ -97,7 +99,7 @@ import { newResourceIdentityAccountStore } from "../domain/identityaccount/resou
 import type { AccountsByCaller } from "../domain/identityaccount/resolve.js";
 import { registerIamPolicyServices } from "../domain/iampolicy/controller.js";
 import { newIamPolicyGrantPath } from "../domain/iampolicy/grant-path.js";
-import { asFetch, guardedFetch, nodeLookup } from "@stigmer/outbound/egress";
+import { guardedFetch, nodeLookup } from "@stigmer/outbound/egress";
 import { isReleaseVersion } from "@stigmer/plugin-package/client";
 import { temporalConnectionEnv } from "@stigmer/temporal-codecs";
 import { newOrganizationOnlyGrantScope } from "../domain/iampolicy/grant-scope.js";
@@ -114,7 +116,7 @@ import {
   warnOnLegacyArtifactLayout,
 } from "../artifactstorage/file-server.js";
 import { registerChannelAppServices } from "../domain/channelapp/controller.js";
-import { registerEnvironmentServices } from "../domain/environment/controller.js";
+import { registerCredentialServices } from "../domain/credential/controller.js";
 import { registerExecutionContextServices } from "../domain/executioncontext/controller.js";
 import { registerGitHubServices } from "../domain/github/controller.js";
 import { registerMemoryServices } from "../domain/memory/controller.js";
@@ -1337,37 +1339,6 @@ export async function composeServer(
   );
   // The activity recents feed — pure reads over listResources.
   const activityHandler = new ActivityHandler(store, logger, listReadScope);
-  // The environment runtime-resolution service — the decrypt-for-
-  // execution path the EC builder uses to resolve environment_refs (the
-  // RPC surface redacts secret values, oss#405).
-  const environmentResolution = new RuntimeResolutionService(
-    store,
-    secretService,
-    logger,
-  );
-  // The managed-environment lifecycle — OAuth token access for the EC
-  // builder's injection (server.go 732–735) plus the create/delete halves
-  // the connect/OAuth slice mints and tears environments with.
-  // Rides the environment in-process client so encryption, validation,
-  // and audit ride the environment pipeline. ONE instance shared by
-  // agentexecution and mcpserver — Go builds two, both stateless over the
-  // same client, so sharing is behavior-identical.
-  const managedEnvService = new ManagedEnvironmentService(
-    {
-      getSecretValue: (input) =>
-        requireInProcess().executionEnvironmentReader.getSecretValue(input),
-      updateVariables: (request) =>
-        requireInProcess().executionEnvironmentReader.updateVariables(request),
-      create: (environment, caller) =>
-        requireInProcess().executionEnvironmentReader.create(
-          environment,
-          caller,
-        ),
-      delete: (input) =>
-        requireInProcess().executionEnvironmentReader.delete(input),
-    },
-    logger,
-  );
   // The mcpserver connect-engine provider — the same manager-backed
   // request-time idiom as executionEngineState above; the connect lanes
   // start the RUNNER's workflow, so no worker factory is added here.
@@ -1424,6 +1395,42 @@ export async function composeServer(
     extensions.drivers.outboundEgress ?? relaxedEgressPolicy(),
     { fetchImpl: options.fetchImpl ?? fetch, lookup: nodeLookup() },
   );
+  // A run's values: the one credential rule (domain/credential/resolve.ts)
+  // and the internal, decrypting read it takes. A sign-in keeps its access
+  // token as a credential (domain/credential/sign-in.ts), written through
+  // the credential domain's in-process client so encryption, validation,
+  // audit and the authorization tuples ride its pipeline; its refresh
+  // (domain/mcpserver/oauth/sign-in.ts) dials the vendor's token endpoint
+  // through the same egress-guarded fetch as every other OAuth call. ONE
+  // of each, shared by the run builder and the MCP server connect lanes.
+  const credentialValues = new CredentialValues(secretService, logger);
+  const signInCredentials = new SignInCredentials(
+    {
+      create: (credential, caller) =>
+        requireInProcess().signInCredentialClient.create(credential, caller),
+      setFields: (input) =>
+        requireInProcess().signInCredentialClient.setFields(input),
+      removeFields: (input) =>
+        requireInProcess().signInCredentialClient.removeFields(input),
+      delete: (input) => requireInProcess().signInCredentialClient.delete(input),
+    },
+    store,
+    credentialValues,
+    logger,
+  );
+  const credentialResolver: CredentialResolverDeps = {
+    store,
+    logger,
+    authorizer,
+    values: credentialValues,
+    signIns: new SignInRefresher({
+      store,
+      logger,
+      secretService,
+      signIns: signInCredentials,
+      outboundFetch,
+    }),
+  };
   // The SAME `routes` function registers every service on BOTH the serving
   // router and the in-process router transport (createInProcessClients).
   // Handlers are stateless over the same store, so the two routers behave
@@ -1565,7 +1572,7 @@ export async function composeServer(
       edition: extensions.edition,
       logger,
     });
-    registerEnvironmentServices(router, {
+    registerCredentialServices(router, {
       store,
       logger,
       authorizer,
@@ -1573,8 +1580,8 @@ export async function composeServer(
       authorizationLifecycle,
       listReadScope,
     });
-    // OAuthApp reuses the environment's SecretService instance — Go wires
-    // ONE encryption service for both (server.go 302–307).
+    // OAuthApp reuses the credential's SecretService instance — ONE
+    // encryption service for every sealed value.
     registerOAuthAppServices(router, {
       store,
       secretService,
@@ -1640,7 +1647,7 @@ export async function composeServer(
     // The sharing/channel family registers after the agent family, as in
     // Go server.go (agent 378 → agentshare 384 → agentchannel 391 →
     // channelmessage 399 → channelconversation 408 → channelapp 416).
-    // ChannelApp shares the ONE SecretService instance with Environment —
+    // ChannelApp shares the ONE SecretService instance with Credential —
     // one key, one enc:v1: format (Go wires the same pointer).
     registerAgentShareServices(router, {
       store,
@@ -1728,26 +1735,21 @@ export async function composeServer(
         logger,
         agentLoader: () => requireInProcess().executionAgentLoader,
         sessionLoader: () => requireInProcess().executionSessionLoader,
-        environmentReader: () => requireInProcess().executionEnvironmentReader,
-        environmentResolution,
         executionContextCreator: () =>
           requireInProcess().executionContextCreator,
         executionContextDeleter: () =>
           requireInProcess().executionContextDeleter,
-        managedEnvService,
-        // The minting client's environment layer reads the client through
-        // the port, which a composition's driver may serve (#1256).
+        credentials: credentialResolver,
+        // The minting client's assignments are read through the port,
+        // which a composition's driver may serve (#1256).
         platformClients,
-        // The run-start token refresh dials the vendor's token endpoint;
-        // it rides the same egress-guarded fetch as every other OAuth call.
-        fetchImpl: asFetch(outboundFetch),
       },
     });
     // The whole surface: the CRUD slice plus the connect/OAuth
     // slice. All connect deps are wired unconditionally per the
     // composition-root idiom — engine availability is the modeled state
-    // the provider answers at request time, and the managed-env service
-    // has no Temporal dependency.
+    // the provider answers at request time, and the sign-in credentials
+    // have no Temporal dependency.
     registerMcpServerServices(router, {
       store,
       logger,
@@ -1758,10 +1760,6 @@ export async function composeServer(
         logger,
         authorizer,
         engineState: mcpServerEngineState,
-        environmentReader: {
-          getSecretValue: (input) =>
-            requireInProcess().executionEnvironmentReader.getSecretValue(input),
-        },
         executionContext: {
           create: (ec, caller) =>
             requireInProcess().connectExecutionContextClient.create(ec, caller),
@@ -1769,7 +1767,8 @@ export async function composeServer(
             requireInProcess().connectExecutionContextClient.delete(input),
         },
         runnerAuth: runnerCredentials,
-        managedEnv: managedEnvService,
+        credentials: credentialResolver,
+        signIns: signInCredentials,
         // The SAME grant-store instance agentexecution's session-time
         // token injection reads (Go server.go:732-735 shares it too).
         oauthGrants: store.oauthGrants,

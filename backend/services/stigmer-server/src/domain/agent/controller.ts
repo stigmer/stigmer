@@ -124,7 +124,6 @@ import type { Store } from "../../store/interface.js";
 import { agentSearchExtractor } from "./search-extractor.js";
 import {
   newCascadeDeleteSharesStep,
-  newMergeMcpServerEnvSpecsStep,
   newValidateHooksStep,
 } from "./steps.js";
 import {
@@ -215,7 +214,6 @@ async function createAgent(
     .addStep(newValidateHooksStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-    .addStep(newMergeMcpServerEnvSpecsStep(deps.store, deps.logger))
     .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
     .addStep(newComputeAgentVersionHashStep())
     .addStep(newPopulateAgentVersionStep())
@@ -266,7 +264,6 @@ async function update(
     .addStep(newValidateHooksStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-    .addStep(newMergeMcpServerEnvSpecsStep(deps.store, deps.logger))
     .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
     .addStep(newComputeAgentVersionHashStep())
     .addStep(newPopulateAgentVersionStep())

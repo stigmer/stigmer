@@ -19,9 +19,12 @@
  * organization (stigmer#1405). And `organization` joins for its children:
  * the built-in evaluator reads a parent's children whenever a check walks
  * a blueprint shared with child organizations, and listChildOrgs pages
- * them (domain/organization/list-index.ts).
+ * them (domain/organization/list-index.ts). And `credential` joins
+ * because the run create path reads one organization's credentials on
+ * every run (domain/credential/resolve.ts).
  */
 import { agentExecutionListIndex } from "../domain/run/list-index.js";
+import { credentialListIndex } from "../domain/credential/list-index.js";
 import { iamPolicyListIndex } from "../domain/iampolicy/list-index.js";
 import { memoryListIndex } from "../domain/memory/list-index.js";
 import { organizationListIndex } from "../domain/organization/list-index.js";
@@ -30,6 +33,7 @@ import type { ListIndexDeclaration } from "../store/list-index.js";
 
 export const LIST_INDEXES: ReadonlyArray<ListIndexDeclaration> = [
   agentExecutionListIndex,
+  credentialListIndex,
   iamPolicyListIndex,
   memoryListIndex,
   organizationListIndex,

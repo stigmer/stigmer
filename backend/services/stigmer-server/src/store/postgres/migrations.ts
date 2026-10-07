@@ -98,6 +98,13 @@ import {
   unreadableRetiredWorkflowRowError,
 } from "../workflow-retired.js";
 import {
+  ENVIRONMENT_KIND,
+  ENVIRONMENT_RETIRED_PAGE_SIZE,
+  ENVIRONMENT_RETIRED_POLICY_KIND,
+  policyNamesEnvironment,
+  unreadableEnvironmentRetiredRowError,
+} from "../environment-retired.js";
+import {
   IDENTITY_ACCOUNT_KIND,
   repairedAccountSlugRow,
 } from "../account-slugs-repaired.js";
@@ -131,9 +138,11 @@ export const SCHEMA_VERSION_14 = 14;
 export const SCHEMA_VERSION_15 = 15;
 /** v16: the agent run is a run. */
 export const SCHEMA_VERSION_16 = 16;
+/** v17: the environment rows removed; OAuth grants name a credential and keep the refresh token sealed. */
+export const SCHEMA_VERSION_17 = 17;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_16;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_17;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -189,6 +198,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_14, migrateToV14],
       [SCHEMA_VERSION_15, migrateToV15],
       [SCHEMA_VERSION_16, migrateToV16],
+      [SCHEMA_VERSION_17, migrateToV17],
     ];
 
     for (const [version, migrate] of chain) {
@@ -1136,4 +1146,62 @@ async function migrateToV15(client: PoolClient): Promise<void> {
  */
 async function migrateToV16(client: PoolClient): Promise<void> {
   await renameRunKind(client, RUN_RENAME_V21);
+}
+
+/**
+ * v17: credentials replace environments (../environment-retired.ts says
+ * what leaves and why). Every IamPolicy row is read in keyset pages, and
+ * the ones naming an environment are deleted with their list keys, their
+ * history kept. Every environment row is deleted from every table keyed by
+ * kind. Every OAuth grant that named an environment is deleted, then the
+ * grant table renames `environment_id` to `credential_id`, drops
+ * `refresh_token_env_var` and gains `refresh_token`. The chain's advisory
+ * lock keeps a second instance's boot out of the step, and the transaction
+ * makes it whole or nothing.
+ */
+async function migrateToV17(client: PoolClient): Promise<void> {
+  const retiredPolicies: string[] = [];
+  for (let after = ""; ; ) {
+    const rows = (
+      await client.query<{ id: string; data: Buffer }>(
+        `SELECT id, data FROM resources
+         WHERE kind = $1 AND id > $2
+         ORDER BY id
+         LIMIT $3`,
+        [ENVIRONMENT_RETIRED_POLICY_KIND, after, ENVIRONMENT_RETIRED_PAGE_SIZE],
+      )
+    ).rows;
+    for (const row of rows) {
+      try {
+        if (policyNamesEnvironment(new Uint8Array(row.data))) {
+          retiredPolicies.push(row.id);
+        }
+      } catch (error) {
+        throw unreadableEnvironmentRetiredRowError(
+          ENVIRONMENT_RETIRED_POLICY_KIND,
+          row.id,
+          error,
+        );
+      }
+    }
+    if (rows.length < ENVIRONMENT_RETIRED_PAGE_SIZE) {
+      break;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
+  for (const table of ["resource_list_keys", "resources"]) {
+    await client.query(
+      `DELETE FROM ${table} WHERE kind = $1 AND id = ANY($2::text[])`,
+      [ENVIRONMENT_RETIRED_POLICY_KIND, retiredPolicies],
+    );
+  }
+
+  for (const table of RUN_KIND_TABLES) {
+    await client.query(`DELETE FROM ${table} WHERE kind = $1`, [ENVIRONMENT_KIND]);
+  }
+
+  await client.query(`DELETE FROM oauth_grant WHERE environment_id <> ''`);
+  await client.query(`ALTER TABLE oauth_grant DROP COLUMN refresh_token_env_var`);
+  await client.query(`ALTER TABLE oauth_grant RENAME COLUMN environment_id TO credential_id`);
+  await client.query(`ALTER TABLE oauth_grant ADD COLUMN refresh_token TEXT NOT NULL DEFAULT ''`);
 }

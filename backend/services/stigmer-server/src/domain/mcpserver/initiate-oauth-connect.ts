@@ -43,7 +43,11 @@ import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewher
 import type { PendingOAuthState } from "../../store/interface.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import { resolveOAuthAppRef } from "../oauthapp/refresolution.js";
-import { tokenAuthMethodFromSpec } from "./connect.js";
+import { tokenAuthMethodFromSpec } from "./oauth/client-credentials.js";
+import {
+  requireOrganizationSignInAdmin,
+  signInIdentity,
+} from "./oauth/sign-in.js";
 import type { McpServerConnectDeps } from "./connect.js";
 import { generatePkce } from "./oauth/pkce.js";
 import type { PkcePair } from "./oauth/pkce.js";
@@ -101,6 +105,9 @@ export async function initiateOAuthConnect(
       `MCP server '${mcpServerId}' does not have an auth block configured`,
     );
   }
+  // A server with organization sign-in is signed in once, by an admin,
+  // for everyone; every other server is each person's own sign-in.
+  await requireOrganizationSignInAdmin(deps.authorizer, identity, mcpServer, input.org);
 
   const pkcePair = generatePkce();
   const stateParam = generateState();
@@ -119,8 +126,9 @@ export async function initiateOAuthConnect(
     clientSecret: result.clientSecret,
     tokenEndpoint: result.tokenEndpoint,
     mcpServerId,
-    // OSS mode: single user, no identity account.
-    identityAccountId: "",
+    // Whose sign-in this is: the caller's own, or the organization's
+    // (an empty identity) for a server with organization sign-in.
+    identityAccountId: signInIdentity(mcpServer, identity),
     targetEnvVar: auth.targetEnvVar,
     authMethod,
     tokenAuthMethod: result.tokenAuthMethod,

@@ -1,18 +1,18 @@
 /**
- * disconnectOAuth — ports
- * pkg/domain/mcpserver/controller/disconnect_oauth.go: tear down a user's
- * OAuth connection for an MCP server. Deletes the OAuthGrant record and
- * its associated managed environment (which holds the access and refresh
- * tokens); the MCP server definition is unchanged.
+ * disconnectOAuth: ends one sign-in to an MCP server — the caller's own,
+ * or the organization's for a server with organization sign-in (admins
+ * only, oauth/sign-in.ts). Deletes the credential holding the access
+ * token, then the OAuthGrant with the refresh token sealed on it; the MCP
+ * server definition is unchanged, and other people's sign-ins to it are
+ * untouched.
  *
- * Idempotent: no grant for the (caller, resource_id, org) tuple returns
+ * Idempotent: no grant for the (identity, resource_id, org) tuple returns
  * disconnected=false without error — race conditions, retries after
  * partial failures, and desired-state semantics all rely on it.
  *
- * Delete order: managed environment first (eliminates secrets), then
- * grant record (metadata only). If grant deletion fails after environment
- * deletion, the orphaned grant is harmless metadata pointing to a deleted
- * environment.
+ * Delete order: the credential first (it holds the secret), then the
+ * grant. The credential's own delete chain also ends a grant that names
+ * it, so a failure between the two leaves no live token behind.
  *
  * Proven by mcpserver-oauth.conformance.test.ts (guards + no-grant
  * idempotence, CONFORMANCE_TARGET=local) and
@@ -34,6 +34,10 @@ import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
 import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import type { McpServerConnectDeps } from "./connect.js";
+import {
+  requireOrganizationSignInAdmin,
+  signInIdentityById,
+} from "./oauth/sign-in.js";
 
 export async function disconnectOAuth(
   deps: McpServerConnectDeps,
@@ -61,10 +65,18 @@ export async function disconnectOAuth(
     input,
   );
 
-  // OSS mode: single user, empty identity_account_id.
+  const { identity: grantIdentity, server } = await signInIdentityById(
+    deps.store,
+    resourceId,
+    identity,
+  );
+  if (server !== undefined) {
+    await requireOrganizationSignInAdmin(deps.authorizer, identity, server, org);
+  }
+
   let grant;
   try {
-    grant = await deps.oauthGrants.find("", resourceId, org);
+    grant = await deps.oauthGrants.find(grantIdentity, resourceId, org);
   } catch (error) {
     throw internalError(error, "failed to look up OAuth grant");
   }
@@ -77,24 +89,14 @@ export async function disconnectOAuth(
     return create(DisconnectOAuthOutputSchema, { disconnected: false });
   }
 
-  const envId = grant.environmentId;
-  if (envId !== "") {
-    try {
-      await deps.managedEnv.deleteManagedEnvironment(envId);
-    } catch (error) {
-      deps.logger.warn(
-        "Failed to delete managed environment — may already be deleted",
-        {
-          resource_id: resourceId,
-          environment_id: envId,
-          error: error instanceof Error ? error.message : String(error),
-        },
-      );
-    }
+  try {
+    await deps.signIns.remove(grant.credentialId);
+  } catch (error) {
+    throw internalError(error, "failed to delete the sign-in's credential");
   }
 
   try {
-    await deps.oauthGrants.delete("", resourceId, org);
+    await deps.oauthGrants.delete(grantIdentity, resourceId, org);
   } catch (error) {
     throw internalError(error, "failed to delete OAuth grant");
   }
@@ -102,7 +104,7 @@ export async function disconnectOAuth(
   deps.logger.info("OAuth connection disconnected", {
     resource_id: resourceId,
     org,
-    env_deleted: envId !== "",
+    credential_id: grant.credentialId,
   });
 
   return create(DisconnectOAuthOutputSchema, { disconnected: true });

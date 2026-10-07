@@ -36,20 +36,13 @@
  * plugin that is only hooks still composes no agent; any agent switches its
  * hooks on by referencing it.
  *
- * The composed agent declares in `env` the union of its servers' variables,
- * OAuth-managed target variables excluded, and every `${user_config.KEY}`
- * its hooks read. An execution filters its
- * environment to the AGENT's declared keys, and every client's session
- * start asks the user for the AGENT's declared keys, so an agent declaring
- * nothing over a server declaring `${API_TOKEN}` is never asked for the
- * token and fails at its first tool call. The declaration on the agent is
- * what routes the user's values to the execution; the declaration on the
- * server stays too (the connect flow and the runner's per-server filter
- * read it there). A hook's variable reaches its hook the same way, so a
- * variable only a hook reads is declared too, as the plugin declared it,
- * or as a required secret when the plugin declared none. An OAuth target is excluded because its value is injected
- * from a managed environment, never asked of the user. An author's
- * `agent.yaml` is taken as written: they chose what to declare.
+ * The composed agent declares in `env` what the agent itself needs: every
+ * `${user_config.KEY}` its hooks read, as the plugin declared it, or as a
+ * required secret when the plugin declared none. Its servers' variables
+ * stay on the servers, where a run gathers them per server and the person
+ * provides them by signing in or saving a credential that serves the
+ * server; declaring them on the agent too would hand the agent's shell a
+ * server's keys.
  *
  * Model hints are recorded, never applied: a dialect's `model` becomes a
  * status warning and the sub-agent runs on the session's model. The
@@ -63,7 +56,7 @@ import { create } from "@bufbuild/protobuf";
 
 import { hookVariableReferences } from "@stigmer/plugin-package";
 import type { PluginPackage, PluginSubAgent } from "@stigmer/plugin-package";
-import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/requirement_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import {
@@ -99,7 +92,6 @@ import {
   inferredSecret,
   mcpServerSlugOf,
 } from "./mcp-servers.js";
-import type { PlannedMcpServer } from "./mcp-servers.js";
 import { skillSlugOf } from "./skills.js";
 
 export interface PlannedAgent {
@@ -120,7 +112,6 @@ export function carriesAgent(plugin: PluginPackage): boolean {
 export function planAgent(
   plugin: PluginPackage,
   overlayAgent: Agent | undefined,
-  mcpServers: readonly PlannedMcpServer[],
   identity: PluginIdentity,
   warnings: PluginWarning[],
 ): PlannedAgent | undefined {
@@ -189,7 +180,7 @@ export function planAgent(
     instructions: main?.instructions ?? renderDefaultAgentInstructions(plugin),
     tools: [...(mainLists?.tools ?? [])],
     disallowedTools: [...(mainLists?.disallowedTools ?? [])],
-    env: toolVariables(mcpServers, hookVariables(plugin)),
+    env: Object.fromEntries(hookVariables(plugin)),
     hooks: ownHooks(plugin, identity),
     skillRefs: [...skillSlugByName.values()].map((slug) =>
       create(ApiResourceReferenceSchema, {
@@ -230,33 +221,6 @@ export function planAgent(
       spec,
     }),
   };
-}
-
-/**
- * The variables the agent's tools need from the user: every server's
- * declarations, minus each server's OAuth target, then each variable a
- * hook reads that no server declared. Two servers declaring one name share
- * one declaration; the first server's wins, and the library already
- * refuses a plugin whose variables disagree about a name.
- */
-export function toolVariables(
-  mcpServers: readonly PlannedMcpServer[],
-  hookVariables: ReadonlyMap<string, EnvVarDeclaration>,
-): Record<string, EnvVarDeclaration> {
-  const declarations: Record<string, EnvVarDeclaration> = {};
-  for (const server of mcpServers) {
-    const spec = server.resource.spec;
-    if (spec === undefined) continue;
-    const oauthTarget = spec.auth?.targetEnvVar ?? "";
-    for (const [name, declaration] of Object.entries(spec.env)) {
-      if (name === oauthTarget || name in declarations) continue;
-      declarations[name] = declaration;
-    }
-  }
-  for (const [name, declaration] of hookVariables) {
-    if (!(name in declarations)) declarations[name] = declaration;
-  }
-  return declarations;
 }
 
 /** The plugin itself as the composed agent's one hook source, unversioned; none when it carries no hooks. */

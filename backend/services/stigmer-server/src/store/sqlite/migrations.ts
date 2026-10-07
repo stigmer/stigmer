@@ -94,6 +94,13 @@ import {
   unreadableRetiredWorkflowRowError,
 } from "../workflow-retired.js";
 import {
+  ENVIRONMENT_KIND,
+  ENVIRONMENT_RETIRED_PAGE_SIZE,
+  ENVIRONMENT_RETIRED_POLICY_KIND,
+  policyNamesEnvironment,
+  unreadableEnvironmentRetiredRowError,
+} from "../environment-retired.js";
+import {
   IDENTITY_ACCOUNT_KIND,
   repairedAccountSlugRow,
 } from "../account-slugs-repaired.js";
@@ -134,9 +141,11 @@ export const SCHEMA_VERSION_19 = 19;
 export const SCHEMA_VERSION_20 = 20;
 /** v21: the agent run is a run. */
 export const SCHEMA_VERSION_21 = 21;
+/** v22: the environment rows removed; OAuth grants name a credential and keep the refresh token sealed. */
+export const SCHEMA_VERSION_22 = 22;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_21;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_22;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -182,6 +191,7 @@ export function runMigrations(
     [SCHEMA_VERSION_19, migrateToV19],
     [SCHEMA_VERSION_20, migrateToV20],
     [SCHEMA_VERSION_21, migrateToV21],
+    [SCHEMA_VERSION_22, migrateToV22],
   ];
 
   for (const [version, migrate] of chain) {
@@ -1115,4 +1125,65 @@ function migrateToV20(db: DatabaseSync): void {
  */
 function migrateToV21(db: DatabaseSync): void {
   renameRunKind(db, RUN_RENAME_V21);
+}
+
+/**
+ * v22: credentials replace environments — the Postgres driver's v17 in
+ * this engine's terms (../environment-retired.ts says what leaves and
+ * why). Every IamPolicy row is read in keyset pages, and the ones naming
+ * an environment are deleted with their list keys, their history kept.
+ * Every environment row is deleted from every table keyed by kind. Every
+ * OAuth grant that named an environment is deleted, then the grant table
+ * renames `environment_id` to `credential_id`, drops
+ * `refresh_token_env_var` and gains `refresh_token`. Runs inside
+ * applyInTransaction's BEGIN, so a throw rolls the whole step back.
+ */
+function migrateToV22(db: DatabaseSync): void {
+  const page = db.prepare(
+    `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+  );
+  const retiredPolicies: string[] = [];
+  for (let after = ""; ; ) {
+    const rows = page.all(
+      ENVIRONMENT_RETIRED_POLICY_KIND,
+      after,
+      ENVIRONMENT_RETIRED_PAGE_SIZE,
+    ) as Array<{ id: string; data: Uint8Array }>;
+    for (const row of rows) {
+      try {
+        if (policyNamesEnvironment(row.data)) {
+          retiredPolicies.push(row.id);
+        }
+      } catch (error) {
+        throw unreadableEnvironmentRetiredRowError(
+          ENVIRONMENT_RETIRED_POLICY_KIND,
+          row.id,
+          error,
+        );
+      }
+    }
+    if (rows.length < ENVIRONMENT_RETIRED_PAGE_SIZE) {
+      break;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
+  const deletePolicy = ["resource_list_keys", "resources"].map((table) =>
+    db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
+  );
+  for (const id of retiredPolicies) {
+    for (const statement of deletePolicy) {
+      statement.run(ENVIRONMENT_RETIRED_POLICY_KIND, id);
+    }
+  }
+
+  for (const table of RUN_KIND_TABLES) {
+    db.prepare(`DELETE FROM ${table} WHERE kind = ?`).run(ENVIRONMENT_KIND);
+  }
+
+  db.exec(`
+    DELETE FROM oauth_grant WHERE environment_id <> '';
+    ALTER TABLE oauth_grant DROP COLUMN refresh_token_env_var;
+    ALTER TABLE oauth_grant RENAME COLUMN environment_id TO credential_id;
+    ALTER TABLE oauth_grant ADD COLUMN refresh_token TEXT NOT NULL DEFAULT '';
+  `);
 }

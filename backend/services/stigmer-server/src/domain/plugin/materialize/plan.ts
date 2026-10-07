@@ -112,7 +112,6 @@ export function planMaterialization(
   const agent = planAgent(
     plugin,
     overlays.agent?.resource,
-    mcpServers,
     identity,
     warnings,
   );

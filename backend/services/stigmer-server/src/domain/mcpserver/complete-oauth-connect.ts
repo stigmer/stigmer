@@ -1,25 +1,20 @@
 /**
- * completeOAuthConnect — ports
- * pkg/domain/mcpserver/controller/complete_oauth_connect.go: finish the
- * OAuth flow by exchanging the authorization code for tokens, storing
- * them in a managed environment, and creating an OAuthGrant record. On
- * re-connect (same user + server + org already has a grant with an
- * environment ID), the existing managed environment is reused — only its
- * secrets are updated with the fresh tokens.
- *
- * The managed-env service is wired unconditionally here, so this RPC
- * serves on a Temporal-less server where Go's composition gate refuses
- * ("managed environment service not initialized" — a wiring artifact
- * this port deliberately does not pin). A deliberate divergence from Go.
+ * completeOAuthConnect: finish the OAuth flow by exchanging the
+ * authorization code for tokens, saving the access token as a sign-in
+ * credential (domain/credential/sign-in.ts) and recording the OAuthGrant,
+ * with the refresh token sealed on it. The sign-in is the caller's own,
+ * or the organization's for a server with organization sign-in
+ * (oauth/sign-in.ts): the pending state recorded whose at initiate, and
+ * only that person (or, for the organization's, an admin) completes it.
+ * On re-connect the grant's credential is reused, its token replaced.
  *
  * Proven by mcpserver-connect.conformance.test.ts
  * (CONFORMANCE_TARGET=local-execution), __tests__/oauth-handshake.test.ts
  * and __tests__/store-faults.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
+import { ConnectError } from "@connectrpc/connect";
 
-import type { EnvironmentValue as EnvironmentSpecValue } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
-import { EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
@@ -42,7 +37,12 @@ import {
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
 import type { PendingOAuthState } from "../../store/interface.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
+import { signInOwner } from "../credential/sign-in.js";
 import type { McpServerConnectDeps } from "./connect.js";
+import {
+  requireOrganizationSignInAdmin,
+  sealRefreshToken,
+} from "./oauth/sign-in.js";
 import { exchangeCode } from "./oauth/token.js";
 
 export async function completeOAuthConnect(
@@ -97,6 +97,16 @@ export async function completeOAuthConnect(
     input,
     { resourceId: pendingState.mcpServerId },
   );
+  // A personal sign-in is completed by the person who started it, never
+  // by someone the link reached: the token is saved as theirs.
+  if (
+    pendingState.identityAccountId !== "" &&
+    pendingState.identityAccountId !== identity.identityId
+  ) {
+    throw failedPreconditionError(
+      "this sign-in was started by another person; start your own sign-in from the MCP server's page",
+    );
+  }
 
   // Unseal the handshake secrets that initiateOAuthConnect sealed at rest
   // (oss#394), at the last moment before their only use. The row was
@@ -164,43 +174,45 @@ export async function completeOAuthConnect(
     org = mcpServer.metadata?.org ?? "";
   }
 
-  // Resolve the managed environment: reuse from an existing grant or
-  // create new — the create AS THE COMPLETING CALLER: ownership tuples
-  // land on the connecting user
-  // under a composed tuple-lifecycle driver, so the environment stays
-  // visible in their scoped lists (the Java createAsCaller posture).
-  const managedEnvId = await resolveOrCreateManagedEnvironment(
-    deps,
-    pendingState.identityAccountId,
-    mcpServerId,
-    org,
-    mcpServer.metadata?.name ?? "",
-    identity,
-  );
-
-  // Build token variables (plaintext — the environment pipeline encrypts).
-  const tokenVars: { [key: string]: EnvironmentSpecValue } = {
-    [pendingState.targetEnvVar]: create(EnvironmentValueSchema, {
-      value: tokenResponse.accessToken,
-      isSecret: true,
-    }),
-  };
-
-  const refreshTokenEnvVar = `${pendingState.targetEnvVar}_REFRESH_TOKEN`;
-  if (tokenResponse.refreshToken !== "") {
-    tokenVars[refreshTokenEnvVar] = create(EnvironmentValueSchema, {
-      value: tokenResponse.refreshToken,
-      isSecret: true,
-    });
+  if (pendingState.identityAccountId === "") {
+    await requireOrganizationSignInAdmin(deps.authorizer, identity, mcpServer, org);
   }
 
+  let existingGrant;
   try {
-    await deps.managedEnv.updateSecrets(managedEnvId, tokenVars);
-  } catch (error) {
-    throw internalError(
-      error,
-      "failed to store OAuth tokens in managed environment",
+    existingGrant = await deps.oauthGrants.find(
+      pendingState.identityAccountId,
+      mcpServerId,
+      org,
     );
+  } catch (error) {
+    deps.logger.warn(
+      "Failed to look up an existing OAuth grant (non-fatal, a new sign-in credential is saved)",
+      {
+        mcp_server_id: mcpServerId,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    );
+  }
+
+  // Save the access token as the sign-in's credential, AS THE COMPLETING
+  // CALLER, so a personal sign-in's credential is theirs.
+  let credentialId: string;
+  try {
+    credentialId = await deps.signIns.save({
+      existingCredentialId: existingGrant?.credentialId ?? "",
+      owner: signInOwner(pendingState.identityAccountId, org),
+      server: mcpServer,
+      org,
+      field: pendingState.targetEnvVar,
+      token: tokenResponse.accessToken,
+      caller: identity,
+    });
+  } catch (error) {
+    if (error instanceof ConnectError) {
+      throw error;
+    }
+    throw internalError(error, "failed to save the sign-in's access token");
   }
 
   let expiresAt = 0;
@@ -208,11 +220,18 @@ export async function completeOAuthConnect(
     expiresAt = Math.floor(Date.now() / 1000) + tokenResponse.expiresIn;
   }
 
-  // Create or update the OAuthGrant record. RefreshTokenEnvVar is set
-  // UNCONDITIONALLY — even when no refresh token was issued — which is
-  // exactly why evaluateHealth's TOKEN_EXPIRED arm is unreachable through
-  // the real flow: the filed defect oss#863, ported as-is (parity, not a
-  // fix).
+  let refreshToken: string;
+  try {
+    refreshToken = await sealRefreshToken(
+      deps.secretService,
+      deps.logger,
+      tokenResponse.refreshToken,
+      org,
+    );
+  } catch (error) {
+    throw internalError(error, "failed to seal the refresh token");
+  }
+
   try {
     await deps.oauthGrants.upsert({
       identityAccountId: pendingState.identityAccountId,
@@ -224,8 +243,8 @@ export async function completeOAuthConnect(
       authMethod: pendingState.authMethod,
       tokenEndpoint: pendingState.tokenEndpoint,
       accessTokenEnvVar: pendingState.targetEnvVar,
-      refreshTokenEnvVar,
-      environmentId: managedEnvId,
+      credentialId,
+      refreshToken,
       createdAt: 0,
       updatedAt: 0,
     });
@@ -235,17 +254,15 @@ export async function completeOAuthConnect(
 
   const auth = mcpServer.spec?.auth;
 
-  deps.logger.info(
-    "OAuth Connect completed: tokens stored in managed environment",
-    {
-      mcp_server_id: mcpServerId,
-      auth_method: pendingState.authMethod,
-      target_env_var: pendingState.targetEnvVar,
-      managed_env_id: managedEnvId,
-      expires_at: expiresAt,
-      has_refresh_token: tokenResponse.refreshToken !== "",
-    },
-  );
+  deps.logger.info("OAuth Connect completed: the sign-in is saved", {
+    mcp_server_id: mcpServerId,
+    auth_method: pendingState.authMethod,
+    target_env_var: pendingState.targetEnvVar,
+    credential_id: credentialId,
+    organization_sign_in: pendingState.identityAccountId === "",
+    expires_at: expiresAt,
+    has_refresh_token: tokenResponse.refreshToken !== "",
+  });
 
   return create(CompleteOAuthConnectOutputSchema, {
     connected: true,
@@ -292,56 +309,4 @@ export async function unsealPendingOAuthState(
   }
 
   return { ...state, codeVerifier: verifier, clientSecret: secret };
-}
-
-/**
- * Reuses the managed environment an existing OAuthGrant points to
- * (re-connect case), or creates a new one (Go
- * resolveOrCreateManagedEnvironment).
- */
-async function resolveOrCreateManagedEnvironment(
-  deps: McpServerConnectDeps,
-  identityAccountId: string,
-  mcpServerId: string,
-  org: string,
-  mcpServerName: string,
-  caller: CallerIdentity,
-): Promise<string> {
-  let existingGrant;
-  try {
-    existingGrant = await deps.oauthGrants.find(
-      identityAccountId,
-      mcpServerId,
-      org,
-    );
-  } catch (error) {
-    deps.logger.warn(
-      "Failed to look up existing OAuth grant (non-fatal, will create new managed env)",
-      {
-        mcp_server_id: mcpServerId,
-        error: error instanceof Error ? error.message : String(error),
-      },
-    );
-  }
-
-  if (existingGrant !== undefined && existingGrant.environmentId !== "") {
-    deps.logger.info(
-      "Reusing existing managed environment for OAuth re-connect",
-      {
-        mcp_server_id: mcpServerId,
-        environment_id: existingGrant.environmentId,
-      },
-    );
-    return existingGrant.environmentId;
-  }
-
-  const envName = `OAuth: ${mcpServerName}`;
-  try {
-    return await deps.managedEnv.createManagedEnvironment(envName, org, caller);
-  } catch (error) {
-    throw internalError(
-      error,
-      "failed to create managed environment for OAuth tokens",
-    );
-  }
 }

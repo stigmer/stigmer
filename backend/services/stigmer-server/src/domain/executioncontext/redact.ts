@@ -6,7 +6,7 @@
  */
 import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 
-import { REDACTED_MARKER } from "../environment/constants.js";
+import { REDACTED_MARKER } from "../../encryption/encryption.js";
 
 /**
  * Go RedactExecutionContextSecrets: replaces every NON-EMPTY is_secret
@@ -14,9 +14,9 @@ import { REDACTED_MARKER } from "../environment/constants.js";
  * returns an ExecutionContext to a caller outside the runner lane: get,
  * getByReference, the create/apply response echo, the delete response
  * echo, and getByExecutionId for callers without a scope-bound runner
- * token. The EC twin of the environment domain's redaction (oss#535); the
- * marker is imported from that domain so the sentinel has a single source
- * of truth, the same move both Go domains make.
+ * token. The EC twin of the credential domain's redaction (oss#535); the
+ * marker is the encryption facade's, so the sentinel has a single source
+ * of truth.
  *
  * is_secret is preserved so clients know a hidden value exists; EMPTY
  * secret declarations stay empty (a marker would falsely signal a stored

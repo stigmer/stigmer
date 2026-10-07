@@ -1,10 +1,16 @@
 /**
  * Agent domain-local pipeline steps — port the inline steps of
  * pkg/domain/agent/controller/ (create.go, delete_cascade.go,
- * get_default.go, merge_mcp_env_specs.go).
+ * get_default.go).
  * Shared steps stay in src/pipeline/steps/; these exist because they
- * embody agent-specific contracts: the cascade rules, MCP env merging and
- * the agent's hooks.
+ * embody agent-specific contracts: the cascade rules and the agent's
+ * hooks.
+ *
+ * An agent's `env` is what the agent itself declares (its shell's keys);
+ * each MCP server's needs stay on the server and are gathered per
+ * declarer when a run starts (domain/credential/resolve.ts), so a
+ * server's new key reaches every agent at once and the agent's shell
+ * never receives a server's key through the agent.
  *
  * The agent's tool lists (spec.tools, spec.disallowed_tools and each
  * sub-agent's pair) have no step here on purpose: their shape is the
@@ -30,8 +36,6 @@ import type {
   AgentSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
-import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import type { HookConfig, HookHandler } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
@@ -53,124 +57,6 @@ import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import type { Store } from "../../store/interface.js";
 type AgentDesc = typeof AgentSchema;
-
-// ---------------------------------------------------------------------------
-// MergeMcpServerEnvSpecs — merge_mcp_env_specs.go: merges env DECLARATIONS
-// from referenced MCP servers into the agent's env at create/update time,
-// so the UI/CLI can show what the agent needs, a person knows which vars to
-// keep in their personal environment, and execution-time validation has the
-// complete schema.
-//
-// Merge semantics: agent-declared entries always take precedence (user
-// intent is preserved); among MCP servers, first-encountered wins for
-// overlapping keys; only declaration fields (description, is_secret,
-// optional) are merged — actual values come from the environments a run
-// resolves at runtime.
-//
-// Lenient by design: a server that cannot be found (not yet created,
-// different org, …) logs a warning and is skipped. The authoritative
-// fail-fast check remains McpEnvironmentValidator at execution creation.
-//
-// Pipeline position: AFTER NormalizeReferences (needs resolved org),
-// BEFORE Persist.
-// ---------------------------------------------------------------------------
-
-export function newMergeMcpServerEnvSpecsStep(
-  store: Store,
-  logger: Logger,
-): PipelineStep<AgentDesc> {
-  return {
-    name: "MergeMcpServerEnvSpecs",
-    async execute(ctx: RequestContext<AgentDesc>): Promise<void> {
-      const agent = ctx.newState;
-
-      const usages = agent.spec?.mcpServerUsages ?? [];
-      if (usages.length === 0) {
-        return;
-      }
-
-      const mcpEnvVars: Record<string, EnvVarDeclaration> = {};
-      for (const usage of usages) {
-        const ref = usage.mcpServerRef;
-
-        const slug = ref?.slug ?? "";
-        if (slug === "") {
-          continue;
-        }
-
-        let org = ref?.org ?? "";
-        if (org === "") {
-          org = agent.metadata?.org ?? "";
-        }
-        if (org === "") {
-          continue;
-        }
-
-        let mcpServer: McpServer | undefined;
-        try {
-          mcpServer = await findResourceBySlug(
-            store,
-            ApiResourceKind.mcp_server,
-            McpServerSchema,
-            slug,
-            org,
-          );
-        } catch (error) {
-          logger.warn("Failed to look up MCP server for env merge", {
-            mcpServerSlug: slug,
-            org,
-            error: error instanceof Error ? error.message : String(error),
-          });
-          continue;
-        }
-        if (mcpServer === undefined) {
-          logger.warn(
-            "MCP server not found — skipping env merge for this server",
-            { mcpServerSlug: slug, org },
-          );
-          continue;
-        }
-
-        const serverEnv = mcpServer.spec?.env ?? {};
-        for (const [varName, decl] of Object.entries(serverEnv)) {
-          if (!(varName in mcpEnvVars)) {
-            mcpEnvVars[varName] = create(EnvVarDeclarationSchema, {
-              description: decl.description,
-              isSecret: decl.isSecret,
-              optional: decl.optional,
-            });
-          }
-        }
-      }
-
-      if (Object.keys(mcpEnvVars).length === 0) {
-        return;
-      }
-
-      const spec = agent.spec;
-      if (spec === undefined) {
-        return;
-      }
-
-      const existingEnv = spec.env;
-      const merged: Record<string, EnvVarDeclaration> = { ...mcpEnvVars };
-      for (const [k, v] of Object.entries(existingEnv)) {
-        merged[k] = v;
-      }
-      spec.env = merged;
-
-      const mergedCount =
-        Object.keys(merged).length - Object.keys(existingEnv).length;
-      if (mergedCount > 0) {
-        logger.info("Merged MCP server env declarations into agent env", {
-          injectedCount: mergedCount,
-          totalCount: Object.keys(merged).length,
-          agent: agent.metadata?.slug ?? "",
-        });
-      }
-    },
-  };
-}
 
 // ---------------------------------------------------------------------------
 // ValidateHooks — the agent's hook sources (spec.hooks), checked where the

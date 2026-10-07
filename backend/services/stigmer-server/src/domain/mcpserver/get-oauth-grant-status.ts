@@ -5,8 +5,9 @@
  * server in the given org. Returns grant metadata (connected status,
  * token expiry, auth method, connection health) without exposing secret
  * token values; the frontend renders the OAuth state in the MCP server
- * detail page and session composer from it. In OSS mode the
- * identity_account_id is always empty (single-user).
+ * detail page and session composer from it. The grant read is the
+ * caller's own sign-in, or the organization's for a server with
+ * organization sign-in (oauth/sign-in.ts).
  *
  * Proven by mcpserver-oauth.conformance.test.ts
  * (CONFORMANCE_TARGET=local) and
@@ -32,6 +33,7 @@ import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewher
 import type { OAuthGrant } from "../../store/interface.js";
 import type { McpServerConnectDeps } from "./connect.js";
 import { REFRESH_EXPIRY_BUFFER_SECONDS } from "./oauth/refresh.js";
+import { signInIdentityById } from "./oauth/sign-in.js";
 
 export async function getOAuthGrantStatus(
   deps: McpServerConnectDeps,
@@ -57,7 +59,12 @@ export async function getOAuthGrantStatus(
 
   let grant: OAuthGrant | undefined;
   try {
-    grant = await deps.oauthGrants.find("", input.resourceId, input.org);
+    const { identity: grantIdentity } = await signInIdentityById(
+      deps.store,
+      input.resourceId,
+      identity,
+    );
+    grant = await deps.oauthGrants.find(grantIdentity, input.resourceId, input.org);
   } catch (error) {
     throw internalError(error, "failed to look up OAuth grant");
   }
@@ -82,13 +89,8 @@ export async function getOAuthGrantStatus(
  * Determines the health of an OAuth connection from locally available
  * grant metadata (Go evaluateHealth). Uses the same 60-second expiry
  * buffer as oauth/refresh.ts so the UX signal matches execution behavior.
- *
- * Ported bug, as-is (oss#863): "refreshable" keys off
- * refreshTokenEnvVar != "" — but completeOAuthConnect sets that field
- * unconditionally, so TOKEN_EXPIRED is unreachable through the real flow
- * and an expired grant always claims refreshable even when no refresh
- * token was ever issued. The conformance suite pins this behavior;
- * fixing it is a both-editions change tracked on the issue.
+ * An expired grant is refreshable exactly when the vendor issued a
+ * refresh token, which the grant keeps sealed.
  */
 export function evaluateHealth(grant: OAuthGrant): OAuthConnectionHealth {
   if (grant.accessTokenExpiresAt === 0) {
@@ -100,7 +102,7 @@ export function evaluateHealth(grant: OAuthGrant): OAuthConnectionHealth {
     return OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY;
   }
 
-  if (grant.refreshTokenEnvVar !== "") {
+  if (grant.refreshToken !== "") {
     return OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE;
   }
 

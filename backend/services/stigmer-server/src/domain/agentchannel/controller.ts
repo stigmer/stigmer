@@ -120,6 +120,18 @@ import {
   newValidateChannelUpdateStep,
   resolveChannelCreateTargets,
 } from "./steps.js";
+import { newGuardCredentialAssignmentsStep } from "../credential/assignments.js";
+import type { AssignmentSurface } from "../credential/assignments.js";
+import type { MessageShape } from "@bufbuild/protobuf";
+
+/** Where this kind keeps the credentials its runs use, and what consumes them (credential/assignments.ts). */
+const CHANNEL_ASSIGNMENTS: AssignmentSurface<MessageShape<typeof AgentChannelSchema>> = {
+  noun: "channel",
+  personsOwn: false,
+  assignmentsOf: (row) => row.spec?.credentials ?? [],
+  consumerOf: (row) =>
+    `${row.spec?.agentRef?.org ?? ""}/${row.spec?.agentRef?.slug ?? ""}`,
+};
 
 export interface AgentChannelControllerDeps {
   readonly store: Store;
@@ -215,6 +227,9 @@ async function createChannel(
     .addStep(newInitInstallStateStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(
+      newGuardCredentialAssignmentsStep(deps.store, deps.authorizer, CHANNEL_ASSIGNMENTS),
+    )
     .addStep(newPersistStep(deps.store))
     .addStep(
       newCreateAuthorizationTuplesStep(
@@ -264,6 +279,9 @@ async function update(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(
+      newGuardCredentialAssignmentsStep(deps.store, deps.authorizer, CHANNEL_ASSIGNMENTS),
+    )
     .addStep(newPersistStep(deps.store))
     .build()
     .execute(reqCtx);

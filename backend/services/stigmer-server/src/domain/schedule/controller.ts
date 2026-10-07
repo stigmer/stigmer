@@ -131,6 +131,22 @@ import {
   newValidateTriggerableStep,
   type RunnerProvider,
 } from "./trigger.js";
+import { newGuardCredentialAssignmentsStep } from "../credential/assignments.js";
+import type { AssignmentSurface } from "../credential/assignments.js";
+import type { MessageShape } from "@bufbuild/protobuf";
+
+/** Where this kind keeps the credentials its runs use, and what consumes them (credential/assignments.ts). */
+const SCHEDULE_ASSIGNMENTS: AssignmentSurface<MessageShape<typeof ScheduleSchema>> = {
+  noun: "schedule",
+  personsOwn: true,
+  assignmentsOf: (row) =>
+    row.spec?.target.case === "agent" ? row.spec.target.value.credentials : [],
+  consumerOf: (row) => {
+    const ref =
+      row.spec?.target.case === "agent" ? row.spec.target.value.agentRef : undefined;
+    return `${ref?.org ?? ""}/${ref?.slug ?? ""}`;
+  },
+};
 
 export interface ScheduleControllerDeps {
   readonly store: Store;
@@ -224,6 +240,9 @@ async function createSchedule(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(
+      newGuardCredentialAssignmentsStep(deps.store, deps.authorizer, SCHEDULE_ASSIGNMENTS),
+    )
     .addStep(newPersistStep(deps.store))
     .addStep(
       newCreateAuthorizationTuplesStep(
@@ -264,6 +283,9 @@ async function update(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(
+      newGuardCredentialAssignmentsStep(deps.store, deps.authorizer, SCHEDULE_ASSIGNMENTS),
+    )
     .addStep(newPersistScheduleUpdateStep(deps.store))
     .addStep(newArmScheduleStep(deps.clock, deps.logger))
     .build()
