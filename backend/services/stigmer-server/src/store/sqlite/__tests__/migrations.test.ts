@@ -2594,7 +2594,7 @@ describe("v21: the agent run is a run", () => {
     return audit;
   }
 
-  /** What every store reaching the head from before v20 holds, read raw and through the store. */
+  /** What every store reaching the head from before v21 holds, read raw and through the store. */
   async function expectRuns(dbPath: string, audit: Uint8Array): Promise<void> {
     const db = new DatabaseSync(dbPath);
     cleanups.push(() => db.close());

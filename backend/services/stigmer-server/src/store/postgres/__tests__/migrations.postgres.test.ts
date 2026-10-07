@@ -2655,7 +2655,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         return audit;
       }
 
-      /** What every store reaching the head from before v15 holds, read raw and through the store. */
+      /** What every store reaching the head from before v16 holds, read raw and through the store. */
       async function expectRuns(client: pg.Client, audit: Uint8Array): Promise<void> {
         await migrateTo(db.databaseUrl, SCHEMA_VERSION_16);
         expect(await version(client)).toBe(SCHEMA_VERSION_16);
