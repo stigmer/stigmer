@@ -31,14 +31,14 @@ async function runDownload(type: string, id: string, options: DownloadFlags): Pr
     throw new UsageError(`download not supported for type: ${type}\n\nCurrently only 'run' type supports download`);
   }
 
-  const [{ connectBackend }, { isAgentRunId }, { downloadRunArtifacts }] = await Promise.all([
+  const [{ connectBackend }, { isRunId }, { downloadRunArtifacts }] = await Promise.all([
     import("../backend.js"),
-    import("../resources/runs.js"),
+    import("../resources/reference.js"),
     import("../resources/download.js"),
   ]);
 
-  if (!isAgentRunId(id)) {
-    throw new UsageError(`invalid run ID: ${id}\n\nRuns must be referenced by ID (e.g., aex_01abc123)`);
+  if (!isRunId(id)) {
+    throw new UsageError(`invalid run ID: ${id}\n\nRuns must be referenced by ID (e.g., run_01abc123)`);
   }
 
   const client = connectBackend();

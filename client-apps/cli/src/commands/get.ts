@@ -80,7 +80,7 @@ async function runGet(type: string, reference: string, options: GetFlags, comman
     return;
   }
 
-  const parsed = parseReference(reference, org, info.idPrefix);
+  const parsed = parseReference(reference, org, info.idPrefixes);
   const [{ schema, message }, hideOrg] = await Promise.all([
     fetchResource(client.stigmer, info.kind, parsed),
     omitsOrganization(client.stigmer),

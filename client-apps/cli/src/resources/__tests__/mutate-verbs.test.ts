@@ -225,7 +225,7 @@ beforeAll(async () => {
     router.service(RunQueryController, {
       get: (req) => {
         if (req.value === "aex_done") return completedExecution;
-        if (req.value === "aex_run") return pendingExecution;
+        if (req.value === "aex_run" || req.value === "run_current") return pendingExecution;
         throw new ConnectError("execution not found", Code.NotFound);
       },
     });
@@ -428,6 +428,12 @@ describe("delete run (cancel special case)", () => {
     expect(result.message).toBe("Run was already in terminal state");
     expect(result.sections[0].fields).toContainEqual({ key: "Status", value: "completed" });
     expect(cancelCalls).toEqual([]);
+  });
+
+  it("cancels a run by its current id prefix too", async () => {
+    const plan = await planDelete(client, "run", "run_current", "");
+    await plan.perform();
+    expect(cancelCalls).toEqual(["run_current"]);
   });
 
   it("rejects a non-run ID with a usage error", async () => {

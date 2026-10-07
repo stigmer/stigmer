@@ -67,10 +67,10 @@ afterEach(() => {
 
 describe("stigmer download run", () => {
   it("downloads every artifact into the current directory by default", async () => {
-    const { out, err } = await runDownload("run", "aex_1");
+    const { out, err } = await runDownload("run", "run_1");
     expect(download.downloadRunArtifacts).toHaveBeenCalledWith(
       stigmer,
-      "aex_1",
+      "run_1",
       { artifactName: "", outputDir: "." },
       expect.any(Function),
     );
@@ -97,6 +97,16 @@ describe("stigmer download run", () => {
     expect(out).toContain("Tip: Artifacts are files created by the agent during a run.");
   });
 
+  it("takes a run minted before the run kind's prefix became run", async () => {
+    await runDownload("run", "aex_1");
+    expect(download.downloadRunArtifacts).toHaveBeenCalledWith(
+      stigmer,
+      "aex_1",
+      { artifactName: "", outputDir: "." },
+      expect.any(Function),
+    );
+  });
+
   it("refuses a type other than run before any call", async () => {
     await expect(runDownload("agent", "aex_1")).rejects.toThrow(
       new UsageError("download not supported for type: agent\n\nCurrently only 'run' type supports download"),
@@ -106,7 +116,7 @@ describe("stigmer download run", () => {
 
   it("refuses an id that is not an agent run id", async () => {
     await expect(runDownload("run", "ses_1")).rejects.toThrow(
-      new UsageError("invalid run ID: ses_1\n\nRuns must be referenced by ID (e.g., aex_01abc123)"),
+      new UsageError("invalid run ID: ses_1\n\nRuns must be referenced by ID (e.g., run_01abc123)"),
     );
     expect(download.downloadRunArtifacts).not.toHaveBeenCalled();
   });

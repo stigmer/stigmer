@@ -1,5 +1,6 @@
 // Unit tests for the run helpers behind `get run`, `list runs` and the `runs`
-// group: the run-ID check, the single-run read, the cursor-paged list read
+// group: the run-ID check (reference.ts, over the run kind's current and
+// retired prefixes), the single-run read, the cursor-paged list read
 // with the organization it scopes to, the list table (friendly phase label, a
 // dash for an unset field), and the human phase labels. Reads run against a
 // client double that records what it was asked.
@@ -11,25 +12,30 @@ import { RunListSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { ListRunsRequest } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { describe, expect, it } from "vitest";
+import { isRunId } from "../reference.js";
 import {
   formatAgentPhase,
   getRun,
-  isAgentRunId,
   isRunAlias,
   isTerminalAgentPhase,
   listAgentRuns,
   renderRunList,
 } from "../runs.js";
 
-describe("isAgentRunId", () => {
+describe("isRunId", () => {
   it.each([
+    ["run_01ARZ3NDEKTSV4RRFFQ69G5FAV", true],
+    ["run-01ARZ3NDEKTSV4RRFFQ69G5FAV", true],
+    ["run_", true],
+    // A run minted before the run kind's prefix became `run` keeps its id.
     ["aex_01ARZ3NDEKTSV4RRFFQ69G5FAV", true],
     ["aex-01ARZ3NDEKTSV4RRFFQ69G5FAV", true],
-    ["aex_", true],
-    ["AEX_run", false], // case-sensitive
+    ["RUN_run", false], // case-sensitive
+    ["AEX_run", false],
     ["agt_abc", false], // different kind
+    ["runner", false], // a word that starts with the prefix is no id
   ])("%j -> %s", (ref, expected) => {
-    expect(isAgentRunId(ref)).toBe(expected);
+    expect(isRunId(ref)).toBe(expected);
   });
 });
 

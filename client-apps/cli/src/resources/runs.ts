@@ -1,10 +1,11 @@
 // Run routing seam.
 //
-// Runs are not addressed through the generic resource registry: agent runs
-// (`aex_`) are served by a dedicated controller, and `delete run` maps to a
-// *cancel*, not a destroy. This module owns the run-ID check, the
+// Runs are not addressed through the generic resource registry: runs
+// (`run_`) are served by a dedicated controller, and `delete run` maps to a
+// *cancel*, not a destroy. This module owns the run-type check, the
 // cancel-with-result semantics, and the run reads shared by `get run`,
-// `list runs`, `delete run` and `download`.
+// `list runs`, `delete run` and `download`; the run-ID check is
+// reference.ts's `isRunId`, over the kind's current and retired prefixes.
 
 import { create } from "@bufbuild/protobuf";
 import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -14,24 +15,13 @@ import {
   CancelRunInputSchema,
   ListRunsRequestSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import type { OutputFormat } from "../output/index.js";
+import { buildTypeInfo } from "../registry/index.js";
 import { readCursorPages } from "./cursor-pages.js";
 import type { ResourceResult } from "./get-bindings.js";
 import { obj, renderListMessage, str, type TableShape } from "./render.js";
-
-const AGENT_RUN_PREFIX = "aex";
-
-/**
- * True if `ref` is an agent-run ID (`aex_…` or `aex-…`, case-sensitive).
- * Mirrors Go's reference.isResourceIDWithKind: the kind ID prefix followed by
- * either separator the backend accepts ("_" canonical, "-" legacy). Matching
- * is case-sensitive — "AEX_" is not a run ID.
- */
-export function isAgentRunId(ref: string): boolean {
-  const trimmed = ref.trim();
-  return trimmed.startsWith(`${AGENT_RUN_PREFIX}_`) || trimmed.startsWith(`${AGENT_RUN_PREFIX}-`);
-}
 
 // Terminal phases cannot be cancelled; mirrors Go's isTerminalAgentPhase.
 const TERMINAL_AGENT_PHASES: ReadonlySet<RunPhase> = new Set([
@@ -69,14 +59,19 @@ export async function cancelAgentRun(client: Stigmer, id: string): Promise<Cance
   return { run: cancelled, wasAlreadyTerminal: false };
 }
 
+// The run kind's spellings, derived from its kind_meta row like every
+// registered kind's (`run`, `runs`, any case).
+const RUN_ALIASES: ReadonlySet<string> = new Set(
+  (buildTypeInfo(ApiResourceKind.run)?.aliases ?? []).map((alias) => alias.toLowerCase()),
+);
+
 /**
  * True for the `run` type-alias family. Runs bypass the resource
- * registry (they're addressed by `aex_` ID, not slug), so callers route
+ * registry (they're addressed by `run_` ID, not slug), so callers route
  * on this predicate before the registry lookup — mirroring Go's command layer.
  */
 export function isRunAlias(type: string): boolean {
-  const normalized = type.trim().toLowerCase();
-  return normalized === "run" || normalized === "runs";
+  return RUN_ALIASES.has(type.trim().toLowerCase());
 }
 
 /** Fetch a single run by ID, with its schema. */

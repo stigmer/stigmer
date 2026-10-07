@@ -27,12 +27,11 @@ import { defaultRegistry, type TypeInfo, Verb } from "../registry/index.js";
 import {
   cancelAgentRun,
   formatAgentPhase,
-  isAgentRunId,
   isRunAlias,
 } from "./runs.js";
 import { fetchResource } from "./get.js";
 import { getterFor } from "./get-bindings.js";
-import { parseReference } from "./reference.js";
+import { isRunId, parseReference } from "./reference.js";
 import { organizationLabel } from "../client/organizations.js";
 
 /** A staged delete: confirmation content plus the mutation to run on approval. */
@@ -167,7 +166,7 @@ async function planStandardDelete(
     throw new UsageError(`delete not implemented for ${info.displayName}`);
   }
 
-  const parsed = parseReference(reference, org, info.idPrefix);
+  const parsed = parseReference(reference, org, info.idPrefixes);
   // ResourceResult.message is the opaque proto Message; every resource carries
   // the ApiResourceMetadata envelope, so read it through the structural view.
   const resource = (await getter(client, parsed))
@@ -230,9 +229,9 @@ async function planOrganizationDelete(
 }
 
 function planRunCancel(client: Stigmer, reference: string): DeletePlan {
-  if (!isAgentRunId(reference)) {
+  if (!isRunId(reference)) {
     throw new CliExitError(
-      `invalid run ID: ${reference}\n\nRuns must be referenced by ID (e.g., aex_01abc123)`,
+      `invalid run ID: ${reference}\n\nRuns must be referenced by ID (e.g., run_01abc123)`,
       ExitCode.Usage,
     );
   }

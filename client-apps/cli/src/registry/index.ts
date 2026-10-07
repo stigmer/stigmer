@@ -14,6 +14,7 @@ export {
   RETIRED_KINDS,
 } from "./metadata.js";
 export {
+  buildTypeInfo,
   defaultRegistry,
   type Registry,
   supportsVerb,

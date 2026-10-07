@@ -174,8 +174,8 @@ async function resolveMcpServer(
   reference: string,
   org: string,
 ): Promise<McpServer> {
-  const idPrefix = defaultRegistry().getByAlias("mcp-server")?.idPrefix ?? "";
-  const parsed = parseReference(reference, org, idPrefix);
+  const idPrefixes = defaultRegistry().getByAlias("mcp-server")?.idPrefixes ?? [];
+  const parsed = parseReference(reference, org, idPrefixes);
   if (parsed.kind === "id") return client.mcpServer.get(parsed.id);
   return client.mcpServer.getByReference({
     org: parsed.org,
