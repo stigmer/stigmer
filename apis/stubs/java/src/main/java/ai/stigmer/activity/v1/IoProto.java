@@ -52,19 +52,19 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n\037ai/stigmer/activity/v1/io.proto\022\026ai.st" +
       "igmer.activity.v1\032\037google/protobuf/times" +
-      "tamp.proto\"\246\001\n\023RecentActivityEntry\022\016\n\002id" +
-      "\030\001 \001(\tR\002id\022\022\n\004type\030\002 \001(\tR\004type\022\030\n\007subjec" +
-      "t\030\003 \001(\tR\007subject\0229\n\nupdated_at\030\004 \001(\0132\032.g" +
-      "oogle.protobuf.TimestampR\tupdatedAt\022\026\n\006s" +
-      "tatus\030\005 \001(\tR\006status\"J\n\031ListRecentActivit" +
-      "yRequest\022\033\n\tpage_size\030\001 \001(\005R\010pageSize\022\020\n" +
-      "\003org\030\002 \001(\tR\003org\"c\n\032ListRecentActivityRes" +
-      "ponse\022E\n\007entries\030\001 \003(\0132+.ai.stigmer.acti" +
-      "vity.v1.RecentActivityEntryR\007entriesB\204\001B" +
-      "\007IoProtoP\001\242\002\003ASA\252\002\026Ai.Stigmer.Activity.V" +
-      "1\312\002\026Ai\\Stigmer\\Activity\\V1\342\002\"Ai\\Stigmer\\" +
-      "Activity\\V1\\GPBMetadata\352\002\031Ai::Stigmer::A" +
-      "ctivity::V1b\006proto3"
+      "tamp.proto\"\224\001\n\023RecentActivityEntry\022\016\n\002id" +
+      "\030\001 \001(\tR\002id\022\030\n\007subject\030\003 \001(\tR\007subject\0229\n\n" +
+      "updated_at\030\004 \001(\0132\032.google.protobuf.Times" +
+      "tampR\tupdatedAtJ\004\010\002\020\003J\004\010\005\020\006R\004typeR\006statu" +
+      "s\"J\n\031ListRecentActivityRequest\022\033\n\tpage_s" +
+      "ize\030\001 \001(\005R\010pageSize\022\020\n\003org\030\002 \001(\tR\003org\"c\n" +
+      "\032ListRecentActivityResponse\022E\n\007entries\030\001" +
+      " \003(\0132+.ai.stigmer.activity.v1.RecentActi" +
+      "vityEntryR\007entriesB\204\001B\007IoProtoP\001\242\002\003ASA\252\002" +
+      "\026Ai.Stigmer.Activity.V1\312\002\026Ai\\Stigmer\\Act" +
+      "ivity\\V1\342\002\"Ai\\Stigmer\\Activity\\V1\\GPBMet" +
+      "adata\352\002\031Ai::Stigmer::Activity::V1b\006proto" +
+      "3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -76,7 +76,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_activity_v1_RecentActivityEntry_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_activity_v1_RecentActivityEntry_descriptor,
-        new java.lang.String[] { "Id", "Type", "Subject", "UpdatedAt", "Status", });
+        new java.lang.String[] { "Id", "Subject", "UpdatedAt", });
     internal_static_ai_stigmer_activity_v1_ListRecentActivityRequest_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_activity_v1_ListRecentActivityRequest_fieldAccessorTable = new

@@ -1,17 +1,12 @@
 /**
- * Pins the sandbox invocation surface's per-lane postures:
+ * Pins the sandbox invocation surface's postures:
  *
  *   - the session lane fires ONLY on resolved CLOUD target with
  *     per-session routing, is NON-critical (a provisioning failure never
  *     throws), and PRE-STAMPS the root cause onto status.error
  *     first-non-empty-wins — the 2026-07 quota-outage contract;
- *   - the workflow lane fires only on CLOUD + per-execution routing and
- *     is CRITICAL (Unavailable on failure);
- *   - the terminal observer deprovisions exactly on transitions INTO a
- *     terminal phase, fire-and-forget, and swallows (logs) teardown
- *     failures;
  *   - a disabled mint lane launches token-less rather than failing;
- *   - the caller splits two ways on both lanes: the identity id reaches
+ *   - the caller splits two ways: the identity id reaches
  *     the credential mint, the caller class reaches the driver's
  *     environment unchanged (a composed lane such as `guest` included).
  */
@@ -20,16 +15,12 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { create } from "@bufbuild/protobuf";
-import { Code, ConnectError } from "@connectrpc/connect";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { WorkflowParentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
-import { RunPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../boot/logger.js";
@@ -38,11 +29,6 @@ import {
   ROUTING_GLOBAL,
   ROUTING_SESSION,
 } from "../../domain/agentrun/temporal/config.js";
-import {
-  WORKFLOW_ROUTING_EXECUTION,
-  WORKFLOW_ROUTING_GLOBAL,
-  WorkflowExecutionTemporalConfig,
-} from "../../domain/workflowrun/temporal/config.js";
 import type {
   RunnerCredentialProvider,
   SandboxCredentialRequest,
@@ -53,8 +39,6 @@ import type { SandboxEnvironment, SandboxProvisioner } from "../provisioner.js";
 import {
   deprovisionSessionSandboxBestEffort,
   ensureSessionSandboxForExecution,
-  ensureWorkflowSandboxForExecution,
-  newWorkflowSandboxTerminalObserver,
   SANDBOX_PROVISIONING_FAILED_PREFIX,
   type SandboxCaller,
 } from "../steps.js";
@@ -110,8 +94,6 @@ function fakeProvisioner(overrides?: {
     deprovisioned,
     ensureSessionSandbox: (id, env) => ensure("session", id, env),
     deprovisionSessionSandbox: (id) => deprovision("session", id),
-    ensureWorkflowSandbox: (id, env) => ensure("workflow", id, env),
-    deprovisionWorkflowSandbox: (id) => deprovision("workflow", id),
     createConnectSandbox: async (id, env) => {
       await ensure("connect", id, env);
       return id;
@@ -186,13 +168,6 @@ const sessionRoutingCloudDefault = new AgentExecutionTemporalConfig(
   "stigmer_runner",
   ROUTING_SESSION,
   "cloud",
-);
-
-const executionRoutingConfig = new WorkflowExecutionTemporalConfig(
-  "workflow_execution_stigmer",
-  "stigmer_runner",
-  WORKFLOW_ROUTING_EXECUTION,
-  "local",
 );
 
 describe("the session lane (ensureSessionSandboxForExecution)", () => {
@@ -366,52 +341,6 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
     );
   });
 
-  it("skips a workflow run's child turn routed to its run's wfexec: queue (child sandbox affinity)", async () => {
-    const provisioner = fakeProvisioner();
-    const { execution } = await seed(ExecutionTarget.CLOUD);
-    if (execution.spec !== undefined) {
-      execution.spec.parent = create(WorkflowParentSchema, {
-        workflowRunId: "wfx_parent",
-      });
-    }
-    await ensureSessionSandboxForExecution(
-      {
-        store,
-        logger: silentLogger,
-        lane: lane(provisioner),
-        temporalConfig: sessionRoutingCloudDefault,
-        workflowRunQueue: (id) => `wfexec:${id}`,
-      },
-      execution,
-      TEST_CALLER,
-    );
-    expect(provisioner.ensured).toEqual([]);
-  });
-
-  it("provisions a child turn whose workflow run has no queue of its own (global routing), as any turn", async () => {
-    const provisioner = fakeProvisioner();
-    const { sessionId, execution } = await seed(ExecutionTarget.CLOUD);
-    if (execution.spec !== undefined) {
-      execution.spec.parent = create(WorkflowParentSchema, {
-        workflowRunId: "wfx_parent",
-      });
-    }
-    await ensureSessionSandboxForExecution(
-      {
-        store,
-        logger: silentLogger,
-        lane: lane(provisioner),
-        temporalConfig: sessionRoutingCloudDefault,
-        workflowRunQueue: () => "",
-      },
-      execution,
-      TEST_CALLER,
-    );
-    expect(provisioner.ensured.map((ensured) => ensured.id)).toEqual([
-      sessionId,
-    ]);
-  });
-
   it("skips (warn) on CLOUD target under global routing — the dark-config belt", async () => {
     const provisioner = fakeProvisioner();
     const { execution } = await seed(ExecutionTarget.CLOUD);
@@ -509,197 +438,6 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
       AgentRunSchema,
     );
     expect(after.status?.error).toBe("the real root cause");
-  });
-});
-
-describe("the workflow lane (ensureWorkflowSandboxForExecution)", () => {
-  function workflowExecution(target: ExecutionTarget) {
-    return create(WorkflowRunSchema, {
-      metadata: { id: "wfx_sbx_1", name: "wfx_sbx_1" },
-      spec: { executionTarget: target },
-    });
-  }
-
-  it("fires on CLOUD + per-execution routing with the wfexec queue", async () => {
-    const provisioner = fakeProvisioner();
-    await ensureWorkflowSandboxForExecution(
-      {
-        logger: silentLogger,
-        lane: lane(provisioner),
-        temporalConfig: executionRoutingConfig,
-      },
-      workflowExecution(ExecutionTarget.CLOUD),
-      TEST_CALLER,
-    );
-    expect(provisioner.ensured).toEqual([
-      {
-        scope: "workflow",
-        id: "wfx_sbx_1",
-        env: {
-          taskQueue: "wfexec:wfx_sbx_1",
-          stigmerToken: "tok-wfx_sbx_1",
-          callerClass: "user",
-        },
-      },
-    ]);
-  });
-
-  it("hands the caller's class to the driver unchanged on the workflow lane", async () => {
-    const provisioner = fakeProvisioner();
-    await ensureWorkflowSandboxForExecution(
-      {
-        logger: silentLogger,
-        lane: lane(provisioner),
-        temporalConfig: executionRoutingConfig,
-      },
-      workflowExecution(ExecutionTarget.CLOUD),
-      GUEST_CALLER,
-    );
-    expect(provisioner.ensured[0]?.env.callerClass).toBe("guest");
-  });
-
-  it("delegates the mint to the capability provider on the workflow scope", async () => {
-    const provisioner = fakeProvisioner();
-    const credentials = capabilityCredentials();
-    await ensureWorkflowSandboxForExecution(
-      {
-        logger: silentLogger,
-        lane: lane(provisioner, credentials),
-        temporalConfig: executionRoutingConfig,
-      },
-      create(WorkflowRunSchema, {
-        metadata: { id: "wfx_sbx_cap", name: "wfx_sbx_cap", org: "org-test" },
-        spec: { executionTarget: ExecutionTarget.CLOUD },
-      }),
-      TEST_CALLER,
-    );
-    expect(credentials.minted).toEqual([
-      {
-        scope: "workflow",
-        sessionId: "",
-        executionId: "wfx_sbx_cap",
-        org: "org-test",
-        callerIdentityId: TEST_CALLER_IDENTITY_ID,
-      },
-    ]);
-    expect(provisioner.ensured[0]?.env.stigmerToken).toBe("cloud-tok-workflow");
-  });
-
-  it("skips on LOCAL target and on global routing", async () => {
-    const provisioner = fakeProvisioner();
-    await ensureWorkflowSandboxForExecution(
-      {
-        logger: silentLogger,
-        lane: lane(provisioner),
-        temporalConfig: executionRoutingConfig,
-      },
-      workflowExecution(ExecutionTarget.LOCAL),
-      TEST_CALLER,
-    );
-    await ensureWorkflowSandboxForExecution(
-      {
-        logger: silentLogger,
-        lane: lane(provisioner),
-        temporalConfig: new WorkflowExecutionTemporalConfig(
-          "workflow_execution_stigmer",
-          "stigmer_runner",
-          WORKFLOW_ROUTING_GLOBAL,
-          "cloud",
-        ),
-      },
-      workflowExecution(ExecutionTarget.CLOUD),
-      TEST_CALLER,
-    );
-    expect(provisioner.ensured).toEqual([]);
-  });
-
-  it("a provisioning failure is CRITICAL — Unavailable, the create refused", async () => {
-    const provisioner = fakeProvisioner({
-      ensureError: new Error("no capacity"),
-    });
-    try {
-      await ensureWorkflowSandboxForExecution(
-        {
-          logger: silentLogger,
-          lane: lane(provisioner),
-          temporalConfig: executionRoutingConfig,
-        },
-        workflowExecution(ExecutionTarget.CLOUD),
-        TEST_CALLER,
-      );
-      expect.unreachable("the workflow lane must throw on failure");
-    } catch (error) {
-      const connectError = ConnectError.from(error);
-      expect(connectError.code).toBe(Code.Unavailable);
-      expect(connectError.rawMessage).toBe(
-        "failed to provision workflow sandbox",
-      );
-    }
-  });
-});
-
-describe("the terminal observer (newWorkflowSandboxTerminalObserver)", () => {
-  const P = WorkflowExecutionPhase;
-
-  it("deprovisions on every transition INTO a terminal phase", async () => {
-    const provisioner = fakeProvisioner();
-    const observe = newWorkflowSandboxTerminalObserver(
-      lane(provisioner),
-      silentLogger,
-    );
-    observe("wfx_1", P.RUN_IN_PROGRESS, P.RUN_COMPLETED);
-    observe("wfx_2", P.RUN_IN_PROGRESS, P.RUN_FAILED);
-    observe("wfx_3", P.RUN_PENDING, P.RUN_CANCELLED);
-    observe("wfx_4", P.RUN_PAUSED, P.RUN_TERMINATED);
-    await vi.waitFor(() => {
-      expect(provisioner.deprovisioned.map((d) => d.id)).toEqual([
-        "wfx_1",
-        "wfx_2",
-        "wfx_3",
-        "wfx_4",
-      ]);
-    });
-    expect(provisioner.deprovisioned.every((d) => d.scope === "workflow")).toBe(
-      true,
-    );
-  });
-
-  it("ignores non-terminal phases, non-transitions, and the disabled lane", async () => {
-    const provisioner = fakeProvisioner();
-    const observe = newWorkflowSandboxTerminalObserver(
-      lane(provisioner),
-      silentLogger,
-    );
-    observe("wfx_a", P.RUN_PENDING, P.RUN_IN_PROGRESS);
-    observe("wfx_b", P.RUN_FAILED, P.RUN_FAILED);
-    const disabledObserve = newWorkflowSandboxTerminalObserver(
-      { enabled: false },
-      silentLogger,
-    );
-    disabledObserve("wfx_c", P.RUN_IN_PROGRESS, P.RUN_COMPLETED);
-    // Give any wrongly-fired teardown a chance to surface.
-    await new Promise((resolve) => setImmediate(resolve));
-    expect(provisioner.deprovisioned).toEqual([]);
-  });
-
-  it("a teardown failure is logged, never thrown (fire-and-forget)", async () => {
-    const failures: string[] = [];
-    const loggingLogger = createLogger({
-      level: "error",
-      pretty: false,
-      write: (line) => failures.push(line),
-    });
-    const provisioner = fakeProvisioner({
-      deprovisionError: new Error("api unreachable"),
-    });
-    const observe = newWorkflowSandboxTerminalObserver(
-      lane(provisioner),
-      loggingLogger,
-    );
-    observe("wfx_leak", P.RUN_IN_PROGRESS, P.RUN_FAILED);
-    await vi.waitFor(() => {
-      expect(failures.join("")).toContain("sandbox may be leaked");
-    });
   });
 });
 

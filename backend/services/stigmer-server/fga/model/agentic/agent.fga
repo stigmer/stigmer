@@ -46,8 +46,7 @@ module agentic
 #   owning organization (the shared catalog an integrator offers its
 #   customers), children created later included.
 # - Modeled as a single structural relation (child_org_viewer) composed into
-#   viewer, so one tuple drives view and execute — same precedent as
-#   run_viewer on workflow instances.
+#   viewer, so one tuple drives view and execute.
 # - An unconditioned userset, so it resolves in listing queries just like
 #   org visibility.
 
@@ -121,8 +120,8 @@ type agent
     # EXECUTION
     # ========================================
     # Platform invariant: you can run what you can read. The OSS run gate
-    # (the AuthorizeRunTarget and AuthorizeRunAgent steps in the session,
-    # agent-execution and workflow-execution chains; stigmer#1066) asks
+    # (the AuthorizeRunTarget and AuthorizeRunAgent steps in the session
+    # and agent-execution chains; stigmer#1066) asks
     # can_execute on the agent a session names and on the agent every turn
     # runs — for every direct caller; the runtime lanes are admitted by
     # their own gate steps through authorizer/lane-admission.ts. Deriving from viewer keeps every

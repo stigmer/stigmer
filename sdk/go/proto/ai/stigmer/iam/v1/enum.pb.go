@@ -50,7 +50,6 @@ const (
 	IamPermission_can_manage_audience IamPermission = 48
 	// Organization-level create permissions.
 	IamPermission_can_create_agent            IamPermission = 6
-	IamPermission_can_create_workflow         IamPermission = 7
 	IamPermission_can_create_session          IamPermission = 8
 	IamPermission_can_create_skill            IamPermission = 9
 	IamPermission_can_create_idp              IamPermission = 11
@@ -111,8 +110,8 @@ const (
 	// platform permissions: the standing console only observes.
 	IamPermission_can_view_provider_standing IamPermission = 38
 	// Organization-level permission to install a plugin: push an Agent
-	// Plugins archive that the server materialises into skills, MCP servers,
-	// an agent and workflows in the organization. Distinct from the child
+	// Plugins archive that the server materialises into skills, MCP servers
+	// and an agent in the organization. Distinct from the child
 	// kinds' create permissions, which the materialisation also evaluates for
 	// the installing caller: who may bring a package into an organization is a
 	// policy an administrator sets on its own.
@@ -159,7 +158,6 @@ var (
 		47: "can_assign_roles",
 		48: "can_manage_audience",
 		6:  "can_create_agent",
-		7:  "can_create_workflow",
 		8:  "can_create_session",
 		9:  "can_create_skill",
 		11: "can_create_idp",
@@ -201,7 +199,6 @@ var (
 		"can_assign_roles":            47,
 		"can_manage_audience":         48,
 		"can_create_agent":            6,
-		"can_create_workflow":         7,
 		"can_create_session":          8,
 		"can_create_skill":            9,
 		"can_create_idp":              11,
@@ -288,7 +285,7 @@ const (
 	// conversations and speak to its customers as the business (reply, take
 	// over, hand back, clear attention). Not a channel configurator.
 	IamRole_participant IamRole = 5
-	// Editor of a blueprint (an agent, a workflow or an MCP server): may change
+	// Editor of a blueprint (an agent or an MCP server): may change
 	// its definition and do whatever a viewer can, and may not delete it,
 	// change its visibility, publish it on a share link or a channel, or decide
 	// who else has access.
@@ -348,7 +345,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xe4\t\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xe6\t\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -359,8 +356,7 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x0fcan_view_access\x10\x05\x12\x14\n" +
 	"\x10can_assign_roles\x10/\x12\x17\n" +
 	"\x13can_manage_audience\x100\x12\x14\n" +
-	"\x10can_create_agent\x10\x06\x12\x17\n" +
-	"\x13can_create_workflow\x10\a\x12\x16\n" +
+	"\x10can_create_agent\x10\x06\x12\x16\n" +
 	"\x12can_create_session\x10\b\x12\x14\n" +
 	"\x10can_create_skill\x10\t\x12\x12\n" +
 	"\x0ecan_create_idp\x10\v\x12\x1a\n" +
@@ -390,9 +386,9 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x0fcan_create_team\x10-\x12\x16\n" +
 	"\x12can_manage_credits\x10.\x12\x19\n" +
 	"\x15can_manage_child_orgs\x101\x12\x15\n" +
-	"\x11can_view_settings\x102\"\x04\b\x0e\x10\x0e\"\x04\b\x12\x10\x12\"\x04\b\x14\x10\x14\"\x04\b\x19\x10\x19\"\x04\b\x1a\x10\x1a\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
+	"\x11can_view_settings\x102\"\x04\b\x0e\x10\x0e\"\x04\b\a\x10\a\"\x04\b\x12\x10\x12\"\x04\b\x14\x10\x14\"\x04\b\x19\x10\x19\"\x04\b\x1a\x10\x1a\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
 	"\x10\n" +
-	"\"\x04\b'\x10'\"\x04\b,\x10,*\x13can_create_instance*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x19can_set_public_visibility*\x19can_create_agent_instance*n\n" +
+	"\"\x04\b'\x10'\"\x04\b,\x10,*\x13can_create_instance*\x13can_create_workflow*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x19can_set_public_visibility*\x19can_create_agent_instance*n\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12\t\n" +
 	"\x05owner\x10\x01\x12\t\n" +

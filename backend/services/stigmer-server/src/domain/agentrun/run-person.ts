@@ -1,8 +1,8 @@
 /**
  * Whose run is this — the person an execution's person-scoped reads act
  * for. Today one read asks it: the personal-environment fill-ins of the
- * execution-context builders (an agent turn's declared keys and its
- * session's git clone token; a workflow run's declared keys), which must
+ * execution-context builder (an agent turn's declared keys and its
+ * session's git clone token), which must
  * read the run's person's saved values and never a teammate's.
  *
  * The person is the execution's creator stamp
@@ -27,18 +27,11 @@
  * A visitor's, a channel's and a cloud schedule's runs need no rule of
  * their own: their stamp is the organization's system lane account, which
  * holds no member role and so never creates a personal environment
- * (`can_create_environment: member`, organization.fga). A workflow
- * `agent_call` child's stamp is the person who started the workflow. Under
+ * (`can_create_environment: member`, organization.fga). Under
  * trusted-local the operator, the server's internal class and every row
  * share one stamp, so the single user keeps every fill-in.
- *
- * A workflow run's person is read the same way, from the run's own stamp
- * (`workflowRunPersonOf`): whoever started the run, never the workflow's
- * author. No schedule starts a workflow run (the schedule's workflow arm
- * is reserved), so no schedule label applies to it.
  */
 import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 
 import { createdByOf } from "../../pipeline/steps/authorization-facts.js";
 
@@ -55,14 +48,6 @@ export function runPersonOf(execution: AgentRun): string | undefined {
   if ((execution.metadata?.labels[SCHEDULE_ID_LABEL_KEY] ?? "") !== "") {
     return undefined;
   }
-  const stamp = createdByOf(execution);
-  return stamp === "" ? undefined : stamp;
-}
-
-/** A workflow run's person's creator stamp, or `undefined` when the run has none. */
-export function workflowRunPersonOf(
-  execution: WorkflowRun,
-): string | undefined {
   const stamp = createdByOf(execution);
   return stamp === "" ? undefined : stamp;
 }

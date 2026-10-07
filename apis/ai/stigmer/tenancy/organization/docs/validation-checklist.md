@@ -119,8 +119,7 @@ Always use `stigmer org get <slug>` to confirm the existing slug before updating
 ### Deleting an organization without accounting for what it holds
 
 Deleting an organization is irreversible. Its members lose access to
-everything under it: agents, workflows, MCP servers, skills, sessions and
-runs. Its slug is released: a later organization may take it, and
+everything under it: agents, MCP servers, skills, sessions and runs. Its slug is released: a later organization may take it, and
 that organization reaches nothing the deleted one owned, because every
 resource names its organization by id.
 
@@ -136,7 +135,7 @@ child is deleted.
 ```bash
 # Verify contents before deleting
 stigmer list agents --org my-org
-stigmer list workflows --org my-org
+stigmer list sessions --org my-org
 
 # Then delete
 stigmer org delete my-org

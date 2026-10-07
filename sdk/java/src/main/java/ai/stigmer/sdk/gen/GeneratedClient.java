@@ -11,7 +11,6 @@ public class GeneratedClient {
     public final AgentRunClient agentRun;
     public final AgentShareClient agentShare;
     public final ApiKeyClient apiKey;
-    public final ArtifactClient artifact;
     public final ChannelAppClient channelapp;
     public final EnvironmentClient environment;
     public final ExecutionContextClient executionContext;
@@ -33,8 +32,6 @@ public class GeneratedClient {
     public final SkillClient skill;
     public final SubscriptionClient subscription;
     public final TeamClient team;
-    public final WorkflowClient workflow;
-    public final WorkflowRunClient workflowRun;
 
     public GeneratedClient(Channel channel) {
         this.agent = new AgentClient(channel);
@@ -42,7 +39,6 @@ public class GeneratedClient {
         this.agentRun = new AgentRunClient(channel);
         this.agentShare = new AgentShareClient(channel);
         this.apiKey = new ApiKeyClient(channel);
-        this.artifact = new ArtifactClient(channel);
         this.channelapp = new ChannelAppClient(channel);
         this.environment = new EnvironmentClient(channel);
         this.executionContext = new ExecutionContextClient(channel);
@@ -64,8 +60,6 @@ public class GeneratedClient {
         this.skill = newSkillClient(channel);
         this.subscription = new SubscriptionClient(channel);
         this.team = new TeamClient(channel);
-        this.workflow = new WorkflowClient(channel);
-        this.workflowRun = new WorkflowRunClient(channel);
     }
 
     /**

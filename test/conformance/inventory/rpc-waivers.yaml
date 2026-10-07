@@ -174,11 +174,6 @@ waivers:
     issue: 1549
     reason: >-
       Served by the Cloud edition only; the open-source server routes no ProviderStanding service and the suite has no client for it.
-  - rpc: TaskKindRegistryQueryController.getTaskKindRegistry
-    kind: gap
-    issue: 1026
-    reason: >-
-      Declared but routed by no edition (the registry is served over HTTP); routing it is stigmer#1026.
   - rpc: TeamCommandController.create
     kind: gap
     issue: 1543
@@ -209,13 +204,3 @@ waivers:
     issue: 1543
     reason: >-
       Served by the Enterprise and Cloud editions only; the open-source server routes no Team service and the suite has no client for it.
-  - rpc: WorkflowRunCommandController.update
-    kind: gap
-    issue: 1551
-    reason: >-
-      What an update may change on a started or terminal run is undecided; the contract is decided before an arm pins it.
-  - rpc: WorkflowRunCommandController.updateStatus
-    kind: proven-elsewhere
-    proven_by: backend/services/stigmer-server/src/domain/workflowrun/__tests__/workflowrun.test.ts
-    reason: >-
-      Only the runner sends it, from its own process; the server's suite pins its contract over the wire (status merge, idempotent event batches, NotFound and InvalidArgument).

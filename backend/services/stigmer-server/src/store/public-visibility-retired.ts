@@ -25,8 +25,7 @@
  * reads `kind_meta`. The `kind` strings are the enum NAMES the drivers'
  * `kind` column holds (proto-fields.ts `apiResourceKindName`). A kind since
  * removed from the contract keeps its entry and decodes through a frozen
- * envelope (frozen-agent-instance.ts, frozen-workflow-instance.ts), so this
- * step does what it did.
+ * envelope (frozen-envelopes.ts), so this step does what it did.
  *
  * Why decode and re-encode rather than patch bytes. `resources.data` is the
  * marshaled proto message; the level is one enum field on the metadata
@@ -51,11 +50,13 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
-import { FrozenAgentInstanceEnvelopeSchema } from "./frozen-agent-instance.js";
-import { FrozenWorkflowInstanceEnvelopeSchema } from "./frozen-workflow-instance.js";
+import {
+  FrozenAgentInstanceEnvelopeSchema,
+  FrozenWorkflowEnvelopeSchema,
+  FrozenWorkflowInstanceEnvelopeSchema,
+} from "./frozen-envelopes.js";
 
 /** One kind that could hold the public level, with the schema its rows decode through. */
 export interface PublicRowKind {
@@ -74,7 +75,7 @@ export const PUBLIC_ROW_KINDS_AT_RETIREMENT: ReadonlyArray<PublicRowKind> = [
   { kind: "skill", schema: SkillSchema },
   { kind: "mcp_server", schema: McpServerSchema },
   { kind: "agent_instance", schema: FrozenAgentInstanceEnvelopeSchema },
-  { kind: "workflow", schema: WorkflowSchema },
+  { kind: "workflow", schema: FrozenWorkflowEnvelopeSchema },
   { kind: "workflow_instance", schema: FrozenWorkflowInstanceEnvelopeSchema },
   { kind: "plugin", schema: PluginSchema },
 ];

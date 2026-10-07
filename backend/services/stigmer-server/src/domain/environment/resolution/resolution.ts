@@ -11,8 +11,7 @@
  * surface: the RPC responses are redacted by design, and this single-user
  * edition has no caller identity that could gate an "unredacted" RPC.
  *
- * Called cross-domain by the execution-context builders (agent and
- * workflow executions) — a
+ * Called cross-domain by the agent run's execution-context builder — a
  * deliberate, documented boundary crossing in the style of the cloud
  * edition's EnvironmentMergeService dependency. OSS omits the cloud's
  * OrgSharedEnvironmentPolicy gate: single-user, no trust boundary.

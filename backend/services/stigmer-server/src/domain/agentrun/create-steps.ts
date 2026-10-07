@@ -70,8 +70,6 @@ import { thinkingModeRefusal } from "./validate-thinking-mode.js";
 import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
 import { notifyStatusObservers } from "./status-observers.js";
 import { newSessionSpecOf, sessionIdOf } from "./target.js";
-import type { WorkflowRunQueue } from "../../temporal/workflowexecution/dispatch.js";
-import { parentRunQueueOf } from "./vouch-workflow-parent.js";
 import { unavailableError } from "../../pipeline/errors.js";
 
 type CreateDesc = typeof AgentRunSchema;
@@ -266,13 +264,13 @@ export function newCreateSessionIfNeededStep(deps: {
  *   - org_context, the organization's, for every run but a VISITOR's
  *     (stigmer/stigmer#1401). Its admins wrote it for the organization's
  *     own work, so the organization's own lanes keep it — a person, a
- *     schedule, a workflow's agent_call, the platform's pipelines — and
+ *     schedule, the platform's pipelines — and
  *     a caller the composed classifier names a visitor (the hosted
  *     edition's shared-agent guests and channel senders) never gets it;
  *     the organization is not even read. Open source composes no
  *     classifier and has no visitors. Not first-party-only like the
- *     person's half: that would strip it from every schedule and
- *     workflow run, and from the single operator, whose only standing
+ *     person's half: that would strip it from every schedule run, and
+ *     from the single operator, whose only standing
  *     context this is.
  *   - user_context, the run's person's own (stigmer#1397), composed only
  *     where callers are persons (`personAccounts`, the
@@ -689,8 +687,6 @@ export function newStartWorkflowStep(deps: {
   engineState: ExecutionEngineStateProvider;
   /** The failure arm's PENDING→FAILED stamp is a notified transition. */
   statusObservers: ReadonlyArray<AgentRunStatusObserver>;
-  /** The queue a vouched parent link routes the turn to (vouch-workflow-parent.ts). */
-  workflowRunQueue: WorkflowRunQueue;
 }): PipelineStep<CreateDesc> {
   return {
     name: "StartWorkflow",
@@ -706,39 +702,12 @@ export function newStartWorkflowStep(deps: {
         throw unavailableError(ENGINE_UNAVAILABLE_MESSAGE);
       }
 
-      // The vouched workflow link (vouch-workflow-parent.ts) carries the
-      // parent coordinates; the queue is derived from it, never named.
-      const parent = execution.spec?.parent;
-      // Log callback token presence (Temporal's asynchronous activity
-      // completion); Base64 preview only, never the bytes.
-      const callbackToken = parent?.callbackToken ?? new Uint8Array();
-      if (callbackToken.length > 0) {
-        const tokenBase64 = Buffer.from(callbackToken).toString("base64");
-        deps.logger.info(
-          "📝 Callback token present - workflow will complete external activity on finish",
-          {
-            executionId,
-            tokenPreview:
-              tokenBase64.length > 20
-                ? `${tokenBase64.slice(0, 20)}...`
-                : tokenBase64,
-            tokenLength: callbackToken.length,
-          },
-        );
-      }
-
       try {
         await engine.engine.startInvokeWorkflow({
           executionId,
           sessionId: sessionIdOf(execution.spec),
           agentId: execution.status?.agentId ?? "",
-          callbackToken,
           autoApproveAll: execution.spec?.autoApproveAll ?? false,
-          parentWorkflowId: parent?.signalWorkflowId ?? "",
-          activityTaskQueueOverride: parentRunQueueOf(
-            execution as AgentRun,
-            deps.workflowRunQueue,
-          ),
         });
       } catch (error) {
         if (error instanceof EngineDispatchError) {

@@ -1,7 +1,6 @@
 /**
- * Pins the kind purge (../kind-purge.ts) and the two kind purges that
- * remove more than their delete chain does, over a real SQLite store
- * opened with the server's list indexes.
+ * Pins the kind purge (../kind-purge.ts) over a real SQLite store opened
+ * with the server's list indexes.
  *
  * What it pins:
  *   - only the organization's rows go, read by keyset scan for a kind with
@@ -13,22 +12,15 @@
  *   - every removed row's policy rows are revoked through the grant path,
  *     and a fault there fails the batch;
  *   - a kind that names its organization elsewhere (`belongsTo`, an API
- *     key's bound organization) and one read through a port (`rows`);
- *   - the artifact purge removes the row for good and a blob only when no
- *     other artifact names it, and restores a blob another organization's
- *     create stored a row for while the purge was deleting it; the workflow
- *     execution purge removes its event log, before the row, so a fault
- *     leaves the row to retry.
+ *     key's bound organization) and one read through a port (`rows`).
  */
 import { create } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { ArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
-import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import type { ApiResourceRef } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
@@ -42,9 +34,7 @@ import { EXISTING_RESOURCE_KEY } from "../../../../pipeline/steps/load-existing.
 import { tempStore } from "../../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../../store/sqlite/__tests__/support.js";
 import { newApiKeyPurge } from "../../../apikey/purge.js";
-import { newArtifactPurge } from "../../../artifact/purge.js";
 import { sessionListIndex } from "../../../session/list-index.js";
-import { newWorkflowExecutionPurge } from "../../../workflowrun/purge.js";
 import { newKindPurge } from "../kind-purge.js";
 import type { KindPurgeDeps } from "../kind-purge.js";
 
@@ -243,130 +233,5 @@ describe("the API key purge", () => {
     const purge = newApiKeyPurge({ ...deps, authorizationLifecycle: undefined });
     expect(await purge.purge(ORG, CALLER)).toEqual({ more: false });
     expect(await ids(ApiResourceKind.api_key)).toEqual(["key_b", "key_c"]);
-  });
-});
-
-/** A blob store over a map; `onDelete` runs inside a delete, where a racing create would land. */
-function blobStore(initial: ReadonlyArray<string>, onDelete?: (key: string) => Promise<void>) {
-  const blobs = new Map<string, Uint8Array>(initial.map((key) => [key, new Uint8Array([1])]));
-  const deleted: string[] = [];
-  return {
-    blobs,
-    deleted,
-    storage: {
-      async exists(key: string) {
-        return blobs.has(key);
-      },
-      async download(key: string) {
-        const bytes = blobs.get(key);
-        if (bytes === undefined) throw new Error(`no blob ${key}`);
-        return bytes;
-      },
-      async upload(key: string, data: Uint8Array) {
-        blobs.set(key, data);
-      },
-      async delete(key: string) {
-        deleted.push(key);
-        blobs.delete(key);
-        await onDelete?.(key);
-      },
-    },
-  };
-}
-
-describe("the artifact purge", () => {
-  async function saveArtifact(id: string, org: string, hash: string) {
-    await fx.store.saveResource(
-      ApiResourceKind.artifact,
-      id,
-      ArtifactSchema,
-      create(ArtifactSchema, {
-        metadata: { id, org },
-        status: { contentHash: hash },
-      }),
-    );
-  }
-
-  it("removes rows for good and a blob only when no other artifact names it", async () => {
-    await saveArtifact("art_a1", ORG.id, "hash-shared");
-    await saveArtifact("art_a2", ORG.id, "hash-own");
-    await saveArtifact("art_a3", ORG.id, "hash-own");
-    await saveArtifact("art_b1", OTHER, "hash-shared");
-    const store = blobStore(["hash-shared", "hash-own"]);
-    const purge = newArtifactPurge({
-      ...deps,
-      authorizationLifecycle: undefined,
-      artifactStorage: store.storage,
-    });
-
-    expect(await purge.purge(ORG, CALLER)).toEqual({ more: false });
-    expect(await ids(ApiResourceKind.artifact)).toEqual(["art_b1"]);
-    expect(store.deleted).toEqual(["hash-own"]);
-    await purge.purge({ id: OTHER, parentOrg: "" }, CALLER);
-    expect(store.deleted).toEqual(["hash-own", "hash-shared"]);
-    expect([...store.blobs.keys()]).toEqual([]);
-  });
-
-  it("restores a blob another organization's create stored a row for while the purge deleted it", async () => {
-    await saveArtifact("art_a1", ORG.id, "hash-raced");
-    // Another organization's create of the same bytes uploaded before the
-    // purge counted, and stores its row while the purge deletes.
-    const store = blobStore(["hash-raced"], async () => {
-      await saveArtifact("art_b1", OTHER, "hash-raced");
-    });
-    const purge = newArtifactPurge({
-      ...deps,
-      authorizationLifecycle: undefined,
-      artifactStorage: store.storage,
-    });
-    await purge.purge(ORG, CALLER);
-    expect(await ids(ApiResourceKind.artifact)).toEqual(["art_b1"]);
-    expect(store.deleted).toEqual(["hash-raced"]);
-    expect(store.blobs.has("hash-raced"), "the other organization's artifact keeps its blob").toBe(true);
-  });
-});
-
-describe("the workflow execution purge", () => {
-  it("removes the execution's event log with the row", async () => {
-    await fx.store.saveResource(
-      ApiResourceKind.workflow_run,
-      "wfe_a1",
-      WorkflowRunSchema,
-      create(WorkflowRunSchema, {
-        metadata: { id: "wfe_a1", org: ORG.id },
-      }),
-    );
-    await fx.store.appendWorkflowExecutionEvents("wfe_a1", [
-      {
-        executionId: "wfe_a1",
-        sequenceNumber: 1,
-        eventType: "task_started",
-        taskName: "step-a",
-        data: new Uint8Array([1]),
-        createdAt: "",
-      },
-    ]);
-    const purge = newWorkflowExecutionPurge({
-      ...deps,
-      authorizationLifecycle: undefined,
-    });
-    expect(await purge.purge(ORG, CALLER)).toEqual({ more: false });
-    expect(await ids(ApiResourceKind.workflow_run)).toEqual([]);
-    expect(await fx.store.getMaxEventSequence("wfe_a1")).toBe(0);
-  });
-
-  it("keeps the row when the event log cannot be removed, so the retry finds it", async () => {
-    await fx.store.saveResource(
-      ApiResourceKind.workflow_run,
-      "wfe_a2",
-      WorkflowRunSchema,
-      create(WorkflowRunSchema, { metadata: { id: "wfe_a2", org: ORG.id } }),
-    );
-    const failing = Object.create(fx.store) as typeof fx.store;
-    failing.deleteWorkflowExecutionEvents = () => Promise.reject(new Error("events down"));
-    await expect(
-      newWorkflowExecutionPurge({ ...deps, store: failing, authorizationLifecycle: undefined }).purge(ORG, CALLER),
-    ).rejects.toThrow("internal server error");
-    expect(await ids(ApiResourceKind.workflow_run)).toEqual(["wfe_a2"]);
   });
 });

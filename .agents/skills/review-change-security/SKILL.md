@@ -54,8 +54,7 @@ names what makes it checkable. A question the code cannot answer is a finding.
 8. **No pattern can be turned against the process.** A regular expression run on
    untrusted text cannot backtrack: no unanchored repetition before `$`, no
    nested or overlapping quantifiers (#1586). An object write keyed by input
-   refuses `__proto__`, `constructor` and `prototype`; #1583 tracks the one
-   utility that does not yet.
+   refuses `__proto__`, `constructor` and `prototype`.
 
 ## How a reviewer reports
 

@@ -1,5 +1,5 @@
 /**
- * The one edge the plugin domain has onto the four child domains — a
+ * The one edge the plugin domain has onto the three child domains — a
  * consumer-defined, method-segregated surface the composition root
  * satisfies with in-process clients (boot/inprocess.ts), the shape of every
  * in-process edge there. Every call rides the in-process router
@@ -18,7 +18,6 @@ import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import type { PushSkillRequest } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
-import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
@@ -27,10 +26,9 @@ import type { CallerIdentity } from "../../../extensions/identity.js";
 export interface PluginMaterializer {
   /** Skill push is upsert-by-slug from the frontmatter; the request carries the plugin's labels. */
   pushSkill(request: PushSkillRequest, caller: CallerIdentity): Promise<Skill>;
-  /** Apply is upsert-by-slug for the three YAML kinds. */
+  /** Apply is upsert-by-slug for the two YAML kinds. */
   applyMcpServer(server: McpServer, caller: CallerIdentity): Promise<McpServer>;
   applyAgent(agent: Agent, caller: CallerIdentity): Promise<Agent>;
-  applyWorkflow(workflow: Workflow, caller: CallerIdentity): Promise<Workflow>;
   /**
    * The one door for a level change (metadata.proto): an existing member
    * whose level differs from the plugin's is moved here after apply.

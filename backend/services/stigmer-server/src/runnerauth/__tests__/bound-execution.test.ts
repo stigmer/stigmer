@@ -4,16 +4,16 @@
  * by enumeration here and the verifier's and the decrypt lane's tests can
  * assert behavior rather than restate it:
  *
- *   - the kind is read off the id alone: the two execution kinds by the
- *     contract's prefix table, the connect binding by its own predicate;
+ *   - the kind is read off the id alone: the agent run by the contract's
+ *     prefix table, the connect binding by its own predicate;
  *     anything else is `undefined` with no store read;
  *   - a connect binding resolves through the connect's ExecutionContext
  *     row (by `spec.executionId`), is live while that row exists, and is
  *     not a run (`bindsARun`) — the shape both no-`exp` lanes refuse; two
  *     rows naming one connect bind nothing (no first-match guess);
- *   - live is "not terminal" for each kind's OWN terminal set (the agent
- *     side's TERMINATED and WAITING_FOR_APPROVAL, the workflow side's
- *     TERMINATED and PAUSED are the arms that differ from a naive set);
+ *   - live is "not terminal" for the agent run's OWN terminal set (its
+ *     TERMINATED and WAITING_FOR_APPROVAL are the arms that differ from a
+ *     naive set);
  *   - a terminal row is live within the grace of its `completed_at`, dead
  *     at the boundary and beyond, and dead at once with no timestamp or an
  *     unparsable one (fail closed);
@@ -28,8 +28,6 @@ import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/a
 import { RunPhase as AgentPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
-import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
-import { RunPhase as WorkflowPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { newConnectExecutionId } from "../../domain/mcpserver/connect-execution-id.js";
@@ -120,23 +118,17 @@ function agentRun(
   });
 }
 
-function workflowRun(id: string, phase: WorkflowPhase, completedAt = "") {
-  return create(WorkflowRunSchema, {
-    metadata: { id, name: id, org: "acme" },
-    status: { phase, completedAt },
-  });
-}
-
 describe("boundExecutionKindOf", () => {
   it.each([
     ["aex_1", "agent-execution"],
-    ["wex_1", "workflow-execution"],
     [newConnectExecutionId("mcps_1"), "mcp-connect"],
   ])("%s binds %s", (id, kind) => {
     expect(boundExecutionKindOf(id)).toBe(kind);
   });
 
-  it.each([["ses_1"], ["agt_1"], ["zzz_1"], [""], ["aex"], ["connect"]])(
+  // `wex_1`: a retired workflow run's credential carries no expiry, so it
+  // must bind nothing rather than fall back to a kind.
+  it.each([["ses_1"], ["agt_1"], ["zzz_1"], [""], ["aex"], ["connect"], ["wex_1"]])(
     "%s binds nothing",
     (id) => {
       expect(boundExecutionKindOf(id)).toBeUndefined();
@@ -147,7 +139,6 @@ describe("boundExecutionKindOf", () => {
 describe("bindsARun — what a no-`exp` credential may name", () => {
   it.each([
     ["agent-execution", true],
-    ["workflow-execution", true],
     ["mcp-connect", false],
   ] as const)("%s → %s", (kind, expected) => {
     expect(bindsARun(kind)).toBe(expected);
@@ -279,36 +270,6 @@ describe("loadBoundExecution", () => {
     });
   });
 
-  describe("liveness — the workflow execution's own terminal set", () => {
-    it.each([
-      ["PENDING", WorkflowPhase.RUN_PENDING],
-      ["IN_PROGRESS", WorkflowPhase.RUN_IN_PROGRESS],
-      ["PAUSED", WorkflowPhase.RUN_PAUSED],
-    ])("%s is live", async (_name, phase) => {
-      const store = storeOf({ wex_1: workflowRun("wex_1", phase) });
-      expect((await loadBoundExecution(store, "wex_1", NOW))?.live).toBe(true);
-    });
-
-    it.each([
-      ["COMPLETED", WorkflowPhase.RUN_COMPLETED],
-      ["FAILED", WorkflowPhase.RUN_FAILED],
-      ["CANCELLED", WorkflowPhase.RUN_CANCELLED],
-      ["TERMINATED", WorkflowPhase.RUN_TERMINATED],
-    ])("%s with no completed_at is dead at once", async (_name, phase) => {
-      const store = storeOf({ wex_1: workflowRun("wex_1", phase) });
-      expect((await loadBoundExecution(store, "wex_1", NOW))?.live).toBe(false);
-    });
-
-    it("a workflow execution has no session — the field is empty, never a guess", async () => {
-      const store = storeOf({
-        wex_1: workflowRun("wex_1", WorkflowPhase.RUN_IN_PROGRESS),
-      });
-      expect((await loadBoundExecution(store, "wex_1", NOW))?.sessionId).toBe(
-        "",
-      );
-    });
-  });
-
   describe("the grace after terminal, measured from completed_at", () => {
     const G = RUN_CREDENTIAL_GRACE_AFTER_TERMINAL_MS;
 
@@ -340,15 +301,6 @@ describe("loadBoundExecution", () => {
         ),
       });
       expect((await loadBoundExecution(store, "aex_1", NOW))?.live).toBe(false);
-    });
-
-    it("the same rule applies to a workflow execution", async () => {
-      const store = storeOf({
-        wex_1: workflowRun("wex_1", WorkflowPhase.RUN_FAILED, iso(-1000)),
-        wex_2: workflowRun("wex_2", WorkflowPhase.RUN_FAILED, iso(-G)),
-      });
-      expect((await loadBoundExecution(store, "wex_1", NOW))?.live).toBe(true);
-      expect((await loadBoundExecution(store, "wex_2", NOW))?.live).toBe(false);
     });
   });
 });

@@ -45,7 +45,7 @@ type PluginQueryControllerClient interface {
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*Plugin, error)
 	// List the resources an installed plugin materialised.
 	//
-	// Returns every skill, MCP server, agent and workflow the plugin owns, in
+	// Returns every skill, MCP server and agent the plugin owns, in
 	// materialisation order.
 	ListMembers(ctx context.Context, in *PluginId, opts ...grpc.CallOption) (*ListPluginMembersResponse, error)
 	// Download a plugin archive from storage by its storage key.
@@ -149,7 +149,7 @@ type PluginQueryControllerServer interface {
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*Plugin, error)
 	// List the resources an installed plugin materialised.
 	//
-	// Returns every skill, MCP server, agent and workflow the plugin owns, in
+	// Returns every skill, MCP server and agent the plugin owns, in
 	// materialisation order.
 	ListMembers(context.Context, *PluginId) (*ListPluginMembersResponse, error)
 	// Download a plugin archive from storage by its storage key.

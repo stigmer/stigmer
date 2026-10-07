@@ -8,12 +8,6 @@
  * CLOUD — cloud uses it for sandbox provisioning; the OSS workflow
  * ignores it).
  *
- * The `wfexec:{id}` override lane: a parent workflow execution passes its
- * OWN queue so child agents share its sandbox. This domain honors the
- * override as an opaque string (the prefix constant belongs to
- * workflowexecution) and forces ExecutionTarget LOCAL to suppress
- * sandbox provisioning — exactly Go's contract.
- *
  * Proven by the agentexecution suites on local-execution and by the
  * co-located dispatch tests (ports dispatch_test.go).
  */
@@ -60,42 +54,8 @@ export async function resolveActivityTaskQueue(
   store: Store,
   sessionId: string,
   config: AgentExecutionTemporalConfig,
-  activityTaskQueueOverride: string,
   logger: Logger,
 ): Promise<DispatchResult> {
-  // Sandbox affinity: the parent workflow already has a sandbox on this
-  // queue — route there directly, no session routing, no provisioning.
-  if (activityTaskQueueOverride !== "") {
-    let harness = Harness.NATIVE;
-    if (sessionId !== "") {
-      try {
-        const session = await store.getResource(
-          ApiResourceKind.session,
-          sessionId,
-          SessionSchema,
-        );
-        // A LOADED session with a nil spec resolves UNSPECIFIED (Go's
-        // GetSpec().GetHarness() nil-chain); NATIVE is only the pre-load
-        // default.
-        harness = session.spec?.harness ?? Harness.UNSPECIFIED;
-      } catch {
-        // Best-effort read (Go ignores the error and keeps NATIVE).
-      }
-    }
-
-    logger.info("Dispatch using activity_task_queue override (sandbox affinity)", {
-      session_id: sessionId,
-      task_queue: activityTaskQueueOverride,
-      override_source: "parent_workflow_sandbox",
-    });
-
-    return {
-      taskQueue: activityTaskQueueOverride,
-      harness,
-      executionTarget: ExecutionTarget.LOCAL,
-    };
-  }
-
   let harness = Harness.NATIVE;
   let executionTarget = ExecutionTarget.UNSPECIFIED;
 
@@ -106,8 +66,9 @@ export async function resolveActivityTaskQueue(
         sessionId,
         SessionSchema,
       );
-      // Loaded-session nil-spec resolves UNSPECIFIED, exactly as the
-      // override arm above.
+      // A LOADED session with a nil spec resolves UNSPECIFIED (Go's
+      // GetSpec().GetHarness() nil-chain); NATIVE is only the pre-load
+      // default.
       harness = session.spec?.harness ?? Harness.UNSPECIFIED;
       executionTarget = session.spec?.executionTarget ?? ExecutionTarget.UNSPECIFIED;
     } catch (error) {

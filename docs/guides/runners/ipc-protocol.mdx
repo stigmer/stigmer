@@ -8,8 +8,7 @@ description:
 
 This is the reference for the stdin/stdout protocol that drives the runner in
 **manager mode**. Read it if you are building a host process that embeds the
-runner and manages Sessions or Workflow Runs dynamically, the way the Stigmer
-desktop app does.
+runner and manages Sessions dynamically, the way the Stigmer desktop app does.
 
 If you only run the runner as a single-queue worker, you do not need this
 protocol. See the runner README (`backend/services/runner/README.md`) for static
@@ -25,8 +24,7 @@ line-delimited JSON: the host writes **commands** to the runner's stdin, and the
 runner writes **responses** to its stdout.
 
 A host uses manager mode to run many short-lived workers from one process — one
-Temporal worker per Session and per Workflow Run — over a single shared Temporal
-connection.
+Temporal worker per Session — over a single shared Temporal connection.
 
 ## Transport and framing
 
@@ -51,10 +49,11 @@ Framing rules:
 The runner advertises a protocol version in its [`ready`](#ready) message:
 
 ```json
-{ "type": "ready", "protocolVersion": 1 }
+{ "type": "ready", "protocolVersion": 2 }
 ```
 
-- `protocolVersion` is an **integer**. The current version is `1`.
+- `protocolVersion` is an **integer**. The current version is `2`; version 2
+  removed the workflow execution commands and their responses.
 - The number increments **only on a breaking change** — a removed or renamed
   message, a changed field type, or a changed lifecycle guarantee. Adding a new
   optional field or a new message type does **not** bump it, because those
@@ -89,7 +88,7 @@ sequenceDiagram
     Runner->>Host: {"type":"error","message":"...","fatal":true}
     Runner-->>Host: exit(1)
   else initialization succeeds
-    Runner->>Host: {"type":"ready","protocolVersion":1}
+    Runner->>Host: {"type":"ready","protocolVersion":2}
   end
   loop while stdin is open
     Host->>Runner: command (one JSON object per line)
@@ -157,37 +156,6 @@ Stop the worker for a Session.
 Idempotent: removing a Session that is not active is a no-op and still returns
 [`sessionRemoved`](#sessionremoved).
 
-### addWorkflowExecution
-
-Start a Temporal worker for a Workflow Run. The worker polls the task queue
-`wfexec:<executionId>`.
-
-```json
-{ "type": "addWorkflowExecution", "executionId": "wfe_abc123" }
-```
-
-| Field         | Type   | Required | Description                            |
-| ------------- | ------ | -------- | -------------------------------------- |
-| `type`        | string | yes      | `"addWorkflowExecution"`               |
-| `executionId` | string | yes      | The Workflow Run to start a worker for |
-
-Idempotent in the same way as [`addSession`](#addsession).
-
-### removeWorkflowExecution
-
-Stop the worker for a Workflow Run.
-
-```json
-{ "type": "removeWorkflowExecution", "executionId": "wfe_abc123" }
-```
-
-| Field         | Type   | Required | Description                 |
-| ------------- | ------ | -------- | --------------------------- |
-| `type`        | string | yes      | `"removeWorkflowExecution"` |
-| `executionId` | string | yes      | The Workflow Run to stop    |
-
-Idempotent in the same way as [`removeSession`](#removesession).
-
 ### updateToken
 
 Push a refreshed auth token to every active worker. Use this when the host's
@@ -229,7 +197,7 @@ The runner replies with [`shutdownComplete`](#shutdowncomplete) and then exits.
 Sent once at startup, after the manager is initialized.
 
 ```json
-{ "type": "ready", "protocolVersion": 1 }
+{ "type": "ready", "protocolVersion": 2 }
 ```
 
 | Field             | Type    | Description                                                                        |
@@ -267,37 +235,6 @@ Acknowledges [`removeSession`](#removesession).
 | ----------- | ------ | ------------------------------------ |
 | `type`      | string | `"sessionRemoved"`                   |
 | `sessionId` | string | The Session whose worker was stopped |
-
-### workflowExecutionAdded
-
-Acknowledges [`addWorkflowExecution`](#addworkflowexecution).
-
-```json
-{
-  "type": "workflowExecutionAdded",
-  "executionId": "wfe_abc123",
-  "taskQueue": "wfexec:wfe_abc123"
-}
-```
-
-| Field         | Type   | Description                                            |
-| ------------- | ------ | ------------------------------------------------------ |
-| `type`        | string | `"workflowExecutionAdded"`                             |
-| `executionId` | string | The Workflow Run the worker serves                     |
-| `taskQueue`   | string | The Temporal task queue, always `wfexec:<executionId>` |
-
-### workflowExecutionRemoved
-
-Acknowledges [`removeWorkflowExecution`](#removeworkflowexecution).
-
-```json
-{ "type": "workflowExecutionRemoved", "executionId": "wfe_abc123" }
-```
-
-| Field         | Type   | Description                               |
-| ------------- | ------ | ----------------------------------------- |
-| `type`        | string | `"workflowExecutionRemoved"`              |
-| `executionId` | string | The Workflow Run whose worker was stopped |
 
 ### tokenUpdated
 

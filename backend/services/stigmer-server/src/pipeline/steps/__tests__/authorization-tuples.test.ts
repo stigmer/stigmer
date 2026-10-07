@@ -2,7 +2,6 @@
  * Pins the edition-neutral half of the tuple-lifecycle seam: the visibility
  * shape policy and its set-diff
  * (re-pinning the Java VisibilityTupleReconcilerTest transition matrix),
- * the run-audience policy of a workflow's execution visibility,
  * and the config-driven creation-event resolution
  * (CreateAuthorizationTuplesStepV2's scope/owner/parent semantics,
  * including every failure arm), and the one delete cleanup every delete
@@ -18,8 +17,6 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
-import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OwnerAttributionType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -34,7 +31,6 @@ import type {
 import {
   cleanUpDeletedResource,
   diffVisibilityShapes,
-  runAudienceShapes,
   resolveResourceCreatedEvent,
   visibilityShapesFor,
 } from "../authorization-tuples.js";
@@ -94,23 +90,6 @@ describe("visibilityShapesFor (the reconciler's level→shape policy)", () => {
         ApiResourceKind.environment,
         V.visibility_child_orgs,
       ),
-    ]).toEqual([]);
-  });
-});
-
-describe("runAudienceShapes (a workflow's run audience)", () => {
-  it("ORGANIZATION names the organization's viewers", () => {
-    expect([
-      ...runAudienceShapes(WorkflowRunVisibility.organization),
-    ]).toEqual(["org-viewer"]);
-  });
-
-  it("PRIVATE and the unset level name nobody, so each run stays its triggerer's", () => {
-    expect([
-      ...runAudienceShapes(WorkflowRunVisibility.private),
-    ]).toEqual([]);
-    expect([
-      ...runAudienceShapes(WorkflowRunVisibility.unspecified),
     ]).toEqual([]);
   });
 });
@@ -266,31 +245,6 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
     ).toThrowError(/failed to create authorization tuples/);
   });
 
-  it("workflow_run: org scope link PLUS the additional workflow parent from spec.workflow_id", () => {
-    const run = create(WorkflowRunSchema, {
-      metadata: { id: "wex_1", org: "acme" },
-      spec: { workflowId: "wfl_parent" },
-    });
-    const event = resolveResourceCreatedEvent(
-      ApiResourceKind.workflow_run,
-      run,
-      caller,
-      logger,
-    );
-    expect(event?.parentLinks).toEqual([
-      {
-        relation: "organization",
-        parentKind: ApiResourceKind.organization,
-        parentId: "acme",
-      },
-      {
-        relation: "workflow",
-        parentKind: ApiResourceKind.workflow,
-        parentId: "wfl_parent",
-      },
-    ]);
-  });
-
   it("memory: owner NONE — the subject additional parent is the only principal-bearing link", () => {
     const memory = create(MemorySchema, {
       metadata: { id: "mem_1", org: "acme" },
@@ -336,8 +290,8 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
 
 describe("cleanUpDeletedResource (the delete cleanup every chain and cascade shares)", () => {
   const event: ResourceDeletedEvent = {
-    kind: ApiResourceKind.workflow_run,
-    resourceId: "wex_cleanup_subject",
+    kind: ApiResourceKind.agent_run,
+    resourceId: "aex_cleanup_subject",
     orgId: "acme",
     caller,
   };
@@ -393,8 +347,8 @@ describe("cleanUpDeletedResource (the delete cleanup every chain and cascade sha
         message:
           "authorization cleanup failed — orphaned IAM policies may remain",
         fields: {
-          kind: "WorkflowRun",
-          resourceId: "wex_cleanup_subject",
+          kind: "AgentRun",
+          resourceId: "aex_cleanup_subject",
           error: "fga is down",
         },
       },

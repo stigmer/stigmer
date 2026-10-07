@@ -100,7 +100,6 @@ import {
   newResolveSlugStep,
   newR2ArtifactStorage,
   newValidateProtoStep,
-  newWorkflowExecutionConfigFromEnv,
   notFoundError,
   PLATFORM_TOKEN_ISSUER,
   platformClientStoreContract,
@@ -124,7 +123,6 @@ import {
   SYSTEM_SHARE_CLIENT_SLUG,
   TARGET_RESOURCE_KEY,
   TOKEN_TYPE_EXECUTION_SCOPED,
-  WORKFLOW_ROUTING_EXECUTION,
   BOUND_ELSEWHERE_DENY_REASON,
   boundOrgOf,
 } from "@stigmer/server";
@@ -144,8 +142,6 @@ import type {
   ChildOrganizationLinkedEvent,
   ChildOrganizations,
   ComposedServer,
-  RunAudienceShape,
-  RunVisibilityChangedEvent,
   GateSlotName,
   GuestTokenMinting,
   IamPolicyStore,
@@ -201,7 +197,6 @@ import type {
   SystemManagedPlatformClientInput,
   VisibilityChangedEvent,
   WorkerFactory,
-  WorkflowExecutionTemporalConfig,
 } from "@stigmer/server";
 
 /**
@@ -773,8 +768,8 @@ export function isStoreNotFound(error: unknown): boolean {
 }
 
 /**
- * A capacity-gate-shaped consumer of the dispatch-policy seams: the
- * dispatch-policy configs read through their exported constructors (the
+ * A capacity-gate-shaped consumer of the dispatch-policy seam: the
+ * dispatch-policy config read through its exported constructor (the
  * oss#397 one-definition rule consumed, never re-derived from env), and
  * the loaded execution read through the exported lifecycle context key —
  * on recover chains ctx.newState is the input message, so the resource
@@ -782,18 +777,12 @@ export function isStoreNotFound(error: unknown): boolean {
  */
 const agentExecutionDispatchPolicy: AgentExecutionTemporalConfig =
   newAgentExecutionTemporalConfigFromEnv();
-const workflowExecutionDispatchPolicy: WorkflowExecutionTemporalConfig =
-  newWorkflowExecutionConfigFromEnv();
 
 export function consumerCapacityGateStep(): PipelineStep<DescMessage> {
   return {
     name: "ConsumerCapacityGate",
     execute: (ctx) => {
       void (agentExecutionDispatchPolicy.activityRouting === ROUTING_SESSION);
-      void (
-        workflowExecutionDispatchPolicy.workflowActivityRouting ===
-        WORKFLOW_ROUTING_EXECUTION
-      );
       void ctx.get(LOADED_EXECUTION_KEY);
     },
   };
@@ -881,15 +870,9 @@ const credentialProvider: RunnerCredentialProvider = {
   // server-managed rpk_ payload keys the bootstrap arm above hands out.
   resolvePayloadKey: async (keyId: string): Promise<Buffer | undefined> =>
     keyId === "rpk_fake" ? Buffer.from("a2V5", "base64") : undefined,
-  // The two lineage and memory capabilities: the workflow-lineage
-  // vouching decision (agentexecution create) and the memory
-  // capture-eligibility decision (GuardMemoryCapture). Both classify the
-  // caller by the implementation's OWN token vocabulary — the shapes
-  // compile against the exports map alone.
-  vouchRunnerLineageLabels: (
-    _caller: CallerIdentity,
-    stampedWorkflowExecutionId: string,
-  ): boolean => stampedWorkflowExecutionId !== "wfe_unbound",
+  // The memory capture-eligibility decision (GuardMemoryCapture): it
+  // classifies the caller by the implementation's OWN token vocabulary —
+  // the shape compiles against the exports map alone.
   authorizeMemoryCapture: (
     _caller: CallerIdentity,
     captureOrg: string,
@@ -968,8 +951,6 @@ const consumerSandboxDriver: SandboxProvisionerFactory = ({
       return Promise.resolve();
     },
     deprovisionSessionSandbox: () => Promise.resolve(),
-    ensureWorkflowSandbox: () => Promise.resolve(),
-    deprovisionWorkflowSandbox: () => Promise.resolve(),
     createConnectSandbox: (connectRequestId) =>
       Promise.resolve(connectRequestId),
     deprovisionConnectSandbox: () => Promise.resolve(),
@@ -1388,13 +1369,6 @@ const authorizationLifecycle: ResourceAuthorizationLifecycle = {
     void event.shapesToDelete;
     return Promise.resolve();
   },
-  onRunVisibilityChanged: (event: RunVisibilityChangedEvent) => {
-    const audience: ReadonlyArray<RunAudienceShape> = event.shapes;
-    void event.workflowId;
-    void event.orgId;
-    void audience;
-    return Promise.resolve();
-  },
   onChildOrganizationLinked: (event: ChildOrganizationLinkedEvent) => {
     void event.childId;
     void event.parentId;
@@ -1510,20 +1484,17 @@ export const fakeExtension: ServerExtension = {
       [consumerCapacityGateStep()],
     ],
     ["org-create:post-persist", [consumerGateStep()]],
-    // The sixth declared slot: the workflow-execution chains'
-    // capacity-gate position.
-    ["sandbox-acquisition:gate", [consumerCapacityGateStep()]],
-    // The seventh: after the caller's account is
+    // The sixth: after the caller's account is
     // persisted or found inside provisionMyAccount — the cloud's
     // first-organization step rides it.
     ["identity-account-provision:post-persist", [consumerGateStep()]],
-    // The eighth: the IamPolicy create chain, before the grant is written
+    // The seventh: the IamPolicy create chain, before the grant is written
     // — where an edition that serves teams refuses a team it cannot admit.
     ["iam-policy-create:pre-side-effect-gate", [consumerGateStep()]],
-    // The ninth: the organization create chain before Persist — where a
+    // The eighth: the organization create chain before Persist — where a
     // limit on which organizations may exist refuses with nothing written.
     ["org-create:pre-side-effect-gate", [consumerGateStep()]],
-    // The tenth: the organization delete chain before any write — where an
+    // The ninth: the organization delete chain before any write — where an
     // edition removes, or refuses to leave behind, what it keeps for the
     // organization. It reads the loaded organization off the exported key.
     ["org-delete:pre-delete", [consumerGateStep()]],

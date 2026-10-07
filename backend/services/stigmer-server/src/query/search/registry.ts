@@ -27,8 +27,6 @@ import { organizationSearchExtractor } from "../../domain/organization/search-ex
 import { pluginSearchExtractor } from "../../domain/plugin/search-extractor.js";
 import { sessionSearchExtractor } from "../../domain/session/search-extractor.js";
 import { skillSearchExtractor } from "../../domain/skill/search-extractor.js";
-import { workflowSearchExtractor } from "../../domain/workflow/search-extractor.js";
-import { workflowExecutionSearchExtractor } from "../../domain/workflowrun/search-extractor.js";
 import type { Logger } from "../../boot/logger.js";
 import { searchIndexedKinds } from "./criteria.js";
 import type { SearchableExtractor } from "./extractor.js";
@@ -112,7 +110,5 @@ export function newSearchableResourceRegistry(): SearchableResourceRegistry {
     pluginSearchExtractor,
     sessionSearchExtractor,
     skillSearchExtractor,
-    workflowSearchExtractor,
-    workflowExecutionSearchExtractor,
   ]);
 }

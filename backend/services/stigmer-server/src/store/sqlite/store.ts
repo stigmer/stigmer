@@ -17,8 +17,7 @@
  * processes sharing the database file.
  *
  * Multi-statement operations (setAuditTag, upsertSearchIndex,
- * appendWorkflowExecutionEvents, pendingOAuthStates.getAndDelete) run in
- * explicit transactions exactly where Go used one. All code between BEGIN
+ * pendingOAuthStates.getAndDelete) run in explicit transactions exactly where Go used one. All code between BEGIN
  * and COMMIT is synchronous — nothing can interleave into an open
  * transaction on the sole connection.
  *
@@ -37,14 +36,12 @@ import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apireso
 
 import {
   AuditNotFoundError,
-  DELIVERED_SIGNAL_DEDUPE_TTL_MS,
   PENDING_OAUTH_STATE_TTL_MS,
   ResourceNotFoundError,
 } from "../interface.js";
 import type {
   AuditRecord,
   BootstrapStateStore,
-  ClaimResult,
   OAuthGrant,
   OAuthGrantStore,
   ResourceNameClaim,
@@ -63,12 +60,8 @@ import type {
   SearchIndexHit,
   SearchIndexQuery,
   SearchIndexQueryResult,
-  SignalDedupeRecord,
-  SignalDedupeStatus,
-  SignalDedupeStore,
   Store,
   StoreOpenOptions,
-  WorkflowExecutionEventRecord,
 } from "../interface.js";
 import {
   ListIndexRegistry,
@@ -165,7 +158,6 @@ const RECONCILE_BATCH = 500;
 
 export class SqliteStore implements Store {
   readonly bootstrapState: BootstrapStateStore;
-  readonly signalDedupe: SignalDedupeStore;
   readonly resourceNames: ResourceNameStore;
   readonly oauthGrants: OAuthGrantStore;
   readonly pendingOAuthStates: PendingOAuthStateStore;
@@ -187,7 +179,6 @@ export class SqliteStore implements Store {
     this.logger = logger;
     this.listIndexes = listIndexes;
     this.bootstrapState = new SqliteBootstrapStateStore(() => this.open());
-    this.signalDedupe = new SqliteSignalDedupeStore(() => this.open(), logger);
     this.resourceNames = new SqliteResourceNameStore(() => this.open());
     this.oauthGrants = new SqliteOAuthGrantStore(() => this.open());
     this.pendingOAuthStates = new SqlitePendingOAuthStateStore(() =>
@@ -924,104 +915,6 @@ export class SqliteStore implements Store {
   }
 
   // ---------------------------------------------------------------------------
-  // Workflow execution events
-  // ---------------------------------------------------------------------------
-
-  async appendWorkflowExecutionEvents(
-    executionId: string,
-    events: readonly WorkflowExecutionEventRecord[],
-  ): Promise<number> {
-    if (events.length === 0) {
-      return 0;
-    }
-    const db = this.open();
-
-    db.exec("BEGIN");
-    try {
-      const insert = db.prepare(
-        `INSERT OR IGNORE INTO workflow_execution_events (execution_id, sequence_number, event_type, task_name, data)
-         VALUES (?, ?, ?, ?, ?)`,
-      );
-      let inserted = 0;
-      for (const event of events) {
-        const result = insert.run(
-          executionId,
-          event.sequenceNumber,
-          event.eventType,
-          event.taskName,
-          event.data,
-        );
-        inserted += Number(result.changes);
-      }
-      db.exec("COMMIT");
-      return inserted;
-    } catch (error) {
-      db.exec("ROLLBACK");
-      throw error;
-    }
-  }
-
-  async getWorkflowExecutionEvents(
-    executionId: string,
-    afterSequence: number,
-    eventType: string,
-    taskName: string,
-    limit: number,
-  ): Promise<WorkflowExecutionEventRecord[]> {
-    const db = this.open();
-    const effectiveLimit = limit <= 0 ? 100 : limit;
-
-    let query = `SELECT execution_id, sequence_number, event_type, task_name, data, created_at
-      FROM workflow_execution_events
-      WHERE execution_id = ? AND sequence_number > ?`;
-    const args: Array<string | number> = [executionId, afterSequence];
-    if (eventType !== "") {
-      query += ` AND event_type = ?`;
-      args.push(eventType);
-    }
-    if (taskName !== "") {
-      query += ` AND task_name = ?`;
-      args.push(taskName);
-    }
-    query += ` ORDER BY sequence_number ASC LIMIT ?`;
-    args.push(effectiveLimit);
-
-    const rows = db.prepare(query).all(...args) as Array<{
-      execution_id: string;
-      sequence_number: number;
-      event_type: string;
-      task_name: string;
-      data: Uint8Array;
-      created_at: string;
-    }>;
-    return rows.map((row) => ({
-      executionId: row.execution_id,
-      sequenceNumber: row.sequence_number,
-      eventType: row.event_type,
-      taskName: row.task_name,
-      data: row.data,
-      createdAt: row.created_at,
-    }));
-  }
-
-  async getMaxEventSequence(executionId: string): Promise<number> {
-    const db = this.open();
-    const row = db
-      .prepare(
-        `SELECT COALESCE(MAX(sequence_number), 0) AS max_seq FROM workflow_execution_events WHERE execution_id = ?`,
-      )
-      .get(executionId) as { max_seq: number };
-    return row.max_seq;
-  }
-
-  async deleteWorkflowExecutionEvents(executionId: string): Promise<number> {
-    const result = this.open()
-      .prepare(`DELETE FROM workflow_execution_events WHERE execution_id = ?`)
-      .run(executionId);
-    return Number(result.changes);
-  }
-
-  // ---------------------------------------------------------------------------
   // Schedule runs (fire ledger)
   // ---------------------------------------------------------------------------
 
@@ -1390,163 +1283,6 @@ class SqliteBootstrapStateStore implements BootstrapStateStore {
   }
 }
 
-// =============================================================================
-// Signal dedupe (Go pkg/domain/workflowexecution/dedupe, oss#442)
-// =============================================================================
-
-class SqliteSignalDedupeStore implements SignalDedupeStore {
-  constructor(
-    private readonly open: () => DatabaseSync,
-    private readonly logger: StoreLogger,
-  ) {}
-
-  async claim(
-    org: string,
-    idempotencyKey: string,
-    executionId: string,
-    signalName: string,
-    ttlMs: number,
-  ): Promise<ClaimResult> {
-    const db = this.open();
-    const id = buildDedupeKey(org, idempotencyKey);
-    const now = new Date();
-    // ISO-8601 with milliseconds; Go writes RFC3339Nano. Both compare
-    // correctly through the shared second+fraction prefix — the formats
-    // only diverge sub-millisecond, below the TTLs' resolution.
-    const createdAt = now.toISOString();
-    const expiresAt = new Date(now.getTime() + ttlMs).toISOString();
-
-    // Expired rows are cleaned before claiming so keys become reusable —
-    // failure is non-critical (warn and continue), as in Go.
-    try {
-      this.cleanupExpired(db, now);
-    } catch (error) {
-      this.logger.warn("failed to cleanup expired dedupe records", {
-        error: String(error),
-      });
-    }
-
-    try {
-      db.prepare(
-        `INSERT INTO signal_dedupe (id, org, idempotency_key, execution_id, signal_name, status, created_at, expires_at)
-         VALUES (?, ?, ?, ?, ?, 'CLAIMED', ?, ?)`,
-      ).run(
-        id,
-        org,
-        idempotencyKey,
-        executionId,
-        signalName,
-        createdAt,
-        expiresAt,
-      );
-    } catch (error) {
-      if (!isUniqueConstraintError(error)) {
-        throw error;
-      }
-      const record = this.loadRecord(db, id);
-      if (record === undefined) {
-        // The holder vanished between INSERT and SELECT — surface as a
-        // claim failure rather than fabricating a record.
-        throw new Error(`load existing record: ${id} disappeared`);
-      }
-      return { status: "DUPLICATE", record };
-    }
-
-    return { status: "SUCCESS" };
-  }
-
-  async markDelivered(org: string, idempotencyKey: string): Promise<void> {
-    const db = this.open();
-    const id = buildDedupeKey(org, idempotencyKey);
-    const now = new Date();
-
-    // Extending expires_at here is the load-bearing half of the two-phase
-    // hold: delivery earns DELIVERED_SIGNAL_DEDUPE_TTL_MS. The status guard
-    // makes re-marking a no-op and keeps a takeover's fresh claim intact.
-    const result = db
-      .prepare(
-        `UPDATE signal_dedupe
-         SET status = 'DELIVERED', delivered_at = ?, expires_at = ?
-         WHERE id = ? AND status = 'CLAIMED'`,
-      )
-      .run(
-        now.toISOString(),
-        new Date(now.getTime() + DELIVERED_SIGNAL_DEDUPE_TTL_MS).toISOString(),
-        id,
-      );
-
-    if (Number(result.changes) === 0) {
-      this.logger.warn(
-        "no dedupe record updated - may be already delivered or doesn't exist",
-        { id },
-      );
-    }
-  }
-
-  async release(org: string, idempotencyKey: string): Promise<void> {
-    const db = this.open();
-    const id = buildDedupeKey(org, idempotencyKey);
-
-    // Status-guarded DELETE: only an in-flight claim can be freed, so a
-    // release racing markDelivered can never unblock a delivered key.
-    db.prepare(
-      `DELETE FROM signal_dedupe WHERE id = ? AND status = 'CLAIMED'`,
-    ).run(id);
-  }
-
-  async deleteByOrg(org: string): Promise<number> {
-    const result = this.open()
-      .prepare(`DELETE FROM signal_dedupe WHERE org = ?`)
-      .run(org);
-    return Number(result.changes);
-  }
-
-  private loadRecord(
-    db: DatabaseSync,
-    id: string,
-  ): SignalDedupeRecord | undefined {
-    const row = db
-      .prepare(
-        `SELECT id, org, idempotency_key, execution_id, signal_name, status, created_at, delivered_at, expires_at
-         FROM signal_dedupe WHERE id = ?`,
-      )
-      .get(id) as
-      | {
-          id: string;
-          org: string;
-          idempotency_key: string;
-          execution_id: string;
-          signal_name: string;
-          status: string;
-          created_at: string;
-          delivered_at: string | null;
-          expires_at: string;
-        }
-      | undefined;
-    if (row === undefined) {
-      return undefined;
-    }
-    return {
-      id: row.id,
-      org: row.org,
-      idempotencyKey: row.idempotency_key,
-      executionId: row.execution_id,
-      signalName: row.signal_name,
-      status: row.status as SignalDedupeStatus,
-      createdAt: row.created_at,
-      deliveredAt: row.delivered_at ?? "",
-      expiresAt: row.expires_at,
-    };
-  }
-
-  private cleanupExpired(db: DatabaseSync, now: Date): void {
-    db.prepare(`DELETE FROM signal_dedupe WHERE expires_at < ?`).run(
-      now.toISOString(),
-    );
-  }
-}
-
-/** Composite dedupe key: "{org}:{idempotency_key}" (Go buildDedupeKey). */
 /**
  * A row's key rows made equal to its facts, on the caller's open
  * transaction (postgres/store.ts's twin).
@@ -1636,10 +1372,6 @@ function factsOfBytes(
   } catch {
     return undefined;
   }
-}
-
-function buildDedupeKey(org: string, idempotencyKey: string): string {
-  return `${org}:${idempotencyKey}`;
 }
 
 function isUniqueConstraintError(error: unknown): boolean {

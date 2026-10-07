@@ -97,8 +97,8 @@ export type OAuthGrant = Message<"ai.stigmer.agentic.mcpserver.v1.OAuthGrant"> &
   environmentId: string;
 
   /**
-   * Kind of the API resource identified by resource_id (e.g., "mcp_server",
-   * "workflow"). Used for query filtering and handler routing.
+   * Kind of the API resource identified by resource_id (e.g., "mcp_server").
+   * Used for query filtering and handler routing.
    *
    * @generated from field: string resource_kind = 10;
    */

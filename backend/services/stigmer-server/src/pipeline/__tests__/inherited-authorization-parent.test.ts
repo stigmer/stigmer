@@ -10,9 +10,8 @@
  * in the child's place — so a second kind joining the set is a change in
  * what that driver checks, and must arrive as a reviewed edit of this
  * table, never as a silent consequence of a kind_meta edit. Kinds with
- * additional parents whose inheritance is partial (workflow_run's
- * opt-in `run_viewer from workflow`) own themselves and are pinned
- * as `undefined`.
+ * additional parents whose inheritance is partial (a memory's subject)
+ * own themselves and are pinned as `undefined`.
  */
 import { describe, expect, it } from "vitest";
 
@@ -41,7 +40,6 @@ describe("inheritedAuthorizationParentOf — the parent a kind's authorization i
   });
 
   it.each([
-    ApiResourceKind.workflow_run,
     ApiResourceKind.memory,
   ])("a kind with an additional, partial parent owns itself: %s", (kind) => {
     expect(inheritedAuthorizationParentOf(kind)).toBeUndefined();

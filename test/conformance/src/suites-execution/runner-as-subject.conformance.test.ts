@@ -8,16 +8,13 @@
 // reporting on a run is `can_edit` on the execution, which the run's human
 // holds — so a runner that acted as its key's holder could report on the
 // operator's runs and on nobody else's. Instead the server mints each run its
-// own credential at dispatch and carries it on the workflow input; the runner
+// own credential at dispatch and carries it on the engine's run input; the runner
 // presents it on every RPC about that run; and the built-in verifier admits
 // its bearer AS THE RUN'S HUMAN. What follows over the wire, and is pinned here:
 //
 //   - a MEMBER's run, served by a runner keyed with the OPERATOR's key,
 //     completes, its status writes land, and the runner titles its session
 //     as the member (stigmer#1137 was every such run failing INTERNAL);
-//   - the rows the runner writes for a run — the `agent_call` child's
-//     Session and AgentRun — carry the member's stamp, and an outsider
-//     is refused them;
 //   - an API key alone is not a delegate: the operator's key on the member's
 //     run is refused;
 //   - the exchange is a mint gate: a run's credential is minted only for the
@@ -36,26 +33,6 @@
 //     organization cannot swap itself through the exchange for the run's
 //     credential, so a credential limited to one organization never widens
 //     itself through a run;
-//   - a workflow that calls an agent runs to terminal under enforcement, and
-//     the child the runner created carries the workflow lineage labels and
-//     the member's stamp;
-//   - a workflow calling an agent the member CANNOT VIEW: the parent's
-//     `call:agent` resolves the callee by reference AS THE MEMBER, and a read
-//     by reference asks what the read by id asks, so the run is refused at
-//     the parent's own read — before any child execution exists and before
-//     any model turn is spent — and the workflow fails. That is the reach the
-//     model gives a run's credential today, the same in both editions: a
-//     shared workflow runs its agents as the person who ran it, who must be
-//     able to view them. The state is reached the two ways the reference
-//     rule leaves open, one arm each: the callee is NARROWED after the
-//     workflow was written (a write that would reference an agent less
-//     visible than the workflow is refused at the door; a dependency
-//     narrowed afterwards is the run's to refuse), and the task names its
-//     callee with a RUNTIME EXPRESSION (the write collects nothing for a
-//     reference fixed only at run; the run reads what it resolves to as the
-//     member). Pinned so that either door moving — the write refusing a
-//     narrowing, or the run admitting what the id read refuses — turns
-//     these arms red on purpose;
 //   - the runner's MCP children act as the person who asked. An MCP server
 //     is an organization's blueprint, an admin's to author; a member brings
 //     their own credential to it. A member's connect of an admin-authored,
@@ -82,9 +59,6 @@
 //     wall-clock minutes measured from the row's completed_at, not
 //     observable over the wire in a test's budget; the verifier's unit arms
 //     pin it with an injectable clock;
-//   - an Artifact the runner writes: it does so only for a workflow task
-//     output above the promotion threshold, which no fixture produces; the
-//     child rows already prove the stamp;
 //   - "the runner made no exchange call": the runner's own unit arm on
 //     acquireScopedRunnerToken pins the short-circuit; a conformance arm
 //     reads outcomes, never a server log;
@@ -107,12 +81,6 @@ import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/ap
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ConnectPhase } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
-import {
-  RunPhase as WorkflowExecutionPhase,
-  WorkflowTaskStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
@@ -144,15 +112,6 @@ import {
 } from "../support/memories";
 import { uniqueName } from "../support/naming";
 import {
-  AGENT_CALL_AFTER_TASK_NAME,
-  makeAgentCallWorkflow,
-} from "../support/workflows";
-import {
-  awaitTaskStatus,
-  awaitTerminal as awaitWorkflowTerminal,
-  makeWorkflowExecution,
-} from "../support/workflowruns";
-import {
   createTarget,
   enforcingLaneOf,
   type EnforcingLane,
@@ -166,14 +125,8 @@ const collectionTarget = createTarget();
 const runnerActsAsRunCreator =
   collectionTarget.capabilities.runnerActsAsRunCreator;
 
-// The lineage labels the runner's agent_call activity stamps on the child it
-// creates (activities/call-agent.ts); pinned bytes, the server keys the
-// child's environment resolution on them.
-const WORKFLOW_EXECUTION_ID_LABEL = "stigmer.ai/workflow-execution-id";
-const WORKFLOW_TASK_LABEL = "stigmer.ai/workflow-task";
-
-// The placeholder the runner's agent_call activity and the server's
-// auto-created sessions start with; the titling activity replaces it.
+// The placeholder the server's auto-created sessions start with; the titling
+// activity replaces it.
 const UNTITLED_SESSION_SUBJECT = "Auto-created session";
 
 // The exchange's refusal under the enforcing posture, byte-pinned in the
@@ -328,124 +281,6 @@ describe.skipIf(!runnerActsAsRunCreator)(
       ).not.toBe("");
       expect(minted.tokenType).toBe("Bearer");
       return minted.runnerScopedToken;
-    }
-
-    // A founder-owned, org-visible workflow whose first task calls `agentSlug`.
-    // Written as its own step so an arm can act on the callee between the
-    // workflow's write and its dispatch.
-    async function createAgentCallWorkflow(
-      people: People,
-      agentSlug: string,
-      label: string,
-    ): Promise<Workflow> {
-      const input = makeAgentCallWorkflow({
-        org: people.org,
-        name: uniqueName(label),
-        agentSlug,
-        message: "Say hello.",
-      });
-      input.metadata = {
-        ...input.metadata,
-        visibility: ApiResourceVisibility.visibility_org,
-      };
-      const workflow = await people.founder.workflowCommand.create(input);
-      fixtures.defer(() =>
-        people.founder.workflowCommand.delete({ value: workflow.metadata!.id }),
-      );
-      return workflow;
-    }
-
-    // `workflow` dispatched by the member, with one text turn scripted for the
-    // child the `call:agent` task creates.
-    async function dispatchWorkflow(
-      mock: MockLlmProxy,
-      people: People,
-      workflow: Workflow,
-      label: string,
-    ): Promise<WorkflowRun> {
-      mock.enqueue(anthropicText(`Hello from the ${label} child.`));
-      const execution = await people.member.workflowExecutionCommand.create(
-        makeWorkflowExecution({
-          org: people.org,
-          name: uniqueName(label),
-          workflowId: workflow.metadata!.id,
-        }),
-      );
-      fixtures.defer(() =>
-        people.member.workflowExecutionCommand.delete({
-          value: execution.metadata!.id,
-        }),
-      );
-      return execution;
-    }
-
-    // The two steps above as one: write the workflow, then dispatch it.
-    async function dispatchAgentCallWorkflow(
-      mock: MockLlmProxy,
-      people: People,
-      agentSlug: string,
-      label: string,
-    ): Promise<WorkflowRun> {
-      const workflow = await createAgentCallWorkflow(people, agentSlug, label);
-      return dispatchWorkflow(mock, people, workflow, label);
-    }
-
-    // The workflow run to COMPLETED: resolves once the downstream task
-    // completed, which is the proof the child ran to terminal and the
-    // workflow continued.
-    async function runAgentCallWorkflow(
-      mock: MockLlmProxy,
-      people: People,
-      agentSlug: string,
-      label: string,
-    ) {
-      const execution = await dispatchAgentCallWorkflow(
-        mock,
-        people,
-        agentSlug,
-        label,
-      );
-      await awaitTaskStatus(
-        people.member,
-        execution.metadata!.id,
-        AGENT_CALL_AFTER_TASK_NAME,
-        WorkflowTaskStatus.WORKFLOW_TASK_COMPLETED,
-      );
-      const settled = await awaitWorkflowTerminal(
-        people.member,
-        execution.metadata!.id,
-      );
-      expect(
-        settled.status?.phase,
-        `the ${label} workflow completes under enforcement`,
-      ).toBe(WorkflowExecutionPhase.RUN_COMPLETED);
-      return settled;
-    }
-
-    // The child the runner created for a workflow execution, found the way a
-    // console finds it: listed as the member (the list is scoped to what the
-    // caller may view) and matched on the lineage label.
-    async function childExecutionOf(
-      by: ConformanceClients,
-      org: string,
-      workflowExecutionId: string,
-    ): Promise<AgentRun> {
-      const listed = await by.agentExecutionQuery.list({ org });
-      const child = listed.entries.find(
-        (entry) =>
-          entry.metadata?.labels[WORKFLOW_EXECUTION_ID_LABEL] ===
-          workflowExecutionId,
-      );
-      if (child === undefined) {
-        throw new Error(
-          `no agent execution labeled ${WORKFLOW_EXECUTION_ID_LABEL}=${workflowExecutionId} is visible to the member ` +
-            `(${listed.entries.length} listed)`,
-        );
-      }
-      fixtures.defer(() =>
-        by.agentExecutionCommand.delete({ value: child.metadata!.id }),
-      );
-      return child;
     }
 
     it("a member's run completes on a runner keyed with the operator's key, and its session is titled as the member", async (ctx) => {
@@ -722,221 +557,6 @@ describe.skipIf(!runnerActsAsRunCreator)(
       expect(swap.rawMessage).toContain(BOUND_ELSEWHERE_MESSAGE);
 
       await awaitTerminal(people.founder, run.metadata!.id);
-    });
-
-    it("a workflow calling an agent runs to terminal under enforcement, and the child rows the runner wrote are the member's", async (ctx) => {
-      const { lane, mock } = laneOrSkip(ctx);
-      const people = await provisionPeople(lane);
-      const outsider = await lane.provisionIdentity();
-      const agent = await createAgent(
-        people,
-        ApiResourceVisibility.visibility_org,
-        "ras-callee",
-      );
-
-      const settled = await runAgentCallWorkflow(
-        mock,
-        people,
-        agent.metadata!.slug,
-        "ras-agent-call",
-      );
-
-      const child = await childExecutionOf(
-        people.member,
-        people.org,
-        settled.metadata!.id,
-      );
-      expect(child.metadata?.labels[WORKFLOW_EXECUTION_ID_LABEL]).toBe(
-        settled.metadata!.id,
-      );
-      expect(
-        child.metadata?.labels[WORKFLOW_TASK_LABEL],
-        "the task name rides the second lineage label",
-      ).toBeTruthy();
-      expect(child.status?.phase, `the child: ${child.status?.error}`).toBe(
-        RunPhase.RUN_COMPLETED,
-      );
-
-      // The runner created the child AND its session as the member: the
-      // stamp is the member's account, the same actor the parent carries.
-      expect(
-        child.status?.audit?.specAudit?.createdBy?.id,
-        "the child execution's creator",
-      ).toBe(people.memberId);
-      expect(
-        settled.status?.audit?.specAudit?.createdBy?.id,
-        "the parent's creator, for the record",
-      ).toBe(people.memberId);
-      const childSession = await people.member.sessionQuery.get({
-        value: sessionIdOf(child),
-      });
-      expect(
-        childSession.status?.audit?.specAudit?.createdBy?.id,
-        "the child session's creator",
-      ).toBe(people.memberId);
-      fixtures.defer(() =>
-        people.member.sessionCommand.delete({
-          value: childSession.metadata!.id,
-        }),
-      );
-
-      // An outsider is refused both rows, and does not see the child in a list.
-      await expectGrpcCode(
-        () => outsider.agentExecutionQuery.get({ value: child.metadata!.id }),
-        Code.PermissionDenied,
-        "an outsider reading the member's child execution",
-      );
-      await expectGrpcCode(
-        () => outsider.sessionQuery.get({ value: childSession.metadata!.id }),
-        Code.PermissionDenied,
-        "an outsider reading the member's child session",
-      );
-      const outsiderSees = await outsider.agentExecutionQuery.list({
-        org: people.org,
-      });
-      expect(outsiderSees.entries.map((e) => e.metadata?.id)).not.toContain(
-        child.metadata!.id,
-      );
-    });
-
-    it("a shared workflow calling an agent the member cannot view, the callee narrowed after the workflow was written: the parent's reference read is refused as the member before any child exists, and the workflow fails (the recorded reach)", async (ctx) => {
-      const { lane, mock } = laneOrSkip(ctx);
-      const people = await provisionPeople(lane);
-
-      // The state — an org-visible workflow calling an agent the member
-      // cannot view — is reached here the first of the two ways the
-      // reference rule leaves open (the runtime-expression arm below is the
-      // second).
-      // A write that names an agent LESS visible than the workflow is
-      // refused at the door (the reference floor, pinned by the workflow
-      // suite on the `local` targets), so the callee is written org-visible,
-      // the workflow beside it, and the callee is narrowed afterwards. The
-      // rule judges a reference when the row is written; a dependency
-      // narrowed later is the run's to refuse — which is exactly what this
-      // arm reads. The narrowing itself succeeding is part of the pin: a
-      // floor that started refusing it would turn this arm red at the
-      // `updateVisibility` below, on purpose.
-      const callee = await createAgent(
-        people,
-        ApiResourceVisibility.visibility_org,
-        "ras-narrowed-callee",
-      );
-      const workflow = await createAgentCallWorkflow(
-        people,
-        callee.metadata!.slug,
-        "ras-narrowed-call",
-      );
-      const narrowed = await people.founder.agentCommand.updateVisibility({
-        resourceId: callee.metadata!.id,
-        visibility: ApiResourceVisibility.visibility_private,
-      });
-      expect(
-        narrowed.metadata?.visibility,
-        "narrowing a referenced callee is not refused at write",
-      ).toBe(ApiResourceVisibility.visibility_private);
-
-      const execution = await dispatchWorkflow(
-        mock,
-        people,
-        workflow,
-        "ras-narrowed-call",
-      );
-      const settled = await awaitWorkflowTerminal(
-        people.member,
-        execution.metadata!.id,
-      );
-
-      // The reach the model gives a run's credential, the same in both
-      // editions: a shared workflow runs its agents as the person who ran
-      // it. The parent's `call:agent` resolves the callee by reference as
-      // the member, and a read by reference asks exactly what the read by id
-      // asks — so the refusal comes at the parent's own read, with the
-      // agent's `get` copy, before any child execution is created. A
-      // widening of that reach (the reference read admitting what the id
-      // read refuses, or the runner reading as itself) turns this arm red
-      // on purpose.
-      expect(
-        settled.status?.phase,
-        `the workflow: ${settled.status?.error}`,
-      ).toBe(WorkflowExecutionPhase.RUN_FAILED);
-      expect(
-        settled.status?.error,
-        "the workflow failed at the callee's reference read, with the get copy",
-      ).toContain("unauthorized to get agent");
-      const listed = await people.member.agentExecutionQuery.list({
-        org: people.org,
-      });
-      expect(
-        listed.entries.filter(
-          (entry) =>
-            entry.metadata?.labels[WORKFLOW_EXECUTION_ID_LABEL] ===
-            settled.metadata!.id,
-        ),
-        "no child execution was created: the refusal came before the child",
-      ).toEqual([]);
-      expect(
-        mock.consumed(),
-        "no model turn was spent: the refusal came before any call",
-      ).toBe(0);
-    });
-
-    it("a workflow naming its callee with a runtime expression that resolves to an agent the member cannot view: the write collects nothing, and the parent's reference read is refused as the member before any child exists", async (ctx) => {
-      const { lane, mock } = laneOrSkip(ctx);
-      const people = await provisionPeople(lane);
-
-      // The founder's private agent: a row the member cannot view. The
-      // task names it through a jq literal, the simplest value fixed only at
-      // run, so the org-visible workflow saves with no floor to ask — the
-      // write judges what the write can see, and this reference exists only
-      // when the task runs.
-      const callee = await createAgent(
-        people,
-        ApiResourceVisibility.visibility_private,
-        "ras-dynamic-callee",
-      );
-      const workflow = await createAgentCallWorkflow(
-        people,
-        `\${ "${people.org}/${callee.metadata!.slug}" }`,
-        "ras-dynamic-call",
-      );
-
-      const execution = await dispatchWorkflow(
-        mock,
-        people,
-        workflow,
-        "ras-dynamic-call",
-      );
-      const settled = await awaitWorkflowTerminal(
-        people.member,
-        execution.metadata!.id,
-      );
-
-      // The same bound as the narrowed arm: the resolved reference is read
-      // as the member, so the run is refused at the parent's own read, with
-      // the agent's `get` copy, before a child or a model turn exists.
-      expect(
-        settled.status?.phase,
-        `the workflow: ${settled.status?.error}`,
-      ).toBe(WorkflowExecutionPhase.RUN_FAILED);
-      expect(
-        settled.status?.error,
-        "the workflow failed at the resolved callee's reference read, with the get copy",
-      ).toContain("unauthorized to get agent");
-      const listed = await people.member.agentExecutionQuery.list({
-        org: people.org,
-      });
-      expect(
-        listed.entries.filter(
-          (entry) =>
-            entry.metadata?.labels[WORKFLOW_EXECUTION_ID_LABEL] ===
-            settled.metadata!.id,
-        ),
-        "no child execution was created: the refusal came before the child",
-      ).toEqual([]);
-      expect(
-        mock.consumed(),
-        "no model turn was spent: the refusal came before any call",
-      ).toBe(0);
     });
 
     it("[rpc:McpServerCommandController.connect] a member's connect of an admin-authored server with their own credential succeeds: the connect's ExecutionContext is created as the member, and the connect token admits the runner as the member for the secret read", async (ctx) => {

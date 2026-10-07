@@ -72,15 +72,6 @@ from ._gen._session import (
 )
 from ._gen._skill import SkillClient, SkillInput
 from ._skill import MAX_INLINE_ARTIFACT_BYTES, RoutedSkillClient
-from ._gen._workflow import (
-    ExportInput,
-    FlowControlInput,
-    WorkflowClient,
-    WorkflowDocumentInput,
-    WorkflowInput,
-    WorkflowTaskInput,
-)
-from ._gen._workflowrun import WorkflowRunClient, WorkflowRunInput
 
 # --- Shared types (generated) ----------------------------------------------
 
@@ -159,8 +150,6 @@ __all__ = [
     "SkillClient",
     "RoutedSkillClient",
     "MAX_INLINE_ARTIFACT_BYTES",
-    "WorkflowClient",
-    "WorkflowRunClient",
     # Input types
     "AgentInput",
     "AgentRunInput",
@@ -172,8 +161,6 @@ __all__ = [
     "EnvSpecInput",
     "EnvVarInput",
     "ExecutionContextInput",
-    "ExportInput",
-    "FlowControlInput",
     "GitRepoSourceInput",
     "HttpServerConfigInput",
     "IamPolicyInput",
@@ -189,10 +176,6 @@ __all__ = [
     "SkillInput",
     "StdioServerConfigInput",
     "SubAgentInput",
-    "WorkflowDocumentInput",
-    "WorkflowInput",
-    "WorkflowRunInput",
-    "WorkflowTaskInput",
     "WorkspaceEntryInput",
     "WorkspaceSourceInput",
     # Shared types

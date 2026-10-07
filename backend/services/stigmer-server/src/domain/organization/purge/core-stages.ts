@@ -6,8 +6,8 @@
  *              artifacts and fire ledger, through the schedule purge), so
  *              nothing fires while the rest is removed; every execution
  *              that may still run is terminated; every sandbox is torn
- *              down; the side-store records keyed by the organization (signal
- *              holds, pending OAuth states, OAuth grants) are removed.
+ *              down; the side-store records keyed by the organization
+ *              (pending OAuth states, OAuth grants) are removed.
  *              Termination needs the engine only when an execution has not
  *              reached a terminal phase: a server composed with no engine
  *              has none (an execution cannot be created without one), and
@@ -52,7 +52,6 @@ import { create, fromBinary } from "@bufbuild/protobuf";
 import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -81,19 +80,11 @@ import type {
   ListIndexDeclaration,
 } from "../../../store/list-index.js";
 import type { ExecutionEngineStateProvider } from "../../agentrun/engine.js";
-import { EngineWorkflowNotFoundError as AgentWorkflowNotFoundError } from "../../agentrun/engine.js";
+import { EngineWorkflowNotFoundError } from "../../agentrun/engine.js";
 import { agentExecutionListIndex } from "../../agentrun/list-index.js";
 import { isTerminalExecutionPhase } from "../../agentrun/phases.js";
 import type { IamPolicyGrantPath } from "../../iampolicy/grant-path.js";
 import { sessionListIndex } from "../../session/list-index.js";
-import {
-  childWorkflowId,
-  orchestratorWorkflowId,
-} from "../../workflowrun/constants.js";
-import type { WorkflowExecutionEngineStateProvider } from "../../workflowrun/engine.js";
-import { EngineWorkflowNotFoundError as WorkflowNotFoundError } from "../../workflowrun/engine.js";
-import { workflowExecutionListIndex } from "../../workflowrun/list-index.js";
-import { isTerminalWorkflowExecutionPhase } from "../../workflowrun/phases.js";
 import { newReleaseExternalIdStep } from "../children.js";
 import { organizationListIndex } from "../list-index.js";
 import { newRetireOrganizationSlugStep } from "../names.js";
@@ -126,7 +117,6 @@ export interface QuiesceStageDeps {
   /** The schedule purge: schedules go before anything else. */
   readonly schedulePurge: KindPurge;
   readonly agentEngine: ExecutionEngineStateProvider;
-  readonly workflowEngine: WorkflowExecutionEngineStateProvider;
   readonly sandboxLane: SandboxLane;
 }
 
@@ -142,9 +132,7 @@ export function newQuiesceStage(deps: QuiesceStageDeps): OrganizationPurgeStage 
         return MORE;
       }
       await terminateAgentExecutions(deps, context);
-      await terminateWorkflowExecutions(deps, context);
       await deprovisionSandboxes(deps, context);
-      await deps.store.signalDedupe.deleteByOrg(context.org.id);
       await deps.store.pendingOAuthStates.deleteByOrg(context.org.id);
       await deps.store.oauthGrants.deleteByOrg(context.org.id);
       return DONE;
@@ -196,47 +184,14 @@ async function terminateAgentExecutions(
     try {
       await state.engine.terminateWorkflow(id, PURGE_TERMINATION_REASON);
     } catch (error) {
-      if (!(error instanceof AgentWorkflowNotFoundError)) {
+      if (!(error instanceof EngineWorkflowNotFoundError)) {
         throw error;
       }
     }
   }
 }
 
-async function terminateWorkflowExecutions(
-  deps: QuiesceStageDeps,
-  context: OrganizationPurgeContext,
-): Promise<void> {
-  for await (const data of organizationRows(
-    deps.store,
-    workflowExecutionListIndex,
-    context.org.id,
-  )) {
-    const execution = fromBinary(WorkflowRunSchema, data);
-    if (isTerminalWorkflowExecutionPhase(execution.status?.phase ?? 0)) {
-      continue;
-    }
-    const state = deps.workflowEngine();
-    if (!state.connected) {
-      throw new Error(ENGINE_UNREACHABLE_FOR_PURGE);
-    }
-    const id = execution.metadata?.id ?? "";
-    for (const workflowId of [orchestratorWorkflowId(id), childWorkflowId(id)]) {
-      try {
-        await state.engine.terminateWorkflow(
-          workflowId,
-          PURGE_TERMINATION_REASON,
-        );
-      } catch (error) {
-        if (!(error instanceof WorkflowNotFoundError)) {
-          throw error;
-        }
-      }
-    }
-  }
-}
-
-/** Every session's and workflow execution's sandbox; missing is success (the provisioner's contract). */
+/** Every session's sandbox; missing is success (the provisioner's contract). */
 async function deprovisionSandboxes(
   deps: QuiesceStageDeps,
   context: OrganizationPurgeContext,
@@ -253,16 +208,6 @@ async function deprovisionSandboxes(
     const id = fromBinary(SessionSchema, data).metadata?.id ?? "";
     if (id !== "") {
       await lane.provisioner.deprovisionSessionSandbox(id);
-    }
-  }
-  for await (const data of organizationRows(
-    deps.store,
-    workflowExecutionListIndex,
-    context.org.id,
-  )) {
-    const id = fromBinary(WorkflowRunSchema, data).metadata?.id ?? "";
-    if (id !== "") {
-      await lane.provisioner.deprovisionWorkflowSandbox(id);
     }
   }
 }

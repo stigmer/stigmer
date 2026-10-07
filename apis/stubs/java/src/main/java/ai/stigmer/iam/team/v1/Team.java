@@ -10,7 +10,7 @@ package ai.stigmer.iam.team.v1;
  * Team is a named group of an organization's people that access is shared
  * with as one.
  *
- * Sharing an agent, a workflow or a channel with a team gives every member
+ * Sharing an agent or a channel with a team gives every member
  * the access the share names; someone who joins the team gains it and
  * someone who leaves the team, or leaves the organization, loses it at once.
  * A team belongs to its organization: only the organization's members can be
@@ -492,7 +492,7 @@ private static final long serialVersionUID = 0L;
    * Team is a named group of an organization's people that access is shared
    * with as one.
    *
-   * Sharing an agent, a workflow or a channel with a team gives every member
+   * Sharing an agent or a channel with a team gives every member
    * the access the share names; someone who joins the team gains it and
    * someone who leaves the team, or leaves the organization, loses it at once.
    * A team belongs to its organization: only the organization's members can be

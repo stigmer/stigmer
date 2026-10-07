@@ -37,11 +37,6 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agentrun_v1_AgentRunSpec_RuntimeEnvEntry_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_agentrun_v1_WorkflowParent_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_agentrun_v1_WorkflowParent_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_agentrun_v1_Attachment_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -83,7 +78,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "text/v1/spec.proto\032(ai/stigmer/agentic/s" +
       "ession/v1/spec.proto\032\033buf/validate/valid" +
       "ate.proto\032\034google/protobuf/struct.proto\032" +
-      "\037google/protobuf/timestamp.proto\"\273\013\n\014Age" +
+      "\037google/protobuf/timestamp.proto\"\201\013\n\014Age" +
       "ntRunSpec\022\037\n\nsession_id\030\001 \001(\tH\000R\tsession" +
       "Id\022O\n\014session_spec\030\r \001(\0132*.ai.stigmer.ag" +
       "entic.session.v1.SessionSpecH\000R\013sessionS" +
@@ -105,50 +100,45 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "\022*\n\021supersedes_run_id\030\014 \001(\tR\017supersedesR" +
       "unId\022f\n\024conversation_catchup\030\016 \001(\01323.ai." +
       "stigmer.agentic.agentrun.v1.Conversation" +
-      "CatchupR\023conversationCatchup\022F\n\006parent\030\021" +
-      " \001(\0132..ai.stigmer.agentic.agentrun.v1.Wo" +
-      "rkflowParentR\006parent\032u\n\017RuntimeEnvEntry\022" +
-      "\020\n\003key\030\001 \001(\tR\003key\022L\n\005value\030\002 \001(\01326.ai.st" +
-      "igmer.agentic.executioncontext.v1.Execut" +
-      "ionValueR\005value:\0028\001:\336\001\272H\332\001\032\327\001\n$agent_run" +
-      ".session_spec_harness_state\022jsession_spe" +
-      "c.harness_state_id must be empty \342\200\224 har" +
-      "ness state is created by the runner afte" +
-      "r the first run\032C!has(this.session_spec)" +
-      " || this.session_spec.harness_state_id =" +
-      "= \'\'B\010\n\006targetJ\004\010\002\020\003J\004\010\006\020\007J\004\010\010\020\tJ\004\010\013\020\014J\004" +
-      "\010\017\020\020J\004\010\020\020\021J\004\010\004\020\005R\010agent_idR\016callback_tok" +
-      "enR\022parent_workflow_idR\023activity_task_qu" +
-      "eueR\024declared_preferencesR\021recalled_memo" +
-      "riesR\020execution_config\"\226\001\n\016WorkflowParen" +
-      "t\022/\n\017workflow_run_id\030\001 \001(\tB\007\272H\004r\002\020\001R\rwor" +
-      "kflowRunId\022,\n\022signal_workflow_id\030\002 \001(\tR\020" +
-      "signalWorkflowId\022%\n\016callback_token\030\003 \001(\014" +
-      "R\rcallbackToken\"\226\003\n\nAttachment\022\342\001\n\010filen" +
-      "ame\030\001 \001(\tB\305\001\272H\301\001r\002\020\001\272\001\271\001\n\033attachment.fil" +
-      "ename.no_path\022Nfilename must be a bare f" +
-      "ilename without path separators or trave" +
-      "rsal segments\032J!this.contains(\'/\') && !t" +
-      "his.contains(\'\\\\\') && this != \'.\' && thi" +
-      "s != \'..\'R\010filename\022(\n\013storage_key\030\002 \001(\t" +
-      "B\007\272H\004r\002\020\001R\nstorageKey\022\035\n\nmount_path\030\003 \001(" +
-      "\tR\tmountPath\022!\n\014content_type\030\004 \001(\tR\013cont" +
-      "entType\022\030\n\007extract\030\005 \001(\010R\007extract\022\035\n\nloc" +
-      "al_path\030\006 \001(\tR\tlocalPath\"h\n\023Conversation" +
-      "Catchup\022\026\n\006digest\030\001 \001(\tR\006digest\0229\n\nwindo" +
-      "w_end\030\002 \001(\0132\032.google.protobuf.TimestampR" +
-      "\twindowEnd\"Y\n\023DeclaredPreferences\022\037\n\013org" +
-      "_context\030\001 \001(\tR\norgContext\022!\n\014user_conte" +
-      "xt\030\002 \001(\tR\013userContext\"v\n\020RecalledMemorie" +
-      "s\022\030\n\007enabled\030\001 \001(\010R\007enabled\022H\n\005facts\030\002 \003" +
-      "(\01322.ai.stigmer.agentic.agentrun.v1.Reca" +
-      "lledMemoryFactR\005facts\"K\n\022RecalledMemoryF" +
-      "act\022\033\n\tmemory_id\030\001 \001(\tR\010memoryId\022\030\n\007cont" +
-      "ent\030\002 \001(\tR\007contentB\250\001B\tSpecProtoP\001\242\002\004ASA" +
-      "A\252\002\036Ai.Stigmer.Agentic.Agentrun.V1\312\002\036Ai\\" +
-      "Stigmer\\Agentic\\Agentrun\\V1\342\002*Ai\\Stigmer" +
-      "\\Agentic\\Agentrun\\V1\\GPBMetadata\352\002\"Ai::S" +
-      "tigmer::Agentic::Agentrun::V1b\006proto3"
+      "CatchupR\023conversationCatchup\032u\n\017RuntimeE" +
+      "nvEntry\022\020\n\003key\030\001 \001(\tR\003key\022L\n\005value\030\002 \001(\013" +
+      "26.ai.stigmer.agentic.executioncontext.v" +
+      "1.ExecutionValueR\005value:\0028\001:\336\001\272H\332\001\032\327\001\n$a" +
+      "gent_run.session_spec_harness_state\022jses" +
+      "sion_spec.harness_state_id must be empty" +
+      " \342\200\224 harness state is created by the run" +
+      "ner after the first run\032C!has(this.sessi" +
+      "on_spec) || this.session_spec.harness_st" +
+      "ate_id == \'\'B\010\n\006targetJ\004\010\002\020\003J\004\010\006\020\007J\004\010\010\020\t" +
+      "J\004\010\013\020\014J\004\010\021\020\022J\004\010\017\020\020J\004\010\020\020\021J\004\010\004\020\005R\010agent_id" +
+      "R\016callback_tokenR\022parent_workflow_idR\023ac" +
+      "tivity_task_queueR\006parentR\024declared_pref" +
+      "erencesR\021recalled_memoriesR\020execution_co" +
+      "nfig\"\226\003\n\nAttachment\022\342\001\n\010filename\030\001 \001(\tB\305" +
+      "\001\272H\301\001r\002\020\001\272\001\271\001\n\033attachment.filename.no_pa" +
+      "th\022Nfilename must be a bare filename wit" +
+      "hout path separators or traversal segmen" +
+      "ts\032J!this.contains(\'/\') && !this.contain" +
+      "s(\'\\\\\') && this != \'.\' && this != \'..\'R\010" +
+      "filename\022(\n\013storage_key\030\002 \001(\tB\007\272H\004r\002\020\001R\n" +
+      "storageKey\022\035\n\nmount_path\030\003 \001(\tR\tmountPat" +
+      "h\022!\n\014content_type\030\004 \001(\tR\013contentType\022\030\n\007" +
+      "extract\030\005 \001(\010R\007extract\022\035\n\nlocal_path\030\006 \001" +
+      "(\tR\tlocalPath\"h\n\023ConversationCatchup\022\026\n\006" +
+      "digest\030\001 \001(\tR\006digest\0229\n\nwindow_end\030\002 \001(\013" +
+      "2\032.google.protobuf.TimestampR\twindowEnd\"" +
+      "Y\n\023DeclaredPreferences\022\037\n\013org_context\030\001 " +
+      "\001(\tR\norgContext\022!\n\014user_context\030\002 \001(\tR\013u" +
+      "serContext\"v\n\020RecalledMemories\022\030\n\007enable" +
+      "d\030\001 \001(\010R\007enabled\022H\n\005facts\030\002 \003(\01322.ai.sti" +
+      "gmer.agentic.agentrun.v1.RecalledMemoryF" +
+      "actR\005facts\"K\n\022RecalledMemoryFact\022\033\n\tmemo" +
+      "ry_id\030\001 \001(\tR\010memoryId\022\030\n\007content\030\002 \001(\tR\007" +
+      "contentB\250\001B\tSpecProtoP\001\242\002\004ASAA\252\002\036Ai.Stig" +
+      "mer.Agentic.Agentrun.V1\312\002\036Ai\\Stigmer\\Age" +
+      "ntic\\Agentrun\\V1\342\002*Ai\\Stigmer\\Agentic\\Ag" +
+      "entrun\\V1\\GPBMetadata\352\002\"Ai::Stigmer::Age" +
+      "ntic::Agentrun::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -166,45 +156,39 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentrun_v1_AgentRunSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentrun_v1_AgentRunSpec_descriptor,
-        new java.lang.String[] { "SessionId", "SessionSpec", "Message", "RunConfig", "InteractionMode", "BuildFromPlan", "StructuredOutputSchema", "RuntimeEnv", "AutoApproveAll", "Attachments", "WorkspaceFileRefs", "SupersedesRunId", "ConversationCatchup", "Parent", "Target", });
+        new java.lang.String[] { "SessionId", "SessionSpec", "Message", "RunConfig", "InteractionMode", "BuildFromPlan", "StructuredOutputSchema", "RuntimeEnv", "AutoApproveAll", "Attachments", "WorkspaceFileRefs", "SupersedesRunId", "ConversationCatchup", "Target", });
     internal_static_ai_stigmer_agentic_agentrun_v1_AgentRunSpec_RuntimeEnvEntry_descriptor =
       internal_static_ai_stigmer_agentic_agentrun_v1_AgentRunSpec_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_agentrun_v1_AgentRunSpec_RuntimeEnvEntry_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentrun_v1_AgentRunSpec_RuntimeEnvEntry_descriptor,
         new java.lang.String[] { "Key", "Value", });
-    internal_static_ai_stigmer_agentic_agentrun_v1_WorkflowParent_descriptor =
-      getDescriptor().getMessageType(1);
-    internal_static_ai_stigmer_agentic_agentrun_v1_WorkflowParent_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_agentrun_v1_WorkflowParent_descriptor,
-        new java.lang.String[] { "WorkflowRunId", "SignalWorkflowId", "CallbackToken", });
     internal_static_ai_stigmer_agentic_agentrun_v1_Attachment_descriptor =
-      getDescriptor().getMessageType(2);
+      getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_agentic_agentrun_v1_Attachment_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentrun_v1_Attachment_descriptor,
         new java.lang.String[] { "Filename", "StorageKey", "MountPath", "ContentType", "Extract", "LocalPath", });
     internal_static_ai_stigmer_agentic_agentrun_v1_ConversationCatchup_descriptor =
-      getDescriptor().getMessageType(3);
+      getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_agentrun_v1_ConversationCatchup_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentrun_v1_ConversationCatchup_descriptor,
         new java.lang.String[] { "Digest", "WindowEnd", });
     internal_static_ai_stigmer_agentic_agentrun_v1_DeclaredPreferences_descriptor =
-      getDescriptor().getMessageType(4);
+      getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_agentic_agentrun_v1_DeclaredPreferences_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentrun_v1_DeclaredPreferences_descriptor,
         new java.lang.String[] { "OrgContext", "UserContext", });
     internal_static_ai_stigmer_agentic_agentrun_v1_RecalledMemories_descriptor =
-      getDescriptor().getMessageType(5);
+      getDescriptor().getMessageType(4);
     internal_static_ai_stigmer_agentic_agentrun_v1_RecalledMemories_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentrun_v1_RecalledMemories_descriptor,
         new java.lang.String[] { "Enabled", "Facts", });
     internal_static_ai_stigmer_agentic_agentrun_v1_RecalledMemoryFact_descriptor =
-      getDescriptor().getMessageType(6);
+      getDescriptor().getMessageType(5);
     internal_static_ai_stigmer_agentic_agentrun_v1_RecalledMemoryFact_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentrun_v1_RecalledMemoryFact_descriptor,

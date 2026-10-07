@@ -4,8 +4,8 @@
  *
  * The open format gives each client a reverse-domain directory other clients
  * ignore; Stigmer's carries what no portable component can say: a full
- * `Agent` that replaces the composed default (`agent.yaml`), `Workflow`s
- * (`workflows/<name>.yaml`), and the richer `McpServer` overlay for a
+ * `Agent` that replaces the composed default (`agent.yaml`) and the richer
+ * `McpServer` overlay for a
  * declared server (`mcp-servers/<server>.yaml`: auth, scope hints, default
  * tools). The library hands these over as bytes with their paths and keeps
  * no knowledge of the resource schemas; the installer parses them where
@@ -14,25 +14,23 @@
  * Two checks are the library's because they are about the plugin, not the
  * resources: an overlay for a server the plugin does not declare is refused
  * (an overlay that silently applies to nothing is the drift the model
- * exists to prevent), and a file under `ai.stigmer/` that is none of the
- * three document shapes is refused for the same reason (`agent.yml` would
+ * exists to prevent), and a file under `ai.stigmer/` that is neither
+ * document shape is refused for the same reason (`agent.yml` would
  * otherwise be a typo that installs the composed default).
  */
 
 import { readBytes } from "../documents.js";
 import { basename, dirname, type PluginFileIndex } from "../files.js";
 import type { Findings } from "../messages.js";
-import type { OverlayNamedDocument, OverlayServerDocument, StigmerOverlay } from "../types.js";
+import type { OverlayServerDocument, StigmerOverlay } from "../types.js";
 
 export const OVERLAY_DIR = "ai.stigmer";
 const AGENT_DOCUMENT = `${OVERLAY_DIR}/agent.yaml`;
-const WORKFLOWS_DIR = `${OVERLAY_DIR}/workflows`;
 const MCP_SERVERS_DIR = `${OVERLAY_DIR}/mcp-servers`;
 
 /** `serverNames` is every server the plugin DECLARED, refused ones included, so a refused server's overlay is not blamed twice. */
 export function normaliseOverlay(index: PluginFileIndex, serverNames: ReadonlySet<string>, findings: Findings): StigmerOverlay {
-  const overlay: { -readonly [K in keyof StigmerOverlay]: StigmerOverlay[K] } = { workflows: [], mcpServers: [] };
-  const workflows: OverlayNamedDocument[] = [];
+  const overlay: { -readonly [K in keyof StigmerOverlay]: StigmerOverlay[K] } = { mcpServers: [] };
   const mcpServers: OverlayServerDocument[] = [];
 
   for (const path of index.filesUnder(OVERLAY_DIR)) {
@@ -42,11 +40,6 @@ export function normaliseOverlay(index: PluginFileIndex, serverNames: ReadonlySe
       continue;
     }
     const name = yamlStem(path);
-    if (name !== undefined && dirname(path) === WORKFLOWS_DIR) {
-      const bytes = readBytes(index, path, "overlay", findings);
-      if (bytes !== undefined) workflows.push({ path, bytes, name });
-      continue;
-    }
     if (name !== undefined && dirname(path) === MCP_SERVERS_DIR) {
       if (!serverNames.has(name)) {
         findings.error("overlay-server-unknown", { path, subject: name });
@@ -59,7 +52,6 @@ export function normaliseOverlay(index: PluginFileIndex, serverNames: ReadonlySe
     findings.error("overlay-document-unknown", { path });
   }
 
-  overlay.workflows = workflows;
   overlay.mcpServers = mcpServers;
   return overlay;
 }

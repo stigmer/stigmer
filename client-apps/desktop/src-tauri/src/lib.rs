@@ -45,8 +45,6 @@ pub fn run() {
             runner::kill_runner,
             runner::add_session,
             runner::remove_session,
-            runner::add_workflow_execution,
-            runner::remove_workflow_execution,
             runner::update_runner_token,
             runner::runner_status,
             runner::bundled_node_path,

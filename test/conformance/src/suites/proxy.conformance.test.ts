@@ -40,8 +40,6 @@ import { bidiHandshake, HTTP2_REFUSED_STREAM } from "../support/cursor-bidi";
 import { makeMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import { makeSession } from "../support/sessions";
-import { makeWorkflow } from "../support/workflows";
-import { makeWorkflowExecution } from "../support/workflowruns";
 import { createTarget, type TargetProfile } from "../targets";
 import type { ConformanceClients } from "../harness/clients";
 import type { TenancyContext } from "../targets/target";
@@ -55,7 +53,6 @@ let primaryToken: string;
 const fixtures = new FixtureTracker();
 
 const EXECUTION_HEADER = "x-stigmer-execution-id";
-const WORKFLOW_EXECUTION_HEADER = "x-stigmer-workflow-execution-id";
 const MCP_SERVER_HEADER = "x-stigmer-mcp-server-id";
 const PLATFORM_CAPACITY_SENTINEL = "STIGMER_PLATFORM_MODEL_CAPACITY";
 
@@ -70,7 +67,7 @@ async function fundedOrg(): Promise<TenancyContext> {
 }
 
 // A real, owned agent execution in the org: the scope every proxy lane is
-// authorized against. In a funded org the workflow-side reserve authorizes
+// authorized against. In a funded org the run's credit reserve authorizes
 // it, so usage recorded against it is metered.
 async function ownedExecution(org: string): Promise<string> {
   const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("proxy-agent") }));
@@ -88,16 +85,6 @@ async function ownedSession(org: string): Promise<string> {
   const session = await clients.sessionCommand.create(makeSession({ org, name: uniqueName("ckpt-session"), agentRef: agentRefOf(agent) }));
   fixtures.defer(() => clients.sessionCommand.delete({ value: session.metadata!.id }));
   return session.metadata!.id;
-}
-
-async function ownedWorkflowExecution(org: string): Promise<string> {
-  const workflow = await clients.workflowCommand.create(makeWorkflow({ org, name: uniqueName("cc-flow") }));
-  fixtures.defer(() => clients.workflowCommand.delete({ value: workflow.metadata!.id }));
-  const execution = await clients.workflowExecutionCommand.create(
-    makeWorkflowExecution({ org, name: uniqueName("cc-exec"), workflowId: workflow.metadata!.id }),
-  );
-  fixtures.defer(() => clients.workflowExecutionCommand.delete({ value: execution.metadata!.id }));
-  return execution.metadata!.id;
 }
 
 function proxyFetch(path: string, init: RequestInit & { token?: string; scope?: Record<string, string> } = {}): Promise<Response> {
@@ -280,20 +267,6 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
       await response.text();
       await new Promise((r) => setTimeout(r, 1500));
       expect((await usageReport(org)).llmCallCount).toBe(before.llmCallCount);
-    });
-
-    it("[proxy.llm.scope.workflow-execution-can-edit] a workflow-execution scope the caller can edit is relayed", async () => {
-      const { org } = await fundedOrg();
-      const workflowExecutionId = await ownedWorkflowExecution(org);
-      await control.llm.enqueue({ kind: "anthropic", body: anthropicText("wf") });
-      const response = await proxyFetch("/v1/proxy/llm/anthropic/v1/messages", {
-        method: "POST",
-        scope: { [WORKFLOW_EXECUTION_HEADER]: workflowExecutionId },
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-6", stream: true, messages: [] }),
-      });
-      expect(response.status).toBe(200);
-      await response.text();
     });
 
     it("[proxy.llm.unknown-provider-400] an unknown provider answers 400 without touching the upstream", async () => {

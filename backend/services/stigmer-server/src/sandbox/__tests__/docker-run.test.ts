@@ -95,9 +95,9 @@ describe("buildDockerRun", () => {
 
   it("carries no token when none was minted, and the public address when one is named", () => {
     const { args, secretEnv } = buildDockerRun(
-      "workflow",
-      "wex_1",
-      { ...env, taskQueue: "wfexec:wex_1", stigmerToken: "" },
+      "session",
+      "ses_2",
+      { ...env, taskQueue: "session:ses_2", stigmerToken: "" },
       {
         ...config,
         mcpPublicEndpoint: "https://api.example.com",

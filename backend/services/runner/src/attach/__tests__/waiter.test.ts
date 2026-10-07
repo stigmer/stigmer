@@ -399,7 +399,7 @@ describe("laterPushRefusal", () => {
       code: "token_mismatch",
       reason: "a later push's token names another session than the first push's",
     });
-    expect(laterPushRefusal({ STIGMER_TOKEN: session("sandbox", "ses_a") }, { STIGMER_TOKEN: session("workflow_sandbox", "ses_a") })?.code).toBe("token_mismatch");
+    expect(laterPushRefusal({ STIGMER_TOKEN: session("sandbox", "ses_a") }, { STIGMER_TOKEN: session("pool_sandbox", "ses_a") })?.code).toBe("token_mismatch");
     // Tokens that name an execution carry no session: a rotation between two
     // of them is accepted.
     expect(laterPushRefusal({ STIGMER_TOKEN: session("execution_scoped") }, { STIGMER_TOKEN: session("execution_scoped") })).toBeUndefined();

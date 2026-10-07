@@ -187,7 +187,7 @@ fn the_runner_receives_each_command_once_and_the_status_follows_them() {
         host.start(config("ready", &log)).await.expect("start");
         host.add_session("s1").await.expect("add s1");
         host.add_session("s1").await.expect("add s1 again");
-        host.add_workflow_execution("e1").await.expect("add e1");
+        host.add_session("s2").await.expect("add s2");
         host.update_token(Some("tok-2".into()))
             .await
             .expect("token");
@@ -197,8 +197,7 @@ fn the_runner_receives_each_command_once_and_the_status_follows_them() {
             .expect("remove unknown");
 
         let status = host.status().await;
-        assert!(status.active_sessions.is_empty());
-        assert_eq!(status.active_workflow_executions, vec!["e1".to_string()]);
+        assert_eq!(status.active_sessions, vec!["s2".to_string()]);
     });
 
     let lines = log.wait_for(6);
@@ -206,7 +205,7 @@ fn the_runner_receives_each_command_once_and_the_status_follows_them() {
         lines[2..].to_vec(),
         vec![
             r#"{"type":"addSession","sessionId":"s1"}"#,
-            r#"{"type":"addWorkflowExecution","executionId":"e1"}"#,
+            r#"{"type":"addSession","sessionId":"s2"}"#,
             r#"{"type":"updateToken","token":"tok-2"}"#,
             r#"{"type":"removeSession","sessionId":"s1"}"#,
         ]

@@ -12,14 +12,16 @@
  *   - the queue each scope's sandbox serves, as minted by its own domain,
  *     is SANDBOX_QUEUE_PREFIXES' prefix plus the id (the table the
  *     runner's attach waiter checks its own against), and sandboxTaskQueue
- *     names exactly that queue.
+ *     names exactly that queue;
+ *   - a leftover sandbox of the retired workflow scope (sbx-wfx-<12 hex>)
+ *     is not a name this server gives any more, so no driver deletes one
+ *     by name; operators remove such leftovers by hand.
  */
 import { describe, expect, it } from "vitest";
 
 import { createLogger } from "../../boot/logger.js";
 import { connectTaskQueueFor } from "../../temporal/mcpserver/names.js";
 import { formatSessionTaskQueue } from "../../temporal/agentexecution/dispatch.js";
-import { formatWfExecTaskQueue } from "../../temporal/workflowexecution/names.js";
 import {
   isSandboxBaseName,
   SANDBOX_QUEUE_PREFIXES,
@@ -146,17 +148,16 @@ describe("sandboxBaseName (the Java SandboxObjectNaming derivation)", () => {
   it("is deterministic per scope+id and distinct across scopes", () => {
     const a = sandboxBaseName("session", "ses_01ABC");
     expect(a).toBe(sandboxBaseName("session", "ses_01ABC"));
-    expect(a).not.toBe(sandboxBaseName("workflow", "ses_01ABC"));
+    expect(a).not.toBe(sandboxBaseName("connect", "ses_01ABC"));
     expect(a).not.toBe(sandboxBaseName("session", "ses_01ABD"));
   });
 
   it("emits the sbx-<code>-<12-hex> shape, DNS-safe for id alphabets", () => {
     for (const [scope, code] of [
       ["session", "ses"],
-      ["workflow", "wfx"],
       ["connect", "mcp"],
     ] as const) {
-      const name = sandboxBaseName(scope, "wfx_01J_UNDERSCORED.id");
+      const name = sandboxBaseName(scope, "ses_01J_UNDERSCORED.id");
       expect(name).toMatch(new RegExp(`^sbx-${code}-[0-9a-f]{12}$`));
     }
   });
@@ -167,16 +168,13 @@ describe("SANDBOX_QUEUE_PREFIXES (the queue each scope's sandbox serves)", () =>
     expect(formatSessionTaskQueue("ses_1")).toBe(
       `${SANDBOX_QUEUE_PREFIXES.session}ses_1`,
     );
-    expect(formatWfExecTaskQueue("wex_1")).toBe(
-      `${SANDBOX_QUEUE_PREFIXES.workflow}wex_1`,
-    );
     expect(connectTaskQueueFor("mcx_1")).toBe(
       `${SANDBOX_QUEUE_PREFIXES.connect}mcx_1`,
     );
   });
 
   it("knows a name of sandboxBaseName's shape from any other", () => {
-    for (const scope of ["session", "workflow", "connect"] as const) {
+    for (const scope of ["session", "connect"] as const) {
       expect(isSandboxBaseName(sandboxBaseName(scope, "x_1"))).toBe(true);
     }
     for (const other of [
@@ -189,12 +187,13 @@ describe("SANDBOX_QUEUE_PREFIXES (the queue each scope's sandbox serves)", () =>
     }
   });
 
+  it("refuses a leftover workflow-scope name (sbx-wfx-<12 hex>), a scope this server no longer has", () => {
+    expect(isSandboxBaseName("sbx-wfx-0123456789ab")).toBe(false);
+  });
+
   it("is what sandboxTaskQueue names for each scope", () => {
     expect(sandboxTaskQueue("session", "ses_1")).toBe(
       formatSessionTaskQueue("ses_1"),
-    );
-    expect(sandboxTaskQueue("workflow", "wex_1")).toBe(
-      formatWfExecTaskQueue("wex_1"),
     );
     expect(sandboxTaskQueue("connect", "mcx_1")).toBe(
       connectTaskQueueFor("mcx_1"),

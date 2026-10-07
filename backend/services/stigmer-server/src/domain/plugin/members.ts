@@ -27,7 +27,6 @@ import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceMetadata } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
@@ -41,7 +40,7 @@ import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
 import { metadataOf } from "../../pipeline/steps/shapes.js";
 import type { Store } from "../../store/interface.js";
 
-/** The four kinds a plugin materialises, in materialisation order. */
+/** The three kinds a plugin materialises, in materialisation order. */
 export const MEMBER_KINDS: ReadonlyArray<{
   readonly kind: ApiResourceKind;
   readonly schema: DescMessage;
@@ -49,7 +48,6 @@ export const MEMBER_KINDS: ReadonlyArray<{
   { kind: ApiResourceKind.skill, schema: SkillSchema },
   { kind: ApiResourceKind.mcp_server, schema: McpServerSchema },
   { kind: ApiResourceKind.agent, schema: AgentSchema },
-  { kind: ApiResourceKind.workflow, schema: WorkflowSchema },
 ];
 
 /** A member as the store holds it. */

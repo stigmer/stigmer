@@ -79,15 +79,7 @@ export interface StartInvokeWorkflowInput {
   readonly executionId: string;
   readonly sessionId: string;
   readonly agentId: string;
-  readonly callbackToken: Uint8Array;
   readonly autoApproveAll: boolean;
-  readonly parentWorkflowId: string;
-  /**
-   * The spec's activity_task_queue override; "" lets the engine
-   * re-resolve routing from the session (the recover path always passes
-   * "" — see StartFreshWorkflowStep's rationale).
-   */
-  readonly activityTaskQueueOverride: string;
 }
 
 /**

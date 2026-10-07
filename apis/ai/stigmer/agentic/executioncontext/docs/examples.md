@@ -83,10 +83,10 @@ In B2B scenarios, a calling platform (e.g., Planton) injects credentials at run 
 apiVersion: agentic.stigmer.ai/v1
 kind: ExecutionContext
 metadata:
-  name: exec-ctx-wex-jkl012
+  name: exec-ctx-aex-jkl012
   org: planton
 spec:
-  execution_id: "wex_jkl012"
+  execution_id: "aex_jkl012"
   data:
     PLANTON_API_TOKEN:
       value: "plt_xxxxxxxxxxxxxxxxxxxx"
@@ -112,7 +112,7 @@ spec:
 
 ## Merged From Multiple Environments
 
-When the schedule, workflow task or PlatformClient that started a run references multiple Environments, the execution engine merges them (later entries override earlier ones) and creates a single ExecutionContext. This example shows what the merged result looks like — the runner sees one flat map, not multiple environments.
+When the schedule or PlatformClient that started a run references multiple Environments, the execution engine merges them (later entries override earlier ones) and creates a single ExecutionContext. This example shows what the merged result looks like — the runner sees one flat map, not multiple environments.
 
 Given:
 - Environment `global-defaults`: `LOG_LEVEL=info`, `AWS_REGION=us-west-2`
@@ -149,44 +149,9 @@ spec:
 
 ---
 
-## Workflow Execution Context
-
-ExecutionContexts are not limited to `AgentRun` — they also serve `WorkflowRun` runs. The `execution_id` field accepts either ID type; the runner uses `getByExecutionId` with whichever ID it holds.
-
-```yaml
-apiVersion: agentic.stigmer.ai/v1
-kind: ExecutionContext
-metadata:
-  name: exec-ctx-wex-pqr678
-  org: acme-corp
-spec:
-  execution_id: "wex_pqr678"
-  data:
-    JIRA_API_TOKEN:
-      value: "jira_xxxxxxxxxxxxxxxxxxxx"
-      is_secret: true
-    JIRA_BASE_URL:
-      value: "https://acme.atlassian.net"
-      is_secret: false
-    SLACK_BOT_TOKEN:
-      value: "xoxb-xxxxxxxxxxxxxxxxxxxx"
-      is_secret: true
-    SLACK_CHANNEL:
-      value: "#deployments"
-      is_secret: false
-    DATADOG_API_KEY:
-      value: "ddapikey_xxxxxxxxxxxxxxxxxxxx"
-      is_secret: true
-    DATADOG_SITE:
-      value: "datadoghq.com"
-      is_secret: false
-```
-
----
-
 ## Runner Lookup Pattern
 
-Runners retrieve the ExecutionContext for their run using `getByExecutionId`. This is the only operation that can return **decrypted** secret values — and on cloud it does so only when the caller presents a platform-minted runner credential whose scope claim binds it to this run (`token_type` of `sandbox`, `workflow_sandbox`, or `connect_sandbox`). The unscoped `embedded_runner` bootstrap credential is refused; desktop runners exchange it for a scoped token via `getRunnerScopedToken` before reading. User-class callers receive redacted values, same as `get`.
+Runners retrieve the ExecutionContext for their run using `getByExecutionId`. This is the only operation that can return **decrypted** secret values — and on cloud it does so only when the caller presents a platform-minted runner credential whose scope claim binds it to this run (`token_type` of `sandbox` or `connect_sandbox`). The unscoped `embedded_runner` bootstrap credential is refused; desktop runners exchange it for a scoped token via `getRunnerScopedToken` before reading. User-class callers receive redacted values, same as `get`.
 
 ```
 # Pseudo-code: what the agent runner does at startup
@@ -222,7 +187,7 @@ metadata:
     team: platform
   annotations:
     agent: "agt_abc123"
-    triggered-by: "workflow-run-wex_xyz"
+    triggered-by: "schedule-sch_xyz"
   tags:
     - production
     - agent-run

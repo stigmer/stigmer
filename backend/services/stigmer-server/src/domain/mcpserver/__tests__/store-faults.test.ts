@@ -286,8 +286,7 @@ describe("startConnect — the attach arm's re-read after losing the start race"
 
 describe("updateVisibility — LoadMcpServerForVisibilityUpdate", () => {
   /**
-   * The registered handler on an in-process router (the artifact domain's
-   * harness): the verifier chain stamps the trusted-local caller and the
+   * The registered handler on an in-process router: the verifier chain stamps the trusted-local caller and the
    * apiresource interceptor the kind, then Authorize and ValidateProto run
    * and the load is the first step that reads the store. The connect slice
    * is never reached.

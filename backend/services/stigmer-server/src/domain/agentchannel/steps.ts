@@ -77,7 +77,7 @@ function validateChannelModelPin(
     ) ||
     // Saved settings name the model their tier or thinking is for.
     savedChoiceWithoutModelRefusal(
-      { prefix: "", fieldPath: "spec.run_config" },
+      { fieldPath: "spec.run_config" },
       spec?.runConfig,
     );
   if (reason !== "") {

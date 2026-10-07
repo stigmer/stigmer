@@ -34,7 +34,7 @@ import {
 import { apiResourceKindEnumNames } from "./resource-kind.js";
 import type { ResourceGenInfo, SdkResourceConfig } from "./sdk-resource-config.js";
 import { deriveResourceConfig, loadSpecSchemaWithTypes, META_FIELD_NAMES } from "./sdk-resource-config.js";
-import type { FieldSchema, TaskConfigSchema, TypeSchema, TypeSpec } from "./schema.js";
+import type { FieldSchema, SpecSchema, TypeSchema, TypeSpec } from "./schema.js";
 import { readDirSorted } from "./schema.js";
 
 const SDK_PROTO_IMPORT_PREFIX = "github.com/stigmer/stigmer/sdk/go/v3/proto";
@@ -101,7 +101,7 @@ export function runSDKClientGeneration(schemaDir: string, outputDir: string): vo
     const schema = JSON.parse(fs.readFileSync(path.join(servicesDir, entry.name), "utf8")) as ServiceSchemaFile;
     const cfg = deriveResourceConfig(schema, schemaDir);
 
-    let specSchema: TaskConfigSchema | null = null;
+    let specSchema: SpecSchema | null = null;
     let specTypes: TypeSchema[] = [];
     if (cfg.specSchema !== "") {
       [specSchema, specTypes] = loadSpecSchemaWithTypes(path.join(schemaDir, cfg.specSchema));
@@ -191,7 +191,7 @@ function walkTypeSpecEnumImports(ts: TypeSpec | undefined, out: Map<string, stri
   walkTypeSpecEnumImports(ts.valueType, out);
 }
 
-function collectSDKEnumImports(specSchema: TaskConfigSchema, specTypes: TypeSchema[]): Map<string, string> {
+function collectSDKEnumImports(specSchema: SpecSchema, specTypes: TypeSchema[]): Map<string, string> {
   const out = new Map<string, string>();
   const walkFields = (fields: FieldSchema[]): void => {
     for (const f of fields) {
@@ -214,7 +214,7 @@ function collectSDKEnumImports(specSchema: TaskConfigSchema, specTypes: TypeSche
 function generateResourceClient(
   schema: ServiceSchemaFile,
   cfg: SdkResourceConfig,
-  specSchema: TaskConfigSchema | null,
+  specSchema: SpecSchema | null,
   specTypes: TypeSchema[],
   globalEmitted: Set<string>,
 ): [string, GoResourceGenInfo] {
@@ -601,7 +601,7 @@ function generateSearchList(buf: string[], cfg: SdkResourceConfig): void {
 function generateInputTypesV2(
   buf: string[],
   cfg: SdkResourceConfig,
-  spec: TaskConfigSchema,
+  spec: SpecSchema,
   typeMap: Map<string, TypeSchema>,
   alias: string,
   globalEmitted: Set<string>,
@@ -1202,7 +1202,7 @@ function emitNestedToProto(
 function generateFromProto(
   buf: string[],
   cfg: SdkResourceConfig,
-  specSchema: TaskConfigSchema,
+  specSchema: SpecSchema,
   typeMap: Map<string, TypeSchema>,
   alias: string,
   globalEmitted: Set<string>,
@@ -1756,7 +1756,7 @@ func valueFromAny(v any) (*structpb.Value, error) {
 // conversion failure as it propagates up the nested toProto chain, so the
 // final message locates the offending value exactly:
 //
-//	Tasks[2]: TaskConfig: json: unsupported type: chan int
+//	Items[2]: Config: json: unsupported type: chan int
 func fieldErr(field string, err error) error {
 	return fmt.Errorf("%s: %w", field, err)
 }

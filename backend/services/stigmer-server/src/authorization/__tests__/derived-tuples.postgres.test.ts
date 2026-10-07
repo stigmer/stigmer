@@ -22,7 +22,6 @@
 import { create } from "@bufbuild/protobuf";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
@@ -81,13 +80,13 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
 
   it("an org-visible blueprint adds the organization's VIEWER userset (not `#member`)", () => {
     expect(
-      derivedFor("workflow", {
+      derivedFor("mcp_server", {
         visibility: ApiResourceVisibility.visibility_org,
       }),
     ).toEqual([
-      "workflow:workflow-1#organization@organization:acme",
-      "workflow:workflow-1#owner@identity_account:ida_carol",
-      "workflow:workflow-1#viewer@organization:acme#viewer",
+      "mcp_server:mcp_server-1#organization@organization:acme",
+      "mcp_server:mcp_server-1#owner@identity_account:ida_carol",
+      "mcp_server:mcp_server-1#viewer@organization:acme#viewer",
     ]);
   });
 
@@ -195,7 +194,7 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
   });
 
   it("kinds with no visibility axis derive no viewer tuple at any level — their audience is the model's own line", () => {
-    for (const type of ["artifact", "schedule", "session"]) {
+    for (const type of ["schedule", "session"]) {
       expect(
         derivedFor(type, {
           visibility: ApiResourceVisibility.visibility_org,
@@ -217,26 +216,6 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
     ]);
   });
 
-  it("a run carries its workflow link (an additional parent); an org-level workflow adds the #viewer userset", () => {
-    expect(
-      derivedFor("workflow", {
-        visibility: ApiResourceVisibility.visibility_org,
-      }),
-    ).toEqual([
-      "workflow:workflow-1#organization@organization:acme",
-      "workflow:workflow-1#owner@identity_account:ida_carol",
-      "workflow:workflow-1#viewer@organization:acme#viewer",
-    ]);
-    expect(
-      derivedFor("workflow_run", {
-        visibility: ApiResourceVisibility.api_resource_visibility_unspecified,
-      }),
-    ).toEqual([
-      "workflow_run:workflow_run-1#organization@organization:acme",
-      "workflow_run:workflow_run-1#workflow@workflow:workflow-1",
-      "workflow_run:workflow_run-1#owner@identity_account:ida_carol",
-    ]);
-  });
 });
 
 // ---------------------------------------------------------------------------
@@ -248,8 +227,6 @@ const SEEDED_KINDS: ReadonlyArray<ApiResourceKind> = [
   ApiResourceKind.iam_policy,
   ApiResourceKind.organization,
   ApiResourceKind.agent,
-  ApiResourceKind.workflow,
-  ApiResourceKind.workflow_run,
   ApiResourceKind.identity_account,
   ApiResourceKind.team,
 ];
@@ -649,25 +626,22 @@ describe.each(driverFixtures(SEEDED_KINDS))(
       });
 
       it("a seeded fact stands in for the row only where the row would have been read for FACTS: a `derived` rule still reads the row it needs", async () => {
-        // A seeded workflow: `run_viewer` reads the workflow's
-        // run-visibility level from the row's spec, which a candidate's
-        // facts do not carry, so the rule loads the row — one read, stated
-        // in the list scope's cost pin as well.
+        // A seeded child organization: `parent_org` reads the child's
+        // `spec.parent_org`, which a candidate's facts do not carry, so
+        // the rule loads the row — one read.
         let rowReads = 0;
-        const workflow = storedDeclaration("workflow");
-        const row = fixtureRow(workflow, {
-          id: "wfl_seeded",
-          org: "acme",
+        const organization = storedDeclaration("organization");
+        const row = fixtureRow(organization, {
+          id: "org_seeded",
+          org: "",
           visibility: ApiResourceVisibility.visibility_private,
           createdBy: "ida_carol",
-          spec: {
-            runVisibility: WorkflowRunVisibility.organization,
-          },
+          spec: { parentOrg: "acme" },
         });
         await opened.store.saveResource(
-          workflow.kind,
-          "wfl_seeded",
-          workflow.schema,
+          organization.kind,
+          "org_seeded",
+          organization.schema,
           row,
         );
         const seeded = newDerivedTupleSource(
@@ -683,17 +657,17 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             accounts,
           },
           DAVE,
-          { facts: [rowFactsOf(workflow.kind, row)] },
+          { facts: [rowFactsOf(organization.kind, row)] },
         );
-        const object = parseObjectRef("workflow:wfl_seeded");
+        const object = parseObjectRef("organization:org_seeded");
         await seeded.tuplesOf(object, "owner");
         expect(rowReads, "facts alone serve the derived tuples").toBe(0);
         expect(
-          (await seeded.tuplesOf(object, "run_viewer")).map(formatTuple),
+          (await seeded.tuplesOf(object, "parent_org")).map(formatTuple),
         ).toEqual([
-          "workflow:wfl_seeded#run_viewer@organization:acme#viewer",
+          "organization:org_seeded#parent_org@organization:acme",
         ]);
-        expect(rowReads, "the rule reads the workflow's row").toBe(1);
+        expect(rowReads, "the rule reads the organization's row").toBe(1);
       });
 
       it("a store fault propagates as the fault it is — never as 'no tuples'", async () => {
@@ -873,145 +847,6 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           "organization:acme#member@identity_account:ida_dave",
           "team:tm_core#member@identity_account:ida_dave",
         ]);
-      });
-    });
-
-    /**
-     * The workflow's derived rule through the real source and the
-     * evaluator: `run_viewer` from the workflow's run-visibility
-     * level. Seeded: `wfl_shared` (organization level) and `wfl_private`,
-     * both private workflows, each with one run of Carol's.
-     */
-    describe.skipIf(fixture.skip)("the derived rules", () => {
-      let opened: OpenedStore;
-      const CAROL: Person = {
-        accountId: "ida_carol",
-        aliases: new Set(["ida_carol"]),
-      };
-
-      async function seed(
-        type: string,
-        id: string,
-        facts: Omit<Parameters<typeof fixtureRow>[1], "id">,
-      ): Promise<void> {
-        const declaration = storedDeclaration(type);
-        await opened.store.saveResource(
-          declaration.kind,
-          id,
-          declaration.schema,
-          fixtureRow(declaration, { id, ...facts }),
-        );
-      }
-
-      beforeEach(async () => {
-        opened = await fixture.open();
-        const policies = newResourceIamPolicyStore(opened.store);
-        await grant(policies, orgRole(ROOT.accountId, "owner", "acme"));
-        await grant(policies, orgRole(DAVE.accountId, "member", "acme"));
-        await grant(policies, orgRole(CAROL.accountId, "member", "acme"));
-        await seed("organization", "acme", {
-          org: "",
-          visibility: ApiResourceVisibility.visibility_private,
-          createdBy: ROOT.accountId,
-        });
-        for (const [id, executionVisibility] of [
-          ["wfl_shared", WorkflowRunVisibility.organization],
-          ["wfl_private", WorkflowRunVisibility.private],
-        ] as const) {
-          await seed("workflow", id, {
-            org: "acme",
-            visibility: ApiResourceVisibility.visibility_private,
-            createdBy: CAROL.accountId,
-            spec: { runVisibility: executionVisibility },
-          });
-        }
-        for (const [id, workflowId] of [
-          ["we_shared", "wfl_shared"],
-          ["we_private", "wfl_private"],
-        ] as const) {
-          await seed("workflow_run", id, {
-            org: "acme",
-            visibility:
-              ApiResourceVisibility.api_resource_visibility_unspecified,
-            createdBy: CAROL.accountId,
-            spec: { workflowId },
-          });
-        }
-      });
-
-      afterEach(async () => {
-        await opened.close();
-      });
-
-      function sourceFor(person: Person) {
-        return newDerivedTupleSource(
-          {
-            store: opened.store,
-            policies: newResourceIamPolicyStore(opened.store),
-            accounts: newResourceIdentityAccountStore(opened.store),
-          },
-          person,
-        );
-      }
-
-      async function tuplesOf(
-        person: Person,
-        object: string,
-        relation: string,
-      ): Promise<string[]> {
-        return (
-          await sourceFor(person).tuplesOf(parseObjectRef(object), relation)
-        ).map(formatTuple);
-      }
-
-      async function allowed(
-        person: Person,
-        object: string,
-        relation: string,
-      ): Promise<boolean> {
-        return checkRelation(
-          { model: builtInModel, source: sourceFor(person) },
-          parseObjectRef(object),
-          relation,
-          person,
-        );
-      }
-
-      it("run_viewer derives the organization's #viewer userset at the organization level and nothing at private", async () => {
-        expect(
-          await tuplesOf(
-            DAVE,
-            "workflow:wfl_shared",
-            "run_viewer",
-          ),
-        ).toEqual([
-          "workflow:wfl_shared#run_viewer@organization:acme#viewer",
-        ]);
-        expect(
-          await tuplesOf(
-            DAVE,
-            "workflow:wfl_private",
-            "run_viewer",
-          ),
-        ).toEqual([]);
-      });
-
-      it("an organization member reads a run whose workflow is org-observable and not one whose workflow is private; the person who started them reads both", async () => {
-        expect(
-          await allowed(DAVE, "workflow_run:we_shared", "can_view"),
-        ).toBe(true);
-        expect(
-          await allowed(DAVE, "workflow_run:we_private", "can_view"),
-        ).toBe(false);
-        expect(
-          await allowed(CAROL, "workflow_run:we_shared", "can_view"),
-        ).toBe(true);
-        expect(
-          await allowed(CAROL, "workflow_run:we_private", "can_view"),
-        ).toBe(true);
-        expect(
-          await allowed(DAVE, "workflow_run:we_shared", "can_edit"),
-        ).toBe(false);
       });
     });
   },

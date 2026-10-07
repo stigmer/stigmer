@@ -96,24 +96,22 @@ describe("unwrapModelError", () => {
 });
 
 describe("classifyModelCallError — platform sentinel", () => {
-  it("classifies the platform rewrite as non-retryable platform capacity", () => {
+  it("classifies the platform rewrite as platform capacity", () => {
     const err = middlewareWrap(sdkError(503, PLATFORM_REWRITE_MESSAGE));
 
     const classified = classifyModelCallError(err, { proxyMode: true, provider: "anthropic" });
 
     expect(classified?.code).toBe("LLM_PLATFORM_CAPACITY");
-    expect(classified?.retryable).toBe(false);
     expect(classified?.message).toContain("platform-side issue");
     expect(classified?.message).toContain("credits were not charged");
   });
 
-  it("sentinel wins over status mapping (a 503 would otherwise be retryable)", () => {
+  it("sentinel wins over status mapping (a 503 would otherwise be a provider server error)", () => {
     const classified = classifyModelCallError(
       sdkError(503, PLATFORM_REWRITE_MESSAGE),
       { proxyMode: true },
     );
     expect(classified?.code).toBe("LLM_PLATFORM_CAPACITY");
-    expect(classified?.retryable).toBe(false);
   });
 });
 
@@ -124,7 +122,6 @@ describe("classifyModelCallError — provider billing prose", () => {
     const classified = classifyModelCallError(err, { proxyMode: false, provider: "anthropic" });
 
     expect(classified?.code).toBe("LLM_PROVIDER_BILLING");
-    expect(classified?.retryable).toBe(false);
     expect(classified?.message).toContain("Your Anthropic account");
     // Direct mode keeps the provider message — it IS the user's account.
     expect(classified?.message).toContain("credit balance is too low");
@@ -155,25 +152,24 @@ describe("classifyModelCallError — provider billing prose", () => {
 });
 
 describe("classifyModelCallError — status mapping", () => {
-  it("maps statuses to the stable codes with call-llm's retryability policy", () => {
-    const cases: Array<[number, string, boolean]> = [
-      [401, "LLM_AUTHENTICATION_ERROR", false],
-      [403, "LLM_PERMISSION_DENIED", false],
-      [404, "LLM_MODEL_NOT_FOUND", false],
-      [400, "LLM_BAD_REQUEST", false],
-      [422, "LLM_UNPROCESSABLE_REQUEST", false],
-      [429, "LLM_RATE_LIMIT", false],
-      [500, "LLM_PROVIDER_ERROR", true],
-      [529, "LLM_PROVIDER_ERROR", true],
-      [418, "LLM_API_ERROR", false],
+  it("maps statuses to the stable codes", () => {
+    const cases: Array<[number, string]> = [
+      [401, "LLM_AUTHENTICATION_ERROR"],
+      [403, "LLM_PERMISSION_DENIED"],
+      [404, "LLM_MODEL_NOT_FOUND"],
+      [400, "LLM_BAD_REQUEST"],
+      [422, "LLM_UNPROCESSABLE_REQUEST"],
+      [429, "LLM_RATE_LIMIT"],
+      [500, "LLM_PROVIDER_ERROR"],
+      [529, "LLM_PROVIDER_ERROR"],
+      [418, "LLM_API_ERROR"],
     ];
-    for (const [status, code, retryable] of cases) {
+    for (const [status, code] of cases) {
       const classified = classifyModelCallError(
         sdkError(status, `HTTP ${status}`),
         { proxyMode: false, provider: "openai", modelId: "gpt-4o" },
       );
       expect(classified?.code, `status ${status}`).toBe(code);
-      expect(classified?.retryable, `status ${status}`).toBe(retryable);
     }
   });
 
@@ -196,7 +192,7 @@ describe("classifyModelCallError — status mapping", () => {
 });
 
 describe("classifyModelCallError — connection heuristics and no-signal", () => {
-  it("always recognizes the SDKs' own APIConnection* classes as retryable", () => {
+  it("always recognizes the SDKs' own APIConnection* classes as connection failures", () => {
     class APIConnectionTimeoutError extends Error {}
     class APIConnectionError extends Error {}
     expect(
@@ -207,16 +203,8 @@ describe("classifyModelCallError — connection heuristics and no-signal", () =>
     ).toBe("LLM_CONNECTION_ERROR");
   });
 
-  it("loose Timeout/Connection names classify only when the caller vouches assumeModelCall", () => {
+  it("does not relabel an arbitrary *TimeoutError class as a model connection timeout", () => {
     class ConnectTimeoutError extends Error {}
-
-    // A model-call-only catch (call-llm) keeps the loose heuristics.
-    expect(
-      classifyModelCallError(new ConnectTimeoutError("undici timeout"), {
-        proxyMode: false,
-        assumeModelCall: true,
-      })?.code,
-    ).toBe("LLM_CONNECTION_TIMEOUT");
 
     // A broad catch must not relabel arbitrary *TimeoutError classes.
     expect(
@@ -250,7 +238,7 @@ describe("classifyModelCallError — vertex backend", () => {
     modelId: "claude-sonnet-4-6",
   };
 
-  it("classifies google-auth credential failures as non-retryable with the GCP fix", () => {
+  it("classifies google-auth credential failures with the GCP fix", () => {
     stubVertexEnv();
     for (const raw of [
       "Could not load the default credentials. Browse to https://cloud.google.com/docs/authentication/getting-started for more information.",
@@ -260,7 +248,6 @@ describe("classifyModelCallError — vertex backend", () => {
     ]) {
       const classified = classifyModelCallError(middlewareWrap(new Error(raw)), vertexCtx);
       expect(classified?.code, raw).toBe("LLM_BACKEND_CREDENTIALS");
-      expect(classified?.retryable, raw).toBe(false);
       expect(classified?.message, raw).toContain("GOOGLE_APPLICATION_CREDENTIALS");
     }
   });
@@ -344,7 +331,7 @@ describe("classifyModelCallError — bedrock backend", () => {
     modelId: "claude-sonnet-4-6",
   };
 
-  it("classifies AWS credential-chain failures as non-retryable with the AWS fix", () => {
+  it("classifies AWS credential-chain failures with the AWS fix", () => {
     stubBedrockEnv();
     for (const raw of [
       "Could not load credentials from any providers",
@@ -352,7 +339,6 @@ describe("classifyModelCallError — bedrock backend", () => {
     ]) {
       const classified = classifyModelCallError(middlewareWrap(new Error(raw)), bedrockCtx);
       expect(classified?.code, raw).toBe("LLM_BACKEND_CREDENTIALS");
-      expect(classified?.retryable, raw).toBe(false);
       expect(classified?.message, raw).toContain("AWS");
       expect(classified?.message, raw).toContain("AWS_BEARER_TOKEN_BEDROCK");
     }
@@ -378,7 +364,6 @@ describe("classifyModelCallError — bedrock backend", () => {
       bedrockCtx,
     );
     expect(classified?.code).toBe("LLM_BACKEND_MODEL_ROUTING");
-    expect(classified?.retryable).toBe(false);
     expect(classified?.message).toContain("STIGMER_BEDROCK_INFERENCE_PREFIX");
     expect(classified?.message).toContain("STIGMER_BEDROCK_MODEL_MAP");
   });
@@ -445,7 +430,7 @@ describe("classifyModelCallError — foundry backend", () => {
     modelId: "claude-sonnet-4-6",
   };
 
-  it("classifies Entra token-acquisition failures as non-retryable with the Azure fix", () => {
+  it("classifies Entra token-acquisition failures with the Azure fix", () => {
     stubFoundryEnv();
     // The Foundry SDK wraps every token-provider failure in this one
     // prefix (pinned by foundry-seam.test.ts), so a single wording covers
@@ -461,7 +446,6 @@ describe("classifyModelCallError — foundry backend", () => {
       foundryCtx,
     );
     expect(classified?.code).toBe("LLM_BACKEND_CREDENTIALS");
-    expect(classified?.retryable).toBe(false);
     expect(classified?.message).toContain("Microsoft Entra ID");
     expect(classified?.message).toContain("ANTHROPIC_FOUNDRY_API_KEY");
   });
@@ -566,7 +550,6 @@ describe("classifyModelCallError on the organization's own provider key", () => 
     const err = middlewareWrap(sdkError(400, marked(ANTHROPIC_BILLING_MESSAGE)));
     const classified = classifyModelCallError(err, proxied);
     expect(classified?.code).toBe("LLM_PROVIDER_BILLING");
-    expect(classified?.retryable).toBe(false);
     expect(classified?.message).toContain("organization's own Anthropic key");
     expect(classified?.message).not.toContain(PLATFORM_CAPACITY_SENTINEL);
   });
@@ -598,7 +581,6 @@ describe("classifyModelCallError on the organization's own provider key", () => 
     expect(rateLimited?.code).toBe("LLM_RATE_LIMIT");
     const serverError = classifyModelCallError(sdkError(529, marked("529 overloaded_error")), proxied);
     expect(serverError?.code).toBe("LLM_PROVIDER_ERROR");
-    expect(serverError?.retryable).toBe(true);
   });
 
   it("leaves an unmarked proxied 401 on the platform wording", () => {

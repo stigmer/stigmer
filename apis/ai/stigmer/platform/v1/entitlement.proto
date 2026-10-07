@@ -64,11 +64,12 @@ message EntitlementLimits {
   // self-hosted capacity gate reads it.
   optional int32 max_active_session_sandboxes = 4 [(buf.validate.field).int32.gt = 0];
 
-  // The most workflow-run sandboxes an organization may hold
-  // provisioning or running at once. A workflow launch that would need a
-  // new sandbox past it is refused. Read by a subscription. A license
-  // ignores it until a self-hosted capacity gate reads it.
-  optional int32 max_active_workflow_sandboxes = 5 [(buf.validate.field).int32.gt = 0];
+  // Field 5 held max_active_workflow_sandboxes, the cap on sandboxes a
+  // workflow run held, until the workflow product was removed
+  // platform-wide. Reserved so the number and name are never reused for a
+  // different limit.
+  reserved 5;
+  reserved "max_active_workflow_sandboxes";
 
   // How many days an archived session workspace is kept before it is
   // deleted, its files and snapshot included. Absent keeps it for as long

@@ -122,7 +122,7 @@ message IdentityAccountPreferences {
   // Deliberately a validated string, not the agentic Harness enum: importing
   // agentic/session/v1 here would couple the iam bounded context to agentic,
   // and the lowercase strings are already the client vocabulary (HarnessOption,
-  // model-registry harness field, workflow HARNESS_SHORTHANDS).
+  // the model-registry harness field).
   string default_harness = 2 [
     (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
     (buf.validate.field).string = {

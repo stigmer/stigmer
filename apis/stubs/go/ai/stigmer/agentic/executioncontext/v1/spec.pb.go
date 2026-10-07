@@ -25,7 +25,7 @@ const (
 // Runtime configuration and secrets for a single run.
 type ExecutionContextSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// ID of the parent AgentRun or WorkflowRun.
+	// ID of the parent AgentRun (or an MCP connect's execution id).
 	ExecutionId string `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
 	// Runtime key-value pairs, each marked as secret or plaintext.
 	Data          map[string]*ExecutionValue `protobuf:"bytes,2,rep,name=data,proto3" json:"data,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -80,9 +80,8 @@ func (x *ExecutionContextSpec) GetData() map[string]*ExecutionValue {
 // A single runtime configuration or secret value.
 type ExecutionValue struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// String content of this entry. Empty strings are valid — optional
-	// workflow env vars may be provided with no value, and the workflow
-	// engine resolves them to "" in expression interpolation.
+	// String content of this entry. Empty strings are valid — an optional
+	// env var may be provided with no value.
 	Value string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	// Whether this value should be treated as a secret.
 	IsSecret      bool `protobuf:"varint,2,opt,name=is_secret,json=isSecret,proto3" json:"is_secret,omitempty"`

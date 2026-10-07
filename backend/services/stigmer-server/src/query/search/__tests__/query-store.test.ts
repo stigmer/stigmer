@@ -135,7 +135,6 @@ describe("parseKind (Go's table)", () => {
     expect(parseKind("agent")).toBe(ApiResourceKind.agent);
     expect(parseKind("skill")).toBe(ApiResourceKind.skill);
     expect(parseKind("mcp_server")).toBe(ApiResourceKind.mcp_server);
-    expect(parseKind("workflow")).toBe(ApiResourceKind.workflow);
     expect(parseKind("invalid_kind")).toBeUndefined();
     expect(parseKind("")).toBeUndefined();
   });

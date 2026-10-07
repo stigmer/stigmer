@@ -83,7 +83,6 @@ export class CloudTarget implements TargetProfile {
     // mint → PUT → push-by-ref → download-URL pin block runs against this
     // target.
     skillArtifactTransferLane: true,
-    workflowChildApprovalForwarding: true,
     // The hermetic cloud env boots Temporal and the composition runs the
     // schedule clock — triggers fire for real.
     scheduleFiring: true,

@@ -43,6 +43,7 @@ import { toJson } from "@bufbuild/protobuf";
 import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import {
   ApprovalAction,
+  MessageType,
   RunPhase,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
@@ -196,7 +197,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — deny-and-retry approval ro
     expect(turn2.outcome.kind).toBe("returned");
     const slim2 = (turn2.outcome as { value: Record<string, unknown> }).value;
     expect(slim2.phase).toBe("RUN_COMPLETED");
-    expect(slim2.final_text).toBe(FINAL_TEXT);
+    expect(record.status?.messages.filter((m) => m.type === MessageType.MESSAGE_AI).at(-1)?.content, "the persisted transcript ends with the answer").toBe(FINAL_TEXT);
     expect(record.persistedPhases).toEqual([
       RunPhase.RUN_IN_PROGRESS,
       RunPhase.RUN_WAITING_FOR_APPROVAL,

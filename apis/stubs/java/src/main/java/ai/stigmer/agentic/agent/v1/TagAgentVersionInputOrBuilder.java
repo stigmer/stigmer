@@ -53,7 +53,7 @@ public interface TagAgentVersionInputOrBuilder extends
   /**
    * <pre>
    * Tag to assign. Must be a non-empty alphanumeric string with dots,
-   * hyphens, or underscores (the pattern workflow and skill tags use).
+   * hyphens, or underscores (the pattern skill tags use).
    * </pre>
    *
    * <code>string tag = 3 [json_name = "tag", (.buf.validate.field) = { ... }</code>
@@ -63,7 +63,7 @@ public interface TagAgentVersionInputOrBuilder extends
   /**
    * <pre>
    * Tag to assign. Must be a non-empty alphanumeric string with dots,
-   * hyphens, or underscores (the pattern workflow and skill tags use).
+   * hyphens, or underscores (the pattern skill tags use).
    * </pre>
    *
    * <code>string tag = 3 [json_name = "tag", (.buf.validate.field) = { ... }</code>

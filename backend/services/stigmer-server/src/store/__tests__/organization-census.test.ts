@@ -53,7 +53,21 @@ describe("the organization census", () => {
   });
 
   it("finds an id in a column and deep inside a stored resource, and nothing once the rows are gone", async () => {
-    await store.signalDedupe.claim("org_a", "k", "wfe_1", "resume", 60_000);
+    await store.oauthGrants.upsert({
+      identityAccountId: "ida_1",
+      resourceId: "mcp_1",
+      resourceKind: "mcp_server",
+      orgId: "org_a",
+      accessTokenExpiresAt: 0,
+      clientId: "client-1",
+      authMethod: "mcp_oauth",
+      tokenEndpoint: "https://example.test/token",
+      accessTokenEnvVar: "TOKEN",
+      refreshTokenEnvVar: "",
+      environmentId: "",
+      createdAt: 0,
+      updatedAt: 0,
+    });
     await store.saveResource(
       ApiResourceKind.agent_share,
       "shr_1",
@@ -66,10 +80,10 @@ describe("the organization census", () => {
     const reader = sqliteCensusReader(db);
     const found = await organizationCensus(reader, new Set(["org_a", "agt_deep"]));
     expect(found.map((finding) => [finding.table, finding.id]).sort()).toEqual([
+      ["oauth_grant", "org_a"],
       ["resources", "agt_deep"],
-      ["signal_dedupe", "org_a"],
     ]);
-    await store.signalDedupe.deleteByOrg("org_a");
+    await store.oauthGrants.deleteByOrg("org_a");
     await store.deleteResource(ApiResourceKind.agent_share, "shr_1");
     expect(await organizationCensus(reader, new Set(["org_a", "agt_deep"]))).toEqual([]);
   });

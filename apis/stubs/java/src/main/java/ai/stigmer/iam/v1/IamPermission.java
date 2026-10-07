@@ -83,10 +83,6 @@ public enum IamPermission
    */
   can_create_agent(6),
   /**
-   * <code>can_create_workflow = 7;</code>
-   */
-  can_create_workflow(7),
-  /**
    * <code>can_create_session = 8;</code>
    */
   can_create_session(8),
@@ -256,8 +252,8 @@ public enum IamPermission
   /**
    * <pre>
    * Organization-level permission to install a plugin: push an Agent
-   * Plugins archive that the server materialises into skills, MCP servers,
-   * an agent and workflows in the organization. Distinct from the child
+   * Plugins archive that the server materialises into skills, MCP servers
+   * and an agent in the organization. Distinct from the child
    * kinds' create permissions, which the materialisation also evaluates for
    * the installing caller: who may bring a package into an organization is a
    * policy an administrator sets on its own.
@@ -406,10 +402,6 @@ public enum IamPermission
    * <code>can_create_agent = 6;</code>
    */
   public static final int can_create_agent_VALUE = 6;
-  /**
-   * <code>can_create_workflow = 7;</code>
-   */
-  public static final int can_create_workflow_VALUE = 7;
   /**
    * <code>can_create_session = 8;</code>
    */
@@ -580,8 +572,8 @@ public enum IamPermission
   /**
    * <pre>
    * Organization-level permission to install a plugin: push an Agent
-   * Plugins archive that the server materialises into skills, MCP servers,
-   * an agent and workflows in the organization. Distinct from the child
+   * Plugins archive that the server materialises into skills, MCP servers
+   * and an agent in the organization. Distinct from the child
    * kinds' create permissions, which the materialisation also evaluates for
    * the installing caller: who may bring a package into an organization is a
    * policy an administrator sets on its own.
@@ -695,7 +687,6 @@ public enum IamPermission
       case 47: return can_assign_roles;
       case 48: return can_manage_audience;
       case 6: return can_create_agent;
-      case 7: return can_create_workflow;
       case 8: return can_create_session;
       case 9: return can_create_skill;
       case 11: return can_create_idp;

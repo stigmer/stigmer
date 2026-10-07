@@ -12,7 +12,7 @@ import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/s
 import { RunConfigSchema, type RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
 import { AgentRunIdSchema, AgentRunUpdateStatusInputSchema, UpdateStatusResponseSchema, SubmitApprovalInputSchema, SubmitFileDecisionInputSchema, CancelAgentRunInputSchema, TerminateAgentRunInputSchema, RecoverAgentRunInputSchema, PauseAgentRunInputSchema, ResumeAgentRunInputSchema, UploadAttachmentRequestSchema, UploadAttachmentResponseSchema, ListAgentRunsRequestSchema, AgentRunListSchema, ListAgentRunsBySessionRequestSchema, GetArtifactDownloadUrlRequestSchema, GetArtifactDownloadUrlResponseSchema, GetArtifactContentRequestSchema, GetArtifactContentResponseSchema, GetRunUsageReportInputSchema, GetRunUsageReportOutputSchema, GetSessionUsageReportInputSchema, GetSessionUsageReportOutputSchema, GetAgentUsageReportInputSchema, GetAgentUsageReportOutputSchema, GetOrgUsageReportInputSchema, GetOrgUsageReportOutputSchema, GetAgentRunSummaryRequestSchema, AgentRunSummarySchema, type AgentRunUpdateStatusInput, type UpdateStatusResponse, type SubmitApprovalInput, type SubmitFileDecisionInput, type CancelAgentRunInput, type TerminateAgentRunInput, type RecoverAgentRunInput, type PauseAgentRunInput, type ResumeAgentRunInput, type UploadAttachmentRequest, type UploadAttachmentResponse, type ListAgentRunsRequest, type AgentRunList, type ListAgentRunsBySessionRequest, type GetArtifactDownloadUrlRequest, type GetArtifactDownloadUrlResponse, type GetArtifactContentRequest, type GetArtifactContentResponse, type GetRunUsageReportInput, type GetRunUsageReportOutput, type GetSessionUsageReportInput, type GetSessionUsageReportOutput, type GetAgentUsageReportInput, type GetAgentUsageReportOutput, type GetOrgUsageReportInput, type GetOrgUsageReportOutput, type GetAgentRunSummaryRequest, type AgentRunSummary } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/io_pb";
 import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
-import { AgentRunSpecSchema, AttachmentSchema, ConversationCatchupSchema, WorkflowParentSchema, type Attachment, type ConversationCatchup, type WorkflowParent } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
+import { AgentRunSpecSchema, AttachmentSchema, ConversationCatchupSchema, type Attachment, type ConversationCatchup } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { McpServerUsageSchema, type McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -200,7 +200,6 @@ export interface AgentRunInput {
   workspaceFileRefs?: string[];
   supersedesRunId?: string;
   conversationCatchup?: ConversationCatchupInput;
-  parent?: WorkflowParentInput;
 }
 
 /** SDK input type for SessionSpec. */
@@ -273,13 +272,6 @@ export interface AttachmentInput {
 export interface ConversationCatchupInput {
   digest?: string;
   windowEnd?: Date | string;
-}
-
-/** SDK input type for WorkflowParent. */
-export interface WorkflowParentInput {
-  workflowRunId?: string;
-  signalWorkflowId?: string;
-  callbackToken?: Uint8Array;
 }
 
 function buildGitRepoSourceProto(input: GitRepoSourceInput) {
@@ -366,14 +358,6 @@ function buildConversationCatchupProto(input: ConversationCatchupInput) {
   return msg;
 }
 
-function buildWorkflowParentProto(input: WorkflowParentInput) {
-  return Object.assign(create(WorkflowParentSchema), stripUndefined({
-    workflowRunId: input.workflowRunId,
-    signalWorkflowId: input.signalWorkflowId,
-    callbackToken: input.callbackToken,
-  }));
-}
-
 export function buildAgentRunProto(input: AgentRunInput): AgentRun {
   const runConfig = input.runConfig ? buildRunConfigProto(input.runConfig) : undefined;
   let runtimeEnv;
@@ -383,7 +367,6 @@ export function buildAgentRunProto(input: AgentRunInput): AgentRun {
   }
   const attachments = input.attachments?.map(buildAttachmentProto);
   const conversationCatchup = input.conversationCatchup ? buildConversationCatchupProto(input.conversationCatchup) : undefined;
-  const parent = input.parent ? buildWorkflowParentProto(input.parent) : undefined;
   const spec = Object.assign(create(AgentRunSpecSchema), stripUndefined({
     message: input.message,
     runConfig,
@@ -396,7 +379,6 @@ export function buildAgentRunProto(input: AgentRunInput): AgentRun {
     workspaceFileRefs: input.workspaceFileRefs,
     supersedesRunId: input.supersedesRunId,
     conversationCatchup,
-    parent,
   }));
   if (input.sessionId) {
     spec.target = { case: "sessionId", value: input.sessionId };
@@ -499,14 +481,6 @@ function toConversationCatchupInput(msg: ConversationCatchup): ConversationCatch
   };
 }
 
-function toWorkflowParentInput(msg: WorkflowParent): WorkflowParentInput {
-  return {
-    workflowRunId: msg.workflowRunId || undefined,
-    signalWorkflowId: msg.signalWorkflowId || undefined,
-    callbackToken: msg.callbackToken?.length ? msg.callbackToken : undefined,
-  };
-}
-
 /**
  * Maps a fetched {@link AgentRun} to a complete {@link AgentRunInput} for `update()`.
  *
@@ -545,6 +519,5 @@ export function toAgentRunUpdateInput(resource: AgentRun): AgentRunInput {
     workspaceFileRefs: spec.workspaceFileRefs?.length ? [...spec.workspaceFileRefs] : undefined,
     supersedesRunId: spec.supersedesRunId || undefined,
     conversationCatchup: spec.conversationCatchup ? toConversationCatchupInput(spec.conversationCatchup) : undefined,
-    parent: spec.parent ? toWorkflowParentInput(spec.parent) : undefined,
   };
 }

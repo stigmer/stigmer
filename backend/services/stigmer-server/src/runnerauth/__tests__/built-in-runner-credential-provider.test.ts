@@ -8,18 +8,11 @@
  * ONE reading of a runner's binding they both read:
  *
  *   - `runnerBindingOf(caller)`: what the caller's credential is bound to
- *     — an agent execution, a workflow execution (the kind read off the
- *     bound id's prefix), an MCP connect (its own predicate), or nothing
- *     (a person; a token that is not ours; a forged one). One HMAC, no
- *     store read. A
- *     connect binding is answered BY NAME by every capability: it vouches
- *     nothing, captures nothing, and the exchange mints nothing for it.
- *   - `vouchRunnerLineageLabels`: a WORKFLOW-bound runner vouches the two
- *     lineage keys for its own workflow execution and REFUSES (the
- *     cloud's byte-pinned copy, transcribed) a stamp naming another; an
- *     agent-bound runner and a person vouch nothing. Without this a
- *     self-host with sign-in on cannot run any workflow that calls an
- *     agent: GuardReservedLabels refuses the child create.
+ *     — an agent execution (the kind read off the bound id's prefix), an
+ *     MCP connect (its own predicate), or nothing (a person; a token that
+ *     is not ours; a forged one). One HMAC, no store read. A connect
+ *     binding is answered BY NAME by every capability: it captures
+ *     nothing, and the exchange mints nothing for it.
  *   - `authorizeMemoryCapture`: an AGENT-bound runner is ADMITTED with
  *     the human's account id as the memory's subject (the row's one
  *     principal under the model — without it every memory an enforcing
@@ -27,15 +20,15 @@
  *     provenance, read off the execution row (the cloud reads it off its
  *     session-scoped token; ours names only the execution); a capture
  *     addressed to an org that is not the run's is refused with the
- *     cloud's copy; a workflow-bound runner is refused (the cloud refuses
+ *     cloud's copy; a connect-bound runner is refused (the cloud refuses
  *     every non-session lane); a person is no-opinion (the gate's own
  *     logic applies).
  *   - `exchangeScopedToken` (2026-09-16, the mint gate): the execution
- *     arms mint the RUN credential (no `exp`, expiresInSeconds 0) for
+ *     arm mints the RUN credential (no `exp`, expiresInSeconds 0) for
  *     the run's own person and nobody else — a missing row is NOT_FOUND
  *     with the load-first copy, any other caller (a run stamped by nobody
- *     included) is PERMISSION_DENIED with one sentence; the kind read is
- *     the id's, not the arm's; pool-claim, renewal and unset answer
+ *     included) is PERMISSION_DENIED with one sentence; pool-claim,
+ *     renewal and unset answer
  *     not-minted; so does keyless. Under trusted-local the controller's
  *     own arms mint for anyone, and this capability does not exist. A
  *     caller bound to another organization than the run's is refused with
@@ -56,7 +49,6 @@ import { describe, expect, it } from "vitest";
 import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
-import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
@@ -74,7 +66,6 @@ import {
 import {
   MEMORY_CAPTURE_ORG_MISMATCH_MESSAGE,
   RUN_CREDENTIAL_NOT_RUNS_PERSON_MESSAGE,
-  WORKFLOW_LINEAGE_BINDING_MISMATCH_MESSAGE,
 } from "../constants.js";
 import type { RunnerScopedTokenExchange } from "../runner-credential-provider.js";
 import { newRunnerSubjectIdentityVerifier } from "../runner-subject-verifier.js";
@@ -102,12 +93,6 @@ const AGENT_RUN = create(AgentRunSchema, {
   status: { phase: RunPhase.RUN_IN_PROGRESS, ...stampedBy(HUMAN) },
 });
 
-/** Carol's workflow execution — the exchange's workflow arm reads it. */
-const WORKFLOW_RUN = create(WorkflowRunSchema, {
-  metadata: { id: "wex_carols_flow", name: "wex_carols_flow", org: "acme" },
-  status: { ...stampedBy(HUMAN) },
-});
-
 /** A run created before sign-in was on: its stamp names nobody the server recognizes. */
 const NOBODYS_RUN = create(AgentRunSchema, {
   metadata: { id: "aex_nobodys_run", name: "aex_nobodys_run", org: "acme" },
@@ -128,7 +113,6 @@ const ORGLESS_RUN = create(AgentRunSchema, {
 const ROWS: Record<string, unknown> = {
   aex_orgless_run: ORGLESS_RUN,
   aex_agent_run: AGENT_RUN,
-  wex_carols_flow: WORKFLOW_RUN,
   aex_nobodys_run: NOBODYS_RUN,
 };
 
@@ -206,9 +190,6 @@ const person: CallerIdentity = {
 };
 
 const agentBound = runnerCaller(service.mintRunCredential("aex_agent_run"));
-const workflowBound = runnerCaller(
-  service.mintRunCredential("wex_workflow_run"),
-);
 /** The connect lane's runner: the clocked token bound to Carol's connect EC (connect.ts `prepareConnect`). */
 const connectBound = runnerCaller(service.mint(CONNECT_ID, 300).token);
 
@@ -277,16 +258,6 @@ describe("exchangeScopedToken — the mint gate", () => {
     expect(minted.expiresInSeconds).toBe(0);
   });
 
-  it("the workflow-execution arm mints the same way for the workflow's person", async () => {
-    const minted = await exchange(
-      { arm: "workflow-execution", executionId: "wex_carols_flow" },
-      carol,
-    );
-    expect(minted.minted).toBe(true);
-    if (!minted.minted) throw new Error("unreachable");
-    expect(service.verify(minted.token)).toBe("wex_carols_flow");
-  });
-
   it("another signed-in person is refused with one sentence — the impersonation path this gate closes", async () => {
     const failure = await refusal(
       exchange({ arm: "agent-execution", executionId: "aex_agent_run" }, bruce),
@@ -311,7 +282,7 @@ describe("exchangeScopedToken — the mint gate", () => {
 
   it("a credential bound to the run's own organization is minted the run credential", async () => {
     const minted = await exchange(
-      { arm: "workflow-execution", executionId: "wex_carols_flow" },
+      { arm: "agent-execution", executionId: "aex_agent_run" },
       { ...carol, boundOrg: "acme" },
     );
     expect(minted.minted).toBe(true);
@@ -334,19 +305,9 @@ describe("exchangeScopedToken — the mint gate", () => {
     );
     expect(failure.code).toBe(Code.NotFound);
     expect(failure.rawMessage).toBe("AgentRun not found: aex_missing");
-
-    const workflowFailure = await refusal(
-      exchange(
-        { arm: "workflow-execution", executionId: "wex_missing" },
-        carol,
-      ),
-    );
-    expect(workflowFailure.rawMessage).toBe(
-      "WorkflowRun not found: wex_missing",
-    );
   });
 
-  it("a connect binding is NOT_FOUND under either arm — the exchange mints run credentials, and a connect is not a run", async () => {
+  it("a connect binding is NOT_FOUND — the exchange mints run credentials, and a connect is not a run", async () => {
     const failure = await refusal(
       exchange({ arm: "agent-execution", executionId: CONNECT_ID }, carol),
     );
@@ -354,20 +315,10 @@ describe("exchangeScopedToken — the mint gate", () => {
     expect(failure.rawMessage).toBe(`AgentRun not found: ${CONNECT_ID}`);
   });
 
-  it("the id decides which execution is read, never the arm — an agent id under the workflow arm mints for the agent run", async () => {
-    const minted = await exchange(
-      { arm: "workflow-execution", executionId: "aex_agent_run" },
-      carol,
-    );
-    expect(minted.minted).toBe(true);
-    if (!minted.minted) throw new Error("unreachable");
-    expect(service.verify(minted.token)).toBe("aex_agent_run");
-  });
-
   it("a runner already acting as the person may hold a credential for that person's other run (the credential's reach, pinned as a known fact)", async () => {
     const minted = await exchange(
       { arm: "agent-execution", executionId: "aex_agent_run" },
-      runnerCaller(service.mintRunCredential("wex_carols_flow")),
+      runnerCaller(service.mintRunCredential("aex_orgless_run")),
     );
     expect(minted.minted).toBe(true);
   });
@@ -444,13 +395,6 @@ describe("runnerBindingOf — the one reading of what a runner is bound to", () 
     });
   });
 
-  it("a workflow-bound run credential", () => {
-    expect(runnerBindingOf(service, workflowBound)).toEqual({
-      kind: "workflow-execution",
-      executionId: "wex_workflow_run",
-    });
-  });
-
   it("the exchange lane's clocked token binds the same way", () => {
     const clocked = runnerCaller(service.mint("aex_clocked", 300).token);
     expect(runnerBindingOf(service, clocked)?.executionId).toBe("aex_clocked");
@@ -486,47 +430,6 @@ describe("runnerBindingOf — the one reading of what a runner is bound to", () 
   );
 });
 
-describe("vouchRunnerLineageLabels", () => {
-  const vouch = provider.vouchRunnerLineageLabels!;
-
-  it("a workflow-bound runner vouches the lineage keys for ITS workflow execution", () => {
-    expect(vouch(workflowBound, "wex_workflow_run")).toBe(true);
-  });
-
-  it("a workflow-bound runner vouches when the request stamped only the task label (no binding to check)", () => {
-    expect(vouch(workflowBound, "")).toBe(true);
-  });
-
-  it("a workflow-bound runner naming ANOTHER workflow's lineage is refused with the cloud's copy — a workflow sandbox cannot stamp another workflow's lineage", () => {
-    let failure: unknown;
-    try {
-      vouch(workflowBound, "wex_someone_elses");
-    } catch (error) {
-      failure = error;
-    }
-    expect(failure).toBeInstanceOf(ConnectError);
-    expect((failure as ConnectError).code).toBe(Code.InvalidArgument);
-    expect((failure as ConnectError).rawMessage).toBe(
-      WORKFLOW_LINEAGE_BINDING_MISMATCH_MESSAGE,
-    );
-    expect(WORKFLOW_LINEAGE_BINDING_MISMATCH_MESSAGE).toBe(
-      "workflow lineage label names a workflow execution this runner credential is not bound to",
-    );
-  });
-
-  it("an agent-bound runner vouches nothing — a subagent create carrying lineage keys stays subject to the guard", () => {
-    expect(vouch(agentBound, "wex_workflow_run")).toBe(false);
-  });
-
-  it("a connect-bound runner vouches nothing — a discovery creates no execution", () => {
-    expect(vouch(connectBound, "wex_workflow_run")).toBe(false);
-  });
-
-  it("a person vouches nothing", () => {
-    expect(vouch(person, "wex_workflow_run")).toBe(false);
-  });
-});
-
 describe("authorizeMemoryCapture", () => {
   const decide = (caller: CallerIdentity, org: string) =>
     Promise.resolve(provider.authorizeMemoryCapture!(caller, org));
@@ -556,10 +459,6 @@ describe("authorizeMemoryCapture", () => {
     expect(MEMORY_CAPTURE_ORG_MISMATCH_MESSAGE).toBe(
       "memory capture is scoped to the session's organization",
     );
-  });
-
-  it("a workflow-bound runner is refused — the cloud refuses every non-session lane", async () => {
-    expect(await decide(workflowBound, "acme")).toEqual({ verdict: "refuse" });
   });
 
   it("a connect-bound runner is refused — a discovery has no session to capture for", async () => {

@@ -9,7 +9,7 @@ import * as path from "node:path";
 import type { ServiceSchemaFile } from "./gen-common.js";
 import { isIDType, pascalToSnake } from "./gen-common.js";
 import { isOrglessKind, isVersionedKind } from "./resource-kind.js";
-import type { TaskConfigSchema, TypeSchema } from "./schema.js";
+import type { SpecSchema, TypeSchema } from "./schema.js";
 import { readDirSorted } from "./schema.js";
 
 export interface SdkResourceConfig {
@@ -138,8 +138,8 @@ function resolveResourceKind(schema: ServiceSchemaFile): string {
 }
 
 /** Port of loadSpecSchemaWithTypes. */
-export function loadSpecSchemaWithTypes(specPath: string): [TaskConfigSchema, TypeSchema[]] {
-  const spec = JSON.parse(fs.readFileSync(specPath, "utf8")) as TaskConfigSchema;
+export function loadSpecSchemaWithTypes(specPath: string): [SpecSchema, TypeSchema[]] {
+  const spec = JSON.parse(fs.readFileSync(specPath, "utf8")) as SpecSchema;
 
   const typesDir = path.join(path.dirname(specPath), "types");
   const types: TypeSchema[] = [];

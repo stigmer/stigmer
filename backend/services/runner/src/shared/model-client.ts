@@ -53,7 +53,6 @@ export interface BuildChatModelOptions {
   readonly headerScope?: {
     executionId?: string;
     mcpServerId?: string;
-    workflowExecutionId?: string;
   };
   /**
    * Defaults to 0. `null` sends no sampling override at all, so the
@@ -68,8 +67,8 @@ export interface BuildChatModelOptions {
   /**
    * Pass-through only; intentionally no default. Anthropic requires a value,
    * but callers differ (the execution turn reads the registry row's
-   * maxOutputTokens, call-llm uses 4096), so the default stays the caller's
-   * decision to avoid silently changing behavior.
+   * maxOutputTokens, structured extraction uses 4096), so the default
+   * stays the caller's decision to avoid silently changing behavior.
    */
   readonly maxTokens?: number;
   /**
@@ -88,7 +87,6 @@ export interface BuildChatModelOptions {
    * factory did exactly that; stigmer/stigmer#468). An explicit value wins.
    */
   readonly timeoutMs?: number;
-  readonly maxRetries?: number;
   /**
    * The execution's EFFECTIVE service tier (stigmer/stigmer#361) — already
    * resolved by the caller (resolveEffectiveServiceTier), never
@@ -97,7 +95,7 @@ export interface BuildChatModelOptions {
    * so the provider ACCOUNT's default can never pick the price — the #357
    * contract, held on the native harness. Deliberately optional:
    * platform-internal utility calls (tool-approval classification, session
-   * subjects, structured extraction, workflow llm_call) are not the
+   * subjects, structured extraction) are not the
    * execution's own turns and send no tier — the provider treats an absent
    * parameter as its standard behavior, and those calls' models are
    * platform-chosen economy models.
@@ -286,13 +284,10 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
       ? (getRunnerSecret("OPENAI_API_KEY") ?? "")
       : (getRunnerSecret("ANTHROPIC_API_KEY") ?? "");
 
-  // maxRetries applies when a timeout is bound (a retry loop under a bound
-  // multiplies the wall-clock budget) or when the caller pinned it
-  // explicitly (call-llm hands retry ownership to Temporal, #686). Callers
-  // that set neither keep LangChain's default retry behavior unchanged.
-  const maxRetries = timeoutMs !== undefined || opts.maxRetries !== undefined
-    ? { maxRetries: opts.maxRetries ?? 0 }
-    : {};
+  // maxRetries is 0 when a timeout is bound (a retry loop under a bound
+  // multiplies the wall-clock budget); with no bound, LangChain's default
+  // retry behavior is unchanged.
+  const maxRetries = timeoutMs !== undefined ? { maxRetries: 0 } : {};
   if (opts.thinking !== undefined && provider !== "anthropic") {
     throw new Error(
       `buildChatModel: a thinking parameter was passed for ${opts.modelName}, a ${provider} model; ` +

@@ -485,8 +485,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object resourceKind_ = "";
   /**
    * <pre>
-   * Kind of the API resource identified by resource_id (e.g., "mcp_server",
-   * "workflow"). Used for query filtering and handler routing.
+   * Kind of the API resource identified by resource_id (e.g., "mcp_server").
+   * Used for query filtering and handler routing.
    * </pre>
    *
    * <code>string resource_kind = 10 [json_name = "resourceKind"];</code>
@@ -507,8 +507,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Kind of the API resource identified by resource_id (e.g., "mcp_server",
-   * "workflow"). Used for query filtering and handler routing.
+   * Kind of the API resource identified by resource_id (e.g., "mcp_server").
+   * Used for query filtering and handler routing.
    * </pre>
    *
    * <code>string resource_kind = 10 [json_name = "resourceKind"];</code>
@@ -1968,8 +1968,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object resourceKind_ = "";
     /**
      * <pre>
-     * Kind of the API resource identified by resource_id (e.g., "mcp_server",
-     * "workflow"). Used for query filtering and handler routing.
+     * Kind of the API resource identified by resource_id (e.g., "mcp_server").
+     * Used for query filtering and handler routing.
      * </pre>
      *
      * <code>string resource_kind = 10 [json_name = "resourceKind"];</code>
@@ -1989,8 +1989,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Kind of the API resource identified by resource_id (e.g., "mcp_server",
-     * "workflow"). Used for query filtering and handler routing.
+     * Kind of the API resource identified by resource_id (e.g., "mcp_server").
+     * Used for query filtering and handler routing.
      * </pre>
      *
      * <code>string resource_kind = 10 [json_name = "resourceKind"];</code>
@@ -2011,8 +2011,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Kind of the API resource identified by resource_id (e.g., "mcp_server",
-     * "workflow"). Used for query filtering and handler routing.
+     * Kind of the API resource identified by resource_id (e.g., "mcp_server").
+     * Used for query filtering and handler routing.
      * </pre>
      *
      * <code>string resource_kind = 10 [json_name = "resourceKind"];</code>
@@ -2029,8 +2029,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Kind of the API resource identified by resource_id (e.g., "mcp_server",
-     * "workflow"). Used for query filtering and handler routing.
+     * Kind of the API resource identified by resource_id (e.g., "mcp_server").
+     * Used for query filtering and handler routing.
      * </pre>
      *
      * <code>string resource_kind = 10 [json_name = "resourceKind"];</code>
@@ -2044,8 +2044,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Kind of the API resource identified by resource_id (e.g., "mcp_server",
-     * "workflow"). Used for query filtering and handler routing.
+     * Kind of the API resource identified by resource_id (e.g., "mcp_server").
+     * Used for query filtering and handler routing.
      * </pre>
      *
      * <code>string resource_kind = 10 [json_name = "resourceKind"];</code>

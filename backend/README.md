@@ -19,10 +19,10 @@ TypeScript gRPC control plane for local Stigmer deployment.
 **Key responsibilities**:
 
 - gRPC/gRPC-Web/Connect command/query controllers for every API resource
-  (Agent, Workflow, Skill, Session, Environment, McpServer, …) on one port
+  (Agent, Skill, Session, Environment, McpServer, …) on one port
 - SQLite storage via `node:sqlite` (see [Storage](#storage) below)
-- Temporal workflow orchestration for agent executions, workflow
-  executions, and MCP server discovery
+- Temporal workflow orchestration for agent executions, schedules and MCP
+  server discovery
 - Serves platform documents such as the model registry
   (`GET /v1/proxy/model-registry`, mirrored from the cloud edition)
 
@@ -31,8 +31,7 @@ TypeScript gRPC control plane for local Stigmer deployment.
 ### runner
 
 TypeScript Temporal worker (`@stigmer/runner`, "stigmer-runner") that
-executes **both agent sessions and workflow executions**, across both
-harnesses:
+executes **agent sessions**, across both harnesses:
 
 - **deep-agent** — LangGraph.js-based agentic loop calling LLM provider
   APIs directly
@@ -47,8 +46,6 @@ harnesses:
 - Agent session execution: prompt assembly, tool orchestration, HITL
   approvals, attachments/vision, streaming status updates back to the
   control plane over gRPC
-- Workflow execution: task interpretation and orchestration for every
-  workflow task kind
 - MCP server connection and capability discovery
   (`workflows/connect-mcp-server.ts`)
 - Skill loading and sandbox/workspace management
@@ -89,8 +86,8 @@ identical in both editions by construction.
                        ↓
         ┌──────────────────────────────┐
         │      runner (TypeScript)     │
-        │  agent sessions + workflow   │
-        │  executions, both harnesses  │
+        │  agent sessions,             │
+        │  both harnesses              │
         │  (deep-agent · cursor)       │
         └──────────────────────────────┘
 ```
@@ -136,7 +133,7 @@ serialized proto bytes in a single column, `kind` as the discriminator:
 
 ```sql
 CREATE TABLE resources (
-    kind TEXT NOT NULL,          -- "Agent", "Workflow", "Skill", …
+    kind TEXT NOT NULL,          -- "Agent", "Session", "Skill", …
     id   TEXT NOT NULL,
     data BLOB NOT NULL,          -- serialized proto
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -147,7 +144,7 @@ CREATE TABLE resources (
 Adding a new resource kind requires **no schema migration** — define the
 proto, run `make codegen`, add the controller. Purpose-built side tables
 exist where a generic row is the wrong shape (resource audit history,
-workflow execution events, bootstrap state) — see
+schedule runs, bootstrap state) — see
 `backend/services/stigmer-server/src/store/sqlite/` (the migration chain in
 `migrations.ts`) for the authoritative schema.
 
@@ -181,6 +178,6 @@ schemas, and API docs all flow from it. Never edit generated files.
 
 ### 3. One runner, two harnesses
 
-Agent and workflow execution deliberately share one worker, one deploy
-artifact, and one set of execution semantics. Adding execution behavior
+Agent execution and MCP server discovery deliberately share one worker, one
+deploy artifact, and one set of execution semantics. Adding execution behavior
 means extending the runner — not adding a service.

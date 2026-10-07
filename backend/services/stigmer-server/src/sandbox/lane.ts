@@ -17,7 +17,7 @@
  * A provider with the mintSandboxCredential capability owns the mint
  * instead: the ensure steps hand it the full
  * provisioning context and bake whatever it returns — the cloud's
- * session/workflow-scoped tokens ride this without the steps knowing any
+ * session-scoped tokens ride this without the steps knowing any
  * lane vocabulary beyond their own identifiers.
  */
 import type {

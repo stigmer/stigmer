@@ -76,8 +76,7 @@ export function getKindMeta(kind: ApiResourceKind): ApiResourceKindMeta {
  * (the one structural link is to that parent) AND INHERITED owner (no
  * owner tuple of its own; `owner from <parent>` in the FGA model).
  * Undefined for every other kind, including kinds with additional parents
- * whose inheritance is partial (a workflow_execution's opt-in
- * `run_viewer from workflow` sits beside its own owner).
+ * whose inheritance is partial (a memory's subject sits beside it).
  *
  * Today exactly one kind answers: agent_execution → session (its
  * `can_view` is `viewer or can_view from session`, and `viewer` is the
@@ -389,8 +388,8 @@ function kindsByEnumName(): Map<string, ApiResourceKind> {
  * inverse of `getIdPrefix` over the ids `generateId` mints
  * (`<prefix>_<ulid>`, pipeline/steps/defaults.ts). The one consumer today
  * is the runner-credential lane, whose token binds an execution by id and
- * must know whether that id names an agent execution or a workflow
- * execution without a second claim or a guess. Anything that is not
+ * must know whether that id names an agent execution without a second
+ * claim or a guess. Anything that is not
  * `<known prefix>_<rest>` — no underscore, an unknown prefix, the empty
  * string — is `api_resource_kind_unknown`; never a throw, because the id
  * arrived inside a credential and the caller refuses with its own

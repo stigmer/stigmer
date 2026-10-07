@@ -16,10 +16,7 @@
  *     read_harness_state_id.go);
  *   - DeleteExecutionContext delegates to the server's own delete of a
  *     run's context, handing the context to the in-process delete edge
- *     (stigmer#1647), idempotently;
- *   - CompleteExternalActivity: empty-token skip, base64 token decode,
- *     error-over-result precedence — the error lane Go cannot deliver
- *     (oss#861), so the ERROR path is the load-bearing assertion.
+ *     (stigmer#1647), idempotently.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -27,7 +24,6 @@ import path from "node:path";
 import { create, fromJson, toJson } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import type { Client } from "@temporalio/client";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -47,7 +43,6 @@ import type { Store } from "../../../store/interface.js";
 import { createAgentExecutionActivities } from "../activities.js";
 import type { ExecutionStatusWriter } from "../activities.js";
 import {
-  COMPLETE_EXTERNAL_ACTIVITY_NAME,
   LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
   READ_HARNESS_STATE_ID_ACTIVITY_NAME,
   UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
@@ -67,12 +62,6 @@ afterEach(async () => {
   }
 });
 
-interface CompletionCall {
-  readonly kind: "complete" | "fail";
-  readonly taskToken: Buffer;
-  readonly payload: unknown;
-}
-
 function newFixture() {
   const dir = mkdtempSync(path.join(tmpdir(), "activities-test-"));
   const store: Store = SqliteStore.open(
@@ -83,18 +72,6 @@ function newFixture() {
     await store.close();
     rmSync(dir, { recursive: true, force: true });
   });
-
-  const completions: CompletionCall[] = [];
-  const stubClient = {
-    activity: {
-      complete: async (taskToken: Buffer, payload: unknown): Promise<void> => {
-        completions.push({ kind: "complete", taskToken, payload });
-      },
-      fail: async (taskToken: Buffer, error: unknown): Promise<void> => {
-        completions.push({ kind: "fail", taskToken, payload: error });
-      },
-    },
-  } as unknown as Client;
 
   // The in-process status edge as a recording fake: these are UNIT pins
   // of the activity's payload boundary, so the lane is a seam here (the
@@ -127,12 +104,10 @@ function newFixture() {
     logger: silentLogger,
     statusWriter: () => statusWriter,
     executionContextDeleter: () => executionContextDeleter,
-    client: () => stubClient,
   });
   return {
     store,
     activities,
-    completions,
     writes,
     deletedContexts,
     failWriterWith(error: ConnectError): void {
@@ -357,48 +332,5 @@ describe("DeleteExecutionContext activity", () => {
     // Best-effort seam: a second delete (nothing left) must not throw.
     await expect(remove("aex_del_1")).resolves.toBeUndefined();
     expect(deletedContexts, "one delete, through the edge").toEqual(["ectx_1"]);
-  });
-});
-
-describe("CompleteExternalActivity", () => {
-  type CompleteFn = (input: {
-    callbackToken: string;
-    result?: unknown;
-    errorMessage?: string;
-  }) => Promise<void>;
-
-  it("skips an empty token (backward compatibility)", async () => {
-    const { activities, completions } = newFixture();
-    await (activities[COMPLETE_EXTERNAL_ACTIVITY_NAME] as CompleteFn)({
-      callbackToken: "",
-    });
-    expect(completions).toHaveLength(0);
-  });
-
-  it("completes with the result, decoding the base64 token", async () => {
-    const { activities, completions } = newFixture();
-    const token = Buffer.from("task-token-1");
-    await (activities[COMPLETE_EXTERNAL_ACTIVITY_NAME] as CompleteFn)({
-      callbackToken: token.toString("base64"),
-      result: { agent_execution_id: "aex_1" },
-    });
-    expect(completions).toHaveLength(1);
-    expect(completions[0]!.kind).toBe("complete");
-    expect(Buffer.compare(completions[0]!.taskToken, token)).toBe(0);
-    expect(completions[0]!.payload).toEqual({ agent_execution_id: "aex_1" });
-  });
-
-  it("fails with the error message — and error takes precedence over result (oss#861)", async () => {
-    const { activities, completions } = newFixture();
-    await (activities[COMPLETE_EXTERNAL_ACTIVITY_NAME] as CompleteFn)({
-      callbackToken: Buffer.from("task-token-2").toString("base64"),
-      result: { should: "be ignored" },
-      errorMessage: "agent execution failed: boom",
-    });
-    expect(completions).toHaveLength(1);
-    expect(completions[0]!.kind).toBe("fail");
-    expect((completions[0]!.payload as Error).message).toBe(
-      "agent execution failed: boom",
-    );
   });
 });

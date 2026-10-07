@@ -46,8 +46,6 @@ import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
-import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
-import { RunPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
@@ -114,7 +112,6 @@ afterAll(dropPostgresFixture);
 describe.each(
   driverFixtures([
     ApiResourceKind.agent_run,
-    ApiResourceKind.workflow_run,
     ApiResourceKind.execution_context,
     ApiResourceKind.identity_account,
   ]),
@@ -154,25 +151,6 @@ describe.each(
         id,
         AgentRunSchema,
         create(AgentRunSchema, {
-          metadata: { id, name: id, org: "acme" },
-          status: {
-            phase,
-            audit: { specAudit: { createdBy: { id: createdBy } } },
-          },
-        }),
-      );
-    }
-
-    async function workflowExecution(
-      id: string,
-      createdBy: string,
-      phase: WorkflowExecutionPhase = WorkflowExecutionPhase.RUN_IN_PROGRESS,
-    ): Promise<void> {
-      await opened.store.saveResource(
-        ApiResourceKind.workflow_run,
-        id,
-        WorkflowRunSchema,
-        create(WorkflowRunSchema, {
           metadata: { id, name: id, org: "acme" },
           status: {
             phase,
@@ -274,16 +252,6 @@ describe.each(
         );
         expect(identity?.identityId).toBe(CAROL);
         expect(identity?.callerClass).toBe("runner");
-      });
-
-      it("a workflow execution binding resolves the same way — the kind is read off the id's prefix, no second read", async () => {
-        await workflowExecution("wex_by_id", CAROL);
-        const token = service.mintRunCredential("wex_by_id");
-        expect(await verifier().verify(token)).toEqual({
-          ...CAROL_IDENTITY,
-          rawToken: token,
-          boundOrg: "acme",
-        });
       });
 
       it("a PENDING execution is live — the runner's first read happens before any phase write", async () => {
@@ -413,18 +381,6 @@ describe.each(
           ),
           RUNNER_CREDENTIAL_NOT_LIVE_MESSAGE,
         );
-      });
-
-      it("a terminal WORKFLOW execution's credential is refused the same way", async () => {
-        await workflowExecution(
-          "wex_over",
-          CAROL,
-          WorkflowExecutionPhase.RUN_COMPLETED,
-        );
-        const failure = await rejectionOf(
-          verifier().verify(service.mintRunCredential("wex_over")),
-        );
-        expectUnauthenticated(failure, RUNNER_CREDENTIAL_NOT_LIVE_MESSAGE);
       });
 
       it("an execution that does not exist is UNAUTHENTICATED with the token sentence — the credential is invalid, the run is not the caller's to learn about", async () => {

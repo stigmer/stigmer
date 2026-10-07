@@ -1,7 +1,7 @@
 # Store tests for org-admin owner inheritance (since 2026-07-13).
 #
 # Blueprint kinds — agent, agent_share, agent_channel, schedule, skill,
-# workflow, plugin — compose org admins into `owner`:
+# plugin — compose org admins into `owner`:
 #
 #   define owner: [identity_account] or admin from organization
 #
@@ -97,12 +97,6 @@ tuples:
     object: skill:carols-notes
   - user: organization:acme
     relation: organization
-    object: workflow:carols-flow
-  - user: identity_account:carol
-    relation: owner
-    object: workflow:carols-flow
-  - user: organization:acme
-    relation: organization
     object: plugin:carols-plugin
   - user: identity_account:carol
     relation: owner
@@ -160,13 +154,6 @@ tests:
           can_grant_access: true
       - user: identity_account:ana
         object: skill:carols-notes
-        assertions:
-          can_view: true
-          can_edit: true
-          can_delete: true
-          can_grant_access: true
-      - user: identity_account:ana
-        object: workflow:carols-flow
         assertions:
           can_view: true
           can_edit: true

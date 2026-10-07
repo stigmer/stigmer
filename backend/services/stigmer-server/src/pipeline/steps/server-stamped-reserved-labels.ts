@@ -3,12 +3,11 @@
  * `stigmer.ai/*` label keys that pipeline steps vouched for server-side
  * (the Java ServerStampedReservedLabels port).
  *
- * Some lanes legitimately carry reserved labels the client "sent": the
- * workflow runner's CallAgent activity stamps the lineage pair
- * (`stigmer.ai/workflow-execution-id`, `stigmer.ai/workflow-task`) on
- * every child execution it creates. To GuardReservedLabels, which diffs
- * the built state against the stored one, those stamps are
- * indistinguishable from client mutations. A step that has made the
+ * Some lanes legitimately carry reserved labels the client did not choose:
+ * the MCP server's endpoint-auth completion stamps `stigmer.ai/mcp-auth`
+ * on the server it completes (domain/mcpserver/complete-endpoint-auth.ts).
+ * To GuardReservedLabels, which diffs the built state against the stored
+ * one, those stamps are indistinguishable from client mutations. A step that has made the
  * trust decision for specific keys records EXACTLY those keys here, and
  * the guard exempts exactly them — everything else in the namespace
  * stays operator-only, so a client smuggling a different reserved key

@@ -4,7 +4,7 @@
  * id and harness both present, the applyDocument rule), keep-current-on-
  * failure, warn-then-debug failure logging with reset on success, the size
  * cap, the fail-loud bundled-snapshot guard, and the catalog indexes the
- * workflow validators query (harness/variant/capability, canonical
+ * validators query (harness/variant/capability, canonical
  * suggestion pools, api-id acceptance).
  */
 import { describe, expect, it } from "vitest";
@@ -141,7 +141,7 @@ describe("ModelRegistryStore", () => {
 
 /**
  * The catalog indexes (Go applyDocument :302-412 + the query methods) — the
- * surface the workflow validators consume. Fixture shape mirrors real
+ * surface the run-config checks consume. Fixture shape mirrors real
  * registry entries: canonical id + provider api id, harness sections,
  * pricingVariants key set, tri-state capabilities.
  */

@@ -252,9 +252,9 @@ export function uninstallHttp2Interceptor(): void {
  * Close all tracked HTTP/2 sessions to the proxy endpoint, forcing
  * the SDK to establish a fresh connection on next use.
  *
- * Call between sequential workflow task activities to prevent a
- * degraded session from one task poisoning the next. No-op when
- * no sessions are tracked (e.g., first activity in a workflow).
+ * Call between sequential executions on this worker to prevent a
+ * degraded session from one poisoning the next. No-op when no
+ * sessions are tracked (e.g., the worker's first execution).
  */
 export function closeProxySessions(): void {
   for (const session of proxySessions) {

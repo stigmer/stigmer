@@ -126,7 +126,6 @@ tools/codegen/generator/generator
 
 # Go service binaries (prevent accidental commits of built binaries in service dirs)
 backend/services/*/stigmer-server
-backend/services/*/workflow-runner
 backend/services/*/agent-runner
 backend/services/*/cmd/*/server
 backend/services/*/server

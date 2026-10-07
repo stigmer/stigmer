@@ -50,8 +50,6 @@ becomes %20, the encoding a URL's user and path segments read.
 # The ONE runner task queue, set on both sides (compose's anchor).
 - name: TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE
   value: stigmer_runner
-- name: TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE
-  value: stigmer_runner
 - name: ARTIFACT_STORAGE_TYPE
   value: local
 - name: ARTIFACT_LOCAL_BASE_PATH
@@ -121,8 +119,7 @@ becomes %20, the encoding a URL's user and path segments read.
 - name: LOCAL_ARTIFACT_PATH
   value: /artifacts
 {{- with .Values.runner.llm.existingSecret }}
-# Optional LLM keys, by explicit reference: agents need one,
-# workflows without agent tasks run key-free.
+# Optional LLM keys, by explicit reference: agents need one.
 - name: ANTHROPIC_API_KEY
   valueFrom:
     secretKeyRef:

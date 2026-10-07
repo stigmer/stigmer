@@ -83,8 +83,8 @@ with `proseWrap: always`; Vale lints `docs/` only.
   parallel `check-go check-node check-site check-rust check-java`) and needs no
   other setup.
 - `make codegen` after any `.proto` change; the `*-check` twins
-  (`gen-sdk-docs-check`, `gen-task-registry-check`, `gen-ipc-fixtures-check`,
-  `stubs-internal-check`) are the freshness gates CI runs.
+  (`gen-sdk-docs-check`, `gen-ipc-fixtures-check`, `stubs-internal-check`) are
+  the freshness gates CI runs.
 - Tests: `test/README.md` ("The test standard") gives every layer its home, its
   name words and the target that runs it; `make test-conformance-execution`
   needs the `temporal` and `stigmer` CLIs.
@@ -99,8 +99,8 @@ Run the checks for every path prefix a change touches, then quote each check's
 summary line in the final message. Never report unverified work as done.
 
 - `apis/**`: `make -C apis lint`; for `.proto` changes also
-  `make check-docs-yaml gen-proto-sdk-docs-check gen-task-registry-check`, and
-  `buf breaking` runs in CI.
+  `make check-docs-yaml gen-proto-sdk-docs-check`, and `buf breaking` runs in
+  CI.
 - `backend/services/stigmer-server/**`: `make test-server`.
   `backend/services/stigmer-server/fga/**`: also
   `make test-authorization-model`. `tools/codegen/src/authorization-model/**`:
@@ -140,9 +140,9 @@ summary line in the final message. Never report unverified work as done.
   finding ids, stage names. Write the reason in your own words, or cite a PR, an
   issue, a SHA, a file.
 - Generated files are never hand-edited: `apis/stubs/**`, every `gen` directory,
-  generated docs under `docs/sdk/`, the task registry data, the compiled
-  authorization model, the Cursor shims in `.cursor/rules/agents-*.mdc` and
-  `.cursor/hooks.json`. Re-run the generator.
+  generated docs under `docs/sdk/`, the compiled authorization model, the Cursor
+  shims in `.cursor/rules/agents-*.mdc` and `.cursor/hooks.json`. Re-run the
+  generator.
 - Wire identifiers are pinned bytes: Temporal workflow, activity and queue
   names, proto field names, event kinds. A rename is a protocol break, not a
   cleanup.

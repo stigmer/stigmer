@@ -31,7 +31,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
 import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { MessageType, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 // Both mocks are hoisted by vitest; they must live in this file. Each factory
 // imports the reusable module and returns its mock surface.
@@ -126,7 +126,7 @@ describe("ExecuteCursor hermetic — plain turn", () => {
     expect(invocation.outcome.kind, "a completed turn RETURNS, never throws").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
     expect(slim.phase).toBe("RUN_COMPLETED");
-    expect(slim.final_text).toBe(ASSISTANT_TEXT);
+    expect(record.status?.messages.filter((m) => m.type === MessageType.MESSAGE_AI).at(-1)?.content, "the persisted transcript ends with the answer").toBe(ASSISTANT_TEXT);
     expect(slim, "the slim return carries no transcript").not.toHaveProperty("messages");
 
     // ── Assert: what the control plane received, in order ────────────────────

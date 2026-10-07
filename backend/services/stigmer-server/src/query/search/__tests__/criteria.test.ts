@@ -38,7 +38,7 @@ function criteria(overrides?: {
 }
 
 describe("searchIndexedKinds derivation (kind_meta)", () => {
-  it("derives exactly the 11 searchable kinds, plugin included", () => {
+  it("derives exactly the 9 searchable kinds, plugin included", () => {
     // Go's SearchableKinds map, pinned by its invariant test against the
     // same kind_meta derivation.
     expect([...searchIndexedKinds()].sort((a, b) => a - b)).toEqual(
@@ -46,13 +46,11 @@ describe("searchIndexedKinds derivation (kind_meta)", () => {
         ApiResourceKind.agent,
         ApiResourceKind.skill,
         ApiResourceKind.mcp_server,
-        ApiResourceKind.workflow,
         ApiResourceKind.environment,
         ApiResourceKind.session,
         ApiResourceKind.agent_run,
         ApiResourceKind.execution_context,
         ApiResourceKind.organization,
-        ApiResourceKind.workflow_run,
         ApiResourceKind.plugin,
       ].sort((a, b) => a - b),
     );
@@ -158,9 +156,9 @@ describe("effectiveKinds (the #440 contract)", () => {
   it("specific kinds pass through when searchable", () => {
     expect(
       criteria({
-        kinds: [ApiResourceKind.agent, ApiResourceKind.workflow],
+        kinds: [ApiResourceKind.agent, ApiResourceKind.skill],
       }).effectiveKinds(),
-    ).toEqual([ApiResourceKind.agent, ApiResourceKind.workflow]);
+    ).toEqual([ApiResourceKind.agent, ApiResourceKind.skill]);
   });
 
   it("non-searchable kinds are silently dropped from a mixed request", () => {

@@ -1,6 +1,6 @@
 // gojson reproduces Go's encoding/json output byte-for-byte.
 //
-// Every committed codegen artifact (schemas, task registry, meta.json) was
+// Every committed codegen artifact (schemas, meta.json) was
 // written by Go's json.MarshalIndent, whose output differs from
 // JSON.stringify in ways that would break the byte-parity gates:
 //

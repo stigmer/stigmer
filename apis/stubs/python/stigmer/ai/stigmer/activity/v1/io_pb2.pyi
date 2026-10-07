@@ -10,18 +10,14 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class RecentActivityEntry(_message.Message):
-    __slots__ = ("id", "type", "subject", "updated_at", "status")
+    __slots__ = ("id", "subject", "updated_at")
     ID_FIELD_NUMBER: _ClassVar[int]
-    TYPE_FIELD_NUMBER: _ClassVar[int]
     SUBJECT_FIELD_NUMBER: _ClassVar[int]
     UPDATED_AT_FIELD_NUMBER: _ClassVar[int]
-    STATUS_FIELD_NUMBER: _ClassVar[int]
     id: str
-    type: str
     subject: str
     updated_at: _timestamp_pb2.Timestamp
-    status: str
-    def __init__(self, id: _Optional[str] = ..., type: _Optional[str] = ..., subject: _Optional[str] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., status: _Optional[str] = ...) -> None: ...
+    def __init__(self, id: _Optional[str] = ..., subject: _Optional[str] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class ListRecentActivityRequest(_message.Message):
     __slots__ = ("page_size", "org")

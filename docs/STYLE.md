@@ -54,41 +54,28 @@ by `make check-docs-yaml` (CI-enforced). A block must be one of:
 
 1. **A resource manifest** — starts with `apiVersion:`/`kind:`. Validated
    automatically; no annotation needed.
-2. **An authoring-form task list** — a list of `- name:`/`kind:`/`task_config:`
-   entries. Validated automatically, including nested tasks and every
-   `task_config` against its typed schema.
-3. **An anchored fragment** — a snippet of a larger resource. Tell the gate what
+2. **An anchored fragment** — a snippet of a larger resource. Tell the gate what
    it is a fragment of via the fence info string:
    - ` ```yaml validate-as="Agent" ` — body holds top-level resource fields
      (`spec:`, `status:`, ...)
-   - ` ```yaml validate-as="Workflow.spec" ` — body holds spec-level fields
-     (`tasks:`, `budget:`, `env:`, ...)
-   - ` ```yaml validate-as="task" ` — body holds task-level fields (`export:`,
-     `flow:`, ...)
-   - ` ```yaml validate-as="task-config:llm_call" ` — body holds fields of one
-     task kind's config
+   - ` ```yaml validate-as="Agent.spec" ` — body holds spec-level fields
 
    Absent fields are fine; unknown or misshapen fields fail the build.
 
-4. **Explicitly skipped** — ` ```yaml no-validate="reason" `, only for blocks
+3. **Explicitly skipped** — ` ```yaml no-validate="reason" `, only for blocks
    that are not resource YAML at all (e.g. frontmatter examples like the one
    below). The reason is mandatory.
 
 Anything else fails the build. Consequences for authors: use full proto enum
-names (`TRANSFORM_ENGINE_JQ`, not `jq`), never invent fields, and never use the
-internal DSL form (`- task_name: { call: ... }`) — always the authoring form.
-Content that is markdown-with-frontmatter (like a `SKILL.md` listing) belongs in
-a ` ```md ` fence, not ` ```yaml `.
+names, never invent fields. Content that is markdown-with-frontmatter (like a
+`SKILL.md` listing) belongs in a ` ```md ` fence, not ` ```yaml `.
 
-Manifests and task lists are additionally held to **platform-parity
-protovalidate rules** (stigmer/stigmer#305): the rules the platform itself
-evaluates when the resource is applied — required fields, value lists, name
-patterns — on the manifest and on each task entry's outer fields. Rules _inside_
-`task_config` are not enforced (the platform does not evaluate them either; a
-doc example must never be held stricter than the platform), and anchored
-fragments are never rule-checked — partial-by-intent is their point. Run
-`make report-docs-yaml-rules` for the full-depth picture, including the latent
-findings enforcement deliberately skips.
+Manifests are additionally held to **platform-parity protovalidate rules**
+(stigmer/stigmer#305): the rules the platform itself evaluates when the resource
+is applied — required fields, value lists, name patterns. Anchored fragments are
+never rule-checked — partial-by-intent is their point. Run
+`make report-docs-yaml-rules` for the rule findings as a report that never
+fails.
 
 ## Classify every page
 

@@ -1,6 +1,5 @@
 {
   "name": "ExecutionContextSpec",
-  "kind": "EXECUTION_CONTEXT_SPEC",
   "description": "Runtime configuration and secrets for a single run.",
   "protoType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec",
   "protoFile": "apis/ai/stigmer/agentic/executioncontext/v1/spec.proto",
@@ -12,7 +11,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "ID of the parent AgentRun or WorkflowRun.",
+      "description": "ID of the parent AgentRun (or an MCP connect's execution id).",
       "required": false,
       "validation": {
         "minLength": 1

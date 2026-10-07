@@ -4,12 +4,11 @@ Comprehensive documentation for the `agentic.stigmer.ai/v1` ExecutionContext res
 
 ## What Is an ExecutionContext?
 
-An ExecutionContext is an **ephemeral, operator-managed collection of runtime configuration and secrets**. It is created by the execution engine at the start of a workflow or agent run, holds the merged key-value pairs the runner needs during that run, and is deleted when the run completes.
+An ExecutionContext is an **ephemeral, operator-managed collection of runtime configuration and secrets**. It is created by the execution engine at the start of an agent run, holds the merged key-value pairs the runner needs during that run, and is deleted when the run completes.
 
 ```
-Schedule / agent_call task / PlatformClient (environment_refs)
+Schedule / PlatformClient (environment_refs)
   + runtime_env + personal environment ──► [merge at start] ──► ExecutionContext ──► AgentRun runner
-runtime_env + personal environment (declared keys) ──► [merge at start] ──► ExecutionContext ──► WorkflowRun runner
 ```
 
 | Resource | Lifecycle | Who creates it | Purpose |
@@ -22,9 +21,9 @@ ExecutionContexts are not created by end users. They are produced by the Stigmer
 ## Key Capabilities
 
 - **Ephemeral by design**: an ExecutionContext exists only for the duration of its run — created at start, deleted at completion or failure
-- **Tied to one run**: each ExecutionContext carries the `execution_id` of the `AgentRun` or `WorkflowRun` it serves
+- **Tied to one run**: each ExecutionContext carries the `execution_id` of the `AgentRun` it serves
 - **Runtime secret injection**: supports B2B scenarios (e.g., Planton integrations) where secrets are injected at run time rather than stored in a persistent Environment
-- **Owner-scoped access, runner-gated secrets**: reads require `can_view` on the ExecutionContext (owner-only; the owner tuple is written at creation). In both editions, secret values are encrypted at rest and redacted on every read for user-class callers; only `getByExecutionId` returns decrypted values, and only to a platform-minted runner credential whose scope binds it to this very run. On cloud that credential is a sandbox token (`token_type` of `sandbox`, `workflow_sandbox`, or `connect_sandbox`; the unscoped `embedded_runner` bootstrap credential is refused and must be exchanged for a scoped token first). On OSS it is the execution-scoped token minted by `PlatformQueryController.getRunnerScopedToken` — a lane discriminator on a single-user server, not a trust boundary
+- **Owner-scoped access, runner-gated secrets**: reads require `can_view` on the ExecutionContext (owner-only; the owner tuple is written at creation). In both editions, secret values are encrypted at rest and redacted on every read for user-class callers; only `getByExecutionId` returns decrypted values, and only to a platform-minted runner credential whose scope binds it to this very run. On cloud that credential is a sandbox token (`token_type` of `sandbox` or `connect_sandbox`; the unscoped `embedded_runner` bootstrap credential is refused and must be exchanged for a scoped token first). On OSS it is the execution-scoped token minted by `PlatformQueryController.getRunnerScopedToken` — a lane discriminator on a single-user server, not a trust boundary
 - **Consistent value model**: each entry uses the same `value` / `is_secret` pattern as `EnvironmentValue`, keeping the secret-vs-plaintext semantics uniform across the system
 
 ## Documentation Index

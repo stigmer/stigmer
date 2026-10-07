@@ -129,8 +129,6 @@ export type { ResolvedExtensionDrivers } from "./extensions/registry.js";
 // tests pin against.
 export type {
   ChildOrganizationLinkedEvent,
-  RunAudienceShape,
-  RunVisibilityChangedEvent,
   OrganizationAffiliationEvent,
   PolicyGrantedEvent,
   PolicyRevokedEvent,
@@ -376,7 +374,6 @@ export { resolveRunConfig } from "./domain/agentrun/resolve-run-config.js";
 // whichever chain created the row.
 export {
   diffVisibilityShapes,
-  runAudienceShapes,
   resolveResourceCreatedEvent,
   visibilityShapesFor,
 } from "./pipeline/steps/authorization-tuples.js";
@@ -697,9 +694,9 @@ export type { PushResult as SubstrateAttachPushResult } from "./sandbox/substrat
 export type { SubstrateSandboxDriverHandle } from "./sandbox/substrate/builtin.js";
 export { newSubstrateSandboxDriver } from "./sandbox/substrate/builtin.js";
 
-// The capacity-gate seams: the dispatch-policy configs a capacity gate
+// The capacity-gate seams: the dispatch-policy config a capacity gate
 // reads — the UNSPECIFIED-resolution rules and routing modes are single
-// definitions by doctrine (oss#397), and their own headers name "a future
+// definitions by doctrine (oss#397), and its own header names "a future
 // policy consumer" as the reason they must be consumed, never re-derived.
 // Plus the lifecycle chains' loaded-execution context key: recover-chain
 // gate steps read the loaded resource through it (ctx.newState on those
@@ -709,11 +706,6 @@ export {
   ROUTING_SESSION,
   newConfigFromEnv as newAgentExecutionTemporalConfigFromEnv,
 } from "./domain/agentrun/temporal/config.js";
-export {
-  WORKFLOW_ROUTING_EXECUTION,
-  WorkflowExecutionTemporalConfig,
-  newWorkflowExecutionConfigFromEnv,
-} from "./domain/workflowrun/temporal/config.js";
 export { LOADED_EXECUTION_KEY } from "./pipeline/request-context.js";
 
 // The channel driver seam: the channel

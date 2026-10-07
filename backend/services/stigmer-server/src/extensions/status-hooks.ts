@@ -12,9 +12,8 @@
  * byte-identical — no extension activities inside it (that alternative
  * was considered and rejected).
  *
- * Scope note: this hook family spans the
- * agent-execution family ONLY. Workflowexecution is unmetered in the cloud
- * edition, and no hook is built ahead of need there.
+ * Scope note: this hook family spans the agent-execution family, the one
+ * run kind.
  */
 import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import type { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";

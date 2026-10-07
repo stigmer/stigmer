@@ -55,8 +55,8 @@ describe("parseOverlayDocument", () => {
   });
 
   it("refuses a kind other than the one its location holds", () => {
-    expect(refusal("kind: Workflow\nmetadata:\n  name: t\n")).toBe(
-      "overlay document 'ai.stigmer/agent.yaml': kind 'Workflow' is not the Agent this location holds",
+    expect(refusal("kind: McpServer\nmetadata:\n  name: t\n")).toBe(
+      "overlay document 'ai.stigmer/agent.yaml': kind 'McpServer' is not the Agent this location holds",
     );
   });
 
@@ -98,7 +98,6 @@ describe("resolveOverlayOrganizations", () => {
   const overlayOf = (agentYaml: string) =>
     parseOverlays({
       agent: { path: "ai.stigmer/agent.yaml", bytes: encoder.encode(agentYaml) },
-      workflows: [],
       mcpServers: [],
     } as never);
 
@@ -111,15 +110,8 @@ describe("resolveOverlayOrganizations", () => {
     expect(overlays.agent?.resource.spec?.skillRefs[0]?.org).toBe(GLOBEX_ID);
   });
 
-  it("resolves workflow and MCP server documents too", async () => {
+  it("resolves MCP server documents too", async () => {
     const overlays = parseOverlays({
-      workflows: [
-        {
-          path: "ai.stigmer/workflows/triage.yaml",
-          name: "triage",
-          bytes: encoder.encode("kind: Workflow\nmetadata:\n  name: triage\n  org: acme\n"),
-        },
-      ],
       mcpServers: [
         {
           path: "ai.stigmer/mcp-servers/orders.yaml",
@@ -129,7 +121,6 @@ describe("resolveOverlayOrganizations", () => {
       ],
     } as never);
     await resolveOverlayOrganizations(overlays, ACME_ID, resolver);
-    expect(overlays.workflows[0]?.resource.metadata?.org).toBe(ACME_ID);
     expect(overlays.mcpServers[0]?.resource.metadata?.org).toBe(ACME_ID);
   });
 

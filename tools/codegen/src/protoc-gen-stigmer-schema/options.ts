@@ -5,9 +5,8 @@
 // resolved from the request's own registry instead of being compiled in.
 // This replaces two mechanisms in the retired Go extractor: the typed
 // protovalidate getters, and — for the custom options — raw unknown-field
-// wire walking (including the text-format string-match it used for
-// is_expression, oss history). Reading through the registry is
-// output-identical and strictly less fragile.
+// wire walking. Reading through the registry is output-identical and
+// strictly less fragile.
 //
 // Quirks preserved deliberately, so the schemas stay byte-identical to the
 // retired extractor's output:
@@ -17,18 +16,15 @@
 //   - float/double bounds truncate toward zero to integers;
 //   - gt/lt convert to inclusive bounds via ±1.
 
-import type { DescExtension, DescField, DescMessage, FileRegistry } from "@bufbuild/protobuf";
+import type { DescExtension, DescField, FileRegistry } from "@bufbuild/protobuf";
 import { getExtension, hasExtension } from "@bufbuild/protobuf";
 import { reflect } from "@bufbuild/protobuf/reflect";
 import type { ReflectList, ReflectMessage } from "@bufbuild/protobuf/reflect";
 import type { Message } from "@bufbuild/protobuf";
 
-// Extension field numbers on google.protobuf.FieldOptions / MessageOptions.
+// Extension field numbers on google.protobuf.FieldOptions.
 const BUF_VALIDATE_FIELD = 1159;
-const IS_EXPRESSION = 90203;
 const REFERENCE_KIND = 90204;
-const DISCRIMINATED_BY = 90205;
-const DISCRIMINATOR_VALUE = 90301;
 
 /** Validation rules in the exact shape the Go extractor captured. */
 export interface ValidationRules {
@@ -45,20 +41,12 @@ export interface ValidationRules {
 
 export class OptionsReader {
   private readonly validateExt: DescExtension | undefined;
-  private readonly isExpressionExt: DescExtension | undefined;
   private readonly referenceKindExt: DescExtension | undefined;
-  private readonly discriminatedByExt: DescExtension | undefined;
-  private readonly discriminatorValueExt: DescExtension | undefined;
 
   constructor(registry: FileRegistry) {
     const fieldOptions = registry.getMessage("google.protobuf.FieldOptions");
-    const messageOptions = registry.getMessage("google.protobuf.MessageOptions");
     this.validateExt = fieldOptions && registry.getExtensionFor(fieldOptions, BUF_VALIDATE_FIELD);
-    this.isExpressionExt = fieldOptions && registry.getExtensionFor(fieldOptions, IS_EXPRESSION);
     this.referenceKindExt = fieldOptions && registry.getExtensionFor(fieldOptions, REFERENCE_KIND);
-    this.discriminatedByExt = fieldOptions && registry.getExtensionFor(fieldOptions, DISCRIMINATED_BY);
-    this.discriminatorValueExt =
-      messageOptions && registry.getExtensionFor(messageOptions, DISCRIMINATOR_VALUE);
   }
 
   /** Port of extractValidation: buf.validate rules, or null when none captured. */
@@ -192,24 +180,9 @@ export class OptionsReader {
     return hasValidation ? v : null;
   }
 
-  isExpression(field: DescField): boolean {
-    const value = this.scalarExtension(field.proto.options, this.isExpressionExt);
-    return value === true;
-  }
-
   referenceKind(field: DescField): number {
     const value = this.scalarExtension(field.proto.options, this.referenceKindExt);
     return typeof value === "number" ? value : 0;
-  }
-
-  discriminatedBy(field: DescField): string {
-    const value = this.scalarExtension(field.proto.options, this.discriminatedByExt);
-    return typeof value === "string" ? value : "";
-  }
-
-  discriminatorValue(msg: DescMessage): string {
-    const value = this.scalarExtension(msg.proto.options, this.discriminatorValueExt);
-    return typeof value === "string" ? value : "";
   }
 
   private scalarExtension(options: Message | undefined, ext: DescExtension | undefined): unknown {

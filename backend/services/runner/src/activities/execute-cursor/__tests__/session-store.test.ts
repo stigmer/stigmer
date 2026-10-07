@@ -5,7 +5,7 @@
  * The location rules are correctness-critical: the state root is keyed by
  * sessionId and rooted at the durable workspace volume so native
  * Agent.resume() survives restart/snapshot-restore and so sessions that share
- * one volume (a workflow sandbox's child agent executions) never collide.
+ * one volume never collide.
  *
  * The lifetime rules are what a revert of the adapter's release hooks would
  * break: one open per session however many activities ask, the SAME instance

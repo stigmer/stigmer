@@ -42,16 +42,14 @@ class PluginStatus(_message.Message):
     def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., digest: _Optional[str] = ..., artifact_storage_key: _Optional[str] = ..., state: _Optional[_Union[PluginState, str]] = ..., error: _Optional[str] = ..., materialized: _Optional[_Union[PluginMaterialization, _Mapping]] = ..., warnings: _Optional[_Iterable[_Union[PluginWarning, _Mapping]]] = ..., hooks: _Optional[_Union[_hooks_pb2.HookConfig, _Mapping]] = ...) -> None: ...
 
 class PluginMaterialization(_message.Message):
-    __slots__ = ("skills", "mcp_servers", "agents", "workflows")
+    __slots__ = ("skills", "mcp_servers", "agents")
     SKILLS_FIELD_NUMBER: _ClassVar[int]
     MCP_SERVERS_FIELD_NUMBER: _ClassVar[int]
     AGENTS_FIELD_NUMBER: _ClassVar[int]
-    WORKFLOWS_FIELD_NUMBER: _ClassVar[int]
     skills: int
     mcp_servers: int
     agents: int
-    workflows: int
-    def __init__(self, skills: _Optional[int] = ..., mcp_servers: _Optional[int] = ..., agents: _Optional[int] = ..., workflows: _Optional[int] = ...) -> None: ...
+    def __init__(self, skills: _Optional[int] = ..., mcp_servers: _Optional[int] = ..., agents: _Optional[int] = ...) -> None: ...
 
 class PluginWarning(_message.Message):
     __slots__ = ("kind", "message", "path")

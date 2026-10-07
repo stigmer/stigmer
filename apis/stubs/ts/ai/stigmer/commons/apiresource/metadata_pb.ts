@@ -182,7 +182,7 @@ export type ApiResourceMetadataVersion = Message<"ai.stigmer.commons.apiresource
 
   /**
    * Optional tag to assign to this version at creation time.
-   * Only applicable to versioned resources (Skills, Workflows).
+   * Only applicable to versioned resources (Agents, Skills, Plugins).
    * Examples: "stable", "v1.0", "production"
    *
    * @generated from field: string tag = 4;

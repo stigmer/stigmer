@@ -156,7 +156,7 @@ describe.skipIf(process.platform === "win32")(
     });
 
     it("deprovision of an absent sandbox is success (idempotent)", async () => {
-      await driver.deprovisionWorkflowSandbox("wfx_never_existed");
+      await driver.deprovisionSessionSandbox("ses_never_existed");
     });
   },
 );

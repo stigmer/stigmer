@@ -1,8 +1,7 @@
 /**
  * Skill push pipeline — ports pkg/domain/skill/controller/push.go: the
  * 12-step chain converting PushSkillRequest → Skill under the
- * content-addressed versioning model shared with workflows (#341, adopted
- * for skills in #475).
+ * content-addressed versioning model (#341, adopted for skills in #475).
  *
  *   ValidateProto → ResolveArtifactSource → BuildInitialSkill →
  *   ExtractAndHashArtifact → ResolveSlugForPush → FindExistingBySlug →

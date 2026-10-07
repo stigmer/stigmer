@@ -1,7 +1,5 @@
 package ai.stigmer.sdk.gen;
 
-import ai.stigmer.agentic.workflow.v1.Workflow;
-import ai.stigmer.agentic.workflow.v1.WorkflowTask;
 import com.google.protobuf.ListValue;
 import com.google.protobuf.NullValue;
 import com.google.protobuf.Struct;
@@ -23,6 +21,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * produce a garbage StringValue ({@code "[Ljava.lang.String;@..."}), the
  * unsupported-type cases return normally instead of throwing, and the
  * non-String-key case dies with a raw ClassCastException.
+ *
+ * <p>The struct-kind field these tests drive is an agent run's
+ * {@code structuredOutputSchema}, converted through the real
+ * {@code AgentRunInput} entry point.
  */
 class InputConversionTest {
 
@@ -36,12 +38,16 @@ class InputConversionTest {
 
     private enum Mode { FAST }
 
-    private static WorkflowTask taskProtoWithConfig(java.util.Map<String, Object> config) {
-        return WorkflowInput.WorkflowTaskInput.builder()
-            .name("t1")
-            .taskConfig(config)
+    private static Struct schemaOnTheWire(java.util.Map<String, Object> schema) {
+        return AgentRunInput.builder()
+            .name("verdict-run")
+            .org("acme")
+            .sessionId("ses-1")
+            .structuredOutputSchema(schema)
             .build()
-            .toProto();
+            .toProto()
+            .getSpec()
+            .getStructuredOutputSchema();
     }
 
     // ------------------------------------------------------------------
@@ -50,10 +56,10 @@ class InputConversionTest {
     // ------------------------------------------------------------------
 
     @Test
-    void taskConfig_stringArray_convertsToListValue() {
-        WorkflowTask task = taskProtoWithConfig(java.util.Map.of("tags", new String[] {"a", "b"}));
+    void schema_stringArray_convertsToListValue() {
+        Struct schema = schemaOnTheWire(java.util.Map.of("tags", new String[] {"a", "b"}));
 
-        Value tags = task.getTaskConfig().getFieldsOrThrow("tags");
+        Value tags = schema.getFieldsOrThrow("tags");
         assertEquals(Value.KindCase.LIST_VALUE, tags.getKindCase());
         assertEquals(2, tags.getListValue().getValuesCount());
         assertEquals("a", tags.getListValue().getValues(0).getStringValue());
@@ -61,10 +67,10 @@ class InputConversionTest {
     }
 
     @Test
-    void taskConfig_primitiveIntArray_convertsToListValue() {
-        WorkflowTask task = taskProtoWithConfig(java.util.Map.of("counts", new int[] {1, 2, 3}));
+    void schema_primitiveIntArray_convertsToListValue() {
+        Struct schema = schemaOnTheWire(java.util.Map.of("counts", new int[] {1, 2, 3}));
 
-        Value counts = task.getTaskConfig().getFieldsOrThrow("counts");
+        Value counts = schema.getFieldsOrThrow("counts");
         assertEquals(Value.KindCase.LIST_VALUE, counts.getKindCase());
         assertEquals(3, counts.getListValue().getValuesCount());
         assertEquals(2.0, counts.getListValue().getValues(1).getNumberValue());
@@ -76,59 +82,59 @@ class InputConversionTest {
     // ------------------------------------------------------------------
 
     @Test
-    void taskConfig_pojo_throwsInvalidArgumentNamingPath() {
+    void schema_pojo_throwsInvalidArgumentNamingPath() {
         StigmerException e = assertThrows(StigmerException.class,
-            () -> taskProtoWithConfig(java.util.Map.of("outcome", new Outcome())));
+            () -> schemaOnTheWire(java.util.Map.of("outcome", new Outcome())));
 
         assertEquals(ErrorCode.INVALID_ARGUMENT, e.getCode());
-        assertTrue(e.getMessage().contains("taskConfig[\"outcome\"]"),
+        assertTrue(e.getMessage().contains("structuredOutputSchema[\"outcome\"]"),
             "message should name the field path, got: " + e.getMessage());
         assertTrue(e.getMessage().contains(Outcome.class.getName()),
             "message should name the offending type, got: " + e.getMessage());
     }
 
     @Test
-    void taskConfig_enum_throwsInvalidArgument() {
+    void schema_enum_throwsInvalidArgument() {
         StigmerException e = assertThrows(StigmerException.class,
-            () -> taskProtoWithConfig(java.util.Map.of("mode", Mode.FAST)));
+            () -> schemaOnTheWire(java.util.Map.of("mode", Mode.FAST)));
 
         assertEquals(ErrorCode.INVALID_ARGUMENT, e.getCode());
-        assertTrue(e.getMessage().contains("taskConfig[\"mode\"]"));
+        assertTrue(e.getMessage().contains("structuredOutputSchema[\"mode\"]"));
     }
 
     @Test
-    void taskConfig_instant_throwsInvalidArgument() {
+    void schema_instant_throwsInvalidArgument() {
         StigmerException e = assertThrows(StigmerException.class,
-            () -> taskProtoWithConfig(java.util.Map.of("at", java.time.Instant.EPOCH)));
+            () -> schemaOnTheWire(java.util.Map.of("at", java.time.Instant.EPOCH)));
 
         assertEquals(ErrorCode.INVALID_ARGUMENT, e.getCode());
-        assertTrue(e.getMessage().contains("taskConfig[\"at\"]"));
+        assertTrue(e.getMessage().contains("structuredOutputSchema[\"at\"]"));
     }
 
     @Test
-    void taskConfig_pojoDeepInsideListsAndMaps_errorNamesFullPath() {
+    void schema_pojoDeepInsideListsAndMaps_errorNamesFullPath() {
         java.util.Map<String, Object> config = java.util.Map.of(
             "steps", java.util.List.of(java.util.Map.of("bad", new Outcome())));
 
         StigmerException e = assertThrows(StigmerException.class,
-            () -> taskProtoWithConfig(config));
+            () -> schemaOnTheWire(config));
 
-        assertTrue(e.getMessage().contains("taskConfig[\"steps\"][0][\"bad\"]"),
+        assertTrue(e.getMessage().contains("structuredOutputSchema[\"steps\"][0][\"bad\"]"),
             "message should compose the nested path, got: " + e.getMessage());
     }
 
     @Test
-    void taskConfig_nonStringMapKey_throwsInvalidArgumentNotClassCast() {
+    void schema_nonStringMapKey_throwsInvalidArgumentNotClassCast() {
         java.util.Map<Object, Object> raw = new java.util.HashMap<>();
         raw.put(42, "x");
         @SuppressWarnings("unchecked") // what type erasure lets callers do
         java.util.Map<String, Object> smuggled = (java.util.Map<String, Object>) (java.util.Map<?, ?>) raw;
 
         StigmerException e = assertThrows(StigmerException.class,
-            () -> taskProtoWithConfig(java.util.Map.of("nested", smuggled)));
+            () -> schemaOnTheWire(java.util.Map.of("nested", smuggled)));
 
         assertEquals(ErrorCode.INVALID_ARGUMENT, e.getCode());
-        assertTrue(e.getMessage().contains("taskConfig[\"nested\"]"));
+        assertTrue(e.getMessage().contains("structuredOutputSchema[\"nested\"]"));
         assertTrue(e.getMessage().contains("Integer"),
             "message should name the offending key type, got: " + e.getMessage());
     }
@@ -139,7 +145,7 @@ class InputConversionTest {
     // ------------------------------------------------------------------
 
     @Test
-    void taskConfig_recognizedValues_convertUnchanged() {
+    void schema_recognizedValues_convertUnchanged() {
         java.util.Map<String, Object> nested = new java.util.HashMap<>();
         nested.put("inner", "v");
         java.util.Map<String, Object> config = new java.util.HashMap<>();
@@ -150,7 +156,7 @@ class InputConversionTest {
         config.put("obj", nested);
         config.put("list", java.util.List.of("x", 2));
 
-        Struct got = taskProtoWithConfig(config).getTaskConfig();
+        Struct got = schemaOnTheWire(config);
 
         Struct want = Struct.newBuilder()
             .putFields("str", Value.newBuilder().setStringValue("hello").build())
@@ -164,27 +170,5 @@ class InputConversionTest {
                 .addValues(Value.newBuilder().setNumberValue(2))).build())
             .build();
         assertEquals(want, got);
-    }
-
-    // ------------------------------------------------------------------
-    // End-to-end: the contract holds through the real WorkflowInput entry
-    // point, not just the nested task type.
-    // ------------------------------------------------------------------
-
-    @Test
-    void workflowInput_endToEnd_arrayInTaskConfigReachesWireAsList() {
-        Workflow proto = WorkflowInput.builder()
-            .name("wf")
-            .org("acme")
-            .tasks(java.util.List.of(
-                WorkflowInput.WorkflowTaskInput.builder()
-                    .name("t1")
-                    .taskConfig(java.util.Map.of("tags", new String[] {"a"}))
-                    .build()))
-            .build()
-            .toProto();
-
-        Value tags = proto.getSpec().getTasks(0).getTaskConfig().getFieldsOrThrow("tags");
-        assertEquals(Value.KindCase.LIST_VALUE, tags.getKindCase());
     }
 }

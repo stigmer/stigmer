@@ -46,7 +46,7 @@ export const PluginQueryController = {
     /**
      * List the resources an installed plugin materialised.
      *
-     * Returns every skill, MCP server, agent and workflow the plugin owns, in
+     * Returns every skill, MCP server and agent the plugin owns, in
      * materialisation order.
      *
      * @generated from rpc ai.stigmer.agentic.plugin.v1.PluginQueryController.listMembers

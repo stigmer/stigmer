@@ -35,8 +35,7 @@
  * tree already uses. The `kind` strings are the enum NAMES the drivers'
  * `kind` column holds (proto-fields.ts `apiResourceKindName`). A kind since
  * removed from the contract keeps its entry and decodes through a frozen
- * envelope (frozen-agent-instance.ts, frozen-workflow-instance.ts), so this
- * step does what it did.
+ * envelope (frozen-envelopes.ts), so this step does what it did.
  *
  * Why an undecodable row fails the step. The row may name a deleted
  * organization, and skipping it would leave that slug free for anyone to
@@ -52,7 +51,6 @@ import { reflect } from "@bufbuild/protobuf/reflect";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
-import { ArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
@@ -61,8 +59,6 @@ import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_p
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 import { SubscriptionSchema } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/api_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
@@ -71,8 +67,13 @@ import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_p
 import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 
-import { FrozenAgentInstanceEnvelopeSchema } from "./frozen-agent-instance.js";
-import { FrozenWorkflowInstanceEnvelopeSchema } from "./frozen-workflow-instance.js";
+import {
+  FrozenAgentInstanceEnvelopeSchema,
+  FrozenArtifactEnvelopeSchema,
+  FrozenWorkflowEnvelopeSchema,
+  FrozenWorkflowExecutionEnvelopeSchema,
+  FrozenWorkflowInstanceEnvelopeSchema,
+} from "./frozen-envelopes.js";
 
 /** One kind whose rows name their organization, with the schema its rows decode through. */
 export interface OrganizationScopedKind {
@@ -101,11 +102,11 @@ export const ORGANIZATION_SCOPED_KINDS_AT_LEDGER: ReadonlyArray<OrganizationScop
     { kind: "agent_share", schema: AgentShareSchema },
     { kind: "agent_channel", schema: AgentChannelSchema },
     { kind: "channel_app", schema: ChannelAppSchema },
-    { kind: "workflow", schema: WorkflowSchema },
+    { kind: "workflow", schema: FrozenWorkflowEnvelopeSchema },
     { kind: "workflow_instance", schema: FrozenWorkflowInstanceEnvelopeSchema },
-    { kind: "workflow_execution", schema: WorkflowRunSchema },
+    { kind: "workflow_execution", schema: FrozenWorkflowExecutionEnvelopeSchema },
     { kind: "environment", schema: EnvironmentSchema },
-    { kind: "artifact", schema: ArtifactSchema },
+    { kind: "artifact", schema: FrozenArtifactEnvelopeSchema },
     { kind: "schedule", schema: ScheduleSchema },
     { kind: "memory", schema: MemorySchema },
     { kind: "plugin", schema: PluginSchema },

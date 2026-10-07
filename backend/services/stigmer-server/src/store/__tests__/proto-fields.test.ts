@@ -23,7 +23,7 @@ describe("apiResourceKindName", () => {
     [ApiResourceKind.agent, "agent"],
     [ApiResourceKind.agent_run, "agent_run"],
     [ApiResourceKind.mcp_server, "mcp_server"],
-    [ApiResourceKind.workflow_run, "workflow_run"],
+    [ApiResourceKind.agent_share, "agent_share"],
     [ApiResourceKind.execution_context, "execution_context"],
     [ApiResourceKind.skill, "skill"],
   ])("maps kind %d to Go's kind.String() value %j", (kind, expected) => {
@@ -75,7 +75,7 @@ describe("extractLabelValue", () => {
 describe("toSnakeCase", () => {
   it.each([
     ["executionId", "execution_id"],
-    ["workflowInstanceId", "workflow_instance_id"],
+    ["agentRunId", "agent_run_id"],
     ["already_snake", "already_snake"],
     ["single", "single"],
   ])("converts %j to %j (Go toSnakeCase)", (input, expected) => {

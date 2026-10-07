@@ -16,8 +16,7 @@
  *     cannot drift (one annotation owns the permission and the copy; a
  *     `get` that is itself a skip makes the reference read a skip too).
  *   - a parent-gated create: the request names a parent (an agent to
- *     schedule, share, channel-bind or instantiate; a workflow to
- *     instantiate), the domain's resolve step loads and stashes it, and the
+ *     schedule, share or channel-bind), the domain's resolve step loads and stashes it, and the
  *     question is the caller's standing on that parent (or on the row's
  *     organization), with the copy the lane has always answered.
  *

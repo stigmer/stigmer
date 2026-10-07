@@ -36,9 +36,8 @@ the gate asks whether the tests that should exist do.
 ## Notes the map does not carry
 
 - After any `.proto` change the docs-facing checks
-  (`make check-docs-yaml gen-proto-sdk-docs-check gen-task-registry-check`) are
-  mandatory. They run in seconds and are historically the gates that break CI
-  after a proto change.
+  (`make check-docs-yaml gen-proto-sdk-docs-check`) are mandatory. They run in
+  seconds and are historically the gates that break CI after a proto change.
 - The TypeDoc-based checks (`gen-react-sdk-docs-check`,
   `gen-ink-sdk-docs-check`, `gen-theme-docs-check`) are slow, and they are a
   gate: nothing regenerates behind a merge, so a change to an exported symbol's

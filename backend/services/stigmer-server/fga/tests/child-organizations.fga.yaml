@@ -61,8 +61,6 @@ tuples:
   - {user: organization:planton#viewer, relation: viewer, object: agent:sara}
   - {user: organization:planton, relation: organization, object: skill:research}
   - {user: organization:planton#child_org_viewer, relation: child_org_viewer, object: skill:research}
-  - {user: organization:planton, relation: organization, object: workflow:onboarding}
-  - {user: organization:planton#child_org_viewer, relation: child_org_viewer, object: workflow:onboarding}
   - {user: organization:planton, relation: organization, object: mcp_server:github}
   - {user: organization:planton#child_org_viewer, relation: child_org_viewer, object: mcp_server:github}
   - {user: organization:planton, relation: organization, object: plugin:thermos}
@@ -225,11 +223,6 @@ tests:
         assertions:
           can_view: true
           can_edit: false
-      - user: identity_account:alice
-        object: workflow:onboarding
-        assertions:
-          can_view: true
-          can_execute: true
       - user: identity_account:alice
         object: mcp_server:github
         assertions:

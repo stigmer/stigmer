@@ -1,8 +1,6 @@
 /**
- * The sandbox invocation surface — the per-lane postures the cloud
- * edition proved in production (ONE shared implementation, per-lane
- * postures — the session lane is the shared step's shape, the workflow
- * lane is deliberately its opposite):
+ * The session sandbox invocation surface — the postures the cloud
+ * edition proved in production:
  *
  *   - EnsureSessionSandbox (agent executions): AFTER StartWorkflow,
  *     NON-critical. A provisioning failure never fails the launch, but it
@@ -12,15 +10,6 @@
  *     cause instead of a generic timeout. The 2026-07 cloud quota outage
  *     hid for two days behind this step's former WARN-and-swallow — the
  *     pre-stamp posture is contract.
- *   - EnsureWorkflowSandbox (workflow executions): BEFORE Persist,
- *     CRITICAL and synchronous — a refusal orphans nothing (no row, no
- *     Temporal workflow), the verified Java ordering.
- *   - Workflow-sandbox terminal deprovision: server-side at the three
- *     status write sites (the invoke workflow's history shape is pinned
- *     contract, so no new workflow activity). KNOWN WINDOW, accepted: the orchestrator's terminal persists are
- *     best-effort, so a persist that never lands leaks the sandbox — OSS
- *     has no orphan reaper (the cloud's rides its extension workers).
- *     Deprovision is idempotent, so multiple sites firing is harmless.
  *   - DeprovisionSessionSandbox (session delete): best-effort teardown,
  *     ERROR-logged on failure, never fails the delete (the Java
  *     SessionDeleteHandler posture).
@@ -41,30 +30,19 @@ import {
   AgentRunStatusSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
-import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
-import { RunPhase as WorkflowExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../boot/logger.js";
 import type { AgentExecutionTemporalConfig } from "../domain/agentrun/temporal/config.js";
 import type { CallerIdentity } from "../extensions/identity.js";
-import {
-  WORKFLOW_ROUTING_EXECUTION,
-  type WorkflowExecutionTemporalConfig,
-} from "../domain/workflowrun/temporal/config.js";
-import { unavailableError } from "../pipeline/errors.js";
 import type { PipelineStep } from "../pipeline/pipeline.js";
 import {
   formatSessionTaskQueue,
   resolveActivityTaskQueue,
 } from "../temporal/agentexecution/dispatch.js";
-import { resolveWorkflowTaskQueue } from "../temporal/workflowexecution/dispatch.js";
 import type { Store } from "../store/interface.js";
 import { mintSandboxToken, type SandboxLane } from "./lane.js";
 import { sessionIdOf } from "../domain/agentrun/target.js";
-import { parentRunQueueOf } from "../domain/agentrun/vouch-workflow-parent.js";
-import type { WorkflowRunQueue } from "../temporal/workflowexecution/dispatch.js";
 
 /**
  * The pre-stamped root-cause prefix — the cloud edition's
@@ -92,15 +70,10 @@ export interface EnsureSessionSandboxDeps {
   readonly logger: Logger;
   readonly lane: SandboxLane;
   readonly temporalConfig: AgentExecutionTemporalConfig;
-  /**
-   * The queue a turn's vouched parent link routes it to; absent on the
-   * recover chain, which never carries the link (lifecycle.ts).
-   */
-  readonly workflowRunQueue?: WorkflowRunQueue;
 }
 
 /**
- * The session-lane ensure step (module header posture #1). Placed after
+ * The session-lane ensure step (module header, the first posture). Placed after
  * StartWorkflow in the agent-execution create chain and after
  * StartFreshWorkflow in recover — the sandbox boots concurrently with the
  * workflow's first activity ScheduleToStart window.
@@ -151,14 +124,7 @@ export async function ensureSessionSandboxForExecution(
   const lane = deps.lane;
   const executionId = execution.metadata?.id ?? "";
   const sessionId = sessionIdOf(execution.spec);
-  // A workflow run's child turn routed to its parent's queue shares the
-  // parent's sandbox — dispatch forces LOCAL there, but skipping before
-  // the store read keeps the child-execution hot path free of it.
-  if (
-    sessionId === "" ||
-    (deps.workflowRunQueue !== undefined &&
-      parentRunQueueOf(execution, deps.workflowRunQueue) !== "")
-  ) {
+  if (sessionId === "") {
     return;
   }
   try {
@@ -166,7 +132,6 @@ export async function ensureSessionSandboxForExecution(
       deps.store,
       sessionId,
       deps.temporalConfig,
-      "",
       deps.logger,
     );
     if (dispatch.executionTarget !== ExecutionTarget.CLOUD) {
@@ -250,155 +215,9 @@ async function stampProvisioningFailure(
   }
 }
 
-export interface EnsureWorkflowSandboxDeps {
-  readonly logger: Logger;
-  readonly lane: SandboxLane;
-  readonly temporalConfig: WorkflowExecutionTemporalConfig;
-}
-
-/**
- * The workflow-lane ensure step (module header posture #2): CRITICAL,
- * placed before Persist in the workflow-execution create chain — a
- * provisioning failure answers Unavailable with zero orphaned state.
- * Only reachable with a provisioner composed AND per-execution routing
- * resolved to CLOUD, so the copy is new surface, not ported wire
- * contract.
- */
-export function newEnsureWorkflowSandboxStep(
-  deps: EnsureWorkflowSandboxDeps,
-): PipelineStep<typeof WorkflowRunSchema> {
-  return {
-    name: "EnsureWorkflowSandbox",
-    async execute(ctx) {
-      await ensureWorkflowSandboxForExecution(
-        deps,
-        ctx.newState,
-        ctx.callerIdentity,
-      );
-    },
-  };
-}
-
-/**
- * The workflow-lane body, shared by the create step above and recover's
- * re-provision (lifecycle.ts — the previous sandbox was deprovisioned at
- * the terminal FAILED, so a recovered execution needs a fresh one before
- * its fresh workflow starts). Throws Unavailable on provisioning failure
- * — the critical posture in both chains. The caller splits exactly as on
- * the session body: id to the mint, class to the environment.
- */
-export async function ensureWorkflowSandboxForExecution(
-  deps: EnsureWorkflowSandboxDeps,
-  execution: WorkflowRun,
-  caller: SandboxCaller,
-): Promise<void> {
-  if (!deps.lane.enabled) {
-    return;
-  }
-  const lane = deps.lane;
-  const executionId = execution.metadata?.id ?? "";
-  if (
-    executionId === "" ||
-    deps.temporalConfig.workflowActivityRouting !== WORKFLOW_ROUTING_EXECUTION
-  ) {
-    return;
-  }
-  const dispatch = resolveWorkflowTaskQueue(
-    executionId,
-    execution.spec?.executionTarget ?? ExecutionTarget.UNSPECIFIED,
-    deps.temporalConfig,
-    deps.logger,
-  );
-  if (dispatch.executionTarget !== ExecutionTarget.CLOUD) {
-    return;
-  }
-  try {
-    await lane.provisioner.ensureWorkflowSandbox(executionId, {
-      taskQueue: dispatch.taskQueue,
-      stigmerToken: mintSandboxToken(
-        lane,
-        {
-          scope: "workflow",
-          sessionId: "",
-          executionId,
-          org: execution.metadata?.org ?? "",
-          callerIdentityId: caller.identityId,
-        },
-        deps.logger,
-      ),
-      callerClass: caller.callerClass,
-    });
-  } catch (error) {
-    deps.logger.error(
-      "Workflow sandbox provisioning failed - refusing the request",
-      {
-        executionId,
-        error: error instanceof Error ? error.message : String(error),
-      },
-    );
-    throw unavailableError("failed to provision workflow sandbox");
-  }
-}
-
-/** The workflow-execution phases after which the per-execution sandbox has no work left. */
-const TERMINAL_WORKFLOW_PHASES: ReadonlySet<WorkflowExecutionPhase> = new Set([
-  WorkflowExecutionPhase.RUN_COMPLETED,
-  WorkflowExecutionPhase.RUN_FAILED,
-  WorkflowExecutionPhase.RUN_CANCELLED,
-  WorkflowExecutionPhase.RUN_TERMINATED,
-]);
-
-/**
- * Observes one persisted status write and fires the workflow-sandbox
- * teardown on a transition INTO a terminal phase — fire-and-forget
- * (module header posture #3). Invoked from the three status write sites
- * (the UpdateStatus RPC, the orchestrator's persist activity, the
- * lifecycle cancel/terminate persists); idempotent deprovision makes the
- * multi-site wiring safe.
- */
-export type WorkflowSandboxTerminalObserver = (
-  executionId: string,
-  previousPhase: WorkflowExecutionPhase,
-  currentPhase: WorkflowExecutionPhase,
-) => void;
-
-export function newWorkflowSandboxTerminalObserver(
-  lane: SandboxLane,
-  logger: Logger,
-): WorkflowSandboxTerminalObserver {
-  return (executionId, previousPhase, currentPhase) => {
-    if (
-      !lane.enabled ||
-      previousPhase === currentPhase ||
-      !TERMINAL_WORKFLOW_PHASES.has(currentPhase)
-    ) {
-      return;
-    }
-    void lane.provisioner.deprovisionWorkflowSandbox(executionId).then(
-      () => {
-        logger.info("Workflow sandbox deprovisioned on terminal phase", {
-          executionId,
-          phase: WorkflowExecutionPhase[currentPhase],
-        });
-      },
-      (error: unknown) => {
-        // ERROR, not warn: nothing retries this and no reaper exists —
-        // the log line is the operator's only signal of the leak.
-        logger.error(
-          "Workflow sandbox deprovision failed - sandbox may be leaked",
-          {
-            executionId,
-            error: error instanceof Error ? error.message : String(error),
-          },
-        );
-      },
-    );
-  };
-}
-
 /**
  * Best-effort session-sandbox teardown for the session delete handler
- * (module header posture #4; the Java SessionDeleteHandler shape — a
+ * (module header, the second posture; the Java SessionDeleteHandler shape — a
  * handler call after the delete pipeline, not a pipeline step). A
  * failure never fails the delete (the row is already gone) but is
  * ERROR-logged — no reaper exists to catch a leak.

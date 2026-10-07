@@ -12,7 +12,7 @@ public interface RecentActivityEntryOrBuilder extends
 
   /**
    * <pre>
-   * Resource ID (session ID or workflow run ID).
+   * Session ID.
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -21,7 +21,7 @@ public interface RecentActivityEntryOrBuilder extends
   java.lang.String getId();
   /**
    * <pre>
-   * Resource ID (session ID or workflow run ID).
+   * Session ID.
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -32,29 +32,7 @@ public interface RecentActivityEntryOrBuilder extends
 
   /**
    * <pre>
-   * Discriminator: "session" or "workflow_run".
-   * </pre>
-   *
-   * <code>string type = 2 [json_name = "type"];</code>
-   * @return The type.
-   */
-  java.lang.String getType();
-  /**
-   * <pre>
-   * Discriminator: "session" or "workflow_run".
-   * </pre>
-   *
-   * <code>string type = 2 [json_name = "type"];</code>
-   * @return The bytes for type.
-   */
-  com.google.protobuf.ByteString
-      getTypeBytes();
-
-  /**
-   * <pre>
-   * Human-readable label for display.
-   * For sessions: the conversation subject.
-   * For workflow runs: the run name.
+   * Human-readable label for display: the conversation subject.
    * </pre>
    *
    * <code>string subject = 3 [json_name = "subject"];</code>
@@ -63,9 +41,7 @@ public interface RecentActivityEntryOrBuilder extends
   java.lang.String getSubject();
   /**
    * <pre>
-   * Human-readable label for display.
-   * For sessions: the conversation subject.
-   * For workflow runs: the run name.
+   * Human-readable label for display: the conversation subject.
    * </pre>
    *
    * <code>string subject = 3 [json_name = "subject"];</code>
@@ -76,8 +52,8 @@ public interface RecentActivityEntryOrBuilder extends
 
   /**
    * <pre>
-   * When this entry was last meaningfully updated.
-   * Used for interleaved sort (newest first).
+   * When this session last saw meaningful activity.
+   * Used for the sort (newest first).
    * </pre>
    *
    * <code>.google.protobuf.Timestamp updated_at = 4 [json_name = "updatedAt"];</code>
@@ -86,8 +62,8 @@ public interface RecentActivityEntryOrBuilder extends
   boolean hasUpdatedAt();
   /**
    * <pre>
-   * When this entry was last meaningfully updated.
-   * Used for interleaved sort (newest first).
+   * When this session last saw meaningful activity.
+   * Used for the sort (newest first).
    * </pre>
    *
    * <code>.google.protobuf.Timestamp updated_at = 4 [json_name = "updatedAt"];</code>
@@ -96,33 +72,11 @@ public interface RecentActivityEntryOrBuilder extends
   com.google.protobuf.Timestamp getUpdatedAt();
   /**
    * <pre>
-   * When this entry was last meaningfully updated.
-   * Used for interleaved sort (newest first).
+   * When this session last saw meaningful activity.
+   * Used for the sort (newest first).
    * </pre>
    *
    * <code>.google.protobuf.Timestamp updated_at = 4 [json_name = "updatedAt"];</code>
    */
   com.google.protobuf.TimestampOrBuilder getUpdatedAtOrBuilder();
-
-  /**
-   * <pre>
-   * Run phase label for workflow runs (e.g., "completed", "failed").
-   * Empty for sessions.
-   * </pre>
-   *
-   * <code>string status = 5 [json_name = "status"];</code>
-   * @return The status.
-   */
-  java.lang.String getStatus();
-  /**
-   * <pre>
-   * Run phase label for workflow runs (e.g., "completed", "failed").
-   * Empty for sessions.
-   * </pre>
-   *
-   * <code>string status = 5 [json_name = "status"];</code>
-   * @return The bytes for status.
-   */
-  com.google.protobuf.ByteString
-      getStatusBytes();
 }

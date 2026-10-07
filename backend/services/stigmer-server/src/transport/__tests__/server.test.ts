@@ -46,10 +46,6 @@ beforeAll(async () => {
     logger: silentLogger,
     routes: (router) => registerHealthService(router, healthState),
     interceptors: [],
-    taskKindRegistryLane: (_request, response) => {
-      response.setHeader("x-lane", "task-kind");
-      response.end("{}");
-    },
     modelRegistryLane: (_request, response) => {
       response.setHeader("x-lane", "model");
       response.end("{}");
@@ -65,8 +61,6 @@ afterAll(async () => {
 
 describe("lane priority", () => {
   it("routes the exact registry paths to their lanes", async () => {
-    const taskKind = await fetch(`${baseUrl}/v1/proxy/task-kind-registry`);
-    expect(taskKind.headers.get("x-lane")).toBe("task-kind");
     const model = await fetch(`${baseUrl}/v1/proxy/model-registry`);
     expect(model.headers.get("x-lane")).toBe("model");
   });

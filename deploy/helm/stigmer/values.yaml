@@ -143,7 +143,7 @@ runner:
     # Optional: the name of a Secret carrying ANTHROPIC_API_KEY and/or
     # CURSOR_API_KEY. Read by explicit references marked optional, never
     # envFrom (which would inject a Secret's every key). Agents need one
-    # key; workflows without agent tasks run key-free.
+    # key.
     existingSecret: ""
   stigmerToken:
     # With server.oidc.issuer set, the API key the runner calls the server

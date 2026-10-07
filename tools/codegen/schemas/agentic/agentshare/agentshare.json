@@ -1,6 +1,5 @@
 {
   "name": "AgentShareSpec",
-  "kind": "AGENT_SHARE_SPEC",
   "description": "AgentShareSpec defines the configurable properties of an agent share.\n\n A share is a distribution channel for an agent's hosted chat experience.\n It carries its own audience, embed origins, visitor-facing messages, and\n tool credentials — all independent of the agent blueprint it references.",
   "protoType": "ai.stigmer.agentic.agentshare.v1.AgentShareSpec",
   "protoFile": "apis/ai/stigmer/agentic/agentshare/v1/spec.proto",

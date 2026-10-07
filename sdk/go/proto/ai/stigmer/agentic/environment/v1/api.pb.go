@@ -23,7 +23,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Environment stores configuration and secrets as key-value pairs for runtime use by agents and workflows.
+// Environment stores configuration and secrets as key-value pairs for runtime use by agents.
 type Environment struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.

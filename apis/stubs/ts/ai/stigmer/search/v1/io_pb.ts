@@ -134,7 +134,7 @@ export type SearchResponse = Message<"ai.stigmer.search.v1.SearchResponse"> & {
    * (not just the current page).
    *
    * Useful for rendering UI tabs or filter badges showing counts.
-   * Example: {"agent": 5, "skill": 12, "mcp_server": 3, "workflow": 2}
+   * Example: {"agent": 5, "skill": 12, "mcp_server": 3}
    *
    * @generated from field: map<string, int32> counts_by_kind = 2;
    */

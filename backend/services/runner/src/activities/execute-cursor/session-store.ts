@@ -15,8 +15,7 @@
  * `{workspaceRootDir}/.stigmer/cursor-sdk-state/{sessionId}` — the durable
  * workspace volume rather than `$HOME`, so native `Agent.resume()` survives
  * pod restart, reschedule and snapshot restore; keyed by sessionId so sessions
- * sharing one volume (a workflow sandbox's child agent executions) never
- * collide. The `workspaceRef` is the same synthetic `stigmer-session:<id>`,
+ * sharing one volume never collide. The `workspaceRef` is the same synthetic `stigmer-session:<id>`,
  * deliberately not a filesystem path, so lookups are stable regardless of
  * `process.cwd()` (in a cloud sandbox that is the runner's app directory, not
  * the workspace).
@@ -90,7 +89,7 @@ export function resolveSessionStoreLocation(sessionId: string, workspaceRootDir:
     throw new Error(
       "resolveSessionStoreLocation: sessionId is required but was empty. The Cursor SDK " +
         "state store is keyed by sessionId; an empty value would collide across sessions " +
-        "sharing a workspace volume (e.g. a workflow sandbox's child agent executions).",
+        "sharing a workspace volume.",
     );
   }
   if (!workspaceRootDir) {

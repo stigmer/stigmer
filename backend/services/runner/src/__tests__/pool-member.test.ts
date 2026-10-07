@@ -39,6 +39,7 @@ describe("decidePoolBoot", () => {
     // Booting a pool member with the wrong token class is a provisioning bug;
     // serving anything on a guess would hand the pod a scope it must not have.
     expect(decidePoolBoot(fakeJwt({ token_type: "embedded_runner" })).kind).toBe("invalid");
+    // A retired workflow sandbox's token can outlive the upgrade by its TTL.
     expect(decidePoolBoot(fakeJwt({ token_type: "workflow_sandbox" })).kind).toBe("invalid");
     expect(decidePoolBoot(fakeJwt({ sub: "user-1" })).kind).toBe("invalid");
     expect(decidePoolBoot(null).kind).toBe("invalid");

@@ -1,6 +1,5 @@
 {
   "name": "LicenseSpec",
-  "kind": "LICENSE_SPEC",
   "description": "LicenseSpec is what an operator issues: who the license is for, what it\n permits and for how long.\n\n The spec is the source of the signed claims: at issue, the issuer builds\n LicenseClaims from it, the license's id and the signing instant, signs\n them, and records the ticket in the status. The spec is final at create;\n a license that must say something else is a new License.",
   "protoType": "ai.stigmer.billing.license.v1.LicenseSpec",
   "protoFile": "apis/ai/stigmer/billing/license/v1/spec.proto",

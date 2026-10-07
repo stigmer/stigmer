@@ -1,8 +1,8 @@
 // Conformance suite for versioned resources on one version machinery.
-// Domain: agentic / agent (versions), with the arms the shared machinery
-// changed for workflows and skills.
+// Domain: agentic / agent (versions), with the arm the shared machinery
+// changed for skills.
 //
-// Agents are versioned the way workflows are: every write whose stored spec
+// An agent is versioned by content: every write whose stored spec
 // the agent never had records a new immutable version under its content hash;
 // a write reproducing an earlier spec points back at that version; an
 // unchanged write records none. A tag is a mutable, single-holder name for one
@@ -17,7 +17,7 @@
 // - getVersion serves any version's full spec, NotFound for one the agent
 //   never had;
 // - tagVersion moves a tag and clears its prior holder (behind the
-//   versionTagging capability, the workflow arms' posture);
+//   versionTagging capability);
 // - a deleted agent's history is gone with it;
 // - every surface that starts a conversation honours the version its agent
 //   reference names: a schedule and a channel store it, and a share hands
@@ -25,10 +25,10 @@
 //   reference (what a channel or a share does for each conversation) pins
 //   the version it names, not the current one. A schedule's fire on it is
 //   the execution suite's (schedule-firing);
-// - a version whose tag moved reports the tag it holds now, for an agent, a
-//   workflow and a skill alike; an unchanged re-apply naming a new tag moves
-//   it to the head, and a repoint naming no tag shows the tag the version
-//   holds (agents and workflows).
+// - a version whose tag moved reports the tag it holds now, for an agent and
+//   a skill alike; an unchanged re-apply naming a new tag moves it to the
+//   head, and a repoint naming no tag shows the tag the version holds
+//   (agents).
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
@@ -41,7 +41,6 @@ import { uniqueName } from "../support/naming";
 import { makeSchedule } from "../support/schedules";
 import { makeSession } from "../support/sessions";
 import { makeSkillArtifact } from "../support/skills";
-import { makeWorkflow } from "../support/workflows";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
@@ -320,42 +319,6 @@ describe("Agent versions — run surfaces", () => {
 });
 
 describe("Version tags after a move, on every versioned kind", () => {
-  it("[rpc:WorkflowCommandController.apply] a workflow's unchanged re-apply naming a new tag moves it to the head, recording no version", async () => {
-    const { org } = await target.provisionTenancy();
-    const name = uniqueName("wf");
-    const v1 = await clients.workflowCommand.apply(makeWorkflow({ org, name, taskVar: "v1" }));
-    fixtures.defer(() => clients.workflowCommand.delete({ value: v1.metadata!.id }));
-
-    const retagged = await clients.workflowCommand.apply(makeWorkflow({ org, name, taskVar: "v1", tag: "prod" }));
-
-    expect(retagged.status?.versionHash).toBe(v1.status?.versionHash);
-    expect(retagged.metadata?.version?.tag).toBe("prod");
-    const history = await clients.workflowQuery.listVersions({ org, slug: v1.metadata!.slug });
-    expect(history.totalCount).toBe(1);
-    expect(history.versions.map((entry) => entry.tag), "the head and the history agree").toEqual(["prod"]);
-  });
-
-  it("[rpc:WorkflowCommandController.apply] [rpc:WorkflowQueryController.getByReference] a workflow version whose tag moved reports the tag it holds now; a repoint naming the tag moves it back", async () => {
-    const { org } = await target.provisionTenancy();
-    const name = uniqueName("wf");
-    const v1 = await clients.workflowCommand.apply(makeWorkflow({ org, name, taskVar: "v1", tag: "stable" }));
-    fixtures.defer(() => clients.workflowCommand.delete({ value: v1.metadata!.id }));
-    const slug = v1.metadata!.slug;
-    await clients.workflowCommand.apply(makeWorkflow({ org, name, taskVar: "v2", tag: "stable" }));
-
-    const archived = await clients.workflowQuery.getByReference({ org, slug, version: v1.status!.versionHash });
-    expect(archived.metadata?.version?.tag, "the moved tag is no longer v1's").toBe("");
-
-    const back = await clients.workflowCommand.apply(makeWorkflow({ org, name, taskVar: "v1", tag: "stable" }));
-    expect(back.status?.versionHash).toBe(v1.status?.versionHash);
-    expect(back.metadata?.version?.tag).toBe("stable");
-    const history = await clients.workflowQuery.listVersions({ org, slug });
-    expect(history.totalCount).toBe(2);
-    expect(history.versions.filter((entry) => entry.tag === "stable").map((entry) => entry.versionHash)).toEqual([
-      v1.status?.versionHash,
-    ]);
-  });
-
   it("[rpc:SkillQueryController.getByReference] a skill version whose tag moved reports the tag it holds now", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("skill");

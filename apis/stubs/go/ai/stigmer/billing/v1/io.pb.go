@@ -469,8 +469,8 @@ type RecordLlmCallUsageInput struct {
 	// mode against what the wire served; it performs NO run lookup of
 	// its own (the same rule as cursor_account_id above: the proxy holds the
 	// fact, reports it, the handler stamps it verbatim). Absent when the
-	// proxy could not resolve the run — a workflow-run scope,
-	// or a run found in neither store — in which case the record
+	// proxy could not resolve the run — a run found in neither store — in
+	// which case the record
 	// carries an empty session and the requested-vs-billed reconciliation
 	// is skipped.
 	MeteredRun *MeteredRun `protobuf:"bytes,19,opt,name=metered_run,json=meteredRun,proto3" json:"metered_run,omitempty"`

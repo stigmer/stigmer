@@ -8,9 +8,10 @@
 // check, an empty or duplicated criterion, a non-positive weight, a
 // duplicated id). The real file parses into the ten tasks. Every reference
 // fact a rubric states agrees with the source it was taken from: the order
-// fixture, the organization's facts and the workspace's files. So a change to
-// either side without the other fails here, never silently in a paid run.
-import { readFile } from "node:fs/promises";
+// fixture, the organization's facts, the workspace's files and the agent's
+// skills. So a change to either side without the other fails here, never
+// silently in a paid run.
+import { readdir, readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import yaml from "js-yaml";
 import { describe, expect, it } from "vitest";
@@ -129,5 +130,28 @@ describe("the checked-in task file", () => {
     expect(rubric).toContain(`Weekly totals are ${totals.slice(0, -1).join(", ")} and ${totals.at(-1)}`);
     expect(rubric).toContain(`average of ${average}`);
     expect(rubric).toContain(`up ${totals.at(-1)! - totals.at(-2)!}`);
+  });
+
+  it("allows the test the agent's repo-conventions skill asks for, where the workspace has none", async () => {
+    const tasks = await load();
+    const flat = (text: string): string => text.replace(/\s+/g, " ");
+    const skill = flat(await readFile(join(WORKING_AGENT_FIXTURE_DIR, "skills", "repo-conventions", "SKILL.md"), "utf8"));
+    expect(skill, "repo-conventions asks for a test row per fix; multi-part-change's rubric allows that test").toContain(
+      "Extend the package's table-driven test with a row for every behaviour you add or fix",
+    );
+    const orders = await readdir(join(WORKSPACE, "orders"));
+    expect(
+      orders.filter((name) => name.endsWith("_test.go")),
+      "orders has no test, so repo-conventions has an agent add one; multi-part-change's rubric says so",
+    ).toEqual([]);
+
+    const multiPart = tasks.get("multi-part-change")!;
+    expect(multiPart.checks, "an allowed test must be seen passing").toContain("go_test");
+    const rubric = flat(multiPart.rubric);
+    const states = "multi-part-change states the repo-conventions rule and the absent orders test";
+    expect(rubric, states).toContain("repo-conventions skill");
+    expect(rubric, states).toContain("the orders package has no test file yet");
+    const unrelated = multiPart.criteria.find((criterion) => criterion.name === "no_unrelated_edits")!;
+    expect(flat(unrelated.description), "no_unrelated_edits allows the test repo-conventions asks for").toContain("a new test file in orders that the go_test check shows passing");
   });
 });

@@ -29,7 +29,7 @@ the truth.
   directory under `ai/stigmer/` it belongs to, its aggregate and owner are
   named, and it is registered in `ApiResourceKind`. The server and every SDK
   mirror this structure.
-- Blueprint kinds (Agent, Workflow, McpServer, Skill) carry no secrets and no
+- Blueprint kinds (Agent, McpServer, Skill) carry no secrets and no
   environment-specific values; runtime kinds do.
 - Every RPC declares its authorization posture through the commons annotations
   (`config`, `is_public`, `is_skip_authorization`); the server's
@@ -66,6 +66,6 @@ the truth.
 ## Verify
 
 The root map's rows (`make -C apis lint`, then for `.proto` changes
-`make check-docs-yaml gen-proto-sdk-docs-check gen-task-registry-check`), plus
-`make -C apis fmt` before committing and `make stubs-internal-check` to prove no
-`@internal` text reached a stub.
+`make check-docs-yaml gen-proto-sdk-docs-check`), plus `make -C apis fmt` before
+committing and `make stubs-internal-check` to prove no `@internal` text reached
+a stub.

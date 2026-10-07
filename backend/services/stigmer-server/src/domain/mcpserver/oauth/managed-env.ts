@@ -69,8 +69,8 @@ export class ManagedEnvironmentService {
    * create pipeline, which handles id generation, timestamps, and search
    * indexing. Its slug is fitted here (fittedSlug): the server chose the
    * name, after the MCP server whose tokens it holds, so a long MCP server
-   * name must not fail the OAuth callback after the user granted consent. `caller` propagates the connecting
-   * user through the hop so a
+   * name must not fail the OAuth callback after the user granted consent.
+   * `caller` propagates the connecting user through the hop so a
    * composed tuple-lifecycle driver attributes ownership to them — the
    * Java createAsCaller posture ("org link + owner = caller"); the
    * reserved-label guard keys its trust arm on the in-process ORIGIN,

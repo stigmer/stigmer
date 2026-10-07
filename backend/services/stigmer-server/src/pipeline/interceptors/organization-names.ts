@@ -37,9 +37,8 @@
  * server code, which passes the ids it read from storage. Content a person
  * wrote that reaches the server inside something else (a plugin package's
  * manifests) is resolved where it is read, with `resolveOrganizationNames`
- * over the same rules 1 and 3 (domain/plugin/overlay/documents.ts); a
- * workflow's agent_call config, which no field rule reaches, has its own
- * step (domain/workflow/agent-call-organizations.ts). A request that
+ * over the same rules 1 and 3 (domain/plugin/overlay/documents.ts). A
+ * request that
  * names nothing to resolve passes through untouched; one that does is
  * handed on as a resolved clone, never a mutation of the caller's message.
  */

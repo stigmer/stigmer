@@ -43,14 +43,11 @@ import { planMcpServers } from "./mcp-servers.js";
 import type { PlannedMcpServer } from "./mcp-servers.js";
 import { planSkills } from "./skills.js";
 import type { PlannedSkill } from "./skills.js";
-import { planWorkflows } from "./workflows.js";
-import type { PlannedWorkflow } from "./workflows.js";
 
 export interface MaterializationPlan {
   readonly skills: readonly PlannedSkill[];
   readonly mcpServers: readonly PlannedMcpServer[];
   readonly agent: PlannedAgent | undefined;
-  readonly workflows: readonly PlannedWorkflow[];
   /** Every member the push intends, in materialisation order. */
   readonly members: readonly PlannedMember[];
   /** The audit tag this push assigns; empty when the version does not fit. */
@@ -119,7 +116,6 @@ export function planMaterialization(
     identity,
     warnings,
   );
-  const workflows = planWorkflows(overlays.workflows, identity);
 
   // `system` is read from the labels each member will be written with (the
   // overlay author's, the plugin's two merged over them). A skill's request
@@ -148,19 +144,12 @@ export function planMaterialization(
             system: isSystemContent(agent.resource.metadata),
           },
         ]),
-    ...workflows.map((workflow) => ({
-      kind: ApiResourceKind.workflow,
-      slug: workflow.slug,
-      name: workflow.name,
-      system: isSystemContent(workflow.resource.metadata),
-    })),
   ];
 
   return {
     skills,
     mcpServers,
     agent,
-    workflows,
     members,
     tag,
     hooks: plugin.hooks,

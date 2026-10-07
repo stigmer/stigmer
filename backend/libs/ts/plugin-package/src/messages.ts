@@ -133,7 +133,7 @@ const ERROR_MESSAGES: Record<PluginErrorKind, Sentence> = {
   "overlay-server-unknown": (c) =>
     `${q(c.path)} overlays MCP server ${q(c.subject)}, which the plugin does not declare`,
   "overlay-document-unknown": (c) =>
-    `${q(c.path)} is not a document Stigmer reads; the 'ai.stigmer/' folder holds 'agent.yaml', 'workflows/<name>.yaml' and 'mcp-servers/<server>.yaml'`,
+    `${q(c.path)} is not a document Stigmer reads; the 'ai.stigmer/' folder holds 'agent.yaml' and 'mcp-servers/<server>.yaml'`,
 };
 
 const WARNING_MESSAGES: Record<PluginWarningKind, Sentence> = {

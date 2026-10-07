@@ -20,8 +20,8 @@ import { fetchWithRetry } from "./http-retry.js";
 
 const CACHE_TTL_MS = 3_600_000;
 // Failed fetches are cached much shorter than successes: a transient failure
-// must not poison id -> apiModelId resolution (and thereby fail every llm_call
-// with LLM_MODEL_NOT_FOUND) for a full hour.
+// must not poison id -> apiModelId resolution (and thereby fail every model
+// call with LLM_MODEL_NOT_FOUND) for a full hour.
 const FAILURE_CACHE_TTL_MS = 60_000;
 
 interface RegistryModel {

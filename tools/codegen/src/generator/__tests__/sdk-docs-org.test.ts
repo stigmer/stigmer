@@ -55,6 +55,6 @@ describe("indefiniteArticle", () => {
       "an",
       "an",
     ]);
-    expect(["Skill", "Workflow", ""].map(indefiniteArticle)).toEqual(["a", "a", "a"]);
+    expect(["Skill", "Plugin", ""].map(indefiniteArticle)).toEqual(["a", "a", "a"]);
   });
 });

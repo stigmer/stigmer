@@ -209,7 +209,6 @@ describe("AuthorizeRunTarget — the step shell", () => {
       "runner",
       "guest",
       "schedule",
-      "workflow_sandbox",
     ]) {
       const { authorizer, checks } = fakeAuthorizer({ kind: "allow" });
       const step = newAuthorizeRunTargetStep<typeof SessionSchema>(
@@ -226,7 +225,6 @@ describe("isRunGateCheck — the one definition of the run-gate check set", () =
   const pairs: ReadonlyArray<[string, ApiResourceKind, IamPermission]> = [
     ["agent", ApiResourceKind.agent, IamPermission.can_execute],
     ["session", ApiResourceKind.session, IamPermission.can_create_run_in],
-    ["workflow", ApiResourceKind.workflow, IamPermission.can_execute],
   ];
 
   it.each(pairs)(
@@ -238,9 +236,9 @@ describe("isRunGateCheck — the one definition of the run-gate check set", () =
     },
   );
 
-  it("names exactly three checks, one per entry the resolvers draw from", () => {
+  it("names exactly two checks, one per entry the resolvers draw from", () => {
     expect(Object.keys(RUN_GATE_CHECKS).sort()).toEqual(
-      ["agent", "session", "workflow"].sort(),
+      ["agent", "session"].sort(),
     );
     for (const [, resourceKind, permission] of pairs) {
       expect(

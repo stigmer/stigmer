@@ -9,27 +9,24 @@
 // organization the server made, and says it fills it; a smoke line runs in
 // the organization it is given, else a one-organization server's, else a
 // fresh one. The run probes: an agent run
-// passes only on the model's reply, and a terminal failure (of an agent or a
-// workflow run) ends the wait at once instead of being retried to the
-// deadline (#1514). The state probes the upgrade rehearsal reads: what the
-// runs created is recorded, read back after an upgrade, and every loss or
-// change named at once (compareState is pure; recordState and
+// passes only on the model's reply, and a terminal failure (of an agent run,
+// or of the legacy arm's workflow run) ends the wait at once instead of being
+// retried to the deadline (#1514). The state probes the upgrade rehearsal
+// reads: what the runs created is recorded, read back after an upgrade, and
+// every loss or change named at once (compareState is pure; recordState and
 // assertStateSurvived run against a scripted lane whose rows can be made to
 // vanish, the way a data-losing migration would, and which can serve a
 // release from before runs were named runs and then upgrade, so state
 // recorded through the old run API reads back through the new one). The
-// version probe: the
+// legacy workflow arm: a base that still serves workflows, under either run
+// API, records one workflow run, a base that serves none records none, and
+// the workflow API must be gone after the upgrade. The version probe: the
 // server's own getServerInfo answer, refused when empty. The refusal probe:
 // a request the server must refuse passes only on a non-2xx naming the
 // expected text, and an admission or another refusal fails, naming the
 // answer. The log probes: the server's log is read in both of its forms, a
 // log with no parseable line refuses, and the boot line that derives the
-// OAuth callback must name the public address it was given. The approval
-// probes: a gate is found in the organization's queue by its workflow, its
-// resolutions are read from every page of the event log, its creator is
-// refused when absent, and `stigmer runs logs` must say a timed-out gate
-// decided nothing before its task failed, and name who approved the other.
-// The stream probe: a CLI run's NDJSON is read for its final phase and its
+// OAuth callback must name the public address it was given. The stream probe: a CLI run's NDJSON is read for its final phase and its
 // last top-level reply, the two facts a live-model run asserts. Run via
 // `npm run test:scripts` (node --test; wired into the root `npm test` and
 // ci.ts-workspace).
@@ -39,15 +36,16 @@ import { createServer } from "node:http";
 import { test } from "node:test";
 
 import {
-  approvalResolutions,
   assertConsoleServed,
   assertMissingOrganizationRefused,
   assertOAuthCallbackFromPublicOrigin,
   assertStateSurvived,
+  assertWorkflowApiGone,
   compareState,
   connectRefusal,
   expectRefusal,
-  gateLogProblem,
+  LEGACY_WORKFLOW_APIS,
+  legacyWorkflowApiOf,
   pollUntil,
   RUN_APIS,
   readState,
@@ -60,9 +58,6 @@ import {
   streamedRunOutcome,
   readSingleOrganization,
   smokeOrganization,
-  waitForPendingApproval,
-  workflowExecutionCreator,
-  workflowIdByReference,
 } from "./stigmer-smoke.mjs";
 
 const TRUSTED_LOCAL_DOCUMENT = {
@@ -467,7 +462,10 @@ test("a workflow run that fails ends the wait at once (#1514)", async () => {
   });
   const started = Date.now();
   try {
-    await assert.rejects(runSetVarsWorkflow(lane.baseUrl, 60_000), /execution reached RUN_FAILED: .*set_vars failed/);
+    await assert.rejects(
+      runSetVarsWorkflow(lane.baseUrl, 60_000, () => {}, { api: LEGACY_WORKFLOW_APIS[0] }),
+      /execution reached RUN_FAILED: .*set_vars failed/,
+    );
     assert.ok(Date.now() - started < 5_000, "the failure waited for the deadline");
   } finally {
     await lane.close();
@@ -500,11 +498,9 @@ test("pollUntil reports a timeout with the probe's last error", async () => {
 });
 
 const SNAPSHOT = Object.freeze({
-  workflowOrg: { id: "org_wf", name: "smoke-org-1", slug: "smoke-org-1" },
   agentOrg: { id: "org_ag", name: "smoke-agent-org-1", slug: "smoke-agent-org-1" },
   agent: { id: "agt_1", name: "smoke-agent-1", slug: "smoke-agent-1" },
   agentByReference: { id: "agt_1", name: "smoke-agent-1", slug: "smoke-agent-1" },
-  workflowExecution: { id: "wex_1", name: "smoke-wfx-1", slug: "smoke-wfx-1", phase: "RUN_COMPLETED" },
   agentExecution: { id: "aex_1", name: "smoke-aex-1", slug: "smoke-aex-1", phase: "RUN_COMPLETED", reply: REPLY },
 });
 
@@ -518,31 +514,33 @@ test("compareState finds nothing when the state read back is the state recorded"
 
 test("compareState names every changed field and every missing resource at once", () => {
   const read = readOf({ agent: { name: "renamed" }, agentExecution: { reply: "" } });
-  read.workflowExecution = { error: "WorkflowExecutionQueryController/get -> HTTP 404: not found" };
+  read.agentOrg = { error: "OrganizationQueryController/get -> HTTP 404: not found" };
   delete read.agentByReference;
   assert.deepEqual(compareState(SNAPSHOT, read), [
+    "agentOrg: missing after the upgrade (OrganizationQueryController/get -> HTTP 404: not found)",
     'agent.name: was "smoke-agent-1", now "renamed"',
     "agentByReference: missing after the upgrade (not read)",
-    "workflowExecution: missing after the upgrade (WorkflowExecutionQueryController/get -> HTTP 404: not found)",
     `agentExecution.reply: was ${JSON.stringify(REPLY)}, now ""`,
   ]);
 });
 
 test("compareState names an execution that is no longer COMPLETED", () => {
-  assert.deepEqual(compareState(SNAPSHOT, readOf({ workflowExecution: { phase: "RUN_PENDING" } })), [
-    'workflowExecution.phase: was "RUN_COMPLETED", now "RUN_PENDING"',
+  assert.deepEqual(compareState(SNAPSHOT, readOf({ agentExecution: { phase: "RUN_PENDING" } })), [
+    'agentExecution.phase: was "RUN_COMPLETED", now "RUN_PENDING"',
   ]);
 });
 
 /**
  * A lane that serves every call the state probes make, from rows it keeps:
  * creates add a row, gets read it, and `lane.lose(id)` deletes one, as a
- * migration that dropped rows would. It speaks `api` (RUN_APIS) until
- * `lane.upgrade()`, which serves the current run API over the same rows with
- * their phases renamed, as the store's enum numbers read after the rename.
- * An unrouted procedure answers as the Connect adapter does: a bare 404.
+ * migration that dropped rows would. It speaks `api` (RUN_APIS) and, when
+ * `workflows` names one (LEGACY_WORKFLOW_APIS), that workflow run API, until
+ * `lane.upgrade()`, which serves the current run API and no workflow API over
+ * the same rows with their phases renamed, as the store's enum numbers read
+ * after the rename. An unrouted procedure answers as the Connect adapter
+ * does: a bare 404.
  */
-async function stateLane(api = RUN_APIS.current) {
+async function stateLane(api = RUN_APIS.current, workflows = undefined) {
   const rows = new Map();
   let n = 0;
   const create = (prefix, extra = {}) => (body) => {
@@ -556,15 +554,22 @@ async function stateLane(api = RUN_APIS.current) {
   // A Map, and a function check at the call: the path is the caller's, so it
   // must never reach an inherited property (a path of "constructor") or call
   // something that is not a route.
-  const routesFor = (speaks) =>
+  const workflowRoutes = (served) =>
+    served === undefined
+      ? {}
+      : {
+          "ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create": create("wfl"),
+          [`${served.service}CommandController/create`]: (body) => {
+            assert.equal(body.kind, served.kind);
+            return create("wex", { status: { phase: `${served.phasePrefix}COMPLETED` } })(body);
+          },
+          [`${served.service}QueryController/get`]: get,
+        };
+  const routesFor = (speaks, served) =>
     new Map(Object.entries({
       [SERVER_INFO]: () => ({ edition: "oss", version: "3.41.0" }),
       [ORG_CREATE]: create("org"),
-      "ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create": create("wfl"),
-      [`${speaks.workflowService}CommandController/create`]: (body) => {
-        assert.equal(body.kind, speaks.workflowKind);
-        return create("wex", { status: { phase: `${speaks.phasePrefix}COMPLETED` } })(body);
-      },
+      ...workflowRoutes(served),
       [AGENT_CREATE]: create("agt"),
       [`${speaks.agentService}CommandController/create`]: (body) => {
         assert.equal(body.kind, speaks.agentKind);
@@ -574,12 +579,11 @@ async function stateLane(api = RUN_APIS.current) {
       },
       "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/get": get,
       "ai.stigmer.agentic.agent.v1.AgentQueryController/get": get,
-      [`${speaks.workflowService}QueryController/get`]: get,
       [`${speaks.agentService}QueryController/get`]: get,
       "ai.stigmer.agentic.agent.v1.AgentQueryController/getByReference": (body) =>
         [...rows.values()].find((row) => row.metadata.slug === body.slug && body.kind === "agent"),
     }));
-  let routes = routesFor(api);
+  let routes = routesFor(api, workflows);
   const server = createServer((request, response) => {
     let raw = "";
     request.on("data", (chunk) => (raw += chunk));
@@ -606,7 +610,7 @@ async function stateLane(api = RUN_APIS.current) {
       rows.get(id).status.phase = phase;
     },
     upgrade: () => {
-      routes = routesFor(RUN_APIS.current);
+      routes = routesFor(RUN_APIS.current, undefined);
       for (const row of rows.values()) {
         const phase = row.status?.phase;
         if (phase?.startsWith(api.phasePrefix)) {
@@ -624,6 +628,9 @@ test("recorded state that reads back whole survives", async () => {
     const recorded = await recordState(lane.baseUrl, 10_000, { expectText: REPLY });
     assert.equal(recorded.snapshot.agentExecution.reply, REPLY);
     assert.equal(recorded.snapshot.agentByReference.id, recorded.ids.agentId);
+    assert.equal(recorded.workflowRun, undefined, "a base that serves no workflows records no workflow run");
+    assert.equal(recorded.ids.workflowOrgId, undefined);
+    assert.equal(recorded.snapshot.workflowOrg, undefined);
     await assertStateSurvived(lane.baseUrl, recorded);
   } finally {
     await lane.close();
@@ -652,7 +659,7 @@ test("state recorded through the run API before the rename reads back whole thro
   try {
     assert.equal(await runApiOf(lane.baseUrl), RUN_APIS.beforeRunRename);
     const recorded = await recordState(lane.baseUrl, 10_000, { expectText: REPLY });
-    assert.equal(recorded.snapshot.workflowExecution.phase, "COMPLETED");
+    assert.equal(recorded.snapshot.agentExecution.phase, "COMPLETED");
     assert.equal(recorded.snapshot.agentExecution.reply, REPLY);
     lane.upgrade();
     assert.equal(await runApiOf(lane.baseUrl), RUN_APIS.current);
@@ -667,10 +674,10 @@ test("a run that lost its phase across the rename is named", async () => {
   try {
     const recorded = await recordState(lane.baseUrl, 10_000, { expectText: REPLY });
     lane.upgrade();
-    lane.setPhase(recorded.ids.workflowExecutionId, "RUN_PHASE_UNSPECIFIED");
+    lane.setPhase(recorded.ids.agentExecutionId, "RUN_PHASE_UNSPECIFIED");
     await assert.rejects(
       assertStateSurvived(lane.baseUrl, recorded),
-      /workflowExecution\.phase: was "COMPLETED", now "PHASE_UNSPECIFIED"/,
+      /agentExecution\.phase: was "COMPLETED", now "PHASE_UNSPECIFIED"/,
     );
   } finally {
     await lane.close();
@@ -695,14 +702,56 @@ test("readState keeps a failed read as an error and skips the reference it depen
   const lane = await stateLane();
   try {
     const read = await readState(lane.baseUrl, {
-      workflowOrgId: "org_gone",
-      workflowExecutionId: "wex_gone",
       agentOrgId: "org_gone",
       agentId: "agt_gone",
       agentExecutionId: "aex_gone",
     });
     assert.match(read.agent.error, /HTTP 404/);
     assert.match(read.agentByReference.error, /did not read back by id/);
+  } finally {
+    await lane.close();
+  }
+});
+
+test("a base that still serves workflows records one completed workflow run, under either run API", async () => {
+  for (const [api, workflows] of [
+    [RUN_APIS.current, LEGACY_WORKFLOW_APIS[0]],
+    [RUN_APIS.beforeRunRename, LEGACY_WORKFLOW_APIS[1]],
+  ]) {
+    const lane = await stateLane(api, workflows);
+    try {
+      assert.equal(await legacyWorkflowApiOf(lane.baseUrl), workflows);
+      const recorded = await recordState(lane.baseUrl, 10_000, { expectText: REPLY });
+      assert.match(recorded.workflowRun?.executionId ?? "", /^wex_/);
+      assert.match(recorded.workflowRun?.workflowId ?? "", /^wfl_/);
+      // The run's organization joins the ids, and reads back with the rest.
+      assert.equal(recorded.ids.workflowOrgId, recorded.workflowRun?.orgId);
+      assert.equal(recorded.snapshot.workflowOrg?.id, recorded.workflowRun?.orgId);
+      assert.equal(recorded.snapshot.agentExecution.reply, REPLY);
+    } finally {
+      await lane.close();
+    }
+  }
+});
+
+test("the workflow API must be gone after the upgrade: refused while it is routed, passed once it is not", async () => {
+  const lane = await stateLane(RUN_APIS.current, LEGACY_WORKFLOW_APIS[0]);
+  try {
+    const recorded = await recordState(lane.baseUrl, 10_000, { expectText: REPLY });
+    await assert.rejects(assertWorkflowApiGone(lane.baseUrl), /still routes ai\.stigmer\.agentic\.workflowrun\.v1\.WorkflowRunQueryController\/get/);
+    lane.upgrade();
+    assert.equal(await legacyWorkflowApiOf(lane.baseUrl), undefined);
+    await assertWorkflowApiGone(lane.baseUrl);
+    await assertStateSurvived(lane.baseUrl, recorded);
+  } finally {
+    await lane.close();
+  }
+});
+
+test("legacyWorkflowApiOf takes any answer but an unrouted procedure's bare 404 as a routed workflow API", async () => {
+  const lane = await serveAnswer(404, { code: "not_found", message: "workflow run wex_workflow_api_probe not found" });
+  try {
+    assert.equal(await legacyWorkflowApiOf(lane.baseUrl), LEGACY_WORKFLOW_APIS[0]);
   } finally {
     await lane.close();
   }
@@ -731,27 +780,6 @@ async function serveAnswer(status, body) {
       sent.push({ procedure: (request.url ?? "").replace(/^\//, ""), body: JSON.parse(text) });
       response.writeHead(status, { "content-type": "application/json" });
       response.end(typeof body === "string" ? body : JSON.stringify(body));
-    });
-  });
-  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
-  return {
-    baseUrl: `http://127.0.0.1:${server.address().port}`,
-    sent,
-    close: () => new Promise((resolve) => server.close(resolve)),
-  };
-}
-
-/** A lane that answers 200 with `answer(body, n)` for the nth call, and records what it was sent. */
-async function serveAnswerBy(answer) {
-  const sent = [];
-  const server = createServer((request, response) => {
-    let text = "";
-    request.on("data", (chunk) => (text += chunk));
-    request.on("end", () => {
-      const body = JSON.parse(text);
-      sent.push({ procedure: (request.url ?? "").replace(/^\//, ""), body });
-      response.writeHead(200, { "content-type": "application/json" });
-      response.end(JSON.stringify(answer(body, sent.length)));
     });
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -869,139 +897,6 @@ test("a callback derived from the compose file's default address fails, naming b
 test("a boot that logs no derived callback fails", () => {
   const log = '{"level":"warn","time":"t","message":"STIGMER_OAUTH_REDIRECT_URI is not set — OAuth Connect flows for MCP servers are unavailable (initiateOAuthConnect will refuse)"}';
   assert.throws(() => assertOAuthCallbackFromPublicOrigin(log, "http://127.0.0.1:7234"), /logged no derived OAuth callback/);
-});
-
-const WEX_QUERY = "ai.stigmer.agentic.workflowrun.v1.WorkflowRunQueryController";
-
-test("a pending approval is found by the workflow its execution runs, once it reaches the queue", async () => {
-  // An entry's workflowName is its execution's own name, so the probe reads
-  // each candidate's execution for the workflow it runs.
-  const executions = { wex_other: "wfl_other", wex_gate: "wfl_gated" };
-  const server = createServer((request, response) => {
-    let text = "";
-    request.on("data", (chunk) => (text += chunk));
-    request.on("end", () => {
-      const procedure = (request.url ?? "").replace(/^\//, "");
-      response.writeHead(200, { "content-type": "application/json" });
-      if (procedure === `${WEX_QUERY}/listPendingApprovals`) {
-        listed += 1;
-        listedOrgs.push(JSON.parse(text).org);
-        const entries = [{ runId: "wex_other", workflowName: "wfx-1", taskName: "review" }];
-        if (listed > 1) entries.push({ runId: "wex_gate", workflowName: "wfx-2", taskName: "review" });
-        response.end(JSON.stringify({ entries }));
-      } else {
-        const id = JSON.parse(text).value;
-        response.end(JSON.stringify({ metadata: { id }, spec: { workflowId: executions[id] } }));
-      }
-    });
-  });
-  let listed = 0;
-  const listedOrgs = [];
-  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
-  try {
-    const baseUrl = `http://127.0.0.1:${server.address().port}`;
-    assert.deepEqual(await waitForPendingApproval(baseUrl, { orgId: "org_1", workflowId: "wfl_gated", timeoutMs: 10_000 }), {
-      executionId: "wex_gate",
-      taskName: "review",
-    });
-    assert.equal(listed, 2);
-    // The list is keyed by the organization's id, never its slug.
-    assert.deepEqual(listedOrgs, ["org_1", "org_1"]);
-  } finally {
-    await new Promise((resolve) => server.close(resolve));
-  }
-});
-
-test("approval resolutions are read from every page of the event log, each page after the last one's sequence", async () => {
-  const lane = await serveAnswerBy((body) =>
-    body.afterSequence === 0
-      ? {
-          events: [{ sequenceNumber: "4", taskName: "review", approvalResolved: { outcome: "approve", comment: "first" } }],
-          hasMore: true,
-        }
-      : { events: [{ sequenceNumber: "9", taskName: "second", approvalResolved: { autoResolved: true } }] },
-  );
-  try {
-    assert.deepEqual(await approvalResolutions(lane.baseUrl, "wex_gate"), [
-      { taskName: "review", outcome: "approve", comment: "first" },
-      { taskName: "second", autoResolved: true },
-    ]);
-    assert.deepEqual(
-      lane.sent.map((call) => call.body.afterSequence),
-      [0, 4],
-    );
-    assert.deepEqual(lane.sent[0].body.eventTypes, ["approval_resolved"]);
-    assert.equal(lane.sent[0].body.runId, "wex_gate");
-  } finally {
-    await lane.close();
-  }
-});
-
-test("a workflow is resolved by its org/slug reference, and one with no id refuses", async () => {
-  const lane = await serveAnswerBy((_body, n) => (n === 1 ? { metadata: { id: "wfl_1" } } : { metadata: {} }));
-  try {
-    assert.equal(await workflowIdByReference(lane.baseUrl, { org: "stigmer", slug: "gated" }), "wfl_1");
-    assert.deepEqual(lane.sent[0].body, { org: "stigmer", kind: "workflow", slug: "gated" });
-    await assert.rejects(workflowIdByReference(lane.baseUrl, { org: "stigmer", slug: "gated" }), /workflow stigmer\/gated has no id/);
-  } finally {
-    await lane.close();
-  }
-});
-
-test("a workflow execution's creator is read from its audit, and its absence refuses", async () => {
-  const lane = await serveConnectLane({
-    [`${WEX_QUERY}/get`]: (n) =>
-      n === 1 ? { status: { audit: { specAudit: { createdBy: { id: "acc_local" } } } } } : { status: {} },
-  });
-  try {
-    assert.equal(await workflowExecutionCreator(lane.baseUrl, "wex_gate"), "acc_local");
-    await assert.rejects(workflowExecutionCreator(lane.baseUrl, "wex_gate"), /records no creator/);
-  } finally {
-    await lane.close();
-  }
-});
-
-// The CLI's own line form, `[HH:MM:SS] <glyph> <text>`
-// (client-apps/cli/src/resources/stream/workflow-render-plaintext.ts): an
-// event with no glyph of its own prints two spaces in the glyph's place.
-const TIMED_OUT_LOGS = [
-  "[10:00:00] ▶ execution started",
-  "[10:00:00] → task started: review",
-  "[10:00:00] ⏳ approval requested: review — Approve?",
-  "[10:00:01]    event: WORKFLOW_EVENT_TYPE_SIGNAL_RECEIVED",
-  "[10:00:20] ⏱ approval resolved: review — timed out, no decision",
-  "[10:00:20] ✗ task failed: review — human_input timed out",
-  "[10:00:20] ✗ execution failed: human_input timed out",
-].join("\n");
-
-test("a timed-out gate's logs pass when it decided nothing before its task failed", () => {
-  assert.equal(gateLogProblem(TIMED_OUT_LOGS, "review", "timed out"), undefined);
-});
-
-test("a timed-out gate's logs fail without the no-decision line, or with the failure first", () => {
-  assert.match(
-    gateLogProblem(TIMED_OUT_LOGS.replace("timed out, no decision", "approve (timeout)"), "review", "timed out"),
-    /no line reads "approval resolved: review — timed out, no decision"/,
-  );
-  const reordered = TIMED_OUT_LOGS.split("\n");
-  [reordered[4], reordered[5]] = [reordered[5], reordered[4]];
-  assert.match(gateLogProblem(reordered.join("\n"), "review", "timed out"), /printed before its gate resolved/);
-});
-
-test("an approved gate's logs must name its outcome and its reviewer", () => {
-  const logs = "[10:00:05] ✓ approval resolved: review — approve by acc_local";
-  assert.equal(gateLogProblem(logs, "review", { outcome: "approve", by: "acc_local" }), undefined);
-  assert.match(gateLogProblem(logs, "review", { outcome: "approve", by: "acc_someone_else" }), /no line reads/);
-  assert.match(gateLogProblem("[10:00:05] ✓ approval resolved: review — approve", "review", { outcome: "approve", by: "acc_local" }), /no line reads/);
-  // A longer line is another resolution: an auto-resolved gate, or another reviewer whose id starts the same.
-  assert.match(
-    gateLogProblem("[10:00:05] ✓ approval resolved: review — approve by acc_local (timeout)", "review", { outcome: "approve", by: "acc_local" }),
-    /no line reads/,
-  );
-  assert.match(
-    gateLogProblem("[10:00:05] ✓ approval resolved: review — approve by acc_local_other", "review", { outcome: "approve", by: "acc_local" }),
-    /no line reads/,
-  );
 });
 
 test("reads a CLI run's stream: the done phase and the last top-level reply, skipping what is not the stream", () => {

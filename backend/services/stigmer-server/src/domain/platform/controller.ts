@@ -33,7 +33,7 @@
  *     defines exchangeScopedToken and this controller delegates to it:
  *     the run credential is minted for the run's own person and nobody
  *     else (runnerauth/built-in-runner-credential-provider.ts). Runs get
- *     their credential from the dispatch itself (the engine clients put
+ *     their credential from the dispatch itself (the engine client puts
  *     it on the workflow input); this exchange is the runner's fallback.
  *
  * The capability delegation: when the
@@ -275,8 +275,8 @@ async function getRunnerBootstrapConfig(
  * decrypt lane.
  *
  * Arms:
- *   - agent_execution_id / workflow_execution_id: minted. Both ids ARE the
- *     ExecutionContext's spec.execution_id, so the token binds directly to
+ *   - agent_run_id: minted. The id IS the ExecutionContext's
+ *     spec.execution_id, so the token binds directly to
  *     the one EC it may decrypt. (Cloud scopes agent tokens to the parent
  *     session for warm-pool multi-turn reuse; OSS runners exchange
  *     immediately before each read, so the tighter per-execution binding
@@ -323,9 +323,6 @@ async function getRunnerScopedToken(
   let executionId: string;
   switch (input.scope.case) {
     case "agentRunId":
-      executionId = input.scope.value;
-      break;
-    case "workflowRunId":
       executionId = input.scope.value;
       break;
     case "poolClaim":
@@ -382,8 +379,6 @@ function exchangeRequestOf(
   switch (input.scope.case) {
     case "agentRunId":
       return { arm: "agent-execution", executionId: input.scope.value };
-    case "workflowRunId":
-      return { arm: "workflow-execution", executionId: input.scope.value };
     case "poolClaim":
       return { arm: "pool-claim", sessionId: input.scope.value.sessionId };
     case "renewal":

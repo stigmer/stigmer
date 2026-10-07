@@ -10,7 +10,7 @@
 // breaking change (removed/renamed message, changed field type, changed lifecycle
 // guarantee) — additive fields never bump it. Hosts read this to decide compatibility;
 // the runner never reads a version from the host (one-way advertisement).
-export const IPC_PROTOCOL_VERSION = 1;
+export const IPC_PROTOCOL_VERSION = 2;
 
 // ─── Commands (host → runner) ───────────────────────────────────────────────
 
@@ -22,16 +22,6 @@ export interface IpcAddSession {
 export interface IpcRemoveSession {
   type: "removeSession";
   sessionId: string;
-}
-
-export interface IpcAddWorkflowExecution {
-  type: "addWorkflowExecution";
-  executionId: string;
-}
-
-export interface IpcRemoveWorkflowExecution {
-  type: "removeWorkflowExecution";
-  executionId: string;
 }
 
 export interface IpcUpdateToken {
@@ -46,8 +36,6 @@ export interface IpcShutdown {
 export type IpcCommand =
   | IpcAddSession
   | IpcRemoveSession
-  | IpcAddWorkflowExecution
-  | IpcRemoveWorkflowExecution
   | IpcUpdateToken
   | IpcShutdown;
 
@@ -69,17 +57,6 @@ export interface IpcSessionRemoved {
   sessionId: string;
 }
 
-export interface IpcWorkflowExecutionAdded {
-  type: "workflowExecutionAdded";
-  executionId: string;
-  taskQueue: string;
-}
-
-export interface IpcWorkflowExecutionRemoved {
-  type: "workflowExecutionRemoved";
-  executionId: string;
-}
-
 export interface IpcError {
   type: "error";
   message: string;
@@ -98,8 +75,6 @@ export type IpcResponse =
   | IpcReady
   | IpcSessionAdded
   | IpcSessionRemoved
-  | IpcWorkflowExecutionAdded
-  | IpcWorkflowExecutionRemoved
   | IpcTokenUpdated
   | IpcError
   | IpcShutdownComplete;

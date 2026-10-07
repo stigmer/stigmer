@@ -15,7 +15,7 @@ message ExecutionContextId {
 // Primary lookup method used by runners to retrieve merged environment
 // variables during a run.
 message ExecutionContextExecutionIdInput {
-  // AgentRun or WorkflowRun ID to look up.
+  // AgentRun ID (or an MCP connect's execution id) to look up.
   //
   // @internal
   // Must match the execution_id field in ExecutionContextSpec.

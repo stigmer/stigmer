@@ -1,17 +1,17 @@
 // Conformance suite for the AgentRun domain (Class B).
 // Domain: agentic / agentexecution — a single user message run through the agent
 // engine (Temporal orchestrator + TS runner + mock LLM), driven via the raw proto
-// stubs. The second execution domain after WorkflowRun.
+// stubs.
 //
 // Runs against the local-execution target, so Temporal is always present and
-// the workflowCreator is injected: create starts a real workflow that the runner
-// picks up and drives through an LLM loop served by the in-process mock proxy.
+// the workflowCreator is injected: create starts a real Temporal workflow that
+// the runner picks up and drives through an LLM loop served by the in-process mock proxy.
 // Every run is scripted by enqueuing turns on that mock — a single text turn
 // reaches COMPLETED; a `delayMs`-held turn keeps an execution genuinely
 // IN_PROGRESS so lifecycle RPCs (cancel/terminate/pause/resume) act on a running
-// thing (the AgentRun analogue of WorkflowRun's `wait` timer).
+// thing.
 //
-// Contract divergences from WorkflowRun, encoded as assertions below:
+// Contract points encoded as assertions below:
 // - No AlreadyExists on create: repeated identical creates yield distinct aex_
 //   ids (there is no CheckDuplicateStep in the agent-execution pipeline).
 // - An empty target (neither session_id nor a session_spec naming an agent)
@@ -19,7 +19,7 @@
 //   agent and the runner answers on its one built-in prompt with the tools the
 //   session itself carries, so the run reaches COMPLETED like any other — the
 //   arm pinned below and in the CRUD suite's session create.
-// - The query analogue of listByWorkflow is listBySession (filter by spec.session_id).
+// - Runs are listed by conversation through listBySession (filter by spec.session_id).
 //
 // A run's ExecutionContext lives as long as the run: the run-end activity
 // deletes it through the context's own delete chain (stigmer#1647), so once
@@ -34,13 +34,14 @@
 // suite (suites/agentrun.conformance.test.ts) so it also gates the cloud
 // edition.
 //
-// A turn's link to the workflow run that started it (spec.parent) is a fact
-// the server vouches for, and the turn's dispatch queue follows from it,
-// never from a caller: the workflow run's own queue under execution routing,
-// the shared runner pool under global routing (the local-execution target's).
-// The refusal of an unvouched link under an enforcing posture, and of a link
-// that disagrees with the workflow-execution lineage label, need no engine
-// and live in the CRUD-level suite; here the admitted link runs.
+// A turn's dispatch queue is the server's to derive, never a caller's: the
+// retired request field that once named one is read as an unknown field.
+//
+// A run's file reaches a browser through the link getArtifactDownloadUrl
+// mints. Where artifact storage is local, the attachments block below fetches
+// that link from the server's file server: inline by default, an attachment
+// when a download is asked for, and an altered, unsigned or re-dated link
+// answered like a missing key.
 //
 // Covered in a sibling file (kept separate because it needs the MCP tool
 // fixture and approval choreography, and this file is already large):
@@ -49,7 +50,7 @@
 // Deliberately out of scope (each needs machinery this suite doesn't build, and
 // is a conscious deferral, not shipped as a thin partial):
 // - recover happy path (needs a genuinely FAILED execution);
-// - usage reports, artifact download/content, subscribe streaming, sub-agents.
+// - usage reports, artifact content, subscribe streaming, sub-agents.
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -250,7 +251,7 @@ describe("AgentRun conformance — distinctness (no duplicate check)", () => {
 
     const first = await createExecution(org, agent, name);
 
-    // Same name again: unlike WorkflowRun there is no duplicate check, so
+    // Same name again: there is no duplicate check, so
     // this succeeds with a fresh id rather than rejecting with AlreadyExists.
     mock.enqueue(anthropicText("Done."));
     const second = await clients.agentExecutionCommand.create(makeAgentExecution({ org, name, agentRef: agentRefOf(agent) }));
@@ -861,34 +862,6 @@ describe("AgentRun conformance — one-call session bootstrap (session_spec)", (
 const RETIRED_ACTIVITY_TASK_QUEUE_FIELD = 11;
 
 describe("AgentRun conformance — a turn's dispatch queue is the server's to derive", () => {
-  it("[rpc:AgentRunCommandController.create] a turn linked to a workflow run is admitted under trusted-local and, under global routing, runs on the shared runner pool", async () => {
-    const { org } = await target.provisionTenancy();
-    const agent = await provisionAgent(org);
-    const workflowExecutionId = foreignId("wex");
-
-    mock.enqueue(anthropicText("Done."));
-    const created = await clients.agentExecutionCommand.create(
-      makeAgentExecution({
-        org,
-        name: uniqueName("aex-parent"),
-        agentRef: agentRefOf(agent),
-        parent: { workflowRunId: workflowExecutionId },
-      }),
-    );
-    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: created.metadata!.id }));
-    expect(created.spec?.parent?.workflowRunId, "the trusted-local caller's link is kept").toBe(
-      workflowExecutionId,
-    );
-
-    // A queue derived from the link (wfexec:<id>) has no poller here; only the
-    // shared pool's runner can complete the turn.
-    const final = await awaitTerminal(clients, created.metadata!.id);
-    expect(
-      final.status?.phase,
-      `the linked turn should complete on the shared pool; error: ${final.status?.error || "(none)"}`,
-    ).toBe(RunPhase.RUN_COMPLETED);
-  });
-
   it("[rpc:AgentRunCommandController.create] a request naming a dispatch queue in the retired field still runs on the shared runner pool", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
@@ -1030,6 +1003,99 @@ describe("AgentRun conformance — attachments (#285)", () => {
 
     // Leave the background run settled so teardown is quiet.
     await awaitTerminal(clients, execution.metadata!.id);
+  });
+
+  // The local file server, on the wire: the link getArtifactDownloadUrl
+  // mints is fetched as a browser would, with no credentials. Inline by
+  // default (no disposition header), an attachment named by the key's file
+  // name when the caller asks for a download, and the same link with its
+  // signature altered or removed, its expiry moved, or its download name
+  // changed, answered 404 exactly as a missing key: the signature covers
+  // the key, the expiry and the download name. Only local artifact storage
+  // serves this lane (the targets with an on-disk store); cloud's links are
+  // presigned object-store URLs, a different contract, so the case reports
+  // SKIPPED there.
+  it("[rpc:AgentRunQueryController.getArtifactDownloadUrl] the local file server serves a run's file inline at the minted link, as an attachment when a download is asked for, and answers an altered, removed or re-dated signature 404 like a missing key", async (ctx) => {
+    if (target.artifactStoreDir === undefined) {
+      return ctx.skip("this target keeps run files in an object store, whose presigned links are not this lane");
+    }
+    const { org } = await target.provisionTenancy();
+    const agent = await provisionAgent(org, uniqueName("agent-fileserver"));
+
+    const filename = "file-server-proof.txt";
+    const content = new TextEncoder().encode("file-server conformance body\n");
+    const uploaded = await clients.agentExecutionCommand.uploadAttachment(
+      create(UploadAttachmentRequestSchema, { filename, content, contentType: "text/plain" }),
+    );
+
+    mock.enqueue(anthropicText("Received."));
+    const execution = await clients.agentExecutionCommand.create(
+      makeAgentExecution({
+        org,
+        name: uniqueName("aex-fileserver"),
+        agentRef: agentRefOf(agent),
+        message: "Here is a file.",
+        attachments: [{ filename, storageKey: uploaded.storageKey }],
+      }),
+    );
+    const runId = execution.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: runId }));
+
+    const inlineLink = await clients.agentExecutionQuery.getArtifactDownloadUrl({
+      runId,
+      storageKey: uploaded.storageKey,
+    });
+    const inline = await fetch(inlineLink.downloadUrl);
+    expect(inline.status, "the minted link serves the file").toBe(200);
+    expect(inline.headers.get("content-disposition"), "a link minted without a download is served inline").toBeNull();
+    expect(new Uint8Array(await inline.arrayBuffer())).toEqual(content);
+
+    const attachmentLink = await clients.agentExecutionQuery.getArtifactDownloadUrl({
+      runId,
+      storageKey: uploaded.storageKey,
+      asAttachment: true,
+    });
+    const attachment = await fetch(attachmentLink.downloadUrl);
+    expect(attachment.status).toBe(200);
+    expect(attachment.headers.get("content-disposition"), "a download is saved under the key's file name").toBe(
+      `attachment; filename="${filename}"`,
+    );
+    expect(new Uint8Array(await attachment.arrayBuffer())).toEqual(content);
+
+    const minted = new URL(inlineLink.downloadUrl);
+    const missing = await fetch(`${minted.origin}/not-a-stored-key`);
+    expect(missing.status).toBe(404);
+    const notFound = await missing.text();
+
+    const signature = minted.searchParams.get("sig") ?? "";
+    expect(signature, "the minted link carries its signature").not.toBe("");
+    const tampered = new URL(minted);
+    // The first character, never the last: a base64url signature's last
+    // character carries padding bits a decoder may ignore.
+    tampered.searchParams.set("sig", `${signature.startsWith("A") ? "B" : "A"}${signature.slice(1)}`);
+    const renamed = new URL(attachmentLink.downloadUrl);
+    renamed.searchParams.set("download", "renamed.txt");
+    const unsigned = new URL(minted);
+    unsigned.searchParams.delete("sig");
+    const expiry = minted.searchParams.get("exp") ?? "";
+    expect(expiry, "the minted link carries its expiry").toMatch(/^\d+$/);
+    // Later, not earlier: extending a link's life is the alteration a
+    // holder would want, and a past expiry is refused for that alone.
+    const extended = new URL(minted);
+    extended.searchParams.set("exp", String(Number(expiry) + 3600));
+    for (const [what, url] of [
+      ["the inline link with its signature altered", tampered],
+      ["the download link with another download name", renamed],
+      ["the inline link with its signature removed", unsigned],
+      ["the inline link with its expiry moved later", extended],
+    ] as const) {
+      const refused = await fetch(url);
+      expect(refused.status, what).toBe(404);
+      expect(await refused.text(), `${what} is answered as a missing key`).toBe(notFound);
+    }
+
+    // Leave the background run settled so teardown is quiet.
+    await awaitTerminal(clients, runId);
   });
 
   // The vision contract, proven at the provider boundary: an image

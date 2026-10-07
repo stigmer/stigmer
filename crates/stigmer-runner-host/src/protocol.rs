@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 /// renamed message, changed field type, changed lifecycle guarantee); additive fields never
 /// bump it. Hosts compare this against the runner's advertised version to decide
 /// compatibility — see [`crate::host`] negotiation.
-pub const IPC_PROTOCOL_VERSION: u32 = 1;
+pub const IPC_PROTOCOL_VERSION: u32 = 2;
 
 /// Commands the host writes to the runner's stdin (newline-delimited JSON).
 #[derive(Debug, Serialize)]
@@ -28,14 +28,6 @@ pub enum IpcCommand {
     #[serde(rename_all = "camelCase")]
     RemoveSession {
         session_id: String,
-    },
-    #[serde(rename_all = "camelCase")]
-    AddWorkflowExecution {
-        execution_id: String,
-    },
-    #[serde(rename_all = "camelCase")]
-    RemoveWorkflowExecution {
-        execution_id: String,
     },
     UpdateToken {
         token: Option<String>,
@@ -66,15 +58,6 @@ pub enum IpcResponse {
     #[serde(rename_all = "camelCase")]
     SessionRemoved {
         session_id: String,
-    },
-    #[serde(rename_all = "camelCase")]
-    WorkflowExecutionAdded {
-        execution_id: String,
-        task_queue: String,
-    },
-    #[serde(rename_all = "camelCase")]
-    WorkflowExecutionRemoved {
-        execution_id: String,
     },
     TokenUpdated,
     Error {
@@ -129,9 +112,9 @@ mod tests {
     }
 
     #[test]
-    fn protocol_version_is_one() {
+    fn protocol_version_is_two() {
         assert_eq!(
-            IPC_PROTOCOL_VERSION, 1,
+            IPC_PROTOCOL_VERSION, 2,
             "bump only on a breaking IPC change"
         );
     }
@@ -151,7 +134,7 @@ mod tests {
     #[test]
     fn commands_match_golden_fixtures() {
         let commands = &fixtures()["commands"];
-        let cases: [(&str, IpcCommand); 7] = [
+        let cases: [(&str, IpcCommand); 5] = [
             (
                 "addSession",
                 IpcCommand::AddSession {
@@ -162,18 +145,6 @@ mod tests {
                 "removeSession",
                 IpcCommand::RemoveSession {
                     session_id: "ses_example".into(),
-                },
-            ),
-            (
-                "addWorkflowExecution",
-                IpcCommand::AddWorkflowExecution {
-                    execution_id: "wfe_example".into(),
-                },
-            ),
-            (
-                "removeWorkflowExecution",
-                IpcCommand::RemoveWorkflowExecution {
-                    execution_id: "wfe_example".into(),
                 },
             ),
             (
@@ -210,7 +181,7 @@ mod tests {
         assert!(matches!(
             from("ready"),
             IpcResponse::Ready {
-                protocol_version: Some(1)
+                protocol_version: Some(2)
             }
         ));
         assert!(matches!(
@@ -232,22 +203,6 @@ mod tests {
         match from("sessionRemoved") {
             IpcResponse::SessionRemoved { session_id } => assert_eq!(session_id, "ses_example"),
             other => panic!("expected SessionRemoved, got {other:?}"),
-        }
-        match from("workflowExecutionAdded") {
-            IpcResponse::WorkflowExecutionAdded {
-                execution_id,
-                task_queue,
-            } => {
-                assert_eq!(execution_id, "wfe_example");
-                assert_eq!(task_queue, "wfexec:wfe_example");
-            }
-            other => panic!("expected WorkflowExecutionAdded, got {other:?}"),
-        }
-        match from("workflowExecutionRemoved") {
-            IpcResponse::WorkflowExecutionRemoved { execution_id } => {
-                assert_eq!(execution_id, "wfe_example")
-            }
-            other => panic!("expected WorkflowExecutionRemoved, got {other:?}"),
         }
         assert!(matches!(from("tokenUpdated"), IpcResponse::TokenUpdated));
         match from("error") {

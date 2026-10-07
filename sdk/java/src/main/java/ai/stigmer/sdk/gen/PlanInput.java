@@ -154,7 +154,6 @@ public final class PlanInput {
         private final Integer maxUsers;
         private final Integer includedChildOrgs;
         private final Integer maxActiveSessionSandboxes;
-        private final Integer maxActiveWorkflowSandboxes;
         private final Integer archivedWorkspaceRetentionDays;
 
         private EntitlementLimitsInput(Builder builder) {
@@ -162,7 +161,6 @@ public final class PlanInput {
             this.maxUsers = builder.maxUsers;
             this.includedChildOrgs = builder.includedChildOrgs;
             this.maxActiveSessionSandboxes = builder.maxActiveSessionSandboxes;
-            this.maxActiveWorkflowSandboxes = builder.maxActiveWorkflowSandboxes;
             this.archivedWorkspaceRetentionDays = builder.archivedWorkspaceRetentionDays;
         }
 
@@ -180,9 +178,6 @@ public final class PlanInput {
             if (this.maxActiveSessionSandboxes != null) {
                 builder.setMaxActiveSessionSandboxes(this.maxActiveSessionSandboxes);
             }
-            if (this.maxActiveWorkflowSandboxes != null) {
-                builder.setMaxActiveWorkflowSandboxes(this.maxActiveWorkflowSandboxes);
-            }
             if (this.archivedWorkspaceRetentionDays != null) {
                 builder.setArchivedWorkspaceRetentionDays(this.archivedWorkspaceRetentionDays);
             }
@@ -196,7 +191,6 @@ public final class PlanInput {
             private Integer maxUsers;
             private Integer includedChildOrgs;
             private Integer maxActiveSessionSandboxes;
-            private Integer maxActiveWorkflowSandboxes;
             private Integer archivedWorkspaceRetentionDays;
 
             private Builder() {}
@@ -205,7 +199,6 @@ public final class PlanInput {
             public Builder maxUsers(int maxUsers) { this.maxUsers = maxUsers; return this; }
             public Builder includedChildOrgs(int includedChildOrgs) { this.includedChildOrgs = includedChildOrgs; return this; }
             public Builder maxActiveSessionSandboxes(int maxActiveSessionSandboxes) { this.maxActiveSessionSandboxes = maxActiveSessionSandboxes; return this; }
-            public Builder maxActiveWorkflowSandboxes(int maxActiveWorkflowSandboxes) { this.maxActiveWorkflowSandboxes = maxActiveWorkflowSandboxes; return this; }
             public Builder archivedWorkspaceRetentionDays(int archivedWorkspaceRetentionDays) { this.archivedWorkspaceRetentionDays = archivedWorkspaceRetentionDays; return this; }
 
             public EntitlementLimitsInput build() { return new EntitlementLimitsInput(this); }

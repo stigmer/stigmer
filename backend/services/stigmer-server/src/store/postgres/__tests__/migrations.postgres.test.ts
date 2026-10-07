@@ -1,8 +1,8 @@
 /**
  * Pins the Postgres migration chain (an independent v1): fresh
  * replay creates the full schema and records the version, reopen is
- * idempotent, a mid-chain database resumes (v1 → v2 picks up the sweep
- * index), and concurrent first boots serialize on the advisory lock
+ * idempotent, a mid-chain database resumes (v1 → v2/v3 picks up the
+ * indexes), and concurrent first boots serialize on the advisory lock
  * instead of racing the chain — the multi-instance failure class sqlite's
  * single-file lock never had. v5, the chain's first row-decoding step,
  * moves every row of the seven kinds that held the retired public level to
@@ -23,19 +23,26 @@
  * instance as resource or principal leaves with its list keys (its history
  * kept) while a grant on another kind stays; a session, instance, agent or
  * policy row it cannot decode fails the step, naming the row, and leaves
- * the database at v8. v12 removes the workflow instance kind: a run that
- * named only an instance names the instance's workflow, a run that names
- * its workflow keeps it, a run whose instance is gone keeps its history
- * with no workflow, and every run loses the retired instance id and
- * callback token, across keyset pages whatever the collation orders first;
- * the instance rows and every grant naming one leave, a workflow's retired
- * default-instance pointer rides on, and the store opened on the migrated
- * database finds each run through the run list index's `workflow` key with
- * no instance key left behind; a run, instance or policy row it cannot
- * decode fails the step, naming the row, and leaves the database at v11.
- * The frozen steps replay over workflow instance rows from v4 exactly as
- * they shipped. A step's
- * starting database is built by running the chain up to the step before it.
+ * the database at v8. v12 removes the workflow instance rows from every
+ * table and every grant naming one (its history kept), reading grants
+ * across keyset pages whatever the collation orders first; a grant it
+ * cannot decode fails the step, naming the row, and leaves the database at
+ * v11. The frozen steps replay over workflow instance rows from v4 exactly
+ * as they shipped. v13 renames the agent run kind in every table keyed by
+ * kind, rewrites the rows that spell it and re-keys every grant on a run.
+ * v14 removes every workflow, workflow run (under either kind name) and
+ * artifact row from every table keyed by kind, and every grant naming one
+ * (its history kept), rewrites every agent run that carries a workflow
+ * parent, task token or lineage label without them, and drops the workflow
+ * run event log and the signal idempotency ledger; a store taken from v4
+ * through the whole chain (its public workflow moved by v5 through a frozen
+ * envelope, its dead organization's slug kept by v7 and v8) and a store at
+ * v13 both reach that state, with every agent, session and agent run
+ * reading back unchanged but for what a workflow left; agent runs and
+ * grants are read across keyset pages; an agent run or grant it cannot
+ * decode fails the step, naming the row, and leaves the database at v13.
+ * A step's starting database is built by running the chain up to the step
+ * before it.
  * Newer schemas are refused without writes or reconciliation; refusal
  * releases the migration lock and closes a failed store's pool.
  *
@@ -54,12 +61,13 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import {
   ApprovalMode,
   InteractionMode,
+  RunPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 
@@ -78,6 +86,7 @@ import {
   SCHEMA_VERSION_12,
   SCHEMA_VERSION_13,
   SCHEMA_VERSION_14,
+  SCHEMA_VERSION_15,
   runMigrations,
 } from "../migrations.js";
 import { RETIREMENT_PAGE_SIZE } from "../../agent-instance-retired.js";
@@ -93,27 +102,30 @@ import {
 } from "../../__tests__/retired-execution-rows.js";
 import { EXECUTION_CONFIG_PAGE_SIZE } from "../../execution-config-retired.js";
 import { sessionListIndex } from "../../../domain/session/list-index.js";
-import { workflowExecutionListIndex } from "../../../domain/workflowrun/list-index.js";
 import { WORKFLOW_RETIREMENT_PAGE_SIZE } from "../../workflow-instance-retired.js";
 import {
-  retiredWorkflowExecutionRow,
+  AGENT_RUN_RETIRED_PAGE_SIZE,
+  WORKFLOW_CHILD_ENDED_ERROR,
+  WORKFLOW_RETIRED_PAGE_SIZE,
+} from "../../workflow-retired.js";
+import {
+  WORKFLOW_LINEAGE_LABELS,
+  agentRunRow,
+  retiredArtifactRow,
   retiredWorkflowInstanceRow,
   retiredWorkflowRow,
-  workflowExecutionBytes,
-} from "../../__tests__/retired-workflow-instance-rows.js";
+  retiredWorkflowRunRow,
+} from "../../__tests__/retired-workflow-rows.js";
 import { PostgresStore } from "../store.js";
 import { agentExecutionListIndex } from "../../../domain/agentrun/list-index.js";
 import { policyIdFor } from "../../../domain/iampolicy/constants.js";
 import { iamPolicyListIndex } from "../../../domain/iampolicy/list-index.js";
-import { RUN_RENAME_PAGE_SIZE, renamedWorkflowRow } from "../../run-rename.js";
+import { RUN_RENAME_PAGE_SIZE } from "../../run-rename.js";
 import {
   NEW_RUN_NAMES,
   OLD_RUN_NAMES,
-  RUN_RENAME_HASH,
   RUN_RENAME_ORG,
   agentRunBytes,
-  workflowRunBytes,
-  workflowWithSteps,
 } from "../../__tests__/run-rename-rows.js";
 import {
   createTestDatabase,
@@ -321,17 +333,14 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           "schedule_runs",
           "schema_version",
           "search_index",
-          "signal_dedupe",
-          "workflow_execution_events",
         ]);
 
-        // v2's index: the retention sweep's scan (see migrateToV2).
-        const sweepIndex = await client.query(
+        // v2's index went with the table v14 drops, and v7's with theirs.
+        const retiredIndexes = await client.query(
           `SELECT indexname FROM pg_indexes
-           WHERE tablename = 'workflow_execution_events'
-             AND indexname = 'idx_wfee_created_at'`,
+           WHERE indexname LIKE 'idx_wfee_%' OR indexname LIKE 'idx_signal_dedupe_%'`,
         );
-        expect(sweepIndex.rowCount, "the v2 sweep index exists").toBe(1);
+        expect(retiredIndexes.rowCount, "no index of a dropped table is left").toBe(0);
 
         // v3's index: the by-resource grant teardown (see migrateToV3).
         const grantIndex = await client.query(
@@ -377,12 +386,11 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         );
         expect((projectAudit.rows[0] as { n: number }).n).toBe(0);
 
-        const sweepIndex = await client.query(
-          `SELECT indexname FROM pg_indexes
-           WHERE tablename = 'workflow_execution_events'
-             AND indexname = 'idx_wfee_created_at'`,
+        // v2 ran mid-chain; its index left with the table v14 drops.
+        const applied = await client.query(
+          `SELECT version FROM schema_version WHERE version = 2`,
         );
-        expect(sweepIndex.rowCount, "reopen applied v2 mid-chain").toBe(1);
+        expect(applied.rowCount, "reopen applied v2 mid-chain").toBe(1);
 
         const grantIndex = await client.query(
           `SELECT indexname FROM pg_indexes
@@ -1369,14 +1377,8 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       });
     });
 
-    describe("v12: workflow runs name their workflow and the workflow instance rows leave", () => {
+    describe("v12: the workflow instance rows leave, with every grant naming one", () => {
       const ORG = "org_01jz0000000000000000000000";
-      const PIN = "f".repeat(64);
-      const SPEC = {
-        triggerMessage: "nightly",
-        triggerMetadata: { source: "cli" },
-      };
-      const TOKEN = new Uint8Array([0x0a, 0x0b]);
       const seededAt = new Date("2026-09-01T00:00:00Z");
       const metadata = (id: string) => ({ id, org: ORG, slug: id });
 
@@ -1398,30 +1400,6 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           `INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, $4)`,
           [kind, id, Buffer.from(data), seededAt],
         );
-      }
-
-      /**
-       * A run as the release before this one stored it: its list facts
-       * proven under revision 1, with a key row for its workflow and its
-       * instance.
-       */
-      async function insertRun(
-        client: pg.Client,
-        id: string,
-        data: Uint8Array,
-        keys: { workflow?: string; workflow_instance?: string },
-      ): Promise<void> {
-        await client.query(
-          `INSERT INTO resources (kind, id, data, updated_at, list_org, list_created_at, list_index_revision, list_indexed_at)
-           VALUES ('workflow_execution', $1, $2, $3, $4, '', 1, $3)`,
-          [id, Buffer.from(data), seededAt, ORG],
-        );
-        for (const [key, value] of Object.entries(keys)) {
-          await client.query(
-            `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('workflow_execution', $1, $2, $3, '')`,
-            [id, key, value],
-          );
-        }
       }
 
       async function row(
@@ -1456,15 +1434,8 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         return Number(result.rows[0].version);
       }
 
-      const workflow = retiredWorkflowRow({
-        metadata: metadata("wfl_1"),
-        defaultInstanceId: "win_default",
-        versionHash: PIN,
-      });
-
-      /** The workflow, its default and named instances. */
+      /** The default and the named instance of a workflow. */
       async function seedInstances(client: pg.Client): Promise<void> {
-        await insert(client, "workflow", "wfl_1", workflow);
         await insert(
           client,
           "workflow_instance",
@@ -1488,10 +1459,10 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       }
 
       const keptGrant = {
-        id: "iam_on_workflow",
+        id: "iam_on_agent",
         principal: "identity_account:ida_1",
         relation: "viewer",
-        resource: "workflow:wfl_1",
+        resource: "agent:agt_1",
       };
       const retiredGrants = [
         {
@@ -1512,12 +1483,6 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           relation: "owner",
           resource: "workflow_instance:win_named",
         },
-        {
-          id: "iam_run_of_named",
-          principal: "workflow_instance:win_named",
-          relation: "workflow_instance",
-          resource: "workflow_execution:wex_instance_only",
-        },
       ];
 
       async function seedGrants(client: pg.Client): Promise<void> {
@@ -1534,50 +1499,11 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         );
       }
 
-      it("moves every run onto its instance's workflow, keeps every other run's history, and removes the instance rows from every table", async () => {
+      it("removes the instance rows from every table and every grant naming one, and keeps a grant on another kind", async () => {
         const client = await v11Client();
         try {
           await seedInstances(client);
           await seedGrants(client);
-          await insertRun(
-            client,
-            "wex_instance_only",
-            retiredWorkflowExecutionRow({
-              metadata: metadata("wex_instance_only"),
-              instanceId: "win_named",
-              callbackToken: TOKEN,
-              spec: SPEC,
-              status: { workflowVersionHash: PIN },
-            }),
-            { workflow_instance: "win_named" },
-          );
-          await insertRun(
-            client,
-            "wex_both",
-            retiredWorkflowExecutionRow({
-              metadata: metadata("wex_both"),
-              instanceId: "win_default",
-              spec: { ...SPEC, workflowId: "wfl_own" },
-              status: { workflowVersionHash: PIN },
-            }),
-            { workflow: "wfl_own", workflow_instance: "win_default" },
-          );
-          await insertRun(
-            client,
-            "wex_orphan",
-            retiredWorkflowExecutionRow({
-              metadata: metadata("wex_orphan"),
-              instanceId: "win_deleted",
-              callbackToken: TOKEN,
-              spec: SPEC,
-            }),
-            { workflow_instance: "win_deleted" },
-          );
-          const current = workflowExecutionBytes({
-            metadata: metadata("wex_current"),
-            spec: { ...SPEC, workflowId: "wfl_1" },
-          });
-          await insertRun(client, "wex_current", current, { workflow: "wfl_1" });
           await client.query(
             `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('workflow_instance', 'win_default', $1, '', '')`,
             [Buffer.from([0x00])],
@@ -1588,53 +1514,6 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
 
           await migrateTo(db.databaseUrl, SCHEMA_VERSION_12);
           expect(await version(client)).toBe(SCHEMA_VERSION_12);
-
-          // The instance-only run names its instance's workflow, and its
-          // stamp moves so the list index re-derives the key it is found by.
-          const instanceOnly = await row(
-            client,
-            "workflow_execution",
-            "wex_instance_only",
-          );
-          expect(instanceOnly.data).toEqual(
-            workflowExecutionBytes({
-              metadata: metadata("wex_instance_only"),
-              spec: { ...SPEC, workflowId: "wfl_1" },
-              status: { workflowVersionHash: PIN },
-            }),
-          );
-          expect(instanceOnly.updatedAt).not.toEqual(seededAt);
-          // The run with both ids keeps its own workflow and its stamp.
-          expect(await row(client, "workflow_execution", "wex_both")).toEqual({
-            data: workflowExecutionBytes({
-              metadata: metadata("wex_both"),
-              spec: { ...SPEC, workflowId: "wfl_own" },
-              status: { workflowVersionHash: PIN },
-            }),
-            updatedAt: seededAt,
-          });
-          // The orphan keeps its history with no workflow; only the
-          // retired fields leave.
-          expect(await row(client, "workflow_execution", "wex_orphan")).toEqual({
-            data: workflowExecutionBytes({
-              metadata: metadata("wex_orphan"),
-              spec: SPEC,
-            }),
-            updatedAt: seededAt,
-          });
-          expect(await row(client, "workflow_execution", "wex_current")).toEqual({
-            data: current,
-            updatedAt: seededAt,
-          });
-
-          // The workflow's retired default-instance pointer rides on.
-          const stored = (await row(client, "workflow", "wfl_1")).data;
-          expect(stored).toEqual(workflow);
-          expect(
-            fromBinary(WorkflowSchema, stored).status?.$unknown?.map(
-              (f) => f.no,
-            ),
-          ).toEqual([1]);
 
           for (const table of [
             "resources",
@@ -1651,142 +1530,81 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             ).rows.map((r) => r.id);
           expect(await policyIds("resources")).toEqual([keptGrant.id]);
           expect(await policyIds("resource_list_keys")).toEqual([keptGrant.id]);
-          expect((await row(client, "iam_policy", keptGrant.id)).data).toEqual(
-            policyRow(keptGrant),
-          );
-          expect(await count(client, "resource_audit", "iam_policy")).toBe(1);
-
-          // The store the server opens on the migrated database finds each
-          // run through the key listByWorkflow reads, and the repair at
-          // open leaves no instance key behind.
-          const store = await PostgresStore.open(db.databaseUrl, undefined, {
-            listIndexes: [workflowExecutionListIndex],
+          expect(await row(client, "iam_policy", keptGrant.id)).toEqual({
+            data: policyRow(keptGrant),
+            updatedAt: seededAt,
           });
-          try {
-            const byWorkflow = async (workflowId: string): Promise<string[]> =>
-              (
-                await store.queryResources(workflowExecutionListIndex, {
-                  anyKey: [{ name: "workflow", value: workflowId }],
-                })
-              )
-                .map((r) => r.id)
-                .sort();
-            expect(await byWorkflow("wfl_1")).toEqual([
-              "wex_current",
-              "wex_instance_only",
-            ]);
-            expect(await byWorkflow("wfl_own")).toEqual(["wex_both"]);
-          } finally {
-            await store.close();
-          }
-          // The store carried the database on to the current version, where
-          // the run kind is workflow_run.
-          const keys = await client.query<{ key: string }>(
-            `SELECT DISTINCT key FROM resource_list_keys WHERE kind = 'workflow_run' ORDER BY key`,
-          );
-          expect(keys.rows).toEqual([{ key: "workflow" }]);
+          // The history of a removed grant is kept.
+          expect(await count(client, "resource_audit", "iam_policy")).toBe(1);
         } finally {
           await client.end();
         }
       });
 
-      it("reads instances and runs across keyset pages, missing none past the first page", async () => {
+      it("reads grants across keyset pages, missing none past the first page", async () => {
         const client = await v11Client();
         try {
-          // Instances sort after the seeded ones, so the last lands past
-          // the first page.
-          for (let i = 0; i <= WORKFLOW_RETIREMENT_PAGE_SIZE; i++) {
-            const id = `win_page_${String(i).padStart(4, "0")}`;
-            await insert(
-              client,
-              "workflow_instance",
-              id,
-              retiredWorkflowInstanceRow({
-                metadata: metadata(id),
-                workflowId: "wfl_1",
-              }),
-            );
-          }
-          const lastInstance = `win_page_${String(WORKFLOW_RETIREMENT_PAGE_SIZE).padStart(4, "0")}`;
+          await seedInstances(client);
           const total = WORKFLOW_RETIREMENT_PAGE_SIZE + 3;
+          await client.query("BEGIN");
           for (let i = 0; i < total; i++) {
             // Mixed case and punctuation order differently under a
             // linguistic collation than as bytes; the keyset compares and
             // orders under one collation, so it misses none either way.
-            const id = `${i % 2 === 0 ? "wex_" : "WEX-"}${String(i).padStart(4, "0")}`;
+            const id = `${i % 2 === 0 ? "iam_" : "IAM-"}${String(i).padStart(4, "0")}`;
             await insert(
               client,
-              "workflow_execution",
+              "iam_policy",
               id,
-              retiredWorkflowExecutionRow({
-                metadata: metadata(id),
-                instanceId: lastInstance,
+              policyRow({
+                id,
+                principal: "identity_account:ida_1",
+                relation: "viewer",
+                resource: "workflow_instance:win_named",
               }),
             );
           }
+          await client.query("COMMIT");
 
           await migrateTo(db.databaseUrl, SCHEMA_VERSION_12);
 
-          const rows = await client.query<{ data: Buffer }>(
-            `SELECT data FROM resources WHERE kind = 'workflow_execution'`,
-          );
-          expect(rows.rowCount).toBe(total);
-          for (const r of rows.rows) {
-            const spec = fromBinary(
-              WorkflowRunSchema,
-              new Uint8Array(r.data),
-            ).spec;
-            expect(spec?.workflowId).toBe("wfl_1");
-            expect(spec?.$unknown).toBeUndefined();
-          }
+          expect(await count(client, "resources", "iam_policy")).toBe(0);
           expect(await count(client, "resources", "workflow_instance")).toBe(0);
         } finally {
           await client.end();
         }
       });
 
-      it.each([
-        { kind: "workflow_instance", id: "win_broken" },
-        { kind: "workflow_execution", id: "wex_z_broken" },
-        { kind: "iam_policy", id: "iam_broken" },
-      ])(
-        "a $kind row that does not decode fails the step, names the row, rolls back, and leaves the database at v11",
-        async (broken) => {
-          const client = await v11Client();
-          try {
-            await seedInstances(client);
-            // A readable run ahead of a broken run in id order is
-            // rewritten first; the failure must take that rewrite back.
-            const good = retiredWorkflowExecutionRow({
-              metadata: metadata("wex_a_good"),
-              instanceId: "win_named",
-            });
-            await insert(client, "workflow_execution", "wex_a_good", good);
-            await insert(
-              client,
-              broken.kind,
-              broken.id,
-              new Uint8Array([0x22, 0xff]),
-            );
-            await expect(
-              migrateTo(db.databaseUrl, SCHEMA_VERSION_12),
-            ).rejects.toThrow(
-              `${broken.kind} '${broken.id}' cannot be read to retire the workflow instance kind`,
-            );
-            expect(await version(client)).toBe(SCHEMA_VERSION_12 - 1);
-            expect(
-              (await row(client, "workflow_execution", "wex_a_good")).data,
-            ).toEqual(good);
-            expect(await count(client, "resources", "workflow_instance")).toBe(
-              broken.kind === "workflow_instance" ? 3 : 2,
-            );
-          } finally {
-            await client.end();
-          }
-        },
-      );
+      it("a grant that does not decode fails the step, names the row, rolls back, and leaves the database at v11", async () => {
+        const client = await v11Client();
+        try {
+          await seedInstances(client);
+          // A readable grant ahead of the broken one in id order is found
+          // first; the failure must leave it and every instance in place.
+          const readable = policyRow({ ...retiredGrants[0]!, id: "iam_a_good" });
+          await insert(client, "iam_policy", "iam_a_good", readable);
+          await insert(
+            client,
+            "iam_policy",
+            "iam_z_broken",
+            new Uint8Array([0x22, 0xff]),
+          );
+          await expect(
+            migrateTo(db.databaseUrl, SCHEMA_VERSION_12),
+          ).rejects.toThrow(
+            "iam_policy 'iam_z_broken' cannot be read to retire the workflow instance kind",
+          );
+          expect(await version(client)).toBe(SCHEMA_VERSION_12 - 1);
+          expect((await row(client, "iam_policy", "iam_a_good")).data).toEqual(
+            readable,
+          );
+          expect(await count(client, "resources", "workflow_instance")).toBe(2);
+        } finally {
+          await client.end();
+        }
+      });
 
-      it("replays the frozen steps over workflow instance rows from v4 exactly as they shipped, then moves their runs and removes them", async () => {
+      it("replays the frozen steps over workflow instance rows from v4 exactly as they shipped, then removes them", async () => {
         await migrateTo(db.databaseUrl, SCHEMA_VERSION_5 - 1);
         const client = new pg.Client({ connectionString: db.databaseUrl });
         await client.connect();
@@ -1809,17 +1627,6 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             "workflow_instance",
             "win_public",
             instanceAt(ApiResourceVisibility.visibility_public),
-          );
-          await insert(
-            client,
-            "workflow_execution",
-            "wex_1",
-            retiredWorkflowExecutionRow({
-              metadata: { id: "wex_1", org: "deleted-org", slug: "wex_1" },
-              instanceId: "win_public",
-              callbackToken: TOKEN,
-              spec: SPEC,
-            }),
           );
           await insert(
             client,
@@ -1847,12 +1654,6 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
 
           await migrateTo(db.databaseUrl, SCHEMA_VERSION_12);
           expect(await version(client)).toBe(SCHEMA_VERSION_12);
-          expect((await row(client, "workflow_execution", "wex_1")).data).toEqual(
-            workflowExecutionBytes({
-              metadata: { id: "wex_1", org: "deleted-org", slug: "wex_1" },
-              spec: { ...SPEC, workflowId: "wfl_1" },
-            }),
-          );
           expect(await count(client, "resources", "workflow_instance")).toBe(0);
           expect(await count(client, "resources", "iam_policy")).toBe(0);
         } finally {
@@ -1861,7 +1662,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       });
     });
 
-    describe("v13: agent and workflow executions are runs", () => {
+    describe("v13: agent executions are runs", () => {
       const seededAt = new Date("2026-10-01T00:00:00Z");
 
       /** A v12 database, the one v13 starts from, and a client on it for the seeding. */
@@ -1939,17 +1740,16 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         id: "iamp_on_run",
         principal: "identity_account:ida_2",
         relation: "viewer",
-        resource: "workflow_execution:wex_1",
+        resource: "agent_execution:aex_1",
       };
       const keptGrant = {
-        id: "iamp_on_workflow",
+        id: "iamp_on_agent",
         principal: "identity_account:ida_3",
         relation: "viewer",
-        resource: "workflow:wfl_1",
+        resource: "agent:agt_1",
       };
-      const oldWorkflow = toBinary(WorkflowSchema, workflowWithSteps("wfl_1", OLD_RUN_NAMES));
 
-      it("renames the run kinds in every table, rewrites the rows that spell them, re-keys grants on runs and rewrites workflows' run keys", async () => {
+      it("renames the run kind in every table, rewrites the rows that spell it and re-keys grants on runs", async () => {
         const client = await v12Client();
         try {
           await insertIndexed(
@@ -1958,13 +1758,6 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             "aex_1",
             agentRunBytes("aex_1", "ses_1", OLD_RUN_NAMES),
             { session: "ses_1" },
-          );
-          await insertIndexed(
-            client,
-            "workflow_execution",
-            "wex_1",
-            workflowRunBytes("wex_1", "wfl_1", OLD_RUN_NAMES),
-            { workflow: "wfl_1" },
           );
           const runAudit = new Uint8Array([0x0a, 0x01, 0x61]);
           await client.query(
@@ -1986,29 +1779,17 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('iam_policy', $1, $2, '', '')`,
             [runGrant.id, Buffer.from(policyRow(runGrant))],
           );
-          await insertPlain(client, "workflow", "wfl_1", oldWorkflow);
-          await client.query(
-            `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('workflow', 'wfl_1', $1, $2, 'v1')`,
-            [Buffer.from(oldWorkflow), RUN_RENAME_HASH],
-          );
-          const currentWorkflow = toBinary(WorkflowSchema, workflowWithSteps("wfl_2", NEW_RUN_NAMES));
-          await insertPlain(client, "workflow", "wfl_2", currentWorkflow);
 
           await migrateTo(db.databaseUrl, SCHEMA_VERSION_13);
           expect(await version(client)).toBe(SCHEMA_VERSION_13);
 
           for (const table of ["resources", "resource_audit", "resource_list_keys", "resource_names"]) {
             expect(await count(client, table, "agent_execution")).toBe(0);
-            expect(await count(client, table, "workflow_execution")).toBe(0);
           }
-          // Each run reads the contract's kind string under its new kind,
+          // The run reads the contract's kind string under its new kind,
           // and keeps its stamp: no list key reads what changed.
           expect(await row(client, "agent_run", "aex_1")).toEqual({
             data: agentRunBytes("aex_1", "ses_1", NEW_RUN_NAMES),
-            updatedAt: seededAt,
-          });
-          expect(await row(client, "workflow_run", "wex_1")).toEqual({
-            data: workflowRunBytes("wex_1", "wfl_1", NEW_RUN_NAMES),
             updatedAt: seededAt,
           });
           const audit = await client.query<{ kind: string; data: Buffer }>(
@@ -2025,7 +1806,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           // The grant on the run moves to the id its renamed triple
           // derives; its history stays under the old id.
           const rekeyedId = policyIdFor(
-            fromBinary(IamPolicySchema, policyRow({ ...runGrant, resource: "workflow_run:wex_1" }))
+            fromBinary(IamPolicySchema, policyRow({ ...runGrant, resource: "agent_run:aex_1" }))
               .spec!,
           );
           expect(await row(client, "iam_policy", runGrant.id)).toBeUndefined();
@@ -2034,7 +1815,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             (await row(client, "iam_policy", rekeyedId))!.data,
           );
           expect(rekeyed.metadata?.id).toBe(rekeyedId);
-          expect(rekeyed.spec?.resource).toMatchObject({ kind: "workflow_run", id: "wex_1" });
+          expect(rekeyed.spec?.resource).toMatchObject({ kind: "agent_run", id: "aex_1" });
           expect((await row(client, "iam_policy", keptGrant.id))?.data).toEqual(
             policyRow(keptGrant),
           );
@@ -2043,29 +1824,10 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           );
           expect(policyHistory.rows).toEqual([{ resource_id: runGrant.id }]);
 
-          // The workflow and its archived version name runs by the new
-          // step keys; the version keeps its hash and tag.
-          const migratedWorkflow = renamedWorkflowRow(oldWorkflow)!;
-          expect(await row(client, "workflow", "wfl_1")).toEqual({
-            data: migratedWorkflow,
-            updatedAt: seededAt,
-          });
-          const versions = await client.query<{ data: Buffer; version_hash: string; tag: string }>(
-            `SELECT data, version_hash, tag FROM resource_audit WHERE kind = 'workflow' AND resource_id = 'wfl_1'`,
-          );
-          expect(
-            versions.rows.map((r) => ({
-              data: new Uint8Array(r.data),
-              versionHash: r.version_hash,
-              tag: r.tag,
-            })),
-          ).toEqual([{ data: migratedWorkflow, versionHash: RUN_RENAME_HASH, tag: "v1" }]);
-          expect((await row(client, "workflow", "wfl_2"))?.data).toEqual(currentWorkflow);
-
-          // The store the server opens finds each run through the key its
+          // The store the server opens finds the run through the key its
           // list reads, and the re-keyed grant through its principal.
           const store = await PostgresStore.open(db.databaseUrl, undefined, {
-            listIndexes: [agentExecutionListIndex, workflowExecutionListIndex, iamPolicyListIndex],
+            listIndexes: [agentExecutionListIndex, iamPolicyListIndex],
           });
           try {
             const ids = async (
@@ -2075,66 +1837,11 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             ): Promise<string[]> =>
               (await store.queryResources(index, { anyKey: [{ name, value }] })).map((r) => r.id);
             expect(await ids(agentExecutionListIndex, "session", "ses_1")).toEqual(["aex_1"]);
-            expect(await ids(workflowExecutionListIndex, "workflow", "wfl_1")).toEqual(["wex_1"]);
             expect(await ids(iamPolicyListIndex, "principal", "ida_2")).toEqual([rekeyedId]);
             expect(await ids(iamPolicyListIndex, "principal", "ida_3")).toEqual([keptGrant.id]);
           } finally {
             await store.close();
           }
-        } finally {
-          await client.end();
-        }
-      });
-
-      it("names every run lifecycle event in the event log the new way, the task events and the bytes untouched", async () => {
-        const client = await v12Client();
-        try {
-          const seeded: Array<[executionId: string, sequence: number, eventType: string, taskName: string]> = [
-            ["wex_1", 1, "execution_started", ""],
-            ["wex_1", 2, "task_started", "triage"],
-            ["wex_1", 3, "execution_paused", ""],
-            ["wex_1", 4, "execution_resumed", ""],
-            ["wex_1", 5, "execution_completed", ""],
-            ["wex_2", 1, "execution_failed", ""],
-            ["wex_3", 1, "execution_cancelled", ""],
-            ["wex_4", 1, "execution_terminated", ""],
-          ];
-          for (const [executionId, sequence, eventType, taskName] of seeded) {
-            await client.query(
-              `INSERT INTO workflow_execution_events (execution_id, sequence_number, event_type, task_name, data) VALUES ($1, $2, $3, $4, $5)`,
-              [executionId, sequence, eventType, taskName, Buffer.from([sequence])],
-            );
-          }
-
-          await migrateTo(db.databaseUrl, SCHEMA_VERSION_13);
-
-          const events = await client.query<{
-            execution_id: string;
-            sequence_number: string;
-            event_type: string;
-            task_name: string;
-            data: Buffer;
-          }>(
-            `SELECT execution_id, sequence_number, event_type, task_name, data FROM workflow_execution_events ORDER BY execution_id, sequence_number`,
-          );
-          expect(
-            events.rows.map((event) => [
-              event.execution_id,
-              Number(event.sequence_number),
-              event.event_type,
-              event.task_name,
-              [...event.data],
-            ]),
-          ).toEqual([
-            ["wex_1", 1, "run_started", "", [1]],
-            ["wex_1", 2, "task_started", "triage", [2]],
-            ["wex_1", 3, "run_paused", "", [3]],
-            ["wex_1", 4, "run_resumed", "", [4]],
-            ["wex_1", 5, "run_completed", "", [5]],
-            ["wex_2", 1, "run_failed", "", [1]],
-            ["wex_3", 1, "run_cancelled", "", [1]],
-            ["wex_4", 1, "run_terminated", "", [1]],
-          ]);
         } finally {
           await client.end();
         }
@@ -2188,15 +1895,6 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         }
       });
 
-      /** Archives a workflow version the way the release before stored it. */
-      async function insertVersion(client: pg.Client, data: Uint8Array): Promise<string> {
-        const result = await client.query<{ id: string }>(
-          `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('workflow', 'wfl_1', $1, $2, '') RETURNING id::text AS id`,
-          [Buffer.from(data), RUN_RENAME_HASH],
-        );
-        return result.rows[0]!.id;
-      }
-
       it("a grant that does not decode fails the step, names the row, and leaves the database at v12", async () => {
         const client = await v12Client();
         try {
@@ -2211,50 +1909,538 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           await client.end();
         }
       });
-
-      it("an archived workflow version that does not decode fails the step, names the version, and leaves the database at v12", async () => {
-        const client = await v12Client();
-        try {
-          const goodId = await insertVersion(client, oldWorkflow);
-          const badId = await insertVersion(client, new Uint8Array([0x22, 0xff]));
-          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_13)).rejects.toThrow(
-            `the workflow version row ${badId} cannot be read for the rename of executions to runs`,
-          );
-          expect(await version(client)).toBe(SCHEMA_VERSION_12);
-          const kept = await client.query<{ data: Buffer }>(
-            `SELECT data FROM resource_audit WHERE id = $1::bigint`,
-            [goodId],
-          );
-          expect(new Uint8Array(kept.rows[0]!.data)).toEqual(oldWorkflow);
-        } finally {
-          await client.end();
-        }
-      });
-
-      it("reads archived workflow versions across keyset pages, missing none past the first page", async () => {
-        const client = await v12Client();
-        try {
-          for (let i = 0; i <= RUN_RENAME_PAGE_SIZE; i++) {
-            await insertVersion(client, oldWorkflow);
-          }
-
-          await migrateTo(db.databaseUrl, SCHEMA_VERSION_13);
-
-          const versions = await client.query<{ data: Buffer }>(
-            `SELECT data FROM resource_audit WHERE kind = 'workflow' ORDER BY id`,
-          );
-          const migratedWorkflow = renamedWorkflowRow(oldWorkflow)!;
-          expect(versions.rowCount).toBe(RUN_RENAME_PAGE_SIZE + 1);
-          for (const r of versions.rows) {
-            expect(new Uint8Array(r.data)).toEqual(migratedWorkflow);
-          }
-        } finally {
-          await client.end();
-        }
-      });
     });
 
-    describe("v14: every identity account's slug held to the slug rules", () => {
+    describe("v14: workflows, workflow runs and artifacts leave, with the tables only workflows wrote", () => {
+      const ORG = "org_01jz0000000000000000000000";
+      const seededAt = new Date("2026-10-06T00:00:00Z");
+      const HASH = "b".repeat(64);
+      const TOKEN = new Uint8Array([0x0c, 0x0d]);
+      const OWN_LABELS = { team: "support" };
+      const RETIRED_KINDS = [
+        "workflow",
+        "workflow_execution",
+        "workflow_run",
+        "artifact",
+        "workflow_instance",
+      ];
+      const metadata = (id: string) => ({ id, org: ORG, slug: id });
+
+      async function clientAt(version: number): Promise<pg.Client> {
+        await migrateTo(db.databaseUrl, version);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        return client;
+      }
+
+      async function insert(
+        client: pg.Client,
+        kind: string,
+        id: string,
+        data: Uint8Array,
+      ): Promise<void> {
+        await client.query(
+          `INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, $4)`,
+          [kind, id, Buffer.from(data), seededAt],
+        );
+      }
+
+      async function insertKey(
+        client: pg.Client,
+        kind: string,
+        id: string,
+        key: string,
+        value: string,
+      ): Promise<void> {
+        await client.query(
+          `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ($1, $2, $3, $4, '')`,
+          [kind, id, key, value],
+        );
+      }
+
+      async function row(
+        client: pg.Client,
+        kind: string,
+        id: string,
+      ): Promise<Uint8Array | undefined> {
+        const result = await client.query<{ data: Buffer }>(
+          `SELECT data FROM resources WHERE kind = $1 AND id = $2`,
+          [kind, id],
+        );
+        const found = result.rows[0];
+        return found === undefined ? undefined : new Uint8Array(found.data);
+      }
+
+      async function count(client: pg.Client, table: string, kind: string): Promise<number> {
+        const result = await client.query<{ n: string }>(
+          `SELECT COUNT(*) AS n FROM ${table} WHERE kind = $1`,
+          [kind],
+        );
+        return Number(result.rows[0]!.n);
+      }
+
+      async function version(client: pg.Client): Promise<number> {
+        const result = await client.query(
+          `SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`,
+        );
+        return Number(result.rows[0].version);
+      }
+
+      async function tableExists(client: pg.Client, table: string): Promise<boolean> {
+        const result = await client.query<{ n: string }>(
+          `SELECT COUNT(*) AS n FROM information_schema.tables WHERE table_schema = 'public' AND table_name = $1`,
+          [table],
+        );
+        return Number(result.rows[0]!.n) === 1;
+      }
+
+      const agentBytes = toBinary(
+        AgentSchema,
+        create(AgentSchema, {
+          apiVersion: "agentic.stigmer.ai/v1",
+          kind: "Agent",
+          metadata: { id: "agt_1", name: "reviewer", slug: "reviewer", org: ORG },
+          spec: { instructions: "a conformant instruction body" },
+        }),
+      );
+      const sessionBytesSeeded = toBinary(
+        SessionSchema,
+        create(SessionSchema, {
+          apiVersion: "agentic.stigmer.ai/v1",
+          kind: "Session",
+          metadata: { id: "ses_1", org: ORG },
+          status: { agentId: "agt_1" },
+        }),
+      );
+      const keptGrant = {
+        id: "iam_on_agent",
+        principal: "identity_account:ida_kept",
+        relation: "viewer",
+        resource: "agent:agt_1",
+      };
+
+      /** The agent, its session, a grant on the agent: what must read back unchanged. */
+      async function seedAgentSide(client: pg.Client): Promise<void> {
+        await insert(client, "agent", "agt_1", agentBytes);
+        await insert(client, "session", "ses_1", sessionBytesSeeded);
+        await insert(client, "iam_policy", keptGrant.id, policyRow(keptGrant));
+        await insertKey(client, "iam_policy", keptGrant.id, "principal", "ida_kept");
+      }
+
+      /** The workflow-side rows every arm seeds, under the run kind the version stored. */
+      async function seedWorkflowSide(
+        client: pg.Client,
+        runKind: "workflow_execution" | "workflow_run",
+      ): Promise<void> {
+        const kindString =
+          runKind === "workflow_execution" ? "WorkflowExecution" : "WorkflowRun";
+        const workflow = retiredWorkflowRow({
+          metadata: metadata("wfl_1"),
+          versionHash: HASH,
+        });
+        await insert(client, "workflow", "wfl_1", workflow);
+        await client.query(
+          `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('workflow', 'wfl_1', $1, $2, 'v1')`,
+          [Buffer.from(workflow), HASH],
+        );
+        await client.query(
+          `INSERT INTO resource_names (kind, org, name, id, state, claimed_at) VALUES ('workflow', $1, 'wfl_1', 'wfl_1', 'current', $2)`,
+          [ORG, seededAt.toISOString()],
+        );
+        await insert(
+          client,
+          runKind,
+          "wex_direct",
+          retiredWorkflowRunRow({
+            metadata: metadata("wex_direct"),
+            kindString,
+            workflowId: "wfl_1",
+          }),
+        );
+        await insertKey(client, runKind, "wex_direct", "workflow", "wfl_1");
+        await insert(
+          client,
+          "artifact",
+          "art_workflow",
+          retiredArtifactRow({
+            metadata: metadata("art_workflow"),
+            source: { workflowRunId: "wex_direct", taskName: "triage" },
+          }),
+        );
+        await insert(
+          client,
+          "artifact",
+          "art_agent",
+          retiredArtifactRow({
+            metadata: metadata("art_agent"),
+            source: { agentRunId: "aex_child" },
+          }),
+        );
+        await insertKey(client, "artifact", "art_agent", "agent_run", "aex_child");
+        const grants = [
+          { id: "iam_on_workflow", principal: "identity_account:ida_1", relation: "viewer", resource: "workflow:wfl_1" },
+          { id: "iam_on_run", principal: "identity_account:ida_1", relation: "viewer", resource: `${runKind}:wex_direct` },
+          { id: "iam_run_child", principal: `${runKind}:wex_direct`, relation: "parent", resource: "agent_run:aex_child" },
+          { id: "iam_on_artifact", principal: "identity_account:ida_2", relation: "owner", resource: "artifact:art_agent" },
+        ];
+        for (const grant of grants) {
+          await insert(client, "iam_policy", grant.id, policyRow(grant));
+          await insertKey(client, "iam_policy", grant.id, "principal", grant.principal.split(":")[1] ?? "");
+        }
+        await client.query(
+          `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('iam_policy', 'iam_on_workflow', $1, '', '')`,
+          [Buffer.from(policyRow(grants[0]!))],
+        );
+        await client.query(
+          `INSERT INTO workflow_execution_events (execution_id, sequence_number, event_type, task_name, data) VALUES ('wex_direct', 1, 'run_started', '', '\\x01'), ('wex_direct', 2, 'task_started', 'triage', '\\x02')`,
+        );
+        await client.query(
+          `INSERT INTO signal_dedupe (id, org, idempotency_key, execution_id, signal_name, status, created_at, expires_at) VALUES ($1, $2, 'key-1', 'wex_direct', 'resume', 'DELIVERED', '2026-10-06T00:00:00Z', '2026-10-07T00:00:00Z')`,
+          [`${ORG}:key-1`, ORG],
+        );
+      }
+
+      /** The plain and the parented agent run, under the kind and kind string the version stored. */
+      async function seedRuns(
+        client: pg.Client,
+        runKind: "agent_execution" | "agent_run",
+      ): Promise<void> {
+        const kindString = runKind === "agent_execution" ? "AgentExecution" : "AgentRun";
+        await insert(
+          client,
+          runKind,
+          "aex_plain",
+          agentRunRow({ id: "aex_plain", kindString, org: ORG, sessionId: "ses_1", labels: OWN_LABELS }),
+        );
+        await insert(
+          client,
+          runKind,
+          "aex_child",
+          agentRunRow({
+            id: "aex_child",
+            kindString,
+            org: ORG,
+            sessionId: "ses_1",
+            labels: { ...OWN_LABELS, ...WORKFLOW_LINEAGE_LABELS },
+            parent: "wex_direct",
+            callbackToken: TOKEN,
+          }),
+        );
+        await insert(
+          client,
+          runKind,
+          "aex_waiting",
+          agentRunRow({
+            id: "aex_waiting",
+            kindString,
+            org: ORG,
+            sessionId: "ses_1",
+            parent: "wex_direct",
+            phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
+          }),
+        );
+        await insert(
+          client,
+          runKind,
+          "aex_released",
+          agentRunRow({
+            id: "aex_released",
+            kindString,
+            org: ORG,
+            sessionId: "ses_1",
+            labels: { ...OWN_LABELS, ...WORKFLOW_LINEAGE_LABELS },
+            released: { callbackToken: TOKEN, parentWorkflowId: "wex_direct", activityTaskQueue: "wfexec:wex_direct" },
+            phase: RunPhase.RUN_IN_PROGRESS,
+          }),
+        );
+      }
+
+      /**
+       * The state every arm must reach at the current version, the unfinished
+       * run a workflow step started ended FAILED with the reason.
+       */
+      async function expectRetired(client: pg.Client): Promise<void> {
+        expect(await version(client)).toBe(SCHEMA_VERSION_14);
+        for (const table of ["resources", "resource_audit", "resource_list_keys", "resource_names"]) {
+          for (const kind of RETIRED_KINDS) {
+            expect(await count(client, table, kind), `${table} ${kind}`).toBe(0);
+          }
+        }
+        const policyIds = async (table: string): Promise<string[]> =>
+          (
+            await client.query<{ id: string }>(
+              `SELECT id FROM ${table} WHERE kind = 'iam_policy' ORDER BY id`,
+            )
+          ).rows.map((r) => r.id);
+        expect(await policyIds("resources")).toEqual([keptGrant.id]);
+        expect(await policyIds("resource_list_keys")).toEqual([keptGrant.id]);
+        expect(await tableExists(client, "workflow_execution_events")).toBe(false);
+        expect(await tableExists(client, "signal_dedupe")).toBe(false);
+
+        expect(await row(client, "agent", "agt_1")).toEqual(agentBytes);
+        expect(await row(client, "session", "ses_1")).toEqual(sessionBytesSeeded);
+        expect(await row(client, "iam_policy", keptGrant.id)).toEqual(policyRow(keptGrant));
+        const plain = agentRunRow({ id: "aex_plain", org: ORG, sessionId: "ses_1", labels: OWN_LABELS });
+        const child = agentRunRow({ id: "aex_child", org: ORG, sessionId: "ses_1", labels: OWN_LABELS });
+        expect(await row(client, "agent_run", "aex_plain")).toEqual(plain);
+        expect(await row(client, "agent_run", "aex_child")).toEqual(child);
+        const waitingBytes = await row(client, "agent_run", "aex_waiting");
+        expect(waitingBytes, "the unfinished parented run is kept").toBeDefined();
+        const waiting = fromBinary(AgentRunSchema, waitingBytes!);
+        expect(waiting.status?.phase).toBe(RunPhase.RUN_FAILED);
+        expect(waiting.status?.error).toBe(WORKFLOW_CHILD_ENDED_ERROR);
+        expect(Number.isNaN(Date.parse(waiting.status?.completedAt ?? ""))).toBe(false);
+        expect(waiting.spec?.$unknown).toBeUndefined();
+        expect(await row(client, "agent_run", "aex_released"), "the released link is stripped and the run ended").toEqual(
+          agentRunRow({
+            id: "aex_released",
+            org: ORG,
+            sessionId: "ses_1",
+            labels: OWN_LABELS,
+            phase: RunPhase.RUN_FAILED,
+            error: WORKFLOW_CHILD_ENDED_ERROR,
+            completedAt: waiting.status?.completedAt,
+          }),
+        );
+
+        // The store the server opens reads each back through the API and
+        // finds each through the keys its lists read.
+        const store = await PostgresStore.open(db.databaseUrl, undefined, {
+          listIndexes: [agentExecutionListIndex, iamPolicyListIndex, sessionListIndex],
+        });
+        try {
+          for (const [id, bytes] of [
+            ["aex_plain", plain],
+            ["aex_child", child],
+          ] as const) {
+            const run = await store.getResource(ApiResourceKind.agent_run, id, AgentRunSchema);
+            expect(toBinary(AgentRunSchema, run), id).toEqual(bytes);
+          }
+          const agent = await store.getResource(ApiResourceKind.agent, "agt_1", AgentSchema);
+          expect(toBinary(AgentSchema, agent)).toEqual(agentBytes);
+          const session = await store.getResource(ApiResourceKind.session, "ses_1", SessionSchema);
+          expect(toBinary(SessionSchema, session)).toEqual(sessionBytesSeeded);
+          const ids = async (
+            index: Parameters<typeof store.queryResources>[0],
+            name: string,
+            value: string,
+          ): Promise<string[]> =>
+            (await store.queryResources(index, { anyKey: [{ name, value }] }))
+              .map((r) => r.id)
+              .sort();
+          expect(await ids(agentExecutionListIndex, "session", "ses_1")).toEqual([
+            "aex_child",
+            "aex_plain",
+            "aex_released",
+            "aex_waiting",
+          ]);
+          expect(await ids(sessionListIndex, "agent", "agt_1")).toEqual(["ses_1"]);
+          expect(await ids(iamPolicyListIndex, "principal", "ida_kept")).toEqual([keptGrant.id]);
+          expect(await ids(iamPolicyListIndex, "principal", "ida_1")).toEqual([]);
+        } finally {
+          await store.close();
+        }
+      }
+
+      it("takes a store from v4 through the whole chain: the frozen steps see the workflows, and nothing of the retired kinds survives", async () => {
+        const client = await clientAt(SCHEMA_VERSION_5 - 1);
+        try {
+          // Before the public mover and the slug ledger: a public workflow,
+          // and a workflow whose organization was deleted.
+          const publicAt = (visibility: ApiResourceVisibility) =>
+            retiredWorkflowRow({
+              metadata: { id: "wfl_public", org: ORG, slug: "wfl_public", visibility },
+              versionHash: HASH,
+            });
+          await client.query(
+            `INSERT INTO resources (kind, id, data) VALUES ('organization', $1, '\\x00')`,
+            [ORG],
+          );
+          await insert(
+            client,
+            "workflow",
+            "wfl_public",
+            publicAt(ApiResourceVisibility.visibility_public),
+          );
+          await insert(
+            client,
+            "workflow",
+            "wfl_dead",
+            retiredWorkflowRow({
+              metadata: { id: "wfl_dead", org: "deleted-org", slug: "wfl_dead" },
+              versionHash: HASH,
+            }),
+          );
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_12 - 1);
+          // v5 moved the public workflow to org through its frozen
+          // envelope, every other byte kept; v7 and v8 kept the slug the
+          // dead organization's workflow named.
+          expect(await row(client, "workflow", "wfl_public")).toEqual(
+            publicAt(ApiResourceVisibility.visibility_org),
+          );
+          const deadSlug = async () =>
+            (
+              await client.query(
+                `SELECT kind, name, state FROM resource_names WHERE name = 'deleted-org'`,
+              )
+            ).rows;
+          expect(await deadSlug()).toEqual([
+            { kind: "organization", name: "deleted-org", state: "previous" },
+          ]);
+
+          // At v11: everything a store held before the run rename.
+          await seedAgentSide(client);
+          await seedWorkflowSide(client, "workflow_execution");
+          await insert(
+            client,
+            "workflow_instance",
+            "win_1",
+            retiredWorkflowInstanceRow({ metadata: metadata("win_1"), workflowId: "wfl_1" }),
+          );
+          await insert(
+            client,
+            "workflow_execution",
+            "wex_instance",
+            retiredWorkflowRunRow({
+              metadata: metadata("wex_instance"),
+              kindString: "WorkflowExecution",
+              instanceId: "win_1",
+              callbackToken: TOKEN,
+            }),
+          );
+          await insertKey(client, "workflow_execution", "wex_instance", "workflow_instance", "win_1");
+          const onInstance = {
+            id: "iam_on_instance",
+            principal: "identity_account:ida_1",
+            relation: "viewer",
+            resource: "workflow_instance:win_1",
+          };
+          await insert(client, "iam_policy", onInstance.id, policyRow(onInstance));
+          await insertKey(client, "iam_policy", onInstance.id, "principal", "ida_1");
+          await seedRuns(client, "agent_execution");
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_14);
+          await expectRetired(client);
+          expect(await deadSlug()).toEqual([
+            { kind: "organization", name: "deleted-org", state: "previous" },
+          ]);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("takes a store from v13 to the current version: nothing of the retired kinds survives and every agent run reads back without its parent", async () => {
+        const client = await clientAt(SCHEMA_VERSION_14 - 1);
+        try {
+          await seedAgentSide(client);
+          await seedWorkflowSide(client, "workflow_run");
+          await seedRuns(client, "agent_run");
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_14);
+          await expectRetired(client);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("reads agent runs and grants across keyset pages, missing none past the first page", async () => {
+        const client = await clientAt(SCHEMA_VERSION_14 - 1);
+        try {
+          const runs = AGENT_RUN_RETIRED_PAGE_SIZE + 3;
+          const grants = WORKFLOW_RETIRED_PAGE_SIZE + 3;
+          await client.query("BEGIN");
+          // Mixed case and punctuation order differently under a
+          // linguistic collation than as bytes; the keyset compares and
+          // orders under one collation, so it misses none either way.
+          const idOf = (prefix: string, i: number) =>
+            `${i % 2 === 0 ? `${prefix}_` : `${prefix.toUpperCase()}-`}${String(i).padStart(4, "0")}`;
+          for (let i = 0; i < runs; i++) {
+            const id = idOf("aex", i);
+            await insert(
+              client,
+              "agent_run",
+              id,
+              agentRunRow({
+                id,
+                org: ORG,
+                sessionId: "ses_1",
+                labels: WORKFLOW_LINEAGE_LABELS,
+                parent: "wex_1",
+              }),
+            );
+          }
+          for (let i = 0; i < grants; i++) {
+            const id = idOf("iam", i);
+            await insert(
+              client,
+              "iam_policy",
+              id,
+              policyRow({ id, principal: "identity_account:ida_1", relation: "viewer", resource: "workflow:wfl_1" }),
+            );
+          }
+          await insert(client, "iam_policy", keptGrant.id, policyRow(keptGrant));
+          await client.query("COMMIT");
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_14);
+
+          const rows = await client.query<{ id: string; data: Buffer }>(
+            `SELECT id, data FROM resources WHERE kind = 'agent_run'`,
+          );
+          expect(rows.rowCount).toBe(runs);
+          for (const r of rows.rows) {
+            expect(new Uint8Array(r.data), r.id).toEqual(
+              agentRunRow({ id: r.id, org: ORG, sessionId: "ses_1" }),
+            );
+          }
+          const policies = await client.query<{ id: string }>(
+            `SELECT id FROM resources WHERE kind = 'iam_policy'`,
+          );
+          expect(policies.rows).toEqual([{ id: keptGrant.id }]);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it.each([
+        { kind: "agent_run", id: "aex_z_broken" },
+        { kind: "iam_policy", id: "iam_z_broken" },
+      ])(
+        "a $kind row that does not decode fails the step, names the row, rolls back, and leaves the database at v13",
+        async (broken) => {
+          const client = await clientAt(SCHEMA_VERSION_14 - 1);
+          try {
+            await seedWorkflowSide(client, "workflow_run");
+            // A readable run ahead of the broken one in id order is
+            // rewritten first; the failure must take that rewrite back.
+            const good = agentRunRow({
+              id: "aex_a_good",
+              org: ORG,
+              sessionId: "ses_1",
+              parent: "wex_direct",
+            });
+            await insert(client, "agent_run", "aex_a_good", good);
+            await insert(client, broken.kind, broken.id, new Uint8Array([0x22, 0xff]));
+
+            await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_14)).rejects.toThrow(
+              `${broken.kind} '${broken.id}' cannot be read to retire the workflow kinds`,
+            );
+            expect(await version(client)).toBe(SCHEMA_VERSION_14 - 1);
+            expect(await row(client, "agent_run", "aex_a_good")).toEqual(good);
+            expect(await count(client, "resources", "workflow")).toBe(1);
+            expect(await count(client, "resources", "iam_policy")).toBe(
+              broken.kind === "iam_policy" ? 5 : 4,
+            );
+            expect(await tableExists(client, "workflow_execution_events")).toBe(true);
+            expect(await tableExists(client, "signal_dedupe")).toBe(true);
+          } finally {
+            await client.end();
+          }
+        },
+      );
+    });
+
+    describe("v15: every identity account's slug held to the slug rules", () => {
       function accountBytes(id: string, name: string, slug: string): Buffer {
         return Buffer.from(
           toBinary(
@@ -2270,7 +2456,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       }
 
       it("repairs a slug too long, one starting with a digit, and an empty one, and leaves a valid one byte for byte", async () => {
-        await migrateTo(db.databaseUrl, SCHEMA_VERSION_14 - 1);
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_15 - 1);
         const client = new pg.Client({ connectionString: db.databaseUrl });
         await client.connect();
         const seededAt = new Date("2026-10-01T00:00:00Z");
@@ -2288,7 +2474,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             );
           }
 
-          await migrateTo(db.databaseUrl, SCHEMA_VERSION_14);
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_15);
 
           const slugOf = async (id: string): Promise<string> => {
             const result = await client.query<{ data: Buffer }>(

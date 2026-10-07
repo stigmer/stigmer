@@ -67,7 +67,6 @@ export type {
   ModelAlias,
   ModelHint,
   OverlayDocument,
-  OverlayNamedDocument,
   OverlayServerDocument,
   PluginAuthor,
   PluginDialect,

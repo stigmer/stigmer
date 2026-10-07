@@ -223,10 +223,6 @@ test("the runner task queue is one value on both sides, as compose anchors it", 
     server.get("TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE")?.value,
     anchored,
   );
-  assert.equal(
-    server.get("TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE")?.value,
-    anchored,
-  );
 });
 
 test("the artifact root is the same path in both containers and is not nested under /data", () => {

@@ -1,6 +1,5 @@
 {
   "name": "AgentChannelSpec",
-  "kind": "AGENT_CHANNEL_SPEC",
   "description": "AgentChannelSpec defines the configurable properties of an agent channel.\n\n The spec is deliberately small: which agent serves the channel, whether\n serving is enabled, which provider the channel targets, and which\n environments supply the agent's tool credentials. Workspace identity and\n provider credentials are produced by the install flow and live in\n status — a declarative apply can never clobber them.",
   "protoType": "ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec",
   "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/spec.proto",

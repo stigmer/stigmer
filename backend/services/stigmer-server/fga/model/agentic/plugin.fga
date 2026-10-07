@@ -4,7 +4,7 @@ module agentic
 # PLUGIN TYPE (Organization-scoped)
 # ========================================
 # The unit of install: an Agent Plugins package whose push materialises
-# skills, MCP servers, an agent and workflows in the organization, each
+# skills, MCP servers and an agent in the organization, each
 # labelled with the plugin's id. The plugin head is a blueprint-shaped kind
 # and follows the skill model exactly: org-scoped, owner-attributed, four
 # visibility levels through the tuples VisibilityTupleReconciler writes

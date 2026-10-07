@@ -18,24 +18,6 @@ export function toCamelCase(s: string, capitalizeFirst: boolean): string {
   return parts.join("");
 }
 
-/**
- * Task kind from a message name: strip the "TaskConfig" suffix, insert "_"
- * before every interior capital, uppercase. "HttpCallTaskConfig" → "HTTP_CALL";
- * a Spec message like "AgentSpec" (no suffix to strip) → "AGENT_SPEC".
- */
-export function extractTaskKind(messageName: string): string {
-  const name = trimSuffix(messageName, "TaskConfig");
-  let result = "";
-  for (let i = 0; i < name.length; i++) {
-    const ch = name[i];
-    if (i > 0 && ch >= "A" && ch <= "Z") {
-      result += "_";
-    }
-    result += ch;
-  }
-  return result.toUpperCase();
-}
-
 /** Go's strings.TrimSuffix: removes the suffix once, if present. */
 export function trimSuffix(s: string, suffix: string): string {
   return suffix.length > 0 && s.endsWith(suffix) ? s.slice(0, s.length - suffix.length) : s;

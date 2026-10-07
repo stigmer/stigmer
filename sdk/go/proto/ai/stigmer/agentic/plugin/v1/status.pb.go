@@ -201,9 +201,7 @@ type PluginMaterialization struct {
 	McpServers int32 `protobuf:"varint,2,opt,name=mcp_servers,json=mcpServers,proto3" json:"mcp_servers,omitempty"`
 	// Agents materialised: one when the plugin carries a skill, a sub-agent or
 	// an agent overlay; zero for an MCP-only plugin.
-	Agents int32 `protobuf:"varint,3,opt,name=agents,proto3" json:"agents,omitempty"`
-	// Workflows materialised from the plugin's Stigmer overlay.
-	Workflows     int32 `protobuf:"varint,4,opt,name=workflows,proto3" json:"workflows,omitempty"`
+	Agents        int32 `protobuf:"varint,3,opt,name=agents,proto3" json:"agents,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -255,13 +253,6 @@ func (x *PluginMaterialization) GetMcpServers() int32 {
 func (x *PluginMaterialization) GetAgents() int32 {
 	if x != nil {
 		return x.Agents
-	}
-	return 0
-}
-
-func (x *PluginMaterialization) GetWorkflows() int32 {
-	if x != nil {
-		return x.Workflows
 	}
 	return 0
 }
@@ -346,13 +337,12 @@ const file_ai_stigmer_agentic_plugin_v1_status_proto_rawDesc = "" +
 	"\x05error\x18\x04 \x01(\tR\x05error\x12W\n" +
 	"\fmaterialized\x18\x05 \x01(\v23.ai.stigmer.agentic.plugin.v1.PluginMaterializationR\fmaterialized\x12G\n" +
 	"\bwarnings\x18\x06 \x03(\v2+.ai.stigmer.agentic.plugin.v1.PluginWarningR\bwarnings\x12>\n" +
-	"\x05hooks\x18\a \x01(\v2(.ai.stigmer.agentic.plugin.v1.HookConfigR\x05hooks\"\x86\x01\n" +
+	"\x05hooks\x18\a \x01(\v2(.ai.stigmer.agentic.plugin.v1.HookConfigR\x05hooks\"y\n" +
 	"\x15PluginMaterialization\x12\x16\n" +
 	"\x06skills\x18\x01 \x01(\x05R\x06skills\x12\x1f\n" +
 	"\vmcp_servers\x18\x02 \x01(\x05R\n" +
 	"mcpServers\x12\x16\n" +
-	"\x06agents\x18\x03 \x01(\x05R\x06agents\x12\x1c\n" +
-	"\tworkflows\x18\x04 \x01(\x05R\tworkflows\"Q\n" +
+	"\x06agents\x18\x03 \x01(\x05R\x06agentsJ\x04\b\x04\x10\x05R\tworkflows\"Q\n" +
 	"\rPluginWarning\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x12\n" +

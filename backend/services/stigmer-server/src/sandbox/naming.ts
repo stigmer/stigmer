@@ -18,13 +18,12 @@ import type { SandboxScope } from "./provisioner.js";
 /** The Java SandboxScope codes, byte-identical. */
 const SCOPE_CODES: Record<SandboxScope, string> = {
   session: "ses",
-  workflow: "wfx",
   connect: "mcp",
 };
 
 /** Label carrying the owning driver ("stigmer-server") — the reap/list filter. */
 export const SANDBOX_MANAGED_BY_LABEL = "stigmer.ai/managed-by";
-/** Label carrying the scope ("session" | "workflow" | "connect"). */
+/** Label carrying the scope ("session" | "connect"). */
 export const SANDBOX_SCOPE_LABEL = "stigmer.ai/scope";
 /** Label carrying the full owning resource id (the runtime-derived link). */
 export const SANDBOX_ID_LABEL = "stigmer.ai/sandbox-id";
@@ -34,7 +33,7 @@ export const SANDBOX_MANAGED_BY_VALUE = "stigmer-server";
 /**
  * The task-queue prefix of each scope's sandbox: a sandbox serves exactly
  * `<prefix><id>`. The queues themselves are minted by their own domains
- * (formatSessionTaskQueue, formatWfExecTaskQueue, connectTaskQueueFor),
+ * (formatSessionTaskQueue, connectTaskQueueFor),
  * whose outputs __tests__/provisioner.test.ts pins to this table; the
  * runner's attach waiter derives a sandbox's name from its queue with the
  * same prefixes (runner src/attach/push.ts), and its test loads this
@@ -43,7 +42,6 @@ export const SANDBOX_MANAGED_BY_VALUE = "stigmer-server";
  */
 export const SANDBOX_QUEUE_PREFIXES: Readonly<Record<SandboxScope, string>> = {
   session: "session:",
-  workflow: "wfexec:",
   connect: "mcpconnect:",
 };
 

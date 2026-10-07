@@ -280,7 +280,6 @@ describe("Plugin push — materialisation", () => {
       skills: 1,
       mcpServers: 1,
       agents: 1,
-      workflows: 0,
     });
     // The sub-agent's model hint is recorded, never applied.
     expect(installed.status?.warnings.map((w) => w.kind)).toContain(
@@ -606,7 +605,6 @@ describe("Plugin push — materialisation", () => {
       skills: 0,
       mcpServers: 0,
       agents: 0,
-      workflows: 0,
     });
     expect(installed.status?.hooks?.groups.map((g) => g.event)).toEqual([
       "PreToolUse",

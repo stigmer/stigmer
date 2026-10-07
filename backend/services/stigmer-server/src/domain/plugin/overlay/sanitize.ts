@@ -17,8 +17,8 @@
  *     reserved-label guard answers a client mutation with, so one refusal
  *     class carries one code wherever it is met);
  *   - `metadata.id` is the server's to mint, never an author's;
- *   - the agent overlay's name is the plugin's, a server overlay's name is
- *     its `mcpServers` key, a workflow overlay's name is its file stem: an
+ *   - the agent overlay's name is the plugin's and a server overlay's name
+ *     is its `mcpServers` key: an
  *     overlay describes ONE resource the plugin owns, and a name that says
  *     otherwise is a mistake the author should hear about;
  *   - a foreign `metadata.org` was already refused by the parser.
@@ -97,9 +97,6 @@ export async function sanitizeOverlays(
   }
   for (const document of overlays.mcpServers) {
     judge(document.path, document.resource.metadata, document.server);
-  }
-  for (const document of overlays.workflows) {
-    judge(document.path, document.resource.metadata, document.name);
   }
 
   if (reservedKeys.size === 0) {

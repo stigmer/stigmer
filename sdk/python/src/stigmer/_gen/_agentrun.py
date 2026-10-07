@@ -193,7 +193,6 @@ class AgentRunInput:
     workspace_file_refs: list[str] = field(default_factory=list)
     supersedes_run_id: str = ""
     conversation_catchup: ConversationCatchupInput | None = None
-    parent: WorkflowParentInput | None = None
 
     def _to_proto(self) -> api_pb2.AgentRun:
         spec = spec_pb2.AgentRunSpec(
@@ -217,8 +216,6 @@ class AgentRunInput:
             spec.workspace_file_refs.extend(self.workspace_file_refs)
         if self.conversation_catchup is not None:
             spec.conversation_catchup.CopyFrom(self.conversation_catchup._to_proto())
-        if self.parent is not None:
-            spec.parent.CopyFrom(self.parent._to_proto())
         if self.session_spec is not None:
             spec.session_spec.CopyFrom(self.session_spec._to_proto())
         if self.session_id:
@@ -389,22 +386,5 @@ class ConversationCatchupInput:
         )
         if self.window_end:
             msg.window_end.FromJsonString(self.window_end)
-        return msg
-
-
-@dataclass
-class WorkflowParentInput:
-    """SDK input type for WorkflowParent."""
-
-    workflow_run_id: str = ""
-    signal_workflow_id: str = ""
-    callback_token: bytes = b""
-
-    def _to_proto(self) -> spec_pb2.WorkflowParent:
-        msg = spec_pb2.WorkflowParent(
-            workflow_run_id=self.workflow_run_id,
-            signal_workflow_id=self.signal_workflow_id,
-            callback_token=self.callback_token,
-        )
         return msg
 

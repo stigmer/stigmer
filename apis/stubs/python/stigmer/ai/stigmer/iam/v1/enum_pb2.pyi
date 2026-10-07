@@ -15,7 +15,6 @@ class IamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     can_assign_roles: _ClassVar[IamPermission]
     can_manage_audience: _ClassVar[IamPermission]
     can_create_agent: _ClassVar[IamPermission]
-    can_create_workflow: _ClassVar[IamPermission]
     can_create_session: _ClassVar[IamPermission]
     can_create_skill: _ClassVar[IamPermission]
     can_create_idp: _ClassVar[IamPermission]
@@ -65,7 +64,6 @@ can_view_access: IamPermission
 can_assign_roles: IamPermission
 can_manage_audience: IamPermission
 can_create_agent: IamPermission
-can_create_workflow: IamPermission
 can_create_session: IamPermission
 can_create_skill: IamPermission
 can_create_idp: IamPermission

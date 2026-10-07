@@ -72,10 +72,7 @@ export async function initMetrics(serviceName: string): Promise<(() => Promise<v
 export const SPAN_CURSOR_TURN = "stigmer.cursor.turn";
 export const SPAN_DEEP_AGENT_RUN = "stigmer.deepagent.run";
 export const SPAN_LLM_CALL = "stigmer.llm.call";
-export const SPAN_LLM_EVAL = "stigmer.llm.eval";
 export const SPAN_MCP_TOOL = "stigmer.mcp.tool_call";
-export const SPAN_WORKFLOW_EXECUTE = "stigmer.workflow.execute";
-export const SPAN_WORKFLOW_TASK = "stigmer.workflow.task";
 
 // Attribute keys — LLM
 export const ATTR_LLM_PROVIDER = "stigmer.llm.provider";
@@ -94,12 +91,6 @@ export const ATTR_HARNESS = "stigmer.harness";
 export const ATTR_MCP_TOOL_NAME = "stigmer.mcp.tool_name";
 export const ATTR_MCP_SERVER_NAME = "stigmer.mcp.server_name";
 export const ATTR_MCP_SERVER_ID = "stigmer.mcp.server_id";
-
-// Attribute keys — Workflow
-export const ATTR_WORKFLOW_EXECUTION_ID = "stigmer.workflow.execution_id";
-export const ATTR_WORKFLOW_NAME = "stigmer.workflow.name";
-export const ATTR_TASK_NAME = "stigmer.workflow.task.name";
-export const ATTR_TASK_KIND = "stigmer.workflow.task.kind";
 
 // Baggage keys — propagated through W3C baggage headers
 export const BAGGAGE_EXECUTION_ID = "stigmer.execution_id";

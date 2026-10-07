@@ -25,9 +25,7 @@
  *   - the five open-source shapes: the restrict verb over a pure
  *     owner-only kind (session), over a kind with one userset hop
  *     (org-visible agents for a member), over the parent hop at two
- *     densities (executions in ten sessions, and in a thousand), over the
- *     parent whose `derived` rule reads its row (runs in ten workflows,
- *     half of them org-observable);
+ *     densities (executions in ten sessions, and in a thousand);
  *     the enumeration verb over the blueprint kind (the console library's
  *     path);
  *   - five Enterprise shapes over private agents: a team member's grants
@@ -54,7 +52,6 @@
 import { create } from "@bufbuild/protobuf";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { WorkflowRunVisibility } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
@@ -165,14 +162,6 @@ interface Shape {
   kept?(n: number): number;
 }
 
-/** The workflows the run shape spreads its candidates over. */
-const RUN_WORKFLOWS = 10;
-
-/** Whether workflow `i` lets the organization's viewers see its runs: every even one. */
-function observableWorkflow(i: number): boolean {
-  return i % 2 === 0;
-}
-
 function sessionRow(i: number): FixtureRowFacts {
   return {
     id: `ses_${i}`,
@@ -278,45 +267,6 @@ const SHAPES: ReadonlyArray<Shape> = [
       createdBy: "",
       spec: { target: { case: "sessionId", value: `ses_${i % 1_000}` } },
     }),
-  },
-  {
-    name: "restrict: runs in ten workflows for a viewer (the `derived` rule reads each workflow's row)",
-    kind: "workflow_run",
-    caller: VIEWER,
-    verb: "restrict",
-    parents: Array.from({ length: RUN_WORKFLOWS }, (_, i) => ({
-      type: "workflow",
-      facts: {
-        id: `wfl_${i}`,
-        org: ORG,
-        visibility: ApiResourceVisibility.visibility_private,
-        createdBy: FOUNDER,
-        spec: {
-          runVisibility: observableWorkflow(i)
-            ? WorkflowRunVisibility.organization
-            : WorkflowRunVisibility.private,
-        },
-      },
-    })),
-    row: (i) => ({
-      id: `wex_${i}`,
-      org: ORG,
-      visibility: ApiResourceVisibility.api_resource_visibility_unspecified,
-      createdBy: FOUNDER,
-      spec: { workflowId: `wfl_${i % RUN_WORKFLOWS}` },
-    }),
-    // The viewer reaches a run only through its workflow's
-    // `run_viewer`; the cost measured is the rule's read of the
-    // workflow row behind every candidate.
-    kept: (n) => {
-      let kept = 0;
-      for (let i = 0; i < n; i += 1) {
-        if (observableWorkflow(i % RUN_WORKFLOWS)) {
-          kept += 1;
-        }
-      }
-      return kept;
-    },
   },
   {
     name: "restrict: private agents shared with the caller's team (the team hop through the organization bound)",
@@ -461,8 +411,6 @@ describe.each(
     ApiResourceKind.agent,
     ApiResourceKind.session,
     ApiResourceKind.agent_run,
-    ApiResourceKind.workflow,
-    ApiResourceKind.workflow_run,
   ]),
 )("the built-in evaluator's cost on $name", (fixture) => {
   describe.skipIf(fixture.skip)("measured", () => {

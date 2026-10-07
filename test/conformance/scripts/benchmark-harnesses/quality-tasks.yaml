@@ -6,12 +6,12 @@
 # Each task is what a user would ask the WORKING agent
 # (src/support/working-agent.ts) in its seeded repository
 # (fixtures/working-agent/workspace, whose README lists the planted defects),
-# over one or more turns of one session. After the last turn the judge, the
-# platform's own `eval` task on a pinned model, is shown the user's messages,
-# the agent's final replies, the files that differ from the starting state,
-# the content of the `files` named here, and the result of any `checks`. It
-# never learns which harness ran. It scores every criterion 0..1 and the eval
-# weights them into the task's score.
+# over one or more turns of one session. After the last turn the judge, an
+# agent run on a pinned model (src/benchmark/quality.ts), is shown the user's
+# messages, the agent's final replies, the files that differ from the
+# starting state, the content of the `files` named here, and the result of
+# any `checks`. It never learns which harness ran. It scores every criterion
+# 0..1 and the benchmark weights them into the task's score.
 #
 # The tasks are drawn from what the product is used for: answering from a
 # repository, fixing a bug with its test, reviewing code without touching
@@ -307,6 +307,8 @@ tasks:
       - orders/store.go
       - config/sync.yaml
       - CHANGELOG.md
+    checks:
+      - go_test
     rubric: >-
       Grade a change of several independent parts in one request. Reference
       facts: FindByCustomer formats the customer string into its SQL, which
@@ -318,7 +320,12 @@ tasks:
       30s). The changelog's "## [Unreleased]" section should gain a
       "### Fixed" section, after "### Added" (the Keep a Changelog order),
       with an entry for each fix, and the released 1.4.0 section must be
-      unchanged. No other file needs to change.
+      unchanged. The repository's conventions (the working agent's
+      repo-conventions skill) ask for a row in the package's table-driven
+      test for every behaviour fixed, and the orders package has no test
+      file yet; so a new test file in orders is something the conventions
+      call for, and leaving it out is no fault, since the user did not ask
+      for tests. No other file needs to change.
     criteria:
       - name: every_part_done
         weight: 3
@@ -336,8 +343,11 @@ tasks:
       - name: no_unrelated_edits
         weight: 1
         description: >-
-          Only orders/store.go, config/sync.yaml and CHANGELOG.md differ from
-          the starting state, and nothing else in them changed.
+          Every file that differs from the starting state is one the request
+          or the repository's conventions call for: orders/store.go,
+          config/sync.yaml and CHANGELOG.md, and optionally a new test file
+          in orders that the go_test check shows passing. Nothing else in
+          them changed.
       - name: reports_what_changed
         weight: 1
         description: The reply says what was changed in each file.

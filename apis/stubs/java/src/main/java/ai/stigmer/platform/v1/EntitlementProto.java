@@ -51,29 +51,27 @@ public final class EntitlementProto extends com.google.protobuf.GeneratedFile {
       "ts\030\001 \001(\0132).ai.stigmer.platform.v1.Entitl" +
       "ementLimitsR\006limits\022N\n\010features\030\002 \003(\0162\037." +
       "ai.stigmer.platform.v1.FeatureB\021\272H\016\222\001\013\030\001" +
-      "\"\007\202\001\004\020\001 \000R\010features\"\272\004\n\021EntitlementLimit" +
+      "\"\007\202\001\004\020\001 \000R\010features\"\354\003\n\021EntitlementLimit" +
       "s\022\'\n\010max_orgs\030\001 \001(\005B\007\272H\004\032\002 \000H\000R\007maxOrgs\210" +
       "\001\001\022)\n\tmax_users\030\002 \001(\005B\007\272H\004\032\002 \000H\001R\010maxUse" +
       "rs\210\001\001\022<\n\023included_child_orgs\030\003 \001(\005B\007\272H\004\032" +
       "\002 \000H\002R\021includedChildOrgs\210\001\001\022M\n\034max_activ" +
       "e_session_sandboxes\030\004 \001(\005B\007\272H\004\032\002 \000H\003R\031ma" +
-      "xActiveSessionSandboxes\210\001\001\022O\n\035max_active" +
-      "_workflow_sandboxes\030\005 \001(\005B\007\272H\004\032\002 \000H\004R\032ma" +
-      "xActiveWorkflowSandboxes\210\001\001\022W\n!archived_" +
-      "workspace_retention_days\030\006 \001(\005B\007\272H\004\032\002 \000H" +
-      "\005R\036archivedWorkspaceRetentionDays\210\001\001B\013\n\t" +
-      "_max_orgsB\014\n\n_max_usersB\026\n\024_included_chi" +
-      "ld_orgsB\037\n\035_max_active_session_sandboxes" +
-      "B \n\036_max_active_workflow_sandboxesB$\n\"_a" +
-      "rchived_workspace_retention_days*\231\001\n\007Fea" +
-      "ture\022\027\n\023feature_unspecified\020\000\022\023\n\017sso_enf" +
-      "orcement\020\001\022\023\n\017platform_client\020\002\022\025\n\021byo_p" +
-      "rovider_keys\020\003\022\014\n\010channels\020\004\022\013\n\007sharing\020" +
-      "\005\022\t\n\005teams\020\006\022\016\n\nchild_orgs\020\007B\215\001B\020Entitle" +
-      "mentProtoP\001\242\002\003ASP\252\002\026Ai.Stigmer.Platform." +
-      "V1\312\002\026Ai\\Stigmer\\Platform\\V1\342\002\"Ai\\Stigmer" +
-      "\\Platform\\V1\\GPBMetadata\352\002\031Ai::Stigmer::" +
-      "Platform::V1b\006proto3"
+      "xActiveSessionSandboxes\210\001\001\022W\n!archived_w" +
+      "orkspace_retention_days\030\006 \001(\005B\007\272H\004\032\002 \000H\004" +
+      "R\036archivedWorkspaceRetentionDays\210\001\001B\013\n\t_" +
+      "max_orgsB\014\n\n_max_usersB\026\n\024_included_chil" +
+      "d_orgsB\037\n\035_max_active_session_sandboxesB" +
+      "$\n\"_archived_workspace_retention_daysJ\004\010" +
+      "\005\020\006R\035max_active_workflow_sandboxes*\231\001\n\007F" +
+      "eature\022\027\n\023feature_unspecified\020\000\022\023\n\017sso_e" +
+      "nforcement\020\001\022\023\n\017platform_client\020\002\022\025\n\021byo" +
+      "_provider_keys\020\003\022\014\n\010channels\020\004\022\013\n\007sharin" +
+      "g\020\005\022\t\n\005teams\020\006\022\016\n\nchild_orgs\020\007B\215\001B\020Entit" +
+      "lementProtoP\001\242\002\003ASP\252\002\026Ai.Stigmer.Platfor" +
+      "m.V1\312\002\026Ai\\Stigmer\\Platform\\V1\342\002\"Ai\\Stigm" +
+      "er\\Platform\\V1\\GPBMetadata\352\002\031Ai::Stigmer" +
+      "::Platform::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -91,7 +89,7 @@ public final class EntitlementProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_platform_v1_EntitlementLimits_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_platform_v1_EntitlementLimits_descriptor,
-        new java.lang.String[] { "MaxOrgs", "MaxUsers", "IncludedChildOrgs", "MaxActiveSessionSandboxes", "MaxActiveWorkflowSandboxes", "ArchivedWorkspaceRetentionDays", });
+        new java.lang.String[] { "MaxOrgs", "MaxUsers", "IncludedChildOrgs", "MaxActiveSessionSandboxes", "ArchivedWorkspaceRetentionDays", });
     descriptor.resolveAllFeaturesImmutable();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =

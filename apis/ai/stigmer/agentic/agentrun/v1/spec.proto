@@ -25,12 +25,13 @@ message AgentRunSpec {
   reserved 2;
   reserved "agent_id";
 
-  // Fields 6, 8 and 11 carried a workflow's callback token, its signal
-  // target and a dispatch queue override as caller-set strings; they travel
-  // together in `parent`, which the server honours only from the workflow
-  // run it names.
-  reserved 6, 8, 11;
-  reserved "callback_token", "parent_workflow_id", "activity_task_queue";
+  // Fields 6, 8, 11 and 17 linked a turn to the workflow run whose step
+  // started it: a callback token, a signal target and a dispatch queue
+  // override, which field 17 (`parent`) later carried together. They went
+  // with the workflow product. Reserved so the numbers and names are never
+  // reused for different fields.
+  reserved 6, 8, 11, 17;
+  reserved "callback_token", "parent_workflow_id", "activity_task_queue", "parent";
 
   // Fields 15 and 16 held the preference and memory snapshots the server
   // composes for each turn; they are AgentRunStatus fields 29 and 30.
@@ -113,8 +114,8 @@ message AgentRunSpec {
   // specific layer chose (for example, thinking off for one message on an
   // agent whose default turns it on).
   //
-  // A lane that composes the turn for a surface (a schedule, a workflow
-  // step) writes that surface's saved settings here. On a lane where the
+  // A lane that composes the turn for a surface (a schedule, a channel)
+  // writes that surface's saved settings here. On a lane where the
   // caller is a visitor (the hosted edition's shared-agent guests and
   // channel senders), the surface's saved settings replace this field; the
   // per-message intents below are the edition's to allow or clear for a
@@ -157,8 +158,8 @@ message AgentRunSpec {
   // - Native harness: uses deepagents responseFormat/ToolStrategy
   // - Cursor harness: prompt instruction + extraction fallback
   //
-  // The validated structured data is returned in the activity result
-  // and passed back to the parent workflow as `structured`.
+  // The validated structured data lands on the run's
+  // status.structured_output.
   google.protobuf.Struct structured_output_schema = 21;
 
   // Runtime environment variables and secrets (run-scoped).
@@ -304,60 +305,6 @@ message AgentRunSpec {
   // conversation content is not a setting, and must not vanish with the
   // execution-profile kill-switch.
   ConversationCatchup conversation_catchup = 14;
-
-  // The workflow run this turn was started by (optional): set only by a
-  // workflow's agent_call step, which waits for the turn to finish.
-  //
-  // The server honours it only from the workflow run it names: a request
-  // the server composes itself, a runner whose credential is bound to that
-  // workflow run, or a caller holding the platform's
-  // can_write_reserved_labels. Any other caller that sets it is refused with
-  // INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn
-  // runs where the workflow run's own activities run (its sandbox, when the
-  // deployment gives each run one), the parent is told about approval
-  // requests, and the waiting step is completed when the turn finishes.
-  //
-  // @internal
-  // The reserved-label guard's trust rule (guard-reserved-labels.ts),
-  // applied by VouchWorkflowParent; when the run also carries the
-  // stigmer.ai/workflow-execution-id lineage label the two must name the
-  // same run. The dispatch queue is derived from workflow_run_id by the
-  // workflow run's own routing ("wfexec:" + id under execution routing; under
-  // global routing the run has no queue of its own and the turn dispatches
-  // as any turn does), so no caller names a queue. The edition's billing and
-  // capacity gates key on this field: a turn that runs inside a workflow
-  // run's sandbox is that run's spend.
-  WorkflowParent parent = 17;
-}
-
-// WorkflowParent links a turn to the workflow run whose agent_call step
-// started it.
-message WorkflowParent {
-  // ID of the workflow run whose step started this turn. The turn's
-  // activities run where that workflow run's own activities run.
-  string workflow_run_id = 1 [(buf.validate.field).string.min_len = 1];
-
-  // Temporal workflow ID the agent-execution workflow signals about
-  // approval requests ("child_approval_required", carrying only this
-  // run's id): the workflow run's engine workflow, which for a nested
-  // workflow is a child workflow with its own id, so it is named rather
-  // than derived.
-  //
-  // @internal
-  // The receiver derives the pending approvals by reading this run
-  // (identity-only signals; a proto payload poisoned the receiving workflow
-  // task).
-  string signal_workflow_id = 2;
-
-  // Temporal task token of the agent_call activity waiting for this turn
-  // (asynchronous activity completion). The agent-execution workflow
-  // completes that activity with the turn's result when the turn finishes.
-  //
-  // @internal
-  // An opaque bearer handle (namespace, workflow id, run id, activity id,
-  // attempt): never parsed, never logged except as a truncated Base64
-  // preview.
-  bytes callback_token = 3;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

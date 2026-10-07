@@ -22,27 +22,20 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// RecentActivityEntry is a lightweight summary of either an agent session
-// or a workflow run, used for the sidebar "recents" list.
+// RecentActivityEntry is a lightweight summary of one agent session, used
+// for the sidebar "recents" list.
 //
 // This is a projection — not the full resource. Clients that need the
-// complete resource should call the specific get() RPC for the resource kind.
+// complete session should call the session's get() RPC.
 type RecentActivityEntry struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Resource ID (session ID or workflow run ID).
+	// Session ID.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// Discriminator: "session" or "workflow_run".
-	Type string `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
-	// Human-readable label for display.
-	// For sessions: the conversation subject.
-	// For workflow runs: the run name.
+	// Human-readable label for display: the conversation subject.
 	Subject string `protobuf:"bytes,3,opt,name=subject,proto3" json:"subject,omitempty"`
-	// When this entry was last meaningfully updated.
-	// Used for interleaved sort (newest first).
-	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	// Run phase label for workflow runs (e.g., "completed", "failed").
-	// Empty for sessions.
-	Status        string `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	// When this session last saw meaningful activity.
+	// Used for the sort (newest first).
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -84,13 +77,6 @@ func (x *RecentActivityEntry) GetId() string {
 	return ""
 }
 
-func (x *RecentActivityEntry) GetType() string {
-	if x != nil {
-		return x.Type
-	}
-	return ""
-}
-
 func (x *RecentActivityEntry) GetSubject() string {
 	if x != nil {
 		return x.Subject
@@ -105,36 +91,27 @@ func (x *RecentActivityEntry) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
-func (x *RecentActivityEntry) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
-}
-
-// ListRecentActivityRequest specifies parameters for the unified recents query.
+// ListRecentActivityRequest specifies parameters for the recents query.
 type ListRecentActivityRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Maximum entries to return. Defaults to 30.
 	PageSize int32 `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Organization slug to scope the query.
 	//
-	// When provided, results are narrowed to resources in this organization.
+	// When provided, results are narrowed to sessions in this organization.
 	// The org NEVER widens visibility: per-resource read authority is always
-	// enforced (on the hosted edition, FGA `can_view` enumeration per kind),
-	// and the org filter only intersects that authorized set. Both recents
-	// kinds are private by default — sessions are personal resources and
-	// workflow runs opt in to org observability per workflow — so org
-	// membership alone must never substitute for the per-resource check. An
-	// earlier "org member = query by org directly" fast path leaked session
-	// titles to every org member.
+	// enforced (on the hosted edition, FGA `can_view` enumeration), and the
+	// org filter only intersects that authorized set. Sessions are personal
+	// resources, so org membership alone must never substitute for the
+	// per-resource check. An earlier "org member = query by org directly" fast
+	// path leaked session titles to every org member.
 	//
 	// When empty, results span every organization the caller has resource
 	// access in.
 	//
 	// On the OSS edition the filter is a no-op: the server is single-tenant,
-	// so org scoping has nothing to narrow — matching the per-kind OSS list
-	// RPCs this feed summarizes.
+	// so org scoping has nothing to narrow — matching the session list RPC
+	// this feed summarizes.
 	Org           string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -184,11 +161,10 @@ func (x *ListRecentActivityRequest) GetOrg() string {
 	return ""
 }
 
-// ListRecentActivityResponse contains merged, sorted recent activity.
+// ListRecentActivityResponse contains the caller's recent sessions.
 type ListRecentActivityResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Entries sorted by updated_at descending, interleaving sessions
-	// and workflow runs.
+	// Entries sorted by updated_at descending.
 	Entries       []*RecentActivityEntry `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -235,14 +211,12 @@ var File_ai_stigmer_activity_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_activity_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"\x1fai/stigmer/activity/v1/io.proto\x12\x16ai.stigmer.activity.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa6\x01\n" +
+	"\x1fai/stigmer/activity/v1/io.proto\x12\x16ai.stigmer.activity.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x94\x01\n" +
 	"\x13RecentActivityEntry\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04type\x18\x02 \x01(\tR\x04type\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\asubject\x18\x03 \x01(\tR\asubject\x129\n" +
 	"\n" +
-	"updated_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x16\n" +
-	"\x06status\x18\x05 \x01(\tR\x06status\"J\n" +
+	"updated_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAtJ\x04\b\x02\x10\x03J\x04\b\x05\x10\x06R\x04typeR\x06status\"J\n" +
 	"\x19ListRecentActivityRequest\x12\x1b\n" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x10\n" +
 	"\x03org\x18\x02 \x01(\tR\x03org\"c\n" +

@@ -16,7 +16,7 @@ import "google/protobuf/timestamp.proto";
 // an earlier spec points the agent back at that version; an unchanged write
 // archives nothing. A tag is a mutable, single-holder name for one version,
 // set at apply time (metadata.version.tag) or moved with tagVersion, the
-// same model workflows and skills use.
+// same model skills use.
 //
 // Every turn records the agent version it ran
 // (AgentRunStatus.agent_id and agent_version_hash) and runs that
@@ -117,7 +117,7 @@ message TagAgentVersionInput {
   string version_hash = 2 [(buf.validate.field).string.pattern = "^[a-f0-9]{64}$"];
 
   // Tag to assign. Must be a non-empty alphanumeric string with dots,
-  // hyphens, or underscores (the pattern workflow and skill tags use).
+  // hyphens, or underscores (the pattern skill tags use).
   string tag = 3 [(buf.validate.field).string = {
     min_len: 1
     pattern: "^[a-zA-Z0-9._-]+$"

@@ -158,7 +158,7 @@ describe("parseClassification", () => {
   it("validates targeted fates", () => {
     expect(isValidFate("keep")).toBe(true);
     expect(isValidFate("move:concepts/agents")).toBe(true);
-    expect(isValidFate("merge:guides/workflows")).toBe(true);
+    expect(isValidFate("merge:guides/runners")).toBe(true);
     expect(isValidFate("move:")).toBe(false);
     expect(isValidFate("rename:x")).toBe(false);
   });
@@ -380,7 +380,7 @@ describe("buildInventory", () => {
     const dir = await setup({
       "index.mdx": mdx("Home"),
       "meta.json": meta({ pages: [] }),
-      "guides/workflows/index.mdx": mdx("Workflows"),
+      "guides/runners/index.mdx": mdx("Runners"),
       "_archive/old.mdx": mdx("Old"),
     });
     const { pages, violations } = await buildInventory(
@@ -388,12 +388,12 @@ describe("buildInventory", () => {
       yamlOf({
         pages: {
           index: entry({ diataxis: "landing" }),
-          "guides/workflows": entry({ diataxis: "landing" }),
+          "guides/runners": entry({ diataxis: "landing" }),
         },
         cohorts: {},
       }),
     );
-    expect(pages.map((page) => page.key).sort()).toEqual(["guides/workflows", "index"]);
+    expect(pages.map((page) => page.key).sort()).toEqual(["guides/runners", "index"]);
     expect(violations).toEqual([]);
   });
 

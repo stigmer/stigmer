@@ -28,7 +28,6 @@ import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/a
 
 import type { DescMessage } from "@bufbuild/protobuf";
 import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { WorkflowRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
 
 import {
   RETIRED_ENUM_VALUE_NAMES,
@@ -204,7 +203,7 @@ describe("the retired-names tables", () => {
         if (field.message !== undefined) visit(field.message);
       }
     };
-    [AgentRunSchema, AgentRunStatusSchema, WorkflowRunStatusSchema].forEach(visit);
+    [AgentRunSchema, AgentRunStatusSchema].forEach(visit);
     return { fields, values };
   }
 

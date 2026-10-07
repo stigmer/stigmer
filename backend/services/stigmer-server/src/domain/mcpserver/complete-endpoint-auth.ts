@@ -72,8 +72,8 @@
  * never fails on it.
  *
  * Placement: after BuildNewState (create) or BuildUpdateState (update),
- * immediately before GuardReservedLabels, the lineage step's law: the
- * labels the guard diffs are the ones this step stamped.
+ * immediately before GuardReservedLabels: the labels the guard diffs are
+ * the ones this step stamped.
  *
  * Proven by __tests__/complete-endpoint-auth.test.ts and the McpServer
  * conformance suite's URL-only arms (CONFORMANCE_TARGET=local).

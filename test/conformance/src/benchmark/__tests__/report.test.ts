@@ -110,7 +110,7 @@ describe("summarizeQuality", () => {
       files_changed: [],
       checks: [],
       turns: [],
-      workflow_execution_id: "",
+      judge_run_id: "",
       outcome,
     };
   }

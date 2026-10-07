@@ -1,8 +1,8 @@
 /**
- * Model-pin existence validation and did-you-mean machinery — ports
- * pkg/domain/workflow/registry/pin_validation.go. Lives beside the store it
- * queries (the registry is the shared validation authority): workflow model
- * validation, the schedule and agentchannel pin-existence checks, and
+ * Model-pin existence validation and did-you-mean machinery — ports the Go
+ * server's pin_validation.go. Lives beside the store it queries (the
+ * registry is the shared validation authority): the agent, schedule and
+ * agentchannel pin-existence checks, and
  * agentexecution's thinking-mode validator consume the same functions, so
  * every pin error suggests identically.
  *
@@ -16,7 +16,7 @@ import type { ModelCatalogProvider } from "./model-catalog-provider.js";
 
 /**
  * Harness section names as the registry document spells them. Exported so
- * every consumer (workflow validation, schedule/channel pin validation)
+ * every consumer (schedule/channel pin validation and the rest)
  * shares one vocabulary instead of re-declaring string literals.
  */
 export const HARNESS_NAME_CURSOR = "cursor";
@@ -61,7 +61,7 @@ export function harnessName(h: Harness): string {
  *
  * Degrades to a no-op ("") when the registry is empty or lacks the harness
  * section — a build without a usable registry must not refuse every write
- * (the hasAnyModels posture workflow validation established).
+ * (the hasAnyModels posture).
  *
  * Returns the refusal copy, or "" when the pin is valid (or unverifiable).
  */
@@ -112,9 +112,8 @@ export function unknownModelPinRefusal(
  * Returns up to three model ids from the candidate list sorted by
  * Levenshtein distance to the target, closest first (name-ascending on
  * ties). Only candidates within the edit-distance cap are included — a
- * far-off typo gets no misleading suggestion. Shared by workflow model
- * validation and the pin-existence rule so every did-you-mean behaves
- * identically.
+ * far-off typo gets no misleading suggestion. Shared by every
+ * pin-existence check so every did-you-mean behaves identically.
  */
 export function suggestSimilarModels(
   target: string,

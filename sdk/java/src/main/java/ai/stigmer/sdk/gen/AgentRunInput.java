@@ -10,7 +10,6 @@ import ai.stigmer.agentic.agentrun.v1.InteractionMode;
 import ai.stigmer.agentic.agentrun.v1.RunConfig;
 import ai.stigmer.agentic.agentrun.v1.ServiceTier;
 import ai.stigmer.agentic.agentrun.v1.ThinkingMode;
-import ai.stigmer.agentic.agentrun.v1.WorkflowParent;
 import ai.stigmer.agentic.executioncontext.v1.ExecutionValue;
 import ai.stigmer.agentic.mcpserver.v1.McpServerUsage;
 import ai.stigmer.agentic.session.v1.CursorMode;
@@ -49,7 +48,6 @@ public final class AgentRunInput {
     private final java.util.List<String> workspaceFileRefs;
     private final String supersedesRunId;
     private final ConversationCatchupInput conversationCatchup;
-    private final WorkflowParentInput parent;
 
     private AgentRunInput(Builder builder) {
         this.id = builder.id;
@@ -71,7 +69,6 @@ public final class AgentRunInput {
         this.workspaceFileRefs = builder.workspaceFileRefs;
         this.supersedesRunId = builder.supersedesRunId;
         this.conversationCatchup = builder.conversationCatchup;
-        this.parent = builder.parent;
     }
 
     AgentRun toProto() {
@@ -117,9 +114,6 @@ public final class AgentRunInput {
         }
         if (this.conversationCatchup != null) {
             spec.setConversationCatchup(this.conversationCatchup.toProto());
-        }
-        if (this.parent != null) {
-            spec.setParent(this.parent.toProto());
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
@@ -168,7 +162,6 @@ public final class AgentRunInput {
         private java.util.List<String> workspaceFileRefs;
         private String supersedesRunId;
         private ConversationCatchupInput conversationCatchup;
-        private WorkflowParentInput parent;
 
         private Builder() {}
 
@@ -196,7 +189,6 @@ public final class AgentRunInput {
         public Builder workspaceFileRefs(java.util.List<String> workspaceFileRefs) { this.workspaceFileRefs = workspaceFileRefs; return this; }
         public Builder supersedesRunId(String supersedesRunId) { this.supersedesRunId = supersedesRunId; return this; }
         public Builder conversationCatchup(ConversationCatchupInput conversationCatchup) { this.conversationCatchup = conversationCatchup; return this; }
-        public Builder parent(WorkflowParentInput parent) { this.parent = parent; return this; }
 
         public AgentRunInput build() { return new AgentRunInput(this); }
     }
@@ -653,49 +645,6 @@ public final class AgentRunInput {
             public Builder windowEnd(String windowEnd) { this.windowEnd = windowEnd; return this; }
 
             public ConversationCatchupInput build() { return new ConversationCatchupInput(this); }
-        }
-    }
-
-    /** SDK input type for WorkflowParent. */
-    public static final class WorkflowParentInput {
-        private final String workflowRunId;
-        private final String signalWorkflowId;
-        private final byte[] callbackToken;
-
-        private WorkflowParentInput(Builder builder) {
-            this.workflowRunId = builder.workflowRunId;
-            this.signalWorkflowId = builder.signalWorkflowId;
-            this.callbackToken = builder.callbackToken;
-        }
-
-        WorkflowParent toProto() {
-            WorkflowParent.Builder builder = WorkflowParent.newBuilder();
-            if (this.workflowRunId != null) {
-                builder.setWorkflowRunId(this.workflowRunId);
-            }
-            if (this.signalWorkflowId != null) {
-                builder.setSignalWorkflowId(this.signalWorkflowId);
-            }
-            if (this.callbackToken != null) {
-                builder.setCallbackToken(com.google.protobuf.ByteString.copyFrom(this.callbackToken));
-            }
-            return builder.build();
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        public static final class Builder {
-            private String workflowRunId;
-            private String signalWorkflowId;
-            private byte[] callbackToken;
-
-            private Builder() {}
-
-            public Builder workflowRunId(String workflowRunId) { this.workflowRunId = workflowRunId; return this; }
-            public Builder signalWorkflowId(String signalWorkflowId) { this.signalWorkflowId = signalWorkflowId; return this; }
-            public Builder callbackToken(byte[] callbackToken) { this.callbackToken = callbackToken; return this; }
-
-            public WorkflowParentInput build() { return new WorkflowParentInput(this); }
         }
     }
 }

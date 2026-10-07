@@ -516,21 +516,20 @@ describe("resolveExtensions — loud-fail throws", () => {
       "agent-execution-create:pre-side-effect-gate",
       "agent-execution-recover:pre-side-effect-gate",
       "agent-execution-submit-approval:gate",
-      // The eighth: the IamPolicy create chain before the write, where an
+      // The seventh: the IamPolicy create chain before the write, where an
       // edition that serves teams refuses a team it cannot admit.
       "iam-policy-create:pre-side-effect-gate",
-      // The seventh slot — after the account
+      // The sixth slot — after the account
       // persists inside provisionMyAccount, before the reply (the cloud's
       // first-organization step rides it).
       "identity-account-provision:post-persist",
       "org-create:post-persist",
-      // The ninth: the organization create chain before Persist, where a
+      // The eighth: the organization create chain before Persist, where a
       // limit on which organizations may exist refuses with nothing written.
       "org-create:pre-side-effect-gate",
-      // The tenth: the organization delete chain before any write, where an
+      // The ninth: the organization delete chain before any write, where an
       // edition removes or refuses what it keeps for the organization.
       "org-delete:pre-delete",
-      "sandbox-acquisition:gate",
       "session-create:pre-side-effect-gate",
     ]);
   });

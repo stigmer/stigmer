@@ -3,8 +3,7 @@
  * `getIdPrefix` over the ids the server mints (`<prefix>_<ulid>`,
  * pipeline/steps/defaults.ts). The runner-credential lane reads it to
  * learn which execution kind a token's binding names — an agent
- * execution (`aex_`) or a workflow execution (`wex_`) — without a second
- * claim on the token or a guess.
+ * execution (`aex_`) — without a second claim on the token or a guess.
  *
  * Two properties are load-bearing:
  *
@@ -30,7 +29,6 @@ import { getIdPrefix, kindByIdPrefix } from "../apiresource-meta.js";
 describe("kindByIdPrefix — a minted id names its kind by prefix", () => {
   it.each([
     ["aex_01m2mp45efcjvq2z1e1yn4cyz7", ApiResourceKind.agent_run],
-    ["wex_01m2mp45efcjvq2z1e1yn4cyz7", ApiResourceKind.workflow_run],
     ["ses_x", ApiResourceKind.session],
     ["ida_carol", ApiResourceKind.identity_account],
   ])("%s is %s", (id, kind) => {

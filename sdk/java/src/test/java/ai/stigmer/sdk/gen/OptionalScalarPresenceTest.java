@@ -40,7 +40,6 @@ class OptionalScalarPresenceTest {
         assertEquals(3, limits.getMaxActiveSessionSandboxes());
         assertFalse(limits.hasMaxUsers());
         assertFalse(limits.hasIncludedChildOrgs());
-        assertFalse(limits.hasMaxActiveWorkflowSandboxes());
         assertFalse(limits.hasArchivedWorkspaceRetentionDays());
     }
 

@@ -165,8 +165,8 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * redacted AFTER the pipeline: the persisted resource is echoed back, and
  * without redaction the echo would leak either the plaintext the caller
  * just sent or the stored ciphertext. The internal builders (agent
- * execution, workflow execution, MCP connect) only read metadata.id from
- * the echo, so they are unaffected.
+ * execution, MCP connect) only read metadata.id from the echo, so they
+ * are unaffected.
  */
 async function createExecutionContext(
   deps: ExecutionContextControllerDeps,
@@ -399,9 +399,8 @@ async function getByReference(
 /**
  * GetByExecutionId — the runner's secret-delivery path: the unified TS
  * runner fetches the merged environment variables here before executing
- * an agent or workflow (and during MCP connect discovery). The
- * execution_id corresponds to a WorkflowRun ID, AgentRun ID,
- * or connect-flow execution id.
+ * an agent (and during MCP connect discovery). The execution_id
+ * corresponds to an AgentRun ID or a connect-flow execution id.
  *
  * The response carries DECRYPTED is_secret values only when the caller
  * presents an execution-scoped runner token whose binding matches this

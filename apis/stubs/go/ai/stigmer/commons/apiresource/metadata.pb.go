@@ -212,7 +212,7 @@ type ApiResourceMetadataVersion struct {
 	// Reference to the previous version ID.
 	PreviousVersionId string `protobuf:"bytes,3,opt,name=previous_version_id,json=previousVersionId,proto3" json:"previous_version_id,omitempty"`
 	// Optional tag to assign to this version at creation time.
-	// Only applicable to versioned resources (Skills, Workflows).
+	// Only applicable to versioned resources (Agents, Skills, Plugins).
 	// Examples: "stable", "v1.0", "production"
 	Tag           string `protobuf:"bytes,4,opt,name=tag,proto3" json:"tag,omitempty"`
 	unknownFields protoimpl.UnknownFields

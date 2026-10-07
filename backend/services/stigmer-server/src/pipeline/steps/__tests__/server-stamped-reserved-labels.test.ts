@@ -40,11 +40,11 @@ describe("serverStampedReservedLabels", () => {
 
   it("accumulates recorded keys across calls", () => {
     const c = ctx();
-    recordServerStampedReservedLabels(c, "stigmer.ai/workflow-execution-id");
-    recordServerStampedReservedLabels(c, "stigmer.ai/workflow-task");
+    recordServerStampedReservedLabels(c, "stigmer.ai/mcp-auth");
+    recordServerStampedReservedLabels(c, "stigmer.ai/plugin");
     const stamped = serverStampedReservedLabels(c);
-    expect(stamped.has("stigmer.ai/workflow-execution-id")).toBe(true);
-    expect(stamped.has("stigmer.ai/workflow-task")).toBe(true);
+    expect(stamped.has("stigmer.ai/mcp-auth")).toBe(true);
+    expect(stamped.has("stigmer.ai/plugin")).toBe(true);
     expect(stamped.size).toBe(2);
   });
 

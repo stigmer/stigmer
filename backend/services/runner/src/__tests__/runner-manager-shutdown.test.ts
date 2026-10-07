@@ -3,9 +3,8 @@
  * queue's worker-shutdown signal is aborted BEFORE any worker drains, so an
  * activity the drain cancels classifies itself as a worker shutdown and
  * persists RUN_FAILED with the shutdown copy, never the orchestrator stop a
- * user's pause is (#776). Then every worker (session, workflow run, pool
- * control) drains, the harnesses release what they hold, and the Temporal
- * connection closes.
+ * user's pause is (#776). Then every worker (session, pool control) drains,
+ * the harnesses release what they hold, and the Temporal connection closes.
  *
  * Temporal, the control-plane bootstrap, the harness registry and the LLM
  * preflight are replaced at their module seams, so the manager's own
@@ -120,11 +119,9 @@ describe("StigmerRunnerManager.shutdown", () => {
     });
 
     await manager.addSession("ses_1");
-    await manager.addWorkflowExecution("wex_1");
     await manager.addPoolControl("member_1");
     expect(fakes.workers.map((w) => w.taskQueue)).toEqual([
       "session:ses_1",
-      "wfexec:wex_1",
       "sandbox:member_1",
     ]);
 
@@ -139,7 +136,6 @@ describe("StigmerRunnerManager.shutdown", () => {
     expect(fakes.shutdownHarnesses.calls).toBe(1);
     expect(fakes.connectionClose.calls).toBe(1);
     expect(manager.activeSessions()).toEqual([]);
-    expect(manager.activeWorkflowExecutions()).toEqual([]);
     await expect(manager.addSession("ses_2")).rejects.toThrow(
       "RunnerManager is shutting down",
     );

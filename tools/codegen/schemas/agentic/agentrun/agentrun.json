@@ -1,6 +1,5 @@
 {
   "name": "AgentRunSpec",
-  "kind": "AGENT_RUN_SPEC",
   "description": "AgentRunSpec contains only user-provided inputs for triggering a run.\n All run results and state live in AgentRunStatus (in api.proto).",
   "protoType": "ai.stigmer.agentic.agentrun.v1.AgentRunSpec",
   "protoFile": "apis/ai/stigmer/agentic/agentrun/v1/spec.proto",
@@ -49,7 +48,7 @@
         "kind": "message",
         "messageType": "RunConfig"
       },
-      "description": "The settings this message asks for (optional): a model, a speed tier,\n thinking, and run bounds. Zero or empty fields are not set here.\n\n The server resolves the settings the turn runs with once, at create,\n and records them on AgentRunStatus.run_config. A choice (model,\n tier, thinking) comes from the most specific layer that makes one: this\n field, then the defaults of the agent the turn runs, then the lane's\n operator profile. A bound (cost, tool rounds, result size) is the\n tightest one any layer sets, so a message can lower an agent's cap but\n never raise it. RunConfig's own comment has the full rule.\n\n Unlike a saved surface's settings, a message may set service_tier or\n thinking_mode without a model: it then adjusts the model a less\n specific layer chose (for example, thinking off for one message on an\n agent whose default turns it on).\n\n A lane that composes the turn for a surface (a schedule, a workflow\n step) writes that surface's saved settings here. On a lane where the\n caller is a visitor (the hosted edition's shared-agent guests and\n channel senders), the surface's saved settings replace this field; the\n per-message intents below are the edition's to allow or clear for a\n visitor, not replaced with this field.",
+      "description": "The settings this message asks for (optional): a model, a speed tier,\n thinking, and run bounds. Zero or empty fields are not set here.\n\n The server resolves the settings the turn runs with once, at create,\n and records them on AgentRunStatus.run_config. A choice (model,\n tier, thinking) comes from the most specific layer that makes one: this\n field, then the defaults of the agent the turn runs, then the lane's\n operator profile. A bound (cost, tool rounds, result size) is the\n tightest one any layer sets, so a message can lower an agent's cap but\n never raise it. RunConfig's own comment has the full rule.\n\n Unlike a saved surface's settings, a message may set service_tier or\n thinking_mode without a model: it then adjusts the model a less\n specific layer chose (for example, thinking off for one message on an\n agent whose default turns it on).\n\n A lane that composes the turn for a surface (a schedule, a channel)\n writes that surface's saved settings here. On a lane where the\n caller is a visitor (the hosted edition's shared-agent guests and\n channel senders), the surface's saved settings replace this field; the\n per-message intents below are the edition's to allow or clear for a\n visitor, not replaced with this field.",
       "required": false
     },
     {
@@ -84,7 +83,7 @@
       "type": {
         "kind": "struct"
       },
-      "description": "JSON Schema that the agent's output must conform to (optional).\n\n When set, the runner enforces structured output:\n - Native harness: uses deepagents responseFormat/ToolStrategy\n - Cursor harness: prompt instruction + extraction fallback\n\n The validated structured data is returned in the activity result\n and passed back to the parent workflow as `structured`.",
+      "description": "JSON Schema that the agent's output must conform to (optional).\n\n When set, the runner enforces structured output:\n - Native harness: uses deepagents responseFormat/ToolStrategy\n - Cursor harness: prompt instruction + extraction fallback\n\n The validated structured data lands on the run's\n status.structured_output.",
       "required": false
     },
     {
@@ -160,17 +159,6 @@
         "messageType": "ConversationCatchup"
       },
       "description": "Conversation events the agent has not yet seen, composed by the platform\n for this turn (optional).\n\n Set on live channel-conversation turns (WhatsApp, Slack): when a human\n teammate handled the conversation or messages otherwise landed while the\n agent was not watching, the digest carries what happened so the agent\n re-enters informed. Absent on every other run surface.",
-      "required": false
-    },
-    {
-      "name": "Parent",
-      "jsonName": "parent",
-      "protoField": "parent",
-      "type": {
-        "kind": "message",
-        "messageType": "WorkflowParent"
-      },
-      "description": "The workflow run this turn was started by (optional): set only by a\n workflow's agent_call step, which waits for the turn to finish.\n\n The server honours it only from the workflow run it names: a request\n the server composes itself, a runner whose credential is bound to that\n workflow run, or a caller holding the platform's\n can_write_reserved_labels. Any other caller that sets it is refused with\n INVALID_ARGUMENT, never silently ignored. When it is honoured, the turn\n runs where the workflow run's own activities run (its sandbox, when the\n deployment gives each run one), the parent is told about approval\n requests, and the waiting step is completed when the turn finishes.",
       "required": false
     }
   ]

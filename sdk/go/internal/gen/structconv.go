@@ -61,7 +61,7 @@ func valueFromAny(v any) (*structpb.Value, error) {
 // conversion failure as it propagates up the nested toProto chain, so the
 // final message locates the offending value exactly:
 //
-//	Tasks[2]: TaskConfig: json: unsupported type: chan int
+//	Items[2]: Config: json: unsupported type: chan int
 func fieldErr(field string, err error) error {
 	return fmt.Errorf("%s: %w", field, err)
 }

@@ -76,12 +76,7 @@ import { everyService } from "./contract-support.js";
  * reason. Removing a gap from the model or the contract fails the test
  * until its line is removed here.
  */
-const KNOWN_GAPS: ReadonlyArray<string> = [
-  // Artifacts are grantable in kind_meta, but the model defines no access
-  // relations on them: https://github.com/stigmer/stigmer/issues/1268.
-  "the resource_kind_path lanes ask can_grant_access on artifact",
-  "the resource_kind_path lanes ask can_view_access on artifact",
-];
+const KNOWN_GAPS: ReadonlyArray<string> = [];
 
 /**
  * The RPCs that write grants, the only ones that ask can_grant_access: the

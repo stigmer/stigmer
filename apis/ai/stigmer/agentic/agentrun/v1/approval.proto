@@ -135,9 +135,8 @@ message PendingApproval {
 
   // Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the
   // server-side projection (exactly as mcp_server_slug above is). Lets approval
-  // surfaces — including workflow-parent approvals, where the originating
-  // ToolCall is not co-located with the approval — classify and render the tool
-  // without a client-side lookup. See ToolKind.
+  // surfaces classify and render the tool without a client-side lookup. See
+  // ToolKind.
   ToolKind tool_kind = 13;
 
   // Field 14 (file_changes) was removed. The pre-execution
@@ -157,53 +156,6 @@ message PendingApproval {
   // Slug of the plugin whose hook asked for this approval; empty when no
   // plugin's hook asked. Copied from ToolCall.approval_policy_hook.
   string approval_policy_hook = 16;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Child Approval Notification (legacy full-payload shape)
-//
-// The LIVE "child_approval_required" Temporal signal carries only the child
-// run id as a bare string (identity-only: proto-encoded payloads
-// poisoned the receiving workflow task); the receiver
-// derives pending approvals from the child run record. This message is
-// the retired full-payload signal shape, kept for wire compatibility.
-// ─────────────────────────────────────────────────────────────────────────────
-
-// Legacy full-payload notification for a child agent needing tool approval.
-//
-// Retained for wire compatibility; the platform no longer produces or
-// consumes it. The live "child_approval_required" signal is identity-only —
-// a bare-string child run id — and the parent side derives pending
-// approvals by reading the child run record (a single source of truth
-// instead of a payload copy that can drift).
-//
-// @internal
-//
-// The identity-only shape replaced this message in both editions;
-// both the OSS TypeScript server's and the cloud Java service's
-// agent-execution workflows send the bare-string signal on every HITL cycle.
-//
-// Graceful Degradation (unchanged):
-// If the signal fails to send (parent workflow completed, network error),
-// the system continues to function. Users can still submit approvals directly
-// via the AgentRun.SubmitApproval RPC.
-message ChildApprovalNotification {
-  // Child agent run ID that requires approval.
-  // Format: AgentRun.metadata.id (e.g., "agx-abc123xyz456")
-  // Used by parent to track which child needs approval.
-  string run_id = 1;
-
-  // All pending approvals from this child agent run.
-  //
-  // Contains one entry per tool call requiring approval. Each entry carries
-  // the full PendingApproval details (tool_call_id, tool_name, message,
-  // args_preview, requested_at).
-  //
-  // The parent workflow wraps each entry in a WorkflowPendingApproval with
-  // run_id above as the child_agent_run_id for routing.
-  //
-  // One signal, complete picture, no partial states.
-  repeated PendingApproval pending_approvals = 2;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -235,8 +187,7 @@ message ChildApprovalNotification {
 //
 // Carries the same display-facing field set as PendingApproval so a REQUESTED
 // event can fully reconstruct the pending-approval projection without joining
-// back to the originating ToolCall (which, for workflow-parent approvals, is not
-// co-located with the approval).
+// back to the originating ToolCall.
 message ApprovalRequest {
   // Correlation id shared by every event for this approval. Equal to
   // tool_call_id by a deliberate decision (see the file header); the reserved

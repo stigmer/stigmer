@@ -8,7 +8,7 @@
 //
 // Negative cases (missing server_type, empty command, malformed URL) are written
 // inline in the suite, not here: this module represents validity by construction,
-// matching the convention established by support/workflows.ts.
+// matching the convention established by support/agents.ts.
 import type { InitShape } from "./init-shape";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";

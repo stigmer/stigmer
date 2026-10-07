@@ -1,6 +1,6 @@
 /**
  * The built-in RunnerCredentialProvider — the open-source execution-scoped
- * default (runner-credential-provider.ts) plus the three capabilities an
+ * default (runner-credential-provider.ts) plus the two capabilities an
  * ENFORCING self-host needs, composed under the built-in authorization
  * posture beside the runner-subject verifier (boot/compose.ts). The
  * cloud's shape, kept on purpose: one provider object carries the
@@ -22,22 +22,10 @@
  * answers its own default for that. A CONNECT binding (`mcp-connect`, a
  * runner reading one discovery's secrets as the person who asked) IS a
  * runner binding, and every capability below answers it by name: it
- * vouches no lineage, captures no memory, and the exchange mints nothing
- * for it.
+ * captures no memory, and the exchange mints nothing for it.
  *
  * The capabilities, and where they follow or narrow the cloud:
  *
- *   - `vouchRunnerLineageLabels`: a WORKFLOW-bound runner vouches the two
- *     lineage keys for its own workflow execution and REFUSES a stamp
- *     naming another (the cloud's byte-pinned copy, constants.ts). Without
- *     this, a self-host with sign-in on cannot run any workflow that
- *     calls an agent: the child create's GuardReservedLabels asks the
- *     Authorizer for `can_write_reserved_labels` on the platform object,
- *     which the built-in Authorizer denies for everyone. An agent-bound
- *     runner vouches nothing, because the workflow's `agent_call` activity
- *     is the only producer of the lineage labels and it runs under the
- *     workflow's credential (runner: activities/call-agent.ts); do not
- *     widen this without a producer that needs it.
  *   - `authorizeMemoryCapture`: an AGENT-bound runner is ADMITTED with the
  *     human the verifier resolved as the memory's subject — the row's one
  *     principal under the model; without it every memory an enforcing
@@ -47,7 +35,7 @@
  *     (one primary-key read per `remember` call) and the seam allows the
  *     promise. The cloud's org arm is kept: a capture addressed to an org
  *     that is not the run's is "a forged address, not a routing choice"
- *     (its byte-pinned copy). A workflow-bound runner is refused (the
+ *     (its byte-pinned copy). A connect-bound runner is refused (the
  *     cloud refuses every non-session lane); a person, or a runner whose
  *     token does not verify, is no-opinion and the gate's own logic
  *     applies. A run that has vanished between the verifier's read and
@@ -60,7 +48,7 @@
  *     and nothing more. Under this posture the same token IS an identity
  *     (the verifier admits its bearer as the run's human), so minting
  *     one for another person's run would be impersonation. The execution
- *     arms therefore mint only for the run's own person — the account
+ *     arm therefore mints only for the run's own person — the account
  *     the row's creator stamp resolves to, the same reading the verifier
  *     makes — and mint the RUN credential (no `exp`; `expires_in_seconds`
  *     0, the proto default), so under the posture there is one credential
@@ -72,11 +60,11 @@
  *     (constants.ts), and a caller bound to another organization than the
  *     run's → PERMISSION_DENIED with the binding's sentence
  *     (authorization/credential-binding.ts; the credential it would mint
- *     is bound to the run's organization, runner-subject-verifier.ts). The id decides which execution kind is read (the
- *     lane's rule everywhere); the request's arm only chooses the
- *     not-found copy; an id that resolves to a CONNECT binding is
- *     NOT_FOUND too, because the exchange mints run credentials and a
- *     connect is not a run. Liveness is NOT judged at mint — both lanes that
+ *     is bound to the run's organization, runner-subject-verifier.ts). The
+ *     id decides which execution kind is read (the lane's rule
+ *     everywhere); an id that resolves to a CONNECT binding is NOT_FOUND
+ *     too, because the exchange mints run credentials and a connect is
+ *     not a run. Liveness is NOT judged at mint — both lanes that
  *     accept the token judge it, by one rule (bound-execution.ts), and a
  *     third judge here would be a divergence waiting to happen. The
  *     pool-claim, renewal and unset arms answer not-minted, the
@@ -112,7 +100,6 @@ import type {
 import {
   MEMORY_CAPTURE_ORG_MISMATCH_MESSAGE,
   RUN_CREDENTIAL_NOT_RUNS_PERSON_MESSAGE,
-  WORKFLOW_LINEAGE_BINDING_MISMATCH_MESSAGE,
 } from "./constants.js";
 import type {
   MemoryCaptureDecision,
@@ -160,22 +147,6 @@ export function runnerBindingOf(
   return kind === undefined ? undefined : { kind, executionId };
 }
 
-/** The kind name the not-found copy carries, by the request's arm (what a `get` on that kind would say). */
-function requestedKindName(
-  arm: "agent-execution" | "workflow-execution",
-): string {
-  switch (arm) {
-    case "agent-execution":
-      return getKindName(ApiResourceKind.agent_run);
-    case "workflow-execution":
-      return getKindName(ApiResourceKind.workflow_run);
-    default: {
-      const exhaustive: never = arm;
-      throw new Error(`unhandled exchange arm: ${JSON.stringify(exhaustive)}`);
-    }
-  }
-}
-
 export function newBuiltInRunnerCredentialProvider(
   deps: BuiltInRunnerCredentialProviderDeps,
 ): RunnerCredentialProvider {
@@ -193,8 +164,7 @@ export function newBuiltInRunnerCredentialProvider(
       caller: CallerIdentity,
     ): Promise<RunnerScopedTokenExchange> {
       switch (request.arm) {
-        case "agent-execution":
-        case "workflow-execution": {
+        case "agent-execution": {
           if (request.executionId === "" || !service.isEnabled()) {
             return { minted: false };
           }
@@ -206,7 +176,7 @@ export function newBuiltInRunnerCredentialProvider(
           // credentials, and the requested kind's row does not exist.
           if (execution === undefined || !bindsARun(execution.kind)) {
             throw notFoundError(
-              requestedKindName(request.arm),
+              getKindName(ApiResourceKind.agent_run),
               request.executionId,
             );
           }
@@ -249,26 +219,6 @@ export function newBuiltInRunnerCredentialProvider(
           );
         }
       }
-    },
-
-    vouchRunnerLineageLabels(
-      caller: CallerIdentity,
-      stampedWorkflowExecutionId: string,
-    ): boolean {
-      const binding = runnerBindingOf(service, caller);
-      if (binding?.kind !== "workflow-execution") {
-        return false;
-      }
-      if (
-        stampedWorkflowExecutionId !== "" &&
-        stampedWorkflowExecutionId !== binding.executionId
-      ) {
-        throw new ConnectError(
-          WORKFLOW_LINEAGE_BINDING_MISMATCH_MESSAGE,
-          Code.InvalidArgument,
-        );
-      }
-      return true;
     },
 
     async authorizeMemoryCapture(

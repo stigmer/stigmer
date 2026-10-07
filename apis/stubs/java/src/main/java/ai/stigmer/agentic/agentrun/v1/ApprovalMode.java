@@ -20,7 +20,7 @@ package ai.stigmer.agentic.agentrun.v1;
  * the server on AgentRunStatus.approval_mode, never chosen by the
  * request or the external user: it is runtime policy owned by the lane,
  * exactly like the bounded execution profile. Every other turn (console,
- * CLI, a workflow step) is INTERACTIVE.
+ * CLI) is INTERACTIVE.
  *
  * Two different consents, deliberately separated:
  * - Operator consent (this gate) protects the org's tools and data and is

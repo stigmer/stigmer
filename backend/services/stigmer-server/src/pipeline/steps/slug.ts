@@ -72,10 +72,9 @@ export function generateSlug(name: string): string {
 }
 
 /**
- * A slug fitted to metadata.slug's rules, for a name the server or the
- * runner chose rather than the caller: an identity account's email or
- * subject, a managed environment named after the MCP server it holds
- * tokens for. Refusing such a name (checkDerivedSlug) would refuse what no
+ * A slug fitted to metadata.slug's rules, for a name the server chose
+ * rather than the caller: an identity account's email or subject, a
+ * managed environment named after the MCP server it holds tokens for. Refusing such a name (checkDerivedSlug) would refuse what no
  * caller can fix, so the slug is made to fit instead:
  *
  *   - the shared generator over the name, kept as it is whenever the rules

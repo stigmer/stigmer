@@ -48,7 +48,6 @@ enum IamPermission {
 
   // Organization-level create permissions.
   can_create_agent = 6;
-  can_create_workflow = 7;
   can_create_session = 8;
   can_create_skill = 9;
   can_create_idp = 11;
@@ -64,6 +63,12 @@ enum IamPermission {
   // removed with the instance kind.
   reserved 14;
   reserved "can_create_instance";
+
+  // Value 7 held can_create_workflow until the workflow product was
+  // removed platform-wide. Reserved so the number is never reused for a
+  // different permission.
+  reserved 7;
+  reserved "can_create_workflow";
 
   // Execution permission.
   can_execute = 15;
@@ -170,8 +175,8 @@ enum IamPermission {
   reserved "can_set_public_visibility";
 
   // Organization-level permission to install a plugin: push an Agent
-  // Plugins archive that the server materialises into skills, MCP servers,
-  // an agent and workflows in the organization. Distinct from the child
+  // Plugins archive that the server materialises into skills, MCP servers
+  // and an agent in the organization. Distinct from the child
   // kinds' create permissions, which the materialisation also evaluates for
   // the installing caller: who may bring a package into an organization is a
   // policy an administrator sets on its own.
@@ -285,7 +290,7 @@ enum IamRole {
   // hold it too (agent_channel's team_grantable_roles).
   participant = 5;
 
-  // Editor of a blueprint (an agent, a workflow or an MCP server): may change
+  // Editor of a blueprint (an agent or an MCP server): may change
   // its definition and do whatever a viewer can, and may not delete it,
   // change its visibility, publish it on a share link or a channel, or decide
   // who else has access.

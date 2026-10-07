@@ -21,8 +21,10 @@ import {
 } from "../resolver.js";
 
 // The realistic export inventory: static pages, one- and two-dynamic-
-// segment routes, a literal-beats-dynamic sibling pair under /workflows,
-// root-level RSC payloads, and build assets.
+// segment routes, a literal-beats-dynamic sibling pair under /library/agents,
+// a one-placeholder page (versions/[id]) and a two-placeholder page
+// ([org]/[slug]) that both match one /library/agents path, root-level RSC
+// payloads, and build assets.
 const index = buildConsoleFileIndex([
   "/index.html",
   "/index.txt",
@@ -37,11 +39,15 @@ const index = buildConsoleFileIndex([
   "/sessions/__placeholder__.html",
   "/sessions/__placeholder__.txt",
   "/sessions/__placeholder__/__next.sessions.txt",
-  "/workflows/executions/__placeholder__.html",
-  "/workflows/executions/__placeholder__.txt",
-  "/workflows/__placeholder__/__placeholder__.html",
-  "/workflows/__placeholder__/__placeholder__.txt",
-  "/workflows/__placeholder__/__placeholder__/__next.workflows.txt",
+  "/library/agents/new.html",
+  "/library/agents/new.txt",
+  "/library/agents/__placeholder__.html",
+  "/library/agents/__placeholder__.txt",
+  "/library/agents/__placeholder__/__placeholder__.html",
+  "/library/agents/__placeholder__/__placeholder__.txt",
+  "/library/agents/__placeholder__/__placeholder__/__next.agents.txt",
+  "/library/agents/versions/__placeholder__.html",
+  "/library/agents/versions/__placeholder__.txt",
   "/_next/static/chunks/app-1a2b3c.js",
 ]);
 
@@ -84,14 +90,22 @@ describe("page contract (the nginx chain)", () => {
   });
 
   it("prefers the more-literal candidate: a literal segment beats a dynamic one", () => {
-    // /workflows/executions/[id] and /workflows/[org]/[slug] are both
-    // three segments — the filesystem, not the segment count, decides
-    // (the blank-page lesson nginx.conf documents).
-    expect(servedFile("/workflows/executions/wfe_123")).toBe(
-      "/workflows/executions/__placeholder__.html",
+    // /library/agents/new and /library/agents/[org] are both three
+    // segments — the filesystem, not the segment count, decides (the
+    // blank-page lesson nginx.conf documents).
+    expect(servedFile("/library/agents/new")).toBe("/library/agents/new.html");
+    expect(servedFile("/library/agents/acme")).toBe(
+      "/library/agents/__placeholder__.html",
     );
-    expect(servedFile("/workflows/acme/my-flow")).toBe(
-      "/workflows/__placeholder__/__placeholder__.html",
+    expect(servedFile("/library/agents/acme/triage-bot")).toBe(
+      "/library/agents/__placeholder__/__placeholder__.html",
+    );
+    // The shape this test needs: /library/agents/versions/v2 matches both
+    // versions/[id] (one placeholder) and [org]/[slug] (two placeholders).
+    // The literal-segment page must win, so the resolver tries one
+    // placeholder before two; flipping that order serves the wrong page.
+    expect(servedFile("/library/agents/versions/v2")).toBe(
+      "/library/agents/versions/__placeholder__.html",
     );
   });
 
@@ -133,7 +147,7 @@ describe("page contract (the nginx chain)", () => {
     expect(resolve("/zz-no/zz-such/zz-route/zz-deep").kind).toBe("notFound");
     // Two placeholder candidates are exhaustive: three trailing dynamic
     // segments cannot resolve (MAX_DYNAMIC_SEGMENTS in the routing gate).
-    expect(resolve("/workflows/a/b/c").kind).toBe("notFound");
+    expect(resolve("/library/agents/a/b/c").kind).toBe("notFound");
   });
 
   it("never resolves top-level paths through placeholders", () => {
@@ -167,20 +181,18 @@ describe("RSC flight contract (the Go handler's rewrites)", () => {
   });
 
   it("rewrites two-dynamic-segment flight payloads (beyond the Go handler)", () => {
-    expect(servedFile("/workflows/acme/my-flow.txt")).toBe(
-      "/workflows/__placeholder__/__placeholder__.txt",
+    expect(servedFile("/library/agents/acme/triage-bot.txt")).toBe(
+      "/library/agents/__placeholder__/__placeholder__.txt",
     );
-    expect(servedFile("/workflows/executions/wfe_123.txt")).toBe(
-      "/workflows/executions/__placeholder__.txt",
-    );
+    expect(servedFile("/library/agents/new.txt")).toBe("/library/agents/new.txt");
   });
 
   it("rewrites nested __next.*.txt payloads into the placeholder directory", () => {
     expect(servedFile("/sessions/ses_abc123/__next.sessions.txt")).toBe(
       "/sessions/__placeholder__/__next.sessions.txt",
     );
-    expect(servedFile("/workflows/acme/my-flow/__next.workflows.txt")).toBe(
-      "/workflows/__placeholder__/__placeholder__/__next.workflows.txt",
+    expect(servedFile("/library/agents/acme/triage-bot/__next.agents.txt")).toBe(
+      "/library/agents/__placeholder__/__placeholder__/__next.agents.txt",
     );
   });
 

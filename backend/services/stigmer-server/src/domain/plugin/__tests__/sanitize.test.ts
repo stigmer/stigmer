@@ -47,7 +47,7 @@ function allowing(observed?: AuthzCheck[]): Authorizer {
 }
 
 function overlays(parts: Partial<ParsedOverlays>): ParsedOverlays {
-  return { workflows: [], mcpServers: [], ...parts };
+  return { mcpServers: [], ...parts };
 }
 
 function agentOverlay(metadata: {

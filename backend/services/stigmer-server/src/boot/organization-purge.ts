@@ -6,8 +6,8 @@
  *
  * The order. Schedules go in the quiesce stage, before anything else, so
  * nothing fires while the rest is removed. The content stage then removes
- * leaves first: what names a run (its files) before the run, a run before
- * the session or workflow it belongs to, a blueprint's shares and channels
+ * leaves first: a run before the session it belongs to, a blueprint's
+ * shares and channels
  * before the blueprint, and the environments and clients a run or a
  * blueprint reads last. Each kind's purge cascades what its delete chain
  * cascades, so an order that met a parent first would still converge; the
@@ -31,7 +31,6 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { AuthorizationScopeType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
 import type { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
-import type { ArtifactStorage } from "../artifactstorage/artifact-storage.js";
 import { newAgentPurge } from "../domain/agent/purge.js";
 import { newIdentityAccountPurge } from "../domain/identityaccount/purge.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
@@ -40,7 +39,6 @@ import { newAgentChannelPurge } from "../domain/agentchannel/purge.js";
 import { newAgentExecutionPurge } from "../domain/agentrun/purge.js";
 import { newAgentSharePurge } from "../domain/agentshare/purge.js";
 import { newApiKeyPurge } from "../domain/apikey/purge.js";
-import { newArtifactPurge } from "../domain/artifact/purge.js";
 import { newChannelAppPurge } from "../domain/channelapp/purge.js";
 import { newEnvironmentPurge } from "../domain/environment/purge.js";
 import { newExecutionContextPurge } from "../domain/executioncontext/purge.js";
@@ -55,8 +53,6 @@ import type { ClockProvider } from "../domain/schedule/clock.js";
 import { newSchedulePurge } from "../domain/schedule/purge.js";
 import { newSessionPurge } from "../domain/session/purge.js";
 import { newSkillPurge } from "../domain/skill/purge.js";
-import { newWorkflowPurge } from "../domain/workflow/purge.js";
-import { newWorkflowExecutionPurge } from "../domain/workflowrun/purge.js";
 import type { SecretService } from "../encryption/encryption.js";
 import type {
   OrganizationPurgeStage,
@@ -76,11 +72,6 @@ export interface CoreKindPurgeDeps extends KindPurgeDeps {
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The composition's one secret facade (sealed values' backing state). */
   readonly secretService: SecretService;
-  /** The artifact blob store (an artifact purge deletes its unshared blobs). */
-  readonly artifactStorage: Pick<
-    ArtifactStorage,
-    "delete" | "download" | "exists" | "upload"
-  >;
   /** The schedule clock the schedule controller tears artifacts down through. */
   readonly scheduleClock: ClockProvider;
   /** The composed channel runtime; undefined when no unit composes one. */
@@ -105,12 +96,9 @@ export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
   return {
     quiesce: newSchedulePurge(deps),
     content: [
-      // A run's files name the run.
-      newArtifactPurge(deps),
-      // Runs before the sessions and workflows they belong to.
+      // Runs before the sessions they belong to.
       newAgentExecutionPurge(deps),
       newSessionPurge(deps),
-      newWorkflowExecutionPurge(deps),
       // A blueprint's shares and channels before the blueprint; a channel
       // before the channel app it references.
       newAgentSharePurge(deps),
@@ -122,7 +110,6 @@ export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
       newAgentPurge(deps),
       newSkillPurge(deps),
       newMcpServerPurge(deps),
-      newWorkflowPurge(deps),
       newPluginPurge(deps),
       // What runs and blueprints read, last: an MCP server references its
       // OAuth app, and a run its environments.
@@ -148,10 +135,8 @@ export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
  */
 export const CORE_PURGED_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.schedule,
-  ApiResourceKind.artifact,
   ApiResourceKind.agent_run,
   ApiResourceKind.session,
-  ApiResourceKind.workflow_run,
   ApiResourceKind.agent_share,
   ApiResourceKind.agent_channel,
   ApiResourceKind.channel_app,
@@ -159,7 +144,6 @@ export const CORE_PURGED_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.agent,
   ApiResourceKind.skill,
   ApiResourceKind.mcp_server,
-  ApiResourceKind.workflow,
   ApiResourceKind.plugin,
   ApiResourceKind.environment,
   ApiResourceKind.oauth_app,

@@ -28,8 +28,7 @@
  *     runtime refuses tier 2 when no credential path exists, and that
  *     refusal is a log line, never a lost run.
  *
- * Whatever each path yields is recorded as found: `status.structuredOutput`
- * and the slim's `structured`.
+ * Whatever each path yields is recorded as found, on `status.structuredOutput`.
  *
  * The `extract-N` name is deterministic per test FILE (vitest isolates each
  * file's module graph, so the counter starts at 1), and only the tool-strategy
@@ -135,7 +134,6 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
     const final = record.lastFullStatus!;
     expect(final.structuredOutput, "the engine's structuredResponse reaches the status").toEqual(ANSWER);
-    expect(slim.structured).toEqual(ANSWER);
 
     const json = JSON.stringify(toJson(AgentRunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/structured-output.tool-strategy.status.json");
@@ -168,7 +166,6 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
     expect(slim.phase).toBe("RUN_COMPLETED");
     const final = record.lastFullStatus!;
     expect(final.structuredOutput, "extracted from the final text").toEqual(ANSWER);
-    expect(slim.structured).toEqual(ANSWER);
     expect(record.toolCalls(), "no tool was involved").toHaveLength(0);
 
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
@@ -210,8 +207,7 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
       expect(slim.phase).toBe("RUN_COMPLETED");
       const final = record.lastFullStatus!;
       expect(final.structuredOutput, "extracted by the second model").toEqual(ANSWER);
-      expect(slim.structured).toEqual(ANSWER);
-      expect(record.toolCalls(), "the extraction tool call is not a graph step and never reaches the transcript").toHaveLength(0);
+        expect(record.toolCalls(), "the extraction tool call is not a graph step and never reaches the transcript").toHaveLength(0);
       expect(extractionCalls, "the extractor was asked exactly once").toHaveLength(1);
 
       // The agent's build, the sub-agent factory's builds (every registered

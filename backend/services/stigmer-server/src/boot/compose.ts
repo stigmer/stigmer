@@ -108,12 +108,11 @@ import { newIssuerDiscovery } from "../identity/oidc-discovery.js";
 import { newOidcUserInfoClient } from "../identity/oidc-userinfo.js";
 import { newApiKeyIdentityVerifier } from "../domain/apikey/verifier.js";
 import type { IdentityVerifier } from "../extensions/identity.js";
-import { registerArtifactServices } from "../domain/artifact/controller.js";
 import { newOidcIdentityVerifier } from "../identity/oidc-verifier.js";
 import {
   createArtifactFileServer,
   warnOnLegacyArtifactLayout,
-} from "../domain/artifact/file-server.js";
+} from "../artifactstorage/file-server.js";
 import { registerChannelAppServices } from "../domain/channelapp/controller.js";
 import { registerEnvironmentServices } from "../domain/environment/controller.js";
 import { registerExecutionContextServices } from "../domain/executioncontext/controller.js";
@@ -225,18 +224,9 @@ import {
   resolveSkillTransferBaseUrl,
 } from "./skill-transfer-origin.js";
 import type { ServerExtension } from "../extensions/registry.js";
-import { registerWorkflowServices } from "../domain/workflow/controller.js";
-import { bundledTaskKindRegistryDocument } from "../domain/workflow/registry/bundled.js";
 import type { ModelCatalogProvider } from "../modelcatalog/model-catalog-provider.js";
 import { ModelRegistryStore } from "../modelcatalog/model-registry-store.js";
 import { bundledModelRegistryDocument } from "../modelcatalog/bundled.js";
-import { InProcessValidator } from "../domain/workflow/validation/validator.js";
-import { registerWorkflowExecutionServices } from "../domain/workflowrun/controller.js";
-import { StreamBroker as WorkflowExecutionStreamBroker } from "../domain/workflowrun/stream-broker.js";
-import {
-  newWorkflowExecutionConfigFromEnv,
-  WORKFLOW_ROUTING_EXECUTION,
-} from "../domain/workflowrun/temporal/config.js";
 import { builtInSandboxProvisionerFactories } from "../sandbox/builtins.js";
 import { newSandboxLane } from "../sandbox/lane.js";
 import {
@@ -244,10 +234,6 @@ import {
   type SandboxBackgroundHandle,
 } from "../sandbox/provisioner.js";
 import { newStoreSessionActivityReader } from "../sandbox/session-activity.js";
-import { newWorkflowSandboxTerminalObserver } from "../sandbox/steps.js";
-import { newWorkflowRunQueue } from "../temporal/workflowexecution/dispatch.js";
-import { newWorkflowExecutionEngineStateProvider } from "../temporal/workflowexecution/engine-client.js";
-import { newWorkflowExecutionWorkerFactory } from "../temporal/workflowexecution/worker.js";
 import { HealthState, registerHealthService } from "../transport/health.js";
 import { resolveConsoleAssets } from "../transport/console/assets.js";
 import {
@@ -304,13 +290,6 @@ export interface ComposedServer {
    */
   agentExecutionStreamBroker: StreamBroker;
   /**
-   * The workflowexecution broadcast fabric (exposed for tests and for the
-   * Temporal worker's persist broadcasts — Go's GetStreamBroker).
-   * UpdateStatus, the lifecycle RPCs, and the worker's activities are the
-   * production writers.
-   */
-  workflowExecutionStreamBroker: WorkflowExecutionStreamBroker;
-  /**
    * The in-process router transport — the same routes and interceptor
    * chain as the serving router EXCEPT the position-1 identity source
    * (Go's bufconn shape: this lane stamps the internal
@@ -363,7 +342,7 @@ export interface BoundPorts {
   readonly grpc: number;
   /**
    * The artifact download lane's port; undefined when artifact storage is
-   * not local and the lane never binds (domain/artifact/file-server.ts).
+   * not local and the lane never binds (artifactstorage/file-server.ts).
    */
   readonly artifactHttp: number | undefined;
 }
@@ -619,12 +598,12 @@ export async function composeServer(
   // the edition's whole credential story in one object: a composed
   // driver; otherwise, under the built-in authorization posture, open
   // source's built-in provider (runnerauth/built-in-runner-credential-
-  // provider.ts — the execution-scoped default plus the lineage-vouching,
-  // memory-capture and exchange-gating capabilities an enforcing
-  // self-host needs); otherwise the
+  // provider.ts — the execution-scoped default plus the memory-capture
+  // and exchange-gating capabilities an enforcing self-host needs);
+  // otherwise the
   // execution-scoped default, byte-identical to the wiring this seam
   // replaced. Both open-source providers also mint the RUN credential the
-  // two execution engines put on every dispatch (the engines below take
+  // execution engine puts on every dispatch (the engine below takes
   // this object; runnerauth/dispatch-credential.ts) — a composed driver
   // that leaves that capability undefined dispatches without one, its
   // runners being credentialed another way.
@@ -644,11 +623,8 @@ export async function composeServer(
   // of every chain calls it. By posture: an extension's registration;
   // open source's built-in Authorizer (authorization/authorizer.ts — the
   // cloud's model evaluated over the tuples the row would have had), which
-  // checks every caller on the run gate as the person it acts for: a
-  // runner acting for a workflow creates the workflow's child executions
-  // as the workflow's person, who must be able to view the agents the
-  // workflow calls (the runner's own read of each callee already asks
-  // that); or, trusted-local, open source's permissive driver
+  // checks every caller on the run gate as the person it acts for; or,
+  // trusted-local, open source's permissive driver
   // (authorization/trusted-local-authorizer.ts), which separates no callers
   // and answers only whether a named Organization exists, as the other two
   // do (stigmer#1163). The organization directory and the
@@ -932,15 +908,12 @@ export async function composeServer(
   // dispatch uses — one definition, so policy and dispatch can never
   // disagree (oss#397).
   const temporalConfig = newConfigFromEnv();
-  // The workflow-execution twin — its config has no policy
-  // consumer, so it lives here with the temporal stage.
-  const workflowExecutionTemporalConfig = newWorkflowExecutionConfigFromEnv();
   // The sandbox lane: the configured driver — built-in tier or
   // composition-registered — or the default external-runner posture
   // (SANDBOX_PROVISIONER_TYPE unset: no driver constructed, the ensure
   // steps short-circuit, an operator-managed runner polls the queues).
   // Selection is loud-fail inside newSandboxProvisioner; the routing
-  // coherence check lives HERE because both temporal configs do — a
+  // coherence check lives HERE because the temporal config does — a
   // provisioner that no routing mode can ever dispatch to is dark
   // configuration, the validateR2Config class of boot fault.
   const sandboxProvisioner = newSandboxProvisioner(
@@ -966,12 +939,10 @@ export async function composeServer(
   );
   if (
     sandboxProvisioner !== undefined &&
-    temporalConfig.activityRouting !== ROUTING_SESSION &&
-    workflowExecutionTemporalConfig.workflowActivityRouting !==
-      WORKFLOW_ROUTING_EXECUTION
+    temporalConfig.activityRouting !== ROUTING_SESSION
   ) {
     throw new Error(
-      `SANDBOX_PROVISIONER_TYPE='${config.sandboxProvisionerType}' requires a per-queue routing mode — set STIGMER_ACTIVITY_ROUTING=session and/or STIGMER_WORKFLOW_ACTIVITY_ROUTING=execution (a provisioner no dispatch can reach must fail loudly, not sit dark)`,
+      `SANDBOX_PROVISIONER_TYPE='${config.sandboxProvisionerType}' requires per-session routing — set STIGMER_ACTIVITY_ROUTING=session (a provisioner no dispatch can reach must fail loudly, not sit dark)`,
     );
   }
   const sandboxLane = newSandboxLane(sandboxProvisioner, runnerCredentials);
@@ -983,17 +954,10 @@ export async function composeServer(
   // The driver's own background work (an idle sweep), started with the
   // server's other loops and stopped before them (start()/shutdown()).
   let sandboxBackground: SandboxBackgroundHandle | undefined;
-  // ONE terminal observer instance feeds all three workflow-execution
-  // status write sites (the UpdateStatus RPC, the orchestrator's persist
-  // activity, the lifecycle persists).
-  const workflowSandboxTerminalObserver = newWorkflowSandboxTerminalObserver(
-    sandboxLane,
-    logger,
-  );
   const healthState = new HealthState();
-  // The model catalog: ONE provider instance feeds workflow
-  // validation, the pin checks, and the transport's registry lane, so the
-  // pickers and validation can never drift — on either arm. With
+  // The model catalog: ONE provider instance feeds the pin checks and
+  // the transport's registry lane, so the pickers and the checks can
+  // never drift — on either arm. With
   // no extension provider composed, the OSS ModelRegistryStore (the
   // bundled catalog in src/modelcatalog) is constructed and
   // this root owns its refresh lifecycle; with one composed, the OSS store
@@ -1014,28 +978,17 @@ export async function composeServer(
     modelCatalog = ossModelRegistryStore;
   }
   const registryLanes = createRegistryLanes({
-    taskKindRegistryDocument: bundledTaskKindRegistryDocument(),
     modelRegistryStore: modelCatalog,
   });
-  // The Layer-2 workflow validator reads the composed catalog provider
-  // per validation call, keeping validation and the served pickers in
-  // lockstep.
-  const workflowValidator = new InProcessValidator(modelCatalog, logger);
   // ONE broker spans both routers AND the Temporal worker's activities:
   // the worker's status persists broadcast through the same fabric, so
   // recovery/fallback updates reach externally-connected subscribe
   // streams (Go's GetStreamBroker seam).
   const agentExecutionStreamBroker = new StreamBroker(logger);
-  // The workflowexecution twin (domain-local); its Temporal activities
-  // broadcast through it the same way.
-  const workflowExecutionStreamBroker = new WorkflowExecutionStreamBroker(
-    logger,
-  );
-  // Recover's per-execution turns (stigmer#1672), one per domain: built
-  // here, not inside routes() (which runs twice), so a recover over either
-  // router waits for one over the other.
+  // Recover's per-execution turns (stigmer#1672): built here, not inside
+  // routes() (which runs twice), so a recover over either router waits
+  // for one over the other.
   const agentExecutionRecoverSerializer = new KeyedSerializer();
-  const workflowExecutionRecoverSerializer = new KeyedSerializer();
   // Stage: schedule clock — Go server.go 578–592 injection order:
   // config → artifact → syncer → run starter → (worker below) →
   // reconciler. The client provider closes over `temporalManager`,
@@ -1080,8 +1033,8 @@ export async function composeServer(
     logger,
   );
   // The manager owns the connection lifecycle; one factory per domain
-  // worker (Go createWorkers' list) — agent-execution,
-  // workflow-execution, and the schedule clock.
+  // worker (Go createWorkers' list) — agent-execution and the schedule
+  // clock.
   const temporalManager = new TemporalManager({
     hostPort: config.temporalHostPort,
     namespace: config.temporalNamespace,
@@ -1103,7 +1056,7 @@ export async function composeServer(
         // reason. The lane's position 1 mints the internal caller class
         // the Authorize step honors, and its handler IS the runner's
         // updateStatus path, so the composed Authorizer, the status
-        // hooks, and the broadcast reach the workflow's terminal writes
+        // hooks, and the broadcast reach the run's terminal writes
         // by construction — the worker composes none of them itself.
         statusWriter: () => requireInProcess().executionStatusWriter,
         // The run-end delete of the run's ExecutionContext rides the same
@@ -1111,15 +1064,6 @@ export async function composeServer(
         executionContextDeleter: () =>
           requireInProcess().executionContextDeleter,
         temporalConfig,
-      }),
-      newWorkflowExecutionWorkerFactory({
-        store,
-        logger,
-        broker: workflowExecutionStreamBroker,
-        temporalConfig: workflowExecutionTemporalConfig,
-        sandboxTerminalObserver: workflowSandboxTerminalObserver,
-        executionContextDeleter: () =>
-          requireInProcess().executionContextDeleter,
       }),
       newScheduleWorkerFactory({
         store,
@@ -1143,16 +1087,8 @@ export async function composeServer(
     runnerCredentials,
     logger,
   });
-  // The workflow-execution twin: the same provider-is-the-injection
-  // mechanism, filling the workflow-execution engine seam.
-  const workflowExecutionEngineState = newWorkflowExecutionEngineStateProvider({
-    manager: temporalManager,
-    config: workflowExecutionTemporalConfig,
-    runnerCredentials,
-    logger,
-  });
   // The artifact blob store (Go server.go 349: shared by agentexecution
-  // attachments, the artifact domain, and skill push). The health probe
+  // attachments and run files, and skill push). The health probe
   // runs in start(), matching Go's
   // boot check. The factory consults the composition's registered
   // drivers for non-built-in types.
@@ -1512,7 +1448,6 @@ export async function composeServer(
     grantPath: iamPolicyGrantPath,
     authorizationLifecycle,
     secretService,
-    artifactStorage,
     scheduleClock: () => scheduleSyncer,
     channelRuntime: extensions.drivers.channelRuntime,
     platformClients,
@@ -1524,7 +1459,6 @@ export async function composeServer(
     logger,
     schedulePurge: corePurges.quiesce,
     agentEngine: executionEngineState,
-    workflowEngine: workflowExecutionEngineState,
     sandboxLane,
   });
   const purgeContent = newContentStage(corePurges.content);
@@ -1721,8 +1655,8 @@ export async function composeServer(
       authorizer,
       authorizationLifecycle,
       listReadScope,
-      // The SAME composed catalog provider the workflow validator
-      // and the registry lanes read — the channel model-pin rule
+      // The SAME composed catalog provider the registry lanes read —
+      // the channel model-pin rule
       // (stigmer/stigmer#774) can never drift from the served pickers.
       modelRegistry: modelCatalog,
       // The channel runtime seam: undefined = the byte-pinned refusal
@@ -1778,7 +1712,6 @@ export async function composeServer(
       visitorClassifier: extensions.drivers.visitorClassifier,
       runLanes: extensions.drivers.runLanes,
       scheduleRunProfile: scheduleTemporalConfig.executionProfile(),
-      runnerCredentialProvider: runnerCredentials,
       broker: agentExecutionStreamBroker,
       recoverSerializer: agentExecutionRecoverSerializer,
       engineState: executionEngineState,
@@ -1790,7 +1723,6 @@ export async function composeServer(
       sandboxLane,
       temporalConfig,
       sessionCreator: () => requireInProcess().executionSessionCreator,
-      workflowRunQueue: newWorkflowRunQueue(workflowExecutionTemporalConfig),
       executionContextBuilder: {
         store,
         logger,
@@ -1809,45 +1741,6 @@ export async function composeServer(
         // The run-start token refresh dials the vendor's token endpoint;
         // it rides the same egress-guarded fetch as every other OAuth call.
         fetchImpl: asFetch(outboundFetch),
-      },
-    });
-    registerWorkflowServices(router, {
-      store,
-      logger,
-      authorizer,
-      authorizationLifecycle,
-      validator: workflowValidator,
-    });
-    registerWorkflowExecutionServices(router, {
-      store,
-      logger,
-      authorizer,
-      credentialBinding,
-      authorizationLifecycle,
-      listReadScope,
-      gateSteps: extensions.gateSteps,
-      engineState: workflowExecutionEngineState,
-      broker: workflowExecutionStreamBroker,
-      recoverSerializer: workflowExecutionRecoverSerializer,
-      sandboxLane,
-      temporalConfig: workflowExecutionTemporalConfig,
-      sandboxTerminalObserver: workflowSandboxTerminalObserver,
-      approvalForwarder: () =>
-        requireInProcess().workflowExecutionApprovalForwarder,
-      fileDecisionForwarder: () =>
-        requireInProcess().workflowExecutionFileDecisionForwarder,
-      executionContextBuilder: {
-        store,
-        logger,
-        // The personal-key fill reads through the in-process environment
-        // client; only a workflow run on a connected engine reaches it,
-        // which the execution conformance lane drives.
-        /* v8 ignore next -- @preserve: called only by a workflow run's context build on a connected engine (execution conformance), never by the composed unit tests, which have no engine */
-        environmentReader: () => requireInProcess().executionEnvironmentReader,
-        executionContextCreator: () =>
-          requireInProcess().workflowExecutionContextCreator,
-        executionContextDeleter: () =>
-          requireInProcess().executionContextDeleter,
       },
     });
     // The whole surface: the CRUD slice plus the connect/OAuth
@@ -1910,14 +1803,6 @@ export async function composeServer(
       artifactStorage: pluginArtifactStorage,
       materializerProvider: () => requireInProcess().pluginMaterializer,
       staging: skillArchiveStaging,
-    });
-    // Artifact CRUD shares the ONE blob store with agentexecution's
-    // attachment lanes (Go server.go 347–374).
-    registerArtifactServices(router, {
-      store,
-      artifactStorage,
-      logger,
-      authorizer,
     });
     // The two CQRS query services register between the domains and the
     // github/platform tail, mirroring Go's registration order
@@ -2129,7 +2014,6 @@ export async function composeServer(
       },
       { deletingOrganizations },
     ),
-    taskKindRegistryLane: registryLanes.taskKindRegistryLane,
     modelRegistryLane: registryLanes.modelRegistryLane,
     skillTransferLane,
     consoleLane,
@@ -2170,7 +2054,6 @@ export async function composeServer(
     temporalManager,
     runnerAuthService,
     agentExecutionStreamBroker,
-    workflowExecutionStreamBroker,
     inProcessTransport: inProcessWiring.transport,
     identityVerifiers,
     routes,

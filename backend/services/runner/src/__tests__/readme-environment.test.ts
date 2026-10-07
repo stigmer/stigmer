@@ -123,10 +123,6 @@ const COMPUTED_READS_ALLOWED: ReadonlyMap<string, string> = new Map([
   ],
   [`${join("shared", "runner-credential-store.ts")}#getRunnerSecret`, "its callers name the setting, and rule 3 reads it there"],
   [`${join("shared", "llm-backend.ts")}#preflightLlmBackends`, "loops over two constants the same file reads directly (rule 2)"],
-  [
-    `${join("activities", "run-env.ts")}#buildRunEnv`,
-    "forwards the operating system's base variables (RUN_ENV_BASE_KEYS) to a run task's child; it reads no runner setting",
-  ],
 ]);
 
 // ── The checker ──────────────────────────────────────────────────────────────

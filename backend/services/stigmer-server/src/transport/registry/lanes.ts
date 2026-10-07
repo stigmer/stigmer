@@ -1,18 +1,17 @@
 /**
- * Registry proxy lanes — the unified port's plain-HTTP JSON endpoints,
- * ported from pkg/domain/workflow/registry/{task_kind_registry,
- * model_registry}.go and wrapped in the registryCORS contract
- * (pkg/server/registry_cors.go, oss#571). The conformance suite
+ * The registry proxy lane — the unified port's plain-HTTP JSON endpoint,
+ * ported from the Go server's model_registry.go and wrapped in the
+ * registryCORS contract (pkg/server/registry_cors.go, oss#571). The
+ * conformance suite
  * (test/conformance/src/suites/registry-proxy.conformance.test.ts) is the
- * executable spec these lanes are built against.
+ * executable spec this lane is built against.
  *
- * The transport serves documents it does not own: the model registry from
- * the composed ModelCatalogProvider (src/modelcatalog), the task-kind
- * registry from the workflow domain's bundled file. The model-registry
- * store's refresh lifecycle is the composition root's concern, not a lane
- * concern.
+ * The transport serves a document it does not own: the model registry
+ * from the composed ModelCatalogProvider (src/modelcatalog). The
+ * model-registry store's refresh lifecycle is the composition root's
+ * concern, not a lane concern.
  *
- * Behavior per lane (Go task_kind_registry.go:33-51):
+ * Behavior (Go's registry handlers):
  *   OPTIONS → 204 + the fixed registryCORS allow-lists,
  *   GET     → 200, application/json, Cache-Control: public, max-age=3600,
  *             Access-Control-Allow-Origin: *,
@@ -27,13 +26,10 @@ import type { LaneHandler } from "../lanes.js";
 const REGISTRY_CACHE_CONTROL = "public, max-age=3600";
 
 export interface RegistryLanes {
-  taskKindRegistryLane: LaneHandler;
   modelRegistryLane: LaneHandler;
 }
 
 export interface RegistryLanesOptions {
-  /** The task-kind registry document (static per release). */
-  taskKindRegistryDocument: string;
   /** The composed model-catalog provider the lane serves from. */
   modelRegistryStore: ModelCatalogProvider;
 }
@@ -42,7 +38,6 @@ export function createRegistryLanes(
   options: RegistryLanesOptions,
 ): RegistryLanes {
   return {
-    taskKindRegistryLane: registryLane(() => options.taskKindRegistryDocument),
     modelRegistryLane: registryLane(() => options.modelRegistryStore.document()),
   };
 }

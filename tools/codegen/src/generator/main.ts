@@ -17,13 +17,11 @@ import { runSDKClientJavaGeneration } from "./sdk-client-java.js";
 import { runSDKClientPythonGeneration } from "./sdk-client-python.js";
 import { runSDKClientTSGeneration } from "./sdk-client-ts.js";
 import { runSDKDocsGeneration } from "./sdk-docs.js";
-import { runTaskRegistryGeneration } from "./task-registry.js";
 
 interface Flags {
   schemaDir: string;
   outputDir: string;
   target: string;
-  metaDir: string;
   apisDir: string;
   docsDir: string;
   rules: string;
@@ -35,7 +33,6 @@ function parseFlags(argv: string[]): Flags {
     schemaDir: "tools/codegen/schemas",
     outputDir: "",
     target: "",
-    metaDir: "",
     apisDir: "",
     docsDir: "",
     rules: "off",
@@ -45,7 +42,6 @@ function parseFlags(argv: string[]): Flags {
     "schema-dir": (v) => (flags.schemaDir = v),
     "output-dir": (v) => (flags.outputDir = v),
     target: (v) => (flags.target = v),
-    "meta-dir": (v) => (flags.metaDir = v),
     "apis-dir": (v) => (flags.apisDir = v),
     "docs-dir": (v) => (flags.docsDir = v),
     rules: (v) => (flags.rules = v),
@@ -100,13 +96,6 @@ function main(): void {
   }
 
   switch (flags.target) {
-    case "task-registry":
-      if (flags.metaDir === "") {
-        process.stderr.write("--meta-dir is required for --target=task-registry\n");
-        process.exit(1);
-      }
-      runTaskRegistryGeneration(flags.schemaDir, flags.outputDir, flags.metaDir);
-      break;
     case "mcp-ts":
       runMCPTSGeneration(flags.schemaDir, flags.outputDir);
       break;

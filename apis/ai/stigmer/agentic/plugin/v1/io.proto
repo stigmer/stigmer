@@ -137,10 +137,10 @@ message PluginMember {
 // ListPluginMembersResponse lists the resources an installed plugin owns.
 //
 // @internal
-// Derived on read from the stigmer.ai/plugin label on the four child kinds;
+// Derived on read from the stigmer.ai/plugin label on the three child kinds;
 // nothing is stored on the plugin, so nothing can drift.
 message ListPluginMembersResponse {
-  // Members in materialisation order: skills, MCP servers, agents, workflows.
+  // Members in materialisation order: skills, MCP servers, agents.
   repeated PluginMember members = 1;
 }
 

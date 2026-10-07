@@ -66,31 +66,33 @@ import {
 } from "../public-visibility-retired.js";
 import {
   RETIRED_WORKFLOW_INSTANCE_KIND,
-  WORKFLOW_EXECUTION_KIND,
   WORKFLOW_RETIREMENT_PAGE_SIZE,
   WORKFLOW_RETIREMENT_POLICY_KIND,
-  migrateWorkflowExecutionRow,
   policyNamesRetiredWorkflowInstance,
   unreadableWorkflowRowError,
-  workflowInstanceWorkflowIdOf,
 } from "../workflow-instance-retired.js";
-import type { MigratedRun } from "../workflow-instance-retired.js";
 import {
   RETIRED_AGENT_RUN_KIND,
-  RETIRED_WORKFLOW_RUN_KIND,
-  RUN_EVENT_TYPE_RENAMES,
   RUN_KIND_RENAMES,
   RUN_KIND_TABLES,
   RUN_RENAME_PAGE_SIZE,
   RUN_RENAME_POLICY_KIND,
-  RUN_RENAME_WORKFLOW_KIND,
   rekeyedRunPolicy,
   renamedAgentRunRow,
-  renamedWorkflowRow,
-  renamedWorkflowRunRow,
   unreadableRunRenameRowError,
 } from "../run-rename.js";
 import type { RekeyedPolicy } from "../run-rename.js";
+import {
+  AGENT_RUN_KIND,
+  AGENT_RUN_RETIRED_PAGE_SIZE,
+  RETIRED_WORKFLOW_KINDS,
+  RETIRED_WORKFLOW_TABLES,
+  WORKFLOW_RETIRED_PAGE_SIZE,
+  WORKFLOW_RETIRED_POLICY_KIND,
+  migrateAgentRunRow,
+  policyNamesRetiredWorkflowKind,
+  unreadableRetiredWorkflowRowError,
+} from "../workflow-retired.js";
 import {
   IDENTITY_ACCOUNT_KIND,
   repairedAccountSlugRow,
@@ -122,15 +124,17 @@ export const SCHEMA_VERSION_14 = 14;
 export const SCHEMA_VERSION_15 = 15;
 /** v16: the organization deletion table (DDL only). */
 export const SCHEMA_VERSION_16 = 16;
-/** v17: workflow runs name their workflow directly; the workflow instance rows removed. */
+/** v17: the workflow instance rows removed. */
 export const SCHEMA_VERSION_17 = 17;
-/** v18: agent and workflow executions are runs, in the store and the workflow language. */
+/** v18: agent executions are runs. */
 export const SCHEMA_VERSION_18 = 18;
-/** v19: every identity account's slug held to the slug rules. */
+/** v19: the workflow, workflow run and artifact rows removed, with the tables only workflows wrote. */
 export const SCHEMA_VERSION_19 = 19;
+/** v20: every identity account's slug held to the slug rules. */
+export const SCHEMA_VERSION_20 = 20;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_19;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_20;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -174,6 +178,7 @@ export function runMigrations(
     [SCHEMA_VERSION_17, migrateToV17],
     [SCHEMA_VERSION_18, migrateToV18],
     [SCHEMA_VERSION_19, migrateToV19],
+    [SCHEMA_VERSION_20, migrateToV20],
   ];
 
   for (const [version, migrate] of chain) {
@@ -835,91 +840,44 @@ function migrateToV16(db: DatabaseSync): void {
 
 /**
  * v17: the workflow instance kind is removed — the Postgres driver's v12 in
- * this engine's terms (workflow-instance-retired.ts says what each run
- * becomes and why an unreadable row fails the step). Every instance row is
- * read in keyset pages for the workflow it names, then every run in keyset
- * pages, rewritten when it carries a retired field. A run that gained its
- * workflow id has `updated_at` bumped, so the list index re-derives the
- * key it is found by at open; a run that only lost a retired field keeps
- * its stamp. Every IamPolicy row naming an instance as resource or
- * principal is found in keyset pages and deleted with its list keys, its
- * history kept, as the store deletes a policy. The instance rows, their
- * history and their list keys are then deleted; the search index is left
- * to boot's RebuildIndex, which re-indexes only the registered kinds (the
- * v14 precedent). Runs inside applyInTransaction's BEGIN, so a throw rolls
- * the whole step back and the boot stops on the row it names.
+ * this engine's terms (workflow-instance-retired.ts says what leaves and
+ * why an unreadable row fails the step). Every IamPolicy row naming an
+ * instance as resource or principal is found in keyset pages and deleted
+ * with its list keys, its history kept, as the store deletes a policy. The
+ * instance rows, their history and their list keys are then deleted; the
+ * search index is left to boot's RebuildIndex, which re-indexes only the
+ * registered kinds (the v14 precedent). Runs inside applyInTransaction's
+ * BEGIN, so a throw rolls the whole step back and the boot stops on the row
+ * it names.
  */
 function migrateToV17(db: DatabaseSync): void {
   const page = db.prepare(
     `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
   );
-  const pages = function* (
-    kind: string,
-  ): Generator<{ id: string; data: Uint8Array }> {
-    let after = "";
-    for (;;) {
-      const rows = page.all(kind, after, WORKFLOW_RETIREMENT_PAGE_SIZE) as Array<{
-        id: string;
-        data: Uint8Array;
-      }>;
-      yield* rows;
-      if (rows.length < WORKFLOW_RETIREMENT_PAGE_SIZE) {
-        return;
-      }
-      after = rows[rows.length - 1]!.id;
-    }
-  };
-
-  const instanceWorkflows = new Map<string, string>();
-  for (const row of pages(RETIRED_WORKFLOW_INSTANCE_KIND)) {
-    try {
-      instanceWorkflows.set(row.id, workflowInstanceWorkflowIdOf(row.data));
-    } catch (error) {
-      throw unreadableWorkflowRowError(
-        RETIRED_WORKFLOW_INSTANCE_KIND,
-        row.id,
-        error,
-      );
-    }
-  }
-  const workflowOf = (instanceId: string): string | undefined =>
-    instanceWorkflows.get(instanceId);
-
-  const restamp = db.prepare(
-    `UPDATE resources SET data = ?, updated_at = datetime('now') WHERE kind = ? AND id = ?`,
-  );
-  const rewrite = db.prepare(
-    `UPDATE resources SET data = ? WHERE kind = ? AND id = ?`,
-  );
-  for (const row of pages(WORKFLOW_EXECUTION_KIND)) {
-    let migrated: MigratedRun | undefined;
-    try {
-      migrated = migrateWorkflowExecutionRow(row.data, workflowOf);
-    } catch (error) {
-      throw unreadableWorkflowRowError(WORKFLOW_EXECUTION_KIND, row.id, error);
-    }
-    if (migrated !== undefined) {
-      (migrated.workflowIdFilled ? restamp : rewrite).run(
-        migrated.data,
-        WORKFLOW_EXECUTION_KIND,
-        row.id,
-      );
-    }
-  }
-
   const retiredPolicies: string[] = [];
-  for (const row of pages(WORKFLOW_RETIREMENT_POLICY_KIND)) {
-    try {
-      if (policyNamesRetiredWorkflowInstance(row.data)) {
-        retiredPolicies.push(row.id);
+  for (let after = ""; ; ) {
+    const rows = page.all(
+      WORKFLOW_RETIREMENT_POLICY_KIND,
+      after,
+      WORKFLOW_RETIREMENT_PAGE_SIZE,
+    ) as Array<{ id: string; data: Uint8Array }>;
+    for (const row of rows) {
+      try {
+        if (policyNamesRetiredWorkflowInstance(row.data)) {
+          retiredPolicies.push(row.id);
+        }
+      } catch (error) {
+        throw unreadableWorkflowRowError(
+          WORKFLOW_RETIREMENT_POLICY_KIND,
+          row.id,
+          error,
+        );
       }
-    } catch (error) {
-      throw unreadableWorkflowRowError(
-        WORKFLOW_RETIREMENT_POLICY_KIND,
-        row.id,
-        error,
-      );
     }
+    if (rows.length < WORKFLOW_RETIREMENT_PAGE_SIZE) {
+      break;
+    }
+    after = rows[rows.length - 1]!.id;
   }
   const deletePolicy = ["resource_list_keys", "resources"].map((table) =>
     db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
@@ -938,20 +896,17 @@ function migrateToV17(db: DatabaseSync): void {
 }
 
 /**
- * v18: agent and workflow executions are runs — the Postgres driver's v13
- * in this engine's terms (run-rename.ts says what each row becomes and why
- * an unreadable row fails the step). Every run row is read in keyset pages
+ * v18: agent executions are runs — the Postgres driver's v13 in this
+ * engine's terms (run-rename.ts says what each row becomes and why an
+ * unreadable row fails the step). Every run row is read in keyset pages
  * under its old kind and rewritten when its bytes spell the kind the old
- * way; then every table keyed by kind renames the run kinds, and every
- * workflow run event names its type the new way. Every IamPolicy row is read in keyset pages, and the ones naming a run kind are
- * re-keyed: the old row leaves with its list keys, its history kept, and
- * the new row is written unproven with `updated_at` stamped, so the list
- * index derives its keys at open. Every workflow head and every archived
- * workflow version is read in keyset pages and rewritten when its steps
- * name a run the old way; no stamp changes, because no list key reads a
- * step. The search index is left to boot's RebuildIndex (the v14
- * precedent). Runs inside applyInTransaction's BEGIN, so a throw rolls the
- * whole step back and the boot stops on the row it names.
+ * way; then every table keyed by kind renames the run kind. Every IamPolicy
+ * row is read in keyset pages, and the ones naming a run kind are re-keyed:
+ * the old row leaves with its list keys, its history kept, and the new row
+ * is written unproven with `updated_at` stamped, so the list index derives
+ * its keys at open. The search index is left to boot's RebuildIndex (the
+ * v14 precedent). Runs inside applyInTransaction's BEGIN, so a throw rolls
+ * the whole step back and the boot stops on the row it names.
  */
 function migrateToV18(db: DatabaseSync): void {
   const resourcePage = db.prepare(
@@ -976,35 +931,21 @@ function migrateToV18(db: DatabaseSync): void {
   const rewrite = db.prepare(
     `UPDATE resources SET data = ? WHERE kind = ? AND id = ?`,
   );
-  const migrateRows = (
-    kind: string,
-    migrate: (data: Uint8Array) => Uint8Array | undefined,
-  ): void => {
-    for (const row of resources(kind)) {
-      let data: Uint8Array | undefined;
-      try {
-        data = migrate(row.data);
-      } catch (error) {
-        throw unreadableRunRenameRowError(kind, row.id, error);
-      }
-      if (data !== undefined) {
-        rewrite.run(data, kind, row.id);
-      }
+  for (const row of resources(RETIRED_AGENT_RUN_KIND)) {
+    let data: Uint8Array | undefined;
+    try {
+      data = renamedAgentRunRow(row.data);
+    } catch (error) {
+      throw unreadableRunRenameRowError(RETIRED_AGENT_RUN_KIND, row.id, error);
     }
-  };
-
-  migrateRows(RETIRED_AGENT_RUN_KIND, renamedAgentRunRow);
-  migrateRows(RETIRED_WORKFLOW_RUN_KIND, renamedWorkflowRunRow);
+    if (data !== undefined) {
+      rewrite.run(data, RETIRED_AGENT_RUN_KIND, row.id);
+    }
+  }
   for (const [from, to] of RUN_KIND_RENAMES) {
     for (const table of RUN_KIND_TABLES) {
       db.prepare(`UPDATE ${table} SET kind = ? WHERE kind = ?`).run(to, from);
     }
-  }
-  const renameEventType = db.prepare(
-    `UPDATE workflow_execution_events SET event_type = ? WHERE event_type = ?`,
-  );
-  for (const [from, to] of RUN_EVENT_TYPE_RENAMES) {
-    renameEventType.run(to, from);
   }
 
   const rekeyed: Array<{ from: string; policy: RekeyedPolicy }> = [];
@@ -1030,50 +971,109 @@ function migrateToV18(db: DatabaseSync): void {
     }
     insertPolicy.run(RUN_RENAME_POLICY_KIND, policy.id, policy.data);
   }
+}
 
-  migrateRows(RUN_RENAME_WORKFLOW_KIND, renamedWorkflowRow);
-  const versionPage = db.prepare(
-    `SELECT id, data FROM resource_audit WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+/**
+ * v19: workflows, workflow runs and the artifact kind are removed — the
+ * Postgres driver's v14 in this engine's terms (workflow-retired.ts says
+ * what leaves, what each agent run becomes and why an unreadable row fails
+ * the step). Every IamPolicy row is read in keyset pages, and the ones
+ * naming a retired kind as resource or principal are deleted with their
+ * list keys, their history kept, as the store deletes a policy. Every
+ * agent run is read in keyset pages and rewritten when it carries a
+ * workflow parent, a workflow step's task token or a workflow lineage
+ * label, its `updated_at` left alone (no list key of a run reads them).
+ * Every row of a retired kind is then deleted from every table keyed by
+ * kind, and the two tables only workflows wrote are dropped; the search
+ * index is left to boot's RebuildIndex, which re-indexes only the
+ * registered kinds (the v14 precedent). Runs inside applyInTransaction's
+ * BEGIN, so a throw rolls the whole step back and the boot stops on the row
+ * it names.
+ */
+function migrateToV19(db: DatabaseSync): void {
+  // The time an unfinished run a workflow step started ends at.
+  const endedAt = new Date().toISOString();
+  const page = db.prepare(
+    `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
   );
-  const rewriteVersion = db.prepare(
-    `UPDATE resource_audit SET data = ? WHERE id = ?`,
+  const pages = function* (
+    kind: string,
+    size: number,
+  ): Generator<{ id: string; data: Uint8Array }> {
+    let after = "";
+    for (;;) {
+      const rows = page.all(kind, after, size) as Array<{
+        id: string;
+        data: Uint8Array;
+      }>;
+      yield* rows;
+      if (rows.length < size) {
+        return;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+  };
+
+  const retiredPolicies: string[] = [];
+  for (const row of pages(
+    WORKFLOW_RETIRED_POLICY_KIND,
+    WORKFLOW_RETIRED_PAGE_SIZE,
+  )) {
+    try {
+      if (policyNamesRetiredWorkflowKind(row.data)) {
+        retiredPolicies.push(row.id);
+      }
+    } catch (error) {
+      throw unreadableRetiredWorkflowRowError(
+        WORKFLOW_RETIRED_POLICY_KIND,
+        row.id,
+        error,
+      );
+    }
+  }
+  const deletePolicy = ["resource_list_keys", "resources"].map((table) =>
+    db.prepare(`DELETE FROM ${table} WHERE kind = ? AND id = ?`),
   );
-  for (let after = 0; ; ) {
-    const rows = versionPage.all(
-      RUN_RENAME_WORKFLOW_KIND,
-      after,
-      RUN_RENAME_PAGE_SIZE,
-    ) as Array<{ id: number; data: Uint8Array }>;
-    for (const row of rows) {
-      let data: Uint8Array | undefined;
-      try {
-        data = renamedWorkflowRow(row.data);
-      } catch (error) {
-        throw unreadableRunRenameRowError(
-          `${RUN_RENAME_WORKFLOW_KIND} version`,
-          String(row.id),
-          error,
-        );
-      }
-      if (data !== undefined) {
-        rewriteVersion.run(data, row.id);
-      }
+  for (const id of retiredPolicies) {
+    for (const statement of deletePolicy) {
+      statement.run(WORKFLOW_RETIRED_POLICY_KIND, id);
     }
-    if (rows.length < RUN_RENAME_PAGE_SIZE) {
-      break;
+  }
+
+  const rewrite = db.prepare(
+    `UPDATE resources SET data = ? WHERE kind = ? AND id = ?`,
+  );
+  for (const row of pages(AGENT_RUN_KIND, AGENT_RUN_RETIRED_PAGE_SIZE)) {
+    let migrated: Uint8Array | undefined;
+    try {
+      migrated = migrateAgentRunRow(row.data, endedAt);
+    } catch (error) {
+      throw unreadableRetiredWorkflowRowError(AGENT_RUN_KIND, row.id, error);
     }
-    after = rows[rows.length - 1]!.id;
+    if (migrated !== undefined) {
+      rewrite.run(migrated, AGENT_RUN_KIND, row.id);
+    }
+  }
+
+  for (const table of RUN_KIND_TABLES) {
+    const remove = db.prepare(`DELETE FROM ${table} WHERE kind = ?`);
+    for (const kind of RETIRED_WORKFLOW_KINDS) {
+      remove.run(kind);
+    }
+  }
+  for (const table of RETIRED_WORKFLOW_TABLES) {
+    db.exec(`DROP TABLE ${table}`);
   }
 }
 
 /**
- * v19: identity-account slugs repaired, the Postgres driver's v14 in this
+ * v20: identity-account slugs repaired, the Postgres driver's v15 in this
  * engine's terms (../account-slugs-repaired.ts says what changes and why).
  * One read of the kind, one UPDATE per repaired row with `updated_at`
  * bumped; runs inside applyInTransaction's BEGIN, so a throw rolls the
  * step back and the boot stops on the row it names.
  */
-function migrateToV19(db: DatabaseSync): void {
+function migrateToV20(db: DatabaseSync): void {
   const update = db.prepare(
     `UPDATE resources SET data = ?, updated_at = datetime('now') WHERE kind = ? AND id = ?`,
   );

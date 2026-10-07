@@ -23,10 +23,7 @@
 //   - An in-flight run exports as its last-persisted snapshot and is
 //     marked `inProgress` — honest about what a mid-run export is.
 //   - Sub-agent transcripts (`status.sub_agent_runs` — task-tool
-//     delegations) are embedded in the parent's status and export in full. A
-//     `call-agent` workflow task spawns a SEPARATE child AgentRun in
-//     its own session; that is a different session's transcript, not part of
-//     this one.
+//     delegations) are embedded in the parent's status and export in full.
 //
 // Like the rest of this folder, the module is framework-free: the fetch
 // entry point takes a structural client slice, so it runs in React hosts,
@@ -691,23 +688,12 @@ function fenced(content: string, language = ""): string {
  * The format is `stigmer.ai/session-transcript/v2`: each turn's `run` is an
  * AgentRun. v1 named it `execution` and held the AgentExecution shape that
  * executions had before they were named runs.
- *
- * One deliberate omission: `status.callback_token` is stripped. It is an
- * internal Temporal task token (runtime plumbing for workflow-triggered
- * runs), not conversation material, and has no place in a document
- * users share and paste around.
  */
 export function transcriptToJson(transcript: SessionTranscript): JsonValue {
   const turns: JsonValue[] = transcript.turns.map((turn) => {
     const run = toJson(AgentRunSchema, turn.run, {
       useProtoFieldName: true,
     });
-    if (run !== null && typeof run === "object" && !Array.isArray(run)) {
-      const status = run["status"];
-      if (status !== null && typeof status === "object" && !Array.isArray(status)) {
-        delete (status as Record<string, unknown>)["callback_token"];
-      }
-    }
     return {
       user_prompt: turn.userPrompt,
       build_from_plan: turn.isBuildFromPlan || undefined,

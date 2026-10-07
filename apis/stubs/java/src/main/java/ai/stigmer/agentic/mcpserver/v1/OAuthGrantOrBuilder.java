@@ -208,8 +208,8 @@ public interface OAuthGrantOrBuilder extends
 
   /**
    * <pre>
-   * Kind of the API resource identified by resource_id (e.g., "mcp_server",
-   * "workflow"). Used for query filtering and handler routing.
+   * Kind of the API resource identified by resource_id (e.g., "mcp_server").
+   * Used for query filtering and handler routing.
    * </pre>
    *
    * <code>string resource_kind = 10 [json_name = "resourceKind"];</code>
@@ -218,8 +218,8 @@ public interface OAuthGrantOrBuilder extends
   java.lang.String getResourceKind();
   /**
    * <pre>
-   * Kind of the API resource identified by resource_id (e.g., "mcp_server",
-   * "workflow"). Used for query filtering and handler routing.
+   * Kind of the API resource identified by resource_id (e.g., "mcp_server").
+   * Used for query filtering and handler routing.
    * </pre>
    *
    * <code>string resource_kind = 10 [json_name = "resourceKind"];</code>

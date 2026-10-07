@@ -7,11 +7,9 @@
  * either: it lists the cluster's Sandboxes and reads what the server
  * already has about each session (SessionActivityReader).
  *
- * Only session sandboxes sleep. A workflow's sandbox is ensured once,
- * before the workflow starts, and nothing would wake it for the workflow's
- * next activity; a connect sandbox lives for one request. Both end when
- * their run ends (sandbox/steps.ts). The list asks for session Sandboxes
- * by their labels.
+ * Only session sandboxes sleep. A connect sandbox lives for one request
+ * and ends when the connect settles (domain/mcpserver/connect-sandbox.ts).
+ * The list asks for session Sandboxes by their labels.
  *
  * A Sandbox names its session in its `stigmer.ai/sandbox-id` label, so the
  * sweep needs no map from names back to sessions. It suspends only a

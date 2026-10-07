@@ -39,28 +39,8 @@ export const SIGNAL_RESUME = "resume";
 export const SIGNAL_APPROVAL_GATE_RESOLVED = "approvalGateResolved";
 
 /**
- * The outbound parent notification the workflow fires when it has a
- * parent_workflow_id (payload {executionId}). An inline string literal in
- * Go (invoke_workflow_impl.go) — pinned here so it cannot drift.
- */
-export const SIGNAL_CHILD_EXECUTION_STARTED = "child_execution_started";
-
-/**
- * The outbound parent notification the workflow fires from the HITL loop
- * when it has a parent_workflow_id — the OSS half of the child-approval
- * forwarding contract (Go never sent this). Mirrors cloud's
- * AgentExecutionTemporalWorkflowTypes.SIGNAL_CHILD_APPROVAL_REQUIRED; the
- * receiver is the runner's call-agent orchestrator. The payload is a BARE
- * STRING (the child execution id): proto-shaped payloads poisoned the
- * receiving workflow task under the Java sender's json/protobuf encoding,
- * so the identity-only string is the pinned wire shape.
- */
-export const SIGNAL_CHILD_APPROVAL_REQUIRED = "child_approval_required";
-
-/**
  * The ONLY memo key this domain writes (workflow_creator.go); the workflow
- * reads it back on every dispatch. workflowexecution's `runnerTaskQueue`
- * memo key belongs to that domain — it does not exist in this one.
+ * reads it back on every dispatch.
  */
 export const MEMO_ACTIVITY_TASK_QUEUE = "activityTaskQueue";
 
@@ -93,11 +73,3 @@ export const UPDATE_EXECUTION_STATUS_ACTIVITY_NAME = "UpdateExecutionStatus";
 
 export const LOAD_AGENT_EXECUTION_ACTIVITY_NAME = "LoadAgentExecution";
 export const READ_HARNESS_STATE_ID_ACTIVITY_NAME = "ReadHarnessStateId";
-
-/**
- * The async activity completion lane: the runner finishes the execution's
- * activity by its callback token, Temporal's asynchronous activity
- * completion.
- */
-export const COMPLETE_EXTERNAL_ACTIVITY_NAME =
-  "stigmer/system/complete-external-activity";

@@ -11,7 +11,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  RUN_CREDENTIAL_HEADER,
   RUN_CREDENTIAL_INPUT_KEY,
   readRunCredentialFromInput,
 } from "../run-credential.js";
@@ -54,9 +53,8 @@ describe("readRunCredentialFromInput", () => {
     ).toBeUndefined();
   });
 
-  it("pins the wire vocabulary as bytes", () => {
+  it("pins the wire key as bytes", () => {
     expect(RUN_CREDENTIAL_INPUT_KEY).toBe("execution_context_token");
-    expect(RUN_CREDENTIAL_HEADER).toBe("stigmer-run-credential");
   });
 });
 

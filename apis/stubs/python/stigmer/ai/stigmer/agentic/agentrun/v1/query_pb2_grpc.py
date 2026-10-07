@@ -189,9 +189,10 @@ class AgentRunQueryControllerServicer(object):
         """─────────────────────────────────────────────────────────────────────────────
         Run Summary (Dashboard Aggregation)
 
-        Operational summary for the unified platform dashboard. Returns phase
-        counts and active run count — cost is sourced separately from
-        getOrgUsageReport to prevent double-counting (AD-DASH-005).
+        Operational summary for the platform dashboard. Returns phase counts
+        and active run count — cost is sourced separately from
+        getOrgUsageReport, the billing source of truth, so it is never counted
+        from two sources.
         ─────────────────────────────────────────────────────────────────────────────
 
         Get aggregated run statistics for an organization's agent runs.

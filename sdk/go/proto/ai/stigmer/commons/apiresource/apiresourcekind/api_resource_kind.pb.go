@@ -217,7 +217,7 @@ const (
 	ApiResourceKind_platform_client ApiResourceKind = 23
 	// Named group of an organization's people that access is shared with as one.
 	ApiResourceKind_team ApiResourceKind = 24
-	// The boundary that holds people, Agents, Workflows, Sessions and secrets
+	// The boundary that holds people, Agents, Sessions and secrets
 	// together; nothing outside it sees them.
 	//
 	// Its id is a minted org_<ulid> that never changes; every organization-scoped
@@ -244,14 +244,8 @@ const (
 	// Customer-owned messaging-platform app (e.g. a Slack app) that agent
 	// channels can install through instead of the shared platform app.
 	ApiResourceKind_channel_app ApiResourceKind = 48
-	// Multi-step orchestration defining how agents collaborate on a task.
-	ApiResourceKind_workflow ApiResourceKind = 50
-	// Single run of a workflow, tracking step progress and outcomes.
-	ApiResourceKind_workflow_run ApiResourceKind = 52
-	// Named set of variables and secrets for agent and workflow run.
+	// Named set of variables and secrets for an agent run.
 	ApiResourceKind_environment ApiResourceKind = 53
-	// Persisted blob produced during workflow or agent run.
-	ApiResourceKind_artifact ApiResourceKind = 55
 	// User-owned runtime context for managing execution state.
 	ApiResourceKind_execution_context ApiResourceKind = 54
 	// Recurring trigger that runs an agent on a cron schedule.
@@ -259,7 +253,7 @@ const (
 	// Agent-proposed, user-confirmed fact the platform remembers about a person.
 	ApiResourceKind_memory ApiResourceKind = 57
 	// An installed Agent Plugins package: the archive Stigmer materialised into
-	// skills, MCP servers, an agent and workflows, and the handle that upgrades
+	// skills, MCP servers and an agent, and the handle that upgrades
 	// and removes them together. A plugin is what you install; an agent is what
 	// runs. Members are the resources labelled with the plugin's id.
 	ApiResourceKind_plugin ApiResourceKind = 58
@@ -308,10 +302,7 @@ var (
 		46: "agent_share",
 		47: "agent_channel",
 		48: "channel_app",
-		50: "workflow",
-		52: "workflow_run",
 		53: "environment",
-		55: "artifact",
 		54: "execution_context",
 		56: "schedule",
 		57: "memory",
@@ -341,10 +332,7 @@ var (
 		"agent_share":               46,
 		"agent_channel":             47,
 		"channel_app":               48,
-		"workflow":                  50,
-		"workflow_run":              52,
 		"environment":               53,
-		"artifact":                  55,
 		"execution_context":         54,
 		"schedule":                  56,
 		"memory":                    57,
@@ -544,7 +532,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"enterprise\x10\x03*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\x8e\x12\n" +
+	"\astigmer\x10\x01*\xc9\x10\n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x12?\n" +
@@ -579,11 +567,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\ragent_channel\x10/\x1a=\xaa\xff+9\b\x01\x10\x01\x1a\fAgentChannel\"\rAgent Channel*\x03ach8\x01@\x01J\r\b\x02\x10\x01:\x03\x01\x04\x05B\x02\x04\x05\x12F\n" +
 	"\vchannel_app\x100\x1a5\xaa\xff+1\b\x01\x10\x01\x1a\n" +
 	"ChannelApp\"\vChannel App*\x05chapp8\x01@\x01J\a\b\x02\x10\x04:\x01\x04\x12J\n" +
-	"\bworkflow\x102\x1a<\xaa\xff+8\b\x01\x10\x01\x1a\bWorkflow\"\bWorkflow*\x03wfl0\x01@\x01J\x15\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x03\x01\x06\x04B\x02\x06\x04\x12l\n" +
-	"\fworkflow_run\x104\x1aZ\xaa\xff+V\b\x01\x10\x01\x1a\vWorkflowRun\"\fWorkflow Run*\x03wex@\x01J.\b\x02\x10\x01\"!\n" +
-	"\bworkflow\x12\bworkflow\x1a\vworkflow_id:\x02\x01\x04B\x01\x04\x12J\n" +
-	"\venvironment\x105\x1a9\xaa\xff+5\b\x01\x10\x01\x1a\vEnvironment\"\vEnvironment*\x03env@\x01J\x0e\b\x02\x10\x01*\x02\x18\x010\x01:\x02\x01\x04\x12=\n" +
-	"\bartifact\x107\x1a/\xaa\xff++\b\x01\x10\x01\x1a\bArtifact\"\bArtifact*\x03art8\x01@\x01J\b\b\x02\x10\x01:\x02\x01\x04\x12R\n" +
+	"\venvironment\x105\x1a9\xaa\xff+5\b\x01\x10\x01\x1a\vEnvironment\"\vEnvironment*\x03env@\x01J\x0e\b\x02\x10\x01*\x02\x18\x010\x01:\x02\x01\x04\x12R\n" +
 	"\x11execution_context\x106\x1a;\xaa\xff+7\b\x01\x10\x01\x1a\x10ExecutionContext\"\x11Execution Context*\x04ectx@\x01J\x04\b\x04\x10\x01\x12@\n" +
 	"\bschedule\x108\x1a2\xaa\xff+.\b\x01\x10\x01\x1a\bSchedule\"\bSchedule*\x03sch8\x01@\x01J\v\b\x02\x10\x01:\x02\x01\x04B\x01\x04\x12m\n" +
 	"\x06memory\x109\x1aa\xaa\xff+]\b\x01\x10\x01\x1a\x06Memory\"\x06Memory*\x03mem8\x01@\x01J>\b\x02\x10\x04\"8\n" +
@@ -591,7 +575,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\x06plugin\x10:\x1a6\xaa\xff+2\b\x01\x10\x01\x1a\x06Plugin\"\x06Plugin*\x03plg0\x01@\x01J\x13\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x02\x01\x04B\x01\x04\x12-\n" +
 	"\x04plan\x10F\x1a#\xaa\xff+\x1f\b\x04\x10\x01\x1a\x04Plan\"\x04Plan*\x03pln8\x01@\x02J\x04\b\x05\x10\x04\x12E\n" +
 	"\fsubscription\x10G\x1a3\xaa\xff+/\b\x04\x10\x01\x1a\fSubscription\"\fSubscription*\x03sub8\x01@\x02J\x04\b\x02\x10\x04\x126\n" +
-	"\alicense\x10H\x1a)\xaa\xff+%\b\x04\x10\x01\x1a\aLicense\"\aLicense*\x03lic8\x01@\x02J\x04\b\x05\x10\x04\"\x04\b-\x10-\"\x04\b1\x101\"\x04\b3\x103\"\x04\b<\x10<*\x0eagent_instance*\tdatastore*\x11workflow_instance*\aproject:\x85\x01\n" +
+	"\alicense\x10H\x1a)\xaa\xff+%\b\x04\x10\x01\x1a\aLicense\"\aLicense*\x03lic8\x01@\x02J\x04\b\x05\x10\x04\"\x04\b-\x10-\"\x04\b1\x101\"\x04\b2\x102\"\x04\b3\x103\"\x04\b4\x104\"\x04\b7\x107\"\x04\b<\x10<*\x0eagent_instance*\tdatastore*\bworkflow*\x11workflow_instance*\fworkflow_run*\bartifact*\aproject:\x85\x01\n" +
 	"\tkind_meta\x12!.google.protobuf.EnumValueOptions\x18\xf5\xbf\x05 \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMetaR\bkindMetaB\x83\x03\n" +
 	"2com.ai.stigmer.commons.apiresource.apiresourcekindB\x14ApiResourceKindProtoP\x01ZYgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind\xa2\x02\x05ASCAA\xaa\x02.Ai.Stigmer.Commons.Apiresource.Apiresourcekind\xca\x02.Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\xe2\x02:Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\\GPBMetadata\xea\x022Ai::Stigmer::Commons::Apiresource::Apiresourcekindb\x06proto3"
 

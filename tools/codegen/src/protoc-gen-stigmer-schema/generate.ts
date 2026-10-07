@@ -11,7 +11,7 @@ import type { DescFile } from "@bufbuild/protobuf";
 import type { GoJsonStruct } from "../gojson.js";
 import { marshalIndent } from "../gojson.js";
 import type { EnumSchemaValue, ExtractContext, TypeSchemaValue } from "./extract.js";
-import { collectNestedTypes, parseEnumSchema, parseSharedType, parseTaskConfig } from "./extract.js";
+import { collectNestedTypes, parseEnumSchema, parseSharedType, parseSpecSchema } from "./extract.js";
 import { compareWalkOrder, trimSuffix } from "./gostrings.js";
 import { extractServiceSchemas, serviceSchemaStruct } from "./services.js";
 
@@ -48,7 +48,7 @@ function resourceNamespaces(moduleFiles: DescFile[]): string[] {
 
 // Resources that use SearchService for listing — a server-side indexing
 // concern mirrored from the Go tool.
-const SEARCH_LIST_RESOURCES = new Set(["agent", "skill", "mcpserver", "workflow", "plugin"]);
+const SEARCH_LIST_RESOURCES = new Set(["agent", "skill", "mcpserver", "plugin"]);
 
 // Curated commons types/enums for SDK reference documentation; internal
 // types like AuthorizationConfig and ApiResourceKindMeta are excluded.
@@ -70,13 +70,9 @@ export function generateSchemas(moduleFiles: DescFile[], ctx: ExtractContext): O
   for (const ns of namespaces) {
     for (const sub of subdomains(moduleFiles, ns)) {
       const group = groupFiles(moduleFiles, `ai/stigmer/${ns}/${sub}/v1/`);
-      out.push(...generateNamespaceSchemas(group, `${ns}/${sub}`, "Spec", ctx));
+      out.push(...generateNamespaceSchemas(group, `${ns}/${sub}`, ctx));
     }
   }
-
-  // Workflow tasks: nested under agentic/workflow/v1/tasks/ → tasks/.
-  const taskGroup = groupFiles(moduleFiles, "ai/stigmer/agentic/workflow/v1/tasks/");
-  out.push(...generateNamespaceSchemas(taskGroup, "tasks", "TaskConfig", ctx));
 
   // Service schemas: one file per resource with gRPC services.
   for (const ns of namespaces) {
@@ -105,30 +101,28 @@ export function generateSchemas(moduleFiles: DescFile[], ctx: ExtractContext): O
   return out;
 }
 
-/** Port of generateNamespaceSchemas for one group of files. */
-function generateNamespaceSchemas(
-  group: DescFile[],
-  outPrefix: string,
-  messageSuffix: string,
-  ctx: ExtractContext,
-): OutputFile[] {
+const SPEC_SUFFIX = "Spec";
+
+/** Port of generateNamespaceSchemas for one resource's files: its Spec
+ * messages and every type they reach. */
+function generateNamespaceSchemas(group: DescFile[], outPrefix: string, ctx: ExtractContext): OutputFile[] {
   if (group.length === 0) return [];
 
-  const taskConfigs = new Map<string, GoJsonStruct>();
+  const specs = new Map<string, GoJsonStruct>();
   const sharedTypes = new Map<string, TypeSchemaValue>();
 
   for (const fd of group) {
     for (const msg of fd.messages) {
-      if (msg.name.endsWith(messageSuffix)) {
-        taskConfigs.set(msg.name, parseTaskConfig(msg, ctx));
+      if (msg.name.endsWith(SPEC_SUFFIX)) {
+        specs.set(msg.name, parseSpecSchema(msg, ctx));
         collectNestedTypes(msg, sharedTypes, ctx);
       }
     }
   }
 
   const out: OutputFile[] = [];
-  for (const [name, schema] of taskConfigs) {
-    const baseName = trimSuffix(name, messageSuffix).toLowerCase();
+  for (const [name, schema] of specs) {
+    const baseName = trimSuffix(name, SPEC_SUFFIX).toLowerCase();
     out.push(jsonFile(`${outPrefix}/${baseName}.json`, schema));
   }
   for (const [name, typeSchema] of sharedTypes) {

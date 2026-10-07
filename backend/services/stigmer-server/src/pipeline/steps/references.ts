@@ -28,10 +28,8 @@
  *        member and be readable by one. Environments, OAuth apps and
  *        channel apps are resolved by the server on the run's behalf, so
  *        their level is not a leak the floor closes, and an org-visible
- *        channel or workflow may hold its owner's private environment:
- *        attaching it is the owner's choice to let its runs use it. A
- *        RELATIVE reference (below) is compared against the resource's
- *        level capped at org.
+ *        channel may hold its owner's private environment: attaching it
+ *        is the owner's choice to let its runs use it.
  *
  *        The WRITER clause, for the kinds whose row says what the writer
  *        must hold (`writerMust`): a same-organization reference the write
@@ -51,8 +49,8 @@
  *        permission: `can_view` is held by every member on an org-visible
  *        environment and by an explicit viewer grantee on a private one,
  *        and each of them may attach it; and an editor who keeps an
- *        attachment someone else made may change what consumes it (an
- *        `agent_call` task's agent, a schedule's agent), since who may edit
+ *        attachment someone else made may change what consumes it (a
+ *        schedule's agent), since who may edit
  *        the row is that kind's own permission. Grant view on an
  *        environment, and edit on a row that carries one, as you would its
  *        values.
@@ -75,31 +73,13 @@
  * the rule must agree with the runtime. A reference with an empty slug is
  * unset and skipped (the field-level CEL rules own "required").
  *
- * A reference is RELATIVE when it names no organization of its own and
- * the runtime resolves it in the organization the resource RUNS in, not
- * the one it is stored in. Exactly one exists: a workflow `agent_call`
- * task's bare slug (domain/workflow/agent-call-references.ts), which the
- * runner resolves in the execution's organization; any workflow a person
- * may execute can run from another organization by id. The rule judges
- * it in the resource's own organization — the one its author can see, so
- * the target must exist there — and caps its floor at org: only the
- * running organization's own people ever read a target through it, and
- * they can read an org-visible one. The cap changes nothing for a
- * private or org resource and lets a workflow shared with child
- * organizations call its organization's org-visible agent. A value fixed only at run (an
- * `agent_call` agent holding a runtime expression) is not a reference at
- * all: the collector yields nothing for it, and the run reads the
- * resolved target as the person the run acts as, as it reads every
- * id-bound binding.
- *
  * The floor has a second door. Raising a resource's level through
  * updateVisibility could open the same gap a create cannot, so
- * GuardReferenceFloorOnEscalation runs on the two chains whose rows carry
- * run-read references (agent, workflow) after ValidateVisibilityUpdate:
+ * GuardReferenceFloorOnEscalation runs on the agent chain, whose rows carry
+ * run-read references, after ValidateVisibilityUpdate:
  * when the requested level is above the stored one, every run-read
- * reference the STORED row carries must be at least the requested level
- * (a relative one, at least the requested level capped at org), judged by
- * the same function over the same collectors, else the escalation is
+ * reference the STORED row carries must be at least the requested level,
+ * judged by the same function over the same collectors, else the escalation is
  * refused naming the dependencies. Only the floor is asked at
  * that door — a dependency that has since left or stopped being shared was
  * judged when the row was written and is the run's to refuse.
@@ -276,13 +256,6 @@ export interface SpecReference {
   readonly kind: ApiResourceKind;
   readonly slug: string;
   readonly org: string;
-  /**
-   * Present only on a RELATIVE reference (the module header): `org` is the
-   * resource's own, filled by the collector, and the runtime resolves the
-   * slug in the organization the resource runs in. The generic walker
-   * never sets it; only the `agent_call` collector does.
-   */
-  readonly resolvesIn?: "running-organization";
   /** The version the reference names; empty or absent names none. */
   readonly version?: string;
 }
@@ -432,7 +405,7 @@ export function checkReference(
   const entry = referenceTargetKind(ref.kind);
   if (
     entry?.readByRun === true &&
-    visibilityRank(target) < visibilityRank(floorOf(parent, ref))
+    visibilityRank(target) < visibilityRank(parent.visibility)
   ) {
     return { kind: "below-floor", targetVisibility: target };
   }
@@ -497,24 +470,6 @@ export async function checkWriter(
 
 function sameReference(a: SpecReference, b: SpecReference): boolean {
   return a.kind === b.kind && a.org === b.org && a.slug === b.slug;
-}
-
-/**
- * The level a same-organization target must reach: the resource's own,
- * capped at org for a relative reference (the module header).
- */
-function floorOf(
-  parent: ReferenceParent,
-  ref: SpecReference,
-): ApiResourceVisibility {
-  if (
-    ref.resolvesIn === "running-organization" &&
-    visibilityRank(parent.visibility) >
-      visibilityRank(ApiResourceVisibility.visibility_org)
-  ) {
-    return ApiResourceVisibility.visibility_org;
-  }
-  return parent.visibility;
 }
 
 /**
@@ -991,7 +946,7 @@ export function newGuardReferenceFloorOnEscalationStep(
  * Every ApiResourceReference in a resource's spec, each with the kind its
  * field declares — the walk both steps run, exported for the readers that
  * ask the reverse question ("who references this?"): the plugin delete
- * guard scans an organization's agents and workflows for references to a
+ * guard scans an organization's agents for references to a
  * member it is about to remove.
  */
 export function collectSpecReferences(

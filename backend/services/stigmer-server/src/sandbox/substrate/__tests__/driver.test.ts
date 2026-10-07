@@ -34,7 +34,8 @@
  *     per process for a sandbox still awake, moves only a sleeping sandbox
  *     off an older template, then retires, skipping a sandbox whose upkeep fails and stopping before
  *     retirement when asked; `deleteByName` deletes only a name this driver
- *     gives, and with a guard asks it inside the actor's queue from a
+ *     gives (a leftover workflow-scope `sbx-wfx-` sandbox is refused before
+ *     any gateway call, left for an operator), and with a guard asks it inside the actor's queue from a
  *     fresh read, so a sandbox a turn woke while the delete waited is
  *     skipped, never deleted; `prepare` readies the template and never
  *     rejects.
@@ -685,25 +686,17 @@ describe("deprovision, probe, lifecycle", () => {
     }
   });
 
-  it("workflow and connect sandboxes follow the same machine under their own names", async () => {
+  it("a connect sandbox follows the same machine under its own name", async () => {
     const h = harness();
-    await h.driver.provisioner.ensureWorkflowSandbox("wex_1", {
-      ...env,
-      taskQueue: "wfexec:wex_1",
-    });
     expect(
       await h.driver.provisioner.createConnectSandbox("mcx_1", {
         ...env,
         taskQueue: "mcpconnect:mcx_1",
       }),
     ).toBe("mcx_1");
-    expect(h.substrate.actors.has(sandboxBaseName("workflow", "wex_1"))).toBe(
-      true,
-    );
     expect(h.substrate.actors.has(sandboxBaseName("connect", "mcx_1"))).toBe(
       true,
     );
-    await h.driver.provisioner.deprovisionWorkflowSandbox("wex_1");
     await h.driver.provisioner.deprovisionConnectSandbox("mcx_1");
     expect(h.substrate.actors.size).toBe(0);
   });
@@ -1013,7 +1006,7 @@ describe("the lifecycle a composition's own sweep calls", () => {
       template: current,
     });
     h.substrate.put({
-      name: "sbx-wfx-000000000004",
+      name: "sbx-mcp-000000000004",
       state: ActorState.RUNNING,
       template: current,
       policy: [],
@@ -1044,7 +1037,7 @@ describe("the lifecycle a composition's own sweep calls", () => {
       "moveActor sbx-ses-000000000002",
     ]);
     expect(
-      h.substrate.actors.get("sbx-wfx-000000000004")?.policy?.length,
+      h.substrate.actors.get("sbx-mcp-000000000004")?.policy?.length,
     ).toBeGreaterThan(0);
     expect(h.substrate.templates.has("stigmer-runner-aaaaaaaaaaaa")).toBe(
       false,
@@ -1119,6 +1112,21 @@ describe("the lifecycle a composition's own sweep calls", () => {
       );
       expect(h.substrate.actors.has(foreign)).toBe(true);
     }
+  });
+
+  it("refuses a leftover workflow-scope sandbox by name without calling the gateway", async () => {
+    const h = harness();
+    const leftover = "sbx-wfx-0123456789ab";
+    h.substrate.put({
+      name: leftover,
+      state: ActorState.SUSPENDED,
+      template: "t",
+    });
+    await expect(h.driver.lifecycle.deleteByName(leftover)).rejects.toThrow(
+      /not a sandbox this driver names/,
+    );
+    expect(h.substrate.calls).toEqual([]);
+    expect(h.substrate.actors.has(leftover)).toBe(true);
   });
 
   it("asks a delete's guard inside the actor's queue, so a sandbox a turn woke meanwhile is skipped, not deleted", async () => {

@@ -89,7 +89,7 @@ describe("scrubTs", () => {
     {
       name: "field JSDoc keeps @generated trailer past the internal section",
       input:
-        'export type WorkflowExecution = Message<"a.b.WorkflowExecution"> & {\n' +
+        'export type AgentRun = Message<"a.b.AgentRun"> & {\n' +
         "  /**\n" +
         "   * API version for this resource type.\n" +
         "   *\n" +
@@ -102,7 +102,7 @@ describe("scrubTs", () => {
         "  apiVersion: string;\n" +
         "};\n",
       want:
-        'export type WorkflowExecution = Message<"a.b.WorkflowExecution"> & {\n' +
+        'export type AgentRun = Message<"a.b.AgentRun"> & {\n' +
         "  /**\n" +
         "   * API version for this resource type.\n" +
         "   *\n" +
@@ -176,34 +176,29 @@ describe("scrubJava", () => {
       input:
         "/**\n" +
         " * <pre>\n" +
-        " * RunTaskConfig defines the configuration for run_workflow tasks that execute sub-workflows.\n" +
+        " * ScheduleSpec defines when a schedule fires and what it runs.\n" +
         " *\n" +
-        " * The run_workflow kind is not supported yet: a Workflow that contains one is\n" +
-        " * refused when it is saved, because nothing resolves the child name to a\n" +
-        " * Workflow the platform can run.\n" +
+        " * A schedule fires on a cron expression in an IANA time zone; disabling it\n" +
+        " * pauses firing while keeping the schedule and its history.\n" +
         " *\n" +
         " * &#64;internal\n" +
-        " * The server's converter emits the child reference as `run.workflow` with\n" +
-        " * `name` and, when set, `input`, the shape the runner's run task reads. The\n" +
-        " * runner would start the name as a Temporal workflow type, and no worker\n" +
-        " * registers user workflows as types, so the write refuses the kind\n" +
-        " * (stigmer/stigmer#1311).\n" +
+        " * Calendar semantics live in the Temporal server: the platform parses no\n" +
+        " * cron in either edition.\n" +
         " * </pre>\n" +
         " *\n" +
-        " * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig}\n" +
+        " * Protobuf type {@code ai.stigmer.agentic.schedule.v1.ScheduleSpec}\n" +
         " */\n" +
         "@com.google.protobuf.Generated\n",
       want:
         "/**\n" +
         " * <pre>\n" +
-        " * RunTaskConfig defines the configuration for run_workflow tasks that execute sub-workflows.\n" +
+        " * ScheduleSpec defines when a schedule fires and what it runs.\n" +
         " *\n" +
-        " * The run_workflow kind is not supported yet: a Workflow that contains one is\n" +
-        " * refused when it is saved, because nothing resolves the child name to a\n" +
-        " * Workflow the platform can run.\n" +
+        " * A schedule fires on a cron expression in an IANA time zone; disabling it\n" +
+        " * pauses firing while keeping the schedule and its history.\n" +
         " * </pre>\n" +
         " *\n" +
-        " * Protobuf type {@code ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig}\n" +
+        " * Protobuf type {@code ai.stigmer.agentic.schedule.v1.ScheduleSpec}\n" +
         " */\n" +
         "@com.google.protobuf.Generated\n",
       changed: true,
@@ -241,16 +236,12 @@ describe("scrubJava", () => {
         "  /**\n" +
         "   * Base class for the server implementation of the service ActivityQueryController.\n" +
         "   * <pre>\n" +
-        "   * ActivityQueryController provides cross-resource read queries for the\n" +
-        '   * activity feed — the unified "recents" sidebar that merges sessions and\n' +
-        "   * workflow executions into a single time-ordered list.\n" +
-        "   * This service exists because the recents list spans two bounded contexts\n" +
-        "   * (session and workflow_execution). A cross-cutting query service avoids\n" +
-        "   * forcing the client to make two parallel calls and merge client-side.\n" +
+        '   * ActivityQueryController provides the read query behind the "recents"\n' +
+        "   * sidebar: the caller's most recent sessions, newest first.\n" +
         "   * &#64;internal\n" +
         "   * Authorization is handled in-handler: the implementation queries FGA for\n" +
-        "   * authorized session and workflow_execution IDs, then runs a single merged\n" +
-        "   * MongoDB query.\n" +
+        "   * the caller's authorized session IDs, then reads those sessions in one\n" +
+        "   * query.\n" +
         "   * </pre>\n" +
         "   */\n" +
         "  public static abstract class ActivityQueryControllerImplBase\n",
@@ -258,12 +249,8 @@ describe("scrubJava", () => {
         "  /**\n" +
         "   * Base class for the server implementation of the service ActivityQueryController.\n" +
         "   * <pre>\n" +
-        "   * ActivityQueryController provides cross-resource read queries for the\n" +
-        '   * activity feed — the unified "recents" sidebar that merges sessions and\n' +
-        "   * workflow executions into a single time-ordered list.\n" +
-        "   * This service exists because the recents list spans two bounded contexts\n" +
-        "   * (session and workflow_execution). A cross-cutting query service avoids\n" +
-        "   * forcing the client to make two parallel calls and merge client-side.\n" +
+        '   * ActivityQueryController provides the read query behind the "recents"\n' +
+        "   * sidebar: the caller's most recent sessions, newest first.\n" +
         "   * </pre>\n" +
         "   */\n" +
         "  public static abstract class ActivityQueryControllerImplBase\n",

@@ -7,7 +7,7 @@ package ai.stigmer.activity.v1;
 
 /**
  * <pre>
- * ListRecentActivityRequest specifies parameters for the unified recents query.
+ * ListRecentActivityRequest specifies parameters for the recents query.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.activity.v1.ListRecentActivityRequest}
@@ -75,22 +75,20 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Organization slug to scope the query.
    *
-   * When provided, results are narrowed to resources in this organization.
+   * When provided, results are narrowed to sessions in this organization.
    * The org NEVER widens visibility: per-resource read authority is always
-   * enforced (on the hosted edition, FGA `can_view` enumeration per kind),
-   * and the org filter only intersects that authorized set. Both recents
-   * kinds are private by default — sessions are personal resources and
-   * workflow runs opt in to org observability per workflow — so org
-   * membership alone must never substitute for the per-resource check. An
-   * earlier "org member = query by org directly" fast path leaked session
-   * titles to every org member.
+   * enforced (on the hosted edition, FGA `can_view` enumeration), and the
+   * org filter only intersects that authorized set. Sessions are personal
+   * resources, so org membership alone must never substitute for the
+   * per-resource check. An earlier "org member = query by org directly" fast
+   * path leaked session titles to every org member.
    *
    * When empty, results span every organization the caller has resource
    * access in.
    *
    * On the OSS edition the filter is a no-op: the server is single-tenant,
-   * so org scoping has nothing to narrow — matching the per-kind OSS list
-   * RPCs this feed summarizes.
+   * so org scoping has nothing to narrow — matching the session list RPC
+   * this feed summarizes.
    * </pre>
    *
    * <code>string org = 2 [json_name = "org"];</code>
@@ -113,22 +111,20 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Organization slug to scope the query.
    *
-   * When provided, results are narrowed to resources in this organization.
+   * When provided, results are narrowed to sessions in this organization.
    * The org NEVER widens visibility: per-resource read authority is always
-   * enforced (on the hosted edition, FGA `can_view` enumeration per kind),
-   * and the org filter only intersects that authorized set. Both recents
-   * kinds are private by default — sessions are personal resources and
-   * workflow runs opt in to org observability per workflow — so org
-   * membership alone must never substitute for the per-resource check. An
-   * earlier "org member = query by org directly" fast path leaked session
-   * titles to every org member.
+   * enforced (on the hosted edition, FGA `can_view` enumeration), and the
+   * org filter only intersects that authorized set. Sessions are personal
+   * resources, so org membership alone must never substitute for the
+   * per-resource check. An earlier "org member = query by org directly" fast
+   * path leaked session titles to every org member.
    *
    * When empty, results span every organization the caller has resource
    * access in.
    *
    * On the OSS edition the filter is a no-op: the server is single-tenant,
-   * so org scoping has nothing to narrow — matching the per-kind OSS list
-   * RPCs this feed summarizes.
+   * so org scoping has nothing to narrow — matching the session list RPC
+   * this feed summarizes.
    * </pre>
    *
    * <code>string org = 2 [json_name = "org"];</code>
@@ -318,7 +314,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ListRecentActivityRequest specifies parameters for the unified recents query.
+   * ListRecentActivityRequest specifies parameters for the recents query.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.activity.v1.ListRecentActivityRequest}
@@ -519,22 +515,20 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Organization slug to scope the query.
      *
-     * When provided, results are narrowed to resources in this organization.
+     * When provided, results are narrowed to sessions in this organization.
      * The org NEVER widens visibility: per-resource read authority is always
-     * enforced (on the hosted edition, FGA `can_view` enumeration per kind),
-     * and the org filter only intersects that authorized set. Both recents
-     * kinds are private by default — sessions are personal resources and
-     * workflow runs opt in to org observability per workflow — so org
-     * membership alone must never substitute for the per-resource check. An
-     * earlier "org member = query by org directly" fast path leaked session
-     * titles to every org member.
+     * enforced (on the hosted edition, FGA `can_view` enumeration), and the
+     * org filter only intersects that authorized set. Sessions are personal
+     * resources, so org membership alone must never substitute for the
+     * per-resource check. An earlier "org member = query by org directly" fast
+     * path leaked session titles to every org member.
      *
      * When empty, results span every organization the caller has resource
      * access in.
      *
      * On the OSS edition the filter is a no-op: the server is single-tenant,
-     * so org scoping has nothing to narrow — matching the per-kind OSS list
-     * RPCs this feed summarizes.
+     * so org scoping has nothing to narrow — matching the session list RPC
+     * this feed summarizes.
      * </pre>
      *
      * <code>string org = 2 [json_name = "org"];</code>
@@ -556,22 +550,20 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Organization slug to scope the query.
      *
-     * When provided, results are narrowed to resources in this organization.
+     * When provided, results are narrowed to sessions in this organization.
      * The org NEVER widens visibility: per-resource read authority is always
-     * enforced (on the hosted edition, FGA `can_view` enumeration per kind),
-     * and the org filter only intersects that authorized set. Both recents
-     * kinds are private by default — sessions are personal resources and
-     * workflow runs opt in to org observability per workflow — so org
-     * membership alone must never substitute for the per-resource check. An
-     * earlier "org member = query by org directly" fast path leaked session
-     * titles to every org member.
+     * enforced (on the hosted edition, FGA `can_view` enumeration), and the
+     * org filter only intersects that authorized set. Sessions are personal
+     * resources, so org membership alone must never substitute for the
+     * per-resource check. An earlier "org member = query by org directly" fast
+     * path leaked session titles to every org member.
      *
      * When empty, results span every organization the caller has resource
      * access in.
      *
      * On the OSS edition the filter is a no-op: the server is single-tenant,
-     * so org scoping has nothing to narrow — matching the per-kind OSS list
-     * RPCs this feed summarizes.
+     * so org scoping has nothing to narrow — matching the session list RPC
+     * this feed summarizes.
      * </pre>
      *
      * <code>string org = 2 [json_name = "org"];</code>
@@ -594,22 +586,20 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Organization slug to scope the query.
      *
-     * When provided, results are narrowed to resources in this organization.
+     * When provided, results are narrowed to sessions in this organization.
      * The org NEVER widens visibility: per-resource read authority is always
-     * enforced (on the hosted edition, FGA `can_view` enumeration per kind),
-     * and the org filter only intersects that authorized set. Both recents
-     * kinds are private by default — sessions are personal resources and
-     * workflow runs opt in to org observability per workflow — so org
-     * membership alone must never substitute for the per-resource check. An
-     * earlier "org member = query by org directly" fast path leaked session
-     * titles to every org member.
+     * enforced (on the hosted edition, FGA `can_view` enumeration), and the
+     * org filter only intersects that authorized set. Sessions are personal
+     * resources, so org membership alone must never substitute for the
+     * per-resource check. An earlier "org member = query by org directly" fast
+     * path leaked session titles to every org member.
      *
      * When empty, results span every organization the caller has resource
      * access in.
      *
      * On the OSS edition the filter is a no-op: the server is single-tenant,
-     * so org scoping has nothing to narrow — matching the per-kind OSS list
-     * RPCs this feed summarizes.
+     * so org scoping has nothing to narrow — matching the session list RPC
+     * this feed summarizes.
      * </pre>
      *
      * <code>string org = 2 [json_name = "org"];</code>
@@ -628,22 +618,20 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Organization slug to scope the query.
      *
-     * When provided, results are narrowed to resources in this organization.
+     * When provided, results are narrowed to sessions in this organization.
      * The org NEVER widens visibility: per-resource read authority is always
-     * enforced (on the hosted edition, FGA `can_view` enumeration per kind),
-     * and the org filter only intersects that authorized set. Both recents
-     * kinds are private by default — sessions are personal resources and
-     * workflow runs opt in to org observability per workflow — so org
-     * membership alone must never substitute for the per-resource check. An
-     * earlier "org member = query by org directly" fast path leaked session
-     * titles to every org member.
+     * enforced (on the hosted edition, FGA `can_view` enumeration), and the
+     * org filter only intersects that authorized set. Sessions are personal
+     * resources, so org membership alone must never substitute for the
+     * per-resource check. An earlier "org member = query by org directly" fast
+     * path leaked session titles to every org member.
      *
      * When empty, results span every organization the caller has resource
      * access in.
      *
      * On the OSS edition the filter is a no-op: the server is single-tenant,
-     * so org scoping has nothing to narrow — matching the per-kind OSS list
-     * RPCs this feed summarizes.
+     * so org scoping has nothing to narrow — matching the session list RPC
+     * this feed summarizes.
      * </pre>
      *
      * <code>string org = 2 [json_name = "org"];</code>
@@ -659,22 +647,20 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Organization slug to scope the query.
      *
-     * When provided, results are narrowed to resources in this organization.
+     * When provided, results are narrowed to sessions in this organization.
      * The org NEVER widens visibility: per-resource read authority is always
-     * enforced (on the hosted edition, FGA `can_view` enumeration per kind),
-     * and the org filter only intersects that authorized set. Both recents
-     * kinds are private by default — sessions are personal resources and
-     * workflow runs opt in to org observability per workflow — so org
-     * membership alone must never substitute for the per-resource check. An
-     * earlier "org member = query by org directly" fast path leaked session
-     * titles to every org member.
+     * enforced (on the hosted edition, FGA `can_view` enumeration), and the
+     * org filter only intersects that authorized set. Sessions are personal
+     * resources, so org membership alone must never substitute for the
+     * per-resource check. An earlier "org member = query by org directly" fast
+     * path leaked session titles to every org member.
      *
      * When empty, results span every organization the caller has resource
      * access in.
      *
      * On the OSS edition the filter is a no-op: the server is single-tenant,
-     * so org scoping has nothing to narrow — matching the per-kind OSS list
-     * RPCs this feed summarizes.
+     * so org scoping has nothing to narrow — matching the session list RPC
+     * this feed summarizes.
      * </pre>
      *
      * <code>string org = 2 [json_name = "org"];</code>

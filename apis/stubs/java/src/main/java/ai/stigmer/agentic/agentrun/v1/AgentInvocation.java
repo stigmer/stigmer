@@ -14,11 +14,7 @@ package ai.stigmer.agentic.agentrun.v1;
  * environments, run bounds) minus what an unattended surface makes
  * structurally impossible. Surfaces that trigger agents on someone's
  * behalf embed this message instead of re-deriving the shape:
- * schedules embed it whole; the workflow agent_call task adopts it at
- * the TYPE level (embedding RunConfig and documenting a field-by-field
- * correspondence) because its task config is a kind+Struct authoring
- * DSL whose field names are the YAML keys — see
- * workflow/v1/tasks/agent_call.proto; channels embed RunConfig.
+ * schedules embed it whole; channels and shares embed RunConfig.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentrun.v1.AgentInvocation}
@@ -636,11 +632,7 @@ private static final long serialVersionUID = 0L;
    * environments, run bounds) minus what an unattended surface makes
    * structurally impossible. Surfaces that trigger agents on someone's
    * behalf embed this message instead of re-deriving the shape:
-   * schedules embed it whole; the workflow agent_call task adopts it at
-   * the TYPE level (embedding RunConfig and documenting a field-by-field
-   * correspondence) because its task config is a kind+Struct authoring
-   * DSL whose field names are the YAML keys — see
-   * workflow/v1/tasks/agent_call.proto; channels embed RunConfig.
+   * schedules embed it whole; channels and shares embed RunConfig.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentrun.v1.AgentInvocation}

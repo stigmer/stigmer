@@ -161,11 +161,6 @@ export interface OverlayDocument {
   readonly bytes: Uint8Array;
 }
 
-export interface OverlayNamedDocument extends OverlayDocument {
-  /** The file stem, the workflow's name. */
-  readonly name: string;
-}
-
 export interface OverlayServerDocument extends OverlayDocument {
   /** The MCP server (a `mcpServers` key) this overlay layers over. */
   readonly server: string;
@@ -174,8 +169,6 @@ export interface OverlayServerDocument extends OverlayDocument {
 export interface StigmerOverlay {
   /** `ai.stigmer/agent.yaml`: the Agent that replaces the composed default. */
   readonly agent?: OverlayDocument;
-  /** `ai.stigmer/workflows/<name>.yaml`. */
-  readonly workflows: readonly OverlayNamedDocument[];
   /** `ai.stigmer/mcp-servers/<server>.yaml`: the richer `McpServer` overlay. */
   readonly mcpServers: readonly OverlayServerDocument[];
 }

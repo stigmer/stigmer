@@ -30,15 +30,12 @@ import { ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { SkillIdSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
-import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
 import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { ExecutionContextCommandController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/command_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionIdSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
-import { WorkflowIdSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
 import { AgentRunCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/command_pb";
 
 import type {
@@ -53,9 +50,6 @@ import type {
 import type { ExecutionContextDeleter } from "../domain/executioncontext/internal-delete.js";
 import type { ConnectExecutionContextClient } from "../domain/mcpserver/connect.js";
 import type { ManagedEnvironmentClient } from "../domain/mcpserver/oauth/managed-env.js";
-import type { WorkflowExecutionContextCreator } from "../domain/workflowrun/create-execution-context-step.js";
-import type { AgentExecutionApprovalForwarder } from "../domain/workflowrun/submit-approval.js";
-import type { AgentExecutionFileDecisionForwarder } from "../domain/workflowrun/submit-file-decision.js";
 import type { PluginMaterializer } from "../domain/plugin/materialize/ports.js";
 import { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -68,7 +62,6 @@ import {
   createInProcessCallerInterceptor,
   encodeInProcessCaller,
   IN_PROCESS_CALLER_HEADER,
-  serverActingFor,
 } from "../pipeline/interceptors/auth.js";
 import type { CallerIdentity } from "../extensions/identity.js";
 import type { Logger } from "./logger.js";
@@ -95,7 +88,7 @@ export interface InProcessClients {
   readonly executionContextCreator: ExecutionContextCreator;
   /**
    * The server's own delete of a run's ExecutionContext — the run-end
-   * activity on both execution workers and both recover steps
+   * activity on the agent run worker and the recover step
    * (domain/executioncontext/internal-delete.ts): the context's delete
    * chain, so its cleanup event and search-row delete run (stigmer#1647).
    */
@@ -106,12 +99,6 @@ export interface InProcessClients {
    * discovery workflow starts, delete when the operation settles.
    */
   readonly connectExecutionContextClient: ConnectExecutionContextClient;
-  // The workflowexecution edges (server.go 636–642: the controller's
-  // executioncontext client and the two HITL forwarding interfaces
-  // satisfied by the agentexecution controller).
-  readonly workflowExecutionContextCreator: WorkflowExecutionContextCreator;
-  readonly workflowExecutionApprovalForwarder: AgentExecutionApprovalForwarder;
-  readonly workflowExecutionFileDecisionForwarder: AgentExecutionFileDecisionForwarder;
   /**
    * The schedule clock's fire edge (server.go 581: the RunStarter's
    * in-process agentexecution client): every fire — cron tick or manual
@@ -205,13 +192,11 @@ export function createInProcessClients(
     ExecutionContextCommandController,
     transport,
   );
-  const workflowQuery = createClient(WorkflowQueryController, transport);
   const agentExecutionCommand = createClient(
     AgentRunCommandController,
     transport,
   );
   const agentCommand = createClient(AgentCommandController, transport);
-  const workflowCommand = createClient(WorkflowCommandController, transport);
   const organizationCommand = createClient(
     OrganizationCommandController,
     transport,
@@ -285,32 +270,6 @@ export function createInProcessClients(
         executionContextCommand.create(ec, asCaller(caller)),
       delete: (input) => executionContextCommand.delete(input),
     },
-    workflowExecutionContextCreator: {
-      create: (ec) => executionContextCommand.create(ec),
-    },
-    // The two HITL forwarding edges — Go's method-segregated
-    // AgentExecutionApprovalClient / AgentExecutionFileDecisionClient,
-    // both satisfied by the in-process agentexecution controller. The
-    // forward runs as the SERVER acting for the workflow's authorized
-    // caller (serverActingFor, never asCaller(caller)): the child's
-    // Authorize keeps the internal skip it always had — the workflow chain
-    // already authorized the decision, and the person need not own the
-    // child's session — while the child's writer records that person as
-    // the decider (stigmer/stigmer#1385).
-    workflowExecutionApprovalForwarder: {
-      submitApproval: (input, caller) =>
-        agentExecutionCommand.submitApproval(
-          input,
-          asCaller(serverActingFor(caller.identityId)),
-        ),
-    },
-    workflowExecutionFileDecisionForwarder: {
-      submitFileDecision: (input, caller) =>
-        agentExecutionCommand.submitFileDecision(
-          input,
-          asCaller(serverActingFor(caller.identityId)),
-        ),
-    },
     // The schedule clock's fire edge — the plain Create RPC (Go's
     // ExecutionCreator). Every call through this transport
     // carries the internal caller class stamped at position 1; its audit
@@ -341,8 +300,6 @@ export function createInProcessClients(
         mcpServerCommand.apply(server, asCaller(caller)),
       applyAgent: (agent, caller) =>
         agentCommand.apply(agent, asCaller(caller)),
-      applyWorkflow: (workflow, caller) =>
-        workflowCommand.apply(workflow, asCaller(caller)),
       updateVisibility: (kind, resourceId, visibility, caller) =>
         updateVisibilityByKind(kind, resourceId, visibility, asCaller(caller)),
       deleteByKind: (kind, resourceId, caller) =>
@@ -355,7 +312,7 @@ export function createInProcessClients(
   };
 
   /**
-   * Delete routing for the four member kinds a plugin materialises, used
+   * Delete routing for the three member kinds a plugin materialises, used
    * by the plugin controller as the installing caller. Every member delete
    * runs the owning domain's FULL pipeline (referential blocks included)
    * through the same interceptor chain as an external delete. The
@@ -371,12 +328,6 @@ export function createInProcessClients(
       case ApiResourceKind.agent:
         await agentCommand.delete(
           create(AgentIdSchema, { value: resourceId }),
-          options,
-        );
-        return;
-      case ApiResourceKind.workflow:
-        await workflowCommand.delete(
-          create(WorkflowIdSchema, { value: resourceId }),
           options,
         );
         return;
@@ -415,9 +366,6 @@ export function createInProcessClients(
     switch (kind) {
       case ApiResourceKind.agent:
         await agentCommand.updateVisibility(input, options);
-        return;
-      case ApiResourceKind.workflow:
-        await workflowCommand.updateVisibility(input, options);
         return;
       case ApiResourceKind.mcp_server:
         await mcpServerCommand.updateVisibility(input, options);

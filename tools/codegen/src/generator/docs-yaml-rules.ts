@@ -1,9 +1,8 @@
 // Protovalidate rule evaluation for the docs YAML gate (--rules flag).
 // Port of docs_yaml_rules.go — one implementation, three modes (off /
-// report / enforce), with the #305 parity boundary preserved: enforce
-// evaluates only TOP-LEVEL typed decodes (what the platform itself
-// evaluates); nested (discriminated-Struct recursion) findings surface in
-// report mode only, flagged latent.
+// report / enforce), held to the #305 parity boundary: a manifest is
+// evaluated exactly as the platform evaluates it when the resource is
+// applied.
 //
 // Anchored fragments are NEVER rule-evaluated in any mode: a fragment is a
 // deliberately partial instance — `required` would fail it by construction.
@@ -29,7 +28,6 @@ interface DocsYamlRuleViolation {
   field: string;
   ruleId: string;
   msg: string;
-  latent: boolean;
 }
 
 // Buckets a rule id into the #305 measurement families.
@@ -72,16 +70,7 @@ export class DocsYamlRuleEval {
   }
 
   evaluate(schema: DescMessage, msg: Message, at: string): string[] {
-    return this.run(schema, msg, at, false);
-  }
-
-  evaluateNested(schema: DescMessage, msg: Message, at: string): string[] {
-    return this.run(schema, msg, at, true);
-  }
-
-  private run(schema: DescMessage, msg: Message, at: string, latent: boolean): string[] {
     if (this.blockClass === "") return [];
-    if (latent && this.mode === "enforce") return [];
 
     let result;
     try {
@@ -105,7 +94,6 @@ export class DocsYamlRuleEval {
         field: pathToString(v.field),
         ruleId: v.ruleId,
         msg: v.message,
-        latent,
       };
       if (this.mode === "report") {
         this.violations.push(finding);
@@ -124,20 +112,14 @@ export class DocsYamlRuleEval {
     }
 
     const families = new Map<string, number>();
-    const classes = new Map<string, number>();
     const fences = new Set<string>();
-    let latent = 0;
     for (const f of this.violations) {
       families.set(ruleFamily(f.ruleId), (families.get(ruleFamily(f.ruleId)) ?? 0) + 1);
-      classes.set(f.blockClass, (classes.get(f.blockClass) ?? 0) + 1);
       fences.add(`${f.path}:${f.line}`);
-      if (f.latent) latent++;
     }
     process.stdout.write(
       `docs YAML rule report: ${this.violations.length} violation(s) in ${fences.size} block(s) — ` +
-        `required: ${families.get("required") ?? 0}, in-list: ${families.get("in-list") ?? 0}, other: ${families.get("other") ?? 0} · ` +
-        `manifests: ${classes.get("manifest") ?? 0}, task lists: ${classes.get("task list") ?? 0} · ` +
-        `platform-enforced: ${this.violations.length - latent}, latent (platform-blind): ${latent}\n\n`,
+        `required: ${families.get("required") ?? 0}, in-list: ${families.get("in-list") ?? 0}, other: ${families.get("other") ?? 0}\n\n`,
     );
 
     const sorted = [...this.violations].sort((a, b) => {
@@ -152,8 +134,7 @@ export class DocsYamlRuleEval {
         process.stdout.write(`  ${fence} [${f.blockClass}]\n`);
         lastFence = fence;
       }
-      const marker = f.latent ? " [latent — the platform never evaluates this rule]" : "";
-      process.stdout.write(`    ${problemString(f)}${marker}\n`);
+      process.stdout.write(`    ${problemString(f)}\n`);
     }
     process.stdout.write("\nreport mode never fails the build — see stigmer/stigmer#305 for the enforcement decision\n");
   }

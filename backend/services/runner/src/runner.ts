@@ -142,7 +142,7 @@ export interface StigmerRunner {
  * every consumer through the ONE ref: activity gRPC clients read
  * {@code tokenRef} per request, the artifact store and the checkpoint saver
  * read it per request, the per-turn model clients read it at build, per-call
- * sites (call-llm, registry-endpoint headers) resolve it through the runner
+ * sites (the registry-endpoint headers) resolve it through the runner
  * credential store (which replaced the process.env.STIGMER_TOKEN channel,
  * #508), and the two Cursor SDK interceptors read the same ref per request
  * as {@code Config.proxyTokenRef} — a static runner has no
@@ -177,8 +177,6 @@ async function startStaticSandboxTokenRenewal(
       client.getRunnerScopedToken({ renewal: true }, currentToken),
     applyToken: (token) => {
       tokenRef.current = token;
-      // Store write replaced the process.env.STIGMER_TOKEN write (#508) —
-      // same per-call readers (call-llm, registry headers), no env exposure.
       setRunnerSecret("STIGMER_TOKEN", token);
     },
   });
@@ -525,17 +523,6 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     { createEnsureThreadActivities },
     { createGenerateSessionSubjectActivities },
     { createDiscoverMcpServerActivities },
-    { createEvaluateExpressionsActivities },
-    { createCallHttpActivities },
-    { createCallGrpcActivities },
-    { createCallFunctionActivities },
-    { createCallLlmActivities },
-    { createCallAgentActivities },
-    { createCallAgentStatusActivities },
-    { createRunCommandActivities },
-    { createHydrateWorkflowActivities },
-    { createWorkflowEventActivities },
-    { createPromoteTaskOutputActivities },
     { createAttachSessionActivities },
   ] = await Promise.all([
     import("./harness-adapters.js"),
@@ -543,17 +530,6 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     import("./activities/ensure-thread.js"),
     import("./activities/generate-session-subject.js"),
     import("./activities/discover-mcp-server.js"),
-    import("./activities/evaluate-expressions.js"),
-    import("./activities/call-http.js"),
-    import("./activities/call-grpc.js"),
-    import("./activities/call-function.js"),
-    import("./activities/call-llm.js"),
-    import("./activities/call-agent.js"),
-    import("./activities/call-agent-status.js"),
-    import("./activities/run-command.js"),
-    import("./activities/hydrate-workflow-execution.js"),
-    import("./activities/workflow-event-activities.js"),
-    import("./activities/promote-task-output.js"),
     import("./activities/attach-session.js"),
   ]);
 
@@ -562,17 +538,6 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     ...createEnsureThreadActivities(),
     ...createGenerateSessionSubjectActivities(config),
     ...createDiscoverMcpServerActivities(config),
-    ...createEvaluateExpressionsActivities(),
-    ...createCallHttpActivities(),
-    ...createCallGrpcActivities(),
-    ...createCallFunctionActivities(config),
-    ...createCallLlmActivities(),
-    ...createCallAgentActivities(config),
-    ...createCallAgentStatusActivities(config),
-    ...createRunCommandActivities(),
-    ...createHydrateWorkflowActivities(config),
-    ...createWorkflowEventActivities(config),
-    ...createPromoteTaskOutputActivities(config),
     ...createAttachSessionActivities(config),
   };
 }
