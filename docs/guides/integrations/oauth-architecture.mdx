@@ -87,53 +87,56 @@ boundary between them.
 
 ```mermaid
 flowchart LR
-    subgraph grantLayer ["OAuthGrant — metadata"]
+    subgraph grantLayer ["OAuthGrant — the sign-in"]
         expiry["Token expiry"]
         clientId["Client ID"]
         tokenEndpoint["Token endpoint URL"]
-        envId["Managed Environment ID"]
+        refreshToken["Refresh token (sealed)"]
+        credId["Credential ID"]
     end
 
-    subgraph envLayer ["Managed Environment — secrets"]
+    subgraph credLayer ["Credential — what runs receive"]
         accessToken["Access token"]
-        refreshToken["Refresh token"]
     end
 
-    envId -->|"points to"| envLayer
+    credId -->|"points to"| credLayer
 ```
 
-**OAuthGrant** stores non-secret metadata: when the token expires, which client
-ID was used, where to send refresh requests, and which Managed Environment holds
-the actual tokens. The grant is keyed by three values: the user, the MCP server,
-and the Organization. This composite key means the same user can maintain
-separate OAuth connections for the same MCP server across different
-Organizations.
+**OAuthGrant** is the sign-in itself: when the token expires, which client ID
+was used, where to send refresh requests, the refresh token sealed at rest, and
+which Credential holds the access token. The grant is keyed by three values: the
+person, the MCP server, and the Organization. This composite key means the same
+person can keep separate sign-ins to the same MCP server in different
+Organizations. A server with Organization sign-in has one grant for the
+Organization, made by an admin, with no person on it.
 
-**Managed Environment** stores the secrets: the access token and, if the vendor
-issues one, a refresh token. The Environment is encrypted at rest and labeled as
-system-managed to prevent user mutation. Each grant has exactly one Managed
-Environment — deleting the grant deletes the Environment.
+**Credential** holds the access token, as one field named by the server's
+`target_env_var`. It is the person's own
+[Credential](/docs/concepts/credentials), serving that server (the
+Organization's, for Organization sign-in), so a run finds it by the same rule it
+uses for every other key. Its fields cannot be set or removed by hand; deleting
+the Credential ends the sign-in, and disconnecting deletes both.
 
-**Why the split?** The backend checks token expiry before every run. This
-pre-flight check reads the grant's expiry timestamp — a non-secret value —
-without accessing the encrypted secret store. The backend only touches the
-Managed Environment when it needs to refresh or use the actual token. This
-separation is a security boundary: the pre-flight path has no access to secrets.
+**Why the split?** A run receives the access token and nothing else. The refresh
+token only renews the access token, so it stays sealed on the grant, where no
+run receives it and nobody can reveal it. The backend checks token expiry before
+every run by reading the grant's expiry timestamp, a non-secret value, without
+opening any secret.
 
-### Environment priority at run time
+### Which value a run uses
 
-When an Agent runs, Environment variables are resolved from several sources. A
-source further down fills only the keys the earlier ones left empty:
+A run fills each key from the first source that has a value:
 
-| Order | Source                        | What it provides                                                                        |
-| ----- | ----------------------------- | --------------------------------------------------------------------------------------- |
-| 1     | **The run's Environments**    | Values bound to the Schedule or PlatformClient that started the run, and per-run values |
-| 2     | **OAuth Managed Environment** | Access tokens acquired through OAuth connect flows                                      |
-| 3     | **Personal Environment**      | API keys and credentials the person sending the message entered                         |
+| Order | Source                        | What it provides                                                                                                     |
+| ----- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| 1     | **Values passed for the run** | The request's `runtime_env`, by key                                                                                  |
+| 2     | **The surface's assignments** | Credential assignments on the Schedule, share, channel or PlatformClient that started a run with no person behind it |
+| 3     | **The default Credential**    | The sign-in of the person who started the run, or the Organization's sign-in for a server with Organization sign-in  |
 
-If you set up OAuth for a server and also enter an API key for the same variable
-in your personal Environment, the OAuth token is the one the run uses. A value
-bound to the Schedule that started the run comes before both.
+A sign-in and a key you typed are both Credentials, and at most one of your
+Credentials serves the same MCP server, so a run never has to choose between
+them. A run with no person behind it, such as a schedule fire, never uses
+anyone's sign-in: it uses what is assigned on the Schedule.
 
 ## How tokens stay fresh
 
@@ -171,8 +174,8 @@ When you click **Sign in to connect**, the backend performs three steps:
 2. **Authorize** — You approve the request in the vendor's authorization page.
    The vendor redirects back with an authorization code.
 3. **Complete** — The backend exchanges the code for tokens using the PKCE
-   verifier, stores them in a new Managed Environment, and creates an OAuthGrant
-   with the expiry metadata.
+   verifier, saves the access token as a Credential serving the server, and
+   creates an OAuthGrant with the expiry metadata and the sealed refresh token.
 
 After this, the standard connect flow runs — discovering tools and which of them
 the server marks destructive, the same process described in
@@ -195,8 +198,9 @@ This distinction matters for BYOA: if you switch from an Organization override
 to the platform default between refreshes, the next refresh request uses the
 platform's client credentials.
 
-If the refresh succeeds, the backend writes the new tokens to the same Managed
-Environment and updates the grant's expiry timestamp.
+If the refresh succeeds, the backend writes the new access token to the same
+Credential and the new refresh token to the grant, together, and updates the
+grant's expiry timestamp.
 
 ### When refresh fails
 

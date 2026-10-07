@@ -58,6 +58,15 @@ steps in a single action:
 The whole process takes a few seconds. When it finishes, the detail view updates
 to show the discovered tools.
 
+From the terminal, `stigmer connect mcp-server <server>` does the same. Values
+you pass with `--env KEY=VALUE` are used for that connect only; add `--save` to
+keep them as your own [Credential](/docs/concepts/credentials) serving the
+server, so the runs you start use them too:
+
+```bash
+stigmer connect mcp-server tavily --env TAVILY_API_KEY=tvly-... --save
+```
+
 <Callout type="info">
   **stdio servers are local-runner-only.** In Stigmer Cloud, connecting a stdio
   server (launched via `npx`, `uvx`, or a binary) is refused — cloud compute
@@ -93,12 +102,12 @@ tool lists, below.
 Some servers need credentials to reach the systems behind them. Four patterns
 cover the range:
 
-| Pattern                   | When it applies                                                                                      | What happens on Connect                                                                      |
-| ------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| **No credentials**        | The server works without authentication (Context7 without a key)                                     | Connects immediately — no extra steps                                                        |
-| **Environment variables** | The server uses API keys or connection strings (Tavily, Neon)                                        | You enter the value in the credential form before connecting                                 |
-| **OAuth from the URL**    | A hosted server that publishes a standard OAuth challenge (Linear, Notion, Atlassian, most vendors)  | Saved from its URL alone, the definition is completed with the sign-in; "Sign in" is offered |
-| **OAuth with your app**   | A vendor whose sign-in needs an OAuth app registered with it, named in `auth.oauth_app_ref` (GitHub) | Stigmer redirects you through the OAuth flow with that app                                   |
+| Pattern                 | When it applies                                                                                      | What happens on Connect                                                                      |
+| ----------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **No credentials**      | The server works without authentication (Context7 without a key)                                     | Connects immediately — no extra steps                                                        |
+| **Saved keys**          | The server uses API keys or connection strings (Tavily, Neon)                                        | You enter the value in the credential form, saved as your own Credential, before connecting  |
+| **OAuth from the URL**  | A hosted server that publishes a standard OAuth challenge (Linear, Notion, Atlassian, most vendors)  | Saved from its URL alone, the definition is completed with the sign-in; "Sign in" is offered |
+| **OAuth with your app** | A vendor whose sign-in needs an OAuth app registered with it, named in `auth.oauth_app_ref` (GitHub) | Stigmer redirects you through the OAuth flow with that app                                   |
 
 <Callout type="info">
   A hosted endpoint completed from its URL accepts **only** an OAuth-obtained

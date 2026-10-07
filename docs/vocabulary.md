@@ -67,7 +67,7 @@ definitions, API names, and examples follow below.
 | **Approval flow** | approval flow    | approval flow                          | approval flow, HITL | `destructive_hint`, `submitApproval`   | HITL, approval |
 | **Organization**  | Organization     | Organization                           | Organization        | Organization, `kind: organization`     | Organization   |
 | **Team**          | teams            | ---                                    | Team                | Team, `kind: team`                     | Team           |
-| **Environment**   | Environment      | Environment                            | Environment         | Environment, `kind: Environment`       | Environment    |
+| **Credential**    | keys, sign-ins   | Credential ("a saved key or sign-in")  | Credential          | Credential, `kind: Credential`         | Credential     |
 | **Preference**    | preferences      | preference ("standing context")        | Preference          | `spec.preferences.standing_context`    | Preference     |
 
 <!-- vale Stigmer.terms = NO -->
@@ -694,26 +694,97 @@ An admin of a parent organization, as seen from one of its child organizations.
 
 ---
 
+#### Credential
+
+A saved set of secret values that belongs to a person or to an Organization: "my
+Linear sign-in", "my OpenAI key", "our Datadog key". A run takes the values it
+needs from Credentials by one rule.
+
+- **Capitalize**: Yes, when referring to the Stigmer resource. Lowercase
+  "credential" stays ordinary English for anything that proves who someone is (a
+  sign-in token, an API key, a PlatformClient's `client_id` and
+  `client_secret`); see **Bound sign-in**.
+- **API surface**: `kind: Credential`, prefix `cred`. proto:
+  `agentic/credential/v1/spec.proto`. CLI: `stigmer credential create`,
+  `stigmer credential set-fields`, `stigmer credential remove-fields`,
+  `stigmer credential reveal`, `stigmer get credential`,
+  `stigmer list credentials`, `stigmer delete credential`. There is no `apply`
+  and no manifest: a secret never belongs in a file.
+- **Key fields**: the owner (`person` or `org`, fixed at create), `fields` (each
+  secret unless `plain`), `serves` (the Agents, MCP Servers and git hosts it is
+  used for by default). `status.source` says whether a person typed the values
+  or an MCP Server sign-in wrote them.
+- **Rules**: a person's Credential is theirs alone: nobody else lists, uses or
+  reveals it. An Organization's Credential is created and edited by admins, used
+  by the people and Teams given the `user` role on it, and write-only for
+  everyone. At most one of a person's Credentials, and one of the
+  Organization's, serves the same target.
+- **Context rule**: On the sales site, say "your keys and sign-ins" without
+  naming the resource. In quickstart, introduce as "a Credential (a saved key or
+  sign-in)". In concepts, how-to and reference, "Credential".
+- **Note**: Do not confuse with **Execution Context**, the per-run copy of the
+  values a run received. See [Execution Context](#execution-context).
+
+---
+
+#### Requirement
+
+One value an Agent, an MCP Server or a git host needs at run time: a declared
+key (`LINEAR_API_KEY`) together with whoever declares it.
+
+- **Capitalize**: No; it is a concept, not a resource kind.
+- **API surface**: an entry of `AgentSpec.env` or `McpServerSpec.env` (an
+  `EnvVarDeclaration` from `agentic/credential/v1/requirement.proto`), named on
+  the wire by `RequirementRef` (`declarer` plus `key`). A workspace's git host
+  declares `GITHUB_TOKEN`.
+- **Context rule**: Concepts, how-to and reference. In quickstart, say "the keys
+  your Agent needs".
+- **Note**: a requirement keeps its declarer. An Agent's `env` holds what the
+  Agent itself needs; an MCP Server's needs stay on the server.
+
+---
+
+#### Credential assignment
+
+The value a schedule, a share, a channel or a platform client gives one
+requirement for the runs it starts, since those runs have no person whose own
+Credentials could be used.
+
+- **Capitalize**: No; "Credential" keeps its capital as the resource it names.
+- **API surface**: `CredentialAssignment` in
+  `agentic/credential/v1/requirement.proto`, in the `credentials` list of
+  `AgentInvocation` (a Schedule's target), `AgentShareSpec`, `AgentChannelSpec`
+  and `PlatformClientSpec`. Each has a `requirement` and a source: `credential`
+  (a `CredentialFieldRef`: a Credential and an optional field name) or
+  `literal`. The server stamps its `writer`.
+- **Rules**: the writer must be allowed to use the Credential (`can_use`), and a
+  run checks it again when it starts. A person's own Credential is assigned only
+  on a schedule they created.
+- **Context rule**: Concepts, how-to and reference. Say "assign a Credential to
+  the schedule", never "bind".
+
+---
+
 #### Environment
 
-A named space (like "testing" or "production") where the same Agent can run with
-different settings and secrets.
+Reserved. The word is kept for a future sandbox resource and names nothing in
+Stigmer today. Earlier releases had a `kind: Environment` (prefix `env`) that
+held saved keys; Credential replaced it, and a manifest that still carries
+`kind: Environment` is refused with a sentence naming
+`stigmer credential create`.
 
 <!-- vale Stigmer.terms = NO -->
 
-- **Capitalize**: Yes, when referring to the Stigmer concept. Lowercase when
-  used generically ("environment variables").
+- **Capitalize**: Yes, when naming the retired kind in an upgrade note.
+  Lowercase "environment" stays ordinary English ("environment variables", "your
+  production environment").
 
 <!-- vale Stigmer.terms = YES -->
 
-- **API surface**: `kind: Environment`, prefix `env`. proto:
-  `environment/v1/spec.proto`. CLI: `stigmer get environment`,
-  `stigmer list environment`.
-- **Key fields**: Environments hold secrets and variables. The `getSecretValue`
-  query retrieves secrets at runtime.
-- **Note**: Do not confuse with "Execution Context" (`kind: execution_context`,
-  prefix `ectx`), which provides ephemeral runtime secrets to a specific run.
-  See [Execution Context](#execution-context).
+- **Context rule**: Do not use for saved keys in new writing; say Credential. A
+  doc describing "a personal Environment", "a managed Environment" or
+  `environment_refs` is describing the retired kind; point it at Credential and
+  Credential assignment.
 
 ---
 
@@ -729,8 +800,8 @@ control exists.
   `IdentityAccountSpec.preferences` (`IdentityAccountPreferences`), each with
   `standing_context`. The server snapshots the texts onto
   `RunStatus.declared_preferences` when the run is created.
-- **Boundaries**: a Preference is not a **Skill** (Agent knowledge), not an
-  **Environment** (workload config and secrets), not a **Session** (conversation
+- **Boundaries**: a Preference is not a **Skill** (Agent knowledge), not a
+  **Credential** (saved keys and sign-ins), not a **Session** (conversation
   state), and not a **Memory** (a learned fact an agent proposed and you
   confirmed — a preference is something you declared yourself).
 - **Related terms, never synonyms**: a **policy** is an org- or
@@ -785,7 +856,7 @@ your authentication system.
 - **Note**: An Identity Provider is not a user database---it defines how Stigmer
   validates externally issued JWTs. It is owned by an Organization and can route
   its users to that Organization's child organizations. Each token it vouches
-  for is a **bound credential**: it works in the child organization
+  for is a **bound sign-in**: it works in the child organization
   `external_id_claim` names, or in the provider's own Organization.
 
 ---
@@ -828,13 +899,14 @@ Stigmer without creating Stigmer-native accounts.
 
 ---
 
-#### Bound credential
+#### Bound sign-in
 
-A credential that names one Organization and works in that Organization only,
+A sign-in that names one Organization and works in that Organization only,
 whatever roles its person holds elsewhere.
 
-- **Capitalize**: No. "Bound credential" is a property of a credential, not a
-  Stigmer resource type.
+- **Capitalize**: No. "Bound sign-in" is a property of a token or key a person
+  or machine signs in with, not a Stigmer resource type. Earlier docs said
+  "bound credential"; that word now belongs to the Credential resource.
 - **Examples**: a PlatformClient user token (bound to the PlatformClient's
   Organization, or the child organization it was minted for), a federated token
   through an Identity Provider (bound to the child organization
@@ -846,16 +918,16 @@ whatever roles its person holds elsewhere.
 - **Reach**: its Organization's resources; the person's own account, and their
   API keys limited to the same Organization; in a child organization, reading
   and running the Agents, Skills, MCP Servers and Plugins its parent shares at
-  `visibility_child_orgs`; and, for a credential bound to a parent, managing
-  that parent's child organizations (never reading what they hold). It cannot
-  create an Organization, except a child of its own, or accept an invitation to
-  another one. One exception: a platform operator's acts (credits, plans,
-  pricing, licenses) follow the person's platform role, so their limited key
-  still performs them.
+  `visibility_child_orgs`; and, for a sign-in bound to a parent, managing that
+  parent's child organizations (never reading what they hold). It cannot create
+  an Organization, except a child of its own, or accept an invitation to another
+  one. One exception: a platform operator's acts (credits, plans, pricing,
+  licenses) follow the person's platform role, so their limited key still
+  performs them.
 - **Context rule**: Use in authentication guides and reference. On the sales
   site, say "a key that works in one Organization." In quickstart, avoid unless
   the tutorial covers API keys, federation or PlatformClient.
-- **Note**: a bound credential used in another Organization gets
+- **Note**: a bound sign-in used in another Organization gets
   `PERMISSION_DENIED`. A federated token whose external id claim is missing or
   names no child organization gets `UNAUTHENTICATED`, on every sign-in.
 
@@ -907,9 +979,9 @@ mint Stigmer-signed user tokens for embedding Stigmer in your product.
 
 - **Note**: PlatformClient credentials authenticate your backend, not your
   users. The backend calls `mintUserToken` to get user-scoped JWTs, each a
-  **bound credential** that works in the PlatformClient's Organization only.
-  This is the same pattern used by Twilio (Access Tokens), Stream (User Tokens),
-  and Liveblocks (access tokens).
+  **bound sign-in** that works in the PlatformClient's Organization only. This
+  is the same pattern used by Twilio (Access Tokens), Stream (User Tokens), and
+  Liveblocks (access tokens).
 
 <!-- vale Vale.Spelling = YES -->
 
@@ -980,8 +1052,7 @@ WhatsApp---so people can chat with it where they already work.
 - **API surface**: `kind: AgentChannel`, prefix `ach`. proto:
   `agentchannel/v1/spec.proto`.
 - **Key fields**: `agent_ref`, `enabled`, `slack` or `whatsapp` (provider
-  config), `environment_refs`, `app_ref` (optional for Slack, required for
-  WhatsApp).
+  config), `credentials`, `app_ref` (optional for Slack, required for WhatsApp).
 - **Context rule**: On the sales site, say "connect your Agent to Slack" without
   naming the resource. In how-to docs, introduce as "channel" with a gloss, then
   use "channel." In reference, use `AgentChannel`.
@@ -1187,8 +1258,9 @@ Ephemeral runtime secrets and variables scoped to a specific run.
 
 - **API surface**: `kind: execution_context`, prefix `ectx`. proto:
   `executioncontext/v1/api.proto`.
-- **Context rule**: Reference docs only. Do not confuse with Environment
-  (persistent, named) vs Execution Context (ephemeral, per-run).
+- **Context rule**: Reference docs only. Do not confuse with Credential
+  (persistent, owned by a person or an Organization) vs Execution Context
+  (ephemeral, per-run).
 
 ---
 
@@ -1255,12 +1327,10 @@ Retired term. A `kind: AgentInstance` (prefix `ain`) was a deployed copy of an
 Agent bound to Environments, and a Session named an instance rather than its
 Agent; every Agent carried a default one. The kind and its CLI verbs were
 removed: a Session names its Agent directly (`agent_ref`) and runs the version
-it started on, and Environments are bound to what starts a run (a Schedule, a
-PlatformClient), with the personal Environment of the person sending the message
-filling the Agent's declared keys that nothing else supplies when the Agent
-belongs to the run's own Organization (an Agent another Organization published
-reads none, and an MCP Server's OAuth variable comes only from the sign-in to
-that server).
+it started on, and a run takes its values from Credentials: those assigned on
+what started it (a Schedule, a share, a channel, a PlatformClient), or the
+Credentials of the person who sent the message that serve the Agent or its MCP
+Servers.
 
 - **Capitalize**: Yes, when naming the retired kind in an upgrade note.
 - **Context rule**: Do not use in new writing. A reader still meets the word in
@@ -1327,25 +1397,14 @@ and SDK docs use precise technical language. The guidance now lives in
 
 ---
 
-### 4. Cloud README lists "Credential" as a concept
+### 4. Cloud README lists "Credential" as a concept---RESOLVED
 
-**What**: The Cloud README architecture table includes "Credential" as a
-resource type with the description "Encrypted credentials---AWS keys, GitHub
-tokens." No `Credential` kind exists in `api_resource_kind.proto`. The closest
-resources are `Environment` (holds secrets and variables) and `ApiKey` (IAM
-authentication tokens).
+**What**: The Cloud README architecture table listed "Credential" as a resource
+type when no `Credential` kind existed.
 
-**Where**:
-
-- `stigmer-cloud/README.md` architecture table (line 45)
-- `apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto`
-  (no `Credential` kind)
-
-**Recommendation**: Determine whether "Credential" was a planned resource that
-hasn't been implemented, or whether it's a misnomer for Environment secrets.
-Update the Cloud README accordingly. If credentials are managed through
-Environments, remove the "Credential" row and clarify in the Environment
-description.
+**Resolution**: `kind: Credential` (prefix `cred`) now exists and replaced the
+Environment kind; see [Credential](#credential). The README row describes a real
+resource.
 
 ---
 

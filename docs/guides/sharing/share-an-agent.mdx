@@ -126,28 +126,29 @@ how origin restrictions behave.
 
 ## Share an Agent that uses tools
 
-If your Agent uses MCP servers, its tools need credentials — API keys stored in
-an Environment. By default an Environment is private: only you can use it, so a
-visitor's chat can't start the tools. To fix that, share the Environment with
-your Organization:
+If your Agent uses MCP servers, its tools need keys. On a share open to your
+Organization's members, each member's chat uses that member's own
+[Credentials](/docs/concepts/credentials), as any chat they start does. A
+visitor on a public link has no Credentials of their own, so a public share
+carries the values its chats use as Credential assignments: for each key the
+Agent or its tools need, a field of an Organization Credential or a plain value.
 
-1. Open **Settings → Environments**.
-2. Find the Environment your Agent uses and set its visibility to
-   **Organization**.
+1. Ask an admin to save the key as an Organization Credential (only admins
+   create them) and to let you use it.
+2. In the Share dialog, assign that Credential to each key the Agent's tools
+   need.
 
-Sharing an Environment with your Organization means:
+Assigning an Organization Credential to a public share means:
 
-- Agents run in your Organization — including visitor chats on shared Agents and
-  Agents your teammates run — can use its values.
-- Members can see the variable names, but secret values stay hidden. Nobody but
-  you can reveal a secret value.
-- Set it back to **Private** at any time. The next visitor message stops using
-  the credentials.
+- Every visitor chat on the link uses its values. Visitors never see them.
+- You can assign only a Credential you may use, and Stigmer records you as the
+  assignment's writer. If you later lose the right to use it, visitor chats stop
+  starting and name the assignment.
+- Your own Credentials and sign-ins can never be assigned to a share. Save a
+  dedicated Organization Credential with only the keys the Agent needs.
 
-The Share dialog warns you when your Agent uses tools whose Environment is still
-private. Your personal Environment and OAuth-connected credentials can't be
-shared — create a dedicated Environment with only the credentials the Agent
-needs.
+The Share dialog warns you when a key the Agent's tools need has no value for
+visitors.
 
 ### Tool approvals never reach visitors
 
@@ -280,7 +281,8 @@ same Organization: a share lives where its Agent lives.
 </Callout>
 
 See the [AgentShare reference](/docs/sdk/resources/agent-share) for every field,
-including embed origins, visitor messages, and tool credentials.
+including embed origins, visitor messages, and the `credentials` a public share
+assigns.
 
 ## Go further with the SDK
 

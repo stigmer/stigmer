@@ -28,7 +28,7 @@ export type ManagementNavId =
   | "identity-providers"
   | "api-keys"
   | "platform-clients"
-  | "environments"
+  | "credentials"
   | "billing"
   | "usage";
 
@@ -62,7 +62,7 @@ const NAV_GROUPS: readonly NavGroup[] = [
     items: [
       { id: "api-keys", label: "API Keys", icon: KeyRound },
       { id: "platform-clients", label: "Platform Clients", icon: Plug },
-      { id: "environments", label: "Environments", icon: Box },
+      { id: "credentials", label: "Accounts and keys", icon: Box },
     ],
   },
   {

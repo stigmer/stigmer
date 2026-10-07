@@ -28,11 +28,11 @@ Organization's resources.
 
 Stigmer uses fine-grained authorization (FGA) with three elements:
 
-| Element       | Meaning                                                           |
-| ------------- | ----------------------------------------------------------------- |
-| **Principal** | Who is requesting access (an Identity Account)                    |
-| **Resource**  | What they want to access (Organization, Environment, Agent, etc.) |
-| **Relation**  | What level of access they have (`admin`, `viewer`, `owner`)       |
+| Element       | Meaning                                                          |
+| ------------- | ---------------------------------------------------------------- |
+| **Principal** | Who is requesting access (an Identity Account)                   |
+| **Resource**  | What they want to access (Organization, Credential, Agent, etc.) |
+| **Relation**  | What level of access they have (`admin`, `viewer`, `owner`)      |
 
 An IAM Policy binds all three. When Stigmer receives an API call, it checks
 whether a policy exists that matches the caller, the target resource, and the
@@ -301,7 +301,7 @@ public void onboardUser(StigmerClient client, PlatformUser user, String organiza
 
 When a user leaves your platform, revoke their access. The `revokeOrgAccess`
 method removes all IAM Policies for a user across the entire Organization,
-including policies on child resources like Environments and Agents.
+including policies on child resources like Credentials and Agents.
 
 <SDKTabs>
 <Tab value="TypeScript">

@@ -57,9 +57,11 @@ spec:
 
 The `auth` block tells Stigmer two things:
 
-- **Where to store the token** — `target_env_var` names the Environment variable
-  that receives the access token. This variable also appears in `env`, so the
-  execution pipeline resolves it the same way it resolves any other credential.
+- **Where to store the token** — `target_env_var` names the variable that
+  receives the access token: the sign-in is saved as a
+  [Credential](/docs/concepts/credentials) serving the server, with one field of
+  that name. This variable also appears in `env`, so a run fills it the same way
+  it fills any other key.
 - **What scopes to request** — `scope_hints` appear in the authorization prompt
   so you know what access you're granting before you authorize.
 
@@ -80,9 +82,29 @@ the hosted platform, which is why sign-in works there with no setup.
   registration steps.
 </Callout>
 
-The Environment variable section in the detail view labels the OAuth-managed
-variable with an **OAuth** badge to distinguish it from variables you enter
-manually.
+The variables section in the detail view labels the OAuth-managed variable with
+an **OAuth** badge to distinguish it from variables you enter manually.
+
+## Whose account a run uses
+
+The server's `sign_in` decides whose sign-in its runs use:
+
+- **`mcp_server_sign_in_personal`** (the default): each person signs in with
+  their own account, and the runs they start use it. A teammate's runs use the
+  teammate's sign-in, and a run whose person has not signed in is refused before
+  it starts, naming who must sign in.
+- **`mcp_server_sign_in_organization`**: an admin signs the Organization in
+  once, and every run in the Organization uses that account. Use it for a shared
+  service account, such as a bot user.
+
+```yaml validate-as="McpServer"
+spec:
+  sign_in: mcp_server_sign_in_organization
+```
+
+Runs with no person behind them (a schedule fire, a channel message, a visitor
+on a share link) use the Credentials assigned on what started them, so a
+personal sign-in never reaches them.
 
 ## For a standard OAuth server, a URL is enough
 
@@ -136,15 +158,17 @@ app registered with the vendor and referenced from its definition
    page — GitHub, Slack, or whichever service the server integrates with.
 3. Review the requested permissions and authorize the application.
 4. The popup closes. Stigmer exchanges the authorization code for an access
-   token, stores it in a managed Environment, then connects to the server.
+   token, saves it as your own Credential serving the server, then connects to
+   the server.
 5. Tools are discovered, with the ones the server marks destructive — the same
    process described in
    [Connect an MCP Server](/docs/guides/integrations/connect-an-mcp-server#connect-an-mcp-server).
 
 <Callout type="info">
-  You never see or handle the access token. Stigmer stores it in an encrypted
-  managed Environment tied to your identity and injects it at runtime when the
-  Agent calls a tool.
+  You never see or handle the access token. Stigmer saves it, encrypted, as your
+  own Credential and delivers it at runtime when the Agent calls a tool. You
+  cannot edit a sign-in's fields by hand, and the refresh token never leaves the
+  sign-in: no run receives it and nobody can reveal it.
 </Callout>
 
 ## Token lifecycle
@@ -175,9 +199,10 @@ the OAuth flow, you can enter the value directly:
 2. Type or paste the token into the credential form.
 3. Click **Connect**.
 
-The server connects the same way — Stigmer saves the value to your personal
-Environment and uses it for tool execution. The difference is that you manage
-token rotation yourself instead of relying on the automatic OAuth lifecycle.
+The server connects the same way — Stigmer saves the value as your own
+Credential serving the server and uses it for tool execution. The difference is
+that you manage token rotation yourself instead of relying on the automatic
+OAuth lifecycle.
 
 To switch back to OAuth, click **Sign in with OAuth instead** in the connection
 section.

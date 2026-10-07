@@ -21,7 +21,7 @@ export type ManagementNavId =
   | "identity-providers"
   | "api-keys"
   | "platform-clients"
-  | "environments"
+  | "credentials"
   | "oauth-apps"
   | "channel-apps"
   | "billing"

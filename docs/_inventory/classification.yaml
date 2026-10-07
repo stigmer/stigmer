@@ -425,17 +425,18 @@ pages:
     medium: none
 
   # ── Platform ───────────────────────────────────────────────────────────
-  concepts/environments:
+  concepts/credentials:
     fate: keep
     diataxis: explanation
     teaches:
-      How config and secrets live outside definitions, how Environments bound
-      to what starts a run layer with later-wins ordering, where a run's values
-      come from (personal Environment last), and what is_secret changes.
+      Who a Credential belongs to, what serves means, the one rule that picks
+      each run value (per call, the surface's assignment, the default
+      Credential), sign-ins, organization Credentials and the user role,
+      assignments on unattended surfaces, and reveal versus write-only.
     medium: diagram
     why:
-      Layered merging into a run is structure; the existing mermaid carries
-      it.
+      The first-match order a requirement walks is a decision flow; the
+      mermaid carries it.
 
   concepts/runners:
     fate: keep

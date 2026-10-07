@@ -234,24 +234,46 @@ updates names the PlatformClient on its audit, beside the shared account.
 
 ## Give embedded assistants their credentials
 
-An embedded assistant often calls MCP servers that need a credential of your
-own, such as a shared API secret. Put that credential in an Environment and list
-the Environment in the PlatformClient's `environment_refs`. Every run a user
-signed in through that PlatformClient starts then receives the Environment's
-values, and so does a recovery of that run. The Agent stays as it is.
+An embedded assistant often calls MCP servers that need a key of your own, such
+as a shared API secret. A user signed in through a PlatformClient is not a
+Stigmer person with Credentials of their own, so their runs use only what is
+passed with the request and what the PlatformClient assigns. Save the key as an
+Organization [Credential](/docs/concepts/credentials) and assign it in the
+PlatformClient's `credentials`: for each key the Agent or its MCP servers need,
+a field of that Credential or a plain value. Every run a user signed in through
+that PlatformClient starts then receives those values, and so does a recovery of
+that run. The Agent stays as it is.
 
-- **Lowest priority.** The values the request passes at run time win on a
-  conflicting key, so a PlatformClient supplies defaults. Keys it leaves empty
-  are filled from the signed-in user's own connections and personal Environment,
-  as for any run.
-- **Same Organization.** The Environments must belong to the PlatformClient's
+```yaml validate-as="PlatformClient.spec"
+credentials:
+  - requirement:
+      declarer:
+        mcp_server:
+          kind: mcp_server
+          org: acme
+          slug: billing-api
+      key: BILLING_API_SECRET
+    credential:
+      credential:
+        kind: credential
+        org: acme
+        slug: billing-api-secret-9c4d1e02
+```
+
+- **Per-call values win.** A value the request passes in `runtime_env` wins over
+  the assignment for the same key, so the PlatformClient supplies defaults.
+- **Only what you may use.** You can assign an Organization Credential you may
+  use, never one of your own; Stigmer records you as the assignment's writer and
+  checks again that you may still use it when each run starts.
+- **Same Organization.** The Credentials must belong to the PlatformClient's
   Organization, and they are delivered only to runs in that Organization.
 - **Kept up to date.** Stigmer reads the PlatformClient when each run starts, so
   an edit applies to the next run.
-- **Kept valid.** If a listed Environment is deleted, runs fail to start with
-  `NOT_FOUND` until you remove it from `environment_refs` or create it again.
+- **Kept valid.** If an assigned Credential is deleted, or its writer may no
+  longer use it, runs fail to start and name the assignment until you assign
+  another.
 
-Runs started by a Schedule receive their own Environments, not the
+Runs started by a Schedule use the Schedule's own assignments, not the
 PlatformClient's.
 
 ## Error handling

@@ -9,8 +9,8 @@
  * tour-constant data, props for anything that changes per step — and
  * nothing here is fetched at all).
  *
- * The detail view's remaining lookups (personal environment list, org OAuth
- * app, permission check) fall through to the router's built-in
+ * The detail view's remaining lookups (the caller's credential list, org
+ * OAuth app, permission check) fall through to the router's built-in
  * `unimplemented` response, which the SDK hooks degrade from gracefully.
  * `createStigmerPreview` is still required for the `.stgm` theme scope
  * (`?theme` → color mode) and the SDK client context the real components

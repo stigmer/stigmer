@@ -80,7 +80,7 @@ serves a purpose:
 | `skill_refs`        | References to [Skills](/docs/concepts/skills) that give the Agent domain knowledge     |
 | `mcp_server_usages` | References to [MCP Servers](/docs/concepts/tools) that give the Agent tool access      |
 | `tools`             | Only these tools, in Claude Code's names — here no shell commands and no file writes   |
-| `env`               | Environment variables the Agent needs at runtime (API keys, URLs, configuration)       |
+| `env`               | The keys the Agent itself needs at runtime (API keys, URLs, configuration)             |
 
 Two more fields shape what the Agent's tools may do. `disallowed_tools` lists
 tools the Agent may never use, and `hooks` names the plugins whose hooks run
@@ -91,7 +91,7 @@ refuse a call, ask a person first, or let it run.
 ## Blueprint vs. runtime
 
 An Agent definition is a **blueprint**. It contains zero secrets, zero
-Environment-specific values, and zero runtime state. This separation is a hard
+deployment-specific values, and zero runtime state. This separation is a hard
 architectural invariant — it means the same Agent definition works identically
 in development, staging, and production.
 
@@ -118,16 +118,14 @@ that Agent.
 
 ### Where the secrets come from
 
-The Agent's `env` map declares the keys it needs, never their values. Values
-reach a run when it starts: from the [Environments](/docs/concepts/environments)
-bound to whatever started it (a Schedule, a PlatformClient), from values the
-request passes for that one run, and, for keys still missing, from the personal
-Environment of the person sending the message, when the Agent belongs to the
-Organization the run is in (an Agent another Organization published reads no
-one's personal Environment, and an MCP Server's OAuth variable comes only from
-the sign-in to that server). The same Agent runs with test credentials from one
-Schedule and production credentials from another, and its definition never
-changes.
+The Agent's `env` map declares the keys the Agent itself needs, never their
+values; each of its MCP Servers declares its own. Values reach a run when it
+starts, from [Credentials](/docs/concepts/credentials): values the request
+passes for that one run, the Credentials assigned on whatever started it (a
+Schedule, a share, a channel, a PlatformClient), or, for a run a person started,
+that person's own Credential serving the Agent, then an Organization Credential
+serving it that they may use. The same Agent runs with test keys from one
+Schedule and production keys from another, and its definition never changes.
 
 ### Sessions and runs
 

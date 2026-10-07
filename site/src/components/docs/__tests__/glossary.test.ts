@@ -26,7 +26,6 @@ const KNOWN_DIFFERENCES: ReadonlyArray<string> = [
   "Skill",
   "MCP Server",
   "PlatformClient",
-  "Environment",
   "Agent Channel",
 ];
 

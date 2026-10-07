@@ -24,8 +24,8 @@ export const glossary: Record<string, string> = {
     "A credential pair your backend uses to mint Stigmer-signed user tokens. Use it to embed Stigmer in your product without setting up OIDC federation.",
   Organization:
     "The boundary that holds people, Agents, Sessions and secrets together; nothing outside it sees them.",
-  Environment:
-    "A separate space (like testing or production) where the same Agent can run with different settings.",
+  Credential:
+    'A saved set of secret values that belongs to a person or to an Organization: "my Linear sign-in", "my OpenAI key", "our Datadog key". A run takes the values it needs from Credentials by one rule.',
   "Agent Channel":
     "A connection that puts an Agent into an external messaging platform — Slack or WhatsApp — so people can chat with it where they already work.",
   "Channel App":

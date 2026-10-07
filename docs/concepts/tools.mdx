@@ -70,7 +70,7 @@ its definition for your Organization.
 ## MCP Server resource
 
 An MCP Server is a Stigmer resource that defines a tool connection. It describes
-how to reach the tool server and what Environment variables it needs:
+how to reach the tool server and what values it needs at runtime:
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -109,35 +109,35 @@ supported only on sessions that run on a local runner (the desktop app or
 servers when a run is created, with a clear error naming the server and the
 remediation.
 
-### Environment declarations
+### Declaring what the server needs
 
 The `env` map declares what the MCP Server needs at runtime — API keys, service
 URLs, configuration values. These are _schemas_, not values. The actual values
-come from [Environments](/docs/concepts/environments) and the other sources a
-run reads when it starts.
+come from [Credentials](/docs/concepts/credentials) and the other sources a run
+reads when it starts.
 
 Each declaration can be marked as `optional`. By default, every declared
 variable is required — the execution pipeline rejects a run if a required
 variable is missing. Optional variables let the MCP Server operate without that
 value.
 
-At runtime, variable values come from several sources. A source further down the
-table fills only the keys the earlier ones left empty:
+At runtime, each declared key takes its value from the first of these sources
+that has one:
 
-| Source                        | What it provides                                                                                        |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------- |
-| **The run's Environments**    | Values bound to the Schedule or PlatformClient that started the run, and values passed for that one run |
-| **OAuth managed Environment** | Access tokens acquired through OAuth connect flows                                                      |
-| **Personal Environment**      | API keys and credentials the person sending the message entered                                         |
+| Source                        | What it provides                                                                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Values passed for the run** | The request's `runtime_env`, by key                                                                                                  |
+| **The surface's assignments** | Credential assignments on the Schedule, share, channel or PlatformClient that started a run with no person behind it                 |
+| **The default Credential**    | For a run a person started: their own Credential serving the server, or the Organization's when the server uses Organization sign-in |
 
-So a credential bound for a Schedule is the one its runs use, and your own
-connections and keys fill what nothing else supplies.
-[Environments](/docs/concepts/environments#how-a-run-gets-its-values) explains
-the order in full.
+So a Credential assigned on a Schedule is the one its runs use, and your own
+sign-ins and keys fill the runs you start.
+[Credentials](/docs/concepts/credentials#how-a-run-gets-its-values) explains the
+order in full.
 
 This separation means the MCP Server definition is portable. The same
 `order-management-api` works in development (pointing to a test API) and
-production (pointing to the real one) — only the Environment values change.
+production (pointing to the real one) — only the Credential values change.
 
 ## Connecting tools to Agents
 
@@ -203,14 +203,15 @@ three authentication patterns, each suited to a different type of integration:
 
 | Pattern                   | When it applies                                                               | How it works                                                                                              |
 | ------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| **Environment variables** | The tool uses API keys or tokens                                              | You declare the variable in `env` and provide the value through an Environment                            |
+| **Saved keys**            | The tool uses API keys or tokens                                              | You declare the variable in `env` and save the value in a Credential that serves the server               |
 | **Automatic OAuth (DCR)** | The server implements the MCP Authorization spec                              | Stigmer discovers the authorization server, registers a client automatically, and handles the OAuth flow  |
 | **Vendor OAuth**          | The server requires credentials from a specific vendor (Slack, GitHub, Figma) | Stigmer uses a pre-registered OAuthApp with the vendor's client credentials to run the authorization flow |
 
-In both OAuth patterns, the acquired access token is stored in a system-managed
-Environment and refreshed automatically before each run. If a token expires and
-cannot be refreshed, the user re-authenticates from the MCP Server's connect
-page.
+In both OAuth patterns, the acquired access token is saved as a Credential of
+the person who signed in, serving that server, and refreshed automatically
+before each run. A server with Organization sign-in keeps one sign-in, made by
+an admin, for the whole Organization. If a token expires and cannot be
+refreshed, the user re-authenticates from the MCP Server's connect page.
 
 Organizations that need to use their own OAuth app credentials — instead of the
 platform defaults — can set up a Bring Your Own App (BYOA) override at the

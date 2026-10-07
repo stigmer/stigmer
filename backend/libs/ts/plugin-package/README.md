@@ -54,9 +54,10 @@ normalised types mirror the protos (`SubAgent`, `EnvVarDeclaration`,
   (`PLUGIN_DOCUMENT_LIMITS`), and again on the bytes returned, so no reader
   can be talked into inflating a bomb through the library.
 - **Variables are references the runner resolves.** A `${VAR}` in a server
-  configuration is a reference to the caller's Environment in every dialect;
-  an undeclared one is inferred as a required secret and warned, because the
-  runner hands a server only the variables its spec declares.
+  configuration is a reference to a value the run receives (from a Credential)
+  in every dialect; an undeclared one is inferred as a required secret and
+  warned, because the runner hands a server only the variables its spec
+  declares.
 - **Two facts about the runner shape two refusals**: a `${VAR}` in a server
   `url` is sent literally (refused), and a stdio `env` can only pass a
   declared variable by its own name, so only `KEY: "${KEY}"` is

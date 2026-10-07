@@ -6,8 +6,8 @@ description:
   and how resources are scoped.
 ---
 
-Every resource in Stigmer — Agents, Skills, MCP Servers, Sessions, Environments
-— belongs to an Organization. An Organization is a tenant boundary that groups
+Every resource in Stigmer — Agents, Skills, MCP Servers, Sessions, Credentials —
+belongs to an Organization. An Organization is a tenant boundary that groups
 resources and controls who can access them.
 
 ## Structure
@@ -163,7 +163,7 @@ any Organization, and nothing it holds is visible to another child.
 The parent's admins **manage** every child and read **nothing** a child holds.
 They can change a child's settings, rename or delete it, manage its members,
 roles and invitations, and see its billing; they cannot see its Agents,
-Sessions, Environments or files, its usage reports, or run anything in it. A
+Sessions, Credentials or files, its usage reports, or run anything in it. A
 parent admin who needs to look inside adds themselves as a member of the child,
 through its ordinary members screen; the child's member list and access history
 show it, and the child's own admins can remove them. Nobody owns a child when it
@@ -194,10 +194,10 @@ Organization owned, in three steps:
    inside it. Every role anyone held in it is gone.
 2. **Within minutes.** In the background, Stigmer stops anything still running
    (Schedules, runs, sandboxes), then removes every Agent, Session, file, Skill,
-   MCP Server, Plugin, Environment and secret, Channel and its conversations,
-   and every permission that named the Organization. Where an edition seals
-   secrets with a key per Organization (Stigmer Cloud), that key is destroyed
-   too, so a copy of a secret in an old backup can no longer be read.
+   MCP Server, Plugin, Credential and secret, Channel and its conversations, and
+   every permission that named the Organization. Where an edition seals secrets
+   with a key per Organization (Stigmer Cloud), that key is destroyed too, so a
+   copy of a secret in an old backup can no longer be read.
 3. **When that finishes.** The Organization's slug is free for someone else, and
    not before.
 

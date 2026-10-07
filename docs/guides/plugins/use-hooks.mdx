@@ -77,9 +77,9 @@ and choose **Add**. The dialog lists what the Agent gets (the plugin's hooks,
 and its MCP Servers when the plugin installed tools and no Agent) and the
 variables the hooks read. Each such variable is declared on the Agent as a
 secret, and the Agent asks for it when a Session starts. Switching the hooks off
-later leaves those variables declared; remove them from the Agent's environment
-variables when nothing else uses them. An Agent a plugin installed cannot be
-changed here; the dialog says so.
+later leaves those variables declared; remove them from the Agent's `env` when
+nothing else uses them. An Agent a plugin installed cannot be changed here; the
+dialog says so.
 
 The Agent's page then shows a **Hooks** section that names the plugin and lists
 every command it runs. To switch a plugin's hooks on from there, edit the

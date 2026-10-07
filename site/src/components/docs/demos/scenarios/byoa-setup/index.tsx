@@ -3,9 +3,9 @@
 import { Fragment, useCallback, useMemo, useRef, useState } from "react";
 import { McpServerDetailView } from "@stigmer/react";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
-import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
+import { CredentialQueryController } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/query_pb";
 import { create } from "@bufbuild/protobuf";
-import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
+import { CredentialListSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/io_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type {
   GetOAuthGrantStatusOutput,
@@ -24,7 +24,7 @@ import {
   DEMO_SLUG,
 } from "./steps";
 
-const emptyEnvList = () => create(EnvironmentListSchema, {});
+const emptyCredentialList = () => create(CredentialListSchema, {});
 
 // ---------------------------------------------------------------------------
 // Step helpers
@@ -186,7 +186,7 @@ export function ByoaSetup() {
   const previewFixtures = useMemo(
     () => [
       connectFixture(McpServerQueryController, "getByReference", () => currentServerRef.current),
-      connectFixture(EnvironmentQueryController, "list", emptyEnvList),
+      connectFixture(CredentialQueryController, "list", emptyCredentialList),
       connectFixture(McpServerQueryController, "getOAuthGrantStatus", () => currentGrantRef.current),
       connectFixture(McpServerQueryController, "getOrgOAuthApp", () => currentOrgAppRef.current),
     ],

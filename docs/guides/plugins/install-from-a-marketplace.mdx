@@ -67,12 +67,13 @@ A plugin installs as an Agent, as tools for your Agents, or both. Most of the
 catalogue is tools: an MCP Server that a vendor hosts, which your own Agents
 list under `mcp_server_usages`. The `Next` section says what each server still
 needs before its first tool call. A server that signs in with OAuth and has no
-sign-in in your Organization yet names the command that runs one
+sign-in of yours yet names the command that runs one
 (`stigmer connect mcp-server <server>` opens the console's sign-in and waits for
-it); one sign-in serves the whole Organization. A server that wants an API key
-names the variables and where they are asked. A plugin that carries an Agent
-ends with none of this: the Agent asks for what its tools need at its first
-Session.
+it); each person signs in with their own account, unless the server uses
+Organization sign-in, which an admin makes once for everyone. A server that
+wants an API key names the variables and where they are asked. A plugin that
+carries an Agent ends with none of this: the Agent asks for what its tools need
+at its first Session.
 
 ## Add your own marketplace
 

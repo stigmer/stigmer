@@ -31,8 +31,8 @@ const SETTINGS_SECTIONS: readonly {
     oss: { works: { role: "button", name: "+ New API key" } },
   },
   {
-    path: "/settings/environments",
-    headingText: "Personal Environment",
+    path: "/settings/credentials",
+    headingText: "Yours",
   },
   {
     path: "/settings/members",
@@ -120,7 +120,7 @@ test.describe("Settings index", () => {
 
     await expect(sidebar.getByRole("link", { name: "API Keys" })).toBeVisible();
     await expect(
-      sidebar.getByRole("link", { name: "Environments" }),
+      sidebar.getByRole("link", { name: "Accounts and keys" }),
     ).toBeVisible();
     await expect(sidebar.getByRole("link", { name: "Members" })).toBeVisible();
 

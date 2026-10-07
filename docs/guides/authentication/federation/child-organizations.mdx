@@ -191,12 +191,12 @@ grant its people their roles, as the next sections show.
 Your Organization's admins **manage** every child, and read **nothing** a child
 holds:
 
-| They can                                                  | They cannot                                          |
-| --------------------------------------------------------- | ---------------------------------------------------- |
-| See the child's name, slug and settings, and change them  | See the child's Agents, Sessions, Environments, etc. |
-| Rename the child, or delete it                            | Read the child's usage reports or lists              |
-| See and manage the child's members, roles and invitations | Run anything in the child                            |
-| See the child's billing                                   |                                                      |
+| They can                                                  | They cannot                                         |
+| --------------------------------------------------------- | --------------------------------------------------- |
+| See the child's name, slug and settings, and change them  | See the child's Agents, Sessions, Credentials, etc. |
+| Rename the child, or delete it                            | Read the child's usage reports or lists             |
+| See and manage the child's members, roles and invitations | Run anything in the child                           |
+| See the child's billing                                   |                                                     |
 
 A member of your Organization who is not an admin has none of these rights over
 a child.
@@ -655,7 +655,7 @@ Set an Agent, Skill, MCP Server or Plugin in your Organization to
 `visibility: child-orgs` in a skill's frontmatter) and everyone in every child
 organization can read and run it, including children you create later. Nobody
 outside your children can, and your own Organization keeps seeing it as an
-Organization-visible resource. Sessions, runs and Environments are never shared
+Organization-visible resource. Sessions, runs and Credentials are never shared
 this way: each child runs the shared blueprint inside its own boundary.
 
 A child organization can reference your shared blueprint by `org/slug` (an

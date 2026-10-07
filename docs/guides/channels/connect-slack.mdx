@@ -39,7 +39,7 @@ You need three things:
 4. Under **Connect as**, keep the platform **Stigmer** app. It needs no setup.
    If you want the bot to carry your own name and icon, see
    [Bring your own Slack app](/docs/guides/channels/bring-your-own-slack-app).
-5. If your Agent uses tools, bind credentials under **Tool credentials** — see
+5. If your Agent uses tools, assign Credentials under **Tool credentials** — see
    [Give the Agent its tool credentials](#give-the-agent-its-tool-credentials)
    below. You can also do this after connecting.
 6. Click **Connect to Slack**. A Slack window opens and asks which workspace to
@@ -101,20 +101,22 @@ list.
 
 ## Give the Agent its tool credentials
 
-If your Agent uses MCP servers, its tools need credentials — API keys stored in
-an Environment. Conversations from Slack use only the credentials bound to the
-channel, so a channel without bindings refuses the first message that needs a
-tool.
+If your Agent uses MCP servers, its tools need keys. A message from Slack has no
+Stigmer person behind it, so its run uses only the
+[Credentials](/docs/concepts/credentials) assigned on the channel, and a channel
+without assignments refuses the first message that needs a tool.
 
-1. Create an Environment with only the credentials the Agent needs, and set its
-   visibility to **Organization** under **Settings → Environments**. A private
-   Environment cannot serve workspace members.
-2. Bind it to the channel — in the connect dialog under **Tool credentials**, or
-   any time later from the channel card's actions menu (⋯ → **Tool
-   credentials**).
+1. Ask an admin to save an Organization Credential with only the keys the Agent
+   needs, and to let you use it. Only admins create Organization Credentials,
+   and your own Credentials and sign-ins can never be assigned to a channel.
+2. Assign it to the channel, key by key: in the connect dialog under **Tool
+   credentials**, or any time later from the channel card's actions menu (⋯ →
+   **Tool credentials**).
 
-The channel card warns you when the Agent uses tools but the channel has no
-usable bindings — including when a bound Environment is still private.
+You can assign only a Credential you may use, and Stigmer records you as the
+assignment's writer; if you later lose the right to use it, the channel's
+messages stop starting runs and name the assignment. The channel card warns you
+when the Agent uses tools but the channel has no usable assignments.
 
 ## One workspace, one agent per app
 
@@ -186,15 +188,24 @@ spec:
     slug: support-agent
   enabled: true
   slack: {}
-  environment_refs:
-    - kind: environment
-      org: acme-corp
-      slug: support-tools-credentials
+  credentials:
+    - requirement:
+        declarer:
+          mcp_server:
+            kind: mcp_server
+            org: acme-corp
+            slug: support-desk
+        key: SUPPORT_DESK_API_KEY
+      credential:
+        credential:
+          kind: credential
+          org: acme-corp
+          slug: support-tools-5b0e2d7a
 ```
 
 Apply it with `stigmer apply -f channel.yaml`. The manifest manages the
 channel's configuration — which Agent it serves, whether it is on, which
-credentials it binds. The Slack install itself always happens through the
+Credentials it assigns. The Slack install itself always happens through the
 console's connect flow: workspace identity and provider credentials live in the
 channel's status, and applying a manifest never touches them.
 

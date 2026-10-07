@@ -278,11 +278,11 @@ From the boot that read the issuer, every request needs a credential:
   roles: owner, admin, member and viewer. Owners and admins manage the
   Organization's Agents, Skills and MCP Servers and its members. Members use
   what is shared with the Organization and create their own Sessions,
-  Environments and API keys. Viewers only read what is shared. An Agent or Skill
+  Credentials and API keys. Viewers only read what is shared. An Agent or Skill
   marked Private shows up in the library and opens on its page only for the
   person who created it and the Organization's admins, whether it is opened by
   ID or by name (`stigmer get agent acme/helper` answers the same as the page
-  does). Nobody reads another person's conversations, API keys or Environments,
+  does). Nobody reads another person's conversations, API keys or Credentials,
   admins included. These are the same rules Stigmer Cloud enforces, so an Agent
   behaves the same way wherever it runs.
 - **If authentication was already on before 3.16.0, roles were assigned at the
@@ -338,7 +338,7 @@ From the boot that read the issuer, every request needs a credential:
 - Memories recorded before you turned authentication on belong to no signed-in
   person either, and stay hidden.
 - An admin's lists show the Organization's Agents and Skills, not other members'
-  Sessions, Environments or API keys.
+  Sessions, Credentials or API keys.
 
 ## What still needs an API key
 
