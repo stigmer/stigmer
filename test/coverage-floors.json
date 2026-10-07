@@ -28,7 +28,7 @@
     "backend/services/runner": {
       "lines": 86.8,
       "branches": 80.9,
-      "cases": 4888
+      "cases": 4881
     },
     "backend/services/stigmer-server": {
       "lines": 83.5,

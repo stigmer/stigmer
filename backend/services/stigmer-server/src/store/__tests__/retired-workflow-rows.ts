@@ -23,6 +23,7 @@ import type { MessageInitShape } from "@bufbuild/protobuf";
 import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 
 import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiResourceAuditStatusSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
@@ -153,9 +154,11 @@ export function retiredArtifactRow(options: {
  * under the kind string given (`AgentRun` unless a test seeds a store from
  * before the run rename, which wrote `AgentExecution`); with `parent`, the
  * retired AgentRunSpec field 17 naming the workflow run whose step started
- * it, and with `callbackToken`, the retired AgentRunStatus field 10.
- * Without either, these are the bytes the current release writes, the ones
- * a migrated run must equal.
+ * it, and with `callbackToken`, the retired AgentRunStatus field 10. The
+ * run is COMPLETED unless `phase` says otherwise, and `error` and
+ * `completedAt` are stamped on its status when given. Without a parent or a
+ * token, these are the bytes the current release writes, the ones a
+ * migrated run must equal.
  */
 export function agentRunRow(options: {
   readonly id: string;
@@ -165,6 +168,9 @@ export function agentRunRow(options: {
   readonly labels?: Readonly<Record<string, string>>;
   readonly parent?: string;
   readonly callbackToken?: Uint8Array;
+  readonly phase?: RunPhase;
+  readonly error?: string;
+  readonly completedAt?: string;
 }): Uint8Array {
   const run = create(AgentRunSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
@@ -179,7 +185,12 @@ export function agentRunRow(options: {
       target: { case: "sessionId", value: options.sessionId },
       message: "summarise the ticket",
     },
-    status: { todos: { t1: { content: "read the ticket" } } },
+    status: {
+      phase: options.phase ?? RunPhase.RUN_COMPLETED,
+      todos: { t1: { content: "read the ticket" } },
+      ...(options.error !== undefined ? { error: options.error } : {}),
+      ...(options.completedAt !== undefined ? { completedAt: options.completedAt } : {}),
+    },
   });
   if (options.parent !== undefined && run.spec !== undefined) {
     const parent = new BinaryWriter()

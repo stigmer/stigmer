@@ -61,6 +61,7 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import {
   ApprovalMode,
   InteractionMode,
+  RunPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
@@ -102,6 +103,7 @@ import { sessionListIndex } from "../../../domain/session/list-index.js";
 import { WORKFLOW_RETIREMENT_PAGE_SIZE } from "../../workflow-instance-retired.js";
 import {
   AGENT_RUN_RETIRED_PAGE_SIZE,
+  WORKFLOW_CHILD_ENDED_ERROR,
   WORKFLOW_RETIRED_PAGE_SIZE,
 } from "../../workflow-retired.js";
 import {
@@ -2122,9 +2124,25 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             callbackToken: TOKEN,
           }),
         );
+        await insert(
+          client,
+          runKind,
+          "aex_waiting",
+          agentRunRow({
+            id: "aex_waiting",
+            kindString,
+            org: ORG,
+            sessionId: "ses_1",
+            parent: "wex_direct",
+            phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
+          }),
+        );
       }
 
-      /** The state every arm must reach at the current version. */
+      /**
+       * The state every arm must reach at the current version, the unfinished
+       * run a workflow step started ended FAILED with the reason.
+       */
       async function expectRetired(client: pg.Client): Promise<void> {
         expect(await version(client)).toBe(SCHEMA_VERSION_14);
         for (const table of ["resources", "resource_audit", "resource_list_keys", "resource_names"]) {
@@ -2150,6 +2168,13 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         const child = agentRunRow({ id: "aex_child", org: ORG, sessionId: "ses_1", labels: OWN_LABELS });
         expect(await row(client, "agent_run", "aex_plain")).toEqual(plain);
         expect(await row(client, "agent_run", "aex_child")).toEqual(child);
+        const waitingBytes = await row(client, "agent_run", "aex_waiting");
+        expect(waitingBytes, "the unfinished parented run is kept").toBeDefined();
+        const waiting = fromBinary(AgentRunSchema, waitingBytes!);
+        expect(waiting.status?.phase).toBe(RunPhase.RUN_FAILED);
+        expect(waiting.status?.error).toBe(WORKFLOW_CHILD_ENDED_ERROR);
+        expect(Number.isNaN(Date.parse(waiting.status?.completedAt ?? ""))).toBe(false);
+        expect(waiting.spec?.$unknown).toBeUndefined();
 
         // The store the server opens reads each back through the API and
         // finds each through the keys its lists read.
@@ -2179,6 +2204,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           expect(await ids(agentExecutionListIndex, "session", "ses_1")).toEqual([
             "aex_child",
             "aex_plain",
+            "aex_waiting",
           ]);
           expect(await ids(sessionListIndex, "agent", "agt_1")).toEqual(["ses_1"]);
           expect(await ids(iamPolicyListIndex, "principal", "ida_kept")).toEqual([keptGrant.id]);

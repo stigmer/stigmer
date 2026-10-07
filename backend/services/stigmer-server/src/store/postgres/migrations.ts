@@ -1002,6 +1002,8 @@ async function migrateToV13(client: PoolClient): Promise<void> {
  * out of the step, and the transaction makes it whole or nothing.
  */
 async function migrateToV14(client: PoolClient): Promise<void> {
+  // The time an unfinished run a workflow step started ends at.
+  const endedAt = new Date().toISOString();
   const forEachRow = async (
     kind: string,
     size: number,
@@ -1055,7 +1057,7 @@ async function migrateToV14(client: PoolClient): Promise<void> {
   await forEachRow(AGENT_RUN_KIND, AGENT_RUN_RETIRED_PAGE_SIZE, async (row) => {
     let migrated: Uint8Array | undefined;
     try {
-      migrated = migrateAgentRunRow(new Uint8Array(row.data));
+      migrated = migrateAgentRunRow(new Uint8Array(row.data), endedAt);
     } catch (error) {
       throw unreadableRetiredWorkflowRowError(AGENT_RUN_KIND, row.id, error);
     }

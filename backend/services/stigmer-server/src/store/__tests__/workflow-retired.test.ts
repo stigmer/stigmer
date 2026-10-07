@@ -8,6 +8,9 @@
  *   - an agent run a workflow step started loses its retired parent, its
  *     retired task token and the two lineage labels, keeping every other
  *     field and label; each is dropped alone too;
+ *   - an unfinished run a workflow step started ends FAILED with the
+ *     error saying why, completed at the step's time; a finished one keeps
+ *     its phase, and an unfinished run no workflow started is left alone;
  *   - an unknown field the step does not retire is kept;
  *   - an agent run that carries none of them is left alone;
  *   - a grant naming a retired kind as resource or principal is found, and
@@ -19,10 +22,12 @@ import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 import { describe, expect, it } from "vitest";
 
 import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 import {
   RETIRED_WORKFLOW_KINDS,
   RETIRED_WORKFLOW_TABLES,
+  WORKFLOW_CHILD_ENDED_ERROR,
   migrateAgentRunRow,
   policyNamesRetiredWorkflowKind,
   unreadableRetiredWorkflowRowError,
@@ -33,6 +38,7 @@ import { WORKFLOW_LINEAGE_LABELS, agentRunRow } from "./retired-workflow-rows.js
 const ORG = "org_01jz0000000000000000000000";
 const TOKEN = new Uint8Array([0x01, 0x02, 0x03]);
 const OWN_LABELS = { "stigmer.ai/schedule-id": "sch_1", team: "support" };
+const ENDED_AT = "2026-10-07T12:00:00.000Z";
 
 describe("the retired kinds and tables", () => {
   it("are the workflow, the workflow run under both names, the artifact, and the two workflow-only tables", () => {
@@ -60,6 +66,7 @@ describe("migrateAgentRunRow", () => {
         parent: "wex_parent",
         callbackToken: TOKEN,
       }),
+      ENDED_AT,
     );
     expect(migrated).toEqual(
       agentRunRow({
@@ -83,6 +90,7 @@ describe("migrateAgentRunRow", () => {
     expect(
       migrateAgentRunRow(
         agentRunRow({ id: "aex_1", org: ORG, sessionId: "ses_1", ...retired }),
+        ENDED_AT,
       ),
     ).toEqual(agentRunRow({ id: "aex_1", org: ORG, sessionId: "ses_1" }));
   });
@@ -100,7 +108,7 @@ describe("migrateAgentRunRow", () => {
         data: new BinaryWriter().int32(7).finish(),
       },
     ];
-    const migrated = migrateAgentRunRow(toBinary(AgentRunSchema, run));
+    const migrated = migrateAgentRunRow(toBinary(AgentRunSchema, run), ENDED_AT);
     expect(
       fromBinary(AgentRunSchema, migrated!).spec?.$unknown?.map((f) => f.no),
     ).toEqual([40]);
@@ -115,12 +123,49 @@ describe("migrateAgentRunRow", () => {
           sessionId: "ses_1",
           labels: OWN_LABELS,
         }),
+        ENDED_AT,
+      ),
+    ).toBeUndefined();
+  });
+
+  it.each([RunPhase.RUN_PENDING, RunPhase.RUN_IN_PROGRESS, RunPhase.RUN_WAITING_FOR_APPROVAL, RunPhase.RUN_PHASE_UNSPECIFIED])(
+    "ends an unfinished run a workflow step started (phase %s) FAILED, saying why, at the step's time",
+    (phase) => {
+      expect(
+        migrateAgentRunRow(
+          agentRunRow({ id: "aex_child", org: ORG, sessionId: "ses_1", parent: "wex_parent", phase }),
+          ENDED_AT,
+        ),
+      ).toEqual(
+        agentRunRow({
+          id: "aex_child",
+          org: ORG,
+          sessionId: "ses_1",
+          phase: RunPhase.RUN_FAILED,
+          error: WORKFLOW_CHILD_ENDED_ERROR,
+          completedAt: ENDED_AT,
+        }),
+      );
+    },
+  );
+
+  it("keeps the phase of a finished run a workflow step started, and never ends a run no workflow started", () => {
+    expect(
+      migrateAgentRunRow(
+        agentRunRow({ id: "aex_child", org: ORG, sessionId: "ses_1", parent: "wex_parent", phase: RunPhase.RUN_CANCELLED }),
+        ENDED_AT,
+      ),
+    ).toEqual(agentRunRow({ id: "aex_child", org: ORG, sessionId: "ses_1", phase: RunPhase.RUN_CANCELLED }));
+    expect(
+      migrateAgentRunRow(
+        agentRunRow({ id: "aex_1", org: ORG, sessionId: "ses_1", phase: RunPhase.RUN_IN_PROGRESS }),
+        ENDED_AT,
       ),
     ).toBeUndefined();
   });
 
   it("throws on bytes that do not decode", () => {
-    expect(() => migrateAgentRunRow(new Uint8Array([0x22, 0xff]))).toThrow();
+    expect(() => migrateAgentRunRow(new Uint8Array([0x22, 0xff]), ENDED_AT)).toThrow();
   });
 });
 

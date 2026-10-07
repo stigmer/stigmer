@@ -39,9 +39,10 @@
  * afterEach settles every started workflow so none outlives its script
  * window.
  *
- * Follows the runner's golden-e2e precedent: TestWorkflowEnvironment
- * .createLocal (needs the `temporal` CLI on PATH); every test skips
- * gracefully when the local test server cannot start.
+ * Runs on TestWorkflowEnvironment.createLocal, which downloads and caches
+ * its own Temporal CLI dev server; when that server cannot start, every
+ * test skips visibly with the reason printed, inside the test gate too
+ * (no helper here turns a missing server into a failure).
  */
 import { fromJson, toJson, create } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";

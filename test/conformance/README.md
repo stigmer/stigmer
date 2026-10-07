@@ -494,7 +494,7 @@ an unknown id refused through the authorizer's existence probe, gate on it),
 RPC is implemented in both editions; assigning a tag moves it to name exactly
 one version, and apply-time `metadata.version.tag` flows through the same
 single-holder primitive), and
-and `singleOrganization` is `true` only on `local-single-org`, the shipped
+`singleOrganization` is `true` only on `local-single-org`, the shipped
 open-source edition, where the single-organization suite runs (every other
 target spawns or reaches a server with many organizations).
 Capabilities are retired when a surface converges: secret redaction was gated
@@ -598,7 +598,7 @@ from every run. A fixture endpoint is a loopback harness component
 
 ### Execution engine (Class B, `src/suites-execution/`)
 
-The execution domain (AgentRun) is 100% Temporal-gated, so they run on their own config (`vitest.execution.config.ts`,
+The execution domain (AgentRun) is 100% Temporal-gated, so its suites run on their own config (`vitest.execution.config.ts`,
 `test:execution`) rather than the dependency-light CRUD one. This split keeps the
 Class A signal fast (no Temporal/runner).
 

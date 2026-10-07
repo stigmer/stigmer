@@ -21,12 +21,9 @@
 # path list (scripts/ci-lanes.mjs: the runner's own tree, the workspace libs
 # it file:-links, and the root tooling that builds them).
 #
-# No Temporal CLI step: the Temporal-backed suites (the goldens) use
-# @temporalio/testing's TestWorkflowEnvironment, which downloads and manages
-# its OWN test-server binary and never consults a system `temporal` on PATH.
-# Outside the gate a failed download skips them by name; inside it
-# (STIGMER_TEST_GATE=1, below) it fails this job, since the gate provides
-# every dependency its suites need.
+# No Temporal CLI step: the runner's suites start no Temporal server; the
+# Temporal-backed suites are the server's and the conformance execution
+# lane's.
 #
 # Fork concurrency is capped in CI via vitest.config.ts (it keys off the CI env
 # GitHub sets) to avoid oversubscribing the runner with bash/git subprocess

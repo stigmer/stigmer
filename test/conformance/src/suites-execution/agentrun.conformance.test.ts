@@ -37,6 +37,12 @@
 // A turn's dispatch queue is the server's to derive, never a caller's: the
 // retired request field that once named one is read as an unknown field.
 //
+// A run's file reaches a browser through the link getArtifactDownloadUrl
+// mints. Where artifact storage is local, the attachments block below fetches
+// that link from the server's file server: inline by default, an attachment
+// when a download is asked for, and an altered link answered like a missing
+// key.
+//
 // Covered in a sibling file (kept separate because it needs the MCP tool
 // fixture and approval choreography, and this file is already large):
 // - submitApproval / HITL tool approval -> agentrun-approval.conformance.test.ts.
@@ -44,7 +50,7 @@
 // Deliberately out of scope (each needs machinery this suite doesn't build, and
 // is a conscious deferral, not shipped as a thin partial):
 // - recover happy path (needs a genuinely FAILED execution);
-// - usage reports, artifact download/content, subscribe streaming, sub-agents.
+// - usage reports, artifact content, subscribe streaming, sub-agents.
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -997,6 +1003,86 @@ describe("AgentRun conformance — attachments (#285)", () => {
 
     // Leave the background run settled so teardown is quiet.
     await awaitTerminal(clients, execution.metadata!.id);
+  });
+
+  // The local file server, on the wire: the link getArtifactDownloadUrl
+  // mints is fetched as a browser would, with no credentials. Inline by
+  // default (no disposition header), an attachment named by the key's file
+  // name when the caller asks for a download, and the same link with its
+  // signature altered, or with its download name changed, answered 404
+  // exactly as a missing key: the signature covers the key, the expiry and
+  // the download name. Only local artifact storage serves this lane (the
+  // targets with an on-disk store); cloud's links are presigned object-store
+  // URLs, a different contract, so the case reports SKIPPED there.
+  it("[rpc:AgentRunQueryController.getArtifactDownloadUrl] the local file server serves a run's file inline at the minted link, as an attachment when a download is asked for, and answers an altered signature 404 like a missing key", async (ctx) => {
+    if (target.artifactStoreDir === undefined) return ctx.skip();
+    const { org } = await target.provisionTenancy();
+    const agent = await provisionAgent(org, uniqueName("agent-fileserver"));
+
+    const filename = "file-server-proof.txt";
+    const content = new TextEncoder().encode("file-server conformance body\n");
+    const uploaded = await clients.agentExecutionCommand.uploadAttachment(
+      create(UploadAttachmentRequestSchema, { filename, content, contentType: "text/plain" }),
+    );
+
+    mock.enqueue(anthropicText("Received."));
+    const execution = await clients.agentExecutionCommand.create(
+      makeAgentExecution({
+        org,
+        name: uniqueName("aex-fileserver"),
+        agentRef: agentRefOf(agent),
+        message: "Here is a file.",
+        attachments: [{ filename, storageKey: uploaded.storageKey }],
+      }),
+    );
+    const runId = execution.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: runId }));
+
+    const inlineLink = await clients.agentExecutionQuery.getArtifactDownloadUrl({
+      runId,
+      storageKey: uploaded.storageKey,
+    });
+    const inline = await fetch(inlineLink.downloadUrl);
+    expect(inline.status, "the minted link serves the file").toBe(200);
+    expect(inline.headers.get("content-disposition"), "a link minted without a download is served inline").toBeNull();
+    expect(new Uint8Array(await inline.arrayBuffer())).toEqual(content);
+
+    const attachmentLink = await clients.agentExecutionQuery.getArtifactDownloadUrl({
+      runId,
+      storageKey: uploaded.storageKey,
+      asAttachment: true,
+    });
+    const attachment = await fetch(attachmentLink.downloadUrl);
+    expect(attachment.status).toBe(200);
+    expect(attachment.headers.get("content-disposition"), "a download is saved under the key's file name").toBe(
+      `attachment; filename="${filename}"`,
+    );
+    expect(new Uint8Array(await attachment.arrayBuffer())).toEqual(content);
+
+    const minted = new URL(inlineLink.downloadUrl);
+    const missing = await fetch(`${minted.origin}/not-a-stored-key`);
+    expect(missing.status).toBe(404);
+    const notFound = await missing.text();
+
+    const signature = minted.searchParams.get("sig") ?? "";
+    expect(signature, "the minted link carries its signature").not.toBe("");
+    const tampered = new URL(minted);
+    // The first character, never the last: a base64url signature's last
+    // character carries padding bits a decoder may ignore.
+    tampered.searchParams.set("sig", `${signature.startsWith("A") ? "B" : "A"}${signature.slice(1)}`);
+    const renamed = new URL(attachmentLink.downloadUrl);
+    renamed.searchParams.set("download", "renamed.txt");
+    for (const [what, url] of [
+      ["the inline link with its signature altered", tampered],
+      ["the download link with another download name", renamed],
+    ] as const) {
+      const refused = await fetch(url);
+      expect(refused.status, what).toBe(404);
+      expect(await refused.text(), `${what} is answered as a missing key`).toBe(notFound);
+    }
+
+    // Leave the background run settled so teardown is quiet.
+    await awaitTerminal(clients, runId);
   });
 
   // The vision contract, proven at the provider boundary: an image

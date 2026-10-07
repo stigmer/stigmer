@@ -7,9 +7,10 @@
 // each a score in 0..1 and a reason; a verdict whose criteria are exactly the
 // rubric's is read (each criterion with the rubric's weight, the reasoning
 // joined in rubric order, the model the run served) and scored as the
-// weighted mean; a missing, extra or malformed criterion, or a score outside
-// 0..1, refuses the grade as a judge failure with a null score, never a
-// number, and a malformed criterion or out-of-range score is named with its
+// weighted mean; a missing, extra or malformed criterion, a score outside
+// 0..1, or a criterion without a non-empty reason refuses the grade as a
+// judge failure with a null score, never a number, and a malformed
+// criterion, an out-of-range score or a missing reason is named with its
 // value in the refusal; a judge run that failed refuses the grade with the
 // platform's error, and one that was cancelled says so; the judge creates one
 // agent with the rubric on the native harness, every native built-in in its
@@ -127,7 +128,8 @@ describe("verdictOf", () => {
 
   it("refuses a run with no structured output, an extra criterion, a malformed one and a score outside 0..1", () => {
     expect(verdictOf(judged(undefined), RUBRIC).failure?.stage).toBe("judge");
-    const both = { correct_fix: { score: 1, reasoning: "" }, meaningful_test: { score: 1, reasoning: "" } };
+    const both = { correct_fix: { score: 1, reasoning: "ok" }, meaningful_test: { score: 1, reasoning: "ok" } };
+    expect(verdictOf(judged(both), RUBRIC).score, "the well-formed base is read").toBe(1);
     expect(verdictOf(judged({ ...both, style: { score: 1, reasoning: "" } }), RUBRIC).score).toBeNull();
     expect(verdictOf(judged({ ...both, correct_fix: { reasoning: "no score" } }), RUBRIC).score).toBeNull();
     expect(verdictOf(judged({ ...both, correct_fix: 1 }), RUBRIC).score).toBeNull();
@@ -136,7 +138,7 @@ describe("verdictOf", () => {
   });
 
   it("names the criterion whose value is not a score in 0..1, and that value, when the names match", () => {
-    const both = { correct_fix: { score: 1, reasoning: "" }, meaningful_test: { score: 1, reasoning: "" } };
+    const both = { correct_fix: { score: 1, reasoning: "ok" }, meaningful_test: { score: 1, reasoning: "ok" } };
     expect(verdictOf(judged({ ...both, meaningful_test: { score: 1.5, reasoning: "x" } }), RUBRIC).failure).toEqual({
       stage: "judge",
       message: 'the judge\'s criterion "meaningful_test" is {"score":1.5,"reasoning":"x"}, not a score in 0..1 with a reason',
@@ -144,6 +146,25 @@ describe("verdictOf", () => {
     expect(verdictOf(judged({ ...both, correct_fix: "great" }), RUBRIC).failure?.message).toBe(
       'the judge\'s criterion "correct_fix" is "great", not a score in 0..1 with a reason',
     );
+  });
+
+  it("refuses a criterion without a non-empty string reason, naming it and its value, as the schema requires one", () => {
+    const both = { correct_fix: { score: 1, reasoning: "ok" }, meaningful_test: { score: 1, reasoning: "ok" } };
+    expect(verdictOf(judged({ ...both, meaningful_test: { score: 0.5 } }), RUBRIC)).toEqual({
+      score: null,
+      criteria: [],
+      reasoning: "",
+      judge_model: "claude-sonnet-4-6",
+      outcome: "failed",
+      failure: {
+        stage: "judge",
+        message: 'the judge\'s criterion "meaningful_test" is {"score":0.5}, not a score in 0..1 with a reason',
+      },
+    });
+    expect(verdictOf(judged({ ...both, correct_fix: { score: 1, reasoning: "" } }), RUBRIC).failure?.message).toBe(
+      'the judge\'s criterion "correct_fix" is {"score":1,"reasoning":""}, not a score in 0..1 with a reason',
+    );
+    expect(verdictOf(judged({ ...both, correct_fix: { score: 1, reasoning: 7 } }), RUBRIC).score).toBeNull();
   });
 
   it("a judge run that failed refuses the grade with the platform's error", () => {

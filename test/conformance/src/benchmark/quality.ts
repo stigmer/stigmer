@@ -21,16 +21,21 @@
 // `read_file`, which the runner keeps bound with `Read` excluded but confines
 // to the platform's own content and the run's offloaded outputs, never the
 // workspace (the runner's middleware/tool-scope.ts). The run also approves
-// nothing, so a call past both would park the run and the grade is refused as
-// a timeout instead of running a tool on that text.
+// nothing, so a mutating call that got past both (a write, delete or shell
+// built-in, the categories the approval gate asks about) would park the run
+// and the grade is refused as a timeout instead of running it on that text.
+// The gate asks nothing of a read-only built-in, so it is the deny-list and
+// that confinement, not the gate, that keep the judge from reading anything
+// else (the runner's shared/approval-policy.ts).
 //
 // The verdict is read STRICTLY, because a model's structured reply can still
 // miss the schema (the runner's extraction tiers fall back to the reply's
 // text), and a skipped criterion read as a lower grade would silently change
 // the scale. So the criteria returned must be exactly the rubric's, each a
-// score in 0..1. Otherwise the grade is refused (`failure.stage: "judge"`,
-// `score: null`), never read as a number; the refusal names the criteria
-// returned, or the one criterion whose value is not a score and that value.
+// score in 0..1 with a non-empty reason, as the schema requires. Otherwise
+// the grade is refused (`failure.stage: "judge"`, `score: null`), never read
+// as a number; the refusal names the criteria returned, or the first
+// criterion whose value is not a score with a reason and that value.
 // The score is the benchmark's own:
 // the mean of the criteria's scores weighted by the task's weights
 // (quality-tasks.ts). The judge model on the grade is the one the run's usage
@@ -225,7 +230,8 @@ function gradeOf(value: JsonValue | undefined): { score: number; reasoning: stri
   if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
   const { score, reasoning } = value;
   if (typeof score !== "number" || score < 0 || score > 1) return undefined;
-  return { score, reasoning: typeof reasoning === "string" ? reasoning : "" };
+  if (typeof reasoning !== "string" || reasoning === "") return undefined;
+  return { score, reasoning };
 }
 
 function refused(message: string, outcome: SampleOutcome): Verdict {

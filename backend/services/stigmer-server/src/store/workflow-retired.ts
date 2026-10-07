@@ -32,9 +32,15 @@
  * with the two lineage labels the workflow runner stamped
  * (`stigmer.ai/workflow-execution-id`, `stigmer.ai/workflow-task`). Every
  * other field is kept, and a run that carries none of them is left byte
- * for byte as it is. Its `updated_at` is left alone: no list key of a run
- * reads what changes, so the list index stays proven. Audit rows of a run
- * are not read: runs are not versioned.
+ * for byte as it is. A run a workflow step started that had not finished
+ * cannot resume (its parent leaves with this step, and its Temporal history
+ * replays only under code that signals that parent), so it ends here:
+ * FAILED, with `WORKFLOW_CHILD_ENDED_ERROR` saying why and `completed_at`
+ * the step's time, which also lets its run credential lapse after the
+ * terminal grace (runnerauth/bound-execution.ts). A finished run keeps its
+ * phase. Its `updated_at` is left alone: no list key of a run reads what
+ * changes (the run index keys the session only), so the list index stays
+ * proven. Audit rows of a run are not read: runs are not versioned.
  *
  * An undecodable row fails the step, the rule the other data migrations
  * keep (public-visibility-retired.ts): the driver's transaction rolls back
@@ -43,6 +49,7 @@
 import { fromBinary, toBinary } from "@bufbuild/protobuf";
 
 import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 
 /**
@@ -87,11 +94,29 @@ const WORKFLOW_LINEAGE_LABELS: ReadonlyArray<string> = [
 ];
 
 /**
+ * The phases a run had finished in when this step shipped, held here rather
+ * than read from the live domain so the step does what it did whatever
+ * phases a later release adds.
+ */
+const FINISHED_RUN_PHASES: ReadonlySet<RunPhase> = new Set([
+  RunPhase.RUN_COMPLETED,
+  RunPhase.RUN_FAILED,
+  RunPhase.RUN_CANCELLED,
+  RunPhase.RUN_TERMINATED,
+]);
+
+/** The error an unfinished run a workflow step started ends with. */
+export const WORKFLOW_CHILD_ENDED_ERROR =
+  "This run was started by a workflow step. Workflows were removed from Stigmer, so it cannot resume.";
+
+/**
  * The migrated bytes of one agent run row, or undefined when it carries
  * neither retired field and neither lineage label (the driver then leaves
- * its bytes as they are). Throws when the bytes do not decode.
+ * its bytes as they are). `endedAt` is the step's time (RFC 3339), stamped
+ * as `completed_at` on an unfinished run a workflow step started. Throws
+ * when the bytes do not decode.
  */
-export function migrateAgentRunRow(data: Uint8Array): Uint8Array | undefined {
+export function migrateAgentRunRow(data: Uint8Array, endedAt: string): Uint8Array | undefined {
   const run = fromBinary(AgentRunSchema, data);
   const spec = run.spec;
   const status = run.status;
@@ -107,6 +132,11 @@ export function migrateAgentRunRow(data: Uint8Array): Uint8Array | undefined {
   );
   if (!parentHeld && !tokenHeld && lineage.length === 0) {
     return undefined;
+  }
+  if (parentHeld && status !== undefined && !FINISHED_RUN_PHASES.has(status.phase)) {
+    status.phase = RunPhase.RUN_FAILED;
+    status.error = WORKFLOW_CHILD_ENDED_ERROR;
+    status.completedAt = endedAt;
   }
   if (spec !== undefined && parentHeld) {
     spec.$unknown = (spec.$unknown ?? []).filter(

@@ -68,6 +68,7 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import {
   ApprovalMode,
   InteractionMode,
+  RunPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -112,6 +113,7 @@ import { WORKFLOW_RETIREMENT_PAGE_SIZE } from "../../workflow-instance-retired.j
 import {
   AGENT_RUN_RETIRED_PAGE_SIZE,
   RETIRED_WORKFLOW_KINDS,
+  WORKFLOW_CHILD_ENDED_ERROR,
   WORKFLOW_RETIRED_PAGE_SIZE,
 } from "../../workflow-retired.js";
 import {
@@ -2030,7 +2032,11 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
     ).run(`${ORG}:key-1`, ORG, "2026-10-05T00:00:00Z", "2026-10-06T00:00:00Z");
   }
 
-  /** A plain agent run and one a workflow step started, under the kind string given. */
+  /**
+   * A plain agent run, one a workflow step started, and one a workflow step
+   * started that was still waiting on an approval, under the kind string
+   * given.
+   */
   function seedAgentRuns(
     db: DatabaseSync,
     kind: "agent_execution" | "agent_run",
@@ -2051,13 +2057,27 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
         callbackToken: TOKEN,
       }),
     );
+    insert(
+      db,
+      kind,
+      "aex_waiting",
+      agentRunRow({
+        id: "aex_waiting",
+        kindString,
+        org: ORG,
+        sessionId: "ses_1",
+        parent: "wex_direct",
+        phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
+      }),
+    );
   }
 
   /**
    * The state every arm reaches at head: no row of a retired kind in any
    * table keyed by kind, no grant naming one (their history kept), both
    * workflow tables gone, and the agent, its session and both runs read
-   * back unchanged, the parented run without what the workflow left on it.
+   * back unchanged, the parented run without what the workflow left on it,
+   * and the unfinished parented run ended FAILED with the reason.
    */
   async function expectRetired(dbPath: string): Promise<DatabaseSync> {
     const store = SqliteStore.open(dbPath, undefined, {
@@ -2111,6 +2131,13 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
     });
     expect(data(db, "agent_run", "aex_plain")).toEqual(plain);
     expect(data(db, "agent_run", "aex_parented")).toEqual(parented);
+    const waitingBytes = data(db, "agent_run", "aex_waiting");
+    expect(waitingBytes, "the unfinished parented run is kept").toBeDefined();
+    const waiting = fromBinary(AgentRunSchema, waitingBytes!);
+    expect(waiting.status?.phase).toBe(RunPhase.RUN_FAILED);
+    expect(waiting.status?.error).toBe(WORKFLOW_CHILD_ENDED_ERROR);
+    expect(Number.isNaN(Date.parse(waiting.status?.completedAt ?? ""))).toBe(false);
+    expect(waiting.spec?.$unknown).toBeUndefined();
     expect(
       await store.getResource(ApiResourceKind.agent_run, "aex_parented", AgentRunSchema),
     ).toEqual(fromBinary(AgentRunSchema, parented));
@@ -2125,7 +2152,7 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
       )
         .map((r) => r.id)
         .sort(),
-    ).toEqual(["aex_parented", "aex_plain"]);
+    ).toEqual(["aex_parented", "aex_plain", "aex_waiting"]);
     return db;
   }
 

@@ -984,6 +984,8 @@ function migrateToV18(db: DatabaseSync): void {
  * it names.
  */
 function migrateToV19(db: DatabaseSync): void {
+  // The time an unfinished run a workflow step started ends at.
+  const endedAt = new Date().toISOString();
   const page = db.prepare(
     `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
   );
@@ -1037,7 +1039,7 @@ function migrateToV19(db: DatabaseSync): void {
   for (const row of pages(AGENT_RUN_KIND, AGENT_RUN_RETIRED_PAGE_SIZE)) {
     let migrated: Uint8Array | undefined;
     try {
-      migrated = migrateAgentRunRow(row.data);
+      migrated = migrateAgentRunRow(row.data, endedAt);
     } catch (error) {
       throw unreadableRetiredWorkflowRowError(AGENT_RUN_KIND, row.id, error);
     }
