@@ -20,8 +20,9 @@
  *     invalid level and not a permission question; an unprovisioned
  *     subject writes nothing until provisioned. The LIST lanes are a member's
  *     lists: an outsider lists nothing of an organization they hold no
- *     row in; environments and API keys are their owner's even to the
- *     organization's owner; the library (a search) omits a private agent
+ *     row in; a person's credentials and API keys are their owner's even
+ *     to the organization's owner, while the organization's own credential
+ *     is its admins'; the library (a search) omits a private agent
  *     for a member; the enumeration lanes answer through the scope; an
  *     unprovisioned subject's lists are empty and become theirs once
  *     provisioned.
@@ -69,8 +70,8 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
-import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
-import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
+import { CredentialCommandController } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/command_pb";
+import { CredentialQueryController } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/query_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -121,14 +122,20 @@ function apiKeyInput(name: string) {
   };
 }
 
-function environmentInput(name: string, org: string = ORG) {
+/** A credential the caller saves for themselves (`person`) or for the organization (`org`); "" names the caller or the credential's organization. */
+function credentialInput(
+  name: string,
+  org: string = ORG,
+  owner: "person" | "org" = "person",
+) {
   return {
     apiVersion: "agentic.stigmer.ai/v1",
-    kind: "Environment",
+    kind: "Credential",
     metadata: { name, org },
     spec: {
+      owner: { case: owner, value: "" },
       description: name,
-      data: { PLAIN_KEY: { value: "plain", isSecret: false, description: "" } },
+      fields: { PLAIN_KEY: { value: "plain", plain: true, description: "" } },
     },
   };
 }
@@ -434,9 +441,10 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
   describe("the list lanes (the built-in ListReadScope)", () => {
     let founderKey: string;
     let memberKey: string;
-    let founderEnvironment: string;
-    let memberEnvironment: string;
-    let otherOrgEnvironment: string;
+    let founderCredential: string;
+    let orgCredential: string;
+    let memberCredential: string;
+    let otherOrgCredential: string;
 
     beforeAll(async () => {
       founderKey = (
@@ -449,57 +457,62 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
           apiKeyInput("member key"),
         )
       ).metadata!.id;
-      const founderEnvironments = createClient(
-        EnvironmentCommandController,
+      const founderCredentials = createClient(
+        CredentialCommandController,
         asFounder(),
       );
-      founderEnvironment = (
-        await founderEnvironments.create(environmentInput("founder env"))
+      founderCredential = (
+        await founderCredentials.create(credentialInput("founder cred"))
       ).metadata!.id;
-      otherOrgEnvironment = (
-        await founderEnvironments.create(
-          environmentInput("other org env", OTHER_ORG),
+      orgCredential = (
+        await founderCredentials.create(
+          credentialInput("org cred", ORG, "org"),
         )
       ).metadata!.id;
-      // `can_create_environment` is `member`: a member's own credential
-      // store, the organization's admins never read it.
-      memberEnvironment = (
-        await createClient(EnvironmentCommandController, asMember()).create(
-          environmentInput("member env"),
+      otherOrgCredential = (
+        await founderCredentials.create(
+          credentialInput("other org cred", OTHER_ORG),
+        )
+      ).metadata!.id;
+      // `can_create_credential` is `member`: a member's own credential,
+      // the organization's admins never reach it.
+      memberCredential = (
+        await createClient(CredentialCommandController, asMember()).create(
+          credentialInput("member cred"),
         )
       ).metadata!.id;
     });
 
     it("an OUTSIDER lists nothing of an organization they hold no row in — the empty list, never an error", async () => {
       const list = await createClient(
-        EnvironmentQueryController,
+        CredentialQueryController,
         asMember(),
       ).list({ org: OTHER_ORG });
       expect(list.items).toEqual([]);
       // The positive beside the negative: the founder, its owner, lists it.
       const founders = await createClient(
-        EnvironmentQueryController,
+        CredentialQueryController,
         asFounder(),
       ).list({ org: OTHER_ORG });
-      expect(founders.items.map((e) => e.metadata?.id)).toEqual([
-        otherOrgEnvironment,
+      expect(founders.items.map((c) => c.metadata?.id)).toEqual([
+        otherOrgCredential,
       ]);
     });
 
-    it("environments are their owner's: the founder — the organization's owner — does NOT list a member's, and the member does not list the founder's", async () => {
+    it("a person's credentials are their own: the founder — the organization's owner — does NOT list a member's, and the member lists neither the founder's nor, ungranted, the organization's", async () => {
       const founders = await createClient(
-        EnvironmentQueryController,
+        CredentialQueryController,
         asFounder(),
       ).list({ org: ORG });
-      expect(founders.items.map((e) => e.metadata?.id)).toEqual([
-        founderEnvironment,
-      ]);
+      expect(founders.items.map((c) => c.metadata?.id).sort()).toEqual(
+        [founderCredential, orgCredential].sort(),
+      );
       const members = await createClient(
-        EnvironmentQueryController,
+        CredentialQueryController,
         asMember(),
       ).list({ org: ORG });
-      expect(members.items.map((e) => e.metadata?.id)).toEqual([
-        memberEnvironment,
+      expect(members.items.map((c) => c.metadata?.id)).toEqual([
+        memberCredential,
       ]);
     });
 
@@ -547,22 +560,22 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
     });
 
     it("an unprovisioned subject's lists are empty, and become theirs after `provisionMyAccount`", async () => {
-      const visitorEnvironments = createClient(
-        EnvironmentQueryController,
+      const visitorCredentials = createClient(
+        CredentialQueryController,
         asVisitor(),
       );
-      expect((await visitorEnvironments.list({ org: ORG })).items).toEqual([]);
+      expect((await visitorCredentials.list({ org: ORG })).items).toEqual([]);
       await createClient(
         IdentityAccountCommandController,
         asVisitor(),
       ).provisionMyAccount({});
       const own = await createClient(
-        EnvironmentCommandController,
+        CredentialCommandController,
         asVisitor(),
-      ).create(environmentInput("visitor env"));
+      ).create(credentialInput("visitor cred"));
       expect(
-        (await visitorEnvironments.list({ org: ORG })).items.map(
-          (e) => e.metadata?.id,
+        (await visitorCredentials.list({ org: ORG })).items.map(
+          (c) => c.metadata?.id,
         ),
       ).toEqual([own.metadata!.id]);
     });
@@ -669,15 +682,15 @@ describe("built-in authorizer (composed server, trusted-local: the permissive de
     await createClient(AgentCommandController, anonymous).create(
       agentInput("Second Laptop Agent", ApiResourceVisibility.visibility_org),
     );
-    const environments = createClient(EnvironmentCommandController, anonymous);
-    await environments.create(environmentInput("laptop env one"));
-    await environments.create(environmentInput("laptop env two"));
-    const list = await createClient(EnvironmentQueryController, anonymous).list(
+    const credentials = createClient(CredentialCommandController, anonymous);
+    await credentials.create(credentialInput("laptop cred one"));
+    await credentials.create(credentialInput("laptop cred two", ORG, "org"));
+    const list = await createClient(CredentialQueryController, anonymous).list(
       { org: ORG },
     );
-    expect(list.items.map((e) => e.metadata?.name).sort()).toEqual([
-      "laptop env one",
-      "laptop env two",
+    expect(list.items.map((c) => c.metadata?.name).sort()).toEqual([
+      "laptop cred one",
+      "laptop cred two",
     ]);
     const search = await createClient(SearchService, anonymous).search({
       kinds: [ApiResourceKind.agent],
@@ -762,7 +775,7 @@ describe("built-in list scope (two boots, one seed — the scope is the only var
   interface Readout {
     readonly search: string[];
     readonly keys: string[];
-    readonly environments: string[];
+    readonly credentials: string[];
     readonly recents: string[];
     readonly summaryActive: number;
   }
@@ -809,8 +822,8 @@ describe("built-in list scope (two boots, one seed — the scope is the only var
     await createClient(ApiKeyCommandController, founder).create(
       apiKeyInput("scope key"),
     );
-    await createClient(EnvironmentCommandController, founder).create(
-      environmentInput("scope env"),
+    await createClient(CredentialCommandController, founder).create(
+      credentialInput("scope cred"),
     );
   }
 
@@ -821,8 +834,8 @@ describe("built-in list scope (two boots, one seed — the scope is the only var
       org: ORG,
     });
     const keys = await createClient(ApiKeyQueryController, founder).findAll({});
-    const environments = await createClient(
-      EnvironmentQueryController,
+    const credentials = await createClient(
+      CredentialQueryController,
       founder,
     ).list({ org: ORG });
     const recents = await createClient(
@@ -836,8 +849,8 @@ describe("built-in list scope (two boots, one seed — the scope is the only var
     return {
       search: search.entries.map((e) => e.name).sort(),
       keys: keys.entries.map((k) => k.metadata?.name ?? "").sort(),
-      environments: environments.items
-        .map((e) => e.metadata?.name ?? "")
+      credentials: credentials.items
+        .map((c) => c.metadata?.name ?? "")
         .sort(),
       recents: recents.entries.map((e) => e.id).sort(),
       summaryActive: summary.activeCount,
@@ -881,7 +894,7 @@ describe("built-in list scope (two boots, one seed — the scope is the only var
     // Not vacuous: the seed is visible through every lane read.
     expect(afterReadout.search).toEqual(["Scoped Org Agent", "Scoped Private Agent"]);
     expect(afterReadout.keys).toEqual(["scope key"]);
-    expect(afterReadout.environments).toEqual(["scope env"]);
+    expect(afterReadout.credentials).toEqual(["scope cred"]);
   });
 });
 

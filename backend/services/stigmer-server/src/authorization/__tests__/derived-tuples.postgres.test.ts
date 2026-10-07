@@ -171,25 +171,33 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
     ).toEqual(["memory:memory-1#organization@organization:acme"]);
   });
 
-  it("an environment carries its creator tuple and an org-viewer at org level, and nothing beyond its org ceiling", () => {
+  it("a person's credential links its owner from the spec and nothing else: no creator owner, no org-owned link, no viewer at any level", () => {
+    for (const visibility of [
+      ApiResourceVisibility.visibility_private,
+      ApiResourceVisibility.visibility_org,
+    ]) {
+      expect(
+        derivedFor("credential", {
+          visibility,
+          createdBy: "ida_dave",
+          spec: { owner: { case: "person", value: "ida_carol" } },
+        }),
+      ).toEqual([
+        "credential:credential-1#organization@organization:acme",
+        "credential:credential-1#owner@identity_account:ida_carol",
+      ]);
+    }
+  });
+
+  it("an organization's credential links org_owned to its organization and has no owner, whoever created it", () => {
     expect(
-      derivedFor("environment", {
-        visibility: ApiResourceVisibility.visibility_org,
+      derivedFor("credential", {
+        createdBy: "ida_carol",
+        spec: { owner: { case: "org", value: "acme" } },
       }),
     ).toEqual([
-      "environment:environment-1#organization@organization:acme",
-      "environment:environment-1#owner@identity_account:ida_carol",
-      "environment:environment-1#creator@identity_account:ida_carol",
-      "environment:environment-1#viewer@organization:acme#viewer",
-    ]);
-    expect(
-      derivedFor("environment", {
-        visibility: ApiResourceVisibility.visibility_child_orgs,
-      }),
-    ).toEqual([
-      "environment:environment-1#organization@organization:acme",
-      "environment:environment-1#owner@identity_account:ida_carol",
-      "environment:environment-1#creator@identity_account:ida_carol",
+      "credential:credential-1#organization@organization:acme",
+      "credential:credential-1#org_owned@organization:acme",
     ]);
   });
 
@@ -229,6 +237,7 @@ const SEEDED_KINDS: ReadonlyArray<ApiResourceKind> = [
   ApiResourceKind.agent,
   ApiResourceKind.identity_account,
   ApiResourceKind.team,
+  ApiResourceKind.credential,
 ];
 
 afterAll(dropPostgresFixture);
@@ -424,6 +433,82 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             "child_org",
           ),
         ).toEqual([]);
+      });
+
+      it("a stored credential answers by its owner: a person's is theirs alone, an organization's is its admins' and its granted users' to use, and nobody reads an organization's secrets", async () => {
+        const credential = storedDeclaration("credential");
+        const save = (id: string, owner: { case: "person" | "org"; value: string }) =>
+          opened.store.saveResource(
+            ApiResourceKind.credential,
+            id,
+            credential.schema,
+            fixtureRow(credential, {
+              id,
+              org: "acme",
+              visibility: ApiResourceVisibility.visibility_private,
+              createdBy: owner.case === "person" ? owner.value : ROOT.accountId,
+              spec: { owner },
+            }),
+          );
+        await save("cred_dave", { case: "person", value: DAVE.accountId });
+        await save("cred_org", { case: "org", value: "acme" });
+        const check = (
+          person: Person,
+          object: string,
+          relation: string,
+        ): Promise<boolean> =>
+          checkRelation(
+            { model: builtInModel, source: sourceFor(person) },
+            parseObjectRef(object),
+            relation,
+            person,
+          );
+
+        // A person's credential: its owner uses and reveals it; the
+        // organization's owner — an admin — reaches nothing of it.
+        expect(await check(DAVE, "credential:cred_dave", "can_use")).toBe(true);
+        expect(
+          await check(DAVE, "credential:cred_dave", "can_read_secrets"),
+        ).toBe(true);
+        for (const relation of [
+          "can_use",
+          "can_view",
+          "can_edit",
+          "can_delete",
+          "can_read_secrets",
+          "can_grant_access",
+        ]) {
+          expect(
+            await check(ROOT, "credential:cred_dave", relation),
+            relation,
+          ).toBe(false);
+        }
+
+        // An organization's credential: the admin uses and edits it and
+        // never reveals it; a member holds nothing without a grant.
+        expect(await check(ROOT, "credential:cred_org", "can_use")).toBe(true);
+        expect(await check(ROOT, "credential:cred_org", "can_edit")).toBe(true);
+        expect(
+          await check(ROOT, "credential:cred_org", "can_read_secrets"),
+        ).toBe(false);
+        expect(await check(DAVE, "credential:cred_org", "can_use")).toBe(false);
+
+        // A `user` grant lets the member use it, and no more.
+        await grant(
+          counted.policies,
+          triple(
+            { kind: "identity_account", id: DAVE.accountId },
+            "user",
+            { kind: "credential", id: "cred_org" },
+          ),
+        );
+        expect(await check(DAVE, "credential:cred_org", "can_use")).toBe(true);
+        expect(await check(DAVE, "credential:cred_org", "can_edit")).toBe(
+          false,
+        );
+        expect(
+          await check(DAVE, "credential:cred_org", "can_read_secrets"),
+        ).toBe(false);
       });
 
       it("an identity_account object is read through the account PORT, so a person owns their own row wherever accounts live", async () => {

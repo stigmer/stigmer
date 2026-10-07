@@ -4,14 +4,14 @@
  * codec (write version v9, so every sealed value has recordable backing
  * state) proves, through real gRPC calls, that:
  *
- *   - the three delete chains (environment, oauthapp, channelapp)
+ *   - the three delete chains (credential, oauthapp, channelapp)
  *     destroy exactly the doomed resource's sealed values;
- *   - the environment update chain destroys ONLY dropped keys — a
- *     rotated key keeps its backing state (superseded versions age out
+ *   - the credential update chain destroys ONLY dropped fields — a
+ *     rotated field keeps its backing state (superseded versions age out
  *     via the store's retention, the Java posture), and marker-preserved
- *     keys are untouched;
- *   - removeVariables destroys the removed keys and ignores unknowns;
- *     the updateVariables merge lane destroys nothing;
+ *     fields are untouched;
+ *   - removeFields destroys the removed fields and ignores unknowns;
+ *     the setFields merge lane destroys nothing;
  *   - a destroy failure NEVER fails the request (best-effort after the
  *     store write);
  *   - the composed facade rides ComposedServer.secrets
@@ -40,8 +40,9 @@ import {
 
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
-import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
+import { CredentialSchema } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/api_pb";
+import type { Credential } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/api_pb";
+import { CredentialCommandController } from "@stigmer/protos/ai/stigmer/agentic/credential/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/command_pb";
@@ -94,7 +95,7 @@ const codec = new RecordingCodec();
 
 let server: ComposedServer;
 let dir: string;
-let envCommand: Client<typeof EnvironmentCommandController>;
+let credentialCommand: Client<typeof CredentialCommandController>;
 let oauthCommand: Client<typeof OAuthAppCommandController>;
 let channelCommand: Client<typeof ChannelAppCommandController>;
 
@@ -129,7 +130,7 @@ beforeAll(async () => {
     baseUrl: `http://127.0.0.1:${port}`,
   });
   await seedOrganizations(transport, [ORG]);
-  envCommand = createClient(EnvironmentCommandController, transport);
+  credentialCommand = createClient(CredentialCommandController, transport);
   oauthCommand = createClient(OAuthAppCommandController, transport);
   channelCommand = createClient(ChannelAppCommandController, transport);
 });
@@ -146,53 +147,71 @@ beforeEach(() => {
 });
 
 let counter = 0;
-function envInput(
-  data: Record<string, { value: string; isSecret: boolean }>,
-  name?: string,
-) {
+type FieldsInput = Record<string, { value: string; plain: boolean }>;
+
+/** An organization's credential holding `fields` (the posture has one caller, so the organization owns it). */
+function credentialInput(fields: FieldsInput) {
   counter += 1;
   return {
     apiVersion: "agentic.stigmer.ai/v1",
-    kind: "Environment",
-    metadata: { name: name ?? `Cleanup Env ${counter}`, org: ORG },
-    spec: { description: "secret-cleanup composed pin", data },
+    kind: "Credential",
+    metadata: { name: `Cleanup Credential ${counter}`, org: ORG },
+    spec: {
+      owner: { case: "org" as const, value: "" },
+      description: "secret-cleanup composed pin",
+      fields,
+    },
   };
 }
 
-async function storedEnvData(id: string): Promise<Record<string, string>> {
-  const env = await server.store.getResource(
-    ApiResourceKind.environment,
+/** The same credential as `created`, its fields replaced by `fields`. */
+function withFields(created: Credential, fields: FieldsInput) {
+  return {
+    apiVersion: created.apiVersion,
+    kind: created.kind,
+    metadata: created.metadata,
+    spec: {
+      owner: created.spec?.owner,
+      description: created.spec?.description ?? "",
+      fields,
+    },
+  };
+}
+
+async function storedFields(id: string): Promise<Record<string, string>> {
+  const credential = await server.store.getResource(
+    ApiResourceKind.credential,
     id,
-    EnvironmentSchema,
+    CredentialSchema,
   );
   return Object.fromEntries(
-    Object.entries(env.spec?.data ?? {}).map(([k, v]) => [k, v.value]),
+    Object.entries(credential.spec?.fields ?? {}).map(([k, v]) => [k, v.value]),
   );
 }
 
 describe("the composed facade exposure", () => {
   it("ComposedServer.secrets is the instance the domains sealed with", async () => {
-    const created = await envCommand.create(
-      envInput({ TOKEN: { value: "open-sesame", isSecret: true } }),
+    const created = await credentialCommand.create(
+      credentialInput({ TOKEN: { value: "open-sesame", plain: false } }),
     );
-    const stored = await storedEnvData(created.metadata!.id);
+    const stored = await storedFields(created.metadata!.id);
     expect(stored["TOKEN"]).toMatch(/^enc:v9:/);
     expect(await server.secrets.decrypt(stored["TOKEN"]!)).toBe("open-sesame");
   });
 });
 
 describe("delete chains destroy sealed backing state", () => {
-  it("environment delete destroys every sealed value, never the plain ones", async () => {
-    const created = await envCommand.create(
-      envInput({
-        FIRST: { value: "secret-one", isSecret: true },
-        SECOND: { value: "secret-two", isSecret: true },
-        PLAIN: { value: "visible", isSecret: false },
+  it("credential delete destroys every sealed value, never the plain ones", async () => {
+    const created = await credentialCommand.create(
+      credentialInput({
+        FIRST: { value: "secret-one", plain: false },
+        SECOND: { value: "secret-two", plain: false },
+        PLAIN: { value: "visible", plain: true },
       }),
     );
-    const stored = await storedEnvData(created.metadata!.id);
+    const stored = await storedFields(created.metadata!.id);
 
-    await envCommand.delete({ resourceId: created.metadata!.id });
+    await credentialCommand.delete({ resourceId: created.metadata!.id });
 
     expect([...codec.deleted].sort()).toEqual(
       [stored["FIRST"]!, stored["SECOND"]!].sort(),
@@ -263,96 +282,91 @@ describe("delete chains destroy sealed backing state", () => {
   });
 
   it("a destroy failure never fails the delete (best-effort after the row is gone)", async () => {
-    const created = await envCommand.create(
-      envInput({ DOOMED: { value: "secret", isSecret: true } }),
+    const created = await credentialCommand.create(
+      credentialInput({ DOOMED: { value: "secret", plain: false } }),
     );
     codec.failNext.push(new Error("vault is down"));
 
     await expect(
-      envCommand.delete({ resourceId: created.metadata!.id }),
+      credentialCommand.delete({ resourceId: created.metadata!.id }),
     ).resolves.toBeDefined();
 
     await expect(
       server.store.getResource(
-        ApiResourceKind.environment,
+        ApiResourceKind.credential,
         created.metadata!.id,
-        EnvironmentSchema,
+        CredentialSchema,
       ),
     ).rejects.toBeInstanceOf(ResourceNotFoundError);
     expect(codec.deleted).toEqual([]);
   });
 });
 
-describe("environment update and variable lanes", () => {
-  it("update destroys ONLY dropped keys; marker-preserved keys are untouched", async () => {
-    const name = `Cleanup Env Drop ${++counter}`;
-    const created = await envCommand.create(
-      envInput(
-        {
-          DROPPED: { value: "goes-away", isSecret: true },
-          KEPT: { value: "stays", isSecret: true },
-        },
-        name,
-      ),
+describe("credential update and field lanes", () => {
+  it("update destroys ONLY dropped fields; marker-preserved fields are untouched", async () => {
+    const created = await credentialCommand.create(
+      credentialInput({
+        DROPPED: { value: "goes-away", plain: false },
+        KEPT: { value: "stays", plain: false },
+      }),
     );
-    const before = await storedEnvData(created.metadata!.id);
+    const before = await storedFields(created.metadata!.id);
 
-    await envCommand.update(
-      envInput({ KEPT: { value: REDACTED_MARKER, isSecret: true } }, name),
+    await credentialCommand.update(
+      withFields(created, { KEPT: { value: REDACTED_MARKER, plain: false } }),
     );
 
     expect(codec.deleted).toEqual([before["DROPPED"]!]);
-    const after = await storedEnvData(created.metadata!.id);
+    const after = await storedFields(created.metadata!.id);
     expect(after["KEPT"]).toBe(before["KEPT"]);
     expect(after["DROPPED"]).toBeUndefined();
   });
 
-  it("a rotated key is NOT a drop — its old backing state survives", async () => {
-    const name = `Cleanup Env Rotate ${++counter}`;
-    const created = await envCommand.create(
-      envInput({ KEY: { value: "old-secret", isSecret: true } }, name),
+  it("a rotated field is NOT a drop — its old backing state survives", async () => {
+    const created = await credentialCommand.create(
+      credentialInput({ KEY: { value: "old-secret", plain: false } }),
     );
 
-    await envCommand.update(
-      envInput({ KEY: { value: "new-secret", isSecret: true } }, name),
+    await credentialCommand.update(
+      withFields(created, { KEY: { value: "new-secret", plain: false } }),
     );
 
     expect(codec.deleted).toEqual([]);
-    const after = await storedEnvData(created.metadata!.id);
+    const after = await storedFields(created.metadata!.id);
     expect(await server.secrets.decrypt(after["KEY"]!)).toBe("new-secret");
   });
 
-  it("removeVariables destroys the removed keys, ignoring unknown keys", async () => {
-    const created = await envCommand.create(
-      envInput({
-        REMOVED: { value: "goes-away", isSecret: true },
-        SURVIVOR: { value: "stays", isSecret: true },
+  it("removeFields destroys the removed fields, ignoring unknown names", async () => {
+    const created = await credentialCommand.create(
+      credentialInput({
+        REMOVED: { value: "goes-away", plain: false },
+        SURVIVOR: { value: "stays", plain: false },
       }),
     );
-    const before = await storedEnvData(created.metadata!.id);
+    const before = await storedFields(created.metadata!.id);
 
-    await envCommand.removeVariables({
-      environmentId: created.metadata!.id,
-      keys: ["REMOVED", "GHOST"],
+    await credentialCommand.removeFields({
+      credentialId: created.metadata!.id,
+      fields: ["REMOVED", "GHOST"],
     });
 
     expect(codec.deleted).toEqual([before["REMOVED"]!]);
-    const after = await storedEnvData(created.metadata!.id);
+    const after = await storedFields(created.metadata!.id);
     expect(after["SURVIVOR"]).toBe(before["SURVIVOR"]);
   });
 
-  it("the updateVariables merge lane destroys nothing (an overwrite keeps its path)", async () => {
-    const created = await envCommand.create(
-      envInput({ KEY: { value: "old-secret", isSecret: true } }),
+  it("the setFields merge lane destroys nothing (an overwrite keeps its path)", async () => {
+    const created = await credentialCommand.create(
+      credentialInput({ KEY: { value: "old-secret", plain: false } }),
     );
 
-    await envCommand.updateVariables({
-      environmentId: created.metadata!.id,
-      variables: { KEY: { value: "rotated", isSecret: true } },
+    await credentialCommand.setFields({
+      credentialId: created.metadata!.id,
+      fields: { KEY: { value: "rotated", plain: false } },
     });
 
     expect(codec.deleted).toEqual([]);
-    const after = await storedEnvData(created.metadata!.id);
+    const after = await storedFields(created.metadata!.id);
     expect(await server.secrets.decrypt(after["KEY"]!)).toBe("rotated");
   });
 });

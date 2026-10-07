@@ -18,6 +18,10 @@ import { LIST_INDEXES } from "../list-indexes.js";
 const PINNED: Readonly<
   Record<string, { revision: number; fingerprint: string }>
 > = {
+  credential: {
+    revision: 1,
+    fingerprint: "credential{person=field:spec.person}",
+  },
   iam_policy: {
     revision: 1,
     fingerprint: "iam_policy{principal=field:spec.principal.id}",

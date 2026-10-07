@@ -10,8 +10,9 @@
  * still carrying the retired public level included); the viewer rung sees
  * the org-visible blueprints
  * and nothing personal; the founder — an admin — sees the organization's
- * blueprints and NOT its members' sessions, keys, environments or
- * memories (the model's own line, now list-visible); an execution is its session's and
+ * blueprints and NOT its members' sessions, keys, credentials or
+ * memories (the model's own line, now list-visible), while the
+ * organization's own credential is its admins'; an execution is its session's and
  * an orphaned execution is nobody's; a memory with no
  * subject is nobody's. Then the contract: a scope only narrows
  * and never reorders; the `internal` class is the in-process skip on the
@@ -87,7 +88,7 @@ const SEEDED_KINDS = [
   ApiResourceKind.run,
   ApiResourceKind.memory,
   ApiResourceKind.api_key,
-  ApiResourceKind.environment,
+  ApiResourceKind.credential,
 ];
 
 function resolved(accountId: string): CallerIdentity {
@@ -307,7 +308,6 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           for (const [type, prefix] of [
             ["session", "ses"],
             ["api_key", "key"],
-            ["environment", "env"],
           ] as const) {
             for (const [who, stamp] of [
               ["founder", FOUNDER],
@@ -321,6 +321,29 @@ describe.each(driverFixtures(SEEDED_KINDS))(
               });
             }
           }
+
+          // Credentials: the founder's and the member's own, owned through
+          // the spec (the stamp says nothing of a credential's owner), and
+          // the organization's.
+          for (const [who, person] of [
+            ["founder", FOUNDER],
+            ["member", MEMBER],
+          ] as const) {
+            await save("credential", {
+              id: `cred_${who}`,
+              org: ORG,
+              visibility: ApiResourceVisibility.visibility_private,
+              createdBy: person,
+              spec: { owner: { case: "person", value: person } },
+            });
+          }
+          await save("credential", {
+            id: "cred_org",
+            org: ORG,
+            visibility: ApiResourceVisibility.visibility_private,
+            createdBy: FOUNDER,
+            spec: { owner: { case: "org", value: ORG } },
+          });
 
           // Executions: two in the founder's session, one in the member's,
           // one whose session is gone. Stamped by nobody on purpose: an
@@ -405,11 +428,10 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             ).toEqual(all);
           });
 
-          it("sessions, API keys and environments are their owner's: the founder — an admin — does NOT list a member's, and the admin lists none", async () => {
+          it("sessions, API keys and personal credentials are their owner's: the founder — an admin — does NOT list a member's, and the admin lists none of them", async () => {
             for (const [kind, prefix] of [
               [ApiResourceKind.session, "ses"],
               [ApiResourceKind.api_key, "key"],
-              [ApiResourceKind.environment, "env"],
             ] as const) {
               expect(await listAs(resolved(FOUNDER), kind)).toEqual([
                 `${prefix}_founder`,
@@ -419,6 +441,21 @@ describe.each(driverFixtures(SEEDED_KINDS))(
               ]);
               expect(await listAs(resolved(ADMIN), kind)).toEqual([]);
             }
+          });
+
+          it("a person's credential is listed by its owner alone; the organization's credential by its admins and by no member without a grant", async () => {
+            expect(
+              await listAs(resolved(FOUNDER), ApiResourceKind.credential),
+            ).toEqual(["cred_founder", "cred_org"]);
+            expect(
+              await listAs(resolved(ADMIN), ApiResourceKind.credential),
+            ).toEqual(["cred_org"]);
+            expect(
+              await listAs(resolved(MEMBER), ApiResourceKind.credential),
+            ).toEqual(["cred_member"]);
+            expect(
+              await listAs(resolved(VIEWER), ApiResourceKind.credential),
+            ).toEqual([]);
           });
 
           it("an execution is its SESSION's (`can_view from session`): each person lists the runs of their own sessions; an orphaned execution is nobody's", async () => {
