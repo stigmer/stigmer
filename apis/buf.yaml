@@ -36,7 +36,8 @@ breaking:
   # value number kept. It is made before launch: the release notes name every
   # change under Upgrading. This block exists for that one pull request. While
   # it stays, buf breaking does not report these rules on the listed files, so
-  # the pull request that removes it lands straight after the merge.
+  # the pull request that removes it lands straight after the merge
+  # (https://github.com/stigmer/stigmer/issues/2012).
   ignore_only:
     ENUM_NO_DELETE:
       - ai/stigmer/agentic/schedule/v1/io.proto
