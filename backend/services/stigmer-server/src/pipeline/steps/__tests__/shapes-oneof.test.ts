@@ -34,8 +34,8 @@ describe("parentIdOf through a oneof", () => {
   });
 
   it("still reads a plain field by its name", () => {
-    expect(parentIdOf({ spec: { workflowId: "wfl_1" } }, "workflow_id")).toBe(
-      "wfl_1",
+    expect(parentIdOf({ spec: { agentId: "agt_1" } }, "agent_id")).toBe(
+      "agt_1",
     );
   });
 });

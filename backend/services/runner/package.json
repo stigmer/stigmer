@@ -1,7 +1,7 @@
 {
   "name": "@stigmer/runner",
   "version": "0.0.0-dev",
-  "description": "Embeddable Temporal worker for the Stigmer AI agent platform \u2014 handles agent execution, workflow orchestration, and MCP server management",
+  "description": "Embeddable Temporal worker for the Stigmer AI agent platform \u2014 handles agent execution and MCP server management",
   "license": "Apache-2.0",
   "type": "module",
   "engines": {
@@ -122,8 +122,6 @@
     "@temporalio/workflow": "1.16.2",
     "deepagents": "1.14.1",
     "diff": "^8.0.4",
-    "jq-wasm": "^1.1.0-jq-1.8.1",
-    "js-yaml": "^4.1.1",
     "langchain": "^1.5.14",
     "langsmith": ">=0.7.1 <0.10.0",
     "picomatch": "^4.0.7",
@@ -138,7 +136,6 @@
     "@stryker-mutator/typescript-checker": "10.0.0",
     "@stryker-mutator/vitest-runner": "10.0.0",
     "@temporalio/testing": "1.16.2",
-    "@types/js-yaml": "^4.0.9",
     "@types/picomatch": "^4.0.3",
     "@types/proper-lockfile": "^4.1.4",
     "@types/semver": "^7.7.1",

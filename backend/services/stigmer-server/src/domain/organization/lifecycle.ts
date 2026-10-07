@@ -14,7 +14,7 @@
  *      resolver's own rule): `createDeletingOrganizationInterceptor`, on
  *      the serving chain and the in-process chain alike. The in-process
  *      lane skips the Authorizer, and server code starts work through it
- *      (a schedule's fire, a channel's message, a workflow's step), so a
+ *      (a schedule's fire, a channel's message), so a
  *      rule that lived only at the decision seat would let work start
  *      inside an organization being deleted.
  *   2. A decision about a row that already exists, by id: the credential

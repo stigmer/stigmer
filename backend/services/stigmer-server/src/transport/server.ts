@@ -3,19 +3,18 @@
  * Connect protocol, and the plain-HTTP REST lanes — the TS equivalent of
  * the Go server's Run() routing block (pkg/server/server.go:775-843).
  *
- * Lane priority ports Go's verified if-chain exactly (server.go:812-836):
+ * Lane priority follows Go's if-chain (server.go:812-836):
  *
- *   1. exact match  /v1/proxy/task-kind-registry   (registry proxy)
- *   2. exact match  /v1/proxy/model-registry       (registry proxy)
- *   3. prefix       /v1/skill-artifacts            (the skill transfer
+ *   1. exact match  /v1/proxy/model-registry       (registry proxy)
+ *   2. prefix       /v1/skill-artifacts            (the skill transfer
  *                                                   lane)
- *   4. guarded      console statics                (GET/HEAD only, never RPC
+ *   3. guarded      console statics                (GET/HEAD only, never RPC
  *                                                   or /v1/* paths; absent
  *                                                   when no export is bundled)
- *   5. RPC adapter  gRPC + gRPC-Web + Connect      (replaces Go's lanes
+ *   4. RPC adapter  gRPC + gRPC-Web + Connect      (replaces Go's lanes
  *                                                   4–5; WebSocket retired
  *                                                   deliberately)
- *   6. 404          (the adapter's fallback — conformance asserts unknown
+ *   5. 404          (the adapter's fallback — conformance asserts unknown
  *                    /v1/proxy/* paths land here)
  *
  * The demux (demux.ts) fronts the port; both protocol servers run this same
@@ -38,7 +37,6 @@ import {
   MODEL_REGISTRY_PATH,
   SHUTDOWN_DRAIN_TIMEOUT_MS,
   SKILL_ARTIFACTS_PATH_PREFIX,
-  TASK_KIND_REGISTRY_PATH,
 } from "./constants.js";
 import { consoleLaneEligible } from "./console/handler.js";
 import {
@@ -57,18 +55,16 @@ export interface UnifiedPortServerOptions {
   routes: (router: ConnectRouter) => void;
   /** The pipeline chain, outermost first (pipeline/interceptors). */
   interceptors: Interceptor[];
-  /** Lane 1: bundled task-kind registry proxy. */
-  taskKindRegistryLane: LaneHandler;
-  /** Lane 2: bundled + refreshed model registry proxy. */
+  /** Lane 1: bundled + refreshed model registry proxy. */
   modelRegistryLane: LaneHandler;
   /**
-   * Lane 3: skill artifact transfer (#675). When absent, the prefix falls
+   * Lane 2: skill artifact transfer (#675). When absent, the prefix falls
    * through to the adapter's 404, which is also what Go answers for
    * unknown paths.
    */
   skillTransferLane?: LaneHandler;
   /**
-   * Lane 4: console statics + /config.json. Present only when a
+   * Lane 3: console statics + /config.json. Present only when a
    * console export is bundled/configured — absent, every request flows
    * exactly as before the lane existed. The eligibility guard lives with
    * the handler (console/handler.ts): GET/HEAD only, never /v1/* or
@@ -97,10 +93,6 @@ export function createUnifiedPortServer(
   const laneRouter = (request: LaneRequest, response: LaneResponse): void => {
     const path = (request.url ?? "").split("?", 1)[0] ?? "";
 
-    if (path === TASK_KIND_REGISTRY_PATH) {
-      options.taskKindRegistryLane(request, response);
-      return;
-    }
     if (path === MODEL_REGISTRY_PATH) {
       options.modelRegistryLane(request, response);
       return;

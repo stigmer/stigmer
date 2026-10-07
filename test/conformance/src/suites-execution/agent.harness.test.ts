@@ -1,14 +1,12 @@
 // Execution-engine harness smoke test for AgentRun (Class B).
-// Domain: agentic / agentexecution — proves the agent engine is wired, not the
+// Domain: agentic / agentexecution — proves the engine is wired, not the
 // domain contract.
 //
-// This is the AgentRun counterpart to harness.test.ts (which uses a
-// data-only set_vars WorkflowRun). Where that one needs no LLM, an agent
-// run does — so this is the cheap, permanent guard that the local-execution
-// target's LLM machinery works end-to-end: Go server -> Temporal dispatch ->
-// runner pickup -> hydration -> a real LLM loop served by the mock proxy ->
-// terminal status streamed back via gRPC. The whole AgentRun domain
-// contract lives in agentrun.conformance.test.ts.
+// This is the cheap, permanent guard that the local-execution target (server
+// + Temporal + runner + the mock LLM) actually runs an execution end-to-end:
+// server -> Temporal dispatch -> runner pickup -> hydration -> a real LLM
+// loop served by the mock proxy -> terminal status streamed back via gRPC.
+// The whole AgentRun domain contract lives in agentrun.conformance.test.ts.
 //
 // Hermetic by construction: the runner is pointed at the in-process mock proxy
 // (no API key, no network), artifacts are on local disk, and the checkpointer is

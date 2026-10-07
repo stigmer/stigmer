@@ -638,7 +638,6 @@ const agentRun = await stigmer.agentRun.create({
   workspaceFileRefs: [],
   supersedesRunId: "...",
   conversationCatchup: {},
-  parent: {},
 });
 ```
 </Tab>
@@ -662,7 +661,6 @@ agentRun, err := client.AgentRun.Create(ctx, &stigmer.AgentRunInput{
   WorkspaceFileRefs:      []string{},
   SupersedesRunId:        "...",
   ConversationCatchup:    &stigmer.ConversationCatchupInput{},
-  Parent:                 &stigmer.WorkflowParentInput{},
 })
 ```
 </Tab>
@@ -686,7 +684,6 @@ agent_run = client.agent_runs.create(AgentRunInput(
     workspace_file_refs=[],
     supersedes_run_id="...",
     conversation_catchup=None,
-    parent=None,
 ))
 ```
 </Tab>
@@ -710,7 +707,6 @@ AgentRun agentRun = client.agentRuns().create(AgentRunInput.builder()
     .workspaceFileRefs(List.of())
     .supersedesRunId("...")
     .conversationCatchup(null)
-    .parent(null)
     .build());
 ```
 </Tab>
@@ -745,7 +741,6 @@ const agentRun = await stigmer.agentRun.update({
   workspaceFileRefs: [],
   supersedesRunId: "...",
   conversationCatchup: {},
-  parent: {},
 });
 ```
 </Tab>
@@ -769,7 +764,6 @@ agentRun, err := client.AgentRun.Update(ctx, &stigmer.AgentRunInput{
   WorkspaceFileRefs:      []string{},
   SupersedesRunId:        "...",
   ConversationCatchup:    &stigmer.ConversationCatchupInput{},
-  Parent:                 &stigmer.WorkflowParentInput{},
 })
 ```
 </Tab>
@@ -793,7 +787,6 @@ agent_run = client.agent_runs.update(AgentRunInput(
     workspace_file_refs=[],
     supersedes_run_id="...",
     conversation_catchup=None,
-    parent=None,
 ))
 ```
 </Tab>
@@ -817,7 +810,6 @@ AgentRun agentRun = client.agentRuns().update(AgentRunInput.builder()
     .workspaceFileRefs(List.of())
     .supersedesRunId("...")
     .conversationCatchup(null)
-    .parent(null)
     .build());
 ```
 </Tab>
@@ -1316,7 +1308,6 @@ Input for creating or updating an Agent Run.
     workspaceFileRefs: { type: "string[]", description: "Workspace-relative file paths the user wants the agent to focus on." },
     supersedesRunId: { type: "string", description: "ID of the run this one supersedes via edit-and-resubmit (optional)." },
     conversationCatchup: { type: "ConversationCatchupInput", description: "Conversation events the agent has not yet seen, composed by the platform for this turn (optional).", typeDescriptionLink: "#conversationcatchupinput" },
-    parent: { type: "WorkflowParentInput", description: "The workflow run this turn was started by (optional): set only by a workflow's agent_call step, which waits for the turn to finish.", typeDescriptionLink: "#workflowparentinput" },
   }}
 />
 
@@ -1458,18 +1449,6 @@ ConversationCatchup carries the channel-conversation events an agent missed, com
   type={{
     digest: { type: "string", description: "Plain-text digest of what the agent missed, oldest first; empty when nothing was missed." },
     windowEnd: { type: "string", description: "The timeline instant this digest conveys through." },
-  }}
-/>
-
-### WorkflowParentInput
-
-WorkflowParent links a turn to the workflow run whose agent_call step started it.
-
-<TypeTable
-  type={{
-    workflowRunId: { type: "string", description: "ID of the workflow run whose step started this turn." },
-    signalWorkflowId: { type: "string", description: "Temporal workflow ID the agent-execution workflow signals about approval requests (\"child_approval_required\", carrying only this run's id): the workflow run's engine workflow, which for a nested workflow is a child workflow with its own id, so it is named rather than derived." },
-    callbackToken: { type: "Uint8Array", description: "Temporal task token of the agent_call activity waiting for this turn (asynchronous activity completion)." },
   }}
 />
 
@@ -1850,7 +1829,6 @@ AgentRunStatus contains all run results and state.
     startedAt: { type: "string", description: "ISO 8601 timestamp when the run started." },
     completedAt: { type: "string", description: "ISO 8601 timestamp when the run completed, failed, or was cancelled." },
     todos: { type: "Record<string, TodoItem>", description: "Todo list tracking multi-step tasks and progress for this run." },
-    callbackToken: { type: "Uint8Array", description: "Callback token for notifying a parent workflow when this run completes." },
     pendingApprovals: { type: "PendingApproval[]", description: "Active pending approval requests for this run.", typeDescriptionLink: "#pendingapproval" },
     approvalEventStream: { type: "ApprovalEventStream", description: "Server-authored, append-only record of every approval request and decision.", typeDescriptionLink: "#approvaleventstream" },
     contextInfo: { type: "ContextInfo", description: "Context window utilization and summarization tracking.", typeDescriptionLink: "#contextinfo" },

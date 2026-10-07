@@ -540,14 +540,9 @@ func (x *GetRunnerBootstrapConfigOutput) GetPayloadEncryptionSecondaryKeyId() st
 // Names the unit of dispatched work a runner wants a scoped token for.
 type GetRunnerScopedTokenInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The dispatched work the token will serve. The runner names only the id it
-	// was dispatched; the server derives the token's scope from the resource
-	// itself (an agent run scopes to its parent session).
-	//
 	// Types that are valid to be assigned to Scope:
 	//
 	//	*GetRunnerScopedTokenInput_AgentRunId
-	//	*GetRunnerScopedTokenInput_WorkflowRunId
 	//	*GetRunnerScopedTokenInput_PoolClaim
 	//	*GetRunnerScopedTokenInput_Renewal
 	Scope         isGetRunnerScopedTokenInput_Scope `protobuf_oneof:"scope"`
@@ -601,15 +596,6 @@ func (x *GetRunnerScopedTokenInput) GetAgentRunId() string {
 	return ""
 }
 
-func (x *GetRunnerScopedTokenInput) GetWorkflowRunId() string {
-	if x != nil {
-		if x, ok := x.Scope.(*GetRunnerScopedTokenInput_WorkflowRunId); ok {
-			return x.WorkflowRunId
-		}
-	}
-	return ""
-}
-
 func (x *GetRunnerScopedTokenInput) GetPoolClaim() *PoolClaim {
 	if x != nil {
 		if x, ok := x.Scope.(*GetRunnerScopedTokenInput_PoolClaim); ok {
@@ -638,12 +624,6 @@ type GetRunnerScopedTokenInput_AgentRunId struct {
 	AgentRunId string `protobuf:"bytes,1,opt,name=agent_run_id,json=agentRunId,proto3,oneof"`
 }
 
-type GetRunnerScopedTokenInput_WorkflowRunId struct {
-	// WorkflowRun id — yields a token scoped to exactly that workflow
-	// run's ExecutionContext.
-	WorkflowRunId string `protobuf:"bytes,2,opt,name=workflow_run_id,json=workflowRunId,proto3,oneof"`
-}
-
 type GetRunnerScopedTokenInput_PoolClaim struct {
 	// Warm-pool claim — a pool sandbox exchanging its pool credential for the
 	// session token of the session it has just been claimed for. Presented
@@ -653,14 +633,12 @@ type GetRunnerScopedTokenInput_PoolClaim struct {
 
 type GetRunnerScopedTokenInput_Renewal struct {
 	// Credential renewal — a live sandbox extending its own lifetime.
-	// Presented with the still-valid token_type=sandbox or workflow_sandbox
-	// credential being renewed (not embedded_runner).
+	// Presented with the still-valid token_type=sandbox credential being
+	// renewed (not embedded_runner).
 	Renewal *TokenRenewal `protobuf:"bytes,4,opt,name=renewal,proto3,oneof"`
 }
 
 func (*GetRunnerScopedTokenInput_AgentRunId) isGetRunnerScopedTokenInput_Scope() {}
-
-func (*GetRunnerScopedTokenInput_WorkflowRunId) isGetRunnerScopedTokenInput_Scope() {}
 
 func (*GetRunnerScopedTokenInput_PoolClaim) isGetRunnerScopedTokenInput_Scope() {}
 
@@ -722,17 +700,16 @@ func (x *PoolClaim) GetSessionId() string {
 //
 // A sandbox token is minted with a fixed TTL, but the sandbox it serves has
 // no fixed lifetime: an active conversation extends a session sandbox
-// indefinitely, and a long workflow run can outlast any TTL chosen at
-// provisioning (the 2026-08-05 incident: a WhatsApp conversation outlived
-// its 25h token and a user turn died UNAUTHENTICATED). Renewal decouples
-// the two — the runner re-mints on a timer before expiry and applies the
-// fresh token in-process, so credential freshness never requires a pod
-// restart (which would wipe an ephemeral sandbox's workspace).
+// indefinitely, so it can outlast any TTL chosen at provisioning (the
+// 2026-08-05 incident: a WhatsApp conversation outlived its 25h token and a
+// user turn died UNAUTHENTICATED). Renewal decouples the two — the runner
+// re-mints on a timer before expiry and applies the fresh token in-process,
+// so credential freshness never requires a pod restart (which would wipe an
+// ephemeral sandbox's workspace).
 //
-// Deliberately empty: every mint parameter (identity, org, session /
-// workflow-run scope) comes from the presented credential's VERIFIED
-// claims, never from the client, so a renewed token is claim-identical to
-// the one it replaces.
+// Deliberately empty: every mint parameter (identity, org, session scope)
+// comes from the presented credential's VERIFIED claims, never from the
+// client, so a renewed token is claim-identical to the one it replaces.
 type TokenRenewal struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -873,15 +850,14 @@ const file_ai_stigmer_platform_v1_server_info_proto_rawDesc = "" +
 	"\x16payload_encryption_key\x18\x06 \x01(\tR\x14payloadEncryptionKey\x129\n" +
 	"\x19payload_encryption_key_id\x18\a \x01(\tR\x16payloadEncryptionKeyId\x12G\n" +
 	" payload_encryption_secondary_key\x18\b \x01(\tR\x1dpayloadEncryptionSecondaryKey\x12L\n" +
-	"#payload_encryption_secondary_key_id\x18\t \x01(\tR\x1fpayloadEncryptionSecondaryKeyId\"\xff\x01\n" +
+	"#payload_encryption_secondary_key_id\x18\t \x01(\tR\x1fpayloadEncryptionSecondaryKeyId\"\xec\x01\n" +
 	"\x19GetRunnerScopedTokenInput\x12\"\n" +
 	"\fagent_run_id\x18\x01 \x01(\tH\x00R\n" +
-	"agentRunId\x12(\n" +
-	"\x0fworkflow_run_id\x18\x02 \x01(\tH\x00R\rworkflowRunId\x12B\n" +
+	"agentRunId\x12B\n" +
 	"\n" +
 	"pool_claim\x18\x03 \x01(\v2!.ai.stigmer.platform.v1.PoolClaimH\x00R\tpoolClaim\x12@\n" +
 	"\arenewal\x18\x04 \x01(\v2$.ai.stigmer.platform.v1.TokenRenewalH\x00R\arenewalB\x0e\n" +
-	"\x05scope\x12\x05\xbaH\x02\b\x01\"3\n" +
+	"\x05scope\x12\x05\xbaH\x02\b\x01J\x04\b\x02\x10\x03R\x0fworkflow_run_id\"3\n" +
 	"\tPoolClaim\x12&\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tsessionId\"\x0e\n" +
@@ -965,7 +941,6 @@ func file_ai_stigmer_platform_v1_server_info_proto_init() {
 	file_ai_stigmer_platform_v1_server_info_proto_msgTypes[1].OneofWrappers = []any{}
 	file_ai_stigmer_platform_v1_server_info_proto_msgTypes[6].OneofWrappers = []any{
 		(*GetRunnerScopedTokenInput_AgentRunId)(nil),
-		(*GetRunnerScopedTokenInput_WorkflowRunId)(nil),
 		(*GetRunnerScopedTokenInput_PoolClaim)(nil),
 		(*GetRunnerScopedTokenInput_Renewal)(nil),
 	}

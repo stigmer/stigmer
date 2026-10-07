@@ -65,12 +65,6 @@ describe("the core's kind purges", () => {
       grantPath: { cleanupResource: () => Promise.resolve() },
       authorizationLifecycle: undefined,
       secretService: SecretService.create(undefined),
-      artifactStorage: {
-        delete: () => Promise.resolve(),
-        download: () => Promise.resolve(new Uint8Array()),
-        exists: () => Promise.resolve(false),
-        upload: () => Promise.resolve(),
-      },
       scheduleClock: () => undefined,
       channelRuntime: undefined,
       platformClients: newResourcePlatformClientStore(fx.store),

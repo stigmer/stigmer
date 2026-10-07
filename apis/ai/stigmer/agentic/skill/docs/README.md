@@ -70,7 +70,7 @@ Use the Stigmer MCP server (`slug: stigmer-mcp-server`) to discover existing ski
 
 | Tool | Purpose |
 |---|---|
-| `search` | Full-text search across skills, agents, MCP servers, workflows |
+| `search` | Full-text search across skills, agents and MCP servers |
 | `get_skill` | Get a specific skill by org and slug |
 
 When authoring an agent that references skills, always query first. Never guess a skill slug — a reference to a nonexistent skill fails silently at configuration time and loudly at runtime.

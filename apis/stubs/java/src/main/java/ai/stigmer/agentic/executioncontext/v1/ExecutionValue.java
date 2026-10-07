@@ -58,9 +58,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object value_ = "";
   /**
    * <pre>
-   * String content of this entry. Empty strings are valid — optional
-   * workflow env vars may be provided with no value, and the workflow
-   * engine resolves them to "" in expression interpolation.
+   * String content of this entry. Empty strings are valid — an optional
+   * env var may be provided with no value.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value"];</code>
@@ -81,9 +80,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * String content of this entry. Empty strings are valid — optional
-   * workflow env vars may be provided with no value, and the workflow
-   * engine resolves them to "" in expression interpolation.
+   * String content of this entry. Empty strings are valid — an optional
+   * env var may be provided with no value.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value"];</code>
@@ -444,9 +442,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object value_ = "";
     /**
      * <pre>
-     * String content of this entry. Empty strings are valid — optional
-     * workflow env vars may be provided with no value, and the workflow
-     * engine resolves them to "" in expression interpolation.
+     * String content of this entry. Empty strings are valid — an optional
+     * env var may be provided with no value.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value"];</code>
@@ -466,9 +463,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * String content of this entry. Empty strings are valid — optional
-     * workflow env vars may be provided with no value, and the workflow
-     * engine resolves them to "" in expression interpolation.
+     * String content of this entry. Empty strings are valid — an optional
+     * env var may be provided with no value.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value"];</code>
@@ -489,9 +485,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * String content of this entry. Empty strings are valid — optional
-     * workflow env vars may be provided with no value, and the workflow
-     * engine resolves them to "" in expression interpolation.
+     * String content of this entry. Empty strings are valid — an optional
+     * env var may be provided with no value.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value"];</code>
@@ -508,9 +503,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * String content of this entry. Empty strings are valid — optional
-     * workflow env vars may be provided with no value, and the workflow
-     * engine resolves them to "" in expression interpolation.
+     * String content of this entry. Empty strings are valid — an optional
+     * env var may be provided with no value.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value"];</code>
@@ -524,9 +518,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * String content of this entry. Empty strings are valid — optional
-     * workflow env vars may be provided with no value, and the workflow
-     * engine resolves them to "" in expression interpolation.
+     * String content of this entry. Empty strings are valid — an optional
+     * env var may be provided with no value.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value"];</code>

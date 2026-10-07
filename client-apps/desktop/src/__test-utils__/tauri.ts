@@ -27,8 +27,6 @@ export const APP_COMMANDS = [
   "kill_runner",
   "add_session",
   "remove_session",
-  "add_workflow_execution",
-  "remove_workflow_execution",
   "update_runner_token",
   "runner_status",
   "bundled_node_path",

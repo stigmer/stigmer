@@ -1,6 +1,5 @@
 {
   "name": "SkillSpec",
-  "kind": "SKILL_SPEC",
   "description": "SkillSpec defines the desired state of a skill.",
   "protoType": "ai.stigmer.agentic.skill.v1.SkillSpec",
   "protoFile": "apis/ai/stigmer/agentic/skill/v1/spec.proto",

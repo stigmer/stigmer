@@ -34,13 +34,6 @@ describe("sqlite store contract", () => {
     };
     return {
       store: temp.store,
-      async forceDedupeExpiry(id, expiresAtIso) {
-        withConnection((db) =>
-          db
-            .prepare(`UPDATE signal_dedupe SET expires_at = ? WHERE id = ?`)
-            .run(expiresAtIso, id),
-        );
-      },
       async countPendingOAuthStates() {
         return withConnection(
           (db) =>

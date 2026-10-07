@@ -8,10 +8,8 @@
  * (SessionActivityReader): a session's executions say whether it is busy
  * and when it was last active.
  *
- * Only session sandboxes sleep. A workflow's sandbox is ensured once,
- * before the workflow starts, and nothing would wake it for the
- * workflow's next activity; a connect sandbox lives for one request. Both
- * end when their run ends (sandbox/steps.ts).
+ * Only session sandboxes sleep. A connect sandbox lives for one request
+ * and ends when the connect settles (domain/mcpserver/connect-sandbox.ts).
  *
  * Actor names are hashes, so the sweep maps a sandbox back to its session
  * from the driver's own ensures and, for sandboxes this process has not

@@ -2,8 +2,10 @@
  * The server's own delete of a run's ExecutionContext — ports
  * pkg/domain/executioncontext/temporal/activities/delete_execution_context.go,
  * and is the one function every server-internal delete of a context calls:
- * the DeleteExecutionContext activity both execution workers register when
- * a run ends, and both recover steps before they recreate the context.
+ * the DeleteExecutionContext activity the agent-execution worker runs when
+ * a run ends (temporal/agentexecution/activities.ts), and the
+ * agent run's recover step before it recreates the context
+ * (domain/agentrun/lifecycle.ts).
  *
  * The ExecutionContext is an ephemeral resource containing the
  * fully-merged environment (environment_refs values overridden by
@@ -66,8 +68,8 @@ export interface InternalDeleteDeps {
 export type InternalDeleteReason = "run-end" | "recover";
 
 /**
- * Finds the ExecutionContext of the given execution (an AgentRun or
- * WorkflowRun id — the lookup uses the spec.executionId field) and
+ * Finds the ExecutionContext of the given execution (an AgentRun id —
+ * the lookup uses the spec.executionId field) and
  * deletes it through the context's delete chain. A run has one; if more
  * than one names it, every one is deleted, each through the chain.
  */

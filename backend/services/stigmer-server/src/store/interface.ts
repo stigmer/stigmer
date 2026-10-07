@@ -14,14 +14,13 @@
  * coexistence the Go interface is the behavioral reference, and matching
  * names keep every "is this what Go does?" review one hop away.
  *
- * Three surfaces that Go kept OUTSIDE store.Store are deliberate members
+ * Two surfaces that Go kept OUTSIDE store.Store are deliberate members
  * here (the `DB()` escape hatch is not ported):
  *   - bootstrapState  — concrete-type-only methods in Go (sqlite/store.go)
- *   - signalDedupe    — pkg/domain/workflowexecution/dedupe (via DB())
  *   - oauthGrants / pendingOAuthStates — pkg/domain/mcpserver/oauth (via DB())
  * They are grouped sub-stores rather than flat methods so their Go method
- * names (claim, markDelivered, release, upsert, find, save, getAndDelete…)
- * survive verbatim for the domain ports.
+ * names (upsert, find, save, getAndDelete…) survive verbatim for the
+ * domain ports.
  *
  * Proven by the driver unit tests (sqlite/__tests__/) and, end-to-end, by
  * every conformance suite on CONFORMANCE_TARGET=local.
@@ -78,17 +77,6 @@ export interface AuditRecord {
   readonly versionHash: string;
   /** The version's current tag from the tag column ("" when untagged). */
   readonly tag: string;
-}
-
-/** Storage representation of a workflow execution event. */
-export interface WorkflowExecutionEventRecord {
-  readonly executionId: string;
-  readonly sequenceNumber: number;
-  readonly eventType: string;
-  readonly taskName: string;
-  /** protobuf-serialized WorkflowRunEvent. */
-  readonly data: Uint8Array;
-  readonly createdAt: string;
 }
 
 /**
@@ -238,98 +226,6 @@ export interface BootstrapStateStore {
   delete(key: string): Promise<void>;
   /** Removes all entries (testing / forced re-bootstrap). */
   clear(): Promise<void>;
-}
-
-// =============================================================================
-// Signal dedupe (Go: pkg/domain/workflowexecution/dedupe, oss#442)
-// =============================================================================
-
-/**
- * How long a claim holds an idempotency key while its delivery is in
- * flight (5 minutes).
- *
- * Derived, not guessed (Go signal_dedupe_store.go:452-463): both Temporal
- * SDKs retry client RPCs internally for up to 1 minute by default, and
- * neither edition overrides it — so a send that ultimately fails can still
- * be in flight ~60s after the claim landed. Five minutes gives 5x margin.
- * Shortening this below the SDKs' retry expiration would let a retry claim
- * a key whose original send is still in flight — the double delivery this
- * store exists to prevent.
- */
-export const IN_FLIGHT_CLAIM_TTL_MS = 5 * 60 * 1000;
-
-/**
- * How long a DELIVERED key blocks duplicates, anchored at delivery time
- * (24 hours) — markDelivered extends the record's expiry to this window
- * (the dedupe window is EARNED at delivery, oss#442). Matches industry
- * standards like Stripe's idempotency key retention.
- */
-export const DELIVERED_SIGNAL_DEDUPE_TTL_MS = 24 * 60 * 60 * 1000;
-
-export type SignalDedupeStatus = "CLAIMED" | "DELIVERED";
-
-/** A deduplicated signal record (id = "{org}:{idempotency_key}"). */
-export interface SignalDedupeRecord {
-  readonly id: string;
-  readonly org: string;
-  readonly idempotencyKey: string;
-  readonly executionId: string;
-  readonly signalName: string;
-  readonly status: SignalDedupeStatus;
-  /** RFC-3339 claim time. */
-  readonly createdAt: string;
-  /** RFC-3339 delivery time; "" if not yet delivered. */
-  readonly deliveredAt: string;
-  /** RFC-3339 expiry after which the key can be reused. */
-  readonly expiresAt: string;
-}
-
-export type ClaimStatus = "SUCCESS" | "DUPLICATE";
-
-export interface ClaimResult {
-  readonly status: ClaimStatus;
-  /** The existing record when status is DUPLICATE; undefined on SUCCESS. */
-  readonly record?: SignalDedupeRecord;
-}
-
-/**
- * Two-phase idempotency-key hold (oss#442, shared contract with the cloud
- * edition): a claim holds the key only for IN_FLIGHT_CLAIM_TTL_MS;
- * markDelivered extends the winner to DELIVERED_SIGNAL_DEDUPE_TTL_MS. A
- * delivery that fails or crashes frees the key when the short hold lapses
- * (expired-row cleanup is the recovery path) instead of poisoning it
- * against the caller's retry for 24 hours.
- */
-export interface SignalDedupeStore {
-  /**
-   * Atomically claims an idempotency key. On conflict returns the existing
-   * record — the caller branches on its status (a live CLAIMED holder means
-   * an in-flight conflict; DELIVERED means a true duplicate).
-   */
-  claim(
-    org: string,
-    idempotencyKey: string,
-    executionId: string,
-    signalName: string,
-    ttlMs: number,
-  ): Promise<ClaimResult>;
-  /**
-   * Flips a CLAIMED record to DELIVERED and extends its hold to
-   * DELIVERED_SIGNAL_DEDUPE_TTL_MS from now. Tolerant: a missing or
-   * already-delivered record is a no-op (keeps a takeover's fresh claim
-   * intact in either commit order of a pathologically late mark racing a
-   * takeover).
-   */
-  markDelivered(org: string, idempotencyKey: string): Promise<void>;
-  /**
-   * Frees a CLAIMED key whose delivery failed so the caller's retry can
-   * claim immediately. Status-guarded: a DELIVERED record (or a missing
-   * one) is a tolerant no-op — a misplaced release can never unblock a key
-   * that was actually delivered.
-   */
-  release(org: string, idempotencyKey: string): Promise<void>;
-  /** Removes every record of an organization, whatever its status (its purge). Returns the count. */
-  deleteByOrg(org: string): Promise<number>;
 }
 
 // =============================================================================
@@ -524,7 +420,7 @@ export interface OrganizationDeletionStore {
 export interface OAuthGrant {
   readonly identityAccountId: string;
   readonly resourceId: string;
-  /** e.g. "mcp_server", "workflow", "agent_channel". */
+  /** e.g. "mcp_server", "agent_channel". */
   readonly resourceKind: string;
   readonly orgId: string;
   /** Unix seconds. */
@@ -908,8 +804,8 @@ export interface Store {
   /**
    * Single archived version by exact hash, authoritative tag included.
    * Duplicate rows for one (kind, resourceId, versionHash) are LEGAL data
-   * (skill re-push archives prior content as a fresh row; pre-#341
-   * workflow rows) — newest wins, matching every other audit read.
+   * (skill re-push archives prior content as a fresh row) — newest wins,
+   * matching every other audit read.
    * Throws AuditNotFoundError if absent.
    */
   getAuditRecordByHash(
@@ -928,43 +824,6 @@ export interface Store {
     resourceId: string,
     tag: string,
   ): Promise<AuditRecord>;
-
-  // ---------------------------------------------------------------------------
-  // Workflow execution events
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Appends events insert-or-skip, first-writer-wins: an event whose
-   * (executionId, sequenceNumber) is already persisted is silently skipped
-   * while the rest of the batch lands. Retried batches are idempotent (the
-   * runner assigns sequence numbers deterministically) and out-of-order
-   * arrival from parallel branches is valid, not stale — replaces the
-   * all-or-nothing stale-sequence rejection that dropped whole batches on
-   * retry (oss#308); same contract as the cloud edition's ON CONFLICT DO
-   * NOTHING. Returns the number actually inserted.
-   */
-  appendWorkflowExecutionEvents(
-    executionId: string,
-    events: readonly WorkflowExecutionEventRecord[],
-  ): Promise<number>;
-
-  /**
-   * Cursor-paginated events: sequenceNumber > afterSequence, optional
-   * eventType / taskName filters ("" = all), limit <= 0 defaults to 100.
-   */
-  getWorkflowExecutionEvents(
-    executionId: string,
-    afterSequence: number,
-    eventType: string,
-    taskName: string,
-    limit: number,
-  ): Promise<WorkflowExecutionEventRecord[]>;
-
-  /** Highest sequenceNumber for an execution; 0 when no events exist. */
-  getMaxEventSequence(executionId: string): Promise<number>;
-
-  /** Removes every event of an execution (its purge); returns the count. */
-  deleteWorkflowExecutionEvents(executionId: string): Promise<number>;
 
   // ---------------------------------------------------------------------------
   // Schedule runs (fire ledger — every fire leaves a row, incl. fires that
@@ -1060,7 +919,6 @@ export interface Store {
   // ---------------------------------------------------------------------------
 
   readonly bootstrapState: BootstrapStateStore;
-  readonly signalDedupe: SignalDedupeStore;
   readonly resourceNames: ResourceNameStore;
   readonly oauthGrants: OAuthGrantStore;
   readonly pendingOAuthStates: PendingOAuthStateStore;

@@ -252,7 +252,7 @@ to boot half-configured, in its own words:
 
 ```text
 sandbox provisioner 'docker' requires STIGMER_SANDBOX_BACKEND_ENDPOINT — a container cannot reach the server on this process's localhost
-SANDBOX_PROVISIONER_TYPE='docker' requires a per-queue routing mode — set STIGMER_ACTIVITY_ROUTING=session and/or STIGMER_WORKFLOW_ACTIVITY_ROUTING=execution
+SANDBOX_PROVISIONER_TYPE='docker' requires per-session routing — set STIGMER_ACTIVITY_ROUTING=session (a provisioner no dispatch can reach must fail loudly, not sit dark)
 ```
 
 <Callout type="warn">
@@ -332,8 +332,6 @@ can't run it, and says why. The requirements:
 | `bash`, `git`, and `/proc`                                                  | refused                                                                                                               |
 | `cat`, `sed`, `grep`, `head`, `cut`, `awk`, `tr`, `base64`, `dirname`       | refused: the Cursor harness's approval hook runs them                                                                 |
 | CA certificates for `git` and `curl`                                        | cloning a repository over HTTPS fails                                                                                 |
-| `python3`                                                                   | a warning; Workflow script tasks in Python fail                                                                       |
-| `node`                                                                      | a warning; Workflow script tasks in JavaScript fail                                                                   |
 | `rg` (ripgrep)                                                              | a warning; the native harness's grep falls back to a plain search                                                     |
 | nothing of your own at `/runner`                                            | the layer replaces it                                                                                                 |
 

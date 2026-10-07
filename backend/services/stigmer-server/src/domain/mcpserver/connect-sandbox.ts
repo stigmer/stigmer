@@ -7,9 +7,9 @@
  * has: an operator-managed runner polls it, and nothing is provisioned.
  *
  * With a provisioner composed, that queue has no poller at all: boot
- * requires a per-queue routing mode beside a provisioner
- * (boot/compose.ts), so session sandboxes serve `session:<id>`, workflow
- * sandboxes `wfexec:<id>`, and nobody serves `stigmer_runner`. A connect
+ * requires per-session routing beside a provisioner (boot/compose.ts), so
+ * session sandboxes serve `session:<id>` and nobody serves
+ * `stigmer_runner`. A connect
  * started there waited until its run timeout with a "no runner" advisory
  * on its status. Here every connect instead gets a request-scoped connect
  * sandbox (the provisioner contract's CONNECT scope, sandbox/provisioner.ts)
@@ -30,12 +30,11 @@
  *
  * Failure posture: provisioning is CRITICAL here. A connect whose sandbox
  * cannot be created fails at once with an honest Unavailable instead of
- * starving to its run timeout,
- * the workflow sandbox's posture and copy shape (sandbox/steps.ts).
+ * starving to its run timeout.
  * Release is best-effort and never throws: a settle must never fail on
  * teardown, and a sandbox a release could not delete is what the edition's
  * orphan sweep exists for (the cloud reaps every connect object past its
- * grace; OSS has no reaper, the workflow scope's known window).
+ * grace; OSS has no reaper, a known window).
  */
 import type { Logger } from "../../boot/logger.js";
 import { unavailableError } from "../../pipeline/errors.js";

@@ -299,7 +299,7 @@ export const PluginMemberSchema: GenMessage<PluginMember> = /*@__PURE__*/
  */
 export type ListPluginMembersResponse = Message<"ai.stigmer.agentic.plugin.v1.ListPluginMembersResponse"> & {
   /**
-   * Members in materialisation order: skills, MCP servers, agents, workflows.
+   * Members in materialisation order: skills, MCP servers, agents.
    *
    * @generated from field: repeated ai.stigmer.agentic.plugin.v1.PluginMember members = 1;
    */

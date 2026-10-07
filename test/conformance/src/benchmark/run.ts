@@ -20,9 +20,12 @@
 //
 // A quality task runs as a real session on the working agent. After the last
 // turn, its end state is read (workspace-facts.ts), the judge's subject is
-// composed (subject.ts), and the platform's `eval` task grades it
-// (quality.ts). A session with a failed turn is recorded, not graded: the
-// medians are over completed sessions, as the timing medians are.
+// composed (subject.ts), and a judge agent run grades it (quality.ts). The
+// judge runs in a fresh organization of its own, with memory off, never the
+// working agent's: that one has memory on and confirmed facts, which recall
+// would put in front of the judge. A session with a failed turn is recorded,
+// not graded: the medians are over completed sessions, as the timing medians
+// are.
 //
 // Nothing aborts the run but the stack itself. A provisioning or create error
 // fails its attempt with `failure.stage: "create"`, and the run goes on.
@@ -294,6 +297,18 @@ async function provisionAgent(
   return { org, agentRef: agentRefOf(agent), sessionSpec: { harness, subject: BENCHMARK_SESSION_SUBJECT } };
 }
 
+/**
+ * The judge's organization: a fresh one, memory off (an organization's
+ * default), deferred on `fixtures` ahead of the judge's agent and run so it is
+ * removed after them.
+ */
+/* v8 ignore next -- @preserve: the live benchmark is a hand-run script no vitest config collects (vitest.unit.config.ts tests only its pure readers) */
+async function provisionJudgeOrg(stack: BenchmarkStack, fixtures: FixtureTracker): Promise<string> {
+  const { id } = await createUniqueOrganization(stack.clients.organizationCommand, "the benchmark judge");
+  fixtures.defer(() => stack.clients.organizationCommand.delete({ value: id }));
+  return id;
+}
+
 /** One attempt of a cell: one execution, or one three-turn session whose second turn is the sample. */
 /* v8 ignore next -- @preserve: the live benchmark is a hand-run script no vitest config collects (vitest.unit.config.ts tests only its pure readers) */
 async function measureCell(
@@ -368,7 +383,7 @@ async function gradeQualityCell(
     files_changed: [],
     checks: [],
     turns: [],
-    workflow_execution_id: "",
+    judge_run_id: "",
   } satisfies Omit<QualityCell, "outcome" | "failure">;
   try {
     let agent: ProvisionedAgent;
@@ -413,8 +428,23 @@ async function gradeQualityCell(
       namedFiles,
       checks,
     });
+    let judgeOrg: string;
+    try {
+      judgeOrg = await provisionJudgeOrg(stack, fixtures);
+    } catch (error) {
+      io.log(`${label}: provisioning the judge's organization failed: ${errorMessage(error)}`);
+      return {
+        ...base,
+        subject,
+        files_changed: filesChanged,
+        checks,
+        turns: samples,
+        outcome: "failed",
+        failure: { stage: "judge", message: `provision the judge's organization: ${errorMessage(error)}` },
+      };
+    }
     const verdict = await judge(stack.clients, fixtures, {
-      org: agent.org,
+      org: judgeOrg,
       task: cell.task,
       subject,
       judgeModel: JUDGE_MODEL,
@@ -430,7 +460,7 @@ async function gradeQualityCell(
       files_changed: filesChanged,
       checks,
       turns: samples,
-      workflow_execution_id: verdict.workflow_execution_id,
+      judge_run_id: verdict.judge_run_id,
       outcome: verdict.outcome,
       ...(verdict.failure !== undefined ? { failure: verdict.failure } : {}),
     };

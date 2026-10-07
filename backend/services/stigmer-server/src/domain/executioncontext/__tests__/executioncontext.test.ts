@@ -18,7 +18,8 @@
  *   - the keyless WARN-degrade write path (legacy plaintext rows) still
  *     redacts user reads and passes through on the runner lane;
  *   - only the server binds a context to a run: a wire create or apply
- *     naming a run's or a connect's id is refused by the id's shape, and a
+ *     naming a run's or a connect's id is refused by the id's shape (a
+ *     retired workflow run's `wex_` id binds nothing and is admitted), and a
  *     run's lookups never guess between two contexts (getByExecutionId
  *     refuses, the server's own delete removes every one);
  *   - the server's own delete of a run's context (the DeleteExecutionContext
@@ -589,13 +590,22 @@ describe("executioncontext domain (encryption + runner auth enabled)", () => {
       const present = await grpcError(() =>
         ts.command.create(ecInput({ executionId: "aex_bound_present" })),
       );
-      for (const absent of ["aex_bound_absent", "wex_bound_absent"]) {
-        const error = await grpcError(() =>
-          ts.command.create(ecInput({ executionId: absent })),
-        );
-        expect(error.code, absent).toBe(Code.PermissionDenied);
-        expect(error.rawMessage, absent).toBe(present.rawMessage);
-      }
+      const absent = await grpcError(() =>
+        ts.command.create(ecInput({ executionId: "aex_bound_absent" })),
+      );
+      expect(absent.code).toBe(Code.PermissionDenied);
+      expect(absent.rawMessage).toBe(present.rawMessage);
+    });
+
+    it("a wire create naming a retired workflow run's id (wex_) is admitted, since that prefix names no run kind now", async () => {
+      // wex_ ids named workflow runs until the workflow product was
+      // removed; no runner reads a context by one any more, so it binds
+      // nothing and is admitted like any other such id.
+      const created = await ts.command.create(
+        ecInput({ executionId: "wex_bound_absent" }),
+      );
+      expect(created.metadata?.id).toMatch(/^ectx_/);
+      expect(created.spec?.executionId).toBe("wex_bound_absent");
     });
 
     it("a wire create naming a connect's id is refused", async () => {

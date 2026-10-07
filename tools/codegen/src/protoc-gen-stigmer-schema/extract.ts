@@ -13,7 +13,7 @@ import { ScalarType } from "@bufbuild/protobuf";
 import type { GoJsonStruct, GoJsonValue } from "../gojson.js";
 import { stripText } from "../internalcomment/internalcomment.js";
 import type { CommentIndex } from "./comments.js";
-import { extractTaskKind, toCamelCase } from "./gostrings.js";
+import { toCamelCase } from "./gostrings.js";
 import type { OptionsReader, ValidationRules } from "./options.js";
 
 /** Shared context threaded through extraction. */
@@ -39,9 +39,7 @@ export interface FieldSchemaValue extends GoJsonStruct {
   type: TypeSpecValue;
   description: string;
   required: boolean;
-  isExpression?: boolean;
   referenceKind?: number;
-  discriminatedBy?: string;
   oneofGroup?: string;
   validation?: GoJsonStruct;
 }
@@ -66,17 +64,13 @@ export function messageDescription(msg: DescMessage, ctx: ExtractContext): strin
   return stripText(ctx.comments.message(msg));
 }
 
-/** Port of parseTaskConfig — used for both TaskConfig and Spec messages. */
-export function parseTaskConfig(msg: DescMessage, ctx: ExtractContext): GoJsonStruct {
-  const kind = extractTaskKind(msg.name);
-  const discriminatorValue = ctx.options.discriminatorValue(msg);
+/** A resource's Spec message: its name, description, location and fields. */
+export function parseSpecSchema(msg: DescMessage, ctx: ExtractContext): GoJsonStruct {
   return {
     name: msg.name,
-    kind: kind !== "" ? kind : undefined,
     description: messageDescription(msg, ctx),
     protoType: `${msg.file.proto.package}.${msg.name}`,
     protoFile: `apis/${msg.file.proto.name}`,
-    discriminatorValue: discriminatorValue !== "" ? discriminatorValue : undefined,
     fields: msg.fields.map((f) => extractFieldSchema(f, ctx)),
   };
 }
@@ -95,9 +89,7 @@ export function parseSharedType(msg: DescMessage, ctx: ExtractContext): TypeSche
 /** Port of extractFieldSchema. */
 export function extractFieldSchema(field: DescField, ctx: ExtractContext): FieldSchemaValue {
   const validation = ctx.options.validation(field);
-  const isExpression = ctx.options.isExpression(field);
   const referenceKind = ctx.options.referenceKind(field);
-  const discriminatedBy = ctx.options.discriminatedBy(field);
   return {
     name: toCamelCase(field.name, true),
     jsonName: field.jsonName,
@@ -105,9 +97,7 @@ export function extractFieldSchema(field: DescField, ctx: ExtractContext): Field
     type: extractTypeSpec(field),
     description: stripText(ctx.comments.field(field)),
     required: validation !== null && validation.required,
-    isExpression: isExpression ? true : undefined,
     referenceKind: referenceKind !== 0 ? referenceKind : undefined,
-    discriminatedBy: discriminatedBy !== "" ? discriminatedBy : undefined,
     oneofGroup: oneofGroupName(field),
     validation: validation !== null ? validationStruct(validation) : undefined,
   };

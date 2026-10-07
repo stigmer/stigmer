@@ -2,7 +2,7 @@
 //!
 //! This module owns every JS-facing wire shape so the core stays free of JS-isms:
 //! the camelCase config input, the camelCase status response, the synthetic
-//! `session:`/`wfexec:` handles, the `RunnerHostError -> String` flattening, and the
+//! `session:` handle, the `RunnerHostError -> String` flattening, and the
 //! desktop's workspace HOME-fallback (host policy, not driver behavior).
 
 use serde::{Deserialize, Serialize};
@@ -133,7 +133,6 @@ fn default_workspace_dir() -> Result<String, String> {
 pub struct RunnerStatusResponse {
     pub running: bool,
     pub active_sessions: Vec<String>,
-    pub active_workflow_executions: Vec<String>,
     /// OS pid of the runner (`null` when not running); lets the frontend surface or reap it.
     pub pid: Option<u32>,
 }
@@ -143,7 +142,6 @@ impl From<RunnerStatus> for RunnerStatusResponse {
         Self {
             running: status.running,
             active_sessions: status.active_sessions,
-            active_workflow_executions: status.active_workflow_executions,
             pid: status.pid,
         }
     }
@@ -195,31 +193,6 @@ pub async fn remove_session(
     state
         .host
         .remove_session(&session_id)
-        .await
-        .map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub async fn add_workflow_execution(
-    state: State<'_, RunnerState>,
-    execution_id: String,
-) -> Result<String, String> {
-    state
-        .host
-        .add_workflow_execution(&execution_id)
-        .await
-        .map_err(|e| e.to_string())?;
-    Ok(format!("wfexec:{execution_id}"))
-}
-
-#[tauri::command]
-pub async fn remove_workflow_execution(
-    state: State<'_, RunnerState>,
-    execution_id: String,
-) -> Result<(), String> {
-    state
-        .host
-        .remove_workflow_execution(&execution_id)
         .await
         .map_err(|e| e.to_string())
 }

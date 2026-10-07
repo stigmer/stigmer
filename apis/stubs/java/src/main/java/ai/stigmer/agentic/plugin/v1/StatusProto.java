@@ -67,20 +67,19 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "rnings\030\006 \003(\0132+.ai.stigmer.agentic.plugin" +
       ".v1.PluginWarningR\010warnings\022>\n\005hooks\030\007 \001" +
       "(\0132(.ai.stigmer.agentic.plugin.v1.HookCo" +
-      "nfigR\005hooks\"\206\001\n\025PluginMaterialization\022\026\n" +
-      "\006skills\030\001 \001(\005R\006skills\022\037\n\013mcp_servers\030\002 \001" +
-      "(\005R\nmcpServers\022\026\n\006agents\030\003 \001(\005R\006agents\022\034" +
-      "\n\tworkflows\030\004 \001(\005R\tworkflows\"Q\n\rPluginWa" +
-      "rning\022\022\n\004kind\030\001 \001(\tR\004kind\022\030\n\007message\030\002 \001" +
-      "(\tR\007message\022\022\n\004path\030\003 \001(\tR\004path*y\n\013Plugi" +
-      "nState\022\034\n\030PLUGIN_STATE_UNSPECIFIED\020\000\022\033\n\027" +
-      "PLUGIN_STATE_INSTALLING\020\001\022\026\n\022PLUGIN_STAT" +
-      "E_READY\020\002\022\027\n\023PLUGIN_STATE_FAILED\020\003B\242\001B\013S" +
-      "tatusProtoP\001\242\002\004ASAP\252\002\034Ai.Stigmer.Agentic" +
-      ".Plugin.V1\312\002\034Ai\\Stigmer\\Agentic\\Plugin\\V" +
-      "1\342\002(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMeta" +
-      "data\352\002 Ai::Stigmer::Agentic::Plugin::V1b" +
-      "\006proto3"
+      "nfigR\005hooks\"y\n\025PluginMaterialization\022\026\n\006" +
+      "skills\030\001 \001(\005R\006skills\022\037\n\013mcp_servers\030\002 \001(" +
+      "\005R\nmcpServers\022\026\n\006agents\030\003 \001(\005R\006agentsJ\004\010" +
+      "\004\020\005R\tworkflows\"Q\n\rPluginWarning\022\022\n\004kind\030" +
+      "\001 \001(\tR\004kind\022\030\n\007message\030\002 \001(\tR\007message\022\022\n" +
+      "\004path\030\003 \001(\tR\004path*y\n\013PluginState\022\034\n\030PLUG" +
+      "IN_STATE_UNSPECIFIED\020\000\022\033\n\027PLUGIN_STATE_I" +
+      "NSTALLING\020\001\022\026\n\022PLUGIN_STATE_READY\020\002\022\027\n\023P" +
+      "LUGIN_STATE_FAILED\020\003B\242\001B\013StatusProtoP\001\242\002" +
+      "\004ASAP\252\002\034Ai.Stigmer.Agentic.Plugin.V1\312\002\034A" +
+      "i\\Stigmer\\Agentic\\Plugin\\V1\342\002(Ai\\Stigmer" +
+      "\\Agentic\\Plugin\\V1\\GPBMetadata\352\002 Ai::Sti" +
+      "gmer::Agentic::Plugin::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -100,7 +99,7 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_plugin_v1_PluginMaterialization_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_plugin_v1_PluginMaterialization_descriptor,
-        new java.lang.String[] { "Skills", "McpServers", "Agents", "Workflows", });
+        new java.lang.String[] { "Skills", "McpServers", "Agents", });
     internal_static_ai_stigmer_agentic_plugin_v1_PluginWarning_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_plugin_v1_PluginWarning_fieldAccessorTable = new

@@ -1,19 +1,18 @@
 /**
  * Recent-activity handler — ports pkg/query/activity/handler/handler.go:
- * sessions and workflow executions merged into one time-sorted list for
- * the console's Recents sidebar.
+ * the caller's personal sessions as one time-sorted list for the
+ * console's Recents sidebar.
  *
  * This is the OSS twin of the cloud's ListRecentActivityHandler; the
- * merge, ordering, projection, and filtering semantics are deliberately
- * identical (stigmer#461). Both loads read the request's org through the
- * list index (every org when blank) — the same narrowing the per-kind
- * lists it summarizes apply, so recents is never stricter than they are —
- * and, with a composed ListReadScope, offer those rows to
- * its restrict verb: one read per kind, exact, where the Java handler
- * enumerated the caller's authorized ids and then scanned. Recents orders
- * by the last update, not by creation, so each kind's org is read whole
- * and merged in memory (each kind's newest page_size rows are a superset
- * of its contribution to the merged page).
+ * ordering, projection, and filtering semantics are deliberately
+ * identical (stigmer#461). The load reads the request's org through the
+ * list index (every org when blank) — the same narrowing the session
+ * list it summarizes applies, so recents is never stricter than it is —
+ * and, with a composed ListReadScope, offers those rows to its restrict
+ * verb: one read, exact, where the Java handler enumerated the caller's
+ * authorized ids and then scanned. Recents orders by the last update,
+ * not by creation, so the org's sessions are read whole and sorted in
+ * memory.
  *
  * Proven by __tests__/handler.test.ts (Go's handler_test.go arms) and
  * activity.conformance.test.ts on local.
@@ -33,9 +32,6 @@ import type {
 } from "@stigmer/protos/ai/stigmer/activity/v1/io_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
-import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceAudit } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 import type { ApiResourceMetadata } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -45,7 +41,6 @@ import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import { sessionListIndex } from "../../domain/session/list-index.js";
-import { workflowExecutionListIndex } from "../../domain/workflowrun/list-index.js";
 import type { Store } from "../../store/interface.js";
 
 /**
@@ -66,7 +61,6 @@ export const MAX_PAGE_SIZE = 100;
 export const AUTO_CREATED_SESSION_SUBJECT = "Auto-created session";
 
 export const UNTITLED_SESSION_SUBJECT = "Untitled session";
-export const UNTITLED_EXECUTION_SUBJECT = "Untitled execution";
 
 /**
  * Marks a session as runtime-originated. Recents shows personal sessions
@@ -93,9 +87,9 @@ export class ActivityHandler {
   ) {}
 
   /**
-   * Go ListRecentActivity: load both kinds (the request's org, every org
+   * Go ListRecentActivity: load the sessions (the request's org, every org
    * when blank; the scope's restrict verb when one is composed), project
-   * to sidebar entries, merge-sort newest-first, trim to the page.
+   * to sidebar entries, sort newest-first, trim to the page.
    */
   async listRecentActivity(
     request: ListRecentActivityRequest,
@@ -104,14 +98,12 @@ export class ActivityHandler {
     const pageSize = normalizePageSize(request.pageSize);
 
     const sessions = await this.loadSessions(identity, request.org);
-    const executions = await this.loadExecutions(identity, request.org);
 
-    // Sessions before executions, then a stable sort: entries with equal
-    // timestamps keep this insertion order — the same tie-break the
-    // cloud gets from java.util.List.sort's stability over the same load
-    // order (JS Array.prototype.sort is stable, matching Go's
+    // A stable sort: entries with equal timestamps keep the load order —
+    // the same tie-break the cloud gets from java.util.List.sort's
+    // stability (JS Array.prototype.sort is stable, matching Go's
     // sort.SliceStable).
-    let entries = [...sessions, ...executions].sort((a, b) => {
+    let entries = [...sessions].sort((a, b) => {
       if (timestampAfter(a.updatedAt, b.updatedAt)) {
         return -1;
       }
@@ -125,7 +117,7 @@ export class ActivityHandler {
       entries = entries.slice(0, pageSize);
     }
 
-    this.logger.debug("Recent activity merged", {
+    this.logger.debug("Recent activity listed", {
       entries: entries.length,
       page_size: pageSize,
     });
@@ -167,53 +159,8 @@ export class ActivityHandler {
       entries.push(
         create(RecentActivityEntrySchema, {
           id: session.metadata?.id ?? "",
-          type: "session",
           subject: resolveSubject(session.spec?.subject ?? ""),
           updatedAt: extractUpdatedAt(session.status?.audit),
-        }),
-      );
-    }
-    return entries;
-  }
-
-  /** Go loadExecutions: the org's workflow executions the caller may see, projected. */
-  private async loadExecutions(
-    identity: CallerIdentity,
-    org: string,
-  ): Promise<RecentActivityEntry[]> {
-    const rows = await this.store.queryResources(workflowExecutionListIndex, {
-      org,
-    });
-    const decoded: WorkflowRun[] = [];
-    for (const row of rows) {
-      try {
-        decoded.push(fromBinary(WorkflowRunSchema, row.data));
-      } catch {
-        this.logger.warn(
-          "Skipping undecodable workflow execution row in recent activity",
-        );
-      }
-    }
-    const visible = await restrictListByReadScope(
-      this.listReadScope,
-      identity,
-      ApiResourceKind.workflow_run,
-      decoded,
-      "",
-    );
-    const entries: RecentActivityEntry[] = [];
-    for (const execution of visible) {
-      const name = execution.metadata?.name ?? "";
-      entries.push(
-        create(RecentActivityEntrySchema, {
-          id: execution.metadata?.id ?? "",
-          type: "workflow_run",
-          subject: name === "" ? UNTITLED_EXECUTION_SUBJECT : name,
-          updatedAt: extractUpdatedAt(execution.status?.audit),
-          status: resolvePhase(
-            execution.status?.phase ??
-              RunPhase.RUN_PHASE_UNSPECIFIED,
-          ),
         }),
       );
     }
@@ -254,32 +201,6 @@ export function resolveSubject(subject: string): string {
     return UNTITLED_SESSION_SUBJECT;
   }
   return subject;
-}
-
-/**
- * Go resolvePhase: the lifecycle phase → the display token the console's
- * status badge renders. Unspecified (and any future value this build
- * does not know) reads as "unknown" — no badge.
- */
-export function resolvePhase(phase: RunPhase): string {
-  switch (phase) {
-    case RunPhase.RUN_PENDING:
-      return "pending";
-    case RunPhase.RUN_IN_PROGRESS:
-      return "running";
-    case RunPhase.RUN_COMPLETED:
-      return "completed";
-    case RunPhase.RUN_FAILED:
-      return "failed";
-    case RunPhase.RUN_CANCELLED:
-      return "cancelled";
-    case RunPhase.RUN_TERMINATED:
-      return "terminated";
-    case RunPhase.RUN_PAUSED:
-      return "paused";
-    default:
-      return "unknown";
-  }
 }
 
 /**

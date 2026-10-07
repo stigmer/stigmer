@@ -11,7 +11,6 @@ type Client struct {
 	AgentRun         *AgentRunClient
 	AgentShare       *AgentShareClient
 	ApiKey           *ApiKeyClient
-	Artifact         *ArtifactClient
 	ChannelApp       *ChannelAppClient
 	Environment      *EnvironmentClient
 	ExecutionContext *ExecutionContextClient
@@ -33,8 +32,6 @@ type Client struct {
 	Skill            *SkillClient
 	Subscription     *SubscriptionClient
 	Team             *TeamClient
-	Workflow         *WorkflowClient
-	WorkflowRun      *WorkflowRunClient
 }
 
 // NewClient creates a Client with all resource sub-clients wired to the given connection.
@@ -45,7 +42,6 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		AgentRun:         NewAgentRunClient(conn),
 		AgentShare:       NewAgentShareClient(conn),
 		ApiKey:           NewApiKeyClient(conn),
-		Artifact:         NewArtifactClient(conn),
 		ChannelApp:       NewChannelAppClient(conn),
 		Environment:      NewEnvironmentClient(conn),
 		ExecutionContext: NewExecutionContextClient(conn),
@@ -67,7 +63,5 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		Skill:            NewSkillClient(conn),
 		Subscription:     NewSubscriptionClient(conn),
 		Team:             NewTeamClient(conn),
-		Workflow:         NewWorkflowClient(conn),
-		WorkflowRun:      NewWorkflowRunClient(conn),
 	}
 }

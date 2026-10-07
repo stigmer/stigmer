@@ -22,7 +22,6 @@ describe("buildServerEnv", () => {
     expect(env.TEMPORAL_HOST_PORT).toBe("127.0.0.1:7233");
     expect(env.TEMPORAL_NAMESPACE).toBe("default");
     expect(env.TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE).toBe(RUNNER_TASK_QUEUE);
-    expect(env.TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE).toBe(RUNNER_TASK_QUEUE);
     expect(env.DB_PATH).toBe("/home/u/.stigmer/stigmer.db");
     expect(env.STORAGE_PATH).toBe("/home/u/.stigmer/storage");
   });
@@ -98,7 +97,6 @@ describe("buildRunnerEnv", () => {
     const serverEnv = buildServerEnv(config, {});
     const runnerEnv = buildRunnerEnv(config, {});
     expect(runnerEnv.STIGMER_TASK_QUEUE).toBe(serverEnv.TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE);
-    expect(runnerEnv.STIGMER_TASK_QUEUE).toBe(serverEnv.TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE);
   });
 
   // #285 regression guard: the server's artifact base and the runner's artifact

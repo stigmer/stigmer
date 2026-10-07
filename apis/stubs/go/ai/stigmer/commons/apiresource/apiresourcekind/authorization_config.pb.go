@@ -33,7 +33,7 @@ const (
 	// FGA tuple: resource#platform@platform:stigmer
 	AuthorizationScopeType_AUTHORIZATION_SCOPE_TYPE_PLATFORM AuthorizationScopeType = 1
 	// Links to an organization.
-	// Used for: agent, skill, workflow, environment, session, mcp_server, etc.
+	// Used for: agent, skill, environment, session, mcp_server, etc.
 	// FGA tuple: resource#organization@organization:<org_id>
 	AuthorizationScopeType_AUTHORIZATION_SCOPE_TYPE_ORGANIZATION AuthorizationScopeType = 2
 	// Links to a parent resource.
@@ -188,7 +188,7 @@ func (OwnerAttributionType) EnumDescriptor() ([]byte, []int) {
 // tuples (session, environment, runs, etc.).
 //
 // Current classification:
-//   - Blueprint kinds (agent, skill, workflow, mcp_server, plugin):
+//   - Blueprint kinds (agent, skill, mcp_server, plugin):
 //     private, org, child_orgs
 //   - Org-only kinds (environment):
 //     private, org — child_orgs is deliberately excluded to preserve
@@ -204,8 +204,8 @@ type VisibilityConfig struct {
 	// Whether resources of this kind can be set to visibility_child_orgs.
 	// FGA tuple: resource#child_org_viewer@organization:<org>#child_org_viewer
 	//
-	// Reserved for blueprint kinds (agent, skill, workflow, mcp_server,
-	// plugin). Instance kinds are deliberately excluded to preserve tenant
+	// Reserved for blueprint kinds (agent, skill, mcp_server, plugin).
+	// Instance kinds are deliberately excluded to preserve tenant
 	// isolation.
 	SupportsChildOrgs bool `protobuf:"varint,2,opt,name=supports_child_orgs,json=supportsChildOrgs,proto3" json:"supports_child_orgs,omitempty"`
 	// Whether resources of this kind can be set to visibility_org.
@@ -219,7 +219,7 @@ type VisibilityConfig struct {
 	// with unspecified visibility. When false (or when no visibility config
 	// is declared), unspecified visibility defaults to visibility_private.
 	//
-	// Set on blueprint kinds (agent, skill, workflow, mcp_server): blueprints
+	// Set on blueprint kinds (agent, skill, mcp_server): blueprints
 	// are shared org assets, and before private visibility became real (the
 	// unconditional `viewer from organization` FGA grant was removed) every
 	// blueprint was effectively org-visible regardless of its enum value.
@@ -302,18 +302,18 @@ func (x *VisibilityConfig) GetDefaultsToOrgVisibility() bool {
 // Used for PARENT scope type and additional_parents.
 type ParentRelationConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Parent resource kind name (e.g., "session", "agent", "workflow").
+	// Parent resource kind name (e.g., "session", "identity_account").
 	// Uses string instead of ApiResourceKind enum to avoid circular imports.
 	// Validated at runtime against known resource kinds.
 	Kind string `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
-	// Relation name in FGA model (e.g., "session", "agent", "workflow").
+	// Relation name in FGA model (e.g., "session", "subject").
 	// This is the relation that will be used in the FGA tuple.
 	// FGA tuple: resource#<relation>@<kind>:<parent_id>
 	Relation string `protobuf:"bytes,2,opt,name=relation,proto3" json:"relation,omitempty"`
 	// Field name in the resource's spec message that contains the parent ID.
 	// The service extracts this field from resource.spec to resolve the parent ID.
-	// Example: "session_id" for agent_run, "workflow_id" for
-	// workflow_run.
+	// Example: "session_id" for agent_run, "subject_identity_account_id" for
+	// memory.
 	// This eliminates hardcoded parent ID extraction logic in the service.
 	SpecField     string `protobuf:"bytes,3,opt,name=spec_field,json=specField,proto3" json:"spec_field,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -376,7 +376,7 @@ func (x *ParentRelationConfig) GetSpecField() string {
 //
 // Example configurations:
 //
-// Standard org-scoped resource (agent, skill, workflow):
+// Standard org-scoped resource (agent, skill):
 //
 //	scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
 //	owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
@@ -398,14 +398,14 @@ func (x *ParentRelationConfig) GetSpecField() string {
 //	-> Creates: agent_run#session@session:<session_id>
 //	-> No owner tuple (inherited from session)
 //
-// Resource with additional parent (workflow_run):
+// Resource with additional parent (memory):
 //
 //	scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
-//	owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-//	additional_parents: [{ kind: "workflow", relation: "workflow", spec_field: "workflow_id" }]
-//	-> Creates: workflow_run#organization@organization:<org_id>
-//	-> Creates: workflow_run#workflow@workflow:<workflow_id>
-//	-> Creates: workflow_run#owner@identity_account:<creator_id>
+//	owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+//	additional_parents: [{ kind: "identity_account", relation: "subject", spec_field: "subject_identity_account_id" }]
+//	-> Creates: memory#organization@organization:<org_id>
+//	-> Creates: memory#subject@identity_account:<subject_identity_account_id>
+//	-> No owner tuple
 //
 // Personal resource with creator attribution (environment):
 //
@@ -439,7 +439,8 @@ type AuthorizationConfig struct {
 	Parent *ParentRelationConfig `protobuf:"bytes,3,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Additional parent relations beyond the primary scope.
 	// Used for resources that need multiple parent links.
-	// Example: workflow_run needs org link AND workflow link.
+	// Example: memory needs an org link AND a subject link to the person the
+	// memory is about.
 	AdditionalParents []*ParentRelationConfig `protobuf:"bytes,4,rep,name=additional_parents,json=additionalParents,proto3" json:"additional_parents,omitempty"`
 	// Visibility configuration: which visibility levels this kind supports.
 	// Not configured means the kind accepts only visibility_private — no

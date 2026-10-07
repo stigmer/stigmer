@@ -309,23 +309,15 @@ describe("the ensure", () => {
     });
   });
 
-  it("a workflow and a connect sandbox take the same path under their own names", async () => {
+  it("a connect sandbox takes the same path under its own name", async () => {
     const cluster = new FakeAgentSandboxCluster();
     const driver = driverOver(cluster);
-    await driver.ensureWorkflowSandbox("wfx_1", {
-      ...env,
-      taskQueue: "wfexec:wfx_1",
-    });
     expect(
       await driver.createConnectSandbox("mcp_1", {
         ...env,
         taskQueue: "mcpconnect:mcp_1",
       }),
     ).toBe("mcp_1");
-    expect(
-      cluster.sandboxes.get(sandboxBaseName("workflow", "wfx_1"))
-        ?.operatingMode,
-    ).toBe("Running");
     expect(
       cluster.sandboxes.get(sandboxBaseName("connect", "mcp_1"))?.operatingMode,
     ).toBe("Running");
@@ -355,7 +347,6 @@ describe("deprovision and probe", () => {
     const driver = driverOver(cluster);
     await driver.ensureSessionSandbox("ses_1", env);
     await driver.deprovisionSessionSandbox("ses_1");
-    await driver.deprovisionWorkflowSandbox("wfx_1");
     await driver.deprovisionConnectSandbox("mcp_1");
     expect(
       cluster.calls.filter(
@@ -365,7 +356,6 @@ describe("deprovision and probe", () => {
       `secret:${name}-env`,
       `patch:${name}:Running+template`,
       `delete:${name}`,
-      `delete:${sandboxBaseName("workflow", "wfx_1")}`,
       `delete:${sandboxBaseName("connect", "mcp_1")}`,
     ]);
     expect(cluster.sandboxes.size).toBe(0);

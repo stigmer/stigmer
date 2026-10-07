@@ -401,17 +401,3 @@ export { SkillClient, type SkillInput } from "./gen/skill.js";
 export { RoutedSkillClient, MAX_INLINE_ARTIFACT_BYTES } from "./skill.js";
 export { PluginClient, type PluginInput, type PluginAuthorInput } from "./gen/plugin.js";
 export { RoutedPluginClient } from "./plugin.js";
-export {
-  WorkflowClient,
-  toWorkflowUpdateInput,
-  type WorkflowInput,
-  type WorkflowDocumentInput,
-  type WorkflowTaskInput,
-  type ExportInput,
-  type FlowControlInput,
-} from "./gen/workflow.js";
-export {
-  WorkflowRunClient,
-  toWorkflowRunUpdateInput,
-  type WorkflowRunInput,
-} from "./gen/workflowrun.js";

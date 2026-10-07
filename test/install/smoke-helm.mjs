@@ -17,9 +17,8 @@
  *      (a crash-looping first boot would pass --wait and hide here);
  *   2. through a port-forward, the same probes as the compose stack and the
  *      all-in-one: health SERVING, the console's /config.json contract, the
- *      artifact file server, one END-TO-END `set_vars` workflow execution
- *      through the runner with zero LLM keys, then one AGENT RUN answered by
- *      a model: the release is installed the way the chart's README tells a
+ *      artifact file server, and one END-TO-END AGENT RUN through the runner,
+ *      answered by a model: the release is installed the way the chart's README tells a
  *      user to configure one (runner.llm.existingSecret for the key,
  *      runner.extraEnv for ANTHROPIC_BASE_URL), pointed at a fake Anthropic
  *      API on this host (test/install/lib/fake-model.mjs), which the pods reach
@@ -81,9 +80,8 @@ import {
   assertArtifactLane,
   assertConsoleServed,
   assertPortFree,
-  connectJson,
+  readAgentExecution,
   runAgentToReply,
-  runSetVarsWorkflow,
   waitForServing,
 } from "./lib/stigmer-smoke.mjs";
 import { fakeModelEnv, parseFakeModelArg, startFakeModel } from "./lib/fake-model.mjs";
@@ -265,7 +263,7 @@ function stigmerPodUid(namespace) {
   return pods[0].metadata.uid;
 }
 
-/** The shared probes: SERVING, the console contract, the artifact lane, a workflow run, an agent run. */
+/** The shared probes: SERVING, the console contract, the artifact lane, an agent run. Resolves the run's execution id. */
 async function probeStack(release, fake) {
   const forward = await release.portForward();
   const { baseUrl } = forward;
@@ -277,22 +275,14 @@ async function probeStack(release, fake) {
     log("console lane: /config.json contract + / html both answer");
     await assertArtifactLane(forward.artifactUrl);
     log("artifact file server: answering through the port-forward");
-    const { executionId } = await runSetVarsWorkflow(
-      baseUrl,
-      RUN_COMPLETED_TIMEOUT_MS,
-      log,
-    );
-    log(
-      `end-to-end run: execution ${executionId} COMPLETED through the runner`,
-    );
     const agentRun = await runAgentToReply(baseUrl, RUN_COMPLETED_TIMEOUT_MS, {
       expectText: fake.replyText,
       log,
     });
     log(
-      `agent run: execution ${agentRun.executionId} COMPLETED with the model's reply (${fake.requests()} model calls)`,
+      `agent run: execution ${agentRun.executionId} COMPLETED through the runner with the model's reply (${fake.requests()} model calls)`,
     );
-    return executionId;
+    return agentRun.executionId;
   } finally {
     forward.stop();
   }
@@ -304,11 +294,7 @@ async function assertExecutionSurvived(release, executionId, what) {
   const { baseUrl } = forward;
   try {
     await waitForServing(baseUrl, SERVER_HEALTHY_TIMEOUT_MS);
-    const current = await connectJson(
-      baseUrl,
-      "ai.stigmer.agentic.workflowrun.v1.WorkflowRunQueryController/get",
-      { value: executionId },
-    );
+    const current = await readAgentExecution(baseUrl, executionId);
     const phase = current.status?.phase;
     if (phase !== "RUN_COMPLETED") {
       throw new Error(

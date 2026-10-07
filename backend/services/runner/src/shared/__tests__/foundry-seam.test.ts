@@ -417,7 +417,7 @@ describe("ChatAnthropic createClient -> AnthropicFoundry seam", () => {
     // deployments hosted on Azure return 400 for Anthropic's NATIVE
     // structured-output feature, but plain tool use is fully supported.
     // LangChain implements withStructuredOutput as tools + tool_choice, so
-    // every runner call site (call-llm, Cursor extraction) works on either
+    // every runner call site (Cursor extraction) works on either
     // hosting mode. If a LangChain bump swaps the implementation to the
     // native parameter, this pin fails and the operator doc's hosting-mode
     // guidance must be revisited.

@@ -332,7 +332,6 @@ const MEMBER_CREATE_PERMISSIONS: ReadonlyMap<ApiResourceKind, IamPermission> =
   new Map([
     [ApiResourceKind.skill, IamPermission.can_create_skill],
     [ApiResourceKind.agent, IamPermission.can_create_agent],
-    [ApiResourceKind.workflow, IamPermission.can_create_workflow],
   ]);
 
 /** The plugin as its members see it, from the head and the archive. */
@@ -730,7 +729,7 @@ export function newStorePluginStep(
 }
 
 /**
- * MaterializeMembers — skills, MCP servers, the agent, workflows, each
+ * MaterializeMembers — skills, MCP servers and the agent, each
  * through the in-process lane as the installing caller, in the order
  * references resolve. An existing member whose level differs from the
  * plugin's is moved through its kind's updateVisibility afterwards (apply
@@ -809,23 +808,12 @@ export function newMaterializeMembersStep(
           reconcileLevel(ApiResourceKind.agent, applied),
         );
       }
-      for (const workflow of plan.workflows) {
-        const applied = await materialize(
-          ApiResourceKind.workflow,
-          workflow.slug,
-          () => materializer.applyWorkflow(workflow.resource, caller),
-        );
-        await materialize(ApiResourceKind.workflow, workflow.slug, () =>
-          reconcileLevel(ApiResourceKind.workflow, applied),
-        );
-      }
 
       logger.info("Materialized plugin members", {
         pluginId: plugin.metadata!.id,
         skills: plan.skills.length,
         mcpServers: plan.mcpServers.length,
         agents: plan.agent === undefined ? 0 : 1,
-        workflows: plan.workflows.length,
       });
     },
   };
@@ -834,8 +822,8 @@ export function newMaterializeMembersStep(
 /**
  * RemoveDroppedMembers — an upgrade whose archive no longer names a member
  * deletes it through the member's own delete chain (agent first, so a
- * workflow or a user's own resource still referencing it is judged by
- * that chain, then the rest in reverse materialisation order).
+ * user's own resource still referencing it is judged by that chain, then
+ * the rest in reverse materialisation order).
  */
 export function newRemoveDroppedMembersStep(
   store: Store,
@@ -886,9 +874,8 @@ export function newRemoveDroppedMembersStep(
 export function orderForDeletion(members: readonly Member[]): Member[] {
   const rank = new Map<ApiResourceKind, number>([
     [ApiResourceKind.agent, 0],
-    [ApiResourceKind.workflow, 1],
-    [ApiResourceKind.mcp_server, 2],
-    [ApiResourceKind.skill, 3],
+    [ApiResourceKind.mcp_server, 1],
+    [ApiResourceKind.skill, 2],
   ]);
   return [...members].sort(
     (a, b) => (rank.get(a.kind) ?? 9) - (rank.get(b.kind) ?? 9),
@@ -915,7 +902,6 @@ export function newFinalizePluginStatusStep(): PipelineStep<PushDesc> {
         skills: plan.skills.length,
         mcpServers: plan.mcpServers.length,
         agents: plan.agent === undefined ? 0 : 1,
-        workflows: plan.workflows.length,
       });
       status.warnings = [
         ...libraryWarnings.map((finding) =>
@@ -1034,7 +1020,6 @@ const MEMBER_NOUNS: ReadonlyMap<ApiResourceKind, string> = new Map([
   [ApiResourceKind.skill, "skill"],
   [ApiResourceKind.mcp_server, "MCP server"],
   [ApiResourceKind.agent, "agent"],
-  [ApiResourceKind.workflow, "workflow"],
 ]);
 
 function memberNoun(kind: ApiResourceKind): string {
@@ -1056,11 +1041,6 @@ function declaringDocumentOf(
     case ApiResourceKind.mcp_server:
       return (
         overlays.mcpServers.find((document) => document.server === member.name)
-          ?.path ?? ""
-      );
-    case ApiResourceKind.workflow:
-      return (
-        overlays.workflows.find((document) => document.name === member.name)
           ?.path ?? ""
       );
     default:

@@ -1,8 +1,8 @@
 // Canonical valid Skill artifacts for the conformance suite.
 // Domain: conformance support.
 //
-// Skill is the second versioned domain, but unlike Workflow it has no proto
-// spec the client fills in. A skill is *pushed* as a ZIP whose root SKILL.md
+// Skill is a versioned domain, but unlike Agent it has no proto spec the
+// client fills in. A skill is *pushed* as a ZIP whose root SKILL.md
 // carries YAML frontmatter; the backend extracts the kebab-case `name` (which
 // becomes metadata.name, with metadata.slug derived from it — dots become
 // hyphens; backend is the single source of truth) and computes the version hash
@@ -16,7 +16,7 @@
 // Negative cases (non-zip bytes, missing SKILL.md, malformed frontmatter) are
 // composed inline in the suite from the neutral `zipFiles` primitive below, not
 // here: this module represents validity by construction, matching the convention
-// established by support/workflows.ts and support/agents.ts.
+// established by support/agents.ts.
 import { strToU8, zipSync } from "fflate";
 
 export interface SkillArtifactOptions {

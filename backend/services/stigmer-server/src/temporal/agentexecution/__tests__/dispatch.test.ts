@@ -2,13 +2,10 @@
  * Dispatch-resolution tests — ports
  * pkg/domain/agentexecution/temporal/dispatch_test.go case-for-case: the
  * queue-routing modes (global vs session), the harness/execution-target
- * extraction with the session-not-found degrade, the UNSPECIFIED-target
- * resolution against the config default, and the sandbox-affinity
- * override lane (opaque queue pass-through with forced LOCAL target so
- * cloud sandbox provisioning never triggers, and NATIVE-harness default
- * when the session is absent). Go's private resolveTaskQueue cases are
- * asserted through resolveActivityTaskQueue — the public boundary is the
- * contract.
+ * extraction with the session-not-found degrade, and the UNSPECIFIED-target
+ * resolution against the config default. Go's private resolveTaskQueue
+ * cases are asserted through resolveActivityTaskQueue — the public
+ * boundary is the contract.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -118,7 +115,7 @@ describe("formatSessionTaskQueue", () => {
 describe("resolveActivityTaskQueue — global routing", () => {
   it("no session ID — returns default queue with NATIVE harness", async () => {
     const store = newStore();
-    const result = await resolveActivityTaskQueue(store, "", globalConfig(), "", silentLogger);
+    const result = await resolveActivityTaskQueue(store, "", globalConfig(), silentLogger);
     expect(result.taskQueue).toBe(DEFAULT_ACTIVITY_TASK_QUEUE);
     expect(result.harness).toBe(Harness.NATIVE);
   });
@@ -129,7 +126,6 @@ describe("resolveActivityTaskQueue — global routing", () => {
       store,
       "nonexistent-session",
       globalConfig(),
-      "",
       silentLogger,
     );
     expect(result.taskQueue).toBe(DEFAULT_ACTIVITY_TASK_QUEUE);
@@ -142,7 +138,6 @@ describe("resolveActivityTaskQueue — global routing", () => {
       store,
       "ses_global_test",
       globalConfig(),
-      "",
       silentLogger,
     );
     expect(result.taskQueue, "global routing must always return default queue").toBe(
@@ -155,7 +150,7 @@ describe("resolveActivityTaskQueue — global routing", () => {
 describe("resolveActivityTaskQueue — session routing", () => {
   it("no session ID — falls back to default queue", async () => {
     const store = newStore();
-    const result = await resolveActivityTaskQueue(store, "", sessionConfig(), "", silentLogger);
+    const result = await resolveActivityTaskQueue(store, "", sessionConfig(), silentLogger);
     expect(result.taskQueue).toBe(DEFAULT_ACTIVITY_TASK_QUEUE);
     expect(result.harness).toBe(Harness.NATIVE);
   });
@@ -168,7 +163,6 @@ describe("resolveActivityTaskQueue — session routing", () => {
       store,
       sessionId,
       sessionConfig(),
-      "",
       silentLogger,
     );
     expect(result.taskQueue).toBe(`session:${sessionId}`);
@@ -182,7 +176,6 @@ describe("resolveActivityTaskQueue — session routing", () => {
       store,
       sessionId,
       sessionConfig(),
-      "",
       silentLogger,
     );
     expect(result.taskQueue).toBe(`session:${sessionId}`);
@@ -197,7 +190,6 @@ describe("resolveActivityTaskQueue — session routing", () => {
       store,
       sessionId,
       sessionConfig(),
-      "",
       silentLogger,
     );
     expect(result.taskQueue).toBe(`session:${sessionId}`);
@@ -212,7 +204,7 @@ describe("resolveActivityTaskQueue — session routing", () => {
       ROUTING_SESSION,
       DEFAULT_EXECUTION_TARGET_LOCAL,
     );
-    const result = await resolveActivityTaskQueue(store, "", config, "", silentLogger);
+    const result = await resolveActivityTaskQueue(store, "", config, silentLogger);
     expect(result.taskQueue).toBe("custom_queue");
   });
 });
@@ -225,7 +217,6 @@ describe("resolveActivityTaskQueue — execution target", () => {
       store,
       "ses_local",
       sessionConfig(),
-      "",
       silentLogger,
     );
     expect(result.executionTarget).toBe(ExecutionTarget.LOCAL);
@@ -238,7 +229,6 @@ describe("resolveActivityTaskQueue — execution target", () => {
       store,
       "ses_cloud",
       sessionConfig(),
-      "",
       silentLogger,
     );
     expect(result.executionTarget).toBe(ExecutionTarget.CLOUD);
@@ -251,42 +241,9 @@ describe("resolveActivityTaskQueue — execution target", () => {
       store,
       "ses_unspecified",
       cloudConfig(),
-      "",
       silentLogger,
     );
     expect(result.executionTarget, "CLOUD from config default").toBe(ExecutionTarget.CLOUD);
-  });
-
-  it("activity_task_queue override routes to the parent workflow sandbox", async () => {
-    const store = newStore();
-    const sessionId = "ses_override_test";
-    await saveSession(store, sessionId, Harness.CURSOR);
-    const override = "wfexec:wfx_parent_abc123";
-    const result = await resolveActivityTaskQueue(
-      store,
-      sessionId,
-      sessionConfig(),
-      override,
-      silentLogger,
-    );
-    expect(result.taskQueue).toBe(override);
-    expect(result.harness, "the session's harness still resolves").toBe(Harness.CURSOR);
-    expect(result.executionTarget, "LOCAL — no provisioning needed").toBe(ExecutionTarget.LOCAL);
-  });
-
-  it("activity_task_queue override with no session still works", async () => {
-    const store = newStore();
-    const override = "wfexec:wfx_no_session";
-    const result = await resolveActivityTaskQueue(
-      store,
-      "",
-      cloudConfig(),
-      override,
-      silentLogger,
-    );
-    expect(result.taskQueue).toBe(override);
-    expect(result.harness, "default NATIVE harness").toBe(Harness.NATIVE);
-    expect(result.executionTarget, "LOCAL — sandbox already exists").toBe(ExecutionTarget.LOCAL);
   });
 
   it("surfaces non-NotFound store failures with the pinned dispatch message", async () => {
@@ -295,22 +252,8 @@ describe("resolveActivityTaskQueue — execution target", () => {
     // The message text is contract: the create step maps it VERBATIM to
     // FailedPrecondition (Go's ResolveActivityTaskQueue boundary).
     await expect(
-      resolveActivityTaskQueue(store, "ses_any", sessionConfig(), "", silentLogger),
+      resolveActivityTaskQueue(store, "ses_any", sessionConfig(), silentLogger),
     ).rejects.toThrow(/^failed to load session for dispatch: /);
-  });
-
-  it("empty override falls through to normal routing", async () => {
-    const store = newStore();
-    const sessionId = "ses_no_override";
-    await saveSession(store, sessionId, Harness.NATIVE);
-    const result = await resolveActivityTaskQueue(
-      store,
-      sessionId,
-      sessionConfig(),
-      "",
-      silentLogger,
-    );
-    expect(result.taskQueue).toBe(formatSessionTaskQueue(sessionId));
   });
 });
 

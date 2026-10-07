@@ -5,8 +5,8 @@
  * MODIFY change with real digests, the execution WAITING_FOR_APPROVAL —
  * so a submitFileDecision against it passes the completeness and digest
  * gates. Shared by every suite that decides on a seeded change set (the
- * agentexecution wire suite, the workflow forwarding suite, the forwarded
- * attribution test) so the ledger shape lives once.
+ * agentexecution wire suite, the store-fault and autokeep suites) so the
+ * ledger shape lives once.
  */
 import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";

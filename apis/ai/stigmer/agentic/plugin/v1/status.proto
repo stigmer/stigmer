@@ -94,8 +94,11 @@ message PluginMaterialization {
   // an agent overlay; zero for an MCP-only plugin.
   int32 agents = 3;
 
-  // Workflows materialised from the plugin's Stigmer overlay.
-  int32 workflows = 4;
+  // Field 4 counted the workflows a push materialised from the plugin's
+  // Stigmer overlay until the workflow product was removed platform-wide.
+  // Reserved so the number and name are never reused for a different count.
+  reserved 4;
+  reserved "workflows";
 }
 
 // PluginWarning is one thing a push noticed but did not refuse.

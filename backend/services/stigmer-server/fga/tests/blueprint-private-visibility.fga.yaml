@@ -84,12 +84,6 @@ tuples:
     object: skill:secret-notes
   - user: organization:acme
     relation: organization
-    object: workflow:secret-flow
-  - user: identity_account:carol
-    relation: owner
-    object: workflow:secret-flow
-  - user: organization:acme
-    relation: organization
     object: mcp_server:secret-tools
   - user: identity_account:carol
     relation: owner
@@ -118,7 +112,7 @@ tuples:
     object: agent:shared-secret
 
 tests:
-  - name: private blueprints are invisible to fellow org members (all four kinds)
+  - name: private blueprints are invisible to fellow org members (every kind)
     check:
       - user: identity_account:dave
         object: agent:secret-bot
@@ -129,11 +123,6 @@ tests:
         object: skill:secret-notes
         assertions:
           can_view: false
-      - user: identity_account:dave
-        object: workflow:secret-flow
-        assertions:
-          can_view: false
-          can_execute: false
       - user: identity_account:dave
         object: mcp_server:secret-tools
         assertions:
@@ -154,13 +143,8 @@ tests:
         assertions:
           can_view: true
           can_edit: true
-      - user: identity_account:oscar
-        object: workflow:secret-flow
-        assertions:
-          can_view: true
-          can_edit: true
       # mcp_server had admin inheritance before 2026-07-13 — asserted here so
-      # all four private-blueprint kinds are pinned to the same rule.
+      # every private-blueprint kind is pinned to the same rule.
       - user: identity_account:oscar
         object: mcp_server:secret-tools
         assertions:
@@ -186,12 +170,6 @@ tests:
           can_execute: true
           can_edit: true
           can_delete: true
-      - user: identity_account:carol
-        object: workflow:secret-flow
-        assertions:
-          can_view: true
-          can_execute: true
-          can_edit: true
 
   - name: org-visible agent is viewable and runnable by org members, not outsiders
     check:
@@ -262,8 +240,8 @@ tests:
 
   - name: org viewer holds no spend authority on the org (the cost gate)
     check:
-      # Java execution lanes (session create, agent-execution create,
-      # workflow-execution create, EC create) all check these org-level
+      # The execution lanes (session create, agent-execution create,
+      # EC create) all check these org-level
       # permissions — this is why widening read to viewers exposes no cost.
       - user: identity_account:vera
         object: organization:acme

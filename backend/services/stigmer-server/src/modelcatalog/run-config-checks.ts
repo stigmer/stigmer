@@ -1,8 +1,7 @@
 /**
  * The save-time checks of a saved RunConfig's speed tier and thinking mode,
- * judged on the engine the saved settings name: a workflow agent_call
- * step's run_config against its task harness, and an agent's run defaults
- * against AgentSpec.harness. One copy, so a step and an agent refuse the
+ * judged on the engine the saved settings name: an agent's run defaults
+ * against AgentSpec.harness. One copy, so every saved surface refuses the
  * same settings with the same sentence.
  *
  * Saved settings are self-contained (RunConfig's contract): a saved FAST or
@@ -17,8 +16,7 @@
  *
  * STANDARD and unset are always valid here, and so is DISABLED except on a
  * model that always thinks; unknown enum values
- * never reach these functions (proto validation and strict task-config
- * unmarshaling refuse them first).
+ * never reach these functions (proto validation refuses them first).
  */
 import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import type { RunConfig } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
@@ -31,10 +29,8 @@ import {
   THINKING_REQUIRED_CAPABILITY_KEY,
 } from "./model-registry-store.js";
 
-/** Where a refusal places the saved settings: a sentence prefix and the settings' field path. */
+/** Where a refusal places the saved settings: the settings' field path. */
 export interface SavedRunConfigSite {
-  /** Leads the refusal, e.g. "task 'review' (agent_call): ", or "". */
-  readonly prefix: string;
   /** The saved settings' field path, e.g. "run_config" or "spec.run_config". */
   readonly fieldPath: string;
 }
@@ -53,16 +49,16 @@ export function savedChoiceWithoutModelRefusal(
   if (rc === undefined || rc.modelName.trim() !== "") {
     return "";
   }
-  const { prefix, fieldPath } = site;
+  const { fieldPath } = site;
   if (rc.serviceTier === ServiceTier.FAST) {
     return (
-      `${prefix}${fieldPath}.service_tier 'fast' requires ` +
+      `${fieldPath}.service_tier 'fast' requires ` +
       `${fieldPath}.model_name — the fast tier is a per-model price`
     );
   }
   if (rc.thinkingMode === ThinkingMode.ENABLED) {
     return (
-      `${prefix}${fieldPath}.thinking_mode 'enabled' requires ` +
+      `${fieldPath}.thinking_mode 'enabled' requires ` +
       `${fieldPath}.model_name — thinking is a per-model capability`
     );
   }
@@ -79,14 +75,14 @@ export function savedServiceTierRefusal(
   if (rc?.serviceTier !== ServiceTier.FAST) {
     return "";
   }
-  const { prefix, fieldPath } = site;
+  const { fieldPath } = site;
   const modelName = rc.modelName.trim();
   if (modelName === "") {
     return savedChoiceWithoutModelRefusal(site, rc);
   }
   if (!models.hasPricingVariantForHarness(harness, modelName, FAST_VARIANT_KEY)) {
     return (
-      `${prefix}${fieldPath}.service_tier 'fast' is not available ` +
+      `${fieldPath}.service_tier 'fast' is not available ` +
       `for model '${modelName}' on harness '${harness}': the model registry prices no fast ` +
       `variant for it${fastCapableSuffix(models, harness)}`
     );
@@ -106,7 +102,7 @@ export function savedThinkingModeRefusal(
   harness: string,
   rc: RunConfig | undefined,
 ): string {
-  const { prefix, fieldPath } = site;
+  const { fieldPath } = site;
   const modelName = (rc?.modelName ?? "").trim();
   if (rc?.thinkingMode === ThinkingMode.DISABLED) {
     if (
@@ -114,7 +110,7 @@ export function savedThinkingModeRefusal(
       models.hasCapabilityForHarness(harness, modelName, THINKING_REQUIRED_CAPABILITY_KEY)
     ) {
       return (
-        `${prefix}${fieldPath}.thinking_mode 'disabled' is not available ` +
+        `${fieldPath}.thinking_mode 'disabled' is not available ` +
         `for model '${modelName}' on harness '${harness}': the model always thinks and ` +
         "refuses a request to turn thinking off"
       );
@@ -129,7 +125,7 @@ export function savedThinkingModeRefusal(
   }
   if (!canThinkOn(models, harness, modelName)) {
     return (
-      `${prefix}${fieldPath}.thinking_mode 'enabled' is not available ` +
+      `${fieldPath}.thinking_mode 'enabled' is not available ` +
       `for model '${modelName}' on harness '${harness}': the model registry declares no thinking ` +
       `capability for it${thinkingCapableSuffix(models, harness)}`
     );

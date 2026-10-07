@@ -72,7 +72,7 @@ public enum IamRole
   participant(5),
   /**
    * <pre>
-   * Editor of a blueprint (an agent, a workflow or an MCP server): may change
+   * Editor of a blueprint (an agent or an MCP server): may change
    * its definition and do whatever a viewer can, and may not delete it,
    * change its visibility, publish it on a share link or a channel, or decide
    * who else has access.
@@ -141,7 +141,7 @@ public enum IamRole
   public static final int participant_VALUE = 5;
   /**
    * <pre>
-   * Editor of a blueprint (an agent, a workflow or an MCP server): may change
+   * Editor of a blueprint (an agent or an MCP server): may change
    * its definition and do whatever a viewer can, and may not delete it,
    * change its visibility, publish it on a share link or a channel, or decide
    * who else has access.

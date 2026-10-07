@@ -424,10 +424,9 @@ from the **slim embedding build**:
    bundle-friendly build of the runner, made for exactly this use case: a
    self-contained `main.js` (the entire runner, tree-shaken and bundled) plus
    only the dependencies that genuinely cannot be bundled — the Temporal native
-   bridge (pruned to your platform via `optionalDependencies`), the Cursor SDK
-   with its native helper binaries, and the jq wasm module. It installs at **~85
-   MB per platform** instead of the full `@stigmer/runner` package's ~508 MB
-   `node_modules`.
+   bridge (pruned to your platform via `optionalDependencies`) and the Cursor
+   SDK with its native helper binaries. It installs at **~85 MB per platform**
+   instead of the full `@stigmer/runner` package's ~508 MB `node_modules`.
 2. **Copy it into your app's resources at build time.** Stage the installed
    package and its resolved `node_modules` into a resources folder, then have
    your packager bundle that folder into the installer. In Tauri, declare it

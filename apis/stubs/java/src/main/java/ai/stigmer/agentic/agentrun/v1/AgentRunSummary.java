@@ -11,8 +11,8 @@ package ai.stigmer.agentic.agentrun.v1;
  * runs. Designed for the platform dashboard's unified health view.
  *
  * Cost is intentionally omitted. The dashboard sources cost from
- * getOrgUsageReport (billing source of truth) to prevent double-counting
- * when workflows delegate to agents. See AD-DASH-005.
+ * getOrgUsageReport (billing source of truth), so it shows what billing
+ * recorded and cost is never counted from two sources.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentrun.v1.AgentRunSummary}
@@ -529,8 +529,8 @@ private static final long serialVersionUID = 0L;
    * runs. Designed for the platform dashboard's unified health view.
    *
    * Cost is intentionally omitted. The dashboard sources cost from
-   * getOrgUsageReport (billing source of truth) to prevent double-counting
-   * when workflows delegate to agents. See AD-DASH-005.
+   * getOrgUsageReport (billing source of truth), so it shows what billing
+   * recorded and cost is never counted from two sources.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentrun.v1.AgentRunSummary}

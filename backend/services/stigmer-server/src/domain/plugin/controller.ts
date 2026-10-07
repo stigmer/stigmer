@@ -1,7 +1,7 @@
 /**
  * Plugin controller — the Plugin kind's command and query sides. A plugin
  * is the unit of install: `push` reads an Agent Plugins archive and
- * materialises skills, MCP servers, an agent and workflows in the
+ * materialises skills, MCP servers and an agent in the
  * organization as the installing caller (push.ts holds the steps and the
  * install discipline); `delete` removes them through their own chains;
  * `updateVisibility` moves the plugin and every member together;
@@ -57,7 +57,6 @@ import type {
   PushPluginRequest,
 } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
 import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
-import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type {
   ApiResourceReference,
@@ -537,7 +536,7 @@ async function deletePlugin(
 }
 
 /**
- * GuardMembersUnreferenced — a user's own agent or workflow that references
+ * GuardMembersUnreferenced — a user's own agent that references
  * a member, or an agent whose hooks name the plugin itself, blocks the
  * uninstall, naming the referrers and what to undo: a dangling `skill_ref`
  * found at the next session, or an agent whose next turn is refused for a
@@ -566,11 +565,6 @@ function newGuardMembersUnreferencedStep(
       let usesHooks = false;
       for (const { kind, schema, noun } of [
         { kind: ApiResourceKind.agent, schema: AgentSchema, noun: "agent" },
-        {
-          kind: ApiResourceKind.workflow,
-          schema: WorkflowSchema,
-          noun: "workflow",
-        },
       ]) {
         let rows: Uint8Array[];
         try {

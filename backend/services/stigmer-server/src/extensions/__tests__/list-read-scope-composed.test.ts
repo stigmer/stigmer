@@ -9,9 +9,7 @@
  *   - channelapp.listByOrg (restrict verb behind the domain's own org
  *     predicate: the scope is offered the request org's rows only, the
  *     listByOrg family's shape; stigmer/stigmer#1384),
- *   - workflowexecution.list (restrict verb + the org arm: non-blank
- *     narrows, blank spans orgs),
- *   - activity.listRecentActivity (enumeration verb, two kinds),
+ *   - activity.listRecentActivity (the sessions it summarizes),
  *   - search (enumeration verb feeding the engine allowlist, and the
  *     proof that no request shape bypasses it),
  *   - the OUTAGE arm: a throwing scope answers the sanitized INTERNAL,
@@ -19,8 +17,7 @@
  *   - the SERVER'S OWN reads over `inProcessTransport` (stigmer#1207):
  *     the bare in-process call is stamped `internal` and the helper
  *     answers it before the scope — agentexecution.listBySession (the
- *     lane every server-internal reader of a session's turns rides) and
- *     workflowexecution.list with the org arm still applied; a caller
+ *     lane every server-internal reader of a session's turns rides); a caller
  *     PROPAGATED through the in-process header keeps its class and is
  *     narrowed exactly like the wire.
  *
@@ -47,8 +44,6 @@ import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
-import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
-import { WorkflowRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
@@ -197,28 +192,6 @@ describe("list read scope (composed server, fake scope)", () => {
         }),
       );
     }
-    for (const [id, org] of [
-      ["wfe_mine", acmeId],
-      ["wfe_other_org", RIVAL_ORG_ID],
-      ["wfe_foreign", acmeId],
-    ]) {
-      await server.store.saveResource(
-        ApiResourceKind.workflow_run,
-        id,
-        WorkflowRunSchema,
-        create(WorkflowRunSchema, {
-          apiVersion: "agentic.stigmer.ai/v1",
-          kind: "WorkflowRun",
-          metadata: { id, name: id, org },
-          status: {
-            audit: {
-              specAudit: { createdAt: { seconds: 1_700_000_000n } },
-              statusAudit: { updatedAt: { seconds: 1_700_000_000n } },
-            },
-          },
-        }),
-      );
-    }
     for (const id of ["key_mine", "key_foreign"]) {
       await server.store.saveResource(
         ApiResourceKind.api_key,
@@ -308,32 +281,12 @@ describe("list read scope (composed server, fake scope)", () => {
     ]);
   });
 
-  it("workflowexecution.list: non-blank org narrows AFTER the scope; blank org spans orgs (lane 6)", async () => {
-    allowed = new Set(["wfe_mine", "wfe_other_org"]);
-    const query = createClient(WorkflowRunQueryController, transport);
-    const scopedToOrg = await query.list({ org: "acme" });
-    expect(scopedToOrg.entries.map((e) => e.metadata?.id)).toEqual([
-      "wfe_mine",
-    ]);
-    const acrossOrgs = await query.list({ org: "" });
-    expect(acrossOrgs.entries.map((e) => e.metadata?.id).sort()).toEqual([
-      "wfe_mine",
-      "wfe_other_org",
-    ]);
-  });
-
-  it("activity narrows both kinds through the enumeration verb (lane 22)", async () => {
-    allowed = new Set(["ses_mine", "wfe_mine"]);
+  it("activity narrows its sessions through the scope (lane 22)", async () => {
+    allowed = new Set(["ses_mine"]);
     const query = createClient(ActivityQueryController, transport);
     const recents = await query.listRecentActivity({ pageSize: 10 });
-    expect(recents.entries.map((e) => e.id).sort()).toEqual([
-      "ses_mine",
-      "wfe_mine",
-    ]);
-    expect(seenKinds).toEqual([
-      ApiResourceKind.session,
-      ApiResourceKind.workflow_run,
-    ]);
+    expect(recents.entries.map((e) => e.id)).toEqual(["ses_mine"]);
+    expect(seenKinds).toEqual([ApiResourceKind.session]);
   });
 
   it("search narrows through the engine allowlist on every request shape — nothing bypasses the scope (lane 21)", async () => {
@@ -405,21 +358,6 @@ describe("list read scope (composed server, fake scope)", () => {
       );
       expect(turns.entries.map((e) => e.metadata?.id)).toEqual(["aex_turn_2"]);
       expect(seenKinds).toEqual([ApiResourceKind.agent_run]);
-    });
-
-    it("workflowexecution.list, bare: the request's org predicate still applies, the scope never asked", async () => {
-      allowed = new Set();
-      const query = createClient(
-        WorkflowRunQueryController,
-        server.inProcessTransport,
-      );
-      // In-process: server code passes the id, which nothing resolves.
-      const acme = await query.list({ org: acmeId });
-      expect(acme.entries.map((e) => e.metadata?.id).sort()).toEqual([
-        "wfe_foreign",
-        "wfe_mine",
-      ]);
-      expect(seenKinds).toEqual([]);
     });
   });
 });

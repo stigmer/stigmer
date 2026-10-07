@@ -317,7 +317,7 @@
         {
           "name": "editor",
           "number": 6,
-          "description": "Editor of a blueprint (an agent, a workflow or an MCP server): may change\n its definition and do whatever a viewer can, and may not delete it,\n change its visibility, publish it on a share link or a channel, or decide\n who else has access."
+          "description": "Editor of a blueprint (an agent or an MCP server): may change\n its definition and do whatever a viewer can, and may not delete it,\n change its visibility, publish it on a share link or a channel, or decide\n who else has access."
         }
       ]
     },
@@ -356,7 +356,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (environments, sessions) stay creator-only."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (environments, sessions) stay creator-only."
         },
         {
           "name": "visibility_public",

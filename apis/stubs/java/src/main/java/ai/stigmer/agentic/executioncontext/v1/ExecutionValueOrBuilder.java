@@ -12,9 +12,8 @@ public interface ExecutionValueOrBuilder extends
 
   /**
    * <pre>
-   * String content of this entry. Empty strings are valid — optional
-   * workflow env vars may be provided with no value, and the workflow
-   * engine resolves them to "" in expression interpolation.
+   * String content of this entry. Empty strings are valid — an optional
+   * env var may be provided with no value.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value"];</code>
@@ -23,9 +22,8 @@ public interface ExecutionValueOrBuilder extends
   java.lang.String getValue();
   /**
    * <pre>
-   * String content of this entry. Empty strings are valid — optional
-   * workflow env vars may be provided with no value, and the workflow
-   * engine resolves them to "" in expression interpolation.
+   * String content of this entry. Empty strings are valid — an optional
+   * env var may be provided with no value.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value"];</code>

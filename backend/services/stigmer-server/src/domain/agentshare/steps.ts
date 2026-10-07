@@ -410,7 +410,7 @@ export function newResolveShareDefaultsStep(
  */
 function refuseSavedChoiceWithoutModel(share: AgentShare): void {
   const reason = savedChoiceWithoutModelRefusal(
-    { prefix: "", fieldPath: "spec.run_config" },
+    { fieldPath: "spec.run_config" },
     share.spec?.runConfig,
   );
   if (reason !== "") {

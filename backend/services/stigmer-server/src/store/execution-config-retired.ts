@@ -21,7 +21,7 @@
  *     INTERACTIVE (the enum's own default);
  *   - the per-message intents (interaction mode, build-from-plan, the
  *     structured-output schema) go to the top level of the spec, so a plan
- *     turn keeps its badge and a workflow step its schema;
+ *     turn keeps its badge and a structured turn its schema;
  *   - the retired context-management settings, which nothing read, are
  *     dropped.
  *

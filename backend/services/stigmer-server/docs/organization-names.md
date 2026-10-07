@@ -16,7 +16,7 @@ What the resolver does with a value:
 - any other value is looked up in the name table, and an organization's current slug, or a previous one that has not expired, becomes its id;
 - a name nothing holds passes through unchanged, and authorization refuses it exactly as it refuses an organization the caller cannot see, so a caller never learns which names exist.
 
-Serving requests only: an in-process call is server code, which passes the ids it read from storage. Content a person wrote that the server reads from something else is resolved where it is read: a plugin package's manifests at push (`resolveOrganizationNames`), a workflow's agent_call config by its own step. Streams are not resolved; no streaming method takes an organization, which the inventory test holds.
+Serving requests only: an in-process call is server code, which passes the ids it read from storage. Content a person wrote that the server reads from something else is resolved where it is read: a plugin package's manifests at push (`resolveOrganizationNames`). Streams are not resolved; no streaming method takes an organization, which the inventory test holds.
 
 Rows read `| Service.method | <field>, <field>, … |`.
 
@@ -163,27 +163,6 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | SkillCommandController.pushFromRunArtifact | `org` |
 | SkillQueryController.getByReference | `org` |
 | SkillQueryController.listVersions | `org` |
-
-## `ai.stigmer.agentic.workflow.v1`
-
-| Method | Organization fields |
-|---|---|
-| WorkflowCommandController.apply | `metadata.org` |
-| WorkflowCommandController.create | `metadata.org` |
-| WorkflowCommandController.update | `metadata.org` |
-| WorkflowCommandController.validateSpec | `metadata.org` |
-| WorkflowQueryController.getByReference | `org` |
-| WorkflowQueryController.listVersions | `org` |
-
-## `ai.stigmer.agentic.workflowrun.v1`
-
-| Method | Organization fields |
-|---|---|
-| WorkflowRunCommandController.create | `metadata.org` |
-| WorkflowRunCommandController.update | `metadata.org` |
-| WorkflowRunQueryController.getRunSummary | `org` |
-| WorkflowRunQueryController.list | `org` |
-| WorkflowRunQueryController.listPendingApprovals | `org` |
 
 ## `ai.stigmer.iam.apikey.v1`
 

@@ -1,10 +1,9 @@
 // Run-gate conformance.
 //
 // The contract: a caller may START or CONTINUE a run only on what they can
-// see. The three create chains — session, agent execution, workflow
-// execution — ask the edition's Authorizer about the record's run target
-// (agent#can_execute, session#can_create_run_in, workflow#can_execute)
-// before any engine check, gate slot or side effect. A session names its agent by reference and pins the agent it
+// see. The two create chains — session and agent execution — ask the
+// edition's Authorizer about the record's run target (agent#can_execute,
+// session#can_create_run_in) before any engine check, gate slot or side effect. A session names its agent by reference and pins the agent it
 // resolves to (status.agent_id), so the gate judges that resolved id, and
 // asks it again whenever a write introduces or changes the agent. A turn
 // asks two questions: the session's own permission, then whether the caller
@@ -15,12 +14,12 @@
 //
 //   - a member cannot open a session on a PRIVATE agent, cannot start a
 //     conversation on one, cannot add an execution to a session they cannot
-//     see, cannot run a PRIVATE workflow — each PERMISSION_DENIED with the
+//     see — each PERMISSION_DENIED with the
 //     domain's byte-pinned copy, and side-effect free (no session row
 //     appears for the agent);
 //   - a member CAN open a session on an ORG-visible agent (the positive arm
 //     is a session create on purpose: it starts nothing, so a Class A target
-//     is left with no orphan workflow), and the session pins that agent;
+//     is left with no orphan run), and the session pins that agent;
 //   - an unknown agent slug answers the reference rule's FAILED_PRECONDITION
 //     before any permission is asked (a missing target is never dressed as
 //     a denial, the stigmer#224 order);
@@ -34,19 +33,10 @@
 //   - a turn in a session the caller may not add to learns nothing about
 //     the session: a forbidden session answers the session's own denial
 //     whatever its agent's state, an unknown one NOT_FOUND naming only the
-//     id (the authorizer's existence probe, stigmer#224);
-//   - a workflow run names its workflow alone, and the gate judges that id:
-//     a member who cannot see the workflow is refused with the workflow
-//     copy, and an unknown id answers NOT_FOUND naming only the id it was
-//     sent, the session's order (an unknown id under the trusted-local
-//     posture meets the run's version pin instead, pinned in the execution
-//     class);
-//   - a workflow parent link the caller cannot vouch for is refused with
-//     INVALID_ARGUMENT (the trusted-local posture's admission of the same
-//     link is pinned in the agentexecution suite).
+//     id (the authorizer's existence probe, stigmer#224).
 //
-// Deliberately out of scope: the runtime lanes (guest, channel, schedule,
-// workflow sandbox), whose admission is decided by their own gate steps and
+// Deliberately out of scope: the runtime lanes (guest, channel, schedule),
+// whose admission is decided by their own gate steps and
 // pinned by their own suites.
 //
 // The arms run on the target's ENFORCING LANE (targets/target.ts): the
@@ -80,13 +70,11 @@ import {
   makeSession,
   makeSessionSpec,
 } from "../support/sessions";
-import { makeWorkflow } from "../support/workflows";
-import { makeWorkflowExecution } from "../support/workflowruns";
 import { uniqueName } from "../support/naming";
 
 let target: TargetProfile;
 let enforcing: Awaited<ReturnType<typeof enforcingLaneOf>>;
-// The lane's founder — the OWNER of the agents and workflows the member
+// The lane's founder — the OWNER of the agents the member
 // may or may not run.
 let clients: ConformanceClients;
 const fixtures = new FixtureTracker();
@@ -149,19 +137,6 @@ async function openSession(
       .catch(() => undefined),
   );
   return session;
-}
-
-async function createPrivateWorkflow(org: string) {
-  const input = makeWorkflow({ org, name: uniqueName("run-gate-private-wf") });
-  input.metadata = {
-    ...input.metadata,
-    visibility: ApiResourceVisibility.visibility_private,
-  };
-  const workflow = await clients.workflowCommand.create(input);
-  fixtures.defer(() =>
-    clients.workflowCommand.delete({ value: workflow.metadata!.id }),
-  );
-  return workflow;
 }
 
 const FORGED_STATUS = {
@@ -260,51 +235,6 @@ describe("run gate — a member may run only what they can see (on the enforcing
     expect(denied.rawMessage).toBe(
       `unauthorized to add an execution to session '${sessionId}'`,
     );
-  });
-
-  it("[rpc:WorkflowRunCommandController.create] workflow execution create on a PRIVATE workflow is denied with the workflow copy", async (ctx) => {
-    const lane = laneOrSkip(ctx);
-    const context = await tenancy(lane);
-    const member = await lane.provisionMember(context);
-    const workflow = await createPrivateWorkflow(context.org);
-    const workflowId = workflow.metadata!.id;
-
-    const denied = await expectGrpcCode(
-      () =>
-        member.workflowExecutionCommand.create(
-          makeWorkflowExecution({
-            org: context.org,
-            name: uniqueName("member-wf-exec"),
-            workflowId,
-          }),
-        ),
-      Code.PermissionDenied,
-      "member workflow execution create on a private workflow",
-    );
-    expect(denied.rawMessage).toBe(
-      `unauthorized to run workflow '${workflowId}'`,
-    );
-  });
-
-  it("[rpc:WorkflowRunCommandController.create] a workflow run naming an unknown workflow answers NOT_FOUND naming only the id it was sent", async (ctx) => {
-    const lane = laneOrSkip(ctx);
-    const context = await tenancy(lane);
-    const member = await lane.provisionMember(context);
-    const missing = `wfl_${uniqueName("missing").replaceAll("-", "")}`;
-
-    const notFound = await expectGrpcCode(
-      () =>
-        member.workflowExecutionCommand.create(
-          makeWorkflowExecution({
-            org: context.org,
-            name: uniqueName("member-wf-exec"),
-            workflowId: missing,
-          }),
-        ),
-      Code.NotFound,
-      "a member's run of an unknown workflow",
-    );
-    expect(notFound.rawMessage).toContain(missing);
   });
 
   it("[rpc:SessionCommandController.create] session create on an ORG-visible agent is allowed and pins it (the positive arm)", async (ctx) => {
@@ -636,29 +566,5 @@ describe("run gate — a session the caller may not add to discloses nothing (on
       "a member's turn in an unknown session",
     );
     expect(notFound.rawMessage).toContain(missing);
-  });
-});
-
-describe("run gate — a workflow parent link is the vouched runner's (on the enforcing lane)", () => {
-  it("[rpc:AgentRunCommandController.create] a parent link the caller cannot vouch for is refused with INVALID_ARGUMENT", async (ctx) => {
-    const lane = laneOrSkip(ctx);
-    const context = await tenancy(lane);
-    const member = await lane.provisionMember(context);
-
-    const refused = await expectGrpcCode(
-      () =>
-        member.agentExecutionCommand.create(
-          makeAgentExecution({
-            org: context.org,
-            name: uniqueName("member-child-turn"),
-            parent: { workflowRunId: "wfx_notvouched" },
-          }),
-        ),
-      Code.InvalidArgument,
-      "an unvouched workflow parent link",
-    );
-    expect(refused.rawMessage).toBe(
-      "parent links this execution to a workflow run, which only that workflow run's runner may do; remove parent",
-    );
   });
 });

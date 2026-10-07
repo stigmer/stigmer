@@ -24,8 +24,8 @@ import { EnvironmentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/enviro
 export const ENVIRONMENT_API_VERSION = "agentic.stigmer.ai/v1";
 export const ENVIRONMENT_KIND = "Environment";
 
-// A single blueprint env-var *declaration* — the whitelist entry a Workflow or
-// Agent puts in its spec.env. Unlike EnvironmentValue it carries no value: the
+// A single blueprint env-var *declaration* — the whitelist entry an Agent or
+// McpServer puts in its spec.env. Unlike EnvironmentValue it carries no value: the
 // blueprint layer is a key whitelist + required/optional schema, never a value
 // source (see backend/libs/go/envmerge). `optional` defaults to false, meaning
 // the key is required (its absence after merge is a warn-only path, not a hard
@@ -38,7 +38,7 @@ export interface EnvVarDeclarationInit {
 
 // Projects a keyed map of declarations into the proto map<string, EnvVarDeclaration>
 // init shape, applying the same defaults on every field so blueprint env maps are
-// composed identically by the Workflow and Agent builders.
+// composed identically by the Agent and McpServer builders.
 export function makeEnvDeclarations(
   env: Record<string, EnvVarDeclarationInit>,
 ): Record<string, InitShape<typeof EnvVarDeclarationSchema>> {
@@ -48,14 +48,6 @@ export function makeEnvDeclarations(
       { isSecret: decl.isSecret ?? false, optional: decl.optional ?? false, description: decl.description ?? "" },
     ]),
   );
-}
-
-// A reference to an Environment resource by org + slug, as an agent_call
-// step's environment_refs carry it. An explicit org keeps the reference
-// independent of where the step's workflow is written.
-export interface EnvironmentRefInit {
-  org: string;
-  slug: string;
 }
 
 // A single spec.data entry. `value` is the configuration or secret string;

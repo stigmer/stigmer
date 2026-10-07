@@ -44,38 +44,6 @@ public interface GetRunnerScopedTokenInputOrBuilder extends
 
   /**
    * <pre>
-   * WorkflowRun id — yields a token scoped to exactly that workflow
-   * run's ExecutionContext.
-   * </pre>
-   *
-   * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
-   * @return Whether the workflowRunId field is set.
-   */
-  boolean hasWorkflowRunId();
-  /**
-   * <pre>
-   * WorkflowRun id — yields a token scoped to exactly that workflow
-   * run's ExecutionContext.
-   * </pre>
-   *
-   * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
-   * @return The workflowRunId.
-   */
-  java.lang.String getWorkflowRunId();
-  /**
-   * <pre>
-   * WorkflowRun id — yields a token scoped to exactly that workflow
-   * run's ExecutionContext.
-   * </pre>
-   *
-   * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
-   * @return The bytes for workflowRunId.
-   */
-  com.google.protobuf.ByteString
-      getWorkflowRunIdBytes();
-
-  /**
-   * <pre>
    * Warm-pool claim — a pool sandbox exchanging its pool credential for the
    * session token of the session it has just been claimed for. Presented
    * with a token_type=pool_sandbox credential (not embedded_runner).
@@ -110,8 +78,8 @@ public interface GetRunnerScopedTokenInputOrBuilder extends
   /**
    * <pre>
    * Credential renewal — a live sandbox extending its own lifetime.
-   * Presented with the still-valid token_type=sandbox or workflow_sandbox
-   * credential being renewed (not embedded_runner).
+   * Presented with the still-valid token_type=sandbox credential being
+   * renewed (not embedded_runner).
    * </pre>
    *
    * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
@@ -121,8 +89,8 @@ public interface GetRunnerScopedTokenInputOrBuilder extends
   /**
    * <pre>
    * Credential renewal — a live sandbox extending its own lifetime.
-   * Presented with the still-valid token_type=sandbox or workflow_sandbox
-   * credential being renewed (not embedded_runner).
+   * Presented with the still-valid token_type=sandbox credential being
+   * renewed (not embedded_runner).
    * </pre>
    *
    * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
@@ -132,8 +100,8 @@ public interface GetRunnerScopedTokenInputOrBuilder extends
   /**
    * <pre>
    * Credential renewal — a live sandbox extending its own lifetime.
-   * Presented with the still-valid token_type=sandbox or workflow_sandbox
-   * credential being renewed (not embedded_runner).
+   * Presented with the still-valid token_type=sandbox credential being
+   * renewed (not embedded_runner).
    * </pre>
    *
    * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>

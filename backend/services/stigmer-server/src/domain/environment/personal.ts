@@ -12,13 +12,10 @@
  * resolves, for the run's person (agentexecution/run-person.ts), the run's
  * declared variables the merge chain did not carry — the agent's and its
  * session's MCP servers' alike — and the GITHUB_TOKEN a session's git
- * repository needs. The workflow-execution ExecutionContext build resolves
- * the workflow's declared variables a run did not pass, for the person who
- * started the run. The two run builds share one fill rule,
- * `fillDeclaredFromPersonalEnvironment`, so the organization limit cannot
- * drift between them. Before the build learned this rule a key saved through
- * the console's "save for future" reached the connect lane and never the
- * run.
+ * repository needs, through one fill rule,
+ * `fillDeclaredFromPersonalEnvironment`. Before the build learned this
+ * rule a key saved through the console's "save for future" reached the
+ * connect lane and never the run.
  *
  * Whose row: the one whose creator stamp
  * (`status.audit.spec_audit.created_by.id`) IS the person, in the asked
@@ -203,15 +200,15 @@ export async function resolveDeclaredFromPersonalEnvironment(
 }
 
 /**
- * The resource whose declarations a fill reads: the run's agent, or the
- * workflow a run runs. Its declared keys are filled only when it belongs
+ * The resource whose declarations a fill reads: the run's agent. Its
+ * declared keys are filled only when it belongs
  * to the run's own organization; its organization is asked only when it
  * declares a wanted key, and one that cannot be read counts as another
  * organization's.
  */
 export interface DeclaringResource {
   /** The noun in logs, which also names the id field ("agent" logs `agentId`). */
-  readonly noun: "agent" | "workflow";
+  readonly noun: "agent";
   readonly id: string;
   /** The keys the resource itself declares (a subset of the fill's declarations). */
   readonly declares: { readonly [key: string]: EnvVarDeclaration };
@@ -227,7 +224,7 @@ export interface DeclaredPersonalFill {
   readonly exclude: ReadonlySet<string>;
   readonly owner: DeclaringResource;
   readonly executionOrg: string;
-  /** The run's person (`runPersonOf`, `workflowRunPersonOf`); undefined reads nothing. */
+  /** The run's person (`runPersonOf`); undefined reads nothing. */
   readonly person: string | undefined;
   readonly executionId: string;
 }
@@ -236,8 +233,7 @@ export interface DeclaredPersonalFill {
  * Fills the run's declared keys still missing from `filled` — every layer
  * already merged — from the run's person's personal environment, by
  * declared key, and returns the merged map (`filled` is never mutated).
- * The one rule for every run that reads a person's keys: an agent turn and
- * a workflow run alike. Left alone:
+ * The one rule for every run that reads a person's keys. Left alone:
  *   - a key already filled, and every key in `exclude`;
  *   - every key the owner declares when the owner belongs to another
  *     organization than the run: a person's values reach a resource their

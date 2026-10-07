@@ -28,7 +28,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
 import { AgentRunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
+import { MessageType, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -129,7 +129,7 @@ describe("ExecuteCursor hermetic — poisoned-handle recovery on a fresh agent",
     expect(invocation.outcome.kind, "a recovered turn RETURNS like any completion").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
     expect(slim.phase).toBe("RUN_COMPLETED");
-    expect(slim.final_text).toBe(FINAL_TEXT);
+    expect(record.status?.messages.filter((m) => m.type === MessageType.MESSAGE_AI).at(-1)?.content, "the persisted transcript ends with the answer").toBe(FINAL_TEXT);
     expect(record.persistedPhases).toEqual([
       RunPhase.RUN_IN_PROGRESS,
       RunPhase.RUN_COMPLETED,

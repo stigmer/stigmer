@@ -6,7 +6,6 @@ import { AgentChannelClient } from "./agentchannel.js";
 import { AgentRunClient } from "./agentrun.js";
 import { AgentShareClient } from "./agentshare.js";
 import { ApiKeyClient } from "./apikey.js";
-import { ArtifactClient } from "./artifact.js";
 import { ChannelAppClient } from "./channelapp.js";
 import { EnvironmentClient } from "./environment.js";
 import { ExecutionContextClient } from "./executioncontext.js";
@@ -28,8 +27,6 @@ import { SessionClient } from "./session.js";
 import { SkillClient } from "./skill.js";
 import { SubscriptionClient } from "./subscription.js";
 import { TeamClient } from "./team.js";
-import { WorkflowClient } from "./workflow.js";
-import { WorkflowRunClient } from "./workflowrun.js";
 
 /** Aggregate client with all resource-specific sub-clients. */
 export class GeneratedClient {
@@ -38,7 +35,6 @@ export class GeneratedClient {
   readonly agentRun: AgentRunClient;
   readonly agentShare: AgentShareClient;
   readonly apiKey: ApiKeyClient;
-  readonly artifact: ArtifactClient;
   readonly channelapp: ChannelAppClient;
   readonly environment: EnvironmentClient;
   readonly executionContext: ExecutionContextClient;
@@ -60,8 +56,6 @@ export class GeneratedClient {
   readonly skill: SkillClient;
   readonly subscription: SubscriptionClient;
   readonly team: TeamClient;
-  readonly workflow: WorkflowClient;
-  readonly workflowRun: WorkflowRunClient;
 
   constructor(transport: Transport) {
     this.agent = new AgentClient(transport);
@@ -69,7 +63,6 @@ export class GeneratedClient {
     this.agentRun = new AgentRunClient(transport);
     this.agentShare = new AgentShareClient(transport);
     this.apiKey = new ApiKeyClient(transport);
-    this.artifact = new ArtifactClient(transport);
     this.channelapp = new ChannelAppClient(transport);
     this.environment = new EnvironmentClient(transport);
     this.executionContext = new ExecutionContextClient(transport);
@@ -91,8 +84,6 @@ export class GeneratedClient {
     this.skill = new SkillClient(transport);
     this.subscription = new SubscriptionClient(transport);
     this.team = new TeamClient(transport);
-    this.workflow = new WorkflowClient(transport);
-    this.workflowRun = new WorkflowRunClient(transport);
   }
 }
 
@@ -102,13 +93,11 @@ export { type AgentInput, type McpServerUsageInput, type SubAgentInput, type Env
 export { AgentChannelClient } from "./agentchannel.js";
 export { type AgentChannelInput, type SlackChannelConfigInput, type WhatsAppChannelConfigInput } from "./agentchannel.js";
 export { AgentRunClient } from "./agentrun.js";
-export { type AgentRunInput, type SessionSpecInput, type WorkspaceEntryInput, type WorkspaceSourceInput, type GitRepoSourceInput, type LocalPathSourceInput, type AttachmentInput, type ConversationCatchupInput, type WorkflowParentInput } from "./agentrun.js";
+export { type AgentRunInput, type SessionSpecInput, type WorkspaceEntryInput, type WorkspaceSourceInput, type GitRepoSourceInput, type LocalPathSourceInput, type AttachmentInput, type ConversationCatchupInput } from "./agentrun.js";
 export { AgentShareClient } from "./agentshare.js";
 export { type AgentShareInput, type AgentShareMessagesInput } from "./agentshare.js";
 export { ApiKeyClient } from "./apikey.js";
 export { type ApiKeyInput } from "./apikey.js";
-export { ArtifactClient } from "./artifact.js";
-export { type ArtifactInput, type ArtifactSourceInput, type RetentionPolicyInput } from "./artifact.js";
 export { ChannelAppClient } from "./channelapp.js";
 export { type ChannelAppInput, type SlackChannelAppConfigInput, type WhatsAppChannelAppConfigInput } from "./channelapp.js";
 export { EnvironmentClient } from "./environment.js";
@@ -150,9 +139,5 @@ export { SubscriptionClient } from "./subscription.js";
 export { type SubscriptionInput } from "./subscription.js";
 export { TeamClient } from "./team.js";
 export { type TeamInput } from "./team.js";
-export { WorkflowClient } from "./workflow.js";
-export { type WorkflowInput, type WorkflowDocumentInput, type WorkflowTaskInput, type ExportInput, type FlowControlInput, type WorkflowBudgetInput } from "./workflow.js";
-export { WorkflowRunClient } from "./workflowrun.js";
-export { type WorkflowRunInput } from "./workflowrun.js";
 export { type ListParams, type ListResult, type DeleteResourceInput, type ResourceRef, type EnvSpecInput, type EnvVarInput, type Page } from "./types.js";
 export { StigmerError, type ErrorCode, isNotFound, isUnauthenticated, isPermissionDenied, isRetryable, isUnimplemented } from "./errors.js";

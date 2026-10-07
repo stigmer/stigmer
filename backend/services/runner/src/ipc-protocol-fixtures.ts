@@ -9,26 +9,21 @@ import {
   IPC_PROTOCOL_VERSION,
   buildReadyMessage,
   type IpcAddSession,
-  type IpcAddWorkflowExecution,
   type IpcError,
   type IpcReady,
   type IpcRemoveSession,
-  type IpcRemoveWorkflowExecution,
   type IpcSessionAdded,
   type IpcSessionRemoved,
   type IpcShutdown,
   type IpcShutdownComplete,
   type IpcTokenUpdated,
   type IpcUpdateToken,
-  type IpcWorkflowExecutionAdded,
-  type IpcWorkflowExecutionRemoved,
 } from "./ipc-protocol.js";
 
 // Stable example identifiers shared by every mirror's tests. Keep them in sync with the
-// values hard-coded in protocol.rs and ipc_fixtures_test.go — they are part of the golden
+// values hard-coded in protocol.rs — they are part of the golden
 // artifact, so a change here regenerates the fixture and the mirrors must match it.
 const SESSION_ID = "ses_example";
-const EXECUTION_ID = "wfe_example";
 const TOKEN = "tok_example";
 
 /** The full golden fixture set: the protocol version plus every command and response. */
@@ -37,8 +32,6 @@ export interface IpcFixtures {
   commands: {
     addSession: IpcAddSession;
     removeSession: IpcRemoveSession;
-    addWorkflowExecution: IpcAddWorkflowExecution;
-    removeWorkflowExecution: IpcRemoveWorkflowExecution;
     updateTokenSet: IpcUpdateToken;
     updateTokenCleared: IpcUpdateToken;
     shutdown: IpcShutdown;
@@ -51,8 +44,6 @@ export interface IpcFixtures {
     readyLegacy: Omit<IpcReady, "protocolVersion">;
     sessionAdded: IpcSessionAdded;
     sessionRemoved: IpcSessionRemoved;
-    workflowExecutionAdded: IpcWorkflowExecutionAdded;
-    workflowExecutionRemoved: IpcWorkflowExecutionRemoved;
     tokenUpdated: IpcTokenUpdated;
     error: IpcError;
     shutdownComplete: IpcShutdownComplete;
@@ -69,14 +60,6 @@ export function buildFixtures(): IpcFixtures {
     commands: {
       addSession: { type: "addSession", sessionId: SESSION_ID },
       removeSession: { type: "removeSession", sessionId: SESSION_ID },
-      addWorkflowExecution: {
-        type: "addWorkflowExecution",
-        executionId: EXECUTION_ID,
-      },
-      removeWorkflowExecution: {
-        type: "removeWorkflowExecution",
-        executionId: EXECUTION_ID,
-      },
       updateTokenSet: { type: "updateToken", token: TOKEN },
       updateTokenCleared: { type: "updateToken", token: null },
       shutdown: { type: "shutdown" },
@@ -90,15 +73,6 @@ export function buildFixtures(): IpcFixtures {
         taskQueue: `session:${SESSION_ID}`,
       },
       sessionRemoved: { type: "sessionRemoved", sessionId: SESSION_ID },
-      workflowExecutionAdded: {
-        type: "workflowExecutionAdded",
-        executionId: EXECUTION_ID,
-        taskQueue: `wfexec:${EXECUTION_ID}`,
-      },
-      workflowExecutionRemoved: {
-        type: "workflowExecutionRemoved",
-        executionId: EXECUTION_ID,
-      },
       tokenUpdated: { type: "tokenUpdated" },
       error: { type: "error", message: "boom", fatal: true },
       shutdownComplete: { type: "shutdownComplete" },

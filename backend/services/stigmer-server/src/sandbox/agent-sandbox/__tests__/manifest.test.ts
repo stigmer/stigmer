@@ -92,9 +92,7 @@ describe("the Sandbox", () => {
     ]);
   });
 
-  it("a workflow sandbox keeps its workspace too; a connect sandbox works on an emptyDir", () => {
-    const workflow = buildAgentSandbox("workflow", "wfx_1", env, config);
-    expect(workflow.spec.volumeClaimTemplates).toHaveLength(1);
+  it("a connect sandbox works on an emptyDir", () => {
     const connect = buildAgentSandbox("connect", "mcp_1", env, config);
     expect(connect.spec.volumeClaimTemplates).toBeUndefined();
     expect(connect.spec.podTemplate.spec.volumes).toEqual([

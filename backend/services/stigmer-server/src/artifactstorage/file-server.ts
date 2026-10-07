@@ -1,0 +1,237 @@
+/**
+ * The local download lane: an HTTP listener that serves the bytes local
+ * artifact storage (artifact-storage.ts) holds, at the URLs its
+ * getSignedUrl mints. Two kinds of file reach a caller through it: an agent
+ * run's files (agentRun.getArtifactDownloadUrl) and the skill and plugin
+ * archives a runner mounts (the staging driver's download links). The lane
+ * ports Go pkg/server/server.go's artifactDownloadHandler and its boot block:
+ * a second listener on 127.0.0.1:ARTIFACT_HTTP_PORT (unset: the unified
+ * port + 1, ephemeral beside an ephemeral unified port — the rule is
+ * boot/artifact-lane.ts), started only when artifact storage is LOCAL,
+ * serving GET /<key> as the exact bytes LocalArtifactStorage wrote, to a
+ * link that local backend signed: an expired, tampered or unsigned link is
+ * answered the 404 a missing key gets, before the disk is touched, so a
+ * refusal says nothing about what exists (artifactstorage/url-signer.ts).
+ * Unlike
+ * Go, a bind failure fails the boot: the composition binds the lane before
+ * SERVING and lets listen()'s rejection stand (stigmer#1089). It is not a
+ * unified-port lane: Go ran it as a separate listener, and so does this
+ * port.
+ *
+ * Disposition contract (proven by __tests__/file-server.test.ts and, on
+ * links the storage mints, __tests__/file-server-signing.test.ts): a
+ * request carrying ?download=<name> (set by getSignedUrl) is served as a
+ * browser download named by that parameter — mirroring the R2 backend,
+ * which signs Content-Disposition into the presigned URL. Requests without
+ * the parameter are served INLINE with no disposition header.
+ *
+ * Two disclosed nuances versus Go's http.FileServer (neither pinned by a
+ * test):
+ *   - No Content-Type header: Go sniffs one (net/http DetectContentType);
+ *     porting the whole sniffing algorithm for an unpinned header is not
+ *     parity the register demands, and an absent header lets clients apply
+ *     the same sniffing themselves.
+ *   - No Range support: range requests are answered with the full body
+ *     (200), which HTTP permits; Go's ServeContent honors them.
+ */
+import { createReadStream } from "node:fs";
+import { stat } from "node:fs/promises";
+import http from "node:http";
+import path from "node:path";
+
+import { contentDispositionAttachment, LOCAL_DOWNLOAD_QUERY_PARAM } from "./artifact-storage.js";
+import type { DownloadUrlSigner } from "./url-signer.js";
+import type { Logger } from "../boot/logger.js";
+
+export interface ArtifactFileServerOptions {
+  /** The artifact root — the base path IS the root (#285). */
+  readonly basePath: string;
+  /** The signer the local backend mints links with; every request is verified by it. */
+  readonly signer: DownloadUrlSigner;
+  readonly logger: Logger;
+}
+
+export interface ArtifactFileServer {
+  /**
+   * Binds <host>:<port> (port 0 picks ephemeral) and resolves the port it
+   * bound; a bind failure rejects, and the composition fails the boot on it.
+   * The host is the composition root's call: 127.0.0.1 everywhere by
+   * default (ARTIFACT_HTTP_HOST) — download URLs are minted for
+   * the local machine — and 0.0.0.0 only inside the official container
+   * image, where the loopback bind would strand the lane behind the
+   * container boundary.
+   */
+  listen(port: number, host: string): Promise<number>;
+  shutdown(): Promise<void>;
+}
+
+export function createArtifactFileServer(
+  options: ArtifactFileServerOptions,
+): ArtifactFileServer {
+  const { basePath, signer, logger } = options;
+
+  const server = http.createServer((req, res) => {
+    void serveArtifact(basePath, signer, req, res, logger);
+  });
+
+  return {
+    listen(port: number, host: string): Promise<number> {
+      return new Promise((resolve, reject) => {
+        server.once("error", reject);
+        // Loopback by DEFAULT, as Go bound "127.0.0.1:<port>": download
+        // URLs are minted for the local machine, never a network
+        // interface. The host became configurable (ARTIFACT_HTTP_HOST)
+        // for containers, where 127.0.0.1 is unreachable from
+        // outside; the default preserves Go's posture byte-for-byte.
+        server.listen(port, host, () => {
+          server.removeListener("error", reject);
+          const address = server.address();
+          const boundPort =
+            address !== null && typeof address === "object" ? address.port : port;
+          logger.info("artifact HTTP file server listening", {
+            port: boundPort,
+            dir: basePath,
+          });
+          resolve(boundPort);
+        });
+      });
+    },
+    shutdown(): Promise<void> {
+      return new Promise((resolve) => {
+        server.close(() => resolve());
+        // In-flight downloads do not hold shutdown open (Go's file server
+        // is simply abandoned on exit; close() at least stops the listener).
+        server.closeAllConnections();
+      });
+    },
+  };
+}
+
+async function serveArtifact(
+  basePath: string,
+  signer: DownloadUrlSigner,
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  logger: Logger,
+): Promise<void> {
+  try {
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.writeHead(405, { Allow: "GET, HEAD" });
+      res.end();
+      return;
+    }
+
+    const url = new URL(req.url ?? "/", "http://localhost");
+    let key: string;
+    try {
+      key = decodeURIComponent(url.pathname.replace(/^\/+/, ""));
+    } catch {
+      // Malformed percent-escapes are a client error, not a server fault
+      // (Go's net/http rejects them before the file server runs).
+      res.writeHead(404);
+      res.end("404 page not found\n");
+      return;
+    }
+
+    // A live signature over the key, or the same answer a missing key
+    // gets: nothing below runs for a link the server did not mint.
+    if (!signer.verify(key, url.searchParams)) {
+      res.writeHead(404);
+      res.end("404 page not found\n");
+      return;
+    }
+
+    // The same containment guard LocalArtifactStorage applies on writes: a
+    // crafted path must never escape the artifact root.
+    const root = path.resolve(basePath);
+    const filePath = path.resolve(root, key);
+    if (filePath !== root && !filePath.startsWith(root + path.sep)) {
+      res.writeHead(404);
+      res.end("404 page not found\n");
+      return;
+    }
+
+    let info;
+    try {
+      info = await stat(filePath);
+    } catch {
+      res.writeHead(404);
+      res.end("404 page not found\n");
+      return;
+    }
+    if (!info.isFile()) {
+      res.writeHead(404);
+      res.end("404 page not found\n");
+      return;
+    }
+
+    const headers: Record<string, string> = {
+      "Content-Length": String(info.size),
+    };
+    // The download query parameter (set by getSignedUrl, and covered by
+    // its signature) rides the URL; applied here exactly as Go's
+    // artifactDownloadHandler does. Absent → inline, no header.
+    const downloadName = url.searchParams.get(LOCAL_DOWNLOAD_QUERY_PARAM) ?? "";
+    if (downloadName !== "") {
+      headers["Content-Disposition"] = contentDispositionAttachment(downloadName);
+    }
+
+    res.writeHead(200, headers);
+    if (req.method === "HEAD") {
+      res.end();
+      return;
+    }
+    const stream = createReadStream(filePath);
+    stream.on("error", (error) => {
+      logger.error("artifact file stream failed", {
+        key,
+        error: error.message,
+      });
+      res.destroy();
+    });
+    stream.pipe(res);
+  } catch (error) {
+    logger.error("artifact file server request failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    if (!res.headersSent) {
+      res.writeHead(500);
+    }
+    res.end();
+  }
+}
+
+/**
+ * Go warnOnLegacyArtifactLayout: a one-line migration hint when a
+ * pre-#285 store layout is detected (base was a PARENT; artifacts lived at
+ * <base>/artifacts/<key>). Keys off the two subpaths only the OLD layout
+ * produces — <base>/artifacts/attachments and the doubled
+ * <base>/artifacts/artifacts — so it cannot false-positive on a healthy
+ * new-layout install.
+ */
+export async function warnOnLegacyArtifactLayout(
+  basePath: string,
+  logger: Logger,
+): Promise<void> {
+  for (const sub of ["attachments", "artifacts"]) {
+    const legacy = path.join(basePath, "artifacts", sub);
+    try {
+      const info = await stat(legacy);
+      if (info.isDirectory()) {
+        logger.warn(
+          "Detected artifacts under a pre-#285 layout at <base>/artifacts/*. " +
+            "The artifact root is now <base> itself. Move <base>/artifacts/* up into " +
+            "<base> (or set ARTIFACT_LOCAL_BASE_PATH to the old <base>/artifacts) so " +
+            "existing artifacts remain reachable.",
+          {
+            legacyDir: path.join(basePath, "artifacts"),
+            artifactRoot: basePath,
+          },
+        );
+        return;
+      }
+    } catch {
+      // Absent legacy path: the healthy case.
+    }
+  }
+}

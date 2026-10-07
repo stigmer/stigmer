@@ -342,7 +342,7 @@ type TagAgentVersionInput struct {
 	// SHA-256 hash of the version to tag.
 	VersionHash string `protobuf:"bytes,2,opt,name=version_hash,json=versionHash,proto3" json:"version_hash,omitempty"`
 	// Tag to assign. Must be a non-empty alphanumeric string with dots,
-	// hyphens, or underscores (the pattern workflow and skill tags use).
+	// hyphens, or underscores (the pattern skill tags use).
 	Tag           string `protobuf:"bytes,3,opt,name=tag,proto3" json:"tag,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

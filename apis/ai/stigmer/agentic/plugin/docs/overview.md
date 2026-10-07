@@ -1,6 +1,6 @@
 A Plugin is an installed Agent Plugins package: the unit of install, upgrade and
-removal for a set of skills, MCP servers, an agent and workflows. A plugin is
-what you install; an agent is what runs. Pushing a plugin folder in the Agent
+removal for a set of skills, MCP servers and an agent. A plugin is what you
+install; an agent is what runs. Pushing a plugin folder in the Agent
 Plugins, Cursor, Claude Code or Codex layout materialises ordinary Stigmer
 resources in the organization, each labelled with the plugin's id, and the
 plugin's status reports what the push produced.
@@ -38,7 +38,6 @@ status:
     skills: 3
     mcp_servers: 0
     agents: 1
-    workflows: 0
 ```
 
 A plugin's hooks, in Claude Code's or Cursor's format, are recorded on `status.hooks`; the hooks Stigmer does not run are named in `status.warnings`. An agent runs them when its `spec.hooks` names the plugin, as the agent the plugin installs does (the Agent resource's `agent-resource-guide.md`, Hooks). Deleting a plugin is refused while an agent outside it still names it in `spec.hooks` or references one of its members.

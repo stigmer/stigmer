@@ -223,7 +223,7 @@ export function validateScheduleModelPinning(
     spec?.target.case === "agent" ? spec.target.value : undefined;
   // Saved settings name the model their tier or thinking is for.
   const selfContained = savedChoiceWithoutModelRefusal(
-    { prefix: "", fieldPath: "spec.agent.run_config" },
+    { fieldPath: "spec.agent.run_config" },
     invocation?.runConfig,
   );
   if (selfContained !== "") {
@@ -244,8 +244,8 @@ export function validateScheduleModelPinning(
  * The manifest vocabulary for the schedule's target arm — the populated
  * target-oneof member's field name, exactly what users declared in YAML
  * (Go targetFieldName resolves it through proto reflection; connect-es
- * exposes the case name directly, identical for the single-word fields
- * this oneof carries — "agent" today, "workflow" reserved).
+ * exposes the case name directly, identical for the single-word field
+ * this oneof carries, "agent").
  */
 export function targetFieldName(spec: ScheduleSpec | undefined): string {
   return spec?.target.case ?? "";
@@ -261,11 +261,10 @@ export function targetFieldName(spec: ScheduleSpec | undefined): string {
  *     agent they may not edit — bypassing that consent. Create a new
  *     schedule instead (nothing is lost — a schedule carries no install
  *     state).
- *   - The target arm (target oneof case) must not change. An agent
- *     schedule must not morph into a workflow schedule — the two targets
- *     enter different execution pipelines. Trivially satisfied while one
- *     arm exists; enforced structurally so the workflow arm lands with the
- *     rule already in force.
+ *   - The target arm (target oneof case) must not change: a schedule
+ *     keeps the kind of target it was created for. Trivially satisfied
+ *     while one arm exists; enforced structurally so a later arm lands
+ *     with the rule already in force.
  *   - The cron grammar and time zone are re-validated: update replaces the
  *     spec wholesale and does not run the defaults resolver, so the write
  *     path must hold the same bar as create.

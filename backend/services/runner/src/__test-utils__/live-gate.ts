@@ -13,7 +13,8 @@
  *    deliberate live run and an automated live run sets always), a missing key
  *    throws. The lane provides every key it runs, so a key that vanished is a
  *    broken lane and must go red, never quietly green (rule 2's shape, the way
- *    `IN_TEST_GATE` turns a missing service into a failure).
+ *    a test gate, `STIGMER_TEST_GATE=1`, turns a missing service into a
+ *    failure).
  *
  * A suite writes the call inside its skip condition,
  * `describe.skipIf(!liveSecret("CURSOR_API_KEY"))(...)`, never through a

@@ -191,39 +191,6 @@ private static final long serialVersionUID = 0L;
     return maxActiveSessionSandboxes_;
   }
 
-  public static final int MAX_ACTIVE_WORKFLOW_SANDBOXES_FIELD_NUMBER = 5;
-  private int maxActiveWorkflowSandboxes_ = 0;
-  /**
-   * <pre>
-   * The most workflow-run sandboxes an organization may hold
-   * provisioning or running at once. A workflow launch that would need a
-   * new sandbox past it is refused. Read by a subscription. A license
-   * ignores it until a self-hosted capacity gate reads it.
-   * </pre>
-   *
-   * <code>optional int32 max_active_workflow_sandboxes = 5 [json_name = "maxActiveWorkflowSandboxes", (.buf.validate.field) = { ... }</code>
-   * @return Whether the maxActiveWorkflowSandboxes field is set.
-   */
-  @java.lang.Override
-  public boolean hasMaxActiveWorkflowSandboxes() {
-    return ((bitField0_ & 0x00000010) != 0);
-  }
-  /**
-   * <pre>
-   * The most workflow-run sandboxes an organization may hold
-   * provisioning or running at once. A workflow launch that would need a
-   * new sandbox past it is refused. Read by a subscription. A license
-   * ignores it until a self-hosted capacity gate reads it.
-   * </pre>
-   *
-   * <code>optional int32 max_active_workflow_sandboxes = 5 [json_name = "maxActiveWorkflowSandboxes", (.buf.validate.field) = { ... }</code>
-   * @return The maxActiveWorkflowSandboxes.
-   */
-  @java.lang.Override
-  public int getMaxActiveWorkflowSandboxes() {
-    return maxActiveWorkflowSandboxes_;
-  }
-
   public static final int ARCHIVED_WORKSPACE_RETENTION_DAYS_FIELD_NUMBER = 6;
   private int archivedWorkspaceRetentionDays_ = 0;
   /**
@@ -239,7 +206,7 @@ private static final long serialVersionUID = 0L;
    */
   @java.lang.Override
   public boolean hasArchivedWorkspaceRetentionDays() {
-    return ((bitField0_ & 0x00000020) != 0);
+    return ((bitField0_ & 0x00000010) != 0);
   }
   /**
    * <pre>
@@ -284,9 +251,6 @@ private static final long serialVersionUID = 0L;
       output.writeInt32(4, maxActiveSessionSandboxes_);
     }
     if (((bitField0_ & 0x00000010) != 0)) {
-      output.writeInt32(5, maxActiveWorkflowSandboxes_);
-    }
-    if (((bitField0_ & 0x00000020) != 0)) {
       output.writeInt32(6, archivedWorkspaceRetentionDays_);
     }
     getUnknownFields().writeTo(output);
@@ -315,10 +279,6 @@ private static final long serialVersionUID = 0L;
         .computeInt32Size(4, maxActiveSessionSandboxes_);
     }
     if (((bitField0_ & 0x00000010) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(5, maxActiveWorkflowSandboxes_);
-    }
-    if (((bitField0_ & 0x00000020) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(6, archivedWorkspaceRetentionDays_);
     }
@@ -357,11 +317,6 @@ private static final long serialVersionUID = 0L;
       if (getMaxActiveSessionSandboxes()
           != other.getMaxActiveSessionSandboxes()) return false;
     }
-    if (hasMaxActiveWorkflowSandboxes() != other.hasMaxActiveWorkflowSandboxes()) return false;
-    if (hasMaxActiveWorkflowSandboxes()) {
-      if (getMaxActiveWorkflowSandboxes()
-          != other.getMaxActiveWorkflowSandboxes()) return false;
-    }
     if (hasArchivedWorkspaceRetentionDays() != other.hasArchivedWorkspaceRetentionDays()) return false;
     if (hasArchivedWorkspaceRetentionDays()) {
       if (getArchivedWorkspaceRetentionDays()
@@ -393,10 +348,6 @@ private static final long serialVersionUID = 0L;
     if (hasMaxActiveSessionSandboxes()) {
       hash = (37 * hash) + MAX_ACTIVE_SESSION_SANDBOXES_FIELD_NUMBER;
       hash = (53 * hash) + getMaxActiveSessionSandboxes();
-    }
-    if (hasMaxActiveWorkflowSandboxes()) {
-      hash = (37 * hash) + MAX_ACTIVE_WORKFLOW_SANDBOXES_FIELD_NUMBER;
-      hash = (53 * hash) + getMaxActiveWorkflowSandboxes();
     }
     if (hasArchivedWorkspaceRetentionDays()) {
       hash = (37 * hash) + ARCHIVED_WORKSPACE_RETENTION_DAYS_FIELD_NUMBER;
@@ -545,7 +496,6 @@ private static final long serialVersionUID = 0L;
       maxUsers_ = 0;
       includedChildOrgs_ = 0;
       maxActiveSessionSandboxes_ = 0;
-      maxActiveWorkflowSandboxes_ = 0;
       archivedWorkspaceRetentionDays_ = 0;
       return this;
     }
@@ -598,12 +548,8 @@ private static final long serialVersionUID = 0L;
         to_bitField0_ |= 0x00000008;
       }
       if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.maxActiveWorkflowSandboxes_ = maxActiveWorkflowSandboxes_;
-        to_bitField0_ |= 0x00000010;
-      }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
         result.archivedWorkspaceRetentionDays_ = archivedWorkspaceRetentionDays_;
-        to_bitField0_ |= 0x00000020;
+        to_bitField0_ |= 0x00000010;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -631,9 +577,6 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasMaxActiveSessionSandboxes()) {
         setMaxActiveSessionSandboxes(other.getMaxActiveSessionSandboxes());
-      }
-      if (other.hasMaxActiveWorkflowSandboxes()) {
-        setMaxActiveWorkflowSandboxes(other.getMaxActiveWorkflowSandboxes());
       }
       if (other.hasArchivedWorkspaceRetentionDays()) {
         setArchivedWorkspaceRetentionDays(other.getArchivedWorkspaceRetentionDays());
@@ -684,14 +627,9 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000008;
               break;
             } // case 32
-            case 40: {
-              maxActiveWorkflowSandboxes_ = input.readInt32();
-              bitField0_ |= 0x00000010;
-              break;
-            } // case 40
             case 48: {
               archivedWorkspaceRetentionDays_ = input.readInt32();
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000010;
               break;
             } // case 48
             default: {
@@ -987,74 +925,6 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private int maxActiveWorkflowSandboxes_ ;
-    /**
-     * <pre>
-     * The most workflow-run sandboxes an organization may hold
-     * provisioning or running at once. A workflow launch that would need a
-     * new sandbox past it is refused. Read by a subscription. A license
-     * ignores it until a self-hosted capacity gate reads it.
-     * </pre>
-     *
-     * <code>optional int32 max_active_workflow_sandboxes = 5 [json_name = "maxActiveWorkflowSandboxes", (.buf.validate.field) = { ... }</code>
-     * @return Whether the maxActiveWorkflowSandboxes field is set.
-     */
-    @java.lang.Override
-    public boolean hasMaxActiveWorkflowSandboxes() {
-      return ((bitField0_ & 0x00000010) != 0);
-    }
-    /**
-     * <pre>
-     * The most workflow-run sandboxes an organization may hold
-     * provisioning or running at once. A workflow launch that would need a
-     * new sandbox past it is refused. Read by a subscription. A license
-     * ignores it until a self-hosted capacity gate reads it.
-     * </pre>
-     *
-     * <code>optional int32 max_active_workflow_sandboxes = 5 [json_name = "maxActiveWorkflowSandboxes", (.buf.validate.field) = { ... }</code>
-     * @return The maxActiveWorkflowSandboxes.
-     */
-    @java.lang.Override
-    public int getMaxActiveWorkflowSandboxes() {
-      return maxActiveWorkflowSandboxes_;
-    }
-    /**
-     * <pre>
-     * The most workflow-run sandboxes an organization may hold
-     * provisioning or running at once. A workflow launch that would need a
-     * new sandbox past it is refused. Read by a subscription. A license
-     * ignores it until a self-hosted capacity gate reads it.
-     * </pre>
-     *
-     * <code>optional int32 max_active_workflow_sandboxes = 5 [json_name = "maxActiveWorkflowSandboxes", (.buf.validate.field) = { ... }</code>
-     * @param value The maxActiveWorkflowSandboxes to set.
-     * @return This builder for chaining.
-     */
-    public Builder setMaxActiveWorkflowSandboxes(int value) {
-
-      maxActiveWorkflowSandboxes_ = value;
-      bitField0_ |= 0x00000010;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * The most workflow-run sandboxes an organization may hold
-     * provisioning or running at once. A workflow launch that would need a
-     * new sandbox past it is refused. Read by a subscription. A license
-     * ignores it until a self-hosted capacity gate reads it.
-     * </pre>
-     *
-     * <code>optional int32 max_active_workflow_sandboxes = 5 [json_name = "maxActiveWorkflowSandboxes", (.buf.validate.field) = { ... }</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearMaxActiveWorkflowSandboxes() {
-      bitField0_ = (bitField0_ & ~0x00000010);
-      maxActiveWorkflowSandboxes_ = 0;
-      onChanged();
-      return this;
-    }
-
     private int archivedWorkspaceRetentionDays_ ;
     /**
      * <pre>
@@ -1069,7 +939,7 @@ private static final long serialVersionUID = 0L;
      */
     @java.lang.Override
     public boolean hasArchivedWorkspaceRetentionDays() {
-      return ((bitField0_ & 0x00000020) != 0);
+      return ((bitField0_ & 0x00000010) != 0);
     }
     /**
      * <pre>
@@ -1101,7 +971,7 @@ private static final long serialVersionUID = 0L;
     public Builder setArchivedWorkspaceRetentionDays(int value) {
 
       archivedWorkspaceRetentionDays_ = value;
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -1117,7 +987,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearArchivedWorkspaceRetentionDays() {
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000010);
       archivedWorkspaceRetentionDays_ = 0;
       onChanged();
       return this;

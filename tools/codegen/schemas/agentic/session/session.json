@@ -1,6 +1,5 @@
 {
   "name": "SessionSpec",
-  "kind": "SESSION_SPEC",
   "description": "SessionSpec defines the configurable properties of a session.",
   "protoType": "ai.stigmer.agentic.session.v1.SessionSpec",
   "protoFile": "apis/ai/stigmer/agentic/session/v1/spec.proto",

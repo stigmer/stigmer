@@ -695,16 +695,6 @@ describe("transcriptToJson", () => {
     expect(parsed.turns[3].in_progress).toBe(true);
   });
 
-  it("strips the internal Temporal callback token from execution status", () => {
-    const exec = exec1();
-    exec.status!.callbackToken = new TextEncoder().encode("task-token");
-    const t = assembleSessionTranscript(session(), [exec]);
-    const parsed = JSON.parse(JSON.stringify(transcriptToJson(t)));
-    expect(parsed.turns[0].run.status.callback_token).toBeUndefined();
-    // The strip is surgical — the rest of status is intact.
-    expect(parsed.turns[0].run.status.messages).toHaveLength(5);
-  });
-
   it("keys resolved outputs by storage key with plain-JSON fields", () => {
     const t = assembleSessionTranscript(session(), allRuns(), {
       resolvedOutputs: RESOLVED,

@@ -1,8 +1,7 @@
 // Unit arms for the judge's subject.
 // Domain: conformance benchmark.
 //
-// Pinned: the subject opens with its fixed heading, so it is never a
-// `${ … }` expression; it carries each turn's message and final reply, a
+// Pinned: the subject opens with its fixed heading; it carries each turn's message and final reply, a
 // failed or silent turn said as such, the files changed, each named file's
 // content in a fence its own backticks cannot close (or its absence), and
 // the checks; it never names a harness, a model or a tool; a runaway file is
@@ -28,9 +27,8 @@ describe("composeSubject", () => {
     checks: [{ name: "go_test", outcome: "passed", detail: "go test ./...: exit 0\nok  example.com/orders-sync/duration" }],
   });
 
-  it("opens with the fixed heading and is never an expression", () => {
+  it("opens with the fixed heading", () => {
     expect(subject.startsWith(`${SUBJECT_HEADING}\n`)).toBe(true);
-    expect(subject.startsWith("${")).toBe(false);
   });
 
   it("carries every turn, a silent and a failed turn said as such", () => {

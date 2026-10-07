@@ -209,7 +209,6 @@ describe("onResourceCreated: the creator owns the organization", () => {
 
   it.each([
     ApiResourceKind.agent,
-    ApiResourceKind.workflow,
     ApiResourceKind.session,
     ApiResourceKind.identity_account,
   ])(
@@ -306,11 +305,7 @@ describe("onResourceDeleted: the rows die with the resource", () => {
     ).toEqual([policyIdFor(orgRole(bob, "member", "acme"))]);
   });
 
-  it.each([
-    ApiResourceKind.agent,
-    ApiResourceKind.workflow,
-    ApiResourceKind.session,
-  ])(
+  it.each([ApiResourceKind.agent, ApiResourceKind.session])(
     "kind %s is a no-op — the rows of other kinds are a composed driver's to clean",
     async (kind) => {
       const recorded: RecordedEvent[] = [];

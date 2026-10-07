@@ -16,7 +16,7 @@ Agent ──► Session ──► AgentRun
 | **Session** | Terminal session | Names the agent it runs (`agent_ref`) and pins the version it resolved. Groups related runs into a conversational context and maintains message history across runs. |
 | **AgentRun** | `docker run` | A single invocation of the session's agent, at the session's pinned version. Produces messages, tool calls, and results. |
 
-A run continues a session (`session_id`) or starts a new one (`session_spec`, whose `agent_ref` names the agent; empty runs the built-in assistant). Secrets and runtime values come from the Environments bound to whatever started the run (a schedule, a workflow task, a PlatformClient), from `runtime_env`, and, for declared keys still missing, from the personal environment of the person who sent the message.
+A run continues a session (`session_id`) or starts a new one (`session_spec`, whose `agent_ref` names the agent; empty runs the built-in assistant). Secrets and runtime values come from the Environments bound to whatever started the run (a schedule, a PlatformClient), from `runtime_env`, and, for declared keys still missing, from the personal environment of the person who sent the message.
 
 AgentRuns are created via the API or CLI. You do not author them in YAML the way you author an Agent — you trigger them with a message and let the system manage the resource.
 
@@ -32,7 +32,6 @@ AgentRun is more than a log record. It provides active runtime control:
 - **Context management**: automatic context window summarization for long-running conversations, by the model's Model Registry entry
 - **Usage metrics**: real-time token and LLM call tracking per run and per sub-agent
 - **Resolved context visibility**: see exactly which MCP servers, environment keys, and skills the agent had access to
-- **Async workflow integration**: Temporal token handshake for workflow-invoked agents, through the vouched `parent` link
 
 ## Documentation Index
 
@@ -43,7 +42,6 @@ AgentRun is more than a log record. It provides active runtime control:
 | [hitl-approvals.md](hitl-approvals.md) | Human-in-the-Loop approval gates — approve, skip, reject, batch approvals |
 | [attachments-and-artifacts.md](attachments-and-artifacts.md) | Input file attachments and output run artifacts |
 | [examples.md](examples.md) | Complete examples from minimal trigger to full-featured run |
-| [async-workflow-integration.md](async-workflow-integration.md) | Temporal token handshake for pipeline-invoked agents |
 
 ## Proto Source
 
@@ -52,7 +50,7 @@ All types in this package are defined in `ai/stigmer/agentic/agentrun/v1/`:
 | File | Contents |
 |---|---|
 | `api.proto` | `AgentRun`, `AgentRunStatus`, `ToolCall`, `SubAgentRun`, `UsageMetrics`, `ContextInfo`, `RunArtifact`, `PendingApproval` |
-| `spec.proto` | `AgentRunSpec`, `WorkflowParent`, `Attachment` |
+| `spec.proto` | `AgentRunSpec`, `Attachment` |
 | `invocation.proto` | `RunConfig` (the settings message every run, surface and agent shares), `AgentInvocation` |
 | `enum.proto` | `RunPhase`, `MessageType`, `ToolCallStatus`, `TodoStatus`, `SubAgentStatus`, `RunArtifactKind`, `ApprovalAction` |
 | `command.proto` | `AgentRunCommandController` — create, update, cancel, terminate, pause, resume, recover, submitApproval, uploadAttachment |

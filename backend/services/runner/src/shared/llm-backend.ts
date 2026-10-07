@@ -395,8 +395,7 @@ export function checkFoundryPrerequisites(
  *
  * This is the single copy of the "do we have a credential?" question. The
  * reaction stays with each caller, because the right one differs per site:
- * `call-llm.ts` raises a non-retryable LLM_MISSING_API_KEY, tool
- * classification fails closed (every tool gated), and Cursor tier-2
+ * tool classification fails closed (every tool gated), and Cursor tier-2
  * extraction skips to "no structured output". Callers consult it only when
  * no proxy is configured — a proxied deployment authenticates with
  * STIGMER_TOKEN and holds no provider credentials at all.

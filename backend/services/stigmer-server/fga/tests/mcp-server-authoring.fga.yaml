@@ -1,6 +1,6 @@
 # Store tests for MCP-server authoring: an MCP server is an organization's
 # blueprint, so creating one takes the organization's admin bar
-# (can_create_mcp_server: admin), the bar agents, workflows and skills
+# (can_create_mcp_server: admin), the bar agents and skills
 # already take. Until stigmer#1209 (v3.22.0) the create ran no check in
 # either edition and any member could author one; these pin the bar and
 # the story it leaves for members: an admin authors the server org-visible

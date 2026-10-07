@@ -14,10 +14,10 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 // (the declarative options cannot express the caller-class split); delete
 // carries the declarative can_edit check on the execution_context:
 //   - create: the caller-class differs by transport. Internal in-process
-//     pipeline calls (agent run, workflow run, workflow recovery,
-//     MCP connect) are trusted — the parent operation already authorized the
-//     run against its session-or-org, and the EC is created before that parent
-//     is persisted, so it carries no resource to re-check. External callers
+//     pipeline calls (agent run, MCP connect) are trusted — the parent
+//     operation already authorized the run against its session-or-org,
+//     and the EC is created before that parent is persisted, so it carries
+//     no resource to re-check. External callers
 //     must hold can_create_run_in on metadata.org (the same bar that
 //     gates creating a run in the org; held by members and guests).
 //     A declarative org option cannot encode the internal/external split.
@@ -41,9 +41,8 @@ service ExecutionContextCommandController {
   // Create a new ExecutionContext for a run.
   //
   // @internal
-  // Called by the execution pipelines (agent run, workflow run,
-  // workflow recovery, MCP connect) as sub-steps, and reachable directly by
-  // API clients. is_skip_authorization because the caller-class split cannot
+  // Called by the execution pipelines (agent run, MCP connect) as sub-steps,
+  // and reachable directly by API clients. is_skip_authorization because the caller-class split cannot
   // be a declarative option: the create handler trusts internal in-process
   // calls (already authorized upstream) and requires external callers to hold
   // can_create_run_in on metadata.org. The pipeline additionally grants

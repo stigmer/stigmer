@@ -1,6 +1,5 @@
 {
   "name": "PluginSpec",
-  "kind": "PLUGIN_SPEC",
   "description": "PluginSpec is the manifest metadata of an installed plugin.",
   "protoType": "ai.stigmer.agentic.plugin.v1.PluginSpec",
   "protoFile": "apis/ai/stigmer/agentic/plugin/v1/spec.proto",

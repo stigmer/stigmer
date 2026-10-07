@@ -11,8 +11,7 @@ package ai.stigmer.agentic.mcpserver.v1;
 // of (identity_account_id, resource_id, org).
 //
 // The grant is resource-agnostic: currently used for MCP servers, but the
-// data model supports any API resource kind that needs OAuth credentials
-// (e.g., workflows in the future).
+// data model supports any API resource kind that needs OAuth credentials.
 //
 // Actual tokens (access + refresh) live in a managed environment
 // (stigmer.ai/managed=true label) as encrypted secret env vars.
@@ -68,8 +67,8 @@ message OAuthGrant {
   // 1:1 with this grant — revoking the grant deletes this environment.
   string environment_id = 9;
 
-  // Kind of the API resource identified by resource_id (e.g., "mcp_server",
-  // "workflow"). Used for query filtering and handler routing.
+  // Kind of the API resource identified by resource_id (e.g., "mcp_server").
+  // Used for query filtering and handler routing.
   string resource_kind = 10;
 
   // Organization context for this grant. Part of the composite key:
@@ -109,7 +108,7 @@ message OAuthGrant {
 // see McpServerQueryController.getOrgOAuthApp for the contract.
 //
 // The override is resource-agnostic: currently used for MCP servers, but the
-// composite key supports any API resource kind that needs BYOA (e.g., workflows).
+// composite key supports any API resource kind that needs BYOA.
 message OAuthAppOverride {
   // System-generated ID (metadata.id) of the API resource this override
   // applies to. Part of the composite key: (resource_id, resource_kind, org).

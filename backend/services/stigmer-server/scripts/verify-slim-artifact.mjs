@@ -13,7 +13,7 @@
  * against a REAL Temporal dev server and requires, in order:
  *
  *   1. the "stigmer-server listening" transport log,
- *   2. "All Temporal workers started" — all three workers created from the
+ *   2. "All Temporal workers started" — both workers created from the
  *      pre-built bundles through the native bridge,
  *   3. the console lane answers over live HTTP (packaging gaps are invisible at PR time unless a gate exercises
  *      the artifact): /config.json is the trusted-local document (the

@@ -115,7 +115,7 @@ message CreateSkillArtifactUploadUrlRequest {
 // staging a skill artifact over HTTP.
 //
 // @internal
-// The upload strategy differs by edition (mirrors ArtifactDownloadUrl):
+// The upload strategy differs by edition (mirrors SkillArtifactDownloadUrl):
 // - Cloud: pre-signed R2/S3 PUT URL with short TTL
 // - OSS: capability URL on the server's own HTTP lane (the unguessable
 //   token in the path is the credential, exactly like a presigned URL)
@@ -139,7 +139,8 @@ message SkillArtifactUploadUrl {
 // artifact over HTTP.
 //
 // @internal
-// The download strategy differs by edition (mirrors ArtifactDownloadUrl):
+// The download strategy differs by edition (mirrors
+// GetArtifactDownloadUrlResponse on agent runs):
 // - Cloud: pre-signed R2/S3 URL with short TTL (e.g., 15 minutes)
 // - OSS: capability URL on the server's own HTTP lane; the content-hash
 //   storage key in the path is the capability (the same trust model as

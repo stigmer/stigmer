@@ -1,6 +1,5 @@
 {
   "name": "InvitationSpec",
-  "kind": "INVITATION_SPEC",
   "description": "InvitationSpec defines the user-provided configuration for an invitation.\n\n An invitation is a shareable link that grants a specific role to anyone\n who redeems it. Invitations can be multi-use (persistent org invite link)\n or single-use (targeted invitation for a specific person).\n\n Example YAML (persistent org invite link):\n   apiVersion: iam.stigmer.ai/v1\n   kind: Invitation\n   metadata:\n     name: engineering-team-link\n     org: acme\n   spec:\n     role: viewer\n     max_redemptions: 0\n     expires_at: \"2026-05-06T00:00:00Z\"\n     label: \"Engineering team invite\"\n\n Example YAML (single-use targeted invite):\n   apiVersion: iam.stigmer.ai/v1\n   kind: Invitation\n   metadata:\n     name: contractor-invite\n     org: acme\n   spec:\n     role: member\n     max_redemptions: 1\n     expires_at: \"2026-04-13T00:00:00Z\"\n     label: \"Contractor onboarding\"",
   "protoType": "ai.stigmer.iam.invitation.v1.InvitationSpec",
   "protoFile": "apis/ai/stigmer/iam/invitation/v1/spec.proto",

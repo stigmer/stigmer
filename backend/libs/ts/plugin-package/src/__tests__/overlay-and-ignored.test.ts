@@ -1,6 +1,7 @@
 /**
- * Pins the `ai.stigmer/` overlay (the three document shapes located and
- * handed over as bytes with the server check) and the ignored-component
+ * Pins the `ai.stigmer/` overlay (the two document shapes located and
+ * handed over as bytes with the server check, any other document refused)
+ * and the ignored-component
  * record (directories and files on disk, manifest fields, deduplicated,
  * never per file; `hooks/` only where no vendor manifest reads it).
  */
@@ -11,24 +12,27 @@ import { claudePlugin, cursorPlugin, openPlugin } from "../testing.js";
 import { accepted, kindsOf, read } from "../__test-utils__/read.js";
 
 describe("the ai.stigmer/ overlay", () => {
-  it("locates the agent, workflow and server documents and hands them over as bytes", () => {
+  it("locates the agent and server documents and hands them over as bytes", () => {
     const files = openPlugin({
       mcpServers: { gh: { type: "streamable-http", url: "https://gh.example.com/mcp" } },
       files: {
         "ai.stigmer/agent.yaml": "kind: Agent\n",
-        "ai.stigmer/workflows/triage.yaml": "kind: Workflow\n",
         "ai.stigmer/mcp-servers/gh.yaml": "spec:\n  auth: {}\n",
       },
     });
     const overlay = accepted(read(files)).overlay;
     expect(overlay.agent?.path).toBe("ai.stigmer/agent.yaml");
     expect(new TextDecoder().decode(overlay.agent?.bytes)).toBe("kind: Agent\n");
-    expect(overlay.workflows.map((w) => [w.name, w.path])).toEqual([["triage", "ai.stigmer/workflows/triage.yaml"]]);
     expect(overlay.mcpServers.map((s) => [s.server, s.path])).toEqual([["gh", "ai.stigmer/mcp-servers/gh.yaml"]]);
   });
 
   it("is empty when the folder is absent", () => {
-    expect(accepted(read(openPlugin())).overlay).toEqual({ workflows: [], mcpServers: [] });
+    expect(accepted(read(openPlugin())).overlay).toEqual({ mcpServers: [] });
+  });
+
+  it("refuses any other document under the folder, a subfolder's included", () => {
+    const outcome = read(openPlugin({ files: { "ai.stigmer/workflows/triage.yaml": "kind: Workflow\n" } }));
+    expect(kindsOf(outcome).errors).toEqual(["overlay-document-unknown"]);
   });
 });
 

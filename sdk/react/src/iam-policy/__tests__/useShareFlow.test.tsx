@@ -117,8 +117,8 @@ describe("useShareFlow — canShareWithTeams", () => {
     ["local", ApiResourceKind.agent, "agent", false],
     ["enterprise", ApiResourceKind.agent, "agent", true],
     ["cloud", ApiResourceKind.agent, "agent", true],
-    // Every organization viewer already reads every artifact.
-    ["enterprise", ApiResourceKind.artifact, "artifact", false],
+    // An environment grants no team roles: a credential set is shared per person.
+    ["enterprise", ApiResourceKind.environment, "environment", false],
     // Circular with the membership bound.
     ["enterprise", ApiResourceKind.organization, "organization", false],
   ];

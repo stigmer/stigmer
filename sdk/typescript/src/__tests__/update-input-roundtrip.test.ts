@@ -61,15 +61,6 @@ import {
   ExecutionTarget,
   GitWriteBackMode,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
-import {
-  WorkflowTaskKind,
-  BudgetExceededPolicy,
-  WorkflowRunVisibility,
-} from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
-import { WorkflowRunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/spec_pb";
 
 import { buildAgentProto, toAgentUpdateInput } from "../gen/agent";
 import { buildAgentChannelProto, toAgentChannelUpdateInput } from "../gen/agentchannel";
@@ -86,8 +77,6 @@ import { buildOrganizationProto, toOrganizationUpdateInput } from "../gen/organi
 import { buildPlatformClientProto, toPlatformClientUpdateInput } from "../gen/platformclient";
 import { buildScheduleProto, toScheduleUpdateInput } from "../gen/schedule";
 import { buildSessionProto, toSessionUpdateInput } from "../gen/session";
-import { buildWorkflowProto, toWorkflowUpdateInput } from "../gen/workflow";
-import { buildWorkflowRunProto, toWorkflowRunUpdateInput } from "../gen/workflowrun";
 
 /**
  * Systematic wipe-bug guard for every generated toXxxUpdateInput mapper
@@ -356,11 +345,6 @@ describe("toAgentExecutionUpdateInput", () => {
         conversationCatchup: {
           digest: "Prior turns summarized.",
           windowEnd: timestampFromDate(new Date("2026-08-15T10:00:00Z")),
-        },
-        parent: {
-          workflowRunId: "wfx-1",
-          signalWorkflowId: "wf-1",
-          callbackToken: new Uint8Array([1, 2, 3]),
         },
       },
     });
@@ -845,97 +829,5 @@ describe("toSessionUpdateInput", () => {
     });
     expect(rebuilt.spec?.harnessStateIdHistory).toEqual(["hs-0"]);
     expect(rebuilt.spec?.subject).toBe("New subject");
-  });
-});
-
-describe("toWorkflowUpdateInput", () => {
-  const fixture = () =>
-    create(WorkflowSchema, {
-      metadata: META,
-      spec: {
-        description: "Nightly triage.",
-        document: {
-          dsl: "1.0",
-          namespace: "acme",
-          name: "nightly-triage",
-          version: "0.2.0",
-          description: "Runs every night.",
-        },
-        tasks: [
-          {
-            name: "call-api",
-            kind: WorkflowTaskKind.http_call,
-            taskConfig: { url: "https://api.acme.example/tickets" },
-            export: { as: "tickets" },
-            flow: { then: "triage" },
-            compensate: [
-              {
-                name: "undo",
-                kind: WorkflowTaskKind.set_vars,
-                taskConfig: { variables: { rolledBack: true } },
-              },
-            ],
-          },
-        ],
-        env: { API_KEY: { isSecret: true, description: "Vendor key", optional: true } },
-        budget: {
-          maxCostMicros: 5_000_000n,
-          maxTotalTokens: 2_000_000n,
-          maxDurationSeconds: 1800,
-          onExceeded: BudgetExceededPolicy.budget_exceeded_human_review,
-        },
-        runVisibility: WorkflowRunVisibility.organization,
-      },
-    });
-
-  it("fixture covers every WorkflowSpec field (schema tripwire)", () => {
-    assertFixtureCoversSpec(WorkflowSpecSchema, fixture().spec!);
-  });
-
-  it("round-trips the full spec (recursive tasks, bigint budget) through the builder", () => {
-    const original = fixture();
-    assertSpecRoundTrip(
-      WorkflowSpecSchema,
-      original,
-      buildWorkflowProto(toWorkflowUpdateInput(original)),
-    );
-  });
-
-  it("preserves run_visibility when only the description changes", () => {
-    const rebuilt = buildWorkflowProto({
-      ...toWorkflowUpdateInput(fixture()),
-      description: "Nightly triage, revised.",
-    });
-    expect(rebuilt.spec?.runVisibility).toBe(
-      WorkflowRunVisibility.organization,
-    );
-    expect(rebuilt.spec?.description).toBe("Nightly triage, revised.");
-  });
-});
-
-describe("toWorkflowExecutionUpdateInput", () => {
-  const fixture = () =>
-    create(WorkflowRunSchema, {
-      metadata: META,
-      spec: {
-        workflowId: "wf-1",
-        triggerMessage: "Manual run.",
-        triggerMetadata: { source: "console" },
-        runtimeEnv: { TOKEN: { value: "shh", isSecret: true } },
-        executionTarget: ExecutionTarget.CLOUD,
-      },
-    });
-
-  it("fixture covers every WorkflowExecutionSpec field (schema tripwire)", () => {
-    assertFixtureCoversSpec(WorkflowRunSpecSchema, fixture().spec!);
-  });
-
-  it("round-trips the full spec and metadata through the builder", () => {
-    const original = fixture();
-    assertSpecRoundTrip(
-      WorkflowRunSpecSchema,
-      original,
-      buildWorkflowRunProto(toWorkflowRunUpdateInput(original)),
-    );
   });
 });

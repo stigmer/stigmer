@@ -14,13 +14,13 @@
 // by page so a token is shown to carry no authority), apikey.findAll
 // (the direct-read tail), environment.list (the org-intersecting family),
 // search + recent activity (the enumeration verb), and the
-// check-shaped lanes (the listByChannel channel gate, workflow
-// listVersions) refusing an outsider with their byte-pinned Java copy.
+// check-shaped lane (the listByChannel channel gate) refusing an outsider
+// with its byte-pinned Java copy.
 //
 // The arms run on the target's ENFORCING LANE (targets/target.ts): the
 // cloud's primary, and on the managed local targets an open-source sibling
 // in the OIDC posture, whose built-in ListReadScope answers every lane
-// below — so the same eight arms are the cross-edition contract on the
+// below — so the same seven arms are the cross-edition contract on the
 // cloud and on both open-source store drivers. Where a target lends no
 // lane the arms skip VISIBLY with its reason. Guest sibling-visitor
 // isolation cannot ride this suite (guest lanes are unreachable from
@@ -42,7 +42,6 @@ import { makeAgent, agentRefOf } from "../support/agents";
 import { makeSlackAgentChannel } from "../support/agentchannels";
 import { makeEnvironment } from "../support/environments";
 import { makeSession } from "../support/sessions";
-import { makeWorkflow } from "../support/workflows";
 import { uniqueName } from "../support/naming";
 
 let target: TargetProfile;
@@ -305,31 +304,5 @@ describe("list-read scoping — outsider isolation (on the enforcing lane)", () 
       "outsider listByChannel on a foreign channel",
     );
     expect(denied.rawMessage).toBe("unauthorized to list channel conversations");
-  });
-
-  it("[rpc:WorkflowQueryController.listVersions] workflow.listVersions refuses an outsider with its byte-pinned copy", async (ctx) => {
-    const lane = laneOrSkip(ctx);
-    const { org } = await lane.provisionTenancy();
-    const outsider = await lane.provisionIdentity();
-
-    const workflow = await clients.workflowCommand.create(
-      makeWorkflow({ org, name: uniqueName("iso-wf") }),
-    );
-    fixtures.defer(() =>
-      clients.workflowCommand.delete({ value: workflow.metadata!.id }),
-    );
-
-    const denied = await expectGrpcCode(
-      () =>
-        outsider.workflowQuery.listVersions({
-          slug: workflow.metadata!.slug,
-          org,
-        }),
-      Code.PermissionDenied,
-      "outsider listVersions on a foreign workflow",
-    );
-    expect(denied.rawMessage).toBe(
-      "unauthorized to view workflow version history",
-    );
   });
 });

@@ -19,7 +19,7 @@ import "buf/validate/validate.proto";
 // always empty.
 //
 // @internal
-// Similar to GitHub organizations, all agents, workflows, sessions, and other
+// Similar to GitHub organizations, all agents, sessions, and other
 // resources are scoped under an organization. This enables multi-tenancy and
 // proper resource isolation. The slug changes only through
 // OrganizationCommandController.rename; a renamed slug keeps resolving to its

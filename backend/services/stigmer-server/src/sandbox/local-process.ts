@@ -179,12 +179,6 @@ export const newLocalProcessSandboxProvisioner: SandboxProvisionerFactory = ({
     async deprovisionSessionSandbox(sessionId) {
       deprovision("session", sessionId);
     },
-    async ensureWorkflowSandbox(executionId, env) {
-      ensure("workflow", executionId, env);
-    },
-    async deprovisionWorkflowSandbox(executionId) {
-      deprovision("workflow", executionId);
-    },
     async createConnectSandbox(connectRequestId, env) {
       ensure("connect", connectRequestId, env);
       return connectRequestId;

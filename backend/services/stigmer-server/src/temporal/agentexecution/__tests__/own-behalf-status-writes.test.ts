@@ -39,7 +39,6 @@ import path from "node:path";
 import { create, toJson } from "@bufbuild/protobuf";
 import type { JsonValue, MessageInitShape } from "@bufbuild/protobuf";
 import { createClient } from "@connectrpc/connect";
-import type { Client } from "@temporalio/client";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import {
@@ -144,7 +143,6 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
       executionContextDeleter: () => ({
         delete: () => Promise.reject(new Error("unused in this suite")),
       }),
-      client: () => ({}) as unknown as Client,
     })[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME] as UpdateStatusActivity;
   });
 

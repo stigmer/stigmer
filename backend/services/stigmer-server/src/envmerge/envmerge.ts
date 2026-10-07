@@ -1,7 +1,7 @@
 /**
  * Environment layer merging — ports backend/libs/go/envmerge/merge.go.
- * Consumed by the agentexecution execution-context builder and the
- * workflowexecution equivalent. Lives inside the server per the
+ * Consumed by the agentexecution execution-context builder. Lives inside
+ * the server per the
  * shared-library posture (extraction to backend/libs/ts/
  * only on a second SERVICE consumer — the temporal-codecs precedent).
  */

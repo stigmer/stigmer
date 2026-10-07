@@ -339,9 +339,6 @@ export const LANES = {
       "sdk/typescript/**",
       "sdk/theme/**",
       "backend/libs/ts/plugin-package/**",
-      // What `make gen-sdk-docs` writes outside the lists above: SDK Docs
-      // Freshness is a gate, so a hand edit to generated output must run it.
-      "backend/services/stigmer-server/src/domain/workflow/registry/data/**",
       ".vale.ini",
       ".prettierrc",
       ".lychee.toml",

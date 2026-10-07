@@ -18,10 +18,10 @@
 //   run could complete first and the second recover would rightly be refused.
 //
 // Mechanism note (issue #200, fixed): AgentRun.recover terminates the
-// previous Temporal workflow and starts a fresh one — the same strategy
-// WorkflowRun.recover uses. Temporal ResetWorkflowExecution cannot work
-// here because the runner activity RETURNS its FAILED result (it does not
-// throw), so a reset replays the preserved failure instead of re-dispatching.
+// previous Temporal workflow and starts a fresh one. Temporal
+// ResetWorkflowExecution cannot work here because the runner activity RETURNS
+// its FAILED result (it does not throw), so a reset replays the preserved
+// failure instead of re-dispatching.
 // Continuity of completed work is carried by the session's harness state
 // (LangGraph thread checkpoint / harness_state_id), not by Temporal history.
 //

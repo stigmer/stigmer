@@ -16,8 +16,8 @@
 // conversation on an agent; `agentRefOf` reads one off a created Agent.
 //
 // Negative cases (too-short instructions, missing name) are written inline in
-// the suite, not here: this module represents validity by construction, matching
-// the convention established by support/workflows.ts.
+// the suite, not here: this module represents validity by construction, the
+// convention every builder in support/ follows.
 import type { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/invocation_pb";
 import type { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import type { InitShape } from "./init-shape";

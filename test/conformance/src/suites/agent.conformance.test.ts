@@ -356,9 +356,9 @@ describe("Agent conformance — reserved labels", () => {
 
 describe("Agent conformance — delete frees the slug (stigmer#611)", () => {
   it("[rpc:AgentCommandController.delete] delete frees the agent slug: a recreate under the same name converges on a new agent", async () => {
-    // The agent twin of the workflow cascade pin (stigmer#592): nothing an
-    // agent owned outlives it to hold its slug, so a same-name recreate is a
-    // new agent rather than a collision. Sessions that named the deleted
+    // The cascade pin (stigmer#592): nothing an agent owned outlives it to
+    // hold its slug, so a same-name recreate is a new agent rather than a
+    // collision. Sessions that named the deleted
     // agent survive as historical record (the #582 ruling) and keep naming
     // the agent they pinned (the agentexecution suite's re-created-slug arm).
     const { org } = await target.provisionTenancy();

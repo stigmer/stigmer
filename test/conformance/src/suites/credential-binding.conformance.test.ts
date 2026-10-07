@@ -10,7 +10,10 @@
 // it then manages (settings and members, never the child's rows), cannot mint a key that speaks
 // for the person everywhere (an empty organization becomes A), and cannot
 // mint a key limited to B. A key may be limited only to an organization its
-// owner can view.
+// owner can view. A run filed in A cannot use an agent of B that B does not
+// share with A, though its person may run it there: the run's own credential
+// is bound to A and could not read it, so the create refuses it before
+// anything runs.
 //
 // Every arm runs on the target's enforcing lane, where the server signs its
 // callers in and keys authenticate: the primary on the cloud, open source's
@@ -41,8 +44,7 @@ import { agentRefOf, makeAgent } from "../support/agents";
 import { makeAgentExecution } from "../support/agentruns";
 import { makeEnvironment } from "../support/environments";
 import { makeMcpServer } from "../support/mcpservers";
-import { makeWorkflow } from "../support/workflows";
-import { makeWorkflowExecution } from "../support/workflowruns";
+import { makeSession } from "../support/sessions";
 import { organizationRole, policyTriple, ref } from "../support/iampolicies";
 import { uniqueName } from "../support/naming";
 import {
@@ -495,7 +497,7 @@ describe("credential binding — a credential that names an organization works t
     );
   });
 
-  it("[rpc:WorkflowRunCommandController.create] a key limited to A files no run and opens no connect in B, even with A's own workflow, agent or MCP server", async (ctx) => {
+  it("[rpc:AgentRunCommandController.create] a key limited to A files no run and opens no connect in B, even with A's own agent or MCP server", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
     const a = await tenancy(on);
@@ -507,17 +509,6 @@ describe("credential binding — a credential that names an organization works t
     const key = await keyOf(on, person, a.org);
     const orgVisible = { visibility: ApiResourceVisibility.visibility_org };
 
-    const workflowInput = makeWorkflow({
-      org: a.org,
-      name: uniqueName("binding-wf"),
-    });
-    const workflow = await on.clients.workflowCommand.create({
-      ...workflowInput,
-      metadata: { ...workflowInput.metadata, ...orgVisible },
-    });
-    fixtures.defer(() =>
-      on.clients.workflowCommand.delete({ value: workflow.metadata?.id ?? "" }),
-    );
     const agentInput = makeAgent({
       org: a.org,
       name: uniqueName("binding-agent"),
@@ -542,20 +533,6 @@ describe("credential binding — a credential that names an organization works t
         resourceId: server.metadata?.id ?? "",
       }),
     );
-
-    const workflowRun = await expectGrpcCode(
-      () =>
-        key.clients.workflowExecutionCommand.create(
-          makeWorkflowExecution({
-            org: b.org,
-            name: uniqueName("binding-wex"),
-            workflowId: workflow.metadata?.id ?? "",
-          }),
-        ),
-      Code.PermissionDenied,
-      "file a workflow run in B through a key limited to A",
-    );
-    expect(workflowRun.rawMessage).toBe(BOUND_ELSEWHERE_MESSAGE);
 
     const agentRun = await expectGrpcCode(
       () =>
@@ -626,44 +603,61 @@ describe("credential binding — a credential that names an organization works t
     ).toBe(await outcomeOf(person));
   });
 
-  it("[rpc:WorkflowRunCommandController.create] a run filed in A cannot name B's workflow: its run credential, bound to A, could not read it", async (ctx) => {
+  it("[rpc:AgentRunCommandController.create] a run filed in A cannot use B's agent once B stops sharing it: its run credential, bound to A, could not read it", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
-    const a = await tenancy(on);
     const b = await tenancy(on);
-    const person = await on.provisionMember(a);
+    const a = await childTenancy(on, b);
+    const person = await personIn(on, a, "member");
     await on.clients.iamPolicyCommand.create(
       organizationRole(await on.accountIdOf(person), "member", b.org),
     );
-    const workflowInput = makeWorkflow({
+    const agentInput = makeAgent({
       org: b.org,
-      name: uniqueName("binding-wf-b"),
+      name: uniqueName("binding-agent-b"),
     });
-    const workflow = await on.clients.workflowCommand.create({
-      ...workflowInput,
+    const agent = await on.clients.agentCommand.create({
+      ...agentInput,
       metadata: {
-        ...workflowInput.metadata,
-        visibility: ApiResourceVisibility.visibility_org,
+        ...agentInput.metadata,
+        visibility: ApiResourceVisibility.visibility_child_orgs,
       },
     });
-    fixtures.defer(() =>
-      on.clients.workflowCommand.delete({ value: workflow.metadata?.id ?? "" }),
+    const agentId = agent.metadata?.id ?? "";
+    fixtures.defer(() => on.clients.agentCommand.delete({ value: agentId }));
+
+    // While B shares the agent with its children, A's conversation may
+    // name it. Then B keeps it to itself: the person still may run it (a
+    // member of B), so only the run's organization can refuse the turn.
+    const session = await person.sessionCommand.create(
+      makeSession({
+        org: a.org,
+        name: uniqueName("binding-session"),
+        agentRef: agentRefOf(agent),
+      }),
     );
+    const sessionId = session.metadata?.id ?? "";
+    fixtures.defer(() => person.sessionCommand.delete({ value: sessionId }));
+    await on.clients.agentCommand.updateVisibility({
+      resourceId: agentId,
+      visibility: ApiResourceVisibility.visibility_org,
+    });
 
     const refused = await expectGrpcCode(
       () =>
-        person.workflowExecutionCommand.create(
-          makeWorkflowExecution({
+        person.agentExecutionCommand.create(
+          makeAgentExecution({
             org: a.org,
-            name: uniqueName("binding-wex-cross"),
-            workflowId: workflow.metadata?.id ?? "",
+            name: uniqueName("binding-aex-cross"),
+            sessionId,
+            message: "Say hello.",
           }),
         ),
       Code.FailedPrecondition,
-      "file a run in A of B's organization-visible workflow",
+      "file a run in A on B's agent that B no longer shares",
     );
-    expect(refused.rawMessage).toContain(
-      "a run uses only what its own organization can read",
+    expect(refused.rawMessage).toBe(
+      `a run uses only what its own organization can read: Agent ${agentId} belongs to another organization and is not one its parent shares with child organizations`,
     );
   });
 

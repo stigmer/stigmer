@@ -1,8 +1,8 @@
 /**
  * Model-registry document store — ports the Go server's ModelRegistryStore
- * (pkg/domain/workflow/registry/model_registry_store.go). The model catalog
- * is its own module, not any one domain's: every domain that pins a model
- * (agents, runs, schedules, shares, channels, workflow validation) and the
+ * (model_registry_store.go). The model catalog is its own module, not any
+ * one domain's: every domain that pins a model (agents, runs, schedules,
+ * shares, channels) and the
  * transport's /v1/proxy/model-registry lane read this ONE store, so the
  * document the pickers see and the set validation accepts can never
  * drift.
@@ -172,8 +172,8 @@ export class ModelRegistryStore implements ModelCatalogProvider {
 
   /**
    * Whether a model reference prices the given variant key under the given
-   * harness. The workflow validators use this form — the task config names
-   * its harness, so a fast variant priced only under another harness must
+   * harness. The run-config checks use this form — a run names its
+   * harness, so a fast variant priced only under another harness must
    * not validate (it would execute as a silent no-op).
    */
   hasPricingVariantForHarness(

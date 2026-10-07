@@ -11,17 +11,16 @@ package ai.stigmer.platform.v1;
  *
  * A sandbox token is minted with a fixed TTL, but the sandbox it serves has
  * no fixed lifetime: an active conversation extends a session sandbox
- * indefinitely, and a long workflow run can outlast any TTL chosen at
- * provisioning (the 2026-08-05 incident: a WhatsApp conversation outlived
- * its 25h token and a user turn died UNAUTHENTICATED). Renewal decouples
- * the two — the runner re-mints on a timer before expiry and applies the
- * fresh token in-process, so credential freshness never requires a pod
- * restart (which would wipe an ephemeral sandbox's workspace).
+ * indefinitely, so it can outlast any TTL chosen at provisioning (the
+ * 2026-08-05 incident: a WhatsApp conversation outlived its 25h token and a
+ * user turn died UNAUTHENTICATED). Renewal decouples the two — the runner
+ * re-mints on a timer before expiry and applies the fresh token in-process,
+ * so credential freshness never requires a pod restart (which would wipe an
+ * ephemeral sandbox's workspace).
  *
- * Deliberately empty: every mint parameter (identity, org, session /
- * workflow-run scope) comes from the presented credential's VERIFIED
- * claims, never from the client, so a renewed token is claim-identical to
- * the one it replaces.
+ * Deliberately empty: every mint parameter (identity, org, session scope)
+ * comes from the presented credential's VERIFIED claims, never from the
+ * client, so a renewed token is claim-identical to the one it replaces.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.platform.v1.TokenRenewal}
@@ -218,17 +217,16 @@ private static final long serialVersionUID = 0L;
    *
    * A sandbox token is minted with a fixed TTL, but the sandbox it serves has
    * no fixed lifetime: an active conversation extends a session sandbox
-   * indefinitely, and a long workflow run can outlast any TTL chosen at
-   * provisioning (the 2026-08-05 incident: a WhatsApp conversation outlived
-   * its 25h token and a user turn died UNAUTHENTICATED). Renewal decouples
-   * the two — the runner re-mints on a timer before expiry and applies the
-   * fresh token in-process, so credential freshness never requires a pod
-   * restart (which would wipe an ephemeral sandbox's workspace).
+   * indefinitely, so it can outlast any TTL chosen at provisioning (the
+   * 2026-08-05 incident: a WhatsApp conversation outlived its 25h token and a
+   * user turn died UNAUTHENTICATED). Renewal decouples the two — the runner
+   * re-mints on a timer before expiry and applies the fresh token in-process,
+   * so credential freshness never requires a pod restart (which would wipe an
+   * ephemeral sandbox's workspace).
    *
-   * Deliberately empty: every mint parameter (identity, org, session /
-   * workflow-run scope) comes from the presented credential's VERIFIED
-   * claims, never from the client, so a renewed token is claim-identical to
-   * the one it replaces.
+   * Deliberately empty: every mint parameter (identity, org, session scope)
+   * comes from the presented credential's VERIFIED claims, never from the
+   * client, so a renewed token is claim-identical to the one it replaces.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.platform.v1.TokenRenewal}

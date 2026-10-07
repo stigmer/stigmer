@@ -57,9 +57,6 @@ import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { newAuthorizeRunTargetStep } from "../../pipeline/steps/authorize-run-target.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
-import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
-import type { WorkflowRunQueue } from "../../temporal/workflowexecution/dispatch.js";
-import { newRecordRunnerLineageLabelsStep } from "./record-runner-lineage-labels.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
 import {
   newDeleteResourceStep,
@@ -144,10 +141,6 @@ import { newResolveRunConfigStep } from "./resolve-run-config.js";
 import { newValidateServiceTierStep } from "./validate-service-tier.js";
 import { newValidateThinkingModeStep } from "./validate-thinking-mode.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
-import {
-  newValidateParentImmutabilityStep,
-  newVouchWorkflowParentStep,
-} from "./vouch-workflow-parent.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import {
   EXECUTION_LIST_KEY,
@@ -231,23 +224,10 @@ export interface AgentExecutionControllerDeps {
   /** The shared artifact blob store (attachments + artifact reads). */
   readonly artifactStorage: ArtifactStorage;
   /**
-   * The composed runner-credential provider — RecordRunnerLineageLabels
-   * consults its vouchRunnerLineageLabels capability at create. The OSS
-   * default defines no capabilities, so the
-   * step is a no-op with it.
-   */
-  readonly runnerCredentialProvider: RunnerCredentialProvider;
-  /**
    * The in-process edge the create pipeline consumes (a lazy provider —
    * the routes↔clients cycle resolves at request time).
    */
   readonly sessionCreator: SessionCreatorProvider;
-  /**
-   * The queue a vouched parent link routes a workflow's child turn to (its
-   * run's own queue under execution routing, else none): StartWorkflow and
-   * the session sandbox ensure share the one rule.
-   */
-  readonly workflowRunQueue: WorkflowRunQueue;
   /** The shared EC-builder deps (create's step 16 + recover's recreate). */
   readonly executionContextBuilder: ExecutionContextBuilderDeps;
   /**
@@ -349,8 +329,7 @@ export function registerAgentExecutionServices(
  * organization, filled in when the request names none; the chain's one
  * read of the stored session, behind the run gate, so nothing about a
  * session is read or disclosed before the caller may add a turn to it,
- * #1280) → the standard build → the workflow link's vouch beside the lineage labels'
- * (vouch-workflow-parent.ts) → the reserved-label guard → the reference
+ * #1280) → the standard build → the reserved-label guard → the reference
  * rule → ResolveRunAgent, which stamps the agent and version the turn runs
  * (the session's pin, or the new session's agent_ref) → the run gate's
  * second question (AuthorizeRunAgent: may the caller still run that
@@ -396,17 +375,6 @@ async function createExecution(
     .addStep(newValidateSessionOrganizationStep(deps.store))
     .addStep(newResolveSlugStep())
     .addStep(newBuildNewStateStep())
-    // Vouches the runner-stamped workflow lineage labels (or refuses a
-    // wrong-binding stamp) BEFORE the guard diffs them — the Java
-    // RecordRunnerLineageLabelsStep position — and the workflow link under
-    // the same rule.
-    .addStep(newRecordRunnerLineageLabelsStep(deps.runnerCredentialProvider))
-    .addStep(
-      newVouchWorkflowParentStep(
-        deps.runnerCredentialProvider,
-        deps.authorizer,
-      ),
-    )
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
@@ -487,7 +455,6 @@ async function createExecution(
         logger: deps.logger,
         engineState: deps.engineState,
         statusObservers: deps.statusObservers,
-        workflowRunQueue: deps.workflowRunQueue,
       }),
     )
     // The session-lane sandbox ensure: after StartWorkflow,
@@ -500,7 +467,6 @@ async function createExecution(
         logger: deps.logger,
         lane: deps.sandboxLane,
         temporalConfig: deps.temporalConfig,
-        workflowRunQueue: deps.workflowRunQueue,
       }),
     )
     .build()
@@ -516,9 +482,8 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * Update — update.go buildUpdatePipeline: USER-initiated spec updates
  * (status updates from the runner use UpdateStatus instead). Standard
  * chain; BuildUpdateState clears status per the shared pattern,
- * ValidateSessionImmutability keeps the execution in its session
- * (session-binding.ts), and ValidateParentImmutability keeps the workflow
- * run it was started by (vouch-workflow-parent.ts).
+ * and ValidateSessionImmutability keeps the execution in its session
+ * (session-binding.ts).
  */
 async function update(
   deps: AgentExecutionControllerDeps,
@@ -546,7 +511,6 @@ async function update(
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newBuildUpdateStateStep())
     .addStep(newValidateSessionImmutabilityStep())
-    .addStep(newValidateParentImmutabilityStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newPersistStep(deps.store))

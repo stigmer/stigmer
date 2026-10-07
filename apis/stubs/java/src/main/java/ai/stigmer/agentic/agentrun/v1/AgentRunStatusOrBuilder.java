@@ -305,19 +305,6 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
 
   /**
    * <pre>
-   * Callback token for notifying a parent workflow when this run completes.
-   *
-   * Present when this run was triggered by a workflow. Empty when the
-   * run stands alone (a chat turn or an API call).
-   * </pre>
-   *
-   * <code>bytes callback_token = 10 [json_name = "callbackToken"];</code>
-   * @return The callbackToken.
-   */
-  com.google.protobuf.ByteString getCallbackToken();
-
-  /**
-   * <pre>
    * Active pending approval requests for this run.
    *
    * Contains one entry per tool call that requires user approval before
@@ -727,8 +714,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
    * extraction (JSON.parse → fence extraction → extraction LLM fallback).
    *
    * Consumers: frontend architect/refine hooks read this instead of parsing
-   * YAML from messages. Workflow callback path reads structured_output from
-   * the Temporal activity result (separate channel, same data).
+   * YAML from messages.
    * </pre>
    *
    * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
@@ -748,8 +734,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
    * extraction (JSON.parse → fence extraction → extraction LLM fallback).
    *
    * Consumers: frontend architect/refine hooks read this instead of parsing
-   * YAML from messages. Workflow callback path reads structured_output from
-   * the Temporal activity result (separate channel, same data).
+   * YAML from messages.
    * </pre>
    *
    * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
@@ -769,8 +754,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
    * extraction (JSON.parse → fence extraction → extraction LLM fallback).
    *
    * Consumers: frontend architect/refine hooks read this instead of parsing
-   * YAML from messages. Workflow callback path reads structured_output from
-   * the Temporal activity result (separate channel, same data).
+   * YAML from messages.
    * </pre>
    *
    * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
@@ -1094,8 +1078,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
    * A fact of the lane the turn came through, never of the request: a
    * schedule's turn and the hosted edition's shared-agent guest and channel
    * turns are UNATTENDED (nobody is present to approve); every other turn is
-   * INTERACTIVE, a workflow step's included (its workflow takes the approval
-   * request).
+   * INTERACTIVE.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.ApprovalMode approval_mode = 32 [json_name = "approvalMode"];</code>
@@ -1110,8 +1093,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue);
    * A fact of the lane the turn came through, never of the request: a
    * schedule's turn and the hosted edition's shared-agent guest and channel
    * turns are UNATTENDED (nobody is present to approve); every other turn is
-   * INTERACTIVE, a workflow step's included (its workflow takes the approval
-   * request).
+   * INTERACTIVE.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.ApprovalMode approval_mode = 32 [json_name = "approvalMode"];</code>

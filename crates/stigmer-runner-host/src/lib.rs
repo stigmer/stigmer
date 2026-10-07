@@ -2,8 +2,7 @@
 //!
 //! [`RunnerHost`] is the framework-agnostic driver: it spawns the Node runner with
 //! `STIGMER_RUNNER_MODE=manager`, performs the versioned `ready` handshake, and exposes an
-//! async lifecycle (`add_session`/`remove_session`,
-//! `add_workflow_execution`/`remove_workflow_execution`, `update_token`, `stop`, `status`).
+//! async lifecycle (`add_session`/`remove_session`, `update_token`, `stop`, `status`).
 //! It has no Tauri dependency in the default build.
 //!
 //! Enable the `tauri` feature for the desktop binding — a `RunnerState` plus the

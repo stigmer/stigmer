@@ -214,7 +214,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Optional tag to assign to this version at creation time.
-   * Only applicable to versioned resources (Skills, Workflows).
+   * Only applicable to versioned resources (Agents, Skills, Plugins).
    * Examples: "stable", "v1.0", "production"
    * </pre>
    *
@@ -237,7 +237,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Optional tag to assign to this version at creation time.
-   * Only applicable to versioned resources (Skills, Workflows).
+   * Only applicable to versioned resources (Agents, Skills, Plugins).
    * Examples: "stable", "v1.0", "production"
    * </pre>
    *
@@ -926,7 +926,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional tag to assign to this version at creation time.
-     * Only applicable to versioned resources (Skills, Workflows).
+     * Only applicable to versioned resources (Agents, Skills, Plugins).
      * Examples: "stable", "v1.0", "production"
      * </pre>
      *
@@ -948,7 +948,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional tag to assign to this version at creation time.
-     * Only applicable to versioned resources (Skills, Workflows).
+     * Only applicable to versioned resources (Agents, Skills, Plugins).
      * Examples: "stable", "v1.0", "production"
      * </pre>
      *
@@ -971,7 +971,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional tag to assign to this version at creation time.
-     * Only applicable to versioned resources (Skills, Workflows).
+     * Only applicable to versioned resources (Agents, Skills, Plugins).
      * Examples: "stable", "v1.0", "production"
      * </pre>
      *
@@ -990,7 +990,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional tag to assign to this version at creation time.
-     * Only applicable to versioned resources (Skills, Workflows).
+     * Only applicable to versioned resources (Agents, Skills, Plugins).
      * Examples: "stable", "v1.0", "production"
      * </pre>
      *
@@ -1006,7 +1006,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Optional tag to assign to this version at creation time.
-     * Only applicable to versioned resources (Skills, Workflows).
+     * Only applicable to versioned resources (Agents, Skills, Plugins).
      * Examples: "stable", "v1.0", "production"
      * </pre>
      *

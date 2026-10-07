@@ -55,7 +55,7 @@ Defined in `ai/stigmer/agentic/executioncontext/v1/spec.proto`.
 
 | Field | Required | Description |
 |---|---|---|
-| `spec.execution_id` | Yes | The ID of the `AgentRun` or `WorkflowRun` this context belongs to. Must be a non-empty string. Used as the primary lookup key by runners via `getByExecutionId`. |
+| `spec.execution_id` | Yes | The ID of the `AgentRun` this context belongs to. Must be a non-empty string. Used as the primary lookup key by runners via `getByExecutionId`. |
 | `spec.data` | No | Map of key-value pairs. Each key is a string (e.g., `"AWS_ACCESS_KEY_ID"`); each value is an `ExecutionValue` message. |
 
 ---
@@ -107,7 +107,7 @@ ExecutionContexts are owner-scoped: the create pipeline writes an FGA owner tupl
 | `delete` | execution-engine internal | Called when the run completes or is cancelled. |
 | `get` | `can_view` on the ExecutionContext | Secret values redacted. |
 | `getByReference` | `can_view` on the ExecutionContext | Secret values redacted. |
-| `getByExecutionId` | `can_view` on the ExecutionContext | Primary runner lookup. Secret values decrypted **only** for scope-bound runner credentials (`token_type` of `sandbox`, `workflow_sandbox`, or `connect_sandbox` whose scope claim binds the token to this run); the unscoped `embedded_runner` bootstrap credential is refused — desktop runners exchange it for a scoped token via `getRunnerScopedToken` first. Redacted for every other caller, same as `get`. |
+| `getByExecutionId` | `can_view` on the ExecutionContext | Primary runner lookup. Secret values decrypted **only** for scope-bound runner credentials (`token_type` of `sandbox` or `connect_sandbox` whose scope claim binds the token to this run); the unscoped `embedded_runner` bootstrap credential is refused — desktop runners exchange it for a scoped token via `getRunnerScopedToken` first. Redacted for every other caller, same as `get`. |
 
 ### Why Credential Class, Not a Permission?
 
@@ -122,7 +122,7 @@ Run starts
     │
     ▼
 Execution engine resolves environment_refs from what started the run
-(schedule, agent_call task, PlatformClient; a workflow run has none)
+(schedule, PlatformClient)
     │
     ▼
 Engine merges resolved values (later refs override earlier) + any B2B runtime-injected values,
@@ -130,7 +130,7 @@ then fills declared keys still missing from OAuth tokens and the run's person's 
     │
     ▼
 Engine calls ExecutionContextCommandController.create(ExecutionContext)
-    │  spec.execution_id = <agentExecution.id or workflowExecution.id>
+    │  spec.execution_id = <agentRun.id>
     │  spec.data = merged key-value pairs
     │
     ▼
@@ -138,7 +138,7 @@ Runner calls ExecutionContextQueryController.getByExecutionId(execution_id)
     │  receives decrypted values for sandbox injection
     │
     ▼
-Agent / workflow logic executes using the injected values
+Agent logic executes using the injected values
     │
     ▼
 Run completes (success, failure, or cancellation)
@@ -158,7 +158,7 @@ ExecutionContext and Environment solve different problems in the same value-inje
 |---|---|---|
 | Lifecycle | Persistent | Ephemeral — one run |
 | Created by | Users (via CLI or API) | Execution engine (operator) |
-| Reusable | Yes — many schedules, workflow tasks and PlatformClients can reference it | No — 1:1 with one run |
+| Reusable | Yes — many schedules and PlatformClients can reference it | No — 1:1 with one run |
 | Primary key | Resource ID or name | `execution_id` |
 | Secret reads | Redacted in all API responses | Decrypted for runner via `getByExecutionId` |
 | User-visible | Yes | No |

@@ -8,7 +8,7 @@ import "buf/validate/validate.proto";
 //
 // @internal
 // Organizations are the top-level container for all Stigmer resources.
-// Similar to GitHub organizations, all agents, workflows, and other resources
+// Similar to GitHub organizations, all agents, sessions, and other resources
 // are scoped under an organization.
 message OrganizationSpec {
   option (buf.validate.message).cel = {

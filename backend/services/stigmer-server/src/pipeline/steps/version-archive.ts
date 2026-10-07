@@ -1,6 +1,6 @@
 /**
  * The write side of content-addressed versioning, shared by every
- * versioned kind (workflows, agents, skills, plugins): the version-metadata
+ * versioned kind (agents, skills, plugins): the version-metadata
  * rule an applied kind's write runs once its hash is known, the "archive
  * the head" step a write runs after the head is fully populated, and the
  * best-effort archive cleanup a delete runs before the row. Skills carried
@@ -26,7 +26,7 @@
  *     no such arm.
  *
  * The version-metadata rule (PopulateVersionHash) is for kinds applied as a
- * whole resource (workflows, agents), whose update replaces
+ * whole resource (agents), whose update replaces
  * metadata.version with whatever the client sent. On a changed hash the
  * version id becomes the new hash, previous_version_id the old one, and
  * message are the client's. On an unchanged hash id, previous_version_id
@@ -39,7 +39,7 @@
  * made since it loaded the row.
  *
  * Proven by the skill domain's __tests__/push-degradation.test.ts (the
- * failing-store arms), the workflow and agent domains' version tests, and
+ * failing-store arms), the agent domain's version tests, and
  * every versioned kind's conformance suite (the content-addressed
  * versioning blocks).
  */
@@ -128,7 +128,7 @@ export interface ArchiveCurrentVersionBinding<Desc extends DescMessage> {
    */
   readonly persistOnRevert?: boolean;
   readonly schema: Desc;
-  /** The noun in log lines: "workflow", "agent", "skill", "plugin". */
+  /** The noun in log lines: "agent", "skill", "plugin". */
   readonly noun: string;
   headHashOf(resource: MessageShape<Desc>): string;
   /** Degradation arm: the head must never reference an unresolvable audit row. */

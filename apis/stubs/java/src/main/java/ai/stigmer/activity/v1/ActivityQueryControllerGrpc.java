@@ -4,12 +4,8 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 
 /**
  * <pre>
- * ActivityQueryController provides cross-resource read queries for the
- * activity feed — the unified "recents" sidebar that merges sessions and
- * workflow runs into a single time-ordered list.
- * This service exists because the recents list spans two bounded contexts
- * (session and workflow_run). A cross-cutting query service avoids
- * forcing the client to make two parallel calls and merge client-side.
+ * ActivityQueryController provides the read query behind the "recents"
+ * sidebar: the caller's most recent sessions, newest first.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -112,27 +108,21 @@ public final class ActivityQueryControllerGrpc {
 
   /**
    * <pre>
-   * ActivityQueryController provides cross-resource read queries for the
-   * activity feed — the unified "recents" sidebar that merges sessions and
-   * workflow runs into a single time-ordered list.
-   * This service exists because the recents list spans two bounded contexts
-   * (session and workflow_run). A cross-cutting query service avoids
-   * forcing the client to make two parallel calls and merge client-side.
+   * ActivityQueryController provides the read query behind the "recents"
+   * sidebar: the caller's most recent sessions, newest first.
    * </pre>
    */
   public interface AsyncService {
 
     /**
      * <pre>
-     * List recent activity across sessions and workflow runs.
-     * Returns a merged, time-sorted list of the caller's most recent
-     * sessions and workflow runs. On the hosted edition, per-resource
-     * authorization filtering is applied server-side (FGA `can_view`
-     * enumeration for both kinds — the same permission the per-kind `get`
-     * RPCs enforce, so every listed entry is openable by construction). On
-     * the OSS edition the server is single-tenant: the caller owns every
-     * stored resource, so there is no authorization set to enumerate and the
-     * request's org is a no-op (stigmer#461).
+     * List the caller's most recent sessions by last activity.
+     * On the hosted edition, per-resource authorization filtering is applied
+     * server-side (FGA `can_view` enumeration — the same permission the
+     * session `get` RPC enforces, so every listed entry is openable by
+     * construction). On the OSS edition the server is single-tenant: the
+     * caller owns every stored resource, so there is no authorization set to
+     * enumerate and the request's org is a no-op (stigmer#461).
      * </pre>
      */
     default void listRecentActivity(ai.stigmer.activity.v1.ListRecentActivityRequest request,
@@ -144,12 +134,8 @@ public final class ActivityQueryControllerGrpc {
   /**
    * Base class for the server implementation of the service ActivityQueryController.
    * <pre>
-   * ActivityQueryController provides cross-resource read queries for the
-   * activity feed — the unified "recents" sidebar that merges sessions and
-   * workflow runs into a single time-ordered list.
-   * This service exists because the recents list spans two bounded contexts
-   * (session and workflow_run). A cross-cutting query service avoids
-   * forcing the client to make two parallel calls and merge client-side.
+   * ActivityQueryController provides the read query behind the "recents"
+   * sidebar: the caller's most recent sessions, newest first.
    * </pre>
    */
   public static abstract class ActivityQueryControllerImplBase
@@ -163,12 +149,8 @@ public final class ActivityQueryControllerGrpc {
   /**
    * A stub to allow clients to do asynchronous rpc calls to service ActivityQueryController.
    * <pre>
-   * ActivityQueryController provides cross-resource read queries for the
-   * activity feed — the unified "recents" sidebar that merges sessions and
-   * workflow runs into a single time-ordered list.
-   * This service exists because the recents list spans two bounded contexts
-   * (session and workflow_run). A cross-cutting query service avoids
-   * forcing the client to make two parallel calls and merge client-side.
+   * ActivityQueryController provides the read query behind the "recents"
+   * sidebar: the caller's most recent sessions, newest first.
    * </pre>
    */
   public static final class ActivityQueryControllerStub
@@ -186,15 +168,13 @@ public final class ActivityQueryControllerGrpc {
 
     /**
      * <pre>
-     * List recent activity across sessions and workflow runs.
-     * Returns a merged, time-sorted list of the caller's most recent
-     * sessions and workflow runs. On the hosted edition, per-resource
-     * authorization filtering is applied server-side (FGA `can_view`
-     * enumeration for both kinds — the same permission the per-kind `get`
-     * RPCs enforce, so every listed entry is openable by construction). On
-     * the OSS edition the server is single-tenant: the caller owns every
-     * stored resource, so there is no authorization set to enumerate and the
-     * request's org is a no-op (stigmer#461).
+     * List the caller's most recent sessions by last activity.
+     * On the hosted edition, per-resource authorization filtering is applied
+     * server-side (FGA `can_view` enumeration — the same permission the
+     * session `get` RPC enforces, so every listed entry is openable by
+     * construction). On the OSS edition the server is single-tenant: the
+     * caller owns every stored resource, so there is no authorization set to
+     * enumerate and the request's org is a no-op (stigmer#461).
      * </pre>
      */
     public void listRecentActivity(ai.stigmer.activity.v1.ListRecentActivityRequest request,
@@ -207,12 +187,8 @@ public final class ActivityQueryControllerGrpc {
   /**
    * A stub to allow clients to do synchronous rpc calls to service ActivityQueryController.
    * <pre>
-   * ActivityQueryController provides cross-resource read queries for the
-   * activity feed — the unified "recents" sidebar that merges sessions and
-   * workflow runs into a single time-ordered list.
-   * This service exists because the recents list spans two bounded contexts
-   * (session and workflow_run). A cross-cutting query service avoids
-   * forcing the client to make two parallel calls and merge client-side.
+   * ActivityQueryController provides the read query behind the "recents"
+   * sidebar: the caller's most recent sessions, newest first.
    * </pre>
    */
   public static final class ActivityQueryControllerBlockingV2Stub
@@ -230,15 +206,13 @@ public final class ActivityQueryControllerGrpc {
 
     /**
      * <pre>
-     * List recent activity across sessions and workflow runs.
-     * Returns a merged, time-sorted list of the caller's most recent
-     * sessions and workflow runs. On the hosted edition, per-resource
-     * authorization filtering is applied server-side (FGA `can_view`
-     * enumeration for both kinds — the same permission the per-kind `get`
-     * RPCs enforce, so every listed entry is openable by construction). On
-     * the OSS edition the server is single-tenant: the caller owns every
-     * stored resource, so there is no authorization set to enumerate and the
-     * request's org is a no-op (stigmer#461).
+     * List the caller's most recent sessions by last activity.
+     * On the hosted edition, per-resource authorization filtering is applied
+     * server-side (FGA `can_view` enumeration — the same permission the
+     * session `get` RPC enforces, so every listed entry is openable by
+     * construction). On the OSS edition the server is single-tenant: the
+     * caller owns every stored resource, so there is no authorization set to
+     * enumerate and the request's org is a no-op (stigmer#461).
      * </pre>
      */
     public ai.stigmer.activity.v1.ListRecentActivityResponse listRecentActivity(ai.stigmer.activity.v1.ListRecentActivityRequest request) throws io.grpc.StatusException {
@@ -250,12 +224,8 @@ public final class ActivityQueryControllerGrpc {
   /**
    * A stub to allow clients to do limited synchronous rpc calls to service ActivityQueryController.
    * <pre>
-   * ActivityQueryController provides cross-resource read queries for the
-   * activity feed — the unified "recents" sidebar that merges sessions and
-   * workflow runs into a single time-ordered list.
-   * This service exists because the recents list spans two bounded contexts
-   * (session and workflow_run). A cross-cutting query service avoids
-   * forcing the client to make two parallel calls and merge client-side.
+   * ActivityQueryController provides the read query behind the "recents"
+   * sidebar: the caller's most recent sessions, newest first.
    * </pre>
    */
   public static final class ActivityQueryControllerBlockingStub
@@ -273,15 +243,13 @@ public final class ActivityQueryControllerGrpc {
 
     /**
      * <pre>
-     * List recent activity across sessions and workflow runs.
-     * Returns a merged, time-sorted list of the caller's most recent
-     * sessions and workflow runs. On the hosted edition, per-resource
-     * authorization filtering is applied server-side (FGA `can_view`
-     * enumeration for both kinds — the same permission the per-kind `get`
-     * RPCs enforce, so every listed entry is openable by construction). On
-     * the OSS edition the server is single-tenant: the caller owns every
-     * stored resource, so there is no authorization set to enumerate and the
-     * request's org is a no-op (stigmer#461).
+     * List the caller's most recent sessions by last activity.
+     * On the hosted edition, per-resource authorization filtering is applied
+     * server-side (FGA `can_view` enumeration — the same permission the
+     * session `get` RPC enforces, so every listed entry is openable by
+     * construction). On the OSS edition the server is single-tenant: the
+     * caller owns every stored resource, so there is no authorization set to
+     * enumerate and the request's org is a no-op (stigmer#461).
      * </pre>
      */
     public ai.stigmer.activity.v1.ListRecentActivityResponse listRecentActivity(ai.stigmer.activity.v1.ListRecentActivityRequest request) {
@@ -293,12 +261,8 @@ public final class ActivityQueryControllerGrpc {
   /**
    * A stub to allow clients to do ListenableFuture-style rpc calls to service ActivityQueryController.
    * <pre>
-   * ActivityQueryController provides cross-resource read queries for the
-   * activity feed — the unified "recents" sidebar that merges sessions and
-   * workflow runs into a single time-ordered list.
-   * This service exists because the recents list spans two bounded contexts
-   * (session and workflow_run). A cross-cutting query service avoids
-   * forcing the client to make two parallel calls and merge client-side.
+   * ActivityQueryController provides the read query behind the "recents"
+   * sidebar: the caller's most recent sessions, newest first.
    * </pre>
    */
   public static final class ActivityQueryControllerFutureStub
@@ -316,15 +280,13 @@ public final class ActivityQueryControllerGrpc {
 
     /**
      * <pre>
-     * List recent activity across sessions and workflow runs.
-     * Returns a merged, time-sorted list of the caller's most recent
-     * sessions and workflow runs. On the hosted edition, per-resource
-     * authorization filtering is applied server-side (FGA `can_view`
-     * enumeration for both kinds — the same permission the per-kind `get`
-     * RPCs enforce, so every listed entry is openable by construction). On
-     * the OSS edition the server is single-tenant: the caller owns every
-     * stored resource, so there is no authorization set to enumerate and the
-     * request's org is a no-op (stigmer#461).
+     * List the caller's most recent sessions by last activity.
+     * On the hosted edition, per-resource authorization filtering is applied
+     * server-side (FGA `can_view` enumeration — the same permission the
+     * session `get` RPC enforces, so every listed entry is openable by
+     * construction). On the OSS edition the server is single-tenant: the
+     * caller owns every stored resource, so there is no authorization set to
+     * enumerate and the request's org is a no-op (stigmer#461).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.activity.v1.ListRecentActivityResponse> listRecentActivity(

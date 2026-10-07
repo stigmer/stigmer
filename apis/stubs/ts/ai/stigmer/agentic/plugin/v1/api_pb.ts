@@ -21,7 +21,7 @@ export const file_ai_stigmer_agentic_plugin_v1_api: GenFile = /*@__PURE__*/
 
 /**
  * Plugin is an installed Agent Plugins package: the unit of install, upgrade
- * and removal for a set of skills, MCP servers, an agent and workflows.
+ * and removal for a set of skills, MCP servers and an agent.
  *
  * A plugin is what you install; an agent is what runs. Installing a plugin
  * materialises ordinary Stigmer resources in the organization, each labelled

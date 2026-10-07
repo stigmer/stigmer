@@ -42,8 +42,8 @@
  *     under the built-in posture it too is an identity: its bearer acts
  *     as the person who asked for the connect, whom that row was created
  *     by (bound-execution.ts, the `mcp-connect` binding).
- *   - `mintRunCredential(executionId)` — the RUN credential: the two
- *     execution engines put it on every dispatch's workflow input
+ *   - `mintRunCredential(executionId)` — the RUN credential: the agent
+ *     run's engine puts it on every dispatch's workflow input
  *     (dispatch-credential.ts), and under the built-in posture the
  *     exchange mints it too, for the run's own person only
  *     (built-in-runner-credential-provider.ts). NO `exp`. A run waits on
@@ -57,8 +57,8 @@
  * decides liveness, which needs the store.
  *
  * Consumers arrive with their own domains, through the provider seam
- * (runner-credential-provider.ts): the platform exchange RPC and the two
- * engine clients (mint), the executioncontext resolve step and the
+ * (runner-credential-provider.ts): the platform exchange RPC and the
+ * engine client (mint), the executioncontext resolve step and the
  * runner-subject verifier (verify). This module sits beside encryption
  * because its signing key rides the shared key ladder and its boot
  * posture is a cross-domain invariant (fatal — see compose.ts).
@@ -71,7 +71,7 @@ import type { KeyLoaderOptions } from "../encryption/key-manager.js";
 /**
  * The token_type claim of every OSS-minted runner token — Go
  * TokenTypeExecutionScoped. Deliberately distinct from the cloud sandbox
- * vocabulary (sandbox / workflow_sandbox / connect_sandbox): borrowing
+ * vocabulary (sandbox / connect_sandbox): borrowing
  * "sandbox" while carrying different claims would mislead anyone debugging
  * across editions. One honest type with a direct execution_id binding.
  */

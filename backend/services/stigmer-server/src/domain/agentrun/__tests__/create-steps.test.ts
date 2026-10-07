@@ -1,8 +1,7 @@
 /**
  * Create pipeline step tests — ports create_session_bootstrap_test.go,
  * compose_declared_preferences_step_test.go,
- * compose_recalled_memories_step_test.go, and
- * create_execution_context_workflow_refs_test.go case-for-case, over a
+ * and compose_recalled_memories_step_test.go case-for-case, over a
  * real SQLite store and the real pipeline RequestContext (the same
  * direct-step shape as Go). Go's nil-client skip proofs map to throwing
  * providers — reaching the client would fail the test just as a nil
@@ -13,10 +12,7 @@
  * oneof and re-takes the turn's agent stamp from that session's pin. The
  * compose steps write their snapshots to status, over anything a caller
  * left there. StartWorkflow feeds the workflow input its agent from the
- * stamp, its callback token and signal target from the vouched parent
- * link, and its queue from the link's workflow run (that run's wfexec
- * queue under execution routing, none under global routing), never from
- * the request.
+ * stamp, never from the request.
  *
  * The two compose steps are also pinned where callers are persons
  * (stigmer#1387, stigmer#1397): recall is the run's person's own
@@ -39,7 +35,6 @@ import path from "node:path";
 
 import { create, clone, toJson } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import type { JsonObject } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -52,7 +47,6 @@ import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb
 import {
   DeclaredPreferencesSchema,
   RecalledMemoriesSchema,
-  WorkflowParentSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/spec_pb";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
 import { MemoryLifecycleState } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/enum_pb";
@@ -65,9 +59,6 @@ import {
   ExecutionTarget,
   Harness,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
@@ -77,7 +68,6 @@ import { LIST_INDEXES } from "../../../boot/list-indexes.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 
-import { agentCallTaskEnvironmentRefs } from "../create-execution-context-step.js";
 import {
   AUTO_CREATED_SESSION_SUBJECT,
   CREATED_SESSION_ID_KEY,
@@ -104,13 +94,6 @@ import type {
   ExecutionEngineState,
   StartInvokeWorkflowInput,
 } from "../engine.js";
-import {
-  WORKFLOW_ROUTING_EXECUTION,
-  WORKFLOW_ROUTING_GLOBAL,
-  WorkflowExecutionTemporalConfig,
-} from "../../workflowrun/temporal/config.js";
-import { newWorkflowRunQueue } from "../../../temporal/workflowexecution/dispatch.js";
-import { formatWfExecTaskQueue } from "../../../temporal/workflowexecution/names.js";
 import { stubConnectedEngine } from "./engine-stub.js";
 
 const silentLogger = createLogger({
@@ -121,16 +104,6 @@ const silentLogger = createLogger({
 
 let dir: string;
 let store: Store;
-
-/** A workflow-execution config under the given activity routing. */
-function routing(workflowActivityRouting: string): WorkflowExecutionTemporalConfig {
-  return new WorkflowExecutionTemporalConfig(
-    "workflow_execution_stigmer",
-    "stigmer_runner",
-    workflowActivityRouting,
-    "local",
-  );
-}
 
 beforeEach(() => {
   dir = mkdtempSync(path.join(tmpdir(), "aexec-create-test-"));
@@ -1249,88 +1222,6 @@ describe("the compose steps where callers are persons", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// agentCallTaskEnvironmentRefs (create_execution_context_workflow_refs_test.go).
-// ---------------------------------------------------------------------------
-
-describe("agentCallTaskEnvironmentRefs", () => {
-  function makeWorkflow(
-    taskName: string,
-    kind: WorkflowTaskKind,
-    config: JsonObject,
-  ): Workflow {
-    return create(WorkflowSchema, {
-      spec: { tasks: [{ name: taskName, kind, taskConfig: config }] },
-    });
-  }
-
-  const agentCallConfig: JsonObject = {
-    agent: "triage",
-    message: "classify",
-    environment_refs: [
-      { slug: "shared-secrets" },
-      { org: "acme", slug: "other" },
-    ],
-  };
-
-  it("returns the named task's refs", () => {
-    const workflow = makeWorkflow(
-      "review",
-      WorkflowTaskKind.agent_call,
-      agentCallConfig,
-    );
-    const refs = agentCallTaskEnvironmentRefs(silentLogger, workflow, "review");
-    expect(refs).toHaveLength(2);
-    expect(refs[0]?.slug).toBe("shared-secrets");
-    expect(refs[1]?.org).toBe("acme");
-  });
-
-  it("renamed task answers empty", () => {
-    const workflow = makeWorkflow(
-      "review",
-      WorkflowTaskKind.agent_call,
-      agentCallConfig,
-    );
-    expect(
-      agentCallTaskEnvironmentRefs(silentLogger, workflow, "old_name"),
-    ).toHaveLength(0);
-  });
-
-  it("same-named non-agent_call task answers empty", () => {
-    const workflow = makeWorkflow("review", WorkflowTaskKind.llm_call, {
-      model: "some-model",
-      prompt: "classify",
-    });
-    expect(
-      agentCallTaskEnvironmentRefs(silentLogger, workflow, "review"),
-    ).toHaveLength(0);
-  });
-
-  it("unparsable config answers empty", () => {
-    // A config with a key the current proto does not declare no longer
-    // parses (strict JSON) — the binding degrades rather than failing
-    // the run.
-    const workflow = makeWorkflow("review", WorkflowTaskKind.agent_call, {
-      agent: "triage",
-      message: "classify",
-      legacy_knob: true,
-    });
-    expect(
-      agentCallTaskEnvironmentRefs(silentLogger, workflow, "review"),
-    ).toHaveLength(0);
-  });
-
-  it("task without refs answers empty", () => {
-    const workflow = makeWorkflow("review", WorkflowTaskKind.agent_call, {
-      agent: "triage",
-      message: "classify",
-    });
-    expect(
-      agentCallTaskEnvironmentRefs(silentLogger, workflow, "review"),
-    ).toHaveLength(0);
-  });
-});
-
 // The StartWorkflow failure arm's
 // PENDING→FAILED stamp is notify site 3 of 5 — an execution that consumed
 // its create-gate side effects and then never started still reaches the
@@ -1382,7 +1273,6 @@ describe("newStartWorkflowStep — start-failure FAILED stamp", () => {
       statusObservers: [
         (t: AgentRunStatusTransition): void => void observed.push(t),
       ],
-      workflowRunQueue: newWorkflowRunQueue(routing(WORKFLOW_ROUTING_GLOBAL)),
     });
 
     const execution = newExecution("ses_sw");
@@ -1413,14 +1303,9 @@ describe("newStartWorkflowStep — start-failure FAILED stamp", () => {
 });
 
 // The workflow input StartWorkflow builds: the agent is the stamp
-// ResolveRunAgent (or CreateSessionIfNeeded) wrote, and every parent
-// coordinate comes from the vouched link (vouch-workflow-parent.ts). The
-// queue is derived from the link's workflow run, so no request names one.
+// ResolveRunAgent (or CreateSessionIfNeeded) wrote, never the request's.
 describe("newStartWorkflowStep — the workflow input", () => {
-  async function started(
-    execution: AgentRun,
-    workflowActivityRouting: string,
-  ): Promise<StartInvokeWorkflowInput | undefined> {
+  it("takes the run, its session and the agent from the stamp", async () => {
     let input: StartInvokeWorkflowInput | undefined;
     const step = newStartWorkflowStep({
       store,
@@ -1435,63 +1320,19 @@ describe("newStartWorkflowStep — the workflow input", () => {
           }),
         }) as ExecutionEngineState,
       statusObservers: [],
-      workflowRunQueue: newWorkflowRunQueue(routing(workflowActivityRouting)),
     });
+    const execution = newExecution("ses_turn");
     execution.metadata!.id = "aexec_input";
-    await step.execute(newContext(execution));
-    return input;
-  }
-
-  function childTurn(): AgentRun {
-    const execution = newExecution("ses_child");
     execution.status = create(AgentRunStatusSchema, {
       phase: RunPhase.RUN_PENDING,
       agentId: "agt_called",
       agentVersionHash: "e".repeat(64),
     });
-    execution.spec!.parent = create(WorkflowParentSchema, {
-      workflowRunId: "wfx_parent",
-      signalWorkflowId: "wf-signal-target",
-      callbackToken: new Uint8Array([1, 2, 3]),
-    });
-    return execution;
-  }
 
-  it("takes the agent from the stamp and the parent coordinates from the link", async () => {
-    const input = await started(childTurn(), WORKFLOW_ROUTING_EXECUTION);
+    await step.execute(newContext(execution));
 
     expect(input?.executionId).toBe("aexec_input");
-    expect(input?.sessionId).toBe("ses_child");
+    expect(input?.sessionId).toBe("ses_turn");
     expect(input?.agentId).toBe("agt_called");
-    expect(input?.callbackToken).toEqual(new Uint8Array([1, 2, 3]));
-    expect(input?.parentWorkflowId).toBe("wf-signal-target");
-  });
-
-  it("routes a child turn to its workflow run's queue under execution routing", async () => {
-    const input = await started(childTurn(), WORKFLOW_ROUTING_EXECUTION);
-
-    expect(input?.activityTaskQueueOverride).toBe(
-      formatWfExecTaskQueue("wfx_parent"),
-    );
-  });
-
-  it("names no queue for a child turn under global routing", async () => {
-    const input = await started(childTurn(), WORKFLOW_ROUTING_GLOBAL);
-
-    expect(input?.activityTaskQueueOverride).toBe("");
-  });
-
-  it("starts a turn with no link with no parent coordinates and no queue", async () => {
-    const execution = newExecution("ses_plain");
-    execution.status = create(AgentRunStatusSchema, {
-      phase: RunPhase.RUN_PENDING,
-    });
-
-    const input = await started(execution, WORKFLOW_ROUTING_EXECUTION);
-
-    expect(input?.agentId).toBe("");
-    expect(input?.callbackToken).toEqual(new Uint8Array());
-    expect(input?.parentWorkflowId).toBe("");
-    expect(input?.activityTaskQueueOverride).toBe("");
   });
 });

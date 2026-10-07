@@ -20,7 +20,7 @@ Agent ──► Session ──► AgentRun
 | **Session** | Container runtime | Names the agent (`agent_ref`) and pins the version it resolved. Groups related runs into a conversational context. Maintains state across multiple runs. |
 | **AgentRun** | Container run (`docker run`) | A single run of the session's agent, at the pinned version. Produces messages, tool calls, and results. |
 
-The Agent resource is the only one users author directly in YAML. Sessions and AgentRuns are created via the API or CLI at runtime. The agent declares the environment keys it needs (`env`); values come from the Environments bound to what starts a run (a schedule, a workflow task, a PlatformClient), from the run's `runtime_env`, and, for keys still missing, from the personal environment of the person who sent the message.
+The Agent resource is the only one users author directly in YAML. Sessions and AgentRuns are created via the API or CLI at runtime. The agent declares the environment keys it needs (`env`); values come from the Environments bound to what starts a run (a schedule, a PlatformClient), from the run's `runtime_env`, and, for keys still missing, from the personal environment of the person who sent the message.
 
 ## Documentation Index
 
@@ -42,10 +42,9 @@ The **Stigmer MCP server** (`slug: stigmer-mcp-server`) exposes tools for queryi
 
 | Tool | Purpose |
 |---|---|
-| `search` | Full-text search across agents, skills, MCP servers, workflows |
+| `search` | Full-text search across agents, skills and MCP servers |
 | `get_agent` | Get a specific agent by org and slug |
 | `get_mcp_server` | Get a specific MCP server by org and slug |
 | `get_skill` | Get a specific skill by org and slug |
-| `get_workflow` | Get a specific workflow by org and slug |
 
 When creating an agent, **always query available resources first** — use `search` or the `get_*` tools to find real MCP servers with their actual tool names and skills that match the agent's domain. Never guess resource references; if a needed MCP server or skill doesn't exist, surface this to the user rather than inventing a reference.

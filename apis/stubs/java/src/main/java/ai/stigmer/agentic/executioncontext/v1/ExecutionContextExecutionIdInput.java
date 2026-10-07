@@ -58,7 +58,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object executionId_ = "";
   /**
    * <pre>
-   * AgentRun or WorkflowRun ID to look up.
+   * AgentRun ID (or an MCP connect's execution id) to look up.
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -79,7 +79,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * AgentRun or WorkflowRun ID to look up.
+   * AgentRun ID (or an MCP connect's execution id) to look up.
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -401,7 +401,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object executionId_ = "";
     /**
      * <pre>
-     * AgentRun or WorkflowRun ID to look up.
+     * AgentRun ID (or an MCP connect's execution id) to look up.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -421,7 +421,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * AgentRun or WorkflowRun ID to look up.
+     * AgentRun ID (or an MCP connect's execution id) to look up.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -442,7 +442,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * AgentRun or WorkflowRun ID to look up.
+     * AgentRun ID (or an MCP connect's execution id) to look up.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -459,7 +459,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * AgentRun or WorkflowRun ID to look up.
+     * AgentRun ID (or an MCP connect's execution id) to look up.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -473,7 +473,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * AgentRun or WorkflowRun ID to look up.
+     * AgentRun ID (or an MCP connect's execution id) to look up.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>

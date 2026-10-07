@@ -19,7 +19,7 @@ const SERVER_GATE_TIMEOUT_MS = 30_000;
 
 /**
  * Environment for the `stigmer-server` child. Pins ports, Temporal coordinates,
- * both runner task queues, and the db/storage paths to the ~/.stigmer layout.
+ * the runner task queue, and the db/storage paths to the ~/.stigmer layout.
  */
 export function buildServerEnv(config: DaemonConfig, base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
   const configDir = dirname(config.dataDir); // ~/.stigmer
@@ -29,7 +29,6 @@ export function buildServerEnv(config: DaemonConfig, base: NodeJS.ProcessEnv = p
     TEMPORAL_HOST_PORT: config.temporalAddress,
     TEMPORAL_NAMESPACE,
     TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE: RUNNER_TASK_QUEUE,
-    TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE: RUNNER_TASK_QUEUE,
     DB_PATH: join(configDir, "stigmer.db"),
     STORAGE_PATH: join(configDir, "storage"),
     // The artifact root the runner also reads (#285). Set explicitly rather

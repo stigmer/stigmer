@@ -39,7 +39,6 @@ private static final long serialVersionUID = 0L;
     error_ = "";
     startedAt_ = "";
     completedAt_ = "";
-    callbackToken_ = com.google.protobuf.ByteString.EMPTY;
     pendingApprovals_ = java.util.Collections.emptyList();
     artifacts_ = java.util.Collections.emptyList();
     workspaceWriteBacks_ = java.util.Collections.emptyList();
@@ -542,24 +541,6 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       throw new java.lang.IllegalArgumentException();
     }
     return map.get(key);
-  }
-
-  public static final int CALLBACK_TOKEN_FIELD_NUMBER = 10;
-  private com.google.protobuf.ByteString callbackToken_ = com.google.protobuf.ByteString.EMPTY;
-  /**
-   * <pre>
-   * Callback token for notifying a parent workflow when this run completes.
-   *
-   * Present when this run was triggered by a workflow. Empty when the
-   * run stands alone (a chat turn or an API call).
-   * </pre>
-   *
-   * <code>bytes callback_token = 10 [json_name = "callbackToken"];</code>
-   * @return The callbackToken.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString getCallbackToken() {
-    return callbackToken_;
   }
 
   public static final int PENDING_APPROVALS_FIELD_NUMBER = 16;
@@ -1070,8 +1051,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
    * extraction (JSON.parse → fence extraction → extraction LLM fallback).
    *
    * Consumers: frontend architect/refine hooks read this instead of parsing
-   * YAML from messages. Workflow callback path reads structured_output from
-   * the Temporal activity result (separate channel, same data).
+   * YAML from messages.
    * </pre>
    *
    * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
@@ -1094,8 +1074,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
    * extraction (JSON.parse → fence extraction → extraction LLM fallback).
    *
    * Consumers: frontend architect/refine hooks read this instead of parsing
-   * YAML from messages. Workflow callback path reads structured_output from
-   * the Temporal activity result (separate channel, same data).
+   * YAML from messages.
    * </pre>
    *
    * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
@@ -1118,8 +1097,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
    * extraction (JSON.parse → fence extraction → extraction LLM fallback).
    *
    * Consumers: frontend architect/refine hooks read this instead of parsing
-   * YAML from messages. Workflow callback path reads structured_output from
-   * the Temporal activity result (separate channel, same data).
+   * YAML from messages.
    * </pre>
    *
    * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
@@ -1585,8 +1563,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
    * A fact of the lane the turn came through, never of the request: a
    * schedule's turn and the hosted edition's shared-agent guest and channel
    * turns are UNATTENDED (nobody is present to approve); every other turn is
-   * INTERACTIVE, a workflow step's included (its workflow takes the approval
-   * request).
+   * INTERACTIVE.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.ApprovalMode approval_mode = 32 [json_name = "approvalMode"];</code>
@@ -1603,8 +1580,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
    * A fact of the lane the turn came through, never of the request: a
    * schedule's turn and the hosted edition's shared-agent guest and channel
    * turns are UNATTENDED (nobody is present to approve); every other turn is
-   * INTERACTIVE, a workflow step's included (its workflow takes the approval
-   * request).
+   * INTERACTIVE.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentrun.v1.ApprovalMode approval_mode = 32 [json_name = "approvalMode"];</code>
@@ -1653,9 +1629,6 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         internalGetTodos(),
         TodosDefaultEntryHolder.defaultEntry,
         9);
-    if (!callbackToken_.isEmpty()) {
-      output.writeBytes(10, callbackToken_);
-    }
     if (((bitField0_ & 0x00000004) != 0)) {
       output.writeMessage(14, getContextInfo());
     }
@@ -1762,10 +1735,6 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
           .buildPartial();
       size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(9, todos__);
-    }
-    if (!callbackToken_.isEmpty()) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeBytesSize(10, callbackToken_);
     }
     if (((bitField0_ & 0x00000004) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -1894,8 +1863,6 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         .equals(other.getCompletedAt())) return false;
     if (!internalGetTodos().equals(
         other.internalGetTodos())) return false;
-    if (!getCallbackToken()
-        .equals(other.getCallbackToken())) return false;
     if (!getPendingApprovalsList()
         .equals(other.getPendingApprovalsList())) return false;
     if (hasApprovalEventStream() != other.hasApprovalEventStream()) return false;
@@ -1999,8 +1966,6 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       hash = (37 * hash) + TODOS_FIELD_NUMBER;
       hash = (53 * hash) + internalGetTodos().hashCode();
     }
-    hash = (37 * hash) + CALLBACK_TOKEN_FIELD_NUMBER;
-    hash = (53 * hash) + getCallbackToken().hashCode();
     if (getPendingApprovalsCount() > 0) {
       hash = (37 * hash) + PENDING_APPROVALS_FIELD_NUMBER;
       hash = (53 * hash) + getPendingApprovalsList().hashCode();
@@ -2272,14 +2237,13 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       startedAt_ = "";
       completedAt_ = "";
       internalGetMutableTodos().clear();
-      callbackToken_ = com.google.protobuf.ByteString.EMPTY;
       if (pendingApprovalsBuilder_ == null) {
         pendingApprovals_ = java.util.Collections.emptyList();
       } else {
         pendingApprovals_ = null;
         pendingApprovalsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000100);
       approvalEventStream_ = null;
       if (approvalEventStreamBuilder_ != null) {
         approvalEventStreamBuilder_.dispose();
@@ -2296,14 +2260,14 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         artifacts_ = null;
         artifactsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00001000);
+      bitField0_ = (bitField0_ & ~0x00000800);
       if (workspaceWriteBacksBuilder_ == null) {
         workspaceWriteBacks_ = java.util.Collections.emptyList();
       } else {
         workspaceWriteBacks_ = null;
         workspaceWriteBacksBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00002000);
+      bitField0_ = (bitField0_ & ~0x00001000);
       setupProgress_ = null;
       if (setupProgressBuilder_ != null) {
         setupProgressBuilder_.dispose();
@@ -2325,7 +2289,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         fileChangeSets_ = null;
         fileChangeSetsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00020000);
+      bitField0_ = (bitField0_ & ~0x00010000);
       fileReviewEventStream_ = null;
       if (fileReviewEventStreamBuilder_ != null) {
         fileReviewEventStreamBuilder_.dispose();
@@ -2411,36 +2375,36 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         result.subAgentRuns_ = subAgentRunsBuilder_.build();
       }
       if (pendingApprovalsBuilder_ == null) {
-        if (((bitField0_ & 0x00000200) != 0)) {
+        if (((bitField0_ & 0x00000100) != 0)) {
           pendingApprovals_ = java.util.Collections.unmodifiableList(pendingApprovals_);
-          bitField0_ = (bitField0_ & ~0x00000200);
+          bitField0_ = (bitField0_ & ~0x00000100);
         }
         result.pendingApprovals_ = pendingApprovals_;
       } else {
         result.pendingApprovals_ = pendingApprovalsBuilder_.build();
       }
       if (artifactsBuilder_ == null) {
-        if (((bitField0_ & 0x00001000) != 0)) {
+        if (((bitField0_ & 0x00000800) != 0)) {
           artifacts_ = java.util.Collections.unmodifiableList(artifacts_);
-          bitField0_ = (bitField0_ & ~0x00001000);
+          bitField0_ = (bitField0_ & ~0x00000800);
         }
         result.artifacts_ = artifacts_;
       } else {
         result.artifacts_ = artifactsBuilder_.build();
       }
       if (workspaceWriteBacksBuilder_ == null) {
-        if (((bitField0_ & 0x00002000) != 0)) {
+        if (((bitField0_ & 0x00001000) != 0)) {
           workspaceWriteBacks_ = java.util.Collections.unmodifiableList(workspaceWriteBacks_);
-          bitField0_ = (bitField0_ & ~0x00002000);
+          bitField0_ = (bitField0_ & ~0x00001000);
         }
         result.workspaceWriteBacks_ = workspaceWriteBacks_;
       } else {
         result.workspaceWriteBacks_ = workspaceWriteBacksBuilder_.build();
       }
       if (fileChangeSetsBuilder_ == null) {
-        if (((bitField0_ & 0x00020000) != 0)) {
+        if (((bitField0_ & 0x00010000) != 0)) {
           fileChangeSets_ = java.util.Collections.unmodifiableList(fileChangeSets_);
-          bitField0_ = (bitField0_ & ~0x00020000);
+          bitField0_ = (bitField0_ & ~0x00010000);
         }
         result.fileChangeSets_ = fileChangeSets_;
       } else {
@@ -2472,82 +2436,79 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       if (((from_bitField0_ & 0x00000080) != 0)) {
         result.todos_ = internalGetTodos().build(TodosDefaultEntryHolder.defaultEntry);
       }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
-        result.callbackToken_ = callbackToken_;
-      }
-      if (((from_bitField0_ & 0x00000400) != 0)) {
+      if (((from_bitField0_ & 0x00000200) != 0)) {
         result.approvalEventStream_ = approvalEventStreamBuilder_ == null
             ? approvalEventStream_
             : approvalEventStreamBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
-      if (((from_bitField0_ & 0x00000800) != 0)) {
+      if (((from_bitField0_ & 0x00000400) != 0)) {
         result.contextInfo_ = contextInfoBuilder_ == null
             ? contextInfo_
             : contextInfoBuilder_.build();
         to_bitField0_ |= 0x00000004;
       }
-      if (((from_bitField0_ & 0x00004000) != 0)) {
+      if (((from_bitField0_ & 0x00002000) != 0)) {
         result.setupProgress_ = setupProgressBuilder_ == null
             ? setupProgress_
             : setupProgressBuilder_.build();
         to_bitField0_ |= 0x00000008;
       }
-      if (((from_bitField0_ & 0x00008000) != 0)) {
+      if (((from_bitField0_ & 0x00004000) != 0)) {
         result.streamingUsage_ = streamingUsageBuilder_ == null
             ? streamingUsage_
             : streamingUsageBuilder_.build();
         to_bitField0_ |= 0x00000010;
       }
-      if (((from_bitField0_ & 0x00010000) != 0)) {
+      if (((from_bitField0_ & 0x00008000) != 0)) {
         result.structuredOutput_ = structuredOutputBuilder_ == null
             ? structuredOutput_
             : structuredOutputBuilder_.build();
         to_bitField0_ |= 0x00000020;
       }
-      if (((from_bitField0_ & 0x00040000) != 0)) {
+      if (((from_bitField0_ & 0x00020000) != 0)) {
         result.fileReviewEventStream_ = fileReviewEventStreamBuilder_ == null
             ? fileReviewEventStream_
             : fileReviewEventStreamBuilder_.build();
         to_bitField0_ |= 0x00000040;
       }
-      if (((from_bitField0_ & 0x00080000) != 0)) {
+      if (((from_bitField0_ & 0x00040000) != 0)) {
         result.fileChangeProgress_ = fileChangeProgressBuilder_ == null
             ? fileChangeProgress_
             : fileChangeProgressBuilder_.build();
         to_bitField0_ |= 0x00000080;
       }
-      if (((from_bitField0_ & 0x00100000) != 0)) {
+      if (((from_bitField0_ & 0x00080000) != 0)) {
         result.recalledMemoriesReport_ = recalledMemoriesReportBuilder_ == null
             ? recalledMemoriesReport_
             : recalledMemoriesReportBuilder_.build();
         to_bitField0_ |= 0x00000100;
       }
-      if (((from_bitField0_ & 0x00200000) != 0)) {
+      if (((from_bitField0_ & 0x00100000) != 0)) {
         result.agentId_ = agentId_;
       }
-      if (((from_bitField0_ & 0x00400000) != 0)) {
+      if (((from_bitField0_ & 0x00200000) != 0)) {
         result.agentVersionHash_ = agentVersionHash_;
       }
-      if (((from_bitField0_ & 0x00800000) != 0)) {
+      if (((from_bitField0_ & 0x00400000) != 0)) {
         result.declaredPreferences_ = declaredPreferencesBuilder_ == null
             ? declaredPreferences_
             : declaredPreferencesBuilder_.build();
         to_bitField0_ |= 0x00000200;
       }
-      if (((from_bitField0_ & 0x01000000) != 0)) {
+      if (((from_bitField0_ & 0x00800000) != 0)) {
         result.recalledMemories_ = recalledMemoriesBuilder_ == null
             ? recalledMemories_
             : recalledMemoriesBuilder_.build();
         to_bitField0_ |= 0x00000400;
       }
-      if (((from_bitField0_ & 0x02000000) != 0)) {
+      if (((from_bitField0_ & 0x01000000) != 0)) {
         result.runConfig_ = runConfigBuilder_ == null
             ? runConfig_
             : runConfigBuilder_.build();
         to_bitField0_ |= 0x00000800;
       }
-      if (((from_bitField0_ & 0x04000000) != 0)) {
+      if (((from_bitField0_ & 0x02000000) != 0)) {
         result.approvalMode_ = approvalMode_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -2641,14 +2602,11 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       internalGetMutableTodos().mergeFrom(
           other.internalGetTodos());
       bitField0_ |= 0x00000080;
-      if (!other.getCallbackToken().isEmpty()) {
-        setCallbackToken(other.getCallbackToken());
-      }
       if (pendingApprovalsBuilder_ == null) {
         if (!other.pendingApprovals_.isEmpty()) {
           if (pendingApprovals_.isEmpty()) {
             pendingApprovals_ = other.pendingApprovals_;
-            bitField0_ = (bitField0_ & ~0x00000200);
+            bitField0_ = (bitField0_ & ~0x00000100);
           } else {
             ensurePendingApprovalsIsMutable();
             pendingApprovals_.addAll(other.pendingApprovals_);
@@ -2661,7 +2619,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
             pendingApprovalsBuilder_.dispose();
             pendingApprovalsBuilder_ = null;
             pendingApprovals_ = other.pendingApprovals_;
-            bitField0_ = (bitField0_ & ~0x00000200);
+            bitField0_ = (bitField0_ & ~0x00000100);
             pendingApprovalsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetPendingApprovalsFieldBuilder() : null;
@@ -2680,7 +2638,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         if (!other.artifacts_.isEmpty()) {
           if (artifacts_.isEmpty()) {
             artifacts_ = other.artifacts_;
-            bitField0_ = (bitField0_ & ~0x00001000);
+            bitField0_ = (bitField0_ & ~0x00000800);
           } else {
             ensureArtifactsIsMutable();
             artifacts_.addAll(other.artifacts_);
@@ -2693,7 +2651,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
             artifactsBuilder_.dispose();
             artifactsBuilder_ = null;
             artifacts_ = other.artifacts_;
-            bitField0_ = (bitField0_ & ~0x00001000);
+            bitField0_ = (bitField0_ & ~0x00000800);
             artifactsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetArtifactsFieldBuilder() : null;
@@ -2706,7 +2664,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         if (!other.workspaceWriteBacks_.isEmpty()) {
           if (workspaceWriteBacks_.isEmpty()) {
             workspaceWriteBacks_ = other.workspaceWriteBacks_;
-            bitField0_ = (bitField0_ & ~0x00002000);
+            bitField0_ = (bitField0_ & ~0x00001000);
           } else {
             ensureWorkspaceWriteBacksIsMutable();
             workspaceWriteBacks_.addAll(other.workspaceWriteBacks_);
@@ -2719,7 +2677,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
             workspaceWriteBacksBuilder_.dispose();
             workspaceWriteBacksBuilder_ = null;
             workspaceWriteBacks_ = other.workspaceWriteBacks_;
-            bitField0_ = (bitField0_ & ~0x00002000);
+            bitField0_ = (bitField0_ & ~0x00001000);
             workspaceWriteBacksBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetWorkspaceWriteBacksFieldBuilder() : null;
@@ -2741,7 +2699,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         if (!other.fileChangeSets_.isEmpty()) {
           if (fileChangeSets_.isEmpty()) {
             fileChangeSets_ = other.fileChangeSets_;
-            bitField0_ = (bitField0_ & ~0x00020000);
+            bitField0_ = (bitField0_ & ~0x00010000);
           } else {
             ensureFileChangeSetsIsMutable();
             fileChangeSets_.addAll(other.fileChangeSets_);
@@ -2754,7 +2712,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
             fileChangeSetsBuilder_.dispose();
             fileChangeSetsBuilder_ = null;
             fileChangeSets_ = other.fileChangeSets_;
-            bitField0_ = (bitField0_ & ~0x00020000);
+            bitField0_ = (bitField0_ & ~0x00010000);
             fileChangeSetsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetFileChangeSetsFieldBuilder() : null;
@@ -2774,12 +2732,12 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       }
       if (!other.getAgentId().isEmpty()) {
         agentId_ = other.agentId_;
-        bitField0_ |= 0x00200000;
+        bitField0_ |= 0x00100000;
         onChanged();
       }
       if (!other.getAgentVersionHash().isEmpty()) {
         agentVersionHash_ = other.agentVersionHash_;
-        bitField0_ |= 0x00400000;
+        bitField0_ |= 0x00200000;
         onChanged();
       }
       if (other.hasDeclaredPreferences()) {
@@ -2875,16 +2833,11 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
               bitField0_ |= 0x00000080;
               break;
             } // case 74
-            case 82: {
-              callbackToken_ = input.readBytes();
-              bitField0_ |= 0x00000100;
-              break;
-            } // case 82
             case 114: {
               input.readMessage(
                   internalGetContextInfoFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000800;
+              bitField0_ |= 0x00000400;
               break;
             } // case 114
             case 122: {
@@ -2930,28 +2883,28 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
               input.readMessage(
                   internalGetSetupProgressFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00004000;
+              bitField0_ |= 0x00002000;
               break;
             } // case 146
             case 162: {
               input.readMessage(
                   internalGetStreamingUsageFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00008000;
+              bitField0_ |= 0x00004000;
               break;
             } // case 162
             case 170: {
               input.readMessage(
                   internalGetStructuredOutputFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00010000;
+              bitField0_ |= 0x00008000;
               break;
             } // case 170
             case 178: {
               input.readMessage(
                   internalGetApprovalEventStreamFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000400;
+              bitField0_ |= 0x00000200;
               break;
             } // case 178
             case 186: {
@@ -2971,57 +2924,57 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
               input.readMessage(
                   internalGetFileReviewEventStreamFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00040000;
+              bitField0_ |= 0x00020000;
               break;
             } // case 194
             case 202: {
               input.readMessage(
                   internalGetFileChangeProgressFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00080000;
+              bitField0_ |= 0x00040000;
               break;
             } // case 202
             case 210: {
               input.readMessage(
                   internalGetRecalledMemoriesReportFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00100000;
+              bitField0_ |= 0x00080000;
               break;
             } // case 210
             case 218: {
               agentId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00200000;
+              bitField0_ |= 0x00100000;
               break;
             } // case 218
             case 226: {
               agentVersionHash_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00400000;
+              bitField0_ |= 0x00200000;
               break;
             } // case 226
             case 234: {
               input.readMessage(
                   internalGetDeclaredPreferencesFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00800000;
+              bitField0_ |= 0x00400000;
               break;
             } // case 234
             case 242: {
               input.readMessage(
                   internalGetRecalledMemoriesFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x01000000;
+              bitField0_ |= 0x00800000;
               break;
             } // case 242
             case 250: {
               input.readMessage(
                   internalGetRunConfigFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x02000000;
+              bitField0_ |= 0x01000000;
               break;
             } // case 250
             case 256: {
               approvalMode_ = input.readEnum();
-              bitField0_ |= 0x04000000;
+              bitField0_ |= 0x02000000;
               break;
             } // case 256
             case 794: {
@@ -4485,65 +4438,12 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       return (ai.stigmer.agentic.agentrun.v1.TodoItem.Builder) entry;
     }
 
-    private com.google.protobuf.ByteString callbackToken_ = com.google.protobuf.ByteString.EMPTY;
-    /**
-     * <pre>
-     * Callback token for notifying a parent workflow when this run completes.
-     *
-     * Present when this run was triggered by a workflow. Empty when the
-     * run stands alone (a chat turn or an API call).
-     * </pre>
-     *
-     * <code>bytes callback_token = 10 [json_name = "callbackToken"];</code>
-     * @return The callbackToken.
-     */
-    @java.lang.Override
-    public com.google.protobuf.ByteString getCallbackToken() {
-      return callbackToken_;
-    }
-    /**
-     * <pre>
-     * Callback token for notifying a parent workflow when this run completes.
-     *
-     * Present when this run was triggered by a workflow. Empty when the
-     * run stands alone (a chat turn or an API call).
-     * </pre>
-     *
-     * <code>bytes callback_token = 10 [json_name = "callbackToken"];</code>
-     * @param value The callbackToken to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCallbackToken(com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      callbackToken_ = value;
-      bitField0_ |= 0x00000100;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Callback token for notifying a parent workflow when this run completes.
-     *
-     * Present when this run was triggered by a workflow. Empty when the
-     * run stands alone (a chat turn or an API call).
-     * </pre>
-     *
-     * <code>bytes callback_token = 10 [json_name = "callbackToken"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearCallbackToken() {
-      bitField0_ = (bitField0_ & ~0x00000100);
-      callbackToken_ = getDefaultInstance().getCallbackToken();
-      onChanged();
-      return this;
-    }
-
     private java.util.List<ai.stigmer.agentic.agentrun.v1.PendingApproval> pendingApprovals_ =
       java.util.Collections.emptyList();
     private void ensurePendingApprovalsIsMutable() {
-      if (!((bitField0_ & 0x00000200) != 0)) {
+      if (!((bitField0_ & 0x00000100) != 0)) {
         pendingApprovals_ = new java.util.ArrayList<ai.stigmer.agentic.agentrun.v1.PendingApproval>(pendingApprovals_);
-        bitField0_ |= 0x00000200;
+        bitField0_ |= 0x00000100;
        }
     }
 
@@ -4781,7 +4681,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
     public Builder clearPendingApprovals() {
       if (pendingApprovalsBuilder_ == null) {
         pendingApprovals_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000200);
+        bitField0_ = (bitField0_ & ~0x00000100);
         onChanged();
       } else {
         pendingApprovalsBuilder_.clear();
@@ -4914,7 +4814,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         pendingApprovalsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.agentrun.v1.PendingApproval, ai.stigmer.agentic.agentrun.v1.PendingApproval.Builder, ai.stigmer.agentic.agentrun.v1.PendingApprovalOrBuilder>(
                 pendingApprovals_,
-                ((bitField0_ & 0x00000200) != 0),
+                ((bitField0_ & 0x00000100) != 0),
                 getParentForChildren(),
                 isClean());
         pendingApprovals_ = null;
@@ -4934,7 +4834,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * @return Whether the approvalEventStream field is set.
      */
     public boolean hasApprovalEventStream() {
-      return ((bitField0_ & 0x00000400) != 0);
+      return ((bitField0_ & 0x00000200) != 0);
     }
     /**
      * <pre>
@@ -4967,7 +4867,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       } else {
         approvalEventStreamBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -4985,7 +4885,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       } else {
         approvalEventStreamBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -4998,7 +4898,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      */
     public Builder mergeApprovalEventStream(ai.stigmer.agentic.agentrun.v1.ApprovalEventStream value) {
       if (approvalEventStreamBuilder_ == null) {
-        if (((bitField0_ & 0x00000400) != 0) &&
+        if (((bitField0_ & 0x00000200) != 0) &&
           approvalEventStream_ != null &&
           approvalEventStream_ != ai.stigmer.agentic.agentrun.v1.ApprovalEventStream.getDefaultInstance()) {
           getApprovalEventStreamBuilder().mergeFrom(value);
@@ -5009,7 +4909,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         approvalEventStreamBuilder_.mergeFrom(value);
       }
       if (approvalEventStream_ != null) {
-        bitField0_ |= 0x00000400;
+        bitField0_ |= 0x00000200;
         onChanged();
       }
       return this;
@@ -5022,7 +4922,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentrun.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
      */
     public Builder clearApprovalEventStream() {
-      bitField0_ = (bitField0_ & ~0x00000400);
+      bitField0_ = (bitField0_ & ~0x00000200);
       approvalEventStream_ = null;
       if (approvalEventStreamBuilder_ != null) {
         approvalEventStreamBuilder_.dispose();
@@ -5039,7 +4939,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentrun.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
      */
     public ai.stigmer.agentic.agentrun.v1.ApprovalEventStream.Builder getApprovalEventStreamBuilder() {
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       onChanged();
       return internalGetApprovalEventStreamFieldBuilder().getBuilder();
     }
@@ -5103,7 +5003,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * @return Whether the contextInfo field is set.
      */
     public boolean hasContextInfo() {
-      return ((bitField0_ & 0x00000800) != 0);
+      return ((bitField0_ & 0x00000400) != 0);
     }
     /**
      * <pre>
@@ -5160,7 +5060,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       } else {
         contextInfoBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -5190,7 +5090,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       } else {
         contextInfoBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -5215,7 +5115,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      */
     public Builder mergeContextInfo(ai.stigmer.agentic.agentrun.v1.ContextInfo value) {
       if (contextInfoBuilder_ == null) {
-        if (((bitField0_ & 0x00000800) != 0) &&
+        if (((bitField0_ & 0x00000400) != 0) &&
           contextInfo_ != null &&
           contextInfo_ != ai.stigmer.agentic.agentrun.v1.ContextInfo.getDefaultInstance()) {
           getContextInfoBuilder().mergeFrom(value);
@@ -5226,7 +5126,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         contextInfoBuilder_.mergeFrom(value);
       }
       if (contextInfo_ != null) {
-        bitField0_ |= 0x00000800;
+        bitField0_ |= 0x00000400;
         onChanged();
       }
       return this;
@@ -5251,7 +5151,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentrun.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
      */
     public Builder clearContextInfo() {
-      bitField0_ = (bitField0_ & ~0x00000800);
+      bitField0_ = (bitField0_ & ~0x00000400);
       contextInfo_ = null;
       if (contextInfoBuilder_ != null) {
         contextInfoBuilder_.dispose();
@@ -5280,7 +5180,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentrun.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
      */
     public ai.stigmer.agentic.agentrun.v1.ContextInfo.Builder getContextInfoBuilder() {
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000400;
       onChanged();
       return internalGetContextInfoFieldBuilder().getBuilder();
     }
@@ -5347,9 +5247,9 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
     private java.util.List<ai.stigmer.agentic.agentrun.v1.RunArtifact> artifacts_ =
       java.util.Collections.emptyList();
     private void ensureArtifactsIsMutable() {
-      if (!((bitField0_ & 0x00001000) != 0)) {
+      if (!((bitField0_ & 0x00000800) != 0)) {
         artifacts_ = new java.util.ArrayList<ai.stigmer.agentic.agentrun.v1.RunArtifact>(artifacts_);
-        bitField0_ |= 0x00001000;
+        bitField0_ |= 0x00000800;
        }
     }
 
@@ -5642,7 +5542,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
     public Builder clearArtifacts() {
       if (artifactsBuilder_ == null) {
         artifacts_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00001000);
+        bitField0_ = (bitField0_ & ~0x00000800);
         onChanged();
       } else {
         artifactsBuilder_.clear();
@@ -5810,7 +5710,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         artifactsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.agentrun.v1.RunArtifact, ai.stigmer.agentic.agentrun.v1.RunArtifact.Builder, ai.stigmer.agentic.agentrun.v1.RunArtifactOrBuilder>(
                 artifacts_,
-                ((bitField0_ & 0x00001000) != 0),
+                ((bitField0_ & 0x00000800) != 0),
                 getParentForChildren(),
                 isClean());
         artifacts_ = null;
@@ -5821,9 +5721,9 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
     private java.util.List<ai.stigmer.agentic.agentrun.v1.WorkspaceWriteBack> workspaceWriteBacks_ =
       java.util.Collections.emptyList();
     private void ensureWorkspaceWriteBacksIsMutable() {
-      if (!((bitField0_ & 0x00002000) != 0)) {
+      if (!((bitField0_ & 0x00001000) != 0)) {
         workspaceWriteBacks_ = new java.util.ArrayList<ai.stigmer.agentic.agentrun.v1.WorkspaceWriteBack>(workspaceWriteBacks_);
-        bitField0_ |= 0x00002000;
+        bitField0_ |= 0x00001000;
        }
     }
 
@@ -6116,7 +6016,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
     public Builder clearWorkspaceWriteBacks() {
       if (workspaceWriteBacksBuilder_ == null) {
         workspaceWriteBacks_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00002000);
+        bitField0_ = (bitField0_ & ~0x00001000);
         onChanged();
       } else {
         workspaceWriteBacksBuilder_.clear();
@@ -6284,7 +6184,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         workspaceWriteBacksBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.agentrun.v1.WorkspaceWriteBack, ai.stigmer.agentic.agentrun.v1.WorkspaceWriteBack.Builder, ai.stigmer.agentic.agentrun.v1.WorkspaceWriteBackOrBuilder>(
                 workspaceWriteBacks_,
-                ((bitField0_ & 0x00002000) != 0),
+                ((bitField0_ & 0x00001000) != 0),
                 getParentForChildren(),
                 isClean());
         workspaceWriteBacks_ = null;
@@ -6308,7 +6208,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * @return Whether the setupProgress field is set.
      */
     public boolean hasSetupProgress() {
-      return ((bitField0_ & 0x00004000) != 0);
+      return ((bitField0_ & 0x00002000) != 0);
     }
     /**
      * <pre>
@@ -6349,7 +6249,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       } else {
         setupProgressBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return this;
     }
@@ -6371,7 +6271,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       } else {
         setupProgressBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return this;
     }
@@ -6388,7 +6288,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      */
     public Builder mergeSetupProgress(ai.stigmer.agentic.agentrun.v1.SetupProgress value) {
       if (setupProgressBuilder_ == null) {
-        if (((bitField0_ & 0x00004000) != 0) &&
+        if (((bitField0_ & 0x00002000) != 0) &&
           setupProgress_ != null &&
           setupProgress_ != ai.stigmer.agentic.agentrun.v1.SetupProgress.getDefaultInstance()) {
           getSetupProgressBuilder().mergeFrom(value);
@@ -6399,7 +6299,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         setupProgressBuilder_.mergeFrom(value);
       }
       if (setupProgress_ != null) {
-        bitField0_ |= 0x00004000;
+        bitField0_ |= 0x00002000;
         onChanged();
       }
       return this;
@@ -6416,7 +6316,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentrun.v1.SetupProgress setup_progress = 18 [json_name = "setupProgress"];</code>
      */
     public Builder clearSetupProgress() {
-      bitField0_ = (bitField0_ & ~0x00004000);
+      bitField0_ = (bitField0_ & ~0x00002000);
       setupProgress_ = null;
       if (setupProgressBuilder_ != null) {
         setupProgressBuilder_.dispose();
@@ -6437,7 +6337,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentrun.v1.SetupProgress setup_progress = 18 [json_name = "setupProgress"];</code>
      */
     public ai.stigmer.agentic.agentrun.v1.SetupProgress.Builder getSetupProgressBuilder() {
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return internalGetSetupProgressFieldBuilder().getBuilder();
     }
@@ -6497,7 +6397,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * @return Whether the streamingUsage field is set.
      */
     public boolean hasStreamingUsage() {
-      return ((bitField0_ & 0x00008000) != 0);
+      return ((bitField0_ & 0x00004000) != 0);
     }
     /**
      * <pre>
@@ -6530,7 +6430,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       } else {
         streamingUsageBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00008000;
+      bitField0_ |= 0x00004000;
       onChanged();
       return this;
     }
@@ -6548,7 +6448,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       } else {
         streamingUsageBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00008000;
+      bitField0_ |= 0x00004000;
       onChanged();
       return this;
     }
@@ -6561,7 +6461,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      */
     public Builder mergeStreamingUsage(ai.stigmer.agentic.agentrun.v1.StreamingUsageSummary value) {
       if (streamingUsageBuilder_ == null) {
-        if (((bitField0_ & 0x00008000) != 0) &&
+        if (((bitField0_ & 0x00004000) != 0) &&
           streamingUsage_ != null &&
           streamingUsage_ != ai.stigmer.agentic.agentrun.v1.StreamingUsageSummary.getDefaultInstance()) {
           getStreamingUsageBuilder().mergeFrom(value);
@@ -6572,7 +6472,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         streamingUsageBuilder_.mergeFrom(value);
       }
       if (streamingUsage_ != null) {
-        bitField0_ |= 0x00008000;
+        bitField0_ |= 0x00004000;
         onChanged();
       }
       return this;
@@ -6585,7 +6485,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentrun.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
      */
     public Builder clearStreamingUsage() {
-      bitField0_ = (bitField0_ & ~0x00008000);
+      bitField0_ = (bitField0_ & ~0x00004000);
       streamingUsage_ = null;
       if (streamingUsageBuilder_ != null) {
         streamingUsageBuilder_.dispose();
@@ -6602,7 +6502,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentrun.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
      */
     public ai.stigmer.agentic.agentrun.v1.StreamingUsageSummary.Builder getStreamingUsageBuilder() {
-      bitField0_ |= 0x00008000;
+      bitField0_ |= 0x00004000;
       onChanged();
       return internalGetStreamingUsageFieldBuilder().getBuilder();
     }
@@ -6658,15 +6558,14 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * extraction (JSON.parse → fence extraction → extraction LLM fallback).
      *
      * Consumers: frontend architect/refine hooks read this instead of parsing
-     * YAML from messages. Workflow callback path reads structured_output from
-     * the Temporal activity result (separate channel, same data).
+     * YAML from messages.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
      * @return Whether the structuredOutput field is set.
      */
     public boolean hasStructuredOutput() {
-      return ((bitField0_ & 0x00010000) != 0);
+      return ((bitField0_ & 0x00008000) != 0);
     }
     /**
      * <pre>
@@ -6681,8 +6580,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * extraction (JSON.parse → fence extraction → extraction LLM fallback).
      *
      * Consumers: frontend architect/refine hooks read this instead of parsing
-     * YAML from messages. Workflow callback path reads structured_output from
-     * the Temporal activity result (separate channel, same data).
+     * YAML from messages.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
@@ -6708,8 +6606,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * extraction (JSON.parse → fence extraction → extraction LLM fallback).
      *
      * Consumers: frontend architect/refine hooks read this instead of parsing
-     * YAML from messages. Workflow callback path reads structured_output from
-     * the Temporal activity result (separate channel, same data).
+     * YAML from messages.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
@@ -6723,7 +6620,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       } else {
         structuredOutputBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00010000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return this;
     }
@@ -6740,8 +6637,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * extraction (JSON.parse → fence extraction → extraction LLM fallback).
      *
      * Consumers: frontend architect/refine hooks read this instead of parsing
-     * YAML from messages. Workflow callback path reads structured_output from
-     * the Temporal activity result (separate channel, same data).
+     * YAML from messages.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
@@ -6753,7 +6649,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       } else {
         structuredOutputBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00010000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return this;
     }
@@ -6770,15 +6666,14 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * extraction (JSON.parse → fence extraction → extraction LLM fallback).
      *
      * Consumers: frontend architect/refine hooks read this instead of parsing
-     * YAML from messages. Workflow callback path reads structured_output from
-     * the Temporal activity result (separate channel, same data).
+     * YAML from messages.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
      */
     public Builder mergeStructuredOutput(com.google.protobuf.Struct value) {
       if (structuredOutputBuilder_ == null) {
-        if (((bitField0_ & 0x00010000) != 0) &&
+        if (((bitField0_ & 0x00008000) != 0) &&
           structuredOutput_ != null &&
           structuredOutput_ != com.google.protobuf.Struct.getDefaultInstance()) {
           getStructuredOutputBuilder().mergeFrom(value);
@@ -6789,7 +6684,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         structuredOutputBuilder_.mergeFrom(value);
       }
       if (structuredOutput_ != null) {
-        bitField0_ |= 0x00010000;
+        bitField0_ |= 0x00008000;
         onChanged();
       }
       return this;
@@ -6807,14 +6702,13 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * extraction (JSON.parse → fence extraction → extraction LLM fallback).
      *
      * Consumers: frontend architect/refine hooks read this instead of parsing
-     * YAML from messages. Workflow callback path reads structured_output from
-     * the Temporal activity result (separate channel, same data).
+     * YAML from messages.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
      */
     public Builder clearStructuredOutput() {
-      bitField0_ = (bitField0_ & ~0x00010000);
+      bitField0_ = (bitField0_ & ~0x00008000);
       structuredOutput_ = null;
       if (structuredOutputBuilder_ != null) {
         structuredOutputBuilder_.dispose();
@@ -6836,14 +6730,13 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * extraction (JSON.parse → fence extraction → extraction LLM fallback).
      *
      * Consumers: frontend architect/refine hooks read this instead of parsing
-     * YAML from messages. Workflow callback path reads structured_output from
-     * the Temporal activity result (separate channel, same data).
+     * YAML from messages.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
      */
     public com.google.protobuf.Struct.Builder getStructuredOutputBuilder() {
-      bitField0_ |= 0x00010000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return internalGetStructuredOutputFieldBuilder().getBuilder();
     }
@@ -6860,8 +6753,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * extraction (JSON.parse → fence extraction → extraction LLM fallback).
      *
      * Consumers: frontend architect/refine hooks read this instead of parsing
-     * YAML from messages. Workflow callback path reads structured_output from
-     * the Temporal activity result (separate channel, same data).
+     * YAML from messages.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
@@ -6887,8 +6779,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * extraction (JSON.parse → fence extraction → extraction LLM fallback).
      *
      * Consumers: frontend architect/refine hooks read this instead of parsing
-     * YAML from messages. Workflow callback path reads structured_output from
-     * the Temporal activity result (separate channel, same data).
+     * YAML from messages.
      * </pre>
      *
      * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
@@ -6910,9 +6801,9 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
     private java.util.List<ai.stigmer.agentic.agentrun.v1.FileChangeSet> fileChangeSets_ =
       java.util.Collections.emptyList();
     private void ensureFileChangeSetsIsMutable() {
-      if (!((bitField0_ & 0x00020000) != 0)) {
+      if (!((bitField0_ & 0x00010000) != 0)) {
         fileChangeSets_ = new java.util.ArrayList<ai.stigmer.agentic.agentrun.v1.FileChangeSet>(fileChangeSets_);
-        bitField0_ |= 0x00020000;
+        bitField0_ |= 0x00010000;
        }
     }
 
@@ -7117,7 +7008,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
     public Builder clearFileChangeSets() {
       if (fileChangeSetsBuilder_ == null) {
         fileChangeSets_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00020000);
+        bitField0_ = (bitField0_ & ~0x00010000);
         onChanged();
       } else {
         fileChangeSetsBuilder_.clear();
@@ -7229,7 +7120,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         fileChangeSetsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.agentrun.v1.FileChangeSet, ai.stigmer.agentic.agentrun.v1.FileChangeSet.Builder, ai.stigmer.agentic.agentrun.v1.FileChangeSetOrBuilder>(
                 fileChangeSets_,
-                ((bitField0_ & 0x00020000) != 0),
+                ((bitField0_ & 0x00010000) != 0),
                 getParentForChildren(),
                 isClean());
         fileChangeSets_ = null;
@@ -7250,7 +7141,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * @return Whether the fileReviewEventStream field is set.
      */
     public boolean hasFileReviewEventStream() {
-      return ((bitField0_ & 0x00040000) != 0);
+      return ((bitField0_ & 0x00020000) != 0);
     }
     /**
      * <pre>
@@ -7285,7 +7176,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       } else {
         fileReviewEventStreamBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00040000;
+      bitField0_ |= 0x00020000;
       onChanged();
       return this;
     }
@@ -7304,7 +7195,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       } else {
         fileReviewEventStreamBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00040000;
+      bitField0_ |= 0x00020000;
       onChanged();
       return this;
     }
@@ -7318,7 +7209,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      */
     public Builder mergeFileReviewEventStream(ai.stigmer.agentic.agentrun.v1.FileReviewEventStream value) {
       if (fileReviewEventStreamBuilder_ == null) {
-        if (((bitField0_ & 0x00040000) != 0) &&
+        if (((bitField0_ & 0x00020000) != 0) &&
           fileReviewEventStream_ != null &&
           fileReviewEventStream_ != ai.stigmer.agentic.agentrun.v1.FileReviewEventStream.getDefaultInstance()) {
           getFileReviewEventStreamBuilder().mergeFrom(value);
@@ -7329,7 +7220,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         fileReviewEventStreamBuilder_.mergeFrom(value);
       }
       if (fileReviewEventStream_ != null) {
-        bitField0_ |= 0x00040000;
+        bitField0_ |= 0x00020000;
         onChanged();
       }
       return this;
@@ -7343,7 +7234,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentrun.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
      */
     public Builder clearFileReviewEventStream() {
-      bitField0_ = (bitField0_ & ~0x00040000);
+      bitField0_ = (bitField0_ & ~0x00020000);
       fileReviewEventStream_ = null;
       if (fileReviewEventStreamBuilder_ != null) {
         fileReviewEventStreamBuilder_.dispose();
@@ -7361,7 +7252,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentrun.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
      */
     public ai.stigmer.agentic.agentrun.v1.FileReviewEventStream.Builder getFileReviewEventStreamBuilder() {
-      bitField0_ |= 0x00040000;
+      bitField0_ |= 0x00020000;
       onChanged();
       return internalGetFileReviewEventStreamFieldBuilder().getBuilder();
     }
@@ -7417,7 +7308,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * @return Whether the fileChangeProgress field is set.
      */
     public boolean hasFileChangeProgress() {
-      return ((bitField0_ & 0x00080000) != 0);
+      return ((bitField0_ & 0x00040000) != 0);
     }
     /**
      * <pre>
@@ -7454,7 +7345,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       } else {
         fileChangeProgressBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00080000;
+      bitField0_ |= 0x00040000;
       onChanged();
       return this;
     }
@@ -7474,7 +7365,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       } else {
         fileChangeProgressBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00080000;
+      bitField0_ |= 0x00040000;
       onChanged();
       return this;
     }
@@ -7489,7 +7380,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      */
     public Builder mergeFileChangeProgress(ai.stigmer.agentic.agentrun.v1.FileChangeProgress value) {
       if (fileChangeProgressBuilder_ == null) {
-        if (((bitField0_ & 0x00080000) != 0) &&
+        if (((bitField0_ & 0x00040000) != 0) &&
           fileChangeProgress_ != null &&
           fileChangeProgress_ != ai.stigmer.agentic.agentrun.v1.FileChangeProgress.getDefaultInstance()) {
           getFileChangeProgressBuilder().mergeFrom(value);
@@ -7500,7 +7391,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         fileChangeProgressBuilder_.mergeFrom(value);
       }
       if (fileChangeProgress_ != null) {
-        bitField0_ |= 0x00080000;
+        bitField0_ |= 0x00040000;
         onChanged();
       }
       return this;
@@ -7515,7 +7406,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentrun.v1.FileChangeProgress file_change_progress = 25 [json_name = "fileChangeProgress"];</code>
      */
     public Builder clearFileChangeProgress() {
-      bitField0_ = (bitField0_ & ~0x00080000);
+      bitField0_ = (bitField0_ & ~0x00040000);
       fileChangeProgress_ = null;
       if (fileChangeProgressBuilder_ != null) {
         fileChangeProgressBuilder_.dispose();
@@ -7534,7 +7425,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentrun.v1.FileChangeProgress file_change_progress = 25 [json_name = "fileChangeProgress"];</code>
      */
     public ai.stigmer.agentic.agentrun.v1.FileChangeProgress.Builder getFileChangeProgressBuilder() {
-      bitField0_ |= 0x00080000;
+      bitField0_ |= 0x00040000;
       onChanged();
       return internalGetFileChangeProgressFieldBuilder().getBuilder();
     }
@@ -7594,7 +7485,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * @return Whether the recalledMemoriesReport field is set.
      */
     public boolean hasRecalledMemoriesReport() {
-      return ((bitField0_ & 0x00100000) != 0);
+      return ((bitField0_ & 0x00080000) != 0);
     }
     /**
      * <pre>
@@ -7635,7 +7526,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       } else {
         recalledMemoriesReportBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00100000;
+      bitField0_ |= 0x00080000;
       onChanged();
       return this;
     }
@@ -7657,7 +7548,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       } else {
         recalledMemoriesReportBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00100000;
+      bitField0_ |= 0x00080000;
       onChanged();
       return this;
     }
@@ -7674,7 +7565,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      */
     public Builder mergeRecalledMemoriesReport(ai.stigmer.agentic.agentrun.v1.RecalledMemoriesReport value) {
       if (recalledMemoriesReportBuilder_ == null) {
-        if (((bitField0_ & 0x00100000) != 0) &&
+        if (((bitField0_ & 0x00080000) != 0) &&
           recalledMemoriesReport_ != null &&
           recalledMemoriesReport_ != ai.stigmer.agentic.agentrun.v1.RecalledMemoriesReport.getDefaultInstance()) {
           getRecalledMemoriesReportBuilder().mergeFrom(value);
@@ -7685,7 +7576,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         recalledMemoriesReportBuilder_.mergeFrom(value);
       }
       if (recalledMemoriesReport_ != null) {
-        bitField0_ |= 0x00100000;
+        bitField0_ |= 0x00080000;
         onChanged();
       }
       return this;
@@ -7702,7 +7593,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentrun.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
      */
     public Builder clearRecalledMemoriesReport() {
-      bitField0_ = (bitField0_ & ~0x00100000);
+      bitField0_ = (bitField0_ & ~0x00080000);
       recalledMemoriesReport_ = null;
       if (recalledMemoriesReportBuilder_ != null) {
         recalledMemoriesReportBuilder_.dispose();
@@ -7723,7 +7614,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentrun.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
      */
     public ai.stigmer.agentic.agentrun.v1.RecalledMemoriesReport.Builder getRecalledMemoriesReportBuilder() {
-      bitField0_ |= 0x00100000;
+      bitField0_ |= 0x00080000;
       onChanged();
       return internalGetRecalledMemoriesReportFieldBuilder().getBuilder();
     }
@@ -7829,7 +7720,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       agentId_ = value;
-      bitField0_ |= 0x00200000;
+      bitField0_ |= 0x00100000;
       onChanged();
       return this;
     }
@@ -7844,7 +7735,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      */
     public Builder clearAgentId() {
       agentId_ = getDefaultInstance().getAgentId();
-      bitField0_ = (bitField0_ & ~0x00200000);
+      bitField0_ = (bitField0_ & ~0x00100000);
       onChanged();
       return this;
     }
@@ -7863,7 +7754,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       agentId_ = value;
-      bitField0_ |= 0x00200000;
+      bitField0_ |= 0x00100000;
       onChanged();
       return this;
     }
@@ -7944,7 +7835,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       agentVersionHash_ = value;
-      bitField0_ |= 0x00400000;
+      bitField0_ |= 0x00200000;
       onChanged();
       return this;
     }
@@ -7965,7 +7856,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      */
     public Builder clearAgentVersionHash() {
       agentVersionHash_ = getDefaultInstance().getAgentVersionHash();
-      bitField0_ = (bitField0_ & ~0x00400000);
+      bitField0_ = (bitField0_ & ~0x00200000);
       onChanged();
       return this;
     }
@@ -7990,7 +7881,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       agentVersionHash_ = value;
-      bitField0_ |= 0x00400000;
+      bitField0_ |= 0x00200000;
       onChanged();
       return this;
     }
@@ -8008,7 +7899,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * @return Whether the declaredPreferences field is set.
      */
     public boolean hasDeclaredPreferences() {
-      return ((bitField0_ & 0x00800000) != 0);
+      return ((bitField0_ & 0x00400000) != 0);
     }
     /**
      * <pre>
@@ -8043,7 +7934,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       } else {
         declaredPreferencesBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00800000;
+      bitField0_ |= 0x00400000;
       onChanged();
       return this;
     }
@@ -8062,7 +7953,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       } else {
         declaredPreferencesBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00800000;
+      bitField0_ |= 0x00400000;
       onChanged();
       return this;
     }
@@ -8076,7 +7967,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      */
     public Builder mergeDeclaredPreferences(ai.stigmer.agentic.agentrun.v1.DeclaredPreferences value) {
       if (declaredPreferencesBuilder_ == null) {
-        if (((bitField0_ & 0x00800000) != 0) &&
+        if (((bitField0_ & 0x00400000) != 0) &&
           declaredPreferences_ != null &&
           declaredPreferences_ != ai.stigmer.agentic.agentrun.v1.DeclaredPreferences.getDefaultInstance()) {
           getDeclaredPreferencesBuilder().mergeFrom(value);
@@ -8087,7 +7978,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         declaredPreferencesBuilder_.mergeFrom(value);
       }
       if (declaredPreferences_ != null) {
-        bitField0_ |= 0x00800000;
+        bitField0_ |= 0x00400000;
         onChanged();
       }
       return this;
@@ -8101,7 +7992,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentrun.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
      */
     public Builder clearDeclaredPreferences() {
-      bitField0_ = (bitField0_ & ~0x00800000);
+      bitField0_ = (bitField0_ & ~0x00400000);
       declaredPreferences_ = null;
       if (declaredPreferencesBuilder_ != null) {
         declaredPreferencesBuilder_.dispose();
@@ -8119,7 +8010,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentrun.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
      */
     public ai.stigmer.agentic.agentrun.v1.DeclaredPreferences.Builder getDeclaredPreferencesBuilder() {
-      bitField0_ |= 0x00800000;
+      bitField0_ |= 0x00400000;
       onChanged();
       return internalGetDeclaredPreferencesFieldBuilder().getBuilder();
     }
@@ -8174,7 +8065,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * @return Whether the recalledMemories field is set.
      */
     public boolean hasRecalledMemories() {
-      return ((bitField0_ & 0x01000000) != 0);
+      return ((bitField0_ & 0x00800000) != 0);
     }
     /**
      * <pre>
@@ -8209,7 +8100,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       } else {
         recalledMemoriesBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x01000000;
+      bitField0_ |= 0x00800000;
       onChanged();
       return this;
     }
@@ -8228,7 +8119,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       } else {
         recalledMemoriesBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x01000000;
+      bitField0_ |= 0x00800000;
       onChanged();
       return this;
     }
@@ -8242,7 +8133,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      */
     public Builder mergeRecalledMemories(ai.stigmer.agentic.agentrun.v1.RecalledMemories value) {
       if (recalledMemoriesBuilder_ == null) {
-        if (((bitField0_ & 0x01000000) != 0) &&
+        if (((bitField0_ & 0x00800000) != 0) &&
           recalledMemories_ != null &&
           recalledMemories_ != ai.stigmer.agentic.agentrun.v1.RecalledMemories.getDefaultInstance()) {
           getRecalledMemoriesBuilder().mergeFrom(value);
@@ -8253,7 +8144,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         recalledMemoriesBuilder_.mergeFrom(value);
       }
       if (recalledMemories_ != null) {
-        bitField0_ |= 0x01000000;
+        bitField0_ |= 0x00800000;
         onChanged();
       }
       return this;
@@ -8267,7 +8158,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentrun.v1.RecalledMemories recalled_memories = 30 [json_name = "recalledMemories"];</code>
      */
     public Builder clearRecalledMemories() {
-      bitField0_ = (bitField0_ & ~0x01000000);
+      bitField0_ = (bitField0_ & ~0x00800000);
       recalledMemories_ = null;
       if (recalledMemoriesBuilder_ != null) {
         recalledMemoriesBuilder_.dispose();
@@ -8285,7 +8176,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentrun.v1.RecalledMemories recalled_memories = 30 [json_name = "recalledMemories"];</code>
      */
     public ai.stigmer.agentic.agentrun.v1.RecalledMemories.Builder getRecalledMemoriesBuilder() {
-      bitField0_ |= 0x01000000;
+      bitField0_ |= 0x00800000;
       onChanged();
       return internalGetRecalledMemoriesFieldBuilder().getBuilder();
     }
@@ -8344,7 +8235,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * @return Whether the runConfig field is set.
      */
     public boolean hasRunConfig() {
-      return ((bitField0_ & 0x02000000) != 0);
+      return ((bitField0_ & 0x01000000) != 0);
     }
     /**
      * <pre>
@@ -8387,7 +8278,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       } else {
         runConfigBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x02000000;
+      bitField0_ |= 0x01000000;
       onChanged();
       return this;
     }
@@ -8410,7 +8301,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
       } else {
         runConfigBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x02000000;
+      bitField0_ |= 0x01000000;
       onChanged();
       return this;
     }
@@ -8428,7 +8319,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      */
     public Builder mergeRunConfig(ai.stigmer.agentic.agentrun.v1.RunConfig value) {
       if (runConfigBuilder_ == null) {
-        if (((bitField0_ & 0x02000000) != 0) &&
+        if (((bitField0_ & 0x01000000) != 0) &&
           runConfig_ != null &&
           runConfig_ != ai.stigmer.agentic.agentrun.v1.RunConfig.getDefaultInstance()) {
           getRunConfigBuilder().mergeFrom(value);
@@ -8439,7 +8330,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
         runConfigBuilder_.mergeFrom(value);
       }
       if (runConfig_ != null) {
-        bitField0_ |= 0x02000000;
+        bitField0_ |= 0x01000000;
         onChanged();
       }
       return this;
@@ -8457,7 +8348,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
      */
     public Builder clearRunConfig() {
-      bitField0_ = (bitField0_ & ~0x02000000);
+      bitField0_ = (bitField0_ & ~0x01000000);
       runConfig_ = null;
       if (runConfigBuilder_ != null) {
         runConfigBuilder_.dispose();
@@ -8479,7 +8370,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentrun.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
      */
     public ai.stigmer.agentic.agentrun.v1.RunConfig.Builder getRunConfigBuilder() {
-      bitField0_ |= 0x02000000;
+      bitField0_ |= 0x01000000;
       onChanged();
       return internalGetRunConfigFieldBuilder().getBuilder();
     }
@@ -8538,8 +8429,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * A fact of the lane the turn came through, never of the request: a
      * schedule's turn and the hosted edition's shared-agent guest and channel
      * turns are UNATTENDED (nobody is present to approve); every other turn is
-     * INTERACTIVE, a workflow step's included (its workflow takes the approval
-     * request).
+     * INTERACTIVE.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentrun.v1.ApprovalMode approval_mode = 32 [json_name = "approvalMode"];</code>
@@ -8556,8 +8446,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * A fact of the lane the turn came through, never of the request: a
      * schedule's turn and the hosted edition's shared-agent guest and channel
      * turns are UNATTENDED (nobody is present to approve); every other turn is
-     * INTERACTIVE, a workflow step's included (its workflow takes the approval
-     * request).
+     * INTERACTIVE.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentrun.v1.ApprovalMode approval_mode = 32 [json_name = "approvalMode"];</code>
@@ -8567,7 +8456,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      */
     public Builder setApprovalModeValue(int value) {
       approvalMode_ = value;
-      bitField0_ |= 0x04000000;
+      bitField0_ |= 0x02000000;
       onChanged();
       return this;
     }
@@ -8579,8 +8468,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * A fact of the lane the turn came through, never of the request: a
      * schedule's turn and the hosted edition's shared-agent guest and channel
      * turns are UNATTENDED (nobody is present to approve); every other turn is
-     * INTERACTIVE, a workflow step's included (its workflow takes the approval
-     * request).
+     * INTERACTIVE.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentrun.v1.ApprovalMode approval_mode = 32 [json_name = "approvalMode"];</code>
@@ -8599,8 +8487,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * A fact of the lane the turn came through, never of the request: a
      * schedule's turn and the hosted edition's shared-agent guest and channel
      * turns are UNATTENDED (nobody is present to approve); every other turn is
-     * INTERACTIVE, a workflow step's included (its workflow takes the approval
-     * request).
+     * INTERACTIVE.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentrun.v1.ApprovalMode approval_mode = 32 [json_name = "approvalMode"];</code>
@@ -8609,7 +8496,7 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      */
     public Builder setApprovalMode(ai.stigmer.agentic.agentrun.v1.ApprovalMode value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x04000000;
+      bitField0_ |= 0x02000000;
       approvalMode_ = value.getNumber();
       onChanged();
       return this;
@@ -8622,15 +8509,14 @@ ai.stigmer.agentic.agentrun.v1.TodoItem defaultValue) {
      * A fact of the lane the turn came through, never of the request: a
      * schedule's turn and the hosted edition's shared-agent guest and channel
      * turns are UNATTENDED (nobody is present to approve); every other turn is
-     * INTERACTIVE, a workflow step's included (its workflow takes the approval
-     * request).
+     * INTERACTIVE.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentrun.v1.ApprovalMode approval_mode = 32 [json_name = "approvalMode"];</code>
      * @return This builder for chaining.
      */
     public Builder clearApprovalMode() {
-      bitField0_ = (bitField0_ & ~0x04000000);
+      bitField0_ = (bitField0_ & ~0x02000000);
       approvalMode_ = 0;
       onChanged();
       return this;

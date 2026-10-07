@@ -4,9 +4,10 @@
 // and read status.phase, status.messages[], and status.pending_approvals[].
 // That makes the response shape critical for MCP: a long conversation's
 // full protojson (every message, the resolved context snapshot, the approval
-// ledger, sub-agent transcripts) can dwarf the model's context. The default "compact" view therefore returns a bounded
-// message tail and drops the bulky server-side bookkeeping fields; "full" is
-// the verbatim protojson for when the model genuinely needs everything.
+// ledger, sub-agent transcripts) can dwarf the model's context. The default
+// "compact" view therefore returns a bounded message tail and drops the bulky
+// server-side bookkeeping fields; "full" is the verbatim protojson for when
+// the model genuinely needs everything.
 
 import { AgentRunSchema, type AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { AgentRunQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/query_pb";
@@ -22,13 +23,11 @@ export const DEFAULT_MESSAGE_LIMIT = 5;
 
 /**
  * Bulky status fields pruned from the compact view. These are server-side
- * bookkeeping (append-only approval ledger, Temporal callback token) and
- * sub-agent transcripts — none of which the poll loop (phase? messages?
- * approvals?) needs.
+ * bookkeeping (the append-only approval ledger) and sub-agent transcripts —
+ * neither of which the poll loop (phase? messages? approvals?) needs.
  */
 const COMPACT_PRUNED_STATUS_FIELDS = [
   "approval_events",
-  "callback_token",
   "sub_agent_runs",
 ] as const;
 

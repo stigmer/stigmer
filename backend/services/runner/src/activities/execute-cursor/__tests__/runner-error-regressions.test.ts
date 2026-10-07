@@ -1,8 +1,7 @@
 /**
  * Regression tests for runner execution pipeline fixes.
  *
- * Covers three bugs discovered during daily-notification-plan workflow
- * execution:
+ * Covers three bugs discovered while running the daily-notification plan:
  *
  * 1. Model pricing loaded too late (resolveModelId before ensurePricingLoaded)
  * 2. MCP connect-backfill proto serialization (plain object instead of

@@ -6,8 +6,8 @@ This directory contains Protocol Buffer definitions for Stigmer's APIs.
 
 The `apis/` directory houses all `.proto` files that define:
 - Agent definitions and configurations
-- Workflow specifications
-- Execution contexts and sessions
+- Agent runs, schedules and sessions
+- Execution contexts and environments
 - IAM policies and permissions
 - Common types and resources
 
@@ -17,14 +17,13 @@ The `apis/` directory houses all `.proto` files that define:
 apis/
 ├── ai/stigmer/agentic/           # Agentic AI APIs
 │   ├── agent/                    # Agent definitions
-│   ├── agentexecution/           # Agent execution tracking
+│   ├── agentrun/                 # Agent run tracking
 │   ├── environment/              # Execution environments
 │   ├── executioncontext/         # Execution context management
+│   ├── mcpserver/                # MCP server definitions
+│   ├── schedule/                 # Scheduled agent runs
 │   ├── session/                  # User sessions
-│   ├── skill/                    # Agent skills
-│   ├── workflow/                 # Workflow definitions
-│   ├── workflowexecution/        # Workflow execution tracking
-│   └── workflowrunner/           # Workflow execution interface
+│   └── skill/                    # Agent skills
 ├── buf.yaml                      # Buf configuration
 ├── buf.gen.go.yaml              # Go code generation config
 ├── buf.gen.python.yaml          # Python code generation config

@@ -9,7 +9,7 @@ import "buf/validate/validate.proto";
 // @internal
 // Created by the execution engine, deleted when the run completes.
 message ExecutionContextSpec {
-  // ID of the parent AgentRun or WorkflowRun.
+  // ID of the parent AgentRun (or an MCP connect's execution id).
   string execution_id = 1 [(buf.validate.field).string.min_len = 1];
 
   // Runtime key-value pairs, each marked as secret or plaintext.
@@ -22,9 +22,8 @@ message ExecutionContextSpec {
 
 // A single runtime configuration or secret value.
 message ExecutionValue {
-  // String content of this entry. Empty strings are valid — optional
-  // workflow env vars may be provided with no value, and the workflow
-  // engine resolves them to "" in expression interpolation.
+  // String content of this entry. Empty strings are valid — an optional
+  // env var may be provided with no value.
   //
   // @internal
   // If is_secret=true: encrypted at rest and redacted in logs.

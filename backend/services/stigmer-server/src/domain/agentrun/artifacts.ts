@@ -18,7 +18,7 @@
  * ownership is the artifacts/{execution_id}/ prefix OR a key listed
  * verbatim in spec.attachments (attachment keys carry no execution id, so
  * membership is the proof). On local storage the URL points at the port+1
- * artifact file server (src/domain/artifact/file-server.ts).
+ * artifact file server (src/artifactstorage/file-server.ts).
  */
 import path from "node:path";
 

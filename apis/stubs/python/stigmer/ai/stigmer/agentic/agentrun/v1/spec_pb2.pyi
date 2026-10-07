@@ -16,7 +16,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AgentRunSpec(_message.Message):
-    __slots__ = ("session_id", "session_spec", "message", "run_config", "interaction_mode", "build_from_plan", "structured_output_schema", "runtime_env", "auto_approve_all", "attachments", "workspace_file_refs", "supersedes_run_id", "conversation_catchup", "parent")
+    __slots__ = ("session_id", "session_spec", "message", "run_config", "interaction_mode", "build_from_plan", "structured_output_schema", "runtime_env", "auto_approve_all", "attachments", "workspace_file_refs", "supersedes_run_id", "conversation_catchup")
     class RuntimeEnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -37,7 +37,6 @@ class AgentRunSpec(_message.Message):
     WORKSPACE_FILE_REFS_FIELD_NUMBER: _ClassVar[int]
     SUPERSEDES_RUN_ID_FIELD_NUMBER: _ClassVar[int]
     CONVERSATION_CATCHUP_FIELD_NUMBER: _ClassVar[int]
-    PARENT_FIELD_NUMBER: _ClassVar[int]
     session_id: str
     session_spec: _spec_pb2_1.SessionSpec
     message: str
@@ -51,18 +50,7 @@ class AgentRunSpec(_message.Message):
     workspace_file_refs: _containers.RepeatedScalarFieldContainer[str]
     supersedes_run_id: str
     conversation_catchup: ConversationCatchup
-    parent: WorkflowParent
-    def __init__(self, session_id: _Optional[str] = ..., session_spec: _Optional[_Union[_spec_pb2_1.SessionSpec, _Mapping]] = ..., message: _Optional[str] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ..., interaction_mode: _Optional[_Union[_enum_pb2.InteractionMode, str]] = ..., build_from_plan: bool = ..., structured_output_schema: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ..., auto_approve_all: bool = ..., attachments: _Optional[_Iterable[_Union[Attachment, _Mapping]]] = ..., workspace_file_refs: _Optional[_Iterable[str]] = ..., supersedes_run_id: _Optional[str] = ..., conversation_catchup: _Optional[_Union[ConversationCatchup, _Mapping]] = ..., parent: _Optional[_Union[WorkflowParent, _Mapping]] = ...) -> None: ...
-
-class WorkflowParent(_message.Message):
-    __slots__ = ("workflow_run_id", "signal_workflow_id", "callback_token")
-    WORKFLOW_RUN_ID_FIELD_NUMBER: _ClassVar[int]
-    SIGNAL_WORKFLOW_ID_FIELD_NUMBER: _ClassVar[int]
-    CALLBACK_TOKEN_FIELD_NUMBER: _ClassVar[int]
-    workflow_run_id: str
-    signal_workflow_id: str
-    callback_token: bytes
-    def __init__(self, workflow_run_id: _Optional[str] = ..., signal_workflow_id: _Optional[str] = ..., callback_token: _Optional[bytes] = ...) -> None: ...
+    def __init__(self, session_id: _Optional[str] = ..., session_spec: _Optional[_Union[_spec_pb2_1.SessionSpec, _Mapping]] = ..., message: _Optional[str] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ..., interaction_mode: _Optional[_Union[_enum_pb2.InteractionMode, str]] = ..., build_from_plan: bool = ..., structured_output_schema: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ..., auto_approve_all: bool = ..., attachments: _Optional[_Iterable[_Union[Attachment, _Mapping]]] = ..., workspace_file_refs: _Optional[_Iterable[str]] = ..., supersedes_run_id: _Optional[str] = ..., conversation_catchup: _Optional[_Union[ConversationCatchup, _Mapping]] = ...) -> None: ...
 
 class Attachment(_message.Message):
     __slots__ = ("filename", "storage_key", "mount_path", "content_type", "extract", "local_path")

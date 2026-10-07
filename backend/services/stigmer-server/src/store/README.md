@@ -3,7 +3,7 @@
 Ports `backend/libs/go/store`: `interface.ts` is the
 driver-agnostic contract (surface-for-surface with Go's `store.Store`, plus the
 consolidated members Go kept behind the `DB()` escape hatch — bootstrap state,
-signal dedupe, MCP OAuth). Two drivers implement it:
+MCP OAuth). Two drivers implement it:
 
 - `sqlite/` — the laptop-tier default (`node:sqlite`, zero-config, one file)
   with its versioned migration chain (v1–v6 adopted from Go DDL-faithful, then

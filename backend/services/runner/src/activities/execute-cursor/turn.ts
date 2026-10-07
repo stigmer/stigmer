@@ -73,7 +73,7 @@ export async function runCursorTurn(input: TurnInput, sink: TurnSink, config: Cu
   const { executionId, sessionId } = input;
 
   // Ensure fresh HTTP/2 transport — prevents a degraded session from a
-  // prior workflow task from poisoning this execution's agent stream.
+  // prior execution on this worker from poisoning this one's agent stream.
   closeProxySessions();
   // The module-level fallback the interceptors read when no execution
   // context is entered (the runtime enters one around the whole activity;

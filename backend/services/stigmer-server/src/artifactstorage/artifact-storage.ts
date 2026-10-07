@@ -1,8 +1,8 @@
 /**
  * Artifact storage — ports pkg/domain/artifact/storage/{storage.go,
  * local_storage.go,disposition.go}: the execution-output/attachment blob
- * store SHARED by agentexecution attachments, the artifact domain + its
- * port+1 file server, and skill's pushFromRunArtifact. Cross-cutting
+ * store SHARED by agentexecution attachments, a run's files, the port+1
+ * file server (file-server.ts), and skill's pushFromRunArtifact. Cross-cutting
  * home, like src/encryption/.
  *
  * The LOCAL backend is the OSS default: the configured base path IS the

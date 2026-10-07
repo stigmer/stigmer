@@ -65,7 +65,6 @@ afterAll(async () => {
 });
 
 const routes = [
-  { path: "/v1/proxy/task-kind-registry", topLevelKey: "descriptors" },
   { path: "/v1/proxy/model-registry", topLevelKey: "models" },
 ] as const;
 

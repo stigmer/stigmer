@@ -12,12 +12,11 @@
  * deliberately order-agnostic: sqlite serializes globally, Postgres
  * per-row), findAllByField's filter (the rows whose field equals the
  * value, as stored bytes), audit ordering + the #341 single-holder tag move,
- * first-writer-wins events (oss#308), the terminal-immutable schedule-run
- * ledger, the engine-neutral search read semantics (
- * token match / single-term prefix / AND; wire-ready 0–1 scores;
- * list-mode newest-first at exactly 1.0 — search-mode ranking ORDER is
- * deliberately NOT asserted here, it is driver-relative), the two-phase
- * signal-dedupe hold (oss#442), the resource-name table (one winner of
+ * the terminal-immutable schedule-run ledger, the engine-neutral search
+ * read semantics (token match / single-term prefix / AND; wire-ready 0–1
+ * scores; list-mode newest-first at exactly 1.0 — search-mode ranking
+ * ORDER is deliberately NOT asserted here, it is driver-relative), the
+ * resource-name table (one winner of
  * concurrent claims, lazy expiry, renames that move, take back, revert and
  * overlap to one current name, a name equal to its id reserved for good,
  * a release that frees only its own names), OAuth grants, once-only pending-state
@@ -45,18 +44,13 @@ import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
-import {
-  AuditNotFoundError,
-  IN_FLIGHT_CLAIM_TTL_MS,
-  ResourceNotFoundError,
-} from "../interface.js";
+import { AuditNotFoundError, ResourceNotFoundError } from "../interface.js";
 import type {
   OAuthGrant,
   PendingOAuthState,
   SearchIndexEntry,
   Store,
   StoreOpenOptions,
-  WorkflowExecutionEventRecord,
 } from "../interface.js";
 import { declareListIndex, field, label } from "../list-index.js";
 import type { ListIndexRow } from "../list-index.js";
@@ -103,13 +97,6 @@ export interface StoreContractFixture {
    */
   openAnother(options: StoreOpenOptions): Promise<Store>;
   /**
-   * Ages a signal-dedupe row directly (crash-recovery arm: a hold whose
-   * delivery died must self-heal at the next claim). The interface has no
-   * clock injection by design — expiry manipulation is a driver-side test
-   * concern.
-   */
-  forceDedupeExpiry(id: string, expiresAtIso: string): Promise<void>;
-  /**
    * Counts pending_oauth_state rows directly (the expired-state arm must
    * prove the row is DELETED, not merely unredeemable).
    */
@@ -118,21 +105,6 @@ export interface StoreContractFixture {
 }
 
 const KIND = ApiResourceKind.organization;
-
-function event(
-  sequenceNumber: number,
-  eventType = "task_started",
-  taskName = "step-a",
-): WorkflowExecutionEventRecord {
-  return {
-    executionId: "wfe_1",
-    sequenceNumber,
-    eventType,
-    taskName,
-    data: new Uint8Array([sequenceNumber]),
-    createdAt: "",
-  };
-}
 
 /**
  * Every driver passes its fixture factory; the factory opens its store
@@ -789,103 +761,6 @@ export function describeStoreContract(
     });
   });
 
-  describe("workflow execution events", () => {
-    it("append is insert-or-skip, first-writer-wins (oss#308 contract)", async () => {
-      expect(
-        await fx.store.appendWorkflowExecutionEvents("wfe_1", [
-          event(1),
-          event(2),
-        ]),
-      ).toBe(2);
-      // A retried batch re-sends the same sequence numbers: idempotent
-      // no-op for the duplicates, the new event still lands.
-      expect(
-        await fx.store.appendWorkflowExecutionEvents("wfe_1", [
-          event(1),
-          event(3),
-        ]),
-      ).toBe(1);
-      expect(await fx.store.getMaxEventSequence("wfe_1")).toBe(3);
-    });
-
-    it("paginates by cursor with type and task filters", async () => {
-      await fx.store.appendWorkflowExecutionEvents("wfe_1", [
-        event(1, "task_started", "step-a"),
-        event(2, "task_completed", "step-a"),
-        event(3, "task_started", "step-b"),
-      ]);
-
-      const afterFirst = await fx.store.getWorkflowExecutionEvents(
-        "wfe_1",
-        1,
-        "",
-        "",
-        0,
-      );
-      expect(afterFirst.map((row) => row.sequenceNumber)).toEqual([2, 3]);
-
-      const started = await fx.store.getWorkflowExecutionEvents(
-        "wfe_1",
-        0,
-        "task_started",
-        "",
-        0,
-      );
-      expect(started.map((row) => row.sequenceNumber)).toEqual([1, 3]);
-
-      const stepA = await fx.store.getWorkflowExecutionEvents(
-        "wfe_1",
-        0,
-        "",
-        "step-a",
-        0,
-      );
-      expect(stepA.map((row) => row.sequenceNumber)).toEqual([1, 2]);
-
-      const limited = await fx.store.getWorkflowExecutionEvents(
-        "wfe_1",
-        0,
-        "",
-        "",
-        2,
-      );
-      expect(limited).toHaveLength(2);
-    });
-
-    it("round-trips event payload bytes and stamps createdAt", async () => {
-      await fx.store.appendWorkflowExecutionEvents("wfe_1", [event(7)]);
-      const rows = await fx.store.getWorkflowExecutionEvents(
-        "wfe_1",
-        0,
-        "",
-        "",
-        0,
-      );
-      expect(rows).toHaveLength(1);
-      expect(Array.from(rows[0]!.data)).toEqual([7]);
-      expect(rows[0]!.createdAt).not.toBe("");
-    });
-
-    it("deleteWorkflowExecutionEvents removes one execution's events only", async () => {
-      await fx.store.appendWorkflowExecutionEvents("wfe_1", [event(1), event(2)]);
-      await fx.store.appendWorkflowExecutionEvents("wfe_2", [
-        { ...event(1), executionId: "wfe_2" },
-      ]);
-      expect(await fx.store.deleteWorkflowExecutionEvents("wfe_1")).toBe(2);
-      expect(await fx.store.deleteWorkflowExecutionEvents("wfe_1")).toBe(0);
-      expect(await fx.store.getMaxEventSequence("wfe_1")).toBe(0);
-      expect(await fx.store.getMaxEventSequence("wfe_2")).toBe(1);
-    });
-
-    it("empty batches and unknown executions are calm no-ops", async () => {
-      expect(await fx.store.appendWorkflowExecutionEvents("wfe_1", [])).toBe(0);
-      expect(await fx.store.getMaxEventSequence("ghost")).toBe(0);
-      expect(
-        await fx.store.getWorkflowExecutionEvents("ghost", 0, "", "", 0),
-      ).toEqual([]);
-    });
-  });
-
   describe("schedule run ledger", () => {
     const baseRun = {
       scheduleId: "sch_1",
@@ -1100,48 +975,48 @@ export function describeStoreContract(
         entry({ name: "scoped beta" }),
       );
       await fx.store.upsertSearchIndex(
-        ApiResourceKind.workflow,
-        "wfl-any",
+        ApiResourceKind.skill,
+        "skl-any",
         entry({ name: "scoped gamma" }),
       );
 
-      // agent narrowed to one id; workflow ABSENT from the map = unrestricted.
+      // agent narrowed to one id; skill ABSENT from the map = unrestricted.
       const narrowed = await fx.store.querySearchIndex({
-        kinds: ["agent", "workflow"],
+        kinds: ["agent", "skill"],
         terms: ["scoped"],
         orgFilter: "",
         authorizedIdsByKind: new Map([["agent", new Set(["agt-mine"])]]),
         limit: 20,
         offset: 0,
       });
-      expect(narrowed.countsByKind).toEqual({ agent: 1, workflow: 1 });
+      expect(narrowed.countsByKind).toEqual({ agent: 1, skill: 1 });
       expect(narrowed.hits.map((hit) => hit.resourceId).sort()).toEqual([
         "agt-mine",
-        "wfl-any",
+        "skl-any",
       ]);
 
       // An EMPTY set for a kind matches nothing for that kind.
       const emptyKind = await fx.store.querySearchIndex({
-        kinds: ["agent", "workflow"],
+        kinds: ["agent", "skill"],
         terms: ["scoped"],
         orgFilter: "",
         authorizedIdsByKind: new Map([
           ["agent", new Set<string>()],
-          ["workflow", new Set(["wfl-any"])],
+          ["skill", new Set(["skl-any"])],
         ]),
         limit: 20,
         offset: 0,
       });
-      expect(emptyKind.countsByKind).toEqual({ workflow: 1 });
+      expect(emptyKind.countsByKind).toEqual({ skill: 1 });
 
       // ALL kinds empty = nothing, and the driver must not emit IN ().
       const allEmpty = await fx.store.querySearchIndex({
-        kinds: ["agent", "workflow"],
+        kinds: ["agent", "skill"],
         terms: ["scoped"],
         orgFilter: "",
         authorizedIdsByKind: new Map([
           ["agent", new Set<string>()],
-          ["workflow", new Set<string>()],
+          ["skill", new Set<string>()],
         ]),
         limit: 20,
         offset: 0,
@@ -1151,7 +1026,7 @@ export function describeStoreContract(
 
       // Undefined = the unscoped read, byte-identical.
       const unscoped = await fx.store.querySearchIndex({
-        kinds: ["agent", "workflow"],
+        kinds: ["agent", "skill"],
         terms: ["scoped"],
         orgFilter: "",
         limit: 20,
@@ -1312,153 +1187,6 @@ export function describeStoreContract(
 
       await fx.store.bootstrapState.clear();
       expect(await fx.store.bootstrapState.getAll()).toEqual(new Map());
-    });
-  });
-
-  describe("signal dedupe (two-phase hold)", () => {
-    it("claims a fresh key, reports the holder on a duplicate claim", async () => {
-      const first = await fx.store.signalDedupe.claim(
-        "acme",
-        "key-1",
-        "wfe_1",
-        "resume",
-        IN_FLIGHT_CLAIM_TTL_MS,
-      );
-      expect(first.status).toBe("SUCCESS");
-      expect(first.record).toBeUndefined();
-
-      const second = await fx.store.signalDedupe.claim(
-        "acme",
-        "key-1",
-        "wfe_2",
-        "resume",
-        IN_FLIGHT_CLAIM_TTL_MS,
-      );
-      expect(second.status).toBe("DUPLICATE");
-      // The caller branches on the HOLDER's state: CLAIMED = in-flight
-      // conflict, DELIVERED = true duplicate.
-      expect(second.record?.status).toBe("CLAIMED");
-      expect(second.record?.executionId).toBe("wfe_1");
-    });
-
-    it("keys are org-scoped: the same idempotency key in another org claims freely", async () => {
-      await fx.store.signalDedupe.claim(
-        "acme",
-        "key-1",
-        "wfe_1",
-        "resume",
-        IN_FLIGHT_CLAIM_TTL_MS,
-      );
-      const other = await fx.store.signalDedupe.claim(
-        "globex",
-        "key-1",
-        "wfe_9",
-        "resume",
-        IN_FLIGHT_CLAIM_TTL_MS,
-      );
-      expect(other.status).toBe("SUCCESS");
-    });
-
-    it("markDelivered flips the status and extends the hold to the 24h window", async () => {
-      await fx.store.signalDedupe.claim(
-        "acme",
-        "key-1",
-        "wfe_1",
-        "resume",
-        IN_FLIGHT_CLAIM_TTL_MS,
-      );
-      await fx.store.signalDedupe.markDelivered("acme", "key-1");
-
-      const dup = await fx.store.signalDedupe.claim(
-        "acme",
-        "key-1",
-        "wfe_2",
-        "resume",
-        IN_FLIGHT_CLAIM_TTL_MS,
-      );
-      expect(dup.status).toBe("DUPLICATE");
-      expect(dup.record?.status).toBe("DELIVERED");
-      expect(dup.record?.deliveredAt).not.toBe("");
-      // Delivery EARNS the long window: expiry moved past the in-flight TTL.
-      const expiry = Date.parse(dup.record!.expiresAt);
-      expect(expiry).toBeGreaterThan(Date.now() + IN_FLIGHT_CLAIM_TTL_MS);
-    });
-
-    it("markDelivered on a missing or already-delivered key is a tolerant no-op", async () => {
-      await expect(
-        fx.store.signalDedupe.markDelivered("acme", "ghost"),
-      ).resolves.toBeUndefined();
-      await fx.store.signalDedupe.claim(
-        "acme",
-        "key-1",
-        "wfe_1",
-        "resume",
-        IN_FLIGHT_CLAIM_TTL_MS,
-      );
-      await fx.store.signalDedupe.markDelivered("acme", "key-1");
-      await expect(
-        fx.store.signalDedupe.markDelivered("acme", "key-1"),
-      ).resolves.toBeUndefined();
-    });
-
-    it("release frees a CLAIMED key immediately but never a DELIVERED one", async () => {
-      await fx.store.signalDedupe.claim(
-        "acme",
-        "key-1",
-        "wfe_1",
-        "resume",
-        IN_FLIGHT_CLAIM_TTL_MS,
-      );
-      await fx.store.signalDedupe.release("acme", "key-1");
-      const reclaimed = await fx.store.signalDedupe.claim(
-        "acme",
-        "key-1",
-        "wfe_2",
-        "resume",
-        IN_FLIGHT_CLAIM_TTL_MS,
-      );
-      expect(reclaimed.status, "a released key is claimable at once").toBe(
-        "SUCCESS",
-      );
-
-      await fx.store.signalDedupe.markDelivered("acme", "key-1");
-      await fx.store.signalDedupe.release("acme", "key-1"); // guarded no-op
-      const stillBlocked = await fx.store.signalDedupe.claim(
-        "acme",
-        "key-1",
-        "wfe_3",
-        "resume",
-        IN_FLIGHT_CLAIM_TTL_MS,
-      );
-      expect(
-        stillBlocked.status,
-        "a delivered key survives a misplaced release",
-      ).toBe("DUPLICATE");
-    });
-
-    it("an expired hold self-heals: the next claim cleans it up and wins", async () => {
-      // Crash recovery path: a claim whose delivery died holds only the
-      // short TTL. Simulate the lapse by aging the row directly.
-      await fx.store.signalDedupe.claim(
-        "acme",
-        "key-1",
-        "wfe_1",
-        "resume",
-        IN_FLIGHT_CLAIM_TTL_MS,
-      );
-      await fx.forceDedupeExpiry(
-        "acme:key-1",
-        new Date(Date.now() - 1000).toISOString(),
-      );
-
-      const reclaimed = await fx.store.signalDedupe.claim(
-        "acme",
-        "key-1",
-        "wfe_2",
-        "resume",
-        IN_FLIGHT_CLAIM_TTL_MS,
-      );
-      expect(reclaimed.status).toBe("SUCCESS");
     });
   });
 
@@ -1992,15 +1720,8 @@ export function describeStoreContract(
       expect(JSON.stringify(left)).toContain("agt_org_b");
     });
 
-    it("signal dedupe, OAuth grants and pending OAuth states remove one organization's records only", async () => {
+    it("OAuth grants and pending OAuth states remove one organization's records only", async () => {
       for (const org of ["org_a", "org_b"]) {
-        await fx.store.signalDedupe.claim(
-          org,
-          "key-1",
-          "wfe_1",
-          "resume",
-          IN_FLIGHT_CLAIM_TTL_MS,
-        );
         await fx.store.oauthGrants.upsert({
           identityAccountId: "ida_1",
           resourceId: "mcp_1",
@@ -2032,24 +1753,15 @@ export function describeStoreContract(
           createdAt: 0,
         });
       }
-      expect(await fx.store.signalDedupe.deleteByOrg("org_a")).toBe(1);
       expect(await fx.store.oauthGrants.deleteByOrg("org_a")).toBe(1);
       expect(await fx.store.pendingOAuthStates.deleteByOrg("org_a")).toBe(1);
-      expect(await fx.store.signalDedupe.deleteByOrg("org_a")).toBe(0);
+      expect(await fx.store.oauthGrants.deleteByOrg("org_a")).toBe(0);
       expect(
         await fx.store.oauthGrants.find("ida_1", "mcp_1", "org_b"),
       ).toBeDefined();
       expect(
         await fx.store.pendingOAuthStates.getAndDelete("state-org_b"),
       ).toBeDefined();
-      const other = await fx.store.signalDedupe.claim(
-        "org_b",
-        "key-1",
-        "wfe_2",
-        "resume",
-        IN_FLIGHT_CLAIM_TTL_MS,
-      );
-      expect(other.status, "org_b's hold survives").toBe("DUPLICATE");
     });
   });
 
@@ -2354,7 +2066,7 @@ export function describeStoreContract(
       await expect(fx.store.bootstrapState.get("k")).rejects.toThrow(
         "store is closed",
       );
-      await expect(fx.store.signalDedupe.release("o", "k")).rejects.toThrow(
+      await expect(fx.store.oauthGrants.deleteByOrg("o")).rejects.toThrow(
         "store is closed",
       );
       await expect(

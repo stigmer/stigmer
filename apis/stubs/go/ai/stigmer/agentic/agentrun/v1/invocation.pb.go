@@ -31,11 +31,7 @@ const (
 // environments, run bounds) minus what an unattended surface makes
 // structurally impossible. Surfaces that trigger agents on someone's
 // behalf embed this message instead of re-deriving the shape:
-// schedules embed it whole; the workflow agent_call task adopts it at
-// the TYPE level (embedding RunConfig and documenting a field-by-field
-// correspondence) because its task config is a kind+Struct authoring
-// DSL whose field names are the YAML keys — see
-// workflow/v1/tasks/agent_call.proto; channels embed RunConfig.
+// schedules embed it whole; channels and shares embed RunConfig.
 type AgentInvocation struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Reference to the agent to run.
@@ -145,8 +141,8 @@ func (x *AgentInvocation) GetRunConfig() *RunConfig {
 // thinking, and run bounds.
 //
 // The same message is a message's request (AgentRunSpec.run_config),
-// a surface's saved settings (a schedule's invocation, a channel, a share, a
-// workflow agent_call step), an agent author's defaults (AgentSpec.run_config,
+// a surface's saved settings (a schedule's invocation, a channel, a share),
+// an agent author's defaults (AgentSpec.run_config,
 // versioned with the agent), and the settings a turn ran with
 // (AgentRunStatus.run_config). Zero or empty means "not set at this
 // layer".
@@ -210,9 +206,6 @@ type RunConfig struct {
 	MaxToolRounds int32 `protobuf:"varint,3,opt,name=max_tool_rounds,json=maxToolRounds,proto3" json:"max_tool_rounds,omitempty"`
 	// Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
 	//
-	// In workflow YAML the shorthand spellings "standard"/"fast" are
-	// accepted alongside the canonical enum names.
-	//
 	// UNSPECIFIED is not set at this layer; with no layer setting it the run
 	// uses STANDARD, never the provider account default. FAST is valid only
 	// for a model whose registry entry declares a fast pricing variant on the
@@ -222,9 +215,6 @@ type RunConfig struct {
 	// Thinking mode for each run's model calls: disabled (the default) or
 	// enabled, where enabled selects the model's extended-reasoning variant
 	// (billed at base per-token rates — reasoning tokens bill as output).
-	//
-	// In workflow YAML the shorthand spellings "disabled"/"enabled" are
-	// accepted alongside the canonical enum names.
 	//
 	// UNSPECIFIED is not set at this layer; with no layer setting it the run
 	// uses DISABLED, never the provider account default. ENABLED is valid only

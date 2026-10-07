@@ -84,7 +84,6 @@ export interface EntitlementLimitsInput {
   maxUsers?: number;
   includedChildOrgs?: number;
   maxActiveSessionSandboxes?: number;
-  maxActiveWorkflowSandboxes?: number;
   archivedWorkspaceRetentionDays?: number;
 }
 
@@ -102,7 +101,6 @@ function buildEntitlementLimitsProto(input: EntitlementLimitsInput) {
     maxUsers: input.maxUsers,
     includedChildOrgs: input.includedChildOrgs,
     maxActiveSessionSandboxes: input.maxActiveSessionSandboxes,
-    maxActiveWorkflowSandboxes: input.maxActiveWorkflowSandboxes,
     archivedWorkspaceRetentionDays: input.archivedWorkspaceRetentionDays,
   }));
 }

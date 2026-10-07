@@ -17,7 +17,7 @@
  * limits. MODE is `local`: it selects the runner's proxy-transport posture,
  * not isolation, and open-source sandboxes talk to the server directly.
  *
- * Session and workflow sandboxes keep their workspace on one claim
+ * Session sandboxes keep their workspace on one claim
  * (`workspace`, ReadWriteOnce, 10Gi, the cluster's default class), declared
  * as the Sandbox's one volume claim template, which the controller mounts
  * as the volume `workspace`. Durability is decided by scope alone: this
@@ -78,10 +78,7 @@ const RUNNER_RESOURCES = {
 } as const;
 
 /** The scopes whose workspace outlives the pod. */
-const PERSISTENT_SCOPES: ReadonlySet<SandboxScope> = new Set([
-  "session",
-  "workflow",
-]);
+const PERSISTENT_SCOPES: ReadonlySet<SandboxScope> = new Set(["session"]);
 
 /** The stigmer labels on the Sandbox and on its pod. */
 export function agentSandboxLabels(

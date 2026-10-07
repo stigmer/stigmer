@@ -69,13 +69,9 @@ message ScheduleSpec {
   // What this schedule runs at each fire. Exactly one target must be set.
   //
   // @internal
-  // The extension seam (the provider_config oneof pattern): a
-  // future `workflow` arm reuses the WorkflowRun create pipeline
-  // directly — carrying its two recorded divergences from the agent path
-  // (version pinning; the CRITICAL pre-persist sandbox step).
-  // The arm is immutable across updates: an
-  // agent schedule must not morph into a workflow schedule — the two
-  // targets enter different execution pipelines.
+  // The provider_config oneof pattern: a new target kind is a new arm, not
+  // a new resource kind. The arm is immutable across updates, since each
+  // target kind enters its own execution pipeline.
   oneof target {
     option (buf.validate.oneof).required = true;
 
@@ -102,7 +98,5 @@ message ScheduleSpec {
     // the schedule profile as the lane's ceiling (RunConfig has the
     // rule).
     ai.stigmer.agentic.agentrun.v1.AgentInvocation agent = 4;
-
-    // Reserved (additive): WorkflowTarget workflow = 5;
   }
 }

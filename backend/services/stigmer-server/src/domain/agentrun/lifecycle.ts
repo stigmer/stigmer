@@ -794,8 +794,7 @@ function runRecoverPipeline(
  * recreateExecutionContextStep): the failed run's workflow cleanup
  * deleted the EC, so a fresh start would hydrate with an empty
  * environment. Re-resolving from CURRENT configuration is the point
- * ("fix the API key, then recover"). DELIBERATE divergence from
- * WorkflowRun's graceful recreate: a failure here FAILS the
+ * ("fix the API key, then recover"). A failure here FAILS the
  * recover RPC — the agent EC carries OAuth tokens and declared env vars
  * the run genuinely needs; the execution stays FAILED and recover can be
  * retried. Stale-EC delete first (best-effort): the failure-path cleanup
@@ -856,13 +855,8 @@ function newRecreateExecutionContextStep(
 /**
  * Starts a brand-new workflow for the recovered execution (Go
  * StartFreshWorkflowStep): Temporal allows workflow-id reuse after the
- * previous run reached a terminal state. Dispatch is re-resolved with no
- * queue override and the parent link's coordinates (its callback token,
- * its signal target, its run's queue) are deliberately NOT carried — a
- * recovered execution is a standalone rerun (the single-use token was
- * already completed with the failure; the parent already observed the
- * failure; the parent's sandbox queue loses its poller when the parent
- * completes). Known documented limitation: a durable (http) LangGraph
+ * previous run reached a terminal state. Dispatch is re-resolved from the
+ * session. Known documented limitation: a durable (http) LangGraph
  * checkpointer would duplicate the user message; the OSS default memory
  * checkpointer replays from scratch, so this is moot here.
  */
@@ -888,10 +882,7 @@ function newStartFreshWorkflowStep(
           executionId,
           sessionId: sessionIdOf(execution.spec),
           agentId: execution.status?.agentId ?? "",
-          callbackToken: new Uint8Array(),
           autoApproveAll: execution.spec?.autoApproveAll ?? false,
-          parentWorkflowId: "",
-          activityTaskQueueOverride: "",
         });
       } catch (error) {
         if (error instanceof EngineDispatchError) {

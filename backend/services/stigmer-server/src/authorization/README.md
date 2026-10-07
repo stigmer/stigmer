@@ -32,9 +32,7 @@ computes.
   fails the boot, never an answer.
 - `model/bindings.ts` — what JSON cannot carry: each type's row schema
   (`ROWLESS` for `platform`, which resolves over tuples alone) and the
-  relations no row carries as a `kind_meta` fact: `run_viewer` on the
-  workflow (`model/run-viewer.ts`, from `spec.run_visibility`),
-  and an
+  relations no row carries as a `kind_meta` fact: an
   organization's `parent_org` and `child_org` edges
   (`model/child-organizations.ts`, from a child's `spec.parent_org` and the
   organization list index).

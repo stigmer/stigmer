@@ -52,7 +52,7 @@ if (entry === undefined) {
 
 const serverRoot = fileURLToPath(new URL("..", import.meta.url));
 // Worker start waits on a real Temporal round-trip plus the webpack bundle
-// of three workflow entries; the plain transport boot needs a fraction.
+// of two workflow entries; the plain transport boot needs a fraction.
 const BOOT_TIMEOUT_MS = requireWorkers ? 60_000 : 15_000;
 // After the markers: the shutdown gets its own deadline — a wedged worker
 // drain is exactly the class of bug this gate exists to find, and must

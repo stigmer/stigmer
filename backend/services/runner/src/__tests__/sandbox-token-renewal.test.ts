@@ -22,14 +22,15 @@ function sandboxToken(ttlSeconds: number, tokenType = "sandbox"): string {
 }
 
 describe("isRenewableSandboxToken", () => {
-  it("accepts sandbox and workflow_sandbox tokens with an expiry", () => {
+  it("accepts a sandbox token with an expiry", () => {
     expect(isRenewableSandboxToken(sandboxToken(3600))).toBe(true);
-    expect(isRenewableSandboxToken(sandboxToken(3600, "workflow_sandbox"))).toBe(true);
   });
 
   it("rejects every non-sandbox credential class", () => {
     expect(isRenewableSandboxToken(sandboxToken(3600, "embedded_runner"))).toBe(false);
     expect(isRenewableSandboxToken(sandboxToken(3600, "pool_sandbox"))).toBe(false);
+    // The retired workflow sandbox's class: no lane renews it any more.
+    expect(isRenewableSandboxToken(sandboxToken(3600, "workflow_sandbox"))).toBe(false);
     expect(isRenewableSandboxToken(fakeJwt({ iat: 1, exp: 2 }))).toBe(false);
   });
 

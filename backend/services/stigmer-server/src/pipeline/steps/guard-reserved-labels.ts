@@ -32,9 +32,8 @@
  *   - SERVER-STAMPED KEYS pass (server-stamped-reserved-labels.ts, the
  *     Java ServerStampedReservedLabels arm): a step that made
  *     the trust decision for specific keys on THIS request records
- *     exactly those keys, and the guard exempts exactly them (the
- *     agentexecution create chain's RecordRunnerLineageLabels is the
- *     first recorder).
+ *     exactly those keys, and the guard exempts exactly them (the MCP
+ *     server's endpoint-auth completion records its auth label).
  *   - LABELS only, deliberately not annotations (annotations carry no
  *     resolution or authorization semantics).
  *
@@ -163,10 +162,8 @@ export function newGuardReservedLabelsStep<Desc extends DescMessage>(
 /**
  * The operator question the guard asks of a mutation no step vouched for:
  * does the caller hold `can_write_reserved_labels` on `platform:stigmer`?
- * Exported for the one other write a caller cannot vouch for by itself
- * under the same rule — a turn's link to a workflow run
- * (domain/agentrun/vouch-workflow-parent.ts). An authorization
- * outage fails closed as a sanitized Internal (#478), never an answer.
+ * An authorization outage fails closed as a sanitized Internal (#478),
+ * never an answer.
  */
 export async function mayWriteReservedLabels(
   authorizer: Authorizer,

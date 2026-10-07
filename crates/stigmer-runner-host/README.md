@@ -87,9 +87,8 @@ credential vars above — are **reserved**: `start()` rejects them with
 stigmer-runner-host = { version = "0.1", features = ["tauri"] }
 ```
 
-Manage a `RunnerState` and register the nine commands (`start_runner`, `stop_runner`,
-`kill_runner`, `add_session`, `remove_session`, `add_workflow_execution`,
-`remove_workflow_execution`, `update_runner_token`, `runner_status`) in
+Manage a `RunnerState` and register the seven commands (`start_runner`, `stop_runner`,
+`kill_runner`, `add_session`, `remove_session`, `update_runner_token`, `runner_status`) in
 `tauri::generate_handler!`.
 
 Reap the runner on app exit from your `RunEvent::Exit` handler with `RunnerState::kill()` —
@@ -111,7 +110,7 @@ forever (issue #178). `kill()` is a timer-free SIGKILL-then-reap and cannot park
 
 ## Protocol version compatibility
 
-The crate speaks `IPC_PROTOCOL_VERSION` (currently `1`). On the `ready` handshake it
+The crate speaks `IPC_PROTOCOL_VERSION` (currently `2`). On the `ready` handshake it
 reconciles its version against the runner's: a runner advertising a **higher** version is
 rejected with `RunnerHostError::ProtocolVersionMismatch` (this host is too old to
 understand it). The version bumps only on a breaking change; additive changes never bump

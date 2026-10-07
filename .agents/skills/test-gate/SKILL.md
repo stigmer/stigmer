@@ -23,13 +23,13 @@ and the questions before "done". Read it once per session under this gate.
 ## For every piece of work in the conversation
 
 1. **List what changed.** New or modified RPCs, Temporal workflows or
-   activities, agent behaviours, workflow task types, CLI commands or flags, UI
-   components or interactions, bug fixes (what was broken, what was fixed),
-   refactors (what behaviour must hold).
+   activities, agent behaviours, CLI commands or flags, UI components or
+   interactions, bug fixes (what was broken, what was fixed), refactors (what
+   behaviour must hold).
 2. **Write the integration test first.** For each change ask how it is proven
-   through the real system: an RPC through a running server, a workflow through
-   the harness, an agent behaviour through run status against the scripted
-   model, a CLI command through its output, a browser journey through
+   through the real system: an RPC through a running server, a Temporal workflow
+   through the harness, an agent behaviour through run status against the
+   scripted model, a CLI command through its output, a browser journey through
    Playwright. The conformance suite is the home for cross-edition contracts and
    runner behaviour; `.agents/skills/conformance-test-authoring/SKILL.md` says
    how a test there is shaped. A bug fix's test reproduces the bug before the

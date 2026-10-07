@@ -33,11 +33,9 @@
  * makes the evaluator deny, never allow.
  *
  * `derived` names the relations `kind_meta.authorization` cannot derive
- * from the row alone: `run_viewer` on a workflow
- * (`spec.run_visibility`; run-viewer.ts), and an
- * organization's `parent_org` and `child_org` edges
- * (child-organizations.ts). The binding table (bindings.ts) attaches
- * them; the tuple source dispatches to them by relation.
+ * from the row alone: an organization's `parent_org` and `child_org`
+ * edges (child-organizations.ts). The binding table (bindings.ts)
+ * attaches them; the tuple source dispatches to them by relation.
  *
  * Only types live here: the one producer of production declarations is
  * the reader joined with the bindings (model/index.ts). Tests build

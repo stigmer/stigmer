@@ -9,7 +9,8 @@
 // shown (the reply alone cannot show an edit). `checks` are the benchmark's
 // own deterministic reads of that end state, a closed set so the file stays
 // declarative. The judge gets `rubric` as its instructions and scores every
-// entry of `criteria` 0..1; the eval weights them into the task's score.
+// entry of `criteria` 0..1; the benchmark weights them into the task's score
+// (quality.ts).
 //
 // The reader takes the already-parsed document (the script owns the YAML
 // parse and the file read), and refuses by naming the field, the way the

@@ -1,8 +1,7 @@
 /**
  * The content hash of a typed spec: SHA-256 over a canonical JSON rendering,
  * for every kind whose version is its stored spec rather than a pushed
- * archive or a generated document (agents today; workflows hash their
- * generated YAML and skills and plugins their archive bytes).
+ * archive (agents today; skills and plugins hash their archive bytes).
  *
  * The rendering is chosen so a hash moves only when the content does:
  *   - unset and default-valued fields are omitted (protobuf JSON's default),

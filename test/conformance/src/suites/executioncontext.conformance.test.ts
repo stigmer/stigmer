@@ -17,7 +17,7 @@
 // live execution and is covered by the execution-lifecycle session. Here we test
 // the resource's own API contract by creating contexts directly. A context
 // bound to a run is the server's to create: a create naming a run's id
-// (`aex_…`, `wex_…`) is refused, so these contexts name ids that bind none.
+// (`aex_…`) is refused, so these contexts name ids that bind none.
 //
 // Secret value handling is edition-CONVERGED since stigmer#535 (following
 // Environment, converged in stigmer#405): both editions encrypt EC values at
@@ -229,7 +229,7 @@ describe("ExecutionContext conformance — secrets", () => {
   it("[rpc:ExecutionContextQueryController.getByExecutionId] getByExecutionId under a user token follows the same secret contract as get", async () => {
     // getByExecutionId is the runner's secret-delivery path, but it decrypts
     // only for scope-bound runner credentials (cloud: token_type of sandbox /
-    // workflow_sandbox / connect_sandbox, each bound to the EC it reads, with
+    // connect_sandbox, each bound to the EC it reads, with
     // the unscoped embedded_runner bootstrap credential refused; OSS: the
     // execution-scoped token minted by getRunnerScopedToken — stigmer#535).
     // The conformance harness authenticates as a user, so it must see the
@@ -321,16 +321,15 @@ describe("[rpc:ExecutionContextCommandController.create] ExecutionContext confor
 
   it("refuses a create naming a run's execution id (contract: PermissionDenied)", async () => {
     const { org } = await target.provisionTenancy();
-    for (const executionId of [`aex_${uniqueName("bound")}`, `wex_${uniqueName("bound")}`]) {
-      await expectGrpcCode(
-        () =>
-          clients.executionContextCommand.create(
-            makeExecutionContext({ org, name: uniqueName("bound"), executionId }),
-          ),
-        Code.PermissionDenied,
-        `create naming ${executionId}`,
-      );
-    }
+    const executionId = `aex_${uniqueName("bound")}`;
+    await expectGrpcCode(
+      () =>
+        clients.executionContextCommand.create(
+          makeExecutionContext({ org, name: uniqueName("bound"), executionId }),
+        ),
+      Code.PermissionDenied,
+      `create naming ${executionId}`,
+    );
   });
 
   it("rejects a duplicate create (contract: AlreadyExists)", async () => {

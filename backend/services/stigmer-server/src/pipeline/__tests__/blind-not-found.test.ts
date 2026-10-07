@@ -232,8 +232,8 @@ describe("the blind-NotFound rule", () => {
     expect(
       blindLinesOf(`
         function mapNotFound(error: unknown, id: string): unknown {
-          if (error instanceof WorkflowNotFoundError) {
-            return notFoundError("workflow", id);
+          if (error instanceof AgentNotFoundError) {
+            return notFoundError("agent", id);
           }
           return error;
         }

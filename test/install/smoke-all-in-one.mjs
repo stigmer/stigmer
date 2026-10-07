@@ -21,15 +21,15 @@
  *      `stigmer`, which it fills into every request that names none (a fresh
  *      install needs no default content because a session with no agent runs
  *      the built-in assistant);
- *   5. one end-to-end run — an LLM-free set_vars workflow — reaches
- *      RUN_COMPLETED: only possible if the embedded Temporal, the
- *      server's workers AND the embedded runner all work inside the one
- *      container (this is also the only boot check the EMITTED slim npm
- *      packages get, the shape a laptop's `stigmer up` acquires); then an
- *      agent answers: the container is started the way a user configures a
- *      model (ANTHROPIC_API_KEY and ANTHROPIC_BASE_URL), pointed at a fake
- *      Anthropic API on this host (test/install/lib/fake-model.mjs), and the
- *      run must complete with the fake's reply as its last message;
+ *   5. one end-to-end agent run reaches RUN_COMPLETED with the model's
+ *      reply: only possible if the embedded Temporal, the server's workers
+ *      AND the embedded runner all work inside the one container (this is
+ *      also the only boot check the EMITTED slim npm packages get, the shape
+ *      a laptop's `stigmer up` acquires). The container is started the way a
+ *      user configures a model (ANTHROPIC_API_KEY and ANTHROPIC_BASE_URL),
+ *      pointed at a fake Anthropic API on this host
+ *      (test/install/lib/fake-model.mjs), and the run must complete with the
+ *      fake's reply as its last message;
  *   6. the artifact file server answers on its published port;
  *   7. state survives `docker restart`, the agent's reply included;
  *   8. state and liveness survive an UNCLEAN restart (`docker kill`, then
@@ -67,12 +67,10 @@ import process from "node:process";
 import {
   assertArtifactLane,
   assertConsoleServed,
-  connectJson,
   lastAiReply,
   pollUntil,
   readAgentExecution,
   runAgentToReply,
-  runSetVarsWorkflow,
   sleep,
   readSingleOrganization,
   waitForServing,
@@ -183,11 +181,12 @@ async function main() {
     const orgId = await readSingleOrganization(baseUrl);
     log(`organization 'stigmer' made by the server at its first start (${orgId})`);
 
-    // 5. The end-to-end run through Temporal, the server's workers and the runner.
-    const { executionId } = await runSetVarsWorkflow(baseUrl, RUN_COMPLETED_TIMEOUT_MS, log);
-    log(`end-to-end run: execution ${executionId} COMPLETED inside the one container`);
+    // 5. The end-to-end agent run through Temporal, the server's workers and
+    // the runner, answered by the model.
     const agentRun = await runAgentToReply(baseUrl, RUN_COMPLETED_TIMEOUT_MS, { expectText: fake.replyText, log });
-    log(`agent run: execution ${agentRun.executionId} COMPLETED with the model's reply (${fake.requests()} model calls)`);
+    log(
+      `agent run: execution ${agentRun.executionId} COMPLETED inside the one container with the model's reply (${fake.requests()} model calls)`,
+    );
 
     // 6. The artifact lane on its published port.
     await assertArtifactLane(artifactUrl);
@@ -198,15 +197,10 @@ async function main() {
     docker(["restart", "--time", String(STOP_GRACE_SECONDS), container]);
     await aio.waitHealthy();
     const restartedBase = aio.baseUrl();
-    const after = await connectJson(
-      restartedBase,
-      "ai.stigmer.agentic.workflowrun.v1.WorkflowRunQueryController/get",
-      { value: executionId },
-    );
-    if (after.status?.phase !== "RUN_COMPLETED") {
-      throw new Error(`execution ${executionId} not found or not completed after restart: ${JSON.stringify(after.status)}`);
-    }
     const agentAfter = await readAgentExecution(restartedBase, agentRun.executionId);
+    if (agentAfter.status?.phase !== "RUN_COMPLETED") {
+      throw new Error(`agent execution ${agentRun.executionId} not completed after restart: ${JSON.stringify(agentAfter.status)}`);
+    }
     if (lastAiReply(agentAfter) !== agentRun.reply) {
       throw new Error(`agent execution ${agentRun.executionId} lost its reply across the restart: ${JSON.stringify(agentAfter.status)}`);
     }
@@ -230,13 +224,9 @@ async function main() {
         `Temporal churned across the supervisor window: processes ${countBefore}->${countAfter}, pid ${pidBefore}->${pidAfter} (a restart loop)`,
       );
     }
-    const stillThere = await connectJson(
-      uncleanBase,
-      "ai.stigmer.agentic.workflowrun.v1.WorkflowRunQueryController/get",
-      { value: executionId },
-    );
+    const stillThere = await readAgentExecution(uncleanBase, agentRun.executionId);
     if (stillThere.status?.phase !== "RUN_COMPLETED") {
-      throw new Error(`execution ${executionId} lost across the unclean restart`);
+      throw new Error(`agent execution ${agentRun.executionId} lost across the unclean restart`);
     }
     log("unclean restart: recovered; one Temporal, same pid, across three supervisor ticks; state intact");
 

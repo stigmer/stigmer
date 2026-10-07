@@ -8,11 +8,7 @@ describe("OTel Metrics Registry", () => {
 
   it("creates all required instruments", async () => {
     const instruments = await getInstruments();
-    expect(instruments.executionCount).toBeDefined();
-    expect(instruments.executionActive).toBeDefined();
     expect(instruments.activityDuration).toBeDefined();
-    expect(instruments.workflowTaskDuration).toBeDefined();
-    expect(instruments.workflowTaskCount).toBeDefined();
     expect(instruments.runnerBootDuration).toBeDefined();
     expect(instruments.executionSetupDuration).toBeDefined();
     expect(instruments.poolAttachDuration).toBeDefined();
@@ -26,12 +22,7 @@ describe("OTel Metrics Registry", () => {
 
   it("instruments are callable without throwing (no-op meter)", async () => {
     const instruments = await getInstruments();
-    expect(() => instruments.executionCount.add(1)).not.toThrow();
-    expect(() => instruments.executionActive.add(1)).not.toThrow();
-    expect(() => instruments.executionActive.add(-1)).not.toThrow();
     expect(() => instruments.activityDuration.record(150)).not.toThrow();
-    expect(() => instruments.workflowTaskDuration.record(42)).not.toThrow();
-    expect(() => instruments.workflowTaskCount.add(1, { "task.kind": "set" })).not.toThrow();
     expect(() => instruments.runnerBootDuration.record(6200, { mode: "cloud" })).not.toThrow();
     expect(() => instruments.executionSetupDuration.record(3000, { harness: "cursor" })).not.toThrow();
     expect(() => instruments.poolAttachDuration.record(400)).not.toThrow();

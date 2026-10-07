@@ -12,7 +12,7 @@ import { firstMemberWinsOrder, goQuote, hasExplicitPresence, indefiniteArticle, 
 import { isPythonKeyword, pyClientFieldName, pyFieldName, pyMethodName, pyProtoFileToModule, pyProtoImportLine, pyProtoModuleAlias, pyStubMethodName } from "./lang-names.js";
 import type { ResourceGenInfo, SdkResourceConfig } from "./sdk-resource-config.js";
 import { deriveResourceConfig, loadSpecSchemaWithTypes, META_FIELD_NAMES } from "./sdk-resource-config.js";
-import type { FieldSchema, TaskConfigSchema, TypeSchema, TypeSpec } from "./schema.js";
+import type { FieldSchema, SpecSchema, TypeSchema, TypeSpec } from "./schema.js";
 import { readDirSorted } from "./schema.js";
 
 function pyServiceModule(svc: ServiceDefinition): string {
@@ -369,7 +369,7 @@ export function runSDKClientPythonGeneration(schemaDir: string, outputDir: strin
     const schema = JSON.parse(fs.readFileSync(path.join(servicesDir, entry.name), "utf8")) as ServiceSchemaFile;
     const cfg = deriveResourceConfig(schema, schemaDir);
 
-    let specSchema: TaskConfigSchema | null = null;
+    let specSchema: SpecSchema | null = null;
     let specTypes: TypeSchema[] = [];
     if (cfg.specSchema !== "") {
       [specSchema, specTypes] = loadSpecSchemaWithTypes(path.join(schemaDir, cfg.specSchema));
@@ -394,7 +394,7 @@ export function runSDKClientPythonGeneration(schemaDir: string, outputDir: strin
 function generatePythonResourceClient(
   schema: ServiceSchemaFile,
   cfg: SdkResourceConfig,
-  specSchema: TaskConfigSchema | null,
+  specSchema: SpecSchema | null,
   specTypes: TypeSchema[],
   globalEmitted: Map<string, string>,
 ): [string, ResourceGenInfo] {
@@ -728,7 +728,7 @@ function generatePythonInputAndProto(
   buf: string[],
   schema: ServiceSchemaFile,
   cfg: SdkResourceConfig,
-  spec: TaskConfigSchema,
+  spec: SpecSchema,
   typeMap: Map<string, TypeSchema>,
   imports: PyImports,
   globalEmitted: Map<string, string>,
@@ -797,7 +797,7 @@ function emitPyFields(buf: string[], fields: FieldSchema[], imports: PyImports):
   }
 }
 
-function emitPyMainToProto(buf: string[], cfg: SdkResourceConfig, spec: TaskConfigSchema, specFields: FieldSchema[], imports: PyImports): void {
+function emitPyMainToProto(buf: string[], cfg: SdkResourceConfig, spec: SpecSchema, specFields: FieldSchema[], imports: PyImports): void {
   const safeScalars: FieldSchema[] = [];
   const kwScalars: FieldSchema[] = [];
   const complexFields: FieldSchema[] = [];

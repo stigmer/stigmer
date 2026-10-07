@@ -112,7 +112,7 @@ At runtime, the Agent does not connect to MCP servers directly. The flow is:
 1. **Agent** declares `mcp_server_usages` (references only — no connections, no
    secrets)
 2. **The run** resolves the declared keys when it starts: from the Environments
-   bound to the schedule, workflow task or PlatformClient that started it, from
+   bound to the schedule or PlatformClient that started it, from
    `runtime_env`, then OAuth tokens and the personal environment of the person
    who sent the message for keys still missing
 3. **Agent Runner** resolves each McpServer reference, passes each server the
@@ -121,5 +121,5 @@ At runtime, the Agent does not connect to MCP servers directly. The flow is:
    AgentRun
 
 This separation means the Agent YAML is portable and contains no secrets.
-Different schedules or workflow tasks can bind the same Agent to different
+Different schedules can bind the same Agent to different
 environments (e.g., staging vs production credentials).

@@ -38,7 +38,7 @@ repository is in [references/test-discipline.md](references/test-discipline.md).
 
 Extend the existing `<domain>-<facet>.conformance.test.ts` when the facet
 exists; the execution class has one file per facet (`agentrun-approval`,
-`agentrun-file-review`, `workflowrun-signal`, and the rest), and a new file is a
+`agentrun-file-review`, `schedule-firing`, and the rest), and a new file is a
 new facet, opened with an intent header that states the contract it pins and
 what is deliberately out of scope.
 
@@ -75,10 +75,9 @@ workspace, script write and edit turns, `awaitFileReview`, decide with
 `submitFileDecisionByPath` or `submitChangeSetDecision`, then read the tree back
 (`test/conformance/src/support/file-review.ts`).
 
-For workflows: `makeLlmCallWorkflow`, `makeEvalWorkflow`,
-`makeHumanInputWorkflow` and their siblings in
-`test/conformance/src/support/workflows.ts`; `awaitTaskStatus` in
-`test/conformance/src/support/workflowruns.ts`.
+For a schedule: `makeSchedule` in `test/conformance/src/support/schedules.ts`.
+For anything else that advances on its own: `pollUntil` in
+`test/conformance/src/support/run-poll.ts`, never a fixed sleep.
 
 ## Reuse the harness
 

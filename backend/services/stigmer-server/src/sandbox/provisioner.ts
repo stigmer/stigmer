@@ -7,16 +7,12 @@
  * the isolated runner that polls one execution-scoped Temporal task
  * queue.
  *
- * Scope vocabulary (the Java interface's three variants, kept exactly):
+ * Scope vocabulary:
  *
  *   - SESSION: long-lived, one sandbox per session, ensure is IDEMPOTENT
  *     ensure-as-state-machine (absent → provision; stopped → start;
  *     running → fast path). Invoked non-critically after the execution's
  *     workflow starts (see steps.ts).
- *   - WORKFLOW: ephemeral, one sandbox per workflow execution (shared by
- *     the workflow AND its nested child agent executions via the wfexec:
- *     queue-override lane — dispatch.ts). Ensured critically BEFORE the
- *     execution persists; deprovisioned on the terminal phase transition.
  *   - CONNECT: request-scoped, NOT idempotent; the caller must
  *     deprovision when the connect settles. Every MCP connect provisions
  *     one when a provisioner is composed, and its workflow runs on the
@@ -53,7 +49,7 @@ import { SERVER_RELEASE_ENV } from "./runner-launch.js";
  * configuration, not per-sandbox state.
  */
 export interface SandboxEnvironment {
-  /** The Temporal task queue the sandboxed runner polls (session:{id} / wfexec:{id}). */
+  /** The Temporal task queue the sandboxed runner polls (session:{id} / mcpconnect:{id}). */
   readonly taskQueue: string;
   /**
    * The runner credential injected as STIGMER_TOKEN. "" means none was
@@ -79,7 +75,7 @@ export interface SandboxEnvironment {
 export type SandboxProbeState = "absent" | "stopped" | "running";
 
 /** The scope discriminant, shared by probe and the drivers' naming. */
-export type SandboxScope = "session" | "workflow" | "connect";
+export type SandboxScope = "session" | "connect";
 
 /**
  * The driver contract. Implementations must be safe for concurrent use —
@@ -99,16 +95,6 @@ export interface SandboxProvisioner {
   ): Promise<void>;
   /** Tears down the session sandbox; missing is success (idempotent). */
   deprovisionSessionSandbox(sessionId: string): Promise<void>;
-  /**
-   * Ensures the per-execution workflow sandbox. Same state-machine
-   * semantics; the sandbox lives exactly as long as the execution runs.
-   */
-  ensureWorkflowSandbox(
-    executionId: string,
-    env: SandboxEnvironment,
-  ): Promise<void>;
-  /** Tears down the workflow sandbox; missing is success (idempotent). */
-  deprovisionWorkflowSandbox(executionId: string): Promise<void>;
   /**
    * Creates a request-scoped connect sandbox and returns the provider's
    * sandbox id. NOT idempotent — the caller owns deprovision when the

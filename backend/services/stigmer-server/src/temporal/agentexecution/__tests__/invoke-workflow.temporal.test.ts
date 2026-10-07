@@ -5,7 +5,12 @@
  * recorder).
  *
  * What these pin (all load-bearing orchestration contracts):
- *   - the happy path (EnsureThread → ExecuteDeepAgent → EC cleanup);
+ *   - the happy path (EnsureThread → ExecuteDeepAgent → EC cleanup), and
+ *     the same run from an input that still carries the retired
+ *     `callback_token` and `parent_workflow_id` keys (an older server's
+ *     dispatch): the keys are ignored and it runs as an ordinary run,
+ *     its own history recording no signal or cancel to another workflow
+ *     and no activity beyond an ordinary run's;
  *   - the HITL loop (WAITING persist → gate re-read → approvalGateResolved
  *     → re-invoke with TurnSeq = approvalCycle — the deterministic
  *     change-set id input);
@@ -22,8 +27,6 @@
  *     flow gets the platform's two lines;
  *   - external cancellation cleanup (CANCELLED persisted quietly —
  *     stigmer#282 — and the EC deleted);
- *   - callback-token completion on success AND failure (oss#861: the TS
- *     error completion WORKS);
  *   - the cursor flow's harness_state_id re-read discipline;
  *   - the run credential handed on (2026-09-16): the workflow input's
  *     `execution_context_token` reaches EVERY Execute* invocation, first
@@ -38,12 +41,14 @@
  * afterEach settles every started workflow so none outlives its script
  * window.
  *
- * Follows the runner's golden-e2e precedent: TestWorkflowEnvironment
- * .createLocal (needs the `temporal` CLI on PATH); every test skips
- * gracefully when the local test server cannot start.
+ * Runs on TestWorkflowEnvironment.createLocal, which downloads and caches
+ * its own Temporal CLI dev server; when that server cannot start, every
+ * test skips visibly with the reason printed, inside the test gate too
+ * (no helper here turns a missing server into a failure).
  */
 import { fromJson, toJson, create } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
+import proto from "@temporalio/proto";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import {
@@ -64,11 +69,12 @@ import {
 } from "../../../domain/agentrun/platform-rows.js";
 
 import {
+  ENSURE_THREAD_ACTIVITY_NAME,
+  EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
+  GENERATE_SESSION_SUBJECT_ACTIVITY_NAME,
   INVOKE_AGENT_EXECUTION_WORKFLOW_NAME,
   MEMO_ACTIVITY_TASK_QUEUE,
   SIGNAL_APPROVAL_GATE_RESOLVED,
-  SIGNAL_CHILD_APPROVAL_REQUIRED,
-  SIGNAL_CHILD_EXECUTION_STARTED,
   SIGNAL_PAUSE,
   SIGNAL_RESUME,
 } from "../names.js";
@@ -100,12 +106,6 @@ interface RecordedStatus {
   readonly status: AgentRunStatus;
 }
 
-interface RecordedCompletion {
-  readonly callbackToken: string;
-  readonly result?: unknown;
-  readonly errorMessage?: string;
-}
-
 interface ActivityScript {
   /** Consumed per ExecuteDeepAgent/ExecuteCursor invocation, in order. */
   executeBehaviors: Array<
@@ -133,7 +133,6 @@ interface ActivityScript {
   /** Consumed per ReadHarnessStateId call, in order; last one sticks. */
   harnessStateIds: Array<string | (() => Promise<string>)>;
   persistedStatuses: RecordedStatus[];
-  completions: RecordedCompletion[];
   deletedExecutionContexts: string[];
   ensureThreadResult: string;
   /**
@@ -168,7 +167,6 @@ function resetScript(): void {
     loadResults: [],
     harnessStateIds: [],
     persistedStatuses: [],
-    completions: [],
     deletedExecutionContexts: [],
     ensureThreadResult: "thread-1",
     releaseBlocked: [],
@@ -295,13 +293,6 @@ function scriptedActivities(): Record<string, (...args: never[]) => Promise<unkn
     DeleteExecutionContext: async (executionId: string): Promise<void> => {
       script.deletedExecutionContexts.push(executionId);
     },
-    "stigmer/system/complete-external-activity": async (input: {
-      callbackToken: string;
-      result?: unknown;
-      errorMessage?: string;
-    }): Promise<void> => {
-      script.completions.push(input);
-    },
   };
 }
 
@@ -339,42 +330,6 @@ async function startWorkflow(
   );
   startedHandles.push(handle);
   return handle;
-}
-
-/**
- * Every outbound external signal, straight from the workflow's own event
- * history — SignalExternalWorkflowExecutionInitiated carries the wire
- * exactly as sent (signal name, target workflow id, payload bytes), so
- * the parent-notification contract is asserted without a live receiver.
- */
-async function externalSignalsSent(
-  handle: import("@temporalio/client").WorkflowHandle,
-): Promise<
-  Array<{ signalName: string; targetWorkflowId: string; payload: unknown }>
-> {
-  const { defaultPayloadConverter } = await import("@temporalio/common");
-  const history = await handle.fetchHistory();
-  const sent: Array<{
-    signalName: string;
-    targetWorkflowId: string;
-    payload: unknown;
-  }> = [];
-  for (const event of history.events ?? []) {
-    const attrs = event.signalExternalWorkflowExecutionInitiatedEventAttributes;
-    if (!attrs) continue;
-    const payloads = attrs.input?.payloads ?? [];
-    sent.push({
-      signalName: attrs.signalName ?? "",
-      targetWorkflowId: attrs.workflowExecution?.workflowId ?? "",
-      payload:
-        payloads.length > 0
-          ? defaultPayloadConverter.fromPayload(
-              payloads[0] as import("@temporalio/common").Payload,
-            )
-          : undefined,
-    });
-  }
-  return sent;
 }
 
 /** Polls the recorder until a status with the given phase lands. */
@@ -475,7 +430,66 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
 
     expect(script.executeCalls).toEqual([{ thread_id: "thread-1", turn_seq: 0 }]);
     expectExecutionContextDeleted();
-    expect(script.completions).toEqual([]);
+  }, 30_000);
+
+  it("runs an input still carrying the retired callback_token and parent_workflow_id keys as an ordinary run", async (testCtx) => {    if (!envReady) return testCtx.skip();
+    script.executeBehaviors = [
+      async () => slimResult(RunPhase.RUN_COMPLETED),
+    ];
+
+    // The shape an older server dispatched for a run a workflow step
+    // started; this interface no longer names either key.
+    const olderServerInput = {
+      ...workflowInput(),
+      callback_token: "Y2FsbGJhY2stdG9rZW4=",
+      parent_workflow_id: "wex-parent-1",
+    };
+    const handle = await startWorkflow(olderServerInput);
+    await handle.result();
+
+    expect(script.executeCalls).toEqual([{ thread_id: "thread-1", turn_seq: 0 }]);
+    expectExecutionContextDeleted();
+
+    // The run's own history: a reintroduced signal or cancel to the
+    // parent the retired keys named, or an activity that completes the
+    // parent's step by its callback token, would be recorded here.
+    const history = await handle.fetchHistory();
+    const events = history.events ?? [];
+    const { EventType } = proto.temporal.api.enums.v1;
+    expect(
+      events
+        .filter(
+          (event) =>
+            event.eventType ===
+              EventType.EVENT_TYPE_SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_INITIATED ||
+            event.eventType ===
+              EventType.EVENT_TYPE_REQUEST_CANCEL_EXTERNAL_WORKFLOW_EXECUTION_INITIATED,
+        )
+        .map((event) => EventType[event.eventType ?? 0]),
+      "no event may reach another workflow",
+    ).toEqual([]);
+    expect(
+      [
+        ...new Set(
+          events
+            .filter(
+              (event) =>
+                event.eventType === EventType.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED,
+            )
+            .map(
+              (event) =>
+                event.activityTaskScheduledEventAttributes?.activityType?.name,
+            ),
+        ),
+      ].sort(),
+      "the run schedules only an ordinary run's activities",
+    ).toEqual(
+      [
+        ENSURE_THREAD_ACTIVITY_NAME,
+        EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
+        GENERATE_SESSION_SUBJECT_ACTIVITY_NAME,
+      ].sort(),
+    );
   }, 30_000);
 
   it("re-invokes after approvalGateResolved with TurnSeq = approvalCycle", async (testCtx) => {    if (!envReady) return testCtx.skip();
@@ -693,87 +707,6 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     expectExecutionContextDeleted();
   }, 60_000);
 
-  it("completes the callback token with the result on success", async (testCtx) => {    if (!envReady) return testCtx.skip();
-    script.executeBehaviors = [
-      async () => ({
-        ...slimResult(RunPhase.RUN_COMPLETED),
-        structuredOutput: { verdict: "ok" },
-        final_text: "done",
-      }),
-    ];
-    script.loadResults = [
-      toJson(
-        AgentRunSchema,
-        create(AgentRunSchema, {
-          metadata: { id: currentExecutionId },
-          status: {
-            phase: RunPhase.RUN_COMPLETED,
-            streamingUsage: { totalTokens: 1234n, estimatedCostUsd: 0.05 },
-          },
-        }),
-      ),
-    ];
-
-    const handle = await startWorkflow(
-      workflowInput({ callback_token: Buffer.from("tok-1").toString("base64") }),
-    );
-    await handle.result();
-
-    expect(script.completions).toHaveLength(1);
-    const completion = script.completions[0]!;
-    expect(completion.errorMessage).toBeUndefined();
-    expect(completion.result).toEqual({
-      agent_execution_id: currentExecutionId,
-      structured: { verdict: "ok" },
-      final_text: "done",
-      // total_tokens is a JSON NUMBER (the cross-component contract; the
-      // bigint is converted explicitly).
-      usage_summary: { total_tokens: 1234, estimated_cost_usd: 0.05 },
-    });
-  }, 30_000);
-
-  it("FAILS the workflow when the callback-result load fails (never a wedged task-retry loop)", async (testCtx) => {
-    if (!envReady) return testCtx.skip();
-    script.executeBehaviors = [
-      async () => slimResult(RunPhase.RUN_COMPLETED),
-    ];
-    // No loadResults scripted: every LoadAgentExecution attempt throws.
-    // The success-path boundary must convert the exhausted retries into a
-    // FAILED WORKFLOW (Go's `return err`) — a plain-Error rethrow would
-    // fail only the workflow TASK, which the server retries forever
-    // and handle.result() would hang instead of reject.
-    script.loadResults = [];
-
-    const handle = await startWorkflow(
-      workflowInput({ callback_token: Buffer.from("tok-load").toString("base64") }),
-    );
-    // The SDK wraps the workflow's ApplicationFailure in a generic
-    // WorkflowFailedError; the pinned load-failure text rides the cause.
-    await expect(handle.result()).rejects.toSatisfy((error: unknown) => {
-      const cause = (error as { cause?: Error }).cause;
-      return /load execution/.test(cause?.message ?? "");
-    });
-    // Go's success path does NOT complete the callback on a load failure
-    // (Run returns the error directly) — the parent times out instead.
-    expect(script.completions).toHaveLength(0);
-  }, 60_000);
-
-  it("completes the callback token with the error on failure (the lane Go cannot deliver, oss#861)", async (testCtx) => {    if (!envReady) return testCtx.skip();
-    script.executeBehaviors = [
-      async () => slimResult(RunPhase.RUN_FAILED, "agent blew up"),
-    ];
-
-    const handle = await startWorkflow(
-      workflowInput({ callback_token: Buffer.from("tok-2").toString("base64") }),
-    );
-    await expect(handle.result()).rejects.toThrow(/Workflow execution failed/);
-
-    expect(script.completions).toHaveLength(1);
-    expect(script.completions[0]!.errorMessage).toContain(
-      "agent execution failed: agent blew up",
-    );
-  }, 30_000);
-
   it("cursor flow re-reads harness_state_id before each re-invocation", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
       async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
@@ -872,127 +805,5 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     await handle.result();
 
     expect(script.subjectArguments).toEqual([currentExecutionId]);
-  }, 30_000);
-
-  it("survives a missing parent workflow for child_execution_started (non-fatal)", async (testCtx) => {    if (!envReady) return testCtx.skip();
-    script.executeBehaviors = [
-      async () => slimResult(RunPhase.RUN_COMPLETED),
-    ];
-
-    const handle = await startWorkflow(
-      workflowInput({ parent_workflow_id: "nonexistent-parent" }),
-    );
-    await handle.result();
-
-    expect(script.executeCalls).toHaveLength(1);
-  }, 30_000);
-
-  // ─── The child_approval_required sender ────────────────────────────────
-  // The OSS half of the child-approval forwarding contract: the HITL loop
-  // notifies parent_workflow_id on EVERY cycle with an identity-only
-  // BARE-STRING payload (the one shape every SDK's default converter
-  // decodes). Asserted from the workflow's own history, the
-  // exact wire a real parent would receive.
-
-  it("emits child_approval_required to the parent on every HITL cycle, including the zero-gate reconcile cycle", async (testCtx) => {    if (!envReady) return testCtx.skip();
-    script.executeBehaviors = [
-      async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
-      async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
-      async () => slimResult(RunPhase.RUN_COMPLETED),
-    ];
-    // Cycle 1: a real pending-approval gate (signal, then wait). Cycle 2:
-    // decided-awaiting-reconcile — the zero-gate immediate re-invoke, which
-    // must STILL notify (cloud calls notifyParentWorkflowOfApproval before
-    // its gate-count branch; the runner treats an empty derivation as
-    // "already resolved").
-    script.loadResults = [
-      executionJson(statusWithPendingApproval()),
-      executionJson(statusDecidedAwaitingReconcile()),
-    ];
-
-    // A nonexistent parent doubles as the non-fatal arm: every signal send
-    // fails, and the run must still complete.
-    const handle = await startWorkflow(
-      workflowInput({ parent_workflow_id: "parent-probe" }),
-    );
-    await waitForPersistedPhase(RunPhase.RUN_WAITING_FOR_APPROVAL);
-    await handle.signal(SIGNAL_APPROVAL_GATE_RESOLVED);
-    await handle.result();
-
-    const approvalSignals = (await externalSignalsSent(handle)).filter(
-      (signal) => signal.signalName === SIGNAL_CHILD_APPROVAL_REQUIRED,
-    );
-    expect(approvalSignals, "one notification per HITL cycle").toHaveLength(2);
-    for (const signal of approvalSignals) {
-      expect(signal.targetWorkflowId).toBe("parent-probe");
-      // The BARE-STRING wire shape — cloud's exact payload, NOT the
-      // {executionId} object child_execution_started carries.
-      expect(signal.payload).toBe(currentExecutionId);
-    }
-
-    // Ordering pin (cloud parity): the notify happens BEFORE the gate wait —
-    // the first outbound child_approval_required must precede the inbound
-    // approvalGateResolved in the event history. A sender moved after the
-    // wait would deadlock the real round-trip (the parent never learns).
-    const events = (await handle.fetchHistory()).events ?? [];
-    const notifyIdx = events.findIndex(
-      (event) =>
-        event.signalExternalWorkflowExecutionInitiatedEventAttributes
-          ?.signalName === SIGNAL_CHILD_APPROVAL_REQUIRED,
-    );
-    const gateResolvedIdx = events.findIndex(
-      (event) =>
-        event.workflowExecutionSignaledEventAttributes?.signalName ===
-        SIGNAL_APPROVAL_GATE_RESOLVED,
-    );
-    expect(notifyIdx).toBeGreaterThanOrEqual(0);
-    expect(gateResolvedIdx).toBeGreaterThanOrEqual(0);
-    expect(
-      notifyIdx,
-      "the parent notification precedes the gate wait",
-    ).toBeLessThan(gateResolvedIdx);
-  }, 30_000);
-
-  it("does not emit child_approval_required when the run never gates", async (testCtx) => {    if (!envReady) return testCtx.skip();
-    script.executeBehaviors = [
-      async () => slimResult(RunPhase.RUN_COMPLETED),
-    ];
-
-    const handle = await startWorkflow(
-      workflowInput({ parent_workflow_id: "parent-probe" }),
-    );
-    await handle.result();
-
-    const signals = await externalSignalsSent(handle);
-    // The started notification is the parent-liveness lane and always fires;
-    // the approval notification is gate-scoped and must not.
-    const started = signals.filter(
-      (signal) => signal.signalName === SIGNAL_CHILD_EXECUTION_STARTED,
-    );
-    expect(started).toHaveLength(1);
-    // The sibling-signal payload asymmetry, pinned: started carries the
-    // {executionId} object (the shape the runner's handler tolerates),
-    // while child_approval_required carries cloud's bare string.
-    expect(started[0]!.payload).toEqual({ executionId: currentExecutionId });
-    expect(
-      signals.filter((signal) => signal.signalName === SIGNAL_CHILD_APPROVAL_REQUIRED),
-    ).toHaveLength(0);
-  }, 30_000);
-
-  it("does not signal any parent when invoked directly (no parent_workflow_id)", async (testCtx) => {    if (!envReady) return testCtx.skip();
-    script.executeBehaviors = [
-      async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
-      async () => slimResult(RunPhase.RUN_COMPLETED),
-    ];
-    script.loadResults = [executionJson(statusWithPendingApproval())];
-
-    const handle = await startWorkflow(workflowInput());
-    await waitForPersistedPhase(RunPhase.RUN_WAITING_FOR_APPROVAL);
-    await handle.signal(SIGNAL_APPROVAL_GATE_RESOLVED);
-    await handle.result();
-
-    // Gated AND resumed, yet zero external signals of any kind: the guard
-    // keys on parent_workflow_id presence, not on the gate.
-    expect(await externalSignalsSent(handle)).toHaveLength(0);
   }, 30_000);
 });

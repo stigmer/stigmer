@@ -316,7 +316,7 @@ enum ApiResourceKind {
 
   // Tenancy - Platform and organizational resources
 
-  // The boundary that holds people, Agents, Workflows, Sessions and secrets
+  // The boundary that holds people, Agents, Sessions and secrets
   // together; nothing outside it sees them.
   //
   // Its id is a minted org_<ulid> that never changes; every organization-scoped
@@ -589,37 +589,12 @@ enum ApiResourceKind {
   reserved 49;
   reserved "datastore";
 
-  // Agentic - Workflow orchestration
-
-  // Multi-step orchestration defining how agents collaborate on a task.
-  workflow = 50 [(kind_meta) = {
-    group: agentic
-    version: v1
-    name: "Workflow"
-    display_name: "Workflow"
-    id_prefix: "wfl"
-    is_versioned: true
-    not_search_indexed: false
-    tier: open_source
-    authorization: {
-      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
-      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-      visibility: {
-        supports_org: true
-        supports_child_orgs: true
-        defaults_to_org_visibility: true
-      }
-      grantable_roles: [
-        owner,
-        editor,
-        viewer
-      ]
-      team_grantable_roles: [
-        editor,
-        viewer
-      ]
-    }
-  }];
+  // Value 50 held the Workflow kind (id prefix "wfl": a user-authored
+  // multi-step definition run by the step engine) until the workflow
+  // product was removed platform-wide. Reserved so the number is never
+  // reused for a different kind.
+  reserved 50;
+  reserved "workflow";
 
   // Value 51 was the workflow instance, a configured deployment of a
   // workflow, removed when runs came to name their workflow directly and run
@@ -628,41 +603,15 @@ enum ApiResourceKind {
   reserved 51;
   reserved "workflow_instance";
 
-  // Single run of a workflow, tracking step progress and outcomes.
-  workflow_run = 52 [(kind_meta) = {
-    group: agentic
-    version: v1
-    name: "WorkflowRun"
-    display_name: "Workflow Run"
-    id_prefix: "wex"
-    is_versioned: false
-    not_search_indexed: false
-    tier: open_source
-    authorization: {
-      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
-      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-      // The workflow link is REQUIRED, not cosmetic: a run inherits opt-in
-      // org run observability via `run_viewer from workflow` (see
-      // workflow_run.fga). Without this parent tuple the inheritance
-      // has nothing to traverse, so enabling a workflow's run
-      // visibility would silently fail to expose its runs. Mirrors
-      // agent_run's session parent (there via PARENT scope).
-      additional_parents: [
-        {
-          kind: "workflow"
-          relation: "workflow"
-          spec_field: "workflow_id"
-        }
-      ]
-      grantable_roles: [
-        owner,
-        viewer
-      ]
-      team_grantable_roles: [viewer]
-    }
-  }];
+  // Value 52 held the WorkflowRun kind (id prefix "wex": one run of a
+  // Workflow) until the workflow product was removed platform-wide.
+  // Reserved so the number is never reused for a different kind.
+  reserved 52;
+  reserved "workflow_run";
 
-  // Named set of variables and secrets for agent and workflow run.
+  // Agentic - Run environment and context
+
+  // Named set of variables and secrets for an agent run.
   environment = 53 [(kind_meta) = {
     group: agentic
     version: v1
@@ -691,33 +640,6 @@ enum ApiResourceKind {
     }
   }];
 
-  // Persisted blob produced during workflow or agent run.
-  artifact = 55 [(kind_meta) = {
-    group: agentic
-    version: v1
-    name: "Artifact"
-    display_name: "Artifact"
-    id_prefix: "art"
-    is_versioned: false
-    // Truthed by stigmer/stigmer#439: NEITHER edition has ever registered a
-    // search extractor for artifacts (nothing indexes artifact writes), so
-    // the earlier `false` promised a search surface that never existed.
-    // Flip this back only together with real extractors in both editions.
-    not_search_indexed: true
-    tier: open_source
-    authorization: {
-      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
-      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-      grantable_roles: [
-        owner,
-        viewer
-      ]
-      // No team_grantable_roles: every organization viewer already reads
-      // every artifact (`viewer from organization`), and a team's members
-      // are organization viewers, so a team grant here would add nothing.
-    }
-  }];
-
   // User-owned runtime context for managing execution state.
   execution_context = 54 [(kind_meta) = {
     group: agentic
@@ -733,6 +655,14 @@ enum ApiResourceKind {
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
     }
   }];
+
+  // Value 55 held the Artifact kind (id prefix "art": a blob a workflow
+  // step promoted from its output) until the workflow product, its only
+  // producer, was removed platform-wide. An agent run's own files are
+  // RunArtifact entries on the run's status, not this kind. Reserved so
+  // the number is never reused for a different kind.
+  reserved 55;
+  reserved "artifact";
 
   // Agentic - Scheduling
 
@@ -802,7 +732,7 @@ enum ApiResourceKind {
   // Agentic - Plugin (the unit of install)
 
   // An installed Agent Plugins package: the archive Stigmer materialised into
-  // skills, MCP servers, an agent and workflows, and the handle that upgrades
+  // skills, MCP servers and an agent, and the handle that upgrades
   // and removes them together. A plugin is what you install; an agent is what
   // runs. Members are the resources labelled with the plugin's id.
   plugin = 58 [(kind_meta) = {

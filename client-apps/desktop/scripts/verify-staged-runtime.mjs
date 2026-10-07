@@ -19,7 +19,8 @@
 //      checkpointer imports it at boot (backend/services/runner/src/preflight.ts).
 //   3. A WebAssembly module compiles and runs: executable memory, the grant the
 //      hardened runtime withholds unless the engine carries allow-jit
-//      (macos-entitlements/node-runtime.plist). jq-wasm is the runner's user.
+//      (macos-entitlements/node-runtime.plist). The runner's bundled source-map
+//      lazy-loads mappings.wasm for Temporal's workflow stack traces.
 //   4. Every native module (*.node) in the staged runner loads into this
 //      engine. On a signed macOS build that is library validation: each module
 //      must carry this engine's signing identity, which is why the engine needs

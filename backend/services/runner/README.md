@@ -1,6 +1,6 @@
 # @stigmer/runner
 
-Embeddable Temporal worker for the Stigmer AI agent platform. The runner executes agent sessions and workflow executions — driving the Cursor and native (deep-agent) harnesses, orchestrating MCP servers, and reporting status and artifacts back to the Stigmer backend.
+Embeddable Temporal worker for the Stigmer AI agent platform. The runner executes agent sessions — driving the Cursor and native (deep-agent) harnesses, orchestrating MCP servers, and reporting status and artifacts back to the Stigmer backend.
 
 It is the single runtime behind three surfaces:
 
@@ -34,7 +34,7 @@ The plain `dist/` resolves its dependencies from `node_modules` at runtime — ~
 make build-runner-slim          # or: npm run build:slim
 ```
 
-This produces `dist-slim/`: a tree-shaken esbuild bundle of the whole runner (`main.js`), a build-time-prebuilt Temporal workflow bundle, and a staged `node_modules` containing only the packages that genuinely cannot be bundled (the platform-pruned Temporal native bridge, `@cursor/sdk` and its native binaries, `jq-wasm`) — **~85 MB per platform**. `node dist-slim/main.js` accepts the same modes, environment variables, and IPC protocol as `dist/main.js`. It also holds `attach/main.js`, the attach entry (below) bundled on its own, which starts the `main.js` beside it with the same Node. See `scripts/bundle-slim.mjs` for the full layout, `scripts/verify-slim-artifact.mjs` for the boot verification that gates releases, and the [embedding guide](https://stigmer.ai/docs/guides/runners/embedding) for how apps stage it.
+This produces `dist-slim/`: a tree-shaken esbuild bundle of the whole runner (`main.js`), a build-time-prebuilt Temporal workflow bundle, and a staged `node_modules` containing only the packages that genuinely cannot be bundled (the platform-pruned Temporal native bridge, `@cursor/sdk` and its native binaries) — **~85 MB per platform**. `node dist-slim/main.js` accepts the same modes, environment variables, and IPC protocol as `dist/main.js`. It also holds `attach/main.js`, the attach entry (below) bundled on its own, which starts the `main.js` beside it with the same Node. See `scripts/bundle-slim.mjs` for the full layout, `scripts/verify-slim-artifact.mjs` for the boot verification that gates releases, and the [embedding guide](https://stigmer.ai/docs/guides/runners/embedding) for how apps stage it.
 
 > **Why the slim bundle is CommonJS, not ESM.** The runner's auth correctness depends on a deliberate module **load order**: it installs the fetch + HTTP/2 interceptors first, then lazily loads `@cursor/sdk` and `@connectrpc/connect-node` (via dynamic `import()`) so the interceptors are in place before those packages capture `globalThis.fetch` / snapshot the `node:http2` ESM facade. An **ESM** esbuild bundle destroys this — it hoists every external `import` to the top of the output and evaluates them before any code runs, freezing the `node:http2` facade and capturing the original `fetch` before install, which silently breaks proxy auth on the authenticated path (this was the regression in [#170](https://github.com/stigmer/stigmer/issues/170)). A **CJS** bundle preserves the source's lazy evaluation order, so the dynamic-import boundary keeps both interceptors correct. The meta `package.json` deliberately omits `"type": "module"` so `node main.js` runs as CommonJS — do **not** add it back, and do not flip `format` to `"esm"` in `bundle-slim.mjs`. The boot guard `assertHttp2ConnectPatched()` plus the authenticated check in `verify-slim-artifact.mjs` fail loudly if this is ever reverted.
 
@@ -77,7 +77,7 @@ The `stigmer-runner` CLI runs this mode by default, reading its configuration fr
 
 ### Manager mode
 
-Manager mode keeps a single shared Temporal connection and a single set of activities, then spins Workers up and down on demand — one per session (`session:{sessionId}`) and one per workflow execution (`wfexec:{executionId}`). This is what the desktop app needs: it adds and removes Workers as the user opens and closes sessions, without restarting the process.
+Manager mode keeps a single shared Temporal connection and a single set of activities, then spins Workers up and down on demand — one per session (`session:{sessionId}`). This is what the desktop app needs: it adds and removes Workers as the user opens and closes sessions, without restarting the process.
 
 As a library:
 
@@ -95,7 +95,7 @@ await manager.removeSession("ses_abc123");
 await manager.shutdown();
 ```
 
-As a subprocess, the host launches `stigmer-runner` with `STIGMER_RUNNER_MODE=manager` and drives it over a line-delimited JSON protocol on stdin/stdout (`addSession`, `removeSession`, `addWorkflowExecution`, `updateToken`, `shutdown`). The protocol surface is intentionally small and is specified in detail elsewhere — see [Related documentation](#related-documentation).
+As a subprocess, the host launches `stigmer-runner` with `STIGMER_RUNNER_MODE=manager` and drives it over a line-delimited JSON protocol on stdin/stdout (`addSession`, `removeSession`, `updateToken`, `shutdown`). The protocol surface is intentionally small and is specified in detail elsewhere — see [Related documentation](#related-documentation).
 
 ### The attach entry (a sandbox that waits to be attached)
 
@@ -275,7 +275,6 @@ These tune internal behavior or support testing. Most operators never set them.
 | `STIGMER_MCP_PUBLIC_ENDPOINT` | _(none)_ | The server's public endpoint. A server that provisions this runner's sandbox sets it from its own configuration (`STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT`). Fills `STIGMER_SERVER_ADDRESS` (as `host:port`) for MCP servers that declare it and carry no value; without it, only stdio servers are filled, from `STIGMER_BACKEND_ENDPOINT`. A value already present is never overridden. |
 | `CURSOR_EVENT_RECORD_DIR` | _(none)_ | Directory to record Cursor harness events (debugging/fixtures). |
 | `V3_EVENT_RECORD_DIR` | _(none)_ | Directory to record deep-agent harness events (debugging/fixtures). |
-| `RECORD_FIXTURES` | `0` | When `1`, records HTTP fixtures for replay-based tests. |
 
 ## Related documentation
 

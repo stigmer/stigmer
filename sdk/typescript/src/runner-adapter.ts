@@ -32,8 +32,9 @@ export interface RunnerAdapter {
 }
 
 /**
- * A runner backend that can start and stop per-session workers. This is the worker-lifecycle slice of a runner host — the only
- * capability `createRunnerAdapter` needs — not the full process surface
+ * A runner backend that can start and stop per-session workers. This is
+ * the worker-lifecycle slice of a runner host — the only capability
+ * `createRunnerAdapter` needs — not the full process surface
  * (start/status/token/shutdown).
  *
  * Several backends already satisfy this shape structurally: the in-process

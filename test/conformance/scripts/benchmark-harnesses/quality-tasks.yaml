@@ -6,12 +6,12 @@
 # Each task is what a user would ask the WORKING agent
 # (src/support/working-agent.ts) in its seeded repository
 # (fixtures/working-agent/workspace, whose README lists the planted defects),
-# over one or more turns of one session. After the last turn the judge, the
-# platform's own `eval` task on a pinned model, is shown the user's messages,
-# the agent's final replies, the files that differ from the starting state,
-# the content of the `files` named here, and the result of any `checks`. It
-# never learns which harness ran. It scores every criterion 0..1 and the eval
-# weights them into the task's score.
+# over one or more turns of one session. After the last turn the judge, an
+# agent run on a pinned model (src/benchmark/quality.ts), is shown the user's
+# messages, the agent's final replies, the files that differ from the
+# starting state, the content of the `files` named here, and the result of
+# any `checks`. It never learns which harness ran. It scores every criterion
+# 0..1 and the benchmark weights them into the task's score.
 #
 # The tasks are drawn from what the product is used for: answering from a
 # repository, fixing a bug with its test, reviewing code without touching

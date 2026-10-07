@@ -5,7 +5,7 @@
  * Mint and verify PER CREDENTIAL LANE, where a lane is an implementation's
  * own token_type vocabulary: OSS defines exactly one
  * (TOKEN_TYPE_EXECUTION_SCOPED, runnerauth.ts); the cloud edition's
- * session/workflow/connect/pool lanes stay entirely on its side of the
+ * session/connect/pool lanes stay entirely on its side of the
  * seam. The lane parameter is an open string DELIBERATELY — this
  * contract must neither import cloud vocabulary into OSS nor pretend OSS
  * has lanes it does not.
@@ -84,7 +84,6 @@ import {
  */
 export type RunnerScopedTokenRequest =
   | { readonly arm: "agent-execution"; readonly executionId: string }
-  | { readonly arm: "workflow-execution"; readonly executionId: string }
   | { readonly arm: "pool-claim"; readonly sessionId: string }
   | { readonly arm: "renewal" }
   // The proto oneof left unset — carried so implementations own the
@@ -129,8 +128,8 @@ export interface RunnerBootstrapCredentials {
 /**
  * What the sandbox ensure steps (steps.ts) and the MCP connect lane
  * (domain/mcpserver/connect-sandbox.ts) know when they mint the credential
- * baked into a provisioned sandbox. `sessionId` is empty on the workflow
- * and connect scopes; `callerIdentityId` is empty when the invocation site
+ * baked into a provisioned sandbox. `sessionId` is empty on the connect
+ * scope; `callerIdentityId` is empty when the invocation site
  * has no caller (the Java ensure step's null-identity arm, which mints
  * nothing rather than minting unattributed).
  *
@@ -144,7 +143,7 @@ export interface RunnerBootstrapCredentials {
  * a refusal, never another scope's token.
  */
 export interface SandboxCredentialRequest {
-  readonly scope: "session" | "workflow" | "connect";
+  readonly scope: "session" | "connect";
   readonly sessionId: string;
   readonly executionId: string;
   readonly org: string;
@@ -152,8 +151,8 @@ export interface SandboxCredentialRequest {
 }
 
 /**
- * The memory-capture eligibility answer for one caller (the sixth
- * capability):
+ * The memory-capture eligibility answer for one caller
+ * (`authorizeMemoryCapture`):
  *
  *   - `no-opinion`: the caller's credential is not one this
  *     implementation classifies — the gate's own eligibility logic
@@ -204,10 +203,11 @@ export interface RunnerCredentialProvider {
 
   /**
    * The whole getRunnerScopedToken policy: per-arm caller-class gating,
-   * authorization, and mint (the cloud edition's four-arm exchange).
+   * authorization, and mint (the cloud edition's exchange).
    * When present, the platform controller delegates EVERY arm here;
-   * absent, the controller keeps the OSS behavior (execution arms mint
-   * on the execution_scoped lane; pool-claim/renewal answer not-minted).
+   * absent, the controller keeps the OSS behavior (the execution arm
+   * mints on the execution_scoped lane; pool-claim/renewal answer
+   * not-minted).
    * Refusals throw; keyless degrade returns `{ minted: false }`.
    */
   exchangeScopedToken?(
@@ -240,12 +240,12 @@ export interface RunnerCredentialProvider {
 
   /**
    * The RUN credential the dispatch path hands the runner in the invoke
-   * workflow input (`execution_context_token` on both invoke inputs —
-   * the connect lane's key for the same token type). Bound to one
-   * execution and carrying NO `exp`: its validity is the bound row's
-   * liveness (runnerauth.ts `mintRunCredential`; bound-execution.ts),
-   * read by both lanes that accept it. When present, both engine clients
-   * call it for every dispatch (start, recover, signalWithStart); absent,
+   * workflow input (`execution_context_token` — the connect lane's key
+   * for the same token type). Bound to one execution and carrying NO
+   * `exp`: its validity is the bound row's liveness (runnerauth.ts
+   * `mintRunCredential`; bound-execution.ts), read by both lanes that
+   * accept it. When present, the engine client calls it for every
+   * dispatch (start and recover); absent,
    * the payload carries no credential — the edition's runner is
    * credentialed another way (the cloud bakes a sandbox credential at
    * provision). Returns "" to dispatch without a credential (the lane
@@ -259,7 +259,7 @@ export interface RunnerCredentialProvider {
    * The ExecutionContext decrypt trust decision for getByExecutionId
    * (`executionId` is the EC's spec.execution_id). When present, it IS
    * the entire decision — the implementation owns its lane set and scope
-   * bindings (the cloud's session/workflow/connect scope rules, including
+   * bindings (the cloud's session/connect scope rules, including
    * any resource loads through its own clients); absent, the decrypt gate
    * keeps the OSS decision (execution_scoped verify + binding equality).
    * True decrypts; false redacts; never throws for an unrecognized or
@@ -282,35 +282,6 @@ export interface RunnerCredentialProvider {
    * method → today's exact behavior (static env keys only).
    */
   resolvePayloadKey?(keyId: string): Promise<Buffer | undefined>;
-
-  /**
-   * The workflow-lineage vouching decision for an agent-execution create
-   * that carries the runner-stamped lineage labels (consumed by the
-   * agentexecution chain's RecordRunnerLineageLabels step). The implementation owns
-   * BOTH halves of the decision: whether the caller's credential is a
-   * runner credential at all (its own token-type vocabulary — no caller
-   * class expresses this, and OSS must not learn another edition's
-   * lane names), and whether a workflow-bound credential may stamp the
-   * given workflow execution id ("a workflow sandbox cannot stamp
-   * another workflow's lineage" — Java verifies the label against the
-   * token's own binding).
-   *
-   * Returns true to vouch the lineage keys (the guard then exempts
-   * exactly them), false for a non-runner credential (nothing vouched —
-   * the caller stays fully subject to the guard). REFUSES by throwing a
-   * ConnectError with the implementation's byte-pinned copy when the
-   * binding check fails. `stampedWorkflowExecutionId` is empty when the
-   * request stamped only the task label — no binding to check.
-   *
-   * Absent method → nothing is vouched (today's exact OSS behavior: the
-   * permissive default Authorizer is what admits the local runner's
-   * lineage write, and a strict composition without the capability keeps
-   * refusing).
-   */
-  vouchRunnerLineageLabels?(
-    caller: CallerIdentity,
-    stampedWorkflowExecutionId: string,
-  ): boolean;
 
   /**
    * The memory capture-eligibility decision for one caller (an edition

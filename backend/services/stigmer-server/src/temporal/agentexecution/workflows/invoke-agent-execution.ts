@@ -29,8 +29,7 @@
  *     UI never flashes FAILED.
  *   - Cancellation cleanup on a non-cancellable scope (Go's disconnected
  *     context): CANCELLED persist (quiet terminal, NO status.error —
- *     stigmer#282), callback completion with "execution cancelled", EC
- *     delete.
+ *     stigmer#282), EC delete.
  *   - Stop and failure copy (stigmer#980): the runner cannot tell a Pause
  *     from a Cancel (both reach its activity as the same cancellation), so
  *     this workflow, which knows which stop it runs, writes the stop row
@@ -46,8 +45,7 @@
  *
  * Payload-boundary rule: proto
  * Message instances never cross activity payloads — statuses travel as
- * proto-JSON (toJson/fromJson), int64 fields are converted explicitly
- * where the callback contract requires JSON numbers.
+ * proto-JSON (toJson/fromJson).
  *
  * WORKFLOW-BUNDLE IMPORT DISCIPLINE: this file runs in Temporal's
  * deterministic sandbox. Only @temporalio/workflow, @temporalio/common,
@@ -68,7 +66,6 @@ import {
   CancellationScope,
   condition,
   defineSignal,
-  getExternalWorkflowHandle,
   isCancellation,
   log,
   proxyActivities,
@@ -101,7 +98,6 @@ import {
   WORKER_SHUTDOWN_STATUS_ERROR,
 } from "../../runner-failure.js";
 import {
-  COMPLETE_EXTERNAL_ACTIVITY_NAME,
   DEFAULT_ACTIVITY_TASK_QUEUE,
   ENSURE_THREAD_ACTIVITY_NAME,
   EXECUTE_CURSOR_ACTIVITY_NAME,
@@ -111,8 +107,6 @@ import {
   MEMO_ACTIVITY_TASK_QUEUE,
   READ_HARNESS_STATE_ID_ACTIVITY_NAME,
   SIGNAL_APPROVAL_GATE_RESOLVED,
-  SIGNAL_CHILD_APPROVAL_REQUIRED,
-  SIGNAL_CHILD_EXECUTION_STARTED,
   SIGNAL_PAUSE,
   SIGNAL_RESUME,
   UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
@@ -299,11 +293,6 @@ interface ServerActivities {
     executionId: string,
     statusJson: JsonValue,
   ) => Promise<void>;
-  [COMPLETE_EXTERNAL_ACTIVITY_NAME]: (input: {
-    callbackToken: string;
-    result?: unknown;
-    errorMessage?: string;
-  }) => Promise<void>;
 }
 
 /**
@@ -319,14 +308,6 @@ const failurePathActivities = proxyActivities<
 >({
   startToCloseTimeout: "30s",
   retry: { maximumAttempts: 3, initialInterval: "2s" },
-});
-
-/** The async activity completion lane (Temporal's asynchronous activity completion). */
-const completionActivities = proxyActivities<
-  Pick<ServerActivities, typeof COMPLETE_EXTERNAL_ACTIVITY_NAME>
->({
-  startToCloseTimeout: "1m",
-  retry: { maximumAttempts: 3, initialInterval: "1s" },
 });
 
 interface LocalActivities {
@@ -356,14 +337,6 @@ export async function invokeAgentExecution(
   const executionId = input.execution_id;
   log.info("Starting workflow for execution", { executionId });
 
-  const callbackToken = input.callback_token ?? "";
-  if (callbackToken !== "") {
-    log.info("Callback token detected - will complete external activity on finish", {
-      executionId,
-      tokenLength: callbackToken.length,
-    });
-  }
-
   // Go reads ctx.Err() to distinguish external workflow cancellation from
   // internal pause-scope cancels; the TS equivalent observes the root
   // scope's cancellation request. The dangling rejection is the designed
@@ -375,40 +348,19 @@ export async function invokeAgentExecution(
 
   const signals = installSignalBuffers();
 
-  // Notify the parent workflow that the child execution started (enables
-  // live subscription). Fire-and-forget: a completed/missing parent must
-  // never affect this run.
-  if ((input.parent_workflow_id ?? "") !== "") {
-    const parentWorkflowId = input.parent_workflow_id!;
-    void (async () => {
-      try {
-        await getExternalWorkflowHandle(parentWorkflowId).signal(
-          SIGNAL_CHILD_EXECUTION_STARTED,
-          { executionId },
-        );
-      } catch (error) {
-        log.warn("Failed to signal parent execution started (non-fatal)", {
-          parentWorkflowId,
-          error: errorMessage(error),
-        });
-      }
-    })();
-  }
-
   const activityTaskQueue = getActivityTaskQueue();
 
   let flowError: unknown;
-  let lastActivityResult: RunnerActivityResult | undefined;
   try {
     if ((input.harness ?? 0) === Harness.CURSOR) {
-      lastActivityResult = await executeCursorFlow(
+      await executeCursorFlow(
         input,
         activityTaskQueue,
         signals,
         () => workflowCancelled,
       );
     } else {
-      lastActivityResult = await executeDeepAgentFlow(
+      await executeDeepAgentFlow(
         input,
         activityTaskQueue,
         signals,
@@ -429,7 +381,7 @@ export async function invokeAgentExecution(
     // same terminal state through its SDK's canceled-error detection).
     if (workflowCancelled) {
       log.info("Workflow cancelled, running cancellation cleanup", { executionId });
-      await handleCancellation(executionId, callbackToken);
+      await handleCancellation(executionId);
       throw (
         findInCauseChain(flowError, CancelledFailure) ??
         new CancelledFailure("Workflow cancelled")
@@ -449,19 +401,6 @@ export async function invokeAgentExecution(
       });
     }
 
-    if (callbackToken !== "") {
-      try {
-        await completionActivities[COMPLETE_EXTERNAL_ACTIVITY_NAME]({
-          callbackToken,
-          errorMessage: errorMessage(flowError),
-        });
-      } catch (error) {
-        log.error("Failed to complete external activity with error", {
-          error: errorMessage(error),
-        });
-      }
-    }
-
     await deleteExecutionContext(executionId);
     throw ApplicationFailure.create({
       message: "Workflow execution failed",
@@ -473,57 +412,6 @@ export async function invokeAgentExecution(
     "Workflow completed for execution (status updates were sent progressively via gRPC)",
     { executionId },
   );
-
-  if (callbackToken !== "") {
-    // The whole callback sequence shares one error boundary: a throw here
-    // must FAIL the workflow (Go's `return err`), and in the TS SDK only
-    // a TemporalFailure does that — a plain Error would fail the workflow
-    // TASK, which the server retries forever (the workflow would wedge
-    // instead of failing, and the parent's external activity would never
-    // complete). External cancellation mid-sequence takes the
-    // cancellation-cleanup path exactly like a mid-flow cancel.
-    try {
-      let execution: AgentRun;
-      try {
-        execution = await loadExecution(executionId);
-      } catch (error) {
-        log.error("Failed to load execution for callback result", {
-          error: errorMessage(error),
-        });
-        throw error;
-      }
-
-      const callbackResult = buildCallbackResult(lastActivityResult, execution);
-      try {
-        await completionActivities[COMPLETE_EXTERNAL_ACTIVITY_NAME]({
-          callbackToken,
-          result: callbackResult,
-        });
-      } catch (error) {
-        log.error("Failed to complete external activity with success", {
-          error: errorMessage(error),
-        });
-        throw error;
-      }
-    } catch (error) {
-      if (workflowCancelled) {
-        log.info("Workflow cancelled during callback completion, running cancellation cleanup", {
-          executionId,
-        });
-        await handleCancellation(executionId, callbackToken);
-        throw (
-          findInCauseChain(error, CancelledFailure) ??
-          new CancelledFailure("Workflow cancelled")
-        );
-      }
-      throw error instanceof ApplicationFailure
-        ? error
-        : ApplicationFailure.create({
-            message: errorMessage(error),
-            cause: error instanceof Error ? error : new Error(String(error)),
-          });
-    }
-  }
 
   await deleteExecutionContext(executionId);
 }
@@ -606,7 +494,6 @@ async function executeDeepAgentFlow(
       executeWithHitlLoop({
         executionId,
         signals,
-        parentWorkflowId: input.parent_workflow_id ?? "",
         firstInvoke: () =>
           agentProxy[EXECUTE_DEEP_AGENT_ACTIVITY_NAME](
             executeActivityInput(input, threadId, 0),
@@ -654,7 +541,6 @@ async function executeCursorFlow(
       executeWithHitlLoop({
         executionId,
         signals,
-        parentWorkflowId: input.parent_workflow_id ?? "",
         firstInvoke: async () => {
           let harnessStateId: string;
           try {
@@ -854,7 +740,7 @@ async function runWithPauseAndRecovery(
 
   if (finalPhase === RunPhase.RUN_FAILED) {
     const finalError = getErrorFromResult(finalResult);
-    log.warn("Activity returned EXECUTION_FAILED -- propagating to parent workflow", {
+    log.warn("Activity returned EXECUTION_FAILED -- failing the workflow", {
       executionId,
       error: finalError,
     });
@@ -937,62 +823,10 @@ async function runPausableAttempt(
 interface HitlLoopOptions {
   readonly executionId: string;
   readonly signals: SignalBuffers;
-  /**
-   * The workflow input's parent_workflow_id ("" when invoked directly) —
-   * the HITL loop notifies this parent whenever the gate engages. The loop
-   * cannot read the workflow input itself, so the flows thread it through.
-   */
-  readonly parentWorkflowId: string;
   readonly firstInvoke: () => Promise<RunnerActivityResult | null>;
   readonly reinvoke: (turnSeq: number) => Promise<RunnerActivityResult | null>;
   readonly nullResultMessage: string;
   readonly nullResultAfterApprovalMessage: string;
-}
-
-/**
- * Notify the parent workflow that this child is gated — the OSS sender half
- * of the child-approval forwarding contract (the Java edition's
- * InvokeAgentExecutionWorkflowImpl.notifyParentWorkflowOfApproval did the
- * same; Go OSS never sent it). Identity-only BARE-STRING payload — the parent
- * (the runner's call-agent orchestrator) derives the gate from this
- * execution's persisted pending_approvals, so approval details never travel
- * through the signal (see SIGNAL_CHILD_APPROVAL_REQUIRED in names.ts).
- *
- * Fire-and-forget with the same posture as child_execution_started: a
- * completed/missing parent must never affect this run — the user can still
- * approve directly through AgentRun.submitApproval.
- */
-function signalParentApprovalRequired(
-  parentWorkflowId: string,
-  executionId: string,
-  loadedStatus: AgentRunStatus | undefined,
-): void {
-  if (parentWorkflowId === "") {
-    // Invoked directly (API/CLI/schedule) — no parent to notify.
-    return;
-  }
-
-  const pendingApprovals = loadedStatus?.pendingApprovals ?? [];
-  log.info("Notifying parent workflow of approval requirement", {
-    parentWorkflowId,
-    executionId,
-    pendingCount: pendingApprovals.length,
-    firstToolName: pendingApprovals[0]?.toolName ?? "unknown",
-  });
-
-  void (async () => {
-    try {
-      await getExternalWorkflowHandle(parentWorkflowId).signal(
-        SIGNAL_CHILD_APPROVAL_REQUIRED,
-        executionId,
-      );
-    } catch (error) {
-      log.warn("Failed to notify parent workflow of approval (non-fatal)", {
-        parentWorkflowId,
-        error: errorMessage(error),
-      });
-    }
-  })();
 }
 
 /**
@@ -1065,13 +899,6 @@ async function executeWithHitlLoop(
       cycle: approvalCycle,
       gateCount,
     });
-
-    // Cloud parity (both Java HITL loops call notifyParentWorkflowOfApproval
-    // here): the parent is notified on EVERY cycle — after the phase persist
-    // and gate re-read, BEFORE the gate-count branch — including zero-gate
-    // and file-review-only cycles. The runner derives from the persisted
-    // gate, so an empty derivation is a harmless "already resolved" no-op.
-    signalParentApprovalRequired(options.parentWorkflowId, executionId, loadedStatus);
 
     if (gateCount === 0) {
       if (loadedStatus !== undefined && hasDecidedAwaitingReconcile(loadedStatus)) {
@@ -1193,27 +1020,9 @@ async function updateStatusOnFailure(
  * execution must reach CANCELLED and secrets (ExecutionContext) must be
  * cleaned up regardless.
  */
-async function handleCancellation(
-  executionId: string,
-  callbackToken: string,
-): Promise<void> {
+async function handleCancellation(executionId: string): Promise<void> {
   await CancellationScope.nonCancellable(async () => {
     await updateStatusOnCancellation(executionId);
-
-    if (callbackToken !== "") {
-      try {
-        await completionActivities[COMPLETE_EXTERNAL_ACTIVITY_NAME]({
-          callbackToken,
-          errorMessage: "execution cancelled",
-        });
-      } catch (error) {
-        log.warn("Failed to notify parent of cancellation (best-effort)", {
-          executionId,
-          error: errorMessage(error),
-        });
-      }
-    }
-
     await deleteExecutionContext(executionId);
   });
 }
@@ -1367,62 +1176,7 @@ async function deleteExecutionContext(executionId: string): Promise<void> {
   });
 }
 
-// ─── Callback result and error classification ───────────────────────────
-
-/**
- * The result handed to the parent's external activity (the runner's
- * agent_call). Keys and value SHAPES are a cross-component contract:
- * total_tokens is a JSON NUMBER (Go writes int64 as a number; proto-ES
- * renders int64 as bigint, converted explicitly). Structured output
- * passes through from the runner's extraction with a persisted-status
- * fallback; the three key spellings are historical resilience.
- */
-function buildCallbackResult(
-  activityResult: RunnerActivityResult | undefined,
-  execution: AgentRun,
-): Record<string, unknown> {
-  const result: Record<string, unknown> = {
-    agent_execution_id: execution.metadata?.id ?? "",
-  };
-
-  // The runner's result is untyped JSON; a primitive would crash the `in`
-  // checks below (getPhaseFromResult's tolerant posture, extended here).
-  if (
-    activityResult !== undefined &&
-    typeof activityResult === "object" &&
-    activityResult !== null
-  ) {
-    if ("structuredOutput" in activityResult) {
-      result["structured"] = activityResult["structuredOutput"];
-    } else if ("structured_output" in activityResult) {
-      result["structured"] = activityResult["structured_output"];
-    } else if ("structured" in activityResult) {
-      result["structured"] = activityResult["structured"];
-    }
-    if ("final_text" in activityResult) {
-      result["final_text"] = activityResult["final_text"];
-    }
-  }
-
-  if (!("structured" in result)) {
-    // protobuf-es represents google.protobuf.Struct fields as plain
-    // JsonObject — already the JSON shape Go's AsMap() produces.
-    const structuredOutput = execution.status?.structuredOutput;
-    if (structuredOutput !== undefined) {
-      result["structured"] = structuredOutput;
-    }
-  }
-
-  const streamingUsage = execution.status?.streamingUsage;
-  if (streamingUsage !== undefined) {
-    result["usage_summary"] = {
-      total_tokens: Number(streamingUsage.totalTokens),
-      estimated_cost_usd: streamingUsage.estimatedCostUsd,
-    };
-  }
-
-  return result;
-}
+// ─── Error classification ───────────────────────────────────────────────
 
 /**
  * Whether an activity error is a transient interruption the execution can

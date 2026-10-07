@@ -29,9 +29,7 @@ describe("ipc-protocol golden fixtures", () => {
     // fixture — the mirrors would otherwise have nothing to conform against.
     expect(Object.keys(commands).sort()).toEqual([
       "addSession",
-      "addWorkflowExecution",
       "removeSession",
-      "removeWorkflowExecution",
       "shutdown",
       "updateTokenCleared",
       "updateTokenSet",
@@ -44,8 +42,6 @@ describe("ipc-protocol golden fixtures", () => {
       "sessionRemoved",
       "shutdownComplete",
       "tokenUpdated",
-      "workflowExecutionAdded",
-      "workflowExecutionRemoved",
     ]);
   });
 

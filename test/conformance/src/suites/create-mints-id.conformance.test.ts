@@ -27,11 +27,11 @@
 //
 // Two rows depend on the edition. An execution create needs a Temporal engine
 // behind the server: the plain local targets refuse it Unavailable before any
-// id is minted (pinned by the agentexecution and workflowexecution suites), so
-// those rows run where `scheduleFiring` (the engine-backed flag those suites
-// gate the same boundary on) holds. On the open-source server the execution
-// class pins the same rule for both creates, with an engine behind it
-// ("create never keeps a metadata.id the caller sent" in each suite). Memory
+// id is minted (pinned by the agent run suite), so that row runs where
+// `scheduleFiring` (the engine-backed flag that suite gates the same boundary
+// on) holds. On the open-source server the execution class pins the same rule
+// with an engine behind it ("create never keeps a metadata.id the caller
+// sent" in the agent run suite). Memory
 // create is refused for the cloud's platform-client-minted caller
 // (`firstPartyMemoryCapture`). Each gated group sits under its own
 // `describe.skipIf` on the flag itself, so the skip names its reason.
@@ -67,8 +67,6 @@ import { foreignId, uniqueName, uniqueOrg } from "../support/naming";
 import { makeOAuthApp } from "../support/oauthapps";
 import { makeSchedule } from "../support/schedules";
 import { makeSession } from "../support/sessions";
-import { makeWorkflowExecution } from "../support/workflowruns";
-import { makeWorkflow } from "../support/workflows";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
@@ -155,12 +153,6 @@ async function agentIn(org: string): Promise<{ id: string; slug: string; ref: Ag
   const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("mint-agent") }));
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
   return { id: agent.metadata!.id, slug: agent.metadata!.slug, ref: agentRefOf(agent) };
-}
-
-async function workflowIn(org: string): Promise<string> {
-  const workflow = await clients.workflowCommand.create(makeWorkflow({ org, name: uniqueName("mint-wfl") }));
-  fixtures.defer(() => clients.workflowCommand.delete({ value: workflow.metadata!.id }));
-  return workflow.metadata!.id;
 }
 
 // An execution create is authorized against the org's credits where billing
@@ -521,56 +513,6 @@ const ROWS: readonly Row[] = [
     },
     async read(id) {
       return (await clients.sessionQuery.get({ value: id })).metadata?.id;
-    },
-  },
-  {
-    title: "[rpc:WorkflowCommandController.create] Workflow",
-    key: "WorkflowCommandController.create",
-    kind: ApiResourceKind.workflow,
-    async send({ org }, chosenId) {
-      const name = uniqueName("mint-wfl");
-      const created = await clients.workflowCommand.create({ ...makeWorkflow({ org, name }), metadata: { id: chosenId, name, org } });
-      fixtures.defer(() => clients.workflowCommand.delete({ value: created.metadata!.id }));
-      return answerOf(this.key, created.metadata);
-    },
-    async read(id) {
-      return (await clients.workflowQuery.get({ value: id })).metadata?.id;
-    },
-  },
-  {
-    title: "[rpc:WorkflowCommandController.apply] Workflow (apply as a create)",
-    key: "WorkflowCommandController.apply",
-    kind: ApiResourceKind.workflow,
-    async send({ org }, chosenId) {
-      const name = uniqueName("mint-wfl");
-      const applied = await clients.workflowCommand.apply({ ...makeWorkflow({ org, name }), metadata: { id: chosenId, name, org } });
-      fixtures.defer(() => clients.workflowCommand.delete({ value: applied.metadata!.id }));
-      return answerOf(this.key, applied.metadata);
-    },
-    async read(id) {
-      return (await clients.workflowQuery.get({ value: id })).metadata?.id;
-    },
-  },
-  {
-    title: "[rpc:WorkflowRunCommandController.create] WorkflowRun",
-    key: "WorkflowRunCommandController.create",
-    kind: ApiResourceKind.workflow_run,
-    edition: "engine",
-    async send({ org }, chosenId) {
-      await fundedWhereMetered(org);
-      const workflowId = await workflowIn(org);
-      const name = uniqueName("mint-wex");
-      // As with the agent execution: the answer and the stored row are judged,
-      // not the run.
-      const created = await clients.workflowExecutionCommand.create({
-        ...makeWorkflowExecution({ org, name, workflowId }),
-        metadata: { id: chosenId, name, org },
-      });
-      fixtures.defer(() => clients.workflowExecutionCommand.delete({ value: created.metadata!.id }));
-      return answerOf(this.key, created.metadata);
-    },
-    async read(id) {
-      return (await clients.workflowExecutionQuery.get({ value: id })).metadata?.id;
     },
   },
   {

@@ -29,22 +29,6 @@ task.
 Covered against the `local` target:
 
 - **Organization** — the flat tenancy resource.
-- **Workflow** — the first **versioned** domain (CRUD, apply create/update
-  branching, the version-history surface `listVersions` / `getVersion` /
-  `getByReference` resolution by hash and apply-time tag, and the `validateSpec`
-  clean contract). It also pins that a workflow carrying a `run_workflow` task
-  is refused at write (stigmer#1311): `validateSpec` answers `INVALID` and
-  `create` answers `InvalidArgument`, naming the task, wherever the task sits.
-  Nothing resolves a child name to a workflow the platform can run, and a name
-  in the platform's `stigmer/` namespace would reach the runner's own workflow
-  types, so the write is the gate. The runner's own refusal of those names
-  stays as defence in depth, pinned by the runner's unit tests. A run names
-  its workflow alone, and the workflow carries its runs' audience
-  (`spec.run_visibility`: who may observe them, changed only through
-  `updateRunVisibility` by the owner, and the one field outside the
-  version); a version covers everything else a run reads, a step's
-  `environment_refs` and the declared keys included. An `agent_call` step's
-  name is unique across the whole workflow.
 - **Agent** and **McpServer** — flat (non-versioned) agentic blueprints (CRUD &
   identity, apply create/update branching, slug semantics, `getByReference`
   resolution, and Layer-1 protovalidate negatives). An agent is run directly:
@@ -53,8 +37,8 @@ Covered against the `local` target:
   agent referencing an existing McpServer is accepted with its reference org
   normalized, and one referencing a missing McpServer is rejected with
   `FailedPrecondition`.
-- **Skill** — the second **versioned** domain, and the first whose versioning is
-  **artifact-based**. A skill is `push`ed as a ZIP whose root `SKILL.md` carries
+- **Skill** — a **versioned** domain whose versioning is **artifact-based**.
+  A skill is `push`ed as a ZIP whose root `SKILL.md` carries
   YAML frontmatter; identity (`metadata.name` == `metadata.slug`) is derived
   server-side from that frontmatter, and a version is the SHA-256 of the artifact
   bytes. Coverage: push identity, server-derived slug, default-private
@@ -250,10 +234,17 @@ A **quality task** (`scripts/benchmark-harnesses/quality-tasks.yaml`, format
 in `src/benchmark/quality-tasks.ts`) is a real session on the working agent.
 After its last turn the judge is shown a blind subject: the user's messages,
 the agent's final replies, the files changed, the named files' content and
-the result of any `go_test` check. That judge is the platform's own `eval`
-task in `EVAL_MULTI_CRITERIA` mode on a pinned model. A verdict whose
-criteria are not exactly the task's is refused as a judge failure, never read
-as a score. Placeholder tasks run only under `--include-placeholders`.
+the result of any `go_test` check. That judge is an agent run: a judge agent
+whose instructions carry the task's rubric (no skills, MCP servers or
+sub-agents, and every native built-in tool in its `disallowed_tools`), run
+once per sample on the native harness in an organization of its own with
+memory off, with the pinned judge model and a structured output schema naming
+exactly the task's criteria, each a score in 0..1 and a reason. A verdict whose criteria are not exactly the
+task's is refused as a judge failure, never read as a score; the task's score
+is the criteria's mean weighted by the task's weights. Reports before schema
+v5 were graded through a different judging path, so a grade is compared only
+with grades of the same schema version. Placeholder tasks run only under
+`--include-placeholders`.
 
 Every sample is kept whole, failed attempts included with the stage and the
 platform's words for what failed. The run's first call per harness, served
@@ -505,11 +496,7 @@ one version, and apply-time `metadata.version.tag` flows through the same
 single-holder primitive), and
 `singleOrganization` is `true` only on `local-single-org`, the shipped
 open-source edition, where the single-organization suite runs (every other
-target spawns or reaches a server with many organizations), and
-`workflowChildApprovalForwarding` is `true` where the
-`child_approval_required` signal — which surfaces a child agent's gate to its
-parent workflow — is sent: cloud and this server's HITL loop. (The retired Go
-server never sent it, which is why the flag exists.)
+target spawns or reaches a server with many organizations).
 Capabilities are retired when a surface converges: secret redaction was gated
 per edition until the Environment (stigmer#405) and ExecutionContext
 (stigmer#535) surfaces converged, after which the suites assert redaction
@@ -611,8 +598,7 @@ from every run. A fixture endpoint is a loopback harness component
 
 ### Execution engine (Class B, `src/suites-execution/`)
 
-The execution domains (WorkflowExecution, AgentExecution) are 100% Temporal-
-gated, so they run on their own config (`vitest.execution.config.ts`,
+The execution domain (AgentRun) is 100% Temporal-gated, so its suites run on their own config (`vitest.execution.config.ts`,
 `test:execution`) rather than the dependency-light CRUD one. This split keeps the
 Class A signal fast (no Temporal/runner).
 
@@ -629,35 +615,28 @@ execution); a `*.conformance.test.ts` asserts a domain's full contract. They are
 distinct on purpose: the smoke test is a permanent, cheap liveness guard, and
 an execution **domain** enters the suite whole, on this same harness.
 
-`workflowrun.conformance.test.ts` is the first such whole domain. It uses
-two hermetic fixtures: `set_vars` (sub-second, for create/complete/query/terminal
-cases) and `wait` (a durable Temporal timer, for acting on a genuinely *running*
-execution — IN_PROGRESS, cancel, terminate, pause/resume). It asserts the
-**engine-present** contract; the engine-unavailable create-boundary (issue
-#195) is now one symmetric contract across both execution
-domains — a create while the engine is down fails fast with Unavailable and
-persists nothing — and is only reachable with Temporal down, so it is covered by
-the server's controller unit tests rather than asserted here. Class B files run
-serially (`fileParallelism: false`) so multiple suites don't boot
-multiple Temporal+runner stacks at once.
+Class B files run serially (`fileParallelism: false`) so multiple suites
+don't boot multiple Temporal+runner stacks at once.
 
-`agentrun.conformance.test.ts` is the second whole execution domain. An
+`agentrun.conformance.test.ts` is the whole execution domain. An
 agent run always hits an LLM, so the `local-execution` target also boots a
 **TS-pure mock-LLM proxy** (`test/support/src/mock-llm.ts`): a long-lived HTTP server with
 a programmable response queue that replays canned Anthropic SSE to the runner via
 a base-URL override (`STIGMER_PROXY_ENDPOINT`) — no API key, no network. A single
 text turn reaches COMPLETED; a `delayMs`-held turn keeps an execution genuinely
-IN_PROGRESS, the lever for the cancel/terminate/pause/resume happy paths (the
-agent analogue of the `wait` timer). It asserts the engine-present contract and
-encodes AgentExecution's divergences from WorkflowExecution — **no `AlreadyExists`
-on create** (repeated identical creates yield distinct `aex_` ids), the query
-analogue is **`listBySession`**, and a create with **no `target`** (neither a
+IN_PROGRESS, the lever for the cancel/terminate/pause/resume happy paths. It
+asserts the **engine-present** contract — **no `AlreadyExists` on create**
+(repeated identical creates yield distinct `aex_` ids), runs are listed by
+conversation through **`listBySession`**, and a create with **no `target`** (neither a
 `session_id` nor a `session_spec`) is the **built-in assistant**: the server
 creates a session with no agent and the run completes on the runner's one
 built-in prompt. A turn on an agent starts its conversation with
 `session_spec.agent_ref`; the server records the agent and version the turn
-runs on its status. The two
-execution domains share one enum-agnostic poll core (`support/execution-poll.ts`).
+runs on its status. The engine-unavailable create boundary (issue #195) — a
+create while the engine is down fails fast with Unavailable and persists
+nothing — is only reachable with Temporal down, so it is covered by the
+server's controller unit tests rather than asserted here. Polling goes
+through one enum-agnostic core (`support/run-poll.ts`).
 
 `agentrun-approval.conformance.test.ts` adds the **HITL tool-approval**
 (`submitApproval`) contract. It is the first slice that exercises a real *tool*:
@@ -682,64 +661,6 @@ not stable black-box observables (per-tool-call *final* status after the approva
 resume, and `args_preview`), exactly the boundary the integration HITL suite
 draws.
 
-`workflowrun-approval.conformance.test.ts` adds the **workflow `human_input`
-HITL** (`submitWorkflowTaskApproval`) contract — the workflow analogue of the
-agent suite, but a genuinely different machine, so it is a separate file. A
-WorkflowExecution has **no execution-level waiting phase**: a `human_input` task
-gates at the **task** level (`WORKFLOW_TASK_WAITING_APPROVAL`, surfacing as
-`WORKFLOW_TASK_APPROVAL`) while the execution phase stays `EXECUTION_IN_PROGRESS`,
-and `submitWorkflowTaskApproval` resolves it by sending a Temporal signal
-(`human_input_{task_name}`) — the handler returns the execution unchanged, so the
-suite polls the per-task status (`support/workflowexecutions.ts` gains
-`taskByName` / `awaitTaskStatus` / `awaitTaskWaitingApproval`, and
-`approvalResolutionsOf` for the event log). It is **fully
-hermetic** (Temporal + runner only; no LLM, MCP, or child execution): the
-`makeHumanInputWorkflow` fixture is `awaitApproval` (human_input) -> `afterApproval`
-(set_vars), the downstream set_vars completing being the proof the gate resumed.
-The suite asserts the server-owned contract — the task-level gate, that `approve`
-completes the run and the downstream task, that the approval's one
-`approval_resolved` event carries the submitted outcome and comment and names the
-approving caller (the execution's `created_by`, never the client's `reviewer`) as
-`resolved_by` and `resolved_by_actor`, that a **declared** non-approve outcome
-(`deny`) is *data* (resolves and still completes — only the implicit no-outcomes
-binary form fails on deny), that an outcome's `then` **routes** the workflow to
-the named task (proving the submitted outcome value drives behavior through
-observable task statuses), the full timeout-policy contract — `FAIL` fails the
-run on its own, `APPROVE` completes it and reaches the downstream task, `DENY`
-resolves to the last declared outcome and completes, and a timed-out `APPROVE`
-with custom outcomes maps to the FIRST declared outcome and routes its `then`
-(the stigmer/stigmer#779 pins; before that fix only FAIL passed, by accident),
-and every timeout that resolves the gate logs one `approval_resolved` with
-`auto_resolved` set, no reviewer, and the outcome the policy resolved to —
-and the negative codes (empty fields / unknown task / non-
-`human_input` task -> `InvalidArgument`; missing execution -> `NotFound`; submit
-on a terminal execution -> `FailedPrecondition`). It deliberately does **not**
-assert idempotency (the signal-based gate is not deduped, unlike the agent DB
-projection) or the `task.output` projection (outcome-honoring is proven
-behaviorally via routing). The sibling `submitApproval` (the workflow->child-agent
-tool-forwarding composite) is a **different mechanism** and lives in its own file,
-described next.
-
-`workflowrun-child-approval.conformance.test.ts` adds the **child-agent
-approval FORWARDING** (`submitApproval`) contract — distinct from `human_input`
-(above): a workflow invokes an agent via an `agent_call` task, and when that
-*child* AgentExecution gates on a tool, the gate surfaces at the parent's
-`status.pending_approvals` (carrying `child_agent_execution_id`); `submitApproval`
-routes the decision down to the child's `AgentExecution.submitApproval`. The
-`child_approval_required` signal that populates the parent's
-`pending_approvals` is sent by cloud and this server's HITL loop (an
-identity-only signal: the runner derives
-the gate from the child's persisted record; the retired Go server had the
-receiver but never the sender, which is what the capability flag encoded).
-The suite splits along the `workflowChildApprovalForwarding`
-capability: the **negatives** never need a populated `pending_approvals` and run
-unconditionally against every target (empty `execution_id`/`tool_call_id` /
-UNSPECIFIED action -> `InvalidArgument`; missing execution -> `NotFound`; a running
-*or* terminal execution with no pending approvals -> `FailedPrecondition`); the
-**happy path** is `describe.skipIf`-gated so it reports as genuinely **SKIPPED**
-(not a false green) where the sender or the mock fixtures are absent, and RUNS
-on `local-execution`.
-
 **The runner-behavior facets** replaced the Go `test/integration-offline`
 suite, arm for arm: a runner behavior a
 client reads off execution status is contract, and the execution class is its
@@ -756,8 +677,7 @@ harness git workspace, the secret and binary rules, and the mid-run progress
 strip under the runner's capture throttle), `agentrun-memory-selection`
 (the embedder posture, beside `-memory-retrieval`'s no-embedder one),
 `agentrun-stigmer-mcp-stdio` (a fixture agent on the real
-`stigmer mcp-server` over stdio, the always-on proof of the stdio lane), `workflowrun-llm-call` and
-`workflowrun-eval` (the LLM-backed workflow tasks), plus additions to
+`stigmer mcp-server` over stdio, the always-on proof of the stdio lane), plus additions to
 `agentrun` (idempotent cancel/terminate), `agentrun-approval` (the
 approval ledger, the APPROVE_ALL lease across turns, durable resume) and
 `mcpserver-connect` (the stored `destructive_hint` per tool, and a connect
@@ -794,17 +714,14 @@ src/
                     + cloud: cloud-env, cloud-fixtures, fake-llm-upstream, fake-stripe, fake-discord-webhook, global-setup-cloud
   targets/          target (interface + capabilities), local, local-execution, local-postgres, cloud, cloud-execution, index
   contract/         errors, parity
-  support/          naming, workflows (set_vars + wait + human_input + agent_call + llm_call + eval), execution-poll,
-                    workflowruns, agentruns, file-review, stigmer-mcp-stdio, working-agent (the benchmark's
+  support/          naming, run-poll, agentruns, file-review, stigmer-mcp-stdio, working-agent (the benchmark's
                     working agent), agents, mcpservers, memories, skills, environments, executioncontexts, sessions,
                     request-shape (the golden renderers), …
   benchmark/        report (the contract a run writes), cells, quality-tasks, run (the direct-mode stack and driver), session
                     (the per-turn driver), the readers stream-watch, status-facts, timing-lines, temporal-history,
                     workspace-facts, and subject + quality (the judge)  (the live benchmark's library; pure parts unit-tested)
   suites/           *.conformance.test.ts            (Class A — CRUD, no Temporal)
-  suites-execution/ *.harness.test.ts (engine, agent, mcp, runner-ipc, benchmark-readers, temporal-port-loss)
-                    + workflowrun*.conformance.test.ts (lifecycle, approval, child-approval, recover, signal, llm-call, eval,
-                      run-visibility)
+  suites-execution/ *.harness.test.ts (agent, mcp, runner-ipc, benchmark-readers, temporal-port-loss)
                     + agentrun*.conformance.test.ts (lifecycle, approval, recover, messages, subagent, provider-error,
                       structured-output, file-review, file-review-progress, memory-retrieval, memory-selection, stigmer-mcp-stdio,
                       request-shape, tool-lists)

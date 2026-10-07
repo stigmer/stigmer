@@ -139,7 +139,7 @@ describe("jsonSchemaToZod", () => {
   //   which is not supported by the API.
   //
   // The schema below is the exact anomalies.items schema from the
-  // daily-notification-plan workflow that triggered the bug.
+  // daily-notification-plan run that triggered the bug.
   // ─────────────────────────────────────────────────────────────────────
 
   describe("OpenAI structured output compatibility", () => {
@@ -177,7 +177,7 @@ describe("jsonSchemaToZod", () => {
       expect(zod.parse(data)).toMatchObject(data);
     });
 
-    it("full workflow schema produces nullable non-required fields at all nesting levels", () => {
+    it("full output schema produces nullable non-required fields at all nesting levels", () => {
       const fullSchema = {
         type: "object",
         required: ["executive_summary", "cohorts", "anomalies"],

@@ -5,8 +5,8 @@
 // implementation notes, authorization details, storage strategy. That text
 // is for developers reading the proto files and must never reach a
 // generated surface: SDK type docs, MCP tool schemas (read by LLMs), the
-// task registry, the docs site, or protoc-generated stubs (godoc / IDE
-// hovers on published packages).
+// docs site, or protoc-generated stubs (godoc / IDE hovers on published
+// packages).
 //
 // The marker must be a full line: inline occurrences of "@internal" inside
 // prose are left alone, matching how every proto in apis/ uses the

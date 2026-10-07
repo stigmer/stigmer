@@ -26,7 +26,7 @@ export function connectWorkflowIdFor(mcpServerId: string): string {
 /**
  * The task queue one connect sandbox serves: its runner polls exactly this
  * queue (STIGMER_TASK_QUEUE) and the connect workflow is started on it. The
- * colon form of every per-queue name (`session:`, `wfexec:`, `sandbox:`);
+ * colon form of every per-queue name (`session:`, `sandbox:`);
  * the id is the connect's synthetic execution id
  * (domain/mcpserver/connect-execution-id.ts), unique per attempt, so two
  * connects of one server never share a sandbox.

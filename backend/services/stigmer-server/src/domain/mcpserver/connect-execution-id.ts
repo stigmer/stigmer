@@ -3,8 +3,7 @@
  * shape, built here by the connect lane and recognized here by the
  * runner-credential lane, so the two can never drift apart.
  *
- * A connect is not an execution: it has no AgentRun or
- * WorkflowRun row. What it has is an ephemeral ExecutionContext
+ * A connect is not an execution: it has no AgentRun row. What it has is an ephemeral ExecutionContext
  * (connect.ts `createConnectExecutionContext`) whose `spec.execution_id`
  * must name SOMETHING for the decrypt lane's binding check
  * (executioncontext/resolve-values-for-caller.ts: the token's
@@ -28,7 +27,7 @@ export function newConnectExecutionId(mcpServerId: string): string {
   return `${CONNECT_EXECUTION_ID_PREFIX}${mcpServerId}-${randomUUID().slice(0, 8)}`;
 }
 
-/** Whether `executionId` is a connect's — the runner-credential lane's recognition of the third binding. */
+/** Whether `executionId` is a connect's — the runner-credential lane's recognition of the connect binding. */
 export function isConnectExecutionId(executionId: string): boolean {
   return executionId.startsWith(CONNECT_EXECUTION_ID_PREFIX);
 }

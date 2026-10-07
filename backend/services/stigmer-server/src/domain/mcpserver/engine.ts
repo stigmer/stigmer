@@ -3,7 +3,7 @@
  * operations the connect lanes need (Go holds these as optional fields on
  * McpServerController, set by SetConnectDependencies; here availability is
  * the modeled engine state, the same idiom as agentexecution's engine.ts
- * and workflowexecution's engine.ts — guidelines §4).
+ * — guidelines §4).
  *
  * The engine does NOT run a worker: the connect workflow
  * (stigmer/mcp-server/connect) is the RUNNER's — this server only starts,

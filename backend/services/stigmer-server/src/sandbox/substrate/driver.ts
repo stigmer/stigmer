@@ -43,7 +43,7 @@
  * Any call answering ABORTED (another operation holds the actor, or it
  * crashed while resuming) sends the ensure back to reading the actor; no
  * free worker is thrown unretried, so the session step stamps it and the
- * workflow step refuses, as for any provisioning failure. The walk is
+ * connect lane refuses, as for any provisioning failure. The walk is
  * bounded, so an actor that never settles fails loudly.
  *
  * A rotated secret: the waiter keeps its first push's secrets for the
@@ -711,10 +711,6 @@ export function newSubstrateSandboxDriverOverGateway(
   const provisioner: SandboxProvisioner = {
     ensureSessionSandbox: (sessionId, env) => ensure("session", sessionId, env),
     deprovisionSessionSandbox: (sessionId) => deprovision("session", sessionId),
-    ensureWorkflowSandbox: (executionId, env) =>
-      ensure("workflow", executionId, env),
-    deprovisionWorkflowSandbox: (executionId) =>
-      deprovision("workflow", executionId),
     async createConnectSandbox(connectRequestId, env) {
       await ensure("connect", connectRequestId, env);
       return connectRequestId;

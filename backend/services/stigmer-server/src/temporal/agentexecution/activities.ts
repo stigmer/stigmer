@@ -1,7 +1,7 @@
 /**
  * Server-side activity implementations for the agent-execution worker —
  * ports pkg/domain/agentexecution/temporal/activities (update_status_impl,
- * load_execution, read_harness_state_id, complete_external_activity) and
+ * load_execution, read_harness_state_id) and
  * registers DeleteExecutionContext, the server's own delete of the run's
  * context through the context's delete chain
  * (domain/executioncontext/internal-delete.ts, stigmer#1647).
@@ -38,18 +38,9 @@
  * chain over the in-process transport (domain/executioncontext/
  * internal-delete.ts), because a bare store delete skipped the chain's
  * cleanup event and left the search row (stigmer#1647).
- *
- * CompleteExternalActivity receives a live client PROVIDER instead of
- * Go's package-global (re-set on every reconnect); the input carries the
- * error as a serializable message string: Go's `Error error` field
- * cannot survive its own JSON
- * round-trip, so its error-completion lane never delivers (oss#861). The
- * TS lane works; the divergence is disclosed.
  */
-import { Buffer } from "node:buffer";
 import { create, toJson } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
-import type { Client } from "@temporalio/client";
 
 import {
   AgentRunSchema,
@@ -69,7 +60,6 @@ import type { ExecutionContextDeleter } from "../../domain/executioncontext/inte
 import { DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME } from "../../domain/executioncontext/temporal/delete-execution-context.js";
 import type { Store } from "../../store/interface.js";
 import {
-  COMPLETE_EXTERNAL_ACTIVITY_NAME,
   LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
   READ_HARNESS_STATE_ID_ACTIVITY_NAME,
   UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
@@ -106,18 +96,6 @@ export interface AgentExecutionActivityDeps {
    * the run-end delete too (stigmer#1647).
    */
   readonly executionContextDeleter: () => ExecutionContextDeleter;
-  /** Live Temporal client (reads the manager's CURRENT client). */
-  readonly client: () => Client;
-}
-
-/** The input for stigmer/system/complete-external-activity (the error as a message string). */
-export interface CompleteExternalActivityInput {
-  /** Base64-encoded Temporal task token from the external activity. */
-  readonly callbackToken: string;
-  /** The success result (ignored when errorMessage is set). */
-  readonly result?: unknown;
-  /** Failure message; takes precedence over result (Go's contract). */
-  readonly errorMessage?: string;
 }
 
 /**
@@ -214,7 +192,7 @@ export function createAgentExecutionActivities(
       return session.spec?.harnessStateId ?? "";
     },
 
-    /** The server's own delete of the run's context, a local activity (shared with the workflow-execution worker). */
+    /** The server's own delete of the run's context, a local activity. */
     [DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME]: async (
       executionId: string,
     ): Promise<void> => {
@@ -223,45 +201,6 @@ export function createAgentExecutionActivities(
         executionId,
         "run-end",
       );
-    },
-
-    /**
-     * Completes an external Temporal activity via its task token
-     * (Temporal's asynchronous activity completion). Empty
-     * token is a warn-and-skip (backward compatibility, Go parity).
-     */
-    [COMPLETE_EXTERNAL_ACTIVITY_NAME]: async (
-      input: CompleteExternalActivityInput,
-    ): Promise<void> => {
-      if (input.callbackToken === "") {
-        logger.warn(
-          "CompleteExternalActivity called with empty token - skipping (backward compatibility)",
-        );
-        return;
-      }
-
-      const taskToken = Buffer.from(input.callbackToken, "base64");
-      logger.info("Completing external activity", {
-        token_preview:
-          input.callbackToken.length > 20
-            ? `${input.callbackToken.slice(0, 20)}...`
-            : input.callbackToken,
-        token_length: taskToken.length,
-        has_result: input.result !== undefined,
-        has_error: input.errorMessage !== undefined,
-      });
-
-      const client = deps.client();
-      if (input.errorMessage !== undefined) {
-        logger.info("Reporting failure to external activity", {
-          error: input.errorMessage,
-        });
-        await client.activity.fail(taskToken, new Error(input.errorMessage));
-      } else {
-        logger.info("Reporting success to external activity");
-        await client.activity.complete(taskToken, input.result ?? null);
-      }
-      logger.info("Successfully completed external activity");
     },
   };
 }

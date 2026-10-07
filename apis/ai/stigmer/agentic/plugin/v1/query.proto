@@ -36,11 +36,11 @@ service PluginQueryController {
 
   // List the resources an installed plugin materialised.
   //
-  // Returns every skill, MCP server, agent and workflow the plugin owns, in
+  // Returns every skill, MCP server and agent the plugin owns, in
   // materialisation order.
   //
   // @internal
-  // Derived on read from the stigmer.ai/plugin label on the four child kinds.
+  // Derived on read from the stigmer.ai/plugin label on the three child kinds.
   rpc listMembers(PluginId) returns (ListPluginMembersResponse) {
     option (ai.stigmer.commons.rpc.config).resource_kind = plugin;
     option (ai.stigmer.commons.rpc.config).permission = can_view;

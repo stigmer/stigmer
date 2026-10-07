@@ -100,9 +100,6 @@ func TestPlanCreate_SendsTheLimitsTheCallerSet(t *testing.T) {
 	if limits.IncludedChildOrgs != nil {
 		t.Errorf("included_child_orgs = %d, want absent", limits.GetIncludedChildOrgs())
 	}
-	if limits.MaxActiveWorkflowSandboxes != nil {
-		t.Errorf("max_active_workflow_sandboxes = %d, want absent", limits.GetMaxActiveWorkflowSandboxes())
-	}
 }
 
 func TestPlanCreate_SendsThePricesTheCallerSet(t *testing.T) {

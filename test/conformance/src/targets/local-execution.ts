@@ -49,7 +49,7 @@ export class LocalExecutionTarget implements TargetProfile {
   // engine changes no edition. local-postgres-execution inherits it.
   readonly edition: ServerEdition = ServerEdition.oss;
   // The open-source matrix of `local`, with the flags an engine makes true:
-  // workflowChildApprovalForwarding, scheduleFiring and runnerActsAsRunCreator.
+  // scheduleFiring and runnerActsAsRunCreator.
   // versionTagging still reads false here although the server implements it
   // (stigmer#1804); the execution class runs no suite that reads it.
   readonly capabilities: CapabilityFlags = {
@@ -63,11 +63,6 @@ export class LocalExecutionTarget implements TargetProfile {
     organizationEnumeration: true,
     versionTagging: false,
     skillArtifactTransferLane: true,
-    // This server's agent-execution workflow emits the
-    // child_approval_required signal from its HITL loop (an identity-only
-    // signal), so a gated agent_call child surfaces at the parent workflow's
-    // pending_approvals. The retired Go OSS server never sent it.
-    workflowChildApprovalForwarding: true,
     // The schedule clock runs here (tick workflow + reconciler on the
     // schedule_stigmer queue).
     scheduleFiring: true,
@@ -81,7 +76,7 @@ export class LocalExecutionTarget implements TargetProfile {
     clientReservedLabelWrites: true,
     firstPartyMemoryCapture: true,
     // No channel runtime in this edition: the engine this target
-    // provisions is the agent/workflow execution engine, not a channel
+    // provisions is the agent execution engine, not a channel
     // delivery runtime — the refusal posture is identical to `local`.
     channelMessaging: false,
     // The org BYOA lane is UNIMPLEMENTED on OSS by design (stigmer#558) —

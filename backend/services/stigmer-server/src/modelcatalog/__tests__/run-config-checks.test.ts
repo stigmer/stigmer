@@ -1,7 +1,7 @@
 /**
  * Pins the save-time checks of a saved RunConfig's tier and thinking mode
  * (run-config-checks.ts) against the BUNDLED registry, beyond what the
- * workflow and agent suites that call them pin:
+ * agent suites that call them pin:
  *
  *   - a refusal lists the models the engine offers in that dimension, and
  *     lists none when the engine offers none (an engine the registry does
@@ -37,7 +37,7 @@ const models = new ModelRegistryStore({
   logger: createLogger({ level: "error", pretty: false, write: () => {} }),
 });
 
-const SITE = { prefix: "", fieldPath: "spec.run_config" };
+const SITE = { fieldPath: "spec.run_config" };
 
 describe("the saved tier and thinking checks", () => {
   it("list the engine's fast models, and none for an engine with none", () => {

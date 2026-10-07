@@ -1,6 +1,5 @@
 {
   "name": "MemorySpec",
-  "kind": "MEMORY_SPEC",
   "description": "MemorySpec holds the remembered fact, who it is about, and where it\n came from.",
   "protoType": "ai.stigmer.agentic.memory.v1.MemorySpec",
   "protoFile": "apis/ai/stigmer/agentic/memory/v1/spec.proto",

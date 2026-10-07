@@ -15,9 +15,10 @@
 // - Two provisionings of the working agent send the model byte-identical
 //   system prompts and tool surfaces: the instrument's own claim that its
 //   fixed names keep the provider's prompt cache as warm as a user's.
-// - A composed subject graded by the eval-only judge workflow, with a
-//   scripted multi-criteria verdict read back with its criteria, and a
-//   verdict missing a criterion refused as a judge failure.
+// - A composed subject graded by the judge agent run, with a scripted
+//   verdict read back off the run's structured output with its criteria and
+//   their weighted score, and a verdict missing a criterion refused as a
+//   judge failure.
 // Domain: conformance harness (the benchmark instrument's wiring).
 //
 // Why a smoke and not a facet: nothing here is a contract of the platform; it
@@ -42,6 +43,7 @@ import { join } from "node:path";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { JUDGE_MODEL } from "../benchmark/cells";
 import { judge } from "../benchmark/quality";
 import type { QualityTask } from "../benchmark/quality-tasks";
 import { measureSession, type SessionStack } from "../benchmark/session";
@@ -70,7 +72,6 @@ import {
   WORKING_AGENT_WORKSPACE_NAME,
   workingAgentSessionSpec,
 } from "../support/working-agent";
-import { EVAL_EXTRACT_TOOL_NAME, LLM_TASK_MODEL } from "../support/workflows";
 import { createTarget, type TargetProfile } from "../targets";
 
 const probe = createTarget();
@@ -272,29 +273,25 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
       });
 
       mock.enqueue(
-        anthropicToolUse("toolu_grade", EVAL_EXTRACT_TOOL_NAME, {
-          criteria: [
-            { name: "accurate", score: 1, reasoning: "Matches the code." },
-            { name: "concise", score: 0.5, reasoning: "A little long." },
-          ],
-        }),
+        anthropicText(
+          JSON.stringify({
+            accurate: { score: 1, reasoning: "Matches the code." },
+            concise: { score: 0.5, reasoning: "A little long." },
+          }),
+        ),
       );
-      const graded = await judge(clients, fixtures, { org, task, subject, judgeModel: LLM_TASK_MODEL, timeoutMs: 120_000 });
+      const graded = await judge(clients, fixtures, { org, task, subject, judgeModel: JUDGE_MODEL, timeoutMs: 120_000 });
       expect(graded.outcome, JSON.stringify(graded.failure)).toBe("completed");
-      expect(graded.score, "the eval weighted the two criteria").toBeCloseTo(0.875, 5);
+      expect(graded.score, "the benchmark weighted the two criteria").toBeCloseTo(0.875, 5);
       expect(graded.criteria.map((criterion) => [criterion.name, criterion.weight, criterion.score])).toEqual([
         ["accurate", 3, 1],
         ["concise", 1, 0.5],
       ]);
-      expect(graded.judge_model, "the eval recorded the judge model it used").not.toBe("");
-      expect(graded.workflow_execution_id, "the grade names the judge run it came from").not.toBe("");
+      expect(graded.judge_model, "the judge run reported the model it ran under").not.toBe("");
+      expect(graded.judge_run_id, "the grade names the judge run it came from").toMatch(/^aex_/);
 
-      mock.enqueue(
-        anthropicToolUse("toolu_grade_short", EVAL_EXTRACT_TOOL_NAME, {
-          criteria: [{ name: "accurate", score: 1, reasoning: "Matches the code." }],
-        }),
-      );
-      const refused = await judge(clients, fixtures, { org, task, subject, judgeModel: LLM_TASK_MODEL, timeoutMs: 120_000 });
+      mock.enqueue(anthropicText(JSON.stringify({ accurate: { score: 1, reasoning: "Matches the code." } })));
+      const refused = await judge(clients, fixtures, { org, task, subject, judgeModel: JUDGE_MODEL, timeoutMs: 120_000 });
       expect(refused.score, "a skipped criterion is never read as a grade").toBeNull();
       expect(refused.failure?.stage).toBe("judge");
     });

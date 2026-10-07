@@ -75,7 +75,7 @@ class PluginQueryControllerServicer(object):
     def listMembers(self, request, context):
         """List the resources an installed plugin materialised.
 
-        Returns every skill, MCP server, agent and workflow the plugin owns, in
+        Returns every skill, MCP server and agent the plugin owns, in
         materialisation order.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)

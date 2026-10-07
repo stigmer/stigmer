@@ -26,24 +26,17 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// ActivityQueryController provides cross-resource read queries for the
-// activity feed — the unified "recents" sidebar that merges sessions and
-// workflow runs into a single time-ordered list.
-//
-// This service exists because the recents list spans two bounded contexts
-// (session and workflow_run). A cross-cutting query service avoids
-// forcing the client to make two parallel calls and merge client-side.
+// ActivityQueryController provides the read query behind the "recents"
+// sidebar: the caller's most recent sessions, newest first.
 type ActivityQueryControllerClient interface {
-	// List recent activity across sessions and workflow runs.
+	// List the caller's most recent sessions by last activity.
 	//
-	// Returns a merged, time-sorted list of the caller's most recent
-	// sessions and workflow runs. On the hosted edition, per-resource
-	// authorization filtering is applied server-side (FGA `can_view`
-	// enumeration for both kinds — the same permission the per-kind `get`
-	// RPCs enforce, so every listed entry is openable by construction). On
-	// the OSS edition the server is single-tenant: the caller owns every
-	// stored resource, so there is no authorization set to enumerate and the
-	// request's org is a no-op (stigmer#461).
+	// On the hosted edition, per-resource authorization filtering is applied
+	// server-side (FGA `can_view` enumeration — the same permission the
+	// session `get` RPC enforces, so every listed entry is openable by
+	// construction). On the OSS edition the server is single-tenant: the
+	// caller owns every stored resource, so there is no authorization set to
+	// enumerate and the request's org is a no-op (stigmer#461).
 	ListRecentActivity(ctx context.Context, in *ListRecentActivityRequest, opts ...grpc.CallOption) (*ListRecentActivityResponse, error)
 }
 
@@ -69,24 +62,17 @@ func (c *activityQueryControllerClient) ListRecentActivity(ctx context.Context, 
 // All implementations should embed UnimplementedActivityQueryControllerServer
 // for forward compatibility.
 //
-// ActivityQueryController provides cross-resource read queries for the
-// activity feed — the unified "recents" sidebar that merges sessions and
-// workflow runs into a single time-ordered list.
-//
-// This service exists because the recents list spans two bounded contexts
-// (session and workflow_run). A cross-cutting query service avoids
-// forcing the client to make two parallel calls and merge client-side.
+// ActivityQueryController provides the read query behind the "recents"
+// sidebar: the caller's most recent sessions, newest first.
 type ActivityQueryControllerServer interface {
-	// List recent activity across sessions and workflow runs.
+	// List the caller's most recent sessions by last activity.
 	//
-	// Returns a merged, time-sorted list of the caller's most recent
-	// sessions and workflow runs. On the hosted edition, per-resource
-	// authorization filtering is applied server-side (FGA `can_view`
-	// enumeration for both kinds — the same permission the per-kind `get`
-	// RPCs enforce, so every listed entry is openable by construction). On
-	// the OSS edition the server is single-tenant: the caller owns every
-	// stored resource, so there is no authorization set to enumerate and the
-	// request's org is a no-op (stigmer#461).
+	// On the hosted edition, per-resource authorization filtering is applied
+	// server-side (FGA `can_view` enumeration — the same permission the
+	// session `get` RPC enforces, so every listed entry is openable by
+	// construction). On the OSS edition the server is single-tenant: the
+	// caller owns every stored resource, so there is no authorization set to
+	// enumerate and the request's org is a no-op (stigmer#461).
 	ListRecentActivity(context.Context, *ListRecentActivityRequest) (*ListRecentActivityResponse, error)
 }
 

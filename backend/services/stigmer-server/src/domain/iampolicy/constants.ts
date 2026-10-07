@@ -137,7 +137,6 @@ export function policyIdFor(spec: IamPolicySpec): string {
  */
 export const BLUEPRINT_KINDS: ReadonlyArray<ApiResourceKind> = [
   ApiResourceKind.agent,
-  ApiResourceKind.workflow,
   ApiResourceKind.skill,
   ApiResourceKind.mcp_server,
   ApiResourceKind.environment,

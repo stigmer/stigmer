@@ -57,8 +57,8 @@ type OAuthGrant struct {
 	// Created during completeOAuthConnect with the stigmer.ai/managed=true label.
 	// 1:1 with this grant — revoking the grant deletes this environment.
 	EnvironmentId string `protobuf:"bytes,9,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
-	// Kind of the API resource identified by resource_id (e.g., "mcp_server",
-	// "workflow"). Used for query filtering and handler routing.
+	// Kind of the API resource identified by resource_id (e.g., "mcp_server").
+	// Used for query filtering and handler routing.
 	ResourceKind string `protobuf:"bytes,10,opt,name=resource_kind,json=resourceKind,proto3" json:"resource_kind,omitempty"`
 	// Organization context for this grant. Part of the composite key:
 	// (identity_account_id, resource_id, org). Enables the same user to

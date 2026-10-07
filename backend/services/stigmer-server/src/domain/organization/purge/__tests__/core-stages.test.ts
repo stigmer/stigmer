@@ -8,17 +8,14 @@
  *     an organization with no run that may still be live passes with no
  *     engine; a run that may still be live is terminated, a run the engine
  *     no longer holds is fine, and with the engine unreachable the stage
- *     faults; every session's and workflow run's sandbox is torn down; the
+ *     faults; every session's sandbox is torn down; the
  *     side-store records of the organization go and another's stay;
  *   - content: kind purges in order, one batch of the first with rows left;
  *   - children: waits while a child row names the organization, deleting
  *     with it a child no delete marked and leaving a pending child's
  *     delete to it;
- *   - quiesce reads every page of runs, terminates both workflows of a
- *     workflow run that may still be live (a run the engine no longer
- *     holds is fine, any other engine fault fails the stage, and with the
- *     engine unreachable it faults), and tears down every workflow run's
- *     sandbox;
+ *   - quiesce reads every page of runs, and any engine fault other than
+ *     a run the engine no longer holds fails the stage;
  *   - final: its sweeps (quiesce, the units' stages and content again) to
  *     their end first, and a sweep that waits leaves it to a later pass
  *     with nothing final done; then the policy rows, the lifecycle's organization event, the row,
@@ -36,8 +33,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
-import { RunPhase as WorkflowPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
@@ -54,12 +49,6 @@ import {
   ENGINE_DISCONNECTED,
   EngineWorkflowNotFoundError,
 } from "../../../agentrun/engine.js";
-import type { ConnectedWorkflowExecutionEngine } from "../../../workflowrun/engine.js";
-import {
-  ENGINE_DISCONNECTED as WORKFLOW_ENGINE_DISCONNECTED,
-  EngineWorkflowNotFoundError as WorkflowNotFoundError,
-} from "../../../workflowrun/engine.js";
-import { childWorkflowId, orchestratorWorkflowId } from "../../../workflowrun/constants.js";
 import type { IamPolicyGrantPath } from "../../../iampolicy/grant-path.js";
 import { ORGANIZATION_NAME_KIND } from "../../names.js";
 import {
@@ -150,7 +139,6 @@ describe("the quiesce stage", () => {
       logger: silentLogger,
       schedulePurge: kindPurge(ApiResourceKind.schedule, calls, [true, false]),
       agentEngine: () => ENGINE_DISCONNECTED,
-      workflowEngine: () => WORKFLOW_ENGINE_DISCONNECTED,
       sandboxLane: noSandboxes,
     });
     expect(await stage.run(context)).toEqual({ more: true });
@@ -167,7 +155,6 @@ describe("the quiesce stage", () => {
       store,
       logger: silentLogger,
       schedulePurge: kindPurge(ApiResourceKind.schedule, []),
-      workflowEngine: () => WORKFLOW_ENGINE_DISCONNECTED,
       sandboxLane: noSandboxes,
     };
     await newQuiesceStage({
@@ -190,14 +177,25 @@ describe("the quiesce stage", () => {
       create(SessionSchema, { metadata: { id: "ses_1", org: ORG, name: "s" } }),
     );
     for (const org of [ORG, OTHER]) {
-      await store.signalDedupe.claim(org, "k", "wfe_1", "resume", 60_000);
+      await store.pendingOAuthStates.save({
+        state: `state-${org}`,
+        codeVerifier: "verifier",
+        clientId: "client",
+        clientSecret: "",
+        tokenEndpoint: "https://issuer.example.com/token",
+        mcpServerId: "mcps_1",
+        identityAccountId: "ida_1",
+        targetEnvVar: "TOKEN",
+        authMethod: "mcp_oauth",
+        tokenAuthMethod: "",
+        redirectUri: "https://console.example.com/callback",
+        org,
+        createdAt: 0,
+      });
     }
     const torn: string[] = [];
     const provisioner = {
       async deprovisionSessionSandbox(id: string) {
-        torn.push(id);
-      },
-      async deprovisionWorkflowSandbox(id: string) {
         torn.push(id);
       },
     } as unknown as SandboxProvisioner;
@@ -206,7 +204,6 @@ describe("the quiesce stage", () => {
       logger: silentLogger,
       schedulePurge: kindPurge(ApiResourceKind.schedule, []),
       agentEngine: () => ENGINE_DISCONNECTED,
-      workflowEngine: () => WORKFLOW_ENGINE_DISCONNECTED,
       sandboxLane: {
         enabled: true,
         provisioner,
@@ -214,39 +211,12 @@ describe("the quiesce stage", () => {
       },
     }).run(context);
     expect(torn).toEqual(["ses_1"]);
-    expect(await store.signalDedupe.deleteByOrg(ORG)).toBe(0);
-    expect(await store.signalDedupe.deleteByOrg(OTHER)).toBe(1);
+    expect(await store.pendingOAuthStates.deleteByOrg(ORG)).toBe(0);
+    expect(await store.pendingOAuthStates.deleteByOrg(OTHER)).toBe(1);
   });
 });
 
 describe("the quiesce stage's other runs", () => {
-  async function saveWorkflowRun(id: string, phase: WorkflowPhase) {
-    await store.saveResource(
-      ApiResourceKind.workflow_run,
-      id,
-      WorkflowRunSchema,
-      create(WorkflowRunSchema, {
-        metadata: { id, org: ORG, name: id },
-        status: { phase },
-      }),
-    );
-  }
-
-  function workflowEngine(terminated: string[], fault?: (id: string) => Error | undefined) {
-    return () => ({
-      connected: true as const,
-      engine: {
-        async terminateWorkflow(id: string) {
-          const error = fault?.(id);
-          if (error !== undefined) {
-            throw error;
-          }
-          terminated.push(id);
-        },
-      } as unknown as ConnectedWorkflowExecutionEngine,
-    });
-  }
-
   const base = () => ({
     store,
     logger: silentLogger,
@@ -264,7 +234,6 @@ describe("the quiesce stage's other runs", () => {
     await newQuiesceStage({
       ...base(),
       agentEngine: recordingEngine(terminated),
-      workflowEngine: () => WORKFLOW_ENGINE_DISCONNECTED,
     }).run(context);
     expect(terminated).toEqual(["aex_zlive"]);
   });
@@ -280,50 +249,8 @@ describe("the quiesce stage's other runs", () => {
             terminateWorkflow: () => Promise.reject(new Error("engine refused")),
           } as unknown as ConnectedExecutionEngine,
         }),
-        workflowEngine: () => WORKFLOW_ENGINE_DISCONNECTED,
       }).run(context),
     ).rejects.toThrow("engine refused");
-  });
-
-  it("terminates both workflows of a workflow run that may still be live, and faults without the engine", async () => {
-    await saveWorkflowRun("wfx_done", WorkflowPhase.RUN_COMPLETED);
-    await saveWorkflowRun("wfx_live", WorkflowPhase.RUN_IN_PROGRESS);
-    const terminated: string[] = [];
-    await newQuiesceStage({
-      ...base(),
-      workflowEngine: workflowEngine(terminated, (id) =>
-        id === childWorkflowId("wfx_live") ? new WorkflowNotFoundError(id) : undefined,
-      ),
-    }).run(context);
-    expect(terminated).toEqual([orchestratorWorkflowId("wfx_live")]);
-    await expect(
-      newQuiesceStage({ ...base(), workflowEngine: workflowEngine([], () => new Error("engine refused")) }).run(context),
-    ).rejects.toThrow("engine refused");
-    await expect(
-      newQuiesceStage({ ...base(), workflowEngine: () => WORKFLOW_ENGINE_DISCONNECTED }).run(context),
-    ).rejects.toThrow(ENGINE_UNREACHABLE_FOR_PURGE);
-  });
-
-  it("tears down every workflow run's sandbox", async () => {
-    await saveWorkflowRun("wfx_done", WorkflowPhase.RUN_COMPLETED);
-    const torn: string[] = [];
-    await newQuiesceStage({
-      ...base(),
-      workflowEngine: () => WORKFLOW_ENGINE_DISCONNECTED,
-      sandboxLane: {
-        enabled: true,
-        provisioner: {
-          async deprovisionSessionSandbox(id: string) {
-            torn.push(`session:${id}`);
-          },
-          async deprovisionWorkflowSandbox(id: string) {
-            torn.push(`workflow:${id}`);
-          },
-        } as unknown as SandboxProvisioner,
-        credentials: {} as never,
-      },
-    }).run(context);
-    expect(torn).toEqual(["workflow:wfx_done"]);
   });
 });
 
@@ -331,12 +258,12 @@ describe("the content stage", () => {
   it("runs the kind purges in order, one batch of the first with rows left", async () => {
     const calls: string[] = [];
     const stage = newContentStage([
-      kindPurge(ApiResourceKind.artifact, calls, [true, false]),
+      kindPurge(ApiResourceKind.memory, calls, [true, false]),
       kindPurge(ApiResourceKind.agent, calls),
     ]);
     expect(await stage.run(context)).toEqual({ more: true });
     expect(await stage.run(context)).toEqual({ more: false });
-    expect(calls).toEqual(["artifact", "artifact", "agent"]);
+    expect(calls).toEqual(["memory", "memory", "agent"]);
   });
 });
 

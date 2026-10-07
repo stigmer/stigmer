@@ -59,7 +59,6 @@ private static final long serialVersionUID = 0L;
       implements com.google.protobuf.Internal.EnumLite,
           com.google.protobuf.AbstractMessage.InternalOneOfEnum {
     AGENT_RUN_ID(1),
-    WORKFLOW_RUN_ID(2),
     POOL_CLAIM(3),
     RENEWAL(4),
     SCOPE_NOT_SET(0);
@@ -80,7 +79,6 @@ private static final long serialVersionUID = 0L;
     public static ScopeCase forNumber(int value) {
       switch (value) {
         case 1: return AGENT_RUN_ID;
-        case 2: return WORKFLOW_RUN_ID;
         case 3: return POOL_CLAIM;
         case 4: return RENEWAL;
         case 0: return SCOPE_NOT_SET;
@@ -161,69 +159,6 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int WORKFLOW_RUN_ID_FIELD_NUMBER = 2;
-  /**
-   * <pre>
-   * WorkflowRun id — yields a token scoped to exactly that workflow
-   * run's ExecutionContext.
-   * </pre>
-   *
-   * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
-   * @return Whether the workflowRunId field is set.
-   */
-  public boolean hasWorkflowRunId() {
-    return scopeCase_ == 2;
-  }
-  /**
-   * <pre>
-   * WorkflowRun id — yields a token scoped to exactly that workflow
-   * run's ExecutionContext.
-   * </pre>
-   *
-   * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
-   * @return The workflowRunId.
-   */
-  public java.lang.String getWorkflowRunId() {
-    if (scopeCase_ != 2) {
-      return "";
-    }
-    java.lang.Object ref = scope_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      scope_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * WorkflowRun id — yields a token scoped to exactly that workflow
-   * run's ExecutionContext.
-   * </pre>
-   *
-   * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
-   * @return The bytes for workflowRunId.
-   */
-  public com.google.protobuf.ByteString
-      getWorkflowRunIdBytes() {
-    if (scopeCase_ != 2) {
-      return com.google.protobuf.ByteString.copyFromUtf8("");
-    }
-    java.lang.Object ref = scope_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      scope_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
   public static final int POOL_CLAIM_FIELD_NUMBER = 3;
   /**
    * <pre>
@@ -277,8 +212,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Credential renewal — a live sandbox extending its own lifetime.
-   * Presented with the still-valid token_type=sandbox or workflow_sandbox
-   * credential being renewed (not embedded_runner).
+   * Presented with the still-valid token_type=sandbox credential being
+   * renewed (not embedded_runner).
    * </pre>
    *
    * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
@@ -291,8 +226,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Credential renewal — a live sandbox extending its own lifetime.
-   * Presented with the still-valid token_type=sandbox or workflow_sandbox
-   * credential being renewed (not embedded_runner).
+   * Presented with the still-valid token_type=sandbox credential being
+   * renewed (not embedded_runner).
    * </pre>
    *
    * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
@@ -308,8 +243,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Credential renewal — a live sandbox extending its own lifetime.
-   * Presented with the still-valid token_type=sandbox or workflow_sandbox
-   * credential being renewed (not embedded_runner).
+   * Presented with the still-valid token_type=sandbox credential being
+   * renewed (not embedded_runner).
    * </pre>
    *
    * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
@@ -339,9 +274,6 @@ private static final long serialVersionUID = 0L;
     if (scopeCase_ == 1) {
       com.google.protobuf.GeneratedMessage.writeString(output, 1, scope_);
     }
-    if (scopeCase_ == 2) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 2, scope_);
-    }
     if (scopeCase_ == 3) {
       output.writeMessage(3, (ai.stigmer.platform.v1.PoolClaim) scope_);
     }
@@ -359,9 +291,6 @@ private static final long serialVersionUID = 0L;
     size = 0;
     if (scopeCase_ == 1) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(1, scope_);
-    }
-    if (scopeCase_ == 2) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, scope_);
     }
     if (scopeCase_ == 3) {
       size += com.google.protobuf.CodedOutputStream
@@ -392,10 +321,6 @@ private static final long serialVersionUID = 0L;
         if (!getAgentRunId()
             .equals(other.getAgentRunId())) return false;
         break;
-      case 2:
-        if (!getWorkflowRunId()
-            .equals(other.getWorkflowRunId())) return false;
-        break;
       case 3:
         if (!getPoolClaim()
             .equals(other.getPoolClaim())) return false;
@@ -422,10 +347,6 @@ private static final long serialVersionUID = 0L;
       case 1:
         hash = (37 * hash) + AGENT_RUN_ID_FIELD_NUMBER;
         hash = (53 * hash) + getAgentRunId().hashCode();
-        break;
-      case 2:
-        hash = (37 * hash) + WORKFLOW_RUN_ID_FIELD_NUMBER;
-        hash = (53 * hash) + getWorkflowRunId().hashCode();
         break;
       case 3:
         hash = (37 * hash) + POOL_CLAIM_FIELD_NUMBER;
@@ -649,12 +570,6 @@ private static final long serialVersionUID = 0L;
           onChanged();
           break;
         }
-        case WORKFLOW_RUN_ID: {
-          scopeCase_ = 2;
-          scope_ = other.scope_;
-          onChanged();
-          break;
-        }
         case POOL_CLAIM: {
           mergePoolClaim(other.getPoolClaim());
           break;
@@ -698,11 +613,6 @@ private static final long serialVersionUID = 0L;
               scope_ = input.readStringRequireUtf8();
               break;
             } // case 10
-            case 18: {
-              scopeCase_ = 2;
-              scope_ = input.readStringRequireUtf8();
-              break;
-            } // case 18
             case 26: {
               input.readMessage(
                   internalGetPoolClaimFieldBuilder().getBuilder(),
@@ -863,125 +773,6 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       scopeCase_ = 1;
-      scope_ = value;
-      onChanged();
-      return this;
-    }
-
-    /**
-     * <pre>
-     * WorkflowRun id — yields a token scoped to exactly that workflow
-     * run's ExecutionContext.
-     * </pre>
-     *
-     * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
-     * @return Whether the workflowRunId field is set.
-     */
-    @java.lang.Override
-    public boolean hasWorkflowRunId() {
-      return scopeCase_ == 2;
-    }
-    /**
-     * <pre>
-     * WorkflowRun id — yields a token scoped to exactly that workflow
-     * run's ExecutionContext.
-     * </pre>
-     *
-     * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
-     * @return The workflowRunId.
-     */
-    @java.lang.Override
-    public java.lang.String getWorkflowRunId() {
-      if (scopeCase_ != 2) {
-        return "";
-      }
-      java.lang.Object ref = scope_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-          scope_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * WorkflowRun id — yields a token scoped to exactly that workflow
-     * run's ExecutionContext.
-     * </pre>
-     *
-     * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
-     * @return The bytes for workflowRunId.
-     */
-    @java.lang.Override
-    public com.google.protobuf.ByteString
-        getWorkflowRunIdBytes() {
-      if (scopeCase_ != 2) {
-        return com.google.protobuf.ByteString.copyFromUtf8(        "");
-      }
-      java.lang.Object ref = scope_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        scope_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * WorkflowRun id — yields a token scoped to exactly that workflow
-     * run's ExecutionContext.
-     * </pre>
-     *
-     * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
-     * @param value The workflowRunId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setWorkflowRunId(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      scopeCase_ = 2;
-      scope_ = value;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * WorkflowRun id — yields a token scoped to exactly that workflow
-     * run's ExecutionContext.
-     * </pre>
-     *
-     * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearWorkflowRunId() {
-      if (scopeCase_ == 2) {
-        scopeCase_ = 0;
-        scope_ = null;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * WorkflowRun id — yields a token scoped to exactly that workflow
-     * run's ExecutionContext.
-     * </pre>
-     *
-     * <code>string workflow_run_id = 2 [json_name = "workflowRunId"];</code>
-     * @param value The bytes for workflowRunId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setWorkflowRunIdBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      scopeCase_ = 2;
       scope_ = value;
       onChanged();
       return this;
@@ -1188,8 +979,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Credential renewal — a live sandbox extending its own lifetime.
-     * Presented with the still-valid token_type=sandbox or workflow_sandbox
-     * credential being renewed (not embedded_runner).
+     * Presented with the still-valid token_type=sandbox credential being
+     * renewed (not embedded_runner).
      * </pre>
      *
      * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
@@ -1202,8 +993,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Credential renewal — a live sandbox extending its own lifetime.
-     * Presented with the still-valid token_type=sandbox or workflow_sandbox
-     * credential being renewed (not embedded_runner).
+     * Presented with the still-valid token_type=sandbox credential being
+     * renewed (not embedded_runner).
      * </pre>
      *
      * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
@@ -1226,8 +1017,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Credential renewal — a live sandbox extending its own lifetime.
-     * Presented with the still-valid token_type=sandbox or workflow_sandbox
-     * credential being renewed (not embedded_runner).
+     * Presented with the still-valid token_type=sandbox credential being
+     * renewed (not embedded_runner).
      * </pre>
      *
      * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
@@ -1248,8 +1039,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Credential renewal — a live sandbox extending its own lifetime.
-     * Presented with the still-valid token_type=sandbox or workflow_sandbox
-     * credential being renewed (not embedded_runner).
+     * Presented with the still-valid token_type=sandbox credential being
+     * renewed (not embedded_runner).
      * </pre>
      *
      * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
@@ -1268,8 +1059,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Credential renewal — a live sandbox extending its own lifetime.
-     * Presented with the still-valid token_type=sandbox or workflow_sandbox
-     * credential being renewed (not embedded_runner).
+     * Presented with the still-valid token_type=sandbox credential being
+     * renewed (not embedded_runner).
      * </pre>
      *
      * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
@@ -1297,8 +1088,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Credential renewal — a live sandbox extending its own lifetime.
-     * Presented with the still-valid token_type=sandbox or workflow_sandbox
-     * credential being renewed (not embedded_runner).
+     * Presented with the still-valid token_type=sandbox credential being
+     * renewed (not embedded_runner).
      * </pre>
      *
      * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
@@ -1322,8 +1113,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Credential renewal — a live sandbox extending its own lifetime.
-     * Presented with the still-valid token_type=sandbox or workflow_sandbox
-     * credential being renewed (not embedded_runner).
+     * Presented with the still-valid token_type=sandbox credential being
+     * renewed (not embedded_runner).
      * </pre>
      *
      * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
@@ -1334,8 +1125,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Credential renewal — a live sandbox extending its own lifetime.
-     * Presented with the still-valid token_type=sandbox or workflow_sandbox
-     * credential being renewed (not embedded_runner).
+     * Presented with the still-valid token_type=sandbox credential being
+     * renewed (not embedded_runner).
      * </pre>
      *
      * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
@@ -1354,8 +1145,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Credential renewal — a live sandbox extending its own lifetime.
-     * Presented with the still-valid token_type=sandbox or workflow_sandbox
-     * credential being renewed (not embedded_runner).
+     * Presented with the still-valid token_type=sandbox credential being
+     * renewed (not embedded_runner).
      * </pre>
      *
      * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>

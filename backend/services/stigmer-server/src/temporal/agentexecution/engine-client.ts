@@ -80,7 +80,6 @@ export class TemporalExecutionEngine implements ConnectedExecutionEngine {
         store,
         input.sessionId,
         config,
-        input.activityTaskQueueOverride,
         logger,
       );
     } catch (error) {
@@ -100,20 +99,12 @@ export class TemporalExecutionEngine implements ConnectedExecutionEngine {
 
     // Slim input with Go's omitempty shape (workflow-input.ts): zero-value
     // fields are omitted so TS- and Go-authored histories carry the same
-    // keys. callback_token is base64 — Go's []byte JSON rendering.
+    // keys.
     const workflowInput: InvokeAgentExecutionWorkflowInput = {
       execution_id: input.executionId,
       session_id: input.sessionId,
       agent_id: input.agentId,
-      ...(input.callbackToken.length > 0
-        ? {
-            callback_token: Buffer.from(input.callbackToken).toString("base64"),
-          }
-        : {}),
       ...(input.autoApproveAll ? { auto_approve_all: true } : {}),
-      ...(input.parentWorkflowId !== ""
-        ? { parent_workflow_id: input.parentWorkflowId }
-        : {}),
       ...(dispatch.harness !== 0 ? { harness: dispatch.harness } : {}),
       ...(dispatch.executionTarget !== 0
         ? { execution_target: dispatch.executionTarget }

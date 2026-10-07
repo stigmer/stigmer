@@ -11,8 +11,8 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
-import { WorkflowRunSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
-import type { WorkflowRun } from "@stigmer/protos/ai/stigmer/agentic/workflowrun/v1/api_pb";
+import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
+import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type {
@@ -42,11 +42,11 @@ function bindingAnswering(answer: BindingVerdict | Error) {
   return { binding, asked };
 }
 
-const workflowTarget = (execution: WorkflowRun): RunTarget | undefined =>
-  execution.spec?.workflowId
+const agentTarget = (execution: AgentRun): RunTarget | undefined =>
+  execution.status?.agentId
     ? {
-        ...RUN_GATE_CHECKS.workflow,
-        resourceId: execution.spec.workflowId,
+        ...RUN_GATE_CHECKS.agent,
+        resourceId: execution.status.agentId,
         deniedMessage: "",
       }
     : undefined;
@@ -59,30 +59,30 @@ function settle(
   return Promise.resolve().then(() => step.execute(ctx));
 }
 
-function runIn(org: string, workflowId: string) {
+function runIn(org: string, agentId: string) {
   return new RequestContext(
-    WorkflowRunSchema,
-    create(WorkflowRunSchema, {
+    AgentRunSchema,
+    create(AgentRunSchema, {
       metadata: { name: "run", org },
-      spec: { workflowId },
+      status: { agentId },
     }),
     testCallerIdentity(),
-    ApiResourceKind.workflow_run,
+    ApiResourceKind.agent_run,
   );
 }
 
 describe("RunTargetReachable", () => {
   it("asks as a credential bound to the run's organization, for can_view", async () => {
     const { binding, asked } = bindingAnswering("inside");
-    await newRunTargetReachableStep<typeof WorkflowRunSchema>(
+    await newRunTargetReachableStep<typeof AgentRunSchema>(
       binding,
-      workflowTarget,
-    ).execute(runIn("org_a", "wfl_1"));
+      agentTarget,
+    ).execute(runIn("org_a", "agt_1"));
     expect(asked).toHaveLength(1);
     expect(asked[0]?.caller.boundOrg).toBe("org_a");
     expect(asked[0]?.target).toEqual({
-      kind: ApiResourceKind.workflow,
-      id: "wfl_1",
+      kind: ApiResourceKind.agent,
+      id: "agt_1",
       permission: "can_view",
     });
   });
@@ -90,18 +90,15 @@ describe("RunTargetReachable", () => {
   it("refuses a target the run's organization cannot read, naming it", async () => {
     const { binding } = bindingAnswering("outside");
     const error = await settle(
-      newRunTargetReachableStep<typeof WorkflowRunSchema>(
-        binding,
-        workflowTarget,
-      ),
-      runIn("org_a", "wfl_elsewhere"),
+      newRunTargetReachableStep<typeof AgentRunSchema>(binding, agentTarget),
+      runIn("org_a", "agt_elsewhere"),
     ).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ConnectError);
     expect((error as ConnectError).code).toBe(Code.FailedPrecondition);
     expect((error as ConnectError).rawMessage).toBe(
       runTargetUnreachableMessage({
-        ...RUN_GATE_CHECKS.workflow,
-        resourceId: "wfl_elsewhere",
+        ...RUN_GATE_CHECKS.agent,
+        resourceId: "agt_elsewhere",
         deniedMessage: "",
       }),
     );
@@ -109,31 +106,28 @@ describe("RunTargetReachable", () => {
 
   it("passes an admitted or missing target, and a run with no target or no organization", async () => {
     for (const answer of ["admitted", "missing"] as const) {
-      await newRunTargetReachableStep<typeof WorkflowRunSchema>(
+      await newRunTargetReachableStep<typeof AgentRunSchema>(
         bindingAnswering(answer).binding,
-        workflowTarget,
-      ).execute(runIn("org_a", "wfl_1"));
+        agentTarget,
+      ).execute(runIn("org_a", "agt_1"));
     }
     const { binding, asked } = bindingAnswering("outside");
-    await newRunTargetReachableStep<typeof WorkflowRunSchema>(
+    await newRunTargetReachableStep<typeof AgentRunSchema>(
       binding,
-      workflowTarget,
+      agentTarget,
     ).execute(runIn("org_a", ""));
-    await newRunTargetReachableStep<typeof WorkflowRunSchema>(
+    await newRunTargetReachableStep<typeof AgentRunSchema>(
       binding,
-      workflowTarget,
-    ).execute(runIn("", "wfl_1"));
+      agentTarget,
+    ).execute(runIn("", "agt_1"));
     expect(asked).toEqual([]);
   });
 
   it("answers INTERNAL when the binding cannot read the target", async () => {
     const { binding } = bindingAnswering(new Error("store unavailable"));
     const error = await settle(
-      newRunTargetReachableStep<typeof WorkflowRunSchema>(
-        binding,
-        workflowTarget,
-      ),
-      runIn("org_a", "wfl_1"),
+      newRunTargetReachableStep<typeof AgentRunSchema>(binding, agentTarget),
+      runIn("org_a", "agt_1"),
     ).catch((e: unknown) => e);
     expect((error as ConnectError).code).toBe(Code.Internal);
   });

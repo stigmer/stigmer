@@ -42,7 +42,7 @@
  * over it on update.
  *
  * An update that names no engine keeps the conversation's stored one, so a
- * caller re-applying a session it created (a workflow step's retry) never
+ * caller re-applying a session it created (a retry) never
  * resets the engine its agent's defaults chose; the same holds when the
  * write keeps the stored pin. A new conversation that names no engine starts on the engine its agent's
  * pinned version names (AgentSpec.harness), the engine the agent's run

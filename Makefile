@@ -94,7 +94,7 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim build-server protos codegen build-ts-stubs build-libs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-task-registry gen-task-registry-check gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check gen-authorization-model gen-authorization-model-check gen-substrate-stubs gen-substrate-stubs-check
+.PHONY: build build-java-protos build-java-sdk build-runner build-runner-slim build-server protos codegen build-ts-stubs build-libs gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-ipc-fixtures gen-ipc-fixtures-check stubs-internal-check gen-authorization-model gen-authorization-model-check gen-substrate-stubs gen-substrate-stubs-check
 build: build-libs build-web verify-desktop docs-build build-java-sdk build-runner build-server ## Build all project artifacts
 	@echo ""
 	@echo "built: the server ($(SERVER_DIR)/dist) and runner (the CLI ships as the @stigmer/cli npm package)"
@@ -160,27 +160,13 @@ protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C sdk/python codegen
 	$(MAKE) -C sdk/java codegen
 
-gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-cli-docs gen-task-registry ## Generate all SDK reference docs
+gen-sdk-docs: gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-theme-docs gen-cli-docs ## Generate all SDK reference docs
 
 gen-proto-sdk-docs: ## Generate SDK resource docs from proto schemas
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
 	@npm run build -w @stigmer/protos --silent
 	node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=sdk-docs \
 		--schema-dir tools/codegen/schemas --output-dir docs/sdk/resources --apis-dir apis
-
-# The JSON Schemas live at their generator home (tools/codegen/output only):
-# the server bundles just the registry JSON (registry/bundled.ts), so the
-# per-schema copy the Go embed carried retired with the Go server.
-gen-task-registry: ## Generate task-kind-registry.json + JSON Schemas and sync the registry into the server bundle
-	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
-	@# The generator validates sidecar YAML examples against the typed proto
-	@# messages via @stigmer/protos, which must be built first (incremental).
-	@npm run build -w @stigmer/protos --silent
-	node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=task-registry \
-		--schema-dir tools/codegen/schemas --output-dir tools/codegen/output \
-		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta
-	cp tools/codegen/output/task-kind-registry.json \
-		$(SERVER_DIR)/src/domain/workflow/registry/data/task-kind-registry.json
 
 # Source of truth for the model registry is the cloud platform's database
 # (a baseline plus ledger-derived overrides, served publicly). The bundled
@@ -201,21 +187,6 @@ sync-model-registry: ## Refresh the bundled model-registry.json snapshot from th
 	@mv $(MODEL_REGISTRY_DATA)/model-registry.json.tmp \
 		$(MODEL_REGISTRY_DATA)/model-registry.json
 	@echo "✓ model-registry.json snapshot refreshed from $(MODEL_REGISTRY_UPSTREAM)"
-
-gen-task-registry-check: ## Verify the task kind registry is up to date and synced (CI)
-	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
-	@npm run build -w @stigmer/protos --silent
-	@node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=task-registry \
-		--schema-dir tools/codegen/schemas --output-dir tools/codegen/output \
-		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta && \
-	if ! diff -q tools/codegen/output/task-kind-registry.json \
-		$(SERVER_DIR)/src/domain/workflow/registry/data/task-kind-registry.json > /dev/null 2>&1; then \
-		echo "error: task kind registry is stale or unsynced — run 'make gen-task-registry'"; exit 1; \
-	fi; \
-	if ! git diff --quiet tools/codegen/output/task-kind-registry.json tools/codegen/output/json-schemas/; then \
-		echo "error: task kind registry is stale — run 'make gen-task-registry'"; exit 1; \
-	fi; \
-	echo "✓ Task kind registry is up to date"
 
 # The authorization model: its source is the modular OpenFGA model under
 # $(SERVER_DIR)/fga/model, compiled by OpenFGA's own parser into the one
@@ -260,7 +231,7 @@ gen-ink-sdk-docs: site-deps ## Generate Ink SDK reference docs from TypeDoc
 gen-theme-docs: site-deps ## Generate theme token reference docs from tokens.css
 	cd site && yarn generate-theme-docs
 
-gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-cli-docs-check gen-task-registry-check ## Verify all SDK docs are up to date (CI)
+gen-sdk-docs-check: gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check gen-theme-docs-check gen-cli-docs-check ## Verify all SDK docs are up to date (CI)
 
 gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
@@ -596,7 +567,7 @@ stage-server-library: node_modules ## Stage @stigmer/server and its @stigmer/* l
 
 # The compose gate: build both images from source and
 # prove the full self-host stack — server + Postgres + Temporal + runner —
-# up to one end-to-end workflow run. The same script the PR gate
+# up to one end-to-end agent run. The same script the PR gate
 # (ci.compose-stack.yaml) and the release lane run. Fixed ports 7234/7235:
 # stop any running `stigmer up` first.
 .PHONY: smoke-compose
@@ -714,10 +685,6 @@ test-conformance-all: ## Run both conformance slices (CRUD + execution)
 	$(MAKE) test-conformance
 	$(MAKE) test-conformance-execution
 	@echo "Conformance suite complete (local + local-execution)."
-
-.PHONY: test-replay
-test-replay: ## Run Temporal workflow replay determinism tests (fast, no infra needed)
-	@echo "test-replay: workflow-runner has been removed (unified into runner)"
 
 # ─── Plugin Catalogue Testing ────────────────
 
@@ -1217,7 +1184,7 @@ check-docs-yaml: ## Validate every docs YAML block + raw examples/plugins manife
 	@npm run build -w @stigmer/protos --silent
 	@node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=docs-yaml-check --docs-dir docs --authoring-dirs examples,plugins --rules=enforce
 
-report-docs-yaml-rules: ## Full-depth protovalidate rule report over docs YAML (incl. latent platform-blind findings; never fails)
+report-docs-yaml-rules: ## Protovalidate rule report over docs YAML manifests (never fails)
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
 	@npm run build -w @stigmer/protos --silent
 	@node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=docs-yaml-check --docs-dir docs --rules=report

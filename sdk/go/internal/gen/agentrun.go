@@ -196,7 +196,6 @@ type AgentRunInput struct {
 	WorkspaceFileRefs      []string
 	SupersedesRunId        string
 	ConversationCatchup    *ConversationCatchupInput
-	Parent                 *WorkflowParentInput
 }
 
 // SessionSpecInput is the SDK input type for SessionSpec.
@@ -254,13 +253,6 @@ type AttachmentInput struct {
 type ConversationCatchupInput struct {
 	Digest    string
 	WindowEnd string
-}
-
-// WorkflowParentInput is the SDK input type for WorkflowParent.
-type WorkflowParentInput struct {
-	WorkflowRunId    string
-	SignalWorkflowId string
-	CallbackToken    []byte
 }
 
 func (i *AgentRunInput) toProto() (*agentrunv1.AgentRun, error) {
@@ -355,13 +347,6 @@ func (i *AgentRunInput) toProto() (*agentrunv1.AgentRun, error) {
 		}
 		resource.Spec.ConversationCatchup = v
 	}
-	if i.Parent != nil {
-		v, err := i.Parent.toProto()
-		if err != nil {
-			return nil, fieldErr("Parent", err)
-		}
-		resource.Spec.Parent = v
-	}
 	return resource, nil
 }
 
@@ -424,14 +409,6 @@ func (i *ConversationCatchupInput) toProto() (*agentrunv1.ConversationCatchup, e
 	return p, nil
 }
 
-func (i *WorkflowParentInput) toProto() (*agentrunv1.WorkflowParent, error) {
-	return &agentrunv1.WorkflowParent{
-		WorkflowRunId:    i.WorkflowRunId,
-		SignalWorkflowId: i.SignalWorkflowId,
-		CallbackToken:    i.CallbackToken,
-	}, nil
-}
-
 // AgentRunInputFromProto creates a AgentRunInput from a proto AgentRun resource.
 func AgentRunInputFromProto(p *agentrunv1.AgentRun) *AgentRunInput {
 	if p == nil {
@@ -467,7 +444,6 @@ func AgentRunInputFromProto(p *agentrunv1.AgentRun) *AgentRunInput {
 		input.WorkspaceFileRefs = s.GetWorkspaceFileRefs()
 		input.SupersedesRunId = s.GetSupersedesRunId()
 		input.ConversationCatchup = conversationCatchupInputFromProto(s.GetConversationCatchup())
-		input.Parent = workflowParentInputFromProto(s.GetParent())
 		input.SessionId = s.GetSessionId()
 		if ov := s.GetSessionSpec(); ov != nil {
 			input.SessionSpec = sessionSpecInputFromProto(ov)
@@ -566,16 +542,5 @@ func conversationCatchupInputFromProto(p *agentrunv1.ConversationCatchup) *Conve
 	if ts := p.GetWindowEnd(); ts != nil {
 		input.WindowEnd = ts.AsTime().Format(time.RFC3339)
 	}
-	return input
-}
-
-func workflowParentInputFromProto(p *agentrunv1.WorkflowParent) *WorkflowParentInput {
-	if p == nil {
-		return nil
-	}
-	input := &WorkflowParentInput{}
-	input.WorkflowRunId = p.GetWorkflowRunId()
-	input.SignalWorkflowId = p.GetSignalWorkflowId()
-	input.CallbackToken = p.GetCallbackToken()
 	return input
 }

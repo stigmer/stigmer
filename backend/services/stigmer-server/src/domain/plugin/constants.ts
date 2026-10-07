@@ -29,15 +29,10 @@ export const BUILT_IN_SUB_AGENT_NAMES: ReadonlySet<string> = new Set([
 
 /**
  * The materialisation order and the kinds a plugin may own, in the order
- * references resolve: an agent names skills and servers, a workflow may
- * name the agent. Cascade deletes in reverse.
+ * references resolve: an agent names skills and servers. Cascade deletes
+ * in reverse.
  */
-export const MATERIALIZATION_ORDER = [
-  "skill",
-  "mcp_server",
-  "agent",
-  "workflow",
-] as const;
+export const MATERIALIZATION_ORDER = ["skill", "mcp_server", "agent"] as const;
 export type MaterializedKindName = (typeof MATERIALIZATION_ORDER)[number];
 
 /** FailedPrecondition copy when the upload lane was not configured. */

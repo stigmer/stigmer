@@ -1,5 +1,5 @@
 /**
- * The plugin's Stigmer overlay, parsed: the three document families under
+ * The plugin's Stigmer overlay, parsed: the two document families under
  * `ai.stigmer/` as protos, each still carrying the path it came from so
  * every later sentence can point at the file. `parseOverlays` is the one
  * place the library's byte-and-path documents meet the schemas; the
@@ -13,8 +13,6 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
-import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 
 import type { OrganizationNameResolver } from "../../../pipeline/interceptors/organization-names.js";
 import { resolveOrganizationNames } from "../../../pipeline/interceptors/organization-names.js";
@@ -26,11 +24,6 @@ export interface ParsedOverlayDocument<T> {
   readonly resource: T;
 }
 
-export interface ParsedOverlayWorkflow extends ParsedOverlayDocument<Workflow> {
-  /** The file stem: the workflow's name. */
-  readonly name: string;
-}
-
 export interface ParsedOverlayMcpServer extends ParsedOverlayDocument<McpServer> {
   /** The `mcpServers` key this overlay layers over. */
   readonly server: string;
@@ -38,7 +31,6 @@ export interface ParsedOverlayMcpServer extends ParsedOverlayDocument<McpServer>
 
 export interface ParsedOverlays {
   readonly agent?: ParsedOverlayDocument<Agent>;
-  readonly workflows: readonly ParsedOverlayWorkflow[];
   readonly mcpServers: readonly ParsedOverlayMcpServer[];
 }
 
@@ -58,14 +50,6 @@ export function parseOverlays(overlay: StigmerOverlay): ParsedOverlays {
         ),
       },
     }),
-    workflows: overlay.workflows.map((document) => ({
-      path: document.path,
-      name: document.name,
-      resource: parseOverlayDocument(document.path, document.bytes, {
-        schema: WorkflowSchema,
-        yamlKind: "Workflow",
-      }),
-    })),
     mcpServers: overlay.mcpServers.map((document) => ({
       path: document.path,
       server: document.server,
@@ -90,7 +74,6 @@ export async function resolveOverlayOrganizations(
 ): Promise<void> {
   const documents = [
     ...(overlays.agent === undefined ? [] : [{ schema: AgentSchema, document: overlays.agent }]),
-    ...overlays.workflows.map((document) => ({ schema: WorkflowSchema, document })),
     ...overlays.mcpServers.map((document) => ({ schema: McpServerSchema, document })),
   ];
   for (const { schema, document } of documents) {

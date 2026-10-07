@@ -146,11 +146,6 @@ type AgentRunStatus struct {
 	// Each run maintains its own snapshot of todos at run time.
 	// Key: todo item ID, Value: todo item details
 	Todos map[string]*TodoItem `protobuf:"bytes,9,rep,name=todos,proto3" json:"todos,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Callback token for notifying a parent workflow when this run completes.
-	//
-	// Present when this run was triggered by a workflow. Empty when the
-	// run stands alone (a chat turn or an API call).
-	CallbackToken []byte `protobuf:"bytes,10,opt,name=callback_token,json=callbackToken,proto3" json:"callback_token,omitempty"`
 	// Active pending approval requests for this run.
 	//
 	// Contains one entry per tool call that requires user approval before
@@ -214,8 +209,7 @@ type AgentRunStatus struct {
 	// extraction (JSON.parse → fence extraction → extraction LLM fallback).
 	//
 	// Consumers: frontend architect/refine hooks read this instead of parsing
-	// YAML from messages. Workflow callback path reads structured_output from
-	// the Temporal activity result (separate channel, same data).
+	// YAML from messages.
 	StructuredOutput *structpb.Struct `protobuf:"bytes,21,opt,name=structured_output,json=structuredOutput,proto3" json:"structured_output,omitempty"`
 	// Server-computed projection of file change sets awaiting or completing
 	// review for this run.
@@ -264,8 +258,7 @@ type AgentRunStatus struct {
 	// A fact of the lane the turn came through, never of the request: a
 	// schedule's turn and the hosted edition's shared-agent guest and channel
 	// turns are UNATTENDED (nobody is present to approve); every other turn is
-	// INTERACTIVE, a workflow step's included (its workflow takes the approval
-	// request).
+	// INTERACTIVE.
 	ApprovalMode  ApprovalMode `protobuf:"varint,32,opt,name=approval_mode,json=approvalMode,proto3,enum=ai.stigmer.agentic.agentrun.v1.ApprovalMode" json:"approval_mode,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -353,13 +346,6 @@ func (x *AgentRunStatus) GetCompletedAt() string {
 func (x *AgentRunStatus) GetTodos() map[string]*TodoItem {
 	if x != nil {
 		return x.Todos
-	}
-	return nil
-}
-
-func (x *AgentRunStatus) GetCallbackToken() []byte {
-	if x != nil {
-		return x.CallbackToken
 	}
 	return nil
 }
@@ -621,7 +607,7 @@ const file_ai_stigmer_agentic_agentrun_v1_api_proto_rawDesc = "" +
 	"\bAgentRunR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12@\n" +
 	"\x04spec\x18\x04 \x01(\v2,.ai.stigmer.agentic.agentrun.v1.AgentRunSpecR\x04spec\x12F\n" +
-	"\x06status\x18\x05 \x01(\v2..ai.stigmer.agentic.agentrun.v1.AgentRunStatusR\x06status\"\x9f\x11\n" +
+	"\x06status\x18\x05 \x01(\v2..ai.stigmer.agentic.agentrun.v1.AgentRunStatusR\x06status\"\x8e\x11\n" +
 	"\x0eAgentRunStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12H\n" +
 	"\bmessages\x18\x01 \x03(\v2,.ai.stigmer.agentic.agentrun.v1.AgentMessageR\bmessages\x12H\n" +
@@ -631,9 +617,7 @@ const file_ai_stigmer_agentic_agentrun_v1_api_proto_rawDesc = "" +
 	"\n" +
 	"started_at\x18\a \x01(\tR\tstartedAt\x12!\n" +
 	"\fcompleted_at\x18\b \x01(\tR\vcompletedAt\x12O\n" +
-	"\x05todos\x18\t \x03(\v29.ai.stigmer.agentic.agentrun.v1.AgentRunStatus.TodosEntryR\x05todos\x12%\n" +
-	"\x0ecallback_token\x18\n" +
-	" \x01(\fR\rcallbackToken\x12\\\n" +
+	"\x05todos\x18\t \x03(\v29.ai.stigmer.agentic.agentrun.v1.AgentRunStatus.TodosEntryR\x05todos\x12\\\n" +
 	"\x11pending_approvals\x18\x10 \x03(\v2/.ai.stigmer.agentic.agentrun.v1.PendingApprovalR\x10pendingApprovals\x12g\n" +
 	"\x15approval_event_stream\x18\x16 \x01(\v23.ai.stigmer.agentic.agentrun.v1.ApprovalEventStreamR\x13approvalEventStream\x12N\n" +
 	"\fcontext_info\x18\x0e \x01(\v2+.ai.stigmer.agentic.agentrun.v1.ContextInfoR\vcontextInfo\x12I\n" +
@@ -656,7 +640,8 @@ const file_ai_stigmer_agentic_agentrun_v1_api_proto_rawDesc = "" +
 	"\n" +
 	"TodosEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12>\n" +
-	"\x05value\x18\x02 \x01(\v2(.ai.stigmer.agentic.agentrun.v1.TodoItemR\x05value:\x028\x01J\x04\b\f\x10\rR\x10resolved_context\"4\n" +
+	"\x05value\x18\x02 \x01(\v2(.ai.stigmer.agentic.agentrun.v1.TodoItemR\x05value:\x028\x01J\x04\b\n" +
+	"\x10\vJ\x04\b\f\x10\rR\x0ecallback_tokenR\x10resolved_context\"4\n" +
 	"\rSetupProgress\x12#\n" +
 	"\rcurrent_phase\x18\x01 \x01(\tR\fcurrentPhase\"\x9c\x01\n" +
 	"\x16RecalledMemoriesReport\x12)\n" +

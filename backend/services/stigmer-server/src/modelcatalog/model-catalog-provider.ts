@@ -86,8 +86,8 @@ export interface ModelCatalogProvider {
 
   /**
    * Whether a model reference prices the given variant key under the given
-   * harness. The workflow validators use this form — the task config names
-   * its harness, so a fast variant priced only under another harness must
+   * harness. The run-config checks use this form — a run names its
+   * harness, so a fast variant priced only under another harness must
    * not validate (it would execute as a silent no-op).
    */
   hasPricingVariantForHarness(

@@ -244,30 +244,24 @@ describe("GuardReservedLabels", () => {
     // a step's per-request record exempts exactly the recorded keys — a
     // smuggled sibling in the same request is still rejected.
     const step = newGuardReservedLabelsStep<typeof AgentSchema>(denying());
-    const vouched = agentCtx({ "stigmer.ai/workflow-execution-id": "wfe_1" });
-    recordServerStampedReservedLabels(
-      vouched,
-      "stigmer.ai/workflow-execution-id",
-    );
+    const vouched = agentCtx({ "stigmer.ai/mcp-auth": "endpoint" });
+    recordServerStampedReservedLabels(vouched, "stigmer.ai/mcp-auth");
     await expect(
       Promise.resolve(step.execute(vouched)),
     ).resolves.toBeUndefined();
 
     const smuggled = agentCtx({
-      "stigmer.ai/workflow-execution-id": "wfe_1",
+      "stigmer.ai/mcp-auth": "endpoint",
       "stigmer.ai/default-agent": "true",
     });
-    recordServerStampedReservedLabels(
-      smuggled,
-      "stigmer.ai/workflow-execution-id",
-    );
+    recordServerStampedReservedLabels(smuggled, "stigmer.ai/mcp-auth");
     const error = await step.execute(smuggled)?.catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ConnectError);
     expect((error as ConnectError).rawMessage).toContain(
       "stigmer.ai/default-agent",
     );
     expect((error as ConnectError).rawMessage).not.toContain(
-      "stigmer.ai/workflow-execution-id",
+      "stigmer.ai/mcp-auth",
     );
   });
 });

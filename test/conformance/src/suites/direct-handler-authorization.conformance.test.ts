@@ -13,17 +13,14 @@
 //   - an UNKNOWN id on the authorize-first family answers NOT_FOUND via
 //     the authorizer's deny-path existence probe — the UNIFORM not-found
 //     posture;
-//   - the load-first family (updateSubject, the artifact trio, the MCP
-//     connect trio) keeps its handler-owned NotFound copy for unknown
+//   - the load-first family (updateSubject, the MCP connect trio) keeps its handler-owned NotFound copy for unknown
 //     ids, outsider or not — the load fires before the check (#224).
 //
-// Three arms below sit where the retired Java edition once diverged by
+// Two arms below sit where the retired Java edition once diverged by
 // ruling (the per-method dispositions in docs/authorization-coverage.md);
 // each is plain contract now, enforced strictly so a regression to the old
 // gap turns the suite red:
 //
-//   - workflow getVersion evaluates its annotation and refuses an outsider
-//     (Java declared the annotation but never evaluated it);
 //   - initiateOAuthConnect authorizes BEFORE the lane's auth-block
 //     precondition (Java checked the precondition first);
 //   - unknown ids on the authorize-first family answer the uniform NOT_FOUND
@@ -56,7 +53,6 @@ import { makeAgent, agentRefOf } from "../support/agents";
 import { makeSlackAgentChannel } from "../support/agentchannels";
 import { makeMcpServer } from "../support/mcpservers";
 import { makeSession } from "../support/sessions";
-import { makeWorkflow } from "../support/workflows";
 import { uniqueName } from "../support/naming";
 
 let target: TargetProfile;
@@ -124,30 +120,6 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
       value: session.metadata!.id,
     });
     expect(after.spec?.subject).toBe("owner's subject");
-  });
-
-  it("[rpc:WorkflowQueryController.getVersion] workflow getVersion refuses an outsider with the annotation copy", async (ctx) => {
-    const lane = laneOrSkip(ctx);
-    const { org } = await lane.provisionTenancy();
-    const outsider = await lane.provisionIdentity();
-
-    const workflow = await clients.workflowCommand.create(
-      makeWorkflow({ org, name: uniqueName("authz-wf") }),
-    );
-    fixtures.defer(() =>
-      clients.workflowCommand.delete({ value: workflow.metadata!.id }),
-    );
-
-    const denied = await expectGrpcCode(
-      () =>
-        outsider.workflowQuery.getVersion({
-          workflowId: workflow.metadata!.id,
-          versionHash: workflow.status!.versionHash,
-        }),
-      Code.PermissionDenied,
-      "outsider getVersion on a foreign workflow",
-    );
-    expect(denied.rawMessage).toBe("unauthorized to get workflow version");
   });
 
   it("[rpc:McpServerCommandController.connect] [rpc:McpServerCommandController.startConnect] [rpc:McpServerQueryController.getOAuthGrantStatus] [rpc:McpServerCommandController.disconnectOAuth] [rpc:McpServerCommandController.initiateOAuthConnect] the MCP connect lanes refuse an outsider with their annotation copies", async (ctx) => {
@@ -279,41 +251,13 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
     );
   });
 
-  it("[rpc:AgentRunQueryController.getArtifactContent] [rpc:AgentRunQueryController.getArtifactDownloadUrl] [rpc:AgentRunQueryController.subscribe] [rpc:WorkflowRunQueryController.getEventLog] [rpc:WorkflowRunQueryController.subscribe] [rpc:WorkflowRunQueryController.subscribeEvents] the authorize-first read lanes answer an outsider's unknown id with the uniform NOT_FOUND", async (ctx) => {
+  it("[rpc:AgentRunQueryController.getArtifactContent] [rpc:AgentRunQueryController.getArtifactDownloadUrl] [rpc:AgentRunQueryController.subscribe] the authorize-first read lanes answer an outsider's unknown id with the uniform NOT_FOUND", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const outsider = await lane.provisionIdentity();
-    const missingWorkflowExecution = "wfe_01conformancemissing";
     const missingAgentExecution = "aexec_01conformancemissing";
     const missingArtifactKey = `artifacts/${missingAgentExecution}/f.txt`;
 
     const lanes: ReadonlyArray<[string, () => Promise<unknown>]> = [
-      [
-        "workflowExecution.getEventLog",
-        () =>
-          outsider.workflowExecutionQuery.getEventLog({
-            runId: missingWorkflowExecution,
-          }),
-      ],
-      [
-        "workflowExecution.subscribe",
-        () =>
-          collectStream((signal) =>
-            outsider.workflowExecutionQuery.subscribe(
-              { runId: missingWorkflowExecution },
-              { signal },
-            ),
-          ),
-      ],
-      [
-        "workflowExecution.subscribeEvents",
-        () =>
-          collectStream((signal) =>
-            outsider.workflowExecutionQuery.subscribeEvents(
-              { runId: missingWorkflowExecution },
-              { signal },
-            ),
-          ),
-      ],
       [
         "agentExecution.subscribe",
         () =>
@@ -343,8 +287,8 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
     ];
 
     // Observe every lane, THEN assert the whole table: a first-mismatch
-    // abort would hide the lanes after it (the shape that once left five of
-    // these six unobserved for a month).
+    // abort would hide the lanes after it (the shape that once left most of
+    // these lanes unobserved for a month).
     const observed: Record<string, string> = {};
     for (const [lane, op] of lanes) {
       observed[lane] =
