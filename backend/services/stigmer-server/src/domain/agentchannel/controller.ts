@@ -255,7 +255,7 @@ async function update(
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newResolveSlugStep())
+    .addStep(newResolveSlugStep({ update: true }))
     .addStep(newLoadExistingStep(deps.store))
     .addStep(
       newValidateChannelUpdateStep(deps.modelRegistry, deps.channelRuntime),

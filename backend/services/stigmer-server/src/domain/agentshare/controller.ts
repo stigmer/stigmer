@@ -240,7 +240,7 @@ async function update(
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newResolveSlugStep())
+    .addStep(newResolveSlugStep({ update: true }))
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newValidateShareUpdateStep())
     .addStep(newBuildUpdateStateStep())

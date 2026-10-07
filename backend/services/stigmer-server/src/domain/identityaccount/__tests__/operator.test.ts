@@ -98,6 +98,28 @@ describe("ensureOperatorAccount", () => {
     ).toHaveLength(1);
   });
 
+  it("an operator name with no ASCII letters still provisions, its slug derived from the subject", async () => {
+    const accounts = domainOver(temp.store);
+    const account = await ensureOperatorAccount(accounts, {
+      email: "2024ops@example.com",
+      displayName: "李明",
+    });
+
+    expect(account.metadata?.name).toBe("李明");
+    expect(account.metadata?.slug).toBe("local2024opsexample-com");
+  });
+
+  it("an operator display name past the name's bound still provisions, its name cut to 200 characters", async () => {
+    const accounts = domainOver(temp.store);
+    const displayName = `Platform Operations ${"x".repeat(220)}`;
+    const account = await ensureOperatorAccount(accounts, {
+      email: "ops@example.com",
+      displayName,
+    });
+
+    expect(account.metadata?.name).toBe(displayName.slice(0, 200));
+  });
+
   it("the unconfigured laptop is the 'system' operator with an empty profile", async () => {
     const accounts = domainOver(temp.store);
     const account = await ensureOperatorAccount(accounts, {

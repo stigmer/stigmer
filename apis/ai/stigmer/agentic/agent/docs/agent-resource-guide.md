@@ -49,8 +49,8 @@ All metadata fields are defined by `ApiResourceMetadata` in `ai/stigmer/commons/
 
 | Field | Required | Description |
 |---|---|---|
-| `metadata.name` | Yes | Human-readable name of the agent. |
-| `metadata.slug` | No | URL-friendly identifier, unique within the organization. Auto-generated from `name` if omitted. Format: lowercase alphanumeric with hyphens, starts with a letter, 1-63 characters. |
+| `metadata.name` | Yes | Human-readable name of the agent, at most 200 characters. |
+| `metadata.slug` | No | URL-friendly identifier, unique within the organization. Auto-generated from `name` if omitted. Format: lowercase alphanumeric with hyphens, starts with a letter, ends with a letter or digit, 2 to 63 characters. A `name` whose derived slug breaks these rules (too long, starting with a digit, or with no ASCII letter or digit) is refused on create and apply, and on an update without `metadata.id`; set `metadata.slug`. An update by `metadata.id` keeps the stored slug, so a rename there is not checked. |
 | `metadata.id` | No | System-generated unique identifier. Never set by users. |
 | `metadata.org` | Recommended | Organization that owns this agent. Set automatically from `context.org` if omitted during apply. Format: lowercase alphanumeric with hyphens (e.g., `acme-corp`). |
 | `metadata.visibility` | No | Access control. `visibility_org` (default): every member of the owning organization can read. `visibility_private`: the creator and anyone granted access directly. `visibility_child_orgs`: everyone in the owning organization's child organizations. Nothing is readable outside the organization otherwise; another organization's agent reaches yours as a plugin you install. |

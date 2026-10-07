@@ -75,6 +75,7 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 
 import {
   CONTRACT_SESSION_INDEX,
@@ -92,6 +93,7 @@ import {
   SCHEMA_VERSION_17,
   SCHEMA_VERSION_18,
   SCHEMA_VERSION_19,
+  SCHEMA_VERSION_20,
   getSchemaVersion,
   runMigrations,
 } from "../migrations.js";
@@ -293,7 +295,7 @@ describe("fresh database", () => {
       .prepare(`SELECT version FROM schema_version ORDER BY version`)
       .all() as Array<{ version: number }>;
     expect(rows.map((row) => row.version)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
     ]);
   });
 
@@ -2102,7 +2104,7 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
     const db = new DatabaseSync(dbPath);
     cleanups.push(() => db.close());
 
-    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_19);
+    expect(getSchemaVersion(db)).toBe(CURRENT_SCHEMA_VERSION);
     for (const table of RUN_KIND_TABLES) {
       for (const kind of GONE_KINDS) {
         expect(count(db, table, kind), `${kind} in ${table}`).toBe(0);
@@ -2398,4 +2400,97 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
       expect(tables).toContain("signal_dedupe");
     },
   );
+});
+
+describe("v20: every identity account's slug and name held to their rules", () => {
+  function accountBytes(id: string, name: string, slug: string): Uint8Array {
+    return toBinary(
+      IdentityAccountSchema,
+      create(IdentityAccountSchema, {
+        apiVersion: "iam.stigmer.ai/v1",
+        kind: "IdentityAccount",
+        metadata: { id, name, slug, org: "acme" },
+        spec: { idpId: `auth0|${id}`, email: name },
+      }),
+    );
+  }
+
+  function slugOf(db: DatabaseSync, id: string): string {
+    const row = db
+      .prepare(`SELECT data FROM resources WHERE kind = 'identity_account' AND id = ?`)
+      .get(id) as { data: Uint8Array };
+    return fromBinary(IdentityAccountSchema, row.data).metadata?.slug ?? "";
+  }
+
+  it("repairs a slug too long, one starting with a digit, and an empty one, and leaves a valid one byte for byte", () => {
+    const dbPath = tempDbPath();
+    const setup = new DatabaseSync(dbPath);
+    runMigrations(setup, SCHEMA_VERSION_19);
+    const insert = setup.prepare(
+      `INSERT INTO resources (kind, id, data, updated_at) VALUES ('identity_account', ?, ?, '2026-09-01 00:00:00')`,
+    );
+    const valid = accountBytes("ida_valid", "pat@example.com", "patexample-com");
+    insert.run("ida_valid", valid);
+    insert.run("ida_long", accountBytes("ida_long", `${"x".repeat(70)}@example.com`, `${"x".repeat(70)}example-com`));
+    insert.run("ida_digit", accountBytes("ida_digit", "2024intern@acme.com", "2024internacme-com"));
+    insert.run("ida_empty", accountBytes("ida_empty", "李明", ""));
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_20);
+
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_20);
+    expect(slugOf(db, "ida_long")).toMatch(/^x{54}-[0-9a-f]{8}$/);
+    expect(slugOf(db, "ida_digit")).toBe("a-2024internacme-com");
+    expect(slugOf(db, "ida_empty")).toBe("auth0idaempty");
+    expect(
+      db.prepare(`SELECT data, updated_at FROM resources WHERE id = 'ida_valid'`).get(),
+    ).toEqual({ data: valid, updated_at: "2026-09-01 00:00:00" });
+  });
+
+  it("cuts a name longer than 200 characters to 200 and keeps the slug it already had", () => {
+    const dbPath = tempDbPath();
+    const setup = new DatabaseSync(dbPath);
+    runMigrations(setup, SCHEMA_VERSION_19);
+    const longName = `${"n".repeat(230)}@example.com`;
+    setup
+      .prepare(
+        `INSERT INTO resources (kind, id, data, updated_at) VALUES ('identity_account', 'ida_name', ?, '2026-09-01 00:00:00')`,
+      )
+      .run(accountBytes("ida_name", longName, "long-name-person"));
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_20);
+
+    const row = db
+      .prepare(`SELECT data FROM resources WHERE kind = 'identity_account' AND id = 'ida_name'`)
+      .get() as { data: Uint8Array };
+    const repaired = fromBinary(IdentityAccountSchema, row.data);
+    expect(repaired.metadata?.name).toBe(longName.slice(0, 200));
+    expect(repaired.metadata?.slug).toBe("long-name-person");
+    expect(repaired.spec?.email).toBe(longName);
+  });
+
+  it("stops at a row it cannot decode, naming the row, and leaves the database at v19", () => {
+    const dbPath = tempDbPath();
+    const setup = new DatabaseSync(dbPath);
+    runMigrations(setup, SCHEMA_VERSION_19);
+    // Field 1, length-delimited, claims 5 bytes and carries 1.
+    setup
+      .prepare(
+        `INSERT INTO resources (kind, id, data, updated_at) VALUES ('identity_account', 'ida_corrupt', ?, '2026-09-01 00:00:00')`,
+      )
+      .run(new Uint8Array([0x0a, 0x05, 0x01]));
+    setup.close();
+
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    expect(() => runMigrations(db, SCHEMA_VERSION_20)).toThrow(
+      "identity_account 'ida_corrupt' cannot have its slug repaired",
+    );
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_19);
+  });
 });

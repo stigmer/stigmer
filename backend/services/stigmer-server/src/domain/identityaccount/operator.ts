@@ -38,6 +38,7 @@ import {
   SYSTEM_OPERATOR_IDENTITY_ID,
   trustedLocalIdentityFor,
 } from "../../pipeline/interceptors/auth.js";
+import { fittedName } from "../../pipeline/steps/slug.js";
 import { accountIdFor, localIdpIdFor } from "./constants.js";
 import type { CreateAccount } from "./provisioning.js";
 import { resolveCreateRace } from "./provisioning.js";
@@ -67,12 +68,15 @@ export async function ensureOperatorAccount(
   if (existing !== undefined) {
     return existing;
   }
-  const name =
+  // Cut to metadata.name's bound, so a long display name or email never
+  // stops the boot.
+  const name = fittedName(
     operator.displayName !== ""
       ? operator.displayName
       : operator.email !== ""
         ? operator.email
-        : SYSTEM_OPERATOR_IDENTITY_ID;
+        : SYSTEM_OPERATOR_IDENTITY_ID,
+  );
   try {
     return await deps.createAccount(
       {

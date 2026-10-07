@@ -14,9 +14,9 @@ version: stable
 
 | Field | Required | Format | Description |
 |---|---|---|---|
-| `org` | No | `^$\|^[a-z][a-z0-9-]*$`, 0-63 chars | Organization that owns the referenced resource. Empty = relative reference (resolved from the parent resource's `metadata.org` at write time). |
+| `org` | No | `^$\|^[a-z][a-z0-9-]*[a-z0-9]$\|^org_[0-9a-z]{26}$`, at most 63 chars | Organization that owns the referenced resource. Empty = relative reference (resolved from the parent resource's `metadata.org` at write time). |
 | `kind` | Yes | Lowercase string enum name | Resource kind. See [Kind Values](#kind-values). |
-| `slug` | Yes | `^[a-z][a-z0-9-]*$`, 1-63 chars | Resource slug, unique within the organization. |
+| `slug` | Yes | `^[a-z][a-z0-9-]*[a-z0-9]$`, 2 to 63 chars | Resource slug, unique within the organization. |
 | `version` | No | Tag, hash, or empty | Version pin. Only applicable to versioned resources (Skills). Ignored for non-versioned resources. |
 
 ## Kind Values
@@ -86,8 +86,8 @@ References are canonically represented as `org/slug` (e.g., `stigmer/web-search`
 Slugs are user-friendly identifiers that are unique within an organization. Format constraints:
 
 - Lowercase alphanumeric characters and hyphens only
-- Must start with a letter
-- 1-63 characters long
+- Must start with a letter and end with a letter or digit
+- 2 to 63 characters long
 
 ```yaml
 # Correct
@@ -137,8 +137,8 @@ Tags are mutable pointers — `stable` may point to different content over time.
 
 The proto enforces these constraints via `buf.validate`:
 
-- `org`: optional, matches `^$|^[a-z][a-z0-9-]*$` (empty string allowed for relative references)
-- `slug`: required, matches `^[a-z][a-z0-9-]*$`, 1-63 chars
+- `org`: optional, matches `^$|^[a-z][a-z0-9-]*[a-z0-9]$|^org_[0-9a-z]{26}$`, at most 63 chars (empty string allowed for relative references)
+- `slug`: required, matches `^[a-z][a-z0-9-]*[a-z0-9]$`, 2 to 63 chars
 - `version`: optional, matches `^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$`
 - `kind`: required, must be a defined `ApiResourceKind` enum value
 

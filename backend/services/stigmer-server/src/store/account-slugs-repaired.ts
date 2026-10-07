@@ -1,0 +1,139 @@
+/**
+ * The one data migration that repairs identity-account slugs, once, when
+ * metadata.slug gained its 63-character bound and every derived slug was
+ * held to the slug rules. Before that, an account's slug was derived from
+ * its email or subject with no check (ValidateProto ran before the
+ * derivation), so a stored account may hold a slug the rules refuse: one
+ * longer than 63 characters, one starting with a digit, or none at all.
+ * Its name, the email or subject, had no bound either, and may be longer
+ * than metadata.name's new 200 characters. ValidateProto reads the slug and
+ * the name an update sends back, so such an account could no longer be
+ * updated. Both open-source drivers run this step, and
+ * `repairAccountSlug` is on the barrel so an edition that keeps account
+ * rows of its own can repair them alike.
+ *
+ * Why the rule and the derivation are frozen here rather than imported from
+ * the shared slug step (pipeline/steps/slug.ts fittedSlug). A migration
+ * is a statement about the store as it was when the rule changed: a later
+ * release that changes the live derivation must not change what this step
+ * does to a database it has not reached yet (public-visibility-retired.ts
+ * gives the same reason for its kind table). The derivation below, the
+ * generator included, is a copy of the live one as of this step, and an
+ * account created after it with the same name, within 200 characters,
+ * gets the same slug from the live function. A longer name is cut before
+ * the live derivation hashes it, while this step hashes the name as stored,
+ * so the two slugs differ there; both are valid, and nothing reads an
+ * account by slug.
+ *
+ * What changes. Only `metadata.slug`, where the frozen rule refuses it or
+ * it is empty, and `metadata.name`, where it is longer than 200 characters;
+ * every other byte is re-encoded from the same values (protobuf-es keeps
+ * unknown fields), and an account whose slug and name the rules admit is
+ * left untouched. Accounts are unique by subject, never by
+ * slug, and nothing reads an account by slug, so a new slug collides with
+ * nothing. `resource_audit` keeps its history. A row this step cannot
+ * decode fails the whole transaction, as every data migration's does.
+ */
+import { createHash } from "node:crypto";
+
+import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
+
+import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+
+/**
+ * The shared generator (pipeline/steps/slug.ts generateSlug) as of this
+ * step: lowercase, spaces and dots to hyphens, every other character
+ * outside [a-z0-9-] dropped, runs of hyphens collapsed, hyphens trimmed.
+ */
+function frozenGenerateSlug(name: string): string {
+  let slug = name.toLowerCase();
+  slug = slug.replaceAll(" ", "-").replaceAll(".", "-");
+  slug = slug.replace(/[^a-z0-9\- ]/g, "");
+  slug = slug.replace(/-{2,}/g, "-");
+  return slug.replace(/^-+|-+$/g, "");
+}
+
+/** The enum NAME the drivers' `kind` column holds for an identity account. */
+export const IDENTITY_ACCOUNT_KIND = "identity_account";
+
+/** metadata.slug's rule when this step was written: 2 to 63, a letter first, a letter or digit last. */
+const SLUG_RULE = /^[a-z][a-z0-9-]{0,61}[a-z0-9]$/;
+const MAX_SLUG_LENGTH = 63;
+const MIN_SLUG_LENGTH = 2;
+const HASH_DIGITS = 8;
+/** metadata.name's bound when this step was written. */
+const MAX_NAME_LENGTH = 200;
+
+/**
+ * The slug a stored account takes when the frozen rule refuses its own, or
+ * `undefined` when its slug stands. The derivation is fittedSlug's as of
+ * this step: the shared generator over the name, then the subject, then the
+ * id; `a-` before a leading non-letter; a cut to 54 with 8 hex digits of the
+ * source's SHA-256 when too long or too short.
+ */
+export function repairAccountSlug(account: IdentityAccount): string | undefined {
+  const metadata = account.metadata;
+  const current = metadata?.slug ?? "";
+  if (SLUG_RULE.test(current)) {
+    return undefined;
+  }
+  const sources = [metadata?.name ?? "", account.spec?.idpId ?? "", metadata?.id ?? ""];
+  let source = "";
+  let slug = "";
+  for (const candidate of sources) {
+    slug = frozenGenerateSlug(candidate);
+    source = candidate;
+    if (slug !== "") {
+      break;
+    }
+  }
+  if (slug === "") {
+    throw new Error("the account has no name, subject or id to derive a slug from");
+  }
+  if (!/^[a-z]/.test(slug)) {
+    slug = `a-${slug}`;
+  }
+  if (slug.length > MAX_SLUG_LENGTH || slug.length < MIN_SLUG_LENGTH) {
+    const hash = createHash("sha256").update(source).digest("hex").slice(0, HASH_DIGITS);
+    slug = `${slug.slice(0, MAX_SLUG_LENGTH - HASH_DIGITS - 1).replace(/-+$/, "")}-${hash}`;
+  }
+  return slug === current ? undefined : slug;
+}
+
+/**
+ * The name a stored account takes when it is longer than metadata.name's
+ * 200 characters when this step was written, or `undefined` when it stands:
+ * the name cut to 200 characters (counted as the bound counts them, never
+ * splitting one), fittedName's cut as of this step. An account's name was
+ * its email or subject, unbounded before.
+ */
+export function repairAccountName(account: IdentityAccount): string | undefined {
+  const characters = Array.from(account.metadata?.name ?? "");
+  return characters.length > MAX_NAME_LENGTH
+    ? characters.slice(0, MAX_NAME_LENGTH).join("")
+    : undefined;
+}
+
+/**
+ * One stored account row's bytes with its slug and name repaired, or
+ * `undefined` when the row is left as it is. The slug is re-derived from the
+ * name as stored, before the name is cut.
+ */
+export function repairedAccountSlugRow(data: Uint8Array): Uint8Array | undefined {
+  const account = fromBinary(IdentityAccountSchema, data);
+  const slug = repairAccountSlug(account);
+  const name = repairAccountName(account);
+  if (slug === undefined && name === undefined) {
+    return undefined;
+  }
+  account.metadata = account.metadata ?? create(ApiResourceMetadataSchema);
+  if (slug !== undefined) {
+    account.metadata.slug = slug;
+  }
+  if (name !== undefined) {
+    account.metadata.name = name;
+  }
+  return toBinary(IdentityAccountSchema, account);
+}

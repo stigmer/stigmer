@@ -277,7 +277,7 @@ async function update(
       newAuthorizeStep(SessionCommandController.method.update, deps.authorizer),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newResolveSlugStep())
+    .addStep(newResolveSlugStep({ update: true }))
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newValidateHarnessImmutabilityStep())
     .addStep(newValidateExecutionTargetImmutabilityStep(deps.temporalConfig))

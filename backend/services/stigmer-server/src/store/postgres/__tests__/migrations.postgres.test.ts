@@ -69,6 +69,7 @@ import { AgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/a
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 
 import { HISTORY_PAGE_SIZE } from "../../organization-slug-history.js";
 import { PUBLIC_ROW_KINDS_AT_RETIREMENT } from "../../public-visibility-retired.js";
@@ -85,6 +86,7 @@ import {
   SCHEMA_VERSION_12,
   SCHEMA_VERSION_13,
   SCHEMA_VERSION_14,
+  SCHEMA_VERSION_15,
   runMigrations,
 } from "../migrations.js";
 import { RETIREMENT_PAGE_SIZE } from "../../agent-instance-retired.js";
@@ -2436,6 +2438,111 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           }
         },
       );
+    });
+
+    describe("v15: every identity account's slug and name held to their rules", () => {
+      function accountBytes(id: string, name: string, slug: string): Buffer {
+        return Buffer.from(
+          toBinary(
+            IdentityAccountSchema,
+            create(IdentityAccountSchema, {
+              apiVersion: "iam.stigmer.ai/v1",
+              kind: "IdentityAccount",
+              metadata: { id, name, slug, org: "acme" },
+              spec: { idpId: `auth0|${id}`, email: name },
+            }),
+          ),
+        );
+      }
+
+      it("repairs a slug too long, one starting with a digit, and an empty one, and leaves a valid one byte for byte", async () => {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_15 - 1);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        const seededAt = new Date("2026-10-01T00:00:00Z");
+        try {
+          const valid = accountBytes("ida_valid", "pat@example.com", "patexample-com");
+          for (const [id, data] of [
+            ["ida_valid", valid],
+            ["ida_long", accountBytes("ida_long", `${"x".repeat(70)}@example.com`, `${"x".repeat(70)}example-com`)],
+            ["ida_digit", accountBytes("ida_digit", "2024intern@acme.com", "2024internacme-com")],
+            ["ida_empty", accountBytes("ida_empty", "李明", "")],
+          ] as const) {
+            await client.query(
+              `INSERT INTO resources (kind, id, data, updated_at) VALUES ('identity_account', $1, $2, $3)`,
+              [id, data, seededAt],
+            );
+          }
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_15);
+
+          const slugOf = async (id: string): Promise<string> => {
+            const result = await client.query<{ data: Buffer }>(
+              `SELECT data FROM resources WHERE kind = 'identity_account' AND id = $1`,
+              [id],
+            );
+            return fromBinary(IdentityAccountSchema, new Uint8Array(result.rows[0]!.data)).metadata?.slug ?? "";
+          };
+          expect(await slugOf("ida_long")).toMatch(/^x{54}-[0-9a-f]{8}$/);
+          expect(await slugOf("ida_digit")).toBe("a-2024internacme-com");
+          expect(await slugOf("ida_empty")).toBe("auth0idaempty");
+          const untouched = await client.query<{ data: Buffer; updated_at: Date }>(
+            `SELECT data, updated_at FROM resources WHERE kind = 'identity_account' AND id = 'ida_valid'`,
+          );
+          expect(untouched.rows[0]!.data.equals(valid)).toBe(true);
+          expect(untouched.rows[0]!.updated_at.getTime()).toBe(seededAt.getTime());
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("cuts a name longer than 200 characters to 200 and keeps the slug it already had", async () => {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_15 - 1);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        try {
+          const longName = `${"n".repeat(230)}@example.com`;
+          await client.query(
+            `INSERT INTO resources (kind, id, data, updated_at) VALUES ('identity_account', 'ida_name', $1, now())`,
+            [accountBytes("ida_name", longName, "long-name-person")],
+          );
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_15);
+
+          const result = await client.query<{ data: Buffer }>(
+            `SELECT data FROM resources WHERE kind = 'identity_account' AND id = 'ida_name'`,
+          );
+          const repaired = fromBinary(IdentityAccountSchema, new Uint8Array(result.rows[0]!.data));
+          expect(repaired.metadata?.name).toBe(longName.slice(0, 200));
+          expect(repaired.metadata?.slug).toBe("long-name-person");
+          expect(repaired.spec?.email).toBe(longName);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("stops at a row it cannot decode, naming the row, and leaves the database before v15", async () => {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_15 - 1);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        try {
+          // Field 1, length-delimited, claims 5 bytes and carries 1.
+          await client.query(
+            `INSERT INTO resources (kind, id, data, updated_at) VALUES ('identity_account', 'ida_corrupt', $1, now())`,
+            [Buffer.from([0x0a, 0x05, 0x01])],
+          );
+
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_15)).rejects.toThrow(
+            "identity_account 'ida_corrupt' cannot have its slug repaired",
+          );
+          const stamped = await client.query<{ version: number }>(
+            `SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`,
+          );
+          expect(Number(stamped.rows[0]!.version)).toBe(SCHEMA_VERSION_15 - 1);
+        } finally {
+          await client.end();
+        }
+      });
     });
   },
 );

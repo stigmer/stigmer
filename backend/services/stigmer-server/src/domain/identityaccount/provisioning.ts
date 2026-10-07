@@ -49,6 +49,7 @@ import type { IdentityAccountSpec } from "@stigmer/protos/ai/stigmer/iam/identit
 import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
 
 import type { CallerIdentity } from "../../extensions/identity.js";
+import { fittedName } from "../../pipeline/steps/slug.js";
 import { assignDirectBackendFields } from "./steps.js";
 import type { IdentityAccountStore } from "./store.js";
 
@@ -212,10 +213,12 @@ async function profileOf(
  * carries. An empty result is the chain's to default (DefaultAccountName).
  */
 function displayNameOf(caller: CallerIdentity, profile: UserProfile): string {
+  // The name is the server's choice, made before the create chain's
+  // ValidateProto: cut to metadata.name's bound, so a long email signs in.
   if (caller.issuer === "") {
-    return caller.displayName ?? profile.email;
+    return fittedName(caller.displayName ?? profile.email);
   }
-  return profile.email;
+  return fittedName(profile.email);
 }
 
 /**

@@ -26,7 +26,7 @@ const (
 // Every resource belongs to an organization and has a visibility setting.
 type ApiResourceMetadata struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Human-readable name of the resource.
+	// Human-readable name of the resource, at most 200 characters.
 	// Validation is skipped when the field is empty (e.g., server-generated
 	// responses or partial messages).
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -35,9 +35,16 @@ type ApiResourceMetadata struct {
 	// Combined with org, forms the canonical reference: "org/slug".
 	// Fixed once created: update and apply ignore a changed slug. A kind
 	// whose slug may change has a rename RPC (Organization does).
-	// Format: lowercase alphanumeric characters and hyphens (min 2 chars);
-	// must start with a letter and end with a letter or digit. When empty,
-	// the server derives the slug from the name.
+	// Format: lowercase alphanumeric characters and hyphens, 2 to 63
+	// characters, the length every reference to a resource holds; must start
+	// with a letter and end with a letter or digit. When empty, the server
+	// derives the slug from the name, and refuses a name whose derived slug
+	// breaks these rules, never shortening it. A resource the server names
+	// itself is the exception (an identity account, after its email or
+	// subject; the environment OAuth connect makes for an MCP server's
+	// tokens): its slug is made to fit instead (a letter in front, a
+	// fallback, or a cut with a short hash). An update by id keeps the
+	// stored slug, so a new name's derived slug is not checked there.
 	Slug string `protobuf:"bytes,2,opt,name=slug,proto3" json:"slug,omitempty"`
 	// System-generated unique identifier.
 	//
@@ -276,10 +283,10 @@ var File_ai_stigmer_commons_apiresource_metadata_proto protoreflect.FileDescript
 
 const file_ai_stigmer_commons_apiresource_metadata_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/commons/apiresource/metadata.proto\x12\x1eai.stigmer.commons.apiresource\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\"\x95\x05\n" +
-	"\x13ApiResourceMetadata\x12\x1a\n" +
-	"\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xd8\x01\x01R\x04name\x129\n" +
-	"\x04slug\x18\x02 \x01(\tB%\xbaH\"\xd8\x01\x01r\x1d\x10\x022\x19^[a-z][a-z0-9-]*[a-z0-9]$R\x04slug\x12\x0e\n" +
+	"-ai/stigmer/commons/apiresource/metadata.proto\x12\x1eai.stigmer.commons.apiresource\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\"\x9c\x05\n" +
+	"\x13ApiResourceMetadata\x12\x1f\n" +
+	"\x04name\x18\x01 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\x18\xc8\x01R\x04name\x12;\n" +
+	"\x04slug\x18\x02 \x01(\tB'\xbaH$\xd8\x01\x01r\x1f\x10\x02\x18?2\x19^[a-z][a-z0-9-]*[a-z0-9]$R\x04slug\x12\x0e\n" +
 	"\x02id\x18\x03 \x01(\tR\x02id\x12\x10\n" +
 	"\x03org\x18\x04 \x01(\tR\x03org\x12_\n" +
 	"\n" +

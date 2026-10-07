@@ -259,6 +259,13 @@ export {
 // system accounts take the id of their own subject, so the primary key holds
 // one row per subject there as it does for every account the library mints.
 export { accountIdFor } from "./domain/identityaccount/constants.js";
+// A slug fitted to metadata.slug's rules for a name the server chooses (an
+// account's email, a managed resource's name), and the frozen repair a store
+// migration applies to an account slug stored before the rules held: an
+// edition that writes its own account rows derives and repairs through the
+// same two.
+export { fittedSlug } from "./pipeline/steps/slug.js";
+export { repairAccountSlug } from "./store/account-slugs-repaired.js";
 // The PlatformClient seams: the store PORT a composition drives the domain
 // through (drivers.platformClientStore; a driver throws
 // DuplicatePlatformClientError for a held id, slug or client_id) and its
@@ -383,6 +390,7 @@ export {
   internalError,
   invalidArgumentError,
   notFoundError,
+  rethrownStatusError,
   unauthenticatedWithReasonError,
   unavailableError,
 } from "./pipeline/errors.js";

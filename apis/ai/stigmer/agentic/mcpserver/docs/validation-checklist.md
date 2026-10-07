@@ -117,7 +117,7 @@ http:
 
 ### Using slugs in wrong format
 
-Slugs must match `^[a-z][a-z0-9-]*$` — lowercase, hyphens only, starts with a letter, 1–63 characters.
+Slugs must match `^[a-z][a-z0-9-]*[a-z0-9]$` — lowercase, hyphens only, starts with a letter, ends with a letter or digit, 2 to 63 characters.
 
 ```yaml
 # Wrong

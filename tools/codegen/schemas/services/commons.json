@@ -13,8 +13,11 @@
           "type": {
             "kind": "string"
           },
-          "description": "Human-readable name of the resource.\n Validation is skipped when the field is empty (e.g., server-generated\n responses or partial messages).",
-          "required": false
+          "description": "Human-readable name of the resource, at most 200 characters.\n Validation is skipped when the field is empty (e.g., server-generated\n responses or partial messages).",
+          "required": false,
+          "validation": {
+            "maxLength": 200
+          }
         },
         {
           "name": "Slug",
@@ -23,10 +26,11 @@
           "type": {
             "kind": "string"
           },
-          "description": "URL-friendly identifier, unique within the organization (an\n Organization's own slug is unique across the server).\n Combined with org, forms the canonical reference: \"org/slug\".\n Fixed once created: update and apply ignore a changed slug. A kind\n whose slug may change has a rename RPC (Organization does).\n Format: lowercase alphanumeric characters and hyphens (min 2 chars);\n must start with a letter and end with a letter or digit. When empty,\n the server derives the slug from the name.",
+          "description": "URL-friendly identifier, unique within the organization (an\n Organization's own slug is unique across the server).\n Combined with org, forms the canonical reference: \"org/slug\".\n Fixed once created: update and apply ignore a changed slug. A kind\n whose slug may change has a rename RPC (Organization does).\n Format: lowercase alphanumeric characters and hyphens, 2 to 63\n characters, the length every reference to a resource holds; must start\n with a letter and end with a letter or digit. When empty, the server\n derives the slug from the name, and refuses a name whose derived slug\n breaks these rules, never shortening it. A resource the server names\n itself is the exception (an identity account, after its email or\n subject; the environment OAuth connect makes for an MCP server's\n tokens): its slug is made to fit instead (a letter in front, a\n fallback, or a cut with a short hash). An update by id keeps the\n stored slug, so a new name's derived slug is not checked there.",
           "required": false,
           "validation": {
             "minLength": 2,
+            "maxLength": 63,
             "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
           }
         },
