@@ -107,7 +107,6 @@ function addressTable(profile) {
       ["SKILL_TRANSFER_BASE_URL", publicUrl],
       ["STIGMER_MCP_PUBLIC_ENDPOINT", publicUrl],
       ["ARTIFACT_LOCAL_SERVE_URL", artifactPublicUrl],
-      ["LOCAL_ARTIFACT_SERVE_URL", artifactPublicUrl],
     ]),
   };
 }

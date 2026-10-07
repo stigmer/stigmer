@@ -8,17 +8,22 @@
  * a second listener on 127.0.0.1:ARTIFACT_HTTP_PORT (unset: the unified
  * port + 1, ephemeral beside an ephemeral unified port — the rule is
  * boot/artifact-lane.ts), started only when artifact storage is LOCAL,
- * serving GET /<key> as the exact bytes LocalArtifactStorage wrote. Unlike
+ * serving GET /<key> as the exact bytes LocalArtifactStorage wrote, to a
+ * link that local backend signed: an expired, tampered or unsigned link is
+ * answered the 404 a missing key gets, before the disk is touched, so a
+ * refusal says nothing about what exists (artifactstorage/url-signer.ts).
+ * Unlike
  * Go, a bind failure fails the boot: the composition binds the lane before
  * SERVING and lets listen()'s rejection stand (stigmer#1089). It is not a
  * unified-port lane: Go ran it as a separate listener, and so does this
  * port.
  *
- * Disposition contract (proven by __tests__/file-server.test.ts): a request
- * carrying ?download=<name> (set by getSignedUrl) is served as a browser
- * download named by that parameter — mirroring the R2 backend, which signs
- * Content-Disposition into the presigned URL. Requests without the
- * parameter are served INLINE with no disposition header.
+ * Disposition contract (proven by __tests__/file-server.test.ts and, on
+ * links the storage mints, __tests__/file-server-signing.test.ts): a
+ * request carrying ?download=<name> (set by getSignedUrl) is served as a
+ * browser download named by that parameter — mirroring the R2 backend,
+ * which signs Content-Disposition into the presigned URL. Requests without
+ * the parameter are served INLINE with no disposition header.
  *
  * Two disclosed nuances versus Go's http.FileServer (neither pinned by a
  * test):
@@ -35,11 +40,14 @@ import http from "node:http";
 import path from "node:path";
 
 import { contentDispositionAttachment, LOCAL_DOWNLOAD_QUERY_PARAM } from "./artifact-storage.js";
+import type { DownloadUrlSigner } from "./url-signer.js";
 import type { Logger } from "../boot/logger.js";
 
 export interface ArtifactFileServerOptions {
   /** The artifact root — the base path IS the root (#285). */
   readonly basePath: string;
+  /** The signer the local backend mints links with; every request is verified by it. */
+  readonly signer: DownloadUrlSigner;
   readonly logger: Logger;
 }
 
@@ -60,10 +68,10 @@ export interface ArtifactFileServer {
 export function createArtifactFileServer(
   options: ArtifactFileServerOptions,
 ): ArtifactFileServer {
-  const { basePath, logger } = options;
+  const { basePath, signer, logger } = options;
 
   const server = http.createServer((req, res) => {
-    void serveArtifact(basePath, req, res, logger);
+    void serveArtifact(basePath, signer, req, res, logger);
   });
 
   return {
@@ -101,6 +109,7 @@ export function createArtifactFileServer(
 
 async function serveArtifact(
   basePath: string,
+  signer: DownloadUrlSigner,
   req: http.IncomingMessage,
   res: http.ServerResponse,
   logger: Logger,
@@ -119,6 +128,14 @@ async function serveArtifact(
     } catch {
       // Malformed percent-escapes are a client error, not a server fault
       // (Go's net/http rejects them before the file server runs).
+      res.writeHead(404);
+      res.end("404 page not found\n");
+      return;
+    }
+
+    // A live signature over the key, or the same answer a missing key
+    // gets: nothing below runs for a link the server did not mint.
+    if (!signer.verify(key, url.searchParams)) {
       res.writeHead(404);
       res.end("404 page not found\n");
       return;
@@ -151,9 +168,9 @@ async function serveArtifact(
     const headers: Record<string, string> = {
       "Content-Length": String(info.size),
     };
-    // The download query parameter (set by getSignedUrl) rides the URL
-    // because the local lane has no presigning; applied here exactly as
-    // Go's artifactDownloadHandler does. Absent → inline, no header.
+    // The download query parameter (set by getSignedUrl, and covered by
+    // its signature) rides the URL; applied here exactly as Go's
+    // artifactDownloadHandler does. Absent → inline, no header.
     const downloadName = url.searchParams.get(LOCAL_DOWNLOAD_QUERY_PARAM) ?? "";
     if (downloadName !== "") {
       headers["Content-Disposition"] = contentDispositionAttachment(downloadName);

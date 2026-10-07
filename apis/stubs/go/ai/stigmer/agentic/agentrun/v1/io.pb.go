@@ -1639,6 +1639,8 @@ type GetArtifactDownloadUrlResponse struct {
 	// The URL includes embedded authorization that expires at expires_at.
 	//
 	// Example: "https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=..."
+	// With local storage the URL is the server's artifact file server,
+	// signed by the server: "http://localhost:7235/artifacts/...?exp=...&sig=..."
 	DownloadUrl string `protobuf:"bytes,1,opt,name=download_url,json=downloadUrl,proto3" json:"download_url,omitempty"`
 	// ISO 8601 timestamp when the download URL expires.
 	//

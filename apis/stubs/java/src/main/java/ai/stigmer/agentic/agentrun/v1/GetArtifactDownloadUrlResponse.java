@@ -69,6 +69,8 @@ private static final long serialVersionUID = 0L;
    * The URL includes embedded authorization that expires at expires_at.
    *
    * Example: "https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=..."
+   * With local storage the URL is the server's artifact file server,
+   * signed by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
    * </pre>
    *
    * <code>string download_url = 1 [json_name = "downloadUrl"];</code>
@@ -95,6 +97,8 @@ private static final long serialVersionUID = 0L;
    * The URL includes embedded authorization that expires at expires_at.
    *
    * Example: "https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=..."
+   * With local storage the URL is the server's artifact file server,
+   * signed by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
    * </pre>
    *
    * <code>string download_url = 1 [json_name = "downloadUrl"];</code>
@@ -511,6 +515,8 @@ private static final long serialVersionUID = 0L;
      * The URL includes embedded authorization that expires at expires_at.
      *
      * Example: "https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=..."
+     * With local storage the URL is the server's artifact file server,
+     * signed by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
      * </pre>
      *
      * <code>string download_url = 1 [json_name = "downloadUrl"];</code>
@@ -536,6 +542,8 @@ private static final long serialVersionUID = 0L;
      * The URL includes embedded authorization that expires at expires_at.
      *
      * Example: "https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=..."
+     * With local storage the URL is the server's artifact file server,
+     * signed by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
      * </pre>
      *
      * <code>string download_url = 1 [json_name = "downloadUrl"];</code>
@@ -562,6 +570,8 @@ private static final long serialVersionUID = 0L;
      * The URL includes embedded authorization that expires at expires_at.
      *
      * Example: "https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=..."
+     * With local storage the URL is the server's artifact file server,
+     * signed by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
      * </pre>
      *
      * <code>string download_url = 1 [json_name = "downloadUrl"];</code>
@@ -584,6 +594,8 @@ private static final long serialVersionUID = 0L;
      * The URL includes embedded authorization that expires at expires_at.
      *
      * Example: "https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=..."
+     * With local storage the URL is the server's artifact file server,
+     * signed by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
      * </pre>
      *
      * <code>string download_url = 1 [json_name = "downloadUrl"];</code>
@@ -603,6 +615,8 @@ private static final long serialVersionUID = 0L;
      * The URL includes embedded authorization that expires at expires_at.
      *
      * Example: "https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=..."
+     * With local storage the URL is the server's artifact file server,
+     * signed by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
      * </pre>
      *
      * <code>string download_url = 1 [json_name = "downloadUrl"];</code>

@@ -128,7 +128,6 @@ export async function bootBenchmarkStack(runDir: string): Promise<BenchmarkStack
       backendEndpoint: server.baseUrl,
       registryOrigin: server.baseUrl,
       artifactDir: server.artifactBaseDir,
-      artifactServeUrl: server.artifactServeUrl,
       logFile: join(runDir, "runner.log"),
     });
     return {

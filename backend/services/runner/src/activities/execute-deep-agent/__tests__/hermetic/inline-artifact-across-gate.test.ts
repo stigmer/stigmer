@@ -32,8 +32,8 @@
  * Also recorded (a shape fact, as found): the write's tool row
  * shows `requiresApproval: true` with `approvalPolicySource` BUILTIN_CATEGORY
  * — the category policy's verdict — while the row is COMPLETED because
- * capture mode let it flow; the artifact carries no URL (the local store's
- * serve URL never enters the record).
+ * capture mode let it flow; the artifact carries no URL (the local store
+ * mints none).
  *
  * What every reinvocation golden here shows since #1096 (the runtime over
  * the native adapter): `startedAt` is THIS turn's own,

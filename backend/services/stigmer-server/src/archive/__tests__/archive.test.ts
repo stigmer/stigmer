@@ -30,6 +30,7 @@ import {
   validateArchiveStructure,
 } from "../open.js";
 import { writeArchive } from "../write.js";
+import { testUrlSigner } from "../../artifactstorage/__test-utils__/url-signer.js";
 
 const encoder = new TextEncoder();
 
@@ -202,7 +203,7 @@ describe("newContentAddressedArchiveStore", () => {
 
   it("keys under its prefix and round-trips bytes", async () => {
     const store = newContentAddressedArchiveStore(
-      new LocalArtifactStorage(dir, ""),
+      new LocalArtifactStorage(dir, "", testUrlSigner()),
       "plugins/",
     );
     const hash = "a".repeat(64);
@@ -217,7 +218,7 @@ describe("newContentAddressedArchiveStore", () => {
 
   it("collapses a traversal-shaped key and a missing key to one not-found", async () => {
     const store = newContentAddressedArchiveStore(
-      new LocalArtifactStorage(dir, ""),
+      new LocalArtifactStorage(dir, "", testUrlSigner()),
       "plugins/",
     );
     await expect(store.get("../../etc/passwd")).rejects.toBeInstanceOf(

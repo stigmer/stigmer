@@ -1,14 +1,16 @@
 /**
  * Tests for the attachment download-URL hand-off policy (issue #532):
- * the branch-independent mint rule, the non-fatal degrade, and the
- * per-kind disclosure wording both harnesses embed.
+ * the branch-independent mint rule, that a storage with no presigned links
+ * (the local backend) mints none, the non-fatal degrade, and the disclosure
+ * wording both harnesses embed.
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   mintAttachmentDownloadUrl,
-  downloadUrlDisclosureLine,
+  DOWNLOAD_URL_DISCLOSURE,
 } from "../attachment-download-urls.js";
+import { LocalArtifactStorage } from "../artifact-storage.js";
 import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
 
 afterEach(() => {
@@ -30,7 +32,16 @@ describe("mintAttachmentDownloadUrl", () => {
     const url = await mintAttachmentDownloadUrl(storage, "", "local.csv");
 
     expect(url).toBeUndefined();
-    expect(storage.getDownloadUrl).not.toHaveBeenCalled();
+    expect(storage.presignedDownloadUrl).not.toHaveBeenCalled();
+  });
+
+  it("mints nothing from a storage that offers no presigned links, as the local backend offers none", async () => {
+    const { storage } = makeInMemoryArtifactStorage({ presigned: false });
+    expect(await mintAttachmentDownloadUrl(storage, "attachments/01A/lease.pdf", "lease.pdf")).toBeUndefined();
+
+    const local = new LocalArtifactStorage("/nonexistent-artifact-root");
+    expect("presignedDownloadUrl" in local).toBe(false);
+    expect(await mintAttachmentDownloadUrl(local, "attachments/01A/lease.pdf", "lease.pdf")).toBeUndefined();
   });
 
   it("returns undefined when no storage is available", async () => {
@@ -41,7 +52,7 @@ describe("mintAttachmentDownloadUrl", () => {
 
   it("degrades to undefined on a mint failure and logs the degrade (never throws)", async () => {
     const { storage } = makeInMemoryArtifactStorage();
-    storage.getDownloadUrl.mockRejectedValueOnce(new Error("presign endpoint unreachable"));
+    storage.presignedDownloadUrl?.mockRejectedValueOnce(new Error("presign endpoint unreachable"));
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     const url = await mintAttachmentDownloadUrl(storage, "attachments/01A/lease.pdf", "lease.pdf");
@@ -52,19 +63,10 @@ describe("mintAttachmentDownloadUrl", () => {
   });
 });
 
-describe("downloadUrlDisclosureLine", () => {
-  it("promises time-limited single-object access for presigned URLs", () => {
-    const line = downloadUrlDisclosureLine("presigned");
-
-    expect(line).toContain("time-limited");
-    expect(line).toContain("single file");
-    expect(line).not.toContain("this machine");
-  });
-
-  it("is honest about local-serve reach — same machine only, no expiry claim", () => {
-    const line = downloadUrlDisclosureLine("local-serve");
-
-    expect(line).toContain("reachable only from this machine");
-    expect(line).not.toContain("time-limited");
+describe("DOWNLOAD_URL_DISCLOSURE", () => {
+  it("promises time-limited single-object access, and nothing about this machine", () => {
+    expect(DOWNLOAD_URL_DISCLOSURE).toContain("time-limited");
+    expect(DOWNLOAD_URL_DISCLOSURE).toContain("single file");
+    expect(DOWNLOAD_URL_DISCLOSURE).not.toContain("this machine");
   });
 });

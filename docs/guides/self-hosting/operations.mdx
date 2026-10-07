@@ -391,6 +391,14 @@ PlatformClients mint for your product's users. It can be replaced at any
 restart: tokens minted in the last 15 minutes stop working and your backend
 mints new ones, as it does when a token expires.
 
+`STIGMER_DOWNLOAD_URL_KEY` signs the download links the server mints for files
+on its own disk (artifacts, and Skill and Plugin archives), so a link works only
+until it expires, at most 7 days after it was made. You never need to set it:
+without it the server generates one on its first start and keeps it in its data,
+as `download-url.key` beside its other key files. It has no backup story.
+Replacing or losing it only stops the links already handed out, and clients
+request new ones.
+
 ## After an Organization is deleted
 
 A server that holds more than one Organization can delete one (open source holds

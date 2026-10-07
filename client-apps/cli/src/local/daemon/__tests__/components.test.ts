@@ -113,8 +113,8 @@ describe("buildRunnerEnv", () => {
     expect(runnerEnv.LOCAL_ARTIFACT_PATH).toBe(expected);
     expect(runnerEnv.LOCAL_ARTIFACT_PATH).toBe(serverEnv.ARTIFACT_LOCAL_BASE_PATH);
     expect(runnerEnv.ARTIFACT_STORAGE_TYPE).toBe("local");
-    // Serve URL pinned to the server's artifact HTTP port (GRPC_PORT + 1).
-    expect(runnerEnv.LOCAL_ARTIFACT_SERVE_URL).toBe("http://localhost:7235");
+    // The runner mints no download links, so the daemon hands it no serve URL.
+    expect(runnerEnv).not.toHaveProperty("LOCAL_ARTIFACT_SERVE_URL");
   });
 });
 

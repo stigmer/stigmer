@@ -21,7 +21,7 @@ describe("LocalArtifactStorage", () => {
 
   beforeEach(() => {
     basePath = makeTempDir();
-    storage = new LocalArtifactStorage(basePath, "http://localhost:7235");
+    storage = new LocalArtifactStorage(basePath);
   });
 
   afterEach(() => {
@@ -51,19 +51,6 @@ describe("LocalArtifactStorage", () => {
       await storage.upload("overwrite.txt", Buffer.from("second"));
       const content = readFileSync(join(basePath, "overwrite.txt"), "utf-8");
       expect(content).toBe("second");
-    });
-  });
-
-  describe("getDownloadUrl", () => {
-    it("constructs URL without double slashes", async () => {
-      const url = await storage.getDownloadUrl("exec-1/file.txt");
-      expect(url).toBe("http://localhost:7235/exec-1/file.txt");
-    });
-
-    it("strips trailing slash from serve URL base", async () => {
-      const s = new LocalArtifactStorage(basePath, "http://localhost:7235/");
-      const url = await s.getDownloadUrl("file.txt");
-      expect(url).toBe("http://localhost:7235/file.txt");
     });
   });
 
@@ -142,7 +129,7 @@ describe("ProxyArtifactStorage", () => {
     ).rejects.toThrow("HTTP 403");
   });
 
-  it("calls presigned-download-url for getDownloadUrl", async () => {
+  it("calls presigned-download-url for presignedDownloadUrl", async () => {
     const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
 
     globalThis.fetch = vi.fn().mockResolvedValueOnce({
@@ -150,7 +137,7 @@ describe("ProxyArtifactStorage", () => {
       json: async () => ({ url: "https://r2.example.com/download/key.txt" }),
     } as any);
 
-    const url = await storage.getDownloadUrl("key.txt");
+    const url = await storage.presignedDownloadUrl("key.txt");
     expect(url).toBe("https://r2.example.com/download/key.txt");
   });
 
@@ -220,7 +207,6 @@ describe("createArtifactStorage", () => {
     const storage = createArtifactStorage({
       type: "local",
       localPath: "/var/artifacts",
-      localServeUrl: "http://localhost:7235",
       proxyEndpoint: null,
       proxyAuthToken: null,
     });
@@ -231,7 +217,6 @@ describe("createArtifactStorage", () => {
     const storage = createArtifactStorage({
       type: "proxy",
       localPath: "/var/artifacts",
-      localServeUrl: "http://localhost:7235",
       proxyEndpoint: "https://proxy.example.com",
       proxyAuthToken: { current: "token" },
     });
@@ -242,7 +227,6 @@ describe("createArtifactStorage", () => {
     expect(() => createArtifactStorage({
       type: "proxy",
       localPath: "/var/artifacts",
-      localServeUrl: "http://localhost:7235",
       proxyEndpoint: null,
       proxyAuthToken: { current: "token" },
     })).toThrow("STIGMER_PROXY_ENDPOINT");
@@ -252,7 +236,6 @@ describe("createArtifactStorage", () => {
     expect(() => createArtifactStorage({
       type: "proxy",
       localPath: "/var/artifacts",
-      localServeUrl: "http://localhost:7235",
       proxyEndpoint: "https://proxy.example.com",
       proxyAuthToken: null,
     })).toThrow("STIGMER_TOKEN");

@@ -20,7 +20,7 @@ describe("LocalArtifactStorage", () => {
 
   beforeEach(async () => {
     tempDir = await mkdtemp(join(tmpdir(), "artifact-test-"));
-    storage = new LocalArtifactStorage(tempDir, "http://localhost:7235");
+    storage = new LocalArtifactStorage(tempDir);
   });
 
   afterEach(async () => {
@@ -38,19 +38,8 @@ describe("LocalArtifactStorage", () => {
     expect(written.toString()).toBe("hello world");
   });
 
-  it("returns a direct download URL using serve base", async () => {
-    const url = await storage.getDownloadUrl("artifacts/exec-123/report.txt");
-    expect(url).toBe("http://localhost:7235/artifacts/exec-123/report.txt");
-  });
-
-  it("strips trailing slashes from serve URL base", async () => {
-    const s = new LocalArtifactStorage(tempDir, "http://localhost:7235/");
-    const url = await s.getDownloadUrl("artifacts/file.txt");
-    expect(url).toBe("http://localhost:7235/artifacts/file.txt");
-  });
-
-  it("self-describes its URLs as local-serve (loopback reach, no expiry — issue #532)", () => {
-    expect(storage.downloadUrlKind).toBe("local-serve");
+  it("offers no download links: the server signs those, and the runner holds none of its keys", () => {
+    expect("presignedDownloadUrl" in storage).toBe(false);
   });
 
   it("returns true for existing keys", async () => {
@@ -93,11 +82,11 @@ describe("LocalArtifactStorage", () => {
     );
   });
 
-  it("reads directly off disk even with an unreachable serve URL (no HTTP dependency)", async () => {
-    // A bogus, unroutable serve base: if `download` fetched over HTTP this would
+  it("reads directly off disk, with no HTTP dependency", async () => {
+    // No server is running: if `download` fetched over HTTP this would
     // hang/throw. Reading straight off disk proves the runner's read-back does
-    // not depend on the serve URL being set or reachable.
-    const s = new LocalArtifactStorage(tempDir, "http://127.0.0.1:0");
+    // not depend on any server endpoint.
+    const s = new LocalArtifactStorage(tempDir);
     const key = "artifacts/exec-1/offline.txt";
     await s.upload(key, Buffer.from("served-from-disk"));
     const got = await s.download(key);
@@ -123,7 +112,7 @@ describe("LocalArtifactStorage path containment", () => {
 
   beforeEach(async () => {
     tempDir = await mkdtemp(join(tmpdir(), "artifact-contain-"));
-    storage = new LocalArtifactStorage(tempDir, "http://localhost:7235");
+    storage = new LocalArtifactStorage(tempDir);
   });
 
   afterEach(async () => {
@@ -169,11 +158,6 @@ describe("ProxyArtifactStorage", () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
-  });
-
-  it("self-describes its URLs as presigned (time-limited, remotely fetchable — issue #532)", () => {
-    const s = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
-    expect(s.downloadUrlKind).toBe("presigned");
   });
 
   it("uploads via presigned URL flow", async () => {
@@ -321,7 +305,7 @@ describe("ProxyArtifactStorage", () => {
     ) as typeof fetch;
 
     const storage = new ProxyArtifactStorage("https://proxy.example.com", { current: "tok" });
-    const url = await storage.getDownloadUrl("key");
+    const url = await storage.presignedDownloadUrl("key");
     expect(url).toBe("https://r2.example.com/dl");
   });
 
@@ -561,7 +545,7 @@ describe("ProxyArtifactStorage", () => {
         },
       });
 
-      const url = await storage.getDownloadUrl("k");
+      const url = await storage.presignedDownloadUrl("k");
 
       expect(url).toBe("https://r2.example.com/dl");
       expect(calls).toBe(2);
@@ -577,7 +561,6 @@ describe("createArtifactStorage", () => {
     const cfg: ArtifactStorageConfig = {
       type: "local",
       localPath: "/tmp/artifacts",
-      localServeUrl: "http://localhost:7235",
       proxyEndpoint: null,
       proxyAuthToken: null,
     };
@@ -589,7 +572,6 @@ describe("createArtifactStorage", () => {
     const cfg: ArtifactStorageConfig = {
       type: "proxy",
       localPath: "/tmp/artifacts",
-      localServeUrl: "http://localhost:7235",
       proxyEndpoint: "https://proxy.example.com",
       proxyAuthToken: { current: "token-123" },
     };
@@ -601,7 +583,6 @@ describe("createArtifactStorage", () => {
     const cfg: ArtifactStorageConfig = {
       type: "proxy",
       localPath: "/tmp/artifacts",
-      localServeUrl: "http://localhost:7235",
       proxyEndpoint: null,
       proxyAuthToken: { current: "token" },
     };
@@ -612,7 +593,6 @@ describe("createArtifactStorage", () => {
     const cfg: ArtifactStorageConfig = {
       type: "proxy",
       localPath: "/tmp/artifacts",
-      localServeUrl: "http://localhost:7235",
       proxyEndpoint: "https://proxy.example.com",
       proxyAuthToken: null,
     };
@@ -623,7 +603,6 @@ describe("createArtifactStorage", () => {
     const cfg: ArtifactStorageConfig = {
       type: "none",
       localPath: "/tmp/artifacts",
-      localServeUrl: "http://localhost:7235",
       proxyEndpoint: null,
       proxyAuthToken: null,
     };
@@ -666,7 +645,6 @@ describe("loadArtifactStorageConfig", () => {
   afterEach(() => {
     delete process.env.ARTIFACT_STORAGE_TYPE;
     delete process.env.LOCAL_ARTIFACT_PATH;
-    delete process.env.LOCAL_ARTIFACT_SERVE_URL;
   });
 
   it("defaults to local in local mode", () => {
@@ -748,18 +726,15 @@ describe("loadArtifactStorageConfig", () => {
   // writes to (~/.stigmer/data/artifacts), not the container-era
   // /var/stigmer/artifacts. Asserting the resolved path — not just the type —
   // is the guard that would have caught the original drift.
-  it("defaults localPath to the shared ~/.stigmer/data/artifacts root and serveUrl to :7235", () => {
+  it("defaults localPath to the shared ~/.stigmer/data/artifacts root", () => {
     const cfg = loadArtifactStorageConfig(baseConfig);
     expect(cfg.localPath).toBe(join(homedir(), ".stigmer", "data", "artifacts"));
-    expect(cfg.localServeUrl).toBe("http://localhost:7235");
   });
 
-  it("respects explicit LOCAL_ARTIFACT_PATH and LOCAL_ARTIFACT_SERVE_URL", () => {
+  it("respects an explicit LOCAL_ARTIFACT_PATH", () => {
     process.env.LOCAL_ARTIFACT_PATH = "/custom/artifacts";
-    process.env.LOCAL_ARTIFACT_SERVE_URL = "http://localhost:9999";
     const cfg = loadArtifactStorageConfig(baseConfig);
     expect(cfg.localPath).toBe("/custom/artifacts");
-    expect(cfg.localServeUrl).toBe("http://localhost:9999");
   });
 });
 
@@ -786,7 +761,6 @@ describe("resolveUsableArtifactStorage", () => {
   const localCfg = (localPath: string): ArtifactStorageConfig => ({
     type: "local",
     localPath,
-    localServeUrl: "http://localhost:7235",
     proxyEndpoint: null,
     proxyAuthToken: null,
   });
@@ -824,7 +798,6 @@ describe("resolveUsableArtifactStorage", () => {
     const cfg: ArtifactStorageConfig = {
       type: "proxy",
       localPath: "/tmp/artifacts",
-      localServeUrl: "http://localhost:7235",
       proxyEndpoint: "https://proxy.example.com",
       proxyAuthToken: null, // missing token
     };
@@ -841,7 +814,6 @@ describe("resolveUsableArtifactStorage", () => {
     const cfg: ArtifactStorageConfig = {
       type: "proxy",
       localPath: "/tmp/artifacts",
-      localServeUrl: "http://localhost:7235",
       proxyEndpoint: "https://proxy.example.com",
       proxyAuthToken: { current: "token-123" },
     };

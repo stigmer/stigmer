@@ -149,7 +149,7 @@ export async function startBackendStack(opts: {
             proxy: { endpoint: opts.mockLlmEndpoint, token: "e2e-mock-token" },
             ...(opts.fileGates === true
               ? { artifactStore: "none" as const }
-              : { artifactDir: server.artifactBaseDir, artifactServeUrl: server.artifactServeUrl }),
+              : { artifactDir: server.artifactBaseDir }),
           }
         : {}),
       logFile: diag ? diagLogPath("runner") : undefined,

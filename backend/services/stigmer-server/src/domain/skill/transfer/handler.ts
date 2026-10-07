@@ -12,9 +12,12 @@
  *
  * Neither route carries bearer auth by design: the URL is the credential,
  * mirroring a bucket's pre-signed URLs. Minting an upload URL requires the
- * same gRPC authorization as push; download keys are unguessable content
- * hashes handed out by authorized skill and plugin reads (the plugin
- * archive rides the same driver and so the same lane).
+ * same gRPC authorization as push, and the slot it names is single-use and
+ * short-lived. A download URL is signed by the local driver and expires
+ * (artifactstorage/url-signer.ts); it is handed out by authorized skill and
+ * plugin reads (the plugin archive rides the same driver and so the same
+ * lane), and an expired, tampered or unsigned one is answered the 404 a
+ * missing key gets.
  *
  * The lane slots into the transport's existing skillTransferLane seam
  * (transport/server.ts lane 3); URL renderers live next to the route
@@ -25,6 +28,7 @@
  * below. Proven by __tests__/skill.test.ts's transfer-lane block (both
  * protocol stacks) and the conformance suite's transfer-lane tests.
  */
+import type { DownloadUrlSigner } from "../../../artifactstorage/url-signer.js";
 import type { Logger } from "../../../boot/logger.js";
 import { SKILL_ARTIFACTS_PATH_PREFIX } from "../../../transport/constants.js";
 import type { LaneHandler, LaneRequest, LaneResponse } from "../../../transport/lanes.js";
@@ -49,8 +53,9 @@ export function uploadUrl(baseUrl: string, ref: string): string {
 
 /**
  * The lane's download origin: the local skill driver's serve URL, so that
- * `${serveUrl}/${storageKey}` (LocalArtifactStorage.getSignedUrl's shape)
- * is exactly the GET route this handler dispatches.
+ * the links LocalArtifactStorage.getSignedUrl mints there
+ * (`${serveUrl}/<segment-encoded key>?exp=…&sig=…`) are exactly the GET
+ * route this handler dispatches and verifies.
  */
 export function transferServeUrl(baseUrl: string): string {
   return `${trimTrailingSlash(baseUrl)}${SKILL_ARTIFACTS_PATH_PREFIX}`;
@@ -60,15 +65,21 @@ function trimTrailingSlash(url: string): string {
   return url.endsWith("/") ? url.slice(0, -1) : url;
 }
 
-/** Builds the lane handler (Go NewHandler). */
+/**
+ * Builds the lane handler (Go NewHandler). `signer` is the one the local
+ * skill driver mints its download URLs with.
+ */
 export function newSkillTransferLane(
   slots: UploadSlots,
   artifacts: SkillArtifactStorage,
+  signer: DownloadUrlSigner,
   logger: Logger,
 ): LaneHandler {
   return (request: LaneRequest, response: LaneResponse): void => {
     const url = request.url ?? "";
-    const pathOnly = url.split("?")[0] ?? "";
+    const queryStart = url.indexOf("?");
+    const pathOnly = queryStart === -1 ? url : url.slice(0, queryStart);
+    const query = new URLSearchParams(queryStart === -1 ? "" : url.slice(queryStart + 1));
     if (!pathOnly.startsWith(SKILL_ARTIFACTS_PATH_PREFIX)) {
       // Unreachable through the lane router (it dispatches by this exact
       // prefix); kept as the honest Go http.NotFound arm for direct use.
@@ -99,7 +110,9 @@ export function newSkillTransferLane(
       request,
       response,
       artifacts,
+      signer,
       rest.replace(/^\//, ""),
+      query,
       logger,
     ).catch(logDetachedFailure("download"));
   };
@@ -159,12 +172,28 @@ async function handleDownload(
   request: LaneRequest,
   response: LaneResponse,
   artifacts: SkillArtifactStorage,
-  key: string,
+  signer: DownloadUrlSigner,
+  encodedKey: string,
+  query: URLSearchParams,
   logger: Logger,
 ): Promise<void> {
   if (request.method !== "GET") {
     response.setHeader("Allow", "GET");
     writeText(response, 405, "method not allowed");
+    return;
+  }
+  // The key as the driver signed it: the URL carries it segment-encoded.
+  let key: string;
+  try {
+    key = decodeURIComponent(encodedKey);
+  } catch {
+    writeText(response, 404, "404 page not found");
+    return;
+  }
+  // A live signature, or the answer a missing key gets: nothing below runs
+  // for a link the server did not mint.
+  if (!signer.verify(key, query)) {
+    writeText(response, 404, "404 page not found");
     return;
   }
   if (!DOWNLOAD_KEY_PREFIXES.some((prefix) => key.startsWith(prefix))) {

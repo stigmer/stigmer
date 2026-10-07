@@ -3,7 +3,10 @@
  * the containment guard (every escaping key refused on every operation,
  * contained dot-segment keys allowed), the #285 no-implicit-segment
  * layout contract, the local signed-URL shape (a fixed serve URL, or one
- * resolved per mint once the file server binds — stigmer#1089), and the
+ * resolved per mint once the file server binds — stigmer#1089; the key's
+ * path segment-encoded; the download filename, the expiry and the
+ * signature in the query, the expiry clamped to the 7-day ceiling the R2
+ * backend shares, and the signer's verify accepting what it minted), and the
  * Content-Disposition builder. Adds the factory's r2/unknown refusals
  * (Go's are boot asserted; here they're the disclosed deferral), and the
  * widened surface: size, the typed not-found, presigned-PUT over the
@@ -30,6 +33,9 @@ import {
   newArtifactStorage,
 } from "../artifact-storage.js";
 import type { ArtifactStorage } from "../artifact-storage.js";
+import { R2_MAX_EXPIRATION_MS } from "../r2-storage.js";
+import { MAX_SIGNED_URL_TTL_MS } from "../url-signer.js";
+import { testUrlSigner } from "../__test-utils__/url-signer.js";
 
 // Keys that, once cleaned, resolve outside the artifact root — the
 // containment guard must refuse every one of them.
@@ -50,6 +56,10 @@ const containedKeys = [
   "name.with.dots.txt",
 ];
 
+/** A pinned clock, so an expiry is a value a case can name. */
+const NOW = Date.UTC(2026, 9, 7, 12, 0, 0);
+const signer = testUrlSigner(() => NOW);
+
 describe("LocalArtifactStorage", () => {
   let parent: string;
   let base: string;
@@ -58,7 +68,7 @@ describe("LocalArtifactStorage", () => {
   beforeEach(() => {
     parent = mkdtempSync(path.join(tmpdir(), "artifact-test-"));
     base = path.join(parent, "store");
-    storage = new LocalArtifactStorage(base, "http://localhost:7235");
+    storage = new LocalArtifactStorage(base, "http://localhost:7235", signer);
   });
 
   afterEach(() => {
@@ -134,10 +144,14 @@ describe("LocalArtifactStorage", () => {
     }
   });
 
-  it("signed URL: inline has no query, download carries url-encoded filename", async () => {
+  it("signed URL: the key's path, then the filename when set, the expiry and the signature", async () => {
     const key = "artifacts/aex_1/plan.md";
+    const expires = Math.floor((NOW + 3600_000) / 1000);
     const inline = await storage.getSignedUrl(key, 3600_000, "", "person");
-    expect(inline).toBe(`http://localhost:7235/${key}`);
+    expect(inline).toMatch(
+      new RegExp(`^http://localhost:7235/${key}\\?exp=${expires}&sig=[A-Za-z0-9_-]{43}$`),
+    );
+    expect(signer.verify(key, new URL(inline).searchParams)).toBe(true);
 
     const download = await storage.getSignedUrl(
       key,
@@ -146,29 +160,49 @@ describe("LocalArtifactStorage", () => {
       "person",
     );
     // Space encodes as '+' (Go url.Values.Encode).
-    expect(download).toBe(
-      `http://localhost:7235/${key}?download=my+plan.plan.md`,
+    expect(download).toMatch(
+      new RegExp(`^http://localhost:7235/${key}\\?download=my\\+plan\\.plan\\.md&exp=${expires}&sig=`),
     );
+    expect(signer.verify(key, new URL(download).searchParams)).toBe(true);
 
     // Go url.QueryEscape byte-exactness on the two characters where
     // URLSearchParams disagrees: '~' stays bare, '*' percent-encodes.
     const exotic = await storage.getSignedUrl(key, 3600_000, "a~b*c.md", "person");
-    expect(exotic).toBe(`http://localhost:7235/${key}?download=a~b%2Ac.md`);
+    expect(exotic).toContain(`/${key}?download=a~b%2Ac.md&exp=`);
+    expect(signer.verify(key, new URL(exotic).searchParams)).toBe(true);
 
     // The lane has one address, so a runner's link is a person's.
     expect(await storage.getSignedUrl(key, 3600_000, "", "runner")).toBe(inline);
   });
 
+  it("signed URL: the key's segments are percent-encoded, and the signature covers the key itself", async () => {
+    const key = "attachments/01SP/my report #1.pdf";
+    const url = new URL(await storage.getSignedUrl(key, 3600_000, "", "person"));
+    expect(url.pathname).toBe("/attachments/01SP/my%20report%20%231.pdf");
+    expect(decodeURIComponent(url.pathname.slice(1))).toBe(key);
+    expect(signer.verify(key, url.searchParams)).toBe(true);
+  });
+
+  it("signed URL: the expiry is clamped to the 7-day ceiling the R2 backend shares", async () => {
+    const url = new URL(
+      await storage.getSignedUrl("artifacts/aex_1/plan.md", 30 * 24 * 3600_000, "", "person"),
+    );
+    expect(Number(url.searchParams.get("exp"))).toBe(
+      Math.floor((NOW + MAX_SIGNED_URL_TTL_MS) / 1000),
+    );
+    expect(MAX_SIGNED_URL_TTL_MS).toBe(R2_MAX_EXPIRATION_MS);
+  });
+
   it("signed URL: a resolved serve URL is read at every mint, not at construction", async () => {
     let origin = "";
-    const resolved = new LocalArtifactStorage(base, () => origin);
+    const resolved = new LocalArtifactStorage(base, () => origin, signer);
     const key = "artifacts/aex_1/plan.md";
     await expect(resolved.getSignedUrl(key, 3600_000, "", "person")).rejects.toThrow(
       "local serve URL not configured",
     );
     origin = "http://localhost:51234";
-    expect(await resolved.getSignedUrl(key, 3600_000, "", "person")).toBe(
-      `http://localhost:51234/${key}`,
+    expect(await resolved.getSignedUrl(key, 3600_000, "", "person")).toMatch(
+      new RegExp(`^http://localhost:51234/${key}\\?exp=`),
     );
   });
 
@@ -227,7 +261,7 @@ describe("LocalArtifactStorage presignPut over the transfer-lane slots", () => {
   beforeEach(() => {
     root = mkdtempSync(path.join(tmpdir(), "artifact-presign-"));
     slots = new UploadSlots(root, STAGING_KEY_PREFIX, 60_000, 1024 * 1024);
-    driver = new LocalArtifactStorage(root, "", {
+    driver = new LocalArtifactStorage(root, "", signer, {
       reserve: (key, declaredSizeBytes) => {
         const { ttlMs } = slots.reserve(key, declaredSizeBytes);
         return { url: uploadUrl(BASE_URL, uploadRefOf(key)), ttlMs };
@@ -289,6 +323,7 @@ describe("newArtifactStorage factory", () => {
         type: "",
         localBasePath: path.join(parent, "store"),
         localServeUrl: "http://localhost:7235",
+        localUrlSigner: signer,
         ...NO_R2,
       });
       expect(s).toBeInstanceOf(LocalArtifactStorage);
@@ -301,13 +336,13 @@ describe("newArtifactStorage factory", () => {
     // The former boot-fail deferral test: the r2 arm now constructs, and
     // an incomplete config fails with Go NewR2Storage's copy.
     expect(() =>
-      newArtifactStorage({ type: "r2", localBasePath: "", localServeUrl: "", ...NO_R2 }),
+      newArtifactStorage({ type: "r2", localBasePath: "", localServeUrl: "", localUrlSigner: signer, ...NO_R2 }),
     ).toThrow("R2 bucket name is required");
   });
 
   it("unknown type refuses", () => {
     expect(() =>
-      newArtifactStorage({ type: "s3", localBasePath: "", localServeUrl: "", ...NO_R2 }),
+      newArtifactStorage({ type: "s3", localBasePath: "", localServeUrl: "", localUrlSigner: signer, ...NO_R2 }),
     ).toThrow("unknown storage type: s3 (must be 'local' or 'r2')");
   });
 
@@ -334,7 +369,7 @@ describe("newArtifactStorage factory", () => {
       ],
     ]);
     const s = newArtifactStorage(
-      { type: "cloud-r2", localBasePath: "", localServeUrl: "", ...NO_R2 },
+      { type: "cloud-r2", localBasePath: "", localServeUrl: "", localUrlSigner: signer, ...NO_R2 },
       registered,
     );
     expect(s).toBe(fake);
@@ -345,7 +380,7 @@ describe("newArtifactStorage factory", () => {
   it("unknown type names the registered drivers in its refusal", () => {
     expect(() =>
       newArtifactStorage(
-        { type: "s3", localBasePath: "", localServeUrl: "", ...NO_R2 },
+        { type: "s3", localBasePath: "", localServeUrl: "", localUrlSigner: signer, ...NO_R2 },
         new Map([["cloud-r2", () => ({}) as never]]),
       ),
     ).toThrow("unknown storage type: s3 (must be 'local' or 'r2' or 'cloud-r2')");

@@ -13,6 +13,7 @@ import {
   visionPromptInfoOf,
   type StandingSectionKind,
 } from "../prompt-sections.js";
+import { DOWNLOAD_URL_DISCLOSURE } from "../attachment-download-urls.js";
 import type { ResolvedAttachment } from "../attachment-resolver.js";
 import { formatDeclaredPreferencesText } from "../declared-preferences.js";
 
@@ -69,7 +70,6 @@ describe("inputFileLines", () => {
         file(".stigmer/inputs/diagram.png", { downloadUrl: "https://r2.example/d?sig=1" }),
       ],
       undefined,
-      undefined,
     );
     expect(entries).toEqual([
       "- `.stigmer/inputs/spec.pdf` (1024 bytes)",
@@ -78,19 +78,17 @@ describe("inputFileLines", () => {
     ]);
   });
 
-  it("renders the URL hand-off line only when a listed file carries a URL AND the storage's kind is known", () => {
+  it("renders the URL hand-off line only when a listed file carries a URL", () => {
     const withUrl = [file("a.pdf", { downloadUrl: "https://r2.example/a" })];
-    expect(inputFileLines(withUrl, undefined, "presigned").urlHandoff).toBeDefined();
-    expect(inputFileLines(withUrl, undefined, undefined).urlHandoff).toBeUndefined();
-    expect(inputFileLines([file("a.pdf")], undefined, "presigned").urlHandoff).toBeUndefined();
+    expect(inputFileLines(withUrl, undefined).urlHandoff).toBe(DOWNLOAD_URL_DISCLOSURE);
+    expect(inputFileLines([file("a.pdf")], undefined).urlHandoff).toBeUndefined();
   });
 
   it("renders the vision lines only when the turn carries vision facts", () => {
-    expect(inputFileLines([file("a.png")], undefined, undefined).vision).toEqual([]);
+    expect(inputFileLines([file("a.png")], undefined).vision).toEqual([]);
     const { vision } = inputFileLines(
       [file("a.png")],
       { inlineFilenames: ["a.png"], notViewable: [{ path: ".stigmer/inputs/big.png", reason: "too_large" }] },
-      undefined,
     );
     expect(vision.some((l) => l.includes("a.png"))).toBe(true);
     expect(vision.some((l) => l.includes("big.png"))).toBe(true);

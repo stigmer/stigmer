@@ -342,7 +342,6 @@ export function composeTurnMessage(input: TurnInput): string {
     conversationCatchup: input.standing.conversationCatchup,
     inputFiles: input.attachments.results,
     vision: visionPromptInfoOf(input.attachments),
-    downloadUrlKind: input.artifactStorage?.downloadUrlKind,
     workspaceFileRefs: spec.workspaceFileRefs ?? [],
   });
 }

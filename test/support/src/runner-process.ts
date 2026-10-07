@@ -140,12 +140,12 @@ export interface RunnerOptions {
   cloudBootstrap?: { token: string };
   // Optional hermetic LLM wiring; present only for agent-execution runs.
   proxy?: RunnerProxyOptions;
-  // The server's artifact root + serve URL. When provided (with a proxy), the
-  // runner shares the server's local store so a storage-key attachment the
-  // server wrote resolves here (#285). Omitted → a throwaway store, which is
-  // fine for runs that never resolve a cross-process artifact.
+  // The server's artifact root. When provided (with a proxy), the runner
+  // shares the server's local store so a storage-key attachment the server
+  // wrote resolves here (#285). Omitted → a throwaway store, which is fine for
+  // runs that never resolve a cross-process artifact. The runner mints no
+  // download links from it, so it needs no serve URL.
   artifactDir?: string;
-  artifactServeUrl?: string;
   // Presign-capable artifact lane (stigmer#803): base URL of a REAL service
   // serving /v1/proxy/artifacts/... (the hermetic Java service's HTTP port).
   // Routes the runner's artifact storage there via
@@ -284,12 +284,6 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
               : {
                   ARTIFACT_STORAGE_TYPE: "local",
                   LOCAL_ARTIFACT_PATH: artifactDir,
-                  // Point blob downloads at the server's artifact file server
-                  // when we know it; the runner's own reads go straight to
-                  // disk regardless.
-                  ...(opts.artifactServeUrl !== undefined
-                    ? { LOCAL_ARTIFACT_SERVE_URL: opts.artifactServeUrl }
-                    : {}),
                 }),
           }
         : {}),
