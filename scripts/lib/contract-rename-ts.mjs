@@ -257,3 +257,98 @@ export function runTypeScriptPass({
   }
   return { rounds, edited: [...edited].sort(), remaining: [...new Set(remaining)] };
 }
+
+/**
+ * Rename hand-written names that mirror the contract (a store method, a
+ * hook, a library type) through the compiler's own rename: every declaration
+ * named in `names` and every reference the language service finds for it,
+ * implementations of an interface member included. The rename is public:
+ * a re-export and a shorthand key take the new name too (`export { useX }`
+ * becomes `export { useY }`, never `useY as useX`), because the names this
+ * pass is given are API that follows the contract. A declaration spelled
+ * like a given name is renamed with it, so the names must be distinctive.
+ * Run before the diagnostic pass, so that packages outside this program meet
+ * the new names as flagged imports.
+ */
+export function runRenamePass({ tsconfig, names, exclude = [], rootDir = process.cwd() }) {
+  const ts = loadTypeScript(dirname(resolve(tsconfig)), rootDir);
+  const excluded = (file) =>
+    file.includes(`${sep}node_modules${sep}`) || exclude.some((e) => file.includes(isAbsolute(e) ? e : `${sep}${e}`));
+  const edited = new Set();
+  const renamed = new Map();
+  for (const { parsed } of projectConfigs(ts, tsconfig)) {
+    if (parsed.fileNames.length === 0) continue;
+    const versions = new Map();
+    const host = {
+      getScriptFileNames: () => parsed.fileNames,
+      getScriptVersion: (f) => String(versions.get(f) ?? 0),
+      getScriptSnapshot: (f) => (ts.sys.fileExists(f) ? ts.ScriptSnapshot.fromString(ts.sys.readFile(f)) : undefined),
+      getCurrentDirectory: () => dirname(resolve(tsconfig)),
+      getCompilationSettings: () => parsed.options,
+      getDefaultLibFileName: (o) => ts.getDefaultLibFilePath(o),
+      fileExists: ts.sys.fileExists,
+      readFile: ts.sys.readFile,
+      readDirectory: ts.sys.readDirectory,
+      directoryExists: ts.sys.directoryExists,
+      getDirectories: ts.sys.getDirectories,
+    };
+    const service = ts.createLanguageService(host, ts.createDocumentRegistry());
+    for (;;) {
+      const program = service.getProgram();
+      let target;
+      for (const sf of program.getSourceFiles()) {
+        if (excluded(sf.fileName) || sf.isDeclarationFile) continue;
+        const visit = (node) => {
+          if (target) return;
+          const name = node.name;
+          if (name && ts.isIdentifier(name) && names[name.text] !== undefined && isDeclaration(ts, node)) {
+            target = { file: sf.fileName, pos: name.getStart(sf), from: name.text };
+            return;
+          }
+          ts.forEachChild(node, visit);
+        };
+        visit(sf);
+        if (target) break;
+      }
+      if (!target) break;
+      const to = names[target.from];
+      const locations =
+        service.findRenameLocations(target.file, target.pos, false, false, {
+          providePrefixAndSuffixTextForRename: false,
+        }) ?? [];
+      const perFile = new Map();
+      for (const loc of locations) {
+        if (excluded(loc.fileName)) continue;
+        const text = `${loc.prefixText ?? ""}${to}${loc.suffixText ?? ""}`;
+        if (!perFile.has(loc.fileName)) perFile.set(loc.fileName, []);
+        perFile
+          .get(loc.fileName)
+          .push({ start: loc.textSpan.start, end: loc.textSpan.start + loc.textSpan.length, text });
+      }
+      if (perFile.size === 0) throw new Error(`no rename locations for ${target.from} in ${target.file}`);
+      for (const [file, edits] of perFile) {
+        writeFileSync(file, applyEdits(readFileSync(file, "utf8"), edits).text);
+        versions.set(file, (versions.get(file) ?? 0) + 1);
+        edited.add(file);
+      }
+      renamed.set(target.from, (renamed.get(target.from) ?? 0) + locations.length);
+    }
+  }
+  return { edited: [...edited].sort(), renamed: Object.fromEntries(renamed) };
+}
+
+/** A node that declares its `name` (not a reference, and not a parameter). */
+function isDeclaration(ts, node) {
+  return (
+    ts.isFunctionDeclaration(node) ||
+    ts.isClassDeclaration(node) ||
+    ts.isInterfaceDeclaration(node) ||
+    ts.isTypeAliasDeclaration(node) ||
+    ts.isEnumDeclaration(node) ||
+    ts.isVariableDeclaration(node) ||
+    ts.isMethodSignature(node) ||
+    ts.isMethodDeclaration(node) ||
+    ts.isPropertySignature(node) ||
+    ts.isPropertyDeclaration(node)
+  );
+}

@@ -14,7 +14,7 @@ import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { applyEdits, renamedSpecifier, runTypeScriptPass } from "./contract-rename-ts.mjs";
+import { applyEdits, renamedSpecifier, runRenamePass, runTypeScriptPass } from "./contract-rename-ts.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -166,4 +166,68 @@ test("edits apply last first, and an overlapping or repeated edit keeps the firs
   ]);
   assert.equal(text, "A BBB ccc");
   assert.equal(applied, 2);
+});
+
+test("a hand name is renamed with its references, implementations, re-exports and shorthand keys", () => {
+  const dir = project({
+    "tsconfig.json": TSCONFIG,
+    "src/store.ts": `export interface Store {
+  upsertScheduleRun(id: string): void;
+}
+export class MemoryStore implements Store {
+  upsertScheduleRun(id: string): void {
+    void id;
+  }
+}
+export const literalStore: Store = { upsertScheduleRun: (id) => void id };
+`,
+    "src/hook.ts": `import type { Store } from "./store";
+export function useScheduleRuns(store: Store): void {
+  store.upsertScheduleRun("x");
+}
+export const hooks = { useScheduleRuns };
+export const upsertScheduleRun = "a local spelled like the method, not a reference";
+`,
+    "src/index.ts": `export { useScheduleRuns } from "./hook";\n`,
+    "src/use.ts": `import { useScheduleRuns } from "./hook";
+import { MemoryStore } from "./store";
+useScheduleRuns(new MemoryStore());
+`,
+  });
+  try {
+    const result = runRenamePass({
+      tsconfig: join(dir, "tsconfig.json"),
+      names: { upsertScheduleRun: "upsertScheduleFire", useScheduleRuns: "useScheduleFires" },
+      rootDir: ROOT,
+    });
+    assert.equal(result.edited.length, 4);
+    const store = readFileSync(join(dir, "src/store.ts"), "utf8");
+    assert.equal(
+      (store.match(/upsertScheduleFire/g) ?? []).length,
+      3,
+      "the member, its implementation and the literal",
+    );
+    const hook = readFileSync(join(dir, "src/hook.ts"), "utf8");
+    assert.match(hook, /export function useScheduleFires\(store: Store\)/);
+    assert.match(hook, /store\.upsertScheduleFire\("x"\)/);
+    assert.match(hook, /export const hooks = \{ useScheduleFires \};/, "a shorthand key follows");
+    assert.equal(
+      readFileSync(join(dir, "src/index.ts"), "utf8"),
+      'export { useScheduleFires } from "./hook";\n',
+      "a re-export follows",
+    );
+    assert.match(
+      hook,
+      /export const upsertScheduleFire = "a local spelled like the method/,
+      "a declaration of the name is renamed too",
+    );
+    assert.match(
+      readFileSync(join(dir, "src/use.ts"), "utf8"),
+      /import \{ useScheduleFires \} from "\.\/hook";\nimport \{ MemoryStore \} from "\.\/store";\nuseScheduleFires\(/,
+    );
+    const check = runTypeScriptPass({ tsconfig: join(dir, "tsconfig.json"), table: TABLE, rootDir: ROOT });
+    assert.deepEqual(check.remaining, [], "the renamed project compiles");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

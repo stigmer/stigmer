@@ -17,6 +17,10 @@
  *            [--move <old dir>=<new dir>] [--exclude <path part>]
  *            rewrites only what tsc flags, round after round
  *            (scripts/lib/contract-rename-ts.mjs).
+ *   rename   --project <tsconfig> --names <hand.json> [--exclude <path part>]
+ *            renames hand-written names that mirror the contract (`ts` map of
+ *            the hand list) through the language service, references and
+ *            implementations included; run it before `ts`.
  *   go       --table <table.json> --dir <module dir> [--cmd "go vet ./..."]
  *            the same for Go (scripts/lib/contract-rename-go.mjs).
  *   residue  (--table <table.json> | --pattern <regex>) [--allow <file>] [--path <pathspec> …]
@@ -46,7 +50,7 @@ import {
   parseAllowList,
 } from "./lib/contract-rename-grep.mjs";
 import { computeRenameTable, RenameTableError, withHandNames } from "./lib/contract-rename-table.mjs";
-import { runTypeScriptPass } from "./lib/contract-rename-ts.mjs";
+import { runRenamePass, runTypeScriptPass } from "./lib/contract-rename-ts.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -144,6 +148,17 @@ function typescript(flags) {
   return left === 0 ? 0 : 1;
 }
 
+function rename(flags) {
+  if (!flags.project || !flags.names) throw new Error("rename needs --project and --names");
+  const names = readJson(flags.names).ts ?? {};
+  for (const project of list(flags.project)) {
+    const result = runRenamePass({ tsconfig: project, names, exclude: list(flags.exclude), rootDir: process.cwd() });
+    console.log(`# ${project}: ${result.edited.length} files edited`);
+    for (const [from, n] of Object.entries(result.renamed)) console.log(`  ${from} -> ${names[from]}: ${n} locations`);
+  }
+  return 0;
+}
+
 function go(flags) {
   if (!flags.table || !flags.dir) throw new Error("go needs --table and --dir");
   const t = readJson(flags.table);
@@ -202,6 +217,8 @@ export function main(argv) {
       return table(flags);
     case "ts":
       return typescript(flags);
+    case "rename":
+      return rename(flags);
     case "go":
       return go(flags);
     case "residue":
@@ -209,7 +226,7 @@ export function main(argv) {
     case "census":
       return census(flags);
     default:
-      throw new Error(`unknown command ${command ?? "(none)"}; one of image, table, ts, go, residue, census`);
+      throw new Error(`unknown command ${command ?? "(none)"}; one of image, table, ts, rename, go, residue, census`);
   }
 }
 
