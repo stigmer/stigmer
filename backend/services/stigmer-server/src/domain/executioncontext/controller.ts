@@ -125,7 +125,7 @@ export interface ExecutionContextControllerDeps {
   /** The composed tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /**
-   * Shared with the Environment/OAuthApp controllers so the
+   * Shared with the Credential/OAuthApp controllers so the
    * encrypt-on-write / decrypt-on-read key pair always matches.
    */
   readonly secretService: SecretService;

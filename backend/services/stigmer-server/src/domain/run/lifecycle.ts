@@ -792,9 +792,9 @@ function runRecoverPipeline(
 /**
  * Rebuilds the ExecutionContext for a recovered execution (Go
  * recreateExecutionContextStep): the failed run's workflow cleanup
- * deleted the EC, so a fresh start would hydrate with an empty
- * environment. Re-resolving from CURRENT configuration is the point
- * ("fix the API key, then recover"). A failure here FAILS the
+ * deleted the EC, so a fresh start would hydrate with no values.
+ * Re-resolving from CURRENT credentials, for the person the run recorded,
+ * is the point ("fix the API key, then recover"). A failure here FAILS the
  * recover RPC — the agent EC carries OAuth tokens and declared env vars
  * the run genuinely needs; the execution stays FAILED and recover can be
  * retried. Stale-EC delete first (best-effort): the failure-path cleanup

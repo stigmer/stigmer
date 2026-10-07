@@ -4,10 +4,10 @@
  * guard, the encrypt-at-rest step, and the execution_id loader).
  *
  * The ordering contract these steps embody (oss#535, the EC flavor of the
- * environment domain's "sentinels → encrypt" doc):
+ * credential domain's "sentinels → encrypt" doc):
  *   1. RejectCiphertextShapedValues runs BEFORE EncryptSecretValues.
  *      ExecutionContext is create-only with NO redaction round-trip
- *      (unlike Environment, whose PreserveRedactedSecrets restores
+ *      (unlike Credential, whose PreserveRedactedSecrets restores
  *      ***REDACTED*** markers on update), so this guard is the WHOLE
  *      write boundary: every legitimate creator — the run builder,
  *      the MCP connect handler, an SDK caller — supplies
@@ -85,11 +85,10 @@ export function newRejectCiphertextShapedStep(): PipelineStep<
 /**
  * EncryptSecretValues — Go encryptSecretValuesStep: encrypts every
  * non-empty is_secret value in spec.data before persistence — the EC twin
- * of the environment domain's step of the same name, closing the at-rest
- * half of oss#535 (the merged EC — decrypted environment secrets,
- * runtime_env overrides, injected OAuth tokens — rested plaintext for
- * each run's duration, the same backup-exposure class oss#405 closed for
- * environments).
+ * of the credential domain's step of the same name, closing the at-rest
+ * half of oss#535 (the resolved EC — decrypted credential values,
+ * runtime_env, sign-in tokens — rested plaintext for each run's duration,
+ * the same backup-exposure class oss#405 closed for saved secrets).
  *
  * Runs after RejectCiphertextShapedValues, so every secret value reaching
  * it is client plaintext; encrypt's idempotent pass-through is therefore
@@ -182,7 +181,7 @@ type GetByExecutionIdDesc =
  * A run has one context, the server's (`GuardExecutionBinding` below), so
  * the read never chooses between two: none is NotFound, as always, and
  * more than one is FailedPrecondition, logged with every context id. Not
- * NotFound, because the runner reads NotFound as "no environment, proceed"
+ * NotFound, because the runner reads NotFound as "no values, proceed"
  * (runner shared/env-resolver.ts);
  * the refusal fails the run instead of handing it either row's values. The
  * answer names no organization.

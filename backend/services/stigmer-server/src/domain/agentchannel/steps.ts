@@ -141,9 +141,9 @@ export function newResolveChannelDefaultsStep(
 
       // The BYO app must be the channel's own org's; normalized and
       // checked before the agent load for the same no-probing reason.
-      // Deliberately NO existence or provider-match check: like
-      // environment_refs, enforcement lives at resolution time (the cloud
-      // install flow fails closed; OSS has no install flow).
+      // Deliberately NO existence or provider-match check: enforcement
+      // lives at install time (the cloud install flow fails closed; OSS
+      // has no install flow).
       if ((appRef?.slug ?? "") !== "") {
         const appRefOrg = appRef!.org !== "" ? appRef!.org : metadata!.org;
         if (appRefOrg !== metadata!.org) {
@@ -339,8 +339,8 @@ export function newValidateChannelUpdateStep(
 
 /**
  * TeardownChannelRuntime — the serving runtime's delete-time cascade
- * (channel-runtime.ts: credentials environment, OAuth grant, pending
- * deliveries). Spliced into the delete chain ONLY when a runtime is
+ * (channel-runtime.ts: the sealed provider credential, OAuth grant,
+ * pending deliveries). Spliced into the delete chain ONLY when a runtime is
  * composed, after LoadExistingForDelete and before DeleteResource —
  * dependent runtime state dies before the row, and a thrown teardown
  * error leaves the row for an idempotent

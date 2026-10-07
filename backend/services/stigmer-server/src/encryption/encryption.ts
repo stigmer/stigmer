@@ -86,8 +86,8 @@ export const DEFAULT_WRITE_VERSION = V1_VERSION;
  * resource-returning boundary — Go steps.RedactedMarker, pinned by the
  * conformance suite and byte-identical in the cloud edition. Lives with
  * the facade (the Java shape) because reencrypt must refuse it;
- * domain/environment/constants.ts re-exports it for its historical
- * importers. A client sending it BACK on a write means "keep the existing
+ * domain/credential/constants.ts re-exports it for the credential domain.
+ * A client sending it BACK on a write means "keep the existing
  * secret" (the round-trip contract; see preserveRedactedSecrets).
  */
 export const REDACTED_MARKER = "***REDACTED***";
@@ -130,7 +130,7 @@ function versionTokenOf(value: string): string | undefined {
 }
 
 /**
- * Encryption/decryption for environment (and other domain) secrets. Safe
+ * Encryption/decryption for credential (and other domain) secrets. Safe
  * for concurrent use; construct via one of the factories below.
  */
 export class SecretService {

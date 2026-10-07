@@ -8,7 +8,7 @@
  *     DecryptionFailedError): the VALUE is bad — tampered, truncated,
  *     malformed Base64, or sealed under a different key. Retrying cannot
  *     help and the failure is scoped to that one value, so per-key skip
- *     policies (the environment/executioncontext resolution lanes) may
+ *     policies (the credential/executioncontext resolution lanes) may
  *     drop it and continue.
  *
  *   - EncryptionUnavailableError (and its keyless specialization

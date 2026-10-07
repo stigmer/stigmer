@@ -49,8 +49,8 @@ export type CallerClass =
  * server code can reach that transport, so the marker is unspoofable —
  * and it survives caller PROPAGATION: a request-origin in-process call
  * carries the ORIGINAL caller's identity with this origin, letting the
- * server compose requests as the user (a conversation a turn creates,
- * managed environments) without those requests being mistaken for
+ * server compose requests as the user (a conversation a turn creates, a
+ * sign-in's credential) without those requests being mistaken for
  * client-boundary writes. Absent means the wire.
  */
 export type CallOrigin = "wire" | "in-process";

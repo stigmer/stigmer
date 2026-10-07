@@ -468,9 +468,9 @@ export async function prepareConnect(
 ): Promise<PreparedConnect> {
   const mcpServerId = mcpServer.metadata?.id ?? "";
   const callerOrg = input.org;
-  // The connect resolves the caller's environment and grant in this
-  // organization and files its context there: a credential bound to
-  // another may not (refuse-bound-elsewhere.ts).
+  // The connect resolves the caller's credentials in this organization
+  // and files its context there: a sign-in bound to another may not
+  // (refuse-bound-elsewhere.ts).
   refuseBoundElsewhere(identity, callerOrg);
 
   const executionId = newConnectExecutionId(mcpServerId);

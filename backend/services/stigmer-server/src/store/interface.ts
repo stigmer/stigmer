@@ -498,7 +498,7 @@ export interface PendingOAuthState {
   /** RFC 8414 string from OAuthAppSpec; empty for DCR. */
   readonly tokenAuthMethod: string;
   readonly redirectUri: string;
-  /** Caller's org for personal environment resolution. */
+  /** The organization the sign-in is saved in. */
   readonly org: string;
   /** Unix seconds; 0 lets the driver stamp now. */
   readonly createdAt: number;

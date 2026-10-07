@@ -8,7 +8,7 @@
 /**
  * The sentinel the response path substitutes for secret values before they
  * leave the server — Go channelapp RedactedMarker, equal to the
- * platform-wide marker (environment/oauthapp here, the cloud edition's
+ * platform-wide marker (credential/oauthapp here, the cloud edition's
  * SecretEncryptionService.REDACTED_MARKER). A client sending it back on
  * update means "keep the stored secret".
  */

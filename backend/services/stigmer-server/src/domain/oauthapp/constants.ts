@@ -11,7 +11,7 @@
  * leaves the server (Go RedactedMarker). A client sending this value back
  * on update/apply means "keep the existing secret" — not "store the
  * literal marker". Deliberately domain-local (Go defines it per package):
- * environment's redaction marker is a separate constant with the same
+ * the encryption facade's redaction marker is a separate constant with the same
  * text, and collapsing them would couple two domains' wire contracts.
  */
 export const REDACTED_MARKER = "***REDACTED***";

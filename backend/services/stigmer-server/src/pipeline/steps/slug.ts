@@ -90,7 +90,7 @@ export function generateSlug(name: string): string {
 /**
  * A slug fitted to metadata.slug's rules, for a name the server chose
  * rather than the caller: an identity account's email or subject, a
- * managed environment named after the MCP server it holds tokens for. Refusing such a name (checkDerivedSlug) would refuse what no
+ * sign-in's credential named after the MCP server it holds a token for. Refusing such a name (checkDerivedSlug) would refuse what no
  * caller can fix, so the slug is made to fit instead:
  *
  *   - the shared generator over the name, kept as it is whenever the rules
@@ -134,8 +134,8 @@ export function fittedSlug(name: string, ...fallbacks: string[]): string {
 
 /**
  * A name the server chose, cut to metadata.name's bound so the resource it
- * names validates on every later update: a managed environment's name is
- * the MCP server's name with a prefix in front, and an account's is an
+ * names validates on every later update: a sign-in credential's name is
+ * the MCP server's name, and an account's is an
  * email, either of which can pass the bound. The cut counts characters, as
  * the bound does, so it never splits one. A name within the bound is kept
  * as it is.

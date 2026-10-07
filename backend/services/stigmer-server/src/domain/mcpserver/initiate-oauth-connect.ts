@@ -480,7 +480,7 @@ function generateState(): string {
  * seeing the emptiness that means "public client".
  *
  * Disabled encryption (no key configured) passes plaintext through with a
- * WARN, matching the deployment-wide posture for environment, OAuthApp
+ * WARN, matching the deployment-wide posture for credential, OAuthApp
  * and ChannelApp secrets under the same key. A real encryption error
  * while enabled throws so the caller fails the request instead of
  * persisting plaintext.

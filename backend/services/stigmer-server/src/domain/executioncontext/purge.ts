@@ -4,7 +4,7 @@
  * removed with its delete chain's cleanup (controller.ts
  * `deleteExecutionContext`: the row, its access, its search entry). The
  * kind is owner-only, not organization-scoped, but each row is its run's
- * and holds that organization's resolved environment values, so it goes
+ * and holds that organization's resolved credential values, so it goes
  * with the organization (`metadata.org`, as the credential binding reads
  * it).
  */

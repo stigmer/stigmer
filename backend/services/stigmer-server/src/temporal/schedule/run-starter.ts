@@ -64,12 +64,11 @@ export const SESSION_SUBJECT_PREFIX = "Scheduled run: ";
  * The audit link stamped on every schedule-created execution — the same
  * key the cloud edition's scope step writes (Go ScheduleIDLabelKey).
  *
- * In OSS the label is also the environment-resolution key: the execution
- * context step reads it to merge the schedule's environment_refs. Cloud
- * deliberately resolves through the validated token claim
- * instead — a client-suppliable label must not widen what a cloud sandbox
- * reads — but OSS is single-user with no trust boundary, and it has no
- * tokens to carry a claim.
+ * The label is also how a fired run finds its schedule's credential
+ * assignments (domain/run/run-credentials.ts): the run has no person, so
+ * the execution-context step reads the assignments of the schedule the
+ * label names. Only a run with no person reads a surface, so a person who
+ * wrote the label on their own run gains nothing by it.
  */
 export const SCHEDULE_ID_LABEL_KEY = "stigmer.ai/schedule-id";
 

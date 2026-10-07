@@ -1,7 +1,7 @@
 /**
  * Pre-flight token refresh — ports pkg/domain/mcpserver/oauth/refresh.go.
- * Consumed by the agentexecution EC builder's OAuth injection and by the
- * connect lane (connect.ts).
+ * Consumed by the sign-in refresher (oauth/sign-in.ts), which a run's and a
+ * connect's credential resolution ask before reading a sign-in.
  */
 import type { OutboundFetch } from "@stigmer/outbound/egress";
 import type { OAuthGrant } from "../../../store/interface.js";
@@ -25,8 +25,9 @@ export const REFRESH_EXPIRY_BUFFER_SECONDS = 60;
 
 /**
  * Checks whether the grant's access token is expired and, if so, uses the
- * refresh token to obtain a new one. The caller updates the managed
- * environment and the grant record with the returned values.
+ * refresh token to obtain a new one. The caller writes the new access
+ * token into the sign-in's credential and the grant record
+ * (oauth/sign-in.ts).
  *
  * clientSecret is empty for DCR/public clients; tokenAuthMethod selects
  * how a non-empty secret is presented (empty falls back to Basic).

@@ -7,9 +7,9 @@
  * run's recover step before it recreates the context
  * (domain/run/lifecycle.ts).
  *
- * The ExecutionContext is an ephemeral resource containing the
- * fully-merged environment (environment_refs values overridden by
- * runtime_env, filtered to the blueprint's declared env keys), including
+ * The ExecutionContext is an ephemeral resource containing the run's
+ * resolved values (domain/credential/resolve.ts: the per-call values, the
+ * surface's assignments, the run's person's credentials), including
  * secrets. It must be cleaned up when the execution finishes so sensitive
  * data does not persist beyond the execution lifetime.
  *

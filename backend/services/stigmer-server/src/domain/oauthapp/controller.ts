@@ -10,8 +10,8 @@
  * and __tests__/oauthapp.test.ts.
  *
  * The secret contract: client_secret is AES-256-GCM encrypted at rest via
- * the SAME SecretService instance the Environment controller uses (Go
- * wires one service for both), and redacted to ***REDACTED*** on every
+ * the SAME SecretService instance the Credential controller uses (one
+ * service for every sealed value), and redacted to ***REDACTED*** on every
  * response, the delete's included; the marker round-trips on update/apply
  * as "keep the stored secret"; client-supplied enc:v<N>:-shaped values are
  * refused on every write door (oss#395). Deletion is blocked while an
@@ -269,9 +269,9 @@ async function apply(
  * Delete — chain per Go buildDeletePipeline: the referential guard runs
  * between load and delete. The RESOURCE_ID_KEY is set manually because
  * ApiResourceDeleteInput carries resourceId, not the value field
- * ExtractResourceId expects (the environment-domain pattern). Returns the
+ * ExtractResourceId expects (the credential-domain pattern). Returns the
  * deleted app for the audit trail, redacted like every other response (the
- * ChannelApp and Environment delete shape): the chain has already
+ * ChannelApp and Credential delete shape): the chain has already
  * destroyed the sealed secret, so the stored value could only leak
  * (stigmer/stigmer#1257).
  */
@@ -443,7 +443,7 @@ async function listByOrg(
  * because with no scope composed the helper returns its input unchanged
  * and never reads the org (the trusted-local full scan); with one, the
  * scope is the last per-row predicate, so a composed driver is asked about
- * the org's apps, never every tenant's (the environment list's order).
+ * the org's apps, never every tenant's (the credential list's order).
  */
 function newListByOrgStep(
   store: Store,

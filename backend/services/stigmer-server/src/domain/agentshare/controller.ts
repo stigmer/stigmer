@@ -3,7 +3,8 @@
  * query sides): the first-class sharing channel promoted out of
  * Agent.spec.sharing. A share carries everything a hosted
  * chat link needs — audience, embed origins, visitor-facing messages,
- * guest tool credentials (environment_refs), and the rotatable link token.
+ * the credentials guest runs use (`credentials` assignments), and the
+ * rotatable link token.
  * Share operations never modify the referenced agent.
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character. NOT

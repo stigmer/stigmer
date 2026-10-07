@@ -442,8 +442,8 @@ async function loadChannelForInstall(
  * there is no teardown cascade — none of that state can exist because the
  * install flow never runs (the install lane refuses). A composed runtime
  * splices its cascade
- * (TeardownChannelRuntime — credentials environment, OAuth grant, pending
- * deliveries) between the load and the row delete, so dependent runtime
+ * (TeardownChannelRuntime — the sealed provider credential, OAuth grant,
+ * pending deliveries) between the load and the row delete, so dependent runtime
  * state dies before the row.
  */
 async function deleteChannel(

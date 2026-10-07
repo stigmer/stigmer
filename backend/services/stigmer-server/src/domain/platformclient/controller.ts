@@ -14,11 +14,12 @@
  *     by rotateSecret (the client_id is permanent);
  *   - `system-share-client` refused on create, and the platform's
  *     system-managed clients refused on update, delete and rotate;
- *   - the reference rule on `environment_refs` (NormalizeReferences, then
- *     ValidateReferences) on create and update, which every chain that
- *     stores a spec reference runs; it reads the environments from the
- *     resource Store, not from the port, because a driver may keep client
- *     rows in a table of its own while environments stay in the Store;
+ *   - the reference rule on `credentials` (NormalizeReferences, then
+ *     ValidateReferences, then GuardCredentialAssignments) on create and
+ *     update, which every chain that stores a spec reference runs; it
+ *     reads the credentials from the resource Store, not from the port,
+ *     because a driver may keep client rows in a table of its own while
+ *     credentials stay in the Store;
  *   - the stored hash cleared on EVERY response, deletes and rotations
  *     included — the model promises it is never returned
  *     (fga/model/iam/platform_client.fga), and no reader needs it;
@@ -129,7 +130,7 @@ const PLATFORM_CLIENT_ASSIGNMENTS: AssignmentSurface<MessageShape<typeof Platfor
 export interface PlatformClientControllerDeps {
   /** The composed store — a driver's, or the OSS adapter over the generic Store. */
   readonly clients: PlatformClientStore;
-  /** The resource store the reference rule reads the environments `environment_refs` names from. */
+  /** The resource store the reference rule reads the credentials `credentials` names from. */
   readonly store: Store;
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */

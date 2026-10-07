@@ -310,7 +310,7 @@ export function operatorIdentitySnapshot(): {
  * when present, identityId alone otherwise. A PlatformClient-minted
  * caller also stamps the client it came through (platform_client_id):
  * the account alone cannot say, and the execution-context builder keys
- * the PlatformClient environment layer on this record (#1256). Every
+ * the PlatformClient's credential assignments on this record (#1256). Every
  * other identity stamps it empty, so local-posture bytes are unchanged.
  */
 export function auditActorFor(identity: CallerIdentity): ApiResourceAuditActor {
