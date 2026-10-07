@@ -75,7 +75,7 @@ describe("extractLabelValue", () => {
 describe("toSnakeCase", () => {
   it.each([
     ["executionId", "execution_id"],
-    ["agentRunId", "agent_run_id"],
+    ["supersedesRunId", "supersedes_run_id"],
     ["already_snake", "already_snake"],
     ["single", "single"],
   ])("converts %j to %j (Go toSnakeCase)", (input, expected) => {

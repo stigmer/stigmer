@@ -15,7 +15,7 @@ export interface ToolCallGroupProps {
   /** Tool calls in this group, ordered by invocation time. */
   readonly toolCalls: readonly ToolCall[];
   /**
-   * Sub-agent runs from the parent `AgentRunStatus`.
+   * Sub-agent runs from the parent `RunStatus`.
    * When provided, tool calls whose `id` matches a
    * `SubAgentRun.id` are rendered with a nested sub-agent
    * thread instead of a standard detail panel.

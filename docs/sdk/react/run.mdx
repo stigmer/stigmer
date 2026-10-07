@@ -4084,7 +4084,7 @@ Props for [`ToolCallGroup`](#toolcallgroup).
     className: { type: "string", description: "Additional CSS class names for the root container." },
     defaultExpanded: { type: "boolean", description: "" },
     formatSummary: { type: "(toolCalls: readonly ToolCall[]) => string", description: "Custom label formatter for a folded run chip (e.g. a run of reads). Receives the run's tool calls and returns the chip's collapsed label.  NOTE: the unit of summary moved from the *turn* to the *run*. This used to label the whole turn (\"Ran 3 tools\"); since the turn no longer collapses, it now labels each ToolRunGroup chip. The signature is unchanged." },
-    subAgentRuns: { type: "readonly SubAgentRun[]", description: "Sub-agent runs from the parent `AgentRunStatus`. When provided, tool calls whose `id` matches a `SubAgentRun.id` are rendered with a nested sub-agent thread instead of a standard detail panel." },
+    subAgentRuns: { type: "readonly SubAgentRun[]", description: "Sub-agent runs from the parent `RunStatus`. When provided, tool calls whose `id` matches a `SubAgentRun.id` are rendered with a nested sub-agent thread instead of a standard detail panel." },
     toolCalls: { type: "readonly ToolCall[]", description: "Tool calls in this group, ordered by invocation time.", required: true },
   }}
 />
