@@ -71,6 +71,8 @@ describe("sandboxNameForQueue", () => {
     expect(sandboxNameForQueue("sandbox:pm_1")).toBeUndefined();
     expect(sandboxNameForQueue("stigmer_runner")).toBeUndefined();
     expect(sandboxNameForQueue("session:")).toBeUndefined();
+    // The retired workflow run queue: no sandbox serves it any more.
+    expect(sandboxNameForQueue("wfexec:wex_01m3zkdb7wxbe2gx0ezmf8fmaq")).toBeUndefined();
   });
 });
 

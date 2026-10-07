@@ -342,7 +342,7 @@ export interface QualityCell {
   /** 1-based, of `methodology.quality_reps`. */
   rep: number;
   model_requested: string;
-  /** The judge model the judge run reports it served. */
+  /** The judge model the judge run's usage reports (the validated requested model). */
   judge_model: string;
   /** The criteria's scores weighted by the task's weights, 0..1. */
   score: number | null;

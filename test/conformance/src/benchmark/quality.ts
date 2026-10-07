@@ -18,8 +18,9 @@
 // score in 0..1. Otherwise the grade is refused (`failure.stage: "judge"`,
 // `score: null`), never read as a number. The score is the benchmark's own:
 // the mean of the criteria's scores weighted by the task's weights
-// (quality-tasks.ts). The judge model on the grade is the one the run reports
-// it served, not the one the benchmark asked for.
+// (quality-tasks.ts). The judge model on the grade is the one the run's usage
+// reports (the validated requested model, `StreamingUsageSummary.model`), so
+// a grade names what the judge run actually ran under.
 import type { JsonObject, JsonValue } from "@bufbuild/protobuf";
 import type { AgentRun } from "@stigmer/protos/ai/stigmer/agentic/agentrun/v1/api_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";

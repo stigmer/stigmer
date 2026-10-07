@@ -13,8 +13,10 @@
  * TS-authored history carries the same keys a Go-authored one would.
  *
  * The input is plain JSON, so a key this interface does not name decodes
- * and is ignored: a history started by an older server that still carries
- * `callback_token` or `parent_workflow_id` replays unchanged.
+ * and is ignored: an input from an older server that still carries
+ * `callback_token` or `parent_workflow_id` decodes. A history that acted on
+ * them (a run a workflow step started) does not replay; the replay gate's
+ * header says why that history left with workflows.
  *
  * Bundle-safe: imported by both the workflow and the engine client.
  */

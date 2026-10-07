@@ -287,7 +287,7 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
         ["accurate", 3, 1],
         ["concise", 1, 0.5],
       ]);
-      expect(graded.judge_model, "the judge run reported the model it served").not.toBe("");
+      expect(graded.judge_model, "the judge run reported the model it ran under").not.toBe("");
       expect(graded.judge_run_id, "the grade names the judge run it came from").toMatch(/^aex_/);
 
       mock.enqueue(anthropicText(JSON.stringify({ accurate: { score: 1, reasoning: "Matches the code." } })));

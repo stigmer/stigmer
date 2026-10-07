@@ -280,9 +280,9 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
           `${activityName} file-review resume short-circuit: execution=${executionId}, ` +
             `failed=${settlement.failed}, discarded=${settlement.discardedPaths.length}`,
         );
-        // The execution completes here, so its answer rides the slim as it
-        // does from `completeTurn`: the seed carried the transcript and any
-        // structured output the paused turn resolved.
+        // The execution completes here, as it does from `completeTurn`: the
+        // seed carried the transcript and any structured output the paused
+        // turn resolved, and the persisted status holds both.
         return { kind: "return", value: slimStatus(status) };
       }
       case "hooks-refused": {

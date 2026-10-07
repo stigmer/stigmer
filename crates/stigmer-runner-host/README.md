@@ -110,7 +110,7 @@ forever (issue #178). `kill()` is a timer-free SIGKILL-then-reap and cannot park
 
 ## Protocol version compatibility
 
-The crate speaks `IPC_PROTOCOL_VERSION` (currently `1`). On the `ready` handshake it
+The crate speaks `IPC_PROTOCOL_VERSION` (currently `2`). On the `ready` handshake it
 reconciles its version against the runner's: a runner advertising a **higher** version is
 rejected with `RunnerHostError::ProtocolVersionMismatch` (this host is too old to
 understand it). The version bumps only on a breaking change; additive changes never bump
