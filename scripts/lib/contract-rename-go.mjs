@@ -83,12 +83,12 @@ export function rewriteGoFile(text, complaints, table) {
       lines[i] = lines[i].replace(`"${c.importPath}"`, `"${next}"`);
       count++;
       const alias = /^\s*([A-Za-z_]\w*)\s+"/.exec(lines[i]);
-      if (alias && table.go.packageAliases[alias[1]]) {
+      if (alias && Object.hasOwn(table.go.packageAliases, alias[1])) {
         renameAlias = [alias[1], table.go.packageAliases[alias[1]]];
       }
       continue;
     }
-    const to = table.go.identifiers[c.name];
+    const to = Object.hasOwn(table.go.identifiers, c.name) ? table.go.identifiers[c.name] : undefined;
     if (to === undefined) {
       left.push(c);
       continue;

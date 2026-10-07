@@ -77,6 +77,12 @@ test("the flagged token is rewritten, the alias follows its package, and the res
   assert.match(out, /\/\/ AgentRun in a comment stays/);
 });
 
+test("a token spelled like an Object.prototype member is not in the table", () => {
+  const { count, left } = rewriteGoFile("x := y.toString()", [{ line: 1, col: 8, name: "toString" }], TABLE);
+  assert.equal(count, 0);
+  assert.deepEqual(left, [{ line: 1, col: 8, name: "toString" }]);
+});
+
 test("of two same-spelled tokens on a line, the one nearest the column is rewritten", () => {
   const { text } = rewriteGoFile("x := AgentRunId; y := AgentRunId", [{ line: 1, col: 23, name: "AgentRunId" }], TABLE);
   assert.equal(text, "x := AgentRunId; y := RunId");

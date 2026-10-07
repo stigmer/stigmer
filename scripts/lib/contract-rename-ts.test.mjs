@@ -124,6 +124,7 @@ test("a name the table does not know is reported, and a generated tree is never 
     "contract/ai/x/run/v1/api_pb.ts": CONTRACT,
     "contract/gen/client.ts": `import type { AgentRun } from "../ai/x/run/v1/api_pb";\nexport type C = AgentRun;\n`,
     "src/use.ts": `import { Kind } from "@contract/ai/x/run/v1/api_pb";\nexport const k = Kind.workflow_run;\n`,
+    "src/proto.ts": `import { valueOf } from "@contract/ai/x/run/v1/api_pb";\nexport const v = valueOf;\n`,
   });
   try {
     const result = runTypeScriptPass({
@@ -140,6 +141,10 @@ test("a name the table does not know is reported, and a generated tree is never 
     assert.ok(
       result.remaining.some((r) => /client\.ts:1:\d+ TS2305/.test(r)),
       result.remaining.join("\n"),
+    );
+    assert.ok(
+      result.remaining.some((r) => /proto\.ts:1:\d+ TS2305 .*valueOf/.test(r)),
+      "a name spelled like an Object.prototype member is not in the table",
     );
     assert.match(readFileSync(join(dir, "contract/gen/client.ts"), "utf8"), /AgentRun/);
   } finally {
@@ -179,6 +184,7 @@ test("edits apply last first, and an overlapping or repeated edit keeps the firs
 test("a hand name is renamed with its references, implementations, re-exports and shorthand keys", () => {
   const dir = project({
     "tsconfig.json": TSCONFIG,
+    "src/plain.ts": `export function valueOf(label: string): string {\n  return label;\n}\n`,
     "src/store.ts": `export interface Store {
   upsertScheduleRun(id: string): void;
 }
@@ -208,7 +214,11 @@ useScheduleRuns(new MemoryStore());
       names: { upsertScheduleRun: "upsertScheduleFire", useScheduleRuns: "useScheduleFires" },
       rootDir: ROOT,
     });
-    assert.equal(result.edited.length, 4);
+    assert.equal(result.edited.length, 4, "a declaration spelled like an Object.prototype member is no hand name");
+    assert.equal(
+      readFileSync(join(dir, "src/plain.ts"), "utf8"),
+      "export function valueOf(label: string): string {\n  return label;\n}\n",
+    );
     const store = readFileSync(join(dir, "src/store.ts"), "utf8");
     assert.equal(
       (store.match(/upsertScheduleFire/g) ?? []).length,

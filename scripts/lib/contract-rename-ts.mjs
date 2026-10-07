@@ -51,6 +51,15 @@ const LITERAL_CODES = new Set([2322, 2345, 2367, 2678, 2820]);
 /** Diagnostics whose node is a module specifier that no longer resolves. */
 const MODULE_CODES = new Set([2307, 2792]);
 
+/**
+ * The new name a map gives `name`, from its own entries only: a name spelled
+ * like an Object.prototype member (`valueOf`, `constructor`) is not in the
+ * map because the prototype has it.
+ */
+export function renamedTo(map, name) {
+  return Object.hasOwn(map, name) ? map[name] : undefined;
+}
+
 /** Load the compiler the package itself pins, else the repository root's. */
 export function loadTypeScript(projectDir, rootDir) {
   for (const from of [projectDir, rootDir]) {
@@ -135,7 +144,7 @@ export function editsForDiagnostic(ts, sourceFile, diagnostic, table, moves) {
   if (NAME_CODES.has(code)) {
     const node = nodeAt(ts, sourceFile, start);
     if (!ts.isIdentifier(node)) return [];
-    const to = identifiers[node.text];
+    const to = renamedTo(identifiers, node.text);
     if (to === undefined) return [];
     const parent = node.parent;
     const at = { start: node.getStart(sourceFile), end: node.getEnd() };
@@ -161,15 +170,19 @@ export function editsForDiagnostic(ts, sourceFile, diagnostic, table, moves) {
       span = [node.parent.getStart(sourceFile), node.parent.getEnd()];
     }
     const literals = literalsIn(ts, sourceFile, span[0], span[1])
-      .filter((lit) => identifiers[lit.text] !== undefined)
-      .map((lit) => ({ start: lit.getStart(sourceFile) + 1, end: lit.getEnd() - 1, text: identifiers[lit.text] }));
+      .filter((lit) => renamedTo(identifiers, lit.text) !== undefined)
+      .map((lit) => ({
+        start: lit.getStart(sourceFile) + 1,
+        end: lit.getEnd() - 1,
+        text: renamedTo(identifiers, lit.text),
+      }));
     // An excess key reported on a whole argument (a literal with a
     // conditional spread): the message quotes the key, the span holds it.
     const excess = /Object literal may only specify known properties, and '([A-Za-z_$][\w$]*)' does not exist/.exec(
       typeof diagnostic.messageText === "string" ? diagnostic.messageText : flatten(diagnostic.messageText),
     );
     const keys =
-      excess && identifiers[excess[1]] !== undefined
+      excess && renamedTo(identifiers, excess[1]) !== undefined
         ? propertiesIn(ts, sourceFile, span[0], span[1], excess[1]).map((p) => keyEdit(ts, sourceFile, p, identifiers))
         : [];
     return [...literals, ...keys];
@@ -204,7 +217,7 @@ function propertiesIn(ts, sourceFile, start, end, name) {
 /** The edit that renames a property's key, keeping a shorthand's local. */
 function keyEdit(ts, sourceFile, property, identifiers) {
   const key = property.name;
-  const to = identifiers[key.text];
+  const to = renamedTo(identifiers, key.text);
   const at = { start: key.getStart(sourceFile), end: key.getEnd() };
   return ts.isShorthandPropertyAssignment(property) ? { ...at, text: `${to}: ${key.text}` } : { ...at, text: to };
 }
@@ -343,7 +356,7 @@ export function runRenamePass({ tsconfig, names, exclude = [], rootDir = process
         const visit = (node) => {
           if (target) return;
           const name = node.name;
-          if (name && ts.isIdentifier(name) && names[name.text] !== undefined && isDeclaration(ts, node)) {
+          if (name && ts.isIdentifier(name) && renamedTo(names, name.text) !== undefined && isDeclaration(ts, node)) {
             target = { file: sf.fileName, pos: name.getStart(sf), from: name.text };
             return;
           }
@@ -353,7 +366,7 @@ export function runRenamePass({ tsconfig, names, exclude = [], rootDir = process
         if (target) break;
       }
       if (!target) break;
-      const to = names[target.from];
+      const to = renamedTo(names, target.from);
       const locations =
         service.findRenameLocations(target.file, target.pos, false, false, {
           providePrefixAndSuffixTextForRename: false,

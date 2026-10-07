@@ -430,7 +430,7 @@ export function withHandNames(table, extra) {
   const merge = (into, more, lang) => {
     const out = { ...into };
     for (const [from, to] of Object.entries(more ?? {})) {
-      if (out[from] !== undefined && out[from] !== to) {
+      if (Object.hasOwn(out, from) && out[from] !== to) {
         problems.push(`${lang}: ${from} is ${out[from]} in the contract and ${to} in the hand list`);
         continue;
       }
