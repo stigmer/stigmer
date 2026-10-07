@@ -251,6 +251,14 @@ for (const profile of PROFILES) {
         assert.equal(spec.securityContext?.fsGroupChangePolicy, "OnRootMismatch");
       }
     }
+    // Every expected container whose workload this profile renders was seen,
+    // so a rename cannot make the case pass on nothing.
+    const workloads = new Set(podTemplates(renderProfile(profile)).map((p) => p.name));
+    for (const key of Object.keys(expected)) {
+      if (workloads.has(key.split("/")[0])) {
+        assert.ok(seen.includes(key), `${key} was not checked`);
+      }
+    }
     assert.ok(
       seen.includes(`${RELEASE}/wait-for-dependencies`),
       "the stigmer pod's init container was checked",
@@ -427,6 +435,23 @@ test("the database user and name reach node-postgres exactly, whatever their cha
   assert.equal(url.host, "byo-postgres.byo-infra.svc.cluster.local:5432");
   assert.equal(url.pathname, "");
   assert.equal(env.get("PGDATABASE")?.value, database);
+});
+
+test("a release upgraded with --reuse-values from a chart without the new keys renders, fenced by default", () => {
+  // --reuse-values replaces the new chart's defaults with the old release's
+  // values; --set <key>=null removes a key the same way.
+  const OLD_VALUES = [
+    "postgres.networkPolicy=null",
+    "postgres.securityContext=null",
+    "temporal.securityContext=null",
+    "waitForDependencies.securityContext=null",
+    "server.allowUnauthenticatedExposure=null",
+  ];
+  const docs = renderProfile("bundled", { sets: OLD_VALUES });
+  assert.equal(findAll(docs, "NetworkPolicy", `${RELEASE}-postgres`).length, 1);
+  assert.ok(
+    renderNotes("bundled", { sets: OLD_VALUES }).includes("The bundled Postgres admits only the stigmer and Temporal pods"),
+  );
 });
 
 test("a postgres securityContext set to null renders, with no pod fsGroup", () => {
