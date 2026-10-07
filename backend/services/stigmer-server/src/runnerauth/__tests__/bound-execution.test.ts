@@ -120,6 +120,9 @@ function agentRun(
 
 describe("boundExecutionKindOf", () => {
   it.each([
+    ["run_1", "agent-execution"],
+    // A run minted before the run kind's prefix became `run` keeps its id,
+    // so a pre-upgrade run waiting on an approval keeps its credential.
     ["aex_1", "agent-execution"],
     [newConnectExecutionId("mcps_1"), "mcp-connect"],
   ])("%s binds %s", (id, kind) => {
@@ -128,7 +131,7 @@ describe("boundExecutionKindOf", () => {
 
   // `wex_1`: a retired workflow run's credential carries no expiry, so it
   // must bind nothing rather than fall back to a kind.
-  it.each([["ses_1"], ["agt_1"], ["zzz_1"], [""], ["aex"], ["connect"], ["wex_1"]])(
+  it.each([["ses_1"], ["agt_1"], ["zzz_1"], [""], ["run"], ["aex"], ["connect"], ["wex_1"]])(
     "%s binds nothing",
     (id) => {
       expect(boundExecutionKindOf(id)).toBeUndefined();
