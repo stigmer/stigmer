@@ -25,9 +25,10 @@
  *      API on this host (test/install/lib/fake-model.mjs), which the pods reach
  *      by host.docker.internal where the kind node resolves it (Docker
  *      Desktop) and by the kind network's gateway otherwise (Linux);
- *   3. (bundled profile) the adversarial arms: the bundled Temporal admits
- *      the stigmer pod and refuses a pod outside the release (its
- *      NetworkPolicy, enforced by kind's network plugin); the pod is deleted
+ *   3. (bundled profile) the adversarial arms: the bundled Temporal and the
+ *      bundled Postgres each admit the stigmer pod and refuse a pod outside
+ *      the release (their NetworkPolicies, enforced by kind's network
+ *      plugin); the pod is deleted
  *      and the execution is still there; `helm upgrade` with unchanged
  *      values moves no pod; `helm uninstall` leaves every claim; a second
  *      install of the same name adopts them and the execution is still
@@ -36,6 +37,10 @@
  * The BYO profile first applies ci/byo-infra.yaml (a Postgres and a
  * Temporal the chart did not install) and proves the externalDatabase and
  * externalTemporal wiring against them.
+ *
+ * The database password carries `@`, `:` and `/`, the characters that would
+ * break a password spliced into a connection URL: every profile proves that
+ * the server, Temporal and the init containers connect with one.
  *
  * Usage:
  *   node test/install/smoke-helm.mjs --build
@@ -323,14 +328,13 @@ function claimNames(namespace) {
 }
 
 /**
- * One TCP connect to the bundled Temporal's frontend, printed as CONNECTED
- * or BLOCKED. A NetworkPolicy drops the packets rather than refusing them,
- * so a fenced connect times out; the timeout is the refusal.
+ * One TCP connect to a bundled dependency's Service, printed as CONNECTED or
+ * BLOCKED. A NetworkPolicy drops the packets rather than refusing them, so a
+ * fenced connect times out; the timeout is the refusal.
  */
-function temporalProbeScript(namespace) {
-  const host = `${RELEASE}-temporal.${namespace}.svc.cluster.local`;
+function connectProbeScript(host, port) {
   return (
-    `const s=require("net").connect(7233,"${host}");s.setTimeout(8000);` +
+    `const s=require("net").connect(${port},"${host}");s.setTimeout(8000);` +
     `s.on("connect",()=>{console.log("CONNECTED");process.exit(0)});` +
     `s.on("timeout",()=>{console.log("BLOCKED");process.exit(0)});` +
     `s.on("error",(e)=>{console.log("BLOCKED "+e.code);process.exit(0)});`
@@ -338,23 +342,26 @@ function temporalProbeScript(namespace) {
 }
 
 /**
- * The bundled Temporal authenticates nothing, so its fence is what keeps the
- * rest of the cluster off the runner's queue: the stigmer pod connects, and
- * a pod outside the release (the server image, run bare) does not.
+ * A bundled dependency that must not be open to the cluster sits behind a
+ * fence: the bundled Temporal authenticates nothing, and the bundled
+ * Postgres holds everything behind a password alone. The stigmer pod
+ * connects, and a pod outside the release (the server image, run bare) does
+ * not.
  */
-async function temporalFenceArm(namespace) {
-  log("arm: the bundled Temporal admits the stigmer pod and no other");
-  const script = temporalProbeScript(namespace);
+async function fenceArm(namespace, { component, port }) {
+  log(`arm: the bundled ${component} admits the stigmer pod and no other`);
+  const host = `${RELEASE}-${component}.${namespace}.svc.cluster.local`;
+  const script = connectProbeScript(host, port);
   const inside = kubectl(
     ["-n", namespace, "exec", `deployment/${RELEASE}`, "-c", "server", "--", "node", "-e", script],
   ).trim();
   if (inside !== "CONNECTED") {
-    throw new Error(`the stigmer pod could not reach its own Temporal: ${inside}`);
+    throw new Error(`the stigmer pod could not reach its own ${component}: ${inside}`);
   }
   const image = kubectlJson(["-n", namespace, "get", "deployment", RELEASE]).spec.template.spec.containers.find(
     (container) => container.name === "server",
   ).image;
-  const probe = "temporal-fence-probe";
+  const probe = `${component}-fence-probe`;
   kubectl([
     "-n",
     namespace,
@@ -381,7 +388,7 @@ async function temporalFenceArm(namespace) {
   kubectl(["-n", namespace, "delete", "pod", probe, "--wait=true"]);
   if (!outside.startsWith("BLOCKED")) {
     throw new Error(
-      `a pod outside the release reached the bundled Temporal (${phase}: ${outside}) — the NetworkPolicy is not enforced`,
+      `a pod outside the release reached the bundled ${component} (${phase}: ${outside}) — the NetworkPolicy is not enforced`,
     );
   }
   log(`the stigmer pod: CONNECTED; a pod outside the release: ${outside}`);
@@ -390,7 +397,8 @@ async function temporalFenceArm(namespace) {
 /** The bundled profile's adversarial arms. */
 async function adversarialArms(release, args, executionId) {
   const { namespace } = release;
-  await temporalFenceArm(namespace);
+  await fenceArm(namespace, { component: "temporal", port: 7233 });
+  await fenceArm(namespace, { component: "postgres", port: 5432 });
 
   log("arm: deleting the stigmer pod");
   kubectl(
@@ -507,7 +515,10 @@ async function main() {
   await assertPortFree(HELM_ARTIFACT_PORT);
 
   cluster = createKindCluster({ existing: args.cluster, log });
-  const postgresPassword = randomBytes(24).toString("hex");
+  // The characters a password spliced into a connection URL would break on,
+  // around a fresh random core. The upgrade rehearsal keeps a hex password:
+  // the releases it starts from still splice it into their DATABASE_URL.
+  const postgresPassword = `${randomBytes(12).toString("hex")}@:/${randomBytes(12).toString("hex")}`;
   let failed = false;
   const fake = await startFakeModel({ host: "0.0.0.0", mode: args.fakeModel });
   try {

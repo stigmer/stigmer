@@ -12,7 +12,9 @@
  * have, a name on both lists, a runner secret on the plain list, or a name
  * a driver sets itself fails the boot; under a driver that starts a runner
  * image, so do HOME, the server's release and the Node settings the runner
- * layer clears at start, which `local-process` passes through.
+ * layer clears at start, which `local-process` passes through. The OIDC
+ * issuer is a third: https, or http on this machine's loopback alone, or the
+ * boot fails.
  */
 import { describe, expect, it } from "vitest";
 
@@ -148,6 +150,42 @@ describe("loadConfig", () => {
           STIGMER_RUNNER_BOOTSTRAP_TEMPORAL_ADDRESS: "",
         }).runnerBootstrapTemporalAddress,
       ).toBe("temporal.internal:7233");
+    });
+  });
+
+  describe("STIGMER_OIDC_ISSUER (https, or http on loopback only)", () => {
+    const AUDIENCE = { STIGMER_OIDC_AUDIENCE: "https://stigmer.example.com/" };
+
+    it("takes an https issuer", () => {
+      expect(
+        loadConfig({
+          ...AUDIENCE,
+          STIGMER_OIDC_ISSUER: "https://auth.example.com/realms/main",
+        }).oidcIssuer,
+      ).toBe("https://auth.example.com/realms/main");
+    });
+
+    it.each([
+      "http://localhost:8080/realms/test",
+      "http://127.0.0.1:43123",
+      "http://[::1]:43123/issuer",
+    ])("takes an http issuer on this machine's loopback: %s", (issuer) => {
+      expect(
+        loadConfig({ ...AUDIENCE, STIGMER_OIDC_ISSUER: issuer }).oidcIssuer,
+      ).toBe(issuer);
+    });
+
+    it.each([
+      "http://auth.example.com/realms/main",
+      "http://10.0.0.7:8080",
+      "http://0.0.0.0:8080",
+      "ftp://auth.example.com",
+    ])("refuses %s at boot, naming the https rule and the loopback exception", (issuer) => {
+      expect(() =>
+        loadConfig({ ...AUDIENCE, STIGMER_OIDC_ISSUER: issuer }),
+      ).toThrow(
+        /must be an https URL .*http is accepted only on localhost, 127\.0\.0\.1 or \[::1\]/,
+      );
     });
   });
 

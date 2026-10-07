@@ -18,6 +18,7 @@ import {
   newSkillArtifactStorage,
 } from "../storage/artifact-storage.js";
 import type { SkillArtifactStorage } from "../storage/artifact-storage.js";
+import { testUrlSigner } from "../../../artifactstorage/__test-utils__/url-signer.js";
 
 const HASH = "a".repeat(64);
 const DATA = new TextEncoder().encode("zip bytes");
@@ -31,7 +32,7 @@ beforeEach(() => {
   // 0755 (the Go layout invariant), the driver rooted at the storage path,
   // the port owning keys and the not-found vocabulary.
   mkdirSync(path.join(dir, "skills"), { recursive: true, mode: 0o755 });
-  storage = newSkillArtifactStorage(new LocalArtifactStorage(dir, ""));
+  storage = newSkillArtifactStorage(new LocalArtifactStorage(dir, "", testUrlSigner()));
 });
 
 afterEach(() => {

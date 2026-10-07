@@ -534,7 +534,7 @@ describe("transfer lane (#675) — mint → PUT → push-by-ref → download", (
       artifactStorageKey: pushed.status!.artifactStorageKey,
     });
     // The floor of the URL's validity, the same on every driver; the local
-    // lane's content-hash URL simply outlives it.
+    // lane's link is signed for it and refused after it.
     expect(minted.ttlSeconds).toBe(3600);
     expect(minted.sizeBytes).toBe(BigInt(artifact.length));
 
@@ -551,6 +551,34 @@ describe("transfer lane (#675) — mint → PUT → push-by-ref → download", (
       Code.NotFound,
       "download-url unknown key",
     );
+  });
+
+  it("the lane answers an unsigned or tampered download link as it answers a missing key", async () => {
+    const pushed = await command.push({ org: ORG, artifact: makeArtifact(uniqueName()) });
+    const minted = new URL(
+      (await query.getArtifactDownloadUrl({ artifactStorageKey: pushed.status!.artifactStorageKey })).url,
+    );
+    const missing = await fetch(`${baseUrl}/v1/skill-artifacts/skills/${"0".repeat(64)}.zip`);
+    expect(missing.status).toBe(404);
+    const notFound = await missing.text();
+
+    const unsigned = await fetch(`${minted.origin}${minted.pathname}`);
+    expect(unsigned.status).toBe(404);
+    expect(await unsigned.text()).toBe(notFound);
+
+    const tampered = new URL(minted);
+    tampered.searchParams.set("exp", String(Number(tampered.searchParams.get("exp")) + 60));
+    const refused = await fetch(tampered);
+    expect(refused.status).toBe(404);
+    expect(await refused.text()).toBe(notFound);
+
+    expect((await fetch(minted)).status).toBe(200);
+
+    // A key the lane cannot decode is refused the same way, before the
+    // signature is read.
+    const malformed = await fetch(`${baseUrl}/v1/skill-artifacts/skills/%E0%A4%A.zip?${minted.searchParams}`);
+    expect(malformed.status).toBe(404);
+    expect(await malformed.text()).toBe(notFound);
   });
 });
 

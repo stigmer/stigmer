@@ -40,7 +40,6 @@ import {
 import type { SenderIdentity } from "../../shared/sender-identity.js";
 import type { DeclaredPreferencesContent } from "../../shared/declared-preferences.js";
 import type { RecalledMemoriesContent } from "../../shared/recalled-memories.js";
-import type { DownloadUrlKind } from "../../shared/attachment-download-urls.js";
 import type { ResolvedAttachment } from "../../shared/attachment-resolver.js";
 import {
   inputFileLines,
@@ -111,12 +110,6 @@ export interface EnhancedPromptOptions {
   attachments: readonly ResolvedAttachment[];
   /** Inline/degraded image facts for the input-files section. */
   vision?: VisionPromptInfo;
-  /**
-   * What kind of URL the turn's storage backend mints — keys the input-files
-   * section's hand-off wording (attachment-download-urls.ts). One turn-level
-   * fact: all attachments ride the one configured storage.
-   */
-  downloadUrlKind?: DownloadUrlKind;
   interactionMode?: InteractionMode;
   /**
    * The execution is a Build-from-plan turn (spec.build_from_plan):
@@ -236,7 +229,7 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
   }
 
   if (options.attachments.length > 0) {
-    sections.push(formatInputFiles(options.attachments, options.vision, options.downloadUrlKind));
+    sections.push(formatInputFiles(options.attachments, options.vision));
   }
 
   if (options.workspaceFileRefs.length > 0) {
@@ -563,9 +556,8 @@ export function formatWorkspaceContext(dirs: string[]): string {
 export function formatInputFiles(
   attachments: readonly ResolvedAttachment[],
   vision?: VisionPromptInfo,
-  downloadUrlKind?: DownloadUrlKind,
 ): string {
-  const lines = inputFileLines(attachments, vision, downloadUrlKind);
+  const lines = inputFileLines(attachments, vision);
   return [
     "<input_files>",
     "The following files have been provided as inputs. Read them when relevant to the task:",
@@ -773,12 +765,6 @@ export interface BuildPromptInput {
    * catchup — it rides both the enhanced prompt and a resumed turn's prefix.
    */
   vision?: VisionPromptInfo;
-  /**
-   * What kind of URL the turn's storage backend mints (issue #532) — keys
-   * the input-files hand-off wording. Sourced from the resolved
-   * artifactStorage's self-description; absent when no storage resolved.
-   */
-  downloadUrlKind?: DownloadUrlKind;
   pendingApprovals: PendingApproval[];
   /**
    * Approved whole-file writes the runner already applied itself (exact-apply).
@@ -978,7 +964,6 @@ export function buildPrompt(input: BuildPromptInput): string {
           workspaceFileRefs,
           attachments,
           vision: input.vision,
-          downloadUrlKind: input.downloadUrlKind,
           interactionMode,
           buildFromPlan,
           contextBridge: input.contextBridge,
@@ -1022,7 +1007,7 @@ export function buildPrompt(input: BuildPromptInput): string {
       formatInteractionModePrefix(interactionMode),
       formatImplementPlanSection(buildFromPlan, attachments),
       attachments.length > 0
-        ? formatInputFiles(attachments, input.vision, input.downloadUrlKind)
+        ? formatInputFiles(attachments, input.vision)
         : undefined,
       conversationCatchup !== undefined
         ? formatConversationCatchupSection(conversationCatchup)
@@ -1046,7 +1031,6 @@ export function buildPrompt(input: BuildPromptInput): string {
     workspaceFileRefs,
     attachments,
     vision: input.vision,
-    downloadUrlKind: input.downloadUrlKind,
     interactionMode,
     buildFromPlan,
     contextBridge: input.contextBridge,

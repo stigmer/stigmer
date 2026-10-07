@@ -32,7 +32,7 @@ spec:
   tls:
     - hosts:
         - {{ $lane.cfg.host }}
-      secretName: {{ . }}
+      secretName: {{ . | quote }}
   {{- end }}
   rules:
     - host: {{ $lane.cfg.host }}

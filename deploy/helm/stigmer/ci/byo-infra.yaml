@@ -2,7 +2,7 @@
 # Temporal the chart did NOT install, in their own namespace, so the
 # externalDatabase and externalTemporal values are proven against
 # addresses the release does not own. Plain manifests mirroring the compose
-# services (postgres:16; temporalio/auto-setup with the namespace-exists
+# services (postgres:16.15; temporalio/auto-setup with the namespace-exists
 # readiness, stigmer#904). The smoke creates the `byo-secrets` Secret with
 # the same POSTGRES_PASSWORD it gives the chart's Secret before applying
 # this file. Not for any use beyond the smoke.
@@ -41,7 +41,7 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:16
+          image: postgres:16.15
           env:
             - name: POSTGRES_DB
               value: stigmer
@@ -99,7 +99,7 @@ spec:
     spec:
       initContainers:
         - name: wait-for-postgres
-          image: postgres:16
+          image: postgres:16.15
           command: [sh, -c, "until pg_isready -h byo-postgres -U postgres; do sleep 2; done"]
       containers:
         - name: temporal

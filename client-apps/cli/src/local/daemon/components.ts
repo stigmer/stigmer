@@ -67,12 +67,11 @@ export function buildRunnerEnv(config: DaemonConfig, base: NodeJS.ProcessEnv = p
     WORKSPACE_ROOT_DIR: join(config.dataDir, "workspace"),
     STIGMER_TASK_QUEUE: RUNNER_TASK_QUEUE,
     LOG_LEVEL: base.LOG_LEVEL ?? "info",
-    // Read artifacts from the exact directory the server writes to (#285), and
-    // pin the serve URL to the server's artifact HTTP port (GRPC_PORT + 1)
-    // rather than leaving two independent defaults to agree by luck.
+    // Read artifacts from the exact directory the server writes to (#285). The
+    // runner mints no download links (the server signs those), so it needs no
+    // serve URL.
     ARTIFACT_STORAGE_TYPE: "local",
     LOCAL_ARTIFACT_PATH: join(config.dataDir, ARTIFACTS_SUBDIR),
-    LOCAL_ARTIFACT_SERVE_URL: `http://localhost:${SERVER_PORT + 1}`,
   };
   if (config.cursorApiKey !== undefined) env.CURSOR_API_KEY = config.cursorApiKey;
   // Explicit set (after the base spread) so the launcher-resolved key wins over any

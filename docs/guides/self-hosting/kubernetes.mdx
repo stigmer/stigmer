@@ -2,8 +2,9 @@
 title: Self-host on Kubernetes with Helm
 description:
   Install the complete Stigmer stack on a Kubernetes cluster with one Helm
-  chart, reach the console, run a first Agent, then put an Ingress in front and
-  turn authentication on. Every setting is a line in your values file.
+  chart, reach the console, run a first Agent, then turn authentication on and
+  put an Ingress in front in one step. Every setting is a line in your values
+  file.
 ---
 
 The Helm chart is the Kubernetes shape from [Self-hosting](./overview): the same
@@ -15,10 +16,11 @@ file. You never edit the chart, and it refuses a value it does not know.
 
 <Callout type="warn">
   **No sign-in until you turn it on.** A fresh install trusts every caller that
-  can reach it, like the compose stack. Keep it behind `kubectl port-forward` or
-  a private network until you [turn authentication on](./authentication). stdio
-  MCP Servers spawn **inside the runner container**: they can reach its
-  filesystem and network, not your nodes'.
+  can reach it, like the compose stack. Keep it behind `kubectl port-forward`
+  until you [turn authentication on](./authentication): the chart refuses an
+  Ingress, a `NodePort` or `LoadBalancer` Service, or a public address until you
+  do. stdio MCP Servers spawn **inside the runner container**: they can reach
+  its filesystem and network, not your nodes'.
 </Callout>
 
 ## What the chart installs
@@ -203,13 +205,25 @@ Agent is on the workbench.
 
 </Steps>
 
-## Reach it from outside the cluster
+## Reach it from outside the cluster, signed in
 
-To serve your team, turn on the Ingress with two hostnames: one for the API and
-console, one for artifact downloads. They are separate listeners and cannot
-share a host. Add to `values.yaml`:
+Serving your team takes two things that go in together: an Ingress, so people
+can reach the stack, and authentication, so only people you let in can use it.
+Without authentication every caller has full control, so the chart refuses an
+Ingress while it is off. Prepare your OIDC provider first: the
+[authentication guide](./authentication) says what to register there and where
+the issuer, the audience and the console's client ID come from.
+
+Then add both to `values.yaml`. The Ingress takes two hostnames, one for the API
+and console and one for artifact downloads; they are separate listeners and
+cannot share a host:
 
 ```yaml no-validate="Helm values, not a Stigmer resource"
+server:
+  oidc:
+    issuer: https://auth.example.com/realms/main
+    audience: https://stigmer.example.com
+    consoleClientId: stigmer-console
 ingress:
   enabled: true
   className: nginx
@@ -230,11 +244,20 @@ helm upgrade stigmer oci://ghcr.io/stigmer/charts/stigmer \
   --wait
 ```
 
+The pod is recreated with the server alone. The runner needs its own API key,
+and only someone signed in can create one, so it starts once you sign in at
+`https://stigmer.example.com`, create the key and name its Secret in
+`runner.stigmerToken.existingSecret`; the upgrade's notes say so, and the
+[authentication guide](./authentication) walks the steps. Sign in as the
+operator first: the person whose provider email matches `server.operator.email`
+owns the server's Organization.
+
 The CLI and SDKs speak gRPC, which needs HTTP/2 all the way to the server. On
 ingress-nginx that is the preceding `backend-protocol: "GRPC"` annotation;
 without it the console works and the CLI does not. Set `tlsSecretName` on both
 hosts: the URLs the server mints for downloads and Skill transfers follow each
-host's scheme, and a host without a TLS Secret gets plain-HTTP links.
+host's scheme, and a host without a TLS Secret gets plain-HTTP links. The issuer
+is an `https` URL; the chart refuses a plain-HTTP one.
 
 Point your CLI at the API host on port 443, which is the one port the CLI dials
 with TLS:
@@ -247,32 +270,11 @@ stigmer config backend use prod
 The console needs nothing: it reads its own origin, and an MCP server's Sign in
 returns to it on the same address. If you front the Service some other way than
 the chart's Ingress, `server.publicUrl` and `server.artifactPublicUrl` are the
-same two settings the compose page sets in `.env`.
-
-## Turn authentication on
-
-Authentication is on when the issuer, the audience and the console's client ID
-are in your values file:
-
-```yaml no-validate="Helm values, not a Stigmer resource"
-server:
-  oidc:
-    issuer: https://auth.example.com/realms/main
-    audience: https://stigmer.example.com
-    consoleClientId: stigmer-console
-runner:
-  stigmerToken:
-    existingSecret: stigmer-runner-token
-```
-
-The chart asks for one more value beside them,
-`runner.stigmerToken.existingSecret`: a Secret holding an API key for the
-runner. It refuses the issuer without it, so turning authentication on is an
-upgrade you prepare, not a value you flip. The
-[authentication guide](./authentication) says where that key comes from, what to
-register with your OIDC provider, and the order of the steps; follow it from
-here. Once authentication is on, sign in as the operator first: the person whose
-provider email matches `server.operator.email` owns the server's Organization.
+same two settings the compose page sets in `.env`, and the chart treats a public
+address there as exposure too. If something of yours already authenticates every
+caller before Stigmer, such as an authenticating proxy, set
+`server.allowUnauthenticatedExposure: true` to say the exposure is on purpose;
+the install notes repeat that whoever reaches it controls Stigmer.
 
 ## Bring your own Postgres and Temporal
 
@@ -317,14 +319,16 @@ runner the server starts per Session gets the same. The runner keeps the API key
 and the client key out of the environment its Agent's tools see. The names are
 Stigmer's own, so a `TEMPORAL_API_KEY` you use for your own Temporal work is
 never read. The bundled Temporal authenticates nothing; the chart fences it
-instead, so only the Stigmer pod may connect.
+instead, so only the Stigmer pod may connect. The bundled Postgres is fenced the
+same way, to the Stigmer and Temporal pods.
 
 Decide this before your first install: moving data from the bundled Postgres to
 yours later is a database restore, not a value change. The database password
-never appears in a rendered manifest; the server assembles its connection string
-inside the container. If Temporal stays bundled while Postgres is yours,
-Temporal creates its two databases on your instance at first start and needs a
-user with `CREATE DATABASE`.
+never appears in a rendered manifest: the server reads it from the Secret, apart
+from its connection string, so no character in it can break that string. If
+Temporal stays bundled while Postgres is yours, Temporal creates its two
+databases on your instance at first start and needs a user with
+`CREATE DATABASE`.
 
 ## Back up, upgrade, uninstall
 
@@ -352,9 +356,9 @@ or unknown value instead of ignoring it.
 
 ## Next step
 
-Your stack is running on the cluster, and right now anyone who can reach its
-Service or its Ingress has full control of it. Before your team uses it, turn
-authentication on with your OIDC provider.
+Your stack is running on the cluster, and until you turn authentication on,
+anyone who can reach its Service has full control of it. Before your team uses
+it, turn authentication on with your OIDC provider.
 
 <Cards>
   <Card

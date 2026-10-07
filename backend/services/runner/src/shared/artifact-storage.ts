@@ -4,11 +4,13 @@
  * Two backends:
  * - Local: writes to the filesystem (OSS mode). The runner reads its own
  *   artifacts straight back off disk via {@link ArtifactStorage.download} — the
- *   exact inverse of {@link ArtifactStorage.upload}. `getDownloadUrl` still
- *   returns the stigmer-server serve URL, but that is for OTHER consumers (the
- *   web console fetching an artifact for display), not the runner's own reads.
+ *   exact inverse of {@link ArtifactStorage.upload}. It mints no download
+ *   links: the runner holds none of the server's keys, so a link it built
+ *   would be unsigned and refused by the server's file server; its tools share
+ *   the disk and read the path instead.
  * - Proxy: uses presigned URLs from the Stigmer Side-Channel Proxy (cloud mode).
- *   Here `download` resolves a presigned URL and fetches it over HTTPS.
+ *   Here `download` resolves a presigned URL and fetches it over HTTPS, and
+ *   {@link ArtifactStorage.presignedDownloadUrl} hands one out.
  *
  * The runner never holds R2/S3 credentials — in cloud mode it calls the proxy
  * to obtain a presigned upload URL, then PUTs content over plain HTTPS.
@@ -31,17 +33,14 @@ import { fetchWithRetry, type FetchRetryPolicy } from "./http-retry.js";
 // ── Interface ────────────────────────────────────────────────────────
 
 export interface ArtifactStorage {
-  /**
-   * What kind of URL {@link getDownloadUrl} mints — self-described by the
-   * backend so consumers (the attachment hand-off prompt wording,
-   * attachment-download-urls.ts) can never disagree with the storage actually
-   * in use. "presigned": time-limited, single-object, remotely fetchable.
-   * "local-serve": the stigmer-server's unauthenticated loopback serve URL,
-   * reachable only from this machine.
-   */
-  readonly downloadUrlKind: "presigned" | "local-serve";
   upload(key: string, content: Buffer, contentType?: string): Promise<string>;
-  getDownloadUrl(key: string): Promise<string>;
+  /**
+   * A presigned, time-limited, single-object URL a remote service can fetch
+   * the object at — offered only by a backend that has one to give (proxy).
+   * Absent on the local backend: the attachment hand-off
+   * (attachment-download-urls.ts) then lists the path alone.
+   */
+  presignedDownloadUrl?(key: string): Promise<string>;
   /**
    * Read an artifact's raw bytes by key — the inverse of {@link upload} and the
    * single read path for all runner read-back (CAS reconcile, exact-apply,
@@ -71,13 +70,10 @@ export type ArtifactStorageType = "local" | "proxy" | "none";
 // ── Local Backend ────────────────────────────────────────────────────
 
 export class LocalArtifactStorage implements ArtifactStorage {
-  readonly downloadUrlKind = "local-serve" as const;
   private readonly basePath: string;
-  private readonly serveUrlBase: string;
 
-  constructor(basePath: string, serveUrlBase: string) {
+  constructor(basePath: string) {
     this.basePath = basePath;
-    this.serveUrlBase = serveUrlBase.replace(/\/+$/, "");
   }
 
   async upload(key: string, content: Buffer, _contentType?: string): Promise<string> {
@@ -87,14 +83,10 @@ export class LocalArtifactStorage implements ArtifactStorage {
     return key;
   }
 
-  async getDownloadUrl(key: string): Promise<string> {
-    return `${this.serveUrlBase}/${key}`;
-  }
-
   async download(key: string): Promise<Buffer> {
     // Direct disk read — the exact inverse of `upload`. The runner wrote these
     // bytes to `basePath`, so it reads them back without a self-HTTP round-trip
-    // and without depending on the serve URL being set or reachable.
+    // and without depending on any server endpoint.
     const filePath = this.resolveWithinRoot(key);
     try {
       return await readFile(filePath);
@@ -173,7 +165,6 @@ const DEFAULT_RETRY = {
 } as const;
 
 export class ProxyArtifactStorage implements ArtifactStorage {
-  readonly downloadUrlKind = "presigned" as const;
   private readonly baseUrl: string;
   private readonly authTokenSource: ProxyAuthTokenSource;
   /** Governs the proxy presign calls and the exists probe. */
@@ -275,7 +266,7 @@ export class ProxyArtifactStorage implements ArtifactStorage {
     return key;
   }
 
-  async getDownloadUrl(key: string): Promise<string> {
+  async presignedDownloadUrl(key: string): Promise<string> {
     const resp = await fetchWithRetry(`${this.baseUrl}/presigned-download-url`, {
       method: "POST",
       headers: {
@@ -295,7 +286,7 @@ export class ProxyArtifactStorage implements ArtifactStorage {
   }
 
   async download(key: string): Promise<Buffer> {
-    const url = await this.getDownloadUrl(key);
+    const url = await this.presignedDownloadUrl(key);
     const resp = await fetchWithRetry(url, undefined, this.transferPolicy);
     if (!resp.ok) {
       throw new Error(
@@ -316,7 +307,7 @@ export class ProxyArtifactStorage implements ArtifactStorage {
     // (or 416 for a 0-byte object, whose range is unsatisfiable yet it exists).
     let url: string;
     try {
-      url = await this.getDownloadUrl(key);
+      url = await this.presignedDownloadUrl(key);
     } catch {
       // Presign endpoint unreachable: report absent. The sole caller (content-
       // addressed CAS blob dedup) then re-uploads, which is idempotent.
@@ -351,7 +342,6 @@ export type ProxyAuthTokenSource = Readonly<TokenRef>;
 export interface ArtifactStorageConfig {
   readonly type: ArtifactStorageType;
   readonly localPath: string;
-  readonly localServeUrl: string;
   readonly proxyEndpoint: string | null;
   readonly proxyAuthToken: ProxyAuthTokenSource | null;
 }
@@ -390,7 +380,6 @@ export function loadArtifactStorageConfig(config: Config): ArtifactStorageConfig
   return {
     type,
     localPath: process.env.LOCAL_ARTIFACT_PATH ?? defaultLocalArtifactPath(),
-    localServeUrl: process.env.LOCAL_ARTIFACT_SERVE_URL ?? "http://localhost:7235",
     proxyEndpoint: type === "proxy" ? (config.artifactProxyEndpoint ?? null) : null,
     // The live ref: renewal rotates the token in place and uploads must
     // present the current credential, not the boot one.
@@ -419,7 +408,7 @@ export function createArtifactStorage(cfg: ArtifactStorageConfig): ArtifactStora
     return new ProxyArtifactStorage(cfg.proxyEndpoint, cfg.proxyAuthToken);
   }
 
-  return new LocalArtifactStorage(cfg.localPath, cfg.localServeUrl);
+  return new LocalArtifactStorage(cfg.localPath);
 }
 
 /**

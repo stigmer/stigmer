@@ -40,6 +40,7 @@ import {
   uploadRefOf,
 } from "../transfer/staging.js";
 import type { ArchiveStaging } from "../transfer/staging.js";
+import { testUrlSigner } from "../../../artifactstorage/__test-utils__/url-signer.js";
 
 const logLines: string[] = [];
 const logger = createLogger({
@@ -259,7 +260,7 @@ describe("newArchiveStaging over LocalArtifactStorage and its slot registry", ()
   beforeEach(() => {
     root = mkdtempSync(path.join(tmpdir(), "archive-staging-local-"));
     slots = new UploadSlots(root, STAGING_KEY_PREFIX, 60_000, 1024 * 1024);
-    const driver = new LocalArtifactStorage(root, transferServeUrl(BASE_URL), {
+    const driver = new LocalArtifactStorage(root, transferServeUrl(BASE_URL), testUrlSigner(), {
       reserve: (key, declaredSizeBytes) => {
         const { ttlMs } = slots.reserve(key, declaredSizeBytes);
         return { url: uploadUrl(BASE_URL, uploadRefOf(key)), ttlMs };
@@ -296,11 +297,13 @@ describe("newArchiveStaging over LocalArtifactStorage and its slot registry", ()
     );
   });
 
-  it("downloadUrl renders the lane's own GET route with the floor TTL", async () => {
+  it("downloadUrl renders the lane's own GET route, signed for the floor TTL", async () => {
     const capability = await staging.downloadUrl("skills/abc.zip");
-    expect(capability).toEqual({
-      url: `${BASE_URL}${SKILL_ARTIFACTS_PATH_PREFIX}/skills/abc.zip`,
-      ttlMs: DOWNLOAD_URL_TTL_MS,
-    });
+    expect(capability.ttlMs).toBe(DOWNLOAD_URL_TTL_MS);
+    const url = new URL(capability.url);
+    expect(`${url.origin}${url.pathname}`).toBe(
+      `${BASE_URL}${SKILL_ARTIFACTS_PATH_PREFIX}/skills/abc.zip`,
+    );
+    expect(testUrlSigner().verify("skills/abc.zip", url.searchParams)).toBe(true);
   });
 });

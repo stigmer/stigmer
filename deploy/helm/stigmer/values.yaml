@@ -32,7 +32,7 @@ image:
     tag: ""
   # For the two Stigmer images. IfNotPresent: the tags are immutable release
   # versions, never latest. (The bundled postgres and temporal images are
-  # pinned third-party tags and always IfNotPresent.)
+  # exact third-party tags and always IfNotPresent.)
   pullPolicy: IfNotPresent
   # Names of imagePullSecrets in the release namespace; the public images
   # need none.
@@ -73,6 +73,14 @@ server:
   # The same for artifact download URLs (ARTIFACT_LOCAL_SERVE_URL): the
   # Ingress artifacts host, else http://localhost:7235.
   artifactPublicUrl: ""
+  # With server.oidc.issuer empty every caller has full control, so the
+  # chart refuses an install meant to be reached from outside the cluster
+  # (an Ingress, a NodePort or LoadBalancer Service, or a public URL whose
+  # host is not localhost, 127.0.0.1 or [::1]) until sign-in is on. Set this
+  # only when something of yours authenticates every caller first (a proxy
+  # in front, a private network): it says the exposure is on purpose, it
+  # does not make it safe, and the install notes repeat that.
+  allowUnauthenticatedExposure: false
   operator:
     # Optional operator identity for audit attribution
     # (STIGMER_OPERATOR_EMAIL / STIGMER_OPERATOR_NAME; compose passes the
@@ -83,7 +91,9 @@ server:
     # Authentication is on when the issuer is set (STIGMER_OIDC_ISSUER):
     # the server then refuses tokenless callers except the health service
     # and is_public methods. Issuer and audience go together; the chart
-    # refuses one without the other before the server would at boot.
+    # refuses one without the other before the server would at boot. An
+    # https URL: discovery and the signing keys are fetched from it, and a
+    # plaintext issuer would let the network vouch for every token.
     issuer: ""
     audience: ""
     # The public PKCE client the served console signs in with
@@ -121,7 +131,10 @@ server:
       type: RuntimeDefault
   # Verbatim EnvVar entries appended to the server container. The chart
   # models what compose sets; the server's wider surface (LOG_LEVEL, the
-  # OTel endpoint, STIGMER_OAUTH_REDIRECT_URI, …) goes here. The parity
+  # OTel endpoint, STIGMER_OAUTH_REDIRECT_URI, PGSSLMODE, …) goes here. A
+  # name the chart sets itself (DATABASE_URL among them) is refused here:
+  # Kubernetes keeps the last entry of a name, so a repeat would silently
+  # replace the chart's value. The parity
   # test runs with this empty, so it cannot hide a contract drift.
   extraEnv: []
 
@@ -170,6 +183,7 @@ runner:
       drop: ["ALL"]
     seccompProfile:
       type: RuntimeDefault
+  # As server.extraEnv: a name the chart sets itself is refused.
   extraEnv: []
 
 artifacts:
@@ -198,7 +212,18 @@ waitForDependencies:
   # no endpoints until the default namespace exists — the stigmer#904 gate).
   enabled: true
   # The postgres image the chart already ships, for pg_isready and bash.
-  image: postgres:16
+  image: postgres:16.15
+  # The init containers run as that image's postgres user (uid 999), with
+  # nothing to escalate to; they only wait on two TCP addresses.
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
 
 postgres:
   # Bundled Postgres: one instance, one claim, the compose stack's posture
@@ -206,7 +231,10 @@ postgres:
   # auto-setup creates its two databases on it. Right for one team; for HA
   # or managed backups set enabled: false and fill externalDatabase.
   enabled: true
-  image: postgres:16
+  # An exact minor release, never the floating `16`: the image compose runs,
+  # and the parity test holds the two equal. A minor release is Postgres's
+  # security fix, so moving this tag is how the bundled database is patched.
+  image: postgres:16.15
   persistence:
     size: 10Gi
     storageClass: ""
@@ -216,12 +244,38 @@ postgres:
       memory: 256Mi
     limits:
       memory: 1Gi
+  # The image's own postgres user, by number (uid 999), from the first
+  # process: the official entrypoint initializes and serves as whichever
+  # user it starts as. The pod's fsGroup follows runAsGroup, so a fresh
+  # claim is writable. A cluster that assigns its own UIDs (OpenShift)
+  # overrides this whole object.
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  networkPolicy:
+    # Admits connections to the bundled Postgres (5432) only from this
+    # release's stigmer pod and Temporal pod. It holds everything Stigmer
+    # keeps and authenticates by password alone, so without a fence every
+    # pod in the cluster could try it. A backup job in a pod of its own
+    # needs a NetworkPolicy of yours that admits it (policies add up). A
+    # cluster whose network plugin ignores NetworkPolicy gets no fence.
+    enabled: true
 
 externalDatabase:
   # Used when postgres.enabled is false. The server's DATABASE_URL is
-  # assembled in the container as postgres://<user>:$(PASSWORD)@host:port/db
-  # so the password never lands in rendered YAML. Bundled Temporal creates
-  # its own two databases on this instance and needs CREATE DATABASE.
+  # postgres://<user>@host:port; the database reaches it as PGDATABASE and
+  # the password as PGPASSWORD from the Secret, so the password never
+  # lands in rendered YAML and no character in either can break the URL.
+  # Connection options node-postgres reads from the environment, such as
+  # PGSSLMODE=require for a managed Postgres, go through server.extraEnv.
+  # Bundled Temporal creates its own two databases on this instance and
+  # needs CREATE DATABASE.
   host: ""
   port: 5432
   user: postgres
@@ -244,6 +298,17 @@ temporal:
       memory: 512Mi
     limits:
       memory: 1Gi
+  # The image runs as its user named `temporal`; Kubernetes needs the
+  # NUMBER to verify runAsNonRoot (uid 1000, read from the image).
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
   networkPolicy:
     # Admits connections to the bundled Temporal's frontend (7233) only from
     # this release's stigmer pod and from Temporal itself. The bundled
@@ -267,7 +332,8 @@ externalTemporal:
     # against the system's trusted roots.
     enabled: false
     # SNI / host-name override, when the frontend's certificate names a
-    # host other than hostPort's.
+    # host other than hostPort's. Rendered with TLS on or an API key (which
+    # implies TLS); refused when neither is.
     serverName: ""
     # A Secret holding the PEM items below, by key; an empty key is unset.
     existingSecret: ""
@@ -283,6 +349,8 @@ externalTemporal:
 
 service:
   # ClusterIP; reach it with `kubectl port-forward` or through the Ingress.
+  # NodePort and LoadBalancer expose it outside the cluster, so they are
+  # refused while sign-in is off (server.allowUnauthenticatedExposure).
   type: ClusterIP
 
 ingress:
@@ -292,7 +360,8 @@ ingress:
   #   nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
   # for the CLI's gRPC to pass (without it the browser lanes work and gRPC
   # fails with "missing status"). The artifacts host is plain HTTP. Setting
-  # a tlsSecretName makes the derived public URL https.
+  # a tlsSecretName makes the derived public URL https. An Ingress with
+  # sign-in off is refused (server.allowUnauthenticatedExposure).
   enabled: false
   className: ""
   api:
@@ -324,7 +393,8 @@ licenseKeySecret: ""
 #     domain (stdio MCP servers run inside the runner container and can
 #     reach its filesystem and network); the README says so in the compose
 #     header's words. The bundled Temporal has its fence
-#     (temporal.networkPolicy), because it authenticates nothing.
+#     (temporal.networkPolicy), because it authenticates nothing, and the
+#     bundled Postgres its own (postgres.networkPolicy).
 #   an HPA — nothing here scales horizontally yet.
 #   TLS inside the pod — terminate the API's at the Ingress, as behind
 #     Caddy or nginx with compose. (TLS to an external Temporal is

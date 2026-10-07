@@ -16,10 +16,13 @@
  *     the profile (one host became one pod; the artifact path moved out of
  *     `/data`; a bring-your-own profile names its own addresses; the
  *     public URLs follow the Ingress hosts when there are any);
- *   - the chart may add exactly the names listed in CHART_ONLY (the
- *     `$(POSTGRES_PASSWORD)` expansion source) and, per profile, the names the
- *     profile's own values introduce beyond compose (none today: compose
- *     carries OIDC and the runner token as optional inputs).
+ *   - the chart may add exactly the names listed in CHART_ONLY (none today:
+ *     the database password reaches both as PGPASSWORD) and, per profile,
+ *     the names the profile's own values introduce beyond compose (none
+ *     today: compose carries OIDC and the runner token as optional inputs).
+ *
+ * The two third-party images the chart bundles, Postgres and Temporal, are
+ * compose's two tags exactly: one bump moves both.
  *
  * A variable added to compose without the chart, or the reverse, is red here.
  * The compose file stays the canonical statement; this test makes it binding.
@@ -37,6 +40,7 @@ import {
   findOne,
   profileValuesPath,
   readCompose,
+  readValues,
   RELEASE,
   renderProfile,
 } from "./helpers.mjs";
@@ -103,14 +107,13 @@ function addressTable(profile) {
       ["SKILL_TRANSFER_BASE_URL", publicUrl],
       ["STIGMER_MCP_PUBLIC_ENDPOINT", publicUrl],
       ["ARTIFACT_LOCAL_SERVE_URL", artifactPublicUrl],
-      ["LOCAL_ARTIFACT_SERVE_URL", artifactPublicUrl],
     ]),
   };
 }
 
 /** Names the chart carries that compose does not, and why. */
 const CHART_ONLY = {
-  server: new Set(["POSTGRES_PASSWORD"]), // the $(POSTGRES_PASSWORD) expansion source for DATABASE_URL
+  server: new Set(),
   runner: new Set(),
 };
 
@@ -239,4 +242,16 @@ test("the artifact root is the same path in both containers and is not nested un
     "the runner must read where the server writes (stigmer#285)",
   );
   assert.equal(serverRoot, "/artifacts");
+});
+
+test("the bundled Postgres and Temporal run compose's images, tag for tag", () => {
+  const compose = readCompose().services;
+  const values = readValues();
+  assert.equal(values.postgres.image, compose.postgres.image);
+  assert.equal(values.temporal.image, compose.temporal.image);
+  // The init containers use the bundled Postgres image for pg_isready.
+  assert.equal(values.waitForDependencies.image, compose.postgres.image);
+  for (const image of [compose.postgres.image, compose.temporal.image]) {
+    assert.match(image, /:\d+\.\d+(\.\d+)?$/, `${image} is not an exact release`);
+  }
 });

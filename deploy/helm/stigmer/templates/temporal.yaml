@@ -9,6 +9,10 @@ endpoint until the namespace exists and the stigmer pod's init container
 (a TCP connect) waits for exactly that moment. Waits for Postgres itself,
 as compose's depends_on does. For production Temporal, Temporal's own chart
 is the path (externalTemporal).
+
+It runs as the image's own temporal user, by number (uid 1000): the image
+names its user, and Kubernetes can verify runAsNonRoot only against a
+numeric one. It mounts nothing, so the pod needs no fsGroup.
 */ -}}
 {{- if .Values.temporal.enabled }}
 {{- $fullname := include "stigmer.fullname" . }}
@@ -52,29 +56,40 @@ spec:
       {{- with .Values.image.pullSecrets }}
       imagePullSecrets:
         {{- range . }}
-        - name: {{ . }}
+        - name: {{ . | quote }}
         {{- end }}
       {{- end }}
       {{- if .Values.waitForDependencies.enabled }}
       initContainers:
         - name: wait-for-postgres
-          image: {{ .Values.waitForDependencies.image }}
+          image: {{ .Values.waitForDependencies.image | quote }}
+          # The address arrives as env and pg_isready reads it, so nothing
+          # from values is spliced into shell text.
+          env:
+            - name: PGHOST
+              value: {{ include "stigmer.postgresHost" . | quote }}
+            - name: PGPORT
+              value: {{ include "stigmer.postgresPort" . | quote }}
+            - name: PGUSER
+              value: {{ include "stigmer.postgresUser" . | quote }}
           command:
             - bash
             - -c
             - |
-              until pg_isready -h {{ include "stigmer.postgresHost" . }} -p {{ include "stigmer.postgresPort" . }} -U {{ include "stigmer.postgresUser" . }}; do
-                echo "waiting for postgres at {{ include "stigmer.postgresHost" . }}:{{ include "stigmer.postgresPort" . }}"; sleep 2
+              until pg_isready; do
+                echo "waiting for postgres at ${PGHOST}:${PGPORT}"; sleep 2
               done
           resources:
             requests:
               cpu: 10m
               memory: 32Mi
+          securityContext:
+            {{- toYaml .Values.waitForDependencies.securityContext | nindent 12 }}
       {{- end }}
       containers:
         - name: temporal
-          image: {{ .Values.temporal.image }}
-          # A pinned third-party tag: IfNotPresent by definition. image.pullPolicy
+          image: {{ .Values.temporal.image | quote }}
+          # An exact third-party tag: IfNotPresent by definition. image.pullPolicy
           # governs the two Stigmer images only.
           imagePullPolicy: IfNotPresent
           env:
@@ -87,8 +102,8 @@ spec:
             - name: POSTGRES_PWD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "stigmer.postgresPasswordSecret" . }}
-                  key: {{ include "stigmer.postgresPasswordKey" . }}
+                  name: {{ include "stigmer.postgresPasswordSecret" . | quote }}
+                  key: {{ include "stigmer.postgresPasswordKey" . | quote }}
             - name: POSTGRES_SEEDS
               value: {{ include "stigmer.postgresHost" . | quote }}
           ports:
@@ -108,4 +123,6 @@ spec:
             failureThreshold: 60
           resources:
             {{- toYaml .Values.temporal.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.temporal.securityContext | nindent 12 }}
 {{- end }}

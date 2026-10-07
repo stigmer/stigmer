@@ -1,0 +1,47 @@
+{{- /*
+The bundled Postgres's fence. That Postgres holds everything Stigmer keeps
+and authenticates by password alone, so only this release's pods that use
+it may connect: the stigmer pod (the server, and the init container that
+waits for the database) and the Temporal pod (auto-setup keeps Temporal's
+two databases on this instance, and its init container waits here too).
+Both are admitted to the Postgres port alone. Ingress only.
+
+What it cannot fence: the runner's own tools and stdio MCP servers run
+inside the stigmer pod, so they are inside this boundary, and the password
+stays the layer that holds there. A backup job in a pod of its own is not
+admitted; NetworkPolicies add up, so a policy of the operator's own that
+admits it is enough (the README, "Backup, restore, upgrade"). A cluster
+whose network plugin does not enforce NetworkPolicy ignores this object;
+the README says so.
+
+The value is read through dig, defaulting on: a release upgraded with
+--reuse-values keeps the values of a chart that had no postgres.networkPolicy,
+and it gets the fence rather than a failed render.
+*/ -}}
+{{- if and .Values.postgres.enabled (dig "networkPolicy" "enabled" true .Values.postgres) }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "stigmer.fullname" . }}-postgres
+  labels:
+    {{- include "stigmer.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "stigmer.selectorLabels" (dict "root" . "component" "postgres") | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    # The stigmer pod and the Temporal pod: the Postgres port only.
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "stigmer.selectorLabels" (dict "root" . "component" "stigmer") | nindent 14 }}
+        - podSelector:
+            matchLabels:
+              {{- include "stigmer.selectorLabels" (dict "root" . "component" "temporal") | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: postgres
+{{- end }}

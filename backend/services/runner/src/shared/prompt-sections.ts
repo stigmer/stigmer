@@ -41,7 +41,7 @@
 
 import type { ResolvedAttachment } from "./attachment-resolver.js";
 import { visionDisclosureLines, type NotViewableEntry } from "./attachment-vision.js";
-import { downloadUrlDisclosureLine, type DownloadUrlKind } from "./attachment-download-urls.js";
+import { DOWNLOAD_URL_DISCLOSURE } from "./attachment-download-urls.js";
 import { formatContextBridgeText } from "./context-bridge.js";
 import { formatDeclaredPreferencesText, type DeclaredPreferencesContent } from "./declared-preferences.js";
 import { formatRecalledMemoriesText, type RecalledMemoriesContent } from "./recalled-memories.js";
@@ -178,8 +178,8 @@ export interface InputFileLines {
  * connect "the two report.pdfs" in the user's message to distinct files on
  * disk), and the download URL when one was minted
  * (`attachment-download-urls.ts`; for the remote hand-off story). The URL
- * hand-off line renders only when some listed file actually carries a URL —
- * its wording keys on what kind of URL the storage backend mints. The vision
+ * hand-off line renders only when some listed file actually carries a URL,
+ * which only a storage offering presigned links mints. The vision
  * lines tell the model which of these files it can already SEE inline versus
  * which degraded to path-only; without them an agent silently ignores a photo
  * the user believes it can see.
@@ -187,7 +187,6 @@ export interface InputFileLines {
 export function inputFileLines(
   files: readonly ResolvedAttachment[],
   vision: VisionPromptInfo | undefined,
-  downloadUrlKind: DownloadUrlKind | undefined,
 ): InputFileLines {
   const entries = files.map((f) => {
     const size = ` (${f.sizeBytes} bytes)`;
@@ -195,10 +194,9 @@ export function inputFileLines(
     const url = f.downloadUrl !== undefined ? ` — download URL: ${f.downloadUrl}` : "";
     return `- \`${f.relativePath}\`${size}${rename}${url}`;
   });
-  const urlHandoff =
-    downloadUrlKind !== undefined && files.some((f) => f.downloadUrl !== undefined)
-      ? downloadUrlDisclosureLine(downloadUrlKind)
-      : undefined;
+  const urlHandoff = files.some((f) => f.downloadUrl !== undefined)
+    ? DOWNLOAD_URL_DISCLOSURE
+    : undefined;
   return {
     entries,
     urlHandoff,
