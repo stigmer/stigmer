@@ -58,3 +58,10 @@ choosing skills by relevance to the message, describing only the ones a
 message's words reached. It now describes every mounted skill on every turn,
 as the Cursor harness does, and the count stays so that the benchmark's
 baselines stay comparable.
+
+A skill binds the grade as well as the agent. `repo-conventions` asks for a
+row in the package's table-driven test for every fix, and `orders` has no
+test, so an agent that follows it adds one. A rubric over a Go edit
+therefore allows that test, and `multi-part-change` does, checking it with
+`go_test`. `src/benchmark/__tests__/quality-tasks.test.ts` pins the skill's
+rule, the absent test and the rubric together.
