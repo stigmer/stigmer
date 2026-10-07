@@ -295,7 +295,7 @@ describe("fresh database", () => {
       .prepare(`SELECT version FROM schema_version ORDER BY version`)
       .all() as Array<{ version: number }>;
     expect(rows.map((row) => row.version)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
     ]);
   });
 
@@ -2104,7 +2104,7 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
     const db = new DatabaseSync(dbPath);
     cleanups.push(() => db.close());
 
-    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_19);
+    expect(getSchemaVersion(db)).toBe(CURRENT_SCHEMA_VERSION);
     for (const table of RUN_KIND_TABLES) {
       for (const kind of GONE_KINDS) {
         expect(count(db, table, kind), `${kind} in ${table}`).toBe(0);
