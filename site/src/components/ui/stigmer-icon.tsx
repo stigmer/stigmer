@@ -1,4 +1,4 @@
-/** Render the canonical smooth brand outlines using the surrounding theme color. */
+/** Render the canonical three-fin brand outline using the surrounding theme color. */
 import { MARK_PATHS } from "../../../../brand/geometry";
 
 export function StigmerIcon({

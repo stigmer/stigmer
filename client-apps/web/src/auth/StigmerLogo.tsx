@@ -1,4 +1,4 @@
-/** Keep public-page branding in the console shell, using the canonical smooth outlines. */
+/** Keep public-page branding in the console shell, using the canonical three-fin outline. */
 import { MARK_PATHS } from "../../../../brand/geometry";
 
 export function StigmerLogo() {
