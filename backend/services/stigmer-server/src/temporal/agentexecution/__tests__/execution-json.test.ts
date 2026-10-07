@@ -8,6 +8,10 @@
  *   enum value names, the kind string) read as their current names, fed
  *   the JSON the replay histories record, while a free-form string that
  *   happens to spell a retired name is left as written;
+ * - names retired by the rename of the agent run to a run (the kind string
+ *   `AgentRun`, the kind value `agent_run`) read as their current names in
+ *   one hop at the load, the one decode that reads a whole run (a status
+ *   update carries neither);
  * - the workflow's load still drops a reserved enum name or an unknown
  *   field, keeping everything else;
  * - a field set under both its retired and its current name is refused,
@@ -25,6 +29,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { DescMessage } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -52,13 +57,32 @@ describe("decodeLoadedExecution", () => {
         messages: [{ content: "EXECUTION_COMPLETED is a phase name" }],
       },
     });
-    expect(execution.kind).toBe("AgentRun");
+    expect(execution.kind).toBe("Run");
     expect(execution.metadata?.id).toBe("exec-replay");
     expect(execution.spec?.supersedesRunId).toBe("aex_prev");
     expect(execution.status?.phase).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
     expect(execution.status?.pendingApprovals[0]?.toolCallId).toBe("tc-1");
     expect(execution.status?.subAgentRuns[0]?.name).toBe("researcher");
     expect(execution.status?.messages[0]?.content).toBe("EXECUTION_COMPLETED is a phase name");
+  });
+
+  it("reads a load result written under the agent run's names, the kind and the kind value each in one hop", () => {
+    const execution = decodeLoadedExecution({
+      kind: "AgentRun",
+      metadata: { id: "aex_between" },
+      spec: { sessionSpec: { agentRef: { kind: "agent_run", slug: "triage" } } },
+      status: { phase: "RUN_IN_PROGRESS" },
+    });
+    expect(execution.kind).toBe("Run");
+    expect(execution.metadata?.id).toBe("aex_between");
+    expect(execution.spec?.target.case).toBe("sessionSpec");
+    const agentRef =
+      execution.spec?.target.case === "sessionSpec" ? execution.spec.target.value.agentRef : undefined;
+    expect(agentRef?.kind).toBe(ApiResourceKind.run);
+    expect(execution.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
+    expect(
+      renameRetiredRunJson(RunSchema, { spec: { sessionSpec: { agentRef: { kind: "agent_execution" } } } }),
+    ).toEqual({ spec: { sessionSpec: { agentRef: { kind: "run" } } } });
   });
 
   it("decodes a tool call carrying a reserved provenance name as UNSPECIFIED, keeping the rest", () => {
@@ -125,7 +149,7 @@ describe("decodeLoadedExecution", () => {
         kind: "AgentExecution",
         status: { artifacts: [{ kind: "AgentExecution" }] },
       }),
-    ).toEqual({ kind: "AgentRun", status: { artifacts: [{ kind: "AgentExecution" }] } });
+    ).toEqual({ kind: "Run", status: { artifacts: [{ kind: "AgentExecution" }] } });
   });
 
   it("refuses a field set under its retired and its current name, whichever comes first", () => {
@@ -134,7 +158,7 @@ describe("decodeLoadedExecution", () => {
       { supersedesRunId: "aex_b", supersedesExecutionId: "aex_a" },
     ]) {
       expect(() => renameRetiredRunJson(RunSchema, { spec })).toThrow(
-        /ai\.stigmer\.agentic\.agentrun\.v1\.AgentRunSpec sets the field supersedesRunId twice/,
+        /ai\.stigmer\.agentic\.run\.v1\.RunSpec sets the field supersedesRunId twice/,
       );
     }
   });
@@ -181,6 +205,12 @@ function jsonSpelling(name: string): string {
 describe("the retired-names tables", () => {
   // `run_config` carried that name before the rename.
   const NAMED_RUN_BEFORE = new Set(["run_config"]);
+  // The run kind's enum value, renamed twice: `agent_execution`, then
+  // `agent_run`, both read straight as `run`.
+  const KIND_VALUE_BEFORE: ReadonlyArray<readonly [string, string]> = [
+    ["agent_execution", "run"],
+    ["agent_run", "run"],
+  ];
 
   function crossingNames(): { fields: Map<string, string>; values: Map<string, string> } {
     const fields = new Map<string, string>();
@@ -196,7 +226,9 @@ describe("the retired-names tables", () => {
           fields.set(jsonSpelling(retired), field.jsonName);
         }
         for (const value of field.enum?.values ?? []) {
-          if (/(^|_)(RUN|runs?)(_|$)/.test(value.name)) {
+          if (field.enum?.typeName.endsWith(".ApiResourceKind") && value.name === "run") {
+            for (const [before, now] of KIND_VALUE_BEFORE) values.set(before, now);
+          } else if (/(^|_)(RUN|runs?)(_|$)/.test(value.name)) {
             values.set(retiredSpelling(value.name), value.name);
           }
         }

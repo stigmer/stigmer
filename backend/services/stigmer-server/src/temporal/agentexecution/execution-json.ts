@@ -11,11 +11,14 @@
  *   changed field JSON names (`executionId` became `runId`), enum value
  *   names (`EXECUTION_COMPLETED` became `RUN_COMPLETED`) and the kind
  *   string (`AgentExecution` became `AgentRun`) without moving a field or
- *   value number. The tables below map each old name to its new one, for
- *   the messages that cross Temporal: AgentRun and AgentRunStatus with
+ *   value number; the rename of the agent run to a run, days later,
+ *   changed the kind string again (`AgentRun` became `Run`) and the kind's
+ *   enum value name (`agent_run` became `run`). The tables below map each
+ *   old name straight to its current one, one hop whichever rename wrote
+ *   it, for the messages that cross Temporal: Run and RunStatus with
  *   everything nested in them. They were computed
- *   from that rename by pairing the old and new descriptor sets element by
- *   element, never typed by hand. A rewrite is guided by the schema, so a
+ *   from those renames by pairing the old and new descriptor sets element
+ *   by element, never typed by hand. A rewrite is guided by the schema, so a
  *   name is only rewritten where the old contract had it: a free-form
  *   string or a Struct value is never touched. The tables go once no
  *   history recorded before that release can still run, the way
@@ -65,13 +68,15 @@ export const RETIRED_ENUM_VALUE_NAMES: ReadonlyMap<string, string> = new Map([
   ["EXECUTION_PHASE_UNSPECIFIED", "RUN_PHASE_UNSPECIFIED"],
   ["EXECUTION_TERMINATED", "RUN_TERMINATED"],
   ["EXECUTION_WAITING_FOR_APPROVAL", "RUN_WAITING_FOR_APPROVAL"],
-  ["agent_execution", "agent_run"],
+  ["agent_execution", "run"],
+  ["agent_run", "run"],
   ["mid_execution", "mid_run"],
 ]);
 
-/** The kind strings a run's `kind` field carried before the rename. */
+/** The kind strings a run's `kind` field carried before the renames. */
 const RETIRED_KIND_NAMES: ReadonlyMap<string, string> = new Map([
-  ["AgentExecution", "AgentRun"],
+  ["AgentExecution", "Run"],
+  ["AgentRun", "Run"],
 ]);
 
 function retiredEnumValue(value: JsonValue, desc: DescEnum): JsonValue {
