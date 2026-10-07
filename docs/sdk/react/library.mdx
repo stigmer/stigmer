@@ -557,7 +557,7 @@ plan is current.
 Returns `undefined` when no run in the session published a plan.
 
 ```tsx
-function findLatestSessionPlan(executions: readonly AgentRun[]): SessionPlan | undefined
+function findLatestSessionPlan(executions: readonly Run[]): SessionPlan | undefined
 ```
 
 
@@ -570,7 +570,7 @@ Returns the latest `plan.md` if more than one is present — the runner
 replaces rather than appends, so this is defensive.
 
 ```tsx
-function findPlanArtifact(execution: AgentRun | null | undefined): RunArtifact | undefined
+function findPlanArtifact(execution: Run | null | undefined): RunArtifact | undefined
 ```
 
 
@@ -602,7 +602,7 @@ is ever considered — an earlier message is settled narration, and falling
 back to it would promote the wrong text.
 
 ```tsx
-function findStreamingPlan(execution: AgentRun | null | undefined): StreamingPlan | undefined
+function findStreamingPlan(execution: Run | null | undefined): StreamingPlan | undefined
 ```
 
 
@@ -686,7 +686,7 @@ and pushes it as a skill — no ZIP download reaches the browser.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization that will own the skill.", required: true },
-    runId: { type: "string", description: "ID of the run that produced the artifact (format: `aex_{ulid}`).", required: true },
+    runId: { type: "string", description: "ID of the run that produced the artifact (format: `run_{ulid}`).", required: true },
     storageKey: { type: "string", description: "Storage key of the directory artifact. Must start with `artifacts/{executionId}/`.", required: true },
     tag: { type: "string", description: "Optional version tag (e.g., `\"stable\"`, `\"v1.0\"`)." },
   }}

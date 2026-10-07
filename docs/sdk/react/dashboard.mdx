@@ -7,44 +7,9 @@ description: Hooks for dashboard metrics, activity feeds, and analytics data.
 
 ## Hooks
 
-### useAgentRunSummary
-
-Data hook that fetches aggregated agent run statistics for an
-organization. Returns phase counts, active count, average duration,
-and top failing agents.
-
-Cost is intentionally excluded from this response — the dashboard
-sources cost from `useOrgUsageReport` (billing source of truth), so
-cost is never counted from two sources.
-
-**Signature**
-
-```tsx
-function useAgentRunSummary(options: UseAgentRunSummaryOptions): UseAgentRunSummaryReturn
-```
-
-<TypeTable
-  type={{
-    options: { type: "UseAgentRunSummaryOptions", description: "", required: true },
-  }}
-/>
-
-**Returns** — `UseAgentRunSummaryReturn`
-
-<TypeTable
-  type={{
-    error: { type: "Error | null", description: "" },
-    isLoading: { type: "boolean", description: "" },
-    isRefetching: { type: "boolean", description: "" },
-    refetch: { type: "() => void", description: "" },
-    summary: { type: "AgentRunSummary | null", description: "" },
-  }}
-/>
-
-
 ### useDashboardFailedRuns
 
-Data hook that fetches an organization's recent failed agent runs,
+Data hook that fetches an organization's recent failed runs,
 normalizes them into [`DashboardFailedRun`](#dashboardfailedrun) entries, and orders
 them newest first.
 
@@ -75,10 +40,10 @@ function useDashboardFailedRuns(org: string | null | undefined): UseDashboardFai
 
 ### useDashboardSummary
 
-Composition hook that merges the agent run summary and the org usage
+Composition hook that merges the run summary and the org usage
 report into a single [`DashboardSummary`](#dashboardsummary).
 
-- Run counts (active, completed, failed) come from the agent run
+- Run counts (active, completed, failed) come from the run
   summary over the last seven days.
 - Cost comes from `getOrgUsageReport` (billing source of truth), not
   from summing per-run costs, so the dashboard shows what billing
@@ -108,17 +73,52 @@ function useDashboardSummary(options: UseDashboardSummaryOptions): UseDashboardS
 />
 
 
+### useRunSummary
+
+Data hook that fetches aggregated run statistics for an
+organization. Returns phase counts, active count, average duration,
+and top failing agents.
+
+Cost is intentionally excluded from this response — the dashboard
+sources cost from `useOrgUsageReport` (billing source of truth), so
+cost is never counted from two sources.
+
+**Signature**
+
+```tsx
+function useRunSummary(options: UseRunSummaryOptions): UseRunSummaryReturn
+```
+
+<TypeTable
+  type={{
+    options: { type: "UseRunSummaryOptions", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseRunSummaryReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "" },
+    isLoading: { type: "boolean", description: "" },
+    isRefetching: { type: "boolean", description: "" },
+    refetch: { type: "() => void", description: "" },
+    summary: { type: "RunSummary | null", description: "" },
+  }}
+/>
+
+
 ## Types
 
 ### DashboardFailedRun
 
-A normalized entry representing a failed agent run.
+A normalized entry representing a failed run.
 
 <TypeTable
   type={{
     error: { type: "string", description: "Error message from the failed run.", required: true },
     failedAt: { type: "Date", description: "When the run failed.", required: true },
-    id: { type: "string", description: "Agent run ID (`aex_*`).", required: true },
+    id: { type: "string", description: "Run ID (`run_*`).", required: true },
     name: { type: "string", description: "Run name or subject.", required: true },
     resourceName: { type: "string", description: "The agent the run ran.", required: true },
   }}
@@ -127,7 +127,7 @@ A normalized entry representing a failed agent run.
 
 ### DashboardFailedRuns
 
-Widget showing recent failed agent runs, newest first.
+Widget showing recent failed runs, newest first.
 
 Each row includes the run name, a truncated error, and a relative
 timestamp.
@@ -147,7 +147,7 @@ timestamp.
 
 ### DashboardKPICards
 
-Stat cards showing an organization's agent run KPIs: active,
+Stat cards showing an organization's run KPIs: active,
 completed and failed runs, and total cost.
 
 Cost comes from the billing source of truth (getOrgUsageReport),
@@ -167,18 +167,18 @@ not from summing per-run costs, so the card shows what billing recorded.
 
 ### DashboardSummary
 
-Dashboard summary of an organization's agent runs.
+Dashboard summary of an organization's runs.
 
-Run counts (active, completed, failed) come from the agent run summary.
+Run counts (active, completed, failed) come from the run summary.
 Cost comes from `GetOrgUsageReportOutput` (billing source of truth),
 not from summing per-run costs, so the dashboard shows what billing
 recorded.
 
 <TypeTable
   type={{
-    activeCount: { type: "number", description: "Active agent run count.", required: true },
-    completedCount: { type: "number", description: "Completed agent run count.", required: true },
-    failedCount: { type: "number", description: "Failed agent run count.", required: true },
+    activeCount: { type: "number", description: "Active run count.", required: true },
+    completedCount: { type: "number", description: "Completed run count.", required: true },
+    failedCount: { type: "number", description: "Failed run count.", required: true },
     orgUsage: { type: "GetOrgUsageReportOutput | null", description: "Org-level usage report for cost details.", required: true },
     totalCostUsd: { type: "number", description: "Total platform cost in USD from the billing source of truth. Sourced from `getOrgUsageReport.total_billable_cost_micros`.", required: true },
   }}
@@ -187,7 +187,7 @@ recorded.
 
 ### OperationalDashboard
 
-Composed dashboard widget showing an organization's agent run
+Composed dashboard widget showing an organization's run
 operational metrics.
 
 Layout:
@@ -211,21 +211,8 @@ recorded.
 <TypeTable
   type={{
     className: { type: "string", description: "" },
-    onFailedRunClick: { type: "(id: string) => void", description: "Called with the agent run's ID when the user clicks \"View\" on a failed run." },
+    onFailedRunClick: { type: "(id: string) => void", description: "Called with the run's ID when the user clicks \"View\" on a failed run." },
     org: { type: "string | null | undefined", description: "The organization whose runs and usage the dashboard shows.", required: true },
-  }}
-/>
-
-
-### UseAgentRunSummaryOptions
-
-Options for [`useAgentRunSummary`](#useagentrunsummary).
-
-<TypeTable
-  type={{
-    org: { type: "string | null | undefined", description: "Organization id (a slug is also accepted). When empty/null, the hook does not fetch.", required: true },
-    refetchInterval: { type: "number | false", description: "Refetch interval in milliseconds. `0` or `false` disables." },
-    timeWindow: { type: "AgentRunSummaryTimeWindow", description: "Time window for aggregation." },
   }}
 />
 
@@ -238,6 +225,19 @@ Options for [`useDashboardSummary`](#usedashboardsummary).
   type={{
     org: { type: "string | null | undefined", description: "The organization whose run summary and usage report to read.", required: true },
     refetchInterval: { type: "number", description: "Refetch interval in milliseconds." },
+  }}
+/>
+
+
+### UseRunSummaryOptions
+
+Options for [`useRunSummary`](#userunsummary).
+
+<TypeTable
+  type={{
+    org: { type: "string | null | undefined", description: "Organization id (a slug is also accepted). When empty/null, the hook does not fetch.", required: true },
+    refetchInterval: { type: "number | false", description: "Refetch interval in milliseconds. `0` or `false` disables." },
+    timeWindow: { type: "RunSummaryTimeWindow", description: "Time window for aggregation." },
   }}
 />
 

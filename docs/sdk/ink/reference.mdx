@@ -150,7 +150,7 @@ option label names that class so the scope is never a surprise.
     isActive: { type: "boolean", description: "Whether this prompt owns the keyboard. Defaults to `true`. When `false` the prompt renders inert (no `useInput`, no selection cursor, options dimmed) so exactly one decision surface is interactive at a time.  This is the terminal's single-active-decision-surface rule: stdin is delivered to *every* mounted `useInput`, so several live `ApprovalPrompt`s would each consume the same keystroke and settle at once. The caller (MessageThread) marks only the first pending approval active; the file-review prompt in turn yields to any pending approval (`FileReviewPrompt.isActive = pendingApprovals.length === 0` in `SessionView`), so the order is: first approval → else the file-review prompt." },
     isSubmitting: { type: "boolean", description: "Disables input while an approval submission is in flight." },
     onSubmit: { type: "(action: ApprovalAction) => void", description: "Called when the user selects an action.", required: true },
-    pendingApproval: { type: "PendingApproval", description: "The pending approval request to render.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent-run" },
+    pendingApproval: { type: "PendingApproval", description: "The pending approval request to render.", required: true, typeDescriptionLink: "/docs/sdk/resources/run" },
   }}
 />
 
@@ -194,7 +194,7 @@ where context is managed externally).
 
 <TypeTable
   type={{
-    run: { type: "AgentRun | null", description: "The run snapshot from the active stream, or `null`. The gauge extracts `context_info` from the run status.", required: true },
+    run: { type: "Run | null", description: "The run snapshot from the active stream, or `null`. The gauge extracts `context_info` from the run status.", required: true },
   }}
 />
 
@@ -265,7 +265,7 @@ renders under `InkStigmerProvider`.
 
 <TypeTable
   type={{
-    change: { type: "CapturedFileChange", description: "The captured file change whose before/after diff to render.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent-run" },
+    change: { type: "CapturedFileChange", description: "The captured file change whose before/after diff to render.", required: true, typeDescriptionLink: "/docs/sdk/resources/run" },
   }}
 />
 
@@ -301,7 +301,7 @@ per-file mode ↑/↓ move, `k` keep, `d` discard, `esc` back. Input is gated by
 
 <TypeTable
   type={{
-    changeSet: { type: "FileChangeSet", description: "The AWAITING_REVIEW change set this prompt decides.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent-run" },
+    changeSet: { type: "FileChangeSet", description: "The AWAITING_REVIEW change set this prompt decides.", required: true, typeDescriptionLink: "/docs/sdk/resources/run" },
     decisionErrors: { type: "ReadonlyMap<string, Error>", description: "Per-decision failures, keyed via `fileDecisionKey`." },
     isActive: { type: "boolean", description: "Whether this prompt owns the keyboard. False renders a read-only view (no `useInput`) so exactly one decision surface is interactive at a time. Defaults to `true`." },
     onSubmit: { type: "(changeSetId: string, action: FileDecisionAction, options?: FileDecisionOptions) => void", description: "Submit a decision for this set (or one file within it). Bound to the active run by the caller; the terminal analogue of the web dock's `submitFileDecision`.", required: true },
@@ -325,7 +325,7 @@ record complements them with a one-line summary and file list.
 
 <TypeTable
   type={{
-    fileChangeSet: { type: "FileChangeSet", description: "A settled (decided / reconciled / failed) change set to record.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent-run" },
+    fileChangeSet: { type: "FileChangeSet", description: "A settled (decided / reconciled / failed) change set to record.", required: true, typeDescriptionLink: "/docs/sdk/resources/run" },
   }}
 />
 
@@ -373,7 +373,7 @@ Renders a single message in the terminal conversation thread.
 
 <TypeTable
   type={{
-    message: { type: "AgentMessage", description: "The agent message to render.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent-run" },
+    message: { type: "AgentMessage", description: "The agent message to render.", required: true, typeDescriptionLink: "/docs/sdk/resources/run" },
   }}
 />
 
@@ -381,7 +381,7 @@ Renders a single message in the terminal conversation thread.
 ### MessageThread
 
 Renders a continuous conversation thread from one or more
-`AgentRun` snapshots in the terminal.
+`Run` snapshots in the terminal.
 
 Composes `MessageEntry`, `ToolCallGroup`, `SubAgentBlock`,
 `RunProgress`, `ApprovalPrompt`, and (for settled change
@@ -399,11 +399,11 @@ can badge its stamped edit rows.
 
 <TypeTable
   type={{
-    activeStreamRun: { type: "AgentRun | null", description: "The currently streaming run (appended after `executions`)." },
+    activeStreamRun: { type: "Run | null", description: "The currently streaming run (appended after `executions`)." },
     expandToolCalls: { type: "boolean", description: "Whether tool call groups should be rendered in expanded mode. Toggled via Ctrl+O." },
     onApprovalSubmit: { type: "(toolCallId: string, action: ApprovalAction) => void", description: "Callback for approval actions. Shows approval UI when provided." },
     pendingUserMessage: { type: "string | null", description: "Optimistic user message shown before the stream delivers it." },
-    runs: { type: "readonly AgentRun[]", description: "Completed runs in chronological order.", required: true },
+    runs: { type: "readonly Run[]", description: "Completed runs in chronological order.", required: true },
     showFileReviewRecords: { type: "boolean", description: "Whether to render a read-only settled record for each decided/reconciled/ failed change set (the terminal analogue of the web's in-thread record). Off by default so bare consumers stay minimal; `SessionView` opts in. Pending (AWAITING_REVIEW) sets are never records here — their decision surface is the docked `FileReviewPrompt`." },
     submittingApprovalIds: { type: "ReadonlySet<string>", description: "Set of tool call IDs currently being submitted for approval." },
   }}
@@ -479,7 +479,7 @@ Renders nothing for unspecified phases.
 
 <TypeTable
   type={{
-    phase: { type: "RunPhase", description: "Current run phase.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent-run" },
+    phase: { type: "RunPhase", description: "Current run phase.", required: true, typeDescriptionLink: "/docs/sdk/resources/run" },
   }}
 />
 
@@ -540,7 +540,7 @@ the same MessageEntry and ToolCallGroup components as the main thread.
   type={{
     defaultExpanded: { type: "boolean", description: "Whether this block starts expanded." },
     isFocused: { type: "boolean", description: "Whether this component can receive keyboard focus for toggling." },
-    subAgent: { type: "SubAgentRun", description: "The sub-agent run data.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent-run" },
+    subAgent: { type: "SubAgentRun", description: "The sub-agent run data.", required: true, typeDescriptionLink: "/docs/sdk/resources/run" },
   }}
 />
 
@@ -594,7 +594,7 @@ match counts) as the web console.
 <TypeTable
   type={{
     expanded: { type: "boolean", description: "Whether to show the full args/result (expanded view)." },
-    toolCall: { type: "ToolCall", description: "The tool call to render.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent-run" },
+    toolCall: { type: "ToolCall", description: "The tool call to render.", required: true, typeDescriptionLink: "/docs/sdk/resources/run" },
   }}
 />
 
@@ -612,7 +612,7 @@ Uses the headless `useSessionUsage` hook from `@stigmer/react`.
 
 <TypeTable
   type={{
-    runs: { type: "readonly AgentRun[]", description: "All runs for the current session (completed + active).", required: true },
+    runs: { type: "readonly Run[]", description: "All runs for the current session (completed + active).", required: true },
   }}
 />
 
