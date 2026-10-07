@@ -1,7 +1,7 @@
 module agentic
 
 # ========================================
-# AGENT RUN TYPE (Session-bound)
+# RUN TYPE (Session-bound)
 # ========================================
 # A single run of an agent within a session.
 # Inherits all permissions from parent session.
@@ -11,13 +11,13 @@ module agentic
 # - Tied to specific session (not standalone)
 # - Permissions inherited from session
 
-type agent_run
+type run
   relations
     # ========================================
     # PARENT SESSION
     # ========================================
     # Every run belongs to a session
-    # FGA tuple: agent_run:<exec_id>#session@session:<session_id>
+    # FGA tuple: run:<run_id>#session@session:<session_id>
     define session: [session]
     
     # ========================================

@@ -10,11 +10,11 @@ This follows the Google Zanzibar pattern used by Google Drive: "Specific people"
 
 ## The Authorization Tiers
 
-An agent is a blueprint; a person talks to it in a session, and every turn of that conversation is an agent run. The session names its agent directly, and a run answers exactly what its session answers:
+An agent is a blueprint; a person talks to it in a session, and every turn of that conversation is a run. The session names its agent directly, and a run answers exactly what its session answers:
 
 ```
 Blueprint (Agent)                 ← discoverability and usability
-  └── Session → AgentRun          ← a person's conversation and its turns
+  └── Session → Run               ← a person's conversation and its turns
 ```
 
 Each has its own visibility:
@@ -52,12 +52,12 @@ Who else reaches a resource is the owner's, through two permissions. `can_grant_
 ## Agents, Sessions and Runs
 
 ```
-Agent (blueprint) → Session (personal) → AgentRun
+Agent (blueprint) → Session (personal) → Run
 ```
 
 - **An agent's audience is not its conversations' audience.** An org-visible agent lets every member read and run it; each member's conversation with it stays private to that member.
 - **Sessions** are personal: the owner sees one, and nobody else does until an explicit viewer grant shares it. A session started by a channel or a schedule is also visible to whoever can view that channel or schedule (`viewer from channel`, `viewer from schedule`). The agent a session names is not a relation: the server asks `can_execute` on it when a session names or changes it, and on every turn.
-- **Agent runs** hold nothing of their own. A run answers exactly what its session answers, so sharing a session shares its whole history, past turns included, with zero per-run tuples.
+- **Runs** hold nothing of their own. A run answers exactly what its session answers, so sharing a session shares its whole history, past turns included, with zero per-run tuples.
 
 ## What the model deliberately cannot say: the runtime lanes' blueprint reads
 
@@ -101,15 +101,15 @@ Resources: `environment`. It is personal by default and shared with the organiza
 Permissions inherited from the parent resource:
 
 ```fga
-# An agent run inherits from its session
+# A run inherits from its session
 define owner: owner from session
 define viewer: viewer from session or owner
 define can_view: viewer or can_view from session
 ```
 
-Resources: `agent_run`
+Resources: `run`
 
-An agent run holds nothing of its own: its one direct relation is the `session` link, every other relation is read through it, and its `can_view` answers exactly what the session's does. That is what lets a list ask about the session in the run's place, and `src/authorization/model/__tests__/registry.test.ts` holds it for every kind whose `kind_meta` makes its authorization its parent's. A relation that would give a run something of its own is a design change of the list read scope first.
+A run holds nothing of its own: its one direct relation is the `session` link, every other relation is read through it, and its `can_view` answers exactly what the session's does. That is what lets a list ask about the session in the run's place, and `src/authorization/model/__tests__/registry.test.ts` holds it for every kind whose `kind_meta` makes its authorization its parent's. A relation that would give a run something of its own is a design change of the list read scope first.
 
 ### Bounded by the Organization (every direct grant)
 
@@ -224,7 +224,7 @@ Only Bob can view. To share: `session:chat-123#viewer@identity_account:alice`
 ### Run (Inherits Its Session)
 
 ```
-agent_run:turn-7#session@session:chat-123
+run:turn-7#session@session:chat-123
 ```
 
 Whoever can view the session views the run, and nobody else:
@@ -283,13 +283,13 @@ fga/
 │       ├── agent_channel.fga       # An agent's distribution channels (owner-scoped)
 │       ├── agent_share.fga         # An agent's shared pages (owner-scoped)
 │       ├── channel_app.fga         # Bring-your-own channel provider apps (restricted)
-│       ├── agent_run.fga           # Agent runs (inherits from session)
 │       ├── environment.fga         # Config and secrets (personal, shareable with the org)
 │       ├── execution_context.fga   # Ephemeral runtime contexts (owner-only)
 │       ├── mcp_server.fga          # MCP tool servers (open access)
 │       ├── memory.fga              # An identity's memories (subject-only)
 │       ├── plugin.fga              # Installed plugins, the unit of install
-│       ├── schedule.fga            # Scheduled agent runs (owner-scoped)
+│       ├── run.fga                 # Runs (inherits from session)
+│       ├── schedule.fga            # Scheduled runs (owner-scoped)
 │       ├── session.fga             # Conversations (personal)
 │       └── skill.fga               # Knowledge bases (open access)
 └── tests/                          # The suites: `fga model test` documents, one per behaviour

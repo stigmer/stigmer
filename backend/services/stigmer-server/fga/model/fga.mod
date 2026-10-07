@@ -21,12 +21,12 @@ contents:
   - agentic/agent_channel.fga
   - agentic/agent_share.fga
   - agentic/channel_app.fga
-  - agentic/agent_run.fga
   - agentic/environment.fga
   - agentic/execution_context.fga
   - agentic/mcp_server.fga
   - agentic/memory.fga
   - agentic/plugin.fga
+  - agentic/run.fga
   - agentic/schedule.fga
   - agentic/session.fga
   - agentic/skill.fga

@@ -10,7 +10,7 @@
 # deliberately NOT into session.viewer, so schedule observers never gain
 # can_create_run_in / can_edit / can_delete / can_grant_access
 # (injecting a console message into an unattended run is not
-# observability). Runs follow through agent_run's
+# observability). Runs follow through run's
 # `can_view: viewer or can_view from session`.
 #
 # The personal-session invariant is untouched: console sessions never carry
@@ -99,7 +99,7 @@ tuples:
   # --- A run inside the schedule session ---
   - user: session:scheduled-run
     relation: session
-    object: agent_run:scheduled-run-1
+    object: run:scheduled-run-1
 
   # --- bob's ordinary personal console session (NO schedule tuple) ---
   - user: organization:acme
@@ -110,7 +110,7 @@ tuples:
     object: session:bobs-chat
   - user: session:bobs-chat
     relation: session
-    object: agent_run:bobs-run-1
+    object: run:bobs-run-1
 
 tests:
   - name: schedule creator can view the run but only view it
@@ -164,17 +164,17 @@ tests:
   - name: runs inherit read-only schedule observability
     check:
       - user: identity_account:bob
-        object: agent_run:scheduled-run-1
+        object: run:scheduled-run-1
         assertions:
           can_view: true
           can_edit: false
       - user: identity_account:alice
-        object: agent_run:scheduled-run-1
+        object: run:scheduled-run-1
         assertions:
           can_view: true
           can_edit: false
       - user: identity_account:carol
-        object: agent_run:scheduled-run-1
+        object: run:scheduled-run-1
         assertions:
           can_view: false
 
@@ -189,7 +189,7 @@ tests:
           can_create_run_in: false
           can_edit: false
       - user: identity_account:dave
-        object: agent_run:scheduled-run-1
+        object: run:scheduled-run-1
         assertions:
           can_view: true
           can_edit: false
@@ -204,7 +204,7 @@ tests:
           can_edit: false
           can_delete: false
       - user: identity_account:alice
-        object: agent_run:bobs-run-1
+        object: run:bobs-run-1
         assertions:
           can_view: false
       # And the owner's own access is unchanged.

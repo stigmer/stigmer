@@ -8,7 +8,7 @@
 # `can_delete: owner` on the session itself (deletion no longer threatens
 # the billing trail; usage records are immutable and denormalized).
 #
-# Agent runs inherit ALL access from their parent session
+# Runs inherit ALL access from their parent session
 # (`owner from session`), so the run assertions here pin the
 # inheritance that session cascade-delete relies on.
 #
@@ -62,7 +62,7 @@ tuples:
   # --- a run inside the session ---
   - user: session:bobs-chat
     relation: session
-    object: agent_run:run-1
+    object: run:run-1
 
 tests:
   - name: owner has full control including delete
@@ -107,16 +107,16 @@ tests:
   - name: run access is inherited from the parent session
     check:
       - user: identity_account:bob
-        object: agent_run:run-1
+        object: run:run-1
         assertions:
           can_view: true
           can_edit: true
       - user: identity_account:carol
-        object: agent_run:run-1
+        object: run:run-1
         assertions:
           can_view: true
           can_edit: false
       - user: identity_account:alice
-        object: agent_run:run-1
+        object: run:run-1
         assertions:
           can_view: false
