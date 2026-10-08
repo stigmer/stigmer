@@ -39,6 +39,11 @@ the truth.
   why a field exists. A field lands with its first reader, never ahead of it. A
   field that governs what an agent's tools may do exists only if a Claude Code
   or Cursor plugin can express it; Stigmer adds no tool-policy knob of its own.
+- Stigmer invents no output format. Each output surface or adapter matches a
+  named outside spec at a pinned version, states it in its docs, and a
+  conformance test drives it with that spec's own SDK or schema; a pin bump
+  reruns it. Stigmer-only data travels as separate `stigmer.` events, never
+  added fields.
 - Validation is protovalidate rules on the message, not prose in a comment.
 - Comments are generated surface. The first sentence of an RPC comment is a
   standalone summary, verb first, naming the resource; the first sentence of a
