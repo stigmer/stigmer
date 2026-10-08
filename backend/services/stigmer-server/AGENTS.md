@@ -34,6 +34,7 @@ advances. This guide is an index; the files it names are the truth.
   here once. Classify every change as core, cloud-only or OSS-only before
   writing code; a cloud need no extension point serves gets a new point here,
   never a composition-side copy of a core step.
+- Output adapters obey `apis/AGENTS.md`'s agent-output law.
 - Store discipline. Domain code depends on `src/store/interface.ts` and never on
   a driver directory; drivers own their SQL; migrations are versioned per driver
   and reviewed like a proto change; every query pattern has an index. A
