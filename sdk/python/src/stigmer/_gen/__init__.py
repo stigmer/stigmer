@@ -7,7 +7,6 @@ from ._agentchannel import AgentChannelClient, AgentChannelInput, SlackChannelCo
 from ._agentshare import AgentShareClient, AgentShareInput, AgentShareMessagesInput
 from ._apikey import ApiKeyClient, ApiKeyInput
 from ._channelapp import ChannelAppClient, ChannelAppInput, SlackChannelAppConfigInput, WhatsAppChannelAppConfigInput
-from ._environment import EnvironmentClient, EnvironmentInput
 from ._executioncontext import ExecutionContextClient, ExecutionContextInput
 from ._iampolicy import IamPolicyClient, IamPolicyInput, ApiResourceRefInput
 from ._identityaccount import IdentityAccountClient, IdentityAccountInput, IdentityAccountPreferencesInput
@@ -28,9 +27,9 @@ from ._session import SessionClient, SessionInput
 from ._skill import SkillClient, SkillInput
 from ._subscription import SubscriptionClient, SubscriptionInput
 from ._team import TeamClient, TeamInput
+from ._vault import VaultClient, VaultInput, VaultSecretInput, VaultConnectionInput, VaultConnectionSignInInput
 from ._types import (
     DeleteResourceInput,
-    EnvSpecInput,
     EnvVarInput,
     ListParams,
     ListResult,
@@ -73,8 +72,6 @@ __all__ = [
     "ChannelAppInput",
     "SlackChannelAppConfigInput",
     "WhatsAppChannelAppConfigInput",
-    "EnvironmentClient",
-    "EnvironmentInput",
     "ExecutionContextClient",
     "ExecutionContextInput",
     "IamPolicyClient",
@@ -134,8 +131,12 @@ __all__ = [
     "SubscriptionInput",
     "TeamClient",
     "TeamInput",
+    "VaultClient",
+    "VaultInput",
+    "VaultSecretInput",
+    "VaultConnectionInput",
+    "VaultConnectionSignInInput",
     "DeleteResourceInput",
-    "EnvSpecInput",
     "EnvVarInput",
     "ListParams",
     "ListResult",

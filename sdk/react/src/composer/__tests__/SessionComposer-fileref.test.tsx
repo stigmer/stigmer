@@ -3,6 +3,7 @@ import { render, screen, cleanup, fireEvent, act } from "@testing-library/react"
 import type { ReactNode } from "react";
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
+import { noMyVaultClient } from "../../__tests__/helpers/no-my-vault";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 import { SessionComposer } from "../SessionComposer";
 import { FILE_REF_MIME } from "../../internal/file-tree";
@@ -14,7 +15,7 @@ import { FILE_REF_MIME } from "../../internal/file-tree";
 function createMinimalStigmerMock(): Stigmer {
   return {
     run: { uploadAttachment: vi.fn() },
-    environment: { getPersonal: vi.fn().mockResolvedValue(null) },
+    vault: noMyVaultClient(),
     baseUrl: "http://localhost:8080",
     getAuthCredential: vi.fn().mockResolvedValue("test-token"),
     config: {

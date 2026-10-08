@@ -9,7 +9,7 @@ import "google/protobuf/timestamp.proto";
 //
 // @internal
 // Infrastructure-only. Not a public API resource — no kind, no apiVersion,
-// no CRUD RPCs, no FGA (the OAuthGrant / RunReservation pattern).
+// no CRUD RPCs, no FGA (the RunReservation pattern).
 // Stored by the serving edition's channel runtime; the reply lane's
 // correctness backbone. Created at webhook time in the same motion as the
 // Session/Run; claimed atomically by the delivery worker with a

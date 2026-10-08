@@ -24,7 +24,7 @@ public final class PlatformClientInput {
     private final String expiresAt;
     private final boolean neverExpires;
     private final java.util.List<String> allowedOrigins;
-    private final java.util.List<ResourceRef> environmentRefs;
+    private final java.util.List<ResourceRef> vaults;
     private final boolean createAccountsOnSignIn;
     private final IamRole signInRole;
 
@@ -41,7 +41,7 @@ public final class PlatformClientInput {
         this.expiresAt = builder.expiresAt;
         this.neverExpires = builder.neverExpires;
         this.allowedOrigins = builder.allowedOrigins;
-        this.environmentRefs = builder.environmentRefs;
+        this.vaults = builder.vaults;
         this.createAccountsOnSignIn = builder.createAccountsOnSignIn;
         this.signInRole = builder.signInRole;
     }
@@ -68,10 +68,10 @@ public final class PlatformClientInput {
         if (this.allowedOrigins != null && !this.allowedOrigins.isEmpty()) {
             spec.addAllAllowedOrigins(this.allowedOrigins);
         }
-        if (this.environmentRefs != null) {
-            for (ResourceRef item : this.environmentRefs) {
-                spec.addEnvironmentRefs(item.toProto().toBuilder()
-                    .setKind(ApiResourceKind.environment).build());
+        if (this.vaults != null) {
+            for (ResourceRef item : this.vaults) {
+                spec.addVaults(item.toProto().toBuilder()
+                    .setKind(ApiResourceKind.vault).build());
             }
         }
         spec.setCreateAccountsOnSignIn(this.createAccountsOnSignIn);
@@ -118,7 +118,7 @@ public final class PlatformClientInput {
         private String expiresAt;
         private boolean neverExpires;
         private java.util.List<String> allowedOrigins;
-        private java.util.List<ResourceRef> environmentRefs;
+        private java.util.List<ResourceRef> vaults;
         private boolean createAccountsOnSignIn;
         private IamRole signInRole;
 
@@ -141,7 +141,7 @@ public final class PlatformClientInput {
         public Builder expiresAt(String expiresAt) { this.expiresAt = expiresAt; return this; }
         public Builder neverExpires(boolean neverExpires) { this.neverExpires = neverExpires; return this; }
         public Builder allowedOrigins(java.util.List<String> allowedOrigins) { this.allowedOrigins = allowedOrigins; return this; }
-        public Builder environmentRefs(java.util.List<ResourceRef> environmentRefs) { this.environmentRefs = environmentRefs; return this; }
+        public Builder vaults(java.util.List<ResourceRef> vaults) { this.vaults = vaults; return this; }
         public Builder createAccountsOnSignIn(boolean createAccountsOnSignIn) { this.createAccountsOnSignIn = createAccountsOnSignIn; return this; }
         public Builder signInRole(IamRole signInRole) { this.signInRole = signInRole; return this; }
 

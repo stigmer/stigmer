@@ -4,7 +4,8 @@ import { useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import { connectAndWait, type EnvVarInput } from "@stigmer/sdk";
+import { connectAndWait } from "@stigmer/sdk";
+import type { EnvVarInput } from "../vault/types.js";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
@@ -21,18 +22,19 @@ export interface UseMcpServerConnectReturn {
    * survives browser transport limits. Backends without the lane fall
    * back to the blocking `connect` RPC transparently.
    *
-   * Without `runtimeEnv`, the backend resolves the server's declared
-   * variables itself: OAuth tokens from the managed grant, the rest from
-   * the caller's personal environment. The platform's own keys are
-   * filled by the runner, never sent from here (`SYSTEM_ENV_VAR_KEYS`).
-   *
-   * With `runtimeEnv`, the backend connects with exactly those values
-   * and resolves nothing else (stigmer/stigmer#1453), so pass it only
-   * for a one-time connect whose values the caller supplies whole.
+   * The backend fills the server's declared variables and its login by
+   * the run's credential rule, from two places only: `runtimeEnv` first,
+   * as this call's own one-time values (not kept), then the caller's My
+   * vault, the sign-in saved there for this server included. No shared
+   * vault is read, so a login kept only in one does not serve a connect.
+   * A value the server does not declare is not delivered, and a required
+   * key neither holds refuses the connect, naming it. The platform's own
+   * keys are filled by the runner, never sent from here
+   * (`SYSTEM_ENV_VAR_KEYS`).
    *
    * @param mcpServerId - System-generated ID of the MCP server (metadata.id).
-   * @param org - The caller's active organization id (a slug is also accepted). Required for
-   *   OAuth grant lookup and personal environment resolution.
+   * @param org - The caller's active organization id (a slug is also accepted). Required: the
+   *   caller's My vault in it fills the server's values and login.
    * @param runtimeEnv - Optional one-time values for this connect.
    * @returns The updated McpServer with populated status.discovered_capabilities,
    *          each tool carrying its destructive hint.
@@ -67,7 +69,7 @@ export interface UseMcpServerConnectReturn {
  * const { connect, isConnecting, error } = useMcpServerConnect();
  * const { refetch } = useMcpServer(org, slug);
  *
- * // Saved credentials: already in personal environment
+ * // Saved credentials: already in My vault
  * async function handleConnectSaved() {
  *   await connect(mcpServer.metadata.id, org);
  *   refetch();

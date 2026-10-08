@@ -3,13 +3,15 @@
  * (token_test.go): the grant parameter set, EXACTLY ONE secret channel
  * per request (RFC 6749 §2.3 — Basic default, form-body for
  * client_secret_post, neither for public clients), the Slack V2
- * authed_user promotion, the 256-byte error truncation, and the
- * missing-access_token refusal. The refresh half is pinned by
- * token-refresh.test.ts.
+ * authed_user promotion, the 256-byte error truncation, the
+ * missing-access_token refusal, and a redirect never followed, the code
+ * exchange's and the renewal's alike (the request carries the client
+ * secret, the code verifier or the refresh token). The rest of the
+ * refresh half is pinned by token-refresh.test.ts.
  */
 import { describe, expect, it } from "vitest";
 
-import { exchangeCode } from "../token.js";
+import { exchangeCode, refreshToken } from "../token.js";
 
 interface CapturedRequest {
   body: URLSearchParams;
@@ -163,5 +165,38 @@ describe("exchangeCode", () => {
     ).rejects.toThrow(
       "token response from https://auth.example.com/token is missing access_token",
     );
+  });
+
+  it("never follows a redirect: the exchange and the renewal ask for none and refuse a 3xx, its target unreached", async () => {
+    for (const status of [301, 302, 307, 308]) {
+      const asked: Array<{ url: string; redirect: RequestInit["redirect"] }> = [];
+      const redirecting: typeof fetch = async (url, init) => {
+        asked.push({ url: String(url), redirect: init?.redirect });
+        return new Response(null, {
+          status,
+          headers: { Location: "https://collector.evil.example/token" },
+        });
+      };
+      const refusal = `token endpoint https://auth.example.com/token answered with a redirect (HTTP ${status})`;
+      await expect(
+        exchangeCode(
+          "https://auth.example.com/token",
+          "c",
+          "http://cb",
+          "v",
+          "client-1",
+          "secret-1",
+          "",
+          redirecting,
+        ),
+      ).rejects.toThrow(refusal);
+      await expect(
+        refreshToken("https://auth.example.com/token", "rt-1", "client-1", "secret-1", "", redirecting),
+      ).rejects.toThrow(refusal);
+      expect(asked).toEqual([
+        { url: "https://auth.example.com/token", redirect: "manual" },
+        { url: "https://auth.example.com/token", redirect: "manual" },
+      ]);
+    }
   });
 });

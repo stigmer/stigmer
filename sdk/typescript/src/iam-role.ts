@@ -8,6 +8,7 @@ const ROLE_STRINGS: Record<IamRole, string> = {
   [IamRole.viewer]: "viewer",
   [IamRole.participant]: "participant",
   [IamRole.editor]: "editor",
+  [IamRole.user]: "user",
 };
 
 const STRING_TO_ROLE: Record<string, IamRole> = {
@@ -17,6 +18,7 @@ const STRING_TO_ROLE: Record<string, IamRole> = {
   viewer: IamRole.viewer,
   participant: IamRole.participant,
   editor: IamRole.editor,
+  user: IamRole.user,
 };
 
 const ROLE_DISPLAY_NAMES: Record<IamRole, string> = {
@@ -27,6 +29,7 @@ const ROLE_DISPLAY_NAMES: Record<IamRole, string> = {
   [IamRole.viewer]: "Viewer",
   [IamRole.participant]: "Participant",
   [IamRole.editor]: "Editor",
+  [IamRole.user]: "Can use",
 };
 
 const ROLE_DESCRIPTIONS: Record<IamRole, string> = {
@@ -37,6 +40,7 @@ const ROLE_DESCRIPTIONS: Record<IamRole, string> = {
   [IamRole.viewer]: "Read-only access",
   [IamRole.participant]: "Reply to customers and manage conversation takeover",
   [IamRole.editor]: "Edit and run; cannot delete or change who has access",
+  [IamRole.user]: "Use this vault's logins and secrets in their runs",
 };
 
 /**

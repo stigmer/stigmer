@@ -102,6 +102,9 @@ class SessionInput:
     harness: int = 0
     cursor_mode: int = 0
     execution_target: int = 0
+    vaults: list[ResourceRef] = field(default_factory=list)
+    secrets: dict[str, str] = field(default_factory=dict)
+    connections: dict[str, str] = field(default_factory=dict)
 
     def _to_proto(self) -> api_pb2.Session:
         spec = spec_pb2.SessionSpec(
@@ -127,6 +130,14 @@ class SessionInput:
             _ref = ref._to_proto()
             _ref.kind = 43
             spec.skill_refs.append(_ref)
+        for ref in self.vaults:
+            _ref = ref._to_proto()
+            _ref.kind = 59
+            spec.vaults.append(_ref)
+        if self.secrets:
+            spec.secrets.update(self.secrets)
+        if self.connections:
+            spec.connections.update(self.connections)
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,

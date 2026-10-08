@@ -31,6 +31,11 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agentshare_v1_AgentShareStatus_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agentshare_v1_AgentShareStatus_VaultAttachersEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agentshare_v1_AgentShareStatus_VaultAttachersEntry_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -43,15 +48,20 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "\n-ai/stigmer/agentic/agentshare/v1/statu" +
       "s.proto\022 ai.stigmer.agentic.agentshare.v" +
       "1\032+ai/stigmer/commons/apiresource/status" +
-      ".proto\"\237\001\n\020AgentShareStatus\022F\n\005audit\030c \001" +
+      ".proto\"\323\002\n\020AgentShareStatus\022F\n\005audit\030c \001" +
       "(\01320.ai.stigmer.commons.apiresource.ApiR" +
       "esourceAuditR\005audit\022(\n\020share_link_token\030" +
       "\001 \001(\tR\016shareLinkToken\022\031\n\010agent_id\030\002 \001(\tR" +
-      "\007agentIdB\262\001B\013StatusProtoP\001\242\002\004ASAA\252\002 Ai.S" +
-      "tigmer.Agentic.Agentshare.V1\312\002 Ai\\Stigme" +
-      "r\\Agentic\\Agentshare\\V1\342\002,Ai\\Stigmer\\Age" +
-      "ntic\\Agentshare\\V1\\GPBMetadata\352\002$Ai::Sti" +
-      "gmer::Agentic::Agentshare::V1b\006proto3"
+      "\007agentId\022o\n\017vault_attachers\030\003 \003(\0132F.ai.s" +
+      "tigmer.agentic.agentshare.v1.AgentShareS" +
+      "tatus.VaultAttachersEntryR\016vaultAttacher" +
+      "s\032A\n\023VaultAttachersEntry\022\020\n\003key\030\001 \001(\tR\003k" +
+      "ey\022\024\n\005value\030\002 \001(\tR\005value:\0028\001B\262\001B\013StatusP" +
+      "rotoP\001\242\002\004ASAA\252\002 Ai.Stigmer.Agentic.Agent" +
+      "share.V1\312\002 Ai\\Stigmer\\Agentic\\Agentshare" +
+      "\\V1\342\002,Ai\\Stigmer\\Agentic\\Agentshare\\V1\\G" +
+      "PBMetadata\352\002$Ai::Stigmer::Agentic::Agent" +
+      "share::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -63,7 +73,13 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentshare_v1_AgentShareStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentshare_v1_AgentShareStatus_descriptor,
-        new java.lang.String[] { "Audit", "ShareLinkToken", "AgentId", });
+        new java.lang.String[] { "Audit", "ShareLinkToken", "AgentId", "VaultAttachers", });
+    internal_static_ai_stigmer_agentic_agentshare_v1_AgentShareStatus_VaultAttachersEntry_descriptor =
+      internal_static_ai_stigmer_agentic_agentshare_v1_AgentShareStatus_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_agentic_agentshare_v1_AgentShareStatus_VaultAttachersEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agentshare_v1_AgentShareStatus_VaultAttachersEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.StatusProto.getDescriptor();
   }

@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
  *
  * <pre>{@code
  * try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
- *     Agent agent = client.agents().create(AgentInput.builder()
+ *     Agent agent = client.agent.create(AgentInput.builder()
  *         .name("my-agent")
  *         .org("my-org")
  *         .instructions("You are a helpful assistant")

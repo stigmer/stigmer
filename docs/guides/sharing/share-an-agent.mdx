@@ -126,28 +126,24 @@ how origin restrictions behave.
 
 ## Share an Agent that uses tools
 
-If your Agent uses MCP servers, its tools need credentials — API keys stored in
-an Environment. By default an Environment is private: only you can use it, so a
-visitor's chat can't start the tools. To fix that, share the Environment with
-your Organization:
+If your Agent uses MCP servers, its tools need credentials — API keys and logins
+kept in a [vault](/docs/concepts/vaults). A visitor's chat has no person behind
+it, so it uses only the vaults attached to the share, never anyone's own vault,
+and a visitor brings no keys of their own. Attach the vaults the Agent needs to
+a public share:
 
-1. Open **Settings → Environments**.
-2. Find the Environment your Agent uses and set its visibility to
-   **Organization**.
+1. Have an Organization admin create a shared vault with only the credentials
+   the Agent needs.
+2. Make it usable by whoever attaches it: give it **Organization** visibility
+   under **Settings → Vaults**, or, on Stigmer Cloud, grant **Can use** to that
+   person or their Team. A new shared vault is usable only by the Organization's
+   admins until then.
+3. Attach it to the share in the Share dialog. You can attach a vault only if
+   you may use it, and each visitor message checks again that you still may.
 
-Sharing an Environment with your Organization means:
-
-- Agents run in your Organization — including visitor chats on shared Agents and
-  Agents your teammates run — can use its values.
-- Members can see the variable names, but secret values stay hidden. Nobody but
-  you can reveal a secret value.
-- Set it back to **Private** at any time. The next visitor message stops using
-  the credentials.
-
-The Share dialog warns you when your Agent uses tools whose Environment is still
-private. Your personal Environment and OAuth-connected credentials can't be
-shared — create a dedicated Environment with only the credentials the Agent
-needs.
+A run that needs a key no attached vault holds is refused before it starts,
+naming the key. Your own vault and your sign-ins are never used by a share.
+Organization-audience shares take no vaults: members' chats use their own.
 
 ### Tool approvals never reach visitors
 

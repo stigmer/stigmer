@@ -183,7 +183,7 @@ function ConnectWhatsAppDialogBody({
   // Tool credentials bound at connect time (create mode only — a retry
   // keeps the channel's existing bindings untouched; edits go through
   // the channel card's credentials dialog).
-  const [environmentRefs, setEnvironmentRefs] = useState<ResourceRef[]>([]);
+  const [vaults, setVaults] = useState<ResourceRef[]>([]);
   // The serving app — required (no platform Meta app exists).
   // Editable in retry mode too: app_ref is server-mutable while the
   // channel isn't installed, and a wrong app is a likely failure cause.
@@ -255,7 +255,7 @@ function ConnectWhatsAppDialogBody({
           enabled: true,
           whatsapp: { phoneNumberId: trimmedNumber },
           ...(effectiveAppRef ? { appRef: effectiveAppRef } : {}),
-          ...(environmentRefs.length > 0 ? { environmentRefs } : {}),
+          ...(vaults.length > 0 ? { vaults } : {}),
         });
         // The channel now exists even if the install below fails —
         // surface it in the list either way.
@@ -293,7 +293,7 @@ function ConnectWhatsAppDialogBody({
         installer.error ?? (err instanceof Error ? err : new Error(String(err))),
       );
     }
-  }, [agent, agentName, channel, createChannel, effectiveAppRef, environmentRefs, installer, name, org, onChannelsChanged, save, stigmer, trimmedNumber]);
+  }, [agent, agentName, channel, createChannel, effectiveAppRef, vaults, installer, name, org, onChannelsChanged, save, stigmer, trimmedNumber]);
 
   const busy = isCreating || isSaving || installer.isInProgress;
   const canConnect = trimmedNumber !== "" && effectiveAppRef !== null && !busy;
@@ -416,8 +416,8 @@ function ConnectWhatsAppDialogBody({
               <ToolCredentialsSection
                 agent={agent}
                 org={org}
-                value={environmentRefs}
-                onChange={setEnvironmentRefs}
+                value={vaults}
+                onChange={setVaults}
                 disabled={busy}
               />
             )}

@@ -8,9 +8,11 @@
 //     getServerInfo answers single_org, and findMyOrganizations lists exactly
 //     one, whose own metadata.org is empty;
 //   - a request that names no organization acts in that one, for one method
-//     of each shape the contract has: an annotated create (agent, session), an
-//     apply (environment), a reference lookup (agent getByReference), a list
-//     with a top-level org (environment list), and search;
+//     of each shape the contract has: an annotated create (agent, session,
+//     vault), an apply (MCP server), a reference lookup (agent
+//     getByReference), a list with a top-level org (vault list), a vault
+//     entry write whose target names no organization (setSecrets), and
+//     search;
 //   - an explicit organization is honoured: one that does not exist is still
 //     refused by name;
 //   - a kind that belongs to no organization stays that way (an API key's
@@ -34,7 +36,12 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { makeAgent } from "../support/agents";
 import { makeApiKey } from "../support/apikeys";
-import { makeEnvironment } from "../support/environments";
+import { makeMcpServer } from "../support/mcpservers";
+import {
+  makeSharedVault,
+  setSecretsInput,
+  vaultTarget,
+} from "../support/vaults";
 import { uniqueName } from "../support/naming";
 import { makeSession } from "../support/sessions";
 import { createTarget, type TargetProfile } from "../targets";
@@ -86,16 +93,37 @@ describe.skipIf(!capabilities.singleOrganization)(
       expect(found.metadata?.id).toBe(created.metadata?.id);
     });
 
-    it("[rpc:EnvironmentCommandController.apply] [rpc:EnvironmentQueryController.list] an environment applied and listed with no organization lives in the one", async () => {
-      const applied = await clients.environmentCommand.apply(
-        makeEnvironment({ org: NOBODY, name: uniqueName("env") }),
+    it("[rpc:VaultCommandController.create] [rpc:VaultQueryController.list] a vault created and listed with no organization lives in the one", async () => {
+      const created = await clients.vaultCommand.create(
+        makeSharedVault({ org: NOBODY, name: uniqueName("vault") }),
+      );
+      expect(created.metadata?.org).toBe(theOrganization);
+
+      const listed = await clients.vaultQuery.list({ org: NOBODY });
+      expect(listed.items.map((vault) => vault.metadata?.id)).toContain(
+        created.metadata?.id,
+      );
+    });
+
+    it("[rpc:VaultCommandController.setSecrets] a secret saved into a vault whose target names no organization lands in the one", async () => {
+      const created = await clients.vaultCommand.create(
+        makeSharedVault({ org: NOBODY, name: uniqueName("vault") }),
+      );
+      const saved = await clients.vaultCommand.setSecrets(
+        setSecretsInput(vaultTarget(NOBODY, created.metadata?.id ?? ""), {
+          API_KEY: "conformance-value",
+        }),
+      );
+      expect(saved.metadata?.id).toBe(created.metadata?.id);
+      expect(saved.metadata?.org).toBe(theOrganization);
+      expect(Object.keys(saved.spec?.secrets ?? {})).toEqual(["API_KEY"]);
+    });
+
+    it("[rpc:McpServerCommandController.apply] an MCP server applied with no organization lives in the one", async () => {
+      const applied = await clients.mcpServerCommand.apply(
+        makeMcpServer({ org: NOBODY, name: uniqueName("tools") }),
       );
       expect(applied.metadata?.org).toBe(theOrganization);
-
-      const listed = await clients.environmentQuery.list({ org: NOBODY });
-      expect(listed.items.map((env) => env.metadata?.id)).toContain(
-        applied.metadata?.id,
-      );
     });
 
     it("[rpc:SessionCommandController.create] a session created with no organization lives in the one", async () => {

@@ -7,7 +7,6 @@ import (
 	"io"
 	"time"
 
-	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/executioncontext/v1"
 	runv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1"
 	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
@@ -190,7 +189,6 @@ type RunInput struct {
 	InteractionMode        runv1.InteractionMode
 	BuildFromPlan          bool
 	StructuredOutputSchema map[string]any
-	RuntimeEnv             map[string]EnvVarInput
 	AutoApproveAll         bool
 	Attachments            []*AttachmentInput
 	WorkspaceFileRefs      []string
@@ -211,6 +209,9 @@ type SessionSpecInput struct {
 	Harness               sessionv1.Harness
 	CursorMode            sessionv1.CursorMode
 	ExecutionTarget       sessionv1.ExecutionTarget
+	Vaults                []ResourceRef
+	Secrets               map[string]string
+	Connections           map[string]string
 }
 
 // WorkspaceEntryInput is the SDK input type for WorkspaceEntry.
@@ -232,6 +233,7 @@ type GitRepoSourceInput struct {
 	Commit        string
 	Depth         int32
 	WriteBackMode sessionv1.GitWriteBackMode
+	Token         string
 }
 
 // LocalPathSourceInput is the SDK input type for LocalPathSource.
@@ -302,6 +304,13 @@ func (i *RunInput) toProto() (*runv1.Run, error) {
 		m.Harness = i.SessionSpec.Harness
 		m.CursorMode = i.SessionSpec.CursorMode
 		m.ExecutionTarget = i.SessionSpec.ExecutionTarget
+		for _, r := range i.SessionSpec.Vaults {
+			ref := r.toProto()
+			ref.Kind = apiresourcekind.ApiResourceKind_vault
+			m.Vaults = append(m.Vaults, ref)
+		}
+		m.Secrets = i.SessionSpec.Secrets
+		m.Connections = i.SessionSpec.Connections
 		resource.Spec.Target = &runv1.RunSpec_SessionSpec{SessionSpec: m}
 	}
 	if i.SessionId != "" {
@@ -323,12 +332,6 @@ func (i *RunInput) toProto() (*runv1.Run, error) {
 			return nil, fieldErr("StructuredOutputSchema", err)
 		}
 		resource.Spec.StructuredOutputSchema = v
-	}
-	if len(i.RuntimeEnv) > 0 {
-		resource.Spec.RuntimeEnv = make(map[string]*executioncontextv1.ExecutionValue, len(i.RuntimeEnv))
-		for k, v := range i.RuntimeEnv {
-			resource.Spec.RuntimeEnv[k] = &executioncontextv1.ExecutionValue{Value: v.Value, IsSecret: v.IsSecret}
-		}
 	}
 	resource.Spec.AutoApproveAll = i.AutoApproveAll
 	for idx, item := range i.Attachments {
@@ -380,6 +383,7 @@ func (i *WorkspaceSourceInput) toProto() (*sessionv1.WorkspaceSource, error) {
 			m.Depth = &v
 		}
 		m.WriteBackMode = i.GitRepo.WriteBackMode
+		m.Token = i.GitRepo.Token
 		p.Source = &sessionv1.WorkspaceSource_GitRepo{GitRepo: m}
 	}
 	return p, nil
@@ -431,12 +435,6 @@ func RunInputFromProto(p *runv1.Run) *RunInput {
 		if sv := s.GetStructuredOutputSchema(); sv != nil {
 			input.StructuredOutputSchema = sv.AsMap()
 		}
-		if len(s.GetRuntimeEnv()) > 0 {
-			input.RuntimeEnv = make(map[string]EnvVarInput, len(s.GetRuntimeEnv()))
-			for k, v := range s.GetRuntimeEnv() {
-				input.RuntimeEnv[k] = EnvVarInput{Value: v.GetValue(), IsSecret: v.GetIsSecret()}
-			}
-		}
 		input.AutoApproveAll = s.GetAutoApproveAll()
 		for _, item := range s.GetAttachments() {
 			input.Attachments = append(input.Attachments, attachmentInputFromProto(item))
@@ -474,6 +472,11 @@ func sessionSpecInputFromProto(p *sessionv1.SessionSpec) *SessionSpecInput {
 	input.Harness = p.GetHarness()
 	input.CursorMode = p.GetCursorMode()
 	input.ExecutionTarget = p.GetExecutionTarget()
+	for _, r := range p.GetVaults() {
+		input.Vaults = append(input.Vaults, resourceRefFromProto(r))
+	}
+	input.Secrets = p.GetSecrets()
+	input.Connections = p.GetConnections()
 	return input
 }
 
@@ -507,6 +510,7 @@ func gitRepoSourceInputFromProto(p *sessionv1.GitRepoSource) *GitRepoSourceInput
 	input.Commit = p.GetCommit()
 	input.Depth = p.GetDepth()
 	input.WriteBackMode = p.GetWriteBackMode()
+	input.Token = p.GetToken()
 	return input
 }
 

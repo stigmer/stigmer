@@ -158,7 +158,6 @@ async function runResolvedAgent(
   const prepared = await prepareAgentExec(
     toAgentExecFlags(options),
     client.stigmer,
-    org,
     stderrProgress(),
     {
       // The kind's tier against the server's reported edition — the same

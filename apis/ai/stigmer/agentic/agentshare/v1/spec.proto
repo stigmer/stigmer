@@ -25,9 +25,9 @@ import "buf/validate/validate.proto";
 // example YAML.
 message AgentShareSpec {
   option (buf.validate.message).cel = {
-    id: "agent_share.environment_refs_public_only"
-    message: "environment_refs can only be set on public-audience shares"
-    expression: "this.audience != 2 || this.environment_refs.size() == 0"
+    id: "agent_share.vaults_public_only"
+    message: "vaults can only be set on public-audience shares"
+    expression: "this.audience != 2 || this.vaults.size() == 0"
   };
   option (buf.validate.message).cel = {
     id: "agent_share.run_config_public_only"
@@ -52,9 +52,9 @@ message AgentShareSpec {
   // editions (spec-level CEL cannot see metadata.org), the same rule the
   // schedule and channel kinds apply to their agent reference. The sharing
   // org is the billing org and guest tool credentials
-  // resolve in the share's org (secrets never cross orgs — org A's
-  // environments are structurally unreachable from org B's runs via
-  // OrgSharedEnvironmentPolicy). status.agent_id pins the resolved agent
+  // resolve in the share's org (secrets never cross orgs: the
+  // reference rule keeps a share's vaults in its own organization).
+  // status.agent_id pins the resolved agent
   // against slug-reuse rebind.
   ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [
     (ai.stigmer.commons.apiresource.reference_kind) = agent,
@@ -131,31 +131,31 @@ message AgentShareSpec {
   // embed, CLI) through the existing error-message path.
   AgentShareMessages messages = 5;
 
-  // References to Environment resources whose values are provided to guest
-  // conversations on this share.
+  // Value 6 held environment_refs, the environments whose values a
+  // run received, until vaults replaced environments.
+  reserved 6;
+  reserved "environment_refs";
+
+  // Vaults whose logins and secrets guest conversations on this share use, in
+  // order: the first vault holding a match wins. Valid on public-audience
+  // shares only. At most 20.
   //
-  // This is how a tool-using agent becomes chattable over a share link:
-  // bind an org-shared environment holding the needed credentials (for
-  // example a read-only API token), and guest runs receive its
-  // values at runtime. The agent itself stays untouched.
-  // Valid on public-audience shares only.
+  // This is how a tool-using agent becomes chattable over a share link: attach
+  // a shared vault holding the needed keys (for example a read-only API
+  // token). A guest's runs use only these vaults; a visitor brings none of
+  // their own. A My vault cannot be attached.
   //
   // @internal
-  // Resolved in the share's org through the org-shared environment
-  // resolution seam (EnvironmentRuntimeResolutionService /
-  // OrgSharedEnvironmentPolicy): each referenced environment
-  // must be visibility_org in the share's org, or the merge skips it with
-  // a diagnostic. Merged at guest execution-context build time only —
-  // never written to the agent, so org members' own conversations on it
-  // never read them. Org-audience shares reject this field via
-  // the message-level CEL rule: member sessions carry no share linkage,
-  // so bound credentials would silently never apply.
-  repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [
-    (ai.stigmer.commons.apiresource.reference_kind) = environment,
+  // Read by the run's credential resolver for a run whose session carries the
+  // stigmer.ai/share-id label. Organization-audience shares refuse the field
+  // by the message-level CEL rule: members' runs use their own vaults.
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [
+    (ai.stigmer.commons.apiresource.reference_kind) = vault,
+    (buf.validate.field).repeated.max_items = 20,
     (buf.validate.field).repeated.items.cel = {
-      id: "environment_refs.kind"
-      message: "environment_refs must reference resources with kind=environment"
-      expression: "this.kind == 53"
+      id: "vaults.kind"
+      message: "vaults must reference resources with kind=vault"
+      expression: "this.kind == 59"
     }
   ];
 
@@ -175,7 +175,7 @@ message AgentShareSpec {
   // are never read; the edition's run-lane driver loads this field
   // server-side from the share and hands it to the server's one
   // resolution. The trust posture is unchanged. Org-audience shares reject the field via the
-  // message-level CEL rule for the same reason as environment_refs:
+  // message-level CEL rule for the same reason as vaults:
   // member sessions carry no share linkage, so it would be stored but
   // silently never applied. Enforcement is cloud-only — guest runtime
   // is a cloud concept; OSS stores and echoes the field.

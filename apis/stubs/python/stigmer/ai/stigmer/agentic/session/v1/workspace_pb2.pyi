@@ -30,15 +30,17 @@ class LocalPathSource(_message.Message):
     def __init__(self, path: _Optional[str] = ...) -> None: ...
 
 class GitRepoSource(_message.Message):
-    __slots__ = ("url", "branch", "commit", "depth", "write_back_mode")
+    __slots__ = ("url", "branch", "commit", "depth", "write_back_mode", "token")
     URL_FIELD_NUMBER: _ClassVar[int]
     BRANCH_FIELD_NUMBER: _ClassVar[int]
     COMMIT_FIELD_NUMBER: _ClassVar[int]
     DEPTH_FIELD_NUMBER: _ClassVar[int]
     WRITE_BACK_MODE_FIELD_NUMBER: _ClassVar[int]
+    TOKEN_FIELD_NUMBER: _ClassVar[int]
     url: str
     branch: str
     commit: str
     depth: int
     write_back_mode: _enum_pb2.GitWriteBackMode
-    def __init__(self, url: _Optional[str] = ..., branch: _Optional[str] = ..., commit: _Optional[str] = ..., depth: _Optional[int] = ..., write_back_mode: _Optional[_Union[_enum_pb2.GitWriteBackMode, str]] = ...) -> None: ...
+    token: str
+    def __init__(self, url: _Optional[str] = ..., branch: _Optional[str] = ..., commit: _Optional[str] = ..., depth: _Optional[int] = ..., write_back_mode: _Optional[_Union[_enum_pb2.GitWriteBackMode, str]] = ..., token: _Optional[str] = ...) -> None: ...

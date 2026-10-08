@@ -24,7 +24,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
 import { makeAgentShare } from "../support/agentshares";
 import { API_KEY_API_VERSION, API_KEY_KIND, plaintextKeyOf } from "../support/apikeys";
-import { makeEnvironment } from "../support/environments";
+import { makeSharedVault, setSecretsInput, vaultTarget } from "../support/vaults";
 import { uniqueName } from "../support/naming";
 import { createChildOrganization, createOrganizationOnceReleased } from "../support/organizations";
 import { createTarget, enforcingLaneOf, type TargetProfile } from "../targets";
@@ -50,16 +50,15 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-/** An organization under `slug` holding an agent, a share of it and an environment with a secret. */
+/** An organization under `slug` holding an agent, a share of it and a shared vault with a secret. */
 async function populated(slug: string, using: ConformanceClients = clients) {
   const org = await using.organizationCommand.create({ apiVersion: API_VERSION, kind: KIND, metadata: { name: slug, slug } });
   const id = org.metadata!.id;
   const agent = await using.agentCommand.create(makeAgent({ org: id, name: uniqueName("purge-agent") }));
   const share = await using.agentShareCommand.create(makeAgentShare(id, agent.metadata!.slug));
-  const environment = await using.environmentCommand.create(
-    makeEnvironment({ org: id, name: uniqueName("purge-env"), data: { TOKEN: { value: "purged", isSecret: true } } }),
-  );
-  return { id, slug, agent, share, environment };
+  const created = await using.vaultCommand.create(makeSharedVault({ org: id, name: uniqueName("purge-vault") }));
+  const vault = await using.vaultCommand.setSecrets(setSecretsInput(vaultTarget(id, created.metadata!.id), { TOKEN: "purged" }));
+  return { id, slug, agent, share, vault };
 }
 
 /** The slug's next organization, once the purge released it; deleted at the end of the arm. */
@@ -87,7 +86,7 @@ describe("Organization purge conformance", () => {
     await nextHolder(doomed.slug);
   });
 
-  it("[rpc:AgentQueryController.get] [rpc:EnvironmentQueryController.get] [rpc:AgentCommandController.create] its rows answer not found, and nothing new is made inside it", async () => {
+  it("[rpc:AgentQueryController.get] [rpc:VaultQueryController.get] [rpc:AgentCommandController.create] its rows answer not found, and nothing new is made inside it", async () => {
     const doomed = await populated(uniqueName("purge"));
     await clients.organizationCommand.delete({ value: doomed.id });
 
@@ -99,9 +98,9 @@ describe("Organization purge conformance", () => {
       "an agent it owned, by id",
     );
     await expectGrpcCode(
-      () => clients.environmentQuery.get({ value: doomed.environment.metadata!.id }),
+      () => clients.vaultQuery.get({ value: doomed.vault.metadata!.id }),
       Code.NotFound,
-      "an environment it owned, by id",
+      "a vault it owned, by id",
     );
     const refused = await expectGrpcCode(
       () => clients.agentCommand.create(makeAgent({ org: doomed.id, name: uniqueName("late-agent") })),
@@ -132,11 +131,11 @@ describe("Organization purge conformance", () => {
 
     const next = await nextHolder(doomed.slug);
     expect(next.metadata?.id, "a new organization").not.toBe(doomed.id);
-    expect((await clients.environmentQuery.list({ org: doomed.slug })).items).toEqual([]);
+    expect((await clients.vaultQuery.list({ org: doomed.slug })).items).toEqual([]);
     await expectGrpcCode(
-      () => clients.environmentQuery.getByReference({ org: doomed.slug, slug: doomed.environment.metadata!.slug }),
+      () => clients.vaultQuery.getByReference({ org: doomed.slug, slug: doomed.vault.metadata!.slug }),
       Code.NotFound,
-      "the old organization's environment, through the slug's new holder",
+      "the old organization's vault, through the slug's new holder",
     );
   });
 

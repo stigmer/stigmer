@@ -26,7 +26,7 @@ public final class AgentShareInput {
     private final AgentShareAudience audience;
     private final java.util.List<String> allowedOrigins;
     private final AgentShareMessagesInput messages;
-    private final java.util.List<ResourceRef> environmentRefs;
+    private final java.util.List<ResourceRef> vaults;
     private final RunConfigInput runConfig;
 
     private AgentShareInput(Builder builder) {
@@ -41,7 +41,7 @@ public final class AgentShareInput {
         this.audience = builder.audience;
         this.allowedOrigins = builder.allowedOrigins;
         this.messages = builder.messages;
-        this.environmentRefs = builder.environmentRefs;
+        this.vaults = builder.vaults;
         this.runConfig = builder.runConfig;
     }
 
@@ -61,10 +61,10 @@ public final class AgentShareInput {
         if (this.messages != null) {
             spec.setMessages(this.messages.toProto());
         }
-        if (this.environmentRefs != null) {
-            for (ResourceRef item : this.environmentRefs) {
-                spec.addEnvironmentRefs(item.toProto().toBuilder()
-                    .setKind(ApiResourceKind.environment).build());
+        if (this.vaults != null) {
+            for (ResourceRef item : this.vaults) {
+                spec.addVaults(item.toProto().toBuilder()
+                    .setKind(ApiResourceKind.vault).build());
             }
         }
         if (this.runConfig != null) {
@@ -109,7 +109,7 @@ public final class AgentShareInput {
         private AgentShareAudience audience;
         private java.util.List<String> allowedOrigins;
         private AgentShareMessagesInput messages;
-        private java.util.List<ResourceRef> environmentRefs;
+        private java.util.List<ResourceRef> vaults;
         private RunConfigInput runConfig;
 
         private Builder() {}
@@ -130,7 +130,7 @@ public final class AgentShareInput {
         public Builder audience(AgentShareAudience audience) { this.audience = audience; return this; }
         public Builder allowedOrigins(java.util.List<String> allowedOrigins) { this.allowedOrigins = allowedOrigins; return this; }
         public Builder messages(AgentShareMessagesInput messages) { this.messages = messages; return this; }
-        public Builder environmentRefs(java.util.List<ResourceRef> environmentRefs) { this.environmentRefs = environmentRefs; return this; }
+        public Builder vaults(java.util.List<ResourceRef> vaults) { this.vaults = vaults; return this; }
         public Builder runConfig(RunConfigInput runConfig) { this.runConfig = runConfig; return this; }
 
         public AgentShareInput build() { return new AgentShareInput(this); }

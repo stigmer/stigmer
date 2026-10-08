@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
           "outputType": "AgentShare",
           "outputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
-          "description": "Update an existing agent share.\n\n Replaces the spec wholesale: a manifest that omits audience resets the\n share to public, and one that omits environment_refs unbinds them\n (fails closed). The slug and referenced agent are immutable."
+          "description": "Update an existing agent share.\n\n Replaces the spec wholesale: a manifest that omits audience resets the\n share to public, and one that omits vaults detaches them (fails\n closed). The slug and referenced agent are immutable."
         },
         {
           "name": "RotateShareLink",
@@ -130,7 +130,7 @@
     },
     {
       "name": "ApiResourceReference",
-      "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Environment, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"acme/web-search\", \"acme/my-agent\").\n\n Every reference in a resource's spec is checked when the resource is\n written: the target must exist, and a target in another organization\n must be one the writing organization's parent shares with its child\n organizations (visibility_child_orgs) to be referenced at all. A blueprint may not be\n more visible than the skills, MCP servers and agents it references, so\n what a person can run they can also read. A reference that fails the\n check is refused at write, never at run.",
+      "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Vault, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"acme/web-search\", \"acme/my-agent\").\n\n Every reference in a resource's spec is checked when the resource is\n written: the target must exist, and a target in another organization\n must be one the writing organization's parent shares with its child\n organizations (visibility_child_orgs) to be referenced at all. A blueprint may not be\n more visible than the skills, MCP servers and agents it references, so\n what a person can run they can also read. A reference that fails the\n check is refused at write, never at run.",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
       "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
       "fields": [
@@ -175,11 +175,11 @@
               "agent_share",
               "agent_channel",
               "channel_app",
-              "environment",
               "execution_context",
               "schedule",
               "memory",
               "plugin",
+              "vault",
               "plan",
               "subscription",
               "license"
@@ -548,11 +548,6 @@
           "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
         },
         {
-          "name": "environment",
-          "number": 53,
-          "description": "Named set of variables and secrets for a run."
-        },
-        {
           "name": "execution_context",
           "number": 54,
           "description": "User-owned runtime context for managing execution state."
@@ -571,6 +566,11 @@
           "name": "plugin",
           "number": 58,
           "description": "An installed Agent Plugins package: the archive Stigmer materialised into\n skills, MCP servers and an agent, and the handle that upgrades\n and removes them together. A plugin is what you install; an agent is what\n runs. Members are the resources labelled with the plugin's id."
+        },
+        {
+          "name": "vault",
+          "number": 59,
+          "description": "A person's or an organization's box of logins (matched by a tool's\n address) and secrets (matched by name) that runs use."
         },
         {
           "name": "plan",
@@ -597,7 +597,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (environments, sessions) stay creator-only."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -612,7 +612,7 @@
         {
           "name": "visibility_child_orgs",
           "number": 4,
-          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and environments are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
+          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and vaults are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
         }
       ]
     },
@@ -668,7 +668,7 @@
       ]
     }
   ],
-  "resourceDescription": "AgentShare turns an agent into a hosted chat link with its own audience, embed origins, and tool credentials.\n\n A share is a distribution channel: it controls who can chat with the\n referenced agent over `/chat/\u003cshare id\u003e`, which sites may embed the\n chat widget, what visitors see when a limit refuses them, and which\n environment credentials guest conversations receive. Deleting the share\n tears the channel down; disabling it pauses serving while preserving\n configuration. The referenced agent is never modified by share\n operations.",
+  "resourceDescription": "AgentShare turns an agent into a hosted chat link with its own audience, embed origins, and tool credentials.\n\n A share is a distribution channel: it controls who can chat with the\n referenced agent over `/chat/\u003cshare id\u003e`, which sites may embed the\n chat widget, what visitors see when a limit refuses them, and which\n vaults guest conversations use. Deleting the share\n tears the channel down; disabling it pauses serving while preserving\n configuration. The referenced agent is never modified by share\n operations.",
   "statusType": {
     "name": "AgentShareStatus",
     "description": "AgentShareStatus contains system-managed state for an agent share.",
@@ -704,6 +704,22 @@
           "kind": "string"
         },
         "description": "ID of the agent this share was created against.\n\n Pins the share to the exact agent (by immutable ID) that spec.agent_ref\n resolved to at creation. If that agent is deleted and a different one\n is later created at the same org/slug, the share stops resolving\n instead of silently attaching to the new agent.",
+        "required": false
+      },
+      {
+        "name": "VaultAttachers",
+        "jsonName": "vaultAttachers",
+        "protoField": "vault_attachers",
+        "type": {
+          "kind": "map",
+          "keyType": {
+            "kind": "string"
+          },
+          "valueType": {
+            "kind": "string"
+          }
+        },
+        "description": "Who attached each of this resource's vaults, by vault id: the account\n whose permission to use the vault each run checks when it has no\n person.",
         "required": false
       }
     ]

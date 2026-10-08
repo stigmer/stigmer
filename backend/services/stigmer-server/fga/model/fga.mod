@@ -21,7 +21,6 @@ contents:
   - agentic/agent_channel.fga
   - agentic/agent_share.fga
   - agentic/channel_app.fga
-  - agentic/environment.fga
   - agentic/execution_context.fga
   - agentic/mcp_server.fga
   - agentic/memory.fga
@@ -30,3 +29,4 @@ contents:
   - agentic/schedule.fga
   - agentic/session.fga
   - agentic/skill.fga
+  - agentic/vault.fga

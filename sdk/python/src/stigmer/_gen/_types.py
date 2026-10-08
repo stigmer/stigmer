@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from ai.stigmer.agentic.environment.v1 import spec_pb2 as environment_spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.search.v1 import io_pb2 as search_io_pb2
 
@@ -77,22 +76,3 @@ class EnvVarInput:
     value: str = ""
     is_secret: bool = False
     description: str = ""
-
-
-@dataclass
-class EnvSpecInput:
-    """Environment variable configuration."""
-
-    variables: dict[str, EnvVarInput] = field(default_factory=dict)
-
-    def _to_proto(self) -> environment_spec_pb2.EnvironmentSpec:
-        spec = environment_spec_pb2.EnvironmentSpec()
-        for name, var in self.variables.items():
-            spec.data[name].CopyFrom(
-                environment_spec_pb2.EnvironmentValue(
-                    value=var.value,
-                    is_secret=var.is_secret,
-                    description=var.description,
-                )
-            )
-        return spec

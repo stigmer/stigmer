@@ -28,9 +28,6 @@ import { AgentShareQueryController } from "@stigmer/protos/ai/stigmer/agentic/ag
 import { type ChannelApp, ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
-import { type Environment, EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
-import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
-import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { type McpServer, McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
@@ -117,17 +114,6 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     updateVisibility: (c, i) => c(AgentCommandController).updateVisibility(i),
   },
   {
-    kind: ApiResourceKind.environment,
-    yamlKind: "Environment",
-    displayName: "Environment",
-    apiVersion: AGENTIC_V1,
-    schema: EnvironmentSchema,
-    applyOrder: 5,
-    apply: (c, m) => c(EnvironmentCommandController).apply(m as Environment),
-    getByReference: (c, ref) => c(EnvironmentQueryController).getByReference(ref),
-    updateVisibility: (c, i) => c(EnvironmentCommandController).updateVisibility(i),
-  },
-  {
     kind: ApiResourceKind.identity_provider,
     yamlKind: "IdentityProvider",
     displayName: "Identity Provider",
@@ -167,7 +153,7 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     apply: (c, m) => c(AgentShareCommandController).apply(m as AgentShare),
     getByReference: (c, ref) => c(AgentShareQueryController).getByReference(ref),
   },
-  // An AgentChannel references an Agent, a ChannelApp, and Environments.
+  // An AgentChannel references an Agent, a ChannelApp, and vaults.
   {
     kind: ApiResourceKind.agent_channel,
     yamlKind: "AgentChannel",

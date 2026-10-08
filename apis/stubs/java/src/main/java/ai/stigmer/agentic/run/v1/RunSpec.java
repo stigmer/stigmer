@@ -51,18 +51,6 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.run.v1.SpecProto.internal_static_ai_stigmer_agentic_run_v1_RunSpec_descriptor;
   }
 
-  @SuppressWarnings({"rawtypes"})
-  @java.lang.Override
-  protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
-      int number) {
-    switch (number) {
-      case 5:
-        return internalGetRuntimeEnv();
-      default:
-        throw new RuntimeException(
-            "Invalid map field number: " + number);
-    }
-  }
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internalGetFieldAccessorTable() {
@@ -566,133 +554,6 @@ private static final long serialVersionUID = 0L;
     return structuredOutputSchema_ == null ? com.google.protobuf.Struct.getDefaultInstance() : structuredOutputSchema_;
   }
 
-  public static final int RUNTIME_ENV_FIELD_NUMBER = 5;
-  private static final class RuntimeEnvDefaultEntryHolder {
-    static final com.google.protobuf.MapEntry<
-        java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> defaultEntry =
-            com.google.protobuf.MapEntry
-            .<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>newDefaultInstance(
-                ai.stigmer.agentic.run.v1.SpecProto.internal_static_ai_stigmer_agentic_run_v1_RunSpec_RuntimeEnvEntry_descriptor, 
-                com.google.protobuf.WireFormat.FieldType.STRING,
-                "",
-                com.google.protobuf.WireFormat.FieldType.MESSAGE,
-                ai.stigmer.agentic.executioncontext.v1.ExecutionValue.getDefaultInstance());
-  }
-  @SuppressWarnings("serial")
-  private com.google.protobuf.MapField<
-      java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtimeEnv_;
-  private com.google.protobuf.MapField<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>
-  internalGetRuntimeEnv() {
-    if (runtimeEnv_ == null) {
-      return com.google.protobuf.MapField.emptyMapField(
-          RuntimeEnvDefaultEntryHolder.defaultEntry);
-    }
-    return runtimeEnv_;
-  }
-  public int getRuntimeEnvCount() {
-    return internalGetRuntimeEnv().getMap().size();
-  }
-  /**
-   * <pre>
-   * Runtime environment variables and secrets (run-scoped).
-   * These values are only available for this specific run and take the
-   * highest merge priority, overriding values from Environments bound via
-   * environment_refs. A key must be declared in Agent.spec.env to survive the
-   * merge: the agent env map is a declaration whitelist (name + is_secret +
-   * optional), never a value source — undeclared keys are dropped.
-   * Use case: B2B integrations where secrets are injected at runtime per call.
-   * These values are consumed into the ExecutionContext (deleted when the
-   * run completes) and cleared from the persisted run.
-   * </pre>
-   *
-   * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
-   */
-  @java.lang.Override
-  public boolean containsRuntimeEnv(
-      java.lang.String key) {
-    if (key == null) { throw new NullPointerException("map key"); }
-    return internalGetRuntimeEnv().getMap().containsKey(key);
-  }
-  /**
-   * Use {@link #getRuntimeEnvMap()} instead.
-   */
-  @java.lang.Override
-  @java.lang.Deprecated
-  public java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> getRuntimeEnv() {
-    return getRuntimeEnvMap();
-  }
-  /**
-   * <pre>
-   * Runtime environment variables and secrets (run-scoped).
-   * These values are only available for this specific run and take the
-   * highest merge priority, overriding values from Environments bound via
-   * environment_refs. A key must be declared in Agent.spec.env to survive the
-   * merge: the agent env map is a declaration whitelist (name + is_secret +
-   * optional), never a value source — undeclared keys are dropped.
-   * Use case: B2B integrations where secrets are injected at runtime per call.
-   * These values are consumed into the ExecutionContext (deleted when the
-   * run completes) and cleared from the persisted run.
-   * </pre>
-   *
-   * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
-   */
-  @java.lang.Override
-  public java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> getRuntimeEnvMap() {
-    return internalGetRuntimeEnv().getMap();
-  }
-  /**
-   * <pre>
-   * Runtime environment variables and secrets (run-scoped).
-   * These values are only available for this specific run and take the
-   * highest merge priority, overriding values from Environments bound via
-   * environment_refs. A key must be declared in Agent.spec.env to survive the
-   * merge: the agent env map is a declaration whitelist (name + is_secret +
-   * optional), never a value source — undeclared keys are dropped.
-   * Use case: B2B integrations where secrets are injected at runtime per call.
-   * These values are consumed into the ExecutionContext (deleted when the
-   * run completes) and cleared from the persisted run.
-   * </pre>
-   *
-   * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
-   */
-  @java.lang.Override
-  public /* nullable */
-ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrDefault(
-      java.lang.String key,
-      /* nullable */
-ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
-    if (key == null) { throw new NullPointerException("map key"); }
-    java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> map =
-        internalGetRuntimeEnv().getMap();
-    return map.containsKey(key) ? map.get(key) : defaultValue;
-  }
-  /**
-   * <pre>
-   * Runtime environment variables and secrets (run-scoped).
-   * These values are only available for this specific run and take the
-   * highest merge priority, overriding values from Environments bound via
-   * environment_refs. A key must be declared in Agent.spec.env to survive the
-   * merge: the agent env map is a declaration whitelist (name + is_secret +
-   * optional), never a value source — undeclared keys are dropped.
-   * Use case: B2B integrations where secrets are injected at runtime per call.
-   * These values are consumed into the ExecutionContext (deleted when the
-   * run completes) and cleared from the persisted run.
-   * </pre>
-   *
-   * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrThrow(
-      java.lang.String key) {
-    if (key == null) { throw new NullPointerException("map key"); }
-    java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> map =
-        internalGetRuntimeEnv().getMap();
-    if (!map.containsKey(key)) {
-      throw new java.lang.IllegalArgumentException();
-    }
-    return map.get(key);
-  }
-
   public static final int AUTO_APPROVE_ALL_FIELD_NUMBER = 7;
   private boolean autoApproveAll_ = false;
   /**
@@ -1116,12 +977,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(message_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, message_);
     }
-    com.google.protobuf.GeneratedMessage
-      .serializeStringMapTo(
-        output,
-        internalGetRuntimeEnv(),
-        RuntimeEnvDefaultEntryHolder.defaultEntry,
-        5);
     if (autoApproveAll_ != false) {
       output.writeBool(7, autoApproveAll_);
     }
@@ -1166,16 +1021,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(message_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, message_);
-    }
-    for (java.util.Map.Entry<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> entry
-         : internalGetRuntimeEnv().getMap().entrySet()) {
-      com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>
-      runtimeEnv__ = RuntimeEnvDefaultEntryHolder.defaultEntry.newBuilderForType()
-          .setKey(entry.getKey())
-          .setValue(entry.getValue())
-          .buildPartial();
-      size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(5, runtimeEnv__);
     }
     if (autoApproveAll_ != false) {
       size += com.google.protobuf.CodedOutputStream
@@ -1255,8 +1100,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (!getStructuredOutputSchema()
           .equals(other.getStructuredOutputSchema())) return false;
     }
-    if (!internalGetRuntimeEnv().equals(
-        other.internalGetRuntimeEnv())) return false;
     if (getAutoApproveAll()
         != other.getAutoApproveAll()) return false;
     if (!getAttachmentsList()
@@ -1308,10 +1151,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     if (hasStructuredOutputSchema()) {
       hash = (37 * hash) + STRUCTURED_OUTPUT_SCHEMA_FIELD_NUMBER;
       hash = (53 * hash) + getStructuredOutputSchema().hashCode();
-    }
-    if (!internalGetRuntimeEnv().getMap().isEmpty()) {
-      hash = (37 * hash) + RUNTIME_ENV_FIELD_NUMBER;
-      hash = (53 * hash) + internalGetRuntimeEnv().hashCode();
     }
     hash = (37 * hash) + AUTO_APPROVE_ALL_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
@@ -1456,28 +1295,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       return ai.stigmer.agentic.run.v1.SpecProto.internal_static_ai_stigmer_agentic_run_v1_RunSpec_descriptor;
     }
 
-    @SuppressWarnings({"rawtypes"})
-    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
-        int number) {
-      switch (number) {
-        case 5:
-          return internalGetRuntimeEnv();
-        default:
-          throw new RuntimeException(
-              "Invalid map field number: " + number);
-      }
-    }
-    @SuppressWarnings({"rawtypes"})
-    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMutableMapFieldReflection(
-        int number) {
-      switch (number) {
-        case 5:
-          return internalGetMutableRuntimeEnv();
-        default:
-          throw new RuntimeException(
-              "Invalid map field number: " + number);
-      }
-    }
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
@@ -1525,7 +1342,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         structuredOutputSchemaBuilder_.dispose();
         structuredOutputSchemaBuilder_ = null;
       }
-      internalGetMutableRuntimeEnv().clear();
       autoApproveAll_ = false;
       if (attachmentsBuilder_ == null) {
         attachments_ = java.util.Collections.emptyList();
@@ -1533,7 +1349,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         attachments_ = null;
         attachmentsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000100);
       workspaceFileRefs_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
       supersedesRunId_ = "";
@@ -1579,9 +1395,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.run.v1.RunSpec result) {
       if (attachmentsBuilder_ == null) {
-        if (((bitField0_ & 0x00000200) != 0)) {
+        if (((bitField0_ & 0x00000100) != 0)) {
           attachments_ = java.util.Collections.unmodifiableList(attachments_);
-          bitField0_ = (bitField0_ & ~0x00000200);
+          bitField0_ = (bitField0_ & ~0x00000100);
         }
         result.attachments_ = attachments_;
       } else {
@@ -1614,19 +1430,16 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         to_bitField0_ |= 0x00000002;
       }
       if (((from_bitField0_ & 0x00000080) != 0)) {
-        result.runtimeEnv_ = internalGetRuntimeEnv().build(RuntimeEnvDefaultEntryHolder.defaultEntry);
-      }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.autoApproveAll_ = autoApproveAll_;
       }
-      if (((from_bitField0_ & 0x00000400) != 0)) {
+      if (((from_bitField0_ & 0x00000200) != 0)) {
         workspaceFileRefs_.makeImmutable();
         result.workspaceFileRefs_ = workspaceFileRefs_;
       }
-      if (((from_bitField0_ & 0x00000800) != 0)) {
+      if (((from_bitField0_ & 0x00000400) != 0)) {
         result.supersedesRunId_ = supersedesRunId_;
       }
-      if (((from_bitField0_ & 0x00001000) != 0)) {
+      if (((from_bitField0_ & 0x00000800) != 0)) {
         result.conversationCatchup_ = conversationCatchupBuilder_ == null
             ? conversationCatchup_
             : conversationCatchupBuilder_.build();
@@ -1673,9 +1486,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (other.hasStructuredOutputSchema()) {
         mergeStructuredOutputSchema(other.getStructuredOutputSchema());
       }
-      internalGetMutableRuntimeEnv().mergeFrom(
-          other.internalGetRuntimeEnv());
-      bitField0_ |= 0x00000080;
       if (other.getAutoApproveAll() != false) {
         setAutoApproveAll(other.getAutoApproveAll());
       }
@@ -1683,7 +1493,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         if (!other.attachments_.isEmpty()) {
           if (attachments_.isEmpty()) {
             attachments_ = other.attachments_;
-            bitField0_ = (bitField0_ & ~0x00000200);
+            bitField0_ = (bitField0_ & ~0x00000100);
           } else {
             ensureAttachmentsIsMutable();
             attachments_.addAll(other.attachments_);
@@ -1696,7 +1506,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
             attachmentsBuilder_.dispose();
             attachmentsBuilder_ = null;
             attachments_ = other.attachments_;
-            bitField0_ = (bitField0_ & ~0x00000200);
+            bitField0_ = (bitField0_ & ~0x00000100);
             attachmentsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetAttachmentsFieldBuilder() : null;
@@ -1708,7 +1518,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (!other.workspaceFileRefs_.isEmpty()) {
         if (workspaceFileRefs_.isEmpty()) {
           workspaceFileRefs_ = other.workspaceFileRefs_;
-          bitField0_ |= 0x00000400;
+          bitField0_ |= 0x00000200;
         } else {
           ensureWorkspaceFileRefsIsMutable();
           workspaceFileRefs_.addAll(other.workspaceFileRefs_);
@@ -1717,7 +1527,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       }
       if (!other.getSupersedesRunId().isEmpty()) {
         supersedesRunId_ = other.supersedesRunId_;
-        bitField0_ |= 0x00000800;
+        bitField0_ |= 0x00000400;
         onChanged();
       }
       if (other.hasConversationCatchup()) {
@@ -1774,18 +1584,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
               bitField0_ |= 0x00000004;
               break;
             } // case 26
-            case 42: {
-              com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>
-              runtimeEnv__ = input.readMessage(
-                  RuntimeEnvDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
-              internalGetMutableRuntimeEnv().ensureBuilderMap().put(
-                  runtimeEnv__.getKey(), runtimeEnv__.getValue());
-              bitField0_ |= 0x00000080;
-              break;
-            } // case 42
             case 56: {
               autoApproveAll_ = input.readBool();
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000080;
               break;
             } // case 56
             case 74: {
@@ -1808,7 +1609,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
             } // case 82
             case 98: {
               supersedesRunId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000800;
+              bitField0_ |= 0x00000400;
               break;
             } // case 98
             case 106: {
@@ -1822,7 +1623,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
               input.readMessage(
                   internalGetConversationCatchupFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00001000;
+              bitField0_ |= 0x00000800;
               break;
             } // case 114
             case 146: {
@@ -3218,257 +3019,6 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       return structuredOutputSchemaBuilder_;
     }
 
-    private static final class RuntimeEnvConverter implements com.google.protobuf.MapFieldBuilder.Converter<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> {
-      @java.lang.Override
-      public ai.stigmer.agentic.executioncontext.v1.ExecutionValue build(ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder val) {
-        if (val instanceof ai.stigmer.agentic.executioncontext.v1.ExecutionValue) { return (ai.stigmer.agentic.executioncontext.v1.ExecutionValue) val; }
-        return ((ai.stigmer.agentic.executioncontext.v1.ExecutionValue.Builder) val).build();
-      }
-
-      @java.lang.Override
-      public com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> defaultEntry() {
-        return RuntimeEnvDefaultEntryHolder.defaultEntry;
-      }
-    };
-    private static final RuntimeEnvConverter runtimeEnvConverter = new RuntimeEnvConverter();
-
-    private com.google.protobuf.MapFieldBuilder<
-        java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder, ai.stigmer.agentic.executioncontext.v1.ExecutionValue, ai.stigmer.agentic.executioncontext.v1.ExecutionValue.Builder> runtimeEnv_;
-    private com.google.protobuf.MapFieldBuilder<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder, ai.stigmer.agentic.executioncontext.v1.ExecutionValue, ai.stigmer.agentic.executioncontext.v1.ExecutionValue.Builder>
-        internalGetRuntimeEnv() {
-      if (runtimeEnv_ == null) {
-        return new com.google.protobuf.MapFieldBuilder<>(runtimeEnvConverter);
-      }
-      return runtimeEnv_;
-    }
-    private com.google.protobuf.MapFieldBuilder<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder, ai.stigmer.agentic.executioncontext.v1.ExecutionValue, ai.stigmer.agentic.executioncontext.v1.ExecutionValue.Builder>
-        internalGetMutableRuntimeEnv() {
-      if (runtimeEnv_ == null) {
-        runtimeEnv_ = new com.google.protobuf.MapFieldBuilder<>(runtimeEnvConverter);
-      }
-      bitField0_ |= 0x00000080;
-      onChanged();
-      return runtimeEnv_;
-    }
-    public int getRuntimeEnvCount() {
-      return internalGetRuntimeEnv().ensureBuilderMap().size();
-    }
-    /**
-     * <pre>
-     * Runtime environment variables and secrets (run-scoped).
-     * These values are only available for this specific run and take the
-     * highest merge priority, overriding values from Environments bound via
-     * environment_refs. A key must be declared in Agent.spec.env to survive the
-     * merge: the agent env map is a declaration whitelist (name + is_secret +
-     * optional), never a value source — undeclared keys are dropped.
-     * Use case: B2B integrations where secrets are injected at runtime per call.
-     * These values are consumed into the ExecutionContext (deleted when the
-     * run completes) and cleared from the persisted run.
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
-     */
-    @java.lang.Override
-    public boolean containsRuntimeEnv(
-        java.lang.String key) {
-      if (key == null) { throw new NullPointerException("map key"); }
-      return internalGetRuntimeEnv().ensureBuilderMap().containsKey(key);
-    }
-    /**
-     * Use {@link #getRuntimeEnvMap()} instead.
-     */
-    @java.lang.Override
-    @java.lang.Deprecated
-    public java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> getRuntimeEnv() {
-      return getRuntimeEnvMap();
-    }
-    /**
-     * <pre>
-     * Runtime environment variables and secrets (run-scoped).
-     * These values are only available for this specific run and take the
-     * highest merge priority, overriding values from Environments bound via
-     * environment_refs. A key must be declared in Agent.spec.env to survive the
-     * merge: the agent env map is a declaration whitelist (name + is_secret +
-     * optional), never a value source — undeclared keys are dropped.
-     * Use case: B2B integrations where secrets are injected at runtime per call.
-     * These values are consumed into the ExecutionContext (deleted when the
-     * run completes) and cleared from the persisted run.
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
-     */
-    @java.lang.Override
-    public java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> getRuntimeEnvMap() {
-      return internalGetRuntimeEnv().getImmutableMap();
-    }
-    /**
-     * <pre>
-     * Runtime environment variables and secrets (run-scoped).
-     * These values are only available for this specific run and take the
-     * highest merge priority, overriding values from Environments bound via
-     * environment_refs. A key must be declared in Agent.spec.env to survive the
-     * merge: the agent env map is a declaration whitelist (name + is_secret +
-     * optional), never a value source — undeclared keys are dropped.
-     * Use case: B2B integrations where secrets are injected at runtime per call.
-     * These values are consumed into the ExecutionContext (deleted when the
-     * run completes) and cleared from the persisted run.
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
-     */
-    @java.lang.Override
-    public /* nullable */
-ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrDefault(
-        java.lang.String key,
-        /* nullable */
-ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
-      if (key == null) { throw new NullPointerException("map key"); }
-      java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder> map = internalGetMutableRuntimeEnv().ensureBuilderMap();
-      return map.containsKey(key) ? runtimeEnvConverter.build(map.get(key)) : defaultValue;
-    }
-    /**
-     * <pre>
-     * Runtime environment variables and secrets (run-scoped).
-     * These values are only available for this specific run and take the
-     * highest merge priority, overriding values from Environments bound via
-     * environment_refs. A key must be declared in Agent.spec.env to survive the
-     * merge: the agent env map is a declaration whitelist (name + is_secret +
-     * optional), never a value source — undeclared keys are dropped.
-     * Use case: B2B integrations where secrets are injected at runtime per call.
-     * These values are consumed into the ExecutionContext (deleted when the
-     * run completes) and cleared from the persisted run.
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
-     */
-    @java.lang.Override
-    public ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrThrow(
-        java.lang.String key) {
-      if (key == null) { throw new NullPointerException("map key"); }
-      java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder> map = internalGetMutableRuntimeEnv().ensureBuilderMap();
-      if (!map.containsKey(key)) {
-        throw new java.lang.IllegalArgumentException();
-      }
-      return runtimeEnvConverter.build(map.get(key));
-    }
-    public Builder clearRuntimeEnv() {
-      bitField0_ = (bitField0_ & ~0x00000080);
-      internalGetMutableRuntimeEnv().clear();
-      return this;
-    }
-    /**
-     * <pre>
-     * Runtime environment variables and secrets (run-scoped).
-     * These values are only available for this specific run and take the
-     * highest merge priority, overriding values from Environments bound via
-     * environment_refs. A key must be declared in Agent.spec.env to survive the
-     * merge: the agent env map is a declaration whitelist (name + is_secret +
-     * optional), never a value source — undeclared keys are dropped.
-     * Use case: B2B integrations where secrets are injected at runtime per call.
-     * These values are consumed into the ExecutionContext (deleted when the
-     * run completes) and cleared from the persisted run.
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
-     */
-    public Builder removeRuntimeEnv(
-        java.lang.String key) {
-      if (key == null) { throw new NullPointerException("map key"); }
-      internalGetMutableRuntimeEnv().ensureBuilderMap()
-          .remove(key);
-      return this;
-    }
-    /**
-     * Use alternate mutation accessors instead.
-     */
-    @java.lang.Deprecated
-    public java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>
-        getMutableRuntimeEnv() {
-      bitField0_ |= 0x00000080;
-      return internalGetMutableRuntimeEnv().ensureMessageMap();
-    }
-    /**
-     * <pre>
-     * Runtime environment variables and secrets (run-scoped).
-     * These values are only available for this specific run and take the
-     * highest merge priority, overriding values from Environments bound via
-     * environment_refs. A key must be declared in Agent.spec.env to survive the
-     * merge: the agent env map is a declaration whitelist (name + is_secret +
-     * optional), never a value source — undeclared keys are dropped.
-     * Use case: B2B integrations where secrets are injected at runtime per call.
-     * These values are consumed into the ExecutionContext (deleted when the
-     * run completes) and cleared from the persisted run.
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
-     */
-    public Builder putRuntimeEnv(
-        java.lang.String key,
-        ai.stigmer.agentic.executioncontext.v1.ExecutionValue value) {
-      if (key == null) { throw new NullPointerException("map key"); }
-      if (value == null) { throw new NullPointerException("map value"); }
-      internalGetMutableRuntimeEnv().ensureBuilderMap()
-          .put(key, value);
-      bitField0_ |= 0x00000080;
-      return this;
-    }
-    /**
-     * <pre>
-     * Runtime environment variables and secrets (run-scoped).
-     * These values are only available for this specific run and take the
-     * highest merge priority, overriding values from Environments bound via
-     * environment_refs. A key must be declared in Agent.spec.env to survive the
-     * merge: the agent env map is a declaration whitelist (name + is_secret +
-     * optional), never a value source — undeclared keys are dropped.
-     * Use case: B2B integrations where secrets are injected at runtime per call.
-     * These values are consumed into the ExecutionContext (deleted when the
-     * run completes) and cleared from the persisted run.
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
-     */
-    public Builder putAllRuntimeEnv(
-        java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> values) {
-      for (java.util.Map.Entry<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> e : values.entrySet()) {
-        if (e.getKey() == null || e.getValue() == null) {
-          throw new NullPointerException();
-        }
-      }
-      internalGetMutableRuntimeEnv().ensureBuilderMap()
-          .putAll(values);
-      bitField0_ |= 0x00000080;
-      return this;
-    }
-    /**
-     * <pre>
-     * Runtime environment variables and secrets (run-scoped).
-     * These values are only available for this specific run and take the
-     * highest merge priority, overriding values from Environments bound via
-     * environment_refs. A key must be declared in Agent.spec.env to survive the
-     * merge: the agent env map is a declaration whitelist (name + is_secret +
-     * optional), never a value source — undeclared keys are dropped.
-     * Use case: B2B integrations where secrets are injected at runtime per call.
-     * These values are consumed into the ExecutionContext (deleted when the
-     * run completes) and cleared from the persisted run.
-     * </pre>
-     *
-     * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 5 [json_name = "runtimeEnv"];</code>
-     */
-    public ai.stigmer.agentic.executioncontext.v1.ExecutionValue.Builder putRuntimeEnvBuilderIfAbsent(
-        java.lang.String key) {
-      java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder> builderMap = internalGetMutableRuntimeEnv().ensureBuilderMap();
-      ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder entry = builderMap.get(key);
-      if (entry == null) {
-        entry = ai.stigmer.agentic.executioncontext.v1.ExecutionValue.newBuilder();
-        builderMap.put(key, entry);
-      }
-      if (entry instanceof ai.stigmer.agentic.executioncontext.v1.ExecutionValue) {
-        entry = ((ai.stigmer.agentic.executioncontext.v1.ExecutionValue) entry).toBuilder();
-        builderMap.put(key, entry);
-      }
-      return (ai.stigmer.agentic.executioncontext.v1.ExecutionValue.Builder) entry;
-    }
-
     private boolean autoApproveAll_ ;
     /**
      * <pre>
@@ -3526,7 +3076,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     public Builder setAutoApproveAll(boolean value) {
 
       autoApproveAll_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -3555,7 +3105,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearAutoApproveAll() {
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000080);
       autoApproveAll_ = false;
       onChanged();
       return this;
@@ -3564,9 +3114,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     private java.util.List<ai.stigmer.agentic.run.v1.Attachment> attachments_ =
       java.util.Collections.emptyList();
     private void ensureAttachmentsIsMutable() {
-      if (!((bitField0_ & 0x00000200) != 0)) {
+      if (!((bitField0_ & 0x00000100) != 0)) {
         attachments_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.Attachment>(attachments_);
-        bitField0_ |= 0x00000200;
+        bitField0_ |= 0x00000100;
        }
     }
 
@@ -3881,7 +3431,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     public Builder clearAttachments() {
       if (attachmentsBuilder_ == null) {
         attachments_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000200);
+        bitField0_ = (bitField0_ & ~0x00000100);
         onChanged();
       } else {
         attachmentsBuilder_.clear();
@@ -4063,7 +3613,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         attachmentsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.run.v1.Attachment, ai.stigmer.agentic.run.v1.Attachment.Builder, ai.stigmer.agentic.run.v1.AttachmentOrBuilder>(
                 attachments_,
-                ((bitField0_ & 0x00000200) != 0),
+                ((bitField0_ & 0x00000100) != 0),
                 getParentForChildren(),
                 isClean());
         attachments_ = null;
@@ -4077,7 +3627,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (!workspaceFileRefs_.isModifiable()) {
         workspaceFileRefs_ = new com.google.protobuf.LazyStringArrayList(workspaceFileRefs_);
       }
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
     }
     /**
      * <pre>
@@ -4248,7 +3798,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       ensureWorkspaceFileRefsIsMutable();
       workspaceFileRefs_.set(index, value);
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -4287,7 +3837,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       ensureWorkspaceFileRefsIsMutable();
       workspaceFileRefs_.add(value);
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -4326,7 +3876,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       ensureWorkspaceFileRefsIsMutable();
       com.google.protobuf.AbstractMessageLite.Builder.addAll(
           values, workspaceFileRefs_);
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -4362,7 +3912,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     public Builder clearWorkspaceFileRefs() {
       workspaceFileRefs_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00000400);;
+      bitField0_ = (bitField0_ & ~0x00000200);;
       onChanged();
       return this;
     }
@@ -4402,7 +3952,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       checkByteStringIsUtf8(value);
       ensureWorkspaceFileRefsIsMutable();
       workspaceFileRefs_.add(value);
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -4486,7 +4036,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       supersedesRunId_ = value;
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -4508,7 +4058,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      */
     public Builder clearSupersedesRunId() {
       supersedesRunId_ = getDefaultInstance().getSupersedesRunId();
-      bitField0_ = (bitField0_ & ~0x00000800);
+      bitField0_ = (bitField0_ & ~0x00000400);
       onChanged();
       return this;
     }
@@ -4534,7 +4084,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       supersedesRunId_ = value;
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -4557,7 +4107,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * @return Whether the conversationCatchup field is set.
      */
     public boolean hasConversationCatchup() {
-      return ((bitField0_ & 0x00001000) != 0);
+      return ((bitField0_ & 0x00000800) != 0);
     }
     /**
      * <pre>
@@ -4602,7 +4152,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       } else {
         conversationCatchupBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
@@ -4626,7 +4176,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       } else {
         conversationCatchupBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
@@ -4645,7 +4195,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      */
     public Builder mergeConversationCatchup(ai.stigmer.agentic.run.v1.ConversationCatchup value) {
       if (conversationCatchupBuilder_ == null) {
-        if (((bitField0_ & 0x00001000) != 0) &&
+        if (((bitField0_ & 0x00000800) != 0) &&
           conversationCatchup_ != null &&
           conversationCatchup_ != ai.stigmer.agentic.run.v1.ConversationCatchup.getDefaultInstance()) {
           getConversationCatchupBuilder().mergeFrom(value);
@@ -4656,7 +4206,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         conversationCatchupBuilder_.mergeFrom(value);
       }
       if (conversationCatchup_ != null) {
-        bitField0_ |= 0x00001000;
+        bitField0_ |= 0x00000800;
         onChanged();
       }
       return this;
@@ -4675,7 +4225,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
      */
     public Builder clearConversationCatchup() {
-      bitField0_ = (bitField0_ & ~0x00001000);
+      bitField0_ = (bitField0_ & ~0x00000800);
       conversationCatchup_ = null;
       if (conversationCatchupBuilder_ != null) {
         conversationCatchupBuilder_.dispose();
@@ -4698,7 +4248,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
      */
     public ai.stigmer.agentic.run.v1.ConversationCatchup.Builder getConversationCatchupBuilder() {
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00000800;
       onChanged();
       return internalGetConversationCatchupFieldBuilder().getBuilder();
     }

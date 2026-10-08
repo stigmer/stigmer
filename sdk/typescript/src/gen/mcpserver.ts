@@ -5,12 +5,12 @@ import { stripUndefined, toResourceRefInput } from "./proto-utils.js";
 import { type DeleteResourceInput, type ListParams, type ListResult, type ResourceRef } from "./types.js";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { EnvVarDeclarationSchema, type EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { McpServerSchema, type McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { ConnectInputSchema, InitiateOAuthConnectInputSchema, InitiateOAuthConnectOutputSchema, CompleteOAuthConnectInputSchema, CompleteOAuthConnectOutputSchema, DisconnectOAuthInputSchema, DisconnectOAuthOutputSchema, SetOrgOAuthAppInputSchema, SetOrgOAuthAppOutputSchema, DeleteOrgOAuthAppInputSchema, DeleteOrgOAuthAppOutputSchema, GetOAuthGrantStatusInputSchema, GetOAuthGrantStatusOutputSchema, GetOrgOAuthAppInputSchema, GetOrgOAuthAppOutputSchema, type ConnectInput, type InitiateOAuthConnectInput, type InitiateOAuthConnectOutput, type CompleteOAuthConnectInput, type CompleteOAuthConnectOutput, type DisconnectOAuthInput, type DisconnectOAuthOutput, type SetOrgOAuthAppInput, type SetOrgOAuthAppOutput, type DeleteOrgOAuthAppInput, type DeleteOrgOAuthAppOutput, type GetOAuthGrantStatusInput, type GetOAuthGrantStatusOutput, type GetOrgOAuthAppInput, type GetOrgOAuthAppOutput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { McpServerSpecSchema, StdioServerConfigSchema, HttpServerConfigSchema, McpServerAuthSchema, type StdioServerConfig, type HttpServerConfig, type McpServerAuth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
+import { EnvVarDeclarationSchema, type EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -193,6 +193,7 @@ export interface EnvVarDeclarationInput {
   isSecret?: boolean;
   description?: string;
   optional?: boolean;
+  value?: string;
 }
 
 /** SDK input type for McpServerAuth. */
@@ -227,6 +228,7 @@ function buildEnvVarDeclarationProto(input: EnvVarDeclarationInput) {
     isSecret: input.isSecret,
     description: input.description,
     optional: input.optional,
+    value: input.value,
   }));
 }
 
@@ -298,6 +300,7 @@ function toEnvVarDeclarationInput(msg: EnvVarDeclaration): EnvVarDeclarationInpu
     isSecret: msg.isSecret || undefined,
     description: msg.description || undefined,
     optional: msg.optional || undefined,
+    value: msg.value || undefined,
   };
 }
 

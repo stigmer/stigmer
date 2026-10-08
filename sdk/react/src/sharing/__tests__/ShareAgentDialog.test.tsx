@@ -3,7 +3,6 @@ import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/re
 import type { ReactNode } from "react";
 import { Code } from "@connectrpc/connect";
 import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { StigmerError, type AgentShareInput } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
@@ -32,7 +31,7 @@ interface MockOverrides {
   apply?: (input: AgentShareInput) => Promise<unknown>;
   rotateShareLink?: (input: unknown) => Promise<unknown>;
   getOrCreateBillingAccount?: (orgId: string) => Promise<unknown>;
-  environments?: unknown[];
+  vaults?: unknown[];
   baseUrl?: string;
 }
 
@@ -46,17 +45,17 @@ function createMockStigmer(overrides: MockOverrides = {}) {
       rotateShareLink:
         overrides.rotateShareLink ?? vi.fn().mockResolvedValue({}),
     },
-    environment: {
+    vault: {
       list: vi.fn().mockResolvedValue({
-        items: overrides.environments ?? [],
-        totalCount: overrides.environments?.length ?? 0,
+        items: overrides.vaults ?? [],
+        totalCount: overrides.vaults?.length ?? 0,
       }),
-      // The readiness hook checks bound refs' visibility; the picker's
-      // list above is the source of the fixtures, so resolve from it.
+      // The readiness hook reads each named vault; the picker's list above
+      // is the source of the fixtures, so resolve from it.
       getByReference: vi
         .fn()
         .mockImplementation(({ slug }: { org: string; slug: string }) => {
-          const env = (overrides.environments ?? []).find(
+          const env = (overrides.vaults ?? []).find(
             (e) => (e as { metadata?: { slug?: string } }).metadata?.slug === slug,
           );
           return env
@@ -122,7 +121,7 @@ function makeShare(
       unavailable?: string;
       conversationEnded?: string;
     };
-    environmentRefs?: { org: string; slug: string }[];
+    vaults?: { org: string; slug: string }[];
   },
   shareLinkToken?: string,
 ) {
@@ -138,14 +137,10 @@ function makeShare(
   } as never;
 }
 
-function orgSharedEnv(slug: string, name?: string) {
+function sharedVault(slug: string, name?: string) {
   return {
-    metadata: {
-      slug,
-      name: name ?? slug,
-      visibility: ApiResourceVisibility.visibility_org,
-    },
-    spec: { description: "" },
+    metadata: { slug, name: name ?? slug },
+    spec: { description: "", owner: { case: "org", value: "acme" } },
   };
 }
 
@@ -466,17 +461,17 @@ describe("ShareAgentDialog", () => {
       expect(input.slug).toBe("support-agent");
     });
 
-    it("switching to Org members drops credential bindings (public-audience only)", async () => {
+    it("switching to Org members drops the share's vaults (public-audience only)", async () => {
       const apply = vi.fn().mockResolvedValue({});
       renderOpenDialog(
         createMockStigmer({
           apply,
-          environments: [orgSharedEnv("github-creds")],
+          vaults: [sharedVault("github-creds")],
         }),
         {
           share: makeShare({
             enabled: true,
-            environmentRefs: [{ org: "acme", slug: "github-creds" }],
+            vaults: [{ org: "acme", slug: "github-creds" }],
           }),
         },
       );
@@ -485,12 +480,12 @@ describe("ShareAgentDialog", () => {
         screen.getByRole("radio", { name: "Org members", hidden: true }),
       );
 
-      // The proto CEL rule rejects environment_refs on org-audience
+      // The proto CEL rule rejects vaults on org-audience
       // shares — carrying them would fail the whole apply.
       await waitFor(() => expect(apply).toHaveBeenCalledTimes(1));
       const input = apply.mock.calls[0][0] as AgentShareInput;
       expect(input.audience).toBe(AgentShareAudience.org);
-      expect(input.environmentRefs).toEqual([]);
+      expect(input.vaults).toEqual([]);
     });
 
     it("renders org-audience copy: member link, revocation note, no indexability warning", () => {
@@ -606,23 +601,38 @@ describe("ShareAgentDialog", () => {
   });
 
   describe("Tool credentials", () => {
-    it("warns needs-credentials for a tool-using share without bindings", () => {
+    it("names the vaults that cannot serve the share's runs", async () => {
+      renderOpenDialog(createMockStigmer(), {
+        agent: makeAgent({ mcpUsages: true }),
+        share: makeShare({
+          enabled: true,
+          vaults: [
+            { org: "acme", slug: "gone-one" },
+            { org: "acme", slug: "gone-two" },
+          ],
+        }),
+      });
+      expect(await screen.findByText("acme/gone-one, acme/gone-two")).toBeTruthy();
+      expect(screen.getByText(/not a shared vault you can read/i).textContent).toMatch(/vaults/);
+    });
+
+    it("warns needs-credentials for a tool-using share naming no vault", () => {
       renderOpenDialog(createMockStigmer(), {
         agent: makeAgent({ mcpUsages: true }),
         share: makeShare({ enabled: true }),
       });
 
       expect(
-        screen.getByText(/no credentials are bound to this share/i),
+        screen.getByText(/this\s+share names no vault/i),
       ).toBeTruthy();
     });
 
-    it("binds an org-shared environment by applying the appended refs", async () => {
+    it("names a shared vault by applying the appended refs", async () => {
       const apply = vi.fn().mockResolvedValue({});
       renderOpenDialog(
         createMockStigmer({
           apply,
-          environments: [orgSharedEnv("github-creds", "GitHub Creds")],
+          vaults: [sharedVault("github-creds", "GitHub Creds")],
         }),
         {
           agent: makeAgent({ mcpUsages: true }),
@@ -631,7 +641,7 @@ describe("ShareAgentDialog", () => {
       );
 
       // The section is expanded by default for tool-using agents.
-      const picker = await screen.findByLabelText("Add environment", {
+      const picker = await screen.findByLabelText("Add vault", {
         // The select is visually present inside the collapsible.
         selector: "select",
       });
@@ -639,25 +649,21 @@ describe("ShareAgentDialog", () => {
 
       await waitFor(() => expect(apply).toHaveBeenCalledTimes(1));
       const input = apply.mock.calls[0][0] as AgentShareInput;
-      expect(input.environmentRefs).toEqual([
+      expect(input.vaults).toEqual([
         { org: "acme", slug: "github-creds" },
       ]);
       // The binding rides the full spec — nothing else changes.
       expect(input.enabled).toBe(true);
     });
 
-    it("offers only org-shared environments in the picker", async () => {
-      const privateEnv = {
-        metadata: {
-          slug: "personal-creds",
-          name: "Personal Creds",
-          visibility: ApiResourceVisibility.visibility_private,
-        },
-        spec: { description: "" },
+    it("never offers the viewer's own My vault in the picker", async () => {
+      const myVault = {
+        metadata: { slug: "my-vault-ana", name: "My vault" },
+        spec: { description: "", owner: { case: "person", value: "ida_ana" } },
       };
       renderOpenDialog(
         createMockStigmer({
-          environments: [orgSharedEnv("github-creds", "GitHub Creds"), privateEnv],
+          vaults: [sharedVault("github-creds", "GitHub Creds"), myVault],
         }),
         {
           agent: makeAgent({ mcpUsages: true }),
@@ -665,11 +671,11 @@ describe("ShareAgentDialog", () => {
         },
       );
 
-      await screen.findByLabelText("Add environment", { selector: "select" });
-      // Private environments are guest-unusable (the runtime merge skips
-      // them) — offering them would bind credentials that never apply.
+      await screen.findByLabelText("Add vault", { selector: "select" });
+      // A guest's runs have no person, and the server refuses a My vault on
+      // a share, so the picker never offers it.
       expect(screen.getByText("GitHub Creds")).toBeTruthy();
-      expect(screen.queryByText("Personal Creds")).toBeNull();
+      expect(screen.queryByText("My vault")).toBeNull();
     });
 
     it("hides the section entirely for org-audience shares", () => {

@@ -29,4 +29,15 @@ message SessionStatus {
   // the reference resolved; such a conversation runs the agent as it is
   // when each turn starts.
   string agent_version_hash = 2;
+
+  // Who attached each of this resource's vaults, by vault id: the account
+  // whose permission to use the vault each run checks when it has no
+  // person.
+  //
+  // @internal
+  // Server-owned. The reference rule records the writer for each vault a
+  // write introduces, keeps the entry for each vault a write keeps, and
+  // drops entries for removed vaults, so an editor's unrelated edit never
+  // re-attributes someone else's attachment.
+  map<string, string> vault_attachers = 3;
 }

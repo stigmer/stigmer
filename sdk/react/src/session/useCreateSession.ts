@@ -50,8 +50,8 @@ export interface SharedSessionFields {
    * Personalization, not authorization: anyone who can create the session
    * can set this (the same trust level as authoring the first message).
    * Hidden from the conversation thread, not from the API — `session.get`
-   * returns it, so never put secrets here; secrets belong in `runtimeEnv`
-   * or Environment resources. Large values bloat every prompt.
+   * returns it, so never put secrets here; secrets belong in the
+   * session's own `secrets` or in a vault. Large values bloat every prompt.
    */
   readonly sessionContext?: string;
   /**

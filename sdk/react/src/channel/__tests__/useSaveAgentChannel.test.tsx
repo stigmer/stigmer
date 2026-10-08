@@ -80,13 +80,13 @@ describe("agentChannelToInput", () => {
     expect(input).not.toHaveProperty("slug");
   });
 
-  it("carries environment_refs — the toggle must never wipe bound credentials", () => {
+  it("carries vaults — the toggle must never wipe bound credentials", () => {
     const channel = makeChannel({
       spec: {
         agentRef: { org: "acme", slug: "support-agent" },
         enabled: true,
         providerConfig: { case: "slack", value: {} },
-        environmentRefs: [
+        vaults: [
           { org: "acme", slug: "github-credentials" },
           { org: "acme", slug: "search-credentials" },
         ],
@@ -95,15 +95,15 @@ describe("agentChannelToInput", () => {
 
     const input = agentChannelToInput(channel);
     // Order preserved: the ref list's order is the merge priority.
-    expect(input.environmentRefs).toEqual([
+    expect(input.vaults).toEqual([
       { org: "acme", slug: "github-credentials" },
       { org: "acme", slug: "search-credentials" },
     ]);
   });
 
-  it("omits environmentRefs entirely when the channel binds none", () => {
+  it("omits vaults entirely when the channel binds none", () => {
     const input = agentChannelToInput(makeChannel());
-    expect(input).not.toHaveProperty("environmentRefs");
+    expect(input).not.toHaveProperty("vaults");
   });
 
   it("carries app_ref — the toggle must never unbind the serving app", () => {
@@ -260,7 +260,7 @@ describe("useSaveAgentChannel", () => {
         enabled: true,
         providerConfig: { case: "slack", value: {} },
         appRef: { org: "acme", slug: "acme-support-app" },
-        environmentRefs: [{ org: "acme", slug: "github-credentials" }],
+        vaults: [{ org: "acme", slug: "github-credentials" }],
       },
     });
 
@@ -282,7 +282,7 @@ describe("useSaveAgentChannel", () => {
         slack: {},
         enabled: false,
         appRef: { org: "acme", slug: "acme-support-app" },
-        environmentRefs: [{ org: "acme", slug: "github-credentials" }],
+        vaults: [{ org: "acme", slug: "github-credentials" }],
       }),
     );
   });

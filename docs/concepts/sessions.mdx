@@ -118,16 +118,13 @@ author makes it private, or your access to it is removed, your next message in
 an existing conversation is refused. If the Agent is deleted, the next message
 fails and the error names the Agent.
 
-The keys an Agent declares in its `env` are filled when each message runs. When
-the Agent belongs to the Organization the conversation runs in, the ones nothing
-else supplies come from your personal Environment; an Agent another Organization
-published reads none of them. Those keys reach the Agent's tools and its shell,
-which follow the instructions the Agent's author wrote. An MCP Server's OAuth
-variable comes only from the sign-in to that server, never from your personal
-Environment. Before your first message in a conversation, the console names the
-keys the Agent declares.
-[Environments](/docs/concepts/environments#how-a-run-gets-its-values) explains
-every source.
+The keys an Agent declares in its `env` are filled when each message runs, from
+the conversation's own values and vaults: the vaults the conversation lists, or,
+when it lists none, the My vault of the person sending the message. Those keys
+reach the Agent's tools and its shell, which follow the instructions the Agent's
+author wrote. Before your first message in a conversation, the console names the
+keys the Agent declares. [Vaults](/docs/concepts/vaults#which-vaults-a-run-uses)
+explains every source.
 
 ## Harness
 

@@ -51,27 +51,41 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
               "applies. `agent` (and `org`, when given) must name the session's agent, or the call " +
               "is refused; neither is sent with the turn.",
           ),
-        runtime_env: z
+        secrets: z
           .record(z.string())
           .optional()
           .describe(
-            "Non-secret runtime environment values (name → value) injected into the run. Every key the agent " +
-              "declares that is not passed here is read from the personal Environment of the caller (the person " +
-              "the run belongs to), when the agent is in the run's organization; a secret belongs there, never in " +
-              "this tool.",
+            "Values (name → value) a new conversation's runs use ahead of every vault, kept sealed for " +
+              "the conversation's life. Only when starting a new conversation (no session_id). Every " +
+              "key the agent declares that is not passed here is found in the caller's My vault, then " +
+              "the agent's vaults the caller may use. A value passed here goes through the calling " +
+              "model's context, so pass only what that model may see; save a real secret in a vault " +
+              "instead (`stigmer vault set-secret <NAME> --mine`) and leave it out of this call.",
           ),
+        // The argument's former name, kept in the schema only so a caller
+        // still sending it is refused: the tool input is a non-strict object,
+        // which would otherwise drop it and start the run without the values.
+        runtime_env: z
+          .unknown()
+          .optional()
+          .describe("Not accepted: renamed to `secrets`. A call that passes it is refused."),
       },
     },
     (args, extra) =>
-      textOrError(() =>
-        runAgent(target.serverAddress, resolveToken(extra, target.apiKey), {
+      textOrError(async () => {
+        if (args.runtime_env !== undefined) {
+          throw new Error(
+            "run_agent no longer takes runtime_env: pass the same name → value map as `secrets`.",
+          );
+        }
+        return runAgent(target.serverAddress, resolveToken(extra, target.apiKey), {
           org: args.org,
           agent: args.agent,
           message: args.message,
           sessionId: args.session_id,
-          runtimeEnv: args.runtime_env,
-        }),
-      ),
+          secrets: args.secrets,
+        });
+      }),
   );
 
   server.registerTool(

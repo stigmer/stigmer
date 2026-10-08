@@ -14,12 +14,11 @@ from ai.stigmer.agentic.run.v1 import io_pb2
 from ai.stigmer.agentic.run.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
-from ai.stigmer.agentic.executioncontext.v1 import spec_pb2 as executioncontext_spec_pb2
 from ai.stigmer.agentic.session.v1 import spec_pb2 as session_spec_pb2
 from ai.stigmer.agentic.session.v1 import workspace_pb2 as session_workspace_pb2
 
 from ._errors import wrap_error
-from ._types import EnvVarInput, ResourceRef
+from ._types import ResourceRef
 from ._agent import McpServerUsageInput, RunConfigInput
 
 
@@ -187,7 +186,6 @@ class RunInput:
     interaction_mode: int = 0
     build_from_plan: bool = False
     structured_output_schema: dict[str, Any] = field(default_factory=dict)
-    runtime_env: dict[str, EnvVarInput] = field(default_factory=dict)
     auto_approve_all: bool = False
     attachments: list[AttachmentInput] = field(default_factory=list)
     workspace_file_refs: list[str] = field(default_factory=list)
@@ -206,10 +204,6 @@ class RunInput:
             spec.run_config.CopyFrom(self.run_config._to_proto())
         if self.structured_output_schema:
             spec.structured_output_schema.update(self.structured_output_schema)
-        for k, v in self.runtime_env.items():
-            spec.runtime_env[k].CopyFrom(executioncontext_spec_pb2.ExecutionValue(
-                value=v.value, is_secret=v.is_secret,
-            ))
         for item in self.attachments:
             spec.attachments.append(item._to_proto())
         if self.workspace_file_refs:
@@ -255,6 +249,9 @@ class SessionSpecInput:
     harness: int = 0
     cursor_mode: int = 0
     execution_target: int = 0
+    vaults: list[ResourceRef] = field(default_factory=list)
+    secrets: dict[str, str] = field(default_factory=dict)
+    connections: dict[str, str] = field(default_factory=dict)
 
     def _to_proto(self) -> session_spec_pb2.SessionSpec:
         msg = session_spec_pb2.SessionSpec(
@@ -280,6 +277,14 @@ class SessionSpecInput:
             _ref = ref._to_proto()
             _ref.kind = 43
             msg.skill_refs.append(_ref)
+        for ref in self.vaults:
+            _ref = ref._to_proto()
+            _ref.kind = 59
+            msg.vaults.append(_ref)
+        if self.secrets:
+            msg.secrets.update(self.secrets)
+        if self.connections:
+            msg.connections.update(self.connections)
         return msg
 
 
@@ -324,6 +329,7 @@ class GitRepoSourceInput:
     commit: str = ""
     depth: int | None = None
     write_back_mode: int = 0
+    token: str = ""
 
     def _to_proto(self) -> session_workspace_pb2.GitRepoSource:
         msg = session_workspace_pb2.GitRepoSource(
@@ -331,6 +337,7 @@ class GitRepoSourceInput:
             branch=self.branch,
             commit=self.commit,
             write_back_mode=self.write_back_mode,
+            token=self.token,
         )
         if self.depth is not None:
             msg.depth = self.depth

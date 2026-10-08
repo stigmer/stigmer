@@ -3,7 +3,6 @@ import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/re
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import type { AgentChannelInput } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
@@ -34,7 +33,7 @@ function makeAgent(withTools = true) {
   });
 }
 
-function makeChannel(environmentRefs: { org: string; slug: string }[] = []) {
+function makeChannel(vaults: { org: string; slug: string }[] = []) {
   return {
     metadata: {
       id: "ach_1",
@@ -47,7 +46,7 @@ function makeChannel(environmentRefs: { org: string; slug: string }[] = []) {
       agentRef: { org: "acme", slug: "support-agent" },
       enabled: true,
       providerConfig: { case: "slack", value: {} },
-      environmentRefs,
+      vaults,
     },
     status: { installState: 2 },
   } as never;
@@ -60,37 +59,24 @@ function createMockStigmer(overrides: {
     agentChannel: {
       apply: overrides.apply ?? vi.fn().mockResolvedValue({}),
     },
-    environment: {
+    vault: {
       list: vi.fn().mockResolvedValue({
         items: [
           {
-            metadata: {
-              slug: "github-credentials",
-              name: "GitHub Credentials",
-              org: "acme",
-              visibility: ApiResourceVisibility.visibility_org,
-            },
-            spec: {},
+            metadata: { slug: "github-credentials", name: "GitHub Credentials", org: "acme" },
+            spec: { owner: { case: "org", value: "acme" } },
           },
           {
-            metadata: {
-              slug: "private-creds",
-              name: "Private Creds",
-              org: "acme",
-              visibility: ApiResourceVisibility.visibility_private,
-            },
-            spec: {},
+            metadata: { slug: "my-vault-ana", name: "My vault", org: "acme" },
+            spec: { owner: { case: "person", value: "ida_ana" } },
           },
         ],
         totalCount: 2,
       }),
       getByReference: vi.fn().mockImplementation(({ slug }: { slug: string }) =>
         Promise.resolve({
-          metadata: {
-            visibility:
-              slug === "github-credentials"
-                ? ApiResourceVisibility.visibility_org
-                : ApiResourceVisibility.visibility_private,
+          spec: {
+            owner: { case: slug === "github-credentials" ? "org" : "person" },
           },
         }),
       ),
@@ -117,7 +103,7 @@ function Providers({
 }
 
 describe("ChannelCredentialsDialog", () => {
-  it("offers only org-shared environments in the picker", async () => {
+  it("offers shared vaults in the picker, never the viewer's own My vault", async () => {
     render(
       <Providers client={createMockStigmer()}>
         <ChannelCredentialsDialog
@@ -129,12 +115,12 @@ describe("ChannelCredentialsDialog", () => {
       </Providers>,
     );
 
-    // Org-shared env offered; private env filtered out (the runtime
-    // merge would silently skip it).
+    // A channel's runs have no person, and the server refuses a My vault
+    // on a channel, so the picker never offers it.
     expect(
       await screen.findByRole("option", { name: "GitHub Credentials" }),
     ).toBeTruthy();
-    expect(screen.queryByRole("option", { name: "Private Creds" })).toBeNull();
+    expect(screen.queryByRole("option", { name: "My vault" })).toBeNull();
   });
 
   it("saves the full input with the updated bindings — nothing else is dropped", async () => {
@@ -153,8 +139,8 @@ describe("ChannelCredentialsDialog", () => {
       </Providers>,
     );
 
-    // Bind the org-shared environment through the picker.
-    const select = await screen.findByLabelText("Add environment");
+    // Name the shared vault through the picker.
+    const select = await screen.findByLabelText("Add vault");
     fireEvent.change(select, { target: { value: "github-credentials" } });
 
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
@@ -170,7 +156,7 @@ describe("ChannelCredentialsDialog", () => {
           agentRef: { org: "acme", slug: "support-agent" },
           enabled: true,
           slack: {},
-          environmentRefs: [{ org: "acme", slug: "github-credentials" }],
+          vaults: [{ org: "acme", slug: "github-credentials" }],
         }),
       ),
     );
@@ -198,7 +184,7 @@ describe("ChannelCredentialsDialog", () => {
 
     await waitFor(() =>
       expect(apply).toHaveBeenCalledWith(
-        expect.objectContaining({ environmentRefs: [] }),
+        expect.objectContaining({ vaults: [] }),
       ),
     );
   });
@@ -216,7 +202,7 @@ describe("ChannelCredentialsDialog", () => {
     );
 
     expect(
-      await screen.findByText(/no credentials are bound to this channel/i),
+      await screen.findByText(/this channel names no vault/i),
     ).toBeTruthy();
   });
 
@@ -232,9 +218,7 @@ describe("ChannelCredentialsDialog", () => {
       </Providers>,
     );
 
-    await screen.findByLabelText("Add environment");
-    expect(
-      screen.queryByText(/no credentials are bound to this channel/i),
-    ).toBeNull();
+    await screen.findByLabelText("Add vault");
+    expect(screen.queryByText(/this channel names no vault/i)).toBeNull();
   });
 });

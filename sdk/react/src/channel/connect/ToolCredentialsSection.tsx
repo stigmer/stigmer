@@ -8,14 +8,14 @@ import { ChannelToolCredentials } from "../ChannelToolCredentials.js";
 import { ChevronIcon } from "./icons.js";
 
 /**
- * Collapsible credential-binding section for the connect dialogs' create
- * mode (the ShareAgentDialog ToolCredentialsSection pattern). Expanded by
- * default when the agent uses MCP tools — for those agents this is
- * essential configuration, not an advanced option: without a binding,
- * every channel message that needs a tool is refused.
+ * Collapsible vault section for the connect dialogs' create mode (the
+ * ShareAgentDialog ToolCredentialsSection pattern). Expanded by default
+ * when the agent uses MCP tools — for those agents this is essential
+ * configuration, not an advanced option: without a vault, every channel
+ * message that needs a tool is refused.
  *
- * Provider-agnostic by construction: bindings are agent + environment
- * facts, so both connect dialogs render this section unchanged.
+ * Provider-agnostic by construction: the vaults a channel names are agent
+ * and vault facts, so both connect dialogs render this section unchanged.
  */
 export function ToolCredentialsSection({
   agent,

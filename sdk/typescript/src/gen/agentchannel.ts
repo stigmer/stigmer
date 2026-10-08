@@ -192,7 +192,7 @@ export interface AgentChannelInput {
   enabled?: boolean;
   slack?: SlackChannelConfigInput;
   whatsapp?: WhatsAppChannelConfigInput;
-  environmentRefs?: ResourceRef[];
+  vaults?: ResourceRef[];
   appRef?: ResourceRef;
   proactiveMessagingEnabled?: boolean;
   runConfig?: RunConfigInput;
@@ -241,13 +241,13 @@ function buildRunConfigProto(input: RunConfigInput) {
 
 export function buildAgentChannelProto(input: AgentChannelInput): AgentChannel {
   const agentRef = (input.agentRef?.slug || input.agentRef?.org) ? create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 }) : undefined;
-  const environmentRefs = input.environmentRefs?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 53 }));
+  const vaults = input.vaults?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 59 }));
   const appRef = (input.appRef?.slug || input.appRef?.org) ? create(ApiResourceReferenceSchema, { ...input.appRef, kind: 48 }) : undefined;
   const runConfig = input.runConfig ? buildRunConfigProto(input.runConfig) : undefined;
   const spec = Object.assign(create(AgentChannelSpecSchema), stripUndefined({
     agentRef,
     enabled: input.enabled,
-    environmentRefs,
+    vaults,
     appRef,
     proactiveMessagingEnabled: input.proactiveMessagingEnabled,
     runConfig,
@@ -323,7 +323,7 @@ export function toAgentChannelUpdateInput(resource: AgentChannel): AgentChannelI
     enabled: spec.enabled || undefined,
     slack: spec.providerConfig?.case === "slack" ? toSlackChannelConfigInput(spec.providerConfig.value) : undefined,
     whatsapp: spec.providerConfig?.case === "whatsapp" ? toWhatsAppChannelConfigInput(spec.providerConfig.value) : undefined,
-    environmentRefs: toResourceRefInputs(spec.environmentRefs),
+    vaults: toResourceRefInputs(spec.vaults),
     appRef: toResourceRefInput(spec.appRef),
     proactiveMessagingEnabled: spec.proactiveMessagingEnabled || undefined,
     runConfig: spec.runConfig ? toRunConfigInput(spec.runConfig) : undefined,

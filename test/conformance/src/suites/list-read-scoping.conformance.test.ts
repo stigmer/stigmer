@@ -12,7 +12,7 @@
 // the OSS unit suites; this is the wire-level tenant-isolation contract):
 // session.list (the restrict verb, no org intersection, once walked page
 // by page so a token is shown to carry no authority), apikey.findAll
-// (the direct-read tail), environment.list (the org-intersecting family),
+// (the direct-read tail), vault.list (the org-intersecting family),
 // search + recent activity (the enumeration verb), and the
 // check-shaped lane (the listByChannel channel gate) refusing an outsider
 // with its byte-pinned Java copy.
@@ -40,7 +40,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { expectGrpcCode } from "../contract/errors";
 import { makeAgent, agentRefOf } from "../support/agents";
 import { makeSlackAgentChannel } from "../support/agentchannels";
-import { makeEnvironment } from "../support/environments";
+import { makeSharedVault } from "../support/vaults";
 import { makeSession } from "../support/sessions";
 import { uniqueName } from "../support/naming";
 
@@ -186,33 +186,33 @@ describe("list-read scoping — outsider isolation (on the enforcing lane)", () 
     ).not.toContain(key.metadata!.id);
   });
 
-  it("[rpc:EnvironmentQueryController.list] environment.list: the owner's environment is ABSENT from the outsider's org-scoped list", async (ctx) => {
+  it("[rpc:VaultQueryController.list] vault.list: the owner's shared vault is ABSENT from the outsider's org-scoped list", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const { org } = await lane.provisionTenancy();
     const outsider = await lane.provisionIdentity();
 
-    const environment = await clients.environmentCommand.create(
-      makeEnvironment({ org, name: uniqueName("iso-env") }),
+    const vault = await clients.vaultCommand.create(
+      makeSharedVault({ org, name: uniqueName("iso-vault") }),
     );
     fixtures.defer(() =>
-      clients.environmentCommand.delete({
-        resourceId: environment.metadata!.id,
+      clients.vaultCommand.delete({
+        resourceId: vault.metadata!.id,
       }),
     );
 
-    const mine = await clients.environmentQuery.list({ org });
+    const mine = await clients.vaultQuery.list({ org });
     expect(
-      mine.items.map((e) => e.metadata?.id),
-      "owner must see the created environment",
-    ).toContain(environment.metadata!.id);
+      mine.items.map((v) => v.metadata?.id),
+      "owner must see the created vault",
+    ).toContain(vault.metadata!.id);
 
     // The outsider names the OWNER's org explicitly — the org filter is
     // caller-supplied and must never substitute for authorization.
-    const theirs = await outsider.environmentQuery.list({ org });
+    const theirs = await outsider.vaultQuery.list({ org });
     expect(
-      theirs.items.map((e) => e.metadata?.id),
-      "outsider list must not contain the owner's environment",
-    ).not.toContain(environment.metadata!.id);
+      theirs.items.map((v) => v.metadata?.id),
+      "outsider list must not contain the owner's vault",
+    ).not.toContain(vault.metadata!.id);
   });
 
   it("[rpc:SearchService.search] search: the owner's resource never surfaces for the outsider, even naming the owner's org", async (ctx) => {

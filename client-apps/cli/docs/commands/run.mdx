@@ -28,16 +28,20 @@ stigmer run my-agent -m "Summarize the Q4 earnings report"
 
 {/* AUTO_FLAGS */}
 
-### Environment variables
+### Values for this conversation
 
-Control the runtime environment your agent sees. Four flags work together:
+Keys your agent and its tools need normally come from your vault
+(`stigmer vault set-secret <NAME> --mine`), so a run needs no flags. To hand a
+run a value of its own, four flags work together. The values are kept sealed on
+the new conversation, used ahead of every vault, never shown again, and
+destroyed with the conversation:
 
 | Flag | Purpose |
 |------|---------|
-| `--env KEY=VALUE` | Inline environment variable (repeatable) |
-| `--secret KEY=VALUE` | Inline secret — encrypted at rest (repeatable) |
-| `--env-file PATH` | Load variables from a dotenv-style file (repeatable) |
-| `--secret-file PATH` | Load secrets from a file — all values encrypted (repeatable) |
+| `--env KEY=VALUE` | A value for this conversation (repeatable) |
+| `--secret KEY=VALUE` | The same, for a value that reads as a secret (repeatable) |
+| `--env-file PATH` | Load values from a dotenv-style file (repeatable) |
+| `--secret-file PATH` | Load secret values from a file (repeatable) |
 
 **Precedence** (highest to lowest):
 
@@ -45,11 +49,15 @@ Control the runtime environment your agent sees. Four flags work together:
 2. Later `--env-file` / `--secret-file` flags
 3. Earlier `--env-file` / `--secret-file` flags
 
+A variable with no value (`KEY=` in a dotenv file) is left out, and a notice on
+stderr names it (never a value). A run takes at most 100 variables: more is
+refused before anything is sent, so save the rest in a vault the run uses.
+
 ```bash
-# Inline variables
+# Inline values
 stigmer run my-agent --env API_URL=https://api.example.com --env DEBUG=true
 
-# Inline secrets (encrypted at rest)
+# An inline secret
 stigmer run my-agent --secret API_KEY=sk_live_xxx
 
 # Load from files

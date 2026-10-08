@@ -11,11 +11,11 @@
  *   - the reserved slug is refused, the two sign-in role rules are refused on
  *     the contract, and a system-managed client refuses update, delete and
  *     rotate with the cloud's copy;
- *   - create and update run the reference rule on `environment_refs`: a
- *     bare slug is stored under the client's organization, a missing
- *     environment is refused on either chain before anything is stored, and
- *     another organization's environment is refused with the rule's one
- *     sentence;
+ *   - create and update run the reference rule on `vaults`: a bare slug
+ *     is stored under the client's organization with its attacher
+ *     recorded, a missing vault is refused on either chain before anything
+ *     is stored, and another organization's vault is refused with the
+ *     rule's one sentence;
  *   - listByOrg answers the organization's clients, newest first.
  * Who may read a client is the enforcing lane's conformance suite's.
  */
@@ -30,7 +30,7 @@ import { clone, create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -120,15 +120,15 @@ async function refusal(promise: Promise<unknown>): Promise<ConnectError> {
   throw new Error("expected a ConnectError refusal");
 }
 
-async function seedEnvironment(org: string, slug: string): Promise<void> {
-  const id = `env_${org}_${slug}`;
+async function seedVault(org: string, slug: string): Promise<void> {
+  const id = `vlt_${org}_${slug}`;
   await store.saveResource(
-    ApiResourceKind.environment,
+    ApiResourceKind.vault,
     id,
-    EnvironmentSchema,
-    create(EnvironmentSchema, {
+    VaultSchema,
+    create(VaultSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "Environment",
+      kind: "Vault",
       metadata: {
         id,
         name: slug,
@@ -136,18 +136,19 @@ async function seedEnvironment(org: string, slug: string): Promise<void> {
         org,
         visibility: ApiResourceVisibility.visibility_org,
       },
+      spec: { owner: { case: "org", value: org } },
     }),
   );
 }
 
-function environmentRef(slug: string, org = "") {
-  return { org, slug, kind: ApiResourceKind.environment };
+function vaultRef(slug: string, org = "") {
+  return { org, slug, kind: ApiResourceKind.vault };
 }
 
-function environmentTarget() {
-  const entry = referenceTargetKind(ApiResourceKind.environment);
+function vaultTarget() {
+  const entry = referenceTargetKind(ApiResourceKind.vault);
   if (entry === undefined)
-    throw new Error("environment is not a reference target kind");
+    throw new Error("vault is not a reference target kind");
   return entry;
 }
 
@@ -264,15 +265,15 @@ describe("PlatformClient chains", () => {
     expect(noProvision.code).toBe(Code.InvalidArgument);
   });
 
-  it("stores a bare environment slug under the client's organization", async () => {
-    await seedEnvironment("acme", "support-secrets");
+  it("stores a bare vault slug under the client's organization, recording who attached it", async () => {
+    await seedVault("acme", "support-secrets");
     const created = await command.create(
       input("Dashboard", {
-        environmentRefs: [environmentRef("support-secrets")],
+        vaults: [vaultRef("support-secrets")],
       }),
     );
     const refsOf = (spec: PlatformClientSpec | undefined) =>
-      (spec?.environmentRefs ?? []).map((ref) => `${ref.org}/${ref.slug}`);
+      (spec?.vaults ?? []).map((ref) => `${ref.org}/${ref.slug}`);
     expect(refsOf(created.platformClient?.spec)).toEqual([
       "acme/support-secrets",
     ]);
@@ -280,16 +281,21 @@ describe("PlatformClient chains", () => {
     expect(refsOf((await clients.findById(id))?.spec)).toEqual([
       "acme/support-secrets",
     ]);
+    expect(
+      Object.keys(
+        (await clients.findById(id))?.status?.vaultAttachers ?? {},
+      ),
+    ).toEqual(["vlt_acme_support-secrets"]);
   });
 
-  it("refuses a missing environment on create and on update, storing nothing", async () => {
-    const missing = missingReferencesMessage(environmentTarget(), [
+  it("refuses a missing vault on create and on update, storing nothing", async () => {
+    const missing = missingReferencesMessage(vaultTarget(), [
       { slug: "ghost", org: "acme" },
     ]);
 
     const onCreate = await refusal(
       command.create(
-        input("Dashboard", { environmentRefs: [environmentRef("ghost")] }),
+        input("Dashboard", { vaults: [vaultRef("ghost")] }),
       ),
     );
     expect(onCreate.code).toBe(Code.FailedPrecondition);
@@ -301,31 +307,31 @@ describe("PlatformClient chains", () => {
     if (stored?.spec === undefined) throw new Error("create answered no spec");
     const withGhost = clone(PlatformClientSchema, stored);
     withGhost.spec = clone(PlatformClientSpecSchema, stored.spec);
-    withGhost.spec.environmentRefs = [
-      create(ApiResourceReferenceSchema, environmentRef("ghost")),
+    withGhost.spec.vaults = [
+      create(ApiResourceReferenceSchema, vaultRef("ghost")),
     ];
     const onUpdate = await refusal(command.update(withGhost));
     expect(onUpdate.code).toBe(Code.FailedPrecondition);
     expect(onUpdate.rawMessage).toBe(missing);
     expect(
       (await clients.findById(stored.metadata?.id ?? ""))?.spec
-        ?.environmentRefs,
+        ?.vaults,
     ).toEqual([]);
   });
 
-  it("refuses another organization's environment with the rule's one sentence", async () => {
-    await seedEnvironment("globex", "shared");
+  it("refuses another organization's vault with the rule's one sentence", async () => {
+    await seedVault("globex", "shared");
     const foreign = await refusal(
       command.create(
         input("Dashboard", {
-          environmentRefs: [environmentRef("shared", "globex")],
+          vaults: [vaultRef("shared", "globex")],
         }),
       ),
     );
     expect(foreign.code).toBe(Code.FailedPrecondition);
     expect(foreign.rawMessage).toBe(
-      notAvailableReferenceMessage(environmentTarget(), {
-        kind: ApiResourceKind.environment,
+      notAvailableReferenceMessage(vaultTarget(), {
+        kind: ApiResourceKind.vault,
         org: "globex",
         slug: "shared",
       }),

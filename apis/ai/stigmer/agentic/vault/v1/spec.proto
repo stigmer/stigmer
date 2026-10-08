@@ -1,0 +1,170 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.vault.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// VaultSpec names who a vault belongs to and holds its entries.
+//
+// @internal
+// The owner oneof is stamped by the server at create and never changes: a
+// write that sends another owner is refused. Entries change only through the
+// entry RPCs (setSecrets, removeSecrets, setConnection, removeConnections);
+// update changes the name, description and external id and keeps the stored
+// entries whatever the request carries. Every entry write seals its new value
+// first, then changes its one entry inside the store's atomic
+// read-modify-write (a row lock), so a sign-in's renewal and a secret saved
+// in the same moment never undo each other. Every read blanks entry values
+// and tokens.
+message VaultSpec {
+  // Who the vault belongs to. Set by the server.
+  oneof owner {
+    // The person whose My vault this is, by identity account id.
+    //
+    // @internal
+    // The caller's identity id at the first write, in every posture (the
+    // trusted-local operator's is its own stamp). The vault's slug derives
+    // from it. One My vault per person per organization is kept by a name
+    // claim on (organization, person) that the first write takes before the
+    // vault is stored, so two first writes in the same instant create one.
+    string person = 1;
+
+    // The organization a shared vault belongs to, by id.
+    string org = 2;
+  }
+
+  // Human-readable description shown in listings.
+  string description = 3 [(buf.validate.field).string.max_len = 500];
+
+  // Your own identifier for this vault, unique within the organization.
+  //
+  // An integrator that keeps one vault per customer sets it to the
+  // customer's id and finds the vault again with getByExternalId. Shared
+  // vaults only.
+  //
+  // @internal
+  // Unique through the store's name claims (the child organization's
+  // external id idiom): a create or update claims the id before it
+  // persists, so two simultaneous writes with one id cannot both win.
+  string external_id = 4 [(buf.validate.field).string = {
+    max_len: 200
+    pattern: "^$|^[A-Za-z0-9][A-Za-z0-9._:@/-]*$"
+  }];
+
+  // Secrets by name. A secret fills the requirement with the same name, such
+  // as OPENAI_API_KEY.
+  map<string, VaultSecret> secrets = 5;
+
+  // Connections by address. A pasted connection fills the login of an HTTP
+  // tool at that address, whose requests carry the token there, or clones
+  // from a Git host such as github.com; a sign-in fills only the tool that
+  // signed in.
+  map<string, VaultConnection> connections = 6;
+}
+
+// VaultSecret is one saved secret.
+message VaultSecret {
+  // The secret's value. Never returned: every read shows it empty.
+  //
+  // @internal
+  // Sealed at rest through the server's SecretService under the
+  // organization's scope.
+  string value = 1;
+
+  // What the secret is for.
+  string description = 2;
+
+  // Who saved the current value, by identity account id. Set by the server.
+  string saved_by = 3;
+
+  // When the current value was saved. Set by the server.
+  google.protobuf.Timestamp saved_at = 4;
+}
+
+// VaultConnection is one saved login, for the tool or Git host at its address.
+message VaultConnection {
+  // The access token. Never returned: every read shows it empty.
+  //
+  // @internal
+  // Sealed at rest through the server's SecretService.
+  string token = 1;
+
+  // How the login was saved. Set by the server.
+  VaultConnectionSource source = 2;
+
+  // The sign-in that produced the token, when it came from one. Set by the
+  // server.
+  VaultConnectionSignIn sign_in = 3;
+
+  // What the login is for.
+  string description = 4;
+
+  // Who saved the current token, by identity account id. Set by the server.
+  string saved_by = 5;
+
+  // When the current token was saved. Set by the server.
+  google.protobuf.Timestamp saved_at = 6;
+}
+
+// VaultConnectionSource says how a connection was saved.
+enum VaultConnectionSource {
+  // Default value when no source is set.
+  vault_connection_source_unspecified = 0;
+
+  // A token pasted by a person or sent by an integrator.
+  pasted = 1;
+
+  // A token from a sign-in, renewed by the platform before it expires.
+  sign_in = 2;
+}
+
+// VaultConnectionSignIn records the sign-in behind a connection, so the
+// platform can renew its token.
+message VaultConnectionSignIn {
+  // When the access token expires, in Unix seconds. Zero means it does not
+  // expire.
+  int64 expires_at = 1;
+
+  // The OAuth client the sign-in used.
+  string client_id = 2;
+
+  // How the sign-in was performed: "mcp_oauth" or "vendor_oauth".
+  string auth_method = 3;
+
+  // The token endpoint renewals are sent to.
+  string token_endpoint = 4;
+
+  // The refresh token. Never returned, and never delivered to a run.
+  //
+  // @internal
+  // Sealed at rest beside the access token; the renewal reads it in-process.
+  string refresh_token = 5;
+
+  // The MCP server the sign-in was started from, by id. The sign-in fills
+  // that server's login only.
+  //
+  // @internal
+  // Binding a sign-in to its server keeps a definition that declares
+  // another tool's address (a local program's discovery URL, a login server
+  // apart from the tool) from receiving a token minted for someone else's
+  // tool. A vendor sign-in's renewal also finds its OAuth app through this
+  // server's auth.oauth_app_ref. Empty for the GitHub sign-in, which serves
+  // clones from github.com.
+  string mcp_server_id = 6;
+
+  // Whether the MCP server was a local program (stdio) when the sign-in
+  // completed; false for an HTTP server. The sign-in fills that server's
+  // login only while it is still the same kind: a server switched between
+  // an HTTP server and a local program needs a new sign-in. Set by the
+  // server.
+  //
+  // @internal
+  // A local program's address is its auth.discovery_url, which an editor
+  // may set to the URL the server had as an HTTP server, so the address
+  // and the server id alone would let earlier sign-ins fill a program
+  // that runs on the runner. The run resolver (domain/vault/resolve.ts
+  // madeFor) refuses a sign-in whose recorded kind is not the server's
+  // current kind.
+  bool local_program = 7;
+}

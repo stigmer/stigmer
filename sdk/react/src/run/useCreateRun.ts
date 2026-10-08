@@ -2,15 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { JsonObject } from "@bufbuild/protobuf";
-import {
-  mergeSessionContext,
-  type AttachmentInput,
-  type EnvVarInput,
-  type McpServerUsageInput,
-  type ResourceRef,
-  type RunConfigInput,
-  type WorkspaceEntryInput,
-} from "@stigmer/sdk";
+import { mergeSessionContext, type AttachmentInput, type McpServerUsageInput, type ResourceRef, type RunConfigInput, type WorkspaceEntryInput } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { toProtoInteractionMode } from "../composer/interaction-mode.js";
@@ -46,6 +38,19 @@ export interface BootstrapSessionSpec {
   /** Skill references to enable for runs in this session. */
   readonly skillRefs?: ResourceRef[];
   /**
+   * The vaults the conversation's runs use, in order. A conversation that
+   * lists vaults uses exactly those; one that lists none uses the
+   * person's own My vault, then the agent's vaults they may use.
+   */
+  readonly vaults?: ResourceRef[];
+  /**
+   * The conversation's own secrets, by name, ahead of every vault: sealed
+   * for the conversation's life, replaceable by a session update, never
+   * returned by a read. This is how an integrator hands a run a key
+   * without saving it in a vault.
+   */
+  readonly secrets?: Record<string, string>;
+  /**
    * Custom key-value pairs stored on the created session's
    * `SessionSpec.metadata`.
    *
@@ -71,8 +76,8 @@ export interface BootstrapSessionSpec {
    * Personalization, not authorization: anyone who can create the session
    * can set this (the same trust level as authoring the first message).
    * Hidden from the conversation thread, not from the API — `session.get`
-   * returns it, so never put secrets here; secrets belong in `runtimeEnv`
-   * or Environment resources. Large values bloat every prompt.
+   * returns it, so never put secrets here; secrets belong in the
+   * session's own `secrets` or in a vault. Large values bloat every prompt.
    */
   readonly sessionContext?: string;
   /** Run harness. Immutable after the first run runs. */
@@ -95,25 +100,6 @@ export interface SharedRunFields {
    * `RunSpec.run_config`.
    */
   readonly modelName?: string;
-  /**
-   * Execution-scoped secrets and configuration (Run Flow).
-   *
-   * Values are injected into the agent sandbox for this run only
-   * and deleted when the run completes. They take the highest
-   * merge priority, overriding every environment layer. Keys must be
-   * declared in the agent's env declarations (a whitelist, not a value
-   * source) or they are dropped.
-   *
-   * Use this for B2B integrations where per-call credentials are
-   * injected at runtime, or for one-off secrets that should not persist.
-   *
-   * For persistent credentials that are reused across runs, use
-   * the Environment Flow instead: the keys an agent declares are read
-   * from the running person's personal environment.
-   *
-   * @see {@link https://stigmer.ai/docs/product/how-to-provide-secrets | How to Provide Secrets}
-   */
-  readonly runtimeEnv?: Record<string, EnvVarInput>;
   /**
    * Pre-uploaded file attachments injected into the agent sandbox.
    *
@@ -284,32 +270,33 @@ export interface UseCreateRunReturn {
  * bootstrap a new session (workspace, harness, execution target) and
  * dispatch the first message in a single call.
  *
- * Supports both secret delivery flows:
+ * A run's logins and secrets come from vaults and from the
+ * conversation's own secrets, never from the run request:
  *
- * - **Environment Flow** — Secrets are stored in the running person's
- *   personal environment. No `runtimeEnv` needed; the backend reads
- *   every key the agent declares from there.
- * - **Run Flow** — Pass `runtimeEnv` to inject per-execution
- *   secrets. Values are merged with the highest priority and deleted
- *   when the run completes.
+ * - **Vaults** — a conversation that lists no vaults uses the running
+ *   person's My vault, then the agent's vaults they may use.
+ * - **The conversation's own secrets** — on a new conversation, pass
+ *   `sessionSpec.secrets`; on an existing one, update the session (see
+ *   `useSessionConversation`'s `sendFollowUp`). They are kept sealed for
+ *   the conversation's life.
  *
  * @example
  * ```tsx
- * // Environment Flow: secrets come from the person's personal environment
+ * // Keys come from the person's My vault
  * const { create } = useCreateRun();
  * await create({ org: "acme", sessionId: "ses_abc", message: "Review the PR" });
  * ```
  *
  * @example
  * ```tsx
- * // Run Flow: inject per-call secrets
+ * // A new conversation with its own secret
  * const { create } = useCreateRun();
  * await create({
  *   org: "acme",
- *   sessionId: "ses_abc",
  *   message: "Deploy to production",
- *   runtimeEnv: {
- *     CUSTOMER_API_KEY: { value: "cust_xyz...", isSecret: true },
+ *   sessionSpec: {
+ *     agentRef: { org: "acme", slug: "deployer" },
+ *     secrets: { CUSTOMER_API_KEY: "cust_xyz..." },
  *   },
  * });
  * ```
@@ -367,6 +354,8 @@ export function useCreateRun(): UseCreateRunReturn {
               workspaceEntries: input.sessionSpec.workspaceEntries,
               mcpServerUsages: input.sessionSpec.mcpServerUsages,
               skillRefs: input.sessionSpec.skillRefs,
+              vaults: input.sessionSpec.vaults,
+              secrets: input.sessionSpec.secrets,
               metadata: mergeSessionContext(
                 input.sessionSpec.metadata,
                 input.sessionSpec.sessionContext,
@@ -393,7 +382,6 @@ export function useCreateRun(): UseCreateRunReturn {
           buildFromPlan: input.buildFromPlan || undefined,
           structuredOutputSchema: input.structuredOutputSchema,
           autoApproveAll: input.autoApproveAll,
-          runtimeEnv: input.runtimeEnv,
           attachments: input.attachments,
           workspaceFileRefs: input.workspaceFileRefs,
           supersedesRunId: input.supersedesRunId,

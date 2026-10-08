@@ -47,8 +47,8 @@
  * server stays too (the connect flow and the runner's per-server filter
  * read it there). A hook's variable reaches its hook the same way, so a
  * variable only a hook reads is declared too, as the plugin declared it,
- * or as a required secret when the plugin declared none. An OAuth target is excluded because its value is injected
- * from a managed environment, never asked of the user. An author's
+ * or as a required secret when the plugin declared none. An OAuth target is excluded because its value is the
+ * user's sign-in, saved in a vault, never asked of the user. An author's
  * `agent.yaml` is taken as written: they chose what to declare.
  *
  * Model hints are recorded, never applied: a dialect's `model` becomes a
@@ -63,7 +63,7 @@ import { create } from "@bufbuild/protobuf";
 
 import { hookVariableReferences } from "@stigmer/plugin-package";
 import type { PluginPackage, PluginSubAgent } from "@stigmer/plugin-package";
-import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import {

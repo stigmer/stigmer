@@ -13,7 +13,7 @@ import "buf/validate/validate.proto";
 //
 // It is the owner-settable subset of a run — the interactive
 // composer's vocabulary (agent, message, harness, workspace,
-// environments, run bounds) minus what an unattended surface makes
+// vaults, run bounds) minus what an unattended surface makes
 // structurally impossible. Surfaces that trigger agents on someone's
 // behalf embed this message instead of re-deriving the shape:
 // schedules embed it whole; channels and shares embed RunConfig.
@@ -26,8 +26,8 @@ import "buf/validate/validate.proto";
 // appear here, so embedding surfaces never need a blocklist validator
 // — the rejected alternative was embedding RunSpec /
 // SessionSpec and validating the illegal fields away. Exclusions,
-// each with its reason: runtime_env (plaintext secrets
-// in manifests leak; environments are the vehicle), attachments
+// each with its reason: a session's own secrets and connections
+// (plaintext secrets in manifests leak; vaults are the vehicle), attachments
 // (one-shot uploads don't recur), mcp_server_usages/skill_refs (the
 // agent blueprint owns its tool set), interaction_mode (Plan mode's
 // deliverable is a plan for a human who isn't there), cursor_mode
@@ -92,37 +92,40 @@ message AgentInvocation {
   // Maps onto SessionSpec.workspace_entries of the session each run
   // creates. Unattended surfaces constrain sources in their handlers:
   // schedules accept git_repo only (no client is connected at fire
-  // time to serve a local_path). Credentials: the
-  // provisioner resolves GITHUB_TOKEN from the merged environment;
-  // for surfaces with no interactive caller the one supported
-  // contract is an org-visibility Environment holding GITHUB_TOKEN
-  // bound via environment_refs — the personal-environment fallback
-  // resolves as-caller and is structurally closed to synthetic
-  // accounts. Public repos need no token.
-  repeated ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4;
+  // time to serve a local_path). Credentials: a private
+  // repository's clone uses a connection for its host (github.com) in
+  // one of the invocation's vaults. A repository token on an entry is a
+  // session's own value and is refused here, because nothing in a
+  // schedule's row is sealed. Public repos need no token.
+  repeated ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [(buf.validate.field).repeated.items.cel = {
+    id: "workspace_entries.no_token"
+    message: "a repository here cannot carry a token: save it as a connection in a vault the invocation names"
+    expression: "!has(this.source.git_repo) || this.source.git_repo.token == ''"
+  }];
 
-  // References to Environment resources whose values are provided to
-  // the runs this invocation creates.
+  // Value 5 held environment_refs, the environments whose values a
+  // run received, until vaults replaced environments.
+  reserved 5;
+  reserved "environment_refs";
+
+  // Vaults whose logins and secrets the runs this invocation creates use, in
+  // order: the first vault holding a match wins. At most 20.
   //
-  // This is how a tool-using agent becomes runnable unattended: bind
-  // an org-shared environment holding the needed credentials (for
-  // example an MCP server's shared secret), and the runs receive its
-  // values at runtime. The agent itself stays untouched.
+  // A schedule's runs have no person, so these vaults are all they use. The
+  // schedule's owner may attach their own My vault; nobody else's.
   //
   // @internal
-  // The AgentShare/AgentChannel/Schedule environment_refs lineage.
-  // Resolution stays with the embedding
-  // surface's pipeline (CreateExecutionContextStep branch, claim-
-  // driven, LOWEST merge priority — runtime_env overrides on key
-  // conflicts). No write-time existence or visibility
-  // check: enforcement lives solely at runtime resolution, which
-  // fails closed.
-  repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [
-    (ai.stigmer.commons.apiresource.reference_kind) = environment,
+  // Read by the run's credential resolver for a run carrying the
+  // stigmer.ai/schedule-id label. Each run asks can_use again of the account
+  // recorded in the schedule's status.vault_attachers, so a revoked grant
+  // stops the schedule at its next fire.
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference vaults = 7 [
+    (ai.stigmer.commons.apiresource.reference_kind) = vault,
+    (buf.validate.field).repeated.max_items = 20,
     (buf.validate.field).repeated.items.cel = {
-      id: "environment_refs.kind"
-      message: "environment_refs must reference resources with kind=environment"
-      expression: "this.kind == 53"
+      id: "vaults.kind"
+      message: "vaults must reference resources with kind=vault"
+      expression: "this.kind == 59"
     }
   ];
 

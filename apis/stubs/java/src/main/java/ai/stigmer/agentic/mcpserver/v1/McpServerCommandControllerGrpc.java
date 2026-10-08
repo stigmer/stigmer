@@ -573,9 +573,10 @@ public final class McpServerCommandControllerGrpc {
      * Complete the OAuth authorization flow by exchanging the authorization
      * code for tokens.
      * Called by the frontend after the user is redirected back from the
-     * OAuth authorization server. Exchanges the code for tokens, stores
-     * them in the user's personal environment, and creates an OAuthGrant
-     * record for pre-flight expiry checks.
+     * OAuth authorization server. Exchanges the code for tokens and saves
+     * the login as a connection at the server's address in the vault named
+     * when the flow started: the caller's My vault, or a shared vault they
+     * may edit.
      * After success, the frontend should call connect() to trigger tool
      * discovery using the freshly acquired token.
      * </pre>
@@ -588,14 +589,16 @@ public final class McpServerCommandControllerGrpc {
     /**
      * <pre>
      * Disconnect the authenticated user's OAuth connection for a resource.
-     * Tears down the user's personal OAuth connection by deleting the
-     * OAuthGrant and its associated managed environment (which holds the
-     * access and refresh tokens). The MCP server definition is unchanged —
-     * only the caller's credentials are removed.
-     * Other users' connections to the same resource are unaffected.
-     * Idempotent: returns disconnected=true when a grant was deleted,
-     * disconnected=false when no grant existed. Never returns an error
-     * for a missing grant.
+     * Removes every connection a sign-in to this server saved in the caller's
+     * My vault, with its access and refresh tokens, including one left at the
+     * server's earlier address. The MCP server definition is unchanged — only
+     * the caller's sign-in is removed.
+     * Other users' connections to the same resource, a pasted login and
+     * another server's sign-in are unaffected. A sign-in saved into a shared
+     * vault is removed through that vault's removeConnections.
+     * Idempotent: returns disconnected=true when a sign-in was removed,
+     * disconnected=false when none was saved. Never returns an error
+     * for a missing sign-in.
      * </pre>
      */
     default void disconnectOAuth(ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput request,
@@ -632,7 +635,7 @@ public final class McpServerCommandControllerGrpc {
      * design, as one capability with getOrgOAuthApp and setOrgOAuthApp —
      * see the full scoping note on McpServerQueryController.getOrgOAuthApp,
      * the RPC clients probe.
-     * Existing user OAuthGrants that were issued using the org's OAuthApp
+     * Existing sign-ins that were issued using the org's OAuthApp
      * will fail on next token refresh — those users will need to
      * re-authenticate using the platform default or a new org override.
      * </pre>
@@ -804,9 +807,10 @@ public final class McpServerCommandControllerGrpc {
      * Complete the OAuth authorization flow by exchanging the authorization
      * code for tokens.
      * Called by the frontend after the user is redirected back from the
-     * OAuth authorization server. Exchanges the code for tokens, stores
-     * them in the user's personal environment, and creates an OAuthGrant
-     * record for pre-flight expiry checks.
+     * OAuth authorization server. Exchanges the code for tokens and saves
+     * the login as a connection at the server's address in the vault named
+     * when the flow started: the caller's My vault, or a shared vault they
+     * may edit.
      * After success, the frontend should call connect() to trigger tool
      * discovery using the freshly acquired token.
      * </pre>
@@ -820,14 +824,16 @@ public final class McpServerCommandControllerGrpc {
     /**
      * <pre>
      * Disconnect the authenticated user's OAuth connection for a resource.
-     * Tears down the user's personal OAuth connection by deleting the
-     * OAuthGrant and its associated managed environment (which holds the
-     * access and refresh tokens). The MCP server definition is unchanged —
-     * only the caller's credentials are removed.
-     * Other users' connections to the same resource are unaffected.
-     * Idempotent: returns disconnected=true when a grant was deleted,
-     * disconnected=false when no grant existed. Never returns an error
-     * for a missing grant.
+     * Removes every connection a sign-in to this server saved in the caller's
+     * My vault, with its access and refresh tokens, including one left at the
+     * server's earlier address. The MCP server definition is unchanged — only
+     * the caller's sign-in is removed.
+     * Other users' connections to the same resource, a pasted login and
+     * another server's sign-in are unaffected. A sign-in saved into a shared
+     * vault is removed through that vault's removeConnections.
+     * Idempotent: returns disconnected=true when a sign-in was removed,
+     * disconnected=false when none was saved. Never returns an error
+     * for a missing sign-in.
      * </pre>
      */
     public void disconnectOAuth(ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput request,
@@ -866,7 +872,7 @@ public final class McpServerCommandControllerGrpc {
      * design, as one capability with getOrgOAuthApp and setOrgOAuthApp —
      * see the full scoping note on McpServerQueryController.getOrgOAuthApp,
      * the RPC clients probe.
-     * Existing user OAuthGrants that were issued using the org's OAuthApp
+     * Existing sign-ins that were issued using the org's OAuthApp
      * will fail on next token refresh — those users will need to
      * re-authenticate using the platform default or a new org override.
      * </pre>
@@ -1017,9 +1023,10 @@ public final class McpServerCommandControllerGrpc {
      * Complete the OAuth authorization flow by exchanging the authorization
      * code for tokens.
      * Called by the frontend after the user is redirected back from the
-     * OAuth authorization server. Exchanges the code for tokens, stores
-     * them in the user's personal environment, and creates an OAuthGrant
-     * record for pre-flight expiry checks.
+     * OAuth authorization server. Exchanges the code for tokens and saves
+     * the login as a connection at the server's address in the vault named
+     * when the flow started: the caller's My vault, or a shared vault they
+     * may edit.
      * After success, the frontend should call connect() to trigger tool
      * discovery using the freshly acquired token.
      * </pre>
@@ -1032,14 +1039,16 @@ public final class McpServerCommandControllerGrpc {
     /**
      * <pre>
      * Disconnect the authenticated user's OAuth connection for a resource.
-     * Tears down the user's personal OAuth connection by deleting the
-     * OAuthGrant and its associated managed environment (which holds the
-     * access and refresh tokens). The MCP server definition is unchanged —
-     * only the caller's credentials are removed.
-     * Other users' connections to the same resource are unaffected.
-     * Idempotent: returns disconnected=true when a grant was deleted,
-     * disconnected=false when no grant existed. Never returns an error
-     * for a missing grant.
+     * Removes every connection a sign-in to this server saved in the caller's
+     * My vault, with its access and refresh tokens, including one left at the
+     * server's earlier address. The MCP server definition is unchanged — only
+     * the caller's sign-in is removed.
+     * Other users' connections to the same resource, a pasted login and
+     * another server's sign-in are unaffected. A sign-in saved into a shared
+     * vault is removed through that vault's removeConnections.
+     * Idempotent: returns disconnected=true when a sign-in was removed,
+     * disconnected=false when none was saved. Never returns an error
+     * for a missing sign-in.
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput disconnectOAuth(ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput request) throws io.grpc.StatusException {
@@ -1076,7 +1085,7 @@ public final class McpServerCommandControllerGrpc {
      * design, as one capability with getOrgOAuthApp and setOrgOAuthApp —
      * see the full scoping note on McpServerQueryController.getOrgOAuthApp,
      * the RPC clients probe.
-     * Existing user OAuthGrants that were issued using the org's OAuthApp
+     * Existing sign-ins that were issued using the org's OAuthApp
      * will fail on next token refresh — those users will need to
      * re-authenticate using the platform default or a new org override.
      * </pre>
@@ -1226,9 +1235,10 @@ public final class McpServerCommandControllerGrpc {
      * Complete the OAuth authorization flow by exchanging the authorization
      * code for tokens.
      * Called by the frontend after the user is redirected back from the
-     * OAuth authorization server. Exchanges the code for tokens, stores
-     * them in the user's personal environment, and creates an OAuthGrant
-     * record for pre-flight expiry checks.
+     * OAuth authorization server. Exchanges the code for tokens and saves
+     * the login as a connection at the server's address in the vault named
+     * when the flow started: the caller's My vault, or a shared vault they
+     * may edit.
      * After success, the frontend should call connect() to trigger tool
      * discovery using the freshly acquired token.
      * </pre>
@@ -1241,14 +1251,16 @@ public final class McpServerCommandControllerGrpc {
     /**
      * <pre>
      * Disconnect the authenticated user's OAuth connection for a resource.
-     * Tears down the user's personal OAuth connection by deleting the
-     * OAuthGrant and its associated managed environment (which holds the
-     * access and refresh tokens). The MCP server definition is unchanged —
-     * only the caller's credentials are removed.
-     * Other users' connections to the same resource are unaffected.
-     * Idempotent: returns disconnected=true when a grant was deleted,
-     * disconnected=false when no grant existed. Never returns an error
-     * for a missing grant.
+     * Removes every connection a sign-in to this server saved in the caller's
+     * My vault, with its access and refresh tokens, including one left at the
+     * server's earlier address. The MCP server definition is unchanged — only
+     * the caller's sign-in is removed.
+     * Other users' connections to the same resource, a pasted login and
+     * another server's sign-in are unaffected. A sign-in saved into a shared
+     * vault is removed through that vault's removeConnections.
+     * Idempotent: returns disconnected=true when a sign-in was removed,
+     * disconnected=false when none was saved. Never returns an error
+     * for a missing sign-in.
      * </pre>
      */
     public ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput disconnectOAuth(ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput request) {
@@ -1285,7 +1297,7 @@ public final class McpServerCommandControllerGrpc {
      * design, as one capability with getOrgOAuthApp and setOrgOAuthApp —
      * see the full scoping note on McpServerQueryController.getOrgOAuthApp,
      * the RPC clients probe.
-     * Existing user OAuthGrants that were issued using the org's OAuthApp
+     * Existing sign-ins that were issued using the org's OAuthApp
      * will fail on next token refresh — those users will need to
      * re-authenticate using the platform default or a new org override.
      * </pre>
@@ -1443,9 +1455,10 @@ public final class McpServerCommandControllerGrpc {
      * Complete the OAuth authorization flow by exchanging the authorization
      * code for tokens.
      * Called by the frontend after the user is redirected back from the
-     * OAuth authorization server. Exchanges the code for tokens, stores
-     * them in the user's personal environment, and creates an OAuthGrant
-     * record for pre-flight expiry checks.
+     * OAuth authorization server. Exchanges the code for tokens and saves
+     * the login as a connection at the server's address in the vault named
+     * when the flow started: the caller's My vault, or a shared vault they
+     * may edit.
      * After success, the frontend should call connect() to trigger tool
      * discovery using the freshly acquired token.
      * </pre>
@@ -1459,14 +1472,16 @@ public final class McpServerCommandControllerGrpc {
     /**
      * <pre>
      * Disconnect the authenticated user's OAuth connection for a resource.
-     * Tears down the user's personal OAuth connection by deleting the
-     * OAuthGrant and its associated managed environment (which holds the
-     * access and refresh tokens). The MCP server definition is unchanged —
-     * only the caller's credentials are removed.
-     * Other users' connections to the same resource are unaffected.
-     * Idempotent: returns disconnected=true when a grant was deleted,
-     * disconnected=false when no grant existed. Never returns an error
-     * for a missing grant.
+     * Removes every connection a sign-in to this server saved in the caller's
+     * My vault, with its access and refresh tokens, including one left at the
+     * server's earlier address. The MCP server definition is unchanged — only
+     * the caller's sign-in is removed.
+     * Other users' connections to the same resource, a pasted login and
+     * another server's sign-in are unaffected. A sign-in saved into a shared
+     * vault is removed through that vault's removeConnections.
+     * Idempotent: returns disconnected=true when a sign-in was removed,
+     * disconnected=false when none was saved. Never returns an error
+     * for a missing sign-in.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput> disconnectOAuth(
@@ -1505,7 +1520,7 @@ public final class McpServerCommandControllerGrpc {
      * design, as one capability with getOrgOAuthApp and setOrgOAuthApp —
      * see the full scoping note on McpServerQueryController.getOrgOAuthApp,
      * the RPC clients probe.
-     * Existing user OAuthGrants that were issued using the org's OAuthApp
+     * Existing sign-ins that were issued using the org's OAuthApp
      * will fail on next token refresh — those users will need to
      * re-authenticate using the platform default or a new org override.
      * </pre>

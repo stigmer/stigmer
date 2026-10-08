@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.vault.v1;
+
+import "ai/stigmer/agentic/vault/v1/spec.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "buf/validate/validate.proto";
+
+// Vault holds the logins and secrets that runs use: connections matched by a
+// tool's address, and secrets matched by name.
+//
+// A person's own vault, My vault, is created the first time they save a login
+// or a secret, and serves their own chats. A shared vault belongs to the
+// organization: an admin creates it and says who may use it. Saved values can
+// be replaced but are never returned by any read.
+//
+// @internal
+// Kind 59, id prefix "vlt". Ownership is a server-stamped oneof in the spec
+// (VaultSpec.owner): a person's id for My vault, the organization's id for a
+// shared vault; the authorization tuples follow it through the kind's two
+// optional additional parents, the Memory kind's shape for a row whose
+// principal is a person. Not search-indexed: entry names in My vault are the
+// person's own. No apply RPC: a secret never belongs in a manifest file.
+message Vault {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'Vault'];
+
+  // Resource metadata including name, organization, visibility, and labels.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // Who the vault belongs to, its description, and its entries.
+  VaultSpec spec = 4;
+
+  // System-managed status containing audit information.
+  ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
+}

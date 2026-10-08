@@ -36,7 +36,7 @@ export type IamPolicySpec = Message<"ai.stigmer.iam.iampolicy.v1.IamPolicySpec">
    * Resource: WHAT is being accessed
    * This can be any API resource that is being protected:
    * - organization
-   * - environment
+   * - vault
    * - cloud_resource (VPC, S3 bucket, etc.)
    * - service
    * - Any other resource that requires access control
@@ -76,7 +76,7 @@ export type ApiResourceRef = Message<"ai.stigmer.iam.iampolicy.v1.ApiResourceRef
   /**
    * Type of the API resource being referenced
    * This should be the resource kind as defined in ApiResourceKind enum.
-   * Examples: "identity_account", "team", "organization", "environment",
+   * Examples: "identity_account", "team", "organization", "vault",
    * "cloud_resource", "service", etc.
    *
    * @generated from field: string kind = 1;

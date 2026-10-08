@@ -26,8 +26,8 @@ export function SessionLauncher() {
   const accountDefaults = useAccountExecutionDefaults();
   const gitHubConnection = useGitHubConnection(org);
   const { enableGitHub, enableLocal } = useWorkspaceSources();
-  const workspaceFileLister = useGitHubTreeLister(gitHubConnection.token);
-  const workspaceFileReader = useGitHubFileReader(gitHubConnection.token);
+  const workspaceFileLister = useGitHubTreeLister(gitHubConnection.readOrg);
+  const workspaceFileReader = useGitHubFileReader(gitHubConnection.readOrg);
   const { navigateToSession } = useSessionNavigation();
 
   // -------------------------------------------------------------------------

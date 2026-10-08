@@ -2,12 +2,12 @@
 
 package ai.stigmer.sdk.gen;
 
-import ai.stigmer.agentic.environment.v1.EnvVarDeclaration;
 import ai.stigmer.agentic.mcpserver.v1.HttpServerConfig;
 import ai.stigmer.agentic.mcpserver.v1.McpServer;
 import ai.stigmer.agentic.mcpserver.v1.McpServerAuth;
 import ai.stigmer.agentic.mcpserver.v1.McpServerSpec;
 import ai.stigmer.agentic.mcpserver.v1.StdioServerConfig;
+import ai.stigmer.agentic.vault.v1.EnvVarDeclaration;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
@@ -243,11 +243,13 @@ public final class McpServerInput {
         private final boolean isSecret;
         private final String description;
         private final boolean optional;
+        private final String value;
 
         private EnvVarDeclarationInput(Builder builder) {
             this.isSecret = builder.isSecret;
             this.description = builder.description;
             this.optional = builder.optional;
+            this.value = builder.value;
         }
 
         EnvVarDeclaration toProto() {
@@ -257,6 +259,9 @@ public final class McpServerInput {
                 builder.setDescription(this.description);
             }
             builder.setOptional(this.optional);
+            if (this.value != null) {
+                builder.setValue(this.value);
+            }
             return builder.build();
         }
 
@@ -266,12 +271,14 @@ public final class McpServerInput {
             private boolean isSecret;
             private String description;
             private boolean optional;
+            private String value;
 
             private Builder() {}
 
             public Builder isSecret(boolean isSecret) { this.isSecret = isSecret; return this; }
             public Builder description(String description) { this.description = description; return this; }
             public Builder optional(boolean optional) { this.optional = optional; return this; }
+            public Builder value(String value) { this.value = value; return this; }
 
             public EnvVarDeclarationInput build() { return new EnvVarDeclarationInput(this); }
         }

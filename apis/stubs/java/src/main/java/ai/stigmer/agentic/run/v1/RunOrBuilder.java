@@ -84,10 +84,9 @@ public interface RunOrBuilder extends
    * <pre>
    * User-provided inputs for this run.
    * Contains: the conversation (session_id or a new session_spec), message,
-   * run_config, the per-message intents, and runtime_env. Environment values reach a turn from
-   * the environments the server resolves for its run and from the
-   * per-run runtime_env; see the runtime_env field docs in
-   * spec.proto.
+   * run_config and the per-message intents. A turn's logins and secrets
+   * come from its session's own values and the vaults the server resolves
+   * for it (RunStatus.credentials records whose run it was).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.RunSpec spec = 4 [json_name = "spec"];</code>
@@ -98,10 +97,9 @@ public interface RunOrBuilder extends
    * <pre>
    * User-provided inputs for this run.
    * Contains: the conversation (session_id or a new session_spec), message,
-   * run_config, the per-message intents, and runtime_env. Environment values reach a turn from
-   * the environments the server resolves for its run and from the
-   * per-run runtime_env; see the runtime_env field docs in
-   * spec.proto.
+   * run_config and the per-message intents. A turn's logins and secrets
+   * come from its session's own values and the vaults the server resolves
+   * for it (RunStatus.credentials records whose run it was).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.RunSpec spec = 4 [json_name = "spec"];</code>
@@ -112,10 +110,9 @@ public interface RunOrBuilder extends
    * <pre>
    * User-provided inputs for this run.
    * Contains: the conversation (session_id or a new session_spec), message,
-   * run_config, the per-message intents, and runtime_env. Environment values reach a turn from
-   * the environments the server resolves for its run and from the
-   * per-run runtime_env; see the runtime_env field docs in
-   * spec.proto.
+   * run_config and the per-message intents. A turn's logins and secrets
+   * come from its session's own values and the vaults the server resolves
+   * for it (RunStatus.credentials records whose run it was).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.RunSpec spec = 4 [json_name = "spec"];</code>

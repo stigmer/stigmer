@@ -2,9 +2,8 @@
 
 import { timestampFromDate, type Timestamp } from "@bufbuild/protobuf/wkt";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type { EnvironmentSpec, EnvironmentValue } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import type { ExecutionValue } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
-import type { EnvSpecInput, EnvVarInput, ResourceRef } from "./types.js";
+import type { EnvVarInput, ResourceRef } from "./types.js";
 
 /**
  * Remove keys whose values are `undefined` so that `Object.assign`
@@ -57,26 +56,6 @@ export function toResourceRefInput(ref: ApiResourceReference | undefined): Resou
 export function toResourceRefInputs(refs: ApiResourceReference[] | undefined): ResourceRef[] | undefined {
   if (!refs || refs.length === 0) return undefined;
   return refs.map((r) => toResourceRefInput(r) ?? { org: "", slug: "" });
-}
-
-/**
- * Convert a fetched EnvironmentSpec to the EnvSpecInput shape, or
- * `undefined` when absent/empty.
- */
-export function toEnvSpecInput(spec: EnvironmentSpec | undefined): EnvSpecInput | undefined {
-  if (!spec) return undefined;
-  const variables = toEnvVarInputMap(spec.data);
-  return variables ? { variables } : undefined;
-}
-
-/**
- * Convert a map of EnvironmentValue to EnvVarInput entries, or `undefined`
- * when the map is absent/empty.
- */
-export function toEnvVarInputMap(data: Record<string, EnvironmentValue> | undefined): Record<string, EnvVarInput> | undefined {
-  if (!data || Object.keys(data).length === 0) return undefined;
-  return Object.fromEntries(Object.entries(data).map(([k, v]) =>
-    [k, { value: v.value, isSecret: v.isSecret || undefined, description: v.description || undefined }]));
 }
 
 /**

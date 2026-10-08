@@ -4,7 +4,8 @@
  * SOURCE OF TRUTH: docs/vocabulary.md
  * Definitions in this file must match the vocabulary guide. When updating
  * a definition here, update docs/vocabulary.md first, then copy the
- * plain-language definition from the term's detailed entry.
+ * plain-language definition from the term's detailed entry, as plain text:
+ * a tooltip shows no markdown, so the entry's `**emphasis**` is dropped.
  *
  * Keep definitions to one or two sentences. If a term needs a full
  * explanation, link to the relevant concepts page instead.
@@ -24,8 +25,10 @@ export const glossary: Record<string, string> = {
     "A credential pair your backend uses to mint Stigmer-signed user tokens. Use it to embed Stigmer in your product without setting up OIDC federation.",
   Organization:
     "The boundary that holds people, Agents, Sessions and secrets together; nothing outside it sees them.",
+  Vault:
+    "A person's or a team's box of the logins and secrets their runs use. Everyone has their own My vault; an organization's admins create shared vaults and decide who may use them.",
   Environment:
-    "A separate space (like testing or production) where the same Agent can run with different settings.",
+    "Reserved. Stigmer once had an Environment resource holding variables and secrets; vaults replaced it. The word now names only the sandbox a run executes in.",
   "Agent Channel":
     "A connection that puts an Agent into an external messaging platform — Slack or WhatsApp — so people can chat with it where they already work.",
   "Channel App":

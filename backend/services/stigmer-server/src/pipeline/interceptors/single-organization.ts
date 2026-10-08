@@ -16,7 +16,10 @@
  *
  *   1. a top-level `string org` on the input, on every service but the
  *      Organization service's own;
- *   2. otherwise `metadata.org`, when the input carries an
+ *   2. otherwise `vault.org`, when the input's `vault` is a VaultTarget:
+ *      the vault entry writes name the vault they change, and its
+ *      organization, inside that target rather than at the top level;
+ *   3. otherwise `metadata.org`, when the input carries an
  *      ApiResourceMetadata and its service's `api_resource_kind` is
  *      scoped to an organization (`ORGANIZATION`, or `PARENT`: an
  *      execution's organization is its session's).
@@ -24,9 +27,9 @@
  * Never filled: the Organization service (an organization's own
  * `metadata.org` stays empty), the kinds that belong to no organization
  * (`OWNER_ONLY` and `NONE` scope: accounts, API keys, execution contexts,
- * platform, plans, licences), nested messages (a spec reference follows
- * `metadata.org` through NormalizeReferences), and streams (no streaming
- * method takes an organization). The per-method inventory is
+ * platform, plans, licences), nested messages other than a VaultTarget (a
+ * spec reference follows `metadata.org` through NormalizeReferences), and
+ * streams (no streaming method takes an organization). The per-method inventory is
  * docs/single-organization.md, which single-organization-inventory.test.ts
  * holds equal to this rule over every method the server serves.
  *
@@ -48,6 +51,7 @@ import { reflect } from "@bufbuild/protobuf/reflect";
 import type { ReflectMessage } from "@bufbuild/protobuf/reflect";
 import type { Interceptor } from "@connectrpc/connect";
 
+import { VaultTargetSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { AuthorizationScopeType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -56,7 +60,7 @@ import { api_resource_kind } from "@stigmer/protos/ai/stigmer/commons/apiresourc
 import { getKindMeta } from "../apiresource-meta.js";
 
 /** Which field of a method's input names its organization on a one-organization server. */
-export type FillPath = "org" | "metadata.org" | undefined;
+export type FillPath = "org" | "vault.org" | "metadata.org" | undefined;
 
 /** Why a method that takes an organization is not filled, for the inventory. */
 export type NotFilledReason =
@@ -71,6 +75,7 @@ export interface FillRule {
 
 const ORG_FIELD = "org";
 const METADATA_FIELD = "metadata";
+const VAULT_FIELD = "vault";
 
 /** The rule for one method, from the contract alone (see the module header). */
 export function fillRuleFor(method: DescMethod): FillRule {
@@ -86,7 +91,8 @@ export function fillRuleFor(method: DescMethod): FillRule {
       f.fieldKind === "message" &&
       f.message.typeName === ApiResourceMetadataSchema.typeName,
   );
-  if (topOrg === undefined && metadata === undefined) {
+  const vault = vaultTargetField(method);
+  if (topOrg === undefined && metadata === undefined && vault === undefined) {
     return { path: undefined };
   }
   if (kind === ApiResourceKind.organization) {
@@ -95,10 +101,23 @@ export function fillRuleFor(method: DescMethod): FillRule {
   if (topOrg !== undefined) {
     return { path: "org" };
   }
+  if (vault !== undefined) {
+    return { path: "vault.org" };
+  }
   if (kind !== undefined && isOrganizationScoped(kind)) {
     return { path: "metadata.org" };
   }
   return { path: undefined, notFilled: "kind belongs to no organization" };
+}
+
+/** The input's `vault` field when it is a VaultTarget, whose `org` names the organization. */
+function vaultTargetField(method: DescMethod): DescField | undefined {
+  return method.input.fields.find(
+    (f) =>
+      f.name === VAULT_FIELD &&
+      f.fieldKind === "message" &&
+      f.message.typeName === VaultTargetSchema.typeName,
+  );
 }
 
 function serviceKind(service: DescService): ApiResourceKind | undefined {
@@ -145,7 +164,7 @@ export function newSingleOrganizationHolder(): SingleOrganizationHolder {
   };
 }
 
-/** The resolved fill for one method: the string field to set, reached through `metadata` when the path says so. */
+/** The resolved fill for one method: the string field to set, reached through `metadata` or `vault` when the path says so. */
 interface ResolvedFill {
   readonly field: DescField;
   readonly via: DescField | undefined;
@@ -156,6 +175,13 @@ function resolveFill(method: DescMethod): ResolvedFill | undefined {
   if (path === "org") {
     const field = method.input.fields.find((f) => f.name === ORG_FIELD);
     return field === undefined ? undefined : { field, via: undefined };
+  }
+  if (path === "vault.org") {
+    const via = vaultTargetField(method);
+    const field = VaultTargetSchema.fields.find((f) => f.name === ORG_FIELD);
+    return via === undefined || field === undefined
+      ? undefined
+      : { field, via };
   }
   if (path === "metadata.org") {
     const via = method.input.fields.find((f) => f.name === METADATA_FIELD);
@@ -169,7 +195,7 @@ function resolveFill(method: DescMethod): ResolvedFill | undefined {
   return undefined;
 }
 
-/** The message that holds the org field, or undefined when `metadata` is unset (protovalidate refuses that request on its own). */
+/** The message that holds the org field, or undefined when `metadata` or `vault` is unset (protovalidate refuses that request on its own). */
 function holderOf(
   root: ReflectMessage,
   fill: ResolvedFill,

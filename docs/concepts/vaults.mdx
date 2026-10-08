@@ -1,0 +1,217 @@
+---
+title: Vaults
+description:
+  Vaults hold the logins and secrets your runs use. Learn about your own vault
+  and shared vaults, how a run finds the keys it needs, and why a saved value is
+  never shown again.
+---
+
+[Agents](/docs/concepts/agents) and [MCP Servers](/docs/concepts/tools) need
+keys at runtime: an OpenAI API key, a sign-in to Linear, a token that lets a
+private repository clone. Those keys belong to people and teams, not to the
+Agent or MCP Server definition. The same `support-agent` should use Ana's Linear
+sign-in when Ana chats with it and Ben's when Ben does.
+
+A **Vault** holds them. It holds two kinds of entry:
+
+- **Secrets**, matched by name: `OPENAI_API_KEY`, `ZENDESK_API_KEY`.
+- **Connections** (logins), matched by the address of the tool or Git host they
+  are for: `https://mcp.linear.app/mcp`, `github.com`.
+
+Saved values can be replaced but are never shown again, not even to the person
+who saved them. Every read shows an entry's name or address, its description,
+who saved it and when, never the value.
+
+## Your vault and shared vaults
+
+**My vault** is yours alone. Stigmer creates it the first time you save a key or
+sign in to a tool, and a chat you start uses it unless the conversation lists
+vaults of its own (below). A teammate's chats never use it, even on the same
+Agent, and an Organization's admins cannot see or use it either. When you leave
+an Organization, your vault there is deleted with every value in it.
+
+A **shared vault** belongs to the Organization. Its admins create it, for
+example "Support tools" holding the team's Zendesk key, and decide who may use
+it:
+
+- **Organization** visibility lets every member of the Organization use it.
+- On Stigmer Cloud, an admin can also grant **Can use** to a person or a Team.
+
+Using a vault means a run reads its values, so a person's runs use a shared
+vault only while that person may use it.
+
+```bash
+# Save a key in your own vault (a hidden prompt asks for the value)
+stigmer vault set-secret OPENAI_API_KEY --mine
+
+# A shared vault for a team
+stigmer vault create "Support tools"
+stigmer vault set-secret ZENDESK_API_KEY --vault support-tools
+```
+
+Signing in to an MCP Server from the console saves the login as a connection at
+that server's address in your vault, and that login serves only the MCP Server
+you signed in to. Connecting GitHub saves a `github.com` connection there, and
+the console's repository picker reads GitHub through the server with it, so the
+page never holds the token.
+
+## Declaring what a run needs
+
+[Agents](/docs/concepts/agents) and [MCP Servers](/docs/concepts/tools) declare
+the variables they need through the `env` map:
+
+```yaml validate-as="McpServer"
+# In the McpServer definition
+spec:
+  env:
+    ZENDESK_SUBDOMAIN:
+      description: Your Zendesk subdomain
+      value: acme
+    ZENDESK_API_KEY:
+      is_secret: true
+      description: API key for the Zendesk API
+```
+
+A declaration describes what the resource needs, never a person's key. A secret
+is found by its name in a vault when a run starts. A plain setting that is not a
+secret carries its value in the declaration (`value`), and a vault secret with
+the same name takes its place. A secret declaration cannot carry a value.
+
+## Which vaults a run uses
+
+Every message in a [Session](/docs/concepts/sessions) is one run. When it
+starts, Stigmer looks for each key the run needs in these places, in order, and
+the first one holding a match wins:
+
+1. **The conversation's own values.** An integrator can hand a conversation keys
+   directly, without saving them in a vault (below).
+2. **The vaults the conversation lists.** A conversation that lists vaults uses
+   exactly those.
+3. **For a person's chat that lists none:** that person's My vault, then the
+   shared vaults the Agent's editor attached to the Agent, for a person who may
+   use them.
+
+An Agent of another Organization, one shared with yours, reads no My vault at
+all: your keys never reach it. A tool of another Organization that your own
+Organization's Agent or conversation uses, such as an MCP Server a parent
+Organization shares with its child Organizations, still takes keys from your My
+vault, but only the keys that tool itself declares.
+
+A run that no person sent uses only the vaults its conversation and the surface
+that started it name. The one personal vault such a run can use is a Schedule
+owner's own My vault, named on the owner's own Schedule; no other surface can
+name a My vault (below):
+
+| Started by                                                                                                   | Uses                                                                             |
+| ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| A [Schedule](/docs/sdk/resources/schedule)                                                                   | The vaults on the schedule (the console names its creator's My vault by default) |
+| A [public share link](/docs/guides/sharing/share-an-agent)                                                   | The vaults on the share                                                          |
+| A [Slack](/docs/guides/channels/connect-slack) or [WhatsApp](/docs/guides/channels/connect-whatsapp) channel | The vaults on the channel                                                        |
+| A user signed in through an integrator's app                                                                 | The vaults on the app's PlatformClient                                           |
+
+A visitor on a share link brings no keys of their own: anything a visitor's
+request names is dropped, so the share's vaults are what its runs use. Each time
+such a run starts, Stigmer checks again that the person who attached each vault
+may still use it, so taking away someone's access stops every surface they
+attached the vault to.
+
+A My vault can be attached only to its owner's own Schedule, which the owner
+sets up for their own work. A conversation, an Agent, a share, a channel and a
+PlatformClient refuse it, because a conversation can have several people and
+each person's own vault serves only their own messages.
+
+While a Schedule names its owner's My vault, only the owner who created it may
+change what it runs, because its runs use that person's credentials. Anyone else
+who may edit the Schedule, an Organization admin included, can still switch it
+off, rename it, relabel it or delete it, but switching it back on or any other
+change to what it runs is refused unless the same update removes that My vault.
+The Agent it runs is still its editors' to change: a Schedule that follows the
+Agent's latest version fills whatever keys that version declares from the
+owner's My vault. Pin the Agent's version on the Schedule when someone else
+edits that Agent.
+
+A shared vault a Schedule keeps stays attached in the name of whoever attached
+it: an editor's change to the Schedule leaves that record alone, and each fire
+checks that this person may still use the vault, so taking away their use stops
+the Schedule's fires. A change of the Agent the Schedule runs is the exception:
+it checks every vault on the Schedule against the editor making the change, and
+records that editor as having attached each one.
+
+### How a key is matched
+
+- **A tool's login** (the variable in its `auth.target_env_var`, or in an
+  `Authorization: Bearer ${VAR}` header) is filled by a connection made for that
+  tool, then by a secret with that name. A login saved by signing in serves only
+  the MCP Server that signed in, even when another server's definition declares
+  the same address. A login pasted into a vault serves an HTTP tool whose URL is
+  that address.
+- **A local program** (an MCP Server that runs a command) never takes a pasted
+  login: it takes its keys from secrets by name, and its login from its own
+  sign-in or a secret by name.
+- **Any other key** is filled by a secret with its name, then by the
+  declaration's own `value`.
+- **A private repository's clone** takes a token only for an `https` repository
+  on `github.com`: the repository's own token when the conversation gave one,
+  then the `github.com` login, then a `GITHUB_TOKEN` secret. A token given to
+  any other repository is refused.
+
+A tool's address is its full URL with the scheme and host lowercased, a default
+port and one trailing slash dropped, and any query or fragment dropped, so
+`https://MCP.Linear.app/mcp/` and `https://mcp.linear.app/mcp` are one address,
+while two tools on one host under different paths keep separate logins. A Git
+host is its bare host name.
+
+### A missing key stops the run before it starts
+
+When a required key is in none of these places, the run is refused before it
+starts, naming the key, what needs it, and who must act: "linear needs
+LINEAR_API_KEY: add LINEAR_API_KEY to My vault", or, for a scheduled run,
+"linear needs LINEAR_API_KEY: ask the owner of schedule 'nightly' to attach a
+vault that holds LINEAR_API_KEY". An optional key that nobody holds is simply
+absent.
+
+## Values for one conversation
+
+An integrator that keeps keys in its own system can hand them to a conversation
+directly. A Session's `secrets` (by name), `connections` (by address) and a
+repository entry's `token` are kept sealed for that conversation's life, used
+ahead of every vault, replaceable by an update at any time, never returned by a
+read, and destroyed with the conversation. Every turn of the conversation uses
+them, including turns sent by people the conversation is shared with. Its own
+secrets are delivered to each run whether or not anything declares them, but the
+runner still hands a tool or the shell only the keys declared for it
+([below](#where-the-values-reach)): an undeclared secret reaches neither. Values
+you enter in the console without saving them in My vault are these, and so are
+the CLI's `--env` and `--secret` flags on `stigmer run`.
+
+An integrator that keeps one vault per customer creates a shared vault with an
+`external_id`, finds it again with that ID, and names it on each Session.
+
+## Where the values reach
+
+Different parts of a run see different keys:
+
+| Surface                                            | What the Agent sees                                                                                                                                                                                                                           |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Shell commands** (native harness `execute` tool) | The runner's own process variables, minus runner-internal credentials, plus only the values for the keys the Agent declares in its `env`, and the `GITHUB_TOKEN` a git clone of the Workspace used. An Agent that declares nothing gets none. |
+| **MCP stdio servers**                              | Only the keys declared in the MCP server's `env` map, plus a minimal base set (`PATH`, `HOME`, and similar). A server that declares nothing gets only that base set — never the runner's own variables.                                       |
+
+Every surface follows the same declare-to-receive rule: a key an MCP server
+declares reaches that server and never the shell, so a shell command that needs
+a key works only when the Agent declares it. The one exception is the
+`GITHUB_TOKEN` a git Workspace was cloned with: the clone already stores it
+where the shell can read it, so the shell receives it as well.
+
+<Callout type="warn">
+  The keys an Agent declares reach its tools and its shell, and those follow the
+  instructions the Agent's author wrote. When you send a message to an Agent a
+  teammate wrote, the keys it declares that your vault holds go to that Agent.
+  Before your first message in a conversation, the console names the keys the
+  Agent declares, so you can decide before anything is sent.
+</Callout>
+
+## What's next
+
+Vaults hold your keys. But how are resources themselves organized? The next page
+explains [Organizations](/docs/concepts/organizations) — how Stigmer groups
+resources, teams, and access control into tenant boundaries.

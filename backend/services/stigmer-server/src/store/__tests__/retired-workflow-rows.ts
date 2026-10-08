@@ -24,6 +24,7 @@ import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiResourceAuditStatusSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
@@ -41,9 +42,15 @@ export function retiredWorkflowInstanceRow(options: {
   readonly metadata: MetadataInit;
   readonly workflowId: string;
   readonly description?: string;
-  readonly environmentRefs?: ReadonlyArray<
-    MessageInitShape<typeof ApiResourceReferenceSchema>
-  >;
+  /**
+   * The references as written, `kind` by number: the retired Environment
+   * kind's 53 is no longer a member of the live enum.
+   */
+  readonly environmentRefs?: ReadonlyArray<{
+    readonly org: string;
+    readonly slug: string;
+    readonly kind: number;
+  }>;
   /** The retired WorkflowRunVisibility number; 0 is not written. */
   readonly executionVisibility?: number;
 }): Uint8Array {
@@ -60,7 +67,11 @@ export function retiredWorkflowInstanceRow(options: {
       .bytes(
         toBinary(
           ApiResourceReferenceSchema,
-          create(ApiResourceReferenceSchema, ref),
+          create(ApiResourceReferenceSchema, {
+            org: ref.org,
+            slug: ref.slug,
+            kind: ref.kind as ApiResourceKind,
+          }),
         ),
       );
   }

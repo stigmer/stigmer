@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zdGF0dXMucHJvdG8SHWFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxIn4KDVNlc3Npb25TdGF0dXMSPwoFYXVkaXQYYyABKAsyMC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdBIQCghhZ2VudF9pZBgBIAEoCRIaChJhZ2VudF92ZXJzaW9uX2hhc2gYAiABKAliBnByb3RvMw", [file_ai_stigmer_commons_apiresource_status]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zdGF0dXMucHJvdG8SHWFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxIpACCg1TZXNzaW9uU3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSEAoIYWdlbnRfaWQYASABKAkSGgoSYWdlbnRfdmVyc2lvbl9oYXNoGAIgASgJElkKD3ZhdWx0X2F0dGFjaGVycxgDIAMoCzJALmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TdGF0dXMuVmF1bHRBdHRhY2hlcnNFbnRyeRo1ChNWYXVsdEF0dGFjaGVyc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_status]);
 
 /**
  * SessionStatus contains system-managed state for a session.
@@ -48,6 +48,15 @@ export type SessionStatus = Message<"ai.stigmer.agentic.session.v1.SessionStatus
    * @generated from field: string agent_version_hash = 2;
    */
   agentVersionHash: string;
+
+  /**
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
+   *
+   * @generated from field: map<string, string> vault_attachers = 3;
+   */
+  vaultAttachers: { [key: string]: string };
 };
 
 /**

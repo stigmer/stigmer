@@ -6,11 +6,11 @@ import (
 	"context"
 
 	agentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1"
-	environmentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1"
 	pluginv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugin/v1"
 	runv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1"
 	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
+	vaultv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/vault/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
@@ -141,6 +141,7 @@ type AgentInput struct {
 	Hooks           []*HookSourceInput
 	RunConfig       *RunConfigInput
 	Harness         sessionv1.Harness
+	Vaults          []ResourceRef
 }
 
 // McpServerUsageInput is the SDK input type for McpServerUsage.
@@ -164,6 +165,7 @@ type EnvVarDeclarationInput struct {
 	IsSecret    bool
 	Description string
 	Optional    bool
+	Value       string
 }
 
 // HookSourceInput is the SDK input type for HookSource.
@@ -246,7 +248,7 @@ func (i *AgentInput) toProto() (*agentv1.Agent, error) {
 		resource.Spec.SubAgents = append(resource.Spec.SubAgents, v)
 	}
 	if len(i.Env) > 0 {
-		resource.Spec.Env = make(map[string]*environmentv1.EnvVarDeclaration, len(i.Env))
+		resource.Spec.Env = make(map[string]*vaultv1.EnvVarDeclaration, len(i.Env))
 		for k, val := range i.Env {
 			pv, err := val.toProto()
 			if err != nil {
@@ -272,6 +274,11 @@ func (i *AgentInput) toProto() (*agentv1.Agent, error) {
 		resource.Spec.RunConfig = v
 	}
 	resource.Spec.Harness = i.Harness
+	for _, r := range i.Vaults {
+		ref := r.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_vault
+		resource.Spec.Vaults = append(resource.Spec.Vaults, ref)
+	}
 	return resource, nil
 }
 
@@ -301,11 +308,12 @@ func (i *SubAgentInput) toProto() (*agentv1.SubAgent, error) {
 	return p, nil
 }
 
-func (i *EnvVarDeclarationInput) toProto() (*environmentv1.EnvVarDeclaration, error) {
-	return &environmentv1.EnvVarDeclaration{
+func (i *EnvVarDeclarationInput) toProto() (*vaultv1.EnvVarDeclaration, error) {
+	return &vaultv1.EnvVarDeclaration{
 		IsSecret:    i.IsSecret,
 		Description: i.Description,
 		Optional:    i.Optional,
+		Value:       i.Value,
 	}, nil
 }
 
@@ -406,6 +414,9 @@ func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
 		}
 		input.RunConfig = runConfigInputFromProto(s.GetRunConfig())
 		input.Harness = s.GetHarness()
+		for _, r := range s.GetVaults() {
+			input.Vaults = append(input.Vaults, resourceRefFromProto(r))
+		}
 	}
 	return input
 }
@@ -436,7 +447,7 @@ func subAgentInputFromProto(p *agentv1.SubAgent) *SubAgentInput {
 	return input
 }
 
-func envVarDeclarationInputFromProto(p *environmentv1.EnvVarDeclaration) *EnvVarDeclarationInput {
+func envVarDeclarationInputFromProto(p *vaultv1.EnvVarDeclaration) *EnvVarDeclarationInput {
 	if p == nil {
 		return nil
 	}
@@ -444,6 +455,7 @@ func envVarDeclarationInputFromProto(p *environmentv1.EnvVarDeclaration) *EnvVar
 	input.IsSecret = p.GetIsSecret()
 	input.Description = p.GetDescription()
 	input.Optional = p.GetOptional()
+	input.Value = p.GetValue()
 	return input
 }
 

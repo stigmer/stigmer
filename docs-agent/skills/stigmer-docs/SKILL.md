@@ -5,7 +5,7 @@ description: >
   Answer questions about Stigmer from the official documentation at
   stigmer.ai/docs. Use this skill whenever someone asks what Stigmer is, how
   a concept works (Agent, Skill, MCP Server, Session, Schedule,
-  Environment, Organization, approval flows), or how to do something with
+  Vault, Organization, approval flows), or how to do something with
   the product, CLI, or SDKs. It carries the map of the documentation and the
   answering methodology; the content itself is read live from the published
   docs, so answers are never based on a stale snapshot.
@@ -57,7 +57,7 @@ The docs are organized by capability. Stable anchor pages, by area:
 - AI editors (Cursor, Claude): https://stigmer.ai/docs/guides/editors/connect-mcp
 
 **Platform** — the infrastructure around agents.
-- Environments: https://stigmer.ai/docs/concepts/environments
+- Vaults: https://stigmer.ai/docs/concepts/vaults
 - Runners: https://stigmer.ai/docs/concepts/runners
 - Harnesses: https://stigmer.ai/docs/concepts/harnesses
 - Organizations: https://stigmer.ai/docs/concepts/organizations

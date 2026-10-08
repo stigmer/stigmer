@@ -136,29 +136,27 @@ An McpServer declares no tool settings. Every tool the server reports is availab
 
 A tool asks for approval before it runs when the server itself marks it destructive: its MCP annotation `destructiveHint` is `true`. Connecting records that on `status.discovered_capabilities.tools[].destructive_hint`. No other MCP tool asks. See [capability-discovery.md](capability-discovery.md).
 
-### Environment Specification
+### Declared Keys
 
-`env_spec` declares the schema of environment variables the MCP server requires at runtime. This is documentation + validation, not actual values. Values come from the run's resolved environment (the Environments bound to what started the run, `runtime_env`, then OAuth tokens and the personal environment of the person who sent the message for keys still missing).
+`env` declares the environment variables the MCP server needs at runtime, as `EnvVarDeclaration`s (`ai/stigmer/agentic/vault/v1/declaration.proto`, shared with Agents). It is the schema, not a person's value: when a run starts, a secret is found by its name in the run's vaults, and the server's login key (`auth.target_env_var`, or the variable an `Authorization: Bearer ${VAR}` header names) by a connection saved at the server's address.
 
 ```yaml
 spec:
-  env_spec:
-    data:
-      GITHUB_TOKEN:
-        description: "GitHub personal access token with repo and read:org scopes"
-        is_secret: true
-      GITHUB_OWNER:
-        description: "Default GitHub organization or username (e.g., acme-corp)"
-        is_secret: false
+  env:
+    GITHUB_TOKEN:
+      description: "GitHub personal access token with repo and read:org scopes"
+      is_secret: true
+    GITHUB_OWNER:
+      description: "Default GitHub organization or username (e.g., acme-corp)"
+      value: "acme-corp"
 ```
 
 | Field | Description |
 |---|---|
-| `value` | Actual value. Leave empty in the McpServer spec — values are provided at runtime. Can be pre-populated for non-secret, shared defaults. |
-| `is_secret` | `true`: encrypted at rest, redacted in logs, requires special permissions to read. `false`: stored as plaintext, visible in audit logs. |
-| `description` | Shown in the UI when a person supplies the value. Be specific about the required format and permissions (e.g., "GitHub PAT with `repo` and `read:org` scopes"). |
-
-The `EnvironmentSpec` and `EnvironmentValue` types are defined in `ai/stigmer/agentic/environment/v1/spec.proto` and are shared across McpServers and Agents.
+| `is_secret` | `true`: found in a vault when a run starts, sealed at rest and redacted in logs. A secret declaration cannot carry a value. |
+| `description` | Shown where a person supplies the value. Be specific about the required format and permissions (e.g., "GitHub PAT with `repo` and `read:org` scopes"). |
+| `optional` | `false` (default): a run with no value for it is refused before it starts. |
+| `value` | A plain setting's own value; a vault secret with the same name takes its place. |
 
 ## Status Fields
 

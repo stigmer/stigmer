@@ -85,7 +85,7 @@ const REGISTRY = new ModelRegistryStore({
   refreshEnabled: false,
   logger: createLogger({ level: "error", pretty: false, write: () => {} }),
 });
-import { SCHEDULE_ID_LABEL_KEY } from "../run-person.js";
+import { SCHEDULE_ID_LABEL_KEY } from "../../vault/resolve.js";
 
 type RunConfigInit = MessageInitShape<typeof RunConfigSchema>;
 type TargetInit = NonNullable<

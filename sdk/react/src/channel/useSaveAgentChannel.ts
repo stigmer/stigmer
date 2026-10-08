@@ -23,7 +23,7 @@ import { toError } from "../internal/toError.js";
  * carries its declared `phone_number_id`. Dropping the arm is never an
  * option — the provider oneof is immutable server-side, so a save
  * without it would be refused outright. The channel's bound tool
- * credentials (`environment_refs`), its channel-app binding
+ * credentials (`vaults`), its channel-app binding
  * (`app_ref`), and its per-channel run override (`run_config`)
  * carry over too — apply semantics would otherwise silently unbind
  * them on every toggle (and an installed channel's app_ref is frozen
@@ -33,7 +33,7 @@ export function agentChannelToInput(channel: AgentChannel): AgentChannelInput {
   const metadata = channel.metadata;
   const spec = channel.spec;
   const labels = metadata?.labels ?? {};
-  const environmentRefs = spec?.environmentRefs ?? [];
+  const vaults = spec?.vaults ?? [];
 
   return {
     name: metadata?.name ?? "",
@@ -58,9 +58,9 @@ export function agentChannelToInput(channel: AgentChannel): AgentChannelInput {
           },
         }
       : {}),
-    ...(environmentRefs.length > 0
+    ...(vaults.length > 0
       ? {
-          environmentRefs: environmentRefs.map((ref) => ({
+          vaults: vaults.map((ref) => ({
             org: ref.org,
             slug: ref.slug,
           })),

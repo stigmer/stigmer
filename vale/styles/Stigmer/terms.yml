@@ -32,8 +32,6 @@ swap:
   # --- Platform pillar ---
   api key: API Key
   api keys: API Keys
-  '\benvironment\b': Environment
-  '\benvironments\b': Environments
   iam policy: IAM Policy
   identity account: Identity Account
   identity provider: Identity Provider

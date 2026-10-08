@@ -111,7 +111,10 @@ import {
 import type { SandboxLane } from "../../sandbox/lane.js";
 import { newEnsureSessionSandboxStep } from "../../sandbox/steps.js";
 import type { ExecutionContextBuilderDeps } from "./create-execution-context-step.js";
-import { newCreateExecutionContextStep } from "./create-execution-context-step.js";
+import {
+  newCreateExecutionContextStep,
+  newStampRunCredentialsStep,
+} from "./create-execution-context-step.js";
 import { newResolveRunAgentStep } from "./resolve-run-agent.js";
 import type { AgentExecutionTemporalConfig } from "./temporal/config.js";
 import type { ExecutionEngineStateProvider } from "./engine.js";
@@ -433,6 +436,7 @@ async function createExecution(
       ),
     )
     .addStep(newSetInitialPhaseStep())
+    .addStep(newStampRunCredentialsStep())
     .addStep(newCreateExecutionContextStep(deps.executionContextBuilder))
     .addStep(newProcessAttachmentsStep(deps.logger))
     .addStep(newPersistStep(deps.store))
@@ -482,8 +486,10 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * Update — update.go buildUpdatePipeline: USER-initiated spec updates
  * (status updates from the runner use UpdateStatus instead). Standard
  * chain; BuildUpdateState clears status per the shared pattern,
- * and ValidateSessionImmutability keeps the execution in its session
- * (session-binding.ts).
+ * GuardReservedLabels refuses a `stigmer.ai/*` label the caller
+ * introduces or changes (a run's schedule label names whose vaults a
+ * person-less run uses), and ValidateSessionImmutability keeps the
+ * execution in its session (session-binding.ts).
  */
 async function update(
   deps: AgentExecutionControllerDeps,
@@ -510,6 +516,7 @@ async function update(
     .addStep(newResolveSlugStep({ update: true }))
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newBuildUpdateStateStep())
+    .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newValidateSessionImmutabilityStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))

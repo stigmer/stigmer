@@ -136,15 +136,15 @@ app registered with the vendor and referenced from its definition
    page — GitHub, Slack, or whichever service the server integrates with.
 3. Review the requested permissions and authorize the application.
 4. The popup closes. Stigmer exchanges the authorization code for an access
-   token, stores it in a managed Environment, then connects to the server.
+   token, saves it as a connection in your vault, then connects to the server.
 5. Tools are discovered, with the ones the server marks destructive — the same
    process described in
    [Connect an MCP Server](/docs/guides/integrations/connect-an-mcp-server#connect-an-mcp-server).
 
 <Callout type="info">
-  You never see or handle the access token. Stigmer stores it in an encrypted
-  managed Environment tied to your identity and injects it at runtime when the
-  Agent calls a tool.
+  You never see or handle the access token. Stigmer keeps it sealed in your own
+  vault and hands it to your runs when the Agent calls a tool; a teammate's runs
+  never use it.
 </Callout>
 
 ## Token lifecycle
@@ -175,9 +175,9 @@ the OAuth flow, you can enter the value directly:
 2. Type or paste the token into the credential form.
 3. Click **Connect**.
 
-The server connects the same way — Stigmer saves the value to your personal
-Environment and uses it for tool execution. The difference is that you manage
-token rotation yourself instead of relying on the automatic OAuth lifecycle.
+The server connects the same way — Stigmer saves the value as a login in your
+vault and uses it for tool execution. The difference is that you manage token
+rotation yourself instead of relying on the automatic OAuth lifecycle.
 
 To switch back to OAuth, click **Sign in with OAuth instead** in the connection
 section.

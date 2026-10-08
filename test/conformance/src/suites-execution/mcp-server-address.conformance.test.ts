@@ -1,16 +1,16 @@
 // Conformance suite for the platform-filled STIGMER_SERVER_ADDRESS (Class B).
-// Domain: agentic / agentexecution: personal environment → execution → the
-// runner's fill → a remote MCP server's templated header.
+// Domain: agentic / agentexecution: My vault → execution → the runner's fill
+// → a remote MCP server's templated header.
 //
 // The contract under test (stigmer/stigmer#1446, #1451, #1458): a value the
-// user SAVED for STIGMER_SERVER_ADDRESS (in their personal environment, which
-// fills every key the run declares that no layer carries) is the value their
+// user SAVED for STIGMER_SERVER_ADDRESS (in their My vault, which fills every
+// key the run declares when the conversation lists no vaults) is the value their
 // MCP server receives, and when nothing is saved the runner fills the key from the public
 // endpoint its launcher gave it, so the server still receives an address. The
 // platform fills the key only when it is missing (the runner's
 // platform-server-address module), below every saved value, so a saved one
 // is never replaced by the platform's own address. The chain crosses four
-// components (environment resolution, the least-privilege filter, the
+// components (vault resolution, the least-privilege filter, the
 // runner's fill, header templating) and the observation point is the
 // receiving server itself, exactly as mcp-caller-identity observes its keys:
 // the McpToolFixture records the headers of the `tools/call` that dispatched
@@ -41,7 +41,7 @@ import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy, requireMcpFixture } from "../support/runs";
-import { makePersonalEnvironment } from "../support/environments";
+import { myVaultTarget, setSecretsInput } from "../support/vaults";
 import { makeHttpMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import { makeSession } from "../support/sessions";
@@ -88,19 +88,15 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-describe("platform STIGMER_SERVER_ADDRESS (personal environment → execution → headers)", () => {
+describe("platform STIGMER_SERVER_ADDRESS (My vault → execution → headers)", () => {
   it("delivers the address the user saved, never the platform's own", async () => {
     const { org } = await target.provisionTenancy();
     const saved = "saved.example.com:7234";
 
-    const environment = await clients.environmentCommand.create(
-      makePersonalEnvironment({
-        org,
-        name: uniqueName("env-address"),
-        data: { [SERVER_ADDRESS_ENV_KEY]: { value: saved } },
-      }),
+    const mine = await clients.vaultCommand.setSecrets(
+      setSecretsInput(myVaultTarget(org), { [SERVER_ADDRESS_ENV_KEY]: saved }),
     );
-    fixtures.defer(() => clients.environmentCommand.delete({ resourceId: environment.metadata!.id }));
+    fixtures.defer(() => clients.vaultCommand.delete({ resourceId: mine.metadata!.id }));
 
     const server = await clients.mcpServerCommand.create(
       makeHttpMcpServer({
@@ -168,7 +164,7 @@ describe("platform STIGMER_SERVER_ADDRESS (personal environment → execution �
     );
     fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
 
-    // No environment anywhere on the chain: the agent runs straight, so nothing
+    // No vault anywhere on the chain: the agent runs straight, so nothing
     // is saved for the key and the fill is the only source of its value.
     const agent = await clients.agentCommand.create(
       makeAgent({ org, name: uniqueName("agent-address-fill"), mcpServerRefs: [server.metadata!.slug] }),

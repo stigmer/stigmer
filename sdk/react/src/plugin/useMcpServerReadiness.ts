@@ -14,6 +14,11 @@
  * per-server keying serve a long list). When the sign-in lands, the
  * credentials refetch so the row turns to "Signed in" without a reload.
  *
+ * In a conversation that lists vaults (`signInVault` given), a run reads
+ * logins only from those vaults, so My vault's grant earns nothing: the row
+ * offers Sign in, and the sign-in is saved into that vault. A refusal there
+ * (the person may not edit it) says so, and who can act.
+ *
  * Trade-off: the plugin's member list carries ids and slugs only, so each
  * row reads its server and its grant, one fetch each; a batch read would
  * be a proto change for a list of three.
@@ -24,7 +29,12 @@ import { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpser
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { useMcpServer } from "../mcp-server/useMcpServer.js";
 import { useMcpServerCredentials } from "../mcp-server/useMcpServerCredentials.js";
-import { type OAuthConnectPhase, getOAuthConnectErrorMessage, useMcpServerOAuthConnect } from "../mcp-server/useMcpServerOAuthConnect.js";
+import {
+  type OAuthConnectPhase,
+  type SignInVault,
+  getOAuthConnectErrorMessage,
+  useMcpServerOAuthConnect,
+} from "../mcp-server/useMcpServerOAuthConnect.js";
 
 /** One of the four things a server can want before its first tool call. */
 export type McpServerReadinessKind =
@@ -66,7 +76,9 @@ export interface UseMcpServerReadinessReturn {
 
 /**
  * Behaviour hook for one installed MCP server's readiness. Pass `null` for
- * either argument to hold the hook idle.
+ * either argument to hold the hook idle. Pass `signInVault` when the
+ * sign-in must be saved into a shared vault (a conversation that lists
+ * vaults); omitted, the sign-in and the grant read are My vault's.
  *
  * @example
  * ```tsx
@@ -78,6 +90,7 @@ export function useMcpServerReadiness(
   org: string | null,
   slug: string | null,
   onSignedIn?: (mcpServerId: string) => void,
+  signInVault?: SignInVault,
 ): UseMcpServerReadinessReturn {
   const { mcpServer, isLoading, error: readError, refetch: refetchServer } = useMcpServer(org, slug);
   const credentials = useMcpServerCredentials(org, mcpServer);
@@ -89,14 +102,19 @@ export function useMcpServerReadiness(
     if (readError) return "unreadable";
     if (isLoading || mcpServer === null) return "loading";
     if (credentials.authMode === "oauth") {
-      if (credentials.isOAuthConnected && credentials.connectionHealth !== OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED) {
+      // My vault's grant serves only a conversation that reads My vault.
+      if (
+        signInVault === undefined &&
+        credentials.isOAuthConnected &&
+        credentials.connectionHealth !== OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED
+      ) {
         return "signed-in";
       }
       if (credentials.isVendorApprovalBlocked) return "approval-pending";
       return "sign-in-needed";
     }
     return declaredVariables.length > 0 ? "api-key" : "open";
-  }, [readError, isLoading, mcpServer, credentials.authMode, credentials.isOAuthConnected, credentials.connectionHealth, credentials.isVendorApprovalBlocked, declaredVariables.length]);
+  }, [readError, isLoading, mcpServer, signInVault, credentials.authMode, credentials.isOAuthConnected, credentials.connectionHealth, credentials.isVendorApprovalBlocked, declaredVariables.length]);
 
   const refetch = useCallback(() => {
     refetchServer();
@@ -109,14 +127,14 @@ export function useMcpServerReadiness(
     oauth.clearError();
     // A sign-in that fails leaves the row on "Sign in" with the reason; one
     // that lands refetches so the row says "Signed in" from the grant.
-    void oauth.startOAuth(id, org).then(
+    void oauth.startOAuth(id, org, signInVault === undefined ? undefined : { vault: signInVault }).then(
       () => {
         refetch();
         onSignedIn?.(id);
       },
       () => undefined,
     );
-  }, [kind, mcpServer, org, oauth.clearError, oauth.startOAuth, refetch, onSignedIn]);
+  }, [kind, mcpServer, org, signInVault, oauth.clearError, oauth.startOAuth, refetch, onSignedIn]);
 
   const error = useMemo(() => {
     if (readError) return readError;
@@ -124,11 +142,15 @@ export function useMcpServerReadiness(
     return null;
   }, [readError, oauth.error, oauth.failedPhase]);
 
+  // My vault's grant health says nothing of a shared vault's sign-in.
+  const connectionHealth =
+    signInVault === undefined ? credentials.connectionHealth : OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT;
+
   return useMemo(
     () => ({
       kind,
       mcpServer,
-      connectionHealth: credentials.connectionHealth,
+      connectionHealth,
       declaredVariables,
       error,
       signIn,
@@ -136,6 +158,6 @@ export function useMcpServerReadiness(
       isSigningIn: oauth.isInProgress,
       refetch,
     }),
-    [kind, mcpServer, credentials.connectionHealth, declaredVariables, error, signIn, oauth.phase, oauth.isInProgress, refetch],
+    [kind, mcpServer, connectionHealth, declaredVariables, error, signIn, oauth.phase, oauth.isInProgress, refetch],
   );
 }

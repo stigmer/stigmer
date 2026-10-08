@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/mcpserver/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL2lvLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxIiQKC01jcFNlcnZlcklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiggIKDENvbm5lY3RJbnB1dBIdCg1tY3Bfc2VydmVyX2lkGAEgASgJQga6SAPIAQESUgoLcnVudGltZV9lbnYYAiADKAsyPS5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkNvbm5lY3RJbnB1dC5SdW50aW1lRW52RW50cnkSFAoDb3JnGAMgASgJQge6SARyAhABGmkKD1J1bnRpbWVFbnZFbnRyeRILCgNrZXkYASABKAkSRQoFdmFsdWUYAiABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MS5FeGVjdXRpb25WYWx1ZToCOAEiUAoZSW5pdGlhdGVPQXV0aENvbm5lY3RJbnB1dBIdCg1tY3Bfc2VydmVyX2lkGAEgASgJQga6SAPIAQESFAoDb3JnGAIgASgJQge6SARyAhABIm0KGkluaXRpYXRlT0F1dGhDb25uZWN0T3V0cHV0EhkKEWF1dGhvcml6YXRpb25fdXJsGAEgASgJEg0KBXN0YXRlGAIgASgJEg4KBnNjb3BlcxgDIAMoCRIVCg1wcm92aWRlcl9uYW1lGAQgASgJIncKGUNvbXBsZXRlT0F1dGhDb25uZWN0SW5wdXQSHQoNbWNwX3NlcnZlcl9pZBgBIAEoCUIGukgDyAEBEiMKEmF1dGhvcml6YXRpb25fY29kZRgCIAEoCUIHukgEcgIQARIWCgVzdGF0ZRgDIAEoCUIHukgEcgIQASJkChpDb21wbGV0ZU9BdXRoQ29ubmVjdE91dHB1dBIRCgljb25uZWN0ZWQYASABKAgSFgoOdGFyZ2V0X2Vudl92YXIYAiABKAkSGwoTdG9rZW5fbGlmZXRpbWVfaGludBgDIAEoCSJNChhHZXRPQXV0aEdyYW50U3RhdHVzSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBARIUCgNvcmcYAiABKAlCB7pIBHICEAEizwEKGUdldE9BdXRoR3JhbnRTdGF0dXNPdXRwdXQSEQoJY29ubmVjdGVkGAEgASgIEh8KF2FjY2Vzc190b2tlbl9leHBpcmVzX2F0GAIgASgDEhYKDnRhcmdldF9lbnZfdmFyGAMgASgJEhMKC2F1dGhfbWV0aG9kGAQgASgJElEKEWNvbm5lY3Rpb25faGVhbHRoGAUgASgOMjYuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5PQXV0aENvbm5lY3Rpb25IZWFsdGgiSQoURGlzY29ubmVjdE9BdXRoSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBARIUCgNvcmcYAiABKAlCB7pIBHICEAEiLQoVRGlzY29ubmVjdE9BdXRoT3V0cHV0EhQKDGRpc2Nvbm5lY3RlZBgBIAEoCCKEAQoTU2V0T3JnT0F1dGhBcHBJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBEhQKA29yZxgCIAEoCUIHukgEcgIQARIaCgljbGllbnRfaWQYAyABKAlCB7pIBHICEAESHgoNY2xpZW50X3NlY3JldBgEIAEoCUIHukgEcgIQASIsChRTZXRPcmdPQXV0aEFwcE91dHB1dBIUCgxvYXV0aF9hcHBfaWQYASABKAkiSAoTR2V0T3JnT0F1dGhBcHBJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBEhQKA29yZxgCIAEoCUIHukgEcgIQASJVChRHZXRPcmdPQXV0aEFwcE91dHB1dBIUCgxoYXNfb3ZlcnJpZGUYASABKAgSFAoMb2F1dGhfYXBwX2lkGAIgASgJEhEKCWNsaWVudF9pZBgDIAEoCSJLChZEZWxldGVPcmdPQXV0aEFwcElucHV0EhsKC3Jlc291cmNlX2lkGAEgASgJQga6SAPIAQESFAoDb3JnGAIgASgJQge6SARyAhABIioKF0RlbGV0ZU9yZ09BdXRoQXBwT3V0cHV0Eg8KB2RlbGV0ZWQYASABKAgq7QEKFU9BdXRoQ29ubmVjdGlvbkhlYWx0aBInCiNPQVVUSF9DT05ORUNUSU9OX0hFQUxUSF9VTlNQRUNJRklFRBAAEiMKH09BVVRIX0NPTk5FQ1RJT05fSEVBTFRIX0hFQUxUSFkQARIpCiVPQVVUSF9DT05ORUNUSU9OX0hFQUxUSF9UT0tFTl9FWFBJUkVEEAISNQoxT0FVVEhfQ09OTkVDVElPTl9IRUFMVEhfVE9LRU5fRVhQSVJFRF9SRUZSRVNIQUJMRRADEiQKIE9BVVRIX0NPTk5FQ1RJT05fSEVBTFRIX05PX0dSQU5UEARiBnByb3RvMw", [file_ai_stigmer_agentic_executioncontext_v1_spec, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL2lvLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxIiQKC01jcFNlcnZlcklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiggIKDENvbm5lY3RJbnB1dBIdCg1tY3Bfc2VydmVyX2lkGAEgASgJQga6SAPIAQESUgoLcnVudGltZV9lbnYYAiADKAsyPS5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkNvbm5lY3RJbnB1dC5SdW50aW1lRW52RW50cnkSFAoDb3JnGAMgASgJQge6SARyAhABGmkKD1J1bnRpbWVFbnZFbnRyeRILCgNrZXkYASABKAkSRQoFdmFsdWUYAiABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MS5FeGVjdXRpb25WYWx1ZToCOAEiggEKGUluaXRpYXRlT0F1dGhDb25uZWN0SW5wdXQSHQoNbWNwX3NlcnZlcl9pZBgBIAEoCUIGukgDyAEBEhQKA29yZxgCIAEoCUIHukgEcgIQARIwCgh2YXVsdF9pZBgDIAEoCUIeukgbchkYHjIVXiR8XnZsdF9bMC05YS16XXsyNn0kIm0KGkluaXRpYXRlT0F1dGhDb25uZWN0T3V0cHV0EhkKEWF1dGhvcml6YXRpb25fdXJsGAEgASgJEg0KBXN0YXRlGAIgASgJEg4KBnNjb3BlcxgDIAMoCRIVCg1wcm92aWRlcl9uYW1lGAQgASgJIncKGUNvbXBsZXRlT0F1dGhDb25uZWN0SW5wdXQSHQoNbWNwX3NlcnZlcl9pZBgBIAEoCUIGukgDyAEBEiMKEmF1dGhvcml6YXRpb25fY29kZRgCIAEoCUIHukgEcgIQARIWCgVzdGF0ZRgDIAEoCUIHukgEcgIQASJkChpDb21wbGV0ZU9BdXRoQ29ubmVjdE91dHB1dBIRCgljb25uZWN0ZWQYASABKAgSFgoOdGFyZ2V0X2Vudl92YXIYAiABKAkSGwoTdG9rZW5fbGlmZXRpbWVfaGludBgDIAEoCSJNChhHZXRPQXV0aEdyYW50U3RhdHVzSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBARIUCgNvcmcYAiABKAlCB7pIBHICEAEizwEKGUdldE9BdXRoR3JhbnRTdGF0dXNPdXRwdXQSEQoJY29ubmVjdGVkGAEgASgIEh8KF2FjY2Vzc190b2tlbl9leHBpcmVzX2F0GAIgASgDEhYKDnRhcmdldF9lbnZfdmFyGAMgASgJEhMKC2F1dGhfbWV0aG9kGAQgASgJElEKEWNvbm5lY3Rpb25faGVhbHRoGAUgASgOMjYuYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5PQXV0aENvbm5lY3Rpb25IZWFsdGgiSQoURGlzY29ubmVjdE9BdXRoSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBARIUCgNvcmcYAiABKAlCB7pIBHICEAEiLQoVRGlzY29ubmVjdE9BdXRoT3V0cHV0EhQKDGRpc2Nvbm5lY3RlZBgBIAEoCCKEAQoTU2V0T3JnT0F1dGhBcHBJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBEhQKA29yZxgCIAEoCUIHukgEcgIQARIaCgljbGllbnRfaWQYAyABKAlCB7pIBHICEAESHgoNY2xpZW50X3NlY3JldBgEIAEoCUIHukgEcgIQASIsChRTZXRPcmdPQXV0aEFwcE91dHB1dBIUCgxvYXV0aF9hcHBfaWQYASABKAkiSAoTR2V0T3JnT0F1dGhBcHBJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBEhQKA29yZxgCIAEoCUIHukgEcgIQASJVChRHZXRPcmdPQXV0aEFwcE91dHB1dBIUCgxoYXNfb3ZlcnJpZGUYASABKAgSFAoMb2F1dGhfYXBwX2lkGAIgASgJEhEKCWNsaWVudF9pZBgDIAEoCSJLChZEZWxldGVPcmdPQXV0aEFwcElucHV0EhsKC3Jlc291cmNlX2lkGAEgASgJQga6SAPIAQESFAoDb3JnGAIgASgJQge6SARyAhABIioKF0RlbGV0ZU9yZ09BdXRoQXBwT3V0cHV0Eg8KB2RlbGV0ZWQYASABKAgq7QEKFU9BdXRoQ29ubmVjdGlvbkhlYWx0aBInCiNPQVVUSF9DT05ORUNUSU9OX0hFQUxUSF9VTlNQRUNJRklFRBAAEiMKH09BVVRIX0NPTk5FQ1RJT05fSEVBTFRIX0hFQUxUSFkQARIpCiVPQVVUSF9DT05ORUNUSU9OX0hFQUxUSF9UT0tFTl9FWFBJUkVEEAISNQoxT0FVVEhfQ09OTkVDVElPTl9IRUFMVEhfVE9LRU5fRVhQSVJFRF9SRUZSRVNIQUJMRRADEiQKIE9BVVRIX0NPTk5FQ1RJT05fSEVBTFRIX05PX0dSQU5UEARiBnByb3RvMw", [file_ai_stigmer_agentic_executioncontext_v1_spec, file_buf_validate_validate]);
 
 /**
  * McpServerId wraps an MCP server resource identifier.
@@ -55,8 +55,8 @@ export type ConnectInput = Message<"ai.stigmer.agentic.mcpserver.v1.ConnectInput
   mcpServerId: string;
 
   /**
-   * Optional environment variable values for one-time use.
-   * When empty, values are resolved from the user's personal environment.
+   * Optional environment variable values for one-time use, ahead of the
+   * caller's My vault.
    *
    * @generated from field: map<string, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtime_env = 2;
    */
@@ -65,9 +65,7 @@ export type ConnectInput = Message<"ai.stigmer.agentic.mcpserver.v1.ConnectInput
   /**
    * Organization context for credential resolution.
    *
-   * Used to look up the caller's OAuthGrant and personal environment
-   * during environment variable resolution. Must match the org used
-   * during initiateOAuthConnect so the grant composite key aligns.
+   * The caller's My vault in this organization is the one connect reads.
    *
    * Required: the backend rejects the request when this field is empty.
    *
@@ -99,12 +97,21 @@ export type InitiateOAuthConnectInput = Message<"ai.stigmer.agentic.mcpserver.v1
 
   /**
    * Organization context for token storage.
-   * Tokens are stored in the caller's personal environment within this org.
    * Must be an org the caller belongs to.
    *
    * @generated from field: string org = 2;
    */
   org: string;
+
+  /**
+   * The shared vault, by id, the login is saved into. Empty saves it in the
+   * caller's My vault in the organization. A login saved into a shared vault
+   * serves the runs that use that vault; connect reads only My vault. A
+   * vault id is "vlt_" followed by 26 lowercase characters.
+   *
+   * @generated from field: string vault_id = 3;
+   */
+  vaultId: string;
 };
 
 /**
@@ -217,7 +224,7 @@ export type CompleteOAuthConnectOutput = Message<"ai.stigmer.agentic.mcpserver.v
   connected: boolean;
 
   /**
-   * The environment variable name where the access token was stored.
+   * The environment variable the saved login fills.
    * Matches McpServerAuth.target_env_var on the MCP server spec.
    *
    * @generated from field: string target_env_var = 2;
@@ -276,7 +283,7 @@ export const GetOAuthGrantStatusInputSchema: GenMessage<GetOAuthGrantStatusInput
  */
 export type GetOAuthGrantStatusOutput = Message<"ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput"> & {
   /**
-   * Whether the user has an active OAuth grant for this resource + org.
+   * Whether the user has a sign-in saved for this server in this org.
    *
    * @generated from field: bool connected = 1;
    */
@@ -284,15 +291,15 @@ export type GetOAuthGrantStatusOutput = Message<"ai.stigmer.agentic.mcpserver.v1
 
   /**
    * When the access token expires (Unix timestamp seconds).
-   * 0 if no grant exists or the token does not expire.
+   * 0 if no sign-in is saved or the token does not expire.
    *
    * @generated from field: int64 access_token_expires_at = 2;
    */
   accessTokenExpiresAt: bigint;
 
   /**
-   * The env var name where the access token is stored.
-   * Empty if no grant exists.
+   * The env var the saved sign-in fills.
+   * Empty if no sign-in is saved.
    *
    * @generated from field: string target_env_var = 3;
    */
@@ -300,7 +307,7 @@ export type GetOAuthGrantStatusOutput = Message<"ai.stigmer.agentic.mcpserver.v1
 
   /**
    * Which auth method was used ("mcp_oauth" or "vendor_oauth").
-   * Empty if no grant exists.
+   * Empty if no sign-in is saved.
    *
    * @generated from field: string auth_method = 4;
    */
@@ -338,8 +345,8 @@ export type DisconnectOAuthInput = Message<"ai.stigmer.agentic.mcpserver.v1.Disc
   resourceId: string;
 
   /**
-   * Organization context. Must match the org used during the original
-   * OAuth connect flow (part of the OAuthGrant composite key).
+   * Organization context: the caller's My vault in this org is the one
+   * changed.
    *
    * @generated from field: string org = 2;
    */
@@ -360,9 +367,9 @@ export const DisconnectOAuthInputSchema: GenMessage<DisconnectOAuthInput> = /*@_
  */
 export type DisconnectOAuthOutput = Message<"ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput"> & {
   /**
-   * Whether an active grant was found and deleted.
-   * true: grant and its managed environment were deleted.
-   * false: no grant existed for this resource + org + caller. The desired
+   * Whether a saved sign-in was found and removed.
+   * true: the connection and its tokens were removed.
+   * false: no sign-in was saved for this server, org and caller. The desired
    * state (no OAuth connection) was already achieved. This is not an error.
    *
    * @generated from field: bool disconnected = 1;
@@ -561,12 +568,12 @@ export const DeleteOrgOAuthAppOutputSchema: GenMessage<DeleteOrgOAuthAppOutput> 
 
 /**
  * OAuthConnectionHealth evaluates the health of an OAuth connection by
- * examining grant existence and token expiry metadata. Used in
+ * examining whether a login is saved and its token expiry metadata. Used in
  * GetOAuthGrantStatusOutput to give the frontend an actionable signal
  * beyond the binary "connected" boolean.
  *
- * The backend determines health from locally available metadata (grant
- * record + access_token_expires_at). It cannot detect server-side token
+ * The backend determines health from locally available metadata (the
+ * saved connection and its sign-in expiry). It cannot detect server-side token
  * revocation without making an API call to the vendor, so HEALTHY means
  * "valid as far as we know" — not a guarantee the token will be accepted.
  *
@@ -606,8 +613,9 @@ export enum OAuthConnectionHealth {
   OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE = 3,
 
   /**
-   * No OAuth grant exists for this resource + org + user combination.
-   * The user has never connected or has disconnected.
+   * No sign-in made for this server that a run would use: the user has
+   * never signed in, has disconnected, or the saved login is not a
+   * sign-in this server can use.
    *
    * @generated from enum value: OAUTH_CONNECTION_HEALTH_NO_GRANT = 4;
    */

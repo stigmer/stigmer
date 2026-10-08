@@ -194,27 +194,26 @@ const { results, isLoading, query, setQuery } = useAgentSearch("acme");
 ### useAgentSetup
 
 Layer 2 behavior hook that encapsulates the agent selection,
-personal environment resolution, and secret delivery routing flow.
+vault resolution, and secret delivery routing flow.
 
 When a user picks an agent in the [`AgentPicker`](#agentpicker), this hook
 determines whether the agent requires credentials (via its
-`env` declarations), checks what the user has already provided in their
-personal environment, and either reports the agent as ready or
+`env` declarations), checks what the user has already saved in their
+vaults, and either reports the agent as ready or
 identifies the missing variables so the caller can render
 [`AgentEnvForm`](#agentenvform).
 
 The hook supports two secret delivery paths via the `saveForFuture`
 option on `submitEnvVars`:
-- **Saved** — secrets are persisted to the personal environment,
-  where every run of an agent the user starts reads the keys the
-  agent declares.
-- **One-time** — secrets are returned as `runtimeEnv` for a single
-  run, with no data persisted.
+- **Saved** — secrets are saved in My vault, where every conversation
+  the user starts reads the keys the agent declares.
+- **One-time** — values are returned for this conversation only, as its
+  own secrets, never saved in a vault.
 
 State is managed by a `useReducer` state machine with five phases:
 `idle → resolving → needsEnvVars → submitting → ready`.
 
-Composes [`usePersonalEnvironment`](/docs/sdk/react/environment#usepersonalenvironment) for personal environment
+Composes [`useMyVault`](/docs/sdk/react/vault#usemyvault) for My vault
 operations and calls the Stigmer client directly for the agent and
 its MCP servers.
 
@@ -223,13 +222,14 @@ Pass `null` as `org` to disable all operations (stable no-op).
 **Signature**
 
 ```tsx
-function useAgentSetup(org: string | null, poolKeys?: Set<string>): UseAgentSetupReturn
+function useAgentSetup(org: string | null, poolKeys?: Set<string>, conversationVaults?: readonly ResourceRef[]): UseAgentSetupReturn
 ```
 
 <TypeTable
   type={{
     org: { type: "string | null", description: "Organization id (a slug is also accepted). Pass `null` to disable.", required: true },
-    poolKeys: { type: "Set<string>", description: "Optional set of env-var keys already available   from the session env pool (manual secrets, one-time env vars from   other components). When provided, agents whose `env` keys   are fully covered by `poolKeys` + personal env auto-resolve to   `ready` without prompting. Reactive — when `poolKeys` changes,   `needsEnvVars` is re-evaluated." },
+    poolKeys: { type: "Set<string>", description: "Optional set of env-var keys already available   from the session env pool (manual secrets, one-time env vars from   other components). When provided, agents whose `env` keys   are fully covered by `poolKeys` + My vault auto-resolve to   `ready` without prompting. Reactive — when `poolKeys` changes,   `needsEnvVars` is re-evaluated." },
+    conversationVaults: { type: "readonly ResourceRef[]", description: "The vaults the conversation lists, when it   lists any. Such a conversation uses only those vaults, so only their   keys and logins count as saved (not My vault's or the agent's vaults'),   a sign-in counts only when one of them holds a login serving the server   (never a My vault grant), each pending sign-in names the first listed   vault as where to save it (`PendingSignIn.vault`), and values the   person saves in My vault also reach the conversation as its own   secrets (`oneTime`). `poolKeys` must then leave My vault's names out.   Reactive — when the listed vaults change, an agent already resolved is   resolved again over them, keeping the values the conversation holds." },
   }}
 />
 
@@ -239,10 +239,10 @@ function useAgentSetup(org: string | null, poolKeys?: Set<string>): UseAgentSetu
   type={{
     clearError: { type: "() => void", description: "Clear the error without changing the current phase." },
     reset: { type: "() => void", description: "Reset to `idle` state, clearing all phase data and errors." },
-    resolveAgent: { type: "(ref: ResourceRef) => Promise<AgentSetupResult>", description: "Evaluate whether an agent is ready to use or needs env var collection.  Fetches the full agent to read its `env` declarations and diffs them against the personal environment and the session's variables. Returns `\"ready\"` when the agent can be used immediately, or `\"needsEnvVars\"` when the caller should present AgentEnvForm." },
+    resolveAgent: { type: "(ref: ResourceRef) => Promise<AgentSetupResult>", description: "Evaluate whether an agent is ready to use or needs env var collection.  Fetches the full agent to read its `env` declarations and diffs them against the user's vaults and the session's variables. Returns `\"ready\"` when the agent can be used immediately, or `\"needsEnvVars\"` when the caller should present AgentEnvForm. A resolution that a newer one (or reset) overtakes still returns its answer, but leaves `state` to the newer one." },
     signInCompleted: { type: "(mcpServerId: string) => Promise<void>", description: "Record that one of the pending sign-ins completed (the row's own OAuth flow landed). When it was the last one, the agent is resolved again through resolveAgent, which now finds the grant and lands in `ready` or in `needsEnvVars` for its variables alone.  Must only be called when `state.status === \"needsEnvVars\"`." },
-    state: { type: "AgentSetupState", description: "Current state of the agent setup flow.  A discriminated union on `status`: - `\"idle\"` — no agent selected - `\"resolving\"` — evaluating an agent's requirements - `\"needsEnvVars\"` — waiting for user to provide missing variables - `\"submitting\"` — saving to the personal environment - `\"ready\"` — agent resolved, `resolution` describes how to proceed  `error` is available on all variants (orthogonal to phase).", typeDescriptionLink: "#agentsetupstate" },
-    submitEnvVars: { type: "(values: Record<string, EnvVarInput>, options?: SubmitEnvVarsOptions) => Promise<AgentSetupReadyResult>", description: "Complete the env var collection flow for the pending agent.  Behavior depends on `options.saveForFuture`: - `true` (default) — Creates or updates the personal environment   with the provided values.   Returns `{ resolution: { mode: \"saved\" } }`. - `false` — Collects values as `runtimeEnv` without any API calls.   Returns `{ resolution: { mode: \"oneTime\", runtimeEnv } }`.  Must only be called when `state.status === \"needsEnvVars\"`." },
+    state: { type: "AgentSetupState", description: "Current state of the agent setup flow.  A discriminated union on `status`: - `\"idle\"` — no agent selected - `\"resolving\"` — evaluating an agent's requirements - `\"needsEnvVars\"` — waiting for user to provide missing variables - `\"submitting\"` — saving in My vault - `\"ready\"` — agent resolved, `resolution` describes how to proceed  `error` is available on all variants (orthogonal to phase).", typeDescriptionLink: "#agentsetupstate" },
+    submitEnvVars: { type: "(values: Record<string, EnvVarInput>, options?: SubmitEnvVarsOptions) => Promise<AgentSetupReadyResult>", description: "Complete the env var collection flow for the pending agent.  Behavior depends on `options.saveForFuture`: - `true` (default) — Saves the provided values in My vault.   Returns `{ resolution: { mode: \"saved\" } }`. - `false` — Collects values for this conversation without any API calls.   Returns `{ resolution: { mode: \"oneTime\", values } }`.  Must only be called when `state.status === \"needsEnvVars\"`." },
   }}
 />
 
@@ -544,7 +544,7 @@ All visual properties flow through `--stgm-*` design tokens.
 
 Compact form that collects environment variable values for an agent.
 
-This is a thin wrapper around [`EnvVarForm`](/docs/sdk/react/environment#envvarform) that provides
+This is a thin wrapper around [`EnvVarForm`](/docs/sdk/react/vault#envvarform) that provides
 agent-specific defaults: the agent name as the form title, and a
 contextual description. All rendering, validation, and toggle
 behavior is delegated to `EnvVarForm`.
@@ -555,7 +555,7 @@ behavior is delegated to `EnvVarForm`.
   type={{
     agentName: { type: "string", description: "Agent display name shown in the form header.", required: true },
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    defaultSaveForFuture: { type: "boolean", description: "Initial state of the \"Save for future runs\" toggle. Platform builders can override this to match their default secret-persistence policy." },
+    defaultSaveForFuture: { type: "boolean", description: "Initial state of the \"Save in My vault\" toggle. Platform builders can override this to match their default secret-persistence policy." },
     disabled: { type: "boolean", description: "Prevents interaction with all form inputs when `true`." },
     hideSaveToggle: { type: "boolean", description: "When `true`, the save toggle is hidden and the form always uses `defaultSaveForFuture` as the submit value. Useful for platform builders who want to enforce a single persistence policy." },
     isSubmitting: { type: "boolean", description: "When true, the submit button shows a spinner and inputs are disabled." },
@@ -575,7 +575,7 @@ behavior is delegated to `EnvVarForm`.
   ]}
   onSubmit={(values, { saveForFuture }) => {
     if (saveForFuture) saveToEnvironment(values);
-    else useAsRuntimeEnv(values);
+    else useForThisConversation(values);
   }}
   onCancel={() => console.log("cancelled")}
 />
@@ -695,10 +695,11 @@ should create the session and its first run.
 Every mode starts the conversation on the agent itself (the session's
 `agentRef`); the mode says where the keys the agent declares come from:
 
-- `"saved"` — The user's personal environment holds every declared
-  key (saved just now or earlier). Each run reads them from there.
-- `"oneTime"` — Secrets were collected but **not** persisted. Pass
-  `runtimeEnv` to `createExecution` for this run only.
+- `"saved"` — The user's vaults hold every declared key (saved in My
+  vault just now or earlier, or in a vault the agent attaches). Each run
+  reads them from there.
+- `"oneTime"` — Values were collected but **not** saved in a vault. They
+  become the conversation's own secrets (`session_spec.secrets`).
 - `"direct"` — Nothing is needed from the user: the agent declares no
   keys, or the session's variables cover the ones it does.
 
@@ -832,6 +833,7 @@ per organization today, so one colleague's sign-in serves everyone.
     id: { type: "string", description: "The server's id, the key a sign-in completes under.", required: true },
     name: { type: "string", description: "The server's display name.", required: true },
     ref: { type: "ResourceRef", description: "The server's reference, for the row's own read.", required: true },
+    vault: { type: "SignInVault", description: "The vault the sign-in must be saved into: the first vault the conversation lists, when it lists any (such a conversation reads its logins only from them). Absent, the sign-in is saved in My vault.", typeDescriptionLink: "/docs/sdk/react/mcp-server#signinvault" },
   }}
 />
 
@@ -842,7 +844,7 @@ Options for `UseAgentSetupReturn.submitEnvVars`.
 
 <TypeTable
   type={{
-    saveForFuture: { type: "boolean", description: "When `true` (default), the provided values are saved to the user's personal environment. Every run of an agent the user starts reads the keys that agent declares from there, so later conversations reuse them without asking again.  When `false`, the values are collected as `runtimeEnv` for this run only — nothing is persisted. This path is instant (no network calls)." },
+    saveForFuture: { type: "boolean", description: "When `true` (default), the provided values are saved in the user's My vault. Every conversation the user starts reads the keys an agent declares from there, so later conversations reuse them without asking again.  When `false`, the values are kept for this conversation only, as its own secrets — nothing is saved in a vault. This path is instant (no network calls)." },
   }}
 />
 

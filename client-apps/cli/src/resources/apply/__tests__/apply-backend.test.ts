@@ -306,7 +306,19 @@ describe("file-mode apply — kinds the registry does not know", () => {
         ["kind: WorkflowInstance", "metadata:", "  name: Deploy", "  slug: deploy-default", ""].join("\n"),
       );
       expect(() => resolveApplyItems(dir)).toThrow(
-        /kind 'WorkflowInstance' in .*workflow-instance\.yaml is no longer a Stigmer resource.*stigmer run <org>\/<agent>/,
+        /kind 'WorkflowInstance' in .*workflow-instance\.yaml is no longer a Stigmer resource.*stigmer run <org>\/<agent>.*stigmer vault set-secret <NAME> --mine/,
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses an Environment manifest, naming the vault as where secrets live now", () => {
+    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
+    try {
+      writeYaml(dir, "environment.yaml", ["kind: Environment", "metadata:", "  name: Prod", "  slug: prod", ""].join("\n"));
+      expect(() => resolveApplyItems(dir)).toThrow(
+        /kind 'Environment' in .*environment\.yaml is no longer a Stigmer resource: logins and secrets live in vaults.*stigmer vault set-secret <NAME> --mine/,
       );
     } finally {
       rmSync(dir, { recursive: true, force: true });

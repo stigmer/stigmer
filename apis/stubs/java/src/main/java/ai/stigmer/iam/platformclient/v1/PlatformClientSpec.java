@@ -73,7 +73,7 @@ private static final long serialVersionUID = 0L;
     secretFingerprint_ = "";
     allowedOrigins_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-    environmentRefs_ = java.util.Collections.emptyList();
+    vaults_ = java.util.Collections.emptyList();
     signInRole_ = 0;
   }
 
@@ -437,95 +437,95 @@ private static final long serialVersionUID = 0L;
     return allowedOrigins_.getByteString(index);
   }
 
-  public static final int ENVIRONMENT_REFS_FIELD_NUMBER = 10;
+  public static final int VAULTS_FIELD_NUMBER = 13;
   @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> environmentRefs_;
+  private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> vaults_;
   /**
    * <pre>
-   * Environments whose values are delivered to every run a
-   * user signed in through this PlatformClient creates. This is how an
-   * embedded assistant reaches secret-gated MCP servers: the client — the
-   * connection resource — carries the credentials (for example a shared
-   * API secret), and minted-user runs receive its values at
-   * runtime, at the lowest priority, so the request's runtime values win on
-   * a key conflict. The agent stays untouched.
+   * Vaults whose logins and secrets every run a user signed in through this
+   * client creates uses, in order: the first vault holding a match wins.
+   * At most 20.
+   *
+   * This is how an embedded assistant reaches tools that need a key: the
+   * client carries a shared vault holding it, and minted users' runs use it.
+   * A My vault cannot be attached.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
-  public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getEnvironmentRefsList() {
-    return environmentRefs_;
+  public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getVaultsList() {
+    return vaults_;
   }
   /**
    * <pre>
-   * Environments whose values are delivered to every run a
-   * user signed in through this PlatformClient creates. This is how an
-   * embedded assistant reaches secret-gated MCP servers: the client — the
-   * connection resource — carries the credentials (for example a shared
-   * API secret), and minted-user runs receive its values at
-   * runtime, at the lowest priority, so the request's runtime values win on
-   * a key conflict. The agent stays untouched.
+   * Vaults whose logins and secrets every run a user signed in through this
+   * client creates uses, in order: the first vault holding a match wins.
+   * At most 20.
+   *
+   * This is how an embedded assistant reaches tools that need a key: the
+   * client carries a shared vault holding it, and minted users' runs use it.
+   * A My vault cannot be attached.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
   public java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
-      getEnvironmentRefsOrBuilderList() {
-    return environmentRefs_;
+      getVaultsOrBuilderList() {
+    return vaults_;
   }
   /**
    * <pre>
-   * Environments whose values are delivered to every run a
-   * user signed in through this PlatformClient creates. This is how an
-   * embedded assistant reaches secret-gated MCP servers: the client — the
-   * connection resource — carries the credentials (for example a shared
-   * API secret), and minted-user runs receive its values at
-   * runtime, at the lowest priority, so the request's runtime values win on
-   * a key conflict. The agent stays untouched.
+   * Vaults whose logins and secrets every run a user signed in through this
+   * client creates uses, in order: the first vault holding a match wins.
+   * At most 20.
+   *
+   * This is how an embedded assistant reaches tools that need a key: the
+   * client carries a shared vault holding it, and minted users' runs use it.
+   * A My vault cannot be attached.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
-  public int getEnvironmentRefsCount() {
-    return environmentRefs_.size();
+  public int getVaultsCount() {
+    return vaults_.size();
   }
   /**
    * <pre>
-   * Environments whose values are delivered to every run a
-   * user signed in through this PlatformClient creates. This is how an
-   * embedded assistant reaches secret-gated MCP servers: the client — the
-   * connection resource — carries the credentials (for example a shared
-   * API secret), and minted-user runs receive its values at
-   * runtime, at the lowest priority, so the request's runtime values win on
-   * a key conflict. The agent stays untouched.
+   * Vaults whose logins and secrets every run a user signed in through this
+   * client creates uses, in order: the first vault holding a match wins.
+   * At most 20.
+   *
+   * This is how an embedded assistant reaches tools that need a key: the
+   * client carries a shared vault holding it, and minted users' runs use it.
+   * A My vault cannot be attached.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
-  public ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRefs(int index) {
-    return environmentRefs_.get(index);
+  public ai.stigmer.commons.apiresource.ApiResourceReference getVaults(int index) {
+    return vaults_.get(index);
   }
   /**
    * <pre>
-   * Environments whose values are delivered to every run a
-   * user signed in through this PlatformClient creates. This is how an
-   * embedded assistant reaches secret-gated MCP servers: the client — the
-   * connection resource — carries the credentials (for example a shared
-   * API secret), and minted-user runs receive its values at
-   * runtime, at the lowest priority, so the request's runtime values win on
-   * a key conflict. The agent stays untouched.
+   * Vaults whose logins and secrets every run a user signed in through this
+   * client creates uses, in order: the first vault holding a match wins.
+   * At most 20.
+   *
+   * This is how an embedded assistant reaches tools that need a key: the
+   * client carries a shared vault holding it, and minted users' runs use it.
+   * A My vault cannot be attached.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
-  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefsOrBuilder(
+  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getVaultsOrBuilder(
       int index) {
-    return environmentRefs_.get(index);
+    return vaults_.get(index);
   }
 
   public static final int CREATE_ACCOUNTS_ON_SIGN_IN_FIELD_NUMBER = 11;
@@ -625,14 +625,14 @@ private static final long serialVersionUID = 0L;
     for (int i = 0; i < allowedOrigins_.size(); i++) {
       com.google.protobuf.GeneratedMessage.writeString(output, 9, allowedOrigins_.getRaw(i));
     }
-    for (int i = 0; i < environmentRefs_.size(); i++) {
-      output.writeMessage(10, environmentRefs_.get(i));
-    }
     if (createAccountsOnSignIn_ != false) {
       output.writeBool(11, createAccountsOnSignIn_);
     }
     if (signInRole_ != ai.stigmer.iam.v1.IamRole.iam_role_unspecified.getNumber()) {
       output.writeEnum(12, signInRole_);
+    }
+    for (int i = 0; i < vaults_.size(); i++) {
+      output.writeMessage(13, vaults_.get(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -668,15 +668,6 @@ private static final long serialVersionUID = 0L;
       size += dataSize;
       size += 1 * getAllowedOriginsList().size();
     }
-
-        {
-          final int count = environmentRefs_.size();
-          for (int i = 0; i < count; i++) {
-            size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(environmentRefs_.get(i));
-          }
-          size += 1 * count;
-        }
     if (createAccountsOnSignIn_ != false) {
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(11, createAccountsOnSignIn_);
@@ -685,6 +676,15 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(12, signInRole_);
     }
+
+        {
+          final int count = vaults_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(vaults_.get(i));
+          }
+          size += 1 * count;
+        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -715,8 +715,8 @@ private static final long serialVersionUID = 0L;
         != other.getNeverExpires()) return false;
     if (!getAllowedOriginsList()
         .equals(other.getAllowedOriginsList())) return false;
-    if (!getEnvironmentRefsList()
-        .equals(other.getEnvironmentRefsList())) return false;
+    if (!getVaultsList()
+        .equals(other.getVaultsList())) return false;
     if (getCreateAccountsOnSignIn()
         != other.getCreateAccountsOnSignIn()) return false;
     if (signInRole_ != other.signInRole_) return false;
@@ -748,9 +748,9 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + ALLOWED_ORIGINS_FIELD_NUMBER;
       hash = (53 * hash) + getAllowedOriginsList().hashCode();
     }
-    if (getEnvironmentRefsCount() > 0) {
-      hash = (37 * hash) + ENVIRONMENT_REFS_FIELD_NUMBER;
-      hash = (53 * hash) + getEnvironmentRefsList().hashCode();
+    if (getVaultsCount() > 0) {
+      hash = (37 * hash) + VAULTS_FIELD_NUMBER;
+      hash = (53 * hash) + getVaultsList().hashCode();
     }
     hash = (37 * hash) + CREATE_ACCOUNTS_ON_SIGN_IN_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
@@ -928,7 +928,7 @@ private static final long serialVersionUID = 0L;
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetExpiresAtFieldBuilder();
-        internalGetEnvironmentRefsFieldBuilder();
+        internalGetVaultsFieldBuilder();
       }
     }
     @java.lang.Override
@@ -946,11 +946,11 @@ private static final long serialVersionUID = 0L;
       neverExpires_ = false;
       allowedOrigins_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
-      if (environmentRefsBuilder_ == null) {
-        environmentRefs_ = java.util.Collections.emptyList();
+      if (vaultsBuilder_ == null) {
+        vaults_ = java.util.Collections.emptyList();
       } else {
-        environmentRefs_ = null;
-        environmentRefsBuilder_.clear();
+        vaults_ = null;
+        vaultsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000040);
       createAccountsOnSignIn_ = false;
@@ -988,14 +988,14 @@ private static final long serialVersionUID = 0L;
     }
 
     private void buildPartialRepeatedFields(ai.stigmer.iam.platformclient.v1.PlatformClientSpec result) {
-      if (environmentRefsBuilder_ == null) {
+      if (vaultsBuilder_ == null) {
         if (((bitField0_ & 0x00000040) != 0)) {
-          environmentRefs_ = java.util.Collections.unmodifiableList(environmentRefs_);
+          vaults_ = java.util.Collections.unmodifiableList(vaults_);
           bitField0_ = (bitField0_ & ~0x00000040);
         }
-        result.environmentRefs_ = environmentRefs_;
+        result.vaults_ = vaults_;
       } else {
-        result.environmentRefs_ = environmentRefsBuilder_.build();
+        result.vaults_ = vaultsBuilder_.build();
       }
     }
 
@@ -1076,29 +1076,29 @@ private static final long serialVersionUID = 0L;
         }
         onChanged();
       }
-      if (environmentRefsBuilder_ == null) {
-        if (!other.environmentRefs_.isEmpty()) {
-          if (environmentRefs_.isEmpty()) {
-            environmentRefs_ = other.environmentRefs_;
+      if (vaultsBuilder_ == null) {
+        if (!other.vaults_.isEmpty()) {
+          if (vaults_.isEmpty()) {
+            vaults_ = other.vaults_;
             bitField0_ = (bitField0_ & ~0x00000040);
           } else {
-            ensureEnvironmentRefsIsMutable();
-            environmentRefs_.addAll(other.environmentRefs_);
+            ensureVaultsIsMutable();
+            vaults_.addAll(other.vaults_);
           }
           onChanged();
         }
       } else {
-        if (!other.environmentRefs_.isEmpty()) {
-          if (environmentRefsBuilder_.isEmpty()) {
-            environmentRefsBuilder_.dispose();
-            environmentRefsBuilder_ = null;
-            environmentRefs_ = other.environmentRefs_;
+        if (!other.vaults_.isEmpty()) {
+          if (vaultsBuilder_.isEmpty()) {
+            vaultsBuilder_.dispose();
+            vaultsBuilder_ = null;
+            vaults_ = other.vaults_;
             bitField0_ = (bitField0_ & ~0x00000040);
-            environmentRefsBuilder_ = 
+            vaultsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetEnvironmentRefsFieldBuilder() : null;
+                 internalGetVaultsFieldBuilder() : null;
           } else {
-            environmentRefsBuilder_.addAllMessages(other.environmentRefs_);
+            vaultsBuilder_.addAllMessages(other.vaults_);
           }
         }
       }
@@ -1166,19 +1166,6 @@ private static final long serialVersionUID = 0L;
               allowedOrigins_.add(input.readStringRequireUtf8());
               break;
             } // case 74
-            case 82: {
-              ai.stigmer.commons.apiresource.ApiResourceReference m =
-                  input.readMessage(
-                      ai.stigmer.commons.apiresource.ApiResourceReference.parser(),
-                      extensionRegistry);
-              if (environmentRefsBuilder_ == null) {
-                ensureEnvironmentRefsIsMutable();
-                environmentRefs_.add(m);
-              } else {
-                environmentRefsBuilder_.addMessage(m);
-              }
-              break;
-            } // case 82
             case 88: {
               createAccountsOnSignIn_ = input.readBool();
               bitField0_ |= 0x00000080;
@@ -1189,6 +1176,19 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000100;
               break;
             } // case 96
+            case 106: {
+              ai.stigmer.commons.apiresource.ApiResourceReference m =
+                  input.readMessage(
+                      ai.stigmer.commons.apiresource.ApiResourceReference.parser(),
+                      extensionRegistry);
+              if (vaultsBuilder_ == null) {
+                ensureVaultsIsMutable();
+                vaults_.add(m);
+              } else {
+                vaultsBuilder_.addMessage(m);
+              }
+              break;
+            } // case 106
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2045,424 +2045,424 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> environmentRefs_ =
+    private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> vaults_ =
       java.util.Collections.emptyList();
-    private void ensureEnvironmentRefsIsMutable() {
+    private void ensureVaultsIsMutable() {
       if (!((bitField0_ & 0x00000040) != 0)) {
-        environmentRefs_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(environmentRefs_);
+        vaults_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(vaults_);
         bitField0_ |= 0x00000040;
        }
     }
 
     private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> environmentRefsBuilder_;
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> vaultsBuilder_;
 
     /**
      * <pre>
-     * Environments whose values are delivered to every run a
-     * user signed in through this PlatformClient creates. This is how an
-     * embedded assistant reaches secret-gated MCP servers: the client — the
-     * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user runs receive its values at
-     * runtime, at the lowest priority, so the request's runtime values win on
-     * a key conflict. The agent stays untouched.
+     * Vaults whose logins and secrets every run a user signed in through this
+     * client creates uses, in order: the first vault holding a match wins.
+     * At most 20.
+     *
+     * This is how an embedded assistant reaches tools that need a key: the
+     * client carries a shared vault holding it, and minted users' runs use it.
+     * A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getEnvironmentRefsList() {
-      if (environmentRefsBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(environmentRefs_);
+    public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getVaultsList() {
+      if (vaultsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(vaults_);
       } else {
-        return environmentRefsBuilder_.getMessageList();
+        return vaultsBuilder_.getMessageList();
       }
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every run a
-     * user signed in through this PlatformClient creates. This is how an
-     * embedded assistant reaches secret-gated MCP servers: the client — the
-     * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user runs receive its values at
-     * runtime, at the lowest priority, so the request's runtime values win on
-     * a key conflict. The agent stays untouched.
+     * Vaults whose logins and secrets every run a user signed in through this
+     * client creates uses, in order: the first vault holding a match wins.
+     * At most 20.
+     *
+     * This is how an embedded assistant reaches tools that need a key: the
+     * client carries a shared vault holding it, and minted users' runs use it.
+     * A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public int getEnvironmentRefsCount() {
-      if (environmentRefsBuilder_ == null) {
-        return environmentRefs_.size();
+    public int getVaultsCount() {
+      if (vaultsBuilder_ == null) {
+        return vaults_.size();
       } else {
-        return environmentRefsBuilder_.getCount();
+        return vaultsBuilder_.getCount();
       }
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every run a
-     * user signed in through this PlatformClient creates. This is how an
-     * embedded assistant reaches secret-gated MCP servers: the client — the
-     * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user runs receive its values at
-     * runtime, at the lowest priority, so the request's runtime values win on
-     * a key conflict. The agent stays untouched.
+     * Vaults whose logins and secrets every run a user signed in through this
+     * client creates uses, in order: the first vault holding a match wins.
+     * At most 20.
+     *
+     * This is how an embedded assistant reaches tools that need a key: the
+     * client carries a shared vault holding it, and minted users' runs use it.
+     * A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRefs(int index) {
-      if (environmentRefsBuilder_ == null) {
-        return environmentRefs_.get(index);
+    public ai.stigmer.commons.apiresource.ApiResourceReference getVaults(int index) {
+      if (vaultsBuilder_ == null) {
+        return vaults_.get(index);
       } else {
-        return environmentRefsBuilder_.getMessage(index);
+        return vaultsBuilder_.getMessage(index);
       }
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every run a
-     * user signed in through this PlatformClient creates. This is how an
-     * embedded assistant reaches secret-gated MCP servers: the client — the
-     * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user runs receive its values at
-     * runtime, at the lowest priority, so the request's runtime values win on
-     * a key conflict. The agent stays untouched.
+     * Vaults whose logins and secrets every run a user signed in through this
+     * client creates uses, in order: the first vault holding a match wins.
+     * At most 20.
+     *
+     * This is how an embedded assistant reaches tools that need a key: the
+     * client carries a shared vault holding it, and minted users' runs use it.
+     * A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public Builder setEnvironmentRefs(
+    public Builder setVaults(
         int index, ai.stigmer.commons.apiresource.ApiResourceReference value) {
-      if (environmentRefsBuilder_ == null) {
+      if (vaultsBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureEnvironmentRefsIsMutable();
-        environmentRefs_.set(index, value);
+        ensureVaultsIsMutable();
+        vaults_.set(index, value);
         onChanged();
       } else {
-        environmentRefsBuilder_.setMessage(index, value);
+        vaultsBuilder_.setMessage(index, value);
       }
       return this;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every run a
-     * user signed in through this PlatformClient creates. This is how an
-     * embedded assistant reaches secret-gated MCP servers: the client — the
-     * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user runs receive its values at
-     * runtime, at the lowest priority, so the request's runtime values win on
-     * a key conflict. The agent stays untouched.
+     * Vaults whose logins and secrets every run a user signed in through this
+     * client creates uses, in order: the first vault holding a match wins.
+     * At most 20.
+     *
+     * This is how an embedded assistant reaches tools that need a key: the
+     * client carries a shared vault holding it, and minted users' runs use it.
+     * A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public Builder setEnvironmentRefs(
+    public Builder setVaults(
         int index, ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
-      if (environmentRefsBuilder_ == null) {
-        ensureEnvironmentRefsIsMutable();
-        environmentRefs_.set(index, builderForValue.build());
+      if (vaultsBuilder_ == null) {
+        ensureVaultsIsMutable();
+        vaults_.set(index, builderForValue.build());
         onChanged();
       } else {
-        environmentRefsBuilder_.setMessage(index, builderForValue.build());
+        vaultsBuilder_.setMessage(index, builderForValue.build());
       }
       return this;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every run a
-     * user signed in through this PlatformClient creates. This is how an
-     * embedded assistant reaches secret-gated MCP servers: the client — the
-     * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user runs receive its values at
-     * runtime, at the lowest priority, so the request's runtime values win on
-     * a key conflict. The agent stays untouched.
+     * Vaults whose logins and secrets every run a user signed in through this
+     * client creates uses, in order: the first vault holding a match wins.
+     * At most 20.
+     *
+     * This is how an embedded assistant reaches tools that need a key: the
+     * client carries a shared vault holding it, and minted users' runs use it.
+     * A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public Builder addEnvironmentRefs(ai.stigmer.commons.apiresource.ApiResourceReference value) {
-      if (environmentRefsBuilder_ == null) {
+    public Builder addVaults(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (vaultsBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureEnvironmentRefsIsMutable();
-        environmentRefs_.add(value);
+        ensureVaultsIsMutable();
+        vaults_.add(value);
         onChanged();
       } else {
-        environmentRefsBuilder_.addMessage(value);
+        vaultsBuilder_.addMessage(value);
       }
       return this;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every run a
-     * user signed in through this PlatformClient creates. This is how an
-     * embedded assistant reaches secret-gated MCP servers: the client — the
-     * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user runs receive its values at
-     * runtime, at the lowest priority, so the request's runtime values win on
-     * a key conflict. The agent stays untouched.
+     * Vaults whose logins and secrets every run a user signed in through this
+     * client creates uses, in order: the first vault holding a match wins.
+     * At most 20.
+     *
+     * This is how an embedded assistant reaches tools that need a key: the
+     * client carries a shared vault holding it, and minted users' runs use it.
+     * A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public Builder addEnvironmentRefs(
+    public Builder addVaults(
         int index, ai.stigmer.commons.apiresource.ApiResourceReference value) {
-      if (environmentRefsBuilder_ == null) {
+      if (vaultsBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureEnvironmentRefsIsMutable();
-        environmentRefs_.add(index, value);
+        ensureVaultsIsMutable();
+        vaults_.add(index, value);
         onChanged();
       } else {
-        environmentRefsBuilder_.addMessage(index, value);
+        vaultsBuilder_.addMessage(index, value);
       }
       return this;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every run a
-     * user signed in through this PlatformClient creates. This is how an
-     * embedded assistant reaches secret-gated MCP servers: the client — the
-     * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user runs receive its values at
-     * runtime, at the lowest priority, so the request's runtime values win on
-     * a key conflict. The agent stays untouched.
+     * Vaults whose logins and secrets every run a user signed in through this
+     * client creates uses, in order: the first vault holding a match wins.
+     * At most 20.
+     *
+     * This is how an embedded assistant reaches tools that need a key: the
+     * client carries a shared vault holding it, and minted users' runs use it.
+     * A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public Builder addEnvironmentRefs(
+    public Builder addVaults(
         ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
-      if (environmentRefsBuilder_ == null) {
-        ensureEnvironmentRefsIsMutable();
-        environmentRefs_.add(builderForValue.build());
+      if (vaultsBuilder_ == null) {
+        ensureVaultsIsMutable();
+        vaults_.add(builderForValue.build());
         onChanged();
       } else {
-        environmentRefsBuilder_.addMessage(builderForValue.build());
+        vaultsBuilder_.addMessage(builderForValue.build());
       }
       return this;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every run a
-     * user signed in through this PlatformClient creates. This is how an
-     * embedded assistant reaches secret-gated MCP servers: the client — the
-     * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user runs receive its values at
-     * runtime, at the lowest priority, so the request's runtime values win on
-     * a key conflict. The agent stays untouched.
+     * Vaults whose logins and secrets every run a user signed in through this
+     * client creates uses, in order: the first vault holding a match wins.
+     * At most 20.
+     *
+     * This is how an embedded assistant reaches tools that need a key: the
+     * client carries a shared vault holding it, and minted users' runs use it.
+     * A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public Builder addEnvironmentRefs(
+    public Builder addVaults(
         int index, ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
-      if (environmentRefsBuilder_ == null) {
-        ensureEnvironmentRefsIsMutable();
-        environmentRefs_.add(index, builderForValue.build());
+      if (vaultsBuilder_ == null) {
+        ensureVaultsIsMutable();
+        vaults_.add(index, builderForValue.build());
         onChanged();
       } else {
-        environmentRefsBuilder_.addMessage(index, builderForValue.build());
+        vaultsBuilder_.addMessage(index, builderForValue.build());
       }
       return this;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every run a
-     * user signed in through this PlatformClient creates. This is how an
-     * embedded assistant reaches secret-gated MCP servers: the client — the
-     * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user runs receive its values at
-     * runtime, at the lowest priority, so the request's runtime values win on
-     * a key conflict. The agent stays untouched.
+     * Vaults whose logins and secrets every run a user signed in through this
+     * client creates uses, in order: the first vault holding a match wins.
+     * At most 20.
+     *
+     * This is how an embedded assistant reaches tools that need a key: the
+     * client carries a shared vault holding it, and minted users' runs use it.
+     * A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public Builder addAllEnvironmentRefs(
+    public Builder addAllVaults(
         java.lang.Iterable<? extends ai.stigmer.commons.apiresource.ApiResourceReference> values) {
-      if (environmentRefsBuilder_ == null) {
-        ensureEnvironmentRefsIsMutable();
+      if (vaultsBuilder_ == null) {
+        ensureVaultsIsMutable();
         com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, environmentRefs_);
+            values, vaults_);
         onChanged();
       } else {
-        environmentRefsBuilder_.addAllMessages(values);
+        vaultsBuilder_.addAllMessages(values);
       }
       return this;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every run a
-     * user signed in through this PlatformClient creates. This is how an
-     * embedded assistant reaches secret-gated MCP servers: the client — the
-     * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user runs receive its values at
-     * runtime, at the lowest priority, so the request's runtime values win on
-     * a key conflict. The agent stays untouched.
+     * Vaults whose logins and secrets every run a user signed in through this
+     * client creates uses, in order: the first vault holding a match wins.
+     * At most 20.
+     *
+     * This is how an embedded assistant reaches tools that need a key: the
+     * client carries a shared vault holding it, and minted users' runs use it.
+     * A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public Builder clearEnvironmentRefs() {
-      if (environmentRefsBuilder_ == null) {
-        environmentRefs_ = java.util.Collections.emptyList();
+    public Builder clearVaults() {
+      if (vaultsBuilder_ == null) {
+        vaults_ = java.util.Collections.emptyList();
         bitField0_ = (bitField0_ & ~0x00000040);
         onChanged();
       } else {
-        environmentRefsBuilder_.clear();
+        vaultsBuilder_.clear();
       }
       return this;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every run a
-     * user signed in through this PlatformClient creates. This is how an
-     * embedded assistant reaches secret-gated MCP servers: the client — the
-     * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user runs receive its values at
-     * runtime, at the lowest priority, so the request's runtime values win on
-     * a key conflict. The agent stays untouched.
+     * Vaults whose logins and secrets every run a user signed in through this
+     * client creates uses, in order: the first vault holding a match wins.
+     * At most 20.
+     *
+     * This is how an embedded assistant reaches tools that need a key: the
+     * client carries a shared vault holding it, and minted users' runs use it.
+     * A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public Builder removeEnvironmentRefs(int index) {
-      if (environmentRefsBuilder_ == null) {
-        ensureEnvironmentRefsIsMutable();
-        environmentRefs_.remove(index);
+    public Builder removeVaults(int index) {
+      if (vaultsBuilder_ == null) {
+        ensureVaultsIsMutable();
+        vaults_.remove(index);
         onChanged();
       } else {
-        environmentRefsBuilder_.remove(index);
+        vaultsBuilder_.remove(index);
       }
       return this;
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every run a
-     * user signed in through this PlatformClient creates. This is how an
-     * embedded assistant reaches secret-gated MCP servers: the client — the
-     * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user runs receive its values at
-     * runtime, at the lowest priority, so the request's runtime values win on
-     * a key conflict. The agent stays untouched.
+     * Vaults whose logins and secrets every run a user signed in through this
+     * client creates uses, in order: the first vault holding a match wins.
+     * At most 20.
+     *
+     * This is how an embedded assistant reaches tools that need a key: the
+     * client carries a shared vault holding it, and minted users' runs use it.
+     * A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getEnvironmentRefsBuilder(
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getVaultsBuilder(
         int index) {
-      return internalGetEnvironmentRefsFieldBuilder().getBuilder(index);
+      return internalGetVaultsFieldBuilder().getBuilder(index);
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every run a
-     * user signed in through this PlatformClient creates. This is how an
-     * embedded assistant reaches secret-gated MCP servers: the client — the
-     * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user runs receive its values at
-     * runtime, at the lowest priority, so the request's runtime values win on
-     * a key conflict. The agent stays untouched.
+     * Vaults whose logins and secrets every run a user signed in through this
+     * client creates uses, in order: the first vault holding a match wins.
+     * At most 20.
+     *
+     * This is how an embedded assistant reaches tools that need a key: the
+     * client carries a shared vault holding it, and minted users' runs use it.
+     * A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefsOrBuilder(
+    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getVaultsOrBuilder(
         int index) {
-      if (environmentRefsBuilder_ == null) {
-        return environmentRefs_.get(index);  } else {
-        return environmentRefsBuilder_.getMessageOrBuilder(index);
+      if (vaultsBuilder_ == null) {
+        return vaults_.get(index);  } else {
+        return vaultsBuilder_.getMessageOrBuilder(index);
       }
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every run a
-     * user signed in through this PlatformClient creates. This is how an
-     * embedded assistant reaches secret-gated MCP servers: the client — the
-     * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user runs receive its values at
-     * runtime, at the lowest priority, so the request's runtime values win on
-     * a key conflict. The agent stays untouched.
+     * Vaults whose logins and secrets every run a user signed in through this
+     * client creates uses, in order: the first vault holding a match wins.
+     * At most 20.
+     *
+     * This is how an embedded assistant reaches tools that need a key: the
+     * client carries a shared vault holding it, and minted users' runs use it.
+     * A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
     public java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
-         getEnvironmentRefsOrBuilderList() {
-      if (environmentRefsBuilder_ != null) {
-        return environmentRefsBuilder_.getMessageOrBuilderList();
+         getVaultsOrBuilderList() {
+      if (vaultsBuilder_ != null) {
+        return vaultsBuilder_.getMessageOrBuilderList();
       } else {
-        return java.util.Collections.unmodifiableList(environmentRefs_);
+        return java.util.Collections.unmodifiableList(vaults_);
       }
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every run a
-     * user signed in through this PlatformClient creates. This is how an
-     * embedded assistant reaches secret-gated MCP servers: the client — the
-     * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user runs receive its values at
-     * runtime, at the lowest priority, so the request's runtime values win on
-     * a key conflict. The agent stays untouched.
+     * Vaults whose logins and secrets every run a user signed in through this
+     * client creates uses, in order: the first vault holding a match wins.
+     * At most 20.
+     *
+     * This is how an embedded assistant reaches tools that need a key: the
+     * client carries a shared vault holding it, and minted users' runs use it.
+     * A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addEnvironmentRefsBuilder() {
-      return internalGetEnvironmentRefsFieldBuilder().addBuilder(
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addVaultsBuilder() {
+      return internalGetVaultsFieldBuilder().addBuilder(
           ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance());
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every run a
-     * user signed in through this PlatformClient creates. This is how an
-     * embedded assistant reaches secret-gated MCP servers: the client — the
-     * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user runs receive its values at
-     * runtime, at the lowest priority, so the request's runtime values win on
-     * a key conflict. The agent stays untouched.
+     * Vaults whose logins and secrets every run a user signed in through this
+     * client creates uses, in order: the first vault holding a match wins.
+     * At most 20.
+     *
+     * This is how an embedded assistant reaches tools that need a key: the
+     * client carries a shared vault holding it, and minted users' runs use it.
+     * A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addEnvironmentRefsBuilder(
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addVaultsBuilder(
         int index) {
-      return internalGetEnvironmentRefsFieldBuilder().addBuilder(
+      return internalGetVaultsFieldBuilder().addBuilder(
           index, ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance());
     }
     /**
      * <pre>
-     * Environments whose values are delivered to every run a
-     * user signed in through this PlatformClient creates. This is how an
-     * embedded assistant reaches secret-gated MCP servers: the client — the
-     * connection resource — carries the credentials (for example a shared
-     * API secret), and minted-user runs receive its values at
-     * runtime, at the lowest priority, so the request's runtime values win on
-     * a key conflict. The agent stays untouched.
+     * Vaults whose logins and secrets every run a user signed in through this
+     * client creates uses, in order: the first vault holding a match wins.
+     * At most 20.
+     *
+     * This is how an embedded assistant reaches tools that need a key: the
+     * client carries a shared vault holding it, and minted users' runs use it.
+     * A My vault cannot be attached.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
      */
     public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference.Builder> 
-         getEnvironmentRefsBuilderList() {
-      return internalGetEnvironmentRefsFieldBuilder().getBuilderList();
+         getVaultsBuilderList() {
+      return internalGetVaultsFieldBuilder().getBuilderList();
     }
     private com.google.protobuf.RepeatedFieldBuilder<
         ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
-        internalGetEnvironmentRefsFieldBuilder() {
-      if (environmentRefsBuilder_ == null) {
-        environmentRefsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+        internalGetVaultsFieldBuilder() {
+      if (vaultsBuilder_ == null) {
+        vaultsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
-                environmentRefs_,
+                vaults_,
                 ((bitField0_ & 0x00000040) != 0),
                 getParentForChildren(),
                 isClean());
-        environmentRefs_ = null;
+        vaults_ = null;
       }
-      return environmentRefsBuilder_;
+      return vaultsBuilder_;
     }
 
     private boolean createAccountsOnSignIn_ ;

@@ -106,8 +106,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object org_ = "";
   /**
    * <pre>
-   * Organization context. Must match the org used during the original
-   * OAuth connect flow (part of the OAuthGrant composite key).
+   * Organization context: the caller's My vault in this org is the one
+   * changed.
    * </pre>
    *
    * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -128,8 +128,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Organization context. Must match the org used during the original
-   * OAuth connect flow (part of the OAuthGrant composite key).
+   * Organization context: the caller's My vault in this org is the one
+   * changed.
    * </pre>
    *
    * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -567,8 +567,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object org_ = "";
     /**
      * <pre>
-     * Organization context. Must match the org used during the original
-     * OAuth connect flow (part of the OAuthGrant composite key).
+     * Organization context: the caller's My vault in this org is the one
+     * changed.
      * </pre>
      *
      * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -588,8 +588,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization context. Must match the org used during the original
-     * OAuth connect flow (part of the OAuthGrant composite key).
+     * Organization context: the caller's My vault in this org is the one
+     * changed.
      * </pre>
      *
      * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -610,8 +610,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization context. Must match the org used during the original
-     * OAuth connect flow (part of the OAuthGrant composite key).
+     * Organization context: the caller's My vault in this org is the one
+     * changed.
      * </pre>
      *
      * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -628,8 +628,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization context. Must match the org used during the original
-     * OAuth connect flow (part of the OAuthGrant composite key).
+     * Organization context: the caller's My vault in this org is the one
+     * changed.
      * </pre>
      *
      * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -643,8 +643,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Organization context. Must match the org used during the original
-     * OAuth connect flow (part of the OAuthGrant composite key).
+     * Organization context: the caller's My vault in this org is the one
+     * changed.
      * </pre>
      *
      * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>

@@ -3,14 +3,14 @@
  * pkg/domain/mcpserver/oauth/token_test.go (the Slack authed_user
  * "which token wins" resolution + the #410 client-secret placement pins,
  * RefreshToken arm; ExchangeCode is token-exchange.test.ts's) and pins
- * refreshTokenIfExpired's expiry-buffer / rotation contract that Go
- * asserts through the connect pre-flight. The token endpoint is a fetch
+ * refreshTokenIfExpired's expiry-buffer / rotation contract over a vault
+ * connection's sign-in record. The token endpoint is a fetch
  * stub — deterministic, no sockets.
  */
 import { describe, expect, it } from "vitest";
 
 import { createLogger } from "../../../../boot/logger.js";
-import type { OAuthGrant } from "../../../../store/interface.js";
+import type { VaultSignIn } from "../../../vault/service.js";
 
 import {
   REFRESH_EXPIRY_BUFFER_SECONDS,
@@ -237,30 +237,24 @@ describe("refreshToken secret placement", () => {
 
 // refreshTokenIfExpired's expiry-buffer / rotation contract.
 describe("refreshTokenIfExpired", () => {
-  function grant(accessTokenExpiresAt: number): OAuthGrant {
+  function signIn(expiresAt: number, refreshToken: string): VaultSignIn {
     return {
-      identityAccountId: "",
-      resourceId: "mcps_1",
-      resourceKind: "mcp_server",
-      orgId: "acme",
-      accessTokenExpiresAt,
+      expiresAt: BigInt(expiresAt),
       clientId: "client-1",
       authMethod: "mcp_oauth",
       tokenEndpoint: "https://vendor.example/token",
-      accessTokenEnvVar: "VENDOR_TOKEN",
-      refreshTokenEnvVar: "VENDOR_REFRESH_TOKEN",
-      environmentId: "env_managed",
-      createdAt: 0,
-      updatedAt: 0,
+      refreshToken,
+      mcpServerId: "mcps_1",
     };
   }
+  const ADDRESS = "https://vendor.example/mcp";
 
   const nowSeconds = () => Math.floor(Date.now() / 1000);
 
   it("no expiry (0) never refreshes — long-lived Notion/Slack-style tokens", async () => {
     const result = await refreshTokenIfExpired(
-      grant(0),
-      "rt-1",
+      signIn(0, "rt-1"),
+      ADDRESS,
       "",
       "",
       silentLogger,
@@ -273,8 +267,8 @@ describe("refreshTokenIfExpired", () => {
 
   it("not yet within the 60s buffer: skip", async () => {
     const result = await refreshTokenIfExpired(
-      grant(nowSeconds() + REFRESH_EXPIRY_BUFFER_SECONDS + 3600),
-      "rt-1",
+      signIn(nowSeconds() + REFRESH_EXPIRY_BUFFER_SECONDS + 3600, "rt-1"),
+      ADDRESS,
       "",
       "",
       silentLogger,
@@ -285,22 +279,21 @@ describe("refreshTokenIfExpired", () => {
     expect(result.refreshed).toBe(false);
   });
 
-  it("expired with no refresh token: throws the re-auth error", async () => {
+  it("expired with no refresh token: throws the cause alone, which the resolver wraps with the address and the one instruction", async () => {
     await expect(
-      refreshTokenIfExpired(grant(nowSeconds() - 10), "", "", "", silentLogger, () => {
+      refreshTokenIfExpired(
+      signIn(nowSeconds() - 10, ""),
+      ADDRESS, "", "", silentLogger, () => {
         throw new Error("token endpoint must not be reached");
       }),
-    ).rejects.toThrow(
-      "access token for resource 'mcps_1' has expired and no refresh token is available. " +
-        "Please re-authenticate via OAuth Connect",
-    );
+    ).rejects.toThrow(/^it has expired and no refresh token is available$/);
   });
 
   it("expired: refreshes, rotates the refresh token, computes newExpiresAt", async () => {
     const before = nowSeconds();
     const result = await refreshTokenIfExpired(
-      grant(before - 10),
-      "rt-old",
+      signIn(before - 10, "rt-old"),
+      ADDRESS,
       "",
       "",
       silentLogger,
@@ -317,8 +310,8 @@ describe("refreshTokenIfExpired", () => {
 
   it("expired: vendor omits refresh_token — the current one carries forward", async () => {
     const result = await refreshTokenIfExpired(
-      grant(nowSeconds() - 10),
-      "rt-keep",
+      signIn(nowSeconds() - 10, "rt-keep"),
+      ADDRESS,
       "",
       "",
       silentLogger,
@@ -330,18 +323,16 @@ describe("refreshTokenIfExpired", () => {
     expect(result.newExpiresAt).toBe(0);
   });
 
-  it("refresh failure wraps with the re-auth guidance", async () => {
+  it("refresh failure throws its cause alone, without the address or an instruction", async () => {
     await expect(
       refreshTokenIfExpired(
-        grant(nowSeconds() - 10),
-        "rt-1",
+      signIn(nowSeconds() - 10, "rt-1"),
+      ADDRESS,
         "",
         "",
         silentLogger,
         async () => new Response("nope", { status: 401 }),
       ),
-    ).rejects.toThrow(
-      /token refresh failed for resource 'mcps_1'.*Please re-authenticate via OAuth Connect/,
-    );
+    ).rejects.toThrow(/^renewing it failed: (?!.*'https:\/\/vendor\.example\/mcp')(?!.*[Ss]ign in again).*$/);
   });
 });

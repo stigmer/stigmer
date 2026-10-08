@@ -78,7 +78,7 @@
           "inputFullType": "ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput",
           "outputType": "CompleteOAuthConnectOutput",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput",
-          "description": "Complete the OAuth authorization flow by exchanging the authorization\n code for tokens.\n\n Called by the frontend after the user is redirected back from the\n OAuth authorization server. Exchanges the code for tokens, stores\n them in the user's personal environment, and creates an OAuthGrant\n record for pre-flight expiry checks.\n\n After success, the frontend should call connect() to trigger tool\n discovery using the freshly acquired token."
+          "description": "Complete the OAuth authorization flow by exchanging the authorization\n code for tokens.\n\n Called by the frontend after the user is redirected back from the\n OAuth authorization server. Exchanges the code for tokens and saves\n the login as a connection at the server's address in the vault named\n when the flow started: the caller's My vault, or a shared vault they\n may edit.\n\n After success, the frontend should call connect() to trigger tool\n discovery using the freshly acquired token."
         },
         {
           "name": "DisconnectOAuth",
@@ -86,7 +86,7 @@
           "inputFullType": "ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput",
           "outputType": "DisconnectOAuthOutput",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput",
-          "description": "Disconnect the authenticated user's OAuth connection for a resource.\n\n Tears down the user's personal OAuth connection by deleting the\n OAuthGrant and its associated managed environment (which holds the\n access and refresh tokens). The MCP server definition is unchanged —\n only the caller's credentials are removed.\n\n Other users' connections to the same resource are unaffected.\n\n Idempotent: returns disconnected=true when a grant was deleted,\n disconnected=false when no grant existed. Never returns an error\n for a missing grant."
+          "description": "Disconnect the authenticated user's OAuth connection for a resource.\n\n Removes every connection a sign-in to this server saved in the caller's\n My vault, with its access and refresh tokens, including one left at the\n server's earlier address. The MCP server definition is unchanged — only\n the caller's sign-in is removed.\n\n Other users' connections to the same resource, a pasted login and\n another server's sign-in are unaffected. A sign-in saved into a shared\n vault is removed through that vault's removeConnections.\n\n Idempotent: returns disconnected=true when a sign-in was removed,\n disconnected=false when none was saved. Never returns an error\n for a missing sign-in."
         },
         {
           "name": "SetOrgOAuthApp",
@@ -102,7 +102,7 @@
           "inputFullType": "ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput",
           "outputType": "DeleteOrgOAuthAppOutput",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput",
-          "description": "Remove an org-level BYOA override for a resource.\n\n Deletes the OAuthAppOverride binding and the OAuthApp resource that\n was created for it. After this, the resolution chain falls back to\n the platform default.\n\n Edition scoping: hosted-only. UNIMPLEMENTED on the OSS server by\n design, as one capability with getOrgOAuthApp and setOrgOAuthApp —\n see the full scoping note on McpServerQueryController.getOrgOAuthApp,\n the RPC clients probe.\n\n Existing user OAuthGrants that were issued using the org's OAuthApp\n will fail on next token refresh — those users will need to\n re-authenticate using the platform default or a new org override."
+          "description": "Remove an org-level BYOA override for a resource.\n\n Deletes the OAuthAppOverride binding and the OAuthApp resource that\n was created for it. After this, the resolution chain falls back to\n the platform default.\n\n Edition scoping: hosted-only. UNIMPLEMENTED on the OSS server by\n design, as one capability with getOrgOAuthApp and setOrgOAuthApp —\n see the full scoping note on McpServerQueryController.getOrgOAuthApp,\n the RPC clients probe.\n\n Existing sign-ins that were issued using the org's OAuthApp\n will fail on next token refresh — those users will need to\n re-authenticate using the platform default or a new org override."
         }
       ]
     },
@@ -133,7 +133,7 @@
           "inputFullType": "ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput",
           "outputType": "GetOAuthGrantStatusOutput",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput",
-          "description": "Check whether the authenticated user has an active OAuth grant for\n an MCP server in the specified org.\n\n Returns grant metadata (connected status, token expiry, auth method)\n without exposing any secret token values. The frontend uses this to\n render the correct OAuth state in the MCP server detail page and\n session composer."
+          "description": "Check whether the authenticated user has a sign-in for an MCP server in\n their My vault in the specified org that a run would use: one this\n server's sign-in saved at the server's current address. A pasted login\n and a sign-in saved into a shared vault are read through the vault's own\n RPCs.\n\n Returns sign-in metadata (connected status, token expiry, auth method)\n without exposing any secret token values. The frontend uses this to\n render the correct OAuth state in the MCP server detail page and\n session composer."
         },
         {
           "name": "GetOrgOAuthApp",
@@ -150,7 +150,7 @@
   "methodTypes": [
     {
       "name": "UpdateVisibilityInput",
-      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to change visibility.\n Each controller's updateVisibility RPC accepts this shared input\n and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode. Each\n level maps to exactly one tuple shape; on a transition the tuple for the\n old level is removed and the tuple for the new level is created:\n - PRIVATE:  no visibility tuple (owner + explicit grants only)\n - ORG:      resource#viewer@organization:\u003corg\u003e#viewer\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n\n Not all resources support all visibility levels — the supported set is\n declared per kind via VisibilityConfig in kind_meta:\n - Blueprints (agent, skill, mcp_server, plugin):\n     PRIVATE, ORG, or CHILD_ORGS\n - Org-only kinds (environment):\n     PRIVATE or ORG (never CHILD_ORGS — tenant isolation)\n\n visibility_public is refused for every kind (INVALID_ARGUMENT naming the\n supported levels); the level is retired.",
+      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to change visibility.\n Each controller's updateVisibility RPC accepts this shared input\n and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode. Each\n level maps to exactly one tuple shape; on a transition the tuple for the\n old level is removed and the tuple for the new level is created:\n - PRIVATE:  no visibility tuple (owner + explicit grants only)\n - ORG:      resource#viewer@organization:\u003corg\u003e#viewer\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n\n Not all resources support all visibility levels — the supported set is\n declared per kind via VisibilityConfig in kind_meta:\n - Blueprints (agent, skill, mcp_server, plugin):\n     PRIVATE, ORG, or CHILD_ORGS\n - Org-only kinds (vault):\n     PRIVATE or ORG (never CHILD_ORGS — tenant isolation)\n\n visibility_public is refused for every kind (INVALID_ARGUMENT naming the\n supported levels); the level is retired.",
       "protoType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
       "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
       "fields": [
@@ -219,7 +219,7 @@
               "messageType": "ExecutionValue"
             }
           },
-          "description": "Optional environment variable values for one-time use.\n When empty, values are resolved from the user's personal environment.",
+          "description": "Optional environment variable values for one-time use, ahead of the\n caller's My vault.",
           "required": false
         },
         {
@@ -229,7 +229,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization context for credential resolution.\n\n Used to look up the caller's OAuthGrant and personal environment\n during environment variable resolution. Must match the org used\n during initiateOAuthConnect so the grant composite key aligns.\n\n Required: the backend rejects the request when this field is empty.",
+          "description": "Organization context for credential resolution.\n\n The caller's My vault in this organization is the one connect reads.\n\n Required: the backend rejects the request when this field is empty.",
           "required": false,
           "validation": {
             "minLength": 1
@@ -263,10 +263,24 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization context for token storage.\n Tokens are stored in the caller's personal environment within this org.\n Must be an org the caller belongs to.",
+          "description": "Organization context for token storage.\n Must be an org the caller belongs to.",
           "required": false,
           "validation": {
             "minLength": 1
+          }
+        },
+        {
+          "name": "VaultId",
+          "jsonName": "vaultId",
+          "protoField": "vault_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The shared vault, by id, the login is saved into. Empty saves it in the\n caller's My vault in the organization. A login saved into a shared vault\n serves the runs that use that vault; connect reads only My vault. A\n vault id is \"vlt_\" followed by 26 lowercase characters.",
+          "required": false,
+          "validation": {
+            "maxLength": 30,
+            "pattern": "^$|^vlt_[0-9a-z]{26}$"
           }
         }
       ]
@@ -392,7 +406,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The environment variable name where the access token was stored.\n Matches McpServerAuth.target_env_var on the MCP server spec.",
+          "description": "The environment variable the saved login fills.\n Matches McpServerAuth.target_env_var on the MCP server spec.",
           "required": false
         },
         {
@@ -433,7 +447,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Organization context. Must match the org used during the original\n OAuth connect flow (part of the OAuthGrant composite key).",
+          "description": "Organization context: the caller's My vault in this org is the one\n changed.",
           "required": false,
           "validation": {
             "minLength": 1
@@ -454,7 +468,7 @@
           "type": {
             "kind": "bool"
           },
-          "description": "Whether an active grant was found and deleted.\n true: grant and its managed environment were deleted.\n false: no grant existed for this resource + org + caller. The desired\n state (no OAuth connection) was already achieved. This is not an error.",
+          "description": "Whether a saved sign-in was found and removed.\n true: the connection and its tokens were removed.\n false: no sign-in was saved for this server, org and caller. The desired\n state (no OAuth connection) was already achieved. This is not an error.",
           "required": false
         }
       ]
@@ -591,7 +605,7 @@
     },
     {
       "name": "ApiResourceReference",
-      "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Environment, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"acme/web-search\", \"acme/my-agent\").\n\n Every reference in a resource's spec is checked when the resource is\n written: the target must exist, and a target in another organization\n must be one the writing organization's parent shares with its child\n organizations (visibility_child_orgs) to be referenced at all. A blueprint may not be\n more visible than the skills, MCP servers and agents it references, so\n what a person can run they can also read. A reference that fails the\n check is refused at write, never at run.",
+      "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Vault, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"acme/web-search\", \"acme/my-agent\").\n\n Every reference in a resource's spec is checked when the resource is\n written: the target must exist, and a target in another organization\n must be one the writing organization's parent shares with its child\n organizations (visibility_child_orgs) to be referenced at all. A blueprint may not be\n more visible than the skills, MCP servers and agents it references, so\n what a person can run they can also read. A reference that fails the\n check is refused at write, never at run.",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
       "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
       "fields": [
@@ -636,11 +650,11 @@
               "agent_share",
               "agent_channel",
               "channel_app",
-              "environment",
               "execution_context",
               "schedule",
               "memory",
               "plugin",
+              "vault",
               "plan",
               "subscription",
               "license"
@@ -727,7 +741,7 @@
           "type": {
             "kind": "bool"
           },
-          "description": "Whether the user has an active OAuth grant for this resource + org.",
+          "description": "Whether the user has a sign-in saved for this server in this org.",
           "required": false
         },
         {
@@ -737,7 +751,7 @@
           "type": {
             "kind": "int64"
           },
-          "description": "When the access token expires (Unix timestamp seconds).\n 0 if no grant exists or the token does not expire.",
+          "description": "When the access token expires (Unix timestamp seconds).\n 0 if no sign-in is saved or the token does not expire.",
           "required": false
         },
         {
@@ -747,7 +761,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The env var name where the access token is stored.\n Empty if no grant exists.",
+          "description": "The env var the saved sign-in fills.\n Empty if no sign-in is saved.",
           "required": false
         },
         {
@@ -757,7 +771,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Which auth method was used (\"mcp_oauth\" or \"vendor_oauth\").\n Empty if no grant exists.",
+          "description": "Which auth method was used (\"mcp_oauth\" or \"vendor_oauth\").\n Empty if no sign-in is saved.",
           "required": false
         },
         {
@@ -861,7 +875,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (environments, sessions) stay creator-only."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -876,7 +890,7 @@
         {
           "name": "visibility_child_orgs",
           "number": 4,
-          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and environments are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
+          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and vaults are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
         }
       ]
     },
@@ -981,11 +995,6 @@
           "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
         },
         {
-          "name": "environment",
-          "number": 53,
-          "description": "Named set of variables and secrets for a run."
-        },
-        {
           "name": "execution_context",
           "number": 54,
           "description": "User-owned runtime context for managing execution state."
@@ -1006,6 +1015,11 @@
           "description": "An installed Agent Plugins package: the archive Stigmer materialised into\n skills, MCP servers and an agent, and the handle that upgrades\n and removes them together. A plugin is what you install; an agent is what\n runs. Members are the resources labelled with the plugin's id."
         },
         {
+          "name": "vault",
+          "number": 59,
+          "description": "A person's or an organization's box of logins (matched by a tool's\n address) and secrets (matched by name) that runs use."
+        },
+        {
           "name": "plan",
           "number": 70,
           "description": "Catalog entry naming a bundle of entitlements and the terms that buy it.\n\n Platform-level: a plan belongs to no organization, so it carries no\n authorization scope and no owner. Immutable once created; a change of\n terms is a new Plan and the old one retires."
@@ -1024,7 +1038,7 @@
     },
     {
       "name": "OAuthConnectionHealth",
-      "description": "OAuthConnectionHealth evaluates the health of an OAuth connection by\n examining grant existence and token expiry metadata. Used in\n GetOAuthGrantStatusOutput to give the frontend an actionable signal\n beyond the binary \"connected\" boolean.\n\n The backend determines health from locally available metadata (grant\n record + access_token_expires_at). It cannot detect server-side token\n revocation without making an API call to the vendor, so HEALTHY means\n \"valid as far as we know\" — not a guarantee the token will be accepted.",
+      "description": "OAuthConnectionHealth evaluates the health of an OAuth connection by\n examining whether a login is saved and its token expiry metadata. Used in\n GetOAuthGrantStatusOutput to give the frontend an actionable signal\n beyond the binary \"connected\" boolean.\n\n The backend determines health from locally available metadata (the\n saved connection and its sign-in expiry). It cannot detect server-side token\n revocation without making an API call to the vendor, so HEALTHY means\n \"valid as far as we know\" — not a guarantee the token will be accepted.",
       "protoType": "ai.stigmer.agentic.mcpserver.v1.OAuthConnectionHealth",
       "values": [
         {
@@ -1045,7 +1059,7 @@
         {
           "name": "OAUTH_CONNECTION_HEALTH_NO_GRANT",
           "number": 4,
-          "description": "No OAuth grant exists for this resource + org + user combination.\n The user has never connected or has disconnected."
+          "description": "No sign-in made for this server that a run would use: the user has\n never signed in, has disconnected, or the saved login is not a\n sign-in this server can use."
         }
       ]
     },

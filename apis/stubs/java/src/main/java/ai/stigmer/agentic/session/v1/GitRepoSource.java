@@ -10,6 +10,12 @@ package ai.stigmer.agentic.session.v1;
  * GitRepoSource provisions a workspace by cloning a git repository.
  *
  * Only HTTPS clone URLs are supported. SSH URLs are rejected at validation time.
+ *
+ * A private repository is cloned with the entry's own token when it carries
+ * one, else with a login saved for the repository's host (github.com) in the
+ * conversation's vaults. The entry's own token is used only for an
+ * https://github.com repository: a session write carrying a token for any
+ * other repository is refused.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.session.v1.GitRepoSource}
@@ -38,6 +44,7 @@ private static final long serialVersionUID = 0L;
     branch_ = "";
     commit_ = "";
     writeBackMode_ = 0;
+    token_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -271,6 +278,63 @@ private static final long serialVersionUID = 0L;
     return result == null ? ai.stigmer.agentic.session.v1.GitWriteBackMode.UNRECOGNIZED : result;
   }
 
+  public static final int TOKEN_FIELD_NUMBER = 6;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object token_ = "";
+  /**
+   * <pre>
+   * A token for cloning this repository, kept for the conversation only.
+   *
+   * Used only when the URL is an https://github.com repository; a session
+   * write carrying a token for any other repository is refused. Sealed for
+   * the conversation's life and never returned by a read. A schedule's
+   * repositories refuse it: save the token in a vault the schedule names.
+   * </pre>
+   *
+   * <code>string token = 6 [json_name = "token", (.buf.validate.field) = { ... }</code>
+   * @return The token.
+   */
+  @java.lang.Override
+  public java.lang.String getToken() {
+    java.lang.Object ref = token_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      token_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * A token for cloning this repository, kept for the conversation only.
+   *
+   * Used only when the URL is an https://github.com repository; a session
+   * write carrying a token for any other repository is refused. Sealed for
+   * the conversation's life and never returned by a read. A schedule's
+   * repositories refuse it: save the token in a vault the schedule names.
+   * </pre>
+   *
+   * <code>string token = 6 [json_name = "token", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for token.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getTokenBytes() {
+    java.lang.Object ref = token_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      token_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -300,6 +364,9 @@ private static final long serialVersionUID = 0L;
     if (writeBackMode_ != ai.stigmer.agentic.session.v1.GitWriteBackMode.GIT_WRITE_BACK_MODE_UNSPECIFIED.getNumber()) {
       output.writeEnum(5, writeBackMode_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(token_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 6, token_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -325,6 +392,9 @@ private static final long serialVersionUID = 0L;
     if (writeBackMode_ != ai.stigmer.agentic.session.v1.GitWriteBackMode.GIT_WRITE_BACK_MODE_UNSPECIFIED.getNumber()) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(5, writeBackMode_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(token_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(6, token_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -353,6 +423,8 @@ private static final long serialVersionUID = 0L;
           != other.getDepth()) return false;
     }
     if (writeBackMode_ != other.writeBackMode_) return false;
+    if (!getToken()
+        .equals(other.getToken())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -376,6 +448,8 @@ private static final long serialVersionUID = 0L;
     }
     hash = (37 * hash) + WRITE_BACK_MODE_FIELD_NUMBER;
     hash = (53 * hash) + writeBackMode_;
+    hash = (37 * hash) + TOKEN_FIELD_NUMBER;
+    hash = (53 * hash) + getToken().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -478,6 +552,12 @@ private static final long serialVersionUID = 0L;
    * GitRepoSource provisions a workspace by cloning a git repository.
    *
    * Only HTTPS clone URLs are supported. SSH URLs are rejected at validation time.
+   *
+   * A private repository is cloned with the entry's own token when it carries
+   * one, else with a login saved for the repository's host (github.com) in the
+   * conversation's vaults. The entry's own token is used only for an
+   * https://github.com repository: a session write carrying a token for any
+   * other repository is refused.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.session.v1.GitRepoSource}
@@ -518,6 +598,7 @@ private static final long serialVersionUID = 0L;
       commit_ = "";
       depth_ = 0;
       writeBackMode_ = 0;
+      token_ = "";
       return this;
     }
 
@@ -568,6 +649,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000010) != 0)) {
         result.writeBackMode_ = writeBackMode_;
       }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.token_ = token_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -603,6 +687,11 @@ private static final long serialVersionUID = 0L;
       }
       if (other.writeBackMode_ != 0) {
         setWriteBackModeValue(other.getWriteBackModeValue());
+      }
+      if (!other.getToken().isEmpty()) {
+        token_ = other.token_;
+        bitField0_ |= 0x00000020;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -655,6 +744,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 40
+            case 50: {
+              token_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 50
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1114,6 +1208,123 @@ private static final long serialVersionUID = 0L;
     public Builder clearWriteBackMode() {
       bitField0_ = (bitField0_ & ~0x00000010);
       writeBackMode_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object token_ = "";
+    /**
+     * <pre>
+     * A token for cloning this repository, kept for the conversation only.
+     *
+     * Used only when the URL is an https://github.com repository; a session
+     * write carrying a token for any other repository is refused. Sealed for
+     * the conversation's life and never returned by a read. A schedule's
+     * repositories refuse it: save the token in a vault the schedule names.
+     * </pre>
+     *
+     * <code>string token = 6 [json_name = "token", (.buf.validate.field) = { ... }</code>
+     * @return The token.
+     */
+    public java.lang.String getToken() {
+      java.lang.Object ref = token_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        token_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * A token for cloning this repository, kept for the conversation only.
+     *
+     * Used only when the URL is an https://github.com repository; a session
+     * write carrying a token for any other repository is refused. Sealed for
+     * the conversation's life and never returned by a read. A schedule's
+     * repositories refuse it: save the token in a vault the schedule names.
+     * </pre>
+     *
+     * <code>string token = 6 [json_name = "token", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for token.
+     */
+    public com.google.protobuf.ByteString
+        getTokenBytes() {
+      java.lang.Object ref = token_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        token_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * A token for cloning this repository, kept for the conversation only.
+     *
+     * Used only when the URL is an https://github.com repository; a session
+     * write carrying a token for any other repository is refused. Sealed for
+     * the conversation's life and never returned by a read. A schedule's
+     * repositories refuse it: save the token in a vault the schedule names.
+     * </pre>
+     *
+     * <code>string token = 6 [json_name = "token", (.buf.validate.field) = { ... }</code>
+     * @param value The token to set.
+     * @return This builder for chaining.
+     */
+    public Builder setToken(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      token_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * A token for cloning this repository, kept for the conversation only.
+     *
+     * Used only when the URL is an https://github.com repository; a session
+     * write carrying a token for any other repository is refused. Sealed for
+     * the conversation's life and never returned by a read. A schedule's
+     * repositories refuse it: save the token in a vault the schedule names.
+     * </pre>
+     *
+     * <code>string token = 6 [json_name = "token", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearToken() {
+      token_ = getDefaultInstance().getToken();
+      bitField0_ = (bitField0_ & ~0x00000020);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * A token for cloning this repository, kept for the conversation only.
+     *
+     * Used only when the URL is an https://github.com repository; a session
+     * write carrying a token for any other repository is refused. Sealed for
+     * the conversation's life and never returned by a read. A schedule's
+     * repositories refuse it: save the token in a vault the schedule names.
+     * </pre>
+     *
+     * <code>string token = 6 [json_name = "token", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for token to set.
+     * @return This builder for chaining.
+     */
+    public Builder setTokenBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      token_ = value;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }

@@ -5,9 +5,9 @@
  * delete block against AgentChannels.
  *
  * The marker/ciphertext-guard logic is DELIBERATELY domain-local (not
- * shared with environment or oauthapp): Go keeps each domain's steps in its
- * own package, and the three shapes genuinely differ (environment: a
- * variable map; here: provider-oneof fields; oauthapp: one field). Shared
+ * shared with oauthapp or the session's own values): each domain keeps its
+ * steps in its own package, and the shapes genuinely differ (a session: maps
+ * and repository tokens; here: provider-oneof fields; oauthapp: one field). Shared
  * steps are promoted only on an identical second consumer, so these stay
  * local; this note is here so review does not re-litigate it.
  *

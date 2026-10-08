@@ -47,6 +47,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
 import { makeAgentShare } from "../support/agentshares";
+import { myVaultTarget, setSecretsInput } from "../support/vaults";
 import { uniqueName } from "../support/naming";
 import { createTarget, enforcingLaneOf, type TargetProfile } from "../targets";
 
@@ -245,22 +246,36 @@ describe("AgentShare conformance — create validation", () => {
     expect(err.rawMessage).toBe("Agent not found: no-such-agent");
   });
 
-  it("[rpc:AgentShareCommandController.create] rejects environment_refs on an org-audience share (InvalidArgument — the CEL rule)", async () => {
+  it("[rpc:AgentShareCommandController.create] rejects vaults on an org-audience share (InvalidArgument — the CEL rule)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
 
     const share = makeAgentShare(org, agent.metadata!.slug, {
       audience: AgentShareAudience.org,
+      vaults: ["some-vault"],
     });
-    (share.spec as { environmentRefs?: unknown[] }).environmentRefs = [
-      { slug: "some-env", kind: 53 },
-    ];
 
     await expectGrpcCode(
       () => clients.agentShareCommand.create(share),
       Code.InvalidArgument,
-      "org-audience share carrying environment_refs",
+      "org-audience share carrying vaults",
     );
+  });
+
+  it("[rpc:AgentShareCommandController.create] a share link cannot carry anyone's own My vault (FailedPrecondition)", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await createAgentFixture(org);
+    const mine = await clients.vaultCommand.setSecrets(setSecretsInput(myVaultTarget(org), { SHARE_KEY: "mine" }));
+    fixtures.defer(() => clients.vaultCommand.delete({ resourceId: mine.metadata!.id }));
+
+    const share = makeAgentShare(org, agent.metadata!.slug, { vaults: [mine.metadata!.slug] });
+
+    const err = await expectGrpcCode(
+      () => clients.agentShareCommand.create(share),
+      Code.FailedPrecondition,
+      "a public share carrying the caller's My vault",
+    );
+    expect(err.rawMessage).toContain("a My vault cannot be attached to a share link");
   });
 });
 

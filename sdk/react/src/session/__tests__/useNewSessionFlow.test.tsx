@@ -5,7 +5,8 @@
  * pick wins over the agent's engine; a model pick is forgotten when the
  * agent changes, when the person chooses the agent's default back, and
  * when the engine changes under it to one that does not list it, so a
- * model is never sent with an engine that does not run it.
+ * model is never sent with an engine that does not run it. A guest's new
+ * conversation carries no values of its own, the host's included.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
@@ -912,37 +913,31 @@ describe("useNewSessionFlow", () => {
     });
   });
 
-  describe("host runtime env (getRuntimeEnv)", () => {
-    it("merges host env into the first execution, host wins on collisions", async () => {
-      const getRuntimeEnv = vi.fn().mockResolvedValue({
-        PLATFORM_TOKEN: { value: "fresh-token", isSecret: true },
-      });
-      const opts = { ...defaultOptions(), getRuntimeEnv };
+  describe("the conversation's own secrets (getSessionSecrets)", () => {
+    it("writes host secrets onto the new session's spec, host wins on collisions", async () => {
+      const getSessionSecrets = vi.fn().mockResolvedValue({ PLATFORM_TOKEN: "fresh-token" });
+      const opts = { ...defaultOptions(), getSessionSecrets };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
       await act(async () => {
         await result.current.submit("Hello", undefined, {
-          runtimeEnv: {
-            PLATFORM_TOKEN: { value: "stale-token", isSecret: true },
-            USER_VAR: { value: "kept" },
-          },
+          secrets: { PLATFORM_TOKEN: "stale-token", USER_VAR: "kept" },
         });
       });
 
-      expect(getRuntimeEnv).toHaveBeenCalledTimes(1);
+      expect(getSessionSecrets).toHaveBeenCalledTimes(1);
       const execInput = mockCreateExecution.mock.calls[0][0];
-      expect(execInput.runtimeEnv).toEqual({
-        PLATFORM_TOKEN: { value: "fresh-token", isSecret: true },
-        USER_VAR: { value: "kept" },
+      expect(execInput.sessionSpec.secrets).toEqual({
+        PLATFORM_TOKEN: "fresh-token",
+        USER_VAR: "kept",
       });
+      expect(execInput).not.toHaveProperty("runtimeEnv");
     });
 
     it("evaluates the provider fresh on every submission", async () => {
       let mint = 0;
-      const getRuntimeEnv = vi.fn(() => ({
-        TOKEN: { value: `token-${++mint}` },
-      }));
-      const opts = { ...defaultOptions(), getRuntimeEnv };
+      const getSessionSecrets = vi.fn(() => ({ TOKEN: `token-${++mint}` }));
+      const opts = { ...defaultOptions(), getSessionSecrets };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
       await act(async () => {
@@ -952,18 +947,14 @@ describe("useNewSessionFlow", () => {
         await result.current.submit("Second");
       });
 
-      expect(getRuntimeEnv).toHaveBeenCalledTimes(2);
-      expect(mockCreateExecution.mock.calls[0][0].runtimeEnv).toEqual({
-        TOKEN: { value: "token-1" },
-      });
-      expect(mockCreateExecution.mock.calls[1][0].runtimeEnv).toEqual({
-        TOKEN: { value: "token-2" },
-      });
+      expect(getSessionSecrets).toHaveBeenCalledTimes(2);
+      expect(mockCreateExecution.mock.calls[0][0].sessionSpec.secrets).toEqual({ TOKEN: "token-1" });
+      expect(mockCreateExecution.mock.calls[1][0].sessionSpec.secrets).toEqual({ TOKEN: "token-2" });
     });
 
     it("aborts before session creation when the provider throws", async () => {
-      const getRuntimeEnv = vi.fn().mockRejectedValue(new Error("token mint failed"));
-      const opts = { ...defaultOptions(), getRuntimeEnv };
+      const getSessionSecrets = vi.fn().mockRejectedValue(new Error("token mint failed"));
+      const opts = { ...defaultOptions(), getSessionSecrets };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
       await act(async () => {
@@ -977,19 +968,21 @@ describe("useNewSessionFlow", () => {
       expect(result.current.isSubmitting).toBe(false);
     });
 
-    it("passes composer env through untouched when no provider is configured", async () => {
+    it("passes composer secrets and picked vaults through untouched when no provider is configured", async () => {
       const opts = defaultOptions();
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+      const vaults = [{ org: "acme", slug: "support-tools" }];
 
       await act(async () => {
         await result.current.submit("Hello", undefined, {
-          runtimeEnv: { USER_VAR: { value: "composer-only" } },
+          secrets: { USER_VAR: "composer-only" },
+          vaults,
         });
       });
 
-      expect(mockCreateExecution.mock.calls[0][0].runtimeEnv).toEqual({
-        USER_VAR: { value: "composer-only" },
-      });
+      const spec = mockCreateExecution.mock.calls[0][0].sessionSpec;
+      expect(spec.secrets).toEqual({ USER_VAR: "composer-only" });
+      expect(spec.vaults).toEqual(vaults);
     });
   });
 
@@ -1205,6 +1198,26 @@ describe("useNewSessionFlow", () => {
         version: "v2",
       });
       expect(opts.onSessionCreated).toHaveBeenCalledWith("sess-new");
+    });
+
+    it("carries no values on a guest's new conversation and never asks the host for them", async () => {
+      // The values would be sealed on the conversation for its life; a
+      // guest brings none, and the share's vaults are what its runs use.
+      const getSessionSecrets = vi.fn().mockResolvedValue({ PLATFORM_TOKEN: "host-token" });
+      const opts = { ...defaultOptions(), audience: "guest" as const, getSessionSecrets };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      act(() => {
+        result.current.setAgentRef({ org: "acme", slug: "support-bot" });
+        result.current.setResolution({ mode: "direct" });
+      });
+      await act(async () => {
+        await result.current.submit("Hello", undefined, { secrets: { USER_VAR: "typed" } });
+      });
+
+      expect(getSessionSecrets).not.toHaveBeenCalled();
+      expect(mockCreateExecution).toHaveBeenCalledOnce();
+      expect(mockCreateExecution.mock.calls[0][0].sessionSpec.secrets).toBeUndefined();
     });
 
     it("fails closed on submit without a resolution — never the built-in assistant", async () => {

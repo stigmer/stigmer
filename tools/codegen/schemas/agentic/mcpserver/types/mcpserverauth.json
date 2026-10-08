@@ -23,7 +23,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "The env var where the acquired access token is stored.\n Must correspond to an entry in env so the execution pipeline\n resolves it. The refresh token is stored as\n {target_env_var}_REFRESH_TOKEN\n by convention. Both are written to the grant's managed environment.",
+      "description": "The env var the signed-in access token fills.\n Must correspond to an entry in env. A sign-in saves the token as a\n connection at this server's address in the signer's vault, and a run\n fills this variable from that connection. The refresh token stays\n with the connection and never reaches a run.",
       "required": false,
       "validation": {
         "minLength": 1
@@ -59,7 +59,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Optional URL for OAuth authorization server discovery on stdio servers.\n\n HTTP servers do not need this: the platform derives the discovery\n endpoint from http.url (fetching /.well-known/oauth-authorization-server\n relative to the server URL).\n\n Stdio servers have no URL, so DCR discovery has nothing to derive from.\n Set this field to the base URL of the vendor's OAuth authorization\n server to enable DCR for a stdio-based MCP server.\n\n Resolution priority:\n   1. discovery_url (if set — used for both stdio and HTTP)\n   2. http.url (default for HTTP servers)\n\n Ignored when oauth_app_ref is set (vendor OAuth uses OAuthApp endpoints\n directly, no discovery needed).",
+      "description": "URL of the login server for a stdio server: where DCR discovery looks,\n and the address its sign-ins are saved at.\n\n HTTP servers do not need this: the platform derives the discovery\n endpoint from http.url (fetching /.well-known/oauth-authorization-server\n relative to the server URL), and saves a sign-in at http.url.\n\n Stdio servers have no URL, so a sign-in needs this field whether or not\n oauth_app_ref is set: it is the address the login is saved at in the\n signer's vault, and the address a run finds it by. A stdio server with\n OAuth and no discovery_url is refused at sign-in. Without\n oauth_app_ref it is also the base URL of the vendor's OAuth\n authorization server that DCR discovers from.\n\n Discovery resolution priority (without oauth_app_ref; vendor OAuth uses\n the OAuthApp's endpoints and discovers nothing):\n   1. discovery_url (if set — used for both stdio and HTTP)\n   2. http.url (default for HTTP servers)",
       "required": false
     },
     {

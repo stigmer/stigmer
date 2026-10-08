@@ -1,0 +1,155 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.vault.v1;
+
+import "ai/stigmer/agentic/vault/v1/api.proto";
+import "ai/stigmer/commons/rpc/pagination.proto";
+import "buf/validate/validate.proto";
+
+// VaultTarget names the vault an entry write changes: a vault by id, or the
+// caller's own My vault.
+message VaultTarget {
+  // Organization the vault belongs to, by slug or id.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The vault to change.
+  oneof vault {
+    option (buf.validate.oneof).required = true;
+
+    // A vault by its id.
+    string id = 2 [(buf.validate.field).string.min_len = 1];
+
+    // The caller's own My vault in the organization. It is created by the
+    // first write that names it.
+    bool mine = 3 [(buf.validate.field).bool.const = true];
+  }
+}
+
+// VaultSecretInput is a secret to save.
+message VaultSecretInput {
+  // The secret's value.
+  string value = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 65536
+  }];
+
+  // What the secret is for. Empty keeps the description already saved.
+  string description = 2 [(buf.validate.field).string.max_len = 500];
+}
+
+// Input for saving secrets in a vault. Secrets already saved under other
+// names are kept.
+message SetVaultSecretsInput {
+  // The vault to save into.
+  VaultTarget vault = 1 [(buf.validate.field).required = true];
+
+  // Secrets by name. A name that is already saved has its value replaced.
+  map<string, VaultSecretInput> secrets = 2 [(buf.validate.field).map = {
+    min_pairs: 1
+    max_pairs: 100
+    keys: {
+      string: {
+        pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+        max_len: 128
+      }
+    }
+  }];
+}
+
+// Input for removing secrets from a vault by name. Names that are not saved
+// are ignored.
+message RemoveVaultSecretsInput {
+  // The vault to remove from.
+  VaultTarget vault = 1 [(buf.validate.field).required = true];
+
+  // Names of the secrets to remove.
+  repeated string names = 2 [(buf.validate.field).repeated = {
+    min_items: 1
+    max_items: 100
+    items: {
+      string: {
+        min_len: 1
+        max_len: 128
+      }
+    }
+  }];
+}
+
+// Input for saving a login in a vault, at the address of the tool or Git
+// host it is for.
+message SetVaultConnectionInput {
+  // The vault to save into.
+  VaultTarget vault = 1 [(buf.validate.field).required = true];
+
+  // The address the login is for: a tool's URL (https://mcp.example.com/mcp)
+  // or a Git host (github.com).
+  //
+  // A tool's address keeps its scheme, host, port and path; the server
+  // lowercases the scheme and host, drops a default port and one trailing
+  // slash, and drops any query or fragment. A Git host is its bare host name.
+  string address = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 2048
+  }];
+
+  // The access token.
+  string token = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 65536
+  }];
+
+  // What the login is for. Empty keeps the description already saved.
+  string description = 4 [(buf.validate.field).string.max_len = 500];
+}
+
+// Input for removing logins from a vault by address. Addresses that are not
+// saved are ignored.
+message RemoveVaultConnectionsInput {
+  // The vault to remove from.
+  VaultTarget vault = 1 [(buf.validate.field).required = true];
+
+  // Addresses of the logins to remove, in any shape setConnection accepts.
+  repeated string addresses = 2 [(buf.validate.field).repeated = {
+    min_items: 1
+    max_items: 100
+    items: {
+      string: {
+        min_len: 1
+        max_len: 2048
+      }
+    }
+  }];
+}
+
+// Input for reading the caller's own My vault in an organization.
+message GetMyVaultInput {
+  // Organization, by slug or id.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// Input for finding a shared vault by the integrator's own id.
+message GetVaultByExternalIdInput {
+  // Organization, by slug or id.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The vault's external id.
+  string external_id = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+// ListVaultsRequest lists the vaults the caller can see in an organization.
+message ListVaultsRequest {
+  // Organization, by slug or id.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Pagination options.
+  ai.stigmer.commons.rpc.PageInfo page_info = 2;
+}
+
+// VaultList contains a paginated list of vaults.
+message VaultList {
+  // Total count of matching vaults.
+  int32 total_count = 1;
+
+  // Vaults in the current page.
+  repeated Vault items = 2;
+}

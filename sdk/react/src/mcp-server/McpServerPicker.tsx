@@ -10,19 +10,20 @@ import {
   type KeyboardEvent,
 } from "react";
 import { cn } from "@stigmer/theme";
-import type { EnvVarInput, McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
+import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
+import type { EnvVarInput } from "../vault/types.js";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
-import type { EnvVarFormSubmitOptions } from "../environment/EnvVarForm.js";
+import type { EnvVarFormSubmitOptions } from "../vault/EnvVarForm.js";
 import { useMcpServerSearch } from "./useMcpServerSearch.js";
 import { useScrollShadows } from "../internal/useScrollShadows.js";
 import { ScrollFade } from "../internal/ScrollFade.js";
 import { McpServerConfigPanel } from "./McpServerConfigPanel.js";
 import type { McpServerSetupEntry } from "./mcpServerSetupReducer.js";
 import { useMcpServerConnect } from "./useMcpServerConnect.js";
-import { useMcpServerOAuthConnect } from "./useMcpServerOAuthConnect.js";
+import { type SignInVault, useMcpServerOAuthConnect } from "./useMcpServerOAuthConnect.js";
 import { OrgSlugText } from "../organization/OrgSlugText.js";
 import { useOrgIdForRef } from "../organization/useOrgRefs.js";
 // ---------------------------------------------------------------------------
@@ -65,6 +66,13 @@ export interface McpServerSetupIntegration {
     values: Record<string, EnvVarInput>,
     options: EnvVarFormSubmitOptions,
   ) => void;
+  /**
+   * The shared vault a sign-in started here is saved into: in a
+   * conversation that lists vaults, the first of them, the only place its
+   * runs read a login from (the setup counts a sign-in only there).
+   * Omitted, a sign-in is saved in My vault.
+   */
+  readonly signInVault?: SignInVault;
 }
 
 // ---------------------------------------------------------------------------
@@ -148,8 +156,8 @@ export interface McpServerPickerProps {
   readonly poolValues?: (key: string) => EnvVarInput | undefined;
   /**
    * The authenticated user's active organization id (a slug is also accepted).
-   * Used for OAuth token storage — tokens are stored in the user's personal
-   * environment within this org, not the MCP server's org.
+   * Used for OAuth token storage — tokens are stored in the user's My
+   * vault within this org, not the MCP server's org.
    * When omitted, falls back to the `org` prop.
    */
   readonly activeOrg?: string;
@@ -496,7 +504,11 @@ export function McpServerPicker({
               }
 
               try {
-                await oauth.startOAuth(serverId, connectOrg);
+                await oauth.startOAuth(
+                  serverId,
+                  connectOrg,
+                  setup.signInVault === undefined ? undefined : { vault: setup.signInVault },
+                );
                 setup.onServerAdded(ref);
               } catch {
                 // error state managed by oauth hook

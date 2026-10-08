@@ -32,8 +32,8 @@ export function SessionPageInner({ id }: { id: string }) {
   const orgId = useActiveOrgId();
   const gitHubConnection = useGitHubConnection(orgId);
   const { enableGitHub, enableLocal } = useWorkspaceSources();
-  const workspaceFileLister = useGitHubTreeLister(gitHubConnection.token);
-  const workspaceFileReader = useGitHubFileReader(gitHubConnection.token);
+  const workspaceFileLister = useGitHubTreeLister(gitHubConnection.readOrg);
+  const workspaceFileReader = useGitHubFileReader(gitHubConnection.readOrg);
   // Seeds session-scoped auto-approve from the account's
   // default_auto_approve preference (same seam as the launcher's seed).
   const accountDefaults = useAccountExecutionDefaults();

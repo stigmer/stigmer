@@ -61,9 +61,9 @@
  *     per edition and is a silent short list the day one edition
  *     forgets (stigmer#1207: a composed driver scoped the class and
  *     every server-internal list read came back empty — the
- *     personal-environment reads at execution-context creation and MCP
- *     connect in this repository, and a composition's own in-process
- *     readers of a session's executions).
+ *     credential reads at execution-context creation and MCP connect in
+ *     this repository, and a composition's own in-process readers of a
+ *     session's executions).
  *     The enumeration verb is a wire caller's verb: no in-process edge
  *     reaches `authorizedResourceIds`, and only a scanning driver can
  *     say "all", so that verb's internal arm stays the driver's and is
@@ -84,7 +84,7 @@
  *     kinds narrow by the request's org or parent in the
  *     store's indexed read (store/list-index.ts; every posture honours the
  *     request) and page there (pipeline/steps/list-page.ts, one batch per
- *     scope call), passing `""`; the small org-scoped lists (environment,
+ *     scope call), passing `""`; the small org-scoped lists (vault,
  *     memory, schedule, agent-share and agent-channel; the
  *     getBy* parent filters) apply their own filter above the helper call
  *     and pass `""` too. `apiKey.findAll` has no org on the wire and offers

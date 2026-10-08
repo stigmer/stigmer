@@ -13,10 +13,15 @@
 // it and a later holder of a released slug can never capture it: the deleted
 // organization's link resolves nowhere, never to the new holder's share.
 //
-// Environments carry the org-scoped arms because they hold a secret: a value
-// written before a rename is revealed after it. The member and outsider arms
-// run on the target's enforcing lane, where a grant is a real row; where a
-// target lends no lane they skip visibly.
+// Vaults carry the org-scoped arms because they hold a secret: an entry
+// saved before a rename is still held after it, untouched. Values are
+// write-only on the wire and reach only a run's execution context, which no
+// target without an engine creates, so the arm reads the entry and when it
+// was saved, never the value; that the sealed value still opens after a
+// rename is proven by the server's own test
+// (backend/services/stigmer-server/src/domain/vault/__tests__/organization-rename.test.ts).
+// The member and outsider arms run on the target's enforcing lane, where a
+// grant is a real row; where a target lends no lane they skip visibly.
 import { Code } from "@connectrpc/connect";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -25,7 +30,7 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { makeAgent } from "../support/agents";
 import { makeAgentShare } from "../support/agentshares";
-import { makeEnvironment } from "../support/environments";
+import { makeSharedVault, myVaultTarget, setSecretsInput, vaultTarget } from "../support/vaults";
 import { uniqueName } from "../support/naming";
 import { createOrganizationOnceReleased } from "../support/organizations";
 import { createTarget, enforcingLaneOf, type TargetProfile } from "../targets";
@@ -71,17 +76,11 @@ async function createOrgOnceReleased(slug: string, using: ConformanceClients = c
   return org;
 }
 
-/** An environment with one secret, in the organization `org` names (by id or slug). */
-async function createSecretEnvironment(org: string, using: ConformanceClients = clients) {
-  const environment = await using.environmentCommand.create(
-    makeEnvironment({
-      org,
-      name: uniqueName("env"),
-      data: { TOKEN: { value: SECRET, isSecret: true } },
-    }),
-  );
-  fixtures.defer(() => using.environmentCommand.delete({ resourceId: environment.metadata!.id }));
-  return environment;
+/** A shared vault holding one secret, in the organization `org` names (by id or slug). */
+async function createSecretVault(org: string, using: ConformanceClients = clients) {
+  const vault = await using.vaultCommand.create(makeSharedVault({ org, name: uniqueName("vault") }));
+  fixtures.defer(() => using.vaultCommand.delete({ resourceId: vault.metadata!.id }));
+  return using.vaultCommand.setSecrets(setSecretsInput(vaultTarget(org, vault.metadata!.id), { TOKEN: SECRET }));
 }
 
 /** An agent and an enabled public share of it, in the organization `org` names (by id or slug). */
@@ -104,13 +103,13 @@ describe("Organization identity conformance", () => {
     expect((await clients.organizationQuery.get({ value: id })).metadata?.slug).toBe(slug);
 
     // Named by slug, the resource is filed under the id, and found by either.
-    const environment = await createSecretEnvironment(slug);
-    expect(environment.metadata?.org, "a resource names its organization by id").toBe(id);
+    const vault = await createSecretVault(slug);
+    expect(vault.metadata?.org, "a resource names its organization by id").toBe(id);
     for (const org of [slug, id]) {
-      const found = await clients.environmentQuery.getByReference({ org, slug: environment.metadata!.slug });
-      expect(found.metadata?.id, `found through org '${org}'`).toBe(environment.metadata?.id);
-      const listed = await clients.environmentQuery.list({ org });
-      expect(listed.items.map((item) => item.metadata?.id)).toContain(environment.metadata?.id);
+      const found = await clients.vaultQuery.getByReference({ org, slug: vault.metadata!.slug });
+      expect(found.metadata?.id, `found through org '${org}'`).toBe(vault.metadata?.id);
+      const listed = await clients.vaultQuery.list({ org });
+      expect(listed.items.map((item) => item.metadata?.id)).toContain(vault.metadata?.id);
     }
   });
 
@@ -119,23 +118,22 @@ describe("Organization identity conformance", () => {
     const after = uniqueName("ident");
     const created = await createOrg(before);
     const id = created.metadata!.id;
-    const environment = await createSecretEnvironment(before);
+    const vault = await createSecretVault(before);
+    const savedAt = vault.spec?.secrets.TOKEN?.savedAt;
 
     const renamed = await clients.organizationCommand.rename({ resourceId: id, slug: after });
     expect(renamed.metadata?.id, "a rename keeps the id").toBe(id);
     expect(renamed.metadata?.slug).toBe(after);
     expect(renamed.status?.audit?.specAudit?.event).toBe("renamed");
 
-    const revealed = await clients.environmentQuery.getSecretValue({
-      environmentId: environment.metadata!.id,
-      key: "TOKEN",
-    });
-    expect(revealed.value, "a secret written before the rename is read after it").toBe(SECRET);
+    const held = await clients.vaultQuery.get({ value: vault.metadata!.id });
+    expect(savedAt, "the secret's entry records when it was saved").toBeDefined();
+    expect(held.spec?.secrets.TOKEN?.savedAt, "a secret's entry saved before the rename is held after it, its save untouched").toEqual(savedAt);
 
     for (const org of [after, before]) {
       expect((await clients.organizationQuery.get({ value: org })).metadata?.slug, `get by '${org}'`).toBe(after);
-      const found = await clients.environmentQuery.getByReference({ org, slug: environment.metadata!.slug });
-      expect(found.metadata?.org, `the environment through org '${org}'`).toBe(id);
+      const found = await clients.vaultQuery.getByReference({ org, slug: vault.metadata!.slug });
+      expect(found.metadata?.org, `the vault through org '${org}'`).toBe(id);
     }
 
     // A rename by the old slug finds the organization too.
@@ -179,18 +177,18 @@ describe("Organization identity conformance", () => {
   it("[rpc:OrganizationCommandController.delete] [rpc:OrganizationCommandController.create] a deleted organization's slug is free once its purge finishes, and the next organization of it reaches nothing the deleted one owned", async () => {
     const slug = uniqueName("ident");
     const first = await clients.organizationCommand.create({ apiVersion: API_VERSION, kind: KIND, metadata: { name: slug, slug } });
-    const environment = await createSecretEnvironment(slug);
+    const vault = await createSecretVault(slug);
     await clients.organizationCommand.delete({ value: first.metadata!.id });
 
     const second = await createOrgOnceReleased(slug);
     expect(second.metadata?.id, "a new organization, not the deleted one again").not.toBe(first.metadata?.id);
 
-    const listed = await clients.environmentQuery.list({ org: slug });
-    expect(listed.items, "the new organization holds none of the deleted one's environments").toEqual([]);
+    const listed = await clients.vaultQuery.list({ org: slug });
+    expect(listed.items, "the new organization holds none of the deleted one's vaults").toEqual([]);
     await expectGrpcCode(
-      () => clients.environmentQuery.getByReference({ org: slug, slug: environment.metadata!.slug }),
+      () => clients.vaultQuery.getByReference({ org: slug, slug: vault.metadata!.slug }),
       Code.NotFound,
-      "the deleted organization's environment, through the slug's new holder",
+      "the deleted organization's vault, through the slug's new holder",
     );
   });
 
@@ -271,8 +269,9 @@ describe("Organization identity conformance", () => {
         tenancy.org,
       );
     }
-    const theirs = await createSecretEnvironment(before, member);
-    expect(theirs.metadata?.org, "the member still creates in it, by the old slug").toBe(tenancy.org);
+    const theirs = await member.vaultCommand.setSecrets(setSecretsInput(myVaultTarget(before), { TOKEN: SECRET }));
+    fixtures.defer(() => member.vaultCommand.delete({ resourceId: theirs.metadata!.id }));
+    expect(theirs.metadata?.org, "the member still saves in it, by the old slug").toBe(tenancy.org);
   });
 
   it("[rpc:OrganizationCommandController.delete] a later holder of a deleted organization's slug gains nothing from it, and its founder holds nothing in the new one", async (ctx) => {
@@ -281,18 +280,18 @@ describe("Organization identity conformance", () => {
     const lane = enforcing.lane;
     const slug = uniqueName("ident");
     const first = await lane.clients.organizationCommand.create({ apiVersion: API_VERSION, kind: KIND, metadata: { name: slug, slug } });
-    const environment = await createSecretEnvironment(slug, lane.clients);
+    const vault = await createSecretVault(slug, lane.clients);
     await lane.clients.organizationCommand.delete({ value: first.metadata!.id });
 
     const stranger = await lane.provisionIdentity();
     const second = await createOrgOnceReleased(slug, stranger);
     expect(second.metadata?.id).not.toBe(first.metadata?.id);
 
-    expect((await stranger.environmentQuery.list({ org: slug })).items).toEqual([]);
+    expect((await stranger.vaultQuery.list({ org: slug })).items).toEqual([]);
     await expectGrpcCode(
-      () => stranger.environmentQuery.getByReference({ org: slug, slug: environment.metadata!.slug }),
+      () => stranger.vaultQuery.getByReference({ org: slug, slug: vault.metadata!.slug }),
       Code.NotFound,
-      "the deleted organization's environment, by its old slug's new holder",
+      "the deleted organization's vault, by its old slug's new holder",
     );
     await expectGrpcCode(
       () => lane.clients.organizationQuery.get({ value: slug }),

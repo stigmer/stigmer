@@ -34,7 +34,6 @@ import { DESTRUCTIVE_ECHO_TOOL_NAME, type FixtureTool, type McpToolFixture } fro
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import type { TargetProfile } from "../targets/target";
 import { type AgentRefInit, makeAgentRef } from "./agents";
-import { type ExecutionValueInit, makeExecutionValues } from "./executioncontexts";
 import { type PollCoreOptions, pollUntil } from "./run-poll";
 import { makeHttpMcpServer } from "./mcpservers";
 
@@ -59,9 +58,11 @@ export interface AgentExecutionOptions {
   // gates apply; true = the run never pauses for approval. The top of the
   // approval-policy chain.
   autoApproveAll?: boolean;
-  // Execution-scoped env overrides (spec.runtime_env) — the highest-precedence
-  // layer of the env merge, materialized into the ExecutionContext at create.
-  runtimeEnv?: Record<string, ExecutionValueInit>;
+  // The new conversation's own secrets (session_spec.secrets), ahead of every
+  // vault: sealed on the session the turn creates, never on the run. Only a
+  // turn that starts a conversation carries them; a later change is a
+  // session update.
+  sessionSecrets?: Record<string, string>;
   // The settings this message asks for (spec.run_config): model, tier,
   // thinking, bounds. Left unset by default: the agent's defaults and the
   // engine's choose; the server records what the turn ran with on
@@ -95,7 +96,6 @@ export function makeAgentExecution(opts: AgentExecutionOptions): InitShape<typeo
       ...executionTarget(opts),
       message: opts.message ?? "Say hello.",
       ...(opts.autoApproveAll !== undefined ? { autoApproveAll: opts.autoApproveAll } : {}),
-      ...(opts.runtimeEnv !== undefined ? { runtimeEnv: makeExecutionValues(opts.runtimeEnv) } : {}),
       ...(opts.runConfig !== undefined ? { runConfig: opts.runConfig } : {}),
       ...(opts.interactionMode !== undefined ? { interactionMode: opts.interactionMode } : {}),
       ...(opts.buildFromPlan !== undefined ? { buildFromPlan: opts.buildFromPlan } : {}),
@@ -116,15 +116,20 @@ function executionTarget(
   opts: AgentExecutionOptions,
 ): Pick<NonNullable<InitShape<typeof RunSchema>["spec"]>, "target"> {
   if (opts.sessionId !== undefined) {
-    if (opts.agentRef !== undefined || opts.sessionSpec !== undefined) {
-      throw new Error("makeAgentExecution: sessionId excludes agentRef and sessionSpec (spec.target is a oneof)");
+    if (opts.agentRef !== undefined || opts.sessionSpec !== undefined || opts.sessionSecrets !== undefined) {
+      throw new Error(
+        "makeAgentExecution: sessionId excludes agentRef, sessionSpec and sessionSecrets (spec.target is a oneof; an existing session's secrets change by session update)",
+      );
     }
     return { target: { case: "sessionId", value: opts.sessionId } };
   }
-  if (opts.agentRef === undefined && opts.sessionSpec === undefined) {
+  if (opts.agentRef === undefined && opts.sessionSpec === undefined && opts.sessionSecrets === undefined) {
     return {};
   }
   const sessionSpec = create(SessionSpecSchema, opts.sessionSpec ?? {});
+  if (opts.sessionSecrets !== undefined) {
+    sessionSpec.secrets = { ...sessionSpec.secrets, ...opts.sessionSecrets };
+  }
   if (opts.agentRef !== undefined) {
     sessionSpec.agentRef = create(ApiResourceReferenceSchema, makeAgentRef(opts.agentRef));
   }

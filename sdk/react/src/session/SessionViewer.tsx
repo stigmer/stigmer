@@ -66,7 +66,7 @@ import {
 } from "./useSessionArtifacts.js";
 import type { SetupTabProps } from "./facets/SetupTab.js";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { RuntimeEnvProvider } from "./runtime-env.js";
+import type { SessionSecretsProvider } from "./session-secrets.js";
 import type { SessionAudience, SessionPanelMode } from "./audience.js";
 import type { SessionRunConfig } from "./run-config.js";
 
@@ -208,13 +208,16 @@ export interface SessionViewerProps {
   readonly workspaceContentSearcher?: WorkspaceContentSearcher;
   /**
    * Supplies host-app environment variables for every follow-up
-   * run (e.g. short-lived credentials for MCP tools, minted as
-   * the signed-in user). Evaluated fresh at each send; host values win
+   * run (e.g. a project-scoped API key for MCP tools). They become the
+   * conversation's, serving every turn whoever sends it, so never a
+   * person's own token where others can send turns. Evaluated fresh at each send; host values win
    * over composer-collected env on key collisions. If the provider
    * throws, the send is blocked and an error banner is shown — see
-   * {@link RuntimeEnvProvider}.
+   * {@link SessionSecretsProvider}. The values are written to the
+   * conversation's own secrets; never evaluated for the `"guest"`
+   * audience, which cannot write them.
    */
-  readonly getRuntimeEnv?: RuntimeEnvProvider;
+  readonly getSessionSecrets?: SessionSecretsProvider;
   /**
    * Presentation audience for the viewer. `"endUser"` locks the
    * session's agent and hides the MCP server, skill, and
@@ -401,7 +404,7 @@ export function SessionViewer({
   workspaceFileLister,
   workspaceFileReader,
   workspaceContentSearcher,
-  getRuntimeEnv,
+  getSessionSecrets,
   audience = "integrator",
   runConfig,
   accountDefaults,
@@ -420,7 +423,7 @@ export function SessionViewer({
   const flow = useSessionPageFlow({
     sessionId,
     org: orgProp,
-    getRuntimeEnv,
+    getSessionSecrets,
     audience,
     runConfig,
     accountDefaults,
@@ -722,6 +725,7 @@ export function SessionViewer({
       splitStorageKey="stgm-session-chat-width"
       conversation={
         <ConversationColumn
+          sessionId={sessionId}
           flow={flow}
           modelId={modelId}
           setModelId={setModelId}
@@ -793,6 +797,7 @@ export function SessionViewer({
 // ---------------------------------------------------------------------------
 
 interface ConversationColumnProps {
+  readonly sessionId: string;
   readonly flow: ReturnType<typeof useSessionPageFlow>;
   readonly modelId: string | undefined;
   readonly setModelId: (id: string) => void;
@@ -839,6 +844,7 @@ interface ConversationColumnProps {
 }
 
 const ConversationColumn = memo(function ConversationColumn({
+  sessionId,
   flow,
   modelId,
   setModelId,
@@ -873,11 +879,18 @@ const ConversationColumn = memo(function ConversationColumn({
   // The next message starts a conversation on the selected agent when the
   // session has no turn yet, or when the person picked a different agent
   // than the session runs: that is when the keys the agent will read from
-  // the person's personal environment are named. Guests and observers
+  // the person's My vault are named. Guests and observers
   // never send on their own agent choice.
   const hasTurns =
     conv.completedRuns.length > 0 || conv.activeStreamRun !== null;
   const runsSessionAgent = isSameAgent(flow.agentRef, agentRefOfSession(conv.session));
+  // The vaults the conversation lists, as the composer's vault picker
+  // starts from them.
+  const sessionVaultRefs = useMemo<ResourceRef[]>(
+    () =>
+      (conv.session?.spec?.vaults ?? []).map((ref) => ({ org: ref.org, slug: ref.slug })),
+    [conv.session],
+  );
   const disclosePersonalKeys = !isGuest && !isObserver && (!hasTurns || !runsSessionAgent);
   // On the session's own agent the next message runs the session's pin,
   // so the line names what that version declares.
@@ -1109,6 +1122,9 @@ const ConversationColumn = memo(function ConversationColumn({
             sessionVariables={isCurated ? undefined : flow.sessionVariables}
             disclosePersonalKeys={disclosePersonalKeys}
             personalKeysVersionHash={personalKeysVersionHash}
+            enableVaultPicker={!isGuest && !isCurated && !isObserver}
+            initialVaultRefs={sessionVaultRefs}
+            sessionId={sessionId}
             className="stg:px-4 stg:py-3"
           />
         )}

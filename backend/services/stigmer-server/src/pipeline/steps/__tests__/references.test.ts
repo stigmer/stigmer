@@ -33,7 +33,7 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
@@ -100,7 +100,7 @@ async function failureOf(run: () => void | Promise<void>): Promise<unknown> {
 const SCHEMAS_UNDER_THE_RULE: ReadonlyArray<DescMessage> = [
   AgentSchema,
   McpServerSchema,
-  EnvironmentSchema,
+  VaultSchema,
   ScheduleSchema,
   AgentChannelSchema,
   AgentShareSchema,
@@ -169,7 +169,7 @@ describe("REFERENCE_TARGET_KINDS against the contract", () => {
     ).toEqual([K.skill, K.mcp_server, K.agent, K.plugin]);
     expect(
       REFERENCE_TARGET_KINDS.filter((e) => !e.readByRun).map((e) => e.kind),
-    ).toEqual([K.environment, K.channel_app, K.oauth_app]);
+    ).toEqual([K.vault, K.channel_app, K.oauth_app]);
   });
 });
 
@@ -245,7 +245,7 @@ describe("checkReference", () => {
       visibility: V.visibility_org,
     },
     {
-      kind: K.environment,
+      kind: K.vault,
       org: "acme",
       slug: "personal",
       visibility: V.visibility_private,
@@ -269,7 +269,7 @@ describe("checkReference", () => {
       visibility: V.visibility_org,
     },
     {
-      kind: K.environment,
+      kind: K.vault,
       org: "globex",
       slug: "theirs",
       visibility: V.visibility_org,
@@ -360,10 +360,10 @@ describe("checkReference", () => {
   });
 
   it("(ii) the floor does not apply to what the server resolves on the run's behalf", () => {
-    // An org-visible resource over a private personal environment: a
-    // person attaching their own keys, admitted.
+    // An org-visible resource over a private vault: someone who may use
+    // it attaching it, admitted (the writer clause asks the use).
     expect(
-      checkReference(targets, ACME_ORG, ref(K.environment, "acme", "personal")),
+      checkReference(targets, ACME_ORG, ref(K.vault, "acme", "personal")),
     ).toEqual({ kind: "ok" });
   });
 
@@ -404,7 +404,7 @@ describe("checkReference", () => {
     ).toEqual({ kind: "not-available" });
     // A kind that is never shared with child organizations: every cross-organization reference to it.
     expect(
-      checkReference(targets, ACME_ORG, ref(K.environment, "globex", "theirs")),
+      checkReference(targets, ACME_ORG, ref(K.vault, "globex", "theirs")),
     ).toEqual({ kind: "not-available" });
   });
 
@@ -1122,7 +1122,7 @@ describe("GuardReferenceFloorOnEscalation", () => {
   });
 });
 
-describe("the writer clause: a write may introduce only an environment its writer can view", () => {
+describe("the writer clause: a write may introduce only a vault its writer may use", () => {
   let store: SqliteStore;
   let cleanup: () => Promise<void>;
 
@@ -1131,17 +1131,18 @@ describe("the writer clause: a write may introduce only an environment its write
     store = temp.store;
     cleanup = temp.cleanup;
     for (const [id, slug, visibility] of [
-      ["env_ana_keys", "ana-keys", V.visibility_private],
-      ["env_team_keys", "team-keys", V.visibility_org],
-      ["env_flaky", "flaky", V.visibility_private],
-      ["env_left", "left", V.visibility_private],
+      ["vlt_ana_keys", "ana-keys", V.visibility_private],
+      ["vlt_team_keys", "team-keys", V.visibility_org],
+      ["vlt_flaky", "flaky", V.visibility_private],
+      ["vlt_left", "left", V.visibility_private],
     ] as const) {
       await store.saveResource(
-        K.environment,
+        K.vault,
         id,
-        EnvironmentSchema,
-        create(EnvironmentSchema, {
+        VaultSchema,
+        create(VaultSchema, {
           metadata: { id, name: slug, slug, org: "acme", visibility },
+          spec: { owner: { case: "org", value: "acme" } },
         }),
       );
     }
@@ -1152,30 +1153,31 @@ describe("the writer clause: a write may introduce only an environment its write
   });
 
   /**
-   * An authorizer over the model's answer for environments: Ana views her
-   * private row, every member views the org-visible one, nobody else views
-   * hers; one row's evaluation is down. Every check is recorded.
+   * An authorizer over the model's answer for vaults: Ana may use the
+   * private shared vault she was granted, every member the org-visible
+   * one, nobody else hers; one row's evaluation is down. Every check is
+   * recorded.
    */
-  function environmentViews(checks: string[]): Authorizer {
+  function vaultUses(checks: string[]): Authorizer {
     return {
       authorize: async (caller, check) => {
         checks.push(
           `${caller.identityId}:${IamPermission[check.permission]}:${check.resourceId}`,
         );
-        if (check.resourceId === "env_flaky") {
+        if (check.resourceId === "vlt_flaky") {
           return {
             kind: "unavailable",
             cause: new Error("authorization store offline"),
           };
         }
-        if (check.resourceId === "env_left") {
+        if (check.resourceId === "vlt_left") {
           return { kind: "not-found" };
         }
         if (
-          check.resourceId === "env_ana_keys" &&
+          check.resourceId === "vlt_ana_keys" &&
           caller.identityId !== "acc_ana"
         ) {
-          return { kind: "deny", reason: "not a viewer" };
+          return { kind: "deny", reason: "may not use it" };
         }
         return { kind: "allow" };
       },
@@ -1192,8 +1194,8 @@ describe("the writer clause: a write may introduce only an environment its write
         visibility: V.visibility_org,
       },
       spec: {
-        environmentRefs: slugs.map((slug) => ({
-          kind: K.environment,
+        vaults: slugs.map((slug) => ({
+          kind: K.vault,
           org: "acme",
           slug,
         })),
@@ -1223,28 +1225,24 @@ describe("the writer clause: a write may introduce only an environment its write
     return failureOf(() =>
       newValidateReferencesStep<typeof AgentChannelSchema>(
         store,
-        environmentViews(opts.checks ?? []),
+        vaultUses(opts.checks ?? []),
       ).execute(ctx),
     );
   }
 
-  it("refuses a teammate's private environment PERMISSION_DENIED, naming it and what may be attached", async () => {
+  it("refuses a vault the writer may not use PERMISSION_DENIED, naming it and what may be attached", async () => {
     const error = await write({ writer: "acc_ben", names: ["ana-keys"] });
     expect(error).toBeInstanceOf(ConnectError);
     expect((error as ConnectError).code).toBe(Code.PermissionDenied);
     expect((error as ConnectError).rawMessage).toBe(
       notViewableReferenceMessage(
-        referenceTargetKind(K.environment)!,
-        ref(K.environment, "acme", "ana-keys"),
+        referenceTargetKind(K.vault)!,
+        ref(K.vault, "acme", "ana-keys"),
       ),
-    );
-    expect((error as ConnectError).rawMessage).toBe(
-      "referenced environment 'acme/ana-keys' is not one you can view; " +
-        "attach an environment you own or one shared with the organization.",
     );
   });
 
-  it("admits the owner's own private environment on an org-visible channel, and an org-visible one for any member", async () => {
+  it("admits a private vault its user attaches to an org-visible channel, and an org-visible one for any member", async () => {
     const checks: string[] = [];
     expect(
       await write({ writer: "acc_ana", names: ["ana-keys"], checks }),
@@ -1253,8 +1251,8 @@ describe("the writer clause: a write may introduce only an environment its write
       await write({ writer: "acc_ben", names: ["team-keys"], checks }),
     ).toBeUndefined();
     expect(checks).toEqual([
-      "acc_ana:can_view:env_ana_keys",
-      "acc_ben:can_view:env_team_keys",
+      "acc_ana:can_use:vlt_ana_keys",
+      "acc_ben:can_use:vlt_team_keys",
     ]);
   });
 
@@ -1269,7 +1267,7 @@ describe("the writer clause: a write may introduce only an environment its write
       }),
     ).toBeUndefined();
     // Only the introduced reference was asked about.
-    expect(checks).toEqual(["acc_ben:can_view:env_team_keys"]);
+    expect(checks).toEqual(["acc_ben:can_use:vlt_team_keys"]);
     const error = await write({
       writer: "acc_ben",
       names: ["ana-keys"],
@@ -1300,7 +1298,7 @@ describe("the writer clause: a write may introduce only an environment its write
     const error = await write({ writer: "acc_ben", names: ["left"] });
     expect((error as ConnectError).code).toBe(Code.FailedPrecondition);
     expect((error as ConnectError).rawMessage).toBe(
-      missingReferencesMessage(referenceTargetKind(K.environment)!, [
+      missingReferencesMessage(referenceTargetKind(K.vault)!, [
         { slug: "left", org: "acme" },
       ]),
     );
@@ -1314,7 +1312,7 @@ describe("the writer clause: a write may introduce only an environment its write
         kind: "AgentChannel",
         metadata: { name: "No org", org: "", visibility: V.visibility_org },
         spec: {
-          environmentRefs: [{ kind: K.environment, org: "", slug: "ana-keys" }],
+          vaults: [{ kind: K.vault, org: "", slug: "ana-keys" }],
         },
       }),
       testCallerIdentity({ identityId: "acc_ben" }),
@@ -1323,16 +1321,16 @@ describe("the writer clause: a write may introduce only an environment its write
     const error = await failureOf(() =>
       newValidateReferencesStep<typeof AgentChannelSchema>(
         store,
-        environmentViews([]),
+        vaultUses([]),
       ).execute(ctx),
     );
     expect((error as ConnectError).code).toBe(Code.InvalidArgument);
   });
 
-  it("only environments carry the clause: other kinds are judged by existence and the floor alone", () => {
+  it("only vaults carry the clause: other kinds are judged by existence and the floor alone", () => {
     for (const entry of REFERENCE_TARGET_KINDS) {
       expect(entry.writerMust).toBe(
-        entry.kind === K.environment ? IamPermission.can_view : undefined,
+        entry.kind === K.vault ? IamPermission.can_use : undefined,
       );
     }
   });

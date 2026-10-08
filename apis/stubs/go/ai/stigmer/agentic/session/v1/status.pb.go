@@ -39,8 +39,12 @@ type SessionStatus struct {
 	// the reference resolved; such a conversation runs the agent as it is
 	// when each turn starts.
 	AgentVersionHash string `protobuf:"bytes,2,opt,name=agent_version_hash,json=agentVersionHash,proto3" json:"agent_version_hash,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Who attached each of this resource's vaults, by vault id: the account
+	// whose permission to use the vault each run checks when it has no
+	// person.
+	VaultAttachers map[string]string `protobuf:"bytes,3,rep,name=vault_attachers,json=vaultAttachers,proto3" json:"vault_attachers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *SessionStatus) Reset() {
@@ -94,15 +98,26 @@ func (x *SessionStatus) GetAgentVersionHash() string {
 	return ""
 }
 
+func (x *SessionStatus) GetVaultAttachers() map[string]string {
+	if x != nil {
+		return x.VaultAttachers
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_session_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/session/v1/status.proto\x12\x1dai.stigmer.agentic.session.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\xa0\x01\n" +
+	"*ai/stigmer/agentic/session/v1/status.proto\x12\x1dai.stigmer.agentic.session.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\xce\x02\n" +
 	"\rSessionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12,\n" +
-	"\x12agent_version_hash\x18\x02 \x01(\tR\x10agentVersionHashB\x9b\x02\n" +
+	"\x12agent_version_hash\x18\x02 \x01(\tR\x10agentVersionHash\x12i\n" +
+	"\x0fvault_attachers\x18\x03 \x03(\v2@.ai.stigmer.agentic.session.v1.SessionStatus.VaultAttachersEntryR\x0evaultAttachers\x1aA\n" +
+	"\x13VaultAttachersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x9b\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\vStatusProtoP\x01ZPgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var (
@@ -117,18 +132,20 @@ func file_ai_stigmer_agentic_session_v1_status_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_session_v1_status_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_session_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_ai_stigmer_agentic_session_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_ai_stigmer_agentic_session_v1_status_proto_goTypes = []any{
 	(*SessionStatus)(nil),                // 0: ai.stigmer.agentic.session.v1.SessionStatus
-	(*apiresource.ApiResourceAudit)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceAudit
+	nil,                                  // 1: ai.stigmer.agentic.session.v1.SessionStatus.VaultAttachersEntry
+	(*apiresource.ApiResourceAudit)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceAudit
 }
 var file_ai_stigmer_agentic_session_v1_status_proto_depIdxs = []int32{
-	1, // 0: ai.stigmer.agentic.session.v1.SessionStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	2, // 0: ai.stigmer.agentic.session.v1.SessionStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
+	1, // 1: ai.stigmer.agentic.session.v1.SessionStatus.vault_attachers:type_name -> ai.stigmer.agentic.session.v1.SessionStatus.VaultAttachersEntry
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_session_v1_status_proto_init() }
@@ -142,7 +159,7 @@ func file_ai_stigmer_agentic_session_v1_status_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_session_v1_status_proto_rawDesc), len(file_ai_stigmer_agentic_session_v1_status_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -56,9 +56,9 @@ private static final long serialVersionUID = 0L;
   private boolean disconnected_ = false;
   /**
    * <pre>
-   * Whether an active grant was found and deleted.
-   * true: grant and its managed environment were deleted.
-   * false: no grant existed for this resource + org + caller. The desired
+   * Whether a saved sign-in was found and removed.
+   * true: the connection and its tokens were removed.
+   * false: no sign-in was saved for this server, org and caller. The desired
    * state (no OAuth connection) was already achieved. This is not an error.
    * </pre>
    *
@@ -371,9 +371,9 @@ private static final long serialVersionUID = 0L;
     private boolean disconnected_ ;
     /**
      * <pre>
-     * Whether an active grant was found and deleted.
-     * true: grant and its managed environment were deleted.
-     * false: no grant existed for this resource + org + caller. The desired
+     * Whether a saved sign-in was found and removed.
+     * true: the connection and its tokens were removed.
+     * false: no sign-in was saved for this server, org and caller. The desired
      * state (no OAuth connection) was already achieved. This is not an error.
      * </pre>
      *
@@ -386,9 +386,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether an active grant was found and deleted.
-     * true: grant and its managed environment were deleted.
-     * false: no grant existed for this resource + org + caller. The desired
+     * Whether a saved sign-in was found and removed.
+     * true: the connection and its tokens were removed.
+     * false: no sign-in was saved for this server, org and caller. The desired
      * state (no OAuth connection) was already achieved. This is not an error.
      * </pre>
      *
@@ -405,9 +405,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether an active grant was found and deleted.
-     * true: grant and its managed environment were deleted.
-     * false: no grant existed for this resource + org + caller. The desired
+     * Whether a saved sign-in was found and removed.
+     * true: the connection and its tokens were removed.
+     * false: no sign-in was saved for this server, org and caller. The desired
      * state (no OAuth connection) was already achieved. This is not an error.
      * </pre>
      *

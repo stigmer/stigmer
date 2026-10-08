@@ -19,6 +19,12 @@
 // reference as given, and only when the text differs (a slug against the
 // stored id) is the named agent resolved and its organization id compared.
 //
+// Per-call values ride the new conversation's own `secrets` (its
+// session_spec), which the server keeps sealed for the conversation's life
+// and uses ahead of every vault. A follow-up turn cannot add values: the run
+// carries none of its own, and changing a conversation's values is a session
+// update this tool does not offer, so it refuses rather than dropping them.
+//
 // The tool is deliberately asynchronous: it returns the created run (with
 // its run_* ID) immediately and the run continues in the background.
 // Observation happens through get_run polling — MCP tools are
@@ -37,10 +43,6 @@ import {
   type RunSpec,
   RunSpecSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import {
-  ExecutionValueSchema,
-  type ExecutionValue,
-} from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -60,7 +62,7 @@ export interface RunAgentArgs {
   readonly agent: string;
   readonly message: string;
   readonly sessionId?: string;
-  readonly runtimeEnv?: Record<string, string>;
+  readonly secrets?: Record<string, string>;
 }
 
 /**
@@ -78,7 +80,14 @@ export async function runAgent(
   const desc = `agent "${args.agent}" in org "${args.org}"`;
   return withTransport(serverAddress, token, async (transport, callOptions) => {
     const sessionId = args.sessionId ?? "";
+    const secrets = args.secrets ?? {};
     let target: RunSpec["target"];
+    if (sessionId !== "" && Object.keys(secrets).length > 0) {
+      throw new Error(
+        "secrets are kept by a conversation from its first turn: omit session_id to start a " +
+          "new conversation with them, or save them in a vault the conversation uses.",
+      );
+    }
     if (sessionId !== "") {
       await assertSessionRunsAgent(transport, callOptions, sessionId, args);
       target = { case: "sessionId", value: sessionId };
@@ -97,6 +106,7 @@ export async function runAgent(
               org: agent.metadata?.org ?? "",
               slug: agent.metadata?.slug ?? "",
             }),
+            secrets,
           }),
         };
       } catch (err) {
@@ -118,7 +128,6 @@ export async function runAgent(
       spec: createMessage(RunSpecSchema, {
         // Empty message means "just run" — the CLI applies the same default.
         message: args.message === "" ? "execute" : args.message,
-        runtimeEnv: toExecutionValues(args.runtimeEnv),
         target,
       }),
     });
@@ -186,22 +195,6 @@ async function assertSessionRunsAgent(
   if (agentOrg !== ref.org) {
     throw mismatch();
   }
-}
-
-/**
- * Convert the tool's plain string map to the proto ExecutionValue map. Values
- * arriving through an MCP tool call have already passed through the model's
- * context, so they are never secrets by definition — secrets reach runs
- * through Environments, not through this tool.
- */
-export function toExecutionValues(
-  env: Record<string, string> | undefined,
-): Record<string, ExecutionValue> {
-  const out: Record<string, ExecutionValue> = {};
-  for (const [key, value] of Object.entries(env ?? {})) {
-    out[key] = createMessage(ExecutionValueSchema, { value, isSecret: false });
-  }
-  return out;
 }
 
 /**

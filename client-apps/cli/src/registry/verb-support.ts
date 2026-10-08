@@ -66,9 +66,12 @@ export const VERB_SUPPORT: ReadonlyMap<
   // dispatch entry + this line, in the same change.
   [ApiResourceKind.identity_provider, new Set<Verb>([Verb.Apply])],
   [ApiResourceKind.oauth_app, new Set<Verb>([Verb.Apply])],
+  // A vault holds secrets, which never belong in a manifest file, so it has
+  // no apply; entries change through the `stigmer vault` group, and no verb
+  // ever prints a saved value.
   [
-    ApiResourceKind.environment,
-    new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete]),
+    ApiResourceKind.vault,
+    new Set<Verb>([Verb.Get, Verb.List, Verb.Delete]),
   ],
   // Enable/disable flows through `stigmer share agent`, which is the whole
   // read/ops surface today; only the declarative apply path is promised

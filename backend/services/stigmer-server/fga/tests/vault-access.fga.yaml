@@ -1,0 +1,99 @@
+# Vaults: a person's My vault is theirs alone, an admin included; a shared
+# vault is its organization's, used by the people its admins let use it.
+#
+#   alice - a member of acme; owns My vault mine-alice
+#   bob   - a member of acme; a teammate, granted "Can use" on support
+#   carol - a member of acme in team support-team, which may use support
+#   dave  - a member of acme with no grant on any shared vault
+#   ana   - an admin of acme
+#   viv   - an org viewer of acme (read-only role)
+#   mal   - a member of another organization
+#
+# Vaults: mine-alice (alice's My vault, carrying two stray tuples no code
+# writes), support (shared, private, with a person grant and a team grant),
+# handbook (shared, org visibility).
+name: vault-access
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  - {user: identity_account:alice, relation: member, object: organization:acme}
+  - {user: identity_account:alice, relation: affiliated, object: organization:acme}
+  - {user: identity_account:bob, relation: member, object: organization:acme}
+  - {user: identity_account:bob, relation: affiliated, object: organization:acme}
+  - {user: identity_account:carol, relation: member, object: organization:acme}
+  - {user: identity_account:carol, relation: affiliated, object: organization:acme}
+  - {user: identity_account:dave, relation: member, object: organization:acme}
+  - {user: identity_account:dave, relation: affiliated, object: organization:acme}
+  - {user: identity_account:ana, relation: admin, object: organization:acme}
+  - {user: identity_account:ana, relation: affiliated, object: organization:acme}
+  - {user: identity_account:viv, relation: viewer, object: organization:acme}
+  - {user: identity_account:viv, relation: affiliated, object: organization:acme}
+  - {user: identity_account:mal, relation: member, object: organization:other}
+  - {user: identity_account:mal, relation: affiliated, object: organization:other}
+
+  - {user: organization:acme, relation: organization, object: team:support-team}
+  - {user: identity_account:carol, relation: member, object: team:support-team}
+
+  # alice's My vault: the creation tuples (organization + person).
+  - {user: organization:acme, relation: organization, object: vault:mine-alice}
+  - {user: identity_account:alice, relation: person, object: vault:mine-alice}
+
+  # Two stray tuples on alice's My vault, which no code path writes: a
+  # person grant to bob and the org-visibility tuple. Neither reaches anyone.
+  - {user: identity_account:bob, relation: user, object: vault:mine-alice}
+  - {user: organization:acme#viewer, relation: viewer, object: vault:mine-alice}
+
+  # A shared vault: the creation tuples (organization + org_owned) and two grants.
+  - {user: organization:acme, relation: organization, object: vault:support}
+  - {user: organization:acme, relation: org_owned, object: vault:support}
+  - {user: identity_account:bob, relation: user, object: vault:support}
+  - {user: team:support-team#member, relation: user, object: vault:support}
+
+  # A shared vault at org visibility: every member may use it.
+  - {user: organization:acme, relation: organization, object: vault:handbook}
+  - {user: organization:acme, relation: org_owned, object: vault:handbook}
+  - {user: organization:acme#viewer, relation: viewer, object: vault:handbook}
+
+tests:
+  - name: My vault is its person's alone, an admin included
+    check:
+      - {user: identity_account:alice, object: vault:mine-alice, assertions: {can_view: true, can_use: true, can_edit: true, can_delete: true, can_grant_access: false, can_manage_audience: false}}
+      - {user: identity_account:bob, object: vault:mine-alice, assertions: {can_view: false, can_use: false, can_edit: false, can_delete: false}}
+      - {user: identity_account:ana, object: vault:mine-alice, assertions: {can_view: false, can_use: false, can_edit: false, can_delete: false, can_grant_access: false}}
+
+  - name: a stray grant or org-visibility tuple on a My vault grants nothing
+    check:
+      - {user: identity_account:bob, object: vault:mine-alice, assertions: {can_view: false, can_use: false, can_edit: false, can_delete: false}}
+      - {user: identity_account:dave, object: vault:mine-alice, assertions: {can_view: false, can_use: false, can_edit: false, can_delete: false}}
+      - {user: identity_account:viv, object: vault:mine-alice, assertions: {can_view: false, can_use: false}}
+      - {user: identity_account:ana, object: vault:mine-alice, assertions: {can_view: false, can_use: false}}
+
+  - name: a shared vault reaches only the people its admins let use it
+    check:
+      - {user: identity_account:bob, object: vault:support, assertions: {can_view: true, can_use: true, can_edit: false, can_delete: false, can_grant_access: false}}
+      - {user: identity_account:carol, object: vault:support, assertions: {can_view: true, can_use: true, can_edit: false}}
+      - {user: identity_account:dave, object: vault:support, assertions: {can_view: false, can_use: false}}
+      - {user: identity_account:alice, object: vault:support, assertions: {can_use: false}}
+      - {user: identity_account:mal, object: vault:support, assertions: {can_view: false, can_use: false}}
+
+  - name: the organization's admins manage a shared vault and may use it
+    check:
+      - {user: identity_account:ana, object: vault:support, assertions: {can_view: true, can_use: true, can_edit: true, can_delete: true, can_grant_access: true, can_manage_audience: true, can_view_access: true}}
+
+  - name: org visibility lets every member use a shared vault, never outsiders
+    check:
+      - {user: identity_account:dave, object: vault:handbook, assertions: {can_view: true, can_use: true, can_edit: false}}
+      - {user: identity_account:viv, object: vault:handbook, assertions: {can_view: true}}
+      - {user: identity_account:mal, object: vault:handbook, assertions: {can_view: false, can_use: false}}
+
+  - name: creating vaults
+    check:
+      - {user: identity_account:dave, object: organization:acme, assertions: {can_create_vault: true, can_create_shared_vault: false}}
+      - {user: identity_account:ana, object: organization:acme, assertions: {can_create_vault: true, can_create_shared_vault: true}}
+      - {user: identity_account:viv, object: organization:acme, assertions: {can_create_vault: false, can_create_shared_vault: false}}
+
+  - name: listings follow use
+    list_objects:
+      - {user: identity_account:alice, type: vault, assertions: {can_view: [vault:mine-alice, vault:handbook]}}
+      - {user: identity_account:bob, type: vault, assertions: {can_view: [vault:support, vault:handbook]}}
+      - {user: identity_account:ana, type: vault, assertions: {can_view: [vault:support, vault:handbook]}}

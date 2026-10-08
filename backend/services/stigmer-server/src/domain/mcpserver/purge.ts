@@ -3,8 +3,9 @@
  * MCP server of an organization being deleted, removed with its delete
  * chain's cleanup (controller.ts `deleteMcpServer`: the row, its access,
  * its search entry) and without its refusal of a plugin-managed server:
- * the plugin goes too. Its OAuth grants and pending connects went in core
- * quiesce, by organization.
+ * the plugin goes too. Its pending sign-ins went in core quiesce, by
+ * organization; the sign-ins saved for it live in vaults and go with the
+ * organization's vaults (domain/vault/purge.ts).
  */
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";

@@ -213,13 +213,10 @@ function generateTSResourceClient(
   }
 
   if (specSchema !== null) {
-    const flags = { needsEnvSpec: false, needsResourceRef: false };
+    const flags = { needsResourceRef: false };
     const visited = new Set<string>();
     for (const f of specSchema.fields) {
       scanFieldForSpecialImports(f, typeMap, flags, visited);
-    }
-    if (flags.needsEnvSpec) {
-      imports.addType("./types", "EnvSpecInput");
     }
     if (flags.needsResourceRef) {
       imports.addType("./types", "ResourceRef");
@@ -355,13 +352,11 @@ function tsImportMethodType(
 function scanFieldForSpecialImports(
   f: FieldSchema,
   typeMap: Map<string, TypeSchema>,
-  flags: { needsEnvSpec: boolean; needsResourceRef: boolean },
+  flags: { needsResourceRef: boolean },
   visited: Set<string>,
 ): void {
   const t = f.type;
-  if (t.kind === "message" && t.messageType === "EnvironmentSpec") {
-    flags.needsEnvSpec = true;
-  } else if (t.kind === "message" && t.messageType === "ApiResourceReference") {
+  if (t.kind === "message" && t.messageType === "ApiResourceReference") {
     flags.needsResourceRef = true;
   } else if (t.kind === "array" && t.elementType?.kind === "message" && t.elementType.messageType === "ApiResourceReference") {
     flags.needsResourceRef = true;
@@ -696,10 +691,6 @@ function tsTypeForTypeSpec(ts: TypeSpec, imports: TsImportSet): string {
     }
     case "message":
       switch (ts.messageType) {
-        case "EnvironmentSpec":
-          imports.addType("./types", "EnvSpecInput");
-          return "EnvSpecInput";
-        case "EnvironmentValue":
         case "ExecutionValue":
           imports.addType("./types", "EnvVarInput");
           return "EnvVarInput";
@@ -912,17 +903,6 @@ function emitTSPreComputeField(buf: string[], f: FieldSchema, imports: TsImportS
     imports.addValue("@bufbuild/protobuf", "fromJson");
     imports.addValue("@bufbuild/protobuf/wkt", "ValueSchema");
     buf.push(`  const ${fieldName} = input.${fieldName} !== undefined ? fromJson(ValueSchema, input.${fieldName}) : undefined;\n`);
-  } else if (t.kind === "message" && t.messageType === "EnvironmentSpec") {
-    imports.addValue("@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb", "EnvironmentSpecSchema");
-    imports.addValue("@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb", "EnvironmentValueSchema");
-    buf.push(`  let ${fieldName};\n`);
-    buf.push(`  if (input.${fieldName}) {\n`);
-    buf.push("    const es = create(EnvironmentSpecSchema);\n");
-    buf.push(`    for (const [k, v] of Object.entries(input.${fieldName}.variables)) {\n`);
-    buf.push("      es.data[k] = create(EnvironmentValueSchema, { value: v.value, isSecret: v.isSecret, description: v.description });\n");
-    buf.push("    }\n");
-    buf.push(`    ${fieldName} = es;\n`);
-    buf.push("  }\n");
   } else if (t.kind === "message" && t.messageType === "ApiResourceReference") {
     imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema");
     if (refKind !== 0) {
@@ -941,13 +921,6 @@ function emitTSPreComputeField(buf: string[], f: FieldSchema, imports: TsImportS
     }
   } else if (t.kind === "array" && t.elementType?.kind === "message") {
     buf.push(`  const ${fieldName} = input.${fieldName}?.map(build${t.elementType.messageType}Proto);\n`);
-  } else if (t.kind === "map" && t.valueType?.messageType === "EnvironmentValue") {
-    imports.addValue("@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb", "EnvironmentValueSchema");
-    buf.push(`  let ${fieldName};\n`);
-    buf.push(`  if (input.${fieldName}) {\n`);
-    buf.push(`    ${fieldName} = Object.fromEntries(Object.entries(input.${fieldName}).map(([k, v]) =>\n`);
-    buf.push("      [k, create(EnvironmentValueSchema, { value: v.value, isSecret: v.isSecret, description: v.description })]));\n");
-    buf.push("  }\n");
   } else if (t.kind === "map" && t.valueType?.messageType === "ExecutionValue") {
     imports.addValue("@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb", "ExecutionValueSchema");
     buf.push(`  let ${fieldName};\n`);
@@ -1108,16 +1081,6 @@ function emitTSNestedFieldAssign(buf: string[], f: FieldSchema, typeMap: Map<str
     if (!isSpecialType(elemMsg)) {
       buf.push(`  if (input.${fieldName}) msg.${fieldName} = input.${fieldName}.map(build${elemMsg}Proto);\n`);
     }
-  } else if (t.kind === "message" && t.messageType === "EnvironmentSpec") {
-    imports.addValue("@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb", "EnvironmentSpecSchema");
-    imports.addValue("@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb", "EnvironmentValueSchema");
-    buf.push(`  if (input.${fieldName}) {\n`);
-    buf.push("    const es = create(EnvironmentSpecSchema);\n");
-    buf.push(`    for (const [k, v] of Object.entries(input.${fieldName}.variables)) {\n`);
-    buf.push("      es.data[k] = create(EnvironmentValueSchema, { value: v.value, isSecret: v.isSecret, description: v.description });\n");
-    buf.push("    }\n");
-    buf.push(`    msg.${fieldName} = es;\n`);
-    buf.push("  }\n");
   } else if (t.kind === "message" && t.messageType === "ApiResourceReference") {
     imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema");
     if (refKind !== 0) {
@@ -1132,13 +1095,6 @@ function emitTSNestedFieldAssign(buf: string[], f: FieldSchema, typeMap: Map<str
     }
   } else if (t.kind === "map" && (t.valueType === undefined || t.valueType.kind === "string")) {
     buf.push(`  if (input.${fieldName}) Object.assign(msg.${fieldName}, input.${fieldName});\n`);
-  } else if (t.kind === "map" && t.valueType?.messageType === "EnvironmentValue") {
-    imports.addValue("@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb", "EnvironmentValueSchema");
-    buf.push(`  if (input.${fieldName}) {\n`);
-    buf.push(`    for (const [k, v] of Object.entries(input.${fieldName})) {\n`);
-    buf.push(`      msg.${fieldName}[k] = create(EnvironmentValueSchema, { value: v.value, isSecret: v.isSecret, description: v.description });\n`);
-    buf.push("    }\n");
-    buf.push("  }\n");
   } else if (t.kind === "map" && t.valueType?.messageType === "ExecutionValue") {
     imports.addValue("@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb", "ExecutionValueSchema");
     buf.push(`  if (input.${fieldName}) {\n`);
@@ -1203,7 +1159,7 @@ function generateTSClientFile(outputDir: string, resources: ResourceGenInfo[]): 
       }
     }
   }
-  buf.push('export { type ListParams, type ListResult, type DeleteResourceInput, type ResourceRef, type EnvSpecInput, type EnvVarInput, type Page } from "./types.js";\n');
+  buf.push('export { type ListParams, type ListResult, type DeleteResourceInput, type ResourceRef, type EnvVarInput, type Page } from "./types.js";\n');
   buf.push('export { StigmerError, type ErrorCode, isNotFound, isUnauthenticated, isPermissionDenied, isRetryable, isUnimplemented } from "./errors.js";\n');
 
   fs.writeFileSync(path.join(outputDir, "client.ts"), buf.join(""));

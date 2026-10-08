@@ -223,18 +223,22 @@ public interface AgentSpecOrBuilder extends
    * <pre>
    * Environment variable declarations for this agent.
    * Keys are variable names; values describe their metadata and optionality.
+   * A secret is found by its name in a vault when a run starts; a plain
+   * setting may carry its value in the declaration.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 7 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 7 [json_name = "env"];</code>
    */
   int getEnvCount();
   /**
    * <pre>
    * Environment variable declarations for this agent.
    * Keys are variable names; values describe their metadata and optionality.
+   * A secret is found by its name in a vault when a run starts; a plain
+   * setting may carry its value in the declaration.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 7 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 7 [json_name = "env"];</code>
    */
   boolean containsEnv(
       java.lang.String key);
@@ -242,40 +246,46 @@ public interface AgentSpecOrBuilder extends
    * Use {@link #getEnvMap()} instead.
    */
   @java.lang.Deprecated
-  java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration>
+  java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration>
   getEnv();
   /**
    * <pre>
    * Environment variable declarations for this agent.
    * Keys are variable names; values describe their metadata and optionality.
+   * A secret is found by its name in a vault when a run starts; a plain
+   * setting may carry its value in the declaration.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 7 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 7 [json_name = "env"];</code>
    */
-  java.util.Map<java.lang.String, ai.stigmer.agentic.environment.v1.EnvVarDeclaration>
+  java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration>
   getEnvMap();
   /**
    * <pre>
    * Environment variable declarations for this agent.
    * Keys are variable names; values describe their metadata and optionality.
+   * A secret is found by its name in a vault when a run starts; a plain
+   * setting may carry its value in the declaration.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 7 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 7 [json_name = "env"];</code>
    */
   /* nullable */
-ai.stigmer.agentic.environment.v1.EnvVarDeclaration getEnvOrDefault(
+ai.stigmer.agentic.vault.v1.EnvVarDeclaration getEnvOrDefault(
       java.lang.String key,
       /* nullable */
-ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
+ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
   /**
    * <pre>
    * Environment variable declarations for this agent.
    * Keys are variable names; values describe their metadata and optionality.
+   * A secret is found by its name in a vault when a run starts; a plain
+   * setting may carry its value in the declaration.
    * </pre>
    *
-   * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 7 [json_name = "env"];</code>
+   * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.EnvVarDeclaration&gt; env = 7 [json_name = "env"];</code>
    */
-  ai.stigmer.agentic.environment.v1.EnvVarDeclaration getEnvOrThrow(
+  ai.stigmer.agentic.vault.v1.EnvVarDeclaration getEnvOrThrow(
       java.lang.String key);
 
   /**
@@ -587,4 +597,88 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * @return The harness.
    */
   ai.stigmer.agentic.session.v1.Harness getHarness();
+
+  /**
+   * <pre>
+   * Shared vaults this agent's conversations use after the person's own My
+   * vault, for people who may use them. At most 20.
+   *
+   * This is how a team key reaches every chat with an agent without a pick
+   * per conversation: an editor of the agent attaches a shared vault they
+   * may use, and each person's turns use it only when that person may use
+   * the vault too. A conversation that lists its own vaults uses those
+   * instead. Runs with no person (a schedule, a share link, a channel)
+   * never use an agent's vaults. A My vault cannot be attached.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> 
+      getVaultsList();
+  /**
+   * <pre>
+   * Shared vaults this agent's conversations use after the person's own My
+   * vault, for people who may use them. At most 20.
+   *
+   * This is how a team key reaches every chat with an agent without a pick
+   * per conversation: an editor of the agent attaches a shared vault they
+   * may use, and each person's turns use it only when that person may use
+   * the vault too. A conversation that lists its own vaults uses those
+   * instead. Runs with no person (a schedule, a share link, a channel)
+   * never use an agent's vaults. A My vault cannot be attached.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReference getVaults(int index);
+  /**
+   * <pre>
+   * Shared vaults this agent's conversations use after the person's own My
+   * vault, for people who may use them. At most 20.
+   *
+   * This is how a team key reaches every chat with an agent without a pick
+   * per conversation: an editor of the agent attaches a shared vault they
+   * may use, and each person's turns use it only when that person may use
+   * the vault too. A conversation that lists its own vaults uses those
+   * instead. Runs with no person (a schedule, a share link, a channel)
+   * never use an agent's vaults. A My vault cannot be attached.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+   */
+  int getVaultsCount();
+  /**
+   * <pre>
+   * Shared vaults this agent's conversations use after the person's own My
+   * vault, for people who may use them. At most 20.
+   *
+   * This is how a team key reaches every chat with an agent without a pick
+   * per conversation: an editor of the agent attaches a shared vault they
+   * may use, and each person's turns use it only when that person may use
+   * the vault too. A conversation that lists its own vaults uses those
+   * instead. Runs with no person (a schedule, a share link, a channel)
+   * never use an agent's vaults. A My vault cannot be attached.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+      getVaultsOrBuilderList();
+  /**
+   * <pre>
+   * Shared vaults this agent's conversations use after the person's own My
+   * vault, for people who may use them. At most 20.
+   *
+   * This is how a team key reaches every chat with an agent without a pick
+   * per conversation: an editor of the agent attaches a shared vault they
+   * may use, and each person's turns use it only when that person may use
+   * the vault too. A conversation that lists its own vaults uses those
+   * instead. Runs with no person (a schedule, a share link, a channel)
+   * never use an agent's vaults. A My vault cannot be attached.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getVaultsOrBuilder(
+      int index);
 }

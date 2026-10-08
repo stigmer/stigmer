@@ -31,6 +31,11 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_schedule_v1_ScheduleStatus_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_schedule_v1_ScheduleStatus_VaultAttachersEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_schedule_v1_ScheduleStatus_VaultAttachersEntry_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -43,20 +48,25 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "\n+ai/stigmer/agentic/schedule/v1/status." +
       "proto\022\036ai.stigmer.agentic.schedule.v1\032+a" +
       "i/stigmer/commons/apiresource/status.pro" +
-      "to\032\037google/protobuf/timestamp.proto\"\314\002\n\016" +
+      "to\032\037google/protobuf/timestamp.proto\"\374\003\n\016" +
       "ScheduleStatus\022<\n\014next_fire_at\030\001 \001(\0132\032.g" +
       "oogle.protobuf.TimestampR\nnextFireAt\022<\n\014" +
       "last_fire_at\030\002 \001(\0132\032.google.protobuf.Tim" +
       "estampR\nlastFireAt\022\036\n\013last_run_id\030\003 \001(\tR" +
       "\tlastRunId\0221\n\024consecutive_failures\030\004 \001(\005" +
       "R\023consecutiveFailures\022#\n\rpaused_reason\030\005" +
-      " \001(\tR\014pausedReason\022F\n\005audit\030c \001(\01320.ai.s" +
-      "tigmer.commons.apiresource.ApiResourceAu" +
-      "ditR\005auditB\252\001B\013StatusProtoP\001\242\002\004ASAS\252\002\036Ai" +
-      ".Stigmer.Agentic.Schedule.V1\312\002\036Ai\\Stigme" +
-      "r\\Agentic\\Schedule\\V1\342\002*Ai\\Stigmer\\Agent" +
-      "ic\\Schedule\\V1\\GPBMetadata\352\002\"Ai::Stigmer" +
-      "::Agentic::Schedule::V1b\006proto3"
+      " \001(\tR\014pausedReason\022k\n\017vault_attachers\030\006 " +
+      "\003(\0132B.ai.stigmer.agentic.schedule.v1.Sch" +
+      "eduleStatus.VaultAttachersEntryR\016vaultAt" +
+      "tachers\022F\n\005audit\030c \001(\01320.ai.stigmer.comm" +
+      "ons.apiresource.ApiResourceAuditR\005audit\032" +
+      "A\n\023VaultAttachersEntry\022\020\n\003key\030\001 \001(\tR\003key" +
+      "\022\024\n\005value\030\002 \001(\tR\005value:\0028\001B\252\001B\013StatusPro" +
+      "toP\001\242\002\004ASAS\252\002\036Ai.Stigmer.Agentic.Schedul" +
+      "e.V1\312\002\036Ai\\Stigmer\\Agentic\\Schedule\\V1\342\002*" +
+      "Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetada" +
+      "ta\352\002\"Ai::Stigmer::Agentic::Schedule::V1b" +
+      "\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -69,7 +79,13 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_schedule_v1_ScheduleStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_schedule_v1_ScheduleStatus_descriptor,
-        new java.lang.String[] { "NextFireAt", "LastFireAt", "LastRunId", "ConsecutiveFailures", "PausedReason", "Audit", });
+        new java.lang.String[] { "NextFireAt", "LastFireAt", "LastRunId", "ConsecutiveFailures", "PausedReason", "VaultAttachers", "Audit", });
+    internal_static_ai_stigmer_agentic_schedule_v1_ScheduleStatus_VaultAttachersEntry_descriptor =
+      internal_static_ai_stigmer_agentic_schedule_v1_ScheduleStatus_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_agentic_schedule_v1_ScheduleStatus_VaultAttachersEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_schedule_v1_ScheduleStatus_VaultAttachersEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.StatusProto.getDescriptor();
     com.google.protobuf.TimestampProto.getDescriptor();

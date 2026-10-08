@@ -131,6 +131,8 @@ import {
   newValidateTriggerableStep,
   type RunnerProvider,
 } from "./trigger.js";
+import { newVaultAttachmentsStep } from "../vault/attachments.js";
+import { SCHEDULE_VAULT_ATTACHMENTS } from "./vault-attachments.js";
 
 export interface ScheduleControllerDeps {
   readonly store: Store;
@@ -158,6 +160,7 @@ export interface ScheduleControllerDeps {
 }
 
 /** Registers both schedule services on the router (routes stage). */
+
 export function registerScheduleServices(
   router: ConnectRouter,
   deps: ScheduleControllerDeps,
@@ -224,6 +227,7 @@ async function createSchedule(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, SCHEDULE_VAULT_ATTACHMENTS))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newCreateAuthorizationTuplesStep(
@@ -264,6 +268,7 @@ async function update(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, SCHEDULE_VAULT_ATTACHMENTS))
     .addStep(newPersistScheduleUpdateStep(deps.store))
     .addStep(newArmScheduleStep(deps.clock, deps.logger))
     .build()

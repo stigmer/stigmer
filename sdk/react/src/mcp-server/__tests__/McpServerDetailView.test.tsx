@@ -1,3 +1,10 @@
+/**
+ * McpServerDetailView renders one MCP server's page: from hoisted or
+ * self-fetched state, its connect bar (status text, pill and next action
+ * for each credential state: not connected, connected, signed in but
+ * undiscovered, expired, a token pasted by hand), its capability tabs,
+ * its tour anchors and its credential form gating.
+ */
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, within, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -22,7 +29,10 @@ import {
   DiscoveredToolSchema,
   ValidationState,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
+import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
+import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { samples } from "../../test/samples";
 import { StigmerContext } from "../../context";
@@ -410,6 +420,42 @@ describe("McpServerDetailView — signed in but undiscovered (oss#229)", () => {
     expect(
       screen.queryByRole("button", { name: /^Discover tools$/ }),
     ).toBeNull();
+  });
+});
+
+describe("McpServerDetailView — an OAuth server's token pasted by hand", () => {
+  it("reads as connected with the saved token, offering discovery and no sign-in", async () => {
+    renderView(
+      <McpServerDetailView
+        org={ORG}
+        slug={SLUG}
+        mcpServerState={loadedState(buildOAuthServer())}
+      />,
+      (router) => {
+        router.service(McpServerQueryController, {
+          getOAuthGrantStatus: () =>
+            create(GetOAuthGrantStatusOutputSchema, {
+              connected: false,
+              connectionHealth: OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT,
+            }),
+        });
+        router.service(VaultQueryController, {
+          getMine: () =>
+            create(VaultSchema, {
+              metadata: { id: "vlt_mine", org: ORG },
+              spec: {
+                owner: { case: "person", value: "ida_ana" },
+                connections: { "https://api.acme.com/mcp": { source: VaultConnectionSource.pasted } },
+              },
+            }),
+        });
+      },
+    );
+
+    expect(await screen.findByText("Using the token saved in My vault")).toBeTruthy();
+    expect(screen.getByText("Connected")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Sign in to connect/ })).toBeNull();
+    expect(screen.getAllByRole("button", { name: /^Discover tools$/ }).length).toBeGreaterThan(0);
   });
 });
 

@@ -38,6 +38,10 @@ type ScheduleStatus struct {
 	// Why the platform paused this schedule; empty when not paused.
 	// Cleared only by the resume RPC — the owner's explicit act.
 	PausedReason string `protobuf:"bytes,5,opt,name=paused_reason,json=pausedReason,proto3" json:"paused_reason,omitempty"`
+	// Who attached each of this resource's vaults, by vault id: the account
+	// whose permission to use the vault each run checks when it has no
+	// person.
+	VaultAttachers map[string]string `protobuf:"bytes,6,rep,name=vault_attachers,json=vaultAttachers,proto3" json:"vault_attachers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Standard audit information (created_at, updated_at, created_by, etc.)
 	Audit         *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -109,6 +113,13 @@ func (x *ScheduleStatus) GetPausedReason() string {
 	return ""
 }
 
+func (x *ScheduleStatus) GetVaultAttachers() map[string]string {
+	if x != nil {
+		return x.VaultAttachers
+	}
+	return nil
+}
+
 func (x *ScheduleStatus) GetAudit() *apiresource.ApiResourceAudit {
 	if x != nil {
 		return x.Audit
@@ -120,7 +131,7 @@ var File_ai_stigmer_agentic_schedule_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_schedule_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/agentic/schedule/v1/status.proto\x12\x1eai.stigmer.agentic.schedule.v1\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xcc\x02\n" +
+	"+ai/stigmer/agentic/schedule/v1/status.proto\x12\x1eai.stigmer.agentic.schedule.v1\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xfc\x03\n" +
 	"\x0eScheduleStatus\x12<\n" +
 	"\fnext_fire_at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"nextFireAt\x12<\n" +
@@ -128,8 +139,12 @@ const file_ai_stigmer_agentic_schedule_v1_status_proto_rawDesc = "" +
 	"lastFireAt\x12\x1e\n" +
 	"\vlast_run_id\x18\x03 \x01(\tR\tlastRunId\x121\n" +
 	"\x14consecutive_failures\x18\x04 \x01(\x05R\x13consecutiveFailures\x12#\n" +
-	"\rpaused_reason\x18\x05 \x01(\tR\fpausedReason\x12F\n" +
-	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05auditB\xa2\x02\n" +
+	"\rpaused_reason\x18\x05 \x01(\tR\fpausedReason\x12k\n" +
+	"\x0fvault_attachers\x18\x06 \x03(\v2B.ai.stigmer.agentic.schedule.v1.ScheduleStatus.VaultAttachersEntryR\x0evaultAttachers\x12F\n" +
+	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x1aA\n" +
+	"\x13VaultAttachersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\xa2\x02\n" +
 	"\"com.ai.stigmer.agentic.schedule.v1B\vStatusProtoP\x01ZRgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/schedule/v1;schedulev1\xa2\x02\x04ASAS\xaa\x02\x1eAi.Stigmer.Agentic.Schedule.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Schedule\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Schedule::V1b\x06proto3"
 
 var (
@@ -144,21 +159,23 @@ func file_ai_stigmer_agentic_schedule_v1_status_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_schedule_v1_status_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_schedule_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_ai_stigmer_agentic_schedule_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_ai_stigmer_agentic_schedule_v1_status_proto_goTypes = []any{
 	(*ScheduleStatus)(nil),               // 0: ai.stigmer.agentic.schedule.v1.ScheduleStatus
-	(*timestamppb.Timestamp)(nil),        // 1: google.protobuf.Timestamp
-	(*apiresource.ApiResourceAudit)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceAudit
+	nil,                                  // 1: ai.stigmer.agentic.schedule.v1.ScheduleStatus.VaultAttachersEntry
+	(*timestamppb.Timestamp)(nil),        // 2: google.protobuf.Timestamp
+	(*apiresource.ApiResourceAudit)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceAudit
 }
 var file_ai_stigmer_agentic_schedule_v1_status_proto_depIdxs = []int32{
-	1, // 0: ai.stigmer.agentic.schedule.v1.ScheduleStatus.next_fire_at:type_name -> google.protobuf.Timestamp
-	1, // 1: ai.stigmer.agentic.schedule.v1.ScheduleStatus.last_fire_at:type_name -> google.protobuf.Timestamp
-	2, // 2: ai.stigmer.agentic.schedule.v1.ScheduleStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	2, // 0: ai.stigmer.agentic.schedule.v1.ScheduleStatus.next_fire_at:type_name -> google.protobuf.Timestamp
+	2, // 1: ai.stigmer.agentic.schedule.v1.ScheduleStatus.last_fire_at:type_name -> google.protobuf.Timestamp
+	1, // 2: ai.stigmer.agentic.schedule.v1.ScheduleStatus.vault_attachers:type_name -> ai.stigmer.agentic.schedule.v1.ScheduleStatus.VaultAttachersEntry
+	3, // 3: ai.stigmer.agentic.schedule.v1.ScheduleStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_schedule_v1_status_proto_init() }
@@ -172,7 +189,7 @@ func file_ai_stigmer_agentic_schedule_v1_status_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_schedule_v1_status_proto_rawDesc), len(file_ai_stigmer_agentic_schedule_v1_status_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

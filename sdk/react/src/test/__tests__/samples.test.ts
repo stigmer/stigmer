@@ -82,11 +82,12 @@ describe("samples", () => {
     });
   });
 
-  describe("environment", () => {
-    it("creates an environment with defaults", () => {
-      const e = samples.environment();
-      expect(e.kind).toBe("Environment");
-      expect(e.metadata?.name).toBe("demo-env");
+  describe("vault", () => {
+    it("creates a shared vault with defaults", () => {
+      const v = samples.vault();
+      expect(v.kind).toBe("Vault");
+      expect(v.metadata?.name).toBe("demo-vault");
+      expect(v.spec?.owner.case).toBe("org");
     });
   });
 
@@ -187,7 +188,7 @@ describe("samples determinism", () => {
     run: () => samples.run(),
     skill: () => samples.skill(),
     mcpServer: () => samples.mcpServer(),
-    environment: () => samples.environment(),
+    vault: () => samples.vault(),
     apiKey: () => samples.apiKey(),
     organization: () => samples.organization(),
     organizationList: () => samples.organizationList(),

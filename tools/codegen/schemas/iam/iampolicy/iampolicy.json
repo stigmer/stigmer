@@ -26,7 +26,7 @@
         "kind": "message",
         "messageType": "ApiResourceRef"
       },
-      "description": "Resource: WHAT is being accessed\n This can be any API resource that is being protected:\n - organization\n - environment\n - cloud_resource (VPC, S3 bucket, etc.)\n - service\n - Any other resource that requires access control",
+      "description": "Resource: WHAT is being accessed\n This can be any API resource that is being protected:\n - organization\n - vault\n - cloud_resource (VPC, S3 bucket, etc.)\n - service\n - Any other resource that requires access control",
       "required": true,
       "validation": {
         "required": true

@@ -29,12 +29,12 @@
 //     since the annotation and the model line landed; before that a member
 //     authored MCP servers in both editions, and this suite pinned the
 //     admission by name so the line's arrival flipped it visibly.
-//   - Personal rows (a session, an environment, an API key): the person's
+//   - Personal rows (a session, a My vault, an API key): the person's
 //     own; another member and the organization's ADMIN are refused on
 //     `get`, and every list — theirs, the admin's — omits the row. The
 //     admin arm is the oracle the cloud's model gives: an admin manages the
 //     organization's blueprints and members and never reads a member's
-//     conversations, keys or environments.
+//     conversations, keys or vaults.
 //   - Administrative rows (an OAuth app, which carries its organization's
 //     vendor credentials, a platform client, which mints tokens into it,
 //     and a channel app, which carries its Slack or Meta app secrets): the
@@ -47,10 +47,12 @@
 //     (stigmer/stigmer#1257, #1384: the list once showed every member what
 //     `get` refused them).
 //   - Leaving the organization: a person removed from it (`revokeOrgAccess`)
-//     is refused what they made there on the next call (their session,
-//     their environment; an admin's private agent), and reads and edits it
-//     again once invited back. The model admits a direct grant only while
-//     its holder has a role in the object's organization (`affiliated`),
+//     is refused what they made there on the next call (their session; an
+//     admin's private agent), and reads and edits it again once invited
+//     back. Their My vault there leaves with them: it is deleted with its
+//     sealed values, and a person invited back starts with none. The model
+//     admits a direct grant only while its holder has a role in the
+//     object's organization (`affiliated`),
 //     and a person's authorship is such a grant: derived from the creator
 //     stamp in open source, stored in the cloud, the same answer on every
 //     lane.
@@ -91,7 +93,7 @@ import {
   AGENT_KIND,
   agentRefOf,
 } from "../support/agents";
-import { makeEnvironment } from "../support/environments";
+import { myVaultTarget, setSecretsInput } from "../support/vaults";
 import { organizationRole, ref } from "../support/iampolicies";
 import {
   makeMcpServer,
@@ -413,19 +415,19 @@ const PERSONAL_KINDS: ReadonlyArray<PersonalKind> = [
     delete: (using, id) => using.sessionCommand.delete({ value: id }),
   },
   {
-    name: "environment",
+    name: "my_vault",
     async create(using, cast) {
-      const created = await using.environmentCommand.create(
-        makeEnvironment({ org: cast.org, name: uniqueName("role-env") }),
+      const created = await using.vaultCommand.setSecrets(
+        setSecretsInput(myVaultTarget(cast.org), { ROLE_KEY: "role" }),
       );
       return created.metadata!.id;
     },
-    get: (using, id) => using.environmentQuery.get({ value: id }),
+    get: (using, id) => using.vaultQuery.get({ value: id }),
     listIds: async (using, org) =>
-      (await using.environmentQuery.list({ org })).items.map(
-        (e) => e.metadata?.id ?? "",
+      (await using.vaultQuery.list({ org })).items.map(
+        (v) => v.metadata?.id ?? "",
       ),
-    delete: (using, id) => using.environmentCommand.delete({ resourceId: id }),
+    delete: (using, id) => using.vaultCommand.delete({ resourceId: id }),
   },
   {
     name: "api_key",
@@ -759,7 +761,13 @@ describe("role enforcement — leaving the organization: what a person made is t
     );
   }
 
-  describe.each(PERSONAL_KINDS.filter((kind) => kind.name !== "api_key"))(
+  // A My vault is not read again after a return: it leaves with its person
+  // (the arm after this block).
+  describe.each(
+    PERSONAL_KINDS.filter(
+      (kind) => kind.name !== "api_key" && kind.name !== "my_vault",
+    ),
+  )(
     "$name",
     (kind) => {
       it("a removed member is refused their own row, and reads it again once invited back", async (ctx) => {
@@ -784,6 +792,35 @@ describe("role enforcement — leaving the organization: what a person made is t
       });
     },
   );
+
+  it("[rpc:VaultQueryController.getMine] a removed member's My vault is deleted with their departure, and they start with none when invited back", async (ctx) => {
+    const { lane, cast, person, id } = await personOrSkip(ctx, "member");
+    const mine = await person.vaultCommand.setSecrets(
+      setSecretsInput(myVaultTarget(cast.org), { DEPARTING_KEY: "gone" }),
+    );
+    fixtures.defer(() =>
+      person.vaultCommand
+        .delete({ resourceId: mine.metadata!.id })
+        .catch(() => undefined),
+    );
+    expect((await person.vaultQuery.getMine({ org: cast.org })).metadata?.id).toBe(
+      mine.metadata?.id,
+    );
+
+    await remove(lane, id, cast.org);
+    await invite(lane, id, cast.org);
+
+    await expectGrpcCode(
+      () => person.vaultQuery.getMine({ org: cast.org }),
+      Code.NotFound,
+      "a returning member's My vault",
+    );
+    await expectGrpcCode(
+      () => person.vaultQuery.get({ value: mine.metadata!.id }),
+      Code.NotFound,
+      "the departed member's old My vault, by id",
+    );
+  });
 
   it("[rpc:AgentQueryController.get] a removed admin is refused the private agent they created, and edits it again once invited back", async (ctx) => {
     const agent = BLUEPRINT_KINDS.find((kind) => kind.name === "agent");

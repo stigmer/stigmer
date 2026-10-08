@@ -6,7 +6,7 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useAgent } from "./useAgent.js";
 import { useUpdateAgent } from "./useUpdateAgent.js";
@@ -26,6 +26,7 @@ import { DependencyGraph } from "../dependency-graph/DependencyGraph.js";
 import { useDependencyGraph } from "../dependency-graph/useDependencyGraph.js";
 import { AgentToolLists, hasToolLists } from "./AgentToolLists.js";
 import { AgentHooksSection } from "./AgentHooksSection.js";
+import { AgentVaultsSection } from "./AgentVaultsSection.js";
 import { withPluginHooks } from "../plugin/plugin-on-agent.js";
 import { AgentRunDefaultsSection, type AgentRunDefaultsSave } from "./AgentRunDefaultsSection.js";
 import type { DependencyNode } from "../dependency-graph/types.js";
@@ -811,6 +812,19 @@ function AgentOverview({
           isSaving={isSaving}
           error={errorFor("subAgents")}
           onSave={(subs) => saveField?.("subAgents", subs.length > 0 ? subs : undefined) ?? Promise.resolve(false)}
+        />
+      )}
+
+      {(editable || (spec?.vaults?.length ?? 0) > 0) && (
+        <AgentVaultsSection
+          org={agentOrg}
+          vaults={spec?.vaults ?? []}
+          editable={editable}
+          isSaving={isSaving}
+          error={errorFor("vaults")}
+          onSave={(refs) =>
+            saveField?.("vaults", refs.length > 0 ? refs : undefined) ?? Promise.resolve(false)
+          }
         />
       )}
 

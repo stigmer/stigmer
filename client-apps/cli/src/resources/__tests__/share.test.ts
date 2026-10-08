@@ -34,7 +34,7 @@ interface ShareFixture {
   audience?: AgentShareAudience;
   allowedOrigins?: string[];
   messages?: { rateLimited?: string; unavailable?: string; conversationEnded?: string };
-  environmentRefs?: { org: string; slug: string }[];
+  vaults?: { org: string; slug: string }[];
   shareLinkToken?: string;
 }
 
@@ -137,7 +137,7 @@ function fakeClient(
             audience: input.audience ?? AgentShareAudience.unspecified,
             allowedOrigins: input.allowedOrigins ?? [],
             messages: input.messages as never,
-            environmentRefs: input.environmentRefs ?? [],
+            vaults: input.vaults ?? [],
           },
           ...(currentShare?.status ? { status: currentShare.status } : {}),
         } as ReturnType<typeof makeShare>;
@@ -162,7 +162,7 @@ describe("shareAgent merge-preservation (fails closed)", () => {
       enabled: false,
       allowedOrigins: ["https://example.com", "https://docs.example.com"],
       messages: { rateLimited: "Slow down!", unavailable: "Back soon.", conversationEnded: "Bye!" },
-      environmentRefs: [{ org: "acme", slug: "github-org-shared" }],
+      vaults: [{ org: "acme", slug: "github-org-shared" }],
     });
     const { client, applies } = fakeClient(makeAgent(), share);
 
@@ -177,7 +177,7 @@ describe("shareAgent merge-preservation (fails closed)", () => {
     expect(applies[0].messages?.rateLimited).toBe("Slow down!");
     expect(applies[0].messages?.unavailable).toBe("Back soon.");
     expect(applies[0].messages?.conversationEnded).toBe("Bye!");
-    expect(applies[0].environmentRefs).toEqual([{ org: "acme", slug: "github-org-shared" }]);
+    expect(applies[0].vaults).toEqual([{ org: "acme", slug: "github-org-shared" }]);
   });
 
   it("disabling preserves origins and messages, flipping only enabled", async () => {
@@ -212,7 +212,7 @@ describe("shareAgent merge-preservation (fails closed)", () => {
     expect(applies[0].enabled).toBe(true);
     expect(applies[0].allowedOrigins).toEqual([]);
     expect(applies[0].messages?.rateLimited).toBe("");
-    expect(applies[0].environmentRefs).toEqual([]);
+    expect(applies[0].vaults).toEqual([]);
   });
 
   it("edits a renamed share under its own slug (never forks a second share)", async () => {

@@ -98,19 +98,19 @@ type AgentShareInput struct {
 	// set from a loaded resource. Required for updates to platform-scoped
 	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
 	// on create: the server assigns every new resource's id.
-	Id              string
-	Name            string
-	Slug            string
-	Org             string
-	Labels          map[string]string
-	Visibility      apiresource.ApiResourceVisibility
-	AgentRef        ResourceRef
-	Enabled         bool
-	Audience        agentsharev1.AgentShareAudience
-	AllowedOrigins  []string
-	Messages        *AgentShareMessagesInput
-	EnvironmentRefs []ResourceRef
-	RunConfig       *RunConfigInput
+	Id             string
+	Name           string
+	Slug           string
+	Org            string
+	Labels         map[string]string
+	Visibility     apiresource.ApiResourceVisibility
+	AgentRef       ResourceRef
+	Enabled        bool
+	Audience       agentsharev1.AgentShareAudience
+	AllowedOrigins []string
+	Messages       *AgentShareMessagesInput
+	Vaults         []ResourceRef
+	RunConfig      *RunConfigInput
 }
 
 // AgentShareMessagesInput is the SDK input type for AgentShareMessages.
@@ -149,10 +149,10 @@ func (i *AgentShareInput) toProto() (*agentsharev1.AgentShare, error) {
 		}
 		resource.Spec.Messages = v
 	}
-	for _, r := range i.EnvironmentRefs {
+	for _, r := range i.Vaults {
 		ref := r.toProto()
-		ref.Kind = apiresourcekind.ApiResourceKind_environment
-		resource.Spec.EnvironmentRefs = append(resource.Spec.EnvironmentRefs, ref)
+		ref.Kind = apiresourcekind.ApiResourceKind_vault
+		resource.Spec.Vaults = append(resource.Spec.Vaults, ref)
 	}
 	if i.RunConfig != nil {
 		v, err := i.RunConfig.toProto()
@@ -192,8 +192,8 @@ func AgentShareInputFromProto(p *agentsharev1.AgentShare) *AgentShareInput {
 		input.Audience = s.GetAudience()
 		input.AllowedOrigins = s.GetAllowedOrigins()
 		input.Messages = agentShareMessagesInputFromProto(s.GetMessages())
-		for _, r := range s.GetEnvironmentRefs() {
-			input.EnvironmentRefs = append(input.EnvironmentRefs, resourceRefFromProto(r))
+		for _, r := range s.GetVaults() {
+			input.Vaults = append(input.Vaults, resourceRefFromProto(r))
 		}
 		input.RunConfig = runConfigInputFromProto(s.GetRunConfig())
 	}

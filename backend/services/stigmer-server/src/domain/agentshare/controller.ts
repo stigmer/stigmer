@@ -3,7 +3,7 @@
  * query sides): the first-class sharing channel promoted out of
  * Agent.spec.sharing. A share carries everything a hosted
  * chat link needs — audience, embed origins, visitor-facing messages,
- * guest tool credentials (environment_refs), and the rotatable link token.
+ * the vaults guest runs use, and the rotatable link token.
  * Share operations never modify the referenced agent.
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character. NOT
@@ -122,6 +122,8 @@ import {
   loadLinkedShare,
   RESOLVED_SHARE_KEY,
 } from "./steps.js";
+import { newVaultAttachmentsStep } from "../vault/attachments.js";
+import type { VaultAttachmentOptions } from "../vault/attachments.js";
 
 export interface AgentShareControllerDeps {
   readonly store: Store;
@@ -133,6 +135,17 @@ export interface AgentShareControllerDeps {
   /** The composed list read scope — list/getByAgent narrow through it; undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
 }
+
+/** A share link's runs have no person: each asks the account that attached each vault. */
+const SHARE_VAULT_ATTACHMENTS: VaultAttachmentOptions<typeof AgentShareSchema> = {
+  surface: "a share link",
+  attachers: {
+    get: (row) => row.status?.vaultAttachers,
+    set: (row, attachers) => {
+      (row.status ??= create(AgentShareStatusSchema)).vaultAttachers = attachers;
+    },
+  },
+};
 
 /** Registers both agentshare services on the router (routes stage). */
 export function registerAgentShareServices(
@@ -202,6 +215,7 @@ async function createShare(
     .addStep(newStampAgentPinStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, SHARE_VAULT_ATTACHMENTS))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newCreateAuthorizationTuplesStep(
@@ -247,6 +261,7 @@ async function update(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, SHARE_VAULT_ATTACHMENTS))
     .addStep(newPersistStep(deps.store))
     .build()
     .execute(reqCtx);

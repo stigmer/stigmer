@@ -104,6 +104,9 @@ type SessionInput struct {
 	Harness               sessionv1.Harness
 	CursorMode            sessionv1.CursorMode
 	ExecutionTarget       sessionv1.ExecutionTarget
+	Vaults                []ResourceRef
+	Secrets               map[string]string
+	Connections           map[string]string
 }
 
 func (i *SessionInput) toProto() (*sessionv1.Session, error) {
@@ -151,6 +154,13 @@ func (i *SessionInput) toProto() (*sessionv1.Session, error) {
 	resource.Spec.Harness = i.Harness
 	resource.Spec.CursorMode = i.CursorMode
 	resource.Spec.ExecutionTarget = i.ExecutionTarget
+	for _, r := range i.Vaults {
+		ref := r.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_vault
+		resource.Spec.Vaults = append(resource.Spec.Vaults, ref)
+	}
+	resource.Spec.Secrets = i.Secrets
+	resource.Spec.Connections = i.Connections
 	return resource, nil
 }
 
@@ -186,6 +196,11 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 		input.Harness = s.GetHarness()
 		input.CursorMode = s.GetCursorMode()
 		input.ExecutionTarget = s.GetExecutionTarget()
+		for _, r := range s.GetVaults() {
+			input.Vaults = append(input.Vaults, resourceRefFromProto(r))
+		}
+		input.Secrets = s.GetSecrets()
+		input.Connections = s.GetConnections()
 	}
 	return input
 }

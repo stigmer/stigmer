@@ -76,8 +76,8 @@ export interface VisibilitySelectorProps {
  * de-escalation applies instantly, an Organization escalation shows a light
  * inline prompt, and a Child organizations escalation opens a blocking
  * {@link ConfirmDialog} that names the exact audience. Confirmation is owned
- * here so every consumer — blueprint detail, environment detail, and any
- * standalone embed — behaves identically.
+ * here so every consumer — agent, MCP server, skill and plugin detail, and
+ * any standalone embed — behaves identically.
  *
  * In `"create"` mode it renders an inline radio list that applies
  * immediately (initial value selection has no escalation semantics).

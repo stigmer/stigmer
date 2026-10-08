@@ -7,14 +7,29 @@
  * the auth URL. For vendor OAuth servers: load the OAuthApp for client
  * credentials and build the auth URL from its endpoints.
  *
+ * The sign-in is the caller's: the pending state records who started it
+ * (a caller with no identity cannot start one), which vault it saves into
+ * (`vault_id`, empty for the caller's own My vault, which needs
+ * can_create_vault on the organization; a named vault must be one of the
+ * request's organization the caller may edit) and the server's
+ * address as it stands now, and completeOAuthConnect saves the login there
+ * as a connection at that address, refusing a server whose address has
+ * changed since. A server with no address (a local program with no
+ * auth.discovery_url, or an HTTP server whose URL holds a ${VAR}
+ * placeholder) has nowhere to save one and is refused before any round
+ * trip: no discovery, client registration or pre-flight reaches the
+ * vendor for a sign-in that could not be kept.
+ *
  * Proven by mcpserver-oauth.conformance.test.ts
- * (CONFORMANCE_TARGET=local), __tests__/oauth-handshake.test.ts and
- * __tests__/store-faults.test.ts.
+ * (CONFORMANCE_TARGET=local), __tests__/oauth-handshake.test.ts,
+ * __tests__/sign-in-vault.test.ts and __tests__/store-faults.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { randomBytes } from "node:crypto";
 
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import type {
@@ -27,6 +42,7 @@ import {
   TokenEndpointAuthMethod,
   VendorApprovalStatus,
 } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { SecretService } from "../../encryption/encryption.js";
@@ -38,13 +54,17 @@ import {
   invalidArgumentError,
   notFoundError,
 } from "../../pipeline/errors.js";
-import { authorizeDirect } from "../../pipeline/steps/authorize.js";
+import {
+  authorizeDirect,
+  authorizeResolvedResource,
+} from "../../pipeline/steps/authorize.js";
 import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import type { PendingOAuthState } from "../../store/interface.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import { resolveOAuthAppRef } from "../oauthapp/refresolution.js";
-import { tokenAuthMethodFromSpec } from "./connect.js";
+import { toolAddressOf } from "../vault/address.js";
 import type { McpServerConnectDeps } from "./connect.js";
+import { tokenAuthMethodFromSpec } from "./oauth/refresh.js";
 import { generatePkce } from "./oauth/pkce.js";
 import type { PkcePair } from "./oauth/pkce.js";
 import { discoverAtIssuer, discoverForResource } from "./oauth/discovery.js";
@@ -66,6 +86,14 @@ export async function initiateOAuthConnect(
   const mcpServerId = input.mcpServerId;
   if (mcpServerId === "") {
     throw invalidArgumentError("mcp_server_id is required");
+  }
+  // The pending state names its signer, and completion admits only that
+  // caller: a state recorded with no signer would be nobody's to finish.
+  if (identity.identityId === "") {
+    throw new ConnectError(
+      "a sign-in is saved for a signed-in caller: sign in to Stigmer first",
+      Code.Unauthenticated,
+    );
   }
 
   let mcpServer: McpServer;
@@ -101,15 +129,31 @@ export async function initiateOAuthConnect(
       `MCP server '${mcpServerId}' does not have an auth block configured`,
     );
   }
+  await authorizeSignInVault(deps, input.org, input.vaultId, identity);
+
+  const oauthAppRef = auth.oauthAppRef;
+  const isDcr = oauthAppRef === undefined || oauthAppRef.slug === "";
+  // The login is saved at the server's address, so a server with none
+  // cannot keep it. Every refusal comes before the one round trip a
+  // sign-in makes here (DCR's discovery and registration): a DCR server
+  // with no URL at all says so first, then one with no address. The vendor
+  // arm makes no round trip, and its app's own refusals come first.
+  const discovery = isDcr ? dcrDiscoveryTarget(mcpServer) : undefined;
+  const toolAddress = toolAddressOf(mcpServer);
+  if (discovery !== undefined && toolAddress === undefined) {
+    throw noAddressRefusal(mcpServer);
+  }
 
   const pkcePair = generatePkce();
   const stateParam = generateState();
 
-  const oauthAppRef = auth.oauthAppRef;
-  const isDcr = oauthAppRef === undefined || oauthAppRef.slug === "";
-  const result = isDcr
-    ? await initiateDcr(deps, mcpServer, pkcePair, stateParam)
-    : await initiateVendorOAuth(deps, mcpServer, pkcePair, stateParam);
+  const result =
+    discovery !== undefined
+      ? await initiateDcr(deps, mcpServer, discovery, pkcePair, stateParam)
+      : await initiateVendorOAuth(deps, mcpServer, pkcePair, stateParam);
+  if (toolAddress === undefined) {
+    throw noAddressRefusal(mcpServer);
+  }
   const authMethod = isDcr ? "mcp_oauth" : "vendor_oauth";
 
   const pendingState: PendingOAuthState = {
@@ -119,8 +163,9 @@ export async function initiateOAuthConnect(
     clientSecret: result.clientSecret,
     tokenEndpoint: result.tokenEndpoint,
     mcpServerId,
-    // OSS mode: single user, no identity account.
-    identityAccountId: "",
+    identityAccountId: identity.identityId,
+    vaultId: input.vaultId,
+    toolAddress,
     targetEnvVar: auth.targetEnvVar,
     authMethod,
     tokenAuthMethod: result.tokenAuthMethod,
@@ -162,6 +207,50 @@ export async function initiateOAuthConnect(
   });
 }
 
+/**
+ * The vault a sign-in saves into must be one the caller may change: their
+ * own My vault (empty id; created on the first save), or a vault of the
+ * request's organization they hold can_edit on. Asked at initiate and
+ * again at complete, since a grant can be revoked in between. A vault of
+ * another organization answers NOT_FOUND, as a missing one does. Answers
+ * the shared vault it checked, or undefined for My vault.
+ */
+export async function authorizeSignInVault(
+  deps: McpServerConnectDeps,
+  org: string,
+  vaultId: string,
+  identity: CallerIdentity,
+): Promise<Vault | undefined> {
+  if (vaultId === "") {
+    await authorizeResolvedResource(
+      deps.authorizer,
+      identity,
+      {
+        permission: IamPermission.can_create_vault,
+        resourceKind: ApiResourceKind.organization,
+        resourceId: org,
+      },
+      "unauthorized to keep a My vault in this organization: only its members do",
+    );
+    return undefined;
+  }
+  const vault = await deps.vaults.findById(vaultId);
+  if (vault === undefined || (vault.metadata?.org ?? "") !== org) {
+    throw notFoundError("vault", vaultId);
+  }
+  await authorizeResolvedResource(
+    deps.authorizer,
+    identity,
+    {
+      permission: IamPermission.can_edit,
+      resourceKind: ApiResourceKind.vault,
+      resourceId: vaultId,
+    },
+    "unauthorized to save a sign-in in this vault",
+  );
+  return vault;
+}
+
 interface InitiateResult {
   readonly authorizationUrl: string;
   readonly providerName: string;
@@ -173,18 +262,44 @@ interface InitiateResult {
   readonly tokenAuthMethod: string;
 }
 
-async function initiateDcr(
-  deps: McpServerConnectDeps,
-  mcpServer: McpServer,
-  pkcePair: PkcePair,
-  stateParam: string,
-): Promise<InitiateResult> {
-  // Resolve the URL for OAuth authorization server discovery. Priority:
-  // auth.discovery_url > http.url — discovery_url is the author naming the
-  // login server itself (and the only route for a stdio server, which has
-  // no HTTP URL) and is read as an issuer; http.url is the protected
-  // resource, whose login server the RFC 9728 walk finds
-  // (oauth/discovery.ts).
+/**
+ * The refusal for a server with no address to save a sign-in at, saying
+ * why: an HTTP server's URL that names no fixed address (a ${VAR}
+ * placeholder in it), or a local program with no auth.discovery_url.
+ */
+function noAddressRefusal(mcpServer: McpServer): ConnectError {
+  const id = mcpServer.metadata?.id ?? "";
+  const serverType = mcpServer.spec?.serverType;
+  if (serverType?.case === "http") {
+    const why = serverType.value.url.includes("${")
+      ? "its URL holds a ${VAR} placeholder, so it names no fixed address"
+      : "its URL is not a fixed http or https URL";
+    return failedPreconditionError(
+      `MCP server '${id}' has no address to save a sign-in at: ${why}. Give the server a fixed URL to sign in to it`,
+    );
+  }
+  return failedPreconditionError(
+    `MCP server '${id}' has no address to save a sign-in at: a local program needs ` +
+      "auth.discovery_url (its login server's URL)",
+  );
+}
+
+/** Where DCR discovers the login server: the URLs it reads, and the one it names. */
+interface DcrDiscoveryTarget {
+  readonly discoveryUrl: string;
+  readonly resourceUrl: string;
+  readonly serverUrl: string;
+}
+
+/**
+ * Resolves the URL for OAuth authorization server discovery, refusing a
+ * server with none. Priority: auth.discovery_url > http.url —
+ * discovery_url is the author naming the login server itself (and the
+ * only route for a stdio server, which has no HTTP URL) and is read as an
+ * issuer; http.url is the protected resource, whose login server the RFC
+ * 9728 walk finds (oauth/discovery.ts).
+ */
+function dcrDiscoveryTarget(mcpServer: McpServer): DcrDiscoveryTarget {
   const discoveryUrl = mcpServer.spec?.auth?.discoveryUrl ?? "";
   const serverType = mcpServer.spec?.serverType;
   const resourceUrl = serverType?.case === "http" ? serverType.value.url : "";
@@ -195,6 +310,17 @@ async function initiateDcr(
         "Set auth.discovery_url for stdio servers, oauth_app_ref for vendor OAuth, or switch to HTTP transport",
     );
   }
+  return { discoveryUrl, resourceUrl, serverUrl };
+}
+
+async function initiateDcr(
+  deps: McpServerConnectDeps,
+  mcpServer: McpServer,
+  target: DcrDiscoveryTarget,
+  pkcePair: PkcePair,
+  stateParam: string,
+): Promise<InitiateResult> {
+  const { discoveryUrl, resourceUrl, serverUrl } = target;
 
   let metadata;
   try {
@@ -472,8 +598,8 @@ function generateState(): string {
  * seeing the emptiness that means "public client".
  *
  * Disabled encryption (no key configured) passes plaintext through with a
- * WARN, matching the deployment-wide posture for environment, OAuthApp
- * and ChannelApp secrets under the same key. A real encryption error
+ * WARN, matching the deployment-wide posture for vault, OAuthApp and
+ * ChannelApp secrets under the same key. A real encryption error
  * while enabled throws so the caller fails the request instead of
  * persisting plaintext.
  */

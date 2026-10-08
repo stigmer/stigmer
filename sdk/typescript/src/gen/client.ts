@@ -6,7 +6,6 @@ import { AgentChannelClient } from "./agentchannel.js";
 import { AgentShareClient } from "./agentshare.js";
 import { ApiKeyClient } from "./apikey.js";
 import { ChannelAppClient } from "./channelapp.js";
-import { EnvironmentClient } from "./environment.js";
 import { ExecutionContextClient } from "./executioncontext.js";
 import { IamPolicyClient } from "./iampolicy.js";
 import { IdentityAccountClient } from "./identityaccount.js";
@@ -27,6 +26,7 @@ import { SessionClient } from "./session.js";
 import { SkillClient } from "./skill.js";
 import { SubscriptionClient } from "./subscription.js";
 import { TeamClient } from "./team.js";
+import { VaultClient } from "./vault.js";
 
 /** Aggregate client with all resource-specific sub-clients. */
 export class GeneratedClient {
@@ -35,7 +35,6 @@ export class GeneratedClient {
   readonly agentShare: AgentShareClient;
   readonly apiKey: ApiKeyClient;
   readonly channelapp: ChannelAppClient;
-  readonly environment: EnvironmentClient;
   readonly executionContext: ExecutionContextClient;
   readonly iamPolicy: IamPolicyClient;
   readonly identityAccount: IdentityAccountClient;
@@ -56,6 +55,7 @@ export class GeneratedClient {
   readonly skill: SkillClient;
   readonly subscription: SubscriptionClient;
   readonly team: TeamClient;
+  readonly vault: VaultClient;
 
   constructor(transport: Transport) {
     this.agent = new AgentClient(transport);
@@ -63,7 +63,6 @@ export class GeneratedClient {
     this.agentShare = new AgentShareClient(transport);
     this.apiKey = new ApiKeyClient(transport);
     this.channelapp = new ChannelAppClient(transport);
-    this.environment = new EnvironmentClient(transport);
     this.executionContext = new ExecutionContextClient(transport);
     this.iamPolicy = new IamPolicyClient(transport);
     this.identityAccount = new IdentityAccountClient(transport);
@@ -84,6 +83,7 @@ export class GeneratedClient {
     this.skill = new SkillClient(transport);
     this.subscription = new SubscriptionClient(transport);
     this.team = new TeamClient(transport);
+    this.vault = new VaultClient(transport);
   }
 }
 
@@ -98,8 +98,6 @@ export { ApiKeyClient } from "./apikey.js";
 export { type ApiKeyInput } from "./apikey.js";
 export { ChannelAppClient } from "./channelapp.js";
 export { type ChannelAppInput, type SlackChannelAppConfigInput, type WhatsAppChannelAppConfigInput } from "./channelapp.js";
-export { EnvironmentClient } from "./environment.js";
-export { type EnvironmentInput } from "./environment.js";
 export { ExecutionContextClient } from "./executioncontext.js";
 export { type ExecutionContextInput } from "./executioncontext.js";
 export { IamPolicyClient } from "./iampolicy.js";
@@ -139,5 +137,7 @@ export { SubscriptionClient } from "./subscription.js";
 export { type SubscriptionInput } from "./subscription.js";
 export { TeamClient } from "./team.js";
 export { type TeamInput } from "./team.js";
-export { type ListParams, type ListResult, type DeleteResourceInput, type ResourceRef, type EnvSpecInput, type EnvVarInput, type Page } from "./types.js";
+export { VaultClient } from "./vault.js";
+export { type VaultInput, type VaultSecretInput, type VaultConnectionInput, type VaultConnectionSignInInput } from "./vault.js";
+export { type ListParams, type ListResult, type DeleteResourceInput, type ResourceRef, type EnvVarInput, type Page } from "./types.js";
 export { StigmerError, type ErrorCode, isNotFound, isUnauthenticated, isPermissionDenied, isRetryable, isUnimplemented } from "./errors.js";

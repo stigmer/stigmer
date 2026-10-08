@@ -107,35 +107,33 @@ message PlatformClientSpec {
   // that bears one of its tokens.
   repeated string allowed_origins = 9;
 
-  // Environments whose values are delivered to every run a
-  // user signed in through this PlatformClient creates. This is how an
-  // embedded assistant reaches secret-gated MCP servers: the client — the
-  // connection resource — carries the credentials (for example a shared
-  // API secret), and minted-user runs receive its values at
-  // runtime, at the lowest priority, so the request's runtime values win on
-  // a key conflict. The agent stays untouched.
+  // Value 10 held environment_refs, the environments whose values a
+  // run received, until vaults replaced environments.
+  reserved 10;
+  reserved "environment_refs";
+
+  // Vaults whose logins and secrets every run a user signed in through this
+  // client creates uses, in order: the first vault holding a match wins.
+  // At most 20.
+  //
+  // This is how an embedded assistant reaches tools that need a key: the
+  // client carries a shared vault holding it, and minted users' runs use it.
+  // A My vault cannot be attached.
   //
   // @internal
-  // The fifth application of the connection-resource credential mechanism
-  // (AgentShare, AgentChannel, Schedule, agent_call — stigmer/stigmer#381),
-  // restored by stigmer/stigmer#1256: the execution-context builder
-  // (domain/run/create-execution-context-step.ts) prepends it
-  // below every other layer for a run whose audit created_by names
-  // this client (ApiResourceAuditActor.platform_client_id), on create and
-  // on recover alike. The references follow the one write-time reference
-  // rule (pipeline/steps/references.ts): same-organization only, and an
-  // environment's own visibility is not consulted, because the server
-  // resolves it on the run's behalf. A run in an organization other
-  // than the client's receives nothing. A referenced environment that no
-  // longer exists fails the run's create, as a Schedule's or an
-  // agent_call task's does. Edits apply to the next run: the client
-  // is read, not cached.
-  repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 10 [
-    (ai.stigmer.commons.apiresource.reference_kind) = environment,
+  // Read by the run's credential resolver for a run whose audit created_by
+  // names this client (ApiResourceAuditActor.platform_client_id), on create
+  // and recover alike. A run in an organization other than the client's
+  // receives nothing. A vault that no longer exists, or that the account
+  // recorded in status.vault_attachers may no longer use, fails the run's
+  // create. Edits apply to the next run.
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [
+    (ai.stigmer.commons.apiresource.reference_kind) = vault,
+    (buf.validate.field).repeated.max_items = 20,
     (buf.validate.field).repeated.items.cel = {
-      id: "environment_refs.kind"
-      message: "environment_refs must reference resources with kind=environment"
-      expression: "this.kind == 53"
+      id: "vaults.kind"
+      message: "vaults must reference resources with kind=vault"
+      expression: "this.kind == 59"
     }
   ];
 

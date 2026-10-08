@@ -58,30 +58,35 @@ public final class ServiceProto extends com.google.protobuf.GeneratedFile {
       "\n+ai/stigmer/platform/github/v1/service." +
       "proto\022\035ai.stigmer.platform.github.v1\032+ai" +
       "/stigmer/commons/rpc/method_options.prot" +
-      "o\032\033buf/validate/validate.proto\"I\n\033GetOAu" +
+      "o\032\033buf/validate/validate.proto\"d\n\033GetOAu" +
       "thAuthorizeUrlRequest\022*\n\014redirect_uri\030\001 " +
-      "\001(\tB\007\272H\004r\002\020\001R\013redirectUri\"Y\n\034GetOAuthAut" +
-      "horizeUrlResponse\022#\n\rauthorize_url\030\001 \001(\t" +
-      "R\014authorizeUrl\022\024\n\005state\030\002 \001(\tR\005state\"\202\001\n" +
-      "\030ExchangeOAuthCodeRequest\022\033\n\004code\030\001 \001(\tB" +
-      "\007\272H\004r\002\020\001R\004code\022\035\n\005state\030\002 \001(\tB\007\272H\004r\002\020\001R\005" +
-      "state\022*\n\014redirect_uri\030\003 \001(\tB\007\272H\004r\002\020\001R\013re" +
-      "directUri\"s\n\031ExchangeOAuthCodeResponse\022!" +
-      "\n\014access_token\030\001 \001(\tR\013accessToken\022\035\n\ntok" +
-      "en_type\030\002 \001(\tR\ttokenType\022\024\n\005scope\030\003 \001(\tR" +
-      "\005scope2\266\002\n\rGitHubService\022\225\001\n\024getOAuthAut" +
-      "horizeUrl\022:.ai.stigmer.platform.github.v" +
-      "1.GetOAuthAuthorizeUrlRequest\032;.ai.stigm" +
-      "er.platform.github.v1.GetOAuthAuthorizeU" +
-      "rlResponse\"\004\320\270\030\001\022\214\001\n\021exchangeOAuthCode\0227" +
-      ".ai.stigmer.platform.github.v1.ExchangeO" +
-      "AuthCodeRequest\0328.ai.stigmer.platform.gi" +
-      "thub.v1.ExchangeOAuthCodeResponse\"\004\320\270\030\001B" +
-      "\247\001B\014ServiceProtoP\001\242\002\004ASPG\252\002\035Ai.Stigmer.P" +
-      "latform.Github.V1\312\002\035Ai\\Stigmer\\Platform\\" +
-      "Github\\V1\342\002)Ai\\Stigmer\\Platform\\Github\\V" +
-      "1\\GPBMetadata\352\002!Ai::Stigmer::Platform::G" +
-      "ithub::V1b\006proto3"
+      "\001(\tB\007\272H\004r\002\020\001R\013redirectUri\022\031\n\003org\030\002 \001(\tB\007" +
+      "\272H\004r\002\020\001R\003org\"Y\n\034GetOAuthAuthorizeUrlResp" +
+      "onse\022#\n\rauthorize_url\030\001 \001(\tR\014authorizeUr" +
+      "l\022\024\n\005state\030\002 \001(\tR\005state\"\235\001\n\030ExchangeOAut" +
+      "hCodeRequest\022\033\n\004code\030\001 \001(\tB\007\272H\004r\002\020\001R\004cod" +
+      "e\022\035\n\005state\030\002 \001(\tB\007\272H\004r\002\020\001R\005state\022*\n\014redi" +
+      "rect_uri\030\003 \001(\tB\007\272H\004r\002\020\001R\013redirectUri\022\031\n\003" +
+      "org\030\004 \001(\tB\007\272H\004r\002\020\001R\003org\"z\n\031ExchangeOAuth" +
+      "CodeResponse\022\035\n\ntoken_type\030\002 \001(\tR\ttokenT" +
+      "ype\022\024\n\005scope\030\003 \001(\tR\005scope\022\024\n\005login\030\004 \001(\t" +
+      "R\005loginJ\004\010\001\020\002R\014access_token2\267\003\n\rGitHubSe" +
+      "rvice\022\323\001\n\024getOAuthAuthorizeUrl\022:.ai.stig" +
+      "mer.platform.github.v1.GetOAuthAuthorize" +
+      "UrlRequest\032;.ai.stigmer.platform.github." +
+      "v1.GetOAuthAuthorizeUrlResponse\"B\302\270\030>\0103\020" +
+      "\036\"\003org*3unauthorized to connect GitHub i" +
+      "n this organization\022\317\001\n\021exchangeOAuthCod" +
+      "e\0227.ai.stigmer.platform.github.v1.Exchan" +
+      "geOAuthCodeRequest\0328.ai.stigmer.platform" +
+      ".github.v1.ExchangeOAuthCodeResponse\"G\302\270" +
+      "\030C\0103\020\036\"\003org*8unauthorized to save a GitH" +
+      "ub login in this organizationB\247\001B\014Servic" +
+      "eProtoP\001\242\002\004ASPG\252\002\035Ai.Stigmer.Platform.Gi" +
+      "thub.V1\312\002\035Ai\\Stigmer\\Platform\\Github\\V1\342" +
+      "\002)Ai\\Stigmer\\Platform\\Github\\V1\\GPBMetad" +
+      "ata\352\002!Ai::Stigmer::Platform::Github::V1b" +
+      "\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -94,7 +99,7 @@ public final class ServiceProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_platform_github_v1_GetOAuthAuthorizeUrlRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_platform_github_v1_GetOAuthAuthorizeUrlRequest_descriptor,
-        new java.lang.String[] { "RedirectUri", });
+        new java.lang.String[] { "RedirectUri", "Org", });
     internal_static_ai_stigmer_platform_github_v1_GetOAuthAuthorizeUrlResponse_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_platform_github_v1_GetOAuthAuthorizeUrlResponse_fieldAccessorTable = new
@@ -106,19 +111,19 @@ public final class ServiceProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_platform_github_v1_ExchangeOAuthCodeRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_platform_github_v1_ExchangeOAuthCodeRequest_descriptor,
-        new java.lang.String[] { "Code", "State", "RedirectUri", });
+        new java.lang.String[] { "Code", "State", "RedirectUri", "Org", });
     internal_static_ai_stigmer_platform_github_v1_ExchangeOAuthCodeResponse_descriptor =
       getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_platform_github_v1_ExchangeOAuthCodeResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_platform_github_v1_ExchangeOAuthCodeResponse_descriptor,
-        new java.lang.String[] { "AccessToken", "TokenType", "Scope", });
+        new java.lang.String[] { "TokenType", "Scope", "Login", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
-    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
+    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.config);
     registry.add(build.buf.validate.ValidateProto.field);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);

@@ -6,7 +6,8 @@ import { render, cleanup } from "@testing-library/react";
 // once the conversation reports the session's organization, every
 // org-scoped child receives it, whatever the host's `org` prop says, so a
 // session opened while another organization is active never files a turn
-// or runs a picker there.
+// or runs a picker there. The composer's vault picker starts from the vaults
+// the session lists, by organization and slug.
 // ---------------------------------------------------------------------------
 
 type CapturedProps = Record<string, unknown>;
@@ -136,6 +137,7 @@ beforeEach(() => {
   composerProps.length = 0;
   threadProps.length = 0;
   stubConv.org = "acme";
+  stubConv.session = { spec: {} };
 });
 
 afterEach(() => {
@@ -155,5 +157,14 @@ describe("SessionViewer — the session's organization", () => {
 
     expect(threadProps.length).toBeGreaterThan(0);
     expect(threadProps.at(-1)!.org).toBe("acme");
+  });
+
+  it("starts the composer's vault picker from the vaults the session lists", () => {
+    stubConv.session = {
+      spec: { vaults: [{ org: "acme", slug: "support-tools", kind: 7 }] },
+    };
+    render(<SessionViewer sessionId="ses_1" org="personal" />);
+
+    expect(lastComposerProps().initialVaultRefs).toEqual([{ org: "acme", slug: "support-tools" }]);
   });
 });

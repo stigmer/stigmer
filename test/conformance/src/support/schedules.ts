@@ -55,6 +55,10 @@ export interface ScheduleOptions {
   timeZone?: string;
   enabled?: boolean;
   message?: string;
+  // Vault slugs the schedule's fires use (spec.target.agent.vaults).
+  vaults?: string[];
+  // Repositories each fire's conversation clones (spec.target.agent.workspace_entries).
+  repositories?: Array<{ name: string; url: string; token?: string }>;
 }
 
 // A valid Schedule referencing `agentSlug` in `org`. Org is set on both the
@@ -79,6 +83,22 @@ export function makeSchedule(
         value: {
           agentRef: { kind: ApiResourceKind.agent, org, slug: agentSlug },
           message: options.message ?? "Run the scheduled conformance task.",
+          ...(options.vaults !== undefined
+            ? { vaults: options.vaults.map((slug) => ({ slug, kind: ApiResourceKind.vault })) }
+            : {}),
+          ...(options.repositories !== undefined
+            ? {
+                workspaceEntries: options.repositories.map((repository) => ({
+                  name: repository.name,
+                  source: {
+                    source: {
+                      case: "gitRepo" as const,
+                      value: { url: repository.url, token: repository.token ?? "" },
+                    },
+                  },
+                })),
+              }
+            : {}),
         },
       },
     },

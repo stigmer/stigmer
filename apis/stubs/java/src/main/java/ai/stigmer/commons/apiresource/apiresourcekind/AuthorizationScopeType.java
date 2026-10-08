@@ -33,7 +33,7 @@ public enum AuthorizationScopeType
   /**
    * <pre>
    * Links to an organization.
-   * Used for: agent, skill, environment, session, mcp_server, etc.
+   * Used for: agent, skill, vault, session, mcp_server, etc.
    * FGA tuple: resource#organization&#64;organization:&lt;org_id&gt;
    * </pre>
    *
@@ -98,7 +98,7 @@ public enum AuthorizationScopeType
   /**
    * <pre>
    * Links to an organization.
-   * Used for: agent, skill, environment, session, mcp_server, etc.
+   * Used for: agent, skill, vault, session, mcp_server, etc.
    * FGA tuple: resource#organization&#64;organization:&lt;org_id&gt;
    * </pre>
    *

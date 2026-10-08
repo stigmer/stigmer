@@ -30,9 +30,9 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| AgentCommandController.apply | `metadata.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org`, `spec.sub_agents.skill_refs.org`, `spec.hooks.plugin.org` |
-| AgentCommandController.create | `metadata.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org`, `spec.sub_agents.skill_refs.org`, `spec.hooks.plugin.org` |
-| AgentCommandController.update | `metadata.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org`, `spec.sub_agents.skill_refs.org`, `spec.hooks.plugin.org` |
+| AgentCommandController.apply | `metadata.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org`, `spec.sub_agents.skill_refs.org`, `spec.hooks.plugin.org`, `spec.vaults.org` |
+| AgentCommandController.create | `metadata.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org`, `spec.sub_agents.skill_refs.org`, `spec.hooks.plugin.org`, `spec.vaults.org` |
+| AgentCommandController.update | `metadata.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org`, `spec.sub_agents.skill_refs.org`, `spec.hooks.plugin.org`, `spec.vaults.org` |
 | AgentQueryController.getByReference | `org` |
 | AgentQueryController.listVersions | `org` |
 
@@ -40,9 +40,9 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| AgentChannelCommandController.apply | `metadata.org`, `spec.agent_ref.org`, `spec.environment_refs.org`, `spec.app_ref.org` |
-| AgentChannelCommandController.create | `metadata.org`, `spec.agent_ref.org`, `spec.environment_refs.org`, `spec.app_ref.org` |
-| AgentChannelCommandController.update | `metadata.org`, `spec.agent_ref.org`, `spec.environment_refs.org`, `spec.app_ref.org` |
+| AgentChannelCommandController.apply | `metadata.org`, `spec.agent_ref.org`, `spec.vaults.org`, `spec.app_ref.org` |
+| AgentChannelCommandController.create | `metadata.org`, `spec.agent_ref.org`, `spec.vaults.org`, `spec.app_ref.org` |
+| AgentChannelCommandController.update | `metadata.org`, `spec.agent_ref.org`, `spec.vaults.org`, `spec.app_ref.org` |
 | AgentChannelQueryController.getByAgent | `org` |
 | AgentChannelQueryController.getByReference | `org` |
 | AgentChannelQueryController.list | `org` |
@@ -54,8 +54,8 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| RunCommandController.create | `metadata.org`, `spec.session_spec.agent_ref.org`, `spec.session_spec.mcp_server_usages.mcp_server_ref.org`, `spec.session_spec.skill_refs.org` |
-| RunCommandController.update | `metadata.org`, `spec.session_spec.agent_ref.org`, `spec.session_spec.mcp_server_usages.mcp_server_ref.org`, `spec.session_spec.skill_refs.org` |
+| RunCommandController.create | `metadata.org`, `spec.session_spec.agent_ref.org`, `spec.session_spec.mcp_server_usages.mcp_server_ref.org`, `spec.session_spec.skill_refs.org`, `spec.session_spec.vaults.org` |
+| RunCommandController.update | `metadata.org`, `spec.session_spec.agent_ref.org`, `spec.session_spec.mcp_server_usages.mcp_server_ref.org`, `spec.session_spec.skill_refs.org`, `spec.session_spec.vaults.org` |
 | RunQueryController.getAgentUsageReport | `org` |
 | RunQueryController.getRunSummary | `org` |
 | RunQueryController.getOrgUsageReport | `org` |
@@ -65,9 +65,9 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| AgentShareCommandController.apply | `metadata.org`, `spec.agent_ref.org`, `spec.environment_refs.org` |
-| AgentShareCommandController.create | `metadata.org`, `spec.agent_ref.org`, `spec.environment_refs.org` |
-| AgentShareCommandController.update | `metadata.org`, `spec.agent_ref.org`, `spec.environment_refs.org` |
+| AgentShareCommandController.apply | `metadata.org`, `spec.agent_ref.org`, `spec.vaults.org` |
+| AgentShareCommandController.create | `metadata.org`, `spec.agent_ref.org`, `spec.vaults.org` |
+| AgentShareCommandController.update | `metadata.org`, `spec.agent_ref.org`, `spec.vaults.org` |
 | AgentShareQueryController.getByAgent | `org` |
 | AgentShareQueryController.getByReference | `org` |
 | AgentShareQueryController.list | `org` |
@@ -81,16 +81,6 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | ChannelAppCommandController.update | `metadata.org` |
 | ChannelAppQueryController.getByReference | `org` |
 | ChannelAppQueryController.listByOrg | `org` |
-
-## `ai.stigmer.agentic.environment.v1`
-
-| Method | Organization fields |
-|---|---|
-| EnvironmentCommandController.apply | `metadata.org` |
-| EnvironmentCommandController.create | `metadata.org` |
-| EnvironmentCommandController.update | `metadata.org` |
-| EnvironmentQueryController.getByReference | `org` |
-| EnvironmentQueryController.list | `org` |
 
 ## `ai.stigmer.agentic.executioncontext.v1`
 
@@ -138,9 +128,9 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| ScheduleCommandController.apply | `metadata.org`, `spec.agent.agent_ref.org`, `spec.agent.environment_refs.org` |
-| ScheduleCommandController.create | `metadata.org`, `spec.agent.agent_ref.org`, `spec.agent.environment_refs.org` |
-| ScheduleCommandController.update | `metadata.org`, `spec.agent.agent_ref.org`, `spec.agent.environment_refs.org` |
+| ScheduleCommandController.apply | `metadata.org`, `spec.agent.agent_ref.org`, `spec.agent.vaults.org` |
+| ScheduleCommandController.create | `metadata.org`, `spec.agent.agent_ref.org`, `spec.agent.vaults.org` |
+| ScheduleCommandController.update | `metadata.org`, `spec.agent.agent_ref.org`, `spec.agent.vaults.org` |
 | ScheduleQueryController.getByAgent | `org` |
 | ScheduleQueryController.getByReference | `org` |
 | ScheduleQueryController.list | `org` |
@@ -149,9 +139,9 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| SessionCommandController.apply | `metadata.org`, `spec.agent_ref.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org` |
-| SessionCommandController.create | `metadata.org`, `spec.agent_ref.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org` |
-| SessionCommandController.update | `metadata.org`, `spec.agent_ref.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org` |
+| SessionCommandController.apply | `metadata.org`, `spec.agent_ref.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org`, `spec.vaults.org` |
+| SessionCommandController.create | `metadata.org`, `spec.agent_ref.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org`, `spec.vaults.org` |
+| SessionCommandController.update | `metadata.org`, `spec.agent_ref.org`, `spec.mcp_server_usages.mcp_server_ref.org`, `spec.skill_refs.org`, `spec.vaults.org` |
 | SessionQueryController.list | `org` |
 
 ## `ai.stigmer.agentic.skill.v1`
@@ -163,6 +153,21 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | SkillCommandController.pushFromRunArtifact | `org` |
 | SkillQueryController.getByReference | `org` |
 | SkillQueryController.listVersions | `org` |
+
+## `ai.stigmer.agentic.vault.v1`
+
+| Method | Organization fields |
+|---|---|
+| VaultCommandController.create | `metadata.org`, `spec.org` |
+| VaultCommandController.removeConnections | `vault.org` |
+| VaultCommandController.removeSecrets | `vault.org` |
+| VaultCommandController.setConnection | `vault.org` |
+| VaultCommandController.setSecrets | `vault.org` |
+| VaultCommandController.update | `metadata.org`, `spec.org` |
+| VaultQueryController.getByExternalId | `org` |
+| VaultQueryController.getByReference | `org` |
+| VaultQueryController.getMine | `org` |
+| VaultQueryController.list | `org` |
 
 ## `ai.stigmer.iam.apikey.v1`
 
@@ -214,11 +219,23 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| PlatformClientCommandController.create | `metadata.org`, `spec.environment_refs.org` |
-| PlatformClientCommandController.update | `metadata.org`, `spec.environment_refs.org` |
+| PlatformClientCommandController.create | `metadata.org`, `spec.vaults.org` |
+| PlatformClientCommandController.update | `metadata.org`, `spec.vaults.org` |
 | PlatformClientQueryController.getByReference | `org` |
 | PlatformClientQueryController.listByOrg | `org` |
 | PlatformClientTokenController.mintUserToken | `org` |
+
+## `ai.stigmer.platform.github.v1`
+
+| Method | Organization fields |
+|---|---|
+| GitHubQueryController.getFileContent | `org` |
+| GitHubQueryController.getTree | `org` |
+| GitHubQueryController.listBranches | `org` |
+| GitHubQueryController.listRepositories | `org` |
+| GitHubQueryController.searchRepositories | `org` |
+| GitHubService.exchangeOAuthCode | `org` |
+| GitHubService.getOAuthAuthorizeUrl | `org` |
 
 ## `ai.stigmer.search.v1`
 

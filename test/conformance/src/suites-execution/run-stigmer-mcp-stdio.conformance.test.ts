@@ -35,7 +35,6 @@ import {
   STDIO_READ_TOOL,
   makeStdioAgent,
   makeStigmerMcpServer,
-  stigmerMcpServerRuntimeEnv,
 } from "../support/stigmer-mcp-stdio";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -72,7 +71,6 @@ interface StdioAgent {
   slug: string;
   description: string;
   sessionId: string;
-  runtimeEnv: ReturnType<typeof stigmerMcpServerRuntimeEnv>;
 }
 
 // The fixture agent on the real stigmer mcp-server, with a NATIVE session the
@@ -80,7 +78,9 @@ interface StdioAgent {
 // a read through the stdio server must return.
 async function provisionStdioAgent(): Promise<StdioAgent> {
   const { org } = await target.provisionTenancy();
-  const server = await clients.mcpServerCommand.create(makeStigmerMcpServer({ org, name: uniqueName("stigmer-mcp") }));
+  const server = await clients.mcpServerCommand.create(
+    makeStigmerMcpServer({ org, name: uniqueName("stigmer-mcp"), serverBaseUrl: serverAddress() }),
+  );
   fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
 
   const description = uniqueName("read-through-stdio");
@@ -98,7 +98,6 @@ async function provisionStdioAgent(): Promise<StdioAgent> {
     slug: agent.metadata!.slug,
     description,
     sessionId: session.metadata!.id,
-    runtimeEnv: stigmerMcpServerRuntimeEnv(serverAddress()),
   };
 }
 
@@ -126,7 +125,6 @@ async function runRead(agent: StdioAgent): Promise<Run> {
       sessionId: agent.sessionId,
       message: `What is the description of ${agent.org}/${agent.slug}?`,
       autoApproveAll: true,
-      runtimeEnv: agent.runtimeEnv,
     }),
   );
   fixtures.defer(() => clients.agentExecutionCommand.delete({ value: run.metadata!.id }));

@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/schedule/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_schedule_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvc2NoZWR1bGUvdjEvc3RhdHVzLnByb3RvEh5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEi/wEKDlNjaGVkdWxlU3RhdHVzEjAKDG5leHRfZmlyZV9hdBgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMAoMbGFzdF9maXJlX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBITCgtsYXN0X3J1bl9pZBgDIAEoCRIcChRjb25zZWN1dGl2ZV9mYWlsdXJlcxgEIAEoBRIVCg1wYXVzZWRfcmVhc29uGAUgASgJEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXRiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_status, file_google_protobuf_timestamp]);
+  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvc2NoZWR1bGUvdjEvc3RhdHVzLnByb3RvEh5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEikwMKDlNjaGVkdWxlU3RhdHVzEjAKDG5leHRfZmlyZV9hdBgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMAoMbGFzdF9maXJlX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBITCgtsYXN0X3J1bl9pZBgDIAEoCRIcChRjb25zZWN1dGl2ZV9mYWlsdXJlcxgEIAEoBRIVCg1wYXVzZWRfcmVhc29uGAUgASgJElsKD3ZhdWx0X2F0dGFjaGVycxgGIAMoCzJCLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZVN0YXR1cy5WYXVsdEF0dGFjaGVyc0VudHJ5Ej8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQaNQoTVmF1bHRBdHRhY2hlcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_status, file_google_protobuf_timestamp]);
 
 /**
  * ScheduleStatus contains system-managed state for a schedule.
@@ -58,6 +58,15 @@ export type ScheduleStatus = Message<"ai.stigmer.agentic.schedule.v1.ScheduleSta
    * @generated from field: string paused_reason = 5;
    */
   pausedReason: string;
+
+  /**
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
+   *
+   * @generated from field: map<string, string> vault_attachers = 6;
+   */
+  vaultAttachers: { [key: string]: string };
 
   /**
    * Standard audit information (created_at, updated_at, created_by, etc.)

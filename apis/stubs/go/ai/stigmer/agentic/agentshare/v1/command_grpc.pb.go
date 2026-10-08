@@ -42,8 +42,8 @@ type AgentShareCommandControllerClient interface {
 	// Update an existing agent share.
 	//
 	// Replaces the spec wholesale: a manifest that omits audience resets the
-	// share to public, and one that omits environment_refs unbinds them
-	// (fails closed). The slug and referenced agent are immutable.
+	// share to public, and one that omits vaults detaches them (fails
+	// closed). The slug and referenced agent are immutable.
 	Update(ctx context.Context, in *AgentShare, opts ...grpc.CallOption) (*AgentShare, error)
 	// Rotate the share's link token.
 	//
@@ -141,8 +141,8 @@ type AgentShareCommandControllerServer interface {
 	// Update an existing agent share.
 	//
 	// Replaces the spec wholesale: a manifest that omits audience resets the
-	// share to public, and one that omits environment_refs unbinds them
-	// (fails closed). The slug and referenced agent are immutable.
+	// share to public, and one that omits vaults detaches them (fails
+	// closed). The slug and referenced agent are immutable.
 	Update(context.Context, *AgentShare) (*AgentShare, error)
 	// Rotate the share's link token.
 	//

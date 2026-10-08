@@ -82,8 +82,8 @@ export async function connectMcpServer(
       throw new UsageError(
         "MCP server has no spec; cannot discover capabilities",
       );
-    // An oauth_only endpoint rejects static tokens, and the OAuth token lives in
-    // the backend's managed environment — never on the caller's machine. So local
+    // An oauth_only endpoint rejects static tokens, and the signed-in token lives
+    // in the caller's vault on the server — never on the caller's machine. So local
     // discovery cannot authenticate it; say so plainly instead of failing on a 401.
     if (isOAuthOnly(server)) throw oauthOnlyDryRunError(server, opts.reference);
     try {

@@ -1,11 +1,15 @@
 "use client";
 
+/**
+ * Repository search for the connected GitHub account, through the server's
+ * GitHub query RPCs with the login saved in My vault: the page never holds
+ * the token or calls api.github.com.
+ */
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { GitHubRepo } from "./useGitHubRepos.js";
+import { useStigmer } from "../hooks.js";
+import { toGitHubRepo, type GitHubRepo } from "./useGitHubRepos.js";
 
-const GITHUB_SEARCH_API = "https://api.github.com/search/repositories";
 const DEBOUNCE_MS = 350;
-const PER_PAGE = 30;
 
 /** Return value of {@link useGitHubSearch}. */
 export interface UseGitHubSearchReturn {
@@ -19,7 +23,7 @@ export interface UseGitHubSearchReturn {
   readonly query: string;
   /** Update the search query. The actual API call is debounced internally. */
   readonly setQuery: (query: string) => void;
-  /** Total number of repositories matching the query across GitHub. */
+  /** Number of matching repositories loaded so far. */
   readonly totalCount: number;
   /** Whether more result pages are available. */
   readonly hasMore: boolean;
@@ -27,83 +31,22 @@ export interface UseGitHubSearchReturn {
   readonly loadMore: () => void;
 }
 
-function parseSearchItem(r: Record<string, unknown>): GitHubRepo {
-  const ownerObj = r.owner as Record<string, unknown>;
-  return {
-    id: r.id as number,
-    fullName: r.full_name as string,
-    name: r.name as string,
-    owner: ownerObj.login as string,
-    ownerType:
-      (ownerObj.type as string) === "Organization" ? "Organization" : "User",
-    htmlUrl: r.html_url as string,
-    cloneUrl: r.clone_url as string,
-    defaultBranch: r.default_branch as string,
-    isPrivate: r.private as boolean,
-    updatedAt: r.updated_at as string,
-  };
-}
-
-async function searchRepos(
-  query: string,
-  page: number,
-  token: string | null,
-): Promise<{ repos: GitHubRepo[]; totalCount: number; hasMore: boolean }> {
-  const params = new URLSearchParams({
-    q: query,
-    sort: "stars",
-    order: "desc",
-    per_page: String(PER_PAGE),
-    page: String(page),
-  });
-
-  const headers: Record<string, string> = {
-    Accept: "application/vnd.github+json",
-  };
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  const resp = await fetch(`${GITHUB_SEARCH_API}?${params}`, { headers });
-
-  if (!resp.ok) {
-    if (resp.status === 403) {
-      throw new Error("GitHub search rate limit exceeded. Try again shortly.");
-    }
-    throw new Error(`GitHub search error: ${resp.status}`);
-  }
-
-  const data = (await resp.json()) as {
-    total_count: number;
-    items: Record<string, unknown>[];
-  };
-
-  const repos = data.items.map(parseSearchItem);
-  const totalCount = data.total_count;
-  const hasMore = page * PER_PAGE < totalCount;
-
-  return { repos, totalCount, hasMore };
-}
-
 /**
- * Data hook that searches GitHub's public repository index.
- *
- * Uses the GitHub Search API (`/search/repositories`) with debounced input.
- * Finds repositories across all of GitHub, not just the user's own repos.
- * Works with or without an auth token (auth: 30 req/min; unauth: 10 req/min).
+ * Data hook that searches the repositories the connected GitHub account can
+ * reach, with debounced input. Pass `null` (GitHub not connected) to skip.
  *
  * @example
  * ```tsx
- * function GitHubSearch({ token }: { token: string | null }) {
+ * function GitHubSearch({ org }: { org: string | null }) {
  *   const { results, isSearching, query, setQuery, hasMore, loadMore } =
- *     useGitHubSearch(token);
+ *     useGitHubSearch(org);
  *
  *   return (
  *     <div>
  *       <input
  *         value={query}
  *         onChange={(e) => setQuery(e.target.value)}
- *         placeholder="Search all of GitHub…"
+ *         placeholder="Search repositories…"
  *       />
  *       {isSearching && <Spinner />}
  *       <ul>
@@ -118,8 +61,9 @@ async function searchRepos(
  * ```
  */
 export function useGitHubSearch(
-  token: string | null,
+  org: string | null,
 ): UseGitHubSearchReturn {
+  const stigmer = useStigmer();
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [results, setResults] = useState<GitHubRepo[]>([]);
@@ -148,7 +92,7 @@ export function useGitHubSearch(
   }, [query]);
 
   useEffect(() => {
-    if (!debouncedQuery) return;
+    if (!debouncedQuery || !org) return;
 
     const cancelled = { current: false };
 
@@ -156,13 +100,19 @@ export function useGitHubSearch(
       setIsSearching(true);
       setError(null);
       try {
-        const result = await searchRepos(debouncedQuery, page, token);
+        const list = await stigmer.github.searchRepositories({
+          org: org!,
+          query: debouncedQuery,
+          page,
+        });
         if (cancelled.current) return;
-        setResults((prev) =>
-          page === 1 ? result.repos : [...prev, ...result.repos],
-        );
-        setTotalCount(result.totalCount);
-        setHasMore(result.hasMore);
+        const repos = list.repositories.map(toGitHubRepo);
+        setResults((prev) => {
+          const next = page === 1 ? repos : [...prev, ...repos];
+          setTotalCount(next.length);
+          return next;
+        });
+        setHasMore(list.hasMore);
       } catch (e) {
         if (cancelled.current) return;
         setError(e instanceof Error ? e.message : "Search failed");
@@ -175,7 +125,7 @@ export function useGitHubSearch(
     return () => {
       cancelled.current = true;
     };
-  }, [debouncedQuery, page, token]);
+  }, [debouncedQuery, page, org, stigmer]);
 
   const loadMore = useCallback(() => {
     if (hasMore && !isSearching) {

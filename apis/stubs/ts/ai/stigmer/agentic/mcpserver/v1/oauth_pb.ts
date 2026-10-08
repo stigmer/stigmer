@@ -10,116 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/mcpserver/v1/oauth.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_oauth: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL29hdXRoLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxIpgCCgpPQXV0aEdyYW50EhsKE2lkZW50aXR5X2FjY291bnRfaWQYASABKAkSEwoLcmVzb3VyY2VfaWQYAiABKAkSHwoXYWNjZXNzX3Rva2VuX2V4cGlyZXNfYXQYAyABKAMSEQoJY2xpZW50X2lkGAQgASgJEhMKC2F1dGhfbWV0aG9kGAUgASgJEhYKDnRva2VuX2VuZHBvaW50GAYgASgJEhwKFGFjY2Vzc190b2tlbl9lbnZfdmFyGAcgASgJEh0KFXJlZnJlc2hfdG9rZW5fZW52X3ZhchgIIAEoCRIWCg5lbnZpcm9ubWVudF9pZBgJIAEoCRIVCg1yZXNvdXJjZV9raW5kGAogASgJEgsKA29yZxgLIAEoCSJhChBPQXV0aEFwcE92ZXJyaWRlEhMKC3Jlc291cmNlX2lkGAEgASgJEhUKDXJlc291cmNlX2tpbmQYAiABKAkSCwoDb3JnGAMgASgJEhQKDG9hdXRoX2FwcF9pZBgEIAEoCWIGcHJvdG8z");
-
-/**
- * OAuthGrant tracks OAuth metadata for a user's OAuth connection to an
- * API resource.
- *
- * @generated from message ai.stigmer.agentic.mcpserver.v1.OAuthGrant
- */
-export type OAuthGrant = Message<"ai.stigmer.agentic.mcpserver.v1.OAuthGrant"> & {
-  /**
-   * Which user owns this grant.
-   *
-   * @generated from field: string identity_account_id = 1;
-   */
-  identityAccountId: string;
-
-  /**
-   * System-generated ID (metadata.id) of the API resource this grant
-   * provides OAuth tokens for. Part of the composite key:
-   * (identity_account_id, resource_id, org).
-   *
-   * @generated from field: string resource_id = 2;
-   */
-  resourceId: string;
-
-  /**
-   * When the current access token expires (Unix timestamp seconds).
-   * 0 means the token does not expire (e.g., long-lived tokens from
-   * Notion or Slack user tokens).
-   *
-   * @generated from field: int64 access_token_expires_at = 3;
-   */
-  accessTokenExpiresAt: bigint;
-
-  /**
-   * OAuth client ID used for this grant.
-   * For mcp_oauth: obtained via Dynamic Client Registration.
-   * For vendor_oauth: copied from the referenced OAuthApp.spec.client_id.
-   *
-   * @generated from field: string client_id = 4;
-   */
-  clientId: string;
-
-  /**
-   * Which auth method was used to obtain this grant.
-   * Values: "mcp_oauth" or "vendor_oauth".
-   * Determines how token refresh is performed (DCR client vs. OAuthApp credentials).
-   *
-   * @generated from field: string auth_method = 5;
-   */
-  authMethod: string;
-
-  /**
-   * Token endpoint URL for refresh requests.
-   * For mcp_oauth: discovered via .well-known/oauth-authorization-server.
-   * For vendor_oauth: copied from OAuthApp.spec.token_url.
-   *
-   * @generated from field: string token_endpoint = 6;
-   */
-  tokenEndpoint: string;
-
-  /**
-   * Env var name where the access token is stored in the managed environment.
-   *
-   * @generated from field: string access_token_env_var = 7;
-   */
-  accessTokenEnvVar: string;
-
-  /**
-   * Env var name where the refresh token is stored in the managed environment.
-   * Convention: {target_env_var}_REFRESH_TOKEN.
-   *
-   * @generated from field: string refresh_token_env_var = 8;
-   */
-  refreshTokenEnvVar: string;
-
-  /**
-   * ID of the managed Environment resource that holds the tokens.
-   * The refresh mechanism reads/writes tokens in this environment.
-   * Created during completeOAuthConnect with the stigmer.ai/managed=true label.
-   * 1:1 with this grant — revoking the grant deletes this environment.
-   *
-   * @generated from field: string environment_id = 9;
-   */
-  environmentId: string;
-
-  /**
-   * Kind of the API resource identified by resource_id (e.g., "mcp_server").
-   * Used for query filtering and handler routing.
-   *
-   * @generated from field: string resource_kind = 10;
-   */
-  resourceKind: string;
-
-  /**
-   * Organization context for this grant. Part of the composite key:
-   * (identity_account_id, resource_id, org). Enables the same user to
-   * maintain separate OAuth connections for a shared resource across orgs.
-   *
-   * @generated from field: string org = 11;
-   */
-  org: string;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.mcpserver.v1.OAuthGrant.
- * Use `create(OAuthGrantSchema)` to create a new message.
- */
-export const OAuthGrantSchema: GenMessage<OAuthGrant> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_oauth, 0);
+  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL29hdXRoLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxImEKEE9BdXRoQXBwT3ZlcnJpZGUSEwoLcmVzb3VyY2VfaWQYASABKAkSFQoNcmVzb3VyY2Vfa2luZBgCIAEoCRILCgNvcmcYAyABKAkSFAoMb2F1dGhfYXBwX2lkGAQgASgJYgZwcm90bzM");
 
 /**
  * OAuthAppOverride binds a specific OAuthApp to an API resource within an
@@ -169,5 +60,5 @@ export type OAuthAppOverride = Message<"ai.stigmer.agentic.mcpserver.v1.OAuthApp
  * Use `create(OAuthAppOverrideSchema)` to create a new message.
  */
 export const OAuthAppOverrideSchema: GenMessage<OAuthAppOverride> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_oauth, 1);
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_oauth, 0);
 

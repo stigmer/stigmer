@@ -1,23 +1,24 @@
 /**
- * disconnectOAuth — ports
- * pkg/domain/mcpserver/controller/disconnect_oauth.go: tear down a user's
- * OAuth connection for an MCP server. Deletes the OAuthGrant record and
- * its associated managed environment (which holds the access and refresh
- * tokens); the MCP server definition is unchanged.
+ * disconnectOAuth — tear down the caller's own sign-in for an MCP server:
+ * every connection in their My vault in the org that a sign-in to this
+ * server saved (sign-in-connection.ts), removed with its access and
+ * refresh tokens through the vault's atomic entry write, which destroys
+ * their sealed backing state. A pasted login, another server's sign-in at
+ * the same address, a sign-in saved into a shared vault (removed through
+ * that vault's removeConnections) and other people's logins are
+ * untouched. The server row is not read, so a sign-in left at the
+ * server's earlier address goes too, and so does one whose server was
+ * deleted wherever the can_connect check still passes (trusted local);
+ * an enforcing authorizer answers NOT_FOUND for a deleted server first,
+ * and My vault's removeConnections removes that sign-in instead.
  *
- * Idempotent: no grant for the (caller, resource_id, org) tuple returns
- * disconnected=false without error — race conditions, retries after
- * partial failures, and desired-state semantics all rely on it.
+ * Idempotent: no saved sign-in answers disconnected=false without error —
+ * race conditions, retries and desired-state semantics all rely on it.
  *
- * Delete order: managed environment first (eliminates secrets), then
- * grant record (metadata only). If grant deletion fails after environment
- * deletion, the orphaned grant is harmless metadata pointing to a deleted
- * environment.
- *
- * Proven by mcpserver-oauth.conformance.test.ts (guards + no-grant
- * idempotence, CONFORMANCE_TARGET=local) and
+ * Proven by mcpserver-oauth.conformance.test.ts (guards + no-login
+ * idempotence, CONFORMANCE_TARGET=local),
  * mcpserver-connect.conformance.test.ts (teardown,
- * CONFORMANCE_TARGET=local-execution).
+ * CONFORMANCE_TARGET=local-execution) and __tests__/sign-in-vault.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
 
@@ -26,14 +27,14 @@ import type {
   DisconnectOAuthOutput,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { DisconnectOAuthOutputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 
 import type { CallerIdentity } from "../../extensions/identity.js";
-import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
+import { invalidArgumentError } from "../../pipeline/errors.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
 import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import type { McpServerConnectDeps } from "./connect.js";
+import { findCallerSignIns } from "./sign-in-connection.js";
 
 export async function disconnectOAuth(
   deps: McpServerConnectDeps,
@@ -48,12 +49,10 @@ export async function disconnectOAuth(
   if (org === "") {
     throw invalidArgumentError("org is required");
   }
-  // The grant removed is the caller's in this organization.
+  // The login removed is the caller's in this organization.
   refuseBoundElsewhere(identity, org);
   // The annotation's can_connect check (validate → authorize, the Java
-  // McpServerDisconnectOAuthHandler order — no load step; on the
-  // multi-tenant edition an unresolvable id answers through the
-  // authorizer's uniform posture).
+  // McpServerDisconnectOAuthHandler order — no load step).
   await authorizeDirect(
     McpServerCommandController.method.disconnectOAuth,
     deps.authorizer,
@@ -61,49 +60,31 @@ export async function disconnectOAuth(
     input,
   );
 
-  // OSS mode: single user, empty identity_account_id.
-  let grant;
-  try {
-    grant = await deps.oauthGrants.find("", resourceId, org);
-  } catch (error) {
-    throw internalError(error, "failed to look up OAuth grant");
-  }
-
-  if (grant === undefined) {
-    deps.logger.debug("No OAuth grant to disconnect", {
+  const { vault, signIns } = await findCallerSignIns(
+    deps,
+    resourceId,
+    org,
+    identity,
+  );
+  if (vault === undefined || signIns.length === 0) {
+    deps.logger.debug("No saved sign-in to disconnect", {
       resource_id: resourceId,
       org,
     });
     return create(DisconnectOAuthOutputSchema, { disconnected: false });
   }
 
-  const envId = grant.environmentId;
-  if (envId !== "") {
-    try {
-      await deps.managedEnv.deleteManagedEnvironment(envId);
-    } catch (error) {
-      deps.logger.warn(
-        "Failed to delete managed environment — may already be deleted",
-        {
-          resource_id: resourceId,
-          environment_id: envId,
-          error: error instanceof Error ? error.message : String(error),
-        },
-      );
-    }
-  }
-
-  try {
-    await deps.oauthGrants.delete("", resourceId, org);
-  } catch (error) {
-    throw internalError(error, "failed to delete OAuth grant");
-  }
+  const { removed } = await deps.vaults.removeConnections(
+    vault.metadata?.id ?? "",
+    signIns.map((signIn) => signIn.address),
+    identity,
+  );
 
   deps.logger.info("OAuth connection disconnected", {
     resource_id: resourceId,
     org,
-    env_deleted: envId !== "",
+    removed: removed.length,
   });
 
-  return create(DisconnectOAuthOutputSchema, { disconnected: true });
+  return create(DisconnectOAuthOutputSchema, { disconnected: removed.length > 0 });
 }

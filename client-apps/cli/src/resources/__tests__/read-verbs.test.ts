@@ -18,10 +18,10 @@ import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/
 import { AgentChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
-import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
+import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
@@ -122,23 +122,29 @@ const unqualifiedSearchResult = create(SearchResultSchema, {
   description: "formats code",
 });
 
-// Three more kinds — wired into get-bindings and list alongside
-// this test. environment lists via the SearchService (it is search-indexed);
-// the two channel kinds list via their dedicated query RPCs.
-const knownEnvironment = create(EnvironmentSchema, {
+// More kinds wired into get-bindings and list alongside this test. A plugin
+// lists via the SearchService (it is search-indexed); a vault and the two
+// channel kinds list via their dedicated query RPCs. The vault carries entry
+// names with blank values, as every vault read does.
+const knownVault = create(VaultSchema, {
   apiVersion: "agentic.stigmer.ai/v1",
-  kind: "Environment",
-  metadata: { name: "clinic-patient-db", slug: "clinic-patient-db", org: ACME_ID, id: "env_1" },
+  kind: "Vault",
+  metadata: { name: "Clinic tools", slug: "clinic-tools", org: ACME_ID, id: "vlt_1" },
+  spec: {
+    owner: { case: "org", value: ACME_ID },
+    secrets: { CLINIC_DB_PASSWORD: { value: "", description: "clinic patient database" } },
+    connections: { "https://mcp.clinic.example/mcp": { token: "" } },
+  },
 });
 
-const knownEnvironmentSearchResult = create(SearchResultSchema, {
-  kind: ApiResourceKind.environment,
-  id: "env_1",
-  name: "clinic-patient-db",
-  slug: "clinic-patient-db",
-  qualifiedSlug: `${ACME_ID}/clinic-patient-db`,
+const knownPluginSearchResult = create(SearchResultSchema, {
+  kind: ApiResourceKind.plugin,
+  id: "plg_1",
+  name: "clinic-kit",
+  slug: "clinic-kit",
+  qualifiedSlug: `${ACME_ID}/clinic-kit`,
   org: ACME_ID,
-  description: "clinic patient database credentials",
+  description: "clinic tools plugin",
 });
 
 // Spec/status populated to exercise every AGENT_CHANNEL_TABLE column:
@@ -247,10 +253,10 @@ beforeAll(async () => {
     });
     router.service(SearchService, {
       // Kind-aware: search-backed list sends a single-kind query, so the
-      // environment arm proves the kind actually rode the request.
+      // plugin arm proves the kind actually rode the request.
       search: (req) => {
-        if (req.kinds.length === 1 && req.kinds[0] === ApiResourceKind.environment) {
-          return { entries: [knownEnvironmentSearchResult], totalCount: 1, totalPages: 1 };
+        if (req.kinds.length === 1 && req.kinds[0] === ApiResourceKind.plugin) {
+          return { entries: [knownPluginSearchResult], totalCount: 1, totalPages: 1 };
         }
         return {
           entries: [knownSearchResult, hiddenSearchResult, unqualifiedSearchResult],
@@ -278,14 +284,18 @@ beforeAll(async () => {
     router.service(ApiKeyQueryController, {
       findAll: () => ({ entries: [knownApiKey, secondApiKey] }),
     });
-    router.service(EnvironmentQueryController, {
+    router.service(VaultQueryController, {
       get: (req) => {
-        if (req.value !== "env_1") throw new ConnectError("environment not found", Code.NotFound);
-        return knownEnvironment;
+        if (req.value !== "vlt_1") throw new ConnectError("vault not found", Code.NotFound);
+        return knownVault;
       },
       getByReference: (req) => {
-        if (req.slug !== "clinic-patient-db") throw new ConnectError("environment not found", Code.NotFound);
-        return knownEnvironment;
+        if (req.slug !== "clinic-tools") throw new ConnectError("vault not found", Code.NotFound);
+        return knownVault;
+      },
+      list: (req) => {
+        if (req.org !== "acme") throw new ConnectError("unexpected org", Code.InvalidArgument);
+        return { totalCount: 1, items: [knownVault] };
       },
     });
     router.service(AgentChannelQueryController, {
@@ -423,20 +433,20 @@ describe("get integration", () => {
     expect(String(err)).not.toMatch(/not found/);
   });
 
-  it("fetches an environment by org/slug and renders backend protojson", async () => {
-    const { schema, message } = await fetchResource(client, ApiResourceKind.environment, {
+  it("fetches a vault by org/slug and renders backend protojson", async () => {
+    const { schema, message } = await fetchResource(client, ApiResourceKind.vault, {
       kind: "ref",
       org: "acme",
-      slug: "clinic-patient-db",
+      slug: "clinic-tools",
     });
     const rendered = JSON.parse(renderResource(schema, message, "json"));
-    expect(rendered).toEqual(toJson(EnvironmentSchema, knownEnvironment, { useProtoFieldName: true }));
+    expect(rendered).toEqual(toJson(VaultSchema, knownVault, { useProtoFieldName: true }));
   });
 
-  it("fetches an environment by ID", async () => {
-    const { message } = await fetchResource(client, ApiResourceKind.environment, { kind: "id", id: "env_1" });
-    expect(JSON.parse(renderResource(EnvironmentSchema, message, "json"))).toMatchObject({
-      metadata: { id: "env_1" },
+  it("fetches a vault by ID", async () => {
+    const { message } = await fetchResource(client, ApiResourceKind.vault, { kind: "id", id: "vlt_1" });
+    expect(JSON.parse(renderResource(VaultSchema, message, "json"))).toMatchObject({
+      metadata: { id: "vlt_1" },
     });
   });
 
@@ -564,17 +574,31 @@ describe("list integration", () => {
     expect([...orgGets].sort()).toEqual([ACME_ID, HIDDEN_ORG_ID]);
   });
 
-  it("lists environments via the search service as JSON", async () => {
-    const out = await listResources(client, ApiResourceKind.environment, "acme", 50, "json");
+  it("lists plugins via the search service as JSON", async () => {
+    const out = await listResources(client, ApiResourceKind.plugin, "acme", 50, "json");
     expect(JSON.parse(out)).toEqual([
-      toJson(SearchResultSchema, knownEnvironmentSearchResult, { useProtoFieldName: true }),
+      toJson(SearchResultSchema, knownPluginSearchResult, { useProtoFieldName: true }),
     ]);
   });
 
-  it("renders a human table for environment lists", async () => {
-    const out = await listResources(client, ApiResourceKind.environment, "acme", 50, "table");
+  it("renders a human table for plugin lists", async () => {
+    const out = await listResources(client, ApiResourceKind.plugin, "acme", 50, "table");
     expect(out).toContain("NAME");
-    expect(out).toContain("acme/clinic-patient-db");
+    expect(out).toContain("acme/clinic-kit");
+  });
+
+  it("lists vaults via the dedicated list RPC as JSON", async () => {
+    const out = await listResources(client, ApiResourceKind.vault, "acme", 50, "json");
+    expect(JSON.parse(out)).toEqual([toJson(VaultSchema, knownVault, { useProtoFieldName: true })]);
+  });
+
+  it("renders a vault table counting entries, never showing a value", async () => {
+    const out = await listResources(client, ApiResourceKind.vault, "acme", 50, "table");
+    for (const header of ["ID", "SLUG", "NAME", "OWNER", "SECRETS", "LOGINS"]) {
+      expect(out).toContain(header);
+    }
+    const row = out.split("\n").find((line) => line.includes("vlt_1"));
+    expect(row).toMatch(/clinic-tools\s+Clinic tools\s+organization\s+1\s+1/);
   });
 
   it("lists agent channels via the dedicated list RPC as JSON", async () => {

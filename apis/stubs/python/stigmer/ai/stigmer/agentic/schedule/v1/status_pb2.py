@@ -26,7 +26,7 @@ from ai.stigmer.commons.apiresource import status_pb2 as ai_dot_stigmer_dot_comm
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/agentic/schedule/v1/status.proto\x12\x1e\x61i.stigmer.agentic.schedule.v1\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xcc\x02\n\x0eScheduleStatus\x12<\n\x0cnext_fire_at\x18\x01 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\nnextFireAt\x12<\n\x0clast_fire_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\nlastFireAt\x12\x1e\n\x0blast_run_id\x18\x03 \x01(\tR\tlastRunId\x12\x31\n\x14\x63onsecutive_failures\x18\x04 \x01(\x05R\x13\x63onsecutiveFailures\x12#\n\rpaused_reason\x18\x05 \x01(\tR\x0cpausedReason\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61uditB\xce\x01\n\"com.ai.stigmer.agentic.schedule.v1B\x0bStatusProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1e\x41i.Stigmer.Agentic.Schedule.V1\xca\x02\x1e\x41i\\Stigmer\\Agentic\\Schedule\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Schedule::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/agentic/schedule/v1/status.proto\x12\x1e\x61i.stigmer.agentic.schedule.v1\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xfc\x03\n\x0eScheduleStatus\x12<\n\x0cnext_fire_at\x18\x01 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\nnextFireAt\x12<\n\x0clast_fire_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\nlastFireAt\x12\x1e\n\x0blast_run_id\x18\x03 \x01(\tR\tlastRunId\x12\x31\n\x14\x63onsecutive_failures\x18\x04 \x01(\x05R\x13\x63onsecutiveFailures\x12#\n\rpaused_reason\x18\x05 \x01(\tR\x0cpausedReason\x12k\n\x0fvault_attachers\x18\x06 \x03(\x0b\x32\x42.ai.stigmer.agentic.schedule.v1.ScheduleStatus.VaultAttachersEntryR\x0evaultAttachers\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61udit\x1a\x41\n\x13VaultAttachersEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\x42\xce\x01\n\"com.ai.stigmer.agentic.schedule.v1B\x0bStatusProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1e\x41i.Stigmer.Agentic.Schedule.V1\xca\x02\x1e\x41i\\Stigmer\\Agentic\\Schedule\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Schedule::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -34,6 +34,10 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'ai.stigmer.agentic.schedule
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\"com.ai.stigmer.agentic.schedule.v1B\013StatusProtoP\001\242\002\004ASAS\252\002\036Ai.Stigmer.Agentic.Schedule.V1\312\002\036Ai\\Stigmer\\Agentic\\Schedule\\V1\342\002*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\352\002\"Ai::Stigmer::Agentic::Schedule::V1'
+  _globals['_SCHEDULESTATUS_VAULTATTACHERSENTRY']._loaded_options = None
+  _globals['_SCHEDULESTATUS_VAULTATTACHERSENTRY']._serialized_options = b'8\001'
   _globals['_SCHEDULESTATUS']._serialized_start=158
-  _globals['_SCHEDULESTATUS']._serialized_end=490
+  _globals['_SCHEDULESTATUS']._serialized_end=666
+  _globals['_SCHEDULESTATUS_VAULTATTACHERSENTRY']._serialized_start=601
+  _globals['_SCHEDULESTATUS_VAULTATTACHERSENTRY']._serialized_end=666
 # @@protoc_insertion_point(module_scope)

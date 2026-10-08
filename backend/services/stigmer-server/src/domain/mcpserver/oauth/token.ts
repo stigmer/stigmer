@@ -1,8 +1,15 @@
 /**
  * OAuth token-endpoint client — ports pkg/domain/mcpserver/oauth/token.go
  * whole: the pre-flight refresh and the authorization-code exchange.
- * Proven by mcpserver-oauth.conformance.test.ts and the Class B
- * mcpserver-connect suite.
+ *
+ * A token request carries the client secret, the PKCE code verifier or
+ * the refresh token, so a redirect is never followed (`redirect:
+ * "manual"`): a 3xx from the token endpoint is refused, naming the
+ * endpoint, and the address it pointed at is never reached.
+ *
+ * Proven by __tests__/token-exchange.test.ts,
+ * __tests__/token-refresh.test.ts, mcpserver-oauth.conformance.test.ts
+ * and the Class B mcpserver-connect suite.
  */
 import type { OutboundFetch } from "@stigmer/outbound/egress";
 import { truncateBody } from "./truncate-body.js";
@@ -121,6 +128,8 @@ async function doTokenRequest(
       method: "POST",
       headers,
       body: params.toString(),
+      // The form carries the client's credentials: a redirect is never followed.
+      redirect: "manual",
       signal: AbortSignal.timeout(TOKEN_REQUEST_TIMEOUT_MS),
     });
   } catch (error) {
@@ -129,6 +138,12 @@ async function doTokenRequest(
     );
   }
 
+  if (response.status >= 300 && response.status < 400) {
+    await response.body?.cancel();
+    throw new Error(
+      `token endpoint ${tokenEndpoint} answered with a redirect (HTTP ${response.status}): a token request is never sent on to another address, so set the token endpoint to the one that answers it`,
+    );
+  }
   const body = await response.text();
   if (response.status !== 200) {
     throw new Error(

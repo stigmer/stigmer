@@ -125,4 +125,34 @@ public interface GitRepoSourceOrBuilder extends
    * @return The writeBackMode.
    */
   ai.stigmer.agentic.session.v1.GitWriteBackMode getWriteBackMode();
+
+  /**
+   * <pre>
+   * A token for cloning this repository, kept for the conversation only.
+   *
+   * Used only when the URL is an https://github.com repository; a session
+   * write carrying a token for any other repository is refused. Sealed for
+   * the conversation's life and never returned by a read. A schedule's
+   * repositories refuse it: save the token in a vault the schedule names.
+   * </pre>
+   *
+   * <code>string token = 6 [json_name = "token", (.buf.validate.field) = { ... }</code>
+   * @return The token.
+   */
+  java.lang.String getToken();
+  /**
+   * <pre>
+   * A token for cloning this repository, kept for the conversation only.
+   *
+   * Used only when the URL is an https://github.com repository; a session
+   * write carrying a token for any other repository is refused. Sealed for
+   * the conversation's life and never returned by a read. A schedule's
+   * repositories refuse it: save the token in a vault the schedule names.
+   * </pre>
+   *
+   * <code>string token = 6 [json_name = "token", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for token.
+   */
+  com.google.protobuf.ByteString
+      getTokenBytes();
 }

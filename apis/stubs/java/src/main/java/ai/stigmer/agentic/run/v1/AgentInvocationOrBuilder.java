@@ -99,7 +99,7 @@ public interface AgentInvocationOrBuilder extends
    * Workspace the run's session operates on. Empty means no workspace.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
+   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
    */
   java.util.List<ai.stigmer.agentic.session.v1.WorkspaceEntry> 
       getWorkspaceEntriesList();
@@ -108,7 +108,7 @@ public interface AgentInvocationOrBuilder extends
    * Workspace the run's session operates on. Empty means no workspace.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
+   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
    */
   ai.stigmer.agentic.session.v1.WorkspaceEntry getWorkspaceEntries(int index);
   /**
@@ -116,7 +116,7 @@ public interface AgentInvocationOrBuilder extends
    * Workspace the run's session operates on. Empty means no workspace.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
+   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
    */
   int getWorkspaceEntriesCount();
   /**
@@ -124,7 +124,7 @@ public interface AgentInvocationOrBuilder extends
    * Workspace the run's session operates on. Empty means no workspace.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
+   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
    */
   java.util.List<? extends ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder> 
       getWorkspaceEntriesOrBuilderList();
@@ -133,83 +133,73 @@ public interface AgentInvocationOrBuilder extends
    * Workspace the run's session operates on. Empty means no workspace.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries"];</code>
+   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
    */
   ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder getWorkspaceEntriesOrBuilder(
       int index);
 
   /**
    * <pre>
-   * References to Environment resources whose values are provided to
-   * the runs this invocation creates.
+   * Vaults whose logins and secrets the runs this invocation creates use, in
+   * order: the first vault holding a match wins. At most 20.
    *
-   * This is how a tool-using agent becomes runnable unattended: bind
-   * an org-shared environment holding the needed credentials (for
-   * example an MCP server's shared secret), and the runs receive its
-   * values at runtime. The agent itself stays untouched.
+   * A schedule's runs have no person, so these vaults are all they use. The
+   * schedule's owner may attach their own My vault; nobody else's.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 7 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
   java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> 
-      getEnvironmentRefsList();
+      getVaultsList();
   /**
    * <pre>
-   * References to Environment resources whose values are provided to
-   * the runs this invocation creates.
+   * Vaults whose logins and secrets the runs this invocation creates use, in
+   * order: the first vault holding a match wins. At most 20.
    *
-   * This is how a tool-using agent becomes runnable unattended: bind
-   * an org-shared environment holding the needed credentials (for
-   * example an MCP server's shared secret), and the runs receive its
-   * values at runtime. The agent itself stays untouched.
+   * A schedule's runs have no person, so these vaults are all they use. The
+   * schedule's owner may attach their own My vault; nobody else's.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 7 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
-  ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRefs(int index);
+  ai.stigmer.commons.apiresource.ApiResourceReference getVaults(int index);
   /**
    * <pre>
-   * References to Environment resources whose values are provided to
-   * the runs this invocation creates.
+   * Vaults whose logins and secrets the runs this invocation creates use, in
+   * order: the first vault holding a match wins. At most 20.
    *
-   * This is how a tool-using agent becomes runnable unattended: bind
-   * an org-shared environment holding the needed credentials (for
-   * example an MCP server's shared secret), and the runs receive its
-   * values at runtime. The agent itself stays untouched.
+   * A schedule's runs have no person, so these vaults are all they use. The
+   * schedule's owner may attach their own My vault; nobody else's.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 7 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
-  int getEnvironmentRefsCount();
+  int getVaultsCount();
   /**
    * <pre>
-   * References to Environment resources whose values are provided to
-   * the runs this invocation creates.
+   * Vaults whose logins and secrets the runs this invocation creates use, in
+   * order: the first vault holding a match wins. At most 20.
    *
-   * This is how a tool-using agent becomes runnable unattended: bind
-   * an org-shared environment holding the needed credentials (for
-   * example an MCP server's shared secret), and the runs receive its
-   * values at runtime. The agent itself stays untouched.
+   * A schedule's runs have no person, so these vaults are all they use. The
+   * schedule's owner may attach their own My vault; nobody else's.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 7 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
   java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
-      getEnvironmentRefsOrBuilderList();
+      getVaultsOrBuilderList();
   /**
    * <pre>
-   * References to Environment resources whose values are provided to
-   * the runs this invocation creates.
+   * Vaults whose logins and secrets the runs this invocation creates use, in
+   * order: the first vault holding a match wins. At most 20.
    *
-   * This is how a tool-using agent becomes runnable unattended: bind
-   * an org-shared environment holding the needed credentials (for
-   * example an MCP server's shared secret), and the runs receive its
-   * values at runtime. The agent itself stays untouched.
+   * A schedule's runs have no person, so these vaults are all they use. The
+   * schedule's owner may attach their own My vault; nobody else's.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 5 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 7 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
-  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefsOrBuilder(
+  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getVaultsOrBuilder(
       int index);
 
   /**

@@ -92,13 +92,6 @@
       "components": 1
     },
     {
-      "slug": "environment",
-      "title": "Environment",
-      "description": "Hooks and components for configuration, variables, secrets, and session environment pools.",
-      "hooks": 10,
-      "components": 5
-    },
-    {
       "slug": "error",
       "title": "Error",
       "description": "Components for structured error display and troubleshooting guidance.",
@@ -314,6 +307,13 @@
       "description": "Components for user profile display and account menu embedding.",
       "hooks": 0,
       "components": 1
+    },
+    {
+      "slug": "vault",
+      "title": "Vault",
+      "description": "Hooks and components for My vault and shared vaults, their secrets and logins, the vault picker, and the session value pool.",
+      "hooks": 8,
+      "components": 5
     },
     {
       "slug": "version-history",

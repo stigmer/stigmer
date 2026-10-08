@@ -67,7 +67,12 @@
  * the first fault). A resource's organization is read from the scope
  * links the rows hold (`resolveHierarchy`); open source writes none and
  * grants nothing below the organization (grant-scope.ts), so there the
- * sweep finds nothing to do.
+ * sweep finds nothing to do. After the rows, the sweep hands the departure
+ * to the composition's `departures` handler (departure.ts: the person's My
+ * vault in that organization is deleted, its sealed values destroyed), in
+ * every edition. A failure there fails the revoke after the role is gone,
+ * as a failed row revoke does: the person reaches nothing either way, and a
+ * retry of the same revoke sweeps again and converges.
  *
  * Affiliation. The model's bound reads `organization#affiliated`, a stored
  * relation that stands exactly while the person holds a row on the
@@ -253,9 +258,23 @@ export interface StoredResources {
   organizationOf(kind: string, id: string): Promise<string>;
 }
 
+/**
+ * What the composition does when a person leaves an organization, after
+ * the sweep has revoked their rows: called with the account, the
+ * organization and the caller who revoked. Idempotent: a retry calls it
+ * again.
+ */
+export type OrganizationDepartureHandler = (
+  identityAccountId: string,
+  organizationId: string,
+  caller: CallerIdentity,
+) => Promise<void>;
+
 export interface IamPolicyGrantPathDeps {
   readonly policies: IamPolicyStore;
   readonly resources: StoredResources;
+  /** The composition's departure handler (departure.ts); undefined does nothing more than the sweep. */
+  readonly departures?: OrganizationDepartureHandler;
   /** The composed driver, if any; a driver without the two policy hooks is the same as none. */
   readonly lifecycle: ResourceAuthorizationLifecycle | undefined;
   readonly logger: Logger;
@@ -273,7 +292,7 @@ type OrganizationOf = (resource: ApiResourceRef) => Promise<string>;
 export function newIamPolicyGrantPath(
   deps: IamPolicyGrantPathDeps,
 ): IamPolicyGrantPath {
-  const { policies, resources, lifecycle, logger } = deps;
+  const { policies, resources, lifecycle, logger, departures } = deps;
 
   /**
    * The organization a resource belongs to: through its scope links, or,
@@ -399,8 +418,9 @@ export function newIamPolicyGrantPath(
   async function sweepOrganization(
     accountId: string,
     organizationId: string,
-    actor: PolicyActor,
+    caller: CallerIdentity,
   ): Promise<void> {
+    const actor = policyActorOf(caller);
     const change: Change = { actor, cause: "left_organization" };
     const inThisOrganization: OrganizationOf = async () => organizationId;
     const held = await policies.findByPrincipal(ACCOUNT_KIND, accountId);
@@ -433,6 +453,7 @@ export function newIamPolicyGrantPath(
         revoked: String(revoked),
       });
     }
+    await departures?.(accountId, organizationId, caller);
   }
 
   return {
@@ -516,7 +537,7 @@ export function newIamPolicyGrantPath(
         resource.kind === ORGANIZATION_KIND &&
         !(await holdsOrganizationRow(principal.id, resource.id))
       ) {
-        await sweepOrganization(principal.id, resource.id, actor);
+        await sweepOrganization(principal.id, resource.id, caller);
       }
       return existing;
     },
@@ -566,7 +587,7 @@ export function newIamPolicyGrantPath(
       for (const policy of direct) {
         await revokeRow(policy, change);
       }
-      await sweepOrganization(identityAccountId, organizationId, actor);
+      await sweepOrganization(identityAccountId, organizationId, caller);
     },
   };
 }

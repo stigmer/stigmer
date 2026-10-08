@@ -3,7 +3,7 @@
  * `stigmer.ai/*` label namespace (the Java GuardReservedLabelsStep port).
  *
  * Reserved labels carry platform semantics the server reads and acts on
- * (the personal-environment marker, the membership and lineage labels): a client that could write one would be
+ * (the membership and lineage labels): a client that could write one would be
  * writing a platform decision, and any reader trusting the label would be
  * trusting the client. Only rejecting the write closes that; the label is
  * not authorization, the server is.
@@ -22,13 +22,12 @@
  *     the local posture keeps today's behavior byte-identically; the
  *     cloud's FGA Authorizer supplies the operator gate.
  *   - INTERNAL callers pass (the in-process chain's own composed
- *     requests — managed environments and the other rows the server
- *     composes; the
- *     TS rendering of Java's skipAuthorization + isInProcessCall arms).
- *   - PER-KIND CLIENT CONTRACTS pass: `stigmer.ai/personal` on
- *     Environment, which the console legitimately sends on create — the
- *     one allowlist entry, kept here with the rule so widening it is
- *     one reviewable diff.
+ *     requests — the rows the server composes; the TS rendering of Java's
+ *     skipAuthorization + isInProcessCall arms).
+ *   - No kind takes a reserved key from a client: the one per-kind client
+ *     contract (the personal-environment marker) left with the
+ *     Environment kind, and a person's own vault is told apart by its
+ *     server-stamped owner, never by a label.
  *   - SERVER-STAMPED KEYS pass (server-stamped-reserved-labels.ts, the
  *     Java ServerStampedReservedLabels arm): a step that made
  *     the trust decision for specific keys on THIS request records
@@ -64,16 +63,6 @@ import { metadataOf } from "./shapes.js";
 
 /** The platform-reserved label key namespace (SystemManagedLabels). */
 export const RESERVED_LABEL_PREFIX = "stigmer.ai/";
-
-/**
- * The reserved keys clients may legitimately write per kind — the one
- * entry today is the personal-environment marker the console sends on
- * create (the Java CLIENT_CONTRACT_ALLOWLIST verbatim).
- */
-const CLIENT_CONTRACT_ALLOWLIST: ReadonlyMap<
-  ApiResourceKind,
-  ReadonlySet<string>
-> = new Map([[ApiResourceKind.environment, new Set(["stigmer.ai/personal"])]]);
 
 /**
  * The reserved keys `requested` would introduce or change relative to
@@ -133,11 +122,9 @@ export function newGuardReservedLabelsStep<Desc extends DescMessage>(
           ? {}
           : (metadataOf(existing as Message)?.labels ?? {});
 
-      const allowlist =
-        CLIENT_CONTRACT_ALLOWLIST.get(ctx.apiResourceKind) ?? new Set();
       const stamped = serverStampedReservedLabels(ctx);
       const mutations = reservedLabelMutations(stored, requested).filter(
-        (key) => !allowlist.has(key) && !stamped.has(key),
+        (key) => !stamped.has(key),
       );
       if (mutations.length === 0) {
         return;

@@ -144,9 +144,13 @@ type PlatformClientStatus struct {
 	// platform client's credentials, recorded at most once a minute. Used for
 	// security monitoring — credentials that have not been used recently may be
 	// candidates for rotation or deletion. Unset until the first mint.
-	LastUsedAt    *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=last_used_at,json=lastUsedAt,proto3" json:"last_used_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	LastUsedAt *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=last_used_at,json=lastUsedAt,proto3" json:"last_used_at,omitempty"`
+	// Who attached each of this resource's vaults, by vault id: the account
+	// whose permission to use the vault each run checks when it has no
+	// person.
+	VaultAttachers map[string]string `protobuf:"bytes,2,rep,name=vault_attachers,json=vaultAttachers,proto3" json:"vault_attachers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *PlatformClientStatus) Reset() {
@@ -193,6 +197,13 @@ func (x *PlatformClientStatus) GetLastUsedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *PlatformClientStatus) GetVaultAttachers() map[string]string {
+	if x != nil {
+		return x.VaultAttachers
+	}
+	return nil
+}
+
 var File_ai_stigmer_iam_platformclient_v1_api_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_platformclient_v1_api_proto_rawDesc = "" +
@@ -206,11 +217,15 @@ const file_ai_stigmer_iam_platformclient_v1_api_proto_rawDesc = "" +
 	"\x0ePlatformClientR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12H\n" +
 	"\x04spec\x18\x04 \x01(\v24.ai.stigmer.iam.platformclient.v1.PlatformClientSpecR\x04spec\x12N\n" +
-	"\x06status\x18\x05 \x01(\v26.ai.stigmer.iam.platformclient.v1.PlatformClientStatusR\x06status\"\x9c\x01\n" +
+	"\x06status\x18\x05 \x01(\v26.ai.stigmer.iam.platformclient.v1.PlatformClientStatusR\x06status\"\xd4\x02\n" +
 	"\x14PlatformClientStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12<\n" +
 	"\flast_used_at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"lastUsedAtB\xb3\x02\n" +
+	"lastUsedAt\x12s\n" +
+	"\x0fvault_attachers\x18\x02 \x03(\v2J.ai.stigmer.iam.platformclient.v1.PlatformClientStatus.VaultAttachersEntryR\x0evaultAttachers\x1aA\n" +
+	"\x13VaultAttachersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\xb3\x02\n" +
 	"$com.ai.stigmer.iam.platformclient.v1B\bApiProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/platformclient/v1;platformclientv1\xa2\x02\x04ASIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3"
 
 var (
@@ -225,26 +240,28 @@ func file_ai_stigmer_iam_platformclient_v1_api_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_platformclient_v1_api_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_platformclient_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_ai_stigmer_iam_platformclient_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_ai_stigmer_iam_platformclient_v1_api_proto_goTypes = []any{
 	(*PlatformClient)(nil),                  // 0: ai.stigmer.iam.platformclient.v1.PlatformClient
 	(*PlatformClientStatus)(nil),            // 1: ai.stigmer.iam.platformclient.v1.PlatformClientStatus
-	(*apiresource.ApiResourceMetadata)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceMetadata
-	(*PlatformClientSpec)(nil),              // 3: ai.stigmer.iam.platformclient.v1.PlatformClientSpec
-	(*apiresource.ApiResourceAudit)(nil),    // 4: ai.stigmer.commons.apiresource.ApiResourceAudit
-	(*timestamppb.Timestamp)(nil),           // 5: google.protobuf.Timestamp
+	nil,                                     // 2: ai.stigmer.iam.platformclient.v1.PlatformClientStatus.VaultAttachersEntry
+	(*apiresource.ApiResourceMetadata)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceMetadata
+	(*PlatformClientSpec)(nil),              // 4: ai.stigmer.iam.platformclient.v1.PlatformClientSpec
+	(*apiresource.ApiResourceAudit)(nil),    // 5: ai.stigmer.commons.apiresource.ApiResourceAudit
+	(*timestamppb.Timestamp)(nil),           // 6: google.protobuf.Timestamp
 }
 var file_ai_stigmer_iam_platformclient_v1_api_proto_depIdxs = []int32{
-	2, // 0: ai.stigmer.iam.platformclient.v1.PlatformClient.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
-	3, // 1: ai.stigmer.iam.platformclient.v1.PlatformClient.spec:type_name -> ai.stigmer.iam.platformclient.v1.PlatformClientSpec
+	3, // 0: ai.stigmer.iam.platformclient.v1.PlatformClient.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
+	4, // 1: ai.stigmer.iam.platformclient.v1.PlatformClient.spec:type_name -> ai.stigmer.iam.platformclient.v1.PlatformClientSpec
 	1, // 2: ai.stigmer.iam.platformclient.v1.PlatformClient.status:type_name -> ai.stigmer.iam.platformclient.v1.PlatformClientStatus
-	4, // 3: ai.stigmer.iam.platformclient.v1.PlatformClientStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
-	5, // 4: ai.stigmer.iam.platformclient.v1.PlatformClientStatus.last_used_at:type_name -> google.protobuf.Timestamp
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	5, // 3: ai.stigmer.iam.platformclient.v1.PlatformClientStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
+	6, // 4: ai.stigmer.iam.platformclient.v1.PlatformClientStatus.last_used_at:type_name -> google.protobuf.Timestamp
+	2, // 5: ai.stigmer.iam.platformclient.v1.PlatformClientStatus.vault_attachers:type_name -> ai.stigmer.iam.platformclient.v1.PlatformClientStatus.VaultAttachersEntry
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_iam_platformclient_v1_api_proto_init() }
@@ -259,7 +276,7 @@ func file_ai_stigmer_iam_platformclient_v1_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_platformclient_v1_api_proto_rawDesc), len(file_ai_stigmer_iam_platformclient_v1_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

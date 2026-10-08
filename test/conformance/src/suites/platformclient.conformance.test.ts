@@ -12,9 +12,10 @@
 //     client_id;
 //   - `system-share-client` is refused on create, the sign-in role rules are
 //     refused on the contract, and a deleted client is gone;
-//   - `environment_refs` is held to the reference rule every spec reference
-//     is: a missing environment of the client's organization is refused
-//     FAILED_PRECONDITION with the rule's copy, the slug named;
+//   - `vaults` is held to the reference rule every spec reference is: a
+//     missing vault of the client's organization is refused
+//     FAILED_PRECONDITION with the rule's copy, the slug named, and a
+//     person's own My vault is refused (a client's users are not its person);
 //   - on a server that trusts every request, mintUserToken is refused
 //     FAILED_PRECONDITION — nothing there would verify the token.
 //
@@ -42,6 +43,7 @@ import {
 } from "../support/platformclients";
 import { createTarget, type TargetProfile } from "../targets";
 import { organizationSlug } from "../support/organizations";
+import { myVaultTarget, setSecretsInput } from "../support/vaults";
 
 const RESERVED_SLUG_MESSAGE =
   "The slug 'system-share-client' is reserved for the platform's system-managed" +
@@ -229,29 +231,48 @@ describe("PlatformClient conformance — CRUD on the primary", () => {
     );
   });
 
-  it("[rpc:PlatformClientCommandController.create] an environment reference must name an existing environment of the client's organization", async () => {
+  it("[rpc:PlatformClientCommandController.create] a vault reference must name an existing vault of the client's organization", async () => {
     const org = await organization();
     const err = await expectGrpcCode(
       () =>
         clients.platformClientCommand.create({
           apiVersion: "iam.stigmer.ai/v1",
           kind: "PlatformClient",
-          metadata: { name: uniqueName("ghost-env"), org },
+          metadata: { name: uniqueName("ghost-vault"), org },
           spec: {
             createAccountsOnSignIn: true,
-            environmentRefs: [
-              { kind: ApiResourceKind.environment, slug: "ghost-environment" },
-            ],
+            vaults: [{ kind: ApiResourceKind.vault, slug: "ghost-vault" }],
           },
         }),
       Code.FailedPrecondition,
-      "create a client naming a missing environment",
+      "create a client naming a missing vault",
     );
     expect(err.rawMessage).toBe(
-      `referenced environment(s) not found: 'ghost-environment' (org: ${await organizationSlug(clients.organizationQuery, org)}).` +
+      `referenced vault(s) not found: 'ghost-vault' (org: ${await organizationSlug(clients.organizationQuery, org)}).` +
         " Verify the slug and org are correct." +
-        " Use 'stigmer list environments' to list available environments.",
+        " Use 'stigmer list vaults' to list available vaults.",
     );
+  });
+
+  it("[rpc:PlatformClientCommandController.create] a client cannot carry anyone's own My vault", async () => {
+    const org = await organization();
+    const mine = await clients.vaultCommand.setSecrets(setSecretsInput(myVaultTarget(org), { CLIENT_KEY: "mine" }));
+    fixtures.defer(() => clients.vaultCommand.delete({ resourceId: mine.metadata!.id }));
+    const err = await expectGrpcCode(
+      () =>
+        clients.platformClientCommand.create({
+          apiVersion: "iam.stigmer.ai/v1",
+          kind: "PlatformClient",
+          metadata: { name: uniqueName("my-vault-client"), org },
+          spec: {
+            createAccountsOnSignIn: true,
+            vaults: [{ kind: ApiResourceKind.vault, slug: mine.metadata!.slug }],
+          },
+        }),
+      Code.FailedPrecondition,
+      "create a client naming the caller's My vault",
+    );
+    expect(err.rawMessage).toContain("a My vault cannot be attached to a platform client");
   });
 
   it("[rpc:PlatformClientCommandController.delete] delete answers the deleted client without its hash, and the client is gone", async () => {

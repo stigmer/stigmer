@@ -187,7 +187,7 @@ const (
 	// Org admins count as owners of blueprint kinds (agent, agent_share,
 	// skill, mcp_server), so a private blueprint stays
 	// manageable — and visible — to its org's admins. Personal kinds
-	// (environments, sessions) stay creator-only.
+	// (sessions) stay creator-only.
 	ApiResourceVisibility_visibility_private ApiResourceVisibility = 1
 	// Retired. This level made a resource readable to every account on the
 	// server; it is refused at create and at updateVisibility for every kind,
@@ -212,7 +212,7 @@ const (
 	// read and run this resource: the shared catalog an organization offers
 	// the organizations under it (spec.parent_org). Child organizations
 	// created later gain access automatically, and no other organization
-	// does. Instances, sessions, runs and environments are never shared
+	// does. Instances, sessions, runs and vaults are never shared
 	// this way: each child runs the shared blueprint inside its own boundary.
 	//
 	// Only valid for blueprint kinds with supports_child_orgs: true, and only

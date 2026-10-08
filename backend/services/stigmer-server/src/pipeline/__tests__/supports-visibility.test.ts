@@ -64,12 +64,12 @@ describe("supportsVisibility", () => {
     ).toBe(true);
   });
 
-  it("an org-only kind holds org alone (environment: secrets never cross the org)", () => {
+  it("an org-only kind holds org alone (vault: secrets never cross the org)", () => {
+    expect(supportsVisibility(ApiResourceKind.vault, V.visibility_org)).toBe(
+      true,
+    );
     expect(
-      supportsVisibility(ApiResourceKind.environment, V.visibility_org),
-    ).toBe(true);
-    expect(
-      supportsVisibility(ApiResourceKind.environment, V.visibility_child_orgs),
+      supportsVisibility(ApiResourceKind.vault, V.visibility_child_orgs),
     ).toBe(false);
   });
 
@@ -88,7 +88,7 @@ describe("supportedVisibilityLevels (the copy fragment)", () => {
     expect(supportedVisibilityLevels(ApiResourceKind.agent)).toBe(
       "visibility_private, visibility_org, visibility_child_orgs",
     );
-    expect(supportedVisibilityLevels(ApiResourceKind.environment)).toBe(
+    expect(supportedVisibilityLevels(ApiResourceKind.vault)).toBe(
       "visibility_private, visibility_org",
     );
     expect(supportedVisibilityLevels(ApiResourceKind.session)).toBe(

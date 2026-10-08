@@ -245,8 +245,8 @@ Behavior hook that updates the visibility of a resource.
 
 Supports blueprints (Agent, Skill, MCP Server, Plugin) with
 the full private/org/child-organizations spectrum (a plugin's change reaches
-every resource it installed, by the server's contract), and environments
-with private/org (secret values never leave the org boundary, so the
+every resource it installed, by the server's contract), and shared vaults
+with private/org (saved values never leave the org boundary, so the
 child-organizations level is rejected by the backend).
 
 Wraps the generated `stigmer.{kind}.updateVisibility()` SDK method
@@ -406,8 +406,8 @@ Recall). Escalation is confirmed in proportion to how far access expands:
 de-escalation applies instantly, an Organization escalation shows a light
 inline prompt, and a Child organizations escalation opens a blocking
 [`ConfirmDialog`](/docs/sdk/react/resource-detail#confirmdialog) that names the exact audience. Confirmation is owned
-here so every consumer — blueprint detail, environment detail, and any
-standalone embed — behaves identically.
+here so every consumer — agent, MCP server, skill and plugin detail, and
+any standalone embed — behaves identically.
 
 In `"create"` mode it renders an inline radio list that applies
 immediately (initial value selection has no escalation semantics).

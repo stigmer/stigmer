@@ -13,8 +13,11 @@ import { useGitHubSearch } from "./useGitHubSearch.js";
 
 /** Props for {@link GitHubRepoPicker}. */
 export interface GitHubRepoPickerProps {
-  /** GitHub access token for API calls. */
-  readonly token: string;
+  /**
+   * Organization whose My vault holds the GitHub login the server reads
+   * with (`useGitHubConnection().readOrg`). The page never holds a token.
+   */
+  readonly org: string;
   /** Called when the user selects a repo and branch. */
   readonly onSelect: (repoUrl: string, branch: string) => void;
   /** Called when the user dismisses the picker (Escape key). */
@@ -159,10 +162,10 @@ const GITHUB_INSTALLATIONS_URL = "https://github.com/settings/installations";
  *
  * @example
  * ```tsx
- * function RepoSelector({ token }: { token: string }) {
+ * function RepoSelector({ org }: { org: string }) {
  *   return (
  *     <GitHubRepoPicker
- *       token={token}
+ *       org={org}
  *       onSelect={(url, branch) => workspace.addGitRepo(url, branch)}
  *       onCancel={() => setShowPicker(false)}
  *     />
@@ -171,7 +174,7 @@ const GITHUB_INSTALLATIONS_URL = "https://github.com/settings/installations";
  * ```
  */
 export function GitHubRepoPicker({
-  token,
+  org,
   onSelect,
   onCancel,
   className,
@@ -180,10 +183,10 @@ export function GitHubRepoPicker({
   const [showManualEntry, setShowManualEntry] = useState(false);
 
   // My Repos data
-  const myRepos = useGitHubRepos(token);
+  const myRepos = useGitHubRepos(org);
 
   // All GitHub search data
-  const githubSearch = useGitHubSearch(token);
+  const githubSearch = useGitHubSearch(org);
 
   // Branch selection state (shared across modes)
   const [selectedRepo, setSelectedRepo] = useState<{

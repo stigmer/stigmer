@@ -63,7 +63,6 @@ class StigmerClientTest {
             assertNotNull(client.agent);
             assertNotNull(client.run);
             assertNotNull(client.apiKey);
-            assertNotNull(client.environment);
             assertNotNull(client.executionContext);
             assertNotNull(client.iamPolicy);
             assertNotNull(client.identityAccount);
@@ -73,6 +72,7 @@ class StigmerClientTest {
             assertNotNull(client.organization);
             assertNotNull(client.session);
             assertNotNull(client.skill);
+            assertNotNull(client.vault);
             assertNotNull(client.billing());
             assertNotNull(client.search());
             assertNotNull(client.github());

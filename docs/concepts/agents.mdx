@@ -118,16 +118,14 @@ that Agent.
 
 ### Where the secrets come from
 
-The Agent's `env` map declares the keys it needs, never their values. Values
-reach a run when it starts: from the [Environments](/docs/concepts/environments)
-bound to whatever started it (a Schedule, a PlatformClient), from values the
-request passes for that one run, and, for keys still missing, from the personal
-Environment of the person sending the message, when the Agent belongs to the
-Organization the run is in (an Agent another Organization published reads no
-one's personal Environment, and an MCP Server's OAuth variable comes only from
-the sign-in to that server). The same Agent runs with test credentials from one
-Schedule and production credentials from another, and its definition never
-changes.
+The Agent's `env` map declares the keys it needs, never a person's values.
+Values reach a run when it starts, from [vaults](/docs/concepts/vaults): the
+conversation's own values, the vaults the conversation lists, and otherwise the
+My vault of the person sending the message, then the shared vaults the Agent's
+editor attached for people who may use them. A run no person sent (a Schedule, a
+share link, a channel) uses only the vaults that surface names. The same Agent
+runs with test credentials from one Schedule and production credentials from
+another, and its definition never changes.
 
 ### Sessions and runs
 

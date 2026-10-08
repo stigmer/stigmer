@@ -425,17 +425,14 @@ pages:
     medium: none
 
   # ── Platform ───────────────────────────────────────────────────────────
-  concepts/environments:
+  concepts/vaults:
     fate: keep
     diataxis: explanation
     teaches:
-      How config and secrets live outside definitions, how Environments bound
-      to what starts a run layer with later-wins ordering, where a run's values
-      come from (personal Environment last), and what is_secret changes.
-    medium: diagram
-    why:
-      Layered merging into a run is structure; the existing mermaid carries
-      it.
+      What a vault holds (secrets by name, logins by address), My vault and
+      shared vaults with Can use, which vaults a run uses and in what order, how
+      a key is matched, the refusal at create, and a conversation's own values.
+    medium: none
 
   concepts/runners:
     fate: keep

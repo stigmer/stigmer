@@ -64,12 +64,13 @@ export const SESSION_SUBJECT_PREFIX = "Scheduled run: ";
  * The audit link stamped on every schedule-created execution — the same
  * key the cloud edition's scope step writes (Go ScheduleIDLabelKey).
  *
- * In OSS the label is also the environment-resolution key: the execution
- * context step reads it to merge the schedule's environment_refs. Cloud
- * deliberately resolves through the validated token claim
- * instead — a client-suppliable label must not widen what a cloud sandbox
- * reads — but OSS is single-user with no trust boundary, and it has no
- * tokens to carry a claim.
+ * The label is also how the run's credential resolver finds the schedule
+ * whose vaults a fire uses (domain/vault/resolve.ts). A client sets or
+ * changes a `stigmer.ai/` label on a run's create or update only where the
+ * edition's authorizer grants it reserved-label writes
+ * (pipeline/steps/guard-reserved-labels.ts; the open-source authorizer
+ * grants every caller, a hosted edition only its operators), and the
+ * resolver uses a schedule only of the run's own organization.
  */
 export const SCHEDULE_ID_LABEL_KEY = "stigmer.ai/schedule-id";
 
@@ -458,7 +459,8 @@ export class RunStarter {
     // unset — the agent's engine applies, else the platform default (OSS:
     // native). Workspace entries
     // are git-only by write-time validation; credentials, when a repo is
-    // private, ride an org-shared environment holding GITHUB_TOKEN.
+    // private, ride a vault the schedule names holding a GITHUB_TOKEN
+    // secret or a connection for the repository's host.
     const sessionSpec = create(SessionSpecSchema, {
       agentRef: create(ApiResourceReferenceSchema, {
         kind: ApiResourceKind.agent,
@@ -486,8 +488,8 @@ export class RunStarter {
         // own org is stamped directly — it is load-bearing for the session
         // and execution context.
         org: schedule.metadata?.org ?? "",
-        // The audit link AND this edition's
-        // environment-resolution key — see SCHEDULE_ID_LABEL_KEY.
+        // The audit link AND how the credential resolver finds the
+        // schedule's vaults — see SCHEDULE_ID_LABEL_KEY.
         labels: { [SCHEDULE_ID_LABEL_KEY]: schedule.metadata?.id ?? "" },
       }),
       spec: create(RunSpecSchema, {

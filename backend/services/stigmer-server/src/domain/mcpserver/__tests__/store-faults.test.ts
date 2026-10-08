@@ -9,8 +9,9 @@
  * re-read after this lane lost the start race), initiateOAuthConnect,
  * completeOAuthConnect, and updateVisibility's load step, reached through the
  * registered handler on an in-process router. completeOAuthConnect loads
- * after the pending state is consumed and the code exchanged, so its fault
- * copy sends the user back through the connect flow. The composed suites
+ * after the pending state is consumed and before the code is exchanged, so
+ * its fault copy sends the user back through the connect flow and its
+ * token endpoint is never reached. The composed suites
  * reach only a real store, which cannot fail selectively, so each surface
  * runs here against a store whose read throws. Every other dependency is
  * untouchable: a load that fails must stop the call before any of them.
@@ -81,7 +82,7 @@ const LOCKED = (): Error => new Error("SQLITE_BUSY: database is locked");
 /**
  * The connect slice's dependencies with every field untouchable except the
  * ones a surface names: a load that fails must stop the call before the
- * engine, the environments, the grant store or the network.
+ * engine, the vaults or the network.
  */
 function connectDeps(
   overrides: Partial<McpServerConnectDeps>,
@@ -91,11 +92,10 @@ function connectDeps(
     logger: silentLogger,
     authorizer: newPermissiveSingleTeamAuthorizer(),
     engineState: untouchable("engineState"),
-    environmentReader: untouchable("environmentReader"),
     executionContext: untouchable("executionContext"),
     runnerAuth: untouchable("runnerAuth"),
-    managedEnv: untouchable("managedEnv"),
-    oauthGrants: untouchable("oauthGrants"),
+    vaults: untouchable("vaults"),
+    vaultResolver: untouchable("vaultResolver"),
     pendingOAuthStates: untouchable("pendingOAuthStates"),
     secretService: untouchable("secretService"),
     // The external-runner posture: no connect sandbox is provisioned.
@@ -106,7 +106,10 @@ function connectDeps(
   };
 }
 
-/** A plaintext pending state for SERVER_ID; a keyless SecretService unseals it to itself. */
+/**
+ * A plaintext pending state for SERVER_ID, started by the test caller; a
+ * keyless SecretService unseals it to itself.
+ */
 const PENDING_STATE: PendingOAuthState = {
   state: "state_storefault",
   codeVerifier: "verifier_storefault",
@@ -114,7 +117,9 @@ const PENDING_STATE: PendingOAuthState = {
   clientSecret: "",
   tokenEndpoint: "https://auth.example.test/token",
   mcpServerId: SERVER_ID,
-  identityAccountId: "",
+  identityAccountId: testCallerIdentity().identityId,
+  vaultId: "",
+  toolAddress: "https://mcp.example.test/mcp",
   targetEnvVar: "MCP_ACCESS_TOKEN",
   authMethod: "mcp_oauth",
   tokenAuthMethod: "",
@@ -132,14 +137,9 @@ const pendingStates: PendingOAuthStateStore = {
     Promise.reject(new Error("pendingOAuthStates.deleteByOrg reached")),
 };
 
-/** The provider's token endpoint: the exchange succeeds, so the load is next. */
+/** The provider's token endpoint: the load comes first, so a failed load never reaches it. */
 const tokenEndpoint: OutboundFetch = () =>
-  Promise.resolve(
-    new Response(
-      JSON.stringify({ access_token: "at_storefault", token_type: "bearer" }),
-      { status: 200 },
-    ),
-  );
+  Promise.reject(new Error("token endpoint reached before the server load"));
 
 const connectInput = () =>
   create(ConnectInputSchema, { mcpServerId: SERVER_ID, org: ORG });
@@ -147,8 +147,8 @@ const connectInput = () =>
 /**
  * The direct handlers' entry loads. Each validates its input first, so the
  * inputs carry every field the handler requires; completeOAuthConnect also
- * consumes the pending state, unseals it and exchanges the code before its
- * load, so its fakes answer those three steps.
+ * consumes the pending state before its load, so its fake answers that
+ * step.
  */
 const HANDLER_LOADS: ReadonlyArray<
   readonly [string, string, (store: Store) => Promise<unknown>]
@@ -183,7 +183,7 @@ const HANDLER_LOADS: ReadonlyArray<
       ),
   ],
   [
-    "completeOAuthConnect — after the code exchange",
+    "completeOAuthConnect — before the code exchange",
     CALLBACK_FAULT_COPY,
     (store) =>
       completeOAuthConnect(

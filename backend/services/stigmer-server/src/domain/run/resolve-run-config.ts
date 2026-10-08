@@ -92,7 +92,7 @@ import {
 } from "../../modelcatalog/pin-validation.js";
 import { savedChoiceWithoutModelRefusal } from "../../modelcatalog/run-config-checks.js";
 
-import { SCHEDULE_ID_LABEL_KEY } from "./run-person.js";
+import { SCHEDULE_ID_LABEL_KEY } from "../vault/resolve.js";
 import { storedSessionOf } from "./session-binding.js";
 import { newSessionSpecOf, sessionIdOf } from "./target.js";
 

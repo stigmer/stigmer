@@ -25,7 +25,7 @@ public final class AgentChannelInput {
     private final boolean enabled;
     private final SlackChannelConfigInput slack;
     private final WhatsAppChannelConfigInput whatsapp;
-    private final java.util.List<ResourceRef> environmentRefs;
+    private final java.util.List<ResourceRef> vaults;
     private final ResourceRef appRef;
     private final boolean proactiveMessagingEnabled;
     private final RunConfigInput runConfig;
@@ -41,7 +41,7 @@ public final class AgentChannelInput {
         this.enabled = builder.enabled;
         this.slack = builder.slack;
         this.whatsapp = builder.whatsapp;
-        this.environmentRefs = builder.environmentRefs;
+        this.vaults = builder.vaults;
         this.appRef = builder.appRef;
         this.proactiveMessagingEnabled = builder.proactiveMessagingEnabled;
         this.runConfig = builder.runConfig;
@@ -60,10 +60,10 @@ public final class AgentChannelInput {
         if (this.slack != null) {
             spec.setSlack(this.slack.toProto());
         }
-        if (this.environmentRefs != null) {
-            for (ResourceRef item : this.environmentRefs) {
-                spec.addEnvironmentRefs(item.toProto().toBuilder()
-                    .setKind(ApiResourceKind.environment).build());
+        if (this.vaults != null) {
+            for (ResourceRef item : this.vaults) {
+                spec.addVaults(item.toProto().toBuilder()
+                    .setKind(ApiResourceKind.vault).build());
             }
         }
         if (this.appRef != null && this.appRef.hasIdentifier()) {
@@ -112,7 +112,7 @@ public final class AgentChannelInput {
         private boolean enabled;
         private SlackChannelConfigInput slack;
         private WhatsAppChannelConfigInput whatsapp;
-        private java.util.List<ResourceRef> environmentRefs;
+        private java.util.List<ResourceRef> vaults;
         private ResourceRef appRef;
         private boolean proactiveMessagingEnabled;
         private RunConfigInput runConfig;
@@ -134,7 +134,7 @@ public final class AgentChannelInput {
         public Builder enabled(boolean enabled) { this.enabled = enabled; return this; }
         public Builder slack(SlackChannelConfigInput slack) { this.slack = slack; return this; }
         public Builder whatsapp(WhatsAppChannelConfigInput whatsapp) { this.whatsapp = whatsapp; return this; }
-        public Builder environmentRefs(java.util.List<ResourceRef> environmentRefs) { this.environmentRefs = environmentRefs; return this; }
+        public Builder vaults(java.util.List<ResourceRef> vaults) { this.vaults = vaults; return this; }
         public Builder appRef(ResourceRef appRef) { this.appRef = appRef; return this; }
         public Builder proactiveMessagingEnabled(boolean proactiveMessagingEnabled) { this.proactiveMessagingEnabled = proactiveMessagingEnabled; return this; }
         public Builder runConfig(RunConfigInput runConfig) { this.runConfig = runConfig; return this; }

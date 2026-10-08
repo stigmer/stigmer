@@ -82,7 +82,7 @@ import { create } from "@bufbuild/protobuf";
 
 import type { OutboundFetch } from "@stigmer/outbound/egress";
 import { probeEndpointAuth } from "@stigmer/outbound/mcp-oauth";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
 import type { McpServer, McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerAuthSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import type { McpServerSpec } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";

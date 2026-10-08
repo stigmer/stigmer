@@ -55,11 +55,11 @@
                 "agent_share",
                 "agent_channel",
                 "channel_app",
-                "environment",
                 "execution_context",
                 "schedule",
                 "memory",
                 "plugin",
+                "vault",
                 "plan",
                 "subscription",
                 "license"
@@ -270,11 +270,6 @@
           "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
         },
         {
-          "name": "environment",
-          "number": 53,
-          "description": "Named set of variables and secrets for a run."
-        },
-        {
           "name": "execution_context",
           "number": 54,
           "description": "User-owned runtime context for managing execution state."
@@ -293,6 +288,11 @@
           "name": "plugin",
           "number": 58,
           "description": "An installed Agent Plugins package: the archive Stigmer materialised into\n skills, MCP servers and an agent, and the handle that upgrades\n and removes them together. A plugin is what you install; an agent is what\n runs. Members are the resources labelled with the plugin's id."
+        },
+        {
+          "name": "vault",
+          "number": 59,
+          "description": "A person's or an organization's box of logins (matched by a tool's\n address) and secrets (matched by name) that runs use."
         },
         {
           "name": "plan",
@@ -319,7 +319,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (environments, sessions) stay creator-only."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -334,7 +334,7 @@
         {
           "name": "visibility_child_orgs",
           "number": 4,
-          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and environments are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
+          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and vaults are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
         }
       ]
     }

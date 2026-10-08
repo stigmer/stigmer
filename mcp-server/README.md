@@ -1,8 +1,8 @@
 # `@stigmer/mcp-server`
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server for the
-Stigmer platform. It exposes Stigmer **agents, skills, MCP servers, and
-environments** as MCP tools and resources — covering both the
+Stigmer platform. It exposes Stigmer **agents, skills and MCP servers** as
+MCP tools and resources — covering both the
 authoring loop (create, read, update, delete, version) and the run loop
 (run, observe, approve, cancel) — so any MCP-capable client (Claude Desktop,
 Cursor, the Stigmer CLI, etc.) can build on Stigmer through a uniform protocol.
@@ -46,13 +46,13 @@ MCP client ──JSON-RPC──▶ stdio | HTTP (stateless) ──▶ tool handl
   flattening, oneof expansion) are produced at build time by the codegen in
   `tools/codegen/src/generator/mcp-ts.ts`. Never hand-edit `src/gen/`.
 
-## Tools (17)
+## Tools (14)
 
 ### Discovery
 
 | Tool | Description |
 | --- | --- |
-| `search` | Search across agents, skills, MCP servers, and environments; results are enriched with `stigmer://` resource URIs. |
+| `search` | Search across agents, skills and MCP servers; results are enriched with `stigmer://` resource URIs. |
 
 ### Authoring
 
@@ -67,9 +67,6 @@ MCP client ──JSON-RPC──▶ stdio | HTTP (stateless) ──▶ tool handl
 | `get_skill` | Read a skill (optionally a specific version). |
 | `delete_skill` | Delete a skill (all versions). |
 | `list_skill_versions` | List a skill's version history. |
-| `get_environment` | Read an environment (secret values arrive server-redacted). |
-| `apply_environment` | Create or update an environment; echoing `***REDACTED***` preserves existing secrets. |
-| `delete_environment` | Delete an environment. |
 
 ### Runs
 
@@ -78,12 +75,12 @@ the assistant polls the observation tools.
 
 | Tool | Description |
 | --- | --- |
-| `run_agent` | Start a run of an agent (new session or `session_id` follow-up). |
+| `run_agent` | Start a run of an agent (new session or `session_id` follow-up); `secrets` ride a new session, kept sealed for its life. |
 | `get_run` | Poll a run: phase, message tail (compact view) or full record, pending approvals. |
 | `submit_run_approval` | Approve / skip / reject a tool call a run is waiting on. |
 | `cancel_run` | Gracefully cancel a run (`run_*`) by ID. |
 
-## Resources (5)
+## Resources (4)
 
 Resource templates let clients discover and read resources by `stigmer://` URI:
 
@@ -93,7 +90,6 @@ Resource templates let clients discover and read resources by `stigmer://` URI:
 | `stigmer_mcp_server` | `stigmer://mcp-servers/{org}/{slug}` |
 | `stigmer_skill` | `stigmer://skills/{org}/{slug}` (latest) |
 | `stigmer_skill_version` | `stigmer://skills/{org}/{slug}/{version}` |
-| `stigmer_environment` | `stigmer://environments/{org}/{slug}` |
 
 ## Configuration
 

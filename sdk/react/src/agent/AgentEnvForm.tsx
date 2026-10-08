@@ -1,12 +1,12 @@
 "use client";
 
-import type { EnvVarInput } from "@stigmer/sdk";
+import type { EnvVarInput } from "../vault/types.js";
 import {
   EnvVarForm,
   type EnvVarFormVariable,
   type EnvVarFormSubmitOptions,
   type EnvVarFormProps,
-} from "../environment/EnvVarForm.js";
+} from "../vault/EnvVarForm.js";
 
 // ---------------------------------------------------------------------------
 // Backward-compatible type aliases
@@ -58,7 +58,7 @@ export interface AgentEnvFormProps {
   /** Prevents interaction with all form inputs when `true`. */
   readonly disabled?: boolean;
   /**
-   * Initial state of the "Save for future runs" toggle.
+   * Initial state of the "Save in My vault" toggle.
    * Platform builders can override this to match their default
    * secret-persistence policy.
    * @default true
@@ -98,7 +98,7 @@ export interface AgentEnvFormProps {
  *   ]}
  *   onSubmit={(values, { saveForFuture }) => {
  *     if (saveForFuture) saveToEnvironment(values);
- *     else useAsRuntimeEnv(values);
+ *     else useForThisConversation(values);
  *   }}
  *   onCancel={() => console.log("cancelled")}
  * />

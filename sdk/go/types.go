@@ -10,7 +10,6 @@ type AgentChannelClient = gen.AgentChannelClient
 type AgentShareClient = gen.AgentShareClient
 type ApiKeyClient = gen.ApiKeyClient
 type ChannelAppClient = gen.ChannelAppClient
-type EnvironmentClient = gen.EnvironmentClient
 type ExecutionContextClient = gen.ExecutionContextClient
 type IamPolicyClient = gen.IamPolicyClient
 type IdentityAccountClient = gen.IdentityAccountClient
@@ -34,6 +33,7 @@ type SessionClient = gen.SessionClient
 // client.Skill and the exported type agree.
 type SubscriptionClient = gen.SubscriptionClient
 type TeamClient = gen.TeamClient
+type VaultClient = gen.VaultClient
 
 // Input types for resource mutation (Create, Update, Apply).
 type AgentInput = gen.AgentInput
@@ -54,7 +54,6 @@ type ApiKeyInput = gen.ApiKeyInput
 type ChannelAppInput = gen.ChannelAppInput
 type SlackChannelAppConfigInput = gen.SlackChannelAppConfigInput
 type WhatsAppChannelAppConfigInput = gen.WhatsAppChannelAppConfigInput
-type EnvironmentInput = gen.EnvironmentInput
 type ExecutionContextInput = gen.ExecutionContextInput
 type IamPolicyInput = gen.IamPolicyInput
 type ApiResourceRefInput = gen.ApiResourceRefInput
@@ -94,6 +93,10 @@ type SessionInput = gen.SessionInput
 type SkillInput = gen.SkillInput
 type SubscriptionInput = gen.SubscriptionInput
 type TeamInput = gen.TeamInput
+type VaultInput = gen.VaultInput
+type VaultSecretInput = gen.VaultSecretInput
+type VaultConnectionInput = gen.VaultConnectionInput
+type VaultConnectionSignInInput = gen.VaultConnectionSignInInput
 
 // Streaming types.
 type RunSubscribeStream = gen.RunSubscribeStream
@@ -104,5 +107,4 @@ type ResourceRef = gen.ResourceRef
 type Page = gen.Page
 type ListParams = gen.ListParams
 type ListResult = gen.ListResult
-type EnvSpecInput = gen.EnvSpecInput
 type EnvVarInput = gen.EnvVarInput

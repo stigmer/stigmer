@@ -122,7 +122,7 @@ public final class ScheduleInput {
         private final String message;
         private final Harness harness;
         private final java.util.List<WorkspaceEntryInput> workspaceEntries;
-        private final java.util.List<ResourceRef> environmentRefs;
+        private final java.util.List<ResourceRef> vaults;
         private final RunConfigInput runConfig;
 
         private AgentInvocationInput(Builder builder) {
@@ -130,7 +130,7 @@ public final class ScheduleInput {
             this.message = builder.message;
             this.harness = builder.harness;
             this.workspaceEntries = builder.workspaceEntries;
-            this.environmentRefs = builder.environmentRefs;
+            this.vaults = builder.vaults;
             this.runConfig = builder.runConfig;
         }
 
@@ -151,10 +151,10 @@ public final class ScheduleInput {
                     builder.addWorkspaceEntries(item.toProto());
                 }
             }
-            if (this.environmentRefs != null) {
-                for (ResourceRef item : this.environmentRefs) {
-                    builder.addEnvironmentRefs(item.toProto().toBuilder()
-                        .setKind(ApiResourceKind.environment).build());
+            if (this.vaults != null) {
+                for (ResourceRef item : this.vaults) {
+                    builder.addVaults(item.toProto().toBuilder()
+                        .setKind(ApiResourceKind.vault).build());
                 }
             }
             if (this.runConfig != null) {
@@ -170,7 +170,7 @@ public final class ScheduleInput {
             private String message;
             private Harness harness;
             private java.util.List<WorkspaceEntryInput> workspaceEntries;
-            private java.util.List<ResourceRef> environmentRefs;
+            private java.util.List<ResourceRef> vaults;
             private RunConfigInput runConfig;
 
             private Builder() {}
@@ -179,7 +179,7 @@ public final class ScheduleInput {
             public Builder message(String message) { this.message = message; return this; }
             public Builder harness(Harness harness) { this.harness = harness; return this; }
             public Builder workspaceEntries(java.util.List<WorkspaceEntryInput> workspaceEntries) { this.workspaceEntries = workspaceEntries; return this; }
-            public Builder environmentRefs(java.util.List<ResourceRef> environmentRefs) { this.environmentRefs = environmentRefs; return this; }
+            public Builder vaults(java.util.List<ResourceRef> vaults) { this.vaults = vaults; return this; }
             public Builder runConfig(RunConfigInput runConfig) { this.runConfig = runConfig; return this; }
 
             public AgentInvocationInput build() { return new AgentInvocationInput(this); }
@@ -265,6 +265,7 @@ public final class ScheduleInput {
         private final String commit;
         private final Integer depth;
         private final GitWriteBackMode writeBackMode;
+        private final String token;
 
         private GitRepoSourceInput(Builder builder) {
             this.url = builder.url;
@@ -272,6 +273,7 @@ public final class ScheduleInput {
             this.commit = builder.commit;
             this.depth = builder.depth;
             this.writeBackMode = builder.writeBackMode;
+            this.token = builder.token;
         }
 
         GitRepoSource toProto() {
@@ -291,6 +293,9 @@ public final class ScheduleInput {
             if (this.writeBackMode != null) {
                 builder.setWriteBackMode(this.writeBackMode);
             }
+            if (this.token != null) {
+                builder.setToken(this.token);
+            }
             return builder.build();
         }
 
@@ -302,6 +307,7 @@ public final class ScheduleInput {
             private String commit;
             private Integer depth;
             private GitWriteBackMode writeBackMode;
+            private String token;
 
             private Builder() {}
 
@@ -310,6 +316,7 @@ public final class ScheduleInput {
             public Builder commit(String commit) { this.commit = commit; return this; }
             public Builder depth(int depth) { this.depth = depth; return this; }
             public Builder writeBackMode(GitWriteBackMode writeBackMode) { this.writeBackMode = writeBackMode; return this; }
+            public Builder token(String token) { this.token = token; return this; }
 
             public GitRepoSourceInput build() { return new GitRepoSourceInput(this); }
         }

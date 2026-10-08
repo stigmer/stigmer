@@ -9,25 +9,14 @@ description: Hooks and components for OAuth connection, repository search, and p
 
 ### useGitHubConnection
 
-Behavior hook that manages the GitHub OAuth connection lifecycle.
+Behavior hook that manages the GitHub connection lifecycle.
 
-Handles the full OAuth flow: generating the authorize URL via the
-Stigmer backend, exchanging the code for a token, validating it,
-and persisting it in the user's server-side personal
-`Environment`.
+Handles the OAuth flow: the authorize URL from the Stigmer backend,
+then the exchange, which the server completes by saving the token as
+the `github.com` login in the caller's My vault in `org`. The token
+never reaches the page.
 
-**Storage strategy:** The token is stored encrypted in the personal
-environment (server-side). On OAuth callback the token is written
-directly to the personal environment via `getOrCreate` /
-`addVariables`. On subsequent mounts the token is revealed from the
-personal environment and validated against the GitHub API.
-
-Pass `null` as `org` to disable server-side storage (the hook will
-report as not connected until org context is available).
-
-Platform builders who need custom GitHub integration UI use this
-hook directly. The styled `WorkspaceEditor` component accepts the
-return value as a prop.
+Pass `null` as `org` to disable (the hook reports not connected).
 
 **Signature**
 
@@ -37,7 +26,7 @@ function useGitHubConnection(org: string | null, config?: UseGitHubConnectionCon
 
 <TypeTable
   type={{
-    org: { type: "string | null", description: "The active organization id (a slug is also accepted). Required for server-side   token storage. Pass `null` to skip all server operations.", required: true },
+    org: { type: "string | null", description: "The active organization id (a slug is also accepted).", required: true },
     config: { type: "UseGitHubConnectionConfig", description: "Optional configuration for desktop / non-browser   environments. See UseGitHubConnectionConfig." },
   }}
 />
@@ -47,92 +36,75 @@ function useGitHubConnection(org: string | null, config?: UseGitHubConnectionCon
 <TypeTable
   type={{
     connect: { type: "(redirectUri: string, options?: GitHubConnectOptions) => Promise<void>", description: "Initiate the OAuth flow — redirect or popup based on options." },
-    disconnect: { type: "() => void", description: "Clear the stored token and user info." },
-    handleCallback: { type: "(code: string, state: string, redirectUri: string) => Promise<void>", description: "Handle the OAuth callback — exchange code for token." },
-    isConnected: { type: "boolean", description: "Whether a valid GitHub token exists." },
+    disconnect: { type: "() => void", description: "Remove the `github.com` login from My vault." },
+    disconnectError: { type: "Error | null", description: "The last disconnect that failed to remove the login: My vault still holds it, so the hook still reports connected. `null` once a later disconnect starts, or when none failed." },
+    handleCallback: { type: "(code: string, state: string, redirectUri: string) => Promise<void>", description: "Handle the OAuth callback — the server exchanges the code and saves the login." },
+    isConnected: { type: "boolean", description: "Whether My vault holds a `github.com` login." },
     isConnecting: { type: "boolean", description: "Whether an OAuth popup is open and the flow is in progress." },
-    isLoading: { type: "boolean", description: "Whether the connection state is being validated on mount." },
+    isLoading: { type: "boolean", description: "Whether My vault is being read on mount." },
     popupBlocked: { type: "boolean", description: "Whether the last popup `connect()` attempt was blocked by the browser. When `true`, the UI should prompt the user to allow popups or offer a redirect fallback (call `connect` without `{ popup: true }`)." },
-    reconcile: { type: "() => void", description: "Trigger re-reconciliation from the personal environment.  Call this when the token exchange was handled externally (e.g. by the Stigmer web callback page during a desktop OAuth flow) and the token is already stored server-side. The hook will refetch the personal environment, reveal the token, and update isConnected." },
-    token: { type: "string | null", description: "The current access token (null if not connected)." },
-    user: { type: "GitHubUser | null", description: "The connected GitHub user profile, if connected." },
+    readOrg: { type: "string | null", description: "The organization the GitHub reads go through (its My vault holds the login): set while connected, `null` otherwise. Pass it to useGitHubRepos, useGitHubSearch, useGitHubTreeLister and useGitHubFileReader." },
+    reconcile: { type: "() => void", description: "Re-read My vault. Call this when the exchange was handled elsewhere (e.g. by the web callback page during a desktop OAuth flow)." },
+    user: { type: "GitHubUser | null", description: "The connected GitHub account, when this browser saw it connect (the server returns the login on the exchange). `null` when not connected or not known here." },
   }}
 />
 
 ```tsx
 function GitHubConnect({ org }: { org: string }) {
   const gh = useGitHubConnection(org);
-
   if (gh.isLoading) return <Skeleton />;
-
   if (!gh.isConnected) {
     return (
-      <button
-        onClick={() => gh.connect(window.location.href, { popup: true })}
-        disabled={gh.isConnecting}
-      >
-        {gh.isConnecting ? "Connecting…" : "Connect GitHub"}
+      <button onClick={() => gh.connect(window.location.href, { popup: true })}>
+        Connect GitHub
       </button>
     );
   }
-
-  return (
-    <div>
-      <img src={gh.user?.avatarUrl} alt={gh.user?.login} />
-      <span>{gh.user?.login}</span>
-      <button onClick={gh.disconnect}>Disconnect</button>
-    </div>
-  );
+  return <GitHubRepoPicker org={gh.readOrg!} onSelect={addRepo} />;
 }
 ```
 
 ```tsx
-function DesktopGitHubConnect({ org }: { org: string }) {
-  const gh = useGitHubConnection(org, {
-    openUrl: (url) => invoke("open_auth_in_browser", { authUrl: url }),
-    callbackUrl: "https://app.stigmer.ai/auth/github/callback?source=desktop",
-  });
-  // The web callback page processes the exchange, then redirects to
-  // stigmer://github/callback-done. The desktop deep link handler
-  // calls gh.reconcile() to pick up the token.
-}
+const gh = useGitHubConnection(org, {
+  openUrl: (url) => invoke("open_auth_in_browser", { authUrl: url }),
+  callbackUrl: "https://app.stigmer.ai/auth/github/callback?source=desktop",
+});
+// The web callback page completes the exchange; the desktop deep link
+// handler calls gh.reconcile() to re-read My vault.
 ```
 
 
 ### useGitHubFileReader
 
-Creates a [`WorkspaceFileReader`](/docs/sdk/react/workspace#workspacefilereader) backed by the GitHub Contents API,
-with a Blob-API fallback for files above the Contents 1 MB cap.
+Creates a [`WorkspaceFileReader`](/docs/sdk/react/workspace#workspacefilereader) backed by the server's GitHub
+file read.
 
-Uses the same client-side OAuth token as [`useGitHubTreeLister`](#usegithubtreelister)
-(`Authorization: Bearer`), inheriting its private-repo scope. Returns
-`undefined` when no token is present, mirroring the tree lister so callers
-can treat "no reader" and "no lister" identically.
+Returns `undefined` when `org` is `null` (GitHub not connected),
+mirroring the tree lister so callers can treat "no reader" and "no
+lister" identically.
 
 The reader itself:
 - Returns `null` when the entry is not a readable GitHub git repo
   (non-git entry, missing/unparseable URL) — the "unsupported here" state.
-- **Throws** on a real failure: a non-OK response, or a directory path
-  (which the Contents API returns as a JSON array). Consumers surface these
-  as an error, distinct from the null "unsupported" state. A 404 throws the
-  typed `WorkspaceFileNotFoundError` so consumers can fall back to
-  session-captured content for files not yet pushed to the ref.
+- Throws `WorkspaceFileNotFoundError` when the file is not at the
+  ref, so consumers can fall back to session-captured content for files
+  not yet pushed; throws plainly on any other failure.
 
 **Signature**
 
 ```tsx
-function useGitHubFileReader(token: string | null): WorkspaceFileReader | undefined
+function useGitHubFileReader(org: string | null): WorkspaceFileReader | undefined
 ```
 
 <TypeTable
   type={{
-    token: { type: "string | null", description: "", required: true },
+    org: { type: "string | null", description: "", required: true },
   }}
 />
 
 ```tsx
 const gitHubConnection = useGitHubConnection(org);
-const fileReader = useGitHubFileReader(gitHubConnection.token);
+const fileReader = useGitHubFileReader(gitHubConnection.readOrg);
 <SessionViewer workspaceFileReader={fileReader} />
 ```
 
@@ -148,12 +120,12 @@ Provides client-side search filtering and branch fetching.
 **Signature**
 
 ```tsx
-function useGitHubRepos(token: string | null): UseGitHubReposReturn
+function useGitHubRepos(org: string | null): UseGitHubReposReturn
 ```
 
 <TypeTable
   type={{
-    token: { type: "string | null", description: "", required: true },
+    org: { type: "string | null", description: "", required: true },
   }}
 />
 
@@ -174,9 +146,9 @@ function useGitHubRepos(token: string | null): UseGitHubReposReturn
 />
 
 ```tsx
-function RepoList({ token }: { token: string }) {
+function RepoList({ org }: { org: string }) {
   const { repos, isLoading, search, setSearch, fetchBranches } =
-    useGitHubRepos(token);
+    useGitHubRepos(org);
 
   if (isLoading) return <Skeleton />;
 
@@ -198,28 +170,25 @@ function RepoList({ token }: { token: string }) {
 ```
 
 ```tsx
-// Skip fetching until a token is available
-const { repos } = useGitHubRepos(token ?? null);
+// Skip fetching until GitHub is connected
+const { repos } = useGitHubRepos(gitHubConnection.readOrg);
 ```
 
 
 ### useGitHubSearch
 
-Data hook that searches GitHub's public repository index.
-
-Uses the GitHub Search API (`/search/repositories`) with debounced input.
-Finds repositories across all of GitHub, not just the user's own repos.
-Works with or without an auth token (auth: 30 req/min; unauth: 10 req/min).
+Data hook that searches the repositories the connected GitHub account can
+reach, with debounced input. Pass `null` (GitHub not connected) to skip.
 
 **Signature**
 
 ```tsx
-function useGitHubSearch(token: string | null): UseGitHubSearchReturn
+function useGitHubSearch(org: string | null): UseGitHubSearchReturn
 ```
 
 <TypeTable
   type={{
-    token: { type: "string | null", description: "", required: true },
+    org: { type: "string | null", description: "", required: true },
   }}
 />
 
@@ -234,21 +203,21 @@ function useGitHubSearch(token: string | null): UseGitHubSearchReturn
     query: { type: "string", description: "Current raw search query (not debounced)." },
     results: { type: "readonly GitHubRepo[]", description: "Search results for the current debounced query." },
     setQuery: { type: "(query: string) => void", description: "Update the search query. The actual API call is debounced internally." },
-    totalCount: { type: "number", description: "Total number of repositories matching the query across GitHub." },
+    totalCount: { type: "number", description: "Number of matching repositories loaded so far." },
   }}
 />
 
 ```tsx
-function GitHubSearch({ token }: { token: string | null }) {
+function GitHubSearch({ org }: { org: string | null }) {
   const { results, isSearching, query, setQuery, hasMore, loadMore } =
-    useGitHubSearch(token);
+    useGitHubSearch(org);
 
   return (
     <div>
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search all of GitHub…"
+        placeholder="Search repositories…"
       />
       {isSearching && <Spinner />}
       <ul>
@@ -265,33 +234,28 @@ function GitHubSearch({ token }: { token: string | null }) {
 
 ### useGitHubTreeLister
 
-Creates a [`WorkspaceFileLister`](/docs/sdk/react/workspace#workspacefilelister) backed by the GitHub Trees API.
+Creates a [`WorkspaceFileLister`](/docs/sdk/react/workspace#workspacefilelister) backed by the server's GitHub tree
+read, at the entry's `readRef` (write-back commit) or `gitBranch`.
 
-Uses the existing client-side OAuth token (same one that powers
-`GitHubRepoPicker`) to call `GET /repos/{owner}/{repo}/git/trees/{ref}?recursive=1`,
-where the ref is the entry's `readRef` (write-back commit) or `gitBranch`.
-
-Returns `null` for:
-- Non-git workspace entries
-- Missing or empty token
-- Non-GitHub git URLs
-- Failed API responses (graceful degradation)
+Returns `null` for non-git entries, non-GitHub URLs and failed reads
+(graceful degradation), and `undefined` as the lister itself when `org`
+is `null` (GitHub not connected).
 
 **Signature**
 
 ```tsx
-function useGitHubTreeLister(token: string | null): WorkspaceFileLister | undefined
+function useGitHubTreeLister(org: string | null): WorkspaceFileLister | undefined
 ```
 
 <TypeTable
   type={{
-    token: { type: "string | null", description: "", required: true },
+    org: { type: "string | null", description: "", required: true },
   }}
 />
 
 ```tsx
 const gitHubConnection = useGitHubConnection(org);
-const fileLister = useGitHubTreeLister(gitHubConnection.token);
+const fileLister = useGitHubTreeLister(gitHubConnection.readOrg);
 
 <SessionViewer workspaceFileLister={fileLister} />
 ```
@@ -323,15 +287,15 @@ All visual properties flow through `--stgm-*` tokens.
     className: { type: "string", description: "Additional CSS class names for the root container." },
     onCancel: { type: "() => void", description: "Called when the user dismisses the picker (Escape key)." },
     onSelect: { type: "(repoUrl: string, branch: string) => void", description: "Called when the user selects a repo and branch.", required: true },
-    token: { type: "string", description: "GitHub access token for API calls.", required: true },
+    org: { type: "string", description: "Organization whose My vault holds the GitHub login the server reads with (`useGitHubConnection().readOrg`). The page never holds a token.", required: true },
   }}
 />
 
 ```tsx
-function RepoSelector({ token }: { token: string }) {
+function RepoSelector({ org }: { org: string }) {
   return (
     <GitHubRepoPicker
-      token={token}
+      org={org}
       onSelect={(url, branch) => workspace.addGitRepo(url, branch)}
       onCancel={() => setShowPicker(false)}
     />
@@ -364,7 +328,7 @@ Options for `UseGitHubConnectionReturn.connect`.
 
 <TypeTable
   type={{
-    popup: { type: "boolean", description: "When `true`, open the OAuth authorization page in a popup window instead of redirecting the current page. The callback page signals success via `postMessage` and the hook re-reconciles the token from the personal environment — keeping the user on the same page.  Falls back to redirect if the popup is blocked by the browser." },
+    popup: { type: "boolean", description: "When `true`, open the OAuth authorization page in a popup window instead of redirecting the current page. The callback page signals success via `postMessage` and the hook re-reads My vault — keeping the user on the same page.  Falls back to redirect if the popup is blocked by the browser." },
   }}
 />
 
@@ -397,7 +361,7 @@ Minimal GitHub user profile for display.
   type={{
     avatarUrl: { type: "string", description: "URL of the user's avatar image.", required: true },
     login: { type: "string", description: "GitHub username (e.g. `\"octocat\"`).", required: true },
-    name: { type: "string | null", description: "Display name, or `null` when the user has not set one.", required: true },
+    name: { type: "string | null", description: "Display name, or `null` when it is not known.", required: true },
   }}
 />
 
@@ -443,7 +407,7 @@ GitHub OAuth flow without relying on `window.open()` popups.
 <TypeTable
   type={{
     callbackUrl: { type: "string", description: "Override the OAuth callback URL.  When provided, this replaces the `redirectUri` parameter passed to `connect()` by UI components like `WorkspaceEditor`. Use this to route the GitHub callback to a specific URL — for example, the Stigmer web console's callback page for desktop flows, or a localhost server for local development.  When the callback page handles the token exchange itself (cloud desktop flows), the consumer triggers re-reconciliation via UseGitHubConnectionReturn.reconcile after the callback completes externally.  When the consumer handles the exchange (localhost flows), the same URL must be passed to `handleCallback()` — GitHub requires an exact match between the authorize and exchange redirect URIs." },
-    openUrl: { type: "(url: string) => void | Promise<void>", description: "Custom function to open the authorization URL in a browser.  When provided, the hook calls this instead of `window.open()` during popup-mode `connect()` flows. This enables desktop environments (e.g. Tauri, Electron) where webview popups are blocked but the system browser is available.  When used with callbackUrl, the callback page processes the token exchange and the consumer calls UseGitHubConnectionReturn.reconcile to pick up the token from the personal environment.  When used without callbackUrl (e.g. localhost callback server), the consumer calls UseGitHubConnectionReturn.handleCallback with the code, state, and redirect URI to complete the exchange." },
+    openUrl: { type: "(url: string) => void | Promise<void>", description: "Custom function to open the authorization URL in a browser.  When provided, the hook calls this instead of `window.open()` during popup-mode `connect()` flows. This enables desktop environments (e.g. Tauri, Electron) where webview popups are blocked but the system browser is available.  When used with callbackUrl, the callback page processes the token exchange and the consumer calls UseGitHubConnectionReturn.reconcile to pick up the saved login from My vault.  When used without callbackUrl (e.g. localhost callback server), the consumer calls UseGitHubConnectionReturn.handleCallback with the code, state, and redirect URI to complete the exchange." },
   }}
 />
 

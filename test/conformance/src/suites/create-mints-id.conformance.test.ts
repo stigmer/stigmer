@@ -59,7 +59,7 @@ import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
 import { makeAgentShare } from "../support/agentshares";
 import { makeApiKey } from "../support/apikeys";
 import { makeSlackChannelApp } from "../support/channelapps";
-import { makeEnvironment } from "../support/environments";
+import { makeSharedVault } from "../support/vaults";
 import { makeExecutionContext } from "../support/executioncontexts";
 import { makeMcpServer } from "../support/mcpservers";
 import { enableOrganizationMemory, makeMemory } from "../support/memories";
@@ -323,37 +323,20 @@ const ROWS: readonly Row[] = [
     },
   },
   {
-    title: "[rpc:EnvironmentCommandController.create] Environment",
-    key: "EnvironmentCommandController.create",
-    kind: ApiResourceKind.environment,
+    title: "[rpc:VaultCommandController.create] Vault",
+    key: "VaultCommandController.create",
+    kind: ApiResourceKind.vault,
     async send({ org }, chosenId) {
-      const name = uniqueName("mint-env");
-      const created = await clients.environmentCommand.create({
-        ...makeEnvironment({ org, name }),
+      const name = uniqueName("mint-vault");
+      const created = await clients.vaultCommand.create({
+        ...makeSharedVault({ org, name }),
         metadata: { id: chosenId, name, org },
       });
-      fixtures.defer(() => clients.environmentCommand.delete({ resourceId: created.metadata!.id }));
+      fixtures.defer(() => clients.vaultCommand.delete({ resourceId: created.metadata!.id }));
       return answerOf(this.key, created.metadata);
     },
     async read(id) {
-      return (await clients.environmentQuery.get({ value: id })).metadata?.id;
-    },
-  },
-  {
-    title: "[rpc:EnvironmentCommandController.apply] Environment (apply as a create)",
-    key: "EnvironmentCommandController.apply",
-    kind: ApiResourceKind.environment,
-    async send({ org }, chosenId) {
-      const name = uniqueName("mint-env");
-      const applied = await clients.environmentCommand.apply({
-        ...makeEnvironment({ org, name }),
-        metadata: { id: chosenId, name, org },
-      });
-      fixtures.defer(() => clients.environmentCommand.delete({ resourceId: applied.metadata!.id }));
-      return answerOf(this.key, applied.metadata);
-    },
-    async read(id) {
-      return (await clients.environmentQuery.get({ value: id })).metadata?.id;
+      return (await clients.vaultQuery.get({ value: id })).metadata?.id;
     },
   },
   {

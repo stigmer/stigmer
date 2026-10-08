@@ -73,7 +73,7 @@ function createMockStigmer(overrides: MockOverrides = {}) {
       }),
       completeInstall: vi.fn().mockResolvedValue({}),
     },
-    environment: {
+    vault: {
       list: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }),
       getByReference: vi.fn().mockRejectedValue(new Error("not found")),
     },
@@ -474,7 +474,7 @@ describe("AgentChannelsPanel", () => {
     // The card is where an owner discovers the gap — including one who
     // connected before credential binding existed.
     expect(
-      await screen.findByText(/no credentials are bound to this channel/i),
+      await screen.findByText(/this channel names no vault/i),
     ).toBeTruthy();
     expect(screen.getByRole("button", { name: /bind credentials/i })).toBeTruthy();
   });
@@ -491,7 +491,7 @@ describe("AgentChannelsPanel", () => {
 
     await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
     expect(
-      screen.queryByText(/no credentials are bound to this channel/i),
+      screen.queryByText(/this channel names no vault/i),
     ).toBeNull();
   });
 

@@ -1,21 +1,31 @@
-// Runtime-environment assembly for runs.
+// A run's own values: the `--env`/`--secret` flags and `--env-file`/
+// `--secret-file` files, parsed into one map the CLI sends as the new
+// conversation's own secrets (SessionSpec.secrets). The server keeps them
+// sealed for the conversation's life and fills each requirement of the run
+// with the same name ahead of every vault; no read ever returns them.
 //
-// Ports the Go CLI's `internal/cli/envfile` package (parser.go + merge.go): it
-// parses `--env`/`--secret` flags and `--env-file`/`--secret-file` files into a
-// single merged map of runtime values, each tagged secret or plaintext.
+// Every per-call value is a secret: a plain setting lives in the agent's or
+// tool's definition, so `--env` and `--secret` differ only in what a reader
+// of the command line expects, and both are sealed alike.
 //
-// Precedence is load-order, lowest to highest (mirrors LoadAndMergeWithSecrets):
+// Precedence is load-order, lowest to highest (the Go CLI's
+// LoadAndMergeWithSecrets, kept):
 //   env-files (in order) < secret-files (in order) < --env flags < --secret flags
-// so a later source overrides an earlier one on key collision, and a secret
-// source overriding a plaintext source flips the value to secret. This exact
-// ordering is a wire-parity contract with the Go CLI.
+// so a later source overrides an earlier one on key collision.
+//
+// A conversation's secret needs a value and a conversation keeps at most
+// MAX_SESSION_SECRETS (SessionSpec.secrets), so an empty value (`KEY=` in a
+// .env file) is left out with a notice naming the key, and more than the
+// limit is refused before anything is sent.
 
 import { readFileSync } from "node:fs";
-import type { EnvVarInput } from "@stigmer/sdk";
 import { UsageError } from "../../errors/index.js";
 
-/** A merged runtime environment: variable name -> value + secret flag. */
-export type RuntimeEnv = Record<string, EnvVarInput>;
+/** A run's own values: variable name -> value. */
+export type SessionSecrets = Record<string, string>;
+
+/** The most secrets a conversation keeps (SessionSpec.secrets max_pairs). */
+export const MAX_SESSION_SECRETS = 100;
 
 /** The four raw env sources collected from CLI flags, in precedence groups. */
 export interface EnvSources {
@@ -26,23 +36,45 @@ export interface EnvSources {
 }
 
 /**
- * Load and merge every env source into one map. Mirrors Go's
- * LoadAndMergeWithSecrets: files are processed before flags, and within each
- * tier secrets are layered after plaintext, so the precedence is
- * env-files < secret-files < --env < --secret (later wins).
+ * Load and merge every source into one map: files before flags, and within
+ * each tier the secret source after the plain one, so the precedence is
+ * env-files < secret-files < --env < --secret (later wins). Keys whose
+ * merged value is empty are left out, named (never valued) through
+ * `notice`; more than {@link MAX_SESSION_SECRETS} is a usage error.
  */
-export function loadAndMergeEnv(sources: EnvSources): RuntimeEnv {
-  const layers: RuntimeEnv[] = [];
-  for (const path of sources.envFiles) layers.push(parseEnvFile(path, false));
-  for (const path of sources.secretFiles) layers.push(parseEnvFile(path, true));
-  if (sources.envFlags.length > 0) layers.push(parseEnvFlags(sources.envFlags, false));
-  if (sources.secretFlags.length > 0) layers.push(parseEnvFlags(sources.secretFlags, true));
-  return mergeEnv(layers);
+export function loadSessionSecrets(
+  sources: EnvSources,
+  notice: (line: string) => void = (line) => void process.stderr.write(`${line}\n`),
+): SessionSecrets {
+  const layers: SessionSecrets[] = [];
+  for (const path of sources.envFiles) layers.push(parseEnvFile(path));
+  for (const path of sources.secretFiles) layers.push(parseEnvFile(path));
+  if (sources.envFlags.length > 0) layers.push(parseEnvFlags("--env", sources.envFlags));
+  if (sources.secretFlags.length > 0) layers.push(parseEnvFlags("--secret", sources.secretFlags));
+  const merged = mergeEnv(layers);
+
+  const secrets: SessionSecrets = {};
+  const skipped: string[] = [];
+  for (const [key, value] of Object.entries(merged)) {
+    if (value === "") skipped.push(key);
+    else secrets[key] = value;
+  }
+  if (skipped.length > 0) {
+    notice(`Skipped ${skipped.length === 1 ? "a variable" : "variables"} with no value: ${skipped.join(", ")}`);
+  }
+  const count = Object.keys(secrets).length;
+  if (count > MAX_SESSION_SECRETS) {
+    throw new UsageError(
+      `too many variables: ${count} given, a run takes at most ${MAX_SESSION_SECRETS} ` +
+        "(save the rest in a vault the run uses)",
+    );
+  }
+  return secrets;
 }
 
 // Later layers override earlier ones; mirrors Go's MergeEnvSources.
-function mergeEnv(layers: readonly RuntimeEnv[]): RuntimeEnv {
-  const result: RuntimeEnv = {};
+function mergeEnv(layers: readonly SessionSecrets[]): SessionSecrets {
+  const result: SessionSecrets = {};
   for (const layer of layers) {
     for (const [key, value] of Object.entries(layer)) result[key] = value;
   }
@@ -50,9 +82,8 @@ function mergeEnv(layers: readonly RuntimeEnv[]): RuntimeEnv {
 }
 
 // Parse a dotenv-style file: comments (#), blank lines, optional `export `
-// prefix, and quoted values with escapes. Every value carries the file's
-// secret tag. Mirrors Go's parseFileWithSecretFlag.
-function parseEnvFile(path: string, isSecret: boolean): RuntimeEnv {
+// prefix, and quoted values with escapes. Mirrors Go's parseFileWithSecretFlag.
+function parseEnvFile(path: string): SessionSecrets {
   let contents: string;
   try {
     contents = readFileSync(path, "utf8");
@@ -60,7 +91,7 @@ function parseEnvFile(path: string, isSecret: boolean): RuntimeEnv {
     throw new UsageError(`failed to open environment file ${path}: ${(err as Error).message}`);
   }
 
-  const result: RuntimeEnv = {};
+  const result: SessionSecrets = {};
   const lines = contents.split("\n");
   for (let i = 0; i < lines.length; i++) {
     const parsed = parseLine(lines[i]);
@@ -68,25 +99,27 @@ function parseEnvFile(path: string, isSecret: boolean): RuntimeEnv {
     if (parsed instanceof Error) {
       throw new UsageError(`${path}:${i + 1}: ${parsed.message}`);
     }
-    result[parsed.key] = { value: parsed.value, isSecret };
+    result[parsed.key] = parsed.value;
   }
   return result;
 }
 
 // Parse repeated `KEY=VALUE` flag values. Unlike file parsing, a comment/blank
 // flag value is an error (the user explicitly passed it). Mirrors Go's
-// parseFlagsWithSecretFlag.
-function parseEnvFlags(vars: readonly string[], isSecret: boolean): RuntimeEnv {
-  const result: RuntimeEnv = {};
+// parseFlagsWithSecretFlag. A refusal names the flag and at most the key,
+// never the raw text: what follows the '=' (or a whole entry with no '=')
+// may be the secret itself, and a usage error reaches the terminal and logs.
+function parseEnvFlags(flag: "--env" | "--secret", vars: readonly string[]): SessionSecrets {
+  const result: SessionSecrets = {};
   for (const raw of vars) {
     const parsed = parseLine(raw);
     if (parsed === null) {
-      throw new UsageError(`invalid environment variable "${raw}": empty or comment`);
+      throw new UsageError(`invalid ${flag} value: empty or a comment, expected KEY=VALUE`);
     }
     if (parsed instanceof Error) {
-      throw new UsageError(`invalid environment variable "${raw}": ${parsed.message}`);
+      throw new UsageError(`invalid ${flag} value: ${parsed.message}`);
     }
-    result[parsed.key] = { value: parsed.value, isSecret };
+    result[parsed.key] = parsed.value;
   }
   return result;
 }

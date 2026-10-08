@@ -53,20 +53,22 @@ describe("the organization census", () => {
   });
 
   it("finds an id in a column and deep inside a stored resource, and nothing once the rows are gone", async () => {
-    await store.oauthGrants.upsert({
-      identityAccountId: "ida_1",
-      resourceId: "mcp_1",
-      resourceKind: "mcp_server",
-      orgId: "org_a",
-      accessTokenExpiresAt: 0,
+    await store.pendingOAuthStates.save({
+      state: "state-1",
+      codeVerifier: "enc:v1:sealed",
       clientId: "client-1",
-      authMethod: "mcp_oauth",
+      clientSecret: "",
       tokenEndpoint: "https://example.test/token",
-      accessTokenEnvVar: "TOKEN",
-      refreshTokenEnvVar: "",
-      environmentId: "",
+      mcpServerId: "mcp_1",
+      identityAccountId: "ida_1",
+      targetEnvVar: "TOKEN",
+      authMethod: "mcp_oauth",
+      tokenAuthMethod: "",
+      redirectUri: "http://127.0.0.1/cb",
+      org: "org_a",
+      vaultId: "",
+      toolAddress: "",
       createdAt: 0,
-      updatedAt: 0,
     });
     await store.saveResource(
       ApiResourceKind.agent_share,
@@ -80,10 +82,10 @@ describe("the organization census", () => {
     const reader = sqliteCensusReader(db);
     const found = await organizationCensus(reader, new Set(["org_a", "agt_deep"]));
     expect(found.map((finding) => [finding.table, finding.id]).sort()).toEqual([
-      ["oauth_grant", "org_a"],
+      ["pending_oauth_state", "org_a"],
       ["resources", "agt_deep"],
     ]);
-    await store.oauthGrants.deleteByOrg("org_a");
+    await store.pendingOAuthStates.deleteByOrg("org_a");
     await store.deleteResource(ApiResourceKind.agent_share, "shr_1");
     expect(await organizationCensus(reader, new Set(["org_a", "agt_deep"]))).toEqual([]);
   });

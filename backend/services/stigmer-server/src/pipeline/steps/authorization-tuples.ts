@@ -143,7 +143,9 @@ export function diffVisibilityShapes(
 // read itself is shapes.ts's `parentIdOf`, shared with the list read scope
 // so the id a tuple is written with and the id the scope
 // asks about are one read. This module adds the create-time rule: a
-// missing parent fails the request.
+// missing parent fails the request, unless the kind marks it optional (a
+// vault links its person or its organization, never both), in which case
+// an empty field writes no link.
 // ---------------------------------------------------------------------------
 
 function resolveParentLink(
@@ -223,6 +225,9 @@ function resolveParentLinks(
       break;
   }
   for (const parent of config.additionalParents) {
+    if (parent.optional && parentIdOf(resource, parent.specField) === "") {
+      continue;
+    }
     links.push(resolveParentLink(kind, resource, parent));
   }
   return links;

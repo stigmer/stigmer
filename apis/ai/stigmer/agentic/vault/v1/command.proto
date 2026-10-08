@@ -1,0 +1,121 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.vault.v1;
+
+import "ai/stigmer/agentic/vault/v1/api.proto";
+import "ai/stigmer/agentic/vault/v1/io.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// VaultCommandController handles write operations for vaults.
+//
+// @internal
+// No apply RPC by design: a secret never belongs in a manifest file. My vault
+// has no create RPC: the first entry write that names it creates it.
+service VaultCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = vault;
+
+  // Create a shared vault in an organization.
+  //
+  // The vault belongs to the organization and starts empty. It starts
+  // private, so only the organization's admins may use it until it is
+  // shared, unless it is created with organization visibility
+  // (metadata.visibility), which shares it with every member at once.
+  //
+  // @internal
+  // Authorization: can_create_shared_vault on the organization (admins).
+  // The server stamps spec.owner with the organization's id; a request that
+  // names a person is refused.
+  rpc create(Vault) returns (Vault) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_shared_vault;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to create a shared vault in this organization";
+  }
+
+  // Update a vault's name, description and external id.
+  //
+  // Entries are kept as stored: change them with setSecrets, removeSecrets,
+  // setConnection and removeConnections.
+  //
+  // @internal
+  // Authorization: can_edit on the vault (My vault's person, or an admin of
+  // a shared vault's organization).
+  rpc update(Vault) returns (Vault) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = vault;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update vault";
+  }
+
+  // Update the visibility of a shared vault.
+  //
+  // Setting org lets every member of the organization use the vault in
+  // their runs. My vault is always private.
+  //
+  // @internal
+  // Authorization: can_manage_audience on the vault (admins of a shared
+  // vault's organization). The kind supports org visibility only; My vault
+  // refuses every visibility change.
+  rpc updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput) returns (Vault) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = vault;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_audience;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update vault visibility";
+  }
+
+  // Delete a vault and every value it holds.
+  //
+  // Sessions, schedules, shares, channels and platform clients that name the
+  // vault are refused at their next run, naming it.
+  //
+  // @internal
+  // Authorization: can_delete on the vault. The delete chain destroys the
+  // sealed values.
+  rpc delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput) returns (Vault) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = vault;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete vault";
+  }
+
+  // Save secrets in a vault, replacing any saved under the same names.
+  //
+  // Naming the caller's own My vault creates it on its first write.
+  //
+  // @internal
+  // Authorization in the handler, because the target is a oneof the
+  // annotation cannot express: can_edit on a vault named by id;
+  // can_create_vault on the organization when My vault does not exist yet.
+  rpc setSecrets(SetVaultSecretsInput) returns (Vault) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Remove secrets from a vault by name.
+  //
+  // @internal
+  // Authorization in the handler, as setSecrets.
+  rpc removeSecrets(RemoveVaultSecretsInput) returns (Vault) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Save a login in a vault at the address of the tool or Git host it is
+  // for, replacing any saved at the same address.
+  //
+  // Naming the caller's own My vault creates it on its first write.
+  //
+  // @internal
+  // Authorization in the handler, as setSecrets.
+  rpc setConnection(SetVaultConnectionInput) returns (Vault) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Remove logins from a vault by address.
+  //
+  // @internal
+  // Authorization in the handler, as setSecrets.
+  rpc removeConnections(RemoveVaultConnectionsInput) returns (Vault) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+}

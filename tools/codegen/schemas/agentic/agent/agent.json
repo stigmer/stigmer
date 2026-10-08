@@ -94,7 +94,7 @@
           "messageType": "EnvVarDeclaration"
         }
       },
-      "description": "Environment variable declarations for this agent.\n Keys are variable names; values describe their metadata and optionality.",
+      "description": "Environment variable declarations for this agent.\n Keys are variable names; values describe their metadata and optionality.\n A secret is found by its name in a vault when a run starts; a plain\n setting may carry its value in the declaration.",
       "required": false
     },
     {
@@ -162,6 +162,24 @@
       },
       "description": "The engine this agent's run defaults were chosen for, and the engine a\n new conversation on this agent starts on when the person or the surface\n starting it names neither an engine nor a model (a turn that names a\n model but no engine starts on native, the engine its name was checked\n against). Unspecified: the platform's default engine (native).\n\n Model names belong to an engine (each lists its own), so run_config's\n model, tier and thinking count only on this engine. A conversation keeps\n the engine it started on; a later version naming another engine changes\n only new conversations.",
       "required": false
+    },
+    {
+      "name": "Vaults",
+      "jsonName": "vaults",
+      "protoField": "vaults",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "ApiResourceReference"
+        }
+      },
+      "description": "Shared vaults this agent's conversations use after the person's own My\n vault, for people who may use them. At most 20.\n\n This is how a team key reaches every chat with an agent without a pick\n per conversation: an editor of the agent attaches a shared vault they\n may use, and each person's turns use it only when that person may use\n the vault too. A conversation that lists its own vaults uses those\n instead. Runs with no person (a schedule, a share link, a channel)\n never use an agent's vaults. A My vault cannot be attached.",
+      "required": false,
+      "referenceKind": 59,
+      "validation": {
+        "maxItems": 20
+      }
     }
   ]
 }

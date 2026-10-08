@@ -64,15 +64,15 @@ spec:
   enabled: true
 ---
 apiVersion: agentic.stigmer.ai/v1
-kind: Environment
+kind: ChannelApp
 metadata:
-  name: clinic-patient-db
+  name: clinic-slack-app
   org: rakeshreddi098
 spec:
-  data:
-    POSTGRES_CONNECTION_URL:
-      value: "***REDACTED***"
-      is_secret: true
+  slack:
+    client_id: "123.456"
+    client_secret: "***REDACTED***"
+    signing_secret: "***REDACTED***"
 `;
 
 // Validation (parse + existence resolution) debounces across keystrokes.
@@ -126,7 +126,7 @@ describe("useApplyManifest", () => {
     expect(result.current.validationError).toContain("Invalid Agent");
   });
 
-  it("orders multi-document manifests by dependency (Environment before AgentChannel)", async () => {
+  it("orders multi-document manifests by dependency (ChannelApp before AgentChannel)", async () => {
     const { result } = renderHook(() => useApplyManifest("rakeshreddi098"), {
       wrapper: wrapper(createMockStigmer()),
     });
@@ -138,7 +138,7 @@ describe("useApplyManifest", () => {
 
     expect(
       result.current.entries!.map((e) => e.document.handler.yamlKind),
-    ).toEqual(["Environment", "AgentChannel"]);
+    ).toEqual(["ChannelApp", "AgentChannel"]);
     expect(result.current.hasRedactedSecrets).toBe(true);
   });
 
@@ -192,7 +192,7 @@ describe("useApplyManifest", () => {
   it("stops at the first failure and marks the rest skipped", async () => {
     const apply = vi
       .fn()
-      .mockRejectedValueOnce(new Error("environment rejected"))
+      .mockRejectedValueOnce(new Error("channel app rejected"))
       .mockResolvedValue({});
     const { result } = renderHook(() => useApplyManifest("rakeshreddi098"), {
       wrapper: wrapper(createMockStigmer({ apply })),
@@ -214,7 +214,7 @@ describe("useApplyManifest", () => {
       "failed",
       "skipped",
     ]);
-    expect(result.current.entries![0].errorMessage).toBe("environment rejected");
+    expect(result.current.entries![0].errorMessage).toBe("channel app rejected");
   });
 
   it("reset clears content, preview, and errors", async () => {

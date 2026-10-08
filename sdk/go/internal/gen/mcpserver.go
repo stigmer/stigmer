@@ -5,8 +5,8 @@ package gen
 import (
 	"context"
 
-	environmentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1"
+	vaultv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/vault/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
@@ -227,7 +227,7 @@ func (i *McpServerInput) toProto() (*mcpserverv1.McpServer, error) {
 		resource.Spec.ServerType = &mcpserverv1.McpServerSpec_Stdio{Stdio: m}
 	}
 	if len(i.Env) > 0 {
-		resource.Spec.Env = make(map[string]*environmentv1.EnvVarDeclaration, len(i.Env))
+		resource.Spec.Env = make(map[string]*vaultv1.EnvVarDeclaration, len(i.Env))
 		for k, val := range i.Env {
 			pv, err := val.toProto()
 			if err != nil {

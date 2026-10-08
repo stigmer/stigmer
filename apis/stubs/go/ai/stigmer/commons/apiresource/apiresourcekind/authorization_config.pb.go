@@ -33,7 +33,7 @@ const (
 	// FGA tuple: resource#platform@platform:stigmer
 	AuthorizationScopeType_AUTHORIZATION_SCOPE_TYPE_PLATFORM AuthorizationScopeType = 1
 	// Links to an organization.
-	// Used for: agent, skill, environment, session, mcp_server, etc.
+	// Used for: agent, skill, vault, session, mcp_server, etc.
 	// FGA tuple: resource#organization@organization:<org_id>
 	AuthorizationScopeType_AUTHORIZATION_SCOPE_TYPE_ORGANIZATION AuthorizationScopeType = 2
 	// Links to a parent resource.
@@ -185,12 +185,12 @@ func (OwnerAttributionType) EnumDescriptor() ([]byte, []int) {
 // Kinds WITHOUT a visibility config accept only visibility_private (or
 // unspecified) — they are personal or org-structural resources whose access
 // is fully defined by their FGA model, never by per-resource visibility
-// tuples (session, environment, runs, etc.).
+// tuples (session, runs, etc.).
 //
 // Current classification:
 //   - Blueprint kinds (agent, skill, mcp_server, plugin):
 //     private, org, child_orgs
-//   - Org-only kinds (environment):
+//   - Org-only kinds (vault):
 //     private, org — child_orgs is deliberately excluded to preserve
 //     tenant isolation: what holds an organization's values never crosses
 //     into its child organizations.
@@ -315,7 +315,13 @@ type ParentRelationConfig struct {
 	// Example: "session_id" for run, "subject_identity_account_id" for
 	// memory.
 	// This eliminates hardcoded parent ID extraction logic in the service.
-	SpecField     string `protobuf:"bytes,3,opt,name=spec_field,json=specField,proto3" json:"spec_field,omitempty"`
+	SpecField string `protobuf:"bytes,3,opt,name=spec_field,json=specField,proto3" json:"spec_field,omitempty"`
+	// Whether a row may leave the spec field empty, writing no link.
+	//
+	// A kind whose rows each link one of several parents (a vault belongs to a
+	// person or to its organization) marks each parent optional. A required
+	// parent whose field is empty fails the create.
+	Optional      bool `protobuf:"varint,4,opt,name=optional,proto3" json:"optional,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -371,6 +377,13 @@ func (x *ParentRelationConfig) GetSpecField() string {
 	return ""
 }
 
+func (x *ParentRelationConfig) GetOptional() bool {
+	if x != nil {
+		return x.Optional
+	}
+	return false
+}
+
 // FGA authorization tuple configuration for a resource kind.
 // Embedded in ApiResourceKindMeta to drive tuple creation at runtime.
 //
@@ -407,15 +420,18 @@ func (x *ParentRelationConfig) GetSpecField() string {
 //	-> Creates: memory#subject@identity_account:<subject_identity_account_id>
 //	-> No owner tuple
 //
-// Personal resource with creator attribution (environment):
+// Resource whose owner is a spec field, one of two optional parents (vault):
 //
 //	scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
-//	owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
-//	requires_creator_tuple: true
-//	grantable_roles: [owner, viewer]
-//	-> Creates: environment#organization@organization:<org_id>
-//	-> Creates: environment#owner@identity_account:<creator_id>
-//	-> Creates: environment#creator@identity_account:<creator_id>
+//	owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+//	additional_parents: [
+//	  { kind: "identity_account", relation: "person", spec_field: "person", optional: true },
+//	  { kind: "organization", relation: "org_owned", spec_field: "org", optional: true }
+//	]
+//	-> Creates: vault#organization@organization:<org_id>
+//	-> Creates: vault#person@identity_account:<person_id> (My vault), or
+//	            vault#org_owned@organization:<org_id> (a shared vault)
+//	-> No owner tuple
 //
 // Organization with three-tier role hierarchy:
 //
@@ -448,8 +464,8 @@ type AuthorizationConfig struct {
 	Visibility *VisibilityConfig `protobuf:"bytes,5,opt,name=visibility,proto3" json:"visibility,omitempty"`
 	// When true, creates an immutable creator relation tuple alongside the owner tuple.
 	// FGA tuple: resource#creator@identity_account:<creator_id>
-	// Used for resources where creator identity drives specific permissions
-	// (e.g., environment: only the creator can read unredacted secret values).
+	// Used for resources where creator identity drives specific permissions;
+	// no kind sets it today.
 	// The creator tuple uses the same identity as the owner tuple but serves
 	// a different purpose: owner is mutable (can be transferred), creator is
 	// permanent attribution.
@@ -573,12 +589,13 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_p
 	"\x10VisibilityConfig\x12.\n" +
 	"\x13supports_child_orgs\x18\x02 \x01(\bR\x11supportsChildOrgs\x12!\n" +
 	"\fsupports_org\x18\x03 \x01(\bR\vsupportsOrg\x12;\n" +
-	"\x1adefaults_to_org_visibility\x18\x04 \x01(\bR\x17defaultsToOrgVisibilityJ\x04\b\x01\x10\x02R\x0fsupports_public\"e\n" +
+	"\x1adefaults_to_org_visibility\x18\x04 \x01(\bR\x17defaultsToOrgVisibilityJ\x04\b\x01\x10\x02R\x0fsupports_public\"\x81\x01\n" +
 	"\x14ParentRelationConfig\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x1a\n" +
 	"\brelation\x18\x02 \x01(\tR\brelation\x12\x1d\n" +
 	"\n" +
-	"spec_field\x18\x03 \x01(\tR\tspecField\"\xdf\x05\n" +
+	"spec_field\x18\x03 \x01(\tR\tspecField\x12\x1a\n" +
+	"\boptional\x18\x04 \x01(\bR\boptional\"\xdf\x05\n" +
 	"\x13AuthorizationConfig\x12e\n" +
 	"\n" +
 	"scope_type\x18\x01 \x01(\x0e2F.ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationScopeTypeR\tscopeType\x12c\n" +

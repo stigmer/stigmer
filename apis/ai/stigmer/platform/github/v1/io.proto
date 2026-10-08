@@ -1,0 +1,190 @@
+syntax = "proto3";
+
+package ai.stigmer.platform.github.v1;
+
+import "buf/validate/validate.proto";
+
+// A GitHub repository the connected account can reach.
+message GitHubRepository {
+  // GitHub's numeric repository id.
+  int64 id = 1;
+
+  // Full name including the owner, such as "acme/my-repo".
+  string full_name = 2;
+
+  // Name without the owner.
+  string name = 3;
+
+  // Owner login, a user or an organization.
+  string owner = 4;
+
+  // Whether the owner is an organization rather than a personal account.
+  bool owner_is_organization = 5;
+
+  // Web URL of the repository on GitHub.
+  string html_url = 6;
+
+  // HTTPS clone URL.
+  string clone_url = 7;
+
+  // Name of the default branch, such as "main".
+  string default_branch = 8;
+
+  // Whether the repository is private.
+  bool is_private = 9;
+
+  // When the repository was last updated, as an RFC 3339 timestamp.
+  string updated_at = 10;
+}
+
+// Input for listing the connected account's repositories.
+message ListGitHubRepositoriesInput {
+  // Organization whose My vault holds the github.com login, by slug or id.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Page to read, from 1.
+  int32 page = 2 [(buf.validate.field).int32.gte = 0];
+}
+
+// Input for searching the connected account's repositories.
+message SearchGitHubRepositoriesInput {
+  // Organization whose My vault holds the github.com login, by slug or id.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Search text, matched against repository names.
+  string query = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 256
+  }];
+
+  // Page to read, from 1.
+  int32 page = 3 [(buf.validate.field).int32.gte = 0];
+}
+
+// A page of repositories.
+message GitHubRepositoryList {
+  // Repositories on this page.
+  repeated GitHubRepository repositories = 1;
+
+  // Whether a further page may hold more.
+  bool has_more = 2;
+}
+
+// Input for listing a repository's branches.
+message ListGitHubBranchesInput {
+  // Organization whose My vault holds the github.com login, by slug or id.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Repository owner login.
+  string owner = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 100
+    pattern: "^[A-Za-z0-9._-]+$"
+  }];
+
+  // Repository name.
+  string repo = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 100
+    pattern: "^[A-Za-z0-9._-]+$"
+  }];
+}
+
+// A repository's branches.
+message GitHubBranchList {
+  // Branch names.
+  repeated string names = 1;
+}
+
+// Input for listing a repository's files.
+message GetGitHubTreeInput {
+  // Organization whose My vault holds the github.com login, by slug or id.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Repository owner login.
+  string owner = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 100
+    pattern: "^[A-Za-z0-9._-]+$"
+  }];
+
+  // Repository name.
+  string repo = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 100
+    pattern: "^[A-Za-z0-9._-]+$"
+  }];
+
+  // Branch name or commit SHA.
+  string ref = 4 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 255
+  }];
+}
+
+// One file or directory in a repository.
+message GitHubTreeEntry {
+  // Path from the repository root.
+  string path = 1;
+
+  // Whether the entry is a directory.
+  bool is_directory = 2;
+
+  // Size in bytes, for files.
+  int64 size = 3;
+}
+
+// A repository's files and directories.
+message GitHubTree {
+  // Every entry, files and directories.
+  repeated GitHubTreeEntry entries = 1;
+
+  // Whether GitHub cut the listing short because the repository has too
+  // many files.
+  bool truncated = 2;
+}
+
+// Input for reading one file of a repository.
+message GetGitHubFileContentInput {
+  // Organization whose My vault holds the github.com login, by slug or id.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Repository owner login.
+  string owner = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 100
+    pattern: "^[A-Za-z0-9._-]+$"
+  }];
+
+  // Repository name.
+  string repo = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 100
+    pattern: "^[A-Za-z0-9._-]+$"
+  }];
+
+  // Branch name or commit SHA.
+  string ref = 4 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 255
+  }];
+
+  // Path from the repository root.
+  string path = 5 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 4096
+  }];
+}
+
+// One file's content.
+message GitHubFileContent {
+  // The file's bytes. Empty when the file is above the size ceiling.
+  bytes content = 1;
+
+  // The file's size in bytes.
+  int64 size = 2;
+
+  // Whether the file is above the 10 MiB ceiling and its content was not
+  // read.
+  bool too_large = 3;
+}

@@ -1,7 +1,7 @@
 export { toProtoExecutionTarget, fromProtoExecutionTarget } from "./execution-target.js";
 export type { ExecutionTargetOption } from "./execution-target.js";
 
-export type { RuntimeEnvProvider } from "./runtime-env.js";
+export type { SessionSecretsProvider } from "./session-secrets.js";
 export type { SessionAudience, SessionPanelMode } from "./audience.js";
 export type { SessionRunConfig } from "./run-config.js";
 export {

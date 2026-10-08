@@ -32,8 +32,8 @@ public interface DisconnectOAuthInputOrBuilder extends
 
   /**
    * <pre>
-   * Organization context. Must match the org used during the original
-   * OAuth connect flow (part of the OAuthGrant composite key).
+   * Organization context: the caller's My vault in this org is the one
+   * changed.
    * </pre>
    *
    * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -42,8 +42,8 @@ public interface DisconnectOAuthInputOrBuilder extends
   java.lang.String getOrg();
   /**
    * <pre>
-   * Organization context. Must match the org used during the original
-   * OAuth connect flow (part of the OAuthGrant composite key).
+   * Organization context: the caller's My vault in this org is the one
+   * changed.
    * </pre>
    *
    * <code>string org = 2 [json_name = "org", (.buf.validate.field) = { ... }</code>

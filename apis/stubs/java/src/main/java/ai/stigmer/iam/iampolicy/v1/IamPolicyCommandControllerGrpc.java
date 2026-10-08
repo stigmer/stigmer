@@ -343,7 +343,7 @@ public final class IamPolicyCommandControllerGrpc {
      * Remove a person from an organization.
      * Removes every role the identity account holds on the organization, then
      * every IAM policy it holds on the organization's resources: what was
-     * shared with it (agents, environments, sessions and the rest) and its
+     * shared with it (agents, vaults, sessions and the rest) and its
      * team memberships. From that moment it reaches nothing in the
      * organization. What it created stays with the organization and is still
      * recorded as its work; the authorization model admits a person to their
@@ -484,7 +484,7 @@ public final class IamPolicyCommandControllerGrpc {
      * Remove a person from an organization.
      * Removes every role the identity account holds on the organization, then
      * every IAM policy it holds on the organization's resources: what was
-     * shared with it (agents, environments, sessions and the rest) and its
+     * shared with it (agents, vaults, sessions and the rest) and its
      * team memberships. From that moment it reaches nothing in the
      * organization. What it created stays with the organization and is still
      * recorded as its work; the authorization model admits a person to their
@@ -597,7 +597,7 @@ public final class IamPolicyCommandControllerGrpc {
      * Remove a person from an organization.
      * Removes every role the identity account holds on the organization, then
      * every IAM policy it holds on the organization's resources: what was
-     * shared with it (agents, environments, sessions and the rest) and its
+     * shared with it (agents, vaults, sessions and the rest) and its
      * team memberships. From that moment it reaches nothing in the
      * organization. What it created stays with the organization and is still
      * recorded as its work; the authorization model admits a person to their
@@ -708,7 +708,7 @@ public final class IamPolicyCommandControllerGrpc {
      * Remove a person from an organization.
      * Removes every role the identity account holds on the organization, then
      * every IAM policy it holds on the organization's resources: what was
-     * shared with it (agents, environments, sessions and the rest) and its
+     * shared with it (agents, vaults, sessions and the rest) and its
      * team memberships. From that moment it reaches nothing in the
      * organization. What it created stays with the organization and is still
      * recorded as its work; the authorization model admits a person to their
@@ -823,7 +823,7 @@ public final class IamPolicyCommandControllerGrpc {
      * Remove a person from an organization.
      * Removes every role the identity account holds on the organization, then
      * every IAM policy it holds on the organization's resources: what was
-     * shared with it (agents, environments, sessions and the rest) and its
+     * shared with it (agents, vaults, sessions and the rest) and its
      * team memberships. From that moment it reaches nothing in the
      * organization. What it created stays with the organization and is still
      * recorded as its work; the authorization model admits a person to their

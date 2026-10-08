@@ -4,8 +4,6 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { EnvVarDeclaration } from "../../environment/v1/spec_pb.js";
-import { file_ai_stigmer_agentic_environment_v1_spec } from "../../environment/v1/spec_pb.js";
 import type { McpServerUsage } from "../../mcpserver/v1/usage_pb.js";
 import { file_ai_stigmer_agentic_mcpserver_v1_usage } from "../../mcpserver/v1/usage_pb.js";
 import type { HookConfig } from "../../plugin/v1/hooks_pb.js";
@@ -14,6 +12,8 @@ import type { RunConfig } from "../../run/v1/invocation_pb.js";
 import { file_ai_stigmer_agentic_run_v1_invocation } from "../../run/v1/invocation_pb.js";
 import type { Harness } from "../../session/v1/enum_pb.js";
 import { file_ai_stigmer_agentic_session_v1_enum } from "../../session/v1/enum_pb.js";
+import type { EnvVarDeclaration } from "../../vault/v1/declaration_pb.js";
+import { file_ai_stigmer_agentic_vault_v1_declaration } from "../../vault/v1/declaration_pb.js";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
 import type { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -24,7 +24,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agent/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxIp0JCglBZ2VudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKEtIBChFtY3Bfc2VydmVyX3VzYWdlcxgEIAMoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyVXNhZ2VChQG6SIEBkgF+Iny6AXkKFm1jcF9zZXJ2ZXJfdXNhZ2VzLmtpbmQSP21jcF9zZXJ2ZXJfdXNhZ2VzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9bWNwX3NlcnZlchoedGhpcy5tY3Bfc2VydmVyX3JlZi5raW5kID09IDQ0ErABCgpza2lsbF9yZWZzGAUgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQma6SF+SAVwiWroBVwoPc2tpbGxfcmVmcy5raW5kEjNza2lsbF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9c2tpbGwaD3RoaXMua2luZCA9PSA0M+CFLCsSOQoKc3ViX2FnZW50cxgGIAMoCzIlLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5TdWJBZ2VudBI8CgNlbnYYByADKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnRTcGVjLkVudkVudHJ5EoMBCgV0b29scxgKIAMoCUJ0ukhxkgFuImxyahiAAjJlXihtY3BfX1wqfG1jcF9fW2Etel1bYS16MC05LV0qW2EtejAtOV0oX18oXCp8W0EtWmEtejAtOV8uLV0rKSk/fFtBLVpdW0EtWmEtejAtOV9dKihcKFteKClcclxuXStcKSk/KSQSjgEKEGRpc2FsbG93ZWRfdG9vbHMYCyADKAlCdLpIcZIBbiJscmoYgAIyZV4obWNwX19cKnxtY3BfX1thLXpdW2EtejAtOS1dKlthLXowLTldKF9fKFwqfFtBLVphLXowLTlfLi1dKykpP3xbQS1aXVtBLVphLXowLTlfXSooXChbXigpXHJcbl0rXCkpPykkEjYKBWhvb2tzGAwgAygLMicuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkhvb2tTb3VyY2USOAoKcnVuX2NvbmZpZxgNIAEoCzIkLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuQ29uZmlnEjcKB2hhcm5lc3MYDiABKA4yJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5IYXJuZXNzGmAKCEVudkVudHJ5EgsKA2tleRgBIAEoCRJDCgV2YWx1ZRgCIAEoCzI0LmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZWYXJEZWNsYXJhdGlvbjoCOAFKBAgIEAlKBAgJEApSB3NoYXJpbmdSEGRhdGFzdG9yZV91c2FnZXMiiwIKCkhvb2tTb3VyY2USrwEKBnBsdWdpbhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJnukhgugFdChdob29rX3NvdXJjZV9wbHVnaW4ua2luZBIxcGx1Z2luIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPXBsdWdpbhoPdGhpcy5raW5kID09IDU44IUsOkgAEjoKBmlubGluZRgCIAEoCzIoLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuSG9va0NvbmZpZ0gAQg8KBnNvdXJjZRIFukgCCAEiyAQKCFN1YkFnZW50EhQKBG5hbWUYASABKAlCBrpIA8gBARITCgtkZXNjcmlwdGlvbhgCIAEoCRIdCgxpbnN0cnVjdGlvbnMYAyABKAlCB7pIBHICEAoSsAEKCnNraWxsX3JlZnMYBSADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCZrpIX5IBXCJaugFXCg9za2lsbF9yZWZzLmtpbmQSM3NraWxsX3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1za2lsbBoPdGhpcy5raW5kID09IDQz4IUsKxIWCg5tb2RlbF9vdmVycmlkZRgGIAEoCRKDAQoFdG9vbHMYByADKAlCdLpIcZIBbiJscmoYgAIyZV4obWNwX19cKnxtY3BfX1thLXpdW2EtejAtOS1dKlthLXowLTldKF9fKFwqfFtBLVphLXowLTlfLi1dKykpP3xbQS1aXVtBLVphLXowLTlfXSooXChbXigpXHJcbl0rXCkpPykkEo4BChBkaXNhbGxvd2VkX3Rvb2xzGAggAygJQnS6SHGSAW4ibHJqGIACMmVeKG1jcF9fXCp8bWNwX19bYS16XVthLXowLTktXSpbYS16MC05XShfXyhcKnxbQS1aYS16MC05Xy4tXSspKT98W0EtWl1bQS1aYS16MC05X10qKFwoW14oKVxyXG5dK1wpKT8pJEoECAQQBVIKbWNwX2FjY2Vzc2IGcHJvdG8z", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_agentic_mcpserver_v1_usage, file_ai_stigmer_agentic_plugin_v1_hooks, file_ai_stigmer_agentic_run_v1_invocation, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxIsAKCglBZ2VudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKEtIBChFtY3Bfc2VydmVyX3VzYWdlcxgEIAMoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyVXNhZ2VChQG6SIEBkgF+Iny6AXkKFm1jcF9zZXJ2ZXJfdXNhZ2VzLmtpbmQSP21jcF9zZXJ2ZXJfdXNhZ2VzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9bWNwX3NlcnZlchoedGhpcy5tY3Bfc2VydmVyX3JlZi5raW5kID09IDQ0ErABCgpza2lsbF9yZWZzGAUgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQma6SF+SAVwiWroBVwoPc2tpbGxfcmVmcy5raW5kEjNza2lsbF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9c2tpbGwaD3RoaXMua2luZCA9PSA0M+CFLCsSOQoKc3ViX2FnZW50cxgGIAMoCzIlLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5TdWJBZ2VudBI8CgNlbnYYByADKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnRTcGVjLkVudkVudHJ5EoMBCgV0b29scxgKIAMoCUJ0ukhxkgFuImxyahiAAjJlXihtY3BfX1wqfG1jcF9fW2Etel1bYS16MC05LV0qW2EtejAtOV0oX18oXCp8W0EtWmEtejAtOV8uLV0rKSk/fFtBLVpdW0EtWmEtejAtOV9dKihcKFteKClcclxuXStcKSk/KSQSjgEKEGRpc2FsbG93ZWRfdG9vbHMYCyADKAlCdLpIcZIBbiJscmoYgAIyZV4obWNwX19cKnxtY3BfX1thLXpdW2EtejAtOS1dKlthLXowLTldKF9fKFwqfFtBLVphLXowLTlfLi1dKykpP3xbQS1aXVtBLVphLXowLTlfXSooXChbXigpXHJcbl0rXCkpPykkEjYKBWhvb2tzGAwgAygLMicuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkhvb2tTb3VyY2USOAoKcnVuX2NvbmZpZxgNIAEoCzIkLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuQ29uZmlnEjcKB2hhcm5lc3MYDiABKA4yJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5IYXJuZXNzEqYBCgZ2YXVsdHMYDyADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCYLpIWZIBVhAUIlK6AU8KC3ZhdWx0cy5raW5kEi92YXVsdHMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD12YXVsdBoPdGhpcy5raW5kID09IDU54IUsOxpaCghFbnZFbnRyeRILCgNrZXkYASABKAkSPQoFdmFsdWUYAiABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuRW52VmFyRGVjbGFyYXRpb246AjgBSgQICBAJSgQICRAKUgdzaGFyaW5nUhBkYXRhc3RvcmVfdXNhZ2VzIosCCgpIb29rU291cmNlEq8BCgZwbHVnaW4YASABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCZ7pIYLoBXQoXaG9va19zb3VyY2VfcGx1Z2luLmtpbmQSMXBsdWdpbiBtdXN0IHJlZmVyZW5jZSBhIHJlc291cmNlIHdpdGgga2luZD1wbHVnaW4aD3RoaXMua2luZCA9PSA1OOCFLDpIABI6CgZpbmxpbmUYAiABKAsyKC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLkhvb2tDb25maWdIAEIPCgZzb3VyY2USBbpIAggBIsgECghTdWJBZ2VudBIUCgRuYW1lGAEgASgJQga6SAPIAQESEwoLZGVzY3JpcHRpb24YAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKErABCgpza2lsbF9yZWZzGAUgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQma6SF+SAVwiWroBVwoPc2tpbGxfcmVmcy5raW5kEjNza2lsbF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9c2tpbGwaD3RoaXMua2luZCA9PSA0M+CFLCsSFgoObW9kZWxfb3ZlcnJpZGUYBiABKAkSgwEKBXRvb2xzGAcgAygJQnS6SHGSAW4ibHJqGIACMmVeKG1jcF9fXCp8bWNwX19bYS16XVthLXowLTktXSpbYS16MC05XShfXyhcKnxbQS1aYS16MC05Xy4tXSspKT98W0EtWl1bQS1aYS16MC05X10qKFwoW14oKVxyXG5dK1wpKT8pJBKOAQoQZGlzYWxsb3dlZF90b29scxgIIAMoCUJ0ukhxkgFuImxyahiAAjJlXihtY3BfX1wqfG1jcF9fW2Etel1bYS16MC05LV0qW2EtejAtOV0oX18oXCp8W0EtWmEtejAtOV8uLV0rKSk/fFtBLVpdW0EtWmEtejAtOV9dKihcKFteKClcclxuXStcKSk/KSRKBAgEEAVSCm1jcF9hY2Nlc3NiBnByb3RvMw", [file_ai_stigmer_agentic_mcpserver_v1_usage, file_ai_stigmer_agentic_plugin_v1_hooks, file_ai_stigmer_agentic_run_v1_invocation, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_vault_v1_declaration, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentSpec defines the configurable properties of an agent.
@@ -81,8 +81,10 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
   /**
    * Environment variable declarations for this agent.
    * Keys are variable names; values describe their metadata and optionality.
+   * A secret is found by its name in a vault when a run starts; a plain
+   * setting may carry its value in the declaration.
    *
-   * @generated from field: map<string, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> env = 7;
+   * @generated from field: map<string, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> env = 7;
    */
   env: { [key: string]: EnvVarDeclaration };
 
@@ -160,6 +162,21 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
    * @generated from field: ai.stigmer.agentic.session.v1.Harness harness = 14;
    */
   harness: Harness;
+
+  /**
+   * Shared vaults this agent's conversations use after the person's own My
+   * vault, for people who may use them. At most 20.
+   *
+   * This is how a team key reaches every chat with an agent without a pick
+   * per conversation: an editor of the agent attaches a shared vault they
+   * may use, and each person's turns use it only when that person may use
+   * the vault too. A conversation that lists its own vaults uses those
+   * instead. Runs with no person (a schedule, a share link, a channel)
+   * never use an agent's vaults. A My vault cannot be attached.
+   *
+   * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15;
+   */
+  vaults: ApiResourceReference[];
 };
 
 /**

@@ -80,8 +80,6 @@ import { RunStarter } from "../temporal/schedule/run-starter.js";
 import { ScheduleSyncer } from "../temporal/schedule/syncer.js";
 import { newScheduleWorkerFactory } from "../temporal/schedule/worker.js";
 import { registerScheduleServices } from "../domain/schedule/controller.js";
-import { RuntimeResolutionService } from "../domain/environment/resolution/resolution.js";
-import { ManagedEnvironmentService } from "../domain/mcpserver/oauth/managed-env.js";
 import { registerAgentChannelServices } from "../domain/agentchannel/controller.js";
 import { registerChannelConversationServices } from "../domain/agentchannel/conversation.js";
 import { registerChannelMessageServices } from "../domain/agentchannel/message.js";
@@ -114,7 +112,14 @@ import {
   warnOnLegacyArtifactLayout,
 } from "../artifactstorage/file-server.js";
 import { registerChannelAppServices } from "../domain/channelapp/controller.js";
-import { registerEnvironmentServices } from "../domain/environment/controller.js";
+import { registerVaultServices } from "../domain/vault/controller.js";
+import { newVaultResolver } from "../domain/vault/resolve.js";
+import { newSignInFreshener } from "../domain/mcpserver/oauth/refresh.js";
+import type { SignInFreshener } from "../domain/vault/resolve.js";
+import { newVaultService } from "../domain/vault/service.js";
+import { deleteAllMyVaultsOf } from "../domain/vault/delete.js";
+import { newMyVaultDeparture } from "../domain/iampolicy/departure.js";
+import type { OrganizationDepartureHandler } from "../domain/iampolicy/grant-path.js";
 import { registerExecutionContextServices } from "../domain/executioncontext/controller.js";
 import { registerGitHubServices } from "../domain/github/controller.js";
 import { registerMemoryServices } from "../domain/memory/controller.js";
@@ -537,11 +542,23 @@ export async function composeServer(
   const platformClients =
     extensions.drivers.platformClientStore ??
     newResourcePlatformClientStore(store);
+  // A person's departure from an organization deletes their My vault there
+  // (domain/iampolicy/departure.ts). The handler needs the vault service,
+  // which needs the secret facade built further down, so it is bound once
+  // both exist; the grant path only calls it at request time.
+  let myVaultDeparture: OrganizationDepartureHandler | undefined;
   const iamPolicyGrantPath = newIamPolicyGrantPath({
     policies: iamPolicies,
     resources: newStoredResources(store),
     lifecycle: extensions.drivers.resourceAuthorizationLifecycle,
     logger,
+    departures: (identityAccountId, organizationId, caller) => {
+      /* v8 ignore next 3 -- @preserve: bound a few statements below, during boot, before any request is served; only a mis-ordered composition reaches it. */
+      if (myVaultDeparture === undefined) {
+        throw new Error("the My vault departure handler is not bound yet");
+      }
+      return myVaultDeparture(identityAccountId, organizationId, caller);
+    },
   });
   // The tuple-lifecycle driver: undefined = the three
   // shared tuple steps (CreateAuthorizationTuples / CleanupIamPolicies /
@@ -873,6 +890,23 @@ export async function composeServer(
     writeVersion:
       writeVersionValue === "" ? DEFAULT_WRITE_VERSION : writeVersionValue,
     registeredCodecs: [...secretCodecs.keys()].sort(),
+  });
+  // The vault service: the one in-process door to vault rows (entry
+  // writes, My vault's first write, opening values for a run), shared by
+  // the vault RPCs, sign-in, the GitHub lane and the run resolver.
+  const vaultService = newVaultService({
+    store,
+    logger,
+    secretService,
+    authorizationLifecycle,
+    authorizer,
+  });
+  myVaultDeparture = newMyVaultDeparture({
+    store,
+    logger,
+    secretService,
+    authorizationLifecycle: extensions.drivers.resourceAuthorizationLifecycle,
+    vaults: vaultService,
   });
   // The platform-token key ring joins the FATAL side of the asymmetry:
   // under an authentication posture a server that cannot sign or verify
@@ -1337,37 +1371,6 @@ export async function composeServer(
   );
   // The activity recents feed — pure reads over listResources.
   const activityHandler = new ActivityHandler(store, logger, listReadScope);
-  // The environment runtime-resolution service — the decrypt-for-
-  // execution path the EC builder uses to resolve environment_refs (the
-  // RPC surface redacts secret values, oss#405).
-  const environmentResolution = new RuntimeResolutionService(
-    store,
-    secretService,
-    logger,
-  );
-  // The managed-environment lifecycle — OAuth token access for the EC
-  // builder's injection (server.go 732–735) plus the create/delete halves
-  // the connect/OAuth slice mints and tears environments with.
-  // Rides the environment in-process client so encryption, validation,
-  // and audit ride the environment pipeline. ONE instance shared by
-  // agentexecution and mcpserver — Go builds two, both stateless over the
-  // same client, so sharing is behavior-identical.
-  const managedEnvService = new ManagedEnvironmentService(
-    {
-      getSecretValue: (input) =>
-        requireInProcess().executionEnvironmentReader.getSecretValue(input),
-      updateVariables: (request) =>
-        requireInProcess().executionEnvironmentReader.updateVariables(request),
-      create: (environment, caller) =>
-        requireInProcess().executionEnvironmentReader.create(
-          environment,
-          caller,
-        ),
-      delete: (input) =>
-        requireInProcess().executionEnvironmentReader.delete(input),
-    },
-    logger,
-  );
   // The mcpserver connect-engine provider — the same manager-backed
   // request-time idiom as executionEngineState above; the connect lanes
   // start the RUNNER's workflow, so no worker factory is added here.
@@ -1424,6 +1427,27 @@ export async function composeServer(
     extensions.drivers.outboundEgress ?? relaxedEgressPolicy(),
     { fetchImpl: options.fetchImpl ?? fetch, lookup: nodeLookup() },
   );
+  // The run's credential resolver (domain/vault/resolve.ts): the one rule
+  // for which login or secret fills each key, used by run create and
+  // recover and by the MCP connect lane. The sign-in freshener renews an
+  // expired sign-in through the MCP server's OAuth refresh, whose egress
+  // rides the guarded fetch.
+  const signInFreshener: SignInFreshener = newSignInFreshener({
+    vaults: vaultService,
+    store,
+    secretService,
+    logger,
+    fetchImpl: outboundFetch,
+  });
+  const vaultResolver = newVaultResolver({
+    store,
+    logger,
+    authorizer,
+    secretService,
+    vaults: vaultService,
+    platformClients,
+    freshener: signInFreshener,
+  });
   // The SAME `routes` function registers every service on BOTH the serving
   // router and the in-process router transport (createInProcessClients).
   // Handlers are stateless over the same store, so the two routers behave
@@ -1541,6 +1565,18 @@ export async function composeServer(
       federation: extensions.drivers.identityFederation,
       gateSteps: extensions.gateSteps,
       membership,
+      deleteMyVaults: (person, caller) =>
+        deleteAllMyVaultsOf(
+          {
+            store,
+            logger,
+            secretService,
+            authorizationLifecycle,
+            vaults: vaultService,
+          },
+          person,
+          caller,
+        ),
     });
     // IamPolicy: the ROW half served once by open source in
     // every edition over the store port and the grant path bound in the
@@ -1565,16 +1601,17 @@ export async function composeServer(
       edition: extensions.edition,
       logger,
     });
-    registerEnvironmentServices(router, {
+    registerVaultServices(router, {
       store,
       logger,
       authorizer,
-      secretService,
       authorizationLifecycle,
+      secretService,
       listReadScope,
+      vaults: vaultService,
     });
-    // OAuthApp reuses the environment's SecretService instance — Go wires
-    // ONE encryption service for both (server.go 302–307).
+    // OAuthApp shares the one SecretService instance every secret kind
+    // seals with.
     registerOAuthAppServices(router, {
       store,
       secretService,
@@ -1636,12 +1673,13 @@ export async function composeServer(
       sandboxLane,
       authorizationLifecycle,
       listReadScope,
+      secretService,
     });
     // The sharing/channel family registers after the agent family, as in
     // Go server.go (agent 378 → agentshare 384 → agentchannel 391 →
     // channelmessage 399 → channelconversation 408 → channelapp 416).
-    // ChannelApp shares the ONE SecretService instance with Environment —
-    // one key, one enc:v1: format (Go wires the same pointer).
+    // ChannelApp shares the ONE SecretService instance every secret kind
+    // seals with: one key, one enc:v1: format.
     registerAgentShareServices(router, {
       store,
       logger,
@@ -1728,26 +1766,18 @@ export async function composeServer(
         logger,
         agentLoader: () => requireInProcess().executionAgentLoader,
         sessionLoader: () => requireInProcess().executionSessionLoader,
-        environmentReader: () => requireInProcess().executionEnvironmentReader,
-        environmentResolution,
         executionContextCreator: () =>
           requireInProcess().executionContextCreator,
         executionContextDeleter: () =>
           requireInProcess().executionContextDeleter,
-        managedEnvService,
-        // The minting client's environment layer reads the client through
-        // the port, which a composition's driver may serve (#1256).
-        platformClients,
-        // The run-start token refresh dials the vendor's token endpoint;
-        // it rides the same egress-guarded fetch as every other OAuth call.
-        fetchImpl: asFetch(outboundFetch),
+        vaultResolver,
       },
     });
     // The whole surface: the CRUD slice plus the connect/OAuth
     // slice. All connect deps are wired unconditionally per the
     // composition-root idiom — engine availability is the modeled state
-    // the provider answers at request time, and the managed-env service
-    // has no Temporal dependency.
+    // the provider answers at request time. Sign-in saves into vaults and
+    // connect resolves through the run's resolver.
     registerMcpServerServices(router, {
       store,
       logger,
@@ -1758,10 +1788,8 @@ export async function composeServer(
         logger,
         authorizer,
         engineState: mcpServerEngineState,
-        environmentReader: {
-          getSecretValue: (input) =>
-            requireInProcess().executionEnvironmentReader.getSecretValue(input),
-        },
+        vaults: vaultService,
+        vaultResolver,
         executionContext: {
           create: (ec, caller) =>
             requireInProcess().connectExecutionContextClient.create(ec, caller),
@@ -1769,10 +1797,6 @@ export async function composeServer(
             requireInProcess().connectExecutionContextClient.delete(input),
         },
         runnerAuth: runnerCredentials,
-        managedEnv: managedEnvService,
-        // The SAME grant-store instance agentexecution's session-time
-        // token injection reads (Go server.go:732-735 shares it too).
-        oauthGrants: store.oauthGrants,
         pendingOAuthStates: store.pendingOAuthStates,
         secretService,
         oauthRedirectUri,
@@ -1810,11 +1834,16 @@ export async function composeServer(
     // github 524 → platform 530).
     registerSearchServices(router, { handler: searchHandler, logger });
     registerActivityServices(router, { handler: activityHandler, logger });
-    // GitHub broker: config-only, no store (Go server.go 524–528).
+    // GitHub: the sign-in saves the github.com login in the caller's My
+    // vault, and the repository reads use it server-side, so no page ever
+    // holds the token.
     registerGitHubServices(router, {
       clientId: config.gitHubOAuthClientId,
       clientSecret: config.gitHubOAuthClientSecret,
       logger,
+      authorizer,
+      vaults: vaultService,
+      pendingOAuthStates: store.pendingOAuthStates,
       fetchImpl: options.fetchImpl,
     });
     // Platform registers LAST of all controllers (Go server.go 530–535).

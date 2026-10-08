@@ -16,6 +16,10 @@
  * resolves `ready` in direct mode; without the grant the variable is the Sign
  * in row and never a form field; a variable of the agent's own beside it is
  * still asked for.
+ *
+ * A conversation that lists vaults never reads My vault, and the grant is My
+ * vault's: there the grant is not read and earns nothing, and a server is
+ * signed in only when a listed vault holds a sign-in that server started.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -28,9 +32,11 @@ import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { McpServerUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
-import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
-import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
+import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
+import { VaultSchema, type Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
+import { Code as VaultCode, ConnectError as VaultConnectError } from "@connectrpc/connect";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { GetOAuthGrantStatusOutputSchema, OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
@@ -50,6 +56,10 @@ const REF = { org: ORG, slug: "reviewer" };
 interface World {
   /** Per server slug: whether the organization holds a connected grant. `"unreadable"` makes the grant read fail; `"missing"` makes the server read fail. */
   readonly grants: Record<string, boolean | "unreadable" | "missing">;
+  /** The shared vault a conversation may list; absent, reading it fails. */
+  readonly listedVault?: Vault;
+  /** The grant reads made, by server id. */
+  readonly grantReads?: string[];
 }
 
 function oauthServer(slug: string) {
@@ -87,6 +97,7 @@ function client(world: World, agentEnv: Record<string, { isSecret: boolean }> = 
           return oauthServer(ref.slug);
         },
         getOAuthGrantStatus: (input) => {
+          world.grantReads?.push(input.resourceId);
           const slug = input.resourceId.replace(/^mcp_/, "");
           const grant = world.grants[slug];
           if (grant === "unreadable") throw new ConnectError("grant store away", Code.Unavailable);
@@ -96,7 +107,15 @@ function client(world: World, agentEnv: Record<string, { isSecret: boolean }> = 
           });
         },
       });
-      service(EnvironmentQueryController, { list: () => create(EnvironmentListSchema, { items: [] }) });
+      service(VaultQueryController, {
+        getMine: () => {
+          throw new VaultConnectError("no My vault yet", VaultCode.NotFound);
+        },
+        getByReference: () => {
+          if (!world.listedVault) throw new VaultConnectError("no such vault", VaultCode.NotFound);
+          return world.listedVault;
+        },
+      });
     }),
   });
 }
@@ -209,5 +228,56 @@ describe("useAgentSetup and the agent's OAuth servers", () => {
     });
     expect(result.current.state).toMatchObject({ status: "needsEnvVars", missingVariables: [], pendingSignIns: [expect.objectContaining({ id: "mcp_linear" })] });
     await expect(result.current.submitEnvVars({})).rejects.toThrow(/every pending sign-in/);
+  });
+
+  it("gives a My vault grant no credit when the conversation lists vaults", async () => {
+    const LISTED = [{ org: ORG, slug: "team" }];
+    const grantReads: string[] = [];
+    const empty = create(VaultSchema, { metadata: { org: ORG, slug: "team" }, spec: { owner: { case: "org", value: ORG } } });
+    const { result } = renderHook(() => useAgentSetup(ORG, undefined, LISTED), {
+      wrapper: wrapper(client({ grants: { linear: true }, listedVault: empty, grantReads }, { LINEAR_ACCESS_TOKEN: { isSecret: true } })),
+    });
+    await act(async () => {
+      await result.current.resolveAgent(REF);
+    });
+    expect(result.current.state).toMatchObject({
+      status: "needsEnvVars",
+      missingVariables: [],
+      pendingSignIns: [expect.objectContaining({ id: "mcp_linear", health: OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT })],
+    });
+    expect(grantReads).toEqual([]);
+  });
+
+  it("counts a listed vault's sign-in only for the server that started it", async () => {
+    const LISTED = [{ org: ORG, slug: "team" }];
+    const signedInBy = (minter: string) =>
+      create(VaultSchema, {
+        metadata: { org: ORG, slug: "team" },
+        spec: {
+          owner: { case: "org", value: ORG },
+          connections: {
+            "https://linear.example/mcp": { source: VaultConnectionSource.sign_in, signIn: { mcpServerId: minter } },
+          },
+        },
+      });
+
+    const foreign = renderHook(() => useAgentSetup(ORG, undefined, LISTED), {
+      wrapper: wrapper(client({ grants: { linear: false }, listedVault: signedInBy("mcp_other") }, { LINEAR_ACCESS_TOKEN: { isSecret: true } })),
+    });
+    await act(async () => {
+      await foreign.result.current.resolveAgent(REF);
+    });
+    expect(foreign.result.current.state).toMatchObject({
+      status: "needsEnvVars",
+      pendingSignIns: [expect.objectContaining({ id: "mcp_linear" })],
+    });
+
+    const own = renderHook(() => useAgentSetup(ORG, undefined, LISTED), {
+      wrapper: wrapper(client({ grants: { linear: false }, listedVault: signedInBy("mcp_linear") }, { LINEAR_ACCESS_TOKEN: { isSecret: true } })),
+    });
+    await act(async () => {
+      await own.result.current.resolveAgent(REF);
+    });
+    expect(own.result.current.state).toMatchObject({ status: "ready", resolution: { mode: "direct" } });
   });
 });

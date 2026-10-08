@@ -17,25 +17,45 @@ export interface SecretFlowErrorGuideProps {
 }
 
 interface MissingVariable {
-  readonly serverName: string;
+  /** Who declares the key: an MCP server's name, "the agent <name>", "repository <name>". */
+  readonly declarer: string;
   readonly variableName: string;
+  /** The server's own instruction: who must act, and how. */
+  readonly action: string;
 }
 
-const MISSING_ENV_VAR_PATTERN =
-  /MCP server '([^']+)' requires environment variable '([^']+)'/g;
+/**
+ * The run refusal's wording when a required key is in none of a run's
+ * vaults: "<declarer> needs <KEY>: <who acts>", one per key, joined by
+ * "; ". A wrapping prefix (a recover's) ends in a colon, and a bracketed
+ * code prefix ends in "]"; the declarer never starts before either.
+ *
+ * Read by splitting and searching, never a regular expression over the
+ * whole message: the message is server text, and a backtracking pattern
+ * over it can take quadratic time on a long one.
+ */
+const NEEDS = " needs ";
+const KEY_AND_ACTION = /^([A-Za-z_][A-Za-z0-9_]*): ([\s\S]+)$/;
 
 /**
- * Parse a `FAILED_PRECONDITION` error message for missing environment
- * variable declarations. Returns an empty array when the pattern does
- * not match.
+ * Parse a `FAILED_PRECONDITION` error message for keys a run needs and
+ * none of its vaults holds. Returns an empty array when nothing matches.
  */
 function parseMissingVariables(message: string): MissingVariable[] {
   const results: MissingVariable[] = [];
-  let match: RegExpExecArray | null;
-  while ((match = MISSING_ENV_VAR_PATTERN.exec(message)) !== null) {
-    results.push({ serverName: match[1], variableName: match[2] });
+  for (const part of message.split(";")) {
+    const at = part.indexOf(NEEDS);
+    if (at < 0) continue;
+    const head = part.slice(0, at);
+    const declarer = head
+      .slice(Math.max(head.lastIndexOf(":"), head.lastIndexOf("]")) + 1)
+      .trim();
+    const keyAndAction = KEY_AND_ACTION.exec(part.slice(at + NEEDS.length));
+    if (declarer === "" || keyAndAction === null) continue;
+    const action = keyAndAction[2].trim();
+    if (action === "") continue;
+    results.push({ declarer, variableName: keyAndAction[1], action });
   }
-  MISSING_ENV_VAR_PATTERN.lastIndex = 0;
   return results;
 }
 
@@ -46,9 +66,9 @@ function isFailedPreconditionError(error: Error): boolean {
 /**
  * Contextual recovery guidance for secret-flow errors.
  *
- * Detects `FAILED_PRECONDITION` errors from run creation that
- * indicate missing MCP server environment variables, and renders
- * actionable guidance alongside the technical error message.
+ * Detects `FAILED_PRECONDITION` errors from run creation that name keys
+ * none of the run's vaults holds, and renders each key with the server's
+ * own instruction (add it to My vault, sign in, ask a schedule's owner).
  *
  * When the error does not match a secret-flow pattern, renders nothing.
  * This makes the component composable: try `SecretFlowErrorGuide`
@@ -83,11 +103,11 @@ export function SecretFlowErrorGuide({
   if (!parsed) return null;
 
   const grouped = useMemo(() => {
-    const map = new Map<string, string[]>();
-    for (const { serverName, variableName } of parsed) {
-      const list = map.get(serverName) ?? [];
-      list.push(variableName);
-      map.set(serverName, list);
+    const map = new Map<string, MissingVariable[]>();
+    for (const item of parsed) {
+      const list = map.get(item.declarer) ?? [];
+      list.push(item);
+      map.set(item.declarer, list);
     }
     return map;
   }, [parsed]);
@@ -105,22 +125,24 @@ export function SecretFlowErrorGuide({
 
         <div className="stg:min-w-0 stg:flex-1 stg:space-y-2">
           <p className="stg:text-sm stg:font-medium stg:text-amber-800 stg:dark:text-amber-200">
-            Missing environment variables
+            Missing logins and secrets
           </p>
 
           <div className="stg:space-y-1.5">
-            {Array.from(grouped).map(([server, vars]) => (
-              <div key={server}>
+            {Array.from(grouped).map(([declarer, items]) => (
+              <div key={declarer}>
                 <p className="stg:text-xs stg:text-amber-700 stg:dark:text-amber-300">
-                  <span className="stg:font-medium">{server}</span> requires:
+                  <span className="stg:font-medium">{declarer}</span> needs:
                 </p>
                 <ul className={cn(UNSTYLED_LIST, "stg:mt-0.5 stg:space-y-0.5")}>
-                  {vars.map((v) => (
+                  {items.map((item) => (
                     <li
-                      key={v}
-                      className="stg:text-xs stg:font-mono stg:text-amber-800/80 stg:dark:text-amber-200/80 stg:pl-3"
+                      key={item.variableName}
+                      className="stg:text-xs stg:text-amber-800/80 stg:dark:text-amber-200/80 stg:pl-3"
                     >
-                      {v}
+                      <span className="stg:font-mono">{item.variableName}</span>
+                      {" — "}
+                      {item.action}
                     </li>
                   ))}
                 </ul>
@@ -128,29 +150,6 @@ export function SecretFlowErrorGuide({
             ))}
           </div>
 
-          <div className="stg:border-t stg:border-amber-500/20 stg:pt-2">
-            <p className="stg:text-xs stg:text-amber-700/90 stg:dark:text-amber-300/90">
-              You can provide these values in two ways:
-            </p>
-            <ul className={cn(UNSTYLED_LIST, "stg:mt-1 stg:space-y-0.5 stg:text-xs stg:text-amber-700/80 stg:dark:text-amber-300/80")}>
-              <li className="stg:flex stg:items-start stg:gap-1.5">
-                <span className="stg:mt-px stg:shrink-0">•</span>
-                <span>
-                  Add them to your{" "}
-                  <strong className="stg:font-medium">personal environment</strong>{" "}
-                  in Settings for automatic reuse across sessions.
-                </span>
-              </li>
-              <li className="stg:flex stg:items-start stg:gap-1.5">
-                <span className="stg:mt-px stg:shrink-0">•</span>
-                <span>
-                  Provide them as{" "}
-                  <strong className="stg:font-medium">session variables</strong>{" "}
-                  when sending a message.
-                </span>
-              </li>
-            </ul>
-          </div>
         </div>
       </div>
     </div>

@@ -6,12 +6,17 @@
  * connect_status bookkeeping (attach skips CONNECTING; results and the
  * terminal phase ride ONE atomic write; failure_code in CamelCase),
  * each tool's destructive_hint persisted as the runner read it and
- * overwritten on reconnect, the ephemeral EC lifecycle, and
+ * overwritten on reconnect, the ephemeral EC lifecycle and its values
+ * from the vault resolver (the caller's own My vault, never a teammate's;
+ * a runtime_env key the server does not declare never delivered; a
+ * required key nowhere refuses the connect, naming it), and
  * startConnect's two-layer idempotency + dead-runner warning, and the
  * connect route (connect-sandbox.ts, stigmer/stigmer#1474): the shared
  * runner queue without a sandbox lane, and with one a connect sandbox
  * per connect, acting as the person through an always-created
- * ExecutionContext row and released exactly once on every exit.
+ * ExecutionContext row and released exactly once on every exit; the
+ * apply tail skipping every server that needs a value, a login key with no
+ * env declaration included.
  *
  * The wire-level halves are pinned by
  * mcpserver-connect.conformance.test.ts on local-execution.
@@ -29,8 +34,6 @@ import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/
 import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { ConnectPhase } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
-import { EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 
 import { createLogger } from "../../../boot/logger.js";
@@ -51,7 +54,9 @@ import type {
   SandboxProvisioner,
 } from "../../../sandbox/provisioner.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
-import { PERSONAL_LABEL_KEY, PERSONAL_LABEL_VALUE } from "../../environment/constants.js";
+import { newVaultResolver } from "../../vault/resolve.js";
+import { newVaultService } from "../../vault/service.js";
+import type { VaultService } from "../../vault/service.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import {
@@ -63,7 +68,7 @@ import {
 } from "../connect.js";
 import type { McpServerConnectDeps } from "../connect.js";
 import { isConnectExecutionId } from "../connect-execution-id.js";
-import { ManagedEnvironmentService } from "../oauth/managed-env.js";
+import { newSignInFreshener } from "../oauth/refresh.js";
 import {
   RUNNER_QUEUE_WARNING,
   startConnect as startConnectRpc,
@@ -191,6 +196,8 @@ interface HarnessOptions extends FakeEngineOptions {
 
 interface Harness {
   deps: McpServerConnectDeps;
+  /** The real vault service over the harness's store. */
+  vaults: VaultService;
   engine: FakeEngine;
   ecCreates: number;
   /** The caller each EC create was handed — the connect's person, never the server (the mcp-connect binding's stamp). */
@@ -238,21 +245,34 @@ function makeHarness(options: HarnessOptions = {}): Harness {
           provisioner: options.provisioner,
           credentials: options.credentials ?? runnerAuth,
         };
+  const secretService = SecretService.create(undefined);
+  const vaults = newVaultService({
+    store,
+    logger: silentLogger,
+    secretService,
+    authorizationLifecycle: undefined,
+  });
+  const authorizer = newPermissiveSingleTeamAuthorizer();
+  const resolver = newVaultResolver({
+    store,
+    logger: silentLogger,
+    authorizer,
+    secretService,
+    vaults,
+    platformClients: { findById: async () => undefined },
+    freshener: newSignInFreshener({ vaults, store, secretService, logger: silentLogger }),
+  });
   const harness: Harness = {
     engine,
+    vaults,
     ecCreates: 0,
     ecCreators: [],
     ecDeletes: [],
     deps: {
       store,
       logger: silentLogger,
-      authorizer: newPermissiveSingleTeamAuthorizer(),
+      authorizer,
       engineState: () => ({ connected: true, engine }),
-      environmentReader: {
-        getSecretValue: async () => {
-          throw new Error("no secrets in this harness");
-        },
-      },
       executionContext: {
         create: async (_ec, caller) => {
           harness.ecCreates += 1;
@@ -267,30 +287,10 @@ function makeHarness(options: HarnessOptions = {}): Harness {
         },
       },
       runnerAuth,
-      // The REAL service over a client backed by nothing: the refresh
-      // pre-flight arms that need it are exercised in the handshake
-      // composed test; here every read throws, which the pre-flight
-      // treats as its silent-skip arm (oss#863).
-      managedEnv: new ManagedEnvironmentService(
-        {
-          getSecretValue: async () => {
-            throw new Error("no managed env in this harness");
-          },
-          updateVariables: async () => {
-            throw new Error("no managed env in this harness");
-          },
-          create: async () => {
-            throw new Error("no managed env in this harness");
-          },
-          delete: async () => {
-            throw new Error("no managed env in this harness");
-          },
-        },
-        silentLogger,
-      ),
-      oauthGrants: store.oauthGrants,
+      vaults,
+      vaultResolver: resolver,
       pendingOAuthStates: store.pendingOAuthStates,
-      secretService: SecretService.create(undefined),
+      secretService,
       oauthRedirectUri: "http://127.0.0.1:8234/auth/oauth/callback",
       sandboxLane,
       // No arm in this harness dials out; a call is a test bug, not a network.
@@ -306,6 +306,8 @@ let counter = 0;
 async function seedServer(overrides?: {
   stdio?: boolean;
   env?: boolean;
+  /** A login key with no env declaration: auth.target_env_var, or a Bearer header's variable. */
+  login?: "target" | "bearer";
 }): Promise<McpServer> {
   counter += 1;
   const id = `mcps_test_${counter}`;
@@ -321,12 +323,20 @@ async function seedServer(overrides?: {
     spec: {
       description: "seeded",
       serverType:
-        overrides?.stdio === false
-          ? { case: "http", value: { url: "https://mcp.example.com/mcp" } }
+        overrides?.stdio === false || overrides?.login === "bearer"
+          ? {
+              case: "http",
+              value: {
+                url: "https://mcp.example.com/mcp",
+                headers:
+                  overrides?.login === "bearer" ? { Authorization: "Bearer ${API_TOKEN}" } : {},
+              },
+            }
           : { case: "stdio", value: { command: "npx", args: ["-y", "@x/mcp"] } },
       ...(overrides?.env === true
         ? { env: { API_KEY: { isSecret: true, optional: false } } }
         : {}),
+      ...(overrides?.login === "target" ? { auth: { targetEnvVar: "API_TOKEN" } } : {}),
     },
   });
   await store.saveResource(ApiResourceKind.mcp_server, id, McpServerSchema, server);
@@ -454,7 +464,7 @@ describe("connect (blocking lane)", () => {
 
   it("creates the ephemeral EC from runtime_env AS THE CALLER, mints the decrypt token, and deletes the EC after settle", async () => {
     const harness = makeHarness();
-    const server = await seedServer();
+    const server = await seedServer({ env: true });
     await connect(
       harness.deps,
       connectInput(server.metadata!.id, {
@@ -484,76 +494,75 @@ describe("connect (blocking lane)", () => {
     expect(harness.engine.startedInputs[0]?.execution_context_id).toBeUndefined();
   });
 
-  it("refuses with the [key] list when required credentials have no personal environment", async () => {
+  it("refuses with FailedPrecondition naming the key when the caller's vaults hold no required credential", async () => {
     const harness = makeHarness();
+    const server = await seedServer({ env: true });
+    const error = await expectConnectError(
+      connect(harness.deps, connectInput(server.metadata!.id)),
+      Code.FailedPrecondition,
+      "API_KEY",
+    );
+    expect(harness.ecCreates).toBe(0);
+    expect(error.code).toBe(Code.FailedPrecondition);
+  });
+
+  it("delivers only the runtime_env keys the server declares; a required key missing refuses, naming it", async () => {
+    const harness = makeHarness();
+    const created: Array<Parameters<McpServerConnectDeps["executionContext"]["create"]>[0]> = [];
+    const recordCreate = harness.deps.executionContext.create;
     harness.deps = {
       ...harness.deps,
-      environmentReader: {
-        getSecretValue: async () => {
-          throw new Error("unreachable");
+      executionContext: {
+        ...harness.deps.executionContext,
+        create: async (ec, caller) => {
+          created.push(ec);
+          return recordCreate(ec, caller);
         },
       },
     };
     const server = await seedServer({ env: true });
-    await expectConnectError(
-      connect(harness.deps, connectInput(server.metadata!.id)),
-      Code.FailedPrecondition,
-      "personal environment not found for org 'acme'; save required credentials first: [API_KEY]",
+    await connect(
+      harness.deps,
+      connectInput(server.metadata!.id, {
+        API_KEY: { value: "declared", isSecret: true },
+        UNDECLARED: { value: "stays-home", isSecret: true },
+      }),
     );
+    expect(Object.keys(created[0]?.spec?.data ?? {})).toEqual(["API_KEY"]);
+    expect(created[0]?.spec?.data?.["API_KEY"]?.value).toBe("declared");
+
+    created.length = 0;
+    const refused = await expectConnectError(
+      connect(
+        harness.deps,
+        connectInput(server.metadata!.id, { UNDECLARED: { value: "stays-home", isSecret: true } }),
+      ),
+      Code.FailedPrecondition,
+      "needs API_KEY",
+    );
+    expect(refused.rawMessage).not.toContain("UNDECLARED");
+    expect(created).toEqual([]);
   });
 
-  it("reads the connecting person's own personal environment, never a teammate's saved later", async () => {
-    // A teammate's personal environment, saved after the caller's, is the
-    // one an organization-wide newest-first list would answer first.
-    const personal = (id: string, creator: string, at: number) =>
-      create(EnvironmentSchema, {
-        metadata: {
-          id,
-          slug: id,
-          org: "acme",
-          labels: { [PERSONAL_LABEL_KEY]: PERSONAL_LABEL_VALUE },
-        },
-        spec: { data: { API_KEY: { value: "ciphertext", isSecret: true } } },
-        status: {
-          audit: {
-            specAudit: {
-              createdBy: { id: creator },
-              createdAt: { seconds: BigInt(at), nanos: 0 },
-            },
-          },
-        },
-      });
-    await store.saveResource(
-      ApiResourceKind.environment,
-      "env_caller",
-      EnvironmentSchema,
-      personal("env_caller", testCaller.identityId, 1_000),
-    );
-    await store.saveResource(
-      ApiResourceKind.environment,
-      "env_teammate",
-      EnvironmentSchema,
-      personal("env_teammate", "acc_teammate", 2_000),
-    );
-    const values: Record<string, string> = {
-      env_caller: "caller-key",
-      env_teammate: "teammate-key",
-    };
-    const reads: string[] = [];
-    const created: Array<Parameters<McpServerConnectDeps["executionContext"]["create"]>[0]> = [];
+  it("reads the connecting person's own My vault, never a teammate's", async () => {
     const harness = makeHarness();
+    const teammate = testCallerIdentity({ identityId: "acc_teammate" });
+    const mine = await harness.vaults.ensureMine("acme", testCaller);
+    const theirs = await harness.vaults.ensureMine("acme", teammate);
+    await harness.vaults.setSecrets(
+      mine.metadata!.id,
+      { API_KEY: { value: "caller-key", description: "" } },
+      testCaller,
+    );
+    await harness.vaults.setSecrets(
+      theirs.metadata!.id,
+      { API_KEY: { value: "teammate-key", description: "" } },
+      teammate,
+    );
+    const created: Array<Parameters<McpServerConnectDeps["executionContext"]["create"]>[0]> = [];
     const recordCreate = harness.deps.executionContext.create;
     harness.deps = {
       ...harness.deps,
-      environmentReader: {
-        getSecretValue: async (input) => {
-          reads.push(input.environmentId ?? "");
-          return create(EnvironmentValueSchema, {
-            value: values[input.environmentId ?? ""] ?? "",
-            isSecret: true,
-          });
-        },
-      },
       executionContext: {
         ...harness.deps.executionContext,
         create: async (ec, caller) => {
@@ -564,8 +573,12 @@ describe("connect (blocking lane)", () => {
     };
     const server = await seedServer({ env: true });
     await connect(harness.deps, connectInput(server.metadata!.id));
-    expect(reads).toEqual(["env_caller"]);
     expect(created[0]?.spec?.data?.["API_KEY"]?.value).toBe("caller-key");
+
+    // The teammate's own connect reads the teammate's vault.
+    created.length = 0;
+    await connectRpc(harness.deps, connectInput(server.metadata!.id), teammate);
+    expect(created[0]?.spec?.data?.["API_KEY"]?.value).toBe("teammate-key");
   });
 
   it("skips the CONNECTING write when attached to an in-flight run", async () => {
@@ -744,11 +757,11 @@ describe("startConnect (async lane)", () => {
   });
 
   it("attach path: deletes the just-created EC and returns the re-read resource", async () => {
-    const server = await seedServer();
+    const server = await seedServer({ env: true });
     const harness = makeHarness({ attached: true });
     const result = await startConnect(
       harness.deps,
-      connectInput(server.metadata!.id, { K: { value: "v", isSecret: false } }),
+      connectInput(server.metadata!.id, { API_KEY: { value: "v", isSecret: true } }),
     );
     expect(result.metadata?.id).toBe(server.metadata!.id);
     expect(harness.ecCreates).toBe(1);
@@ -773,6 +786,26 @@ describe("startBestEffortConnect (apply tail)", () => {
     const server = await seedServer({ env: true });
     await startBestEffortConnect(harness.deps, server, testCaller);
     expect(harness.engine.startedInputs).toHaveLength(0);
+  });
+
+  it("skips servers whose login key reads a person's sign-in, with no env declaration: auth.target_env_var or a Bearer header", async () => {
+    for (const login of ["target", "bearer"] as const) {
+      const provisioner = fakeConnectProvisioner();
+      const harness = makeHarness({ provisioner });
+      // The applier holds the login, so only the skip keeps an apply from
+      // reading it (and, for a sign-in, renewing it).
+      const mine = await harness.vaults.ensureMine("acme", testCaller);
+      await harness.vaults.setSecrets(
+        mine.metadata!.id,
+        { API_TOKEN: { value: "applier-login", description: "" } },
+        testCaller,
+      );
+      const server = await seedServer({ login });
+      await startBestEffortConnect(harness.deps, server, testCaller);
+      expect(harness.engine.startedInputs, login).toHaveLength(0);
+      expect(harness.ecCreates, login).toBe(0);
+      expect(provisioner.created, login).toHaveLength(0);
+    }
   });
 
   it("connects an env-less server and persists the result", async () => {
@@ -874,7 +907,7 @@ describe("the connect route with a sandbox lane composed (stigmer/stigmer#1474)"
   it("blocking connect with runtime_env: the row carries the values and the payload names it, and the sandbox is released once", async () => {
     const provisioner = fakeConnectProvisioner();
     const harness = makeHarness({ provisioner });
-    const server = await seedServer();
+    const server = await seedServer({ env: true });
     await connect(
       harness.deps,
       connectInput(server.metadata!.id, { API_KEY: { value: "k", isSecret: true } }),

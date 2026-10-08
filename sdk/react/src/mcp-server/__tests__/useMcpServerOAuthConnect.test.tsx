@@ -1,3 +1,10 @@
+/**
+ * Pins the OAuth connect flow's phases: where a failure lands
+ * (`failedPhase`), the honest copy for a discovery-leg failure, and a
+ * sign-in saved into a shared vault, which names the vault and its
+ * organization, chains no discovery (the connect lane reads only My vault)
+ * and, when the person may not edit the vault, says who can act.
+ */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook, act, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -5,10 +12,14 @@ import { create } from "@bufbuild/protobuf";
 import { createRouterTransport, ConnectError, Code } from "@connectrpc/connect";
 import { Stigmer } from "@stigmer/sdk";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
+import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
+import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import {
   InitiateOAuthConnectOutputSchema,
   CompleteOAuthConnectOutputSchema,
+  type InitiateOAuthConnectInput,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import { getUserMessage } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import {
   useMcpServerOAuthConnect,
@@ -136,6 +147,65 @@ describe("useMcpServerOAuthConnect — failedPhase", () => {
     });
     expect(result.current.failedPhase).toBeNull();
     expect(result.current.phase).toBe("done");
+  });
+});
+
+describe("useMcpServerOAuthConnect — a sign-in saved into a shared vault", () => {
+  const VAULT = { id: "vlt_team", org: "org_acme", name: "Team tools" };
+
+  it("names the vault and its organization, and chains no discovery", async () => {
+    const initiated: InitiateOAuthConnectInput[] = [];
+    let connects = 0;
+    const { result } = renderOAuthHook((router) => {
+      router.service(McpServerCommandController, {
+        ...happyOAuthLegs(),
+        initiateOAuthConnect: (input) => {
+          initiated.push(input);
+          return happyOAuthLegs().initiateOAuthConnect();
+        },
+        connect: () => {
+          connects += 1;
+          return {};
+        },
+      });
+      router.service(McpServerQueryController, {
+        get: () => create(McpServerSchema, { metadata: { id: SERVER_ID, name: "Linear" } }),
+      });
+    });
+
+    let server: Awaited<ReturnType<typeof result.current.startOAuth>> | undefined;
+    await act(async () => {
+      server = await result.current.startOAuth(SERVER_ID, ORG, { vault: VAULT });
+    });
+    expect(initiated[0]).toMatchObject({ mcpServerId: SERVER_ID, org: "org_acme", vaultId: "vlt_team" });
+    expect(connects).toBe(0);
+    expect(server?.metadata?.name).toBe("Linear");
+    expect(result.current.phase).toBe("done");
+  });
+
+  it("says who can act when the person may not edit the vault, and passes other refusals through", async () => {
+    let code = Code.PermissionDenied;
+    const { result } = renderOAuthHook((router) => {
+      router.service(McpServerCommandController, {
+        initiateOAuthConnect: () => {
+          throw new ConnectError("unauthorized to save a sign-in in this vault", code);
+        },
+      });
+    });
+
+    await act(async () => {
+      await expect(result.current.startOAuth(SERVER_ID, ORG, { vault: VAULT })).rejects.toThrow();
+    });
+    expect(getUserMessage(result.current.error)).toBe(
+      "This conversation uses only its vaults, so the sign-in must be saved in vault 'Team tools', which you may not edit. " +
+        "Ask an admin of that vault to sign in there, or to let you edit it.",
+    );
+
+    code = Code.NotFound;
+    await act(async () => {
+      await expect(result.current.startOAuth(SERVER_ID, ORG, { vault: VAULT })).rejects.toThrow();
+    });
+    expect(getUserMessage(result.current.error)).toBe("unauthorized to save a sign-in in this vault");
   });
 });
 

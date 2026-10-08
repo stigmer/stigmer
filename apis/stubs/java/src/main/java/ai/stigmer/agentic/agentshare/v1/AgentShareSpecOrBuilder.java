@@ -204,81 +204,81 @@ public interface AgentShareSpecOrBuilder extends
 
   /**
    * <pre>
-   * References to Environment resources whose values are provided to guest
-   * conversations on this share.
+   * Vaults whose logins and secrets guest conversations on this share use, in
+   * order: the first vault holding a match wins. Valid on public-audience
+   * shares only. At most 20.
    *
-   * This is how a tool-using agent becomes chattable over a share link:
-   * bind an org-shared environment holding the needed credentials (for
-   * example a read-only API token), and guest runs receive its
-   * values at runtime. The agent itself stays untouched.
-   * Valid on public-audience shares only.
+   * This is how a tool-using agent becomes chattable over a share link: attach
+   * a shared vault holding the needed keys (for example a read-only API
+   * token). A guest's runs use only these vaults; a visitor brings none of
+   * their own. A My vault cannot be attached.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
   java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> 
-      getEnvironmentRefsList();
+      getVaultsList();
   /**
    * <pre>
-   * References to Environment resources whose values are provided to guest
-   * conversations on this share.
+   * Vaults whose logins and secrets guest conversations on this share use, in
+   * order: the first vault holding a match wins. Valid on public-audience
+   * shares only. At most 20.
    *
-   * This is how a tool-using agent becomes chattable over a share link:
-   * bind an org-shared environment holding the needed credentials (for
-   * example a read-only API token), and guest runs receive its
-   * values at runtime. The agent itself stays untouched.
-   * Valid on public-audience shares only.
+   * This is how a tool-using agent becomes chattable over a share link: attach
+   * a shared vault holding the needed keys (for example a read-only API
+   * token). A guest's runs use only these vaults; a visitor brings none of
+   * their own. A My vault cannot be attached.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
-  ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRefs(int index);
+  ai.stigmer.commons.apiresource.ApiResourceReference getVaults(int index);
   /**
    * <pre>
-   * References to Environment resources whose values are provided to guest
-   * conversations on this share.
+   * Vaults whose logins and secrets guest conversations on this share use, in
+   * order: the first vault holding a match wins. Valid on public-audience
+   * shares only. At most 20.
    *
-   * This is how a tool-using agent becomes chattable over a share link:
-   * bind an org-shared environment holding the needed credentials (for
-   * example a read-only API token), and guest runs receive its
-   * values at runtime. The agent itself stays untouched.
-   * Valid on public-audience shares only.
+   * This is how a tool-using agent becomes chattable over a share link: attach
+   * a shared vault holding the needed keys (for example a read-only API
+   * token). A guest's runs use only these vaults; a visitor brings none of
+   * their own. A My vault cannot be attached.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
-  int getEnvironmentRefsCount();
+  int getVaultsCount();
   /**
    * <pre>
-   * References to Environment resources whose values are provided to guest
-   * conversations on this share.
+   * Vaults whose logins and secrets guest conversations on this share use, in
+   * order: the first vault holding a match wins. Valid on public-audience
+   * shares only. At most 20.
    *
-   * This is how a tool-using agent becomes chattable over a share link:
-   * bind an org-shared environment holding the needed credentials (for
-   * example a read-only API token), and guest runs receive its
-   * values at runtime. The agent itself stays untouched.
-   * Valid on public-audience shares only.
+   * This is how a tool-using agent becomes chattable over a share link: attach
+   * a shared vault holding the needed keys (for example a read-only API
+   * token). A guest's runs use only these vaults; a visitor brings none of
+   * their own. A My vault cannot be attached.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
   java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
-      getEnvironmentRefsOrBuilderList();
+      getVaultsOrBuilderList();
   /**
    * <pre>
-   * References to Environment resources whose values are provided to guest
-   * conversations on this share.
+   * Vaults whose logins and secrets guest conversations on this share use, in
+   * order: the first vault holding a match wins. Valid on public-audience
+   * shares only. At most 20.
    *
-   * This is how a tool-using agent becomes chattable over a share link:
-   * bind an org-shared environment holding the needed credentials (for
-   * example a read-only API token), and guest runs receive its
-   * values at runtime. The agent itself stays untouched.
-   * Valid on public-audience shares only.
+   * This is how a tool-using agent becomes chattable over a share link: attach
+   * a shared vault holding the needed keys (for example a read-only API
+   * token). A guest's runs use only these vaults; a visitor brings none of
+   * their own. A My vault cannot be attached.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
-  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefsOrBuilder(
+  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getVaultsOrBuilder(
       int index);
 
   /**

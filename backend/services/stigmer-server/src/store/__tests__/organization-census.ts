@@ -55,7 +55,6 @@ export const CENSUS_TABLES: Readonly<Record<string, CensusClass>> = {
   organization_deletions: "org-column",
   search_index: "org-column",
   schedule_runs: "org-column",
-  oauth_grant: "org-column",
   pending_oauth_state: "org-column",
   schema_version: "none",
   // SQLite's own bookkeeping and the FTS5 shadow tables behind search_index.

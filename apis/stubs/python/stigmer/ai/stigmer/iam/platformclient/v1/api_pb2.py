@@ -29,7 +29,7 @@ from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*ai/stigmer/iam/platformclient/v1/api.proto\x12 ai.stigmer.iam.platformclient.v1\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a+ai/stigmer/iam/platformclient/v1/spec.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe9\x02\n\x0ePlatformClient\x12\x39\n\x0b\x61pi_version\x18\x01 \x01(\tB\x18\xbaH\x15r\x13\n\x11iam.stigmer.ai/v1R\napiVersion\x12)\n\x04kind\x18\x02 \x01(\tB\x15\xbaH\x12r\x10\n\x0ePlatformClientR\x04kind\x12W\n\x08metadata\x18\x03 \x01(\x0b\x32\x33.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\x08metadata\x12H\n\x04spec\x18\x04 \x01(\x0b\x32\x34.ai.stigmer.iam.platformclient.v1.PlatformClientSpecR\x04spec\x12N\n\x06status\x18\x05 \x01(\x0b\x32\x36.ai.stigmer.iam.platformclient.v1.PlatformClientStatusR\x06status\"\x9c\x01\n\x14PlatformClientStatus\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61udit\x12<\n\x0clast_used_at\x18\x01 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\nlastUsedAtB\xd5\x01\n$com.ai.stigmer.iam.platformclient.v1B\x08\x41piProtoP\x01\xa2\x02\x04\x41SIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*ai/stigmer/iam/platformclient/v1/api.proto\x12 ai.stigmer.iam.platformclient.v1\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a+ai/stigmer/iam/platformclient/v1/spec.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe9\x02\n\x0ePlatformClient\x12\x39\n\x0b\x61pi_version\x18\x01 \x01(\tB\x18\xbaH\x15r\x13\n\x11iam.stigmer.ai/v1R\napiVersion\x12)\n\x04kind\x18\x02 \x01(\tB\x15\xbaH\x12r\x10\n\x0ePlatformClientR\x04kind\x12W\n\x08metadata\x18\x03 \x01(\x0b\x32\x33.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\x08metadata\x12H\n\x04spec\x18\x04 \x01(\x0b\x32\x34.ai.stigmer.iam.platformclient.v1.PlatformClientSpecR\x04spec\x12N\n\x06status\x18\x05 \x01(\x0b\x32\x36.ai.stigmer.iam.platformclient.v1.PlatformClientStatusR\x06status\"\xd4\x02\n\x14PlatformClientStatus\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61udit\x12<\n\x0clast_used_at\x18\x01 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\nlastUsedAt\x12s\n\x0fvault_attachers\x18\x02 \x03(\x0b\x32J.ai.stigmer.iam.platformclient.v1.PlatformClientStatus.VaultAttachersEntryR\x0evaultAttachers\x1a\x41\n\x13VaultAttachersEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\x42\xd5\x01\n$com.ai.stigmer.iam.platformclient.v1B\x08\x41piProtoP\x01\xa2\x02\x04\x41SIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -43,8 +43,12 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_PLATFORMCLIENT'].fields_by_name['kind']._serialized_options = b'\272H\022r\020\n\016PlatformClient'
   _globals['_PLATFORMCLIENT'].fields_by_name['metadata']._loaded_options = None
   _globals['_PLATFORMCLIENT'].fields_by_name['metadata']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_PLATFORMCLIENTSTATUS_VAULTATTACHERSENTRY']._loaded_options = None
+  _globals['_PLATFORMCLIENTSTATUS_VAULTATTACHERSENTRY']._serialized_options = b'8\001'
   _globals['_PLATFORMCLIENT']._serialized_start=280
   _globals['_PLATFORMCLIENT']._serialized_end=641
   _globals['_PLATFORMCLIENTSTATUS']._serialized_start=644
-  _globals['_PLATFORMCLIENTSTATUS']._serialized_end=800
+  _globals['_PLATFORMCLIENTSTATUS']._serialized_end=984
+  _globals['_PLATFORMCLIENTSTATUS_VAULTATTACHERSENTRY']._serialized_start=919
+  _globals['_PLATFORMCLIENTSTATUS_VAULTATTACHERSENTRY']._serialized_end=984
 # @@protoc_insertion_point(module_scope)

@@ -26,7 +26,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "URL-friendly identifier, unique within the organization (an\n Organization's own slug is unique across the server).\n Combined with org, forms the canonical reference: \"org/slug\".\n Fixed once created: update and apply ignore a changed slug. A kind\n whose slug may change has a rename RPC (Organization does).\n Format: lowercase alphanumeric characters and hyphens, 2 to 63\n characters, the length every reference to a resource holds; must start\n with a letter and end with a letter or digit. When empty, the server\n derives the slug from the name, and refuses a name whose derived slug\n breaks these rules, never shortening it. A resource the server names\n itself is the exception (an identity account, after its email or\n subject; the environment OAuth connect makes for an MCP server's\n tokens): its slug is made to fit instead (a letter in front, a\n fallback, or a cut with a short hash). An update by id keeps the\n stored slug, so a new name's derived slug is not checked there.",
+          "description": "URL-friendly identifier, unique within the organization (an\n Organization's own slug is unique across the server).\n Combined with org, forms the canonical reference: \"org/slug\".\n Fixed once created: update and apply ignore a changed slug. A kind\n whose slug may change has a rename RPC (Organization does).\n Format: lowercase alphanumeric characters and hyphens, 2 to 63\n characters, the length every reference to a resource holds; must start\n with a letter and end with a letter or digit. When empty, the server\n derives the slug from the name, and refuses a name whose derived slug\n breaks these rules, never shortening it. A resource the server names\n itself is the exception (an identity account, after its email or\n subject): its slug is made to fit instead (a letter in front, a\n fallback, or a cut with a short hash). An update by id keeps the\n stored slug, so a new name's derived slug is not checked there.",
           "required": false,
           "validation": {
             "minLength": 2,
@@ -428,11 +428,6 @@
           "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
         },
         {
-          "name": "environment",
-          "number": 53,
-          "description": "Named set of variables and secrets for a run."
-        },
-        {
           "name": "execution_context",
           "number": 54,
           "description": "User-owned runtime context for managing execution state."
@@ -451,6 +446,11 @@
           "name": "plugin",
           "number": 58,
           "description": "An installed Agent Plugins package: the archive Stigmer materialised into\n skills, MCP servers and an agent, and the handle that upgrades\n and removes them together. A plugin is what you install; an agent is what\n runs. Members are the resources labelled with the plugin's id."
+        },
+        {
+          "name": "vault",
+          "number": 59,
+          "description": "A person's or an organization's box of logins (matched by a tool's\n address) and secrets (matched by name) that runs use."
         },
         {
           "name": "plan",
@@ -477,7 +477,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (environments, sessions) stay creator-only."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -492,7 +492,7 @@
         {
           "name": "visibility_child_orgs",
           "number": 4,
-          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and environments are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
+          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and vaults are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
         }
       ]
     }

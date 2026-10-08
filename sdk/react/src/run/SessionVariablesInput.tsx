@@ -39,7 +39,7 @@ export interface SessionVariablesInputProps {
  * Each entry collects a variable name, value, secret toggle, and an
  * optional "save for future" toggle. By default values are ephemeral
  * (single run); toggling "save for future" persists them to the
- * user's personal environment.
+ * user's My vault.
  *
  * This is a **pure presentational component** with no knowledge of
  * sessions, runs, or orchestration. Platform builders can use
@@ -244,7 +244,7 @@ function VariableEntryRow({
           type="button"
           role="switch"
           aria-checked={saveForFuture}
-          aria-label={saveForFuture ? "Saved for future runs" : "Used once only"}
+          aria-label={saveForFuture ? "Saved in My vault" : "Kept for this conversation"}
           disabled={disabled}
           onClick={() => onUpdate(id, { saveForFuture: !saveForFuture })}
           className={cn(
@@ -262,7 +262,7 @@ function VariableEntryRow({
           />
         </button>
         <span className="stg:text-[0.6rem] stg:text-muted-foreground">
-          {saveForFuture ? "Save for future runs" : "This run only"}
+          {saveForFuture ? "Save in My vault" : "This conversation"}
         </span>
       </div>
 

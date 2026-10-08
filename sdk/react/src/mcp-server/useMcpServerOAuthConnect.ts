@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { connectAndWait, getUserMessage } from "@stigmer/sdk";
+import { Code } from "@connectrpc/connect";
+import { StigmerError, connectAndWait, getUserMessage, isPermissionDenied } from "@stigmer/sdk";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import {
   InitiateOAuthConnectInputSchema,
@@ -64,6 +65,44 @@ export function getOAuthConnectErrorMessage(
   return base;
 }
 
+/**
+ * A shared vault a sign-in is saved into instead of My vault: the vault a
+ * conversation that lists vaults reads its logins from. Its organization is
+ * the sign-in's (the server keeps a sign-in only in a vault of the request's
+ * organization).
+ */
+export interface SignInVault {
+  /** The vault's id (`metadata.id`), sent as `vault_id`. */
+  readonly id: string;
+  /** The vault's organization id (`metadata.org`). */
+  readonly org: string;
+  /** The vault's display name, for the messages. */
+  readonly name: string;
+}
+
+/** Options for {@link UseMcpServerOAuthConnectReturn.startOAuth}. */
+export interface StartOAuthOptions {
+  /**
+   * The shared vault to save the sign-in into; omitted, My vault. The
+   * signer must be allowed to edit it. A sign-in saved there serves the
+   * runs that use that vault, never the connect lane (which reads only My
+   * vault), so no tool discovery is chained after it.
+   */
+  readonly vault?: SignInVault;
+}
+
+/**
+ * What a refused sign-in into a shared vault tells the person: a
+ * conversation that lists vaults reads its logins only from them, so the
+ * login must be saved in one, and only someone who may edit it can.
+ */
+export function signInVaultRefusalMessage(vault: SignInVault): string {
+  return (
+    `This conversation uses only its vaults, so the sign-in must be saved in vault '${vault.name}', which you may not edit. ` +
+    "Ask an admin of that vault to sign in there, or to let you edit it."
+  );
+}
+
 /** Return value of {@link useMcpServerOAuthConnect}. */
 export interface UseMcpServerOAuthConnectReturn {
   /**
@@ -71,7 +110,9 @@ export interface UseMcpServerOAuthConnectReturn {
    *
    * Opens a popup for the OAuth consent screen, waits for the callback,
    * exchanges the authorization code for tokens, then chains to the
-   * `connect` RPC for tool discovery.
+   * `connect` RPC for tool discovery. A sign-in saved into a shared vault
+   * (`options.vault`) chains no discovery: the connect lane reads only My
+   * vault.
    *
    * **Must be called from a synchronous user-gesture handler** (e.g.,
    * an `onClick` callback) so the browser allows the popup. The popup
@@ -80,9 +121,12 @@ export interface UseMcpServerOAuthConnectReturn {
    *
    * @param mcpServerId - System-generated ID (metadata.id) of the MCP server.
    * @param org - Organization context for token storage (caller's active org).
-   * @returns The updated McpServer after tool discovery completes.
+   *   With `options.vault`, the vault's organization is used instead.
+   * @param options - Where the sign-in is saved; omitted, My vault.
+   * @returns The updated McpServer after tool discovery completes (or, for
+   *   a sign-in saved into a shared vault, the server as it stands).
    */
-  readonly startOAuth: (mcpServerId: string, org: string) => Promise<McpServer>;
+  readonly startOAuth: (mcpServerId: string, org: string, options?: StartOAuthOptions) => Promise<McpServer>;
   /** `true` while any phase of the OAuth flow is in progress. */
   readonly isInProgress: boolean;
   /** Current phase of the OAuth flow. */
@@ -179,7 +223,8 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
   }, [advancePhase]);
 
   const startOAuth = useCallback(
-    async (mcpServerId: string, org: string): Promise<McpServer> => {
+    async (mcpServerId: string, org: string, options?: StartOAuthOptions): Promise<McpServer> => {
+      const vault = options?.vault;
       advancePhase("initiating");
       setError(null);
       setFailedPhase(null);
@@ -200,7 +245,11 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
 
       try {
         const initOutput = await stigmer.mcpServer.initiateOAuthConnect(
-          create(InitiateOAuthConnectInputSchema, { mcpServerId, org }),
+          create(InitiateOAuthConnectInputSchema, {
+            mcpServerId,
+            org: vault?.org ?? org,
+            vaultId: vault?.id ?? "",
+          }),
         );
 
         popup.location.href = initOutput.authorizationUrl;
@@ -224,12 +273,20 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
           }),
         );
 
+        if (vault !== undefined) {
+          // The connect lane reads only My vault, so discovery could not
+          // use this sign-in: it serves the runs that use the vault.
+          const server = await stigmer.mcpServer.get(mcpServerId);
+          advancePhase("done");
+          return server;
+        }
+
         advancePhase("connecting");
 
-        // No runtime env: the backend resolves the token this flow just
-        // stored from the managed grant, and every other declared variable
-        // from the caller's personal environment. A runtime env would
-        // replace that resolution whole (stigmer/stigmer#1453).
+        // No runtime env: the backend fills the login from the sign-in
+        // this flow just saved in the caller's My vault, and every other
+        // declared variable from that same My vault, the only vault a
+        // connect reads.
         const input = create(ConnectInputSchema, { mcpServerId, org });
 
         // Async connect lane (stigmer/stigmer#425): startConnect + poll via
@@ -242,7 +299,10 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
         advancePhase("done");
         return server;
       } catch (err) {
-        const wrapped = toError(err);
+        const wrapped =
+          vault !== undefined && isPermissionDenied(err)
+            ? new StigmerError("permission-denied", signInVaultRefusalMessage(vault), Code.PermissionDenied, { cause: err })
+            : toError(err);
         if (!cancelledRef.current) {
           setError(wrapped);
           setFailedPhase(phaseRef.current);

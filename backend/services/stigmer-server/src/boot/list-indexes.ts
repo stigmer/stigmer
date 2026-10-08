@@ -26,6 +26,7 @@ import { iamPolicyListIndex } from "../domain/iampolicy/list-index.js";
 import { memoryListIndex } from "../domain/memory/list-index.js";
 import { organizationListIndex } from "../domain/organization/list-index.js";
 import { sessionListIndex } from "../domain/session/list-index.js";
+import { vaultListIndex } from "../domain/vault/list-index.js";
 import type { ListIndexDeclaration } from "../store/list-index.js";
 
 export const LIST_INDEXES: ReadonlyArray<ListIndexDeclaration> = [
@@ -34,4 +35,5 @@ export const LIST_INDEXES: ReadonlyArray<ListIndexDeclaration> = [
   memoryListIndex,
   organizationListIndex,
   sessionListIndex,
+  vaultListIndex,
 ];

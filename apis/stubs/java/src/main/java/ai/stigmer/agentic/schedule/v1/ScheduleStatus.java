@@ -46,6 +46,18 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.schedule.v1.StatusProto.internal_static_ai_stigmer_agentic_schedule_v1_ScheduleStatus_descriptor;
   }
 
+  @SuppressWarnings({"rawtypes"})
+  @java.lang.Override
+  protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
+      int number) {
+    switch (number) {
+      case 6:
+        return internalGetVaultAttachers();
+      default:
+        throw new RuntimeException(
+            "Invalid map field number: " + number);
+    }
+  }
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internalGetFieldAccessorTable() {
@@ -245,6 +257,109 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int VAULT_ATTACHERS_FIELD_NUMBER = 6;
+  private static final class VaultAttachersDefaultEntryHolder {
+    static final com.google.protobuf.MapEntry<
+        java.lang.String, java.lang.String> defaultEntry =
+            com.google.protobuf.MapEntry
+            .<java.lang.String, java.lang.String>newDefaultInstance(
+                ai.stigmer.agentic.schedule.v1.StatusProto.internal_static_ai_stigmer_agentic_schedule_v1_ScheduleStatus_VaultAttachersEntry_descriptor, 
+                com.google.protobuf.WireFormat.FieldType.STRING,
+                "",
+                com.google.protobuf.WireFormat.FieldType.STRING,
+                "");
+  }
+  @SuppressWarnings("serial")
+  private com.google.protobuf.MapField<
+      java.lang.String, java.lang.String> vaultAttachers_;
+  private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+  internalGetVaultAttachers() {
+    if (vaultAttachers_ == null) {
+      return com.google.protobuf.MapField.emptyMapField(
+          VaultAttachersDefaultEntryHolder.defaultEntry);
+    }
+    return vaultAttachers_;
+  }
+  public int getVaultAttachersCount() {
+    return internalGetVaultAttachers().getMap().size();
+  }
+  /**
+   * <pre>
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; vault_attachers = 6 [json_name = "vaultAttachers"];</code>
+   */
+  @java.lang.Override
+  public boolean containsVaultAttachers(
+      java.lang.String key) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    return internalGetVaultAttachers().getMap().containsKey(key);
+  }
+  /**
+   * Use {@link #getVaultAttachersMap()} instead.
+   */
+  @java.lang.Override
+  @java.lang.Deprecated
+  public java.util.Map<java.lang.String, java.lang.String> getVaultAttachers() {
+    return getVaultAttachersMap();
+  }
+  /**
+   * <pre>
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; vault_attachers = 6 [json_name = "vaultAttachers"];</code>
+   */
+  @java.lang.Override
+  public java.util.Map<java.lang.String, java.lang.String> getVaultAttachersMap() {
+    return internalGetVaultAttachers().getMap();
+  }
+  /**
+   * <pre>
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; vault_attachers = 6 [json_name = "vaultAttachers"];</code>
+   */
+  @java.lang.Override
+  public /* nullable */
+java.lang.String getVaultAttachersOrDefault(
+      java.lang.String key,
+      /* nullable */
+java.lang.String defaultValue) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    java.util.Map<java.lang.String, java.lang.String> map =
+        internalGetVaultAttachers().getMap();
+    return map.containsKey(key) ? map.get(key) : defaultValue;
+  }
+  /**
+   * <pre>
+   * Who attached each of this resource's vaults, by vault id: the account
+   * whose permission to use the vault each run checks when it has no
+   * person.
+   * </pre>
+   *
+   * <code>map&lt;string, string&gt; vault_attachers = 6 [json_name = "vaultAttachers"];</code>
+   */
+  @java.lang.Override
+  public java.lang.String getVaultAttachersOrThrow(
+      java.lang.String key) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    java.util.Map<java.lang.String, java.lang.String> map =
+        internalGetVaultAttachers().getMap();
+    if (!map.containsKey(key)) {
+      throw new java.lang.IllegalArgumentException();
+    }
+    return map.get(key);
+  }
+
   public static final int AUDIT_FIELD_NUMBER = 99;
   private ai.stigmer.commons.apiresource.ApiResourceAudit audit_;
   /**
@@ -312,6 +427,12 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pausedReason_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 5, pausedReason_);
     }
+    com.google.protobuf.GeneratedMessage
+      .serializeStringMapTo(
+        output,
+        internalGetVaultAttachers(),
+        VaultAttachersDefaultEntryHolder.defaultEntry,
+        6);
     if (((bitField0_ & 0x00000004) != 0)) {
       output.writeMessage(99, getAudit());
     }
@@ -341,6 +462,16 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pausedReason_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(5, pausedReason_);
+    }
+    for (java.util.Map.Entry<java.lang.String, java.lang.String> entry
+         : internalGetVaultAttachers().getMap().entrySet()) {
+      com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
+      vaultAttachers__ = VaultAttachersDefaultEntryHolder.defaultEntry.newBuilderForType()
+          .setKey(entry.getKey())
+          .setValue(entry.getValue())
+          .buildPartial();
+      size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(6, vaultAttachers__);
     }
     if (((bitField0_ & 0x00000004) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -377,6 +508,8 @@ private static final long serialVersionUID = 0L;
         != other.getConsecutiveFailures()) return false;
     if (!getPausedReason()
         .equals(other.getPausedReason())) return false;
+    if (!internalGetVaultAttachers().equals(
+        other.internalGetVaultAttachers())) return false;
     if (hasAudit() != other.hasAudit()) return false;
     if (hasAudit()) {
       if (!getAudit()
@@ -407,6 +540,10 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getConsecutiveFailures();
     hash = (37 * hash) + PAUSED_REASON_FIELD_NUMBER;
     hash = (53 * hash) + getPausedReason().hashCode();
+    if (!internalGetVaultAttachers().getMap().isEmpty()) {
+      hash = (37 * hash) + VAULT_ATTACHERS_FIELD_NUMBER;
+      hash = (53 * hash) + internalGetVaultAttachers().hashCode();
+    }
     if (hasAudit()) {
       hash = (37 * hash) + AUDIT_FIELD_NUMBER;
       hash = (53 * hash) + getAudit().hashCode();
@@ -524,6 +661,28 @@ private static final long serialVersionUID = 0L;
       return ai.stigmer.agentic.schedule.v1.StatusProto.internal_static_ai_stigmer_agentic_schedule_v1_ScheduleStatus_descriptor;
     }
 
+    @SuppressWarnings({"rawtypes"})
+    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
+        int number) {
+      switch (number) {
+        case 6:
+          return internalGetVaultAttachers();
+        default:
+          throw new RuntimeException(
+              "Invalid map field number: " + number);
+      }
+    }
+    @SuppressWarnings({"rawtypes"})
+    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMutableMapFieldReflection(
+        int number) {
+      switch (number) {
+        case 6:
+          return internalGetMutableVaultAttachers();
+        default:
+          throw new RuntimeException(
+              "Invalid map field number: " + number);
+      }
+    }
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
@@ -567,6 +726,7 @@ private static final long serialVersionUID = 0L;
       lastRunId_ = "";
       consecutiveFailures_ = 0;
       pausedReason_ = "";
+      internalGetMutableVaultAttachers().clear();
       audit_ = null;
       if (auditBuilder_ != null) {
         auditBuilder_.dispose();
@@ -628,6 +788,10 @@ private static final long serialVersionUID = 0L;
         result.pausedReason_ = pausedReason_;
       }
       if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.vaultAttachers_ = internalGetVaultAttachers();
+        result.vaultAttachers_.makeImmutable();
+      }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
         result.audit_ = auditBuilder_ == null
             ? audit_
             : auditBuilder_.build();
@@ -667,6 +831,9 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000010;
         onChanged();
       }
+      internalGetMutableVaultAttachers().mergeFrom(
+          other.internalGetVaultAttachers());
+      bitField0_ |= 0x00000020;
       if (other.hasAudit()) {
         mergeAudit(other.getAudit());
       }
@@ -725,11 +892,20 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 42
+            case 50: {
+              com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
+              vaultAttachers__ = input.readMessage(
+                  VaultAttachersDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
+              internalGetMutableVaultAttachers().getMutableMap().put(
+                  vaultAttachers__.getKey(), vaultAttachers__.getValue());
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 50
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000040;
               break;
             } // case 794
             default: {
@@ -1305,6 +1481,175 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
+    private com.google.protobuf.MapField<
+        java.lang.String, java.lang.String> vaultAttachers_;
+    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+        internalGetVaultAttachers() {
+      if (vaultAttachers_ == null) {
+        return com.google.protobuf.MapField.emptyMapField(
+            VaultAttachersDefaultEntryHolder.defaultEntry);
+      }
+      return vaultAttachers_;
+    }
+    private com.google.protobuf.MapField<java.lang.String, java.lang.String>
+        internalGetMutableVaultAttachers() {
+      if (vaultAttachers_ == null) {
+        vaultAttachers_ = com.google.protobuf.MapField.newMapField(
+            VaultAttachersDefaultEntryHolder.defaultEntry);
+      }
+      if (!vaultAttachers_.isMutable()) {
+        vaultAttachers_ = vaultAttachers_.copy();
+      }
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return vaultAttachers_;
+    }
+    public int getVaultAttachersCount() {
+      return internalGetVaultAttachers().getMap().size();
+    }
+    /**
+     * <pre>
+     * Who attached each of this resource's vaults, by vault id: the account
+     * whose permission to use the vault each run checks when it has no
+     * person.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; vault_attachers = 6 [json_name = "vaultAttachers"];</code>
+     */
+    @java.lang.Override
+    public boolean containsVaultAttachers(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      return internalGetVaultAttachers().getMap().containsKey(key);
+    }
+    /**
+     * Use {@link #getVaultAttachersMap()} instead.
+     */
+    @java.lang.Override
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, java.lang.String> getVaultAttachers() {
+      return getVaultAttachersMap();
+    }
+    /**
+     * <pre>
+     * Who attached each of this resource's vaults, by vault id: the account
+     * whose permission to use the vault each run checks when it has no
+     * person.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; vault_attachers = 6 [json_name = "vaultAttachers"];</code>
+     */
+    @java.lang.Override
+    public java.util.Map<java.lang.String, java.lang.String> getVaultAttachersMap() {
+      return internalGetVaultAttachers().getMap();
+    }
+    /**
+     * <pre>
+     * Who attached each of this resource's vaults, by vault id: the account
+     * whose permission to use the vault each run checks when it has no
+     * person.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; vault_attachers = 6 [json_name = "vaultAttachers"];</code>
+     */
+    @java.lang.Override
+    public /* nullable */
+java.lang.String getVaultAttachersOrDefault(
+        java.lang.String key,
+        /* nullable */
+java.lang.String defaultValue) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      java.util.Map<java.lang.String, java.lang.String> map =
+          internalGetVaultAttachers().getMap();
+      return map.containsKey(key) ? map.get(key) : defaultValue;
+    }
+    /**
+     * <pre>
+     * Who attached each of this resource's vaults, by vault id: the account
+     * whose permission to use the vault each run checks when it has no
+     * person.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; vault_attachers = 6 [json_name = "vaultAttachers"];</code>
+     */
+    @java.lang.Override
+    public java.lang.String getVaultAttachersOrThrow(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      java.util.Map<java.lang.String, java.lang.String> map =
+          internalGetVaultAttachers().getMap();
+      if (!map.containsKey(key)) {
+        throw new java.lang.IllegalArgumentException();
+      }
+      return map.get(key);
+    }
+    public Builder clearVaultAttachers() {
+      bitField0_ = (bitField0_ & ~0x00000020);
+      internalGetMutableVaultAttachers().getMutableMap()
+          .clear();
+      return this;
+    }
+    /**
+     * <pre>
+     * Who attached each of this resource's vaults, by vault id: the account
+     * whose permission to use the vault each run checks when it has no
+     * person.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; vault_attachers = 6 [json_name = "vaultAttachers"];</code>
+     */
+    public Builder removeVaultAttachers(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      internalGetMutableVaultAttachers().getMutableMap()
+          .remove(key);
+      return this;
+    }
+    /**
+     * Use alternate mutation accessors instead.
+     */
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, java.lang.String>
+        getMutableVaultAttachers() {
+      bitField0_ |= 0x00000020;
+      return internalGetMutableVaultAttachers().getMutableMap();
+    }
+    /**
+     * <pre>
+     * Who attached each of this resource's vaults, by vault id: the account
+     * whose permission to use the vault each run checks when it has no
+     * person.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; vault_attachers = 6 [json_name = "vaultAttachers"];</code>
+     */
+    public Builder putVaultAttachers(
+        java.lang.String key,
+        java.lang.String value) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      if (value == null) { throw new NullPointerException("map value"); }
+      internalGetMutableVaultAttachers().getMutableMap()
+          .put(key, value);
+      bitField0_ |= 0x00000020;
+      return this;
+    }
+    /**
+     * <pre>
+     * Who attached each of this resource's vaults, by vault id: the account
+     * whose permission to use the vault each run checks when it has no
+     * person.
+     * </pre>
+     *
+     * <code>map&lt;string, string&gt; vault_attachers = 6 [json_name = "vaultAttachers"];</code>
+     */
+    public Builder putAllVaultAttachers(
+        java.util.Map<java.lang.String, java.lang.String> values) {
+      internalGetMutableVaultAttachers().getMutableMap()
+          .putAll(values);
+      bitField0_ |= 0x00000020;
+      return this;
+    }
+
     private ai.stigmer.commons.apiresource.ApiResourceAudit audit_;
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.commons.apiresource.ApiResourceAudit, ai.stigmer.commons.apiresource.ApiResourceAudit.Builder, ai.stigmer.commons.apiresource.ApiResourceAuditOrBuilder> auditBuilder_;
@@ -1317,7 +1662,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the audit field is set.
      */
     public boolean hasAudit() {
-      return ((bitField0_ & 0x00000020) != 0);
+      return ((bitField0_ & 0x00000040) != 0);
     }
     /**
      * <pre>
@@ -1350,7 +1695,7 @@ private static final long serialVersionUID = 0L;
       } else {
         auditBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -1368,7 +1713,7 @@ private static final long serialVersionUID = 0L;
       } else {
         auditBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -1381,7 +1726,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeAudit(ai.stigmer.commons.apiresource.ApiResourceAudit value) {
       if (auditBuilder_ == null) {
-        if (((bitField0_ & 0x00000020) != 0) &&
+        if (((bitField0_ & 0x00000040) != 0) &&
           audit_ != null &&
           audit_ != ai.stigmer.commons.apiresource.ApiResourceAudit.getDefaultInstance()) {
           getAuditBuilder().mergeFrom(value);
@@ -1392,7 +1737,7 @@ private static final long serialVersionUID = 0L;
         auditBuilder_.mergeFrom(value);
       }
       if (audit_ != null) {
-        bitField0_ |= 0x00000020;
+        bitField0_ |= 0x00000040;
         onChanged();
       }
       return this;
@@ -1405,7 +1750,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
      */
     public Builder clearAudit() {
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000040);
       audit_ = null;
       if (auditBuilder_ != null) {
         auditBuilder_.dispose();
@@ -1422,7 +1767,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceAudit.Builder getAuditBuilder() {
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000040;
       onChanged();
       return internalGetAuditFieldBuilder().getBuilder();
     }

@@ -1,13 +1,11 @@
 "use client";
 
 /**
- * Which keys a run of an agent reads from the person's personal
- * environment: the one reading the console's key line and the update
+ * Which keys a run of an agent reads from the person's My vault: the one reading the console's key line and the update
  * notice share, so neither names a key the server never fills.
  *
  * The server's rule (the execution context build): a run fills the keys
- * the agent declares (`spec.env`) from the running person's personal
- * environment only when the agent belongs to the run's own organization —
+ * the agent declares (`spec.env`) from the running person's My vault only when the agent belongs to the run's own organization —
  * an agent another organization published reads none — and never fills an
  * MCP server's OAuth target variable, which comes only from that server's
  * sign-in. So the keys named here are the declared keys minus every OAuth
@@ -50,8 +48,7 @@ export interface UsePersonalKeysReturn {
 }
 
 /**
- * The keys a run of `agent` at `spec` reads from the person's personal
- * environment, for a conversation in `runOrg` (an organization id, as
+ * The keys a run of `agent` at `spec` reads from the person's My vault, for a conversation in `runOrg` (an organization id, as
  * stored resources name it, or its slug). `spec` is the version the run will use: the
  * pinned one for a conversation that has one, else the agent's current
  * spec. Pass `null` for either while it loads.

@@ -77,7 +77,7 @@ spec:
 
 ## B2B Runtime Injection — Planton Integration
 
-In B2B scenarios, a calling platform (e.g., Planton) injects credentials at run time rather than storing them in a persistent Environment. The execution engine creates the ExecutionContext from the caller-supplied payload and deletes it on completion.
+In B2B scenarios, a calling platform (e.g., Planton) hands the conversation its own values (the session's `secrets` and `connections`) rather than saving them in a vault. The execution engine fills the ExecutionContext from them and deletes it on completion.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -110,14 +110,14 @@ spec:
 
 ---
 
-## Merged From Multiple Environments
+## Filled From Several Vaults
 
-When the schedule or PlatformClient that started a run references multiple Environments, the execution engine merges them (later entries override earlier ones) and creates a single ExecutionContext. This example shows what the merged result looks like — the runner sees one flat map, not multiple environments.
+When the schedule or PlatformClient that started a run names several vaults, the execution engine fills each key the run declares from the first vault holding it, in the order they are named, and creates a single ExecutionContext. This example shows the result — the runner sees one flat map, not the vaults.
 
-Given:
-- Environment `global-defaults`: `LOG_LEVEL=info`, `AWS_REGION=us-west-2`
-- Environment `github-prod-secrets`: `GITHUB_TOKEN=ghp_prod_...`
-- Environment `aws-prod`: `AWS_REGION=us-east-1` (overrides global), `AWS_ACCESS_KEY_ID=...`, `AWS_SECRET_ACCESS_KEY=...`
+Given, in this order:
+- Vault `aws-prod`: `AWS_REGION=us-east-1`, `AWS_ACCESS_KEY_ID=...`, `AWS_SECRET_ACCESS_KEY=...`
+- Vault `github-prod`: `GITHUB_TOKEN=ghp_prod_...`
+- Vault `global-defaults`: `LOG_LEVEL=info`, `AWS_REGION=us-west-2` (its `AWS_REGION` is not used: `aws-prod` holds the key first)
 
 Merged ExecutionContext produced by the engine:
 

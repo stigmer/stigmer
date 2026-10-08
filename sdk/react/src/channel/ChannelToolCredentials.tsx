@@ -1,22 +1,30 @@
 "use client";
 
-import { useCallback } from "react";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+/**
+ * The channel's vault surface: explanatory copy, the vault picker, and the
+ * readiness hint. Shared by the connect dialog (naming vaults at connect
+ * time) and the channel card's credentials dialog (editing later) so the
+ * two surfaces never drift — the share dialog's pattern, applied to
+ * channels.
+ *
+ * A channel's conversations have no person, so they use only the vaults
+ * the channel names, never anyone's My vault; the picker offers shared
+ * vaults only.
+ */
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import type { ResourceRef } from "@stigmer/sdk";
-import { EnvironmentPicker } from "../environment/EnvironmentPicker.js";
+import { VaultPicker } from "../vault/VaultPicker.js";
 import { useChannelToolReadiness } from "./useChannelToolReadiness.js";
 
 /** Props for {@link ChannelToolCredentials}. */
 export interface ChannelToolCredentialsProps {
   /** The agent the channel serves (drives the readiness check). */
   readonly agent: Agent;
-  /** Organization the environments are listed from (the channel's org). */
+  /** Organization the vaults are listed from (the channel's org). */
   readonly org: string;
-  /** Currently bound environment references, in merge order. */
+  /** Currently named vault references, in order. */
   readonly value: readonly ResourceRef[];
-  /** Called when the binding list changes. */
+  /** Called when the list changes. */
   readonly onChange: (refs: ResourceRef[]) => void;
   /** Disable all interactions (e.g. while a save is in flight). */
   readonly disabled?: boolean;
@@ -28,14 +36,7 @@ export interface ChannelToolCredentialsProps {
   readonly enabled?: boolean;
 }
 
-/**
- * The channel's credential-binding surface: explanatory copy, the
- * org-shared environment picker, and the readiness hint. Shared by the
- * connect dialog (binding at connect time) and the channel card's
- * credentials dialog (editing later) so the two surfaces can never
- * drift — the {@link ShareAgentDialog} ToolCredentialsSection pattern,
- * applied to channels.
- */
+/** The channel's vault picker with its explanation and readiness hint. */
 export function ChannelToolCredentials({
   agent,
   org,
@@ -44,43 +45,25 @@ export function ChannelToolCredentials({
   disabled = false,
   enabled = true,
 }: ChannelToolCredentialsProps) {
-  // Only org-shared environments are usable by channel runs (the
-  // runtime merge skips private ones), so offering others would bind
-  // credentials that silently never apply.
-  const onlyOrgShared = useCallback(
-    (env: Environment) =>
-      env.metadata?.visibility === ApiResourceVisibility.visibility_org,
-    [],
-  );
-
   return (
     <div className="stg:flex stg:flex-col stg:gap-2">
       <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-        Environments whose values workspace conversations can use — bind
-        one holding the credentials this agent&apos;s tools need (a
-        read-only token is safest). Only environments shared with your
-        organization can be bound; share one first in Settings &rarr;
-        Environments. Secret values stay hidden from workspace members
-        either way.
+        Shared vaults whose keys workspace conversations use — name one
+        holding the keys this agent&apos;s tools need (a read-only token is
+        safest). You can name only vaults you may use; create one in
+        Settings &rarr; Vaults. Saved values stay hidden from everyone.
       </p>
-      <EnvironmentPicker
-        org={org}
-        value={value}
-        onChange={onChange}
-        disabled={disabled}
-        filterEnvironment={onlyOrgShared}
-      />
+      <VaultPicker org={org} value={value} onChange={onChange} disabled={disabled} />
       <ChannelToolReadinessHint agent={agent} enabled={enabled} value={value} />
     </div>
   );
 }
 
 /**
- * Pre-flight hint for tool-using agents: channel conversations receive
- * credentials only from the channel's own environment bindings, so a
- * tool-using agent with no bindings (`needs-credentials`) or a binding
- * that is still private (`blocked`) will refuse the first message that
- * needs a tool. Renders nothing when there is nothing to fix.
+ * Pre-flight hint for tool-using agents: channel conversations use only
+ * the channel's vaults, so a tool-using agent naming none
+ * (`needs-credentials`) or naming one that cannot serve (`blocked`) will
+ * refuse the first message that needs a tool. Renders nothing otherwise.
  */
 function ChannelToolReadinessHint({
   agent,
@@ -97,8 +80,7 @@ function ChannelToolReadinessHint({
     return (
       <p className="stg:text-xs stg:text-warning" role="status">
         Workspace conversations can&apos;t use this agent&apos;s tools yet:
-        no credentials are bound to this channel. Bind an org-shared
-        environment above.
+        this channel names no vault. Name a shared vault above.
       </p>
     );
   }
@@ -107,18 +89,14 @@ function ChannelToolReadinessHint({
     return null;
   }
 
-  const envList = readiness.privateEnvironments.join(", ");
-  const plural = readiness.privateEnvironments.length > 1;
-
+  const plural = readiness.unusableVaults.length > 1;
   return (
     <p className="stg:text-xs stg:text-warning" role="status">
       Workspace conversations can&apos;t use this agent&apos;s tools yet:
-      the environment{plural ? "s" : ""}{" "}
-      <span className="stg:font-medium">{envList}</span>{" "}
-      {plural ? "are" : "is"} private. Share {plural ? "them" : "it"} with
-      your organization (Settings &rarr; Environments) so channel
-      conversations can use the credentials. Secret values stay hidden
-      either way.
+      the vault{plural ? "s" : ""}{" "}
+      <span className="stg:font-medium">{readiness.unusableVaults.join(", ")}</span>{" "}
+      {plural ? "are" : "is"} not a shared vault you can read. Name a shared
+      vault instead (Settings &rarr; Vaults).
     </p>
   );
 }

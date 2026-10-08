@@ -21,6 +21,8 @@ import { formatRelativeTime } from "../activity/format-relative-time.js";
 import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { isPlatformClientExpired } from "./expiry.js";
+import { VaultPicker } from "../vault/VaultPicker.js";
+import type { ResourceRef } from "@stigmer/sdk";
 
 /** Props for {@link PlatformClientDetailPanel}. */
 export interface PlatformClientDetailPanelProps {
@@ -132,6 +134,7 @@ export function PlatformClientDetailPanel({
     [...(spec?.allowedOrigins ?? [])],
   );
   const [originInput, setOriginInput] = useState("");
+  const [vaults, setVaults] = useState<ResourceRef[]>(() => vaultRefsOf(spec));
 
   const addOrigin = useCallback(() => {
     const trimmed = originInput.trim();
@@ -165,6 +168,7 @@ export function PlatformClientDetailPanel({
     setSignIn(clientSignInSettingsFromSpec(spec));
     setOrigins([...(spec?.allowedOrigins ?? [])]);
     setOriginInput("");
+    setVaults(vaultRefsOf(spec));
     clearUpdateError();
     setMode("edit");
   }, [spec, clearUpdateError]);
@@ -180,8 +184,7 @@ export function PlatformClientDetailPanel({
       clearUpdateError();
       try {
         // Full-spec-replace safety: spread the complete mapped input and
-        // override only the edited fields, so unlisted spec fields (e.g.
-        // environment_refs, the embedded-assistant credential binding)
+        // override only the edited fields, so unlisted spec fields
         // survive the save. Cleared fields are set to undefined
         // explicitly — omitting them would carry the stale mapped value.
         const updated = await update({
@@ -191,6 +194,7 @@ export function PlatformClientDetailPanel({
             !neverExpires && expiresAt ? new Date(expiresAt) : undefined,
           ...toClientSignInInput(signIn),
           allowedOrigins: origins,
+          vaults,
         });
         setMode("view");
         onUpdated?.(updated);
@@ -204,6 +208,7 @@ export function PlatformClientDetailPanel({
       expiresAt,
       signIn,
       origins,
+      vaults,
       update,
       clearUpdateError,
       onUpdated,
@@ -408,6 +413,24 @@ export function PlatformClientDetailPanel({
                 ))}
               </div>
             )}
+          </fieldset>
+
+          {/* Vaults — the keys every minted user's run uses */}
+          <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-2")} disabled={isUpdating}>
+            <hr className="stg:border-border-muted" />
+            <legend className="stg:text-xs stg:font-medium stg:text-foreground">
+              Vaults
+            </legend>
+            <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+              Shared vaults whose keys every run of a user signed in through
+              this client uses, in order. Those runs use nothing else.
+            </p>
+            <VaultPicker
+              org={platformClient.metadata?.org ?? ""}
+              value={vaults}
+              onChange={setVaults}
+              disabled={isUpdating}
+            />
           </fieldset>
 
           {updateError && (
@@ -824,3 +847,8 @@ function ArrowLeftIcon() {
   );
 }
 
+
+/** The vaults a client names, as picker references. */
+function vaultRefsOf(spec: PlatformClient["spec"]): ResourceRef[] {
+  return (spec?.vaults ?? []).map((ref) => ({ org: ref.org, slug: ref.slug }));
+}

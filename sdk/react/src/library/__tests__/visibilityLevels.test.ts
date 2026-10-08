@@ -1,44 +1,46 @@
+/**
+ * The visibility levels each kind's selector offers and the copy they
+ * carry: a vault offers Private and Organization only, says that a private
+ * vault is used by organization admins and its grantees (grants only where
+ * the edition offers them), and confirms before every member may use it.
+ */
 import { describe, it, expect } from "vitest";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import {
   blueprintVisibilityLevels,
-  environmentVisibilityLevels,
+  vaultVisibilityLevels,
   visibilityLabel,
   visibilityOption,
 } from "../visibilityLevels";
 
-describe("environmentVisibilityLevels", () => {
-  it("offers exactly Private and Organization in cloud mode", () => {
-    const levels = environmentVisibilityLevels("cloud");
-    expect(levels.map((l) => l.value)).toEqual([
+describe("vaultVisibilityLevels", () => {
+  it("offers exactly Private and Organization", () => {
+    expect(vaultVisibilityLevels().map((l) => l.value)).toEqual([
       ApiResourceVisibility.visibility_private,
       ApiResourceVisibility.visibility_org,
     ]);
   });
 
-  it("never offers child organizations — secrets stay inside the org", () => {
-    for (const mode of ["cloud", "local"] as const) {
-      const values = environmentVisibilityLevels(mode).map((l) => l.value);
-      expect(values).not.toContain(ApiResourceVisibility.visibility_child_orgs);
-    }
+  it("never offers child organizations — saved values stay inside the org", () => {
+    const values = vaultVisibilityLevels().map((l) => l.value);
+    expect(values).not.toContain(ApiResourceVisibility.visibility_child_orgs);
   });
 
-  it("confirms before escalating to org (credentials become runtime-usable org-wide)", () => {
-    const org = environmentVisibilityLevels("cloud").find(
+  it("says a private vault is used by admins and grantees, grants where the edition offers them", () => {
+    const priv = vaultVisibilityLevels().find(
+      (l) => l.value === ApiResourceVisibility.visibility_private,
+    );
+    expect(priv?.description).toContain("organization admins");
+    expect(priv?.description).toContain("people and teams granted access");
+    expect(priv?.description).toContain("where this edition offers grants");
+  });
+
+  it("confirms before letting every member use the vault", () => {
+    const org = vaultVisibilityLevels().find(
       (l) => l.value === ApiResourceVisibility.visibility_org,
     );
     expect(org?.confirmPrompt).toBeTruthy();
-    expect(org?.description).toContain("secret values stay hidden");
-  });
-
-  it("collapses to a single read-only level in local mode", () => {
-    expect(environmentVisibilityLevels("local")).toHaveLength(1);
-  });
-
-  it("offers the cloud shape in enterprise mode — org sharing is an FGA-model question, not a facility", () => {
-    expect(environmentVisibilityLevels("enterprise").map((l) => l.value)).toEqual(
-      environmentVisibilityLevels("cloud").map((l) => l.value),
-    );
+    expect(org?.description).toContain("saved values stay hidden");
   });
 });
 
@@ -80,7 +82,7 @@ describe("the retired public level", () => {
   it("is offered by no level list", () => {
     const offered = [
       ...blueprintVisibilityLevels({ offersChildOrgs: true }),
-      ...environmentVisibilityLevels("cloud"),
+      ...vaultVisibilityLevels(),
     ].map((l) => l.value);
     expect(offered).not.toContain(ApiResourceVisibility.visibility_public);
   });

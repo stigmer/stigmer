@@ -25,35 +25,30 @@
  *        the resource's on the order private < org < child_orgs — the FLOOR.
  *        What a person can run they must also be able to read: an
  *        org-visible agent over a private MCP server would run for every
- *        member and be readable by one. Environments, OAuth apps and
- *        channel apps are resolved by the server on the run's behalf, so
- *        their level is not a leak the floor closes, and an org-visible
- *        channel may hold its owner's private environment: attaching it
- *        is the owner's choice to let its runs use it.
+ *        member and be readable by one. Vaults, OAuth apps and channel
+ *        apps are resolved by the server on the run's behalf, so their
+ *        level is not a leak the floor closes, and an org-visible channel
+ *        may hold a private shared vault: attaching it is a choice to let
+ *        its runs use it, made by someone who may use it.
  *
  *        The WRITER clause, for the kinds whose row says what the writer
  *        must hold (`writerMust`): a same-organization reference the write
  *        INTRODUCES — one the stored row does not already carry — must
  *        name a target the writer holds that permission on, asked of the
- *        edition's Authorizer. Environments carry it with `can_view`: the
- *        server resolves an environment for the run, and the run is a
- *        person with a shell, so attaching a teammate's private
- *        environment by name would hand its values to the attacher. A
- *        refusal is PERMISSION_DENIED with its own sentence, the answer
- *        the read by reference already gives that writer. Judging only
- *        what a write introduces is the reserved-label guard's echo rule
- *        (guard-reserved-labels.ts): an edit that keeps an attachment
- *        someone else made passes. The server acting as itself (the
- *        `internal` class) is exempt, as at every authorization step.
- *        Two limits hold until access to an environment is its own
- *        permission: `can_view` is held by every member on an org-visible
- *        environment and by an explicit viewer grantee on a private one,
- *        and each of them may attach it; and an editor who keeps an
- *        attachment someone else made may change what consumes it (a
- *        schedule's agent), since who may edit
- *        the row is that kind's own permission. Grant view on an
- *        environment, and edit on a row that carries one, as you would its
- *        values.
+ *        edition's Authorizer. Vaults carry it with `can_use`: the server
+ *        opens a vault for the run, and the run is a person with a shell,
+ *        so attaching a vault one may not use would hand its values to
+ *        whoever runs the surface. A refusal is PERMISSION_DENIED with its
+ *        own sentence. Judging only what a write introduces is the
+ *        reserved-label guard's echo rule (guard-reserved-labels.ts): an
+ *        edit that keeps an attachment someone else made passes, and the
+ *        attachment keeps its attacher (domain/vault/attachments.ts
+ *        records who attached each vault, and every run asks that account
+ *        again, so a revoked grant stops every surface its holder fed). A
+ *        schedule whose agent changes re-judges every vault it keeps
+ *        against the updater (the same module). The server acting as
+ *        itself (the `internal` class) is exempt, as at every
+ *        authorization step.
  *   (iii) Another organization: the target must exist, be shared with
  *        child organizations (visibility_child_orgs), AND belong to the
  *        writing organization's own parent, answered with ONE sentence
@@ -62,7 +57,7 @@
  *        AgentShare lane set first). The writer's parent is read once, from
  *        its organization's row, only when a reference crosses
  *        organizations, so a reference no run of the writer's could use is
- *        refused at write instead of stored. No Environment, OAuth app or
+ *        refused at write instead of stored. No vault, OAuth app or
  *        channel app is ever shared with child organizations, so every
  *        cross-organization reference to one is refused here.
  *
@@ -129,10 +124,10 @@ import type { ReflectMessage } from "@bufbuild/protobuf/reflect";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
+import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { reference_kind } from "@stigmer/protos/ai/stigmer/commons/apiresource/field_options_pb";
@@ -216,12 +211,12 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     writerMust: undefined,
   },
   {
-    kind: ApiResourceKind.environment,
-    schema: EnvironmentSchema,
+    kind: ApiResourceKind.vault,
+    schema: VaultSchema,
     readByRun: false,
-    label: "environment(s)",
-    listHint: "stigmer list environments",
-    writerMust: IamPermission.can_view,
+    label: "vault(s)",
+    listHint: "stigmer list vaults",
+    writerMust: IamPermission.can_use,
   },
   {
     kind: ApiResourceKind.channel_app,
@@ -563,6 +558,12 @@ export function notViewableReferenceMessage(
   entry: ReferenceTargetKind,
   ref: SpecReference,
 ): string {
+  if (entry.kind === ApiResourceKind.vault) {
+    // The vault row's writer clause asks can_use: a member may see a
+    // shared vault without being allowed to use it, and nobody else may
+    // use a person's My vault.
+    return `referenced vault '${ref.org}/${ref.slug}' is not one you may use; attach a vault you have been allowed to use, or ask a vault admin for its use.`;
+  }
   return `referenced ${singular(entry)} '${ref.org}/${ref.slug}' is not one you can view; attach ${article(entry)} ${singular(entry)} you own or one shared with the organization.`;
 }
 

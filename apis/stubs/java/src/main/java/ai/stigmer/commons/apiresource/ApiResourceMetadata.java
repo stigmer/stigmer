@@ -142,8 +142,7 @@ private static final long serialVersionUID = 0L;
    * derives the slug from the name, and refuses a name whose derived slug
    * breaks these rules, never shortening it. A resource the server names
    * itself is the exception (an identity account, after its email or
-   * subject; the environment OAuth connect makes for an MCP server's
-   * tokens): its slug is made to fit instead (a letter in front, a
+   * subject): its slug is made to fit instead (a letter in front, a
    * fallback, or a cut with a short hash). An update by id keeps the
    * stored slug, so a new name's derived slug is not checked there.
    * </pre>
@@ -177,8 +176,7 @@ private static final long serialVersionUID = 0L;
    * derives the slug from the name, and refuses a name whose derived slug
    * breaks these rules, never shortening it. A resource the server names
    * itself is the exception (an identity account, after its email or
-   * subject; the environment OAuth connect makes for an MCP server's
-   * tokens): its slug is made to fit instead (a letter in front, a
+   * subject): its slug is made to fit instead (a letter in front, a
    * fallback, or a cut with a short hash). An update by id keeps the
    * stored slug, so a new name's derived slug is not checked there.
    * </pre>
@@ -1372,8 +1370,7 @@ java.lang.String defaultValue) {
      * derives the slug from the name, and refuses a name whose derived slug
      * breaks these rules, never shortening it. A resource the server names
      * itself is the exception (an identity account, after its email or
-     * subject; the environment OAuth connect makes for an MCP server's
-     * tokens): its slug is made to fit instead (a letter in front, a
+     * subject): its slug is made to fit instead (a letter in front, a
      * fallback, or a cut with a short hash). An update by id keeps the
      * stored slug, so a new name's derived slug is not checked there.
      * </pre>
@@ -1406,8 +1403,7 @@ java.lang.String defaultValue) {
      * derives the slug from the name, and refuses a name whose derived slug
      * breaks these rules, never shortening it. A resource the server names
      * itself is the exception (an identity account, after its email or
-     * subject; the environment OAuth connect makes for an MCP server's
-     * tokens): its slug is made to fit instead (a letter in front, a
+     * subject): its slug is made to fit instead (a letter in front, a
      * fallback, or a cut with a short hash). An update by id keeps the
      * stored slug, so a new name's derived slug is not checked there.
      * </pre>
@@ -1441,8 +1437,7 @@ java.lang.String defaultValue) {
      * derives the slug from the name, and refuses a name whose derived slug
      * breaks these rules, never shortening it. A resource the server names
      * itself is the exception (an identity account, after its email or
-     * subject; the environment OAuth connect makes for an MCP server's
-     * tokens): its slug is made to fit instead (a letter in front, a
+     * subject): its slug is made to fit instead (a letter in front, a
      * fallback, or a cut with a short hash). An update by id keeps the
      * stored slug, so a new name's derived slug is not checked there.
      * </pre>
@@ -1472,8 +1467,7 @@ java.lang.String defaultValue) {
      * derives the slug from the name, and refuses a name whose derived slug
      * breaks these rules, never shortening it. A resource the server names
      * itself is the exception (an identity account, after its email or
-     * subject; the environment OAuth connect makes for an MCP server's
-     * tokens): its slug is made to fit instead (a letter in front, a
+     * subject): its slug is made to fit instead (a letter in front, a
      * fallback, or a cut with a short hash). An update by id keeps the
      * stored slug, so a new name's derived slug is not checked there.
      * </pre>
@@ -1500,8 +1494,7 @@ java.lang.String defaultValue) {
      * derives the slug from the name, and refuses a name whose derived slug
      * breaks these rules, never shortening it. A resource the server names
      * itself is the exception (an identity account, after its email or
-     * subject; the environment OAuth connect makes for an MCP server's
-     * tokens): its slug is made to fit instead (a letter in front, a
+     * subject): its slug is made to fit instead (a letter in front, a
      * fallback, or a cut with a short hash). An update by id keeps the
      * stored slug, so a new name's derived slug is not checked there.
      * </pre>

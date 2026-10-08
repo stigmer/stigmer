@@ -17,7 +17,9 @@
  *     pages (newest created first, one organization, a token refused on
  *     another request) and listBySession returning its parent whole;
  *   - update's status-clearing standard build and delete's audit-trail
- *     return, over the wire;
+ *     return, over the wire; update's reserved-label guard under an
+ *     authorizer that enforces it (a run's schedule label is refused, an
+ *     echo of a stored one passes);
  *   - the populated getRunSummary arm (phase counts, active count,
  *     avg duration, failure ranks) that the zero-record conformance arm
  *     cannot reach.
@@ -59,12 +61,14 @@ import {
 import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import { trustedLocalIdentity } from "../../../pipeline/interceptors/auth.js";
+import type { Authorizer } from "../../../extensions/authorizer.js";
 import type { RunStatusTransition } from "../../../extensions/status-hooks.js";
 import type {
   ConnectedExecutionEngine,
@@ -510,6 +514,110 @@ describe("update / delete over the wire", () => {
       () => command.delete({ value: "aexec_missing" }),
       Code.NotFound,
     );
+  });
+});
+
+/**
+ * Update's reserved-label guard where an authorizer enforces it. The
+ * open-source authorizer grants `can_write_reserved_labels` to everyone,
+ * so this composition denies exactly that permission, as a hosted edition
+ * does. A run's `stigmer.ai/schedule-id` names the schedule whose vaults a
+ * person-less run uses, so a caller that could set it on its own run would
+ * reach that schedule's vaults on the run's next recover.
+ */
+describe("update under an authorizer that enforces reserved labels", () => {
+  let enforcingDir: string;
+  let enforcing: ComposedServer;
+  let enforcingCommand: CommandClient;
+  let enforcingOrgId: string;
+
+  beforeAll(async () => {
+    enforcingDir = mkdtempSync(path.join(tmpdir(), "aexec-reserved-labels-"));
+    const authorizer: Authorizer = {
+      authorize(_caller, check) {
+        return Promise.resolve(
+          check.permission === IamPermission.can_write_reserved_labels
+            ? { kind: "deny", reason: "reserved labels are the platform's" }
+            : { kind: "allow" },
+        );
+      },
+    };
+    enforcing = await composeServer({
+      config: loadConfig({
+        STIGMER_MODEL_REGISTRY_REFRESH: "off",
+        TEMPORAL_HOST_PORT: "127.0.0.1:1",
+        DB_PATH: path.join(enforcingDir, "stigmer.db"),
+        STORAGE_PATH: path.join(enforcingDir, "storage"),
+        ARTIFACT_LOCAL_BASE_PATH: path.join(enforcingDir, "artifacts"),
+      }),
+      logger: silentLogger,
+      portOverride: 0,
+      host: "127.0.0.1",
+      extensions: [{ name: "reserved-labels-enforced", authorizer }],
+    });
+    const port = await enforcing.start();
+    const transport: Transport = createGrpcTransport({
+      baseUrl: `http://127.0.0.1:${port}`,
+    });
+    enforcingOrgId = organizationId(
+      await seedOrganizations(transport, [ORG]),
+      ORG,
+    );
+    enforcingCommand = createClient(RunCommandController, transport);
+  });
+
+  afterAll(async () => {
+    await enforcing.shutdown();
+    rmSync(enforcingDir, { recursive: true, force: true });
+  });
+
+  async function seedEnforced(labels: Record<string, string>) {
+    const init = seedInput({ org: enforcingOrgId });
+    init.metadata = { ...init.metadata, labels };
+    await enforcing.store.saveResource(
+      ApiResourceKind.run,
+      init.metadata.id,
+      RunSchema,
+      create(RunSchema, init),
+    );
+    return init;
+  }
+
+  it("refuses an update that sets a reserved label on a run, and stores nothing", async () => {
+    const init = await seedEnforced({});
+    const refused = await expectCode(
+      () =>
+        enforcingCommand.update({
+          apiVersion: API_VERSION,
+          kind: KIND,
+          metadata: {
+            ...init.metadata,
+            labels: { "stigmer.ai/schedule-id": "sch_someone_elses" },
+          },
+          spec: { target: init.spec?.target, message: "Say goodbye." },
+        }),
+      Code.InvalidArgument,
+    );
+    expect(refused.rawMessage).toContain("stigmer.ai/schedule-id");
+    const stored = await enforcing.store.getResource(
+      ApiResourceKind.run,
+      init.metadata.id,
+      RunSchema,
+    );
+    expect(stored.metadata?.labels["stigmer.ai/schedule-id"]).toBeUndefined();
+    expect(stored.spec?.message).toBe("Say hello.");
+  });
+
+  it("lets an update echo the run's stored reserved label unchanged", async () => {
+    const init = await seedEnforced({ "stigmer.ai/schedule-id": "sch_nightly" });
+    const updated = await enforcingCommand.update({
+      apiVersion: API_VERSION,
+      kind: KIND,
+      metadata: init.metadata,
+      spec: { target: init.spec?.target, message: "Say goodbye." },
+    });
+    expect(updated.metadata?.labels["stigmer.ai/schedule-id"]).toBe("sch_nightly");
+    expect(updated.spec?.message).toBe("Say goodbye.");
   });
 });
 

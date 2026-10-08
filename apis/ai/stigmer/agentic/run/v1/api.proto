@@ -34,10 +34,9 @@ message Run {
 
   // User-provided inputs for this run.
   // Contains: the conversation (session_id or a new session_spec), message,
-  // run_config, the per-message intents, and runtime_env. Environment values reach a turn from
-  // the environments the server resolves for its run and from the
-  // per-run runtime_env; see the runtime_env field docs in
-  // spec.proto.
+  // run_config and the per-message intents. A turn's logins and secrets
+  // come from its session's own values and the vaults the server resolves
+  // for it (RunStatus.credentials records whose run it was).
   RunSpec spec = 4;
 
   // System-managed run state and results.
@@ -472,6 +471,27 @@ message RunStatus {
   // turns are UNATTENDED (nobody is present to approve); every other turn is
   // INTERACTIVE.
   ApprovalMode approval_mode = 32;
+
+  // Whose logins and secrets this turn uses: decided once when the turn is
+  // created, and kept when it is recovered.
+  RunCredentials credentials = 33;
+}
+
+// RunCredentials records whose logins and secrets a turn uses.
+message RunCredentials {
+  // The person whose turn this is, by identity account id. Absent for a
+  // turn no person sent: a schedule's, a channel's, a share link guest's, a
+  // platform client user's or a machine account's, which use only the
+  // vaults their session and surface name.
+  //
+  // @internal
+  // Set at create by the platform's one rule for a first-party human
+  // operator (isFirstPartyHumanOperator): class user, from the wire, not a
+  // platform client's user token; the trusted-local operator is one. The
+  // value is the caller's identity id. Recover reads it and never
+  // re-derives it from the recovering caller. Server-only: a client-sent
+  // value is discarded at create.
+  optional string person = 1;
 }
 
 // Setup progress reported during the RUN_PENDING phase.

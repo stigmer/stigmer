@@ -3,7 +3,7 @@
 // Most registry kinds list through the unified SearchService. The rest take
 // dedicated find/list RPCs with bespoke table shapes, registered in
 // LIST_HANDLERS — either because the kind is not search-indexed (API keys,
-// agent channels, channel apps, schedules) or because the dedicated RPC is
+// agent channels, channel apps, schedules, vaults) or because the dedicated RPC is
 // the better list surface than the kind's search index (organizations are
 // caller-scoped; sessions carry columns search results don't have). Same map-dispatch shape as the get, delete, and apply
 // registries, so the conformance test in registry/registry.test.ts can hold
@@ -28,6 +28,8 @@ import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/a
 import { ListSchedulesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ListSessionsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import { ListVaultsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
@@ -62,7 +64,6 @@ export const SEARCH_KINDS: ReadonlySet<ApiResourceKind> =
     ApiResourceKind.mcp_server,
     ApiResourceKind.skill,
     ApiResourceKind.plugin,
-    ApiResourceKind.environment,
   ]);
 
 // One fetched page of a listing: what to render (entries + schema) and how
@@ -169,6 +170,29 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
         schema: ScheduleSchema,
         entries: result.items,
         table: SCHEDULE_TABLE,
+      };
+    },
+  ],
+  [
+    ApiResourceKind.vault,
+    async (client, org, limit) => {
+      // Vaults are never search-indexed (a person's own vault names their
+      // keys), so the dedicated list answers: the caller's own vault and the
+      // shared vaults they may see. The request requires an org.
+      await requireOrganization(client, org, [
+        "stigmer list vaults --org <org>",
+        "stigmer config context set --org <org>",
+      ]);
+      const result = await client.vault.list(
+        create(ListVaultsRequestSchema, {
+          org,
+          pageInfo: create(PageInfoSchema, { num: 1, size: limit }),
+        }),
+      );
+      return {
+        schema: VaultSchema,
+        entries: result.items,
+        table: VAULT_TABLE,
       };
     },
   ],
@@ -347,6 +371,25 @@ const SCHEDULE_TABLE: TableShape = {
       str(spec, "time_zone"),
       bool(spec, "enabled") ? "true" : "false",
       str(obj(json, "status"), "paused_reason") === "" ? "active" : "paused",
+    ];
+  },
+};
+
+// Entry names only: a vault read never carries a value, and the table shows
+// how many secrets and logins a vault holds, not what they are.
+const VAULT_TABLE: TableShape = {
+  resourceName: "vaults",
+  headers: ["ID", "SLUG", "NAME", "OWNER", "SECRETS", "LOGINS"],
+  row: (json) => {
+    const metadata = obj(json, "metadata");
+    const spec = obj(json, "spec");
+    return [
+      str(metadata, "id"),
+      str(metadata, "slug"),
+      str(metadata, "name"),
+      str(spec, "person") !== "" ? "you" : "organization",
+      String(Object.keys(obj(spec, "secrets")).length),
+      String(Object.keys(obj(spec, "connections")).length),
     ];
   },
 };

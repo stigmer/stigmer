@@ -29,3 +29,34 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
+  # One pull request replaces the Environment kind with vaults. It deletes
+  # the environment/v1 package, the environment kind value and the two
+  # permissions only it asked, the four environment_refs fields, the run's
+  # runtime_env, the channel's credentials environment id, the OAuthGrant
+  # message and the GitHub exchange's access token (each removed field's and
+  # enum value's number and name reserved), and moves EnvVarDeclaration to
+  # vault/v1 with the same wire shape. It is made before launch: the release
+  # notes name every change under Upgrading. This block exists for that one
+  # pull request. While it stays, buf breaking does not report these rules on
+  # the listed files, so the pull request that removes it lands straight
+  # after the merge (https://github.com/stigmer/stigmer/issues/2025).
+  ignore_only:
+    FILE_NO_DELETE:
+      - ai/stigmer/agentic/environment
+    FIELD_NO_DELETE:
+      - ai/stigmer/agentic/agentchannel/v1/spec.proto
+      - ai/stigmer/agentic/agentchannel/v1/status.proto
+      - ai/stigmer/agentic/agentshare/v1/spec.proto
+      - ai/stigmer/agentic/run/v1/invocation.proto
+      - ai/stigmer/agentic/run/v1/spec.proto
+      - ai/stigmer/iam/platformclient/v1/spec.proto
+      - ai/stigmer/platform/github/v1/service.proto
+    FIELD_SAME_TYPE:
+      - ai/stigmer/agentic/agent/v1/spec.proto
+      - ai/stigmer/agentic/mcpserver/v1/spec.proto
+    MESSAGE_NO_DELETE:
+      - ai/stigmer/agentic/mcpserver/v1/oauth.proto
+      - ai/stigmer/agentic/run/v1/spec.proto
+    ENUM_VALUE_NO_DELETE:
+      - ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto
+      - ai/stigmer/iam/v1/enum.proto

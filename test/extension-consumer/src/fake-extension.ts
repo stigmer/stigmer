@@ -1178,18 +1178,18 @@ export async function consumerSweepPage(
 ): Promise<string | undefined> {
   const scope = EncryptionScope.forOrganizationResource(
     "consumer-org",
-    "environment",
-    "env-slug",
+    "vault",
+    "vault-slug",
   );
   const page: RawResourceDocument[] = await store.findResourcesRawOrderedAfter(
-    ApiResourceKind.environment,
+    ApiResourceKind.vault,
     afterId,
     100,
   );
   for (const row of page) {
     void (await secrets.reencrypt("enc:v1:fake", scope.withKeyName("KEY")));
     void (await store.replaceResourceDataIfUnchanged(
-      ApiResourceKind.environment,
+      ApiResourceKind.vault,
       row.id,
       row.data,
       row.data,

@@ -11,6 +11,7 @@ import {
 import type { ReactNode } from "react";
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
+import { noMyVaultClient } from "../../__tests__/helpers/no-my-vault";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 import { SessionComposer } from "../SessionComposer";
 import { MAX_ATTACHMENT_BYTES } from "../../attachment/attachment-utils";
@@ -26,7 +27,7 @@ function createMinimalStigmerMock(): Stigmer {
         .fn()
         .mockResolvedValue({ storageKey: "attachments/test-ulid/file" }),
     },
-    environment: { getPersonal: vi.fn().mockResolvedValue(null) },
+    vault: noMyVaultClient(),
     baseUrl: "http://localhost:8080",
     getAuthCredential: vi.fn().mockResolvedValue("test-token"),
     config: {

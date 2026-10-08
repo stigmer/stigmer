@@ -92,7 +92,10 @@ Once a BYOA override is active, three things change in the detail view:
   confirm which credentials are in use.
 - **Resolution** — Stigmer resolves the OAuth app for this server by checking
   your Organization's override first, then falling back to the platform default.
-  This resolution happens at connect time and on every token refresh.
+  New sign-ins use the resolved app. A token refresh keeps the client a sign-in
+  was made with, and sends the app's secret only while the resolved app is that
+  one, so a sign-in made before the override needs a new sign-in once its token
+  expires.
 
 Other users in your Organization see the same override. When they connect to
 this server, they authorize through your app — not the platform's.
@@ -105,15 +108,16 @@ To revert to the platform's OAuth app:
 2. Click **"Remove custom app"** in the connection section.
 3. Confirm the removal.
 
-After removal, Stigmer falls back to the platform default for new connections
-and token refreshes.
+After removal, Stigmer falls back to the platform default for new connections.
+Existing sign-ins keep the client they were made with.
 
 <Callout type="warn">
   Existing users who authorized through your custom app will need to
-  re-authorize. Their tokens were issued by your app's client credentials — when
-  the override is removed, the next token refresh will fail because the platform
-  app has different credentials. Each affected user will see a **Re-auth
-  needed** state and can reconnect with a single click.
+  re-authorize. Their tokens were issued to your app's client — once the
+  override is removed, the next token refresh goes out without your app's
+  secret, because the resolved app is no longer the one they signed in with, and
+  the vendor refuses it. Each affected user will see a **Re-auth needed** state
+  and can reconnect with a single click.
 </Callout>
 
 ## Manage OAuth apps from Settings

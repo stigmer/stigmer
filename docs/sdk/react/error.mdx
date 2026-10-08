@@ -41,9 +41,9 @@ if (error) return <ErrorMessage error={error} retry={refetch} />;
 
 Contextual recovery guidance for secret-flow errors.
 
-Detects `FAILED_PRECONDITION` errors from run creation that
-indicate missing MCP server environment variables, and renders
-actionable guidance alongside the technical error message.
+Detects `FAILED_PRECONDITION` errors from run creation that name keys
+none of the run's vaults holds, and renders each key with the server's
+own instruction (add it to My vault, sign in, ask a schedule's owner).
 
 When the error does not match a secret-flow pattern, renders nothing.
 This makes the component composable: try `SecretFlowErrorGuide`

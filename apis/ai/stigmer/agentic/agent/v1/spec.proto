@@ -2,11 +2,11 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.agent.v1;
 
-import "ai/stigmer/agentic/environment/v1/spec.proto";
 import "ai/stigmer/agentic/mcpserver/v1/usage.proto";
 import "ai/stigmer/agentic/plugin/v1/hooks.proto";
 import "ai/stigmer/agentic/run/v1/invocation.proto";
 import "ai/stigmer/agentic/session/v1/enum.proto";
+import "ai/stigmer/agentic/vault/v1/declaration.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "buf/validate/validate.proto";
@@ -52,7 +52,9 @@ message AgentSpec {
 
   // Environment variable declarations for this agent.
   // Keys are variable names; values describe their metadata and optionality.
-  map<string, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> env = 7;
+  // A secret is found by its name in a vault when a run starts; a plain
+  // setting may carry its value in the declaration.
+  map<string, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> env = 7;
 
   // Field 8 held the embedded sharing configuration (AgentSharing) until
   // sharing was promoted to the first-class AgentShare resource
@@ -145,6 +147,31 @@ message AgentSpec {
   // the engine it started on; a later version naming another engine changes
   // only new conversations.
   ai.stigmer.agentic.session.v1.Harness harness = 14;
+
+  // Shared vaults this agent's conversations use after the person's own My
+  // vault, for people who may use them. At most 20.
+  //
+  // This is how a team key reaches every chat with an agent without a pick
+  // per conversation: an editor of the agent attaches a shared vault they
+  // may use, and each person's turns use it only when that person may use
+  // the vault too. A conversation that lists its own vaults uses those
+  // instead. Runs with no person (a schedule, a share link, a channel)
+  // never use an agent's vaults. A My vault cannot be attached.
+  //
+  // @internal
+  // The reference rule asks can_use of the writer for each vault a write
+  // introduces; each run asks can_use again of its person. Versioned with
+  // the agent: a conversation pinned to an older version keeps that
+  // version's list.
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [
+    (ai.stigmer.commons.apiresource.reference_kind) = vault,
+    (buf.validate.field).repeated.max_items = 20,
+    (buf.validate.field).repeated.items.cel = {
+      id: "vaults.kind"
+      message: "vaults must reference resources with kind=vault"
+      expression: "this.kind == 59"
+    }
+  ];
 }
 
 // HookSource is one source of an agent's hooks: a plugin, or a hooks block

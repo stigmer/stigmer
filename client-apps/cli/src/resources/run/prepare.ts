@@ -2,10 +2,10 @@
 // create step needs. Ports the Go CLI's prepareAgentExec (run_agent_exec.go).
 //
 // Order matters and mirrors Go: validate cheap flags first (mode, approve
-// default), then parse workspaces, then merge env, then process attachments
-// (the only step that hits the network). A failure short-circuits before any
-// upload. STIGMER_ORG is injected into the runtime env when absent so agents
-// can address the caller's org without the user wiring it manually.
+// default), then parse workspaces, then merge the run's own values, then
+// process attachments (the only step that hits the network). A failure
+// short-circuits before any upload. The run's own values become the new
+// conversation's sealed secrets (env.ts); nothing is added to them here.
 
 import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
@@ -15,7 +15,7 @@ import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/
 import type { Stigmer } from "@stigmer/sdk";
 import { UsageError } from "../../errors/index.js";
 import { type ProgressSink, processAttachments } from "./attachments.js";
-import { loadAndMergeEnv, type RuntimeEnv } from "./env.js";
+import { loadSessionSecrets, type SessionSecrets } from "./env.js";
 import { localWorkspaceRoots, parseWorkspaceEntries } from "./workspace.js";
 
 /** The interaction mode requested for the run; "" means the agent default. */
@@ -72,7 +72,8 @@ export interface AgentExecFlags {
 export interface PreparedRun {
   readonly defaultAction: ApprovalAction;
   readonly workspaceEntries: WorkspaceEntry[];
-  readonly runtimeEnv: RuntimeEnv;
+  /** The new conversation's own secrets, from the env and secret flags and files. */
+  readonly sessionSecrets: SessionSecrets;
   readonly attachments: Attachment[];
   readonly workspaceFileRefs: string[];
   readonly message: string;
@@ -120,13 +121,12 @@ export interface PrepareAgentExecOptions {
 }
 
 /**
- * Validate flags and resolve all run inputs. The `org` is used to inject
- * STIGMER_ORG and the `client` to upload non-workspace attachments.
+ * Validate flags and resolve all run inputs. The `client` uploads
+ * non-workspace attachments.
  */
 export async function prepareAgentExec(
   flags: AgentExecFlags,
   client: Stigmer,
-  org: string,
   progress?: ProgressSink,
   options?: PrepareAgentExecOptions,
 ): Promise<PreparedRun> {
@@ -184,15 +184,12 @@ export async function prepareAgentExec(
     flags.commit,
   );
 
-  const runtimeEnv = loadAndMergeEnv({
+  const sessionSecrets = loadSessionSecrets({
     envFlags: flags.env,
     secretFlags: flags.secret,
     envFiles: flags.envFile,
     secretFiles: flags.secretFile,
   });
-  if (runtimeEnv.STIGMER_ORG === undefined && org !== "") {
-    runtimeEnv.STIGMER_ORG = { value: org, isSecret: false };
-  }
 
   const { attachments, workspaceFileRefs } = await processAttachments(
     client.run,
@@ -204,7 +201,7 @@ export async function prepareAgentExec(
   return {
     defaultAction,
     workspaceEntries,
-    runtimeEnv,
+    sessionSecrets,
     attachments,
     workspaceFileRefs,
     message: flags.message,

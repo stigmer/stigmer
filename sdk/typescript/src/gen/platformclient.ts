@@ -109,14 +109,14 @@ export interface PlatformClientInput {
   expiresAt?: Date | string;
   neverExpires?: boolean;
   allowedOrigins?: string[];
-  environmentRefs?: ResourceRef[];
+  vaults?: ResourceRef[];
   createAccountsOnSignIn?: boolean;
   signInRole?: IamRole;
 }
 
 export function buildPlatformClientProto(input: PlatformClientInput): PlatformClient {
   const expiresAt = input.expiresAt !== undefined ? toTimestamp(input.expiresAt) : undefined;
-  const environmentRefs = input.environmentRefs?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 53 }));
+  const vaults = input.vaults?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 59 }));
   return Object.assign(create(PlatformClientSchema), {
     apiVersion: "iam.stigmer.ai/v1",
     kind: "PlatformClient",
@@ -135,7 +135,7 @@ export function buildPlatformClientProto(input: PlatformClientInput): PlatformCl
       expiresAt,
       neverExpires: input.neverExpires,
       allowedOrigins: input.allowedOrigins,
-      environmentRefs,
+      vaults,
       createAccountsOnSignIn: input.createAccountsOnSignIn,
       signInRole: input.signInRole,
     })),
@@ -173,7 +173,7 @@ export function toPlatformClientUpdateInput(resource: PlatformClient): PlatformC
     expiresAt: spec.expiresAt ? timestampDate(spec.expiresAt) : undefined,
     neverExpires: spec.neverExpires || undefined,
     allowedOrigins: spec.allowedOrigins?.length ? [...spec.allowedOrigins] : undefined,
-    environmentRefs: toResourceRefInputs(spec.environmentRefs),
+    vaults: toResourceRefInputs(spec.vaults),
     createAccountsOnSignIn: spec.createAccountsOnSignIn || undefined,
     signInRole: spec.signInRole || undefined,
   };

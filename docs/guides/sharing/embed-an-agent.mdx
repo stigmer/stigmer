@@ -143,5 +143,5 @@ Two things it is not:
   trust level as typing the first message. Enforce privileges with the
   credentials bound to the session, never with what the agent reads here.
 - **Not a secrets channel.** It is hidden from the conversation thread, not from
-  the API — `session.get` returns it. Put secrets in `runtimeEnv` or Environment
-  resources instead.
+  the API — `session.get` returns it. Put secrets in the session's own `secrets`
+  (sealed, never returned) or in a [vault](/docs/concepts/vaults) instead.

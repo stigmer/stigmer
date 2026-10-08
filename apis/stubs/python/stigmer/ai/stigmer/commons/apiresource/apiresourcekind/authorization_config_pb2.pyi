@@ -47,14 +47,16 @@ class VisibilityConfig(_message.Message):
     def __init__(self, supports_child_orgs: bool = ..., supports_org: bool = ..., defaults_to_org_visibility: bool = ...) -> None: ...
 
 class ParentRelationConfig(_message.Message):
-    __slots__ = ("kind", "relation", "spec_field")
+    __slots__ = ("kind", "relation", "spec_field", "optional")
     KIND_FIELD_NUMBER: _ClassVar[int]
     RELATION_FIELD_NUMBER: _ClassVar[int]
     SPEC_FIELD_FIELD_NUMBER: _ClassVar[int]
+    OPTIONAL_FIELD_NUMBER: _ClassVar[int]
     kind: str
     relation: str
     spec_field: str
-    def __init__(self, kind: _Optional[str] = ..., relation: _Optional[str] = ..., spec_field: _Optional[str] = ...) -> None: ...
+    optional: bool
+    def __init__(self, kind: _Optional[str] = ..., relation: _Optional[str] = ..., spec_field: _Optional[str] = ..., optional: bool = ...) -> None: ...
 
 class AuthorizationConfig(_message.Message):
     __slots__ = ("scope_type", "owner_type", "parent", "additional_parents", "visibility", "requires_creator_tuple", "grantable_roles", "team_grantable_roles")

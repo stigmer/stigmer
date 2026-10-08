@@ -3,8 +3,9 @@
  * GuardReservedLabelsStep matrix): echoes and removals pass without any
  * authorization round-trip, introductions and changes reject with the
  * byte-pinned INVALID_ARGUMENT copy when the Authorizer denies, the
- * permissive default allows (OSS byte-identity), the per-kind client
- * contract (stigmer.ai/personal on Environment) passes, and internal
+ * permissive default allows (OSS byte-identity), no kind takes a reserved
+ * key from a client (the retired personal-environment marker refuses on a
+ * vault like any other), and internal
  * callers skip entirely. The operator question itself
  * (mayWriteReservedLabels) answers allow as yes, deny and not-found as no,
  * and fails closed as a sanitized Internal on an authorizer that throws,
@@ -17,7 +18,7 @@ import { create } from "@bufbuild/protobuf";
 import type { Message } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { PushSkillRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
@@ -211,18 +212,19 @@ describe("GuardReservedLabels", () => {
     await expect(Promise.resolve(step.execute(ctx))).resolves.toBeUndefined();
   });
 
-  it("the Environment personal-label client contract passes", async () => {
-    const step =
-      newGuardReservedLabelsStep<typeof EnvironmentSchema>(denying());
+  it("no kind takes a reserved key from a client: the retired personal marker refuses on a vault", async () => {
+    const step = newGuardReservedLabelsStep<typeof VaultSchema>(denying());
     const ctx = new RequestContext(
-      EnvironmentSchema,
-      create(EnvironmentSchema, {
+      VaultSchema,
+      create(VaultSchema, {
         metadata: { labels: { "stigmer.ai/personal": "true" } },
       }),
       USER,
-      ApiResourceKind.environment,
+      ApiResourceKind.vault,
     );
-    await expect(Promise.resolve(step.execute(ctx))).resolves.toBeUndefined();
+    await expect(Promise.resolve(step.execute(ctx))).rejects.toMatchObject({
+      code: Code.InvalidArgument,
+    });
   });
 
   it("internal callers skip — server-composed requests stamp by design", async () => {

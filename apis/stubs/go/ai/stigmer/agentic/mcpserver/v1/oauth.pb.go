@@ -21,160 +21,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// OAuthGrant tracks OAuth metadata for a user's OAuth connection to an
-// API resource.
-type OAuthGrant struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Which user owns this grant.
-	IdentityAccountId string `protobuf:"bytes,1,opt,name=identity_account_id,json=identityAccountId,proto3" json:"identity_account_id,omitempty"`
-	// System-generated ID (metadata.id) of the API resource this grant
-	// provides OAuth tokens for. Part of the composite key:
-	// (identity_account_id, resource_id, org).
-	ResourceId string `protobuf:"bytes,2,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
-	// When the current access token expires (Unix timestamp seconds).
-	// 0 means the token does not expire (e.g., long-lived tokens from
-	// Notion or Slack user tokens).
-	AccessTokenExpiresAt int64 `protobuf:"varint,3,opt,name=access_token_expires_at,json=accessTokenExpiresAt,proto3" json:"access_token_expires_at,omitempty"`
-	// OAuth client ID used for this grant.
-	// For mcp_oauth: obtained via Dynamic Client Registration.
-	// For vendor_oauth: copied from the referenced OAuthApp.spec.client_id.
-	ClientId string `protobuf:"bytes,4,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
-	// Which auth method was used to obtain this grant.
-	// Values: "mcp_oauth" or "vendor_oauth".
-	// Determines how token refresh is performed (DCR client vs. OAuthApp credentials).
-	AuthMethod string `protobuf:"bytes,5,opt,name=auth_method,json=authMethod,proto3" json:"auth_method,omitempty"`
-	// Token endpoint URL for refresh requests.
-	// For mcp_oauth: discovered via .well-known/oauth-authorization-server.
-	// For vendor_oauth: copied from OAuthApp.spec.token_url.
-	TokenEndpoint string `protobuf:"bytes,6,opt,name=token_endpoint,json=tokenEndpoint,proto3" json:"token_endpoint,omitempty"`
-	// Env var name where the access token is stored in the managed environment.
-	AccessTokenEnvVar string `protobuf:"bytes,7,opt,name=access_token_env_var,json=accessTokenEnvVar,proto3" json:"access_token_env_var,omitempty"`
-	// Env var name where the refresh token is stored in the managed environment.
-	// Convention: {target_env_var}_REFRESH_TOKEN.
-	RefreshTokenEnvVar string `protobuf:"bytes,8,opt,name=refresh_token_env_var,json=refreshTokenEnvVar,proto3" json:"refresh_token_env_var,omitempty"`
-	// ID of the managed Environment resource that holds the tokens.
-	// The refresh mechanism reads/writes tokens in this environment.
-	// Created during completeOAuthConnect with the stigmer.ai/managed=true label.
-	// 1:1 with this grant — revoking the grant deletes this environment.
-	EnvironmentId string `protobuf:"bytes,9,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
-	// Kind of the API resource identified by resource_id (e.g., "mcp_server").
-	// Used for query filtering and handler routing.
-	ResourceKind string `protobuf:"bytes,10,opt,name=resource_kind,json=resourceKind,proto3" json:"resource_kind,omitempty"`
-	// Organization context for this grant. Part of the composite key:
-	// (identity_account_id, resource_id, org). Enables the same user to
-	// maintain separate OAuth connections for a shared resource across orgs.
-	Org           string `protobuf:"bytes,11,opt,name=org,proto3" json:"org,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *OAuthGrant) Reset() {
-	*x = OAuthGrant{}
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *OAuthGrant) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*OAuthGrant) ProtoMessage() {}
-
-func (x *OAuthGrant) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use OAuthGrant.ProtoReflect.Descriptor instead.
-func (*OAuthGrant) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *OAuthGrant) GetIdentityAccountId() string {
-	if x != nil {
-		return x.IdentityAccountId
-	}
-	return ""
-}
-
-func (x *OAuthGrant) GetResourceId() string {
-	if x != nil {
-		return x.ResourceId
-	}
-	return ""
-}
-
-func (x *OAuthGrant) GetAccessTokenExpiresAt() int64 {
-	if x != nil {
-		return x.AccessTokenExpiresAt
-	}
-	return 0
-}
-
-func (x *OAuthGrant) GetClientId() string {
-	if x != nil {
-		return x.ClientId
-	}
-	return ""
-}
-
-func (x *OAuthGrant) GetAuthMethod() string {
-	if x != nil {
-		return x.AuthMethod
-	}
-	return ""
-}
-
-func (x *OAuthGrant) GetTokenEndpoint() string {
-	if x != nil {
-		return x.TokenEndpoint
-	}
-	return ""
-}
-
-func (x *OAuthGrant) GetAccessTokenEnvVar() string {
-	if x != nil {
-		return x.AccessTokenEnvVar
-	}
-	return ""
-}
-
-func (x *OAuthGrant) GetRefreshTokenEnvVar() string {
-	if x != nil {
-		return x.RefreshTokenEnvVar
-	}
-	return ""
-}
-
-func (x *OAuthGrant) GetEnvironmentId() string {
-	if x != nil {
-		return x.EnvironmentId
-	}
-	return ""
-}
-
-func (x *OAuthGrant) GetResourceKind() string {
-	if x != nil {
-		return x.ResourceKind
-	}
-	return ""
-}
-
-func (x *OAuthGrant) GetOrg() string {
-	if x != nil {
-		return x.Org
-	}
-	return ""
-}
-
 // OAuthAppOverride binds a specific OAuthApp to an API resource within an
 // organization, overriding the platform-default OAuthApp for that resource.
 type OAuthAppOverride struct {
@@ -200,7 +46,7 @@ type OAuthAppOverride struct {
 
 func (x *OAuthAppOverride) Reset() {
 	*x = OAuthAppOverride{}
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_msgTypes[1]
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -212,7 +58,7 @@ func (x *OAuthAppOverride) String() string {
 func (*OAuthAppOverride) ProtoMessage() {}
 
 func (x *OAuthAppOverride) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_msgTypes[1]
+	mi := &file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -225,7 +71,7 @@ func (x *OAuthAppOverride) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OAuthAppOverride.ProtoReflect.Descriptor instead.
 func (*OAuthAppOverride) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_rawDescGZIP(), []int{1}
+	return file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *OAuthAppOverride) GetResourceId() string {
@@ -260,23 +106,7 @@ var File_ai_stigmer_agentic_mcpserver_v1_oauth_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/agentic/mcpserver/v1/oauth.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\"\xbb\x03\n" +
-	"\n" +
-	"OAuthGrant\x12.\n" +
-	"\x13identity_account_id\x18\x01 \x01(\tR\x11identityAccountId\x12\x1f\n" +
-	"\vresource_id\x18\x02 \x01(\tR\n" +
-	"resourceId\x125\n" +
-	"\x17access_token_expires_at\x18\x03 \x01(\x03R\x14accessTokenExpiresAt\x12\x1b\n" +
-	"\tclient_id\x18\x04 \x01(\tR\bclientId\x12\x1f\n" +
-	"\vauth_method\x18\x05 \x01(\tR\n" +
-	"authMethod\x12%\n" +
-	"\x0etoken_endpoint\x18\x06 \x01(\tR\rtokenEndpoint\x12/\n" +
-	"\x14access_token_env_var\x18\a \x01(\tR\x11accessTokenEnvVar\x121\n" +
-	"\x15refresh_token_env_var\x18\b \x01(\tR\x12refreshTokenEnvVar\x12%\n" +
-	"\x0eenvironment_id\x18\t \x01(\tR\renvironmentId\x12#\n" +
-	"\rresource_kind\x18\n" +
-	" \x01(\tR\fresourceKind\x12\x10\n" +
-	"\x03org\x18\v \x01(\tR\x03org\"\x8c\x01\n" +
+	"+ai/stigmer/agentic/mcpserver/v1/oauth.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\"\x8c\x01\n" +
 	"\x10OAuthAppOverride\x12\x1f\n" +
 	"\vresource_id\x18\x01 \x01(\tR\n" +
 	"resourceId\x12#\n" +
@@ -299,10 +129,9 @@ func file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_goTypes = []any{
-	(*OAuthGrant)(nil),       // 0: ai.stigmer.agentic.mcpserver.v1.OAuthGrant
-	(*OAuthAppOverride)(nil), // 1: ai.stigmer.agentic.mcpserver.v1.OAuthAppOverride
+	(*OAuthAppOverride)(nil), // 0: ai.stigmer.agentic.mcpserver.v1.OAuthAppOverride
 }
 var file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -323,7 +152,7 @@ func file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_rawDesc), len(file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

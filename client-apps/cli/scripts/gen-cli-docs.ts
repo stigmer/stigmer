@@ -83,6 +83,7 @@ const COMMAND_GROUP: Record<string, GroupId> = {
   tag: "resource",
   share: "resource",
   schedule: "resource",
+  vault: "resource",
   // Artifact
   push: "artifact",
   install: "artifact",

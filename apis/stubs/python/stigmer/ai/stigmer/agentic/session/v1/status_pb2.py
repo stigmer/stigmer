@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from ai.stigmer.commons.apiresource import status_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_status__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*ai/stigmer/agentic/session/v1/status.proto\x12\x1d\x61i.stigmer.agentic.session.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\xa0\x01\n\rSessionStatus\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61udit\x12\x19\n\x08\x61gent_id\x18\x01 \x01(\tR\x07\x61gentId\x12,\n\x12\x61gent_version_hash\x18\x02 \x01(\tR\x10\x61gentVersionHashB\xc9\x01\n!com.ai.stigmer.agentic.session.v1B\x0bStatusProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1d\x41i.Stigmer.Agentic.Session.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*ai/stigmer/agentic/session/v1/status.proto\x12\x1d\x61i.stigmer.agentic.session.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\xce\x02\n\rSessionStatus\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61udit\x12\x19\n\x08\x61gent_id\x18\x01 \x01(\tR\x07\x61gentId\x12,\n\x12\x61gent_version_hash\x18\x02 \x01(\tR\x10\x61gentVersionHash\x12i\n\x0fvault_attachers\x18\x03 \x03(\x0b\x32@.ai.stigmer.agentic.session.v1.SessionStatus.VaultAttachersEntryR\x0evaultAttachers\x1a\x41\n\x13VaultAttachersEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\x42\xc9\x01\n!com.ai.stigmer.agentic.session.v1B\x0bStatusProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1d\x41i.Stigmer.Agentic.Session.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,6 +33,10 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'ai.stigmer.agentic.session.
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n!com.ai.stigmer.agentic.session.v1B\013StatusProtoP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agentic.Session.V1\312\002\035Ai\\Stigmer\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\352\002!Ai::Stigmer::Agentic::Session::V1'
+  _globals['_SESSIONSTATUS_VAULTATTACHERSENTRY']._loaded_options = None
+  _globals['_SESSIONSTATUS_VAULTATTACHERSENTRY']._serialized_options = b'8\001'
   _globals['_SESSIONSTATUS']._serialized_start=123
-  _globals['_SESSIONSTATUS']._serialized_end=283
+  _globals['_SESSIONSTATUS']._serialized_end=457
+  _globals['_SESSIONSTATUS_VAULTATTACHERSENTRY']._serialized_start=392
+  _globals['_SESSIONSTATUS_VAULTATTACHERSENTRY']._serialized_end=457
 # @@protoc_insertion_point(module_scope)

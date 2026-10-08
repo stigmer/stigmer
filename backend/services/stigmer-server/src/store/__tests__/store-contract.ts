@@ -46,7 +46,6 @@ import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organizat
 
 import { AuditNotFoundError, ResourceNotFoundError } from "../interface.js";
 import type {
-  OAuthGrant,
   PendingOAuthState,
   SearchIndexEntry,
   Store,
@@ -1466,84 +1465,6 @@ export function describeStoreContract(
     });
   });
 
-  describe("oauth grants", () => {
-    const grant: OAuthGrant = {
-      identityAccountId: "ida_1",
-      resourceId: "mcp_1",
-      resourceKind: "mcp_server",
-      orgId: "acme",
-      accessTokenExpiresAt: 1755648000,
-      clientId: "client-1",
-      authMethod: "mcp_oauth",
-      tokenEndpoint: "https://example.test/token",
-      accessTokenEnvVar: "TOKEN",
-      refreshTokenEnvVar: "REFRESH",
-      environmentId: "env_1",
-      createdAt: 0,
-      updatedAt: 0,
-    };
-
-    it("upsert stamps createdAt on first insert and refreshes updatedAt on replace", async () => {
-      await fx.store.oauthGrants.upsert(grant);
-      const first = await fx.store.oauthGrants.find("ida_1", "mcp_1", "acme");
-      expect(first).toBeDefined();
-      expect(first!.createdAt).toBeGreaterThan(0);
-
-      await fx.store.oauthGrants.upsert({ ...grant, clientId: "client-2" });
-      const second = await fx.store.oauthGrants.find("ida_1", "mcp_1", "acme");
-      expect(second!.clientId).toBe("client-2");
-      expect(second!.createdAt, "createdAt survives the upsert").toBe(
-        first!.createdAt,
-      );
-    });
-
-    it("find returns undefined (not an error) when absent; delete removes by composite key", async () => {
-      expect(
-        await fx.store.oauthGrants.find("ida_x", "mcp_x", "acme"),
-      ).toBeUndefined();
-
-      await fx.store.oauthGrants.upsert(grant);
-      await fx.store.oauthGrants.delete("ida_1", "mcp_1", "acme");
-      expect(
-        await fx.store.oauthGrants.find("ida_1", "mcp_1", "acme"),
-      ).toBeUndefined();
-    });
-
-    it("deleteByResourceId sweeps every identity's grants for the resource and no others", async () => {
-      // Two identities granted the same resource (re-install by a second
-      // caller leaves one row per identity — the sweep must take both),
-      // plus one grant on a different resource that must survive.
-      await fx.store.oauthGrants.upsert(grant);
-      await fx.store.oauthGrants.upsert({
-        ...grant,
-        identityAccountId: "ida_2",
-      });
-      await fx.store.oauthGrants.upsert({ ...grant, resourceId: "mcp_other" });
-
-      const swept = await fx.store.oauthGrants.deleteByResourceId(
-        "mcp_1",
-        "acme",
-      );
-      expect(swept, "both identities' grants counted").toBe(2);
-      expect(
-        await fx.store.oauthGrants.find("ida_1", "mcp_1", "acme"),
-      ).toBeUndefined();
-      expect(
-        await fx.store.oauthGrants.find("ida_2", "mcp_1", "acme"),
-      ).toBeUndefined();
-      expect(
-        await fx.store.oauthGrants.find("ida_1", "mcp_other", "acme"),
-        "other resources' grants survive",
-      ).toBeDefined();
-
-      const rerun = await fx.store.oauthGrants.deleteByResourceId(
-        "mcp_1",
-        "acme",
-      );
-      expect(rerun, "idempotent re-sweep answers zero, not an error").toBe(0);
-    });
-  });
-
   describe("pending oauth state", () => {
     const state: PendingOAuthState = {
       state: "state-1",
@@ -1558,6 +1479,8 @@ export function describeStoreContract(
       tokenAuthMethod: "",
       redirectUri: "http://127.0.0.1/cb",
       org: "acme",
+      vaultId: "",
+      toolAddress: "https://mcp.example.test/mcp",
       createdAt: 0,
     };
 
@@ -1571,6 +1494,26 @@ export function describeStoreContract(
 
       const second = await fx.store.pendingOAuthStates.getAndDelete("state-1");
       expect(second, "a state can never be redeemed twice").toBeUndefined();
+    });
+
+    it("keeps the vault a sign-in saves into, and \"\" for the signer's My vault", async () => {
+      await fx.store.pendingOAuthStates.save({ ...state, vaultId: "vlt_shared" });
+      await fx.store.pendingOAuthStates.save({ ...state, state: "state-2" });
+
+      expect(
+        (await fx.store.pendingOAuthStates.getAndDelete("state-1"))?.vaultId,
+      ).toBe("vlt_shared");
+      expect(
+        (await fx.store.pendingOAuthStates.getAndDelete("state-2"))?.vaultId,
+      ).toBe("");
+    });
+
+    it("keeps the tool's address the sign-in started at", async () => {
+      await fx.store.pendingOAuthStates.save(state);
+
+      expect(
+        (await fx.store.pendingOAuthStates.getAndDelete("state-1"))?.toolAddress,
+      ).toBe("https://mcp.example.test/mcp");
     });
 
     it("an expired state is deleted on redemption and returns undefined", async () => {
@@ -1720,23 +1663,8 @@ export function describeStoreContract(
       expect(JSON.stringify(left)).toContain("agt_org_b");
     });
 
-    it("OAuth grants and pending OAuth states remove one organization's records only", async () => {
+    it("pending OAuth states remove one organization's records only", async () => {
       for (const org of ["org_a", "org_b"]) {
-        await fx.store.oauthGrants.upsert({
-          identityAccountId: "ida_1",
-          resourceId: "mcp_1",
-          resourceKind: "mcp_server",
-          orgId: org,
-          accessTokenExpiresAt: 0,
-          clientId: "client-1",
-          authMethod: "mcp_oauth",
-          tokenEndpoint: "https://example.test/token",
-          accessTokenEnvVar: "TOKEN",
-          refreshTokenEnvVar: "",
-          environmentId: "",
-          createdAt: 0,
-          updatedAt: 0,
-        });
         await fx.store.pendingOAuthStates.save({
           state: `state-${org}`,
           codeVerifier: "enc:v1:sealed",
@@ -1750,15 +1678,13 @@ export function describeStoreContract(
           tokenAuthMethod: "",
           redirectUri: "http://127.0.0.1/cb",
           org,
+          vaultId: "",
+          toolAddress: "",
           createdAt: 0,
         });
       }
-      expect(await fx.store.oauthGrants.deleteByOrg("org_a")).toBe(1);
       expect(await fx.store.pendingOAuthStates.deleteByOrg("org_a")).toBe(1);
-      expect(await fx.store.oauthGrants.deleteByOrg("org_a")).toBe(0);
-      expect(
-        await fx.store.oauthGrants.find("ida_1", "mcp_1", "org_b"),
-      ).toBeDefined();
+      expect(await fx.store.pendingOAuthStates.deleteByOrg("org_a")).toBe(0);
       expect(
         await fx.store.pendingOAuthStates.getAndDelete("state-org_b"),
       ).toBeDefined();
@@ -2066,7 +1992,7 @@ export function describeStoreContract(
       await expect(fx.store.bootstrapState.get("k")).rejects.toThrow(
         "store is closed",
       );
-      await expect(fx.store.oauthGrants.deleteByOrg("o")).rejects.toThrow(
+      await expect(fx.store.pendingOAuthStates.deleteByOrg("o")).rejects.toThrow(
         "store is closed",
       );
       await expect(

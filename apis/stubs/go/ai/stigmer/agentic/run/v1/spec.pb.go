@@ -8,8 +8,7 @@ package runv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
-	v11 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
+	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -108,16 +107,6 @@ type RunSpec struct {
 	// The validated structured data lands on the run's
 	// status.structured_output.
 	StructuredOutputSchema *structpb.Struct `protobuf:"bytes,21,opt,name=structured_output_schema,json=structuredOutputSchema,proto3" json:"structured_output_schema,omitempty"`
-	// Runtime environment variables and secrets (run-scoped).
-	// These values are only available for this specific run and take the
-	// highest merge priority, overriding values from Environments bound via
-	// environment_refs. A key must be declared in Agent.spec.env to survive the
-	// merge: the agent env map is a declaration whitelist (name + is_secret +
-	// optional), never a value source — undeclared keys are dropped.
-	// Use case: B2B integrations where secrets are injected at runtime per call.
-	// These values are consumed into the ExecutionContext (deleted when the
-	// run completes) and cleared from the persisted run.
-	RuntimeEnv map[string]*v1.ExecutionValue `protobuf:"bytes,5,rep,name=runtime_env,json=runtimeEnv,proto3" json:"runtime_env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Auto-approve all tool executions for this run.
 	//
 	// When true, tools that would normally require approval are automatically
@@ -242,7 +231,7 @@ func (x *RunSpec) GetSessionId() string {
 	return ""
 }
 
-func (x *RunSpec) GetSessionSpec() *v11.SessionSpec {
+func (x *RunSpec) GetSessionSpec() *v1.SessionSpec {
 	if x != nil {
 		if x, ok := x.Target.(*RunSpec_SessionSpec); ok {
 			return x.SessionSpec
@@ -282,13 +271,6 @@ func (x *RunSpec) GetBuildFromPlan() bool {
 func (x *RunSpec) GetStructuredOutputSchema() *structpb.Struct {
 	if x != nil {
 		return x.StructuredOutputSchema
-	}
-	return nil
-}
-
-func (x *RunSpec) GetRuntimeEnv() map[string]*v1.ExecutionValue {
-	if x != nil {
-		return x.RuntimeEnv
 	}
 	return nil
 }
@@ -361,7 +343,7 @@ type RunSpec_SessionSpec struct {
 	// this field. session_spec.harness_state_id must be empty — it is
 	// server-owned harness continuity state, created by the runner after
 	// the first run.
-	SessionSpec *v11.SessionSpec `protobuf:"bytes,13,opt,name=session_spec,json=sessionSpec,proto3,oneof"`
+	SessionSpec *v1.SessionSpec `protobuf:"bytes,13,opt,name=session_spec,json=sessionSpec,proto3,oneof"`
 }
 
 func (*RunSpec_SessionId) isRunSpec_Target() {}
@@ -734,8 +716,7 @@ var File_ai_stigmer_agentic_run_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"$ai/stigmer/agentic/run/v1/spec.proto\x12\x19ai.stigmer.agentic.run.v1\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd8\n" +
-	"\n" +
+	"$ai/stigmer/agentic/run/v1/spec.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9f\t\n" +
 	"\aRunSpec\x12\x1f\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tH\x00R\tsessionId\x12O\n" +
@@ -745,20 +726,15 @@ const file_ai_stigmer_agentic_run_v1_spec_proto_rawDesc = "" +
 	"run_config\x18\x12 \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfig\x12_\n" +
 	"\x10interaction_mode\x18\x13 \x01(\x0e2*.ai.stigmer.agentic.run.v1.InteractionModeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x0finteractionMode\x12&\n" +
 	"\x0fbuild_from_plan\x18\x14 \x01(\bR\rbuildFromPlan\x12Q\n" +
-	"\x18structured_output_schema\x18\x15 \x01(\v2\x17.google.protobuf.StructR\x16structuredOutputSchema\x12S\n" +
-	"\vruntime_env\x18\x05 \x03(\v22.ai.stigmer.agentic.run.v1.RunSpec.RuntimeEnvEntryR\n" +
-	"runtimeEnv\x12(\n" +
+	"\x18structured_output_schema\x18\x15 \x01(\v2\x17.google.protobuf.StructR\x16structuredOutputSchema\x12(\n" +
 	"\x10auto_approve_all\x18\a \x01(\bR\x0eautoApproveAll\x12G\n" +
 	"\vattachments\x18\t \x03(\v2%.ai.stigmer.agentic.run.v1.AttachmentR\vattachments\x12.\n" +
 	"\x13workspace_file_refs\x18\n" +
 	" \x03(\tR\x11workspaceFileRefs\x12*\n" +
 	"\x11supersedes_run_id\x18\f \x01(\tR\x0fsupersedesRunId\x12a\n" +
-	"\x14conversation_catchup\x18\x0e \x01(\v2..ai.stigmer.agentic.run.v1.ConversationCatchupR\x13conversationCatchup\x1au\n" +
-	"\x0fRuntimeEnvEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
-	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01:\xd8\x01\xbaH\xd4\x01\x1a\xd1\x01\n" +
+	"\x14conversation_catchup\x18\x0e \x01(\v2..ai.stigmer.agentic.run.v1.ConversationCatchupR\x13conversationCatchup:\xd8\x01\xbaH\xd4\x01\x1a\xd1\x01\n" +
 	"\x1erun.session_spec_harness_state\x12jsession_spec.harness_state_id must be empty — harness state is created by the runner after the first run\x1aC!has(this.session_spec) || this.session_spec.harness_state_id == ''B\b\n" +
-	"\x06targetJ\x04\b\x02\x10\x03J\x04\b\x06\x10\aJ\x04\b\b\x10\tJ\x04\b\v\x10\fJ\x04\b\x11\x10\x12J\x04\b\x0f\x10\x10J\x04\b\x10\x10\x11J\x04\b\x04\x10\x05R\bagent_idR\x0ecallback_tokenR\x12parent_workflow_idR\x13activity_task_queueR\x06parentR\x14declared_preferencesR\x11recalled_memoriesR\x10execution_config\"\x96\x03\n" +
+	"\x06targetJ\x04\b\x02\x10\x03J\x04\b\x06\x10\aJ\x04\b\b\x10\tJ\x04\b\v\x10\fJ\x04\b\x11\x10\x12J\x04\b\x0f\x10\x10J\x04\b\x10\x10\x11J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\bagent_idR\x0ecallback_tokenR\x12parent_workflow_idR\x13activity_task_queueR\x06parentR\x14declared_preferencesR\x11recalled_memoriesR\x10execution_configR\vruntime_env\"\x96\x03\n" +
 	"\n" +
 	"Attachment\x12\xe2\x01\n" +
 	"\bfilename\x18\x01 \x01(\tB\xc5\x01\xbaH\xc1\x01\xba\x01\xb9\x01\n" +
@@ -799,7 +775,7 @@ func file_ai_stigmer_agentic_run_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_run_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_run_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_ai_stigmer_agentic_run_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_ai_stigmer_agentic_run_v1_spec_proto_goTypes = []any{
 	(*RunSpec)(nil),               // 0: ai.stigmer.agentic.run.v1.RunSpec
 	(*Attachment)(nil),            // 1: ai.stigmer.agentic.run.v1.Attachment
@@ -807,30 +783,26 @@ var file_ai_stigmer_agentic_run_v1_spec_proto_goTypes = []any{
 	(*DeclaredPreferences)(nil),   // 3: ai.stigmer.agentic.run.v1.DeclaredPreferences
 	(*RecalledMemories)(nil),      // 4: ai.stigmer.agentic.run.v1.RecalledMemories
 	(*RecalledMemoryFact)(nil),    // 5: ai.stigmer.agentic.run.v1.RecalledMemoryFact
-	nil,                           // 6: ai.stigmer.agentic.run.v1.RunSpec.RuntimeEnvEntry
-	(*v11.SessionSpec)(nil),       // 7: ai.stigmer.agentic.session.v1.SessionSpec
-	(*RunConfig)(nil),             // 8: ai.stigmer.agentic.run.v1.RunConfig
-	(InteractionMode)(0),          // 9: ai.stigmer.agentic.run.v1.InteractionMode
-	(*structpb.Struct)(nil),       // 10: google.protobuf.Struct
-	(*timestamppb.Timestamp)(nil), // 11: google.protobuf.Timestamp
-	(*v1.ExecutionValue)(nil),     // 12: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	(*v1.SessionSpec)(nil),        // 6: ai.stigmer.agentic.session.v1.SessionSpec
+	(*RunConfig)(nil),             // 7: ai.stigmer.agentic.run.v1.RunConfig
+	(InteractionMode)(0),          // 8: ai.stigmer.agentic.run.v1.InteractionMode
+	(*structpb.Struct)(nil),       // 9: google.protobuf.Struct
+	(*timestamppb.Timestamp)(nil), // 10: google.protobuf.Timestamp
 }
 var file_ai_stigmer_agentic_run_v1_spec_proto_depIdxs = []int32{
-	7,  // 0: ai.stigmer.agentic.run.v1.RunSpec.session_spec:type_name -> ai.stigmer.agentic.session.v1.SessionSpec
-	8,  // 1: ai.stigmer.agentic.run.v1.RunSpec.run_config:type_name -> ai.stigmer.agentic.run.v1.RunConfig
-	9,  // 2: ai.stigmer.agentic.run.v1.RunSpec.interaction_mode:type_name -> ai.stigmer.agentic.run.v1.InteractionMode
-	10, // 3: ai.stigmer.agentic.run.v1.RunSpec.structured_output_schema:type_name -> google.protobuf.Struct
-	6,  // 4: ai.stigmer.agentic.run.v1.RunSpec.runtime_env:type_name -> ai.stigmer.agentic.run.v1.RunSpec.RuntimeEnvEntry
-	1,  // 5: ai.stigmer.agentic.run.v1.RunSpec.attachments:type_name -> ai.stigmer.agentic.run.v1.Attachment
-	2,  // 6: ai.stigmer.agentic.run.v1.RunSpec.conversation_catchup:type_name -> ai.stigmer.agentic.run.v1.ConversationCatchup
-	11, // 7: ai.stigmer.agentic.run.v1.ConversationCatchup.window_end:type_name -> google.protobuf.Timestamp
-	5,  // 8: ai.stigmer.agentic.run.v1.RecalledMemories.facts:type_name -> ai.stigmer.agentic.run.v1.RecalledMemoryFact
-	12, // 9: ai.stigmer.agentic.run.v1.RunSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
-	10, // [10:10] is the sub-list for method output_type
-	10, // [10:10] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	6,  // 0: ai.stigmer.agentic.run.v1.RunSpec.session_spec:type_name -> ai.stigmer.agentic.session.v1.SessionSpec
+	7,  // 1: ai.stigmer.agentic.run.v1.RunSpec.run_config:type_name -> ai.stigmer.agentic.run.v1.RunConfig
+	8,  // 2: ai.stigmer.agentic.run.v1.RunSpec.interaction_mode:type_name -> ai.stigmer.agentic.run.v1.InteractionMode
+	9,  // 3: ai.stigmer.agentic.run.v1.RunSpec.structured_output_schema:type_name -> google.protobuf.Struct
+	1,  // 4: ai.stigmer.agentic.run.v1.RunSpec.attachments:type_name -> ai.stigmer.agentic.run.v1.Attachment
+	2,  // 5: ai.stigmer.agentic.run.v1.RunSpec.conversation_catchup:type_name -> ai.stigmer.agentic.run.v1.ConversationCatchup
+	10, // 6: ai.stigmer.agentic.run.v1.ConversationCatchup.window_end:type_name -> google.protobuf.Timestamp
+	5,  // 7: ai.stigmer.agentic.run.v1.RecalledMemories.facts:type_name -> ai.stigmer.agentic.run.v1.RecalledMemoryFact
+	8,  // [8:8] is the sub-list for method output_type
+	8,  // [8:8] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_run_v1_spec_proto_init() }
@@ -850,7 +822,7 @@ func file_ai_stigmer_agentic_run_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_run_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_run_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

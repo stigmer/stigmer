@@ -54,8 +54,8 @@ export interface UseSessionAgentVersionReturn {
   /** The agent's display name (its name, else its slug); `""` until it loads. */
   readonly agentName: string;
   /**
-   * The keys the agent's current version reads from the person's personal
-   * environment (usePersonalKeys: its declared keys, minus its servers'
+   * The keys the agent's current version reads from the person's My
+   * vault (usePersonalKeys: its declared keys, minus its servers'
    * OAuth variables, and none for an agent of another organization than
    * the session's), sorted: what an update hands the agent. Empty while
    * the conversation is current (no update to name them for), and until

@@ -54,7 +54,7 @@ const FULL_DRAFT: AgentShareDraft = {
     unavailable: "We're out of credits.",
     conversationEnded: "This conversation has ended.",
   },
-  environmentRefs: [{ org: "acme", slug: "github-org-shared" }],
+  vaults: [{ org: "acme", slug: "github-org-shared" }],
   runConfig: { modelName: "gpt-5-mini", maxCostUsd: 0.25 },
 };
 
@@ -91,7 +91,7 @@ describe("useSaveAgentShare", () => {
     expect(input.messages?.conversationEnded).toBe(
       "This conversation has ended.",
     );
-    expect(input.environmentRefs).toEqual([
+    expect(input.vaults).toEqual([
       { org: "acme", slug: "github-org-shared" },
     ]);
     expect(input.runConfig).toEqual({ modelName: "gpt-5-mini", maxCostUsd: 0.25 });
@@ -130,13 +130,13 @@ describe("useSaveAgentShare", () => {
 
     await act(() =>
       result.current.save(
-        // An org-audience share carries no environmentRefs or runConfig
+        // An org-audience share carries no vaults or runConfig
         // (both are public-audience-only by the proto CEL rules).
         {
           ...FULL_DRAFT,
           enabled: false,
           audience: "org",
-          environmentRefs: [],
+          vaults: [],
           runConfig: undefined,
         },
         null,
@@ -164,7 +164,7 @@ describe("useSaveAgentShare", () => {
       spec: {
         enabled: true,
         allowedOrigins: ["https://example.com"],
-        environmentRefs: [],
+        vaults: [],
         runConfig: { modelName: "gpt-5-mini", maxCostUsd: 0.25, maxToolRounds: 8 },
       },
     } as unknown as AgentShare;
@@ -202,7 +202,7 @@ describe("useSaveAgentShare", () => {
     };
     const share = {
       metadata: { id: "ash_3", org: "acme", slug: "support-agent", name: "Support Agent" },
-      spec: { enabled: true, allowedOrigins: [], environmentRefs: [], runConfig },
+      spec: { enabled: true, allowedOrigins: [], vaults: [], runConfig },
     } as unknown as AgentShare;
 
     const { result } = renderHook(() => useSaveAgentShare(AGENT), {
@@ -237,7 +237,7 @@ describe("useSaveAgentShare", () => {
     await act(() => result.current.save(FULL_DRAFT, null));
     await act(() =>
       result.current.save(
-        { ...FULL_DRAFT, audience: "org", environmentRefs: [] },
+        { ...FULL_DRAFT, audience: "org", vaults: [] },
         null,
       ),
     );

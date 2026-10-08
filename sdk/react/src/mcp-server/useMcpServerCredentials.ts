@@ -1,15 +1,18 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import type { EnvVarInput } from "@stigmer/sdk";
+import type { EnvVarInput } from "../vault/types.js";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { OAuthAppSource } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { VendorApprovalStatus } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
-import { usePersonalEnvironment } from "../environment/usePersonalEnvironment.js";
-import { diffEnv } from "../environment/diffEnv.js";
-import { SYSTEM_ENV_VAR_KEYS } from "../environment/systemEnvVars.js";
-import type { EnvVarFormVariable } from "../environment/EnvVarForm.js";
+import { useMyVault } from "../vault/useMyVault.js";
+import { toolAddressOf, toolLoginKeyOf, vaultLoginServes } from "../vault/address.js";
+import { valuesOf } from "../vault/types.js";
+import { diffEnv } from "../vault/diffEnv.js";
+import { SYSTEM_ENV_VAR_KEYS } from "../vault/systemEnvVars.js";
+import type { EnvVarFormVariable } from "../vault/EnvVarForm.js";
 import { useOAuthGrantStatus } from "./useOAuthGrantStatus.js";
 import { useOrgOAuthApp } from "./useOrgOAuthApp.js";
 
@@ -39,9 +42,11 @@ export interface UseMcpServerCredentialsReturn {
    */
   readonly oauthTargetEnvVar: string | null;
   /**
-   * `true` when the user has an active OAuth grant for this server.
-   * Derived from the `getOAuthGrantStatus` API, not from personal
-   * environment key presence. Always `false` when `authMode` is `"manual"`.
+   * `true` when My vault holds a login a run would fill this server's
+   * `target_env_var` from: a sign-in made for this server (the
+   * `getOAuthGrantStatus` API), or a login the person saved themselves (a
+   * token pasted at an HTTP tool's own URL, or a secret by the variable's
+   * name). Always `false` when `authMode` is `"manual"`.
    */
   readonly isOAuthConnected: boolean;
   /**
@@ -55,7 +60,8 @@ export interface UseMcpServerCredentialsReturn {
   readonly connectionHealth: OAuthConnectionHealth;
   /**
    * `true` when the user can disconnect (i.e., an OAuth grant exists).
-   * Always `false` when `authMode` is `"manual"` or no grant is present.
+   * Always `false` when `authMode` is `"manual"` or no grant is present,
+   * a login the person saved themselves included.
    */
   readonly canDisconnect: boolean;
   /**
@@ -70,8 +76,7 @@ export interface UseMcpServerCredentialsReturn {
    */
   readonly tokenLifetimeHint: string | null;
   /**
-   * Required variables (non-optional) missing from the user's personal
-   * environment. Empty when all required variables are present, the
+   * Required variables (non-optional) the user's My vault does not fill. Empty when all required variables are present, the
    * server has no `env` declarations, or all declarations are optional.
    *
    * When `authMode` is `"oauth"`, the OAuth-managed `target_env_var`
@@ -88,32 +93,34 @@ export interface UseMcpServerCredentialsReturn {
   /**
    * `true` when all required (non-optional) credentials are available
    * — both OAuth-managed and manual variables. For OAuth servers this
-   * means the OAuth grant is connected AND any additional required
-   * manual vars are present in the personal environment.
+   * means a login is connected ({@link isOAuthConnected}) AND any
+   * additional required manual vars are saved in My vault.
    *
    * Servers whose env vars are all optional are always ready.
    */
   readonly isReady: boolean;
   /**
-   * `true` while the personal environment, grant status, or org-override
+   * `true` while My vault, the sign-in status, or the org-override
    * lookup is being fetched.
    */
   readonly isLoading: boolean;
   /**
-   * Error from the personal environment, grant status, or org-override
+   * Error from My vault, the sign-in status, or the org-override
    * fetch, or `null`.
    */
   readonly error: Error | null;
   /**
-   * Save the provided credentials to the user's personal environment.
-   * Creates the personal environment if it doesn't exist yet.
+   * Save the provided credentials in the user's My vault (created by the
+   * server on the first save). For an HTTP server, a value for the tool's
+   * login variable is saved as a login at the tool's URL; every other
+   * value, and every value for a local program, as a secret by its name.
    */
   readonly saveCredentials: (
     values: Record<string, EnvVarInput>,
   ) => Promise<void>;
   /** `true` while a save operation is in flight. */
   readonly isSaving: boolean;
-  /** Re-check the personal environment. */
+  /** Re-check My vault and the sign-in status. */
   readonly refetch: () => void;
   /**
    * `true` when the referenced OAuthApp's vendor approval is still pending.
@@ -204,8 +211,13 @@ export interface UseMcpServerCredentialsReturn {
 }
 
 /**
- * Checks the user's personal environment against an MCP server's
- * `env` declarations and provides a mechanism to save missing credentials.
+ * Checks the user's My vault against an MCP server's `env` declarations
+ * and provides a mechanism to save missing credentials. Values are never
+ * read: a variable counts as provided when My vault holds a secret by its
+ * name, or, for the tool's login variable, a login a run would fill it from
+ * ({@link vaultLoginServes}: a sign-in made for this server, or a pasted
+ * login at an HTTP server's own URL; never a pasted login at a local
+ * program's discovery URL).
  *
  * Designed for the discovery flow on the MCP server detail page:
  * before triggering discovery, the UI needs to ensure all required
@@ -226,13 +238,13 @@ export interface UseMcpServerCredentialsReturn {
  * resolve which OAuth app the connect flow will use for `org`
  * (`effectiveOAuthSource` / `isOrgOAuthApp` / `canBringOwnApp`).
  * The `org` parameter must therefore be the caller's ACTIVE org — the
- * org credentials are stored in and the org whose BYOA override
+ * org whose My vault holds the credentials and whose BYOA override
  * applies — not necessarily the org that owns the MCP server (they
  * differ when browsing another org's public server).
  *
  * Unlike {@link useMcpServerSetup} which manages multi-server setup
  * for session creation, this hook is scoped to a single server and
- * always persists to the personal environment (no one-time option).
+ * always saves into My vault (no one-time option).
  *
  * Pass `null` for `mcpServer` while loading.
  *
@@ -284,7 +296,7 @@ export function useMcpServerCredentials(
   org: string | null,
   mcpServer: McpServer | null,
 ): UseMcpServerCredentialsReturn {
-  const personalEnv = usePersonalEnvironment(org);
+  const myVault = useMyVault(org);
   const [manualOverride, setManualOverride] = useState(false);
 
   const auth = mcpServer?.spec?.auth;
@@ -360,12 +372,18 @@ export function useMcpServerCredentials(
     authMode === "oauth" ? org : null,
   );
 
-  const isOAuthConnected = authMode === "oauth" && grantStatus.connected;
-
   const existingKeys = useMemo(
-    () => new Set(Object.keys(personalEnv.environment?.spec?.data ?? {})),
-    [personalEnv.environment],
+    () => savedKeysFor(mcpServer, myVault.vault),
+    [mcpServer, myVault.vault],
   );
+
+  // The grant reports only a sign-in made for this server. A run also fills
+  // the login from what My vault holds otherwise (a token pasted at an HTTP
+  // tool's own URL, or a secret by the variable's name), and the server
+  // refuses a sign-in over a pasted login, so that counts as connected too.
+  const isOAuthConnected =
+    authMode === "oauth" &&
+    (grantStatus.connected || (oauthTargetEnvVar !== null && existingKeys.has(oauthTargetEnvVar)));
 
   const allMissingVariables = useMemo(() => {
     if (!mcpServer) return [];
@@ -388,31 +406,31 @@ export function useMcpServerCredentials(
   }, [requiredMissing, oauthTargetEnvVar, effectiveManualOverride]);
 
   const isReady =
-    !personalEnv.isLoading &&
+    !myVault.isLoading &&
     !grantStatus.isLoading &&
     missingVariables.length === 0 &&
     (authMode === "manual" || effectiveManualOverride || isOAuthConnected);
 
   const saveCredentials = useCallback(
     async (values: Record<string, EnvVarInput>): Promise<void> => {
-      await personalEnv.getOrCreate();
-      await personalEnv.addVariables(values);
+      await saveToMyVault(myVault, values, mcpServer);
+      grantStatus.refetch();
     },
-    [personalEnv],
+    [myVault, mcpServer, grantStatus],
   );
 
   const refetch = useCallback(() => {
-    personalEnv.refetch();
+    myVault.refetch();
     grantStatus.refetch();
     orgOverride.refetch();
-  }, [personalEnv, grantStatus, orgOverride]);
+  }, [myVault, grantStatus, orgOverride]);
 
   return {
     authMode,
     oauthTargetEnvVar,
     isOAuthConnected,
     connectionHealth: grantStatus.connectionHealth,
-    canDisconnect: isOAuthConnected,
+    canDisconnect: authMode === "oauth" && grantStatus.connected,
     accessTokenExpiresAt: grantStatus.accessTokenExpiresAt,
     tokenLifetimeHint,
     isVendorApprovalPending,
@@ -425,12 +443,56 @@ export function useMcpServerCredentials(
     missingVariables,
     isReady,
     isLoading:
-      personalEnv.isLoading || grantStatus.isLoading || orgOverride.isLoading,
-    error: personalEnv.error ?? grantStatus.error ?? orgOverride.error,
+      myVault.isLoading || grantStatus.isLoading || orgOverride.isLoading,
+    error: myVault.error ?? grantStatus.error ?? orgOverride.error,
     saveCredentials,
-    isSaving: personalEnv.isMutating,
+    isSaving: myVault.isMutating,
     refetch,
     manualOverride: effectiveManualOverride,
     setManualOverride,
   };
+}
+
+/**
+ * The variables a vault already fills for a server, by the run's rule: its
+ * secrets by name, plus the server's login variable when it holds a login
+ * that serves this server ({@link vaultLoginServes}). Names and connection
+ * kinds only; no read returns a value. Shared by every surface that asks
+ * for a tool's credentials against My vault.
+ */
+export function savedKeysFor(mcpServer: McpServer | null, vault: Vault | null): Set<string> {
+  const keys = new Set(Object.keys(vault?.spec?.secrets ?? {}));
+  const loginKey = toolLoginKeyOf(mcpServer);
+  if (loginKey && vaultLoginServes(vault?.spec?.connections ?? {}, mcpServer)) keys.add(loginKey);
+  return keys;
+}
+
+/**
+ * Saves collected values in My vault. For an HTTP server, the tool's login
+ * variable is saved as a login at the tool's URL (where a run's matching
+ * finds it first, and where it reaches only that URL). Every other value is
+ * saved as a secret by its name, and so is every value for a local program:
+ * its address is a discovery URL any definition may declare, so a run never
+ * fills it from a pasted login there, only from a secret by name. Shared by
+ * every surface that saves a tool's credentials.
+ */
+export async function saveToMyVault(
+  myVault: Pick<ReturnType<typeof useMyVault>, "setSecrets" | "setConnection">,
+  values: Readonly<Record<string, EnvVarInput>>,
+  mcpServer: McpServer | null,
+): Promise<void> {
+  const rest: Record<string, EnvVarInput> = { ...values };
+  const loginKey = toolLoginKeyOf(mcpServer);
+  const toolAddress = toolAddressOf(mcpServer);
+  if (loginKey && toolAddress && mcpServer?.spec?.serverType.case === "http") {
+    const login = rest[loginKey];
+    if (login !== undefined && login.value !== "") {
+      delete rest[loginKey];
+      await myVault.setConnection(toolAddress, login.value);
+    }
+  }
+  const secrets = valuesOf(rest);
+  if (Object.keys(secrets).length > 0) {
+    await myVault.setSecrets(secrets);
+  }
 }

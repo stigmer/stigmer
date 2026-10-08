@@ -1,6 +1,6 @@
 /**
  * The pool re-evaluation must settle. An agent that declares a variable the
- * personal environment lacks enters `needsEnvVars`; the session composer's
+ * My vault lacks enters `needsEnvVars`; the session composer's
  * pool always holds the system keys, so the pool-resolve effect always
  * runs. Before this test, the effect dispatched a freshly built array on
  * every run, the reducer stored it, the effect saw a new dependency and
@@ -21,9 +21,9 @@ import { Stigmer } from "@stigmer/sdk";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
-import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
-import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
+import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
+import { Code as VaultCode, ConnectError as VaultConnectError } from "@connectrpc/connect";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 import { StigmerContext } from "../../context";
@@ -48,7 +48,11 @@ function client() {
             }),
           }),
       });
-      service(EnvironmentQueryController, { list: () => create(EnvironmentListSchema, { items: [] }) });
+      service(VaultQueryController, {
+        getMine: () => {
+          throw new VaultConnectError("no My vault yet", VaultCode.NotFound);
+        },
+      });
     }),
   });
 }

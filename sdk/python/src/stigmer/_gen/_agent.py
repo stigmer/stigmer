@@ -18,10 +18,10 @@ from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
 from ai.stigmer.search.v1 import query_pb2_grpc as search_query_pb2_grpc
 from ai.stigmer.search.v1 import io_pb2 as search_io_pb2
 from ai.stigmer.commons.rpc import pagination_pb2
-from ai.stigmer.agentic.environment.v1 import spec_pb2 as environment_spec_pb2
 from ai.stigmer.agentic.mcpserver.v1 import usage_pb2 as mcpserver_usage_pb2
 from ai.stigmer.agentic.plugin.v1 import hooks_pb2 as plugin_hooks_pb2
 from ai.stigmer.agentic.run.v1 import invocation_pb2 as run_invocation_pb2
+from ai.stigmer.agentic.vault.v1 import declaration_pb2 as vault_declaration_pb2
 
 from ._errors import wrap_error
 from ._types import ListParams, ListResult, ResourceRef
@@ -142,6 +142,7 @@ class AgentInput:
     hooks: list[HookSourceInput] = field(default_factory=list)
     run_config: RunConfigInput | None = None
     harness: int = 0
+    vaults: list[ResourceRef] = field(default_factory=list)
 
     def _to_proto(self) -> api_pb2.Agent:
         spec = spec_pb2.AgentSpec(
@@ -168,6 +169,10 @@ class AgentInput:
             spec.hooks.append(item._to_proto())
         if self.run_config is not None:
             spec.run_config.CopyFrom(self.run_config._to_proto())
+        for ref in self.vaults:
+            _ref = ref._to_proto()
+            _ref.kind = 59
+            spec.vaults.append(_ref)
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -244,12 +249,14 @@ class EnvVarDeclarationInput:
     is_secret: bool = False
     description: str = ""
     optional: bool = False
+    value: str = ""
 
-    def _to_proto(self) -> environment_spec_pb2.EnvVarDeclaration:
-        msg = environment_spec_pb2.EnvVarDeclaration(
+    def _to_proto(self) -> vault_declaration_pb2.EnvVarDeclaration:
+        msg = vault_declaration_pb2.EnvVarDeclaration(
             is_secret=self.is_secret,
             description=self.description,
             optional=self.optional,
+            value=self.value,
         )
         return msg
 

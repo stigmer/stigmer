@@ -30,8 +30,6 @@ import { ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { SkillIdSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
-import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
-import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { ExecutionContextCommandController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/command_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
@@ -43,13 +41,11 @@ import type {
   SessionCreator,
 } from "../domain/run/create-steps.js";
 import type {
-  EnvironmentReader,
   ExecutionContextCreator,
   SessionLoader,
 } from "../domain/run/create-execution-context-step.js";
 import type { ExecutionContextDeleter } from "../domain/executioncontext/internal-delete.js";
 import type { ConnectExecutionContextClient } from "../domain/mcpserver/connect.js";
-import type { ManagedEnvironmentClient } from "../domain/mcpserver/oauth/managed-env.js";
 import type { PluginMaterializer } from "../domain/plugin/materialize/ports.js";
 import { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -70,21 +66,11 @@ import type { CallOptions } from "@connectrpc/connect";
 
 /** The narrow in-process surfaces the domains consume. */
 export interface InProcessClients {
-  // The agentexecution create/EC-builder edges (server.go 565–566: the
-  // controller's agent/session/environment/executioncontext
-  // in-process clients).
+  // The agentexecution create/EC-builder edges: the controller's
+  // agent/session/executioncontext in-process clients.
   readonly executionAgentLoader: AgentLoader;
   readonly executionSessionLoader: SessionLoader;
   readonly executionSessionCreator: SessionCreator;
-  /**
-   * Reads for the EC builder plus the full managed-environment lifecycle
-   * (ManagedEnvironmentClient): the secret rewrite the OAuth pre-flight
-   * refresh needs and the create/delete edges the connect/OAuth
-   * slice mints and tears managed environments with — one surface,
-   * every call through the full chain.
-   */
-  readonly executionEnvironmentReader: EnvironmentReader &
-    ManagedEnvironmentClient;
   readonly executionContextCreator: ExecutionContextCreator;
   /**
    * The server's own delete of a run's ExecutionContext — the run-end
@@ -183,11 +169,6 @@ export function createInProcessClients(
   const agentQuery = createClient(AgentQueryController, transport);
   const sessionCommand = createClient(SessionCommandController, transport);
   const sessionQuery = createClient(SessionQueryController, transport);
-  const environmentCommand = createClient(
-    EnvironmentCommandController,
-    transport,
-  );
-  const environmentQuery = createClient(EnvironmentQueryController, transport);
   const executionContextCommand = createClient(
     ExecutionContextCommandController,
     transport,
@@ -235,20 +216,6 @@ export function createInProcessClients(
     executionSessionCreator: {
       createAsCaller: (session, caller) =>
         sessionCommand.create(session, asCaller(caller)),
-    },
-    executionEnvironmentReader: {
-      getSecretValue: (input) => environmentQuery.getSecretValue(input),
-      updateVariables: (request) => environmentCommand.updateVariables(request),
-      // The managed-env create propagates the connecting user when the
-      // lane has one (the Java createAsCaller posture): ownership tuples
-      // land on the user, not the
-      // unattributable internal class.
-      create: (environment, caller) =>
-        environmentCommand.create(
-          environment,
-          caller === undefined ? undefined : asCaller(caller),
-        ),
-      delete: (input) => environmentCommand.delete(input),
     },
     executionContextCreator: {
       create: (ec) => executionContextCommand.create(ec),

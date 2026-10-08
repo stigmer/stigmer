@@ -678,7 +678,7 @@ function CardReadinessWarning({
   const readiness = useChannelToolReadiness(
     agent,
     serving,
-    channel.spec?.environmentRefs ?? [],
+    channel.spec?.vaults ?? [],
   );
 
   if (readiness.status !== "needs-credentials" && readiness.status !== "blocked") {
@@ -687,8 +687,8 @@ function CardReadinessWarning({
 
   const message =
     readiness.status === "needs-credentials"
-      ? "This agent uses tools, but no credentials are bound to this channel — workspace messages that need a tool will be refused."
-      : `Bound environment${readiness.privateEnvironments.length > 1 ? "s" : ""} ${readiness.privateEnvironments.join(", ")} ${readiness.privateEnvironments.length > 1 ? "are" : "is"} private — share ${readiness.privateEnvironments.length > 1 ? "them" : "it"} with your organization so workspace messages can use the credentials.`;
+      ? "This agent uses tools, but this channel names no vault — workspace messages that need a tool will be refused."
+      : `Vault${readiness.unusableVaults.length > 1 ? "s" : ""} ${readiness.unusableVaults.join(", ")} ${readiness.unusableVaults.length > 1 ? "are" : "is"} not a shared vault you can read — name a shared vault so workspace messages can use its keys.`;
 
   return (
     <p className="stg:mt-2 stg:text-xs stg:text-warning" role="status">

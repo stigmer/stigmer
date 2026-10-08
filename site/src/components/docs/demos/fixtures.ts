@@ -1,14 +1,26 @@
+import { create } from "@bufbuild/protobuf";
 import {
   RunPhase,
   MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import type { UseWorkspaceEntriesReturn } from "@stigmer/react";
 import { samples } from "@stigmer/react/test";
 
 export const DEMO_ORG = "demo-org";
+
+/**
+ * My vault with nothing saved yet, the answer the sign-in demos give to the
+ * console's My vault read: the views they replay offer to sign in or paste a
+ * token, and no saved value ever appears.
+ */
+export function emptyMyVault(): Vault {
+  return create(VaultSchema, {});
+}
 
 const noop = () => {};
 

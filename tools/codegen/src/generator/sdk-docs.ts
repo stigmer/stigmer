@@ -598,9 +598,6 @@ function docMethodTypeFields(mt: TypeSchema, lang: string): DocFieldEntry[] {
 
 function docGoInputTypeName(messageType: string): string {
   switch (messageType) {
-    case "EnvironmentSpec":
-      return "EnvSpecInput";
-    case "EnvironmentValue":
     case "ExecutionValue":
       return "EnvVarInput";
     case "ApiResourceReference":
@@ -1312,9 +1309,6 @@ function docOverviewSummary(desc: string): string {
 
 function docInputDisplayName(msgName: string): string {
   switch (msgName) {
-    case "EnvironmentSpec":
-      return "EnvSpecInput";
-    case "EnvironmentValue":
     case "ExecutionValue":
       return "EnvVarInput";
     case "ApiResourceReference":
@@ -1439,9 +1433,6 @@ function docTypeString(ts: TypeSpec): string {
     }
     case "message":
       switch (ts.messageType) {
-        case "EnvironmentSpec":
-          return "EnvSpecInput";
-        case "EnvironmentValue":
         case "ExecutionValue":
           return "EnvVarInput";
         case "ApiResourceReference":

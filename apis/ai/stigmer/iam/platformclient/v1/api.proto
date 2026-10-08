@@ -64,4 +64,15 @@ message PlatformClientStatus {
   // security monitoring — credentials that have not been used recently may be
   // candidates for rotation or deletion. Unset until the first mint.
   google.protobuf.Timestamp last_used_at = 1;
+
+  // Who attached each of this resource's vaults, by vault id: the account
+  // whose permission to use the vault each run checks when it has no
+  // person.
+  //
+  // @internal
+  // Server-owned. The reference rule records the writer for each vault a
+  // write introduces, keeps the entry for each vault a write keeps, and
+  // drops entries for removed vaults, so an editor's unrelated edit never
+  // re-attributes someone else's attachment.
+  map<string, string> vault_attachers = 2;
 }

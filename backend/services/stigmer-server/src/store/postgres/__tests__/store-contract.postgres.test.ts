@@ -44,7 +44,6 @@ const ALL_TABLES = [
   "bootstrap_state",
   "schedule_runs",
   "resource_names",
-  "oauth_grant",
   "pending_oauth_state",
 ] as const;
 

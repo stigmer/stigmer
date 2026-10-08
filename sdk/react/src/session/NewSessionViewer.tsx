@@ -20,7 +20,7 @@ import { useSessionPanel } from "./useSessionPanel.js";
 import { useSessionRailViews } from "./useSessionRailViews.js";
 import { SessionPanelChip } from "./SessionPanelChip.js";
 import { AutoApproveIndicator } from "./AutoApproveIndicator.js";
-import type { RuntimeEnvProvider } from "./runtime-env.js";
+import type { SessionSecretsProvider } from "./session-secrets.js";
 import type { SessionAudience, SessionPanelMode } from "./audience.js";
 import type { SessionRunConfig } from "./run-config.js";
 
@@ -72,13 +72,17 @@ export interface NewSessionViewerProps {
 
   /**
    * Supplies host-app environment variables for the session's first
-   * run (e.g. short-lived credentials for MCP tools, minted as
-   * the signed-in user). Evaluated at submit time, before the session
+   * run (e.g. a project-scoped API key for MCP tools). They become the
+   * conversation's, serving every turn whoever sends it, so never a
+   * person's own token where others can send turns. Evaluated at submit time, before the session
    * is created; host values win over composer-collected env on key
    * collisions. If the provider throws, the submission fails with an
-   * error surfaced via `onError` — see {@link RuntimeEnvProvider}.
+   * error surfaced via `onError` — see {@link SessionSecretsProvider}.
+   * The values are sealed on the conversation for its life; never
+   * evaluated for the `"guest"` audience, whose conversation carries no
+   * values of its own (the share's vaults are what its runs use).
    */
-  readonly getRuntimeEnv?: RuntimeEnvProvider;
+  readonly getSessionSecrets?: SessionSecretsProvider;
 
   /**
    * Presentation audience for the launcher. `"endUser"` locks the
@@ -250,7 +254,7 @@ export function NewSessionViewer({
   workspaceFileLister,
   workspaceFileReader,
   workspaceContentSearcher,
-  getRuntimeEnv,
+  getSessionSecrets,
   audience = "integrator",
   runConfig,
   showModelSelector = true,
@@ -273,7 +277,7 @@ export function NewSessionViewer({
     org,
     onSessionCreated,
     onError,
-    getRuntimeEnv,
+    getSessionSecrets,
     defaultHarness,
     accountDefaults,
     audience,
@@ -295,8 +299,8 @@ export function NewSessionViewer({
   const panelEnabled = panelMode !== "none" && !isGuest;
 
   // Guest agent binding is host configuration, not a picker interaction:
-  // the composer's agent machinery (picker, env-collection, personal
-  // environments — all org reads a guest token cannot make) stays fully
+  // the composer's agent machinery (picker, env-collection, vaults —
+  // all org reads a guest token cannot make) stays fully
   // unwired, and the launcher pins the flow to the shared agent's
   // reference directly. Without the pin, submission fails closed in
   // useNewSessionFlow rather than falling back to the built-in assistant.
@@ -447,9 +451,10 @@ export function NewSessionViewer({
           onAgentResolutionChange={isGuest ? undefined : flow.setResolution}
           initialAgentRef={isGuest ? undefined : initialAgentRef}
           // Every message here starts a conversation, so the keys the
-          // selected agent will read from the person's personal environment
-          // are named first. A guest has no personal environment.
+          // selected agent will read from the person's My vault are named
+          // first. A guest has no vault, and brings none.
           disclosePersonalKeys={!isGuest}
+          enableVaultPicker={!isGuest && !isCurated}
           initialAttachments={isGuest ? undefined : initialAttachments}
           lockAgent={isCurated && initialAgentRef != null}
           mcpServerUsages={isCurated ? undefined : flow.mcpServerUsages}
@@ -457,6 +462,9 @@ export function NewSessionViewer({
           skillRefs={isCurated ? undefined : flow.skillRefs}
           onSkillRefsChange={isCurated ? undefined : flow.setSkillRefs}
           sessionVariables={isCurated ? undefined : flow.sessionVariables}
+          // Submitting leaves this page, so a failed "Save in My vault"
+          // reaches the host's own error surface too.
+          onMyVaultSaveError={onError}
           showHarnessSelector={!isGuest}
           harness={flow.harness}
           onHarnessChange={flow.setHarness}

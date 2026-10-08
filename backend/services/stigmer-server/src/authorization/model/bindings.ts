@@ -30,7 +30,6 @@ import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchan
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
@@ -47,6 +46,7 @@ import { InvitationSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/a
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
+import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import { childOrg, parentOrg } from "./child-organizations.js";
@@ -87,7 +87,6 @@ export const KIND_BINDINGS: ReadonlyMap<ApiResourceKind, KindBinding> = new Map<
   [ApiResourceKind.agent_channel, { schema: AgentChannelSchema }],
   [ApiResourceKind.agent_share, { schema: AgentShareSchema }],
   [ApiResourceKind.channel_app, { schema: ChannelAppSchema }],
-  [ApiResourceKind.environment, { schema: EnvironmentSchema }],
   [ApiResourceKind.execution_context, { schema: ExecutionContextSchema }],
   [ApiResourceKind.mcp_server, { schema: McpServerSchema }],
   [ApiResourceKind.memory, { schema: MemorySchema }],
@@ -96,4 +95,5 @@ export const KIND_BINDINGS: ReadonlyMap<ApiResourceKind, KindBinding> = new Map<
   [ApiResourceKind.schedule, { schema: ScheduleSchema }],
   [ApiResourceKind.session, { schema: SessionSchema }],
   [ApiResourceKind.skill, { schema: SkillSchema }],
+  [ApiResourceKind.vault, { schema: VaultSchema }],
 ]);

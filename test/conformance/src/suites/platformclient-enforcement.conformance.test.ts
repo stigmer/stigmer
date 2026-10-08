@@ -53,7 +53,7 @@ import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import { expectGrpcCode } from "../contract/errors";
 import { FixtureTracker } from "../harness/fixtures";
-import { makeEnvironment } from "../support/environments";
+import { makeSession } from "../support/sessions";
 import { uniqueName } from "../support/naming";
 import {
   createPlatformClient,
@@ -273,18 +273,18 @@ describe.skipIf(!enforcementServed)(
       const userId = uniqueName("enforcement-user");
 
       // The same end user writes once through each client (a member may
-      // create an Environment), and reads each row back as its creator.
+      // start a conversation), and reads each row back as its creator.
       const createdThrough = async (client: ProvisionedPlatformClient) => {
         const asUser = lane.clientsPresenting(
           await mintUserToken(lane.clients, client.credentials, userId),
         );
-        const created = await asUser.environmentCommand.create(
-          makeEnvironment({ org: context.org, name: uniqueName("enforcement-env") }),
+        const created = await asUser.sessionCommand.create(
+          makeSession({ org: context.org, name: uniqueName("enforcement-session") }),
         );
         fixtures.defer(() =>
-          asUser.environmentCommand.delete({ resourceId: created.metadata!.id }),
+          asUser.sessionCommand.delete({ value: created.metadata!.id }),
         );
-        const read = await asUser.environmentQuery.get({
+        const read = await asUser.sessionQuery.get({
           value: created.metadata!.id,
         });
         return read.status?.audit?.specAudit?.createdBy;

@@ -43,7 +43,7 @@ export async function executeResolvedAgent(input: ResolvedAgentExecInput): Promi
     agentRef: agentRefOf(input.agent),
     orgId: org,
     message: prepared.message,
-    runtimeEnv: prepared.runtimeEnv,
+    sessionSecrets: prepared.sessionSecrets,
     attachments: prepared.attachments,
     workspaceFileRefs: prepared.workspaceFileRefs,
     workspaceEntries: prepared.workspaceEntries,

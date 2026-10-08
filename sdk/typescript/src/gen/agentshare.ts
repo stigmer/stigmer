@@ -113,7 +113,7 @@ export interface AgentShareInput {
   audience?: AgentShareAudience;
   allowedOrigins?: string[];
   messages?: AgentShareMessagesInput;
-  environmentRefs?: ResourceRef[];
+  vaults?: ResourceRef[];
   runConfig?: RunConfigInput;
 }
 
@@ -156,7 +156,7 @@ function buildRunConfigProto(input: RunConfigInput) {
 export function buildAgentShareProto(input: AgentShareInput): AgentShare {
   const agentRef = (input.agentRef?.slug || input.agentRef?.org) ? create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 }) : undefined;
   const messages = input.messages ? buildAgentShareMessagesProto(input.messages) : undefined;
-  const environmentRefs = input.environmentRefs?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 53 }));
+  const vaults = input.vaults?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 59 }));
   const runConfig = input.runConfig ? buildRunConfigProto(input.runConfig) : undefined;
   return Object.assign(create(AgentShareSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
@@ -175,7 +175,7 @@ export function buildAgentShareProto(input: AgentShareInput): AgentShare {
       audience: input.audience,
       allowedOrigins: input.allowedOrigins,
       messages,
-      environmentRefs,
+      vaults,
       runConfig,
     })),
   }) as AgentShare;
@@ -230,7 +230,7 @@ export function toAgentShareUpdateInput(resource: AgentShare): AgentShareInput {
     audience: spec.audience || undefined,
     allowedOrigins: spec.allowedOrigins?.length ? [...spec.allowedOrigins] : undefined,
     messages: spec.messages ? toAgentShareMessagesInput(spec.messages) : undefined,
-    environmentRefs: toResourceRefInputs(spec.environmentRefs),
+    vaults: toResourceRefInputs(spec.vaults),
     runConfig: spec.runConfig ? toRunConfigInput(spec.runConfig) : undefined,
   };
 }

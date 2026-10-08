@@ -34,8 +34,9 @@ secret, and endpoint URLs for a specific vendor.
 ## How Stigmer picks the OAuth app
 
 For vendor OAuth servers, Stigmer evaluates a resolution chain to determine
-which OAuthApp credentials to use. This chain runs at two points: when you first
-connect, and on every token refresh.
+which OAuthApp credentials to use. This chain runs when you connect, and on
+every token refresh, where it decides only whether the app's client secret is
+sent (see [Automatic refresh](#automatic-refresh)).
 
 ```mermaid
 flowchart TD
@@ -67,8 +68,8 @@ The resolution chain has three levels, from highest to lowest priority:
 
 This chain is evaluated fresh every time — at connect, on token refresh, and
 when the frontend queries the OAuth status. This is why removing a BYOA override
-takes effect immediately: the next resolution returns the platform default
-instead of the Organization's app.
+takes effect immediately for new sign-ins: the next resolution returns the
+platform default instead of the Organization's app.
 
 <Callout type="info">
   **Self-hosted deployments** have no override level: the `oauth_app_ref` on the
@@ -82,58 +83,36 @@ instead of the Organization's app.
 
 ## Where credentials live
 
-OAuth tokens are split across two storage layers with a deliberate security
-boundary between them.
+A sign-in is saved as a **connection** in a [vault](/docs/concepts/vaults): by
+default the vault of the person who signed in, or a shared vault they may edit
+when they choose one. The connection is saved at the MCP server's address, and
+its sign-in record names the server that signed in: that login fills only that
+server, even when another server's definition declares the same address. Two
+servers on one host under different paths keep separate ones.
 
-```mermaid
-flowchart LR
-    subgraph grantLayer ["OAuthGrant — metadata"]
-        expiry["Token expiry"]
-        clientId["Client ID"]
-        tokenEndpoint["Token endpoint URL"]
-        envId["Managed Environment ID"]
-    end
+A connection holds:
 
-    subgraph envLayer ["Managed Environment — secrets"]
-        accessToken["Access token"]
-        refreshToken["Refresh token"]
-    end
+- **The access token**, sealed at rest. A run fills the server's login variable
+  (`auth.target_env_var`) from it.
+- **The sign-in record**: when the token expires, the client ID, the token
+  endpoint and how the sign-in was performed, with the **refresh token** sealed
+  beside them. The refresh token never reaches a run.
 
-    envId -->|"points to"| envLayer
-```
+No read returns either token. Because each person's sign-in lives in their own
+vault, a teammate's chat never uses yours, and each person signs in once for
+themselves.
 
-**OAuthGrant** stores non-secret metadata: when the token expires, which client
-ID was used, where to send refresh requests, and which Managed Environment holds
-the actual tokens. The grant is keyed by three values: the user, the MCP server,
-and the Organization. This composite key means the same user can maintain
-separate OAuth connections for the same MCP server across different
-Organizations.
+### Where a run's values come from
 
-**Managed Environment** stores the secrets: the access token and, if the vendor
-issues one, a refresh token. The Environment is encrypted at rest and labeled as
-system-managed to prevent user mutation. Each grant has exactly one Managed
-Environment — deleting the grant deletes the Environment.
-
-**Why the split?** The backend checks token expiry before every run. This
-pre-flight check reads the grant's expiry timestamp — a non-secret value —
-without accessing the encrypted secret store. The backend only touches the
-Managed Environment when it needs to refresh or use the actual token. This
-separation is a security boundary: the pre-flight path has no access to secrets.
-
-### Environment priority at run time
-
-When an Agent runs, Environment variables are resolved from several sources. A
-source further down fills only the keys the earlier ones left empty:
-
-| Order | Source                        | What it provides                                                                        |
-| ----- | ----------------------------- | --------------------------------------------------------------------------------------- |
-| 1     | **The run's Environments**    | Values bound to the Schedule or PlatformClient that started the run, and per-run values |
-| 2     | **OAuth Managed Environment** | Access tokens acquired through OAuth connect flows                                      |
-| 3     | **Personal Environment**      | API keys and credentials the person sending the message entered                         |
-
-If you set up OAuth for a server and also enter an API key for the same variable
-in your personal Environment, the OAuth token is the one the run uses. A value
-bound to the Schedule that started the run comes before both.
+When an Agent runs, each key is looked for in the conversation's own values,
+then the vaults the conversation lists, then (for a person's chat that lists
+none) that person's own vault and the shared vaults attached to the Agent. A
+server's login variable is filled by a connection made for that server first
+(its own sign-in, or for an HTTP server a login pasted at its URL), then by a
+secret with the same name, so if you sign in to a server and also save an API
+key under its variable, the sign-in is the one the run uses.
+[Vaults](/docs/concepts/vaults#which-vaults-a-run-uses) explains the order in
+full.
 
 ## How tokens stay fresh
 
@@ -171,8 +150,8 @@ When you click **Sign in to connect**, the backend performs three steps:
 2. **Authorize** — You approve the request in the vendor's authorization page.
    The vendor redirects back with an authorization code.
 3. **Complete** — The backend exchanges the code for tokens using the PKCE
-   verifier, stores them in a new Managed Environment, and creates an OAuthGrant
-   with the expiry metadata.
+   verifier and saves them as a connection at the server's address in your
+   vault, with the expiry metadata on its sign-in record.
 
 After this, the standard connect flow runs — discovering tools and which of them
 the server marks destructive, the same process described in
@@ -180,23 +159,31 @@ the server marks destructive, the same process described in
 
 ### Pre-flight check
 
-Before every run, the backend reads the OAuthGrant and checks the token expiry
-timestamp. If the token is still valid, the run proceeds normally. If the token
-has expired, the backend attempts an automatic refresh before the run starts.
+Before every run, the backend reads the connection's sign-in record and checks
+the token expiry timestamp. If the token is still valid, the run proceeds
+normally. If the token has expired, the backend attempts an automatic refresh
+before the run starts.
 
 ### Automatic refresh
 
 When the access token has expired and a refresh token is available, the backend
-sends a refresh request to the token endpoint recorded on the grant. It uses the
-client credentials from the currently resolved OAuthApp — not necessarily the
-OAuthApp that was active when the grant was originally created.
+sends a refresh request to the token endpoint recorded on the connection's
+sign-in, with the client ID recorded there: a renewal always goes to the client
+the sign-in was made with. The client secret comes from the OAuthApp the chain
+resolves now, read fresh so an admin's fix to that app applies at once, and is
+sent only when that app's client ID and token URL are the ones the sign-in
+recorded.
 
-This distinction matters for BYOA: if you switch from an Organization override
-to the platform default between refreshes, the next refresh request uses the
-platform's client credentials.
+This distinction matters for BYOA: if the server's OAuth app changes between
+refreshes, for example from an Organization override to the platform default,
+the resolved app no longer matches the sign-in, so its secret is never sent to
+an endpoint it was not issued for. The refresh goes out without a secret, which
+a vendor that requires one refuses, and the person signs in again. A DCR or
+public client always refreshes without a secret.
 
-If the refresh succeeds, the backend writes the new tokens to the same Managed
-Environment and updates the grant's expiry timestamp.
+If the refresh succeeds, the backend writes the new tokens and expiry to the
+same connection. A refresh and a key you save at the same moment never undo each
+other.
 
 ### When refresh fails
 
@@ -207,7 +194,7 @@ the MCP server's connect page with a single click.
 
 ### Connection health
 
-The backend evaluates four health states from the grant metadata:
+The backend evaluates four health states from the connection's sign-in record:
 
 | State                    | Meaning                                             | What happens                                   |
 | ------------------------ | --------------------------------------------------- | ---------------------------------------------- |
@@ -228,15 +215,17 @@ three architectural layers:
 - **Resolution** — The chain returns the Organization's OAuthApp instead of the
   platform default. The connect flow, token refresh, and status queries all use
   the Organization's client credentials.
-- **Storage** — New grants store the Organization's client ID and the
-  Organization OAuthApp's token endpoint. Existing grants from before the
+- **Storage** — New sign-ins record the Organization's client ID and the
+  Organization OAuthApp's token endpoint. Existing sign-ins from before the
   override are unaffected — they still reference the original client
   credentials.
-- **Lifecycle** — Token refreshes resolve the OAuthApp fresh each time. After a
-  BYOA change, the next refresh uses the new credentials automatically.
+- **Lifecycle** — Token refreshes keep each sign-in's own client ID and token
+  endpoint, and send the resolved app's secret only while that app is the one
+  the sign-in was made with. A BYOA change does not move existing sign-ins to
+  the new credentials: people sign in again to use them.
 
-This is also why removing a BYOA override breaks existing grants: those grants
-were issued with the Organization's client ID. When the override is removed, the
-next refresh uses the platform's client ID — and the vendor rejects it because
-the refresh token was issued to a different client. Each affected user sees a
+This is also why adding or removing a BYOA override breaks existing sign-ins:
+those were issued to the previous app's client. After the change, the resolved
+app no longer matches the sign-in, so the next refresh goes out without a client
+secret, and a vendor that requires one rejects it. Each affected user sees a
 **Re-auth needed** state and reconnects with a single click.

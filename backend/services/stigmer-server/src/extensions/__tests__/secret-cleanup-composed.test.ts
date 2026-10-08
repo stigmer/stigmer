@@ -4,14 +4,14 @@
  * codec (write version v9, so every sealed value has recordable backing
  * state) proves, through real gRPC calls, that:
  *
- *   - the three delete chains (environment, oauthapp, channelapp)
- *     destroy exactly the doomed resource's sealed values;
- *   - the environment update chain destroys ONLY dropped keys — a
- *     rotated key keeps its backing state (superseded versions age out
- *     via the store's retention, the Java posture), and marker-preserved
- *     keys are untouched;
- *   - removeVariables destroys the removed keys and ignores unknowns;
- *     the updateVariables merge lane destroys nothing;
+ *   - the three delete chains (vault, oauthapp, channelapp) destroy
+ *     exactly the doomed resource's sealed values;
+ *   - the vault's entry removals destroy the removed entries and ignore
+ *     unknown ones, while a replaced secret or login keeps its backing
+ *     state (a codec keyed by entry keeps the replacement in the same
+ *     place; superseded versions age out under its retention);
+ *   - the session update chain destroys ONLY the session's own values it
+ *     drops: a replaced value and a marker-preserved one are untouched;
  *   - a destroy failure NEVER fails the request (best-effort after the
  *     store write);
  *   - the composed facade rides ComposedServer.secrets
@@ -40,8 +40,10 @@ import {
 
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
-import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
+import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
+import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
+import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/command_pb";
@@ -94,7 +96,8 @@ const codec = new RecordingCodec();
 
 let server: ComposedServer;
 let dir: string;
-let envCommand: Client<typeof EnvironmentCommandController>;
+let vaultCommand: Client<typeof VaultCommandController>;
+let sessionCommand: Client<typeof SessionCommandController>;
 let oauthCommand: Client<typeof OAuthAppCommandController>;
 let channelCommand: Client<typeof ChannelAppCommandController>;
 
@@ -129,7 +132,8 @@ beforeAll(async () => {
     baseUrl: `http://127.0.0.1:${port}`,
   });
   await seedOrganizations(transport, [ORG]);
-  envCommand = createClient(EnvironmentCommandController, transport);
+  vaultCommand = createClient(VaultCommandController, transport);
+  sessionCommand = createClient(SessionCommandController, transport);
   oauthCommand = createClient(OAuthAppCommandController, transport);
   channelCommand = createClient(ChannelAppCommandController, transport);
 });
@@ -146,57 +150,74 @@ beforeEach(() => {
 });
 
 let counter = 0;
-function envInput(
-  data: Record<string, { value: string; isSecret: boolean }>,
-  name?: string,
-) {
+
+/** A shared vault holding the given secrets, and its id. */
+async function vaultWith(secrets: Record<string, string>): Promise<string> {
   counter += 1;
-  return {
+  const created = await vaultCommand.create({
     apiVersion: "agentic.stigmer.ai/v1",
-    kind: "Environment",
-    metadata: { name: name ?? `Cleanup Env ${counter}`, org: ORG },
-    spec: { description: "secret-cleanup composed pin", data },
-  };
+    kind: "Vault",
+    metadata: { name: `Cleanup Vault ${counter}`, org: ORG },
+    spec: { description: "secret-cleanup composed pin" },
+  });
+  const id = created.metadata!.id;
+  if (Object.keys(secrets).length > 0) {
+    await vaultCommand.setSecrets({
+      vault: { org: ORG, vault: { case: "id", value: id } },
+      secrets: Object.fromEntries(
+        Object.entries(secrets).map(([name, value]) => [
+          name,
+          { value, description: "" },
+        ]),
+      ),
+    });
+  }
+  return id;
 }
 
-async function storedEnvData(id: string): Promise<Record<string, string>> {
-  const env = await server.store.getResource(
-    ApiResourceKind.environment,
+async function storedVaultSecrets(id: string): Promise<Record<string, string>> {
+  const vault = await server.store.getResource(
+    ApiResourceKind.vault,
     id,
-    EnvironmentSchema,
+    VaultSchema,
   );
   return Object.fromEntries(
-    Object.entries(env.spec?.data ?? {}).map(([k, v]) => [k, v.value]),
+    Object.entries(vault.spec?.secrets ?? {}).map(([k, v]) => [k, v.value]),
   );
 }
 
 describe("the composed facade exposure", () => {
   it("ComposedServer.secrets is the instance the domains sealed with", async () => {
-    const created = await envCommand.create(
-      envInput({ TOKEN: { value: "open-sesame", isSecret: true } }),
-    );
-    const stored = await storedEnvData(created.metadata!.id);
+    const id = await vaultWith({ TOKEN: "open-sesame" });
+    const stored = await storedVaultSecrets(id);
     expect(stored["TOKEN"]).toMatch(/^enc:v9:/);
     expect(await server.secrets.decrypt(stored["TOKEN"]!)).toBe("open-sesame");
   });
 });
 
 describe("delete chains destroy sealed backing state", () => {
-  it("environment delete destroys every sealed value, never the plain ones", async () => {
-    const created = await envCommand.create(
-      envInput({
-        FIRST: { value: "secret-one", isSecret: true },
-        SECOND: { value: "secret-two", isSecret: true },
-        PLAIN: { value: "visible", isSecret: false },
-      }),
+  it("vault delete destroys every sealed value, secrets and logins alike", async () => {
+    const id = await vaultWith({ FIRST: "secret-one", SECOND: "secret-two" });
+    await vaultCommand.setConnection({
+      vault: { org: ORG, vault: { case: "id", value: id } },
+      address: "https://mcp.example.com/mcp",
+      token: "login-token",
+      description: "",
+    });
+    const vault = await server.store.getResource(
+      ApiResourceKind.vault,
+      id,
+      VaultSchema,
     );
-    const stored = await storedEnvData(created.metadata!.id);
+    const sealed = [
+      vault.spec!.secrets["FIRST"]!.value,
+      vault.spec!.secrets["SECOND"]!.value,
+      vault.spec!.connections["https://mcp.example.com/mcp"]!.token,
+    ];
 
-    await envCommand.delete({ resourceId: created.metadata!.id });
+    await vaultCommand.delete({ resourceId: id });
 
-    expect([...codec.deleted].sort()).toEqual(
-      [stored["FIRST"]!, stored["SECOND"]!].sort(),
-    );
+    expect([...codec.deleted].sort()).toEqual([...sealed].sort());
   });
 
   it("oauthapp delete destroys the sealed client secret", async () => {
@@ -263,96 +284,132 @@ describe("delete chains destroy sealed backing state", () => {
   });
 
   it("a destroy failure never fails the delete (best-effort after the row is gone)", async () => {
-    const created = await envCommand.create(
-      envInput({ DOOMED: { value: "secret", isSecret: true } }),
-    );
+    const id = await vaultWith({ DOOMED: "secret" });
     codec.failNext.push(new Error("vault is down"));
 
-    await expect(
-      envCommand.delete({ resourceId: created.metadata!.id }),
-    ).resolves.toBeDefined();
+    await expect(vaultCommand.delete({ resourceId: id })).resolves.toBeDefined();
 
     await expect(
-      server.store.getResource(
-        ApiResourceKind.environment,
-        created.metadata!.id,
-        EnvironmentSchema,
-      ),
+      server.store.getResource(ApiResourceKind.vault, id, VaultSchema),
     ).rejects.toBeInstanceOf(ResourceNotFoundError);
     expect(codec.deleted).toEqual([]);
   });
 });
 
-describe("environment update and variable lanes", () => {
-  it("update destroys ONLY dropped keys; marker-preserved keys are untouched", async () => {
-    const name = `Cleanup Env Drop ${++counter}`;
-    const created = await envCommand.create(
-      envInput(
-        {
-          DROPPED: { value: "goes-away", isSecret: true },
-          KEPT: { value: "stays", isSecret: true },
-        },
-        name,
-      ),
-    );
-    const before = await storedEnvData(created.metadata!.id);
+describe("vault entry writes", () => {
+  it("removeSecrets destroys the removed secrets, ignoring unknown names", async () => {
+    const id = await vaultWith({ REMOVED: "goes-away", SURVIVOR: "stays" });
+    const before = await storedVaultSecrets(id);
 
-    await envCommand.update(
-      envInput({ KEPT: { value: REDACTED_MARKER, isSecret: true } }, name),
-    );
-
-    expect(codec.deleted).toEqual([before["DROPPED"]!]);
-    const after = await storedEnvData(created.metadata!.id);
-    expect(after["KEPT"]).toBe(before["KEPT"]);
-    expect(after["DROPPED"]).toBeUndefined();
-  });
-
-  it("a rotated key is NOT a drop — its old backing state survives", async () => {
-    const name = `Cleanup Env Rotate ${++counter}`;
-    const created = await envCommand.create(
-      envInput({ KEY: { value: "old-secret", isSecret: true } }, name),
-    );
-
-    await envCommand.update(
-      envInput({ KEY: { value: "new-secret", isSecret: true } }, name),
-    );
-
-    expect(codec.deleted).toEqual([]);
-    const after = await storedEnvData(created.metadata!.id);
-    expect(await server.secrets.decrypt(after["KEY"]!)).toBe("new-secret");
-  });
-
-  it("removeVariables destroys the removed keys, ignoring unknown keys", async () => {
-    const created = await envCommand.create(
-      envInput({
-        REMOVED: { value: "goes-away", isSecret: true },
-        SURVIVOR: { value: "stays", isSecret: true },
-      }),
-    );
-    const before = await storedEnvData(created.metadata!.id);
-
-    await envCommand.removeVariables({
-      environmentId: created.metadata!.id,
-      keys: ["REMOVED", "GHOST"],
+    await vaultCommand.removeSecrets({
+      vault: { org: ORG, vault: { case: "id", value: id } },
+      names: ["REMOVED", "GHOST"],
     });
 
     expect(codec.deleted).toEqual([before["REMOVED"]!]);
-    const after = await storedEnvData(created.metadata!.id);
+    const after = await storedVaultSecrets(id);
     expect(after["SURVIVOR"]).toBe(before["SURVIVOR"]);
+    expect(after["REMOVED"]).toBeUndefined();
   });
 
-  it("the updateVariables merge lane destroys nothing (an overwrite keeps its path)", async () => {
-    const created = await envCommand.create(
-      envInput({ KEY: { value: "old-secret", isSecret: true } }),
-    );
+  it("a replaced secret keeps its backing state", async () => {
+    const id = await vaultWith({ KEY: "old-secret" });
 
-    await envCommand.updateVariables({
-      environmentId: created.metadata!.id,
-      variables: { KEY: { value: "rotated", isSecret: true } },
+    await vaultCommand.setSecrets({
+      vault: { org: ORG, vault: { case: "id", value: id } },
+      secrets: { KEY: { value: "rotated", description: "" } },
     });
 
     expect(codec.deleted).toEqual([]);
-    const after = await storedEnvData(created.metadata!.id);
+    const after = await storedVaultSecrets(id);
     expect(await server.secrets.decrypt(after["KEY"]!)).toBe("rotated");
+  });
+
+  it("removeConnections destroys the removed login's token", async () => {
+    const id = await vaultWith({});
+    const target = { org: ORG, vault: { case: "id" as const, value: id } };
+    await vaultCommand.setConnection({
+      vault: target,
+      address: "https://mcp.example.com/mcp",
+      token: "login-token",
+      description: "",
+    });
+    const vault = await server.store.getResource(
+      ApiResourceKind.vault,
+      id,
+      VaultSchema,
+    );
+    const sealed = vault.spec!.connections["https://mcp.example.com/mcp"]!.token;
+
+    await vaultCommand.removeConnections({
+      vault: target,
+      addresses: ["https://MCP.example.com/mcp/"],
+    });
+
+    expect(codec.deleted).toEqual([sealed]);
+  });
+});
+
+describe("a session's own values", () => {
+  it("an update destroys ONLY the values it drops: replaced and marker-preserved ones are untouched", async () => {
+    counter += 1;
+    const created = await sessionCommand.create({
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "Session",
+      metadata: { name: `Cleanup Session ${counter}`, org: ORG },
+      spec: {
+        secrets: { DROPPED: "goes-away", KEPT: "stays", ROTATED: "old" },
+      },
+    });
+    const id = created.metadata!.id;
+    const stored = await server.store.getResource(
+      ApiResourceKind.session,
+      id,
+      SessionSchema,
+    );
+    const before = stored.spec!.secrets;
+    expect(before["KEPT"]).toMatch(/^enc:v9:/);
+
+    await sessionCommand.update({
+      ...created,
+      spec: {
+        ...created.spec!,
+        secrets: { KEPT: REDACTED_MARKER, ROTATED: "new" },
+      },
+    });
+
+    expect(codec.deleted).toEqual([before["DROPPED"]!]);
+    const after = await server.store.getResource(
+      ApiResourceKind.session,
+      id,
+      SessionSchema,
+    );
+    expect(after.spec!.secrets["KEPT"]).toBe(before["KEPT"]);
+    expect(await server.secrets.decrypt(after.spec!.secrets["ROTATED"]!)).toBe(
+      "new",
+    );
+  });
+
+  it("a session delete destroys every value it held", async () => {
+    counter += 1;
+    const created = await sessionCommand.create({
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "Session",
+      metadata: { name: `Cleanup Session ${counter}`, org: ORG },
+      spec: { secrets: { ONE: "first" }, connections: { "github.com": "tok" } },
+    });
+    const stored = await server.store.getResource(
+      ApiResourceKind.session,
+      created.metadata!.id,
+      SessionSchema,
+    );
+    const sealed = [
+      stored.spec!.secrets["ONE"]!,
+      stored.spec!.connections["github.com"]!,
+    ];
+
+    await sessionCommand.delete({ value: created.metadata!.id });
+
+    expect([...codec.deleted].sort()).toEqual([...sealed].sort());
   });
 });

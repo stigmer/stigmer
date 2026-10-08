@@ -18,13 +18,11 @@ class IamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     can_create_session: _ClassVar[IamPermission]
     can_create_skill: _ClassVar[IamPermission]
     can_create_idp: _ClassVar[IamPermission]
-    can_create_environment: _ClassVar[IamPermission]
     can_create_identity_account: _ClassVar[IamPermission]
     can_create_oauth_app: _ClassVar[IamPermission]
     can_create_platform_client: _ClassVar[IamPermission]
     can_create_run_in: _ClassVar[IamPermission]
     can_execute: _ClassVar[IamPermission]
-    can_read_secrets: _ClassVar[IamPermission]
     can_bootstrap_iam: _ClassVar[IamPermission]
     can_connect: _ClassVar[IamPermission]
     can_view_billing: _ClassVar[IamPermission]
@@ -45,6 +43,9 @@ class IamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     can_manage_credits: _ClassVar[IamPermission]
     can_manage_child_orgs: _ClassVar[IamPermission]
     can_view_settings: _ClassVar[IamPermission]
+    can_create_vault: _ClassVar[IamPermission]
+    can_create_shared_vault: _ClassVar[IamPermission]
+    can_use: _ClassVar[IamPermission]
 
 class IamRole(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -55,6 +56,7 @@ class IamRole(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     viewer: _ClassVar[IamRole]
     participant: _ClassVar[IamRole]
     editor: _ClassVar[IamRole]
+    user: _ClassVar[IamRole]
 unspecified: IamPermission
 can_view: IamPermission
 can_edit: IamPermission
@@ -67,13 +69,11 @@ can_create_agent: IamPermission
 can_create_session: IamPermission
 can_create_skill: IamPermission
 can_create_idp: IamPermission
-can_create_environment: IamPermission
 can_create_identity_account: IamPermission
 can_create_oauth_app: IamPermission
 can_create_platform_client: IamPermission
 can_create_run_in: IamPermission
 can_execute: IamPermission
-can_read_secrets: IamPermission
 can_bootstrap_iam: IamPermission
 can_connect: IamPermission
 can_view_billing: IamPermission
@@ -94,6 +94,9 @@ can_create_team: IamPermission
 can_manage_credits: IamPermission
 can_manage_child_orgs: IamPermission
 can_view_settings: IamPermission
+can_create_vault: IamPermission
+can_create_shared_vault: IamPermission
+can_use: IamPermission
 iam_role_unspecified: IamRole
 owner: IamRole
 admin: IamRole
@@ -101,3 +104,4 @@ member: IamRole
 viewer: IamRole
 participant: IamRole
 editor: IamRole
+user: IamRole

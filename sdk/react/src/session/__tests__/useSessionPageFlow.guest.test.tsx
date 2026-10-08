@@ -120,6 +120,25 @@ describe("useSessionPageFlow — guest audience", () => {
     expect(mockSendFollowUp.mock.calls[0][1].agentRef).toBeUndefined();
   });
 
+  it("sends no secrets and never asks the host for them", async () => {
+    // Secrets are written to the conversation, which a share-link guest
+    // may not do; the share's vaults are what a guest's runs use.
+    const getSessionSecrets = vi.fn().mockResolvedValue({ PLATFORM_TOKEN: "t" });
+    const { result } = renderHook(() =>
+      useSessionPageFlow({ ...OPTS, audience: "guest", getSessionSecrets }),
+    );
+
+    await act(async () => {
+      await result.current.handleSubmit("follow up", undefined, {
+        secrets: { USER_VAR: "typed" },
+      });
+    });
+
+    expect(getSessionSecrets).not.toHaveBeenCalled();
+    expect(mockSendFollowUp).toHaveBeenCalledTimes(1);
+    expect(mockSendFollowUp.mock.calls[0][1].secrets).toBeUndefined();
+  });
+
   it("disables model persistence — a Console-stored model must not leak in", () => {
     renderHook(() => useSessionPageFlow({ ...OPTS, audience: "guest" }));
 

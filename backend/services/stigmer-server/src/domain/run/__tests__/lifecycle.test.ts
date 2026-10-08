@@ -79,7 +79,6 @@ import type { RunStatusTransition } from "../../../extensions/status-hooks.js";
 import { KeyedSerializer } from "../../../pipeline/keyed-serializer.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
-import type { ManagedEnvironmentService } from "../../mcpserver/oauth/managed-env.js";
 
 import {
   ensureApprovalRequests,
@@ -443,17 +442,6 @@ function stubBuilderDeps(overrides?: {
           status: { agentId: "agt_lc" },
         }),
     }),
-    environmentReader: () => ({
-      getSecretValue: async () => {
-        throw new Error("no secrets in this test");
-      },
-    }),
-    environmentResolution: {
-      resolveByReference: async () => {
-        throw new Error("no environment refs in this test");
-      },
-      // Only resolveByReference is consumed by the builder.
-    } as unknown as ExecutionContextBuilderDeps["environmentResolution"],
     executionContextCreator: () => ({
       create: async (ec) => {
         overrides?.onEcCreate?.(ec);
@@ -465,16 +453,10 @@ function stubBuilderDeps(overrides?: {
         overrides?.onEcDelete?.(contextId);
       },
     }),
-    managedEnvService: {
-      readSecretValue: async () => "",
-      updateSecrets: async () => {},
-    } as unknown as ManagedEnvironmentService,
-    // No execution here was created by a minted user, so the minting
-    // client's layer answers from the audit without reading a client.
-    platformClients: {
-      findById: async () => {
-        throw new Error("no minting client in this test");
-      },
+    // Nothing here needs a login or a secret: the resolver answers empty.
+    vaultResolver: {
+      resolveForRun: async () => new Map(),
+      resolveForConnect: async () => new Map(),
     },
   };
 }

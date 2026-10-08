@@ -3,11 +3,11 @@
  * pkg/domain/executioncontext/controller/ (the write-boundary ciphertext
  * guard, the encrypt-at-rest step, and the execution_id loader).
  *
- * The ordering contract these steps embody (oss#535, the EC flavor of the
- * environment domain's "sentinels → encrypt" doc):
+ * The ordering contract these steps embody (oss#535, the
+ * "sentinels → encrypt" order every secret kind keeps):
  *   1. RejectCiphertextShapedValues runs BEFORE EncryptSecretValues.
  *      ExecutionContext is create-only with NO redaction round-trip
- *      (unlike Environment, whose PreserveRedactedSecrets restores
+ *      (unlike a session's own values, whose PreserveSessionValues restores
  *      ***REDACTED*** markers on update), so this guard is the WHOLE
  *      write boundary: every legitimate creator — the run builder,
  *      the MCP connect handler, an SDK caller — supplies
@@ -84,12 +84,10 @@ export function newRejectCiphertextShapedStep(): PipelineStep<
 
 /**
  * EncryptSecretValues — Go encryptSecretValuesStep: encrypts every
- * non-empty is_secret value in spec.data before persistence — the EC twin
- * of the environment domain's step of the same name, closing the at-rest
- * half of oss#535 (the merged EC — decrypted environment secrets,
- * runtime_env overrides, injected OAuth tokens — rested plaintext for
- * each run's duration, the same backup-exposure class oss#405 closed for
- * environments).
+ * non-empty is_secret value in spec.data before persistence, closing the
+ * at-rest half of oss#535 (the resolved context — vault secrets, a
+ * session's own values, sign-in tokens — rested plaintext for each run's
+ * duration, the backup-exposure class oss#405 closed for stored secrets).
  *
  * Runs after RejectCiphertextShapedValues, so every secret value reaching
  * it is client plaintext; encrypt's idempotent pass-through is therefore

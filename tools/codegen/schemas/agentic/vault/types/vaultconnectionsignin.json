@@ -1,0 +1,78 @@
+{
+  "name": "VaultConnectionSignIn",
+  "description": "VaultConnectionSignIn records the sign-in behind a connection, so the\n platform can renew its token.",
+  "protoType": "ai.stigmer.agentic.vault.v1.VaultConnectionSignIn",
+  "protoFile": "apis/ai/stigmer/agentic/vault/v1/spec.proto",
+  "fields": [
+    {
+      "name": "ExpiresAt",
+      "jsonName": "expiresAt",
+      "protoField": "expires_at",
+      "type": {
+        "kind": "int64"
+      },
+      "description": "When the access token expires, in Unix seconds. Zero means it does not\n expire.",
+      "required": false
+    },
+    {
+      "name": "ClientId",
+      "jsonName": "clientId",
+      "protoField": "client_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The OAuth client the sign-in used.",
+      "required": false
+    },
+    {
+      "name": "AuthMethod",
+      "jsonName": "authMethod",
+      "protoField": "auth_method",
+      "type": {
+        "kind": "string"
+      },
+      "description": "How the sign-in was performed: \"mcp_oauth\" or \"vendor_oauth\".",
+      "required": false
+    },
+    {
+      "name": "TokenEndpoint",
+      "jsonName": "tokenEndpoint",
+      "protoField": "token_endpoint",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The token endpoint renewals are sent to.",
+      "required": false
+    },
+    {
+      "name": "RefreshToken",
+      "jsonName": "refreshToken",
+      "protoField": "refresh_token",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The refresh token. Never returned, and never delivered to a run.",
+      "required": false
+    },
+    {
+      "name": "McpServerId",
+      "jsonName": "mcpServerId",
+      "protoField": "mcp_server_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The MCP server the sign-in was started from, by id. The sign-in fills\n that server's login only.",
+      "required": false
+    },
+    {
+      "name": "LocalProgram",
+      "jsonName": "localProgram",
+      "protoField": "local_program",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether the MCP server was a local program (stdio) when the sign-in\n completed; false for an HTTP server. The sign-in fills that server's\n login only while it is still the same kind: a server switched between\n an HTTP server and a local program needs a new sign-in. Set by the\n server.",
+      "required": false
+    }
+  ]
+}

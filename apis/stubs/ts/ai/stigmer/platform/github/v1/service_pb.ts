@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/platform/github/v1/service.proto.
  */
 export const file_ai_stigmer_platform_github_v1_service: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL3BsYXRmb3JtL2dpdGh1Yi92MS9zZXJ2aWNlLnByb3RvEh1haS5zdGlnbWVyLnBsYXRmb3JtLmdpdGh1Yi52MSI8ChtHZXRPQXV0aEF1dGhvcml6ZVVybFJlcXVlc3QSHQoMcmVkaXJlY3RfdXJpGAEgASgJQge6SARyAhABIkQKHEdldE9BdXRoQXV0aG9yaXplVXJsUmVzcG9uc2USFQoNYXV0aG9yaXplX3VybBgBIAEoCRINCgVzdGF0ZRgCIAEoCSJoChhFeGNoYW5nZU9BdXRoQ29kZVJlcXVlc3QSFQoEY29kZRgBIAEoCUIHukgEcgIQARIWCgVzdGF0ZRgCIAEoCUIHukgEcgIQARIdCgxyZWRpcmVjdF91cmkYAyABKAlCB7pIBHICEAEiVAoZRXhjaGFuZ2VPQXV0aENvZGVSZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSEgoKdG9rZW5fdHlwZRgCIAEoCRINCgVzY29wZRgDIAEoCTK2AgoNR2l0SHViU2VydmljZRKVAQoUZ2V0T0F1dGhBdXRob3JpemVVcmwSOi5haS5zdGlnbWVyLnBsYXRmb3JtLmdpdGh1Yi52MS5HZXRPQXV0aEF1dGhvcml6ZVVybFJlcXVlc3QaOy5haS5zdGlnbWVyLnBsYXRmb3JtLmdpdGh1Yi52MS5HZXRPQXV0aEF1dGhvcml6ZVVybFJlc3BvbnNlIgTQuBgBEowBChFleGNoYW5nZU9BdXRoQ29kZRI3LmFpLnN0aWdtZXIucGxhdGZvcm0uZ2l0aHViLnYxLkV4Y2hhbmdlT0F1dGhDb2RlUmVxdWVzdBo4LmFpLnN0aWdtZXIucGxhdGZvcm0uZ2l0aHViLnYxLkV4Y2hhbmdlT0F1dGhDb2RlUmVzcG9uc2UiBNC4GAFiBnByb3RvMw", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
+  fileDesc("CithaS9zdGlnbWVyL3BsYXRmb3JtL2dpdGh1Yi92MS9zZXJ2aWNlLnByb3RvEh1haS5zdGlnbWVyLnBsYXRmb3JtLmdpdGh1Yi52MSJSChtHZXRPQXV0aEF1dGhvcml6ZVVybFJlcXVlc3QSHQoMcmVkaXJlY3RfdXJpGAEgASgJQge6SARyAhABEhQKA29yZxgCIAEoCUIHukgEcgIQASJEChxHZXRPQXV0aEF1dGhvcml6ZVVybFJlc3BvbnNlEhUKDWF1dGhvcml6ZV91cmwYASABKAkSDQoFc3RhdGUYAiABKAkifgoYRXhjaGFuZ2VPQXV0aENvZGVSZXF1ZXN0EhUKBGNvZGUYASABKAlCB7pIBHICEAESFgoFc3RhdGUYAiABKAlCB7pIBHICEAESHQoMcmVkaXJlY3RfdXJpGAMgASgJQge6SARyAhABEhQKA29yZxgEIAEoCUIHukgEcgIQASJhChlFeGNoYW5nZU9BdXRoQ29kZVJlc3BvbnNlEhIKCnRva2VuX3R5cGUYAiABKAkSDQoFc2NvcGUYAyABKAkSDQoFbG9naW4YBCABKAlKBAgBEAJSDGFjY2Vzc190b2tlbjK3AwoNR2l0SHViU2VydmljZRLTAQoUZ2V0T0F1dGhBdXRob3JpemVVcmwSOi5haS5zdGlnbWVyLnBsYXRmb3JtLmdpdGh1Yi52MS5HZXRPQXV0aEF1dGhvcml6ZVVybFJlcXVlc3QaOy5haS5zdGlnbWVyLnBsYXRmb3JtLmdpdGh1Yi52MS5HZXRPQXV0aEF1dGhvcml6ZVVybFJlc3BvbnNlIkLCuBg+CDMQHiIDb3JnKjN1bmF1dGhvcml6ZWQgdG8gY29ubmVjdCBHaXRIdWIgaW4gdGhpcyBvcmdhbml6YXRpb24SzwEKEWV4Y2hhbmdlT0F1dGhDb2RlEjcuYWkuc3RpZ21lci5wbGF0Zm9ybS5naXRodWIudjEuRXhjaGFuZ2VPQXV0aENvZGVSZXF1ZXN0GjguYWkuc3RpZ21lci5wbGF0Zm9ybS5naXRodWIudjEuRXhjaGFuZ2VPQXV0aENvZGVSZXNwb25zZSJHwrgYQwgzEB4iA29yZyo4dW5hdXRob3JpemVkIHRvIHNhdmUgYSBHaXRIdWIgbG9naW4gaW4gdGhpcyBvcmdhbml6YXRpb25iBnByb3RvMw", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
 
 /**
  * Input for requesting a GitHub OAuth authorize URL.
@@ -26,6 +26,13 @@ export type GetOAuthAuthorizeUrlRequest = Message<"ai.stigmer.platform.github.v1
    * @generated from field: string redirect_uri = 1;
    */
   redirectUri: string;
+
+  /**
+   * Organization whose My vault the login will be saved in, by slug or id.
+   *
+   * @generated from field: string org = 2;
+   */
+  org: string;
 };
 
 /**
@@ -78,7 +85,9 @@ export type ExchangeOAuthCodeRequest = Message<"ai.stigmer.platform.github.v1.Ex
   code: string;
 
   /**
-   * State value from the original authorize response, for CSRF verification.
+   * State value from the original authorize response. The exchange consumes
+   * it: a state the server did not issue to this caller for this
+   * organization, or one already used, is refused.
    *
    * @generated from field: string state = 2;
    */
@@ -90,6 +99,13 @@ export type ExchangeOAuthCodeRequest = Message<"ai.stigmer.platform.github.v1.Ex
    * @generated from field: string redirect_uri = 3;
    */
   redirectUri: string;
+
+  /**
+   * Organization whose My vault keeps the login, by slug or id.
+   *
+   * @generated from field: string org = 4;
+   */
+  org: string;
 };
 
 /**
@@ -100,18 +116,12 @@ export const ExchangeOAuthCodeRequestSchema: GenMessage<ExchangeOAuthCodeRequest
   messageDesc(file_ai_stigmer_platform_github_v1_service, 2);
 
 /**
- * Result of exchanging a GitHub authorization code for an access token.
+ * Result of exchanging a GitHub authorization code: the account the saved
+ * login belongs to.
  *
  * @generated from message ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse
  */
 export type ExchangeOAuthCodeResponse = Message<"ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse"> & {
-  /**
-   * GitHub access token for API calls.
-   *
-   * @generated from field: string access_token = 1;
-   */
-  accessToken: string;
-
   /**
    * Token type (typically "bearer").
    *
@@ -125,6 +135,13 @@ export type ExchangeOAuthCodeResponse = Message<"ai.stigmer.platform.github.v1.E
    * @generated from field: string scope = 3;
    */
   scope: string;
+
+  /**
+   * The connected GitHub account's login.
+   *
+   * @generated from field: string login = 4;
+   */
+  login: string;
 };
 
 /**
@@ -135,12 +152,13 @@ export const ExchangeOAuthCodeResponseSchema: GenMessage<ExchangeOAuthCodeRespon
   messageDesc(file_ai_stigmer_platform_github_v1_service, 3);
 
 /**
- * GitHubService provides OAuth integration with GitHub.
+ * GitHubService connects a GitHub account through OAuth.
  *
- * Use this service to connect a GitHub account via OAuth and obtain
- * an access token for GitHub API calls. The service manages the
- * authorize URL construction and the authorization-code-for-token
- * exchange so callers do not handle OAuth details directly.
+ * The service builds the authorize URL and exchanges the authorization code
+ * for a token, which it saves as the github.com login in the caller's My
+ * vault. The token is never returned: repository listing, search and file
+ * reads go through GitHubQueryController, and runs clone with the saved
+ * login.
  *
  * @generated from service ai.stigmer.platform.github.v1.GitHubService
  */
@@ -148,9 +166,10 @@ export const GitHubService: GenService<{
   /**
    * Get the GitHub OAuth authorize URL for initiating the OAuth flow.
    *
-   * Returns a URL to redirect the user to and a random state value for
-   * CSRF protection. After the user authorizes, GitHub redirects back
-   * to your redirect_uri with an authorization code.
+   * Returns a URL to redirect the user to and a random state value. After
+   * the user authorizes, GitHub redirects back to your redirect_uri with an
+   * authorization code, which exchangeOAuthCode accepts only with this state,
+   * from the same person, for the same organization.
    *
    * @generated from rpc ai.stigmer.platform.github.v1.GitHubService.getOAuthAuthorizeUrl
    */
@@ -160,11 +179,14 @@ export const GitHubService: GenService<{
     output: typeof GetOAuthAuthorizeUrlResponseSchema;
   },
   /**
-   * Exchange a GitHub OAuth authorization code for an access token.
+   * Exchange a GitHub OAuth authorization code and save the login in the
+   * caller's My vault.
    *
    * Call this after receiving the authorization code from GitHub's OAuth
    * redirect. Pass the code, the state from the original authorize request,
-   * and the same redirect_uri. Returns an access token for GitHub API calls.
+   * the same redirect_uri, and the organization whose My vault keeps the
+   * login. Returns the connected account's login and granted scopes; the
+   * token itself is saved as the github.com connection and never returned.
    *
    * @generated from rpc ai.stigmer.platform.github.v1.GitHubService.exchangeOAuthCode
    */

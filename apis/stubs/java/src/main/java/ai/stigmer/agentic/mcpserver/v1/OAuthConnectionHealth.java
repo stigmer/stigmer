@@ -8,12 +8,12 @@ package ai.stigmer.agentic.mcpserver.v1;
 /**
  * <pre>
  * OAuthConnectionHealth evaluates the health of an OAuth connection by
- * examining grant existence and token expiry metadata. Used in
+ * examining whether a login is saved and its token expiry metadata. Used in
  * GetOAuthGrantStatusOutput to give the frontend an actionable signal
  * beyond the binary "connected" boolean.
  *
- * The backend determines health from locally available metadata (grant
- * record + access_token_expires_at). It cannot detect server-side token
+ * The backend determines health from locally available metadata (the
+ * saved connection and its sign-in expiry). It cannot detect server-side token
  * revocation without making an API call to the vendor, so HEALTHY means
  * "valid as far as we know" — not a guarantee the token will be accepted.
  * </pre>
@@ -61,8 +61,9 @@ public enum OAuthConnectionHealth
   OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE(3),
   /**
    * <pre>
-   * No OAuth grant exists for this resource + org + user combination.
-   * The user has never connected or has disconnected.
+   * No sign-in made for this server that a run would use: the user has
+   * never signed in, has disconnected, or the saved login is not a
+   * sign-in this server can use.
    * </pre>
    *
    * <code>OAUTH_CONNECTION_HEALTH_NO_GRANT = 4;</code>
@@ -118,8 +119,9 @@ public enum OAuthConnectionHealth
   public static final int OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE_VALUE = 3;
   /**
    * <pre>
-   * No OAuth grant exists for this resource + org + user combination.
-   * The user has never connected or has disconnected.
+   * No sign-in made for this server that a run would use: the user has
+   * never signed in, has disconnected, or the saved login is not a
+   * sign-in this server can use.
    * </pre>
    *
    * <code>OAUTH_CONNECTION_HEALTH_NO_GRANT = 4;</code>

@@ -6,7 +6,10 @@
  * pending, even with variables missing; the form returns once the
  * sign-ins are done; a `ready` state reached reactively (a sign-in landing,
  * the pool covering the keys) reports the agent's ref to the parent as well
- * as its resolution, which the imperative handlers did alone before.
+ * as its resolution, which the imperative handlers did alone before. A
+ * sign-in owed in a conversation that lists vaults reaches its row with the
+ * vault it must be saved into. The row itself is stubbed here; its own
+ * rule is pinned in `agent/__tests__/useAgentSetup.vaultSignIn.test.tsx`.
  */
 
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
@@ -15,6 +18,7 @@ import type { ReactNode } from "react";
 import type { Stigmer } from "@stigmer/sdk";
 import { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { StigmerContext } from "../../context";
+import { noMyVaultClient } from "../../__tests__/helpers/no-my-vault";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 
 vi.mock("../../portal-container", () => ({
@@ -32,6 +36,12 @@ vi.mock("../../agent/useAgentSetup", () => ({
   useAgentSetup: () => mockAgentSetup,
 }));
 
+vi.mock("../../plugin/McpServerReadiness.js", () => ({
+  McpServerReadiness: ({ signInVault }: { readonly signInVault?: { readonly name: string } }) => (
+    <span>Signs in to {signInVault?.name ?? "My vault"}</span>
+  ),
+}));
+
 import { SessionComposer } from "../SessionComposer";
 
 beforeAll(() => {
@@ -47,7 +57,7 @@ beforeAll(() => {
 function createMinimalStigmerMock(): Stigmer {
   return {
     run: { uploadAttachment: vi.fn() },
-    environment: { getPersonal: vi.fn().mockResolvedValue(null) },
+    vault: noMyVaultClient(),
     mcpServer: { getByReference: vi.fn().mockRejectedValue(new Error("no backend in this test")) },
     baseUrl: "http://localhost:8080",
     getAuthCredential: vi.fn().mockResolvedValue("test-token"),
@@ -96,7 +106,7 @@ describe("SessionComposer — the agent's sign-ins", () => {
 
     const list = await screen.findByRole("list", { name: "Sign-ins this agent needs" });
     expect(list.textContent).toContain("Linear");
-    expect(screen.getByText(/uses tools nobody in this organization has signed in to yet/)).toBeTruthy();
+    expect(screen.getByText(/uses tools you have not signed in to yet/)).toBeTruthy();
     expect(screen.queryByText(/Enter required credentials/)).toBeNull();
   });
 
@@ -122,5 +132,19 @@ describe("SessionComposer — the agent's sign-ins", () => {
     renderComposer({ onAgentRefChange, onAgentResolutionChange });
     expect(onAgentRefChange).toHaveBeenCalledWith(AGENT_REF);
     expect(onAgentResolutionChange).toHaveBeenCalledWith({ mode: "direct" });
+  });
+
+  it("hands each row the vault its sign-in must be saved into", async () => {
+    mockAgentSetup.state = {
+      status: "needsEnvVars",
+      agentRef: AGENT_REF,
+      agentId: "agt_1",
+      agentName: "Reviewer",
+      missingVariables: [],
+      pendingSignIns: [{ ...LINEAR, vault: { id: "vlt_team", org: "org_acme", name: "Team tools" } }],
+      error: null,
+    };
+    renderComposer({ initialAgentRef: AGENT_REF });
+    expect(await screen.findByText("Signs in to Team tools")).toBeTruthy();
   });
 });

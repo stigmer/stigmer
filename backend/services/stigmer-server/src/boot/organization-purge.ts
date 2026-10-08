@@ -8,8 +8,8 @@
  * nothing fires while the rest is removed. The content stage then removes
  * leaves first: a run before the session it belongs to, a blueprint's
  * shares and channels
- * before the blueprint, and the environments and clients a run or a
- * blueprint reads last. Each kind's purge cascades what its delete chain
+ * before the blueprint, and the vaults and clients a run or a blueprint
+ * reads last. Each kind's purge cascades what its delete chain
  * cascades, so an order that met a parent first would still converge; the
  * order keeps each batch small.
  *
@@ -40,10 +40,10 @@ import { newAgentExecutionPurge } from "../domain/run/purge.js";
 import { newAgentSharePurge } from "../domain/agentshare/purge.js";
 import { newApiKeyPurge } from "../domain/apikey/purge.js";
 import { newChannelAppPurge } from "../domain/channelapp/purge.js";
-import { newEnvironmentPurge } from "../domain/environment/purge.js";
 import { newExecutionContextPurge } from "../domain/executioncontext/purge.js";
 import { newMcpServerPurge } from "../domain/mcpserver/purge.js";
 import { newMemoryPurge } from "../domain/memory/purge.js";
+import { newVaultPurge } from "../domain/vault/purge.js";
 import { newOAuthAppPurge } from "../domain/oauthapp/purge.js";
 import type { KindPurge, KindPurgeDeps } from "../domain/organization/purge/kind-purge.js";
 import { newPlatformClientPurge } from "../domain/platformclient/purge.js";
@@ -112,8 +112,8 @@ export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
       newMcpServerPurge(deps),
       newPluginPurge(deps),
       // What runs and blueprints read, last: an MCP server references its
-      // OAuth app, and a run its environments.
-      newEnvironmentPurge(deps),
+      // OAuth app, and a run its vaults.
+      newVaultPurge(deps),
       newOAuthAppPurge(deps),
       newPlatformClientPurge(deps),
       newExecutionContextPurge(deps),
@@ -145,7 +145,7 @@ export const CORE_PURGED_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.skill,
   ApiResourceKind.mcp_server,
   ApiResourceKind.plugin,
-  ApiResourceKind.environment,
+  ApiResourceKind.vault,
   ApiResourceKind.oauth_app,
   ApiResourceKind.platform_client,
   ApiResourceKind.execution_context,

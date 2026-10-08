@@ -100,24 +100,26 @@ describe("useEditResourceYaml", () => {
     );
 
     act(() => {
-      // A structurally valid Environment — the schema accepts it, so the
+      // A structurally valid McpServer — the schema accepts it, so the
       // kind guard (not the schema) must be what rejects it.
       result.current.setYaml(
         [
           "apiVersion: agentic.stigmer.ai/v1",
-          "kind: Environment",
+          "kind: McpServer",
           "metadata:",
           "  name: clinic-patient-db",
           "  org: rakeshreddi098",
           "spec:",
           "  description: not an agent",
+          "  stdio:",
+          "    command: npx",
         ].join("\n"),
       );
     });
 
     expect(result.current.validation).toMatchObject({
       status: "invalid",
-      message: expect.stringContaining("kind changed from Agent to Environment"),
+      message: expect.stringContaining("kind changed from Agent to McpServer"),
     });
   });
 

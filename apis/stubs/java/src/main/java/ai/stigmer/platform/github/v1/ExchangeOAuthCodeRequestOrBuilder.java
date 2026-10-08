@@ -32,7 +32,9 @@ public interface ExchangeOAuthCodeRequestOrBuilder extends
 
   /**
    * <pre>
-   * State value from the original authorize response, for CSRF verification.
+   * State value from the original authorize response. The exchange consumes
+   * it: a state the server did not issue to this caller for this
+   * organization, or one already used, is refused.
    * </pre>
    *
    * <code>string state = 2 [json_name = "state", (.buf.validate.field) = { ... }</code>
@@ -41,7 +43,9 @@ public interface ExchangeOAuthCodeRequestOrBuilder extends
   java.lang.String getState();
   /**
    * <pre>
-   * State value from the original authorize response, for CSRF verification.
+   * State value from the original authorize response. The exchange consumes
+   * it: a state the server did not issue to this caller for this
+   * organization, or one already used, is refused.
    * </pre>
    *
    * <code>string state = 2 [json_name = "state", (.buf.validate.field) = { ... }</code>
@@ -69,4 +73,24 @@ public interface ExchangeOAuthCodeRequestOrBuilder extends
    */
   com.google.protobuf.ByteString
       getRedirectUriBytes();
+
+  /**
+   * <pre>
+   * Organization whose My vault keeps the login, by slug or id.
+   * </pre>
+   *
+   * <code>string org = 4 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The org.
+   */
+  java.lang.String getOrg();
+  /**
+   * <pre>
+   * Organization whose My vault keeps the login, by slug or id.
+   * </pre>
+   *
+   * <code>string org = 4 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for org.
+   */
+  com.google.protobuf.ByteString
+      getOrgBytes();
 }

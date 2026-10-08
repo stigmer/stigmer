@@ -7,9 +7,9 @@
  * fixture-determinism rule, demos/README.md: fixtures only for
  * tour-constant data, props for anything that changes per step).
  *
- * The view's remaining lookups (personal environment list, org OAuth app,
+ * The view's remaining lookups (My vault, org OAuth app,
  * permission check) fall through to the router's built-in `unimplemented`
- * response, which the SDK hooks degrade from: no personal environment means
+ * response, which the SDK hooks degrade from: no My vault means
  * every declared env var counts as missing — exactly the state the
  * credential-form beats depict. `createStigmerPreview` is still required
  * for the `.stgm` theme scope (`?theme` → color mode) and the SDK client

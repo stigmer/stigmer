@@ -100,21 +100,22 @@ manifest's version, format and author; and the server's other install warnings.
 Each MCP Server the plugin installed says, on its row, what stands between it
 and its first tool call. A server that signs in with OAuth and has no sign-in in
 your Organization yet carries **Sign in**; choose it, grant access in the window
-that opens, and the row reads **Signed in**. One sign-in serves the whole
-Organization. A server that wants an API key names the variables and where they
-are asked. A server that needs nothing says nothing.
+that opens, and the row reads **Signed in**. The sign-in is saved in your own
+vault: it serves your Sessions, and each teammate signs in for themselves. A
+server that wants an API key names the variables and where they are asked. A
+server that needs nothing says nothing.
 
 What comes next depends on what the plugin brought. When it carries an Agent,
 **Start session** is the page's primary action; the Agent declares the variables
-its tools need, so the first Session asks for them and saves them to your
-personal Environment, and from then on they are supplied to every Session on
-that Agent without asking. When it carries tools and no Agent, or hooks, the
-page offers **Use with an agent**: **Add to an agent** puts the servers and
-switches the hooks on for an Agent you already run (an Agent a plugin installed
-cannot take them; the dialog says so) or, through **Create a new agent with
-these tools**, opens the agent wizard with the servers already chosen.
-[Guard an agent's tools with hooks](/docs/guides/plugins/use-hooks) covers the
-hooks.
+its tools need, so the first Session asks for them and saves them to your own
+[vault](/docs/concepts/vaults), and from then on they are supplied to every
+Session on that Agent without asking. When it carries tools and no Agent, or
+hooks, the page offers **Use with an agent**: **Add to an agent** puts the
+servers and switches the hooks on for an Agent you already run (an Agent a
+plugin installed cannot take them; the dialog says so) or, through **Create a
+new agent with these tools**, opens the agent wizard with the servers already
+chosen. [Guard an agent's tools with hooks](/docs/guides/plugins/use-hooks)
+covers the hooks.
 
 A Session on an Agent whose server nobody has signed in to yet asks for the
 sign-in before the first message, the way it asks for a missing variable.

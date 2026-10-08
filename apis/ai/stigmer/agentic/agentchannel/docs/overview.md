@@ -1,7 +1,7 @@
 An AgentChannel connects an agent to an external messaging platform so
 people can chat with it where they already work. The spec declares which
 agent serves the channel, whether serving is enabled, the provider (Slack
-or WhatsApp), optional environment references that supply the agent's tool
+or WhatsApp), optional shared vaults that supply the agent's tool
 credentials for channel conversations, and an `app_ref` to a ChannelApp
 when the channel installs through your own provider app — optional for
 Slack (absent means the shared Stigmer app), required for WhatsApp.
@@ -22,10 +22,10 @@ spec:
     slug: support-agent
   enabled: true
   slack: {}
-  environment_refs:
-    - kind: environment
+  vaults:
+    - kind: vault
       org: workshop
-      slug: support-tools-credentials
+      slug: support-tools
 ```
 
 A WhatsApp channel names the Business phone number it serves and always

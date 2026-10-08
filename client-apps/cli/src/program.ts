@@ -37,6 +37,7 @@ import { registerTag } from "./commands/tag.js";
 import { registerUp } from "./commands/up.js";
 import { registerUsage } from "./commands/usage.js";
 import { registerValidate } from "./commands/validate.js";
+import { registerVault } from "./commands/vault.js";
 import { registerVersion } from "./commands/version.js";
 import { setDebug, setStandalone } from "./runtime.js";
 import { VERSION } from "./version.js";
@@ -97,6 +98,7 @@ export function buildProgram(): Command {
   registerTag(program);
   registerShare(program);
   registerSchedule(program);
+  registerVault(program);
   registerUsage(program);
   registerPush(program);
   registerInstall(program);

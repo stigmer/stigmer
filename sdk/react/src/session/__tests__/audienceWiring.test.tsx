@@ -265,19 +265,19 @@ describe("NewSessionViewer — audience wiring", () => {
     expect(lastComposerProps().lockAgent).toBe(false);
   });
 
-  it("forwards getRuntimeEnv and defaultHarness to the flow", () => {
-    const getRuntimeEnv = vi.fn();
+  it("forwards getSessionSecrets and defaultHarness to the flow", () => {
+    const getSessionSecrets = vi.fn();
     render(
       <NewSessionViewer
         org="acme"
         onSessionCreated={vi.fn()}
-        getRuntimeEnv={getRuntimeEnv}
+        getSessionSecrets={getSessionSecrets}
         defaultHarness="cursor"
       />,
     );
 
     expect(mockUseNewSessionFlow).toHaveBeenCalledWith(
-      expect.objectContaining({ getRuntimeEnv, defaultHarness: "cursor" }),
+      expect.objectContaining({ getSessionSecrets, defaultHarness: "cursor" }),
     );
   });
 
@@ -327,7 +327,7 @@ describe("NewSessionViewer — audience wiring", () => {
     // directly, as given.
     expect(stubNewSessionFlow.setAgentRef).toHaveBeenCalledWith(AGENT_REF);
     expect(stubNewSessionFlow.setResolution).toHaveBeenCalledWith({ mode: "direct" });
-    // A guest has no personal environment, so nothing is disclosed.
+    // A guest has no My vault, so nothing is disclosed.
     expect(props.disclosePersonalKeys).toBe(false);
   });
 
@@ -421,14 +421,14 @@ describe("SessionViewer — audience wiring", () => {
     expect(lastThreadProps().onApprovalSubmit).toBeDefined();
   });
 
-  it("forwards getRuntimeEnv to the flow", () => {
-    const getRuntimeEnv = vi.fn();
+  it("forwards getSessionSecrets to the flow", () => {
+    const getSessionSecrets = vi.fn();
     render(
-      <SessionViewer sessionId="ses_1" org="acme" getRuntimeEnv={getRuntimeEnv} />,
+      <SessionViewer sessionId="ses_1" org="acme" getSessionSecrets={getSessionSecrets} />,
     );
 
     expect(mockUseSessionPageFlow).toHaveBeenCalledWith(
-      expect.objectContaining({ getRuntimeEnv }),
+      expect.objectContaining({ getSessionSecrets }),
     );
   });
 

@@ -1100,4 +1100,34 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue);
    * @return The approvalMode.
    */
   ai.stigmer.agentic.run.v1.ApprovalMode getApprovalMode();
+
+  /**
+   * <pre>
+   * Whose logins and secrets this turn uses: decided once when the turn is
+   * created, and kept when it is recovered.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
+   * @return Whether the credentials field is set.
+   */
+  boolean hasCredentials();
+  /**
+   * <pre>
+   * Whose logins and secrets this turn uses: decided once when the turn is
+   * created, and kept when it is recovered.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
+   * @return The credentials.
+   */
+  ai.stigmer.agentic.run.v1.RunCredentials getCredentials();
+  /**
+   * <pre>
+   * Whose logins and secrets this turn uses: decided once when the turn is
+   * created, and kept when it is recovered.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
+   */
+  ai.stigmer.agentic.run.v1.RunCredentialsOrBuilder getCredentialsOrBuilder();
 }

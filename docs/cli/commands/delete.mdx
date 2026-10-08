@@ -50,12 +50,12 @@ stigmer delete agent my-agent --force
 | Agent Channel | `agent-channel`, `agentchannel`, `ach` | Disconnects the channel; the bound number stops serving the agent                                               |
 | API Key       | `apikey`, `key`                        | Revokes the key; callers using it are cut off immediately                                                       |
 | Channel App   | `channel-app`, `channelapp`, `chapp`   | Permanently deletes the app and its stored provider secrets                                                     |
-| Environment   | `environment`, `env`, `environments`   | Permanently deletes the environment and its values                                                              |
 | MCP Server    | `mcpserver`, `mcp`, `mcp-server`       | Permanently deletes the MCP server                                                                              |
 | Organization  | `organization`, `org`, `organizations` | Deletes the organization at once and everything it owned in the background; its slug is free when that finishes |
 | Run           | `run`, `runs`                          | Gracefully cancels a run in progress                                                                            |
 | Schedule      | `schedule`, `sch`, `schedules`         | Permanently deletes the schedule and tears down its firing clock                                                |
 | Skill         | `skill`, `skills`                      | Permanently deletes the skill                                                                                   |
+| Vault         | `vault`, `vlt`, `vaults`               | Permanently deletes the vault and every value it holds; runs that name it are refused until they name another   |
 
 ### Confirmation
 

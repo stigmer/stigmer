@@ -45,8 +45,8 @@ type AgentVersionEntry struct {
 	// message.
 	Message string `protobuf:"bytes,6,opt,name=message,proto3" json:"message,omitempty"`
 	// The agent spec exactly as this version stored it: the instructions,
-	// sub-agents, skill and MCP server references and environment a turn on
-	// this version runs with.
+	// sub-agents, skill and MCP server references, declared keys and vaults a
+	// turn on this version runs with.
 	SpecSnapshot  *AgentSpec `protobuf:"bytes,7,opt,name=spec_snapshot,json=specSnapshot,proto3" json:"spec_snapshot,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

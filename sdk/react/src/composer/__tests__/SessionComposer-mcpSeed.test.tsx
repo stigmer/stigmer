@@ -12,6 +12,7 @@ import type { McpServerUsageInput, Stigmer } from "@stigmer/sdk";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { samples } from "../../test/samples";
 import { StigmerContext } from "../../context";
+import { noMyVaultClient } from "../../__tests__/helpers/no-my-vault";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 import { SessionComposer } from "../SessionComposer";
 
@@ -22,7 +23,7 @@ const ZENDESK = { org: "acme", slug: "zendesk", kind: ApiResourceKind.mcp_server
 function clientWith(getByReference: () => Promise<unknown>): Stigmer {
   return {
     run: { uploadAttachment: vi.fn() },
-    environment: { getPersonal: vi.fn().mockResolvedValue(null) },
+    vault: noMyVaultClient(),
     mcpServer: { getByReference: vi.fn(getByReference) },
     baseUrl: "/",
     getAuthCredential: vi.fn().mockResolvedValue("test-token"),

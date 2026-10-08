@@ -15,7 +15,7 @@ import type { ExecutionTargetOption } from "./execution-target.js";
 import { useExecutionTarget } from "../execution-target-context.js";
 import { useApprovalDefaults } from "../approval-defaults-context.js";
 import { useRunnerAdapter } from "../runner-adapter.js";
-import { resolveRunRuntimeEnv, type RuntimeEnvProvider } from "./runtime-env.js";
+import { resolveSessionSecrets, type SessionSecretsProvider } from "./session-secrets.js";
 import type { SessionAudience } from "./audience.js";
 import { assertValidRunConfig, type SessionRunConfig } from "./run-config.js";
 import {
@@ -85,9 +85,15 @@ export interface UseNewSessionFlowOptions {
    * Host values win over composer-collected env on key collisions. If
    * the provider throws, the submission fails and the error surfaces
    * via {@link UseNewSessionFlowReturn.submitError} / {@link onError}.
-   * See {@link RuntimeEnvProvider}.
+   * See {@link SessionSecretsProvider}.
+   *
+   * The values are sealed on the conversation for its whole life. Not
+   * evaluated for the `"guest"` audience, whose first turn carries no
+   * values at all: a share-link guest brings none, and the share's
+   * vaults are what a guest's runs use (the follow-up rule of
+   * `useSessionPageFlow`).
    */
-  readonly getRuntimeEnv?: RuntimeEnvProvider;
+  readonly getSessionSecrets?: SessionSecretsProvider;
   /**
    * Harness pre-selected for new sessions when the user has not made an
    * explicit choice yet (e.g. an embedder whose agents primarily run
@@ -168,8 +174,8 @@ export interface UseNewSessionFlowOptions {
    * Personalization, not authorization: anyone who can create the session
    * can set this (the same trust level as authoring the first message).
    * Hidden from the conversation thread, not from the API — `session.get`
-   * returns it, so never put secrets here; secrets belong in `runtimeEnv`
-   * or Environment resources. Large values bloat every prompt.
+   * returns it, so never put secrets here; secrets belong in the
+   * session's own `secrets` or in a vault. Large values bloat every prompt.
    */
   readonly sessionContext?: string;
   /**
@@ -333,7 +339,7 @@ export function useNewSessionFlow(
     org,
     onSessionCreated,
     onError,
-    getRuntimeEnv,
+    getSessionSecrets,
     defaultHarness,
     metadata,
     sessionContext,
@@ -568,10 +574,15 @@ export function useNewSessionFlow(
         // Host env is evaluated per submission (short-lived credentials)
         // and before session creation, so a credential failure can never
         // strand an empty session. Without a provider the composer env
-        // passes through untouched — no extra await on the hot path.
-        const runtimeEnv = getRuntimeEnv
-          ? await resolveRunRuntimeEnv(getRuntimeEnv, context?.runtimeEnv)
-          : context?.runtimeEnv;
+        // passes through untouched — no extra await on the hot path. A
+        // guest's conversation carries none: the values would be sealed
+        // on it for its life, and a guest brings no values (the share's
+        // vaults are what its runs use), as on every follow-up.
+        const secrets = isGuest
+          ? undefined
+          : getSessionSecrets
+            ? await resolveSessionSecrets(getSessionSecrets, context?.secrets)
+            : context?.secrets;
 
         const sessionSpecBase = {
           workspaceEntries: workspace.hasEntries
@@ -579,6 +590,8 @@ export function useNewSessionFlow(
             : undefined,
           mcpServerUsages: mcpServerUsages.length > 0 ? mcpServerUsages : undefined,
           skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
+          vaults: context?.vaults?.length ? context.vaults : undefined,
+          secrets,
           // The typed-wins merge happens downstream in useCreateRun;
           // both fields are forwarded verbatim here.
           metadata,
@@ -598,7 +611,6 @@ export function useNewSessionFlow(
           // The composer's context carries only the tier and thinking the
           // person chose.
           modelName: pinnedModelName ?? selectedModel ?? effectiveModelId,
-          runtimeEnv,
           attachments: context?.attachments,
           interactionMode: context?.interactionMode,
           serviceTier: pinnedModelName ? pinnedServiceTier : context?.serviceTier,
@@ -672,7 +684,7 @@ export function useNewSessionFlow(
       executionTarget,
       autoApproveAll,
       adapter,
-      getRuntimeEnv,
+      getSessionSecrets,
       effectiveModelId,
       pinnedModelName,
       pinnedServiceTier,

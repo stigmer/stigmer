@@ -2,7 +2,6 @@
 
 package ai.stigmer.sdk.gen;
 
-import ai.stigmer.agentic.executioncontext.v1.ExecutionValue;
 import ai.stigmer.agentic.mcpserver.v1.McpServerUsage;
 import ai.stigmer.agentic.run.v1.Attachment;
 import ai.stigmer.agentic.run.v1.ConversationCatchup;
@@ -42,7 +41,6 @@ public final class RunInput {
     private final InteractionMode interactionMode;
     private final boolean buildFromPlan;
     private final java.util.Map<String, Object> structuredOutputSchema;
-    private final java.util.Map<String, EnvVarInput> runtimeEnv;
     private final boolean autoApproveAll;
     private final java.util.List<AttachmentInput> attachments;
     private final java.util.List<String> workspaceFileRefs;
@@ -63,7 +61,6 @@ public final class RunInput {
         this.interactionMode = builder.interactionMode;
         this.buildFromPlan = builder.buildFromPlan;
         this.structuredOutputSchema = builder.structuredOutputSchema;
-        this.runtimeEnv = builder.runtimeEnv;
         this.autoApproveAll = builder.autoApproveAll;
         this.attachments = builder.attachments;
         this.workspaceFileRefs = builder.workspaceFileRefs;
@@ -91,14 +88,6 @@ public final class RunInput {
         spec.setBuildFromPlan(this.buildFromPlan);
         if (this.structuredOutputSchema != null) {
             spec.setStructuredOutputSchema(ProtoConvert.mapToStruct(this.structuredOutputSchema, "structuredOutputSchema"));
-        }
-        if (this.runtimeEnv != null && !this.runtimeEnv.isEmpty()) {
-            for (java.util.Map.Entry<String, EnvVarInput> entry : this.runtimeEnv.entrySet()) {
-                spec.putRuntimeEnv(entry.getKey(), ExecutionValue.newBuilder()
-                    .setValue(entry.getValue().getValue())
-                    .setIsSecret(entry.getValue().isSecret())
-                    .build());
-            }
         }
         spec.setAutoApproveAll(this.autoApproveAll);
         if (this.attachments != null) {
@@ -156,7 +145,6 @@ public final class RunInput {
         private InteractionMode interactionMode;
         private boolean buildFromPlan;
         private java.util.Map<String, Object> structuredOutputSchema;
-        private java.util.Map<String, EnvVarInput> runtimeEnv;
         private boolean autoApproveAll;
         private java.util.List<AttachmentInput> attachments;
         private java.util.List<String> workspaceFileRefs;
@@ -183,7 +171,6 @@ public final class RunInput {
         public Builder interactionMode(InteractionMode interactionMode) { this.interactionMode = interactionMode; return this; }
         public Builder buildFromPlan(boolean buildFromPlan) { this.buildFromPlan = buildFromPlan; return this; }
         public Builder structuredOutputSchema(java.util.Map<String, Object> structuredOutputSchema) { this.structuredOutputSchema = structuredOutputSchema; return this; }
-        public Builder runtimeEnv(java.util.Map<String, EnvVarInput> runtimeEnv) { this.runtimeEnv = runtimeEnv; return this; }
         public Builder autoApproveAll(boolean autoApproveAll) { this.autoApproveAll = autoApproveAll; return this; }
         public Builder attachments(java.util.List<AttachmentInput> attachments) { this.attachments = attachments; return this; }
         public Builder workspaceFileRefs(java.util.List<String> workspaceFileRefs) { this.workspaceFileRefs = workspaceFileRefs; return this; }
@@ -206,6 +193,9 @@ public final class RunInput {
         private final Harness harness;
         private final CursorMode cursorMode;
         private final ExecutionTarget executionTarget;
+        private final java.util.List<ResourceRef> vaults;
+        private final java.util.Map<String, String> secrets;
+        private final java.util.Map<String, String> connections;
 
         private SessionSpecInput(Builder builder) {
             this.agentRef = builder.agentRef;
@@ -219,6 +209,9 @@ public final class RunInput {
             this.harness = builder.harness;
             this.cursorMode = builder.cursorMode;
             this.executionTarget = builder.executionTarget;
+            this.vaults = builder.vaults;
+            this.secrets = builder.secrets;
+            this.connections = builder.connections;
         }
 
         SessionSpec toProto() {
@@ -264,6 +257,18 @@ public final class RunInput {
             if (this.executionTarget != null) {
                 builder.setExecutionTarget(this.executionTarget);
             }
+            if (this.vaults != null) {
+                for (ResourceRef item : this.vaults) {
+                    builder.addVaults(item.toProto().toBuilder()
+                        .setKind(ApiResourceKind.vault).build());
+                }
+            }
+            if (this.secrets != null && !this.secrets.isEmpty()) {
+                builder.putAllSecrets(this.secrets);
+            }
+            if (this.connections != null && !this.connections.isEmpty()) {
+                builder.putAllConnections(this.connections);
+            }
             return builder.build();
         }
 
@@ -281,6 +286,9 @@ public final class RunInput {
             private Harness harness;
             private CursorMode cursorMode;
             private ExecutionTarget executionTarget;
+            private java.util.List<ResourceRef> vaults;
+            private java.util.Map<String, String> secrets;
+            private java.util.Map<String, String> connections;
 
             private Builder() {}
 
@@ -295,6 +303,9 @@ public final class RunInput {
             public Builder harness(Harness harness) { this.harness = harness; return this; }
             public Builder cursorMode(CursorMode cursorMode) { this.cursorMode = cursorMode; return this; }
             public Builder executionTarget(ExecutionTarget executionTarget) { this.executionTarget = executionTarget; return this; }
+            public Builder vaults(java.util.List<ResourceRef> vaults) { this.vaults = vaults; return this; }
+            public Builder secrets(java.util.Map<String, String> secrets) { this.secrets = secrets; return this; }
+            public Builder connections(java.util.Map<String, String> connections) { this.connections = connections; return this; }
 
             public SessionSpecInput build() { return new SessionSpecInput(this); }
         }
@@ -379,6 +390,7 @@ public final class RunInput {
         private final String commit;
         private final Integer depth;
         private final GitWriteBackMode writeBackMode;
+        private final String token;
 
         private GitRepoSourceInput(Builder builder) {
             this.url = builder.url;
@@ -386,6 +398,7 @@ public final class RunInput {
             this.commit = builder.commit;
             this.depth = builder.depth;
             this.writeBackMode = builder.writeBackMode;
+            this.token = builder.token;
         }
 
         GitRepoSource toProto() {
@@ -405,6 +418,9 @@ public final class RunInput {
             if (this.writeBackMode != null) {
                 builder.setWriteBackMode(this.writeBackMode);
             }
+            if (this.token != null) {
+                builder.setToken(this.token);
+            }
             return builder.build();
         }
 
@@ -416,6 +432,7 @@ public final class RunInput {
             private String commit;
             private Integer depth;
             private GitWriteBackMode writeBackMode;
+            private String token;
 
             private Builder() {}
 
@@ -424,6 +441,7 @@ public final class RunInput {
             public Builder commit(String commit) { this.commit = commit; return this; }
             public Builder depth(int depth) { this.depth = depth; return this; }
             public Builder writeBackMode(GitWriteBackMode writeBackMode) { this.writeBackMode = writeBackMode; return this; }
+            public Builder token(String token) { this.token = token; return this; }
 
             public GitRepoSourceInput build() { return new GitRepoSourceInput(this); }
         }

@@ -11,6 +11,8 @@
 // exercise the compact projection and the cancel short-circuit. A scripted
 // RPC failure per method pins the error copy each tool returns when the
 // backend refuses (rpcerr's classification plus the run the tool names).
+// The `secrets` argument's description is pinned for its warning: what a
+// caller passes there goes through the calling model's context.
 
 import { create, toJson } from "@bufbuild/protobuf";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
@@ -206,12 +208,21 @@ describe("run tools integration", () => {
     );
   });
 
+  it("run_agent warns that secrets pass through the calling model and points real secrets to a vault", async () => {
+    const { tools } = await client.listTools();
+    const runAgent = tools.find((t) => t.name === "run_agent");
+    const secrets = (runAgent?.inputSchema.properties as Record<string, { description?: string }> | undefined)
+      ?.secrets;
+    expect(secrets?.description).toContain("goes through the calling model's context");
+    expect(secrets?.description).toContain("`stigmer vault set-secret <NAME> --mine`");
+  });
+
   it("run_agent resolves the slug and starts a new conversation on the agent's reference", async () => {
     const result = await callTool("run_agent", {
       org: "acme",
       agent: "code-reviewer",
       message: "review this PR",
-      runtime_env: { REPO: "stigmer/stigmer" },
+      secrets: { REPO: "stigmer/stigmer" },
     });
     expect(result.isError).toBeFalsy();
 
@@ -227,13 +238,29 @@ describe("run tools integration", () => {
     expect(createdRun?.kind).toBe("Run");
     expect(createdRun?.spec?.message).toBe("review this PR");
     expect(createdRun?.metadata?.org).toBe("acme");
-    // Runtime env values through MCP are never secrets.
-    expect(createdRun?.spec?.runtimeEnv?.REPO?.value).toBe("stigmer/stigmer");
-    expect(createdRun?.spec?.runtimeEnv?.REPO?.isSecret).toBe(false);
+    // Per-call values ride the new conversation's own secrets.
+    expect(target?.case === "sessionSpec" ? target.value.secrets : undefined).toEqual({
+      REPO: "stigmer/stigmer",
+    });
 
     // The created run comes back as plain protojson (its status is small).
     const created = parseText(result);
     expect((created.metadata as Record<string, unknown>).id).toBe("run_1");
+  });
+
+  it("run_agent refuses the former runtime_env argument, naming secrets, and starts nothing", async () => {
+    const result = await callTool("run_agent", {
+      org: "acme",
+      agent: "code-reviewer",
+      message: "review this PR",
+      runtime_env: { REPO: "stigmer/stigmer" },
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain("no longer takes runtime_env");
+    expect(result.content[0]?.text).toContain("`secrets`");
+    expect(agentLookups).toBe(0);
+    expect(createdRun).toBeUndefined();
   });
 
   it("run_agent reports an unknown agent as not found and starts nothing", async () => {
@@ -265,6 +292,20 @@ describe("run tools integration", () => {
     // The follow-up names no organization: the server files it under the
     // session's, which may differ from the agent's (stigmer/stigmer#1580).
     expect(createdRun?.metadata?.org).toBe("");
+  });
+
+  it("run_agent refuses secrets on a follow-up and starts nothing", async () => {
+    createdRun = undefined;
+    const result = await callTool("run_agent", {
+      org: "acme",
+      agent: "code-reviewer",
+      message: "again",
+      session_id: "ses_42",
+      secrets: { REPO: "stigmer/stigmer" },
+    });
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain("omit session_id to start a new conversation");
+    expect(createdRun).toBeUndefined();
   });
 
   it("run_agent refuses a follow-up naming another agent than the session's", async () => {

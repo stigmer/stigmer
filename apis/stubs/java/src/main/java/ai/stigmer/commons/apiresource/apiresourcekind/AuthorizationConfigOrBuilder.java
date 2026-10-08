@@ -174,8 +174,8 @@ public interface AuthorizationConfigOrBuilder extends
    * <pre>
    * When true, creates an immutable creator relation tuple alongside the owner tuple.
    * FGA tuple: resource#creator&#64;identity_account:&lt;creator_id&gt;
-   * Used for resources where creator identity drives specific permissions
-   * (e.g., environment: only the creator can read unredacted secret values).
+   * Used for resources where creator identity drives specific permissions;
+   * no kind sets it today.
    * The creator tuple uses the same identity as the owner tuple but serves
    * a different purpose: owner is mutable (can be transferred), creator is
    * permanent attribution.

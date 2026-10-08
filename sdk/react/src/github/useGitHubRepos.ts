@@ -1,10 +1,14 @@
 "use client";
 
+/**
+ * The connected GitHub account's repositories and branches, read through
+ * the server's GitHub query RPCs with the login saved in My vault. The
+ * page never holds the token or calls api.github.com.
+ */
 import { useCallback, useEffect, useState } from "react";
-
-const GITHUB_REPOS_API = "https://api.github.com/user/repos";
-const GITHUB_BRANCHES_API = "https://api.github.com/repos";
-const PER_PAGE = 100;
+import type { Stigmer } from "@stigmer/sdk";
+import type { GitHubRepository } from "@stigmer/protos/ai/stigmer/platform/github/v1/io_pb";
+import { useStigmer } from "../hooks.js";
 
 /** A GitHub repository from the API. */
 export interface GitHubRepo {
@@ -61,39 +65,29 @@ export interface UseGitHubReposReturn {
   ) => Promise<GitHubBranch[]>;
 }
 
-function parseRepoResponse(r: Record<string, unknown>): GitHubRepo {
-  const ownerObj = r.owner as Record<string, unknown>;
+/** The console's repository shape, from the server's GitHub repository message. */
+export function toGitHubRepo(r: GitHubRepository): GitHubRepo {
   return {
-    id: r.id as number,
-    fullName: r.full_name as string,
-    name: r.name as string,
-    owner: ownerObj.login as string,
-    ownerType:
-      (ownerObj.type as string) === "Organization" ? "Organization" : "User",
-    htmlUrl: r.html_url as string,
-    cloneUrl: r.clone_url as string,
-    defaultBranch: r.default_branch as string,
-    isPrivate: r.private as boolean,
-    updatedAt: r.updated_at as string,
+    id: Number(r.id),
+    fullName: r.fullName,
+    name: r.name,
+    owner: r.owner,
+    ownerType: r.ownerIsOrganization ? "Organization" : "User",
+    htmlUrl: r.htmlUrl,
+    cloneUrl: r.cloneUrl,
+    defaultBranch: r.defaultBranch,
+    isPrivate: r.isPrivate,
+    updatedAt: r.updatedAt,
   };
 }
 
 async function fetchRepoPage(
-  token: string,
+  stigmer: Stigmer,
+  org: string,
   page: number,
 ): Promise<{ repos: GitHubRepo[]; hasMore: boolean }> {
-  const url = `${GITHUB_REPOS_API}?sort=pushed&direction=desc&per_page=${PER_PAGE}&page=${page}`;
-  const resp = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  if (!resp.ok) {
-    throw new Error(`GitHub API error: ${resp.status}`);
-  }
-
-  const data = await resp.json();
-  const repos = (data as Record<string, unknown>[]).map(parseRepoResponse);
-  return { repos, hasMore: repos.length === PER_PAGE };
+  const list = await stigmer.github.listRepositories({ org, page });
+  return { repos: list.repositories.map(toGitHubRepo), hasMore: list.hasMore };
 }
 
 /**
@@ -105,9 +99,9 @@ async function fetchRepoPage(
  *
  * @example
  * ```tsx
- * function RepoList({ token }: { token: string }) {
+ * function RepoList({ org }: { org: string }) {
  *   const { repos, isLoading, search, setSearch, fetchBranches } =
- *     useGitHubRepos(token);
+ *     useGitHubRepos(org);
  *
  *   if (isLoading) return <Skeleton />;
  *
@@ -130,11 +124,12 @@ async function fetchRepoPage(
  *
  * @example
  * ```tsx
- * // Skip fetching until a token is available
- * const { repos } = useGitHubRepos(token ?? null);
+ * // Skip fetching until GitHub is connected
+ * const { repos } = useGitHubRepos(gitHubConnection.readOrg);
  * ```
  */
-export function useGitHubRepos(token: string | null): UseGitHubReposReturn {
+export function useGitHubRepos(org: string | null): UseGitHubReposReturn {
+  const stigmer = useStigmer();
   const [allRepos, setAllRepos] = useState<GitHubRepo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isBackgroundLoading, setIsBackgroundLoading] = useState(false);
@@ -143,7 +138,7 @@ export function useGitHubRepos(token: string | null): UseGitHubReposReturn {
   const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
-    if (!token) {
+    if (!org) {
       setAllRepos([]);
       setIsLoading(false);
       setIsBackgroundLoading(false);
@@ -160,7 +155,7 @@ export function useGitHubRepos(token: string | null): UseGitHubReposReturn {
       setHasMore(true);
 
       try {
-        const first = await fetchRepoPage(token!, 1);
+        const first = await fetchRepoPage(stigmer, org!, 1);
         if (cancelled.current) return;
 
         setAllRepos(first.repos);
@@ -176,7 +171,7 @@ export function useGitHubRepos(token: string | null): UseGitHubReposReturn {
         let more = true;
 
         while (more && !cancelled.current) {
-          const result = await fetchRepoPage(token!, page);
+          const result = await fetchRepoPage(stigmer, org!, page);
           if (cancelled.current) return;
           setAllRepos((prev) => [...prev, ...result.repos]);
           more = result.hasMore;
@@ -200,7 +195,7 @@ export function useGitHubRepos(token: string | null): UseGitHubReposReturn {
     return () => {
       cancelled.current = true;
     };
-  }, [token]);
+  }, [org, stigmer]);
 
   const loadMore = useCallback(() => {
     // Retained for backwards compatibility. Background pagination
@@ -215,22 +210,15 @@ export function useGitHubRepos(token: string | null): UseGitHubReposReturn {
 
   const fetchBranches = useCallback(
     async (owner: string, repo: string): Promise<GitHubBranch[]> => {
-      if (!token) return [];
+      if (!org) return [];
       try {
-        const resp = await fetch(
-          `${GITHUB_BRANCHES_API}/${owner}/${repo}/branches?per_page=100`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        if (!resp.ok) return [];
-        const data = await resp.json();
-        return data.map((b: Record<string, unknown>) => ({
-          name: b.name as string,
-        }));
+        const list = await stigmer.github.listBranches({ org, owner, repo });
+        return list.names.map((name) => ({ name }));
       } catch {
         return [];
       }
     },
-    [token],
+    [org, stigmer],
   );
 
   return {

@@ -85,9 +85,8 @@ export const DEFAULT_WRITE_VERSION = V1_VERSION;
  * The sentinel replacing every non-empty secret value at every
  * resource-returning boundary — Go steps.RedactedMarker, pinned by the
  * conformance suite and byte-identical in the cloud edition. Lives with
- * the facade (the Java shape) because reencrypt must refuse it;
- * domain/environment/constants.ts re-exports it for its historical
- * importers. A client sending it BACK on a write means "keep the existing
+ * the facade (the Java shape) because reencrypt must refuse it. A client
+ * sending it BACK on a write means "keep the existing
  * secret" (the round-trip contract; see preserveRedactedSecrets).
  */
 export const REDACTED_MARKER = "***REDACTED***";
@@ -115,7 +114,7 @@ const VERSION_TOKEN = /^v(\d+)$/;
  * values matching it must be rejected with INVALID_ARGUMENT before they
  * reach encrypt(), whose idempotent pass-through would otherwise persist
  * them verbatim (letting a client store forged ciphertext that
- * getSecretValue later decrypts with the deployment key). Module-level,
+ * a server-side reader later decrypts with the deployment key). Module-level,
  * like the redaction-marker constant, so boundary steps need no service
  * instance and the rejection stays unconditional on keyless deployments.
  */
@@ -130,7 +129,7 @@ function versionTokenOf(value: string): string | undefined {
 }
 
 /**
- * Encryption/decryption for environment (and other domain) secrets. Safe
+ * Encryption/decryption for every domain's sealed secrets. Safe
  * for concurrent use; construct via one of the factories below.
  */
 export class SecretService {

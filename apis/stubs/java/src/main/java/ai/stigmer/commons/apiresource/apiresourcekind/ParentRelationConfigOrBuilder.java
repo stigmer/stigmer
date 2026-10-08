@@ -85,4 +85,18 @@ public interface ParentRelationConfigOrBuilder extends
    */
   com.google.protobuf.ByteString
       getSpecFieldBytes();
+
+  /**
+   * <pre>
+   * Whether a row may leave the spec field empty, writing no link.
+   *
+   * A kind whose rows each link one of several parents (a vault belongs to a
+   * person or to its organization) marks each parent optional. A required
+   * parent whose field is empty fails the create.
+   * </pre>
+   *
+   * <code>bool optional = 4 [json_name = "optional"];</code>
+   * @return The optional.
+   */
+  boolean getOptional();
 }

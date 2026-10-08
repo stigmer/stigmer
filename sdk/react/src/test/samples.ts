@@ -29,9 +29,9 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import {
-  EnvironmentSchema,
-  type Environment,
-} from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+  VaultSchema,
+  type Vault,
+} from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import {
   ApiKeySchema,
   ApiKeyStatusSchema,
@@ -200,7 +200,7 @@ export interface McpServerOverrides {
   readonly description?: string;
 }
 
-export interface EnvironmentOverrides {
+export interface VaultOverrides {
   readonly id?: string;
   readonly name?: string;
   readonly org?: string;
@@ -402,19 +402,20 @@ export const samples = {
   },
 
   /**
-   * An environment resource.
-   * Default: `demo-env` in org `demo`.
+   * A shared vault resource, values blanked as every read is.
+   * Default: `demo-vault` in org `demo`.
    */
-  environment(o?: EnvironmentOverrides): Environment {
-    return create(EnvironmentSchema, {
+  vault(o?: VaultOverrides): Vault {
+    return create(VaultSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "Environment",
+      kind: "Vault",
       metadata: create(ApiResourceMetadataSchema, {
-        id: o?.id ?? "env-00000000-0000-0000-0000-000000000001",
-        name: o?.name ?? "demo-env",
-        slug: o?.slug ?? o?.name ?? "demo-env",
+        id: o?.id ?? "vlt-00000000-0000-0000-0000-000000000001",
+        name: o?.name ?? "demo-vault",
+        slug: o?.slug ?? o?.name ?? "demo-vault",
         org: o?.org ?? "demo",
       }),
+      spec: { owner: { case: "org", value: o?.org ?? "demo" } },
     });
   },
 

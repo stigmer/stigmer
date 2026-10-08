@@ -4,7 +4,7 @@
  * operation and return without waiting for it (stigmer/stigmer#425).
  *
  * Everything that needs the caller's identity — OAuth refresh pre-flight,
- * personal-environment resolution, ExecutionContext creation, token
+ * the caller's vault resolution, ExecutionContext creation, token
  * minting — runs synchronously here via prepareConnect, exactly as in the
  * blocking connect. Only awaiting the workflow moves to a detached settle
  * task, which records the terminal connect_status and cleans up the

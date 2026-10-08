@@ -7,14 +7,19 @@
  * (store/__tests__/organization-census.ts), and its slug can be taken.
  *
  * The seed. The kinds a trusted-local server creates without an engine go
- * through their RPCs (an agent and its version archive, a share of it, an
- * environment holding a sealed secret, a session), so the purge meets rows
- * as their own chains wrote them; every other kind the core purges is
+ * through their RPCs (an agent and its version archive, a share of it, a
+ * shared vault holding a sealed secret and an external id, the caller's My
+ * vault, a session), so the purge meets rows as their own chains wrote
+ * them, and the two vaults' name claims (the external id's, and the
+ * person's one My vault per organization) as the vault chains took them; every other kind the core purges is
  * stored directly with the organization in `metadata.org` (an API key with
  * it in `spec.bound_org`), with the side-table records a run or a schedule
- * leaves (the fire ledger, an OAuth grant and a pending OAuth state), and
+ * leaves (the fire ledger and a pending OAuth state), and
  * an access row on the agent. A
  * second organization holds the same shapes and must keep all of them.
+ * The census sees both vault name claims before the purge and neither
+ * after, so the doomed organization's external id and its person's My
+ * vault can be taken again.
  *
  * A unit's stage runs twice: in its place and again in the final stage's
  * sweep, for a row written after it first passed; it reads the
@@ -40,7 +45,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
-import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
+import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -110,7 +115,7 @@ const STORED_KINDS = [...CORE_PURGED_KINDS].filter(
     kind !== ApiResourceKind.iam_policy &&
     kind !== ApiResourceKind.agent &&
     kind !== ApiResourceKind.agent_share &&
-    kind !== ApiResourceKind.environment &&
+    kind !== ApiResourceKind.vault &&
     kind !== ApiResourceKind.session,
 );
 
@@ -125,7 +130,7 @@ export function describeOrganizationPurge(
     let organizationQuery: Client<typeof OrganizationQueryController>;
     let agents: Client<typeof AgentCommandController>;
     let shares: Client<typeof AgentShareCommandController>;
-    let environments: Client<typeof EnvironmentCommandController>;
+    let vaults: Client<typeof VaultCommandController>;
     let sessions: Client<typeof SessionCommandController>;
     let internalSessions: Client<typeof SessionCommandController>;
     let platform: Client<typeof IamPolicyCommandController>;
@@ -186,7 +191,7 @@ export function describeOrganizationPurge(
       organizationQuery = createClient(OrganizationQueryController, transport);
       agents = createClient(AgentCommandController, transport);
       shares = createClient(AgentShareCommandController, transport);
-      environments = createClient(EnvironmentCommandController, transport);
+      vaults = createClient(VaultCommandController, transport);
       sessions = createClient(SessionCommandController, transport);
       internalSessions = createClient(
         SessionCommandController,
@@ -204,7 +209,9 @@ export function describeOrganizationPurge(
     });
 
     /** An organization holding a row of every kind and a record in every side table; answers every id it owns. */
-    async function seeded(slug: string): Promise<{ org: string; ids: Set<string> }> {
+    async function seeded(
+      slug: string,
+    ): Promise<{ org: string; ids: Set<string>; vaultIds: ReadonlyArray<string> }> {
       const created = await organizations.create({
         apiVersion: "tenancy.stigmer.ai/v1",
         kind: "Organization",
@@ -230,13 +237,24 @@ export function describeOrganizationPurge(
         spec: { agentRef: { kind: ApiResourceKind.agent, slug: agent.metadata?.slug ?? "" }, enabled: true },
       });
       ids.add(share.metadata?.id ?? "");
-      const environment = await environments.create({
+      const vault = await vaults.create({
         apiVersion: API_VERSION,
-        kind: "Environment",
-        metadata: { name: `${slug}-env`, org },
-        spec: { data: { TOKEN: { value: "s3cr3t", isSecret: true } } },
+        kind: "Vault",
+        metadata: { name: `${slug}-vault`, org },
+        spec: { description: "seeded for the purge proof", externalId: `${slug}-external` },
       });
-      ids.add(environment.metadata?.id ?? "");
+      const vaultId = vault.metadata?.id ?? "";
+      await vaults.setSecrets({
+        vault: { org, vault: { case: "id", value: vaultId } },
+        secrets: { TOKEN: { value: "s3cr3t", description: "" } },
+      });
+      ids.add(vaultId);
+      const mine = await vaults.setSecrets({
+        vault: { org, vault: { case: "mine", value: true } },
+        secrets: { MINE: { value: "m1ne", description: "" } },
+      });
+      const myVaultId = mine.metadata?.id ?? "";
+      ids.add(myVaultId);
       const session = await sessions.create({
         apiVersion: API_VERSION,
         kind: "Session",
@@ -285,21 +303,6 @@ export function describeOrganizationPurge(
         recordedAt: new Date().toISOString(),
         completedAt: "",
       });
-      await store.oauthGrants.upsert({
-        identityAccountId: "ida_purge_reader",
-        resourceId: `mcp_server_${slug}`,
-        resourceKind: "mcp_server",
-        orgId: org,
-        accessTokenExpiresAt: 0,
-        clientId: "c",
-        authMethod: "mcp_oauth",
-        tokenEndpoint: "https://example.test/token",
-        accessTokenEnvVar: "TOKEN",
-        refreshTokenEnvVar: "",
-        environmentId: "",
-        createdAt: 0,
-        updatedAt: 0,
-      });
       await store.pendingOAuthStates.save({
         state: `state_${slug}`,
         codeVerifier: "enc:v1:sealed",
@@ -313,9 +316,11 @@ export function describeOrganizationPurge(
         tokenAuthMethod: "",
         redirectUri: "http://127.0.0.1/cb",
         org,
+        vaultId: "",
+        toolAddress: "",
         createdAt: Math.floor(Date.now() / 1000),
       });
-      return { org, ids };
+      return { org, ids, vaultIds: [vaultId, myVaultId] };
     }
 
     async function purged(org: string): Promise<void> {
@@ -332,6 +337,19 @@ export function describeOrganizationPurge(
     it("leaves no stored row naming the organization or anything it owned, keeps another organization's, and frees its slug", async () => {
       const doomed = await seeded("purge-doomed");
       const kept = await seeded("purge-kept");
+
+      const before = await database().census(dir);
+      try {
+        const claimed = (await organizationCensus(before.reader, doomed.ids))
+          .filter((finding) => finding.table === "resource_names")
+          .map((finding) => finding.id);
+        expect(
+          new Set(claimed),
+          "the seed's vaults hold their name claims (the external id's and the My vault's)",
+        ).toEqual(new Set([doomed.org, ...doomed.vaultIds]));
+      } finally {
+        await before.close();
+      }
 
       held.add(doomed.org);
       await organizations.delete({ value: doomed.org });
@@ -363,6 +381,13 @@ export function describeOrganizationPurge(
       const census = await database().census(dir);
       try {
         expect(await organizationCensus(census.reader, doomed.ids)).toEqual([]);
+        const keptClaims = (await organizationCensus(census.reader, kept.ids))
+          .filter((finding) => finding.table === "resource_names")
+          .map((finding) => finding.id);
+        expect(
+          new Set(keptClaims),
+          "another organization's vaults keep their name claims",
+        ).toEqual(new Set([kept.org, ...kept.vaultIds]));
         const survivors = await organizationCensus(census.reader, kept.ids);
         expect(
           new Set(survivors.map((finding) => finding.id)),

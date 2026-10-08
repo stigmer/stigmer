@@ -94,7 +94,7 @@ Private by default, expandable to org via an additional tuple:
 define viewer: ([identity_account, organization#viewer] and affiliated from organization) or owner
 ```
 
-Resources: `environment`. It is personal by default and shared with the organization by its visibility, and its owner arm keeps the organization's admins out of a personal one's secrets.
+Resources: none since vaults replaced environments. A vault (`agentic/vault.fga`) is either a person's own My vault, which nobody else reaches (its organization's admins included), or the organization's shared vault, which its admins manage and let people use through `user` grants or org visibility.
 
 ### Inherited Visibility (Runs)
 
@@ -127,7 +127,7 @@ The bound is what makes leaving an organization mean what it says. A person who 
 
 `affiliated` is stored so the bound costs one read: a computed `viewer or guest` would walk the role chain again for every object a list checks. It is derived, never granted. The tuple stands exactly while the person holds at least one role row on the organization, a guest included. The IamPolicy grant path refuses it as a grant, and announces every change of a person's organization rows through the resource-authorization lifecycle (`onOrganizationAffiliationChanging` before a row goes, `onOrganizationAffiliationChanged` after any write or delete). The hosted edition re-derives the tuple from those announcements; open source derives it from the rows at check time, so it needs no migration.
 
-`affiliated` includes `guest` because the organization's system accounts (the guest, channel and schedule sessions) hold only `guest` and own the sessions and environments they create. The usersets on the same direct list (`organization#viewer`, `team#member`) are already inside the organization, so bounding them changes nothing. Child-organization visibility (`child_org_viewer`) sits outside the bound: it is the one arm that crosses organizations by design, from a parent to its children. A relation that is the kind's structural parent link stays a direct relation, and the bound goes on the permissions that read it instead (`memory.subject_in_organization`).
+`affiliated` includes `guest` because the organization's system accounts (the guest, channel and schedule sessions) hold only `guest` and own the sessions they create. The usersets on the same direct list (`organization#viewer`, `team#member`) are already inside the organization, so bounding them changes nothing. Child-organization visibility (`child_org_viewer`) sits outside the bound: it is the one arm that crosses organizations by design, from a parent to its children. A relation that is the kind's structural parent link stays a direct relation, and the bound goes on the permissions that read it instead (`memory.subject_in_organization`).
 
 Resources: every type with an `organization` relation and a direct `identity_account` list
 
@@ -283,7 +283,6 @@ fga/
 │       ├── agent_channel.fga       # An agent's distribution channels (owner-scoped)
 │       ├── agent_share.fga         # An agent's shared pages (owner-scoped)
 │       ├── channel_app.fga         # Bring-your-own channel provider apps (restricted)
-│       ├── environment.fga         # Config and secrets (personal, shareable with the org)
 │       ├── execution_context.fga   # Ephemeral runtime contexts (owner-only)
 │       ├── mcp_server.fga          # MCP tool servers (open access)
 │       ├── memory.fga              # An identity's memories (subject-only)
@@ -291,7 +290,8 @@ fga/
 │       ├── run.fga                 # Runs (inherits from session)
 │       ├── schedule.fga            # Scheduled runs (owner-scoped)
 │       ├── session.fga             # Conversations (personal)
-│       └── skill.fga               # Knowledge bases (open access)
+│       ├── skill.fga               # Knowledge bases (open access)
+│       └── vault.fga               # Logins and secrets runs use (My vault, shared vaults)
 └── tests/                          # The suites: `fga model test` documents, one per behaviour
 ```
 

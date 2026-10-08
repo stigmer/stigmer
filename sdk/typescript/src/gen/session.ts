@@ -107,6 +107,9 @@ export interface SessionInput {
   harness?: Harness;
   cursorMode?: CursorMode;
   executionTarget?: ExecutionTarget;
+  vaults?: ResourceRef[];
+  secrets?: Record<string, string>;
+  connections?: Record<string, string>;
 }
 
 /** SDK input type for WorkspaceEntry. */
@@ -128,6 +131,7 @@ export interface GitRepoSourceInput {
   commit?: string;
   depth?: number;
   writeBackMode?: GitWriteBackMode;
+  token?: string;
 }
 
 /** SDK input type for LocalPathSource. */
@@ -147,6 +151,7 @@ function buildGitRepoSourceProto(input: GitRepoSourceInput) {
     commit: input.commit,
     depth: input.depth,
     writeBackMode: input.writeBackMode,
+    token: input.token,
   }));
 }
 
@@ -184,6 +189,7 @@ export function buildSessionProto(input: SessionInput): Session {
   const workspaceEntries = input.workspaceEntries?.map(buildWorkspaceEntryProto);
   const mcpServerUsages = input.mcpServerUsages?.map(buildMcpServerUsageProto);
   const skillRefs = input.skillRefs?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 43 }));
+  const vaults = input.vaults?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 59 }));
   return Object.assign(create(SessionSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Session",
@@ -207,6 +213,9 @@ export function buildSessionProto(input: SessionInput): Session {
       harness: input.harness,
       cursorMode: input.cursorMode,
       executionTarget: input.executionTarget,
+      vaults,
+      secrets: input.secrets,
+      connections: input.connections,
     })),
   }) as Session;
 }
@@ -218,6 +227,7 @@ function toGitRepoSourceInput(msg: GitRepoSource): GitRepoSourceInput {
     commit: msg.commit || undefined,
     depth: msg.depth || undefined,
     writeBackMode: msg.writeBackMode || undefined,
+    token: msg.token || undefined,
   };
 }
 
@@ -283,5 +293,8 @@ export function toSessionUpdateInput(resource: Session): SessionInput {
     harness: spec.harness || undefined,
     cursorMode: spec.cursorMode || undefined,
     executionTarget: spec.executionTarget || undefined,
+    vaults: toResourceRefInputs(spec.vaults),
+    secrets: Object.keys(spec.secrets ?? {}).length > 0 ? { ...spec.secrets } : undefined,
+    connections: Object.keys(spec.connections ?? {}).length > 0 ? { ...spec.connections } : undefined,
   };
 }

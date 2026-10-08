@@ -51,6 +51,12 @@
  * same rows; across keyset pages whatever the collation orders first; a run
  * or grant it cannot decode fails the step, naming the row, and leaves the
  * database at v15.
+ * v17 removes every environment row from every table keyed by kind and
+ * every grant naming an environment with its list keys (its history kept),
+ * across keyset pages whatever the collation orders first, drops
+ * oauth_grant (its v3 index with it), adds pending_oauth_state's vault_id
+ * and tool_address ("" on a row from before them) and keeps every other row byte for byte; a grant it cannot decode fails the step, naming
+ * the row, and leaves the database at v16.
  * A step's starting database is built by running the chain up to the step
  * before it.
  * Newer schemas are refused without writes or reconciliation; refusal
@@ -98,9 +104,11 @@ import {
   SCHEMA_VERSION_14,
   SCHEMA_VERSION_15,
   SCHEMA_VERSION_16,
+  SCHEMA_VERSION_17,
   runMigrations,
 } from "../migrations.js";
 import { RETIREMENT_PAGE_SIZE } from "../../agent-instance-retired.js";
+import { ENVIRONMENT_RETIRED_PAGE_SIZE } from "../../environment-retired.js";
 import {
   policyRow,
   retiredInstanceRow,
@@ -336,7 +344,6 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         );
         expect(names).toEqual([
           "bootstrap_state",
-          "oauth_grant",
           "organization_deletions",
           "pending_oauth_state",
           "resource_audit",
@@ -355,15 +362,12 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         );
         expect(retiredIndexes.rowCount, "no index of a dropped table is left").toBe(0);
 
-        // v3's index: the by-resource grant teardown (see migrateToV3).
+        // v3's index went with the sign-in grant table v17 drops.
         const grantIndex = await client.query(
           `SELECT indexname FROM pg_indexes
-           WHERE tablename = 'oauth_grant'
-             AND indexname = 'idx_oauth_grant_resource'`,
+           WHERE indexname = 'idx_oauth_grant_resource'`,
         );
-        expect(grantIndex.rowCount, "the v3 grant-teardown index exists").toBe(
-          1,
-        );
+        expect(grantIndex.rowCount, "no index of the dropped grant table is left").toBe(0);
       } finally {
         await client.end();
       }
@@ -405,12 +409,11 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         );
         expect(applied.rowCount, "reopen applied v2 mid-chain").toBe(1);
 
-        const grantIndex = await client.query(
-          `SELECT indexname FROM pg_indexes
-           WHERE tablename = 'oauth_grant'
-             AND indexname = 'idx_oauth_grant_resource'`,
+        // v3 ran mid-chain; its index left with the table v17 drops.
+        const v3 = await client.query(
+          `SELECT version FROM schema_version WHERE version = 3`,
         );
-        expect(grantIndex.rowCount, "reopen applied v3 mid-chain").toBe(1);
+        expect(v3.rowCount, "reopen applied v3 mid-chain").toBe(1);
 
         const version = await client.query(
           `SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`,
@@ -2764,6 +2767,151 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           expect((await row(client, "agent_run", "aex_good"))?.data).toEqual(
             runBytes("aex_good", "ses_1", AGENT_RUN_NAMES),
           );
+        } finally {
+          await client.end();
+        }
+      });
+    });
+
+    describe("v17: environments and the sign-in grant table leave the store", () => {
+      const seededAt = new Date("2026-10-08T00:00:00Z");
+      const ORG = "org_01jz0000000000000000000000";
+      const environmentBytes = new Uint8Array([0x12, 0x0b, ...new TextEncoder().encode("Environment")]);
+      const keptGrant = { id: "iamp_kept", principal: "identity_account:ida_9", relation: "viewer", resource: "agent:agt_1" };
+      const retiredGrants = [
+        { id: "iamp_on_env", principal: "identity_account:ida_1", relation: "viewer", resource: "environment:env_shared" },
+        { id: "iamp_env_principal", principal: "environment:env_shared", relation: "viewer", resource: "agent:agt_1" },
+      ];
+
+      async function clientAt(version: number): Promise<pg.Client> {
+        await migrateTo(db.databaseUrl, version);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        return client;
+      }
+
+      async function insertRow(client: pg.Client, kind: string, id: string, data: Uint8Array): Promise<void> {
+        await client.query(
+          `INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, $4)`,
+          [kind, id, Buffer.from(data), seededAt],
+        );
+      }
+
+      async function count(client: pg.Client, table: string, kind: string): Promise<number> {
+        return Number(
+          (await client.query<{ n: string }>(`SELECT COUNT(*) AS n FROM ${table} WHERE kind = $1`, [kind])).rows[0]!.n,
+        );
+      }
+
+      async function version(client: pg.Client): Promise<number> {
+        return Number(
+          (await client.query(`SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`)).rows[0].version,
+        );
+      }
+
+      async function tableExists(client: pg.Client, table: string): Promise<boolean> {
+        const found = await client.query(
+          `SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = $1`,
+          [table],
+        );
+        return (found.rowCount ?? 0) > 0;
+      }
+
+      it("removes every environment row and grant, drops oauth_grant, keeps the rest, from a store at v16", async () => {
+        const client = await clientAt(SCHEMA_VERSION_16);
+        try {
+          const agent = new Uint8Array([0x0a, 0x01, 0x61]);
+          await insertRow(client, "agent", "agt_1", agent);
+          for (const id of ["env_personal", "env_shared"]) {
+            await insertRow(client, "environment", id, environmentBytes);
+            await client.query(
+              `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('environment', $1, 'org', $2, '')`,
+              [id, ORG],
+            );
+            await client.query(
+              `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('environment', $1, $2, '', '')`,
+              [id, Buffer.from(environmentBytes)],
+            );
+            await client.query(
+              `INSERT INTO resource_names (kind, org, name, id, state, claimed_at) VALUES ('environment', $1, $2, $2, 'current', $3)`,
+              [ORG, id, seededAt],
+            );
+          }
+          for (const grant of [keptGrant, ...retiredGrants]) {
+            await insertRow(client, "iam_policy", grant.id, policyRow(grant));
+            await client.query(
+              `INSERT INTO resource_list_keys (kind, id, key, value, created_at) VALUES ('iam_policy', $1, 'principal', $2, '')`,
+              [grant.id, grant.principal.split(":")[1] ?? ""],
+            );
+          }
+          await client.query(
+            `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('iam_policy', 'iamp_on_env', $1, '', '')`,
+            [Buffer.from(policyRow(retiredGrants[0]!))],
+          );
+          await client.query(
+            `INSERT INTO oauth_grant (identity_account_id, resource_id, org_id, environment_id, created_at, updated_at)
+             VALUES ('', 'mcp_1', $1, 'env_managed', 1, 1)`,
+            [ORG],
+          );
+          await client.query(
+            `INSERT INTO pending_oauth_state (state, code_verifier, mcp_server_id, identity_account_id, created_at)
+             VALUES ('state-1', 'verifier', 'mcp_1', 'ida_1', 1)`,
+          );
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_17);
+
+          expect(await version(client)).toBe(SCHEMA_VERSION_17);
+          expect(CURRENT_SCHEMA_VERSION).toBe(SCHEMA_VERSION_17);
+          for (const table of RUN_KIND_TABLES) {
+            expect(await count(client, table, "environment"), table).toBe(0);
+          }
+          const policies = (
+            await client.query<{ id: string }>(`SELECT id FROM resources WHERE kind = 'iam_policy' ORDER BY id COLLATE "C"`)
+          ).rows.map((p) => p.id);
+          expect(policies).toEqual([keptGrant.id]);
+          const policyKeys = (
+            await client.query<{ id: string }>(`SELECT id FROM resource_list_keys WHERE kind = 'iam_policy'`)
+          ).rows.map((k) => k.id);
+          expect(policyKeys).toEqual([keptGrant.id]);
+          expect(await count(client, "resource_audit", "iam_policy"), "a removed grant keeps its history").toBe(1);
+          const kept = await client.query<{ data: Buffer }>(`SELECT data FROM resources WHERE kind = 'agent' AND id = 'agt_1'`);
+          expect(new Uint8Array(kept.rows[0]!.data)).toEqual(agent);
+          expect(await tableExists(client, "oauth_grant")).toBe(false);
+          expect(await tableExists(client, "pending_oauth_state")).toBe(true);
+          expect(
+            (await client.query(`SELECT state, vault_id, tool_address FROM pending_oauth_state`)).rows,
+            "a pending sign-in from before the step saves into the signer's My vault, at no recorded address",
+          ).toEqual([{ state: "state-1", vault_id: "", tool_address: "" }]);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("reads grants across keyset pages, missing none past the first page", async () => {
+        const client = await clientAt(SCHEMA_VERSION_16);
+        try {
+          const total = ENVIRONMENT_RETIRED_PAGE_SIZE + 3;
+          for (let i = 0; i < total; i++) {
+            const id = `${i % 2 === 0 ? "iamp_" : "IAMP-"}${String(i).padStart(4, "0")}`;
+            const resource = i % 2 === 0 ? `environment:env_${i}` : "agent:agt_1";
+            await insertRow(client, "iam_policy", id, policyRow({ id, principal: "identity_account:ida_1", relation: "viewer", resource }));
+          }
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_17);
+          expect(await count(client, "resources", "iam_policy")).toBe(Math.floor(total / 2));
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("fails on a grant it cannot decode, naming it, and leaves the database at v16", async () => {
+        const client = await clientAt(SCHEMA_VERSION_16);
+        try {
+          await insertRow(client, "environment", "env_1", environmentBytes);
+          await insertRow(client, "iam_policy", "iamp_bad", new Uint8Array([0xff, 0xff, 0xff]));
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_17)).rejects.toThrow(/iam_policy 'iamp_bad'/);
+          expect(await version(client)).toBe(SCHEMA_VERSION_16);
+          expect(await count(client, "resources", "environment")).toBe(1);
+          expect(await tableExists(client, "oauth_grant")).toBe(true);
         } finally {
           await client.end();
         }

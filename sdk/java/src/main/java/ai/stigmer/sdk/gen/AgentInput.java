@@ -6,7 +6,6 @@ import ai.stigmer.agentic.agent.v1.Agent;
 import ai.stigmer.agentic.agent.v1.AgentSpec;
 import ai.stigmer.agentic.agent.v1.HookSource;
 import ai.stigmer.agentic.agent.v1.SubAgent;
-import ai.stigmer.agentic.environment.v1.EnvVarDeclaration;
 import ai.stigmer.agentic.mcpserver.v1.McpServerUsage;
 import ai.stigmer.agentic.plugin.v1.HookConfig;
 import ai.stigmer.agentic.plugin.v1.HookFormat;
@@ -16,6 +15,7 @@ import ai.stigmer.agentic.run.v1.RunConfig;
 import ai.stigmer.agentic.run.v1.ServiceTier;
 import ai.stigmer.agentic.run.v1.ThinkingMode;
 import ai.stigmer.agentic.session.v1.Harness;
+import ai.stigmer.agentic.vault.v1.EnvVarDeclaration;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceMetadataVersion;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
@@ -42,6 +42,7 @@ public final class AgentInput {
     private final java.util.List<HookSourceInput> hooks;
     private final RunConfigInput runConfig;
     private final Harness harness;
+    private final java.util.List<ResourceRef> vaults;
 
     private AgentInput(Builder builder) {
         this.id = builder.id;
@@ -63,6 +64,7 @@ public final class AgentInput {
         this.hooks = builder.hooks;
         this.runConfig = builder.runConfig;
         this.harness = builder.harness;
+        this.vaults = builder.vaults;
     }
 
     Agent toProto() {
@@ -113,6 +115,12 @@ public final class AgentInput {
         }
         if (this.harness != null) {
             spec.setHarness(this.harness);
+        }
+        if (this.vaults != null) {
+            for (ResourceRef item : this.vaults) {
+                spec.addVaults(item.toProto().toBuilder()
+                    .setKind(ApiResourceKind.vault).build());
+            }
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
@@ -166,6 +174,7 @@ public final class AgentInput {
         private java.util.List<HookSourceInput> hooks;
         private RunConfigInput runConfig;
         private Harness harness;
+        private java.util.List<ResourceRef> vaults;
 
         private Builder() {}
 
@@ -193,6 +202,7 @@ public final class AgentInput {
         public Builder hooks(java.util.List<HookSourceInput> hooks) { this.hooks = hooks; return this; }
         public Builder runConfig(RunConfigInput runConfig) { this.runConfig = runConfig; return this; }
         public Builder harness(Harness harness) { this.harness = harness; return this; }
+        public Builder vaults(java.util.List<ResourceRef> vaults) { this.vaults = vaults; return this; }
 
         public AgentInput build() { return new AgentInput(this); }
     }
@@ -306,11 +316,13 @@ public final class AgentInput {
         private final boolean isSecret;
         private final String description;
         private final boolean optional;
+        private final String value;
 
         private EnvVarDeclarationInput(Builder builder) {
             this.isSecret = builder.isSecret;
             this.description = builder.description;
             this.optional = builder.optional;
+            this.value = builder.value;
         }
 
         EnvVarDeclaration toProto() {
@@ -320,6 +332,9 @@ public final class AgentInput {
                 builder.setDescription(this.description);
             }
             builder.setOptional(this.optional);
+            if (this.value != null) {
+                builder.setValue(this.value);
+            }
             return builder.build();
         }
 
@@ -329,12 +344,14 @@ public final class AgentInput {
             private boolean isSecret;
             private String description;
             private boolean optional;
+            private String value;
 
             private Builder() {}
 
             public Builder isSecret(boolean isSecret) { this.isSecret = isSecret; return this; }
             public Builder description(String description) { this.description = description; return this; }
             public Builder optional(boolean optional) { this.optional = optional; return this; }
+            public Builder value(String value) { this.value = value; return this; }
 
             public EnvVarDeclarationInput build() { return new EnvVarDeclarationInput(this); }
         }

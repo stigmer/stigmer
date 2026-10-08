@@ -17,9 +17,10 @@ import { PlatformClientDetailPanel } from "../PlatformClientDetailPanel";
 /**
  * Regression suite for the full-spec-replace wipe bug: before the
  * generated-mapper migration, this panel hand-built its update input and
- * NEVER sent `environment_refs` — saving any edit silently wiped the
- * client's credential-delivery environment bindings. The panel must
- * spread `toPlatformClientUpdateInput` and override only what it edits.
+ * NEVER sent the client's credential bindings — saving any edit silently
+ * wiped them. The panel spreads `toPlatformClientUpdateInput` and
+ * overrides only what it edits; the vaults it now edits itself start from
+ * the stored list, so an edit of something else keeps them.
  *
  * Also pins how the panel presents an expired client (#1254): the view
  * says "Expired", and the rotate confirmation says rotating will not help,
@@ -52,8 +53,8 @@ const PLATFORM_CLIENT: PlatformClient = create(PlatformClientSchema, {
     createAccountsOnSignIn: true,
     signInRole: IamRole.admin,
     allowedOrigins: ["https://embed.acme.example"],
-    environmentRefs: [
-      { org: "acme", slug: "prod", kind: ApiResourceKind.environment },
+    vaults: [
+      { org: "acme", slug: "prod", kind: ApiResourceKind.vault },
     ],
   },
 });
@@ -73,6 +74,7 @@ function renderPanel(
   const client = {
     platformclient: { update },
     iamPolicy: { checkMyPermission },
+    vault: { list: async () => ({ items: [], totalCount: 0 }) },
   } as never;
   return render(
     <StigmerContext.Provider value={client}>
@@ -96,7 +98,7 @@ const ROTATE_WILL_NOT_HELP =
 afterEach(cleanup);
 
 describe("PlatformClientDetailPanel save payload", () => {
-  it("round-trips environment_refs on an origins-only edit (the wipe bug)", async () => {
+  it("round-trips vaults on an origins-only edit (the wipe bug)", async () => {
     const update = vi.fn(async (_input: PlatformClientInput) => PLATFORM_CLIENT);
     renderPanel(update);
 
@@ -106,11 +108,8 @@ describe("PlatformClientDetailPanel save payload", () => {
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
     const input = update.mock.calls[0]![0];
 
-    // The wipe-bug guard: the form does not render environment bindings,
-    // yet they must survive the save.
-    expect(input.environmentRefs).toEqual([
-      { org: "acme", slug: "prod", kind: ApiResourceKind.environment },
-    ]);
+    // The wipe-bug guard: an origins-only edit keeps the stored vaults.
+    expect(input.vaults).toEqual([{ org: "acme", slug: "prod" }]);
     // Form-owned fields round-trip from the edit state.
     expect(input.allowedOrigins).toEqual(["https://embed.acme.example"]);
     expect(input.createAccountsOnSignIn).toBe(true);

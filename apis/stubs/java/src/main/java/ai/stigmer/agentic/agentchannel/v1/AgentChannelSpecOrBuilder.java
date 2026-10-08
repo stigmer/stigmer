@@ -122,76 +122,76 @@ public interface AgentChannelSpecOrBuilder extends
 
   /**
    * <pre>
-   * References to Environment resources whose values are provided to
-   * conversations on this channel.
+   * Vaults whose logins and secrets conversations on this channel use, in
+   * order: the first vault holding a match wins. At most 20.
    *
-   * This is how a tool-using agent becomes chattable over a channel: bind
-   * an org-shared environment holding the needed credentials (for example
-   * a read-only API token), and channel runs receive its values at
-   * runtime. The agent itself stays untouched.
+   * This is how a tool-using agent becomes chattable over a channel: attach a
+   * shared vault holding the needed keys (for example a read-only API token).
+   * A channel's runs have no person, so they use only these vaults, never
+   * anyone's My vault. A My vault cannot be attached.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 9 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
   java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> 
-      getEnvironmentRefsList();
+      getVaultsList();
   /**
    * <pre>
-   * References to Environment resources whose values are provided to
-   * conversations on this channel.
+   * Vaults whose logins and secrets conversations on this channel use, in
+   * order: the first vault holding a match wins. At most 20.
    *
-   * This is how a tool-using agent becomes chattable over a channel: bind
-   * an org-shared environment holding the needed credentials (for example
-   * a read-only API token), and channel runs receive its values at
-   * runtime. The agent itself stays untouched.
+   * This is how a tool-using agent becomes chattable over a channel: attach a
+   * shared vault holding the needed keys (for example a read-only API token).
+   * A channel's runs have no person, so they use only these vaults, never
+   * anyone's My vault. A My vault cannot be attached.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 9 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
-  ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRefs(int index);
+  ai.stigmer.commons.apiresource.ApiResourceReference getVaults(int index);
   /**
    * <pre>
-   * References to Environment resources whose values are provided to
-   * conversations on this channel.
+   * Vaults whose logins and secrets conversations on this channel use, in
+   * order: the first vault holding a match wins. At most 20.
    *
-   * This is how a tool-using agent becomes chattable over a channel: bind
-   * an org-shared environment holding the needed credentials (for example
-   * a read-only API token), and channel runs receive its values at
-   * runtime. The agent itself stays untouched.
+   * This is how a tool-using agent becomes chattable over a channel: attach a
+   * shared vault holding the needed keys (for example a read-only API token).
+   * A channel's runs have no person, so they use only these vaults, never
+   * anyone's My vault. A My vault cannot be attached.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 9 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
-  int getEnvironmentRefsCount();
+  int getVaultsCount();
   /**
    * <pre>
-   * References to Environment resources whose values are provided to
-   * conversations on this channel.
+   * Vaults whose logins and secrets conversations on this channel use, in
+   * order: the first vault holding a match wins. At most 20.
    *
-   * This is how a tool-using agent becomes chattable over a channel: bind
-   * an org-shared environment holding the needed credentials (for example
-   * a read-only API token), and channel runs receive its values at
-   * runtime. The agent itself stays untouched.
+   * This is how a tool-using agent becomes chattable over a channel: attach a
+   * shared vault holding the needed keys (for example a read-only API token).
+   * A channel's runs have no person, so they use only these vaults, never
+   * anyone's My vault. A My vault cannot be attached.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 9 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
   java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
-      getEnvironmentRefsOrBuilderList();
+      getVaultsOrBuilderList();
   /**
    * <pre>
-   * References to Environment resources whose values are provided to
-   * conversations on this channel.
+   * Vaults whose logins and secrets conversations on this channel use, in
+   * order: the first vault holding a match wins. At most 20.
    *
-   * This is how a tool-using agent becomes chattable over a channel: bind
-   * an org-shared environment holding the needed credentials (for example
-   * a read-only API token), and channel runs receive its values at
-   * runtime. The agent itself stays untouched.
+   * This is how a tool-using agent becomes chattable over a channel: attach a
+   * shared vault holding the needed keys (for example a read-only API token).
+   * A channel's runs have no person, so they use only these vaults, never
+   * anyone's My vault. A My vault cannot be attached.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference vaults = 9 [json_name = "vaults", (.buf.validate.field) = { ... }</code>
    */
-  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefsOrBuilder(
+  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getVaultsOrBuilder(
       int index);
 
   /**

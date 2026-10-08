@@ -5,8 +5,8 @@
  *
  * The portable file owns what every client reads: the transport (`http`
  * url and headers, or `stdio` command and args) and the variables the
- * server references, which become `EnvVarDeclaration`s the runner resolves
- * from the user's Environment. The overlay owns what only Stigmer reads:
+ * server references, which become `EnvVarDeclaration`s a run fills from
+ * the session's own values and the vaults it resolves. The overlay owns what only Stigmer reads:
  * OAuth (`auth`), scope hints, the icon, tags,
  * the repository link, and a richer description. An overlay that sets the
  * transport or declares env is refused: the portable file is the one home
@@ -21,8 +21,8 @@
 import { create } from "@bufbuild/protobuf";
 
 import type { PluginMcpServer, PluginPackage } from "@stigmer/plugin-package";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
-import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
+import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import {

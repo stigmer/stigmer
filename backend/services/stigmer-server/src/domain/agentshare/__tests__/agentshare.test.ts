@@ -37,7 +37,7 @@ import { AgentShareQueryController } from "@stigmer/protos/ai/stigmer/agentic/ag
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -401,30 +401,31 @@ describe("launch-gate config", () => {
     expect(update.code).toBe(Code.InvalidArgument);
   });
 
-  it("environment_refs on an org-audience share is INVALID_ARGUMENT; public persists", async () => {
+  it("vaults on an org-audience share is INVALID_ARGUMENT; public persists with its attacher recorded", async () => {
     const agent = await createTestAgent(
-      uniqueName("Env Refs Audience Agent"),
+      uniqueName("Vaults Audience Agent"),
       ORG,
     );
-    // The environment must exist when the share is written (the reference rule).
+    // The vault must exist when the share is written (the reference rule).
     await server.store.saveResource(
-      ApiResourceKind.environment,
-      "env_shared_credentials",
-      EnvironmentSchema,
-      create(EnvironmentSchema, {
+      ApiResourceKind.vault,
+      "vlt_shared_credentials",
+      VaultSchema,
+      create(VaultSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
-        kind: "Environment",
+        kind: "Vault",
         metadata: {
-          id: "env_shared_credentials",
+          id: "vlt_shared_credentials",
           name: "shared-credentials",
           slug: "shared-credentials",
           org: idOf(ORG),
           visibility: ApiResourceVisibility.visibility_org,
         },
+        spec: { owner: { case: "org", value: idOf(ORG) } },
       }),
     );
-    const envRef = {
-      kind: ApiResourceKind.environment,
+    const vaultRef = {
+      kind: ApiResourceKind.vault,
       org: ORG,
       slug: "shared-credentials",
     };
@@ -435,7 +436,7 @@ describe("launch-gate config", () => {
         spec: {
           ...shareFor(agent, true).spec,
           audience: AgentShareAudience.org,
-          environmentRefs: [envRef],
+          vaults: [vaultRef],
         },
       }),
     );
@@ -446,11 +447,48 @@ describe("launch-gate config", () => {
       spec: {
         ...shareFor(agent, true).spec,
         audience: AgentShareAudience.public,
-        environmentRefs: [envRef],
+        vaults: [vaultRef],
       },
     });
-    expect(created.spec?.environmentRefs).toHaveLength(1);
-    expect(created.spec?.environmentRefs[0]?.slug).toBe("shared-credentials");
+    expect(created.spec?.vaults).toHaveLength(1);
+    expect(created.spec?.vaults[0]?.slug).toBe("shared-credentials");
+    expect(
+      created.status?.vaultAttachers["vlt_shared_credentials"],
+    ).not.toBe("");
+  });
+
+  it("a My vault cannot be attached to a share", async () => {
+    const agent = await createTestAgent(uniqueName("My Vault Share Agent"), ORG);
+    await server.store.saveResource(
+      ApiResourceKind.vault,
+      "vlt_someones_own",
+      VaultSchema,
+      create(VaultSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Vault",
+        metadata: {
+          id: "vlt_someones_own",
+          name: "My vault",
+          slug: "my-vault-someones-own",
+          org: idOf(ORG),
+        },
+        spec: { owner: { case: "person", value: "ida_someone" } },
+      }),
+    );
+    const err = await grpcError(() =>
+      shares.create({
+        ...shareFor(agent, true),
+        spec: {
+          ...shareFor(agent, true).spec,
+          audience: AgentShareAudience.public,
+          vaults: [
+            { kind: ApiResourceKind.vault, org: ORG, slug: "my-vault-someones-own" },
+          ],
+        },
+      }),
+    );
+    expect(err.code).toBe(Code.FailedPrecondition);
+    expect(err.rawMessage).toMatch(/a My vault cannot be attached to a share link/);
   });
 });
 

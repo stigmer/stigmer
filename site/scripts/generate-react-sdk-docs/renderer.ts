@@ -47,8 +47,8 @@ export const DOMAIN_GROUPS: readonly DomainGroup[] = [
     slugs: ["mcp-server", "skill", "plugin", "library", "memory"],
   },
   {
-    label: "Environment & Config",
-    slugs: ["environment", "workspace", "models"],
+    label: "Vaults & Config",
+    slugs: ["vault", "workspace", "models"],
   },
   {
     label: "Identity & Access",

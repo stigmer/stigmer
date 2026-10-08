@@ -6,12 +6,13 @@ from ai.stigmer.platform.github.v1 import service_pb2 as ai_dot_stigmer_dot_plat
 
 
 class GitHubServiceStub(object):
-    """GitHubService provides OAuth integration with GitHub.
+    """GitHubService connects a GitHub account through OAuth.
 
-    Use this service to connect a GitHub account via OAuth and obtain
-    an access token for GitHub API calls. The service manages the
-    authorize URL construction and the authorization-code-for-token
-    exchange so callers do not handle OAuth details directly.
+    The service builds the authorize URL and exchanges the authorization code
+    for a token, which it saves as the github.com login in the caller's My
+    vault. The token is never returned: repository listing, search and file
+    reads go through GitHubQueryController, and runs clone with the saved
+    login.
     """
 
     def __init__(self, channel):
@@ -33,31 +34,36 @@ class GitHubServiceStub(object):
 
 
 class GitHubServiceServicer(object):
-    """GitHubService provides OAuth integration with GitHub.
+    """GitHubService connects a GitHub account through OAuth.
 
-    Use this service to connect a GitHub account via OAuth and obtain
-    an access token for GitHub API calls. The service manages the
-    authorize URL construction and the authorization-code-for-token
-    exchange so callers do not handle OAuth details directly.
+    The service builds the authorize URL and exchanges the authorization code
+    for a token, which it saves as the github.com login in the caller's My
+    vault. The token is never returned: repository listing, search and file
+    reads go through GitHubQueryController, and runs clone with the saved
+    login.
     """
 
     def getOAuthAuthorizeUrl(self, request, context):
         """Get the GitHub OAuth authorize URL for initiating the OAuth flow.
 
-        Returns a URL to redirect the user to and a random state value for
-        CSRF protection. After the user authorizes, GitHub redirects back
-        to your redirect_uri with an authorization code.
+        Returns a URL to redirect the user to and a random state value. After
+        the user authorizes, GitHub redirects back to your redirect_uri with an
+        authorization code, which exchangeOAuthCode accepts only with this state,
+        from the same person, for the same organization.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def exchangeOAuthCode(self, request, context):
-        """Exchange a GitHub OAuth authorization code for an access token.
+        """Exchange a GitHub OAuth authorization code and save the login in the
+        caller's My vault.
 
         Call this after receiving the authorization code from GitHub's OAuth
         redirect. Pass the code, the state from the original authorize request,
-        and the same redirect_uri. Returns an access token for GitHub API calls.
+        the same redirect_uri, and the organization whose My vault keeps the
+        login. Returns the connected account's login and granted scopes; the
+        token itself is saved as the github.com connection and never returned.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -85,12 +91,13 @@ def add_GitHubServiceServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class GitHubService(object):
-    """GitHubService provides OAuth integration with GitHub.
+    """GitHubService connects a GitHub account through OAuth.
 
-    Use this service to connect a GitHub account via OAuth and obtain
-    an access token for GitHub API calls. The service manages the
-    authorize URL construction and the authorization-code-for-token
-    exchange so callers do not handle OAuth details directly.
+    The service builds the authorize URL and exchanges the authorization code
+    for a token, which it saves as the github.com login in the caller's My
+    vault. The token is never returned: repository listing, search and file
+    reads go through GitHubQueryController, and runs clone with the saved
+    login.
     """
 
     @staticmethod

@@ -17,8 +17,6 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
-import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
@@ -37,11 +35,6 @@ const mcpServer = create(McpServerSchema, {
   metadata: { slug: "m", org: "acme" },
 });
 const skill = create(SkillSchema, { apiVersion: "v1", kind: "skill", metadata: { slug: "s", org: "acme" } });
-const environment = create(EnvironmentSchema, {
-  apiVersion: "v1",
-  kind: "environment",
-  metadata: { slug: "e", org: "acme" },
-});
 
 let backend: Http2Server;
 let client: Client;
@@ -62,7 +55,6 @@ beforeAll(async () => {
         return skill;
       },
     });
-    router.service(EnvironmentQueryController, { getByReference: () => environment });
   };
   backend = createHttp2Server(connectNodeAdapter({ routes }));
   backend.on("session", (session) => {
@@ -93,7 +85,6 @@ describe("resource templates integration", () => {
         "stigmer_mcp_server",
         "stigmer_skill",
         "stigmer_skill_version",
-        "stigmer_environment",
       ]),
     );
   });
@@ -126,14 +117,5 @@ describe("resource templates integration", () => {
   it("reads a pinned skill version", async () => {
     await client.readResource({ uri: "stigmer://skills/acme/s/v2.0.0" });
     expect(lastSkillVersion).toBe("v2.0.0");
-  });
-
-  it("reads an environment resource", async () => {
-    const result = (await client.readResource({
-      uri: "stigmer://environments/acme/e",
-    })) as ResourceResult;
-    expect(JSON.parse(result.contents[0]?.text ?? "{}")).toEqual(
-      toJson(EnvironmentSchema, environment, { useProtoFieldName: true }),
-    );
   });
 });

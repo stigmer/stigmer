@@ -31,7 +31,6 @@ import { textOrError } from "../toolresult.js";
  */
 const knownKinds: Readonly<Record<string, ApiResourceKind>> = {
   agent: ApiResourceKind.agent,
-  environment: ApiResourceKind.environment,
   skill: ApiResourceKind.skill,
   mcp_server: ApiResourceKind.mcp_server,
 };
@@ -50,15 +49,15 @@ export function registerSearchTools(server: McpServer, target: BackendTarget): s
     "search",
     {
       description:
-        "Search and list Stigmer resources (agents, skills, MCP servers, " +
-        "environments). Set 'kinds' to filter by resource type. Set 'query' for full-text search. " +
+        "Search and list Stigmer resources (agents, skills, MCP servers). " +
+        "Set 'kinds' to filter by resource type. Set 'query' for full-text search. " +
         "Set 'org' to scope to an organization. Omit 'query' to list all accessible resources.",
       inputSchema: {
         kinds: z
           .array(z.string())
           .optional()
           .describe(
-            "Resource kinds to search. Valid: agent, skill, mcp_server, environment. Empty searches all.",
+            "Resource kinds to search. Valid: agent, skill, mcp_server. Empty searches all.",
           ),
         query: z
           .string()
@@ -121,7 +120,7 @@ function parseKinds(raw: string[] | undefined): ApiResourceKind[] {
     const kind = knownKinds[s];
     if (kind === undefined) {
       throw new Error(
-        `unknown resource kind "${s}"; valid kinds: agent, skill, mcp_server, environment`,
+        `unknown resource kind "${s}"; valid kinds: agent, skill, mcp_server`,
       );
     }
     return kind;

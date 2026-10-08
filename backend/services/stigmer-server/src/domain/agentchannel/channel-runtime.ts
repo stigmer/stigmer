@@ -43,9 +43,8 @@
  *     OSS keeps only the edition-neutral pin EXISTENCE rule (steps.ts,
  *     stigmer/stigmer#774).
  *   - teardownOnDelete: the delete-time cascade over runtime state OSS
- *     never materializes (controller.ts delete header: the managed
- *     credentials environment, the OAuth grant, pending-delivery
- *     abandonment). Spliced teardown-BEFORE-row-delete so a failed
+ *     never materializes (controller.ts delete header: the edition's
+ *     sealed channel credentials, pending-delivery abandonment). Spliced teardown-BEFORE-row-delete so a failed
  *     teardown leaves the row for an idempotent retry (dependent state
  *     dies before the row). A thrown
  *     error fails the delete; fail-soft arms are the driver's own choice,
@@ -198,8 +197,8 @@ export interface ChannelRuntime {
    */
   enforceWriteConstraints(channel: AgentChannel): Promise<void>;
   /**
-   * The delete-time cascade over runtime state (credentials environment,
-   * OAuth grant, pending deliveries), invoked after LoadExistingForDelete
+   * The delete-time cascade over runtime state (the edition's sealed
+   * channel credentials, pending deliveries), invoked after LoadExistingForDelete
    * and BEFORE the row delete — a thrown error fails the delete and
    * leaves the row for an idempotent retry.
    */
