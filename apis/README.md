@@ -112,6 +112,28 @@ make clean
 make prep
 ```
 
+## Agent output formats
+
+Stigmer never invents a format for what an agent did. The rule covers every new
+surface that emits an agent's output: a session's event stream, an export, and
+each adapter to another protocol (A2A, OpenTelemetry GenAI, AG-UI).
+
+- The surface is compatible with a named outside specification at a pinned
+  version, and its documentation states that claim with the version.
+- A conformance test drives the surface with that specification's own SDK or
+  schema. The pin moves only by a deliberate bump that reruns the test.
+- Stigmer-only data uses the specification's own extension mechanism under a
+  `stigmer.` namespace. Where the specification has none, it travels as separate
+  `stigmer.`-namespaced events. It is never a field added to one of the
+  specification's own messages.
+
+Two surfaces predate the rule: the run transcript on `RunStatus`
+(`ai/stigmer/agentic/run/v1/api.proto`, `message.proto`) and the CLI's NDJSON
+run stream (`client-apps/cli/src/resources/stream/render-ndjson.ts`). They are
+maintained until a compatible surface replaces them, and changing them is not
+forbidden by this rule; a new kind of output is added to the compatible surface,
+not to them.
+
 ## Development Workflow
 
 1. **Modify protos**: Edit `.proto` files in the appropriate subdirectory
