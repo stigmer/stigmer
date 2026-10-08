@@ -128,11 +128,12 @@ each adapter to another protocol (A2A, OpenTelemetry GenAI, AG-UI).
   specification's own messages.
 
 Two surfaces predate the rule: the run transcript on `RunStatus`
-(`ai/stigmer/agentic/run/v1/api.proto`, `message.proto`) and the CLI's NDJSON
-run stream (`client-apps/cli/src/resources/stream/render-ndjson.ts`). They are
-maintained until a compatible surface replaces them, and changing them is not
-forbidden by this rule; a new kind of output is added to the compatible surface,
-not to them.
+(`apis/ai/stigmer/agentic/run/v1/api.proto` and `message.proto` beside it) and
+the CLI's NDJSON run stream
+(`client-apps/cli/src/resources/stream/render-ndjson.ts`), both paths from the
+repository root. They are maintained, and may still gain new kinds of output,
+until a compatible surface replaces them; from then on new output goes only to
+the compatible surface.
 
 ## Development Workflow
 
