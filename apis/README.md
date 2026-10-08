@@ -126,6 +126,10 @@ each adapter to another protocol (A2A, OpenTelemetry GenAI, AG-UI).
   `stigmer.` namespace. Where the specification has none, it travels as separate
   `stigmer.`-namespaced events. It is never a field added to one of the
   specification's own messages.
+- An extension is optional. A client that ignores every `stigmer.` extension
+  still gets a complete session: nothing waits on an answer that the
+  specification's own clients cannot see or send, and a Stigmer-only step that
+  needs one stays off unless a Stigmer client turns it on.
 
 Two surfaces predate the rule: the run transcript on `RunStatus`
 (`apis/ai/stigmer/agentic/run/v1/api.proto` and `message.proto` beside it) and
