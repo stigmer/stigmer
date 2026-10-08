@@ -143,6 +143,8 @@ summary line in the final message. Never report unverified work as done.
   generated docs under `docs/sdk/`, the compiled authorization model, the Cursor
   shims in `.cursor/rules/agents-*.mdc` and `.cursor/hooks.json`. Re-run the
   generator.
+- New agent output claims a pinned outside spec: `apis/README.md`, "Agent output
+  formats".
 - Wire identifiers are pinned bytes: Temporal workflow, activity and queue
   names, proto field names, event kinds. A rename is a protocol break, not a
   cleanup.
