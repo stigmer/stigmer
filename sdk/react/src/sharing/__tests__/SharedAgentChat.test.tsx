@@ -8,8 +8,10 @@ import type { UseSharedAgentProfileReturn } from "../useSharedAgentProfile";
 // The session organisms are replaced with prop-capturing probes — their
 // behavior (including the guest-audience mapping) is covered by their own
 // tests. These tests assert the organism's states (loading / error /
-// unavailable / chat), the guest wiring it hands the viewers, and the
-// launcher→viewer handoff on session creation. The hosted link names only
+// unavailable / chat), the guest wiring it hands the viewers (a member of
+// an organization-audience share keeps their own My vault, a public
+// visitor never does), and the launcher→viewer handoff on session
+// creation. The hosted link names only
 // the share, by its id: the organization and slug the viewers receive come
 // from the resolved profile, never from the link.
 // ---------------------------------------------------------------------------
@@ -109,6 +111,16 @@ describe("SharedAgentChat", () => {
     // Presentation is identical either way: the session organisms still
     // render with the pure-chat guest audience.
     expect(newSessionViewerProps[0]?.audience).toBe("guest");
+  });
+
+  it("includes My vault for a member of an organization-audience share, never for a public visitor", () => {
+    setProfileState({ profile: PROFILE });
+    render(<SharedAgentChat shareId={SHARE_ID} />);
+    expect(newSessionViewerProps.at(-1)?.includeMyVault).toBe(false);
+
+    cleanup();
+    render(<SharedAgentChat shareId={SHARE_ID} sharingAudience="org" />);
+    expect(newSessionViewerProps.at(-1)?.includeMyVault).toBe(true);
   });
 
   it("renders an error state with retry on transient failures", () => {

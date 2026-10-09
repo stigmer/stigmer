@@ -845,11 +845,23 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   // vault. A conversation that leaves My vault out would never read them,
   // so the picker ticks My vault for its creator: the very next turn (which
   // carries the pick) uses them, and the person sees the tick and can undo
-  // it. Without the picker the host decides, and nothing is ticked.
-  const includeMyVaultForSave = useCallback(() => {
-    if (!showVaults || !canChangeVaults || shownVaults.includeMyVault) return;
-    setVaultPick({ includeMyVault: true, vaults: [...shownVaults.vaults] });
-  }, [showVaults, canChangeVaults, shownVaults]);
+  // it. Without the picker the host decides, and nothing is ticked. A save
+  // or a sign-in lands after a wait, so the tick is laid over the pick as
+  // it stands then, keeping a vault the person picked meanwhile. Answers
+  // whether the conversation now includes My vault.
+  const initialChoiceRef = useRef(initialChoice);
+  initialChoiceRef.current = initialChoice;
+  const shownVaultsRef = useRef(shownVaults);
+  shownVaultsRef.current = shownVaults;
+  const canTickMyVault = showVaults && canChangeVaults;
+  const includeMyVaultForSave = useCallback((): boolean => {
+    if (!canTickMyVault) return shownVaultsRef.current.includeMyVault;
+    setVaultPick((pick) => {
+      const current = pick ?? initialChoiceRef.current;
+      return current.includeMyVault ? pick : { includeMyVault: true, vaults: [...current.vaults] };
+    });
+    return true;
+  }, [canTickMyVault]);
 
   // ---------------------------------------------------------------------------
   // Setup hooks — instantiated before handleSubmit so it can read their state
@@ -1413,14 +1425,20 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     async (values: Record<string, EnvVarInput>) => {
       try {
         const result = await agentSetup.submitEnvVars(values);
-        includeMyVaultForSave();
-        onAgentRefChange?.(result.agentRef);
-        onAgentResolutionChange?.(result.resolution);
+        const includesMyVault = includeMyVaultForSave();
         handleDisplayNameResolved(
           `${result.agentRef.org}/${result.agentRef.slug}`,
           result.agentName,
         );
-        setConfigOpen(false);
+        if (result.status === "ready") {
+          onAgentRefChange?.(result.agentRef);
+          onAgentResolutionChange?.(result.resolution);
+        }
+        // A tick just made resolves the agent again over the choice that
+        // now includes My vault, and the ready bridge commits it. A
+        // conversation that still leaves My vault out keeps the panel open
+        // on what it lacks.
+        if (result.status === "ready" || includesMyVault) setConfigOpen(false);
       } catch {
         // Error is captured by agentSetup.state.error — displayed inline.
       }
@@ -2095,16 +2113,18 @@ export const SessionComposer = memo(SessionComposerInner);
 /**
  * Said above the agent's setup when the conversation leaves My vault out:
  * every key and sign-in the setup asks for is saved in My vault, which the
- * conversation then does not read. Its creator can include My vault here
- * (saving or signing in also includes it); anyone else is told who can.
+ * conversation then does not read. A sign-in row reads My vault's own
+ * grant, so a tool can read "Signed in" there and still be owed here; the
+ * note says why. Its creator can include My vault here (saving or signing
+ * in also includes it); anyone else is told who can.
  */
 function MyVaultLeftOutNote({ onInclude }: { readonly onInclude?: () => void }) {
   return (
     <div className="stg:flex stg:items-start stg:justify-between stg:gap-3 stg:rounded-md stg:border stg:border-border stg:px-3 stg:py-2">
       <p className="stg:text-xs stg:text-muted-foreground">
         {onInclude
-          ? "Keys and sign-ins are saved in My vault, which this conversation does not use yet. Saving one includes it."
-          : "Keys and sign-ins are saved in My vault, which this conversation does not use. Only the person who started it can change its vaults."}
+          ? "Keys and sign-ins are saved in My vault, which this conversation does not use yet: a tool that reads Signed in is signed in there. Saving a key or signing in includes it."
+          : "Keys and sign-ins are saved in My vault, which this conversation does not use: a tool that reads Signed in is signed in there. Only the person who started it can change its vaults."}
       </p>
       {onInclude && (
         <button

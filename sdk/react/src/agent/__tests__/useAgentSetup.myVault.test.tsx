@@ -4,7 +4,8 @@
  * shared vaults it lists. Setup creates nothing per agent. Pinned: an agent
  * whose keys My vault already holds resolves `saved` without asking, and
  * saving typed values writes them to My vault through `setSecrets` naming
- * `mine`, with no other resource written, whatever the conversation uses.
+ * `mine`, with no other resource written, whatever the conversation uses,
+ * and resolves `saved` only where the conversation reads My vault.
  * An agent of another organization resolves `direct`, asking nothing and
  * writing nothing. My vault's keys count only while the conversation
  * includes it; a listed vault's keys count; a vault the conversation does
@@ -77,7 +78,16 @@ function client(writes: Writes, held: readonly string[], agent = REVIEWER, teamH
         setSecrets: (request) => {
           const target = request.vault?.vault;
           writes.push(`vault.setSecrets:${target?.case === "mine" ? "mine" : "id"}:${Object.keys(request.secrets).join(",")}`);
-          return myVault;
+          // The vault as the write left it: what it held, and the names written.
+          return create(VaultSchema, {
+            metadata: myVault.metadata,
+            spec: {
+              owner: { case: "person", value: "ida_1" },
+              secrets: Object.fromEntries(
+                [...held, ...Object.keys(request.secrets)].map((key) => [key, { value: "" }]),
+              ),
+            },
+          });
         },
       });
     }),
@@ -222,7 +232,7 @@ describe("useAgentSetup and the person's vaults", () => {
     }
   });
 
-  it("saves typed values in My vault even when the conversation leaves My vault out", async () => {
+  it("saves typed values in My vault when the conversation leaves My vault out, and still owes them there", async () => {
     const writes: Writes = [];
     const { result } = renderHook(
       () => useAgentSetup(ACME_ID, undefined, { includeMyVault: false, vaults: [{ org: ACME_ID, slug: "team" }] }),
@@ -239,10 +249,9 @@ describe("useAgentSetup and the person's vaults", () => {
       });
     });
 
-    expect(result.current.state.status).toBe("ready");
-    if (result.current.state.status === "ready") {
-      expect(result.current.state.resolution).toEqual({ mode: "saved" });
-    }
+    // The run reads only the team vault, which lacks the key: until the
+    // conversation includes My vault, the key is still owed.
+    expect(result.current.state.status).toBe("needsEnvVars");
     expect(writes).toEqual(["vault.setSecrets:mine:API_TOKEN"]);
   });
 });

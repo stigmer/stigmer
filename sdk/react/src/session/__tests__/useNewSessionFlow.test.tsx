@@ -1185,6 +1185,26 @@ describe("useNewSessionFlow", () => {
       }
     });
 
+    it("never takes a guest's vault pick, only the host's", async () => {
+      const opts = { ...defaultOptions(), audience: "guest" as const, includeMyVault: true };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      act(() => {
+        result.current.setAgentRef({ org: "acme", slug: "support-bot" });
+        result.current.setResolution({ mode: "direct" });
+      });
+      await act(async () => {
+        await result.current.submit("Hello", undefined, {
+          includeMyVault: false,
+          vaults: [{ org: "acme", slug: "support-tools" }],
+        });
+      });
+
+      const spec = mockCreateExecution.mock.calls[0][0].sessionSpec;
+      expect(spec.includeMyVault).toBe(true);
+      expect(spec.vaults).toBeUndefined();
+    });
+
     it("fails closed on submit without a resolution — never the built-in assistant", async () => {
       // An integrator with no agent picked gets the built-in assistant; a
       // guest on a shared page never does — only the pinned shared agent.

@@ -9,7 +9,9 @@
  * as its resolution, which the imperative handlers did alone before. A
  * row's sign-in, saved in My vault, records the sign-in against the agent
  * and, in a conversation that leaves My vault out, ticks My vault for its
- * creator so the next turn reads the login. The row itself is stubbed here;
+ * creator so the next turn reads the login. There, a note above the rows
+ * says that a row reading Signed in is signed in to My vault, and its
+ * Use My vault button includes My vault. The row itself is stubbed here;
  * its own rule is pinned in `plugin/__tests__`.
  */
 
@@ -135,6 +137,29 @@ describe("SessionComposer — the agent's sign-ins", () => {
     renderComposer({ onAgentRefChange, onAgentResolutionChange });
     expect(onAgentRefChange).toHaveBeenCalledWith(AGENT_REF);
     expect(onAgentResolutionChange).toHaveBeenCalledWith({ mode: "direct" });
+  });
+
+  it("explains a Signed in row in a conversation that leaves My vault out, and Use My vault includes it", async () => {
+    mockAgentSetup.state = {
+      status: "needsEnvVars",
+      agentRef: AGENT_REF,
+      agentId: "agt_1",
+      agentName: "Reviewer",
+      missingVariables: [],
+      pendingSignIns: [LINEAR],
+      error: null,
+    };
+    const onSubmit = vi.fn();
+    renderComposer({ initialAgentRef: AGENT_REF, onSubmit, enableVaultPicker: true, initialIncludeMyVault: false });
+
+    expect(await screen.findByText(/a tool that reads Signed in is signed in there/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Use My vault" }));
+
+    const textarea = screen.getByRole("textbox");
+    fireEvent.change(textarea, { target: { value: "Go" } });
+    fireEvent.keyDown(textarea, { key: "Enter", shiftKey: false });
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+    expect(onSubmit.mock.calls[0][2]).toMatchObject({ includeMyVault: true, vaults: [] });
   });
 
   it("records a row's sign-in and ticks My vault in a conversation that left it out", async () => {

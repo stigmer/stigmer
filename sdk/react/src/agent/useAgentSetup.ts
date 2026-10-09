@@ -193,15 +193,17 @@ export interface UseAgentSetupReturn {
   /**
    * Complete the env var collection flow for the pending agent: the values
    * are saved in My vault, the one place a value the person types goes,
-   * and the agent resolves as `{ mode: "saved" }`. A conversation reads
-   * them when it includes My vault; the composer includes it for the
-   * person who may change the conversation's vaults.
+   * and the agent is resolved again over the conversation's vault choice,
+   * counting what the save wrote. A conversation that includes My vault
+   * resolves `ready` (`{ mode: "saved" }`); one that leaves it out stays
+   * in `needsEnvVars` until it includes My vault, which the composer does
+   * for the person who may change the conversation's vaults.
    *
    * Must only be called when `state.status === "needsEnvVars"`.
    */
   readonly submitEnvVars: (
     values: Record<string, EnvVarInput>,
-  ) => Promise<AgentSetupReadyResult>;
+  ) => Promise<AgentSetupResult>;
 
   /**
    * Record that one of the pending sign-ins completed (the row's own
@@ -285,6 +287,18 @@ export function useAgentSetup(
 
   const [state, dispatch] = useReducer(agentSetupReducer, INITIAL_STATE);
 
+  // My vault as last known: the read's answer, or, right after a save here,
+  // the vault the write returned, which is newer than the read until the
+  // reload the write starts lands. A resolution reads it when it runs, so
+  // one started between the save and that reload counts what was saved.
+  const latestMyVaultRef = useRef<{ readonly read: Vault | null; readonly current: Vault | null }>({
+    read: myVault.vault,
+    current: myVault.vault,
+  });
+  if (latestMyVaultRef.current.read !== myVault.vault) {
+    latestMyVaultRef.current = { read: myVault.vault, current: myVault.vault };
+  }
+
   // The latest resolution's number. An answer that lands after a newer
   // resolution started (the vault pick changed meanwhile) or after a reset
   // judged vaults that no longer apply, so it never reaches the state.
@@ -335,7 +349,8 @@ export function useAgentSetup(
           stigmer,
           choice.vaults.map((v) => ({ org: v.org || org, slug: v.slug })),
         );
-        const readVaults = readsMyVault && myVault.vault !== null ? [myVault.vault, ...listed] : listed;
+        const mine = latestMyVaultRef.current.current;
+        const readVaults = readsMyVault && mine !== null ? [mine, ...listed] : listed;
         const { servers, pendingSignIns, signInVariables } = await readServers(
           stigmer,
           org,
@@ -431,7 +446,7 @@ export function useAgentSetup(
         throw err;
       }
     },
-    [org, orgId, stigmer, myVault.vault, poolKeys, choice],
+    [org, orgId, stigmer, poolKeys, choice],
   );
 
   // -------------------------------------------------------------------------
@@ -453,6 +468,27 @@ export function useAgentSetup(
       // resolveAgent dispatched the error; the panel shows it.
     });
   }, [vaultsKey, resolveAgent]);
+
+  // -------------------------------------------------------------------------
+  // My vault re-evaluation — resolve again when My vault's read lands
+  // -------------------------------------------------------------------------
+
+  // A conversation that includes My vault counts what it holds, so an agent
+  // judged before My vault's read landed (its first load, or the reload a
+  // save starts) is judged again over what it holds now. A newer
+  // resolution overtakes one still in flight. Nothing is re-judged while a
+  // save is under way: the save resolves again itself.
+  const judgedMyVault = useRef(myVault.vault);
+  useEffect(() => {
+    if (judgedMyVault.current === myVault.vault) return;
+    judgedMyVault.current = myVault.vault;
+    if (!choice.includeMyVault) return;
+    const current = stateRef.current;
+    if (current.status === "idle" || current.status === "submitting") return;
+    resolveAgent(current.agentRef).catch(() => {
+      // resolveAgent dispatched the error; the panel shows it.
+    });
+  }, [myVault.vault, choice.includeMyVault, resolveAgent]);
 
   // -------------------------------------------------------------------------
   // Pool re-evaluation — auto-resolve needsEnvVars when pool changes
@@ -486,7 +522,7 @@ export function useAgentSetup(
   const submitEnvVars = useCallback(
     async (
       values: Record<string, EnvVarInput>,
-    ): Promise<AgentSetupReadyResult> => {
+    ): Promise<AgentSetupResult> => {
       if (state.status !== "needsEnvVars") {
         throw new Error(
           "useAgentSetup: submitEnvVars requires state.status === 'needsEnvVars'. " +
@@ -507,25 +543,23 @@ export function useAgentSetup(
         );
       }
 
-      const { agentRef, agentName } = state;
+      const { agentRef } = state;
       dispatch({ type: "SUBMIT_START" });
 
+      let saved: Vault;
       try {
-        await myVault.setSecrets(valuesOf(values));
-        const resolution: AgentResolution = { mode: "saved" };
-        dispatch({
-          type: "SUBMIT_READY",
-          agentRef,
-          agentName,
-          resolution,
-        });
-        return { status: "ready", agentRef, agentName, resolution };
+        saved = await myVault.setSecrets(valuesOf(values));
       } catch (err) {
         dispatch({ type: "ERROR", error: toError(err) });
         throw err;
       }
+      // Judged again over the conversation's own choice, counting what the
+      // save wrote before the reload it starts lands: a conversation that
+      // leaves My vault out is not ready because a key landed there.
+      latestMyVaultRef.current = { read: latestMyVaultRef.current.read, current: saved };
+      return resolveAgent(agentRef);
     },
-    [org, myVault, state],
+    [org, myVault, state, resolveAgent],
   );
 
   const signInCompleted = useCallback(

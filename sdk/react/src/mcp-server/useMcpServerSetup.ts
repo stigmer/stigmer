@@ -72,8 +72,10 @@ export interface UseMcpServerSetupReturn {
    * one place a value the person types goes, and the server transitions
    * to `ready`. A conversation reads them when it includes My vault; the
    * composer includes it for the person who may change the conversation's
-   * vaults. Resolves `true` once the values are saved, `false` when the
-   * save failed (the entry carries the error).
+   * vaults; a conversation that leaves My vault out keeps the server in
+   * `needsSetup` until it includes My vault. Resolves `true` once the
+   * values are saved, `false` when the save failed (the entry carries the
+   * error).
    *
    * Must only be called when the entry is in `needsSetup` status.
    */
@@ -191,6 +193,15 @@ export function useMcpServerSetup(
 
   const entriesRef = useRef(entries);
   entriesRef.current = entries;
+  // My vault as last read. An evaluation weighs it when it settles, so one
+  // still in flight when a reload lands (the one a save starts) counts the
+  // reload's answer.
+  const myVaultRef = useRef(myVault.vault);
+  myVaultRef.current = myVault.vault;
+  // The choice as it stands when a save lands, which the person may have
+  // changed while it was in flight.
+  const choiceRef = useRef(choice);
+  choiceRef.current = choice;
 
   // Each server's latest evaluation, by number. An answer that lands after
   // a newer evaluation of the same server started (the vault pick changed
@@ -237,11 +248,9 @@ export function useMcpServerSetup(
         }
 
         // The run reads exactly the vaults the conversation uses: My vault
-        // when included, then the listed vaults.
+        // when included (weighed below, as it stands when this settles),
+        // then the listed vaults.
         const existingKeys = await listedVaultKeysFor(stigmer, mcpServer, choice.vaults, org);
-        if (choice.includeMyVault) {
-          for (const key of savedKeysFor(mcpServer, myVault.vault)) existingKeys.add(key);
-        }
 
         // Carried onto the entry so consumers can tell a healthy grant
         // that merely lacks tool discovery (offer bare discovery,
@@ -270,6 +279,9 @@ export function useMcpServerSetup(
           }
         }
 
+        if (choice.includeMyVault) {
+          for (const key of savedKeysFor(mcpServer, myVaultRef.current)) existingKeys.add(key);
+        }
         const allMissing = diffEnv(envDeclarations, existingKeys, poolKeys);
         const requiredMissing = allMissing.filter((v) => !v.optional);
 
@@ -296,7 +308,7 @@ export function useMcpServerSetup(
         settle({ type: "SET_ERROR", key, error: toError(err) });
       }
     },
-    [org, stigmer, myVault.vault, poolKeys, choice],
+    [org, stigmer, poolKeys, choice],
   );
 
   // -------------------------------------------------------------------------
@@ -338,12 +350,14 @@ export function useMcpServerSetup(
 
       try {
         await saveToMyVault(myVault, values, entry.mcpServer);
-        dispatch({ type: "SUBMIT_DONE", key });
-        return true;
       } catch (err) {
         dispatch({ type: "SUBMIT_FAIL", key, error: toError(err) });
         return false;
       }
+      // The values filled what the server lacked, but only a conversation
+      // that reads My vault reads them there.
+      dispatch(choiceRef.current.includeMyVault ? { type: "SUBMIT_DONE", key } : { type: "SUBMIT_UNREAD", key });
+      return true;
     },
     [org, entries, myVault],
   );

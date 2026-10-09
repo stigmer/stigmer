@@ -568,11 +568,13 @@ export function useNewSessionFlow(
         // The vaults the conversation uses: the person's pick in the
         // composer when they made one, else what the host set up. The pick
         // carries both halves together, so neither is mixed from two
-        // sources.
-        const includeMyVault = context?.includeMyVault
+        // sources. A guest's pick is never taken: what a share-link
+        // conversation reads is the host's to say, as on every follow-up.
+        const pick = isGuest ? undefined : context;
+        const includeMyVault = pick?.includeMyVault
           ?? includeMyVaultOption
           ?? includesMyVaultByDefault(options.audience ?? "integrator");
-        const vaults = context?.vaults ?? vaultsOption;
+        const vaults = pick?.vaults ?? vaultsOption;
 
         const sessionSpecBase = {
           workspaceEntries: workspace.hasEntries

@@ -314,19 +314,38 @@ describe("useMcpServerSetup", () => {
     expect(grantReads).toEqual([]);
   });
 
-  it("saves typed values in My vault even when the conversation leaves My vault out", async () => {
+  it("saves typed values in My vault when the conversation leaves My vault out, keeping the server waiting until it includes My vault", async () => {
     teamVault = vaultHolding([]);
-    const { result } = await addNeedingSetup(undefined, LISTED);
+    const hook = renderHook(
+      ({ choice }: { choice: ConversationVaults }) => useMcpServerSetup(ORG, undefined, choice),
+      { wrapper, initialProps: { choice: LISTED } },
+    );
+    await act(() => hook.result.current.addServer(REF));
     const values = {
       ZENDESK_TOKEN: { value: "t", isSecret: true },
       ZENDESK_SUBDOMAIN: { value: "acme", isSecret: true },
     };
 
-    await act(() => result.current.submitEnvVars(REF, values));
+    let saved = false;
+    await act(async () => {
+      saved = await hook.result.current.submitEnvVars(REF, values);
+    });
 
+    expect(saved).toBe(true);
     expect(myVault.setConnection).toHaveBeenCalledWith("https://zendesk.example/mcp", "t");
     expect(myVault.setSecrets).toHaveBeenCalledWith({ ZENDESK_SUBDOMAIN: "acme" });
-    expect(result.current.entries["acme/zendesk"]?.status).toBe("ready");
+    expect(hook.result.current.entries["acme/zendesk"]?.status).toBe("needsSetup");
+    expect(hook.result.current.usageInputs).toEqual([]);
+
+    // The composer includes My vault, and My vault's reload lands with the save.
+    try {
+      hook.rerender({ choice: { includeMyVault: true, vaults: LISTED.vaults } });
+      myVault.vault = vaultHolding(["ZENDESK_SUBDOMAIN"], ["https://zendesk.example/mcp"]);
+      hook.rerender({ choice: { includeMyVault: true, vaults: LISTED.vaults } });
+      await waitFor(() => expect(hook.result.current.entries["acme/zendesk"]?.status).toBe("ready"));
+    } finally {
+      myVault.vault = null;
+    }
   });
 
   it("readies a waiting server once My vault, when included, comes to hold what it lacks", async () => {

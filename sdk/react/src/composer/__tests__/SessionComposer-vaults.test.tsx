@@ -10,8 +10,12 @@
  * teammate sees the pick read-only and nothing they save ticks it. For the
  * creator, a typed key saved in My vault (the agent's, or an MCP server's
  * from the picker) and a sign-in landing in My vault tick My vault in a
- * conversation that left it out, so the next turn uses them; an MCP
- * server's save that fails ticks nothing. The personal-keys line shows only while My vault is included. The
+ * conversation that left it out, so the next turn uses them; the tick is
+ * laid over the pick as it stands when the save lands, keeping a vault
+ * picked meanwhile; an MCP server's save that fails ticks nothing. A
+ * teammate's saved key that the conversation still does not read keeps the
+ * agent panel open on what is owed, committing nothing. The personal-keys
+ * line shows only while My vault is included. The
  * picker itself is pinned in `vault/__tests__/vault-components.test.tsx`
  * and stubbed here; agent setup is driven directly (its own tests cover the
  * state machine).
@@ -374,6 +378,79 @@ describe("SessionComposer — a key or sign-in saved in My vault includes My vau
     } else {
       expect(context).toBeUndefined();
     }
+  });
+
+  it("keeps a vault picked while an MCP server's save was in flight, ticking My vault beside it", async () => {
+    let land = (_: boolean): void => undefined;
+    mcpSubmitEnvVars.current = vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          land = resolve;
+        }),
+    );
+    const onSubmit = vi.fn();
+    render(
+      <SessionComposer onSubmit={onSubmit} {...AGENT_PROPS} onMcpServerUsagesChange={vi.fn()} initialIncludeMyVault={false} />,
+      { wrapper: wrapperFor(client()) },
+    );
+
+    await openPanel(/MCP Servers/);
+    fireEvent.click(await screen.findByRole("button", { name: "Save Zendesk key" }));
+    // While the save is in flight, the person picks a shared vault.
+    fireEvent.click(screen.getByRole("button", { name: "Back to configuration menu" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: /Vaults/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "Pick support-tools" }));
+    await act(async () => {
+      land(true);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    const context = await send(onSubmit, "Go");
+    expect(context?.includeMyVault).toBe(true);
+    expect(context?.vaults).toEqual([{ org: "acme", slug: "support-tools" }]);
+  });
+
+  it("keeps the agent panel open on what is owed when a teammate's saved key is still not read", async () => {
+    mockAgentSetup.state = {
+      status: "needsEnvVars",
+      agentRef: { org: "acme", slug: "reviewer" },
+      agentName: "Reviewer",
+      missingVariables: [{ key: "API_TOKEN", isSecret: true }],
+      pendingSignIns: [],
+    };
+    mockAgentSetup.submitEnvVars.mockResolvedValue({
+      status: "needsEnvVars",
+      agentRef: { org: "acme", slug: "reviewer" },
+      agentName: "Reviewer",
+      missingVariables: [{ key: "API_TOKEN", isSecret: true }],
+      pendingSignIns: [],
+    });
+    const onAgentResolutionChange = vi.fn();
+    const onSubmit = vi.fn();
+    render(
+      <SessionComposer
+        onSubmit={onSubmit}
+        {...AGENT_PROPS}
+        onAgentResolutionChange={onAgentResolutionChange}
+        initialIncludeMyVault={false}
+        sessionId="ses_a"
+        vaultPickCreatorId="ida_creator"
+      />,
+      { wrapper: wrapperFor(client("ida_teammate")) },
+    );
+
+    await openPanel(/Agent/);
+    expect(await screen.findByText(/Only the person who started it can change its vaults\./)).toBeTruthy();
+    const field = document.querySelector<HTMLInputElement>('input[type="password"]');
+    if (field === null) throw new Error("the API_TOKEN field is not rendered");
+    fireEvent.change(field, { target: { value: "t" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(mockAgentSetup.submitEnvVars).toHaveBeenCalledTimes(1));
+
+    expect(screen.getByText(/a tool that reads Signed in is signed in there/)).toBeTruthy();
+    expect(onAgentResolutionChange).not.toHaveBeenCalled();
+    const context = await send(onSubmit, "Go");
+    expect(context).toBeUndefined();
   });
 
   it("ticks nothing for a teammate, who cannot change the conversation's vaults", async () => {

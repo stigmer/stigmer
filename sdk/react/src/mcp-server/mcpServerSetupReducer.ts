@@ -192,6 +192,15 @@ export type McpServerSetupAction =
       readonly key: string;
     }
   | {
+      /**
+       * Env vars were saved in My vault, which the conversation does not
+       * read: the server still waits in `needsSetup` for what it lacks.
+       */
+      readonly type: "SUBMIT_UNREAD";
+      /** Server key (`"org/slug"`). */
+      readonly key: string;
+    }
+  | {
       /** Env var submission failed — revert to `needsSetup`. */
       readonly type: "SUBMIT_FAIL";
       /** Server key (`"org/slug"`). */
@@ -323,6 +332,22 @@ export function mcpServerSetupReducer(
         [action.key]: {
           status: "ready",
           mcpServer: entry.mcpServer,
+          discoveredTools: entry.discoveredTools,
+          oauthConnectionHealth: entry.oauthConnectionHealth,
+          error: null,
+        },
+      };
+    }
+
+    case "SUBMIT_UNREAD": {
+      const entry = state[action.key];
+      if (entry?.status !== "submitting") return state;
+      return {
+        ...state,
+        [action.key]: {
+          status: "needsSetup",
+          mcpServer: entry.mcpServer,
+          missingVariables: entry.missingVariables,
           discoveredTools: entry.discoveredTools,
           oauthConnectionHealth: entry.oauthConnectionHealth,
           error: null,
