@@ -4,16 +4,24 @@
  * (domain/score/ports.ts), or record the run as not graded.
  *
  * Idempotent, as every activity must be: a run that already carries a
- * run-health score from this version of the checks is left alone, and the
- * create chain's own one-per-version rule answers ALREADY_EXISTS for a
- * retry that lost the race, which counts as recorded. A run deleted before
- * it was graded has nothing to score.
+ * graded run-health score from this version of the checks is left alone,
+ * and the create chain's own one-per-version rule answers ALREADY_EXISTS
+ * for a retry that lost the race, which counts as recorded. A not-graded
+ * score from this version is replaced by the grade: the observer records
+ * one when its start passes its deadline, and Temporal may have accepted
+ * that start all the same. A run deleted before it was graded has nothing
+ * to score; one deleted while its score was being written (after the run
+ * delete's cascade listed the run's scores) has the score removed again,
+ * so grading leaves no score whose run is gone.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ScoreSource } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
+import {
+  ScoreSource,
+  ScoreState,
+} from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -24,7 +32,7 @@ import {
   gradeRunHealth,
 } from "../../domain/score/checks/checks.js";
 import { RUN_HEALTH_METRIC } from "../../domain/score/constants.js";
-import type { ScoreRecorder } from "../../domain/score/ports.js";
+import type { ScoreDeleter, ScoreRecorder } from "../../domain/score/ports.js";
 import { listRunScores } from "../../domain/score/queries.js";
 import {
   notGradedRunHealthScore,
@@ -46,6 +54,8 @@ export interface GradingActivityDeps {
   readonly logger: Logger;
   /** Resolved at call time: the in-process clients are wired after the routes. */
   readonly recorder: () => ScoreRecorder;
+  /** Resolved at call time, as the recorder. */
+  readonly deleter: () => ScoreDeleter;
 }
 
 export function createGradingActivities(
@@ -57,8 +67,12 @@ export function createGradingActivities(
       if (run === undefined) {
         return GRADE_RUN_GONE;
       }
-      if (await alreadyGraded(deps.store, runId)) {
+      const existing = await existingRunHealth(deps.store, runId);
+      if (existing?.status?.state === ScoreState.graded) {
         return GRADE_ALREADY_GRADED;
+      }
+      if (existing !== undefined) {
+        await deleteScore(deps, existing.metadata?.id ?? "");
       }
       const health = gradeRunHealth(actionsOf(run));
       return record(deps, runHealthScore(run, health));
@@ -68,7 +82,7 @@ export function createGradingActivities(
       if (run === undefined) {
         return GRADE_RUN_GONE;
       }
-      if (await alreadyGraded(deps.store, runId)) {
+      if ((await existingRunHealth(deps.store, runId)) !== undefined) {
         return GRADE_ALREADY_GRADED;
       }
       deps.logger.warn("run not graded", { runId, reason });
@@ -88,15 +102,33 @@ async function loadRun(store: Store, runId: string): Promise<Run | undefined> {
   }
 }
 
-/** Whether the run carries a run-health score from this version of the checks. */
-async function alreadyGraded(store: Store, runId: string): Promise<boolean> {
+/** The run's run-health score from this version of the checks, if any. */
+async function existingRunHealth(
+  store: Store,
+  runId: string,
+): Promise<Score | undefined> {
   const scores = await listRunScores(store, runId);
-  return scores.some(
+  return scores.find(
     (score) =>
       score.spec?.metric === RUN_HEALTH_METRIC &&
       score.spec.source === ScoreSource.check &&
       score.spec.evaluatorVersion === RUN_HEALTH_EVALUATOR_VERSION,
   );
+}
+
+/** Deletes one score through its delete chain; one already gone is fine. */
+async function deleteScore(
+  deps: GradingActivityDeps,
+  scoreId: string,
+): Promise<void> {
+  try {
+    await deps.deleter().delete(scoreId);
+  } catch (error) {
+    if (error instanceof ConnectError && error.code === Code.NotFound) {
+      return;
+    }
+    throw error;
+  }
 }
 
 /**
@@ -124,9 +156,26 @@ export async function recordRunHealth(
   }
 }
 
-function record(
+/**
+ * Records the run's score, then reads the run again: a run deleted after
+ * its delete's cascade listed its scores has the score removed, so no
+ * score outlives its run.
+ */
+async function record(
   deps: GradingActivityDeps,
   score: Score,
 ): Promise<GradeOutcome> {
-  return recordRunHealth(deps.recorder(), score);
+  const runId = score.spec?.runId ?? "";
+  const outcome = await recordRunHealth(deps.recorder(), score);
+  if (outcome !== GRADE_RECORDED) {
+    return outcome;
+  }
+  if ((await loadRun(deps.store, runId)) !== undefined) {
+    return outcome;
+  }
+  const written = await existingRunHealth(deps.store, runId);
+  if (written !== undefined) {
+    await deleteScore(deps, written.metadata?.id ?? "");
+  }
+  return GRADE_RUN_GONE;
 }

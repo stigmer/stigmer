@@ -17,6 +17,15 @@
  * A score already gone answers NOT_FOUND and is skipped; any other
  * failure fails the run's delete, which is retried whole, rather than
  * leave a score whose run no longer exists.
+ *
+ * The list is read once, so a score whose create chain loaded the run
+ * before this list and persists after it outlives the run. The grading
+ * activity, the one writer that runs unattended, reads the run again after
+ * it records and removes its score when the run has gone
+ * (temporal/grading/activities.ts). A person rating a run in the same
+ * instant it is deleted can still leave one: such a score is seen by
+ * nobody, since its visibility is its run's, and goes with its
+ * organization's purge.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { DescMessage } from "@bufbuild/protobuf";

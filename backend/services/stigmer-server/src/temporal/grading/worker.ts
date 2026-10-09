@@ -8,7 +8,7 @@
  * activities object's keys.
  */
 import type { Logger } from "../../boot/logger.js";
-import type { ScoreRecorder } from "../../domain/score/ports.js";
+import type { ScoreDeleter, ScoreRecorder } from "../../domain/score/ports.js";
 import type { Store } from "../../store/interface.js";
 import type { WorkerFactory } from "../manager.js";
 import { resolveWorkflowSource } from "../workflow-source.js";
@@ -19,6 +19,7 @@ export interface GradingWorkerDeps {
   readonly store: Store;
   readonly config: GradingTemporalConfig;
   readonly recorder: () => ScoreRecorder;
+  readonly deleter: () => ScoreDeleter;
   readonly logger: Logger;
 }
 
@@ -30,6 +31,7 @@ export function newGradingWorkerFactory(
       store: deps.store,
       logger: deps.logger,
       recorder: deps.recorder,
+      deleter: deps.deleter,
     });
 
     const workflowSource = resolveWorkflowSource({

@@ -5,7 +5,7 @@
 // carrying the scores' own envelopes, the table written to stdout by
 // default, and `stigmer get score <id>` reading one score by its id only.
 
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import {
@@ -70,6 +70,17 @@ describe("renderScoresTable", () => {
     expect(out).toMatch(/\bdown\b/);
     expect(out).toContain("picked the wrong label");
     expect(out).toContain("priya@example.com");
+  });
+
+  it("prints a comment as one line, with no control character reaching the terminal", () => {
+    const hostile = clone(ScoreSchema, thumbsDown);
+    if (hostile.spec !== undefined) {
+      hostile.spec.comment = "line one\nline two\u001b[31m red\u0007";
+    }
+    const out = renderScoresTable([hostile]);
+    expect(out).toContain("line one line two [31m red");
+    expect(out).not.toMatch(/[\u0000-\u0009\u000b-\u001f\u007f-\u009f]/);
+    expect(out.split("\n").filter((line) => line.includes("line two"))).toHaveLength(1);
   });
 
   it("shows a check's verdict with each failed check's reason as a flag", () => {

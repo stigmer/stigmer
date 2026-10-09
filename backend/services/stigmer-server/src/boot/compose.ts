@@ -128,7 +128,10 @@ import { registerMemoryServices } from "../domain/memory/controller.js";
 import { newRunScoreCascade } from "../domain/score/cascade.js";
 import { registerScoreServices } from "../domain/score/controller.js";
 import { newGradingObserver } from "../domain/score/grading-observer.js";
-import type { ScoreRecorder } from "../domain/score/ports.js";
+import type {
+  ScoreDeleter,
+  ScoreRecorder,
+} from "../domain/score/ports.js";
 import { registerOAuthAppServices } from "../domain/oauthapp/controller.js";
 import { registerPlatformClientServices } from "../domain/platformclient/controller.js";
 import { newPlatformClientOriginGuard } from "../domain/platformclient/origin-guard.js";
@@ -1048,6 +1051,7 @@ export async function composeServer(
   // resolved lazily for the boot-ordering reason the run worker's are.
   const gradingTemporalConfig = newGradingConfigFromEnv();
   const scoreRecorder = (): ScoreRecorder => requireInProcess().scoreRecorder;
+  const scoreDeleter = (): ScoreDeleter => requireInProcess().scoreDeleter;
   const gradingObserver = newGradingObserver({
     client: () => temporalManager.getClient(),
     config: gradingTemporalConfig,
@@ -1057,7 +1061,7 @@ export async function composeServer(
   const runScores = newRunScoreCascade({
     store,
     logger,
-    deleter: () => requireInProcess().scoreDeleter,
+    deleter: scoreDeleter,
   });
   const scheduleSyncer = new ScheduleSyncer(
     scheduleClientProvider,
@@ -1135,6 +1139,7 @@ export async function composeServer(
         store,
         config: gradingTemporalConfig,
         recorder: scoreRecorder,
+        deleter: scoreDeleter,
         logger,
       }),
       // Extension workers append after the OSS set — their own queues,

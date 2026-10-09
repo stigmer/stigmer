@@ -64,9 +64,19 @@ function scoreRow(score: Score): string[] {
     sourceLabel(spec?.source ?? ScoreSource.unspecified),
     valueLabel(score),
     flagsOf(score),
-    spec?.comment ?? "",
+    oneLine(spec?.comment ?? ""),
     byLabel(score),
   ];
+}
+
+/**
+ * A person's comment as one table cell. A comment reaches the server from
+ * any client, not only the console's one-line box, so a newline would break
+ * the table and an escape sequence would reach every other viewer's
+ * terminal: each run of control characters becomes one space.
+ */
+function oneLine(text: string): string {
+  return text.replace(/[\u0000-\u001f\u007f-\u009f]+/g, " ").trim();
 }
 
 /** Who gave a score, in words; keyed by every source, so it stays exhaustive. */

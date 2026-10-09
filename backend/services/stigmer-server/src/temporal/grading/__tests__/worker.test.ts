@@ -37,6 +37,7 @@ describe("the grading worker factory", () => {
         store: temp.store,
         config: new GradingTemporalConfig("grading_custom"),
         recorder: () => ({ record: (score) => Promise.resolve(score) }),
+        deleter: () => ({ delete: () => Promise.resolve() }),
         logger: silentLogger,
       })(deps);
 
