@@ -1,7 +1,8 @@
 // Conformance suite for how a run's values are resolved from vaults (Class B).
 //
-// Domain: agentic — the values that populate a run's ExecutionContext at run
-// start, exercised through Run and Schedule. The contract:
+// Domain: agentic — where each value a run uses lives (the run's source
+// manifest, planned at create) and what the runner fetches from those vaults
+// when the work starts, exercised through Run and Schedule. The contract:
 //   - what a run needs is what its agent and its tools declare (and a token
 //     for each repository it clones); a vault's key nobody declares never
 //     reaches the run;
@@ -17,23 +18,27 @@
 //   - a repository's own token is sealed on the session: every read shows
 //     the redaction marker, and a write sending it back keeps it; a stale
 //     write keeps the stored vault choice;
-//   - recover rebuilds the context from the recorded agent version and the
-//     vaults as they are now ("fix the key, then recover").
+//   - nothing is copied: the runner's fetch opens the manifest's entries as
+//     they are when it runs, so a secret rotated after create reaches the
+//     run, and recover plans again from the recorded agent version and the
+//     vaults as they are now ("fix the key, then recover");
+//   - only a runner credential bound to the live run fetches its values:
+//     the person's own credential, another run's credential and no
+//     credential are refused, never answered redacted;
+//   - no vault value rides the run's Temporal history.
 //
 // The two-person arms (each sender's turn uses their own My vault, never a
 // teammate's; a run reads only the vaults its conversation chose; a
 // revoked use stops a schedule's next fire) run on the enforcing execution
 // lane in runner-as-subject.conformance.test.ts.
 //
-// Observation strategy: the ExecutionContext is created SYNCHRONOUSLY inside
-// the create pipeline, so it exists the instant create() returns; a held
-// mock-LLM turn keeps the run non-terminal (and its ephemeral context alive)
-// while getByExecutionId reads it. Every value that came from a vault comes
-// back with is_secret set and its value
-// redacted, whatever its declaration says; only a declaration's own plain
-// default reads plain. An arm proves such a value is there by the marker,
-// and proves WHICH value the run received through the agent's shell, which
-// prints the decrypted value into the next model request.
+// Observation strategy: the manifest is stamped SYNCHRONOUSLY inside the
+// create pipeline, so the run's status names every value's source the
+// instant create() returns: which vault (by id) and which entry, never a
+// value. What the runner receives is read the way a runner reads it, through
+// the fetch with the run's own credential (the platform exchange mints one),
+// while a held mock-LLM turn keeps the run live; and, end to end, through the
+// agent's shell, which prints the value into the next model request.
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -42,8 +47,11 @@ import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { expectGrpcCode } from "../contract/errors";
 import { ScheduleFireOutcome } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { WorkspaceEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
+import { invokeWorkflowIdFor, showWorkflow } from "../benchmark/temporal-history";
+import { TEMPORAL_DEV_NAMESPACE } from "@stigmer/test-support/temporal";
 import { agentRefOf, makeAgent } from "../support/agents";
 import {
   awaitPhase,
@@ -55,7 +63,15 @@ import {
 } from "../support/runs";
 import { makeHttpMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
-import { pollUntil } from "../support/run-poll";
+import {
+  RunValueDeclarerKind,
+  RunValueOrigin,
+  agentSourceOf,
+  fetchRunValues,
+  runCredentialOf,
+  runSourcesOf,
+  sourcesFor,
+} from "../support/run-values";
 import { makeSchedule } from "../support/schedules";
 import { makeSession, makeSessionSpec } from "../support/sessions";
 import {
@@ -70,8 +86,8 @@ import { createTarget, type TargetProfile } from "../targets";
 // The redaction marker every read shows in place of a sealed value.
 const REDACTED_MARKER = "***REDACTED***";
 
-// Holds a run's single turn open so the run stays non-terminal (and its
-// ephemeral ExecutionContext survives) while the suite reads it.
+// Holds a run's single turn open so the run stays live while the suite
+// fetches its values.
 const HOLD_MS = 30_000;
 
 const collectionTarget = createTarget();
@@ -177,7 +193,7 @@ async function shellOutputOf(org: string, setup: RunSetup, command: string): Pro
     .join("\n");
 }
 
-/** Agent -> session (the vaults it uses) -> a held run; answers the run and its context's values. */
+/** Agent -> session (the vaults it uses) -> a held run; answers the run and its source manifest. */
 async function runWith(org: string, setup: RunSetup) {
   const { agent, session } = await agentAndSession(org, setup);
 
@@ -190,8 +206,13 @@ async function runWith(org: string, setup: RunSetup) {
     await clients.agentExecutionCommand.delete({ value: execution.metadata!.id });
   });
 
-  const context = await clients.executionContextQuery.getByExecutionId({ executionId: execution.metadata!.id });
-  return { agent, session, execution, data: context.spec?.data ?? {} };
+  const sources = await runSourcesOf(clients, execution.metadata!.id);
+  return { agent, session, execution, sources };
+}
+
+/** The values the held run's runner would fetch, with the run's own credential. */
+async function fetchedValuesOf(runId: string) {
+  return fetchRunValues(target.clientsPresenting(await runCredentialOf(clients, runId)), runId);
 }
 
 /** Creates a run on a new conversation of a fresh agent declaring `env`; answers the refusal, or undefined when it started. */
@@ -221,23 +242,25 @@ async function refusalOfFirstTurn(
 describe("vault resolution — a person's run", () => {
   it("[rpc:RunCommandController.create] a key the agent declares is filled from the sender's My vault when the conversation includes it", async () => {
     const { org } = await target.provisionTenancy();
-    await saveToMyVault(org, { MINE_KEY: "my-value" });
+    const mineId = await saveToMyVault(org, { MINE_KEY: "my-value" });
 
-    const { data } = await runWith(org, { env: { MINE_KEY: {} }, includeMyVault: true });
+    const { execution, sources } = await runWith(org, { env: { MINE_KEY: {} }, includeMyVault: true });
 
-    // My vault is the only place holding it: the marker is the proof it is
-    // there, and a vault's value is a secret whatever the declaration says.
-    expect(data.MINE_KEY?.isSecret, "the person's own vault fills the declared key, as a secret").toBe(true);
-    expect(data.MINE_KEY?.value).toBe(REDACTED_MARKER);
+    const source = agentSourceOf(sources, "MINE_KEY");
+    expect(source?.origin, "the person's own vault fills the declared key").toBe(RunValueOrigin.MY_VAULT);
+    expect(source?.vaultId).toBe(mineId);
+    expect(source?.entry).toBe("MINE_KEY");
+    const stored = await clients.agentExecutionQuery.get({ value: execution.metadata!.id });
+    expect(JSON.stringify(stored), "the run's status names the source, never the value").not.toContain("my-value");
   });
 
   it("a conversation that leaves My vault out never reads it", async () => {
     const { org } = await target.provisionTenancy();
     await saveToMyVault(org, { MY_ONLY_KEY: "never" });
 
-    const { data } = await runWith(org, { env: { MY_ONLY_KEY: { optional: true } } });
+    const { sources } = await runWith(org, { env: { MY_ONLY_KEY: { optional: true } } });
 
-    expect(data.MY_ONLY_KEY, "include_my_vault is off on the wire unless the caller sets it").toBeUndefined();
+    expect(sourcesFor(sources, "MY_ONLY_KEY"), "include_my_vault is off on the wire unless the caller sets it").toEqual([]);
   });
 
   it("My vault comes first, ahead of the vaults the conversation lists", async () => {
@@ -266,18 +289,20 @@ describe("vault resolution — a person's run", () => {
     const { org } = await target.provisionTenancy();
     await saveToMyVault(org, { DECLARED_KEY: "kept", UNDECLARED_VAULT_KEY: "dropped" });
 
-    const { data } = await runWith(org, { env: { DECLARED_KEY: {} }, includeMyVault: true });
+    const { execution, sources } = await runWith(org, { env: { DECLARED_KEY: {} }, includeMyVault: true });
 
-    expect(Object.keys(data)).toEqual(["DECLARED_KEY"]);
-    expect(data.DECLARED_KEY?.isSecret, "the declared vault key is kept, as a secret").toBe(true);
-    expect(data.DECLARED_KEY?.value).toBe(REDACTED_MARKER);
+    expect(sources.map((source) => source.key)).toEqual(["DECLARED_KEY"]);
+    const fetched = await fetchedValuesOf(execution.metadata!.id);
+    expect(Object.keys(fetched.agent), "the runner receives only the declared key").toEqual(["DECLARED_KEY"]);
+    expect(fetched.agent.DECLARED_KEY?.isSecret, "a vault's value is a secret").toBe(true);
+    expect(fetched.agent.DECLARED_KEY?.value).toBe("kept");
   });
 
   it("a plain setting carries its value in the declaration; a vault secret of the same name takes its place", async () => {
     const { org } = await target.provisionTenancy();
     await saveToMyVault(org, { OVERRIDDEN_SETTING: "from-my-vault" });
 
-    const { data } = await runWith(org, {
+    const { execution, sources } = await runWith(org, {
       env: {
         WORKSPACE_SETTING: { value: "acme" },
         OVERRIDDEN_SETTING: { value: "the-default" },
@@ -285,12 +310,18 @@ describe("vault resolution — a person's run", () => {
       includeMyVault: true,
     });
 
-    expect(data.WORKSPACE_SETTING?.value, "the declaration's own value").toBe("acme");
-    expect(data.WORKSPACE_SETTING?.isSecret, "a declaration's own default stays plain").toBe(false);
-    // The default would read plain "the-default"; a secret in its place is
-    // the saved value, the only secret source holding the key.
-    expect(data.OVERRIDDEN_SETTING?.isSecret, "a saved secret of the same name wins").toBe(true);
-    expect(data.OVERRIDDEN_SETTING?.value).toBe(REDACTED_MARKER);
+    const setting = agentSourceOf(sources, "WORKSPACE_SETTING");
+    expect(setting?.origin, "the declaration's own value").toBe(RunValueOrigin.DECLARATION);
+    expect(setting?.plainValue).toBe("acme");
+    expect(agentSourceOf(sources, "OVERRIDDEN_SETTING")?.origin, "a saved secret of the same name wins").toBe(
+      RunValueOrigin.MY_VAULT,
+    );
+    const fetched = await fetchedValuesOf(execution.metadata!.id);
+    expect(fetched.agent.WORKSPACE_SETTING, "a declaration's own default stays plain").toMatchObject({
+      value: "acme",
+      isSecret: false,
+    });
+    expect(fetched.agent.OVERRIDDEN_SETTING).toMatchObject({ value: "from-my-vault", isSecret: true });
   });
 
   it("[rpc:RunCommandController.create] a required key found nowhere refuses the create naming the key and what the conversation lacks; an optional one stays absent", async () => {
@@ -324,9 +355,11 @@ describe("vault resolution — a person's run", () => {
       env: { PROVIDED_KEY: {}, OPTIONAL_MISSING_KEY: { optional: true } },
       includeMyVault: true,
     });
-    expect(optionalOnly.data.PROVIDED_KEY?.isSecret).toBe(true);
-    expect(optionalOnly.data.PROVIDED_KEY?.value).toBe(REDACTED_MARKER);
-    expect(optionalOnly.data.OPTIONAL_MISSING_KEY, "an unprovided optional key is absent").toBeUndefined();
+    expect(agentSourceOf(optionalOnly.sources, "PROVIDED_KEY")?.origin).toBe(RunValueOrigin.MY_VAULT);
+    expect(
+      sourcesFor(optionalOnly.sources, "OPTIONAL_MISSING_KEY"),
+      "an unprovided optional key has no source",
+    ).toEqual([]);
     mock.releaseHolds();
     const final = await awaitTerminal(clients, optionalOnly.execution.metadata!.id);
     expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
@@ -337,15 +370,15 @@ describe("vault resolution — a person's run", () => {
     await saveToMyVault(org, { LISTED_KEY: "from-my-vault", MY_ONLY_KEY: "never" });
     const team = await sharedVaultWith(org, { LISTED_KEY: "from-the-team-vault" });
 
-    const { data } = await runWith(org, {
+    const { sources } = await runWith(org, {
       env: { LISTED_KEY: {}, MY_ONLY_KEY: { optional: true } },
       sessionVaults: [team.slug],
     });
 
-    // With My vault unread (below), the listed vault is the only source left.
-    expect(data.LISTED_KEY?.isSecret, "the listed vault fills the key").toBe(true);
-    expect(data.LISTED_KEY?.value).toBe(REDACTED_MARKER);
-    expect(data.MY_ONLY_KEY, "My vault is not read when the conversation leaves it out").toBeUndefined();
+    const listed = agentSourceOf(sources, "LISTED_KEY");
+    expect(listed?.origin, "the listed vault fills the key").toBe(RunValueOrigin.VAULT);
+    expect(listed?.vaultId).toBe(team.id);
+    expect(sourcesFor(sources, "MY_ONLY_KEY"), "My vault is not read when the conversation leaves it out").toEqual([]);
   });
 
   it("[rpc:SessionCommandController.create] a conversation cannot list anyone's own My vault", async () => {
@@ -366,22 +399,67 @@ describe("vault resolution — a person's run", () => {
     expect(refused?.rawMessage, "the refusal names the door that serves it").toContain("include My vault in it instead");
   });
 
-  it("[rpc:ExecutionContextQueryController.getByExecutionId] a secret keeps is_secret and its value is redacted on the user-shaped read", async () => {
+  it("[rpc:VaultValueController.fetchValues] only the run's own runner credential fetches its values: secrets as secrets, a plain default plain; anyone else is refused, never answered redacted", async () => {
     const { org } = await target.provisionTenancy();
     const secretValue = "my-vault-secret-value";
     const plainDeclaredValue = "vault-value-for-a-plain-declaration";
     await saveToMyVault(org, { API_TOKEN: secretValue, PLAIN_DECLARED_KEY: plainDeclaredValue });
+    const env = { API_TOKEN: { isSecret: true }, PLAIN_KEY: { value: "plain-value" }, PLAIN_DECLARED_KEY: {} };
 
-    const { data } = await runWith(org, {
-      env: { API_TOKEN: { isSecret: true }, PLAIN_KEY: { value: "plain-value" }, PLAIN_DECLARED_KEY: {} },
-      includeMyVault: true,
+    const run = await runWith(org, { env, includeMyVault: true });
+    const runId = run.execution.metadata!.id;
+    const fetched = await fetchedValuesOf(runId);
+    expect(fetched.agent.API_TOKEN).toMatchObject({ value: secretValue, isSecret: true });
+    expect(fetched.agent.PLAIN_KEY, "a declaration's own plain value is not secret").toMatchObject({
+      value: "plain-value",
+      isSecret: false,
+    });
+    expect(fetched.agent.PLAIN_DECLARED_KEY, "a vault's value is a secret, even for a plain declaration").toMatchObject({
+      value: plainDeclaredValue,
+      isSecret: true,
     });
 
-    expect(data.API_TOKEN?.isSecret, "a secret declaration delivers a secret").toBe(true);
-    expect(data.PLAIN_KEY?.value, "a declaration's own plain value is never redacted").toBe("plain-value");
-    expect(data.API_TOKEN?.value, "no user-shaped read returns the plaintext secret").not.toBe(secretValue);
-    expect(data.PLAIN_DECLARED_KEY?.isSecret, "a vault's value is a secret, even for a plain declaration").toBe(true);
-    expect(data.PLAIN_DECLARED_KEY?.value, "and no user-shaped read returns it").not.toBe(plainDeclaredValue);
+    // The person who sent the turn is no runner: refused.
+    await expectGrpcCode(
+      () => fetchRunValues(clients, runId),
+      Code.PermissionDenied,
+      "the person's own credential fetching their run's values",
+    );
+    // No credential at all: refused, by the fetch where the server admits
+    // an anonymous caller (trusted-local) or by authentication where it
+    // requires one.
+    let anonymous: ConnectError | undefined;
+    try {
+      await fetchRunValues(target.anonymousClients(), runId);
+    } catch (error) {
+      anonymous = ConnectError.from(error);
+    }
+    expect([Code.PermissionDenied, Code.Unauthenticated], "no credential fetching a run's values").toContain(
+      anonymous?.code,
+    );
+    // A credential bound to another live run: refused. Its own run's turn is
+    // held like the first one's.
+    const other = await runWith(org, { env: {} });
+    const otherCredential = await runCredentialOf(clients, other.execution.metadata!.id);
+    await expectGrpcCode(
+      () => fetchRunValues(target.clientsPresenting(otherCredential), runId),
+      Code.PermissionDenied,
+      "another run's credential fetching this run's values",
+    );
+  });
+
+  it("[rpc:VaultValueController.fetchValues] nothing is copied: a secret rotated in its vault after the run was created reaches the runner's next fetch", async () => {
+    const { org } = await target.provisionTenancy();
+    await saveToMyVault(org, { ROTATED_KEY: "before-rotation" });
+    const { execution } = await runWith(org, { env: { ROTATED_KEY: {} }, includeMyVault: true });
+    const runId = execution.metadata!.id;
+
+    expect((await fetchedValuesOf(runId)).agent.ROTATED_KEY?.value).toBe("before-rotation");
+    await clients.vaultCommand.setSecrets(setSecretsInput(myVaultTarget(org), { ROTATED_KEY: "after-rotation" }));
+    expect(
+      (await fetchedValuesOf(runId)).agent.ROTATED_KEY?.value,
+      "the fetch opens the vault as it is now",
+    ).toBe("after-rotation");
   });
 
   it("[rpc:SessionCommandController.update] a repository's token is sealed and kept by a write sending the marker back; a stale write keeps the stored vault choice", async () => {
@@ -456,9 +534,10 @@ describe("vault resolution — a person's run", () => {
       await clients.agentExecutionCommand.delete({ value: execution.metadata!.id });
     });
 
-    const context = await clients.executionContextQuery.getByExecutionId({ executionId: execution.metadata!.id });
-    expect(context.spec?.data.FIRST_TURN_KEY?.isSecret, "the first turn reads its sender's My vault").toBe(true);
-    expect(context.spec?.data.FIRST_TURN_KEY?.value).toBe(REDACTED_MARKER);
+    const sources = await runSourcesOf(clients, execution.metadata!.id);
+    expect(agentSourceOf(sources, "FIRST_TURN_KEY")?.origin, "the first turn reads its sender's My vault").toBe(
+      RunValueOrigin.MY_VAULT,
+    );
     const stored = await clients.agentExecutionQuery.get({ value: execution.metadata!.id });
     expect(stored.spec?.target.case, "the run keeps only the session's id").toBe("sessionId");
     const session = await clients.sessionQuery.get({ value: sessionIdOf(stored) });
@@ -466,25 +545,12 @@ describe("vault resolution — a person's run", () => {
   });
 });
 
-/** Whether the run's ExecutionContext is still readable. */
-async function contextState(executionId: string): Promise<"present" | "gone"> {
-  try {
-    await clients.executionContextQuery.getByExecutionId({ executionId });
-    return "present";
-  } catch (error) {
-    if (ConnectError.from(error).code === Code.NotFound) {
-      return "gone";
-    }
-    throw error;
-  }
-}
-
 describe("vault resolution — recover", () => {
-  it("[rpc:RunCommandController.recover] recover rebuilds the context create built: the recorded agent version's keys, from the run's person's My vault as it is now", async () => {
+  it("[rpc:RunCommandController.recover] recover plans the run's values again: the recorded agent version's keys, from the run's person's My vault as it is now, and the runner fetches the fixed value", async () => {
     const { org } = await target.provisionTenancy();
     // RUN_KEY is not saved yet when the run is created, and saved before it
-    // is recovered: every read of a vault value shows the marker, so the
-    // key's arrival is what proves recover read My vault as it is now.
+    // is recovered: its arrival in the manifest, and the fixed value in the
+    // fetch, prove recover read My vault as it is now.
     await saveToMyVault(org, { LATER_KEY: "later-value" });
 
     const agentName = uniqueName("agent-recover-keys");
@@ -510,16 +576,11 @@ describe("vault resolution — recover", () => {
       await clients.agentExecutionCommand.delete({ value: executionId });
     });
     expect(execution.status?.credentials?.person, "create records the run's person").toBeDefined();
-    const built = await clients.executionContextQuery.getByExecutionId({ executionId });
-    expect(built.spec?.data.RUN_KEY, "create found the run's key nowhere yet").toBeUndefined();
+    expect(sourcesFor(await runSourcesOf(clients, executionId), "RUN_KEY"), "create found the run's key nowhere yet").toEqual(
+      [],
+    );
 
     await awaitPhase(clients, executionId, RunPhase.RUN_FAILED);
-    await pollUntil(
-      () => contextState(executionId),
-      (state) => state === "gone",
-      (_, timeoutMs) => `execution ${executionId}'s ExecutionContext was still readable ${timeoutMs}ms after it FAILED`,
-      { timeoutMs: 30_000 },
-    );
 
     const v2 = await clients.agentCommand.apply(makeAgent({ org, name: agentName, env: { LATER_KEY: {} } }));
     expect(v2.status?.versionHash, "the author's save is a new version").not.toBe(v1.status?.versionHash);
@@ -527,13 +588,16 @@ describe("vault resolution — recover", () => {
 
     mock.enqueue(anthropicText("Working..."), { delayMs: HOLD_MS });
     await clients.agentExecutionCommand.recover({ id: executionId });
-    const rebuilt = await clients.executionContextQuery.getByExecutionId({ executionId });
-    const data = rebuilt.spec?.data ?? {};
-    expect(Object.keys(data).sort(), "recover rebuilds the recorded version's keys, not the head's").toEqual([
+    const replanned = await runSourcesOf(clients, executionId);
+    expect(replanned.map((source) => source.key), "recover plans the recorded version's keys, not the head's").toEqual([
       "RUN_KEY",
     ]);
-    expect(data.RUN_KEY?.isSecret, "from the recorded person's My vault, as it is now").toBe(true);
-    expect(data.RUN_KEY?.value).toBe(REDACTED_MARKER);
+    expect(agentSourceOf(replanned, "RUN_KEY")?.origin, "from the recorded person's My vault, as it is now").toBe(
+      RunValueOrigin.MY_VAULT,
+    );
+    expect((await fetchedValuesOf(executionId)).agent.RUN_KEY?.value, "the runner fetches the fixed value").toBe(
+      "fixed-value",
+    );
     const recovered = await clients.agentExecutionQuery.get({ value: executionId });
     expect(recovered.status?.credentials?.person, "recover keeps the recorded person").toBe(
       execution.status?.credentials?.person,
@@ -541,8 +605,74 @@ describe("vault resolution — recover", () => {
   });
 });
 
-// The agent's shell holds only what the AGENT declares: a key a session's own
-// MCP server declares reaches the run and that server, never the shell.
+// Nothing a run uses from a vault rides its workflow's Temporal history: the
+// history holds ids and the run's credential, and the runner fetches the
+// values when the work starts. Read through the `temporal` CLI on a lane
+// whose server and runner configure NO payload codec (the local managed
+// targets set no STIGMER_PAYLOAD_ENCRYPTION_KEY), so every payload's `data`
+// is the plain JSON a reader of the history sees; a target without engine
+// coordinates (the cloud's) skips.
+describe.skipIf(collectionTarget.engineCoordinates === undefined)("vault resolution — Temporal history", () => {
+  /** Every payload `data` string in a proto-JSON history, decoded from base64. */
+  function payloadData(node: unknown, found: string[] = []): string[] {
+    if (Array.isArray(node)) {
+      for (const item of node) payloadData(item, found);
+    } else if (typeof node === "object" && node !== null) {
+      for (const [key, value] of Object.entries(node)) {
+        if (key === "data" && typeof value === "string") {
+          found.push(Buffer.from(value, "base64").toString("utf8"));
+        } else {
+          payloadData(value, found);
+        }
+      }
+    }
+    return found;
+  }
+
+  it("[rpc:RunCommandController.create] a run's history holds no byte of a secret it used", async () => {
+    const { org } = await target.provisionTenancy();
+    const secretValue = uniqueName("history-probe-secret");
+    await saveToMyVault(org, { HISTORY_PROBE_KEY: secretValue });
+    const { session } = await agentAndSession(org, {
+      env: { HISTORY_PROBE_KEY: { isSecret: true } },
+      includeMyVault: true,
+    });
+    mock.enqueue(anthropicToolUse("call_probe", "execute", { command: 'echo "PROBE=[$HISTORY_PROBE_KEY]"' }));
+    mock.enqueue(anthropicText("Done."));
+    const execution = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("aex-history"), sessionId: session.metadata!.id, autoApproveAll: true }),
+    );
+    const executionId = execution.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
+    const final = await awaitTerminal(clients, executionId);
+    expect(final.status?.phase, `execution ${executionId}: ${final.status?.error || "(none)"}`).toBe(
+      RunPhase.RUN_COMPLETED,
+    );
+    // The runner held the value: the shell printed it into the next request.
+    expect(
+      mock.scriptedRequests().map((request) => JSON.stringify(request.body)).join("\n"),
+      "the run used the secret",
+    ).toContain(`PROBE=[${secretValue}]`);
+
+    const history = await showWorkflow(
+      target.engineCoordinates!().temporalHostPort,
+      TEMPORAL_DEV_NAMESPACE,
+      invokeWorkflowIdFor(executionId),
+    );
+    const decoded = payloadData(history);
+    expect(decoded.length, "the history carries payloads to search").toBeGreaterThan(0);
+    expect(
+      decoded.filter((data) => data.includes(secretValue)),
+      "no payload of the run's history holds the secret",
+    ).toEqual([]);
+    expect(JSON.stringify(history), "nor does any other field of it").not.toContain(secretValue);
+  });
+});
+
+// The agent's shell holds only what the AGENT declares: a key an MCP server of
+// the run declares is planned for that server alone, never for the agent, so
+// it never reaches the shell, even when agent save copied it into the agent's
+// env.
 // Observed where the model sees it: the shell tool's output in the next model
 // request.
 describe("vault resolution — the agent's shell", () => {
@@ -596,11 +726,15 @@ describe("vault resolution — the agent's shell", () => {
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
 
-    const context = await clients.executionContextQuery.getByExecutionId({ executionId });
-    expect(Object.keys(context.spec?.data ?? {}).sort(), "both values reach the run").toEqual([
-      "SHELL_AGENT_KEY",
-      "SHELL_MCP_ONLY_KEY",
-    ]);
+    const sources = await runSourcesOf(clients, executionId);
+    expect(agentSourceOf(sources, "SHELL_AGENT_KEY")?.origin, "the agent's key is planned for the agent").toBe(
+      RunValueOrigin.MY_VAULT,
+    );
+    const mcpOnly = sourcesFor(sources, "SHELL_MCP_ONLY_KEY");
+    expect(
+      mcpOnly.map((source) => [source.declarer?.kind, source.declarer?.mcpServerId]),
+      "the server's key is planned for the server alone",
+    ).toEqual([[RunValueDeclarerKind.TOOL, server.metadata!.id]]);
 
     const final = await awaitTerminal(clients, executionId);
     expect(
@@ -630,10 +764,9 @@ describe("vault resolution — the agent's shell", () => {
   });
 
   it("a vault secret reaches the runner decrypted: the agent's shell prints the My vault secret's value", async () => {
-    // The end-to-end proof of the runner decrypt lane: a My vault secret
-    // (sealed at rest) -> the resolver opens it into the context -> the
-    // context seals it at rest -> the runner reads the context decrypted ->
-    // the shell holds the real value.
+    // The end-to-end proof of the fetch: a My vault secret (sealed at rest)
+    // -> the run's manifest names its entry -> the runner fetches it opened
+    // when the turn starts -> the shell holds the real value.
     const { org } = await target.provisionTenancy();
     const secretValue = "proof-secret-value";
     await saveToMyVault(org, { SHELL_PROOF_TOKEN: secretValue });
@@ -713,12 +846,11 @@ describe.skipIf(!firingEnabled)("vault resolution — a schedule's fire (schedul
       await clients.agentExecutionCommand.delete({ value: result.runId });
     });
 
-    const context = await clients.executionContextQuery.getByExecutionId({ executionId: result.runId });
-    // A key only the owner's My vault holds stays absent, so the fire read no
-    // My vault, and the schedule's vault is what filled SCHED_KEY.
-    expect(context.spec?.data.OWNER_ONLY_KEY, "the fire never reads its owner's My vault").toBeUndefined();
-    expect(context.spec?.data.SCHED_KEY?.isSecret, "the schedule's vault fills the key").toBe(true);
-    expect(context.spec?.data.SCHED_KEY?.value).toBe(REDACTED_MARKER);
+    const sources = await runSourcesOf(clients, result.runId);
+    expect(sourcesFor(sources, "OWNER_ONLY_KEY"), "the fire never reads its owner's My vault").toEqual([]);
+    const scheduled = agentSourceOf(sources, "SCHED_KEY");
+    expect(scheduled?.origin, "the schedule's vault fills the key").toBe(RunValueOrigin.SURFACE_VAULT);
+    expect(scheduled?.vaultId).toBe(team.id);
     const fired = await clients.agentExecutionQuery.get({ value: result.runId });
     expect(fired.status?.credentials?.person, "a fire records no person").toBeUndefined();
   });
@@ -736,9 +868,9 @@ describe.skipIf(!firingEnabled)("vault resolution — a schedule's fire (schedul
       await clients.agentExecutionCommand.cancel({ id: result.runId }).catch(() => {});
       await clients.agentExecutionCommand.delete({ value: result.runId });
     });
-    const context = await clients.executionContextQuery.getByExecutionId({ executionId: result.runId });
-    expect(context.spec?.data.OWNERS_KEY?.isSecret, "the owner's attached My vault fills the key").toBe(true);
-    expect(context.spec?.data.OWNERS_KEY?.value).toBe(REDACTED_MARKER);
+    const owners = agentSourceOf(await runSourcesOf(clients, result.runId), "OWNERS_KEY");
+    expect(owners?.origin, "the owner's attached My vault fills the key").toBe(RunValueOrigin.SURFACE_VAULT);
+    expect(owners?.vaultId).toBe(mineId);
   });
 
   it("[rpc:ScheduleCommandController.create] a schedule's repository cannot carry a token: it names a vault instead", async () => {

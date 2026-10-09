@@ -38,8 +38,12 @@ import {
 } from "../harness/mcp-server";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { MockOAuthAuthorizationServer } from "@stigmer/test-support/oauth-authorization-server";
-import { requireLlmProxy, requireMcpFixture } from "../support/runs";
-import { myVaultTarget, setSecretsInput } from "../support/vaults";
+import { anthropicText } from "@stigmer/test-support/mock-llm";
+import { agentRefOf, makeAgent } from "../support/agents";
+import { awaitTerminal, makeAgentExecution, requireLlmProxy, requireMcpFixture } from "../support/runs";
+import { runCredentialOf } from "../support/run-values";
+import { makeSession } from "../support/sessions";
+import { makeSharedVault, myVaultTarget, setSecretsInput, vaultTarget } from "../support/vaults";
 import { makeHttpMcpServer, makeOAuthMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
@@ -287,14 +291,14 @@ describe("McpServer connect conformance — blocking connect", () => {
     expect(err.rawMessage).toContain("add CONF_REQUIRED_KEY to My vault");
   });
 
-  it("[rpc:McpServerCommandController.connect] discovers a server that declares a credential once My vault holds it — the ephemeral ExecutionContext is created and decrypted for the runner", async () => {
+  it("[rpc:McpServerCommandController.connect] discovers a server that declares a credential once My vault holds it — the runner fetches it from My vault and sends it to the server", async () => {
     // The credentialed connect is the connect lane's whole reason to mint a
-    // token: the declared key is saved as a secret, the server resolves it
-    // into an ephemeral ExecutionContext for this connect, and the runner
-    // reads it back DECRYPTED with the payload's token. A redacted read fails
-    // discovery loudly (the runner's CredentialResolutionError), so SUCCEEDED
-    // with tools proves the decrypt lane end to end. The row's deletion at
-    // settle is the server's own unit arm (no list RPC exposes it here).
+    // token: the declared key is saved as a secret in My vault (a connect
+    // carries no values of its own), and the runner's discovery fetches it
+    // with the payload's token and sends it in the header the server
+    // templates. A refused fetch fails discovery loudly, so SUCCEEDED with
+    // tools, and the header the fixture received, prove the fetch end to end.
+    // The attempt's end at settle is the server's own unit arm.
     const { org } = await target.provisionTenancy();
     const mine = await clients.vaultCommand.setSecrets(
       setSecretsInput(myVaultTarget(org), { CONF_REQUIRED_KEY: "conformance-credential" }),
@@ -305,10 +309,12 @@ describe("McpServer connect conformance — blocking connect", () => {
         org,
         name: uniqueName("credentialed"),
         url: mcpTools.url(),
+        headers: { "X-Conf-Credential": "${CONF_REQUIRED_KEY}" },
         env: { CONF_REQUIRED_KEY: { description: "a required credential", isSecret: true } },
       }),
     );
     fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
+    mcpTools.resetCaptured();
 
     const connected = await clients.mcpServerCommand.connect({
       mcpServerId: server.metadata!.id,
@@ -319,6 +325,82 @@ describe("McpServer connect conformance — blocking connect", () => {
     expect((connected.status?.discoveredCapabilities?.tools ?? []).map((t) => t.name)).toEqual([
       ECHO_TOOL_NAME,
     ]);
+    const carried = mcpTools
+      .capturedRequests()
+      .map((request) => request.headers["x-conf-credential"])
+      .filter((value) => value !== undefined);
+    expect(carried.length, "the discovery reached the fixture").toBeGreaterThan(0);
+    expect(new Set(carried), "the value came from My vault").toEqual(new Set(["conformance-credential"]));
+  });
+});
+
+// The runner's backfill of a never-connected tool names its run: the connect
+// then uses the run's planned values for that tool, fetched from their vaults
+// at discovery, so a key the run took from a shared vault reaches discovery
+// without the runner sending it back. The conformance runner skips its own
+// backfill (SKIP_MCP_CONNECT_BACKFILL), so the arm makes the runner's call
+// itself, presenting the run's own credential as the runner does; the
+// runner's units pin that it makes that call.
+describe("McpServer connect conformance — a connect that names its run", () => {
+  it("[rpc:McpServerCommandController.connect] a connect naming a live run, presented with the run's credential, uses the run's planned value from a shared vault; anyone else naming the run is refused", async () => {
+    const { org } = await target.provisionTenancy();
+    const team = await clients.vaultCommand.create(makeSharedVault({ org, name: uniqueName("backfill-vault") }));
+    fixtures.defer(() => clients.vaultCommand.delete({ resourceId: team.metadata!.id }));
+    await clients.vaultCommand.setSecrets(
+      setSecretsInput(vaultTarget(org, team.metadata!.id), { CONF_BACKFILL_KEY: "team-credential" }),
+    );
+    const server = await clients.mcpServerCommand.create(
+      makeHttpMcpServer({
+        org,
+        name: uniqueName("backfill"),
+        url: mcpTools.url(),
+        headers: { "X-Conf-Credential": "${CONF_BACKFILL_KEY}" },
+        env: { CONF_BACKFILL_KEY: { description: "the team's credential", isSecret: true } },
+      }),
+    );
+    fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
+    const agent = await clients.agentCommand.create(
+      makeAgent({ org, name: uniqueName("backfill-agent"), mcpServerRefs: [server.metadata!.slug] }),
+    );
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+    const session = await clients.sessionCommand.create(
+      makeSession({ org, name: uniqueName("backfill-session"), agentRef: agentRefOf(agent), vaults: [team.metadata!.slug] }),
+    );
+    fixtures.defer(() => clients.sessionCommand.delete({ value: session.metadata!.id }));
+
+    // A held turn keeps the run live while its tool is connected.
+    mockLlm.enqueue(anthropicText("Working..."), { delayMs: 30_000 });
+    const run = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("aex-backfill"), sessionId: session.metadata!.id }),
+    );
+    const runId = run.metadata!.id;
+    fixtures.defer(async () => {
+      mockLlm.releaseHolds();
+      await awaitTerminal(clients, runId).catch(() => undefined);
+      await clients.agentExecutionCommand.delete({ value: runId });
+    });
+
+    // The person naming the run is no runner bound to it: refused.
+    await expectGrpcCode(
+      () => clients.mcpServerCommand.connect({ mcpServerId: server.metadata!.id, org, runId }),
+      Code.PermissionDenied,
+      "a connect naming a run without the run's credential",
+    );
+
+    const runner = target.clientsPresenting(await runCredentialOf(clients, runId));
+    mcpTools.resetCaptured();
+    const connected = await runner.mcpServerCommand.connect({ mcpServerId: server.metadata!.id, org, runId });
+    expect(
+      connected.status?.connectStatus?.phase,
+      `the run's connect: ${connected.status?.connectStatus?.failureMessage ?? ""}`,
+    ).toBe(ConnectPhase.succeeded);
+    expect((connected.status?.discoveredCapabilities?.tools ?? []).map((t) => t.name)).toEqual([ECHO_TOOL_NAME]);
+    const carried = mcpTools
+      .capturedRequests()
+      .map((request) => request.headers["x-conf-credential"])
+      .filter((value) => value !== undefined);
+    expect(carried.length, "the discovery reached the fixture").toBeGreaterThan(0);
+    expect(new Set(carried), "the run's planned value from the shared vault").toEqual(new Set(["team-credential"]));
   });
 });
 
