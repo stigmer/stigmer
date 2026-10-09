@@ -26,12 +26,17 @@ This install is reachable from outside the cluster with no sign-in ({{ join "; "
 {{- else }}
 
 Authentication is on (issuer {{ .Values.server.oidc.issuer }}). Register the console's redirect URI at your provider: {{ include "stigmer.publicUrl" . }}/auth/callback, and the post-logout redirect {{ include "stigmer.publicUrl" . }}/login.
+{{- $publicUrl := include "stigmer.publicUrl" . }}
+{{- if and (hasPrefix "http://" $publicUrl) (not (regexMatch "^http://(localhost|127\\.0\\.0\\.1|\\[::1\\])(:|/|$)" $publicUrl)) }}
+
+Sign-in runs over plain HTTP: the public URL is {{ $publicUrl }}, so tokens and the redirect URI cross the network unencrypted, and most identity providers refuse an http redirect URI on any host but localhost. Give the API's Ingress a TLS Secret (ingress.api.tlsSecretName), or, when TLS ends in front of the Ingress, set server.publicUrl to the https URL people use.
+{{- end }}
 {{- if not (include "stigmer.runnerEnabled" .) }}
 
 The runner is not running yet. It needs its own API key, and only someone signed in can create one. Until it has one, sessions and runs wait. Sign in to the console, create a key named runner with no expiry (Settings → API Keys, or `stigmer apikey create --name runner --never-expires`), then give it to the runner:
 
   kubectl -n {{ .Release.Namespace }} create secret generic stigmer-runner-token --from-literal=STIGMER_TOKEN=stk_...
-  helm upgrade {{ .Release.Name }} oci://ghcr.io/stigmer/charts/stigmer -n {{ .Release.Namespace }} --reuse-values --set runner.stigmerToken.existingSecret=stigmer-runner-token
+  helm upgrade {{ .Release.Name }} oci://ghcr.io/stigmer/charts/stigmer -n {{ .Release.Namespace }} --version {{ .Chart.Version }} --reuse-values --set runner.stigmerToken.existingSecret=stigmer-runner-token
 {{- end }}
 {{- end }}
 

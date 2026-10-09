@@ -11,6 +11,11 @@
  * they expect them.
  *
  * The domain's own rules:
+ *   - ValidateSignInRole: `spec.sign_in_role`, when set, is a role the
+ *     organization kind grants (`grantableRolesFor`, the contract's
+ *     `kind_meta`), right after ValidateProto on create and update: any
+ *     other role would fail every first sign-in's grant. Owner is
+ *     grantable on an organization and stays the contract's own refusal.
  *   - RefuseReservedSlug: `system-share-client` is the platform's (the
  *     cloud keeps each organization's system-managed share client under
  *     it, created through its driver, never through this chain), refused
@@ -44,10 +49,13 @@ import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformcli
 import type { PlatformClientSpec } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/spec_pb";
 import { PlatformClientSpecSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/spec_pb";
 
+import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+
 import {
   RESERVED_LABEL_TRUE,
   SYSTEM_MANAGED_LABEL,
 } from "../../pipeline/apiresource-labels.js";
+import { grantableRolesFor } from "../../pipeline/apiresource-meta.js";
 import {
   alreadyExistsError,
   failedPreconditionError,
@@ -68,6 +76,7 @@ import {
   RESERVED_PLATFORM_CLIENT_SLUGS,
   referenceNotFoundMessage,
   reservedSlugMessage,
+  signInRoleNotGrantableMessage,
   systemManagedMessage,
 } from "./constants.js";
 import type { SystemManagedMutation } from "./constants.js";
@@ -111,6 +120,31 @@ export function parkedClientSecret<Desc extends DescMessage>(
 // ---------------------------------------------------------------------------
 // Create
 // ---------------------------------------------------------------------------
+
+/**
+ * Whether an organization can be granted `role`: the kind's grantable
+ * roles, or no role at all (unset grants nothing). The save-time step and
+ * the mint's backstop share it.
+ */
+export function isGrantableSignInRole(role: IamRole): boolean {
+  return (
+    role === IamRole.iam_role_unspecified ||
+    grantableRolesFor(ApiResourceKind.organization).includes(role)
+  );
+}
+
+/** Refuses a sign-in role the organization kind does not grant, on create and update. */
+export function newValidateSignInRoleStep(): ClientStep {
+  return {
+    name: "ValidateSignInRole",
+    execute(ctx: ClientContext): void {
+      const role = ctx.input.spec?.signInRole ?? IamRole.iam_role_unspecified;
+      if (!isGrantableSignInRole(role)) {
+        throw invalidArgumentError(signInRoleNotGrantableMessage(role));
+      }
+    },
+  };
+}
 
 export function newRefuseReservedSlugStep(): ClientStep {
   return {

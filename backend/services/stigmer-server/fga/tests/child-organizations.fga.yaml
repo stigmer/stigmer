@@ -87,6 +87,10 @@ tuples:
   - {user: organization:acme, relation: organization, object: memory:acme-fact}
   - {user: identity_account:alice, relation: subject, object: memory:acme-fact}
 
+  # --- acme's own administration: an identity provider and a team ---
+  - {user: organization:acme, relation: organization, object: identity_provider:acme-sso}
+  - {user: organization:acme, relation: organization, object: team:acme-eng}
+
 tests:
   - name: a parent admin manages a child
     check:
@@ -143,6 +147,29 @@ tests:
         object: memory:acme-fact
         assertions:
           can_view: false
+
+  - name: a parent admin manages a child's access but not its identity providers or teams
+    check:
+      - user: identity_account:pat
+        object: organization:acme
+        assertions:
+          can_view_access: true
+      - user: identity_account:pat
+        object: identity_provider:acme-sso
+        assertions:
+          owner: false
+          viewer: false
+          can_view: false
+          can_edit: false
+          can_delete: false
+      - user: identity_account:pat
+        object: team:acme-eng
+        assertions:
+          viewer: false
+          can_view: false
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
 
   - name: the parent's members and viewers do not manage a child
     check:

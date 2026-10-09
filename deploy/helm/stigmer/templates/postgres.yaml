@@ -114,7 +114,7 @@ spec:
         accessModes:
           - ReadWriteOnce
         {{- with .Values.postgres.persistence.storageClass }}
-        storageClassName: {{ . }}
+        storageClassName: {{ . | quote }}
         {{- end }}
         resources:
           requests:

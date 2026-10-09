@@ -64,6 +64,7 @@ import {
   foreignAccountMessage,
   noAccountMessage,
   organizationMismatchMessage,
+  signInRoleNotGrantableMessage,
 } from "../constants.js";
 import { hashClientSecret } from "../credentials.js";
 import { mintUserToken, platformClientSubject } from "../mint.js";
@@ -483,6 +484,18 @@ describe("mintUserToken — the user", () => {
     const denied = await refusal(mintUserToken(owner.deps, request()));
     expect(denied.code).toBe(Code.InvalidArgument);
     expect(owner.events).toEqual([]);
+  });
+
+  it("refuses a stored sign-in role an organization cannot grant before anything is written", async () => {
+    for (const role of [IamRole.participant, IamRole.editor, IamRole.user]) {
+      const h = harness({ client: platformClient({ signInRole: role }) });
+      const denied = await refusal(mintUserToken(h.deps, request()));
+      expect(denied.code, IamRole[role]).toBe(Code.InvalidArgument);
+      expect(denied.rawMessage, IamRole[role]).toBe(
+        signInRoleNotGrantableMessage(role),
+      );
+      expect(h.events, IamRole[role]).toEqual([]);
+    }
   });
 
   it("writes nothing when the grant fails, and says the request is safe to retry", async () => {

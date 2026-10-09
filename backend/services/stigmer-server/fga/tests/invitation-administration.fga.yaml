@@ -1,5 +1,5 @@
 # An invitation is its organization's administrative resource: its current
-# admins view and manage it, and nobody else in the organization sees it,
+# admins, and its parent organization's, view and manage it, and nobody else in the organization sees it,
 # its creator included once they are no longer an admin. An invitation carries its token, the credential
 # that grants the invitation's role, so `can_view` is the question every
 # read of it asks.
@@ -14,6 +14,10 @@
 #   dave  - acme member-role member
 #   vera  - acme viewer-role member
 #   zara  - admin of the unrelated organization other
+#   pam   - admin of holding, acme's parent organization
+#   mo    - member-role member of holding
+#   val   - viewer-role member of holding
+#   gil   - admin of group, holding's parent: acme's grandparent
 #
 # Invitation `link` carries its creation tuple, the organization link.
 # Invitation `relinked`
@@ -36,6 +40,18 @@ tuples:
   - {user: identity_account:vera, relation: affiliated, object: organization:acme}
   - {user: identity_account:zara, relation: admin, object: organization:other}
   - {user: identity_account:zara, relation: affiliated, object: organization:other}
+  - {user: organization:holding, relation: parent_org, object: organization:acme}
+  - {user: organization:acme, relation: child_org, object: organization:holding}
+  - {user: organization:group, relation: parent_org, object: organization:holding}
+  - {user: organization:holding, relation: child_org, object: organization:group}
+  - {user: identity_account:pam, relation: admin, object: organization:holding}
+  - {user: identity_account:pam, relation: affiliated, object: organization:holding}
+  - {user: identity_account:mo, relation: member, object: organization:holding}
+  - {user: identity_account:mo, relation: affiliated, object: organization:holding}
+  - {user: identity_account:val, relation: viewer, object: organization:holding}
+  - {user: identity_account:val, relation: affiliated, object: organization:holding}
+  - {user: identity_account:gil, relation: admin, object: organization:group}
+  - {user: identity_account:gil, relation: affiliated, object: organization:group}
   - {user: organization:acme, relation: organization, object: invitation:link}
   - {user: organization:acme, relation: organization, object: invitation:relinked}
 tests:
@@ -81,9 +97,36 @@ tests:
       - user: identity_account:zara
         object: invitation:link
         assertions: {owner: false, viewer: false, can_view: false, can_edit: false, can_delete: false}
-  - name: only the organization's admins list its invitations
+  - name: a parent organization's admin views and manages a child's invitations, as they create and list them
+    check:
+      - user: identity_account:pam
+        object: invitation:link
+        assertions: {owner: true, viewer: true, can_view: true, can_edit: true, can_delete: true}
+      - user: identity_account:pam
+        object: organization:acme
+        assertions: {can_grant_access: true, can_view_access: true}
+  - name: the parent's members and viewers have nothing on a child's invitations
+    check:
+      - user: identity_account:mo
+        object: invitation:link
+        assertions: {owner: false, viewer: false, can_view: false, can_edit: false, can_delete: false}
+      - user: identity_account:val
+        object: invitation:link
+        assertions: {owner: false, viewer: false, can_view: false, can_edit: false, can_delete: false}
+  - name: a grandparent's admin has nothing, since a parent's reach is one level
+    check:
+      - user: identity_account:gil
+        object: invitation:link
+        assertions: {owner: false, viewer: false, can_view: false, can_edit: false, can_delete: false}
+  - name: only the organization's admins and its parent's list its invitations
     list_objects:
       - user: identity_account:ana
+        type: invitation
+        assertions:
+          can_view:
+            - invitation:link
+            - invitation:relinked
+      - user: identity_account:pam
         type: invitation
         assertions:
           can_view:

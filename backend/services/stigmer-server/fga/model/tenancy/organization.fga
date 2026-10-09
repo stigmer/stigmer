@@ -85,9 +85,12 @@ type organization
     # settings, members and access), see its billing, and read nothing it
     # holds:
     # parent_admin feeds the management permissions below and never a
-    # role, so no resource type, report or list reaches them. To look
-    # inside, a parent admin grants themselves a role in the child, which
-    # the child's members and access history show.
+    # role, so no resource type, report or list reaches them, with one
+    # exception that is management too: the child's invitations
+    # (iam/invitation.fga), which they already create and list through
+    # can_grant_access and can_view_access. To look inside, a parent admin
+    # grants themselves a role in the child, which the child's members and
+    # access history show.
     define parent_admin: admin from parent_org
     
     # ========================================
