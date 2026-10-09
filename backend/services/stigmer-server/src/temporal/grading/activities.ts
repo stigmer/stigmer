@@ -23,7 +23,7 @@ import {
   RUN_HEALTH_EVALUATOR_VERSION,
   gradeRunHealth,
 } from "../../domain/score/checks/checks.js";
-import { RUN_HEALTH_SCORE_NAME } from "../../domain/score/constants.js";
+import { RUN_HEALTH_METRIC } from "../../domain/score/constants.js";
 import type { ScoreRecorder } from "../../domain/score/ports.js";
 import { listRunScores } from "../../domain/score/queries.js";
 import {
@@ -93,7 +93,7 @@ async function alreadyGraded(store: Store, runId: string): Promise<boolean> {
   const scores = await listRunScores(store, runId);
   return scores.some(
     (score) =>
-      score.spec?.name === RUN_HEALTH_SCORE_NAME &&
+      score.spec?.metric === RUN_HEALTH_METRIC &&
       score.spec.source === ScoreSource.check &&
       score.spec.evaluatorVersion === RUN_HEALTH_EVALUATOR_VERSION,
   );

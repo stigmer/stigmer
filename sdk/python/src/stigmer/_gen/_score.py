@@ -72,9 +72,10 @@ class ScoreInput:
     visibility: int = 0
     run_id: str = ""
     session_id: str = ""
+    metric: str = ""
     source: int = 0
     evaluator_version: str = ""
-    passed: bool = False
+    passed: bool | None = None
     criteria: list[ScoreCriterionInput] = field(default_factory=list)
     comment: str = ""
 
@@ -82,13 +83,14 @@ class ScoreInput:
         spec = spec_pb2.ScoreSpec(
             run_id=self.run_id,
             session_id=self.session_id,
+            metric=self.metric,
             source=self.source,
             evaluator_version=self.evaluator_version,
             comment=self.comment,
         )
         for item in self.criteria:
             spec.criteria.append(item._to_proto())
-        if self.passed:
+        if self.passed is not None:
             setattr(spec, "passed", self.passed)
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,

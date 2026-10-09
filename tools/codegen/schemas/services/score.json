@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.agentic.score.v1.Score",
           "outputType": "Score",
           "outputFullType": "ai.stigmer.agentic.score.v1.Score",
-          "description": "Create a score on a completed run.\n\n A person rates a run with name `feedback` and source\n score_source_human; each person rates a run once and changes the\n rating with update. The session and organization are taken from the\n run."
+          "description": "Create a score on a completed run.\n\n A person rates a run with metric `feedback` and source\n score_source_human; each person rates a run once and changes the\n rating with update. The session and organization are taken from the\n run."
         },
         {
           "name": "Update",

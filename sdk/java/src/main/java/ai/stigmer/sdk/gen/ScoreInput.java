@@ -20,9 +20,10 @@ public final class ScoreInput {
     private final ApiResourceVisibility visibility;
     private final String runId;
     private final String sessionId;
+    private final String metric;
     private final ScoreSource source;
     private final String evaluatorVersion;
-    private final boolean passed;
+    private final Boolean passed;
     private final java.util.List<ScoreCriterionInput> criteria;
     private final String comment;
 
@@ -35,6 +36,7 @@ public final class ScoreInput {
         this.visibility = builder.visibility;
         this.runId = builder.runId;
         this.sessionId = builder.sessionId;
+        this.metric = builder.metric;
         this.source = builder.source;
         this.evaluatorVersion = builder.evaluatorVersion;
         this.passed = builder.passed;
@@ -50,13 +52,18 @@ public final class ScoreInput {
         if (this.sessionId != null) {
             spec.setSessionId(this.sessionId);
         }
+        if (this.metric != null) {
+            spec.setMetric(this.metric);
+        }
         if (this.source != null) {
             spec.setSource(this.source);
         }
         if (this.evaluatorVersion != null) {
             spec.setEvaluatorVersion(this.evaluatorVersion);
         }
-        spec.setPassed(this.passed);
+        if (this.passed != null) {
+            spec.setPassed(this.passed);
+        }
         if (this.criteria != null) {
             for (ScoreCriterionInput item : this.criteria) {
                 spec.addCriteria(item.toProto());
@@ -101,9 +108,10 @@ public final class ScoreInput {
         private ApiResourceVisibility visibility;
         private String runId;
         private String sessionId;
+        private String metric;
         private ScoreSource source;
         private String evaluatorVersion;
-        private boolean passed;
+        private Boolean passed;
         private java.util.List<ScoreCriterionInput> criteria;
         private String comment;
 
@@ -122,6 +130,7 @@ public final class ScoreInput {
         public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder runId(String runId) { this.runId = runId; return this; }
         public Builder sessionId(String sessionId) { this.sessionId = sessionId; return this; }
+        public Builder metric(String metric) { this.metric = metric; return this; }
         public Builder source(ScoreSource source) { this.source = source; return this; }
         public Builder evaluatorVersion(String evaluatorVersion) { this.evaluatorVersion = evaluatorVersion; return this; }
         public Builder passed(boolean passed) { this.passed = passed; return this; }

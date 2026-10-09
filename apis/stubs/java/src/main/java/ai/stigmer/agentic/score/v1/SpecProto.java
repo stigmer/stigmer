@@ -48,25 +48,25 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "\n&ai/stigmer/agentic/score/v1/spec.proto" +
       "\022\033ai.stigmer.agentic.score.v1\032&ai/stigme" +
       "r/agentic/score/v1/enum.proto\032\033buf/valid" +
-      "ate/validate.proto\"\210\003\n\tScoreSpec\022\036\n\006run_" +
+      "ate/validate.proto\"\214\003\n\tScoreSpec\022\036\n\006run_" +
       "id\030\001 \001(\tB\007\272H\004r\002\020\001R\005runId\022\035\n\nsession_id\030\002" +
-      " \001(\tR\tsessionId\022\035\n\004name\030\003 \001(\tB\t\272H\006r\004\020\001\030?" +
-      "R\004name\022L\n\006source\030\004 \001(\0162(.ai.stigmer.agen" +
-      "tic.score.v1.ScoreSourceB\n\272H\007\202\001\004\020\001 \000R\006so" +
-      "urce\0225\n\021evaluator_version\030\005 \001(\tB\010\272H\005r\003\030\200" +
-      "\001R\020evaluatorVersion\022\030\n\006passed\030\006 \001(\010H\000R\006p" +
-      "assed\022Q\n\010criteria\030\007 \003(\0132+.ai.stigmer.age" +
-      "ntic.score.v1.ScoreCriterionB\010\272H\005\222\001\002\020 R\010" +
-      "criteria\022\"\n\007comment\030\010 \001(\tB\010\272H\005r\003\030\364\003R\007com" +
-      "mentB\007\n\005value\"\241\001\n\016ScoreCriterion\022\035\n\004name" +
-      "\030\001 \001(\tB\t\272H\006r\004\020\001\030?R\004name\022N\n\006result\030\002 \001(\0162" +
-      ",.ai.stigmer.agentic.score.v1.CriterionR" +
-      "esultB\010\272H\005\202\001\002\020\001R\006result\022 \n\006reason\030\003 \001(\tB" +
-      "\010\272H\005r\003\030\364\003R\006reasonB\234\001B\tSpecProtoP\001\242\002\004ASAS" +
-      "\252\002\033Ai.Stigmer.Agentic.Score.V1\312\002\033Ai\\Stig" +
-      "mer\\Agentic\\Score\\V1\342\002\'Ai\\Stigmer\\Agenti" +
-      "c\\Score\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Ag" +
-      "entic::Score::V1b\006proto3"
+      " \001(\tR\tsessionId\022!\n\006metric\030\003 \001(\tB\t\272H\006r\004\020\001" +
+      "\030?R\006metric\022L\n\006source\030\004 \001(\0162(.ai.stigmer." +
+      "agentic.score.v1.ScoreSourceB\n\272H\007\202\001\004\020\001 \000" +
+      "R\006source\0225\n\021evaluator_version\030\005 \001(\tB\010\272H\005" +
+      "r\003\030\200\001R\020evaluatorVersion\022\030\n\006passed\030\006 \001(\010H" +
+      "\000R\006passed\022Q\n\010criteria\030\007 \003(\0132+.ai.stigmer" +
+      ".agentic.score.v1.ScoreCriterionB\010\272H\005\222\001\002" +
+      "\020 R\010criteria\022\"\n\007comment\030\010 \001(\tB\010\272H\005r\003\030\364\003R" +
+      "\007commentB\007\n\005value\"\241\001\n\016ScoreCriterion\022\035\n\004" +
+      "name\030\001 \001(\tB\t\272H\006r\004\020\001\030?R\004name\022N\n\006result\030\002 " +
+      "\001(\0162,.ai.stigmer.agentic.score.v1.Criter" +
+      "ionResultB\010\272H\005\202\001\002\020\001R\006result\022 \n\006reason\030\003 " +
+      "\001(\tB\010\272H\005r\003\030\364\003R\006reasonB\234\001B\tSpecProtoP\001\242\002\004" +
+      "ASAS\252\002\033Ai.Stigmer.Agentic.Score.V1\312\002\033Ai\\" +
+      "Stigmer\\Agentic\\Score\\V1\342\002\'Ai\\Stigmer\\Ag" +
+      "entic\\Score\\V1\\GPBMetadata\352\002\037Ai::Stigmer" +
+      "::Agentic::Score::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -79,7 +79,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_score_v1_ScoreSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_score_v1_ScoreSpec_descriptor,
-        new java.lang.String[] { "RunId", "SessionId", "Name", "Source", "EvaluatorVersion", "Passed", "Criteria", "Comment", "Value", });
+        new java.lang.String[] { "RunId", "SessionId", "Metric", "Source", "EvaluatorVersion", "Passed", "Criteria", "Comment", "Value", });
     internal_static_ai_stigmer_agentic_score_v1_ScoreCriterion_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_agentic_score_v1_ScoreCriterion_fieldAccessorTable = new

@@ -22,7 +22,7 @@ import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/ap
 
 import { RUN_HEALTH_EVALUATOR_VERSION } from "./checks/checks.js";
 import type { RunHealth } from "./checks/checks.js";
-import { RUN_HEALTH_SCORE_NAME } from "./constants.js";
+import { RUN_HEALTH_METRIC } from "./constants.js";
 
 /** The graded run-health score of `run`. */
 export function runHealthScore(run: Run, health: RunHealth): Score {
@@ -56,7 +56,7 @@ function baseScore(run: Run): Score {
     }),
     spec: {
       runId: run.metadata?.id ?? "",
-      name: RUN_HEALTH_SCORE_NAME,
+      metric: RUN_HEALTH_METRIC,
       source: ScoreSource.check,
       evaluatorVersion: RUN_HEALTH_EVALUATOR_VERSION,
     },

@@ -8,7 +8,7 @@
 // edition without an engine is pinned here:
 //   - a run-health score is the platform's alone: a caller who gives
 //     score_source_check is refused before anything about the run is read;
-//   - a score names a run, a measure and a source (protovalidate);
+//   - a score names a run, a metric and a source (protovalidate);
 //   - a score on a run that does not exist answers NOT_FOUND, as the run's
 //     own `get` does;
 //   - a score id nothing holds answers NOT_FOUND on get, update and delete;
@@ -57,7 +57,7 @@ describe("Score conformance (no finished run)", () => {
     expect(refused.rawMessage).toBe(CHECK_SOURCE_REFUSED_MESSAGE);
   });
 
-  it("[rpc:ScoreCommandController.create] a score names its run, its measure and its source", async () => {
+  it("[rpc:ScoreCommandController.create] a score names its run, its metric and its source", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
       () => clients.scoreCommand.create(makeFeedback(org, "", true)),
@@ -70,7 +70,7 @@ describe("Score conformance (no finished run)", () => {
           apiVersion: SCORE_API_VERSION,
           kind: SCORE_KIND,
           metadata: { org },
-          spec: { runId: MISSING_RUN_ID, name: FEEDBACK, value: { case: "passed", value: true } },
+          spec: { runId: MISSING_RUN_ID, metric: FEEDBACK, value: { case: "passed", value: true } },
         }),
       Code.InvalidArgument,
       "a score with no source",
@@ -84,7 +84,7 @@ describe("Score conformance (no finished run)", () => {
           spec: { runId: MISSING_RUN_ID, source: ScoreSource.human, value: { case: "passed", value: true } },
         }),
       Code.InvalidArgument,
-      "a score with no measure",
+      "a score with no metric",
     );
     await expectGrpcCode(
       () => clients.scoreCommand.create(makeFeedback(org, MISSING_RUN_ID, true, "x".repeat(501))),

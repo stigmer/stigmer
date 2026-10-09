@@ -32,7 +32,7 @@ const (
 type ScoreCommandControllerClient interface {
 	// Create a score on a completed run.
 	//
-	// A person rates a run with name `feedback` and source
+	// A person rates a run with metric `feedback` and source
 	// score_source_human; each person rates a run once and changes the
 	// rating with update. The session and organization are taken from the
 	// run.
@@ -95,7 +95,7 @@ func (c *scoreCommandControllerClient) Delete(ctx context.Context, in *ScoreId, 
 type ScoreCommandControllerServer interface {
 	// Create a score on a completed run.
 	//
-	// A person rates a run with name `feedback` and source
+	// A person rates a run with metric `feedback` and source
 	// score_source_human; each person rates a run once and changes the
 	// rating with update. The session and organization are taken from the
 	// run.

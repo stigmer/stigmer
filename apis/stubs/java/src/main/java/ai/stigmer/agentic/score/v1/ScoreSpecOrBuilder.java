@@ -56,21 +56,21 @@ public interface ScoreSpecOrBuilder extends
    * the free checks.
    * </pre>
    *
-   * <code>string name = 3 [json_name = "name", (.buf.validate.field) = { ... }</code>
-   * @return The name.
+   * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
+   * @return The metric.
    */
-  java.lang.String getName();
+  java.lang.String getMetric();
   /**
    * <pre>
    * What is measured: `feedback` for a person's thumbs, `run-health` for
    * the free checks.
    * </pre>
    *
-   * <code>string name = 3 [json_name = "name", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for name.
+   * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for metric.
    */
   com.google.protobuf.ByteString
-      getNameBytes();
+      getMetricBytes();
 
   /**
    * <pre>

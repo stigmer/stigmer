@@ -18,11 +18,11 @@ import {
   ScoreState,
 } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 
-/** The measure a person's thumbs are recorded under. */
-export const FEEDBACK_SCORE_NAME = "feedback";
+/** The metric a person's thumbs are recorded under. */
+export const FEEDBACK_METRIC = "feedback";
 
-/** The measure the platform's free checks are recorded under. */
-export const RUN_HEALTH_SCORE_NAME = "run-health";
+/** The metric the platform's free checks are recorded under. */
+export const RUN_HEALTH_METRIC = "run-health";
 
 /** The refusal reason the server answers a second rating with. */
 export const SCORE_EXISTS_REASON = "SCORE_EXISTS";
@@ -44,7 +44,7 @@ export type RunHealthView =
 export function runHealthScoreOf(scores: readonly Score[]): Score | undefined {
   return scores.find(
     (score) =>
-      score.spec?.name === RUN_HEALTH_SCORE_NAME &&
+      score.spec?.metric === RUN_HEALTH_METRIC &&
       score.spec.source === ScoreSource.check,
   );
 }
@@ -80,7 +80,7 @@ export function viewerFeedbackOf(
   }
   return scores.find((score) => {
     if (
-      score.spec?.name !== FEEDBACK_SCORE_NAME ||
+      score.spec?.metric !== FEEDBACK_METRIC ||
       score.spec.source !== ScoreSource.human
     ) {
       return false;

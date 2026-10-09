@@ -28,9 +28,9 @@
       "required": false
     },
     {
-      "name": "Name",
-      "jsonName": "name",
-      "protoField": "name",
+      "name": "Metric",
+      "jsonName": "metric",
+      "protoField": "metric",
       "type": {
         "kind": "string"
       },

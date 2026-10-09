@@ -34,7 +34,7 @@ private static final long serialVersionUID = 0L;
   private ScoreSpec() {
     runId_ = "";
     sessionId_ = "";
-    name_ = "";
+    metric_ = "";
     source_ = 0;
     evaluatorVersion_ = "";
     criteria_ = java.util.Collections.emptyList();
@@ -193,28 +193,28 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int NAME_FIELD_NUMBER = 3;
+  public static final int METRIC_FIELD_NUMBER = 3;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object name_ = "";
+  private volatile java.lang.Object metric_ = "";
   /**
    * <pre>
    * What is measured: `feedback` for a person's thumbs, `run-health` for
    * the free checks.
    * </pre>
    *
-   * <code>string name = 3 [json_name = "name", (.buf.validate.field) = { ... }</code>
-   * @return The name.
+   * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
+   * @return The metric.
    */
   @java.lang.Override
-  public java.lang.String getName() {
-    java.lang.Object ref = name_;
+  public java.lang.String getMetric() {
+    java.lang.Object ref = metric_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      name_ = s;
+      metric_ = s;
       return s;
     }
   }
@@ -224,18 +224,18 @@ private static final long serialVersionUID = 0L;
    * the free checks.
    * </pre>
    *
-   * <code>string name = 3 [json_name = "name", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for name.
+   * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for metric.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getNameBytes() {
-    java.lang.Object ref = name_;
+      getMetricBytes() {
+    java.lang.Object ref = metric_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      name_ = b;
+      metric_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -476,8 +476,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(sessionId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, sessionId_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(name_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 3, name_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(metric_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 3, metric_);
     }
     if (source_ != ai.stigmer.agentic.score.v1.ScoreSource.score_source_unspecified.getNumber()) {
       output.writeEnum(4, source_);
@@ -510,8 +510,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(sessionId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, sessionId_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(name_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, name_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(metric_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, metric_);
     }
     if (source_ != ai.stigmer.agentic.score.v1.ScoreSource.score_source_unspecified.getNumber()) {
       size += com.google.protobuf.CodedOutputStream
@@ -556,8 +556,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getRunId())) return false;
     if (!getSessionId()
         .equals(other.getSessionId())) return false;
-    if (!getName()
-        .equals(other.getName())) return false;
+    if (!getMetric()
+        .equals(other.getMetric())) return false;
     if (source_ != other.source_) return false;
     if (!getEvaluatorVersion()
         .equals(other.getEvaluatorVersion())) return false;
@@ -589,8 +589,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getRunId().hashCode();
     hash = (37 * hash) + SESSION_ID_FIELD_NUMBER;
     hash = (53 * hash) + getSessionId().hashCode();
-    hash = (37 * hash) + NAME_FIELD_NUMBER;
-    hash = (53 * hash) + getName().hashCode();
+    hash = (37 * hash) + METRIC_FIELD_NUMBER;
+    hash = (53 * hash) + getMetric().hashCode();
     hash = (37 * hash) + SOURCE_FIELD_NUMBER;
     hash = (53 * hash) + source_;
     hash = (37 * hash) + EVALUATOR_VERSION_FIELD_NUMBER;
@@ -747,7 +747,7 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       runId_ = "";
       sessionId_ = "";
-      name_ = "";
+      metric_ = "";
       source_ = 0;
       evaluatorVersion_ = "";
       if (criteriaBuilder_ == null) {
@@ -814,7 +814,7 @@ private static final long serialVersionUID = 0L;
         result.sessionId_ = sessionId_;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.name_ = name_;
+        result.metric_ = metric_;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.source_ = source_;
@@ -854,8 +854,8 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000002;
         onChanged();
       }
-      if (!other.getName().isEmpty()) {
-        name_ = other.name_;
+      if (!other.getMetric().isEmpty()) {
+        metric_ = other.metric_;
         bitField0_ |= 0x00000004;
         onChanged();
       }
@@ -944,7 +944,7 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 18
             case 26: {
-              name_ = input.readStringRequireUtf8();
+              metric_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000004;
               break;
             } // case 26
@@ -1197,23 +1197,23 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object name_ = "";
+    private java.lang.Object metric_ = "";
     /**
      * <pre>
      * What is measured: `feedback` for a person's thumbs, `run-health` for
      * the free checks.
      * </pre>
      *
-     * <code>string name = 3 [json_name = "name", (.buf.validate.field) = { ... }</code>
-     * @return The name.
+     * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
+     * @return The metric.
      */
-    public java.lang.String getName() {
-      java.lang.Object ref = name_;
+    public java.lang.String getMetric() {
+      java.lang.Object ref = metric_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        name_ = s;
+        metric_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -1225,17 +1225,17 @@ private static final long serialVersionUID = 0L;
      * the free checks.
      * </pre>
      *
-     * <code>string name = 3 [json_name = "name", (.buf.validate.field) = { ... }</code>
-     * @return The bytes for name.
+     * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for metric.
      */
     public com.google.protobuf.ByteString
-        getNameBytes() {
-      java.lang.Object ref = name_;
+        getMetricBytes() {
+      java.lang.Object ref = metric_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        name_ = b;
+        metric_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -1247,14 +1247,14 @@ private static final long serialVersionUID = 0L;
      * the free checks.
      * </pre>
      *
-     * <code>string name = 3 [json_name = "name", (.buf.validate.field) = { ... }</code>
-     * @param value The name to set.
+     * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
+     * @param value The metric to set.
      * @return This builder for chaining.
      */
-    public Builder setName(
+    public Builder setMetric(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      name_ = value;
+      metric_ = value;
       bitField0_ |= 0x00000004;
       onChanged();
       return this;
@@ -1265,11 +1265,11 @@ private static final long serialVersionUID = 0L;
      * the free checks.
      * </pre>
      *
-     * <code>string name = 3 [json_name = "name", (.buf.validate.field) = { ... }</code>
+     * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
-    public Builder clearName() {
-      name_ = getDefaultInstance().getName();
+    public Builder clearMetric() {
+      metric_ = getDefaultInstance().getMetric();
       bitField0_ = (bitField0_ & ~0x00000004);
       onChanged();
       return this;
@@ -1280,15 +1280,15 @@ private static final long serialVersionUID = 0L;
      * the free checks.
      * </pre>
      *
-     * <code>string name = 3 [json_name = "name", (.buf.validate.field) = { ... }</code>
-     * @param value The bytes for name to set.
+     * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for metric to set.
      * @return This builder for chaining.
      */
-    public Builder setNameBytes(
+    public Builder setMetricBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      name_ = value;
+      metric_ = value;
       bitField0_ |= 0x00000004;
       onChanged();
       return this;

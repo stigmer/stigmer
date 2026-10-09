@@ -4,8 +4,9 @@
  * control; with them on, the session's scores are read once, the final
  * answer of a completed run carries the thumbs and the health chip, the
  * chip opens to each flag's reason, a run the platform could not grade
- * says so, and a thumbs-down is recorded as a rating of false. A second
- * rating the server refuses with SCORE_EXISTS changes the existing one.
+ * says so, and a thumbs-down is sent as a feedback score whose value is
+ * false. A second rating the server refuses with SCORE_EXISTS changes the
+ * existing one.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -38,6 +39,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 import { ScoreListSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
+import { buildScoreProto, type ScoreInput } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { MessageThread } from "../../run/MessageThread";
@@ -72,7 +74,7 @@ function flaggedHealth(runId: string): Score {
     spec: {
       runId,
       sessionId: "ses_1",
-      name: "run-health",
+      metric: "run-health",
       source: ScoreSource.check,
       value: { case: "passed", value: false },
       criteria: [
@@ -96,9 +98,13 @@ function client(scores: Score[]) {
         .mockResolvedValue(
           create(ScoreListSchema, { totalCount: scores.length, items: scores }),
         ),
-      create: vi.fn().mockImplementation(async () => create(ScoreSchema, {})),
+      create: vi
+        .fn()
+        .mockImplementation(async () => create(ScoreSchema, {})),
       get: vi.fn(),
-      update: vi.fn().mockImplementation(async () => create(ScoreSchema, {})),
+      update: vi
+        .fn()
+        .mockImplementation(async () => create(ScoreSchema, {})),
     },
     identityAccount: {
       whoAmI: vi
@@ -160,7 +166,7 @@ describe("run scores in a thread", () => {
 
   it("says a run was not graded, with the reason", async () => {
     const notGraded = create(ScoreSchema, {
-      spec: { runId: "run_1", name: "run-health", source: ScoreSource.check },
+      spec: { runId: "run_1", metric: "run-health", source: ScoreSource.check },
       status: {
         state: ScoreState.not_graded,
         notGradedReason: "grading could not start",
@@ -184,15 +190,17 @@ describe("run scores in a thread", () => {
       },
     );
     fireEvent.click(await screen.findByRole("button", { name: "Bad answer" }));
-    await waitFor(() => expect(mock.score.create).toHaveBeenCalledTimes(1));
-    expect(mock.score.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        org: "org_acme",
-        runId: "run_1",
-        source: ScoreSource.human,
-        passed: false,
-      }),
+    await waitFor(() =>
+      expect(mock.score.create).toHaveBeenCalledTimes(1),
     );
+    // What the SDK sends for the input the hook passed: a thumbs-down is a
+    // set `false`, never a missing value.
+    const sent = buildScoreProto(mock.score.create.mock.calls[0]?.[0] as ScoreInput);
+    expect(sent.metadata?.org).toBe("org_acme");
+    expect(sent.spec?.runId).toBe("run_1");
+    expect(sent.spec?.metric).toBe("feedback");
+    expect(sent.spec?.source).toBe(ScoreSource.human);
+    expect(sent.spec?.value).toEqual({ case: "passed", value: false });
   });
 
   it("changes the existing rating when the server says this person already rated", async () => {
@@ -201,7 +209,7 @@ describe("run scores in a thread", () => {
       metadata: { id: "scr_mine", org: "org_acme" },
       spec: {
         runId: "run_1",
-        name: "feedback",
+        metric: "feedback",
         source: ScoreSource.human,
         value: { case: "passed", value: false },
       },
@@ -231,10 +239,12 @@ describe("run scores in a thread", () => {
       },
     );
     fireEvent.click(await screen.findByRole("button", { name: "Good answer" }));
-    await waitFor(() => expect(mock.score.update).toHaveBeenCalledTimes(1));
-    expect(mock.score.get).toHaveBeenCalledWith("scr_mine");
-    expect(mock.score.update).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "scr_mine", passed: true }),
+    await waitFor(() =>
+      expect(mock.score.update).toHaveBeenCalledTimes(1),
     );
+    expect(mock.score.get).toHaveBeenCalledWith("scr_mine");
+    const changed = buildScoreProto(mock.score.update.mock.calls[0]?.[0] as ScoreInput);
+    expect(changed.metadata?.id).toBe("scr_mine");
+    expect(changed.spec?.value).toEqual({ case: "passed", value: true });
   });
 });

@@ -54,7 +54,7 @@ export function makeFeedback(
     metadata: { org },
     spec: {
       runId,
-      name: FEEDBACK,
+      metric: FEEDBACK,
       source: ScoreSource.human,
       value: { case: "passed", value: passed },
       comment,
@@ -71,7 +71,7 @@ export function makeForgedCheck(org: string, runId: string): InitShape<typeof Sc
     metadata: { org },
     spec: {
       runId,
-      name: RUN_HEALTH,
+      metric: RUN_HEALTH,
       source: ScoreSource.check,
       value: { case: "passed", value: true },
     },
@@ -98,7 +98,7 @@ export async function awaitRunHealth(
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     const list = await clients.scoreQuery.listByRun({ runId });
-    const health = list.items.find((score) => score.spec?.name === RUN_HEALTH);
+    const health = list.items.find((score) => score.spec?.metric === RUN_HEALTH);
     if (health !== undefined) {
       return health;
     }

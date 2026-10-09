@@ -75,9 +75,10 @@ type ScoreInput struct {
 	Visibility       apiresource.ApiResourceVisibility
 	RunId            string
 	SessionId        string
+	Metric           string
 	Source           scorev1.ScoreSource
 	EvaluatorVersion string
-	Passed           bool
+	Passed           *bool
 	Criteria         []*ScoreCriterionInput
 	Comment          string
 }
@@ -105,10 +106,11 @@ func (i *ScoreInput) toProto() (*scorev1.Score, error) {
 	}
 	resource.Spec.RunId = i.RunId
 	resource.Spec.SessionId = i.SessionId
+	resource.Spec.Metric = i.Metric
 	resource.Spec.Source = i.Source
 	resource.Spec.EvaluatorVersion = i.EvaluatorVersion
-	if i.Passed != false {
-		resource.Spec.Value = &scorev1.ScoreSpec_Passed{Passed: i.Passed}
+	if i.Passed != nil {
+		resource.Spec.Value = &scorev1.ScoreSpec_Passed{Passed: *i.Passed}
 	}
 	for idx, item := range i.Criteria {
 		v, err := item.toProto()
@@ -146,13 +148,17 @@ func ScoreInputFromProto(p *scorev1.Score) *ScoreInput {
 	if s := p.GetSpec(); s != nil {
 		input.RunId = s.GetRunId()
 		input.SessionId = s.GetSessionId()
+		input.Metric = s.GetMetric()
 		input.Source = s.GetSource()
 		input.EvaluatorVersion = s.GetEvaluatorVersion()
 		for _, item := range s.GetCriteria() {
 			input.Criteria = append(input.Criteria, scoreCriterionInputFromProto(item))
 		}
 		input.Comment = s.GetComment()
-		input.Passed = s.GetPassed()
+		if ov, ok := s.Value.(*scorev1.ScoreSpec_Passed); ok {
+			v := ov.Passed
+			input.Passed = &v
+		}
 	}
 	return input
 }

@@ -9,10 +9,10 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class ScoreSpec(_message.Message):
-    __slots__ = ("run_id", "session_id", "name", "source", "evaluator_version", "passed", "criteria", "comment")
+    __slots__ = ("run_id", "session_id", "metric", "source", "evaluator_version", "passed", "criteria", "comment")
     RUN_ID_FIELD_NUMBER: _ClassVar[int]
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]
-    NAME_FIELD_NUMBER: _ClassVar[int]
+    METRIC_FIELD_NUMBER: _ClassVar[int]
     SOURCE_FIELD_NUMBER: _ClassVar[int]
     EVALUATOR_VERSION_FIELD_NUMBER: _ClassVar[int]
     PASSED_FIELD_NUMBER: _ClassVar[int]
@@ -20,13 +20,13 @@ class ScoreSpec(_message.Message):
     COMMENT_FIELD_NUMBER: _ClassVar[int]
     run_id: str
     session_id: str
-    name: str
+    metric: str
     source: _enum_pb2.ScoreSource
     evaluator_version: str
     passed: bool
     criteria: _containers.RepeatedCompositeFieldContainer[ScoreCriterion]
     comment: str
-    def __init__(self, run_id: _Optional[str] = ..., session_id: _Optional[str] = ..., name: _Optional[str] = ..., source: _Optional[_Union[_enum_pb2.ScoreSource, str]] = ..., evaluator_version: _Optional[str] = ..., passed: bool = ..., criteria: _Optional[_Iterable[_Union[ScoreCriterion, _Mapping]]] = ..., comment: _Optional[str] = ...) -> None: ...
+    def __init__(self, run_id: _Optional[str] = ..., session_id: _Optional[str] = ..., metric: _Optional[str] = ..., source: _Optional[_Union[_enum_pb2.ScoreSource, str]] = ..., evaluator_version: _Optional[str] = ..., passed: bool = ..., criteria: _Optional[_Iterable[_Union[ScoreCriterion, _Mapping]]] = ..., comment: _Optional[str] = ...) -> None: ...
 
 class ScoreCriterion(_message.Message):
     __slots__ = ("name", "result", "reason")

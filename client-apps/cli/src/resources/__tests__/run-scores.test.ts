@@ -23,7 +23,7 @@ const thumbsDown: Score = create(ScoreSchema, {
   metadata: { id: "scr_1", org: "acme" },
   spec: {
     runId: "run_1",
-    name: "feedback",
+    metric: "feedback",
     source: ScoreSource.human,
     value: { case: "passed", value: false },
     comment: "picked the wrong label",
@@ -38,7 +38,7 @@ const health: Score = create(ScoreSchema, {
   metadata: { id: "scr_2", org: "acme" },
   spec: {
     runId: "run_1",
-    name: "run-health",
+    metric: "run-health",
     source: ScoreSource.check,
     value: { case: "passed", value: false },
     criteria: [
@@ -55,7 +55,7 @@ const health: Score = create(ScoreSchema, {
 
 const notGraded: Score = create(ScoreSchema, {
   metadata: { id: "scr_3", org: "acme" },
-  spec: { runId: "run_2", name: "run-health", source: ScoreSource.check },
+  spec: { runId: "run_2", metric: "run-health", source: ScoreSource.check },
   status: { state: ScoreState.not_graded, notGradedReason: "grading could not start" },
 });
 
@@ -110,6 +110,6 @@ describe("showRunScores", () => {
     });
     expect(asked).toEqual(["run_1"]);
     const parsed = JSON.parse(written) as Array<{ spec: { name: string } }>;
-    expect(parsed.map((score) => score.spec.name)).toEqual(["feedback"]);
+    expect(parsed.map((score) => score.spec.metric)).toEqual(["feedback"]);
   });
 });

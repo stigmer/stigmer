@@ -1,6 +1,7 @@
 A Score is one grade of a finished run. A run carries a score for each thing
-measured: a person's thumbs up or down on the final answer (`feedback`), and
-the free checks Stigmer runs when a run completes (`run-health`). Anyone who
+measured, its metric: a person's thumbs up or down on the final answer
+(`feedback`), and the free checks Stigmer runs when a run completes
+(`run-health`). Anyone who
 can see the run sees its scores.
 
 Scores are written by people rating a run and by the platform — you never
@@ -16,7 +17,7 @@ metadata:
 spec:
   run_id: run_01j5q3k7m8r2s4tnz2hfp0q0f5
   session_id: ses_01j5q3k7m8r2s4tnz2hfp0q0e1
-  name: run-health
+  metric: run-health
   source: score_source_check
   evaluator_version: 3f6c0e2a
   passed: false

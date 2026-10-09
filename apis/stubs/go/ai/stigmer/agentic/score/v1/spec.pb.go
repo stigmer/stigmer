@@ -31,7 +31,7 @@ type ScoreSpec struct {
 	SessionId string `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	// What is measured: `feedback` for a person's thumbs, `run-health` for
 	// the free checks.
-	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Metric string `protobuf:"bytes,3,opt,name=metric,proto3" json:"metric,omitempty"`
 	// Who or what gave the score.
 	Source ScoreSource `protobuf:"varint,4,opt,name=source,proto3,enum=ai.stigmer.agentic.score.v1.ScoreSource" json:"source,omitempty"`
 	// Identifies the version of the checks or rubric that produced the
@@ -91,9 +91,9 @@ func (x *ScoreSpec) GetSessionId() string {
 	return ""
 }
 
-func (x *ScoreSpec) GetName() string {
+func (x *ScoreSpec) GetMetric() string {
 	if x != nil {
-		return x.Name
+		return x.Metric
 	}
 	return ""
 }
@@ -223,12 +223,12 @@ var File_ai_stigmer_agentic_score_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_score_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"&ai/stigmer/agentic/score/v1/spec.proto\x12\x1bai.stigmer.agentic.score.v1\x1a&ai/stigmer/agentic/score/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\x88\x03\n" +
+	"&ai/stigmer/agentic/score/v1/spec.proto\x12\x1bai.stigmer.agentic.score.v1\x1a&ai/stigmer/agentic/score/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\x8c\x03\n" +
 	"\tScoreSpec\x12\x1e\n" +
 	"\x06run_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05runId\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x02 \x01(\tR\tsessionId\x12\x1d\n" +
-	"\x04name\x18\x03 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18?R\x04name\x12L\n" +
+	"session_id\x18\x02 \x01(\tR\tsessionId\x12!\n" +
+	"\x06metric\x18\x03 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18?R\x06metric\x12L\n" +
 	"\x06source\x18\x04 \x01(\x0e2(.ai.stigmer.agentic.score.v1.ScoreSourceB\n" +
 	"\xbaH\a\x82\x01\x04\x10\x01 \x00R\x06source\x125\n" +
 	"\x11evaluator_version\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\x10evaluatorVersion\x12\x18\n" +

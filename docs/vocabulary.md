@@ -1084,7 +1084,7 @@ or the free run-health checks Stigmer runs on every completed run.
   stigmer get score <id>
   ```
 
-- **Key fields**: `run_id`, `name` (what is measured: `feedback` or
+- **Key fields**: `run_id`, `metric` (what is measured: `feedback` or
   `run-health`), `source` (`score_source_human` or `score_source_check`),
   `passed`, `criteria` (one per check, each with its reason), `comment` (a
   person's feedback only), and `status.state` (`graded` or `not_graded` with a

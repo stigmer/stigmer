@@ -9,7 +9,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import type { MethodSchema, ServiceDefinition, ServiceSchemaFile } from "./gen-common.js";
-import { firstMemberWinsOrder, goQuote, hasExplicitPresence, isEmptyType, isIDType, isRealOneofMember, isSpecialType, searchListSupersedesMethod, tsClientFieldName } from "./gen-common.js";
+import { firstMemberWinsOrder, goQuote, hasExplicitPresence, isEmptyType, isIDType, isRealOneofMember, isSpecialType, isValuedOneofScalar, searchListSupersedesMethod, tsClientFieldName } from "./gen-common.js";
 import { javaCamel, javaCapCamel } from "./lang-names.js";
 import { apiResourceKindEnumNames } from "./resource-kind.js";
 import type { ResourceGenInfo, SdkResourceConfig } from "./sdk-resource-config.js";
@@ -76,13 +76,23 @@ function javaTypeForField(f: FieldSchema): string {
 }
 
 /**
- * The type an input stores a field in. A proto3 `optional` scalar is boxed
- * so that null means the caller never set it (hasExplicitPresence); its
- * builder setter still takes the primitive.
+ * The type an input stores a field in. A proto3 `optional` scalar, and a
+ * boolean or numeric oneof member, is boxed so that null means the caller
+ * never set it (hasInputPresence); its builder setter still takes the
+ * primitive.
  */
 function javaStorageTypeForField(f: FieldSchema): string {
   const t = javaTypeForField(f);
-  return hasExplicitPresence(f) ? javaBoxed(t) : t;
+  return hasInputPresence(f) ? javaBoxed(t) : t;
+}
+
+/**
+ * Whether an input keeps the difference between unset and zero for a field:
+ * a proto3 `optional` scalar (hasExplicitPresence) or a boolean or numeric
+ * oneof member (isValuedOneofScalar).
+ */
+function hasInputPresence(f: FieldSchema): boolean {
+  return hasExplicitPresence(f) || isValuedOneofScalar(f);
 }
 
 function javaTypeForTypeSpec(ts: TypeSpec): string {
@@ -1340,7 +1350,7 @@ function emitJavaToProtoField(buf: string[], f: FieldSchema, indent: string): vo
     buf.push(`${indent}}\n`);
   } else if (t.kind === "string") {
     emitJavaStringField(buf, "spec", f, indent);
-  } else if (hasExplicitPresence(f)) {
+  } else if (hasInputPresence(f)) {
     buf.push(`${indent}if (this.${fieldName} != null) {\n`);
     buf.push(`${indent}    spec.${javaSetterName(f.protoField)}(this.${fieldName});\n`);
     buf.push(`${indent}}\n`);
@@ -1435,7 +1445,7 @@ function emitJavaNestedToProtoField(buf: string[], f: FieldSchema, indent: strin
     buf.push(`${indent}if (this.${fieldName} != null) {\n`);
     buf.push(`${indent}    builder.${javaSetterName(f.protoField)}(com.google.protobuf.ByteString.copyFrom(this.${fieldName}));\n`);
     buf.push(`${indent}}\n`);
-  } else if (hasExplicitPresence(f)) {
+  } else if (hasInputPresence(f)) {
     buf.push(`${indent}if (this.${fieldName} != null) {\n`);
     buf.push(`${indent}    builder.${javaSetterName(f.protoField)}(this.${fieldName});\n`);
     buf.push(`${indent}}\n`);

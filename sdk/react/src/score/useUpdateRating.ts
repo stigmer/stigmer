@@ -47,7 +47,9 @@ export function useUpdateRating(): UseUpdateRatingReturn {
       setIsUpdating(true);
       setError(null);
       try {
-        return await stigmer.score.update(ratingUpdateInput(rating, change));
+        return await stigmer.score.update(
+          ratingUpdateInput(rating, change),
+        );
       } catch (err) {
         setError(toError(err));
         throw err;

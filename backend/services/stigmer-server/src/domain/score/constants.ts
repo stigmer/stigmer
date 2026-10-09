@@ -6,10 +6,10 @@
  */
 
 /** A person's thumbs on a run's final answer. */
-export const FEEDBACK_SCORE_NAME = "feedback";
+export const FEEDBACK_METRIC = "feedback";
 
 /** The platform's free checks on a completed run (checks/). */
-export const RUN_HEALTH_SCORE_NAME = "run-health";
+export const RUN_HEALTH_METRIC = "run-health";
 
 /** The refusal of a person's source from anyone but a first-party person. */
 export const HUMAN_SOURCE_REFUSED_MESSAGE =
@@ -22,8 +22,8 @@ export const CHECK_SOURCE_REFUSED_MESSAGE =
 /** The create lane's deny copy when the caller cannot see the run. */
 export const SCORE_CREATE_DENIED_MESSAGE = "unauthorized to score run";
 
-/** The refusal of a name the source does not give. */
-export const SCORE_NAME_SOURCE_MISMATCH_MESSAGE = `a person gives "${FEEDBACK_SCORE_NAME}" (score_source_human) and the platform's checks give "${RUN_HEALTH_SCORE_NAME}" (score_source_check)`;
+/** The refusal of a metric the source does not give. */
+export const SCORE_METRIC_SOURCE_MISMATCH_MESSAGE = `a person gives the metric "${FEEDBACK_METRIC}" (score_source_human) and the platform's checks give "${RUN_HEALTH_METRIC}" (score_source_check)`;
 
 /** The refusal of a comment on a score no person gave. */
 export const SCORE_COMMENT_HUMAN_ONLY_MESSAGE =

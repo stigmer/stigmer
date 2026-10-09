@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/score/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_score_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2NvcmUvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxIrsCCglTY29yZVNwZWMSFwoGcnVuX2lkGAEgASgJQge6SARyAhABEhIKCnNlc3Npb25faWQYAiABKAkSFwoEbmFtZRgDIAEoCUIJukgGcgQQARg/EkQKBnNvdXJjZRgEIAEoDjIoLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5TY29yZVNvdXJjZUIKukgHggEEEAEgABIjChFldmFsdWF0b3JfdmVyc2lvbhgFIAEoCUIIukgFcgMYgAESEAoGcGFzc2VkGAYgASgISAASRwoIY3JpdGVyaWEYByADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuU2NvcmVDcml0ZXJpb25CCLpIBZIBAhAgEhkKB2NvbW1lbnQYCCABKAlCCLpIBXIDGPQDQgcKBXZhbHVlIosBCg5TY29yZUNyaXRlcmlvbhIXCgRuYW1lGAEgASgJQgm6SAZyBBABGD8SRgoGcmVzdWx0GAIgASgOMiwuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLkNyaXRlcmlvblJlc3VsdEIIukgFggECEAESGAoGcmVhc29uGAMgASgJQgi6SAVyAxj0A2IGcHJvdG8z", [file_ai_stigmer_agentic_score_v1_enum, file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2NvcmUvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxIr0CCglTY29yZVNwZWMSFwoGcnVuX2lkGAEgASgJQge6SARyAhABEhIKCnNlc3Npb25faWQYAiABKAkSGQoGbWV0cmljGAMgASgJQgm6SAZyBBABGD8SRAoGc291cmNlGAQgASgOMiguYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLlNjb3JlU291cmNlQgq6SAeCAQQQASAAEiMKEWV2YWx1YXRvcl92ZXJzaW9uGAUgASgJQgi6SAVyAxiAARIQCgZwYXNzZWQYBiABKAhIABJHCghjcml0ZXJpYRgHIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5TY29yZUNyaXRlcmlvbkIIukgFkgECECASGQoHY29tbWVudBgIIAEoCUIIukgFcgMY9ANCBwoFdmFsdWUiiwEKDlNjb3JlQ3JpdGVyaW9uEhcKBG5hbWUYASABKAlCCbpIBnIEEAEYPxJGCgZyZXN1bHQYAiABKA4yLC5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuQ3JpdGVyaW9uUmVzdWx0Qgi6SAWCAQIQARIYCgZyZWFzb24YAyABKAlCCLpIBXIDGPQDYgZwcm90bzM", [file_ai_stigmer_agentic_score_v1_enum, file_buf_validate_validate]);
 
 /**
  * ScoreSpec holds what was measured, on which run, and the result.
@@ -39,9 +39,9 @@ export type ScoreSpec = Message<"ai.stigmer.agentic.score.v1.ScoreSpec"> & {
    * What is measured: `feedback` for a person's thumbs, `run-health` for
    * the free checks.
    *
-   * @generated from field: string name = 3;
+   * @generated from field: string metric = 3;
    */
-  name: string;
+  metric: string;
 
   /**
    * Who or what gave the score.

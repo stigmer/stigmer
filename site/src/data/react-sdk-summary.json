@@ -246,6 +246,13 @@
       "components": 6
     },
     {
+      "slug": "score",
+      "title": "score",
+      "description": "",
+      "hooks": 3,
+      "components": 1
+    },
+    {
       "slug": "session",
       "title": "Session",
       "description": "Hooks for session lifecycle, message history, conversation state, and usage tracking.",

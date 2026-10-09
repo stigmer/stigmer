@@ -31,7 +31,7 @@ function health(
   return create(ScoreSchema, {
     spec: {
       runId,
-      name: "run-health",
+      metric: "run-health",
       source: ScoreSource.check,
       value: { case: "passed", value: !failed },
       criteria,
@@ -44,7 +44,7 @@ function feedback(runId: string, by: string, passed: boolean): Score {
   return create(ScoreSchema, {
     spec: {
       runId,
-      name: "feedback",
+      metric: "feedback",
       source: ScoreSource.human,
       value: { case: "passed", value: passed },
     },
@@ -95,7 +95,7 @@ describe("runHealthViewOf", () => {
 
   it("says not graded, with the reason, when grading failed", () => {
     const score = create(ScoreSchema, {
-      spec: { runId: "run_1", name: "run-health", source: ScoreSource.check },
+      spec: { runId: "run_1", metric: "run-health", source: ScoreSource.check },
       status: {
         state: ScoreState.not_graded,
         notGradedReason: "grading could not start",

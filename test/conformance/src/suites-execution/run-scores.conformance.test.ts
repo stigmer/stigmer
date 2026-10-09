@@ -212,7 +212,7 @@ describe("Run scores", () => {
     ).toBe(true);
 
     const rated = await clients.scoreCommand.create(makeFeedback(org, runId, false, "picked the wrong label"));
-    expect(rated.spec?.name).toBe(FEEDBACK);
+    expect(rated.spec?.metric).toBe(FEEDBACK);
     expect(rated.spec?.sessionId).toBe(sessionIdOf(run));
     expect(rated.status?.state).toBe(ScoreState.graded);
     expect((await clients.scoreQuery.get({ value: rated.metadata!.id })).spec?.comment).toBe("picked the wrong label");
@@ -238,7 +238,7 @@ describe("Run scores", () => {
     expect(verdict.rawMessage).toBe(SCORE_UPDATE_HUMAN_ONLY_MESSAGE);
 
     const session = await clients.scoreQuery.listBySession({ sessionId: sessionIdOf(run) });
-    expect(session.items.map((s) => s.spec?.name).sort()).toEqual([FEEDBACK, RUN_HEALTH]);
+    expect(session.items.map((s) => s.spec?.metric).sort()).toEqual([FEEDBACK, RUN_HEALTH]);
   });
 
   it("[rpc:ScoreCommandController.create] a score lives in its run's organization", async () => {

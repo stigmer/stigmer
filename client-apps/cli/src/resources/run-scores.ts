@@ -28,7 +28,7 @@ export interface ScoresStreams {
   write(text: string): void;
 }
 
-const HEADERS = ["NAME", "SOURCE", "VALUE", "FLAGS", "COMMENT", "BY"] as const;
+const HEADERS = ["METRIC", "SOURCE", "VALUE", "FLAGS", "COMMENT", "BY"] as const;
 
 /** Fetch a run's scores and render them. */
 export async function showRunScores(
@@ -60,7 +60,7 @@ export function renderScoresTable(scores: readonly Score[]): string {
 function scoreRow(score: Score): string[] {
   const spec = score.spec;
   return [
-    spec?.name ?? "",
+    spec?.metric ?? "",
     sourceLabel(spec?.source ?? ScoreSource.unspecified),
     valueLabel(score),
     flagsOf(score),

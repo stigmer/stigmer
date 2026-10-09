@@ -1,13 +1,14 @@
 /**
- * The one place a person's rating becomes a score write: the create input
- * for a new rating and the update input for a changed one. Both hooks
- * build their requests here, so the shape of a rating (its measure, its
- * source, an empty metadata name the server fills with the score's id)
- * is stated once.
+ * The one place a person's rating becomes a score write: the SDK input
+ * for a new rating and the one that changes an existing rating. Both
+ * hooks build their requests here, so the shape of a rating (its metric,
+ * its source, the thumbs as the spec's `passed` value, an empty metadata
+ * name the server fills with the score's id) is stated once.
  */
 import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { ScoreSource } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 import { toScoreUpdateInput, type ScoreInput } from "@stigmer/sdk";
+import { FEEDBACK_METRIC } from "./score-view.js";
 
 /** A person's rating of one run. */
 export interface RunRating {
@@ -24,21 +25,22 @@ export interface RunRating {
 /** The longest comment a rating carries. */
 export const RATING_COMMENT_MAX_LENGTH = 500;
 
-/** The create input for a new rating. */
+/** The input for a new rating. */
 export function ratingCreateInput(rating: RunRating): ScoreInput {
   return {
-    // Empty: the server names an unnamed score by its own id, so two
+    // Empty name: the server names an unnamed score by its own id, so two
     // people's ratings never share a slug.
     name: "",
     org: rating.org,
     runId: rating.runId,
+    metric: FEEDBACK_METRIC,
     source: ScoreSource.human,
     passed: rating.passed,
     comment: rating.comment ?? "",
   };
 }
 
-/** The update input that changes an existing rating's thumbs and comment. */
+/** The input that changes an existing rating's thumbs and comment. */
 export function ratingUpdateInput(
   existing: Score,
   change: { readonly passed: boolean; readonly comment?: string },

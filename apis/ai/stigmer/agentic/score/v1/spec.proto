@@ -27,11 +27,13 @@ message ScoreSpec {
   // the free checks.
   //
   // @internal
-  // A name, not an enum, because later sources name their own measures
-  // (a rubric's name). The create chain requires the name to agree with
-  // the source: feedback with score_source_human, run-health with
-  // score_source_check.
-  string name = 3 [(buf.validate.field).string = {
+  // A string, not an enum, because later sources name their own metrics
+  // (a rubric's name); the Langfuse export maps it to a score's name. Not
+  // called `name`: the SDK generators read a top-level spec field of that
+  // name as the resource's metadata name. The create chain requires the
+  // metric to agree with the source: feedback with score_source_human,
+  // run-health with score_source_check.
+  string metric = 3 [(buf.validate.field).string = {
     min_len: 1
     max_len: 63
   }];

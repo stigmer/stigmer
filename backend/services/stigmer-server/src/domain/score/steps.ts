@@ -63,14 +63,14 @@ import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import {
   CHECK_SOURCE_REFUSED_MESSAGE,
-  FEEDBACK_SCORE_NAME,
+  FEEDBACK_METRIC,
   FEEDBACK_VALUE_REQUIRED_MESSAGE,
   HUMAN_SOURCE_REFUSED_MESSAGE,
-  RUN_HEALTH_SCORE_NAME,
+  RUN_HEALTH_METRIC,
   SCORE_COMMENT_HUMAN_ONLY_MESSAGE,
   SCORE_CRITERIA_NOT_HUMAN_MESSAGE,
   SCORE_CREATE_DENIED_MESSAGE,
-  SCORE_NAME_SOURCE_MISMATCH_MESSAGE,
+  SCORE_METRIC_SOURCE_MISMATCH_MESSAGE,
   SCORE_UPDATE_FIELDS_MESSAGE,
   SCORE_UPDATE_HUMAN_ONLY_MESSAGE,
   feedbackExistsMessage,
@@ -209,7 +209,7 @@ function scoredRunOf(ctx: RequestContext<typeof ScoreSchema>): Run {
  *  2. The run must be completed. A completed run never changes phase again
  *     (update-status.ts ignores a phase change on a terminal run), so a
  *     score is never stale against its run.
- *  3. The name must agree with the source: `feedback` from a person,
+ *  3. The metric must agree with the source: `feedback` from a person,
  *     `run-health` from the checks. A comment is a person's only, a
  *     person's feedback always carries thumbs and never criteria.
  *  4. spec.session_id is the run's, whatever the request carried.
@@ -247,9 +247,9 @@ export function newResolveScoreDefaultsStep(): PipelineStep<
       }
 
       const human = spec.source === ScoreSource.human;
-      const expectedName = human ? FEEDBACK_SCORE_NAME : RUN_HEALTH_SCORE_NAME;
-      if (spec.name !== expectedName) {
-        throw invalidArgumentError(SCORE_NAME_SOURCE_MISMATCH_MESSAGE);
+      const expectedMetric = human ? FEEDBACK_METRIC : RUN_HEALTH_METRIC;
+      if (spec.metric !== expectedMetric) {
+        throw invalidArgumentError(SCORE_METRIC_SOURCE_MISMATCH_MESSAGE);
       }
       if (!human && spec.comment !== "") {
         throw invalidArgumentError(SCORE_COMMENT_HUMAN_ONLY_MESSAGE);
@@ -306,7 +306,7 @@ export function newCheckScoreUniqueStep(
       const caller = auditActorFor(ctx.callerIdentity).id;
       for (const score of existing) {
         const other = score.spec;
-        if (other === undefined || other.name !== spec.name) {
+        if (other === undefined || other.metric !== spec.metric) {
           continue;
         }
         const id = score.metadata?.id ?? "";
@@ -399,7 +399,7 @@ export function newValidateScoreUpdateStep(): PipelineStep<typeof ScoreSchema> {
         after === undefined ||
         after.runId !== before.runId ||
         after.sessionId !== before.sessionId ||
-        after.name !== before.name ||
+        after.metric !== before.metric ||
         after.source !== before.source ||
         after.evaluatorVersion !== before.evaluatorVersion ||
         after.criteria.length !== 0

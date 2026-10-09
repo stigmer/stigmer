@@ -76,6 +76,7 @@ export interface ScoreInput {
   visibility?: ApiResourceVisibility;
   runId?: string;
   sessionId?: string;
+  metric?: string;
   source?: ScoreSource;
   evaluatorVersion?: string;
   passed?: boolean;
@@ -103,12 +104,13 @@ export function buildScoreProto(input: ScoreInput): Score {
   const spec = Object.assign(create(ScoreSpecSchema), stripUndefined({
     runId: input.runId,
     sessionId: input.sessionId,
+    metric: input.metric,
     source: input.source,
     evaluatorVersion: input.evaluatorVersion,
     criteria,
     comment: input.comment,
   }));
-  if (input.passed) {
+  if (input.passed !== undefined) {
     spec.value = { case: "passed", value: input.passed };
   }
   return Object.assign(create(ScoreSchema), {
@@ -161,6 +163,7 @@ export function toScoreUpdateInput(resource: Score): ScoreInput {
     visibility: meta?.visibility || undefined,
     runId: spec.runId || undefined,
     sessionId: spec.sessionId || undefined,
+    metric: spec.metric || undefined,
     source: spec.source || undefined,
     evaluatorVersion: spec.evaluatorVersion || undefined,
     passed: spec.value?.case === "passed" ? spec.value.value : undefined,

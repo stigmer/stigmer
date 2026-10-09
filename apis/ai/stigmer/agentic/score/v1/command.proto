@@ -17,7 +17,7 @@ service ScoreCommandController {
 
   // Create a score on a completed run.
   //
-  // A person rates a run with name `feedback` and source
+  // A person rates a run with metric `feedback` and source
   // score_source_human; each person rates a run once and changes the
   // rating with update. The session and organization are taken from the
   // run.
@@ -34,17 +34,19 @@ service ScoreCommandController {
   //    read, so a caller who cannot see a run learns nothing about
   //    whether it exists.
   // 3. The run must be completed, metadata.org must be the run's, and
-  //    name must agree with source.
+  //    metric must agree with source.
   // 4. A second feedback score by the same person on the same run is
   //    refused with ALREADY_EXISTS naming the existing score.
   //
   // Error Cases:
   //
-  // - INVALID_ARGUMENT: name and source disagree, or a comment on a
+  // - INVALID_ARGUMENT: metric and source disagree, or a comment on a
   //   non-feedback score
   // - FAILED_PRECONDITION: the run is not completed, or the organization
   //   is not the run's
-  // - ALREADY_EXISTS: this person already rated this run
+  // - ALREADY_EXISTS: this person already rated this run; the error
+  //   carries reason SCORE_EXISTS with metadata score_id, the rating to
+  //   update instead
   // - PERMISSION_DENIED: the caller may not give this source, or cannot
   //   see the run
   rpc create(Score) returns (Score) {
