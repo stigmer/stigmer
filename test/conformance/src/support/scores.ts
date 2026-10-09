@@ -7,7 +7,7 @@
 // by the server alone when a run completes). The copy constants are
 // cross-edition contract strings, byte-pinned in the server
 // (domain/score/constants.ts) and asserted here over the wire.
-import { create } from "@bufbuild/protobuf";
+import { clone } from "@bufbuild/protobuf";
 import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { ScoreSource } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
@@ -78,9 +78,10 @@ export function makeForgedCheck(org: string, runId: string): InitShape<typeof Sc
   };
 }
 
-// The update input for a stored feedback score with a new value and comment.
+// The update input for a stored feedback score with a new value and comment,
+// a copy: the stored score is left as it was.
 export function editedFeedback(stored: Score, passed: boolean, comment: string): Score {
-  const edited = create(ScoreSchema, stored);
+  const edited = clone(ScoreSchema, stored);
   if (edited.spec !== undefined) {
     edited.spec.value = { case: "passed", value: passed };
     edited.spec.comment = comment;
