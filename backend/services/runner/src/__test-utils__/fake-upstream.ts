@@ -5,7 +5,7 @@
  * (`shared/__tests__/model-lanes.test.ts`) stand it where the network is.
  */
 
-import { createServer, type IncomingHttpHeaders, type Server } from "node:http";
+import { createServer, type IncomingHttpHeaders, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 
 export interface Received {
@@ -31,6 +31,8 @@ export class FakeUpstream {
 
   readonly received: Received[] = [];
   answer: UpstreamAnswer = FakeUpstream.DEFAULT_ANSWER;
+  /** When set, answers instead of {@link answer}: for a test that needs a slow or a broken upstream. */
+  handler: ((req: IncomingMessage, res: ServerResponse) => void) | undefined;
   url = "";
   private server: Server | undefined;
 
@@ -40,6 +42,10 @@ export class FakeUpstream {
       req.on("data", (c: Buffer) => chunks.push(c));
       req.on("end", () => {
         this.received.push({ method: req.method ?? "", path: req.url ?? "", headers: req.headers, body: Buffer.concat(chunks).toString("utf8") });
+        if (this.handler) {
+          this.handler(req, res);
+          return;
+        }
         res.writeHead(this.answer.status, this.answer.headers);
         res.end(this.answer.body);
       });

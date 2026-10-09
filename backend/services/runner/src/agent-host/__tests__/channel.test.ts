@@ -59,6 +59,43 @@ describe("the stream channel", () => {
   });
 });
 
+describe("the stream channel's failures", () => {
+  it("stops reading the lines of a chunk once a listener closed the channel", () => {
+    const input = new PassThrough();
+    const channel = streamChannel(input, new PassThrough());
+    const lines: string[] = [];
+    channel.onLine((line) => {
+      lines.push(line);
+      channel.close(new Error("enough"));
+    });
+
+    input.write("one\ntwo\n");
+    expect(lines).toEqual(["one"]);
+  });
+
+  it("closes once, with the error, when either stream fails", () => {
+    for (const failing of ["input", "output"] as const) {
+      const input = new PassThrough();
+      const output = new PassThrough();
+      const channel = streamChannel(input, output);
+      const reasons: string[] = [];
+      channel.onClose((reason) => reasons.push(reason.message));
+
+      (failing === "input" ? input : output).emit("error", new Error(`${failing} broke`));
+      channel.close();
+      expect(reasons, failing).toEqual([`${failing} broke`]);
+    }
+  });
+
+  it("writes nothing once closed", () => {
+    const output = new PassThrough();
+    const channel = streamChannel(new PassThrough(), output);
+    channel.close();
+    channel.send("late");
+    expect(output.read()).toBeNull();
+  });
+});
+
 describe("the peer", () => {
   it("answers a call with its result and a handler's rejection with its error", async () => {
     const [caller, answerer] = pair();
@@ -123,6 +160,52 @@ describe("the peer", () => {
 
     const [silent] = pair();
     await expect(silent.receivedHello(20)).rejects.toThrow("a: the peer did not announce itself within 20ms");
+  });
+});
+
+describe("the peer's edges", () => {
+  it("refuses to send a call, a notice or a result past the size cap", async () => {
+    const [caller, answerer] = pair();
+    const big = "x".repeat(MAX_MESSAGE_BYTES);
+    await expect(caller.call("echo", { text: big })).rejects.toThrow(`a: the echo call exceeds ${MAX_MESSAGE_BYTES} bytes`);
+
+    const warned: string[] = [];
+    const warn = console.warn;
+    console.warn = (message: string) => void warned.push(message);
+    try {
+      caller.notify("ping", { n: Number.NaN, pad: big } as unknown as { n: number });
+    } finally {
+      console.warn = warn;
+    }
+    expect(warned).toEqual([`a: dropped a ping notice larger than ${MAX_MESSAGE_BYTES} bytes`]);
+
+    answerer.handle("echo", async () => big);
+    await expect(caller.call("echo", { text: "make it big" })).rejects.toThrow(`b: the echo result exceeds ${MAX_MESSAGE_BYTES} bytes`);
+  });
+
+  it("answers a call no handler serves with an error, and ignores a result for no call", async () => {
+    const [caller, , channel] = pair();
+    await expect(caller.call("echo", { text: "anyone?" })).rejects.toThrow("b: no handler for echo");
+    channel.send(JSON.stringify({ kind: "result", id: 9_999, ok: true, value: null }));
+    channel.send(JSON.stringify({ kind: "notify", method: "unheard", args: {} }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(caller.closed).toBe(false);
+  });
+
+  it("tells a late close listener the reason at once, and sends nothing once closed", async () => {
+    const [a, b, channel] = pair();
+    const heard: number[] = [];
+    b.onNotice("ping", ({ n }) => void heard.push(n));
+    channel.close(new Error("gone"));
+    const reasons: string[] = [];
+    a.onClose((reason) => reasons.push(reason.message));
+    a.notify("ping", { n: 1 });
+    channel.send("ignored");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(reasons).toEqual(["gone"]);
+    expect(heard).toEqual([]);
+    await expect(a.receivedHello(10)).rejects.toThrow("gone");
   });
 });
 

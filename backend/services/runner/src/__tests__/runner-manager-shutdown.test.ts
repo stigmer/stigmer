@@ -28,6 +28,7 @@ const fakes = vi.hoisted(() => ({
   workers: [] as FakeWorker[],
   connectionClose: { calls: 0 },
   shutdownHarnesses: { calls: 0 },
+  releasedSessions: [] as string[],
   signalOf: undefined as
     | ((taskQueue: string) => AbortSignal | undefined)
     | undefined,
@@ -91,7 +92,9 @@ vi.mock("../harness/registry.js", () => ({
   adaptersOf: () => [],
   bootHarnesses: async () => {},
   createHarnessActivities: async () => ({}),
-  releaseHarnessSession: async () => {},
+  releaseHarnessSession: async (_adapters: unknown, sessionId: string) => {
+    fakes.releasedSessions.push(sessionId);
+  },
   shutdownHarnesses: async () => {
     fakes.shutdownHarnesses.calls++;
   },
@@ -139,5 +142,23 @@ describe("StigmerRunnerManager.shutdown", () => {
     await expect(manager.addSession("ses_2")).rejects.toThrow(
       "RunnerManager is shutting down",
     );
+  });
+});
+
+describe("StigmerRunnerManager.removeSession", () => {
+  it("has every harness, the hosted ones included, release what it parked for the session", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const manager = await createStigmerRunnerManager({
+      stigmerEndpoint: "localhost:7234",
+      temporalAddress: "127.0.0.1:7233",
+      workspaceRootDir: join(tmpdir(), "stigmer-runner-manager-release-test"),
+    });
+
+    await manager.addSession("ses_release");
+    await manager.removeSession("ses_release");
+
+    expect(fakes.releasedSessions).toEqual(["ses_release"]);
+    await manager.shutdown();
   });
 });

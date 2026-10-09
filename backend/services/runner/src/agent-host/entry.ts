@@ -26,33 +26,48 @@
  * adapter its shutdown (bounded, because an exit is the point): the runner
  * closes the channel when it is done with the host, and its death closes
  * it too, so a runner killed outright leaves no host behind.
+ *
+ * Shape: {@link runAgentHostProcess} is the whole of it over injected
+ * process facts, which the tests drive in-process; {@link runAgentHost} is
+ * only the process boundary, booted under plain Node by
+ * `scripts/verify-agent-host-boot.mjs`.
  */
 
 import { Socket } from "node:net";
 
 import { HARNESS_ADAPTERS } from "../harness-adapters.js";
+import type { HarnessRow } from "../harness/registry.js";
 import { initMetrics, initTracing } from "../otel.js";
 import { supplyExecutionFingerprintKeys } from "../shared/fingerprint-secret.js";
 import { routeModelCallsThroughLanes } from "../shared/model-lanes.js";
 import { routeRegistryThrough } from "../shared/registry-endpoint.js";
 import { captureRunnerSecrets } from "../shared/runner-credential-store.js";
-import { streamChannel } from "./channel.js";
+import { streamChannel, type LineChannel } from "./channel.js";
 import { serveAgentHost } from "./host.js";
 import { AGENT_HOST_CHANNEL_FD } from "./protocol.js";
 
 /** The bound on the adapters' shutdown once the channel has closed. */
-const SHUTDOWN_GRACE_MS = 10_000;
+export const SHUTDOWN_GRACE_MS = 10_000;
 
 /** The process role this host reports on its telemetry resource. */
 const PROCESS_ROLE = "agent-host";
 
-export async function runAgentHost(): Promise<never> {
-  captureRunnerSecrets();
-  const otelShutdown = await initTracing("stigmer-runner", PROCESS_ROLE);
-  const metricsShutdown = await initMetrics("stigmer-runner", PROCESS_ROLE);
+/** What the host process needs of its process: the channel, the adapters, telemetry, the way out. */
+export interface AgentHostProcess {
+  readonly channel: LineChannel;
+  readonly rows: readonly HarnessRow[];
+  /** Start telemetry; resolves to its flush, `null` when no exporter is configured. */
+  readonly initTelemetry: () => Promise<(() => Promise<void>) | null>;
+  readonly exit: (code: number) => void;
+  readonly log: (message: string) => void;
+  readonly shutdownGraceMs?: number;
+}
 
-  const socket = new Socket({ fd: AGENT_HOST_CHANNEL_FD, readable: true, writable: true });
-  const server = serveAgentHost(streamChannel(socket, socket), HARNESS_ADAPTERS, {
+/** Serve the runner until the channel closes, then shut the adapters down and exit. */
+export async function runAgentHostProcess(host: AgentHostProcess): Promise<void> {
+  captureRunnerSecrets();
+  const flushTelemetry = await host.initTelemetry();
+  const server = serveAgentHost(host.channel, host.rows, {
     onConfigured: (config) => {
       routeRegistryThrough(config.proxyEndpoint, config.token);
       if (!config.platformProxied) routeModelCallsThroughLanes(config.proxyEndpoint, config.token);
@@ -61,26 +76,48 @@ export async function runAgentHost(): Promise<never> {
   supplyExecutionFingerprintKeys((executionId) => server.fingerprintKey(executionId));
 
   const reason = await server.closed;
-  console.log(`[agent-host] channel closed (${reason.message}); shutting down`);
+  host.log(`[agent-host] channel closed (${reason.message}); shutting down`);
   await withinGrace(
     (async () => {
       for (const row of [...server.booted].reverse()) {
         try {
           await row.adapter.shutdown();
         } catch (err) {
-          console.warn(`[agent-host] ${row.adapter.name} shutdown failed: ${err instanceof Error ? err.message : err}`);
+          host.log(`[agent-host] ${row.adapter.name} shutdown failed: ${err instanceof Error ? err.message : String(err)}`);
         }
       }
-      await metricsShutdown?.();
-      await otelShutdown?.();
+      await flushTelemetry?.();
     })(),
+    host.shutdownGraceMs ?? SHUTDOWN_GRACE_MS,
   );
-  process.exit(0);
+  host.exit(0);
 }
 
-function withinGrace(work: Promise<void>): Promise<void> {
+/** The process boundary: fd 3, the real adapter table, the real telemetry and `process.exit`. */
+export async function runAgentHost(): Promise<void> {
+  /* v8 ignore start -- @preserve: the process boundary; its logic is runAgentHostProcess (tested in-process) and scripts/verify-agent-host-boot.mjs boots this under plain Node */
+  const socket = new Socket({ fd: AGENT_HOST_CHANNEL_FD, readable: true, writable: true });
+  await runAgentHostProcess({
+    channel: streamChannel(socket, socket),
+    rows: HARNESS_ADAPTERS,
+    initTelemetry: async () => {
+      const tracing = await initTracing("stigmer-runner", PROCESS_ROLE);
+      const metrics = await initMetrics("stigmer-runner", PROCESS_ROLE);
+      if (!tracing && !metrics) return null;
+      return async () => {
+        await metrics?.();
+        await tracing?.();
+      };
+    },
+    exit: (code) => process.exit(code),
+    log: (message) => console.log(message),
+  });
+  /* v8 ignore stop */
+}
+
+function withinGrace(work: Promise<void>, graceMs: number): Promise<void> {
   return new Promise((resolve) => {
-    const timer = setTimeout(resolve, SHUTDOWN_GRACE_MS);
+    const timer = setTimeout(resolve, graceMs);
     timer.unref();
     void work.finally(() => {
       clearTimeout(timer);

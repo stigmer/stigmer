@@ -14,13 +14,14 @@
  *
  * The request body is buffered (a signer needs it whole; a model request
  * is a JSON document) under {@link MAX_REQUEST_BYTES}; the response is
- * streamed as it arrives. A host that disconnects aborts the upstream
+ * streamed as it arrives, at the pace the host reads it. A host that disconnects aborts the upstream
  * request; an upstream that fails mid-stream destroys the host's socket,
  * so a cut-off answer never reads as a complete one.
  */
 
 import { request as httpRequest, type IncomingHttpHeaders, type IncomingMessage, type ServerResponse } from "node:http";
 import { request as httpsRequest } from "node:https";
+import type { Readable } from "node:stream";
 
 /** The largest request body a lane accepts: the agent host's own message cap. */
 export const MAX_REQUEST_BYTES = 64 * 1024 * 1024;
@@ -46,7 +47,7 @@ const HOST_CREDENTIAL = new Set(["authorization", "x-api-key"]);
 export class RequestTooLargeError extends Error {}
 
 /** Read a request body whole, refusing one larger than `limit`. */
-export function readBody(req: IncomingMessage, limit = MAX_REQUEST_BYTES): Promise<Buffer> {
+export function readBody(req: Readable, limit = MAX_REQUEST_BYTES): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     let size = 0;
@@ -104,11 +105,10 @@ export function relay(req: IncomingMessage, res: ServerResponse, upstream: Upstr
         if (value !== undefined && !HOP_BY_HOP.has(name)) headers[name] = value;
       }
       res.writeHead(answer.statusCode ?? 502, headers);
-      answer.on("data", (chunk: Buffer) => res.write(chunk));
-      answer.on("end", () => {
-        res.end();
-        resolve();
-      });
+      // Piped, so a host that reads slowly slows the provider instead of the
+      // runner buffering the stream.
+      answer.pipe(res);
+      answer.on("end", () => resolve());
       answer.on("error", () => {
         res.destroy();
         resolve();

@@ -157,6 +157,23 @@ describe("what a host token buys", () => {
     }
   });
 
+  it("refuses every call before a host is authorized, a registry read that is not a GET, and a checkpoint write that is not JSON", async () => {
+    const proxy = await AgentProxy.start(testConfig({ proxyEndpoint: upstream.url, checkpointerType: "http", checkpointerProxyEndpoint: upstream.url }));
+    try {
+      expect((await call(proxy, "/v1/proxy/model-registry", { method: "GET", headers: { authorization: `Bearer ${HOST_TOKEN}` } })).status, "no host yet").toBe(401);
+      proxy.authorizeHost(HOST_TOKEN);
+      expect((await call(proxy, "/v1/proxy/model-registry", { headers: { authorization: `Bearer ${HOST_TOKEN}` } })).status).toBe(405);
+      const close = proxy.openTurn({ executionId: EXECUTION, sessionId: SESSION });
+      close();
+      close();
+      proxy.openTurn({ executionId: EXECUTION, sessionId: SESSION });
+      expect((await call(proxy, "/v1/proxy/checkpoints/checkpoint", { method: "PUT", headers: asHost, body: "not json" })).status).toBe(400);
+      expect(upstream.received).toHaveLength(0);
+    } finally {
+      await proxy.close();
+    }
+  });
+
   it("serves no lane outside its table", async () => {
     const proxy = await startProxy();
     try {

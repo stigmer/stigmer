@@ -23,6 +23,9 @@ import { create, toBinary } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 import { SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { ChannelTemplateSchema, MessagingChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+import { McpServerUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApprovalAction, MessageType, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 
@@ -116,6 +119,32 @@ describe("the turn input across the pipe", () => {
 
     expect(decoded.blueprint.subAgents).toEqual([]);
     expect(decoded.blueprint.agent!.spec.subAgents.map((s) => s.name)).toEqual(["on-the-spec"]);
+  });
+
+  it("carries every list the runtime resolved: usages, skill references, channels and their templates, sub-agents of their own, plain attachments", () => {
+    const input = turnInputFixture({
+      attachments: { results: [{ filename: "notes.txt", relativePath: ".stigmer/inputs/notes.txt", sizeBytes: 4 }], visionImages: [], visionNotViewable: [] },
+    });
+    const mcp = {
+      ...input.mcp,
+      channelMessaging: [
+        { channel: create(MessagingChannelSchema, { channel: "chn_1" }), templates: [create(ChannelTemplateSchema, { name: "welcome" })] },
+      ],
+    };
+    const blueprint = {
+      ...input.blueprint,
+      subAgents: [create(SubAgentSchema, { name: "own" })],
+      mergedMcpServerUsages: [create(McpServerUsageSchema, { mcpServerRef: create(ApiResourceReferenceSchema, { slug: "github" }) })],
+      mergedSkillRefs: [create(ApiResourceReferenceSchema, { slug: "review" })],
+    };
+
+    const decoded = crossed({ ...input, mcp, blueprint });
+
+    expect(decoded.blueprint.subAgents.map((s) => s.name)).toEqual(["own"]);
+    expect(decoded.blueprint.mergedMcpServerUsages.map((u) => u.mcpServerRef?.slug)).toEqual(["github"]);
+    expect(decoded.blueprint.mergedSkillRefs.map((r) => r.slug)).toEqual(["review"]);
+    expect(decoded.mcp.channelMessaging.map((c) => [c.channel.channel, c.templates.map((t) => t.name)])).toEqual([["chn_1", ["welcome"]]]);
+    expect(decoded.attachments.results).toEqual([{ filename: "notes.txt", relativePath: ".stigmer/inputs/notes.txt", sizeBytes: 4 }]);
   });
 
   it("rebuilds the tool scope with the same answers", () => {

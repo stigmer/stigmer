@@ -449,10 +449,12 @@ async function main(): Promise<void> {
   // The runner's own entry, started by the runner as its agent host
   // (`agent-host/supervisor.ts`): it serves the runner over its pipe and
   // never reaches the config load, the build check or a Temporal worker.
+  /* v8 ignore start -- @preserve: the process boundary; runAgentHostProcess is tested in-process and scripts/verify-agent-host-boot.mjs boots this mode under plain Node */
   if (process.argv[2] === AGENT_HOST_MODE_ARG) {
     const { runAgentHost } = await import("./agent-host/entry.js");
     await runAgentHost();
   }
+  /* v8 ignore stop */
 
   // Cold-start timeline: this first mark's span covers Node startup +
   // entrypoint module loading + preflight (origin = process start).

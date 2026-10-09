@@ -93,10 +93,12 @@ export async function modelUpstream(
       return vertexUpstream(rest, method, headers, body);
     case "foundry":
       return foundryUpstream(rest, method, headers, body);
+    /* v8 ignore start -- @preserve: the never arm; the compiler proves no lane reaches it */
     default: {
       const exhaustive: never = lane;
       throw new LaneRefusal(404, `unknown lane ${String(exhaustive)}`);
     }
+    /* v8 ignore stop */
   }
 }
 
@@ -189,7 +191,7 @@ async function vertexUpstream(rest: string, method: string, headers: Record<stri
 }
 
 /** The Vertex API root for a region, as the Vertex SDK builds it, or `ANTHROPIC_VERTEX_BASE_URL`. */
-function vertexBase(region: string): string {
+export function vertexBase(region: string): string {
   const explicit = process.env.ANTHROPIC_VERTEX_BASE_URL?.trim();
   if (explicit) return trimSlash(explicit);
   switch (region) {
@@ -247,5 +249,5 @@ function describe(err: unknown): string {
 
 function causeOf(err: unknown): string {
   const cause = err instanceof Error ? err.cause : undefined;
-  return cause instanceof Error ? `: ${cause.message}` : "";
+  return cause instanceof Error ? ` (${cause.message})` : "";
 }

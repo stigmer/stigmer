@@ -46,7 +46,7 @@ import {
 type HostilePeer = Peer<RunnerCalls, HostCalls, HostNotices, RunnerNotices>;
 
 /** What the hostile host does inside a turn, before it answers `runTurn`. */
-type Attack = (peer: HostilePeer, turnId: string) => Promise<void>;
+type Attack = (peer: HostilePeer, turnId: string, args: HostCalls["runTurn"]["args"]) => Promise<void>;
 
 function hostileHarness(attack: Attack): HarnessAdapter {
   const proxy = { endpoint: "http://127.0.0.1:9", authorizeHost: () => {}, openTurn: () => () => {} };
@@ -58,8 +58,8 @@ function hostileHarness(attack: Attack): HarnessAdapter {
       const host: HostilePeer = new Peer<RunnerCalls, HostCalls, HostNotices, RunnerNotices>(hostEnd, "hostile host");
       host.handle("boot", async () => null);
       host.handle("shutdown", async () => null);
-      host.handle("runTurn", async ({ turnId }): Promise<WireSettlement> => {
-        await attack(host, turnId);
+      host.handle("runTurn", async (args): Promise<WireSettlement> => {
+        await attack(host, args.turnId, args);
         return { outcome: { kind: "completed" }, thrown: null, projection: encodeMessage(RunStatusSchema, create(RunStatusSchema)), cas: null };
       });
       host.sendHello(AGENT_HOST_PROTOCOL_VERSION);
@@ -176,6 +176,34 @@ describe("a host that does not follow the rules", () => {
     await adapter.runTurn(input, new RecordingTurnSink({ executionId: input.executionId }));
 
     expect(refusal).toBe("plugin 'not-mine' is not one of this turn's");
+  });
+
+  it("refuses an upload for a turn that has no artifact store", async () => {
+    let refusal = "";
+    const adapter = hostileHarness(async (host, turnId) => {
+      await host.call("uploadArtifact", { turnId, key: "artifacts/aex_fixture_0001/a.txt", content: "", contentType: null }).catch((err: Error) => {
+        refusal = err.message;
+      });
+    });
+    await adapter.boot(testConfig());
+    const input = turnInputFixture();
+
+    await adapter.runTurn(input, new RecordingTurnSink({ executionId: input.executionId }));
+    expect(refusal).toBe("this turn has no artifact storage");
+  });
+
+  it("tells the host a turn the runtime had already stopped, with the stop's reason", async () => {
+    let stopped: string | null = null;
+    const adapter = hostileHarness(async (_host, _turnId, args) => {
+      stopped = args.stopped;
+    });
+    await adapter.boot(testConfig());
+    const input = turnInputFixture();
+    const sink = new RecordingTurnSink({ executionId: input.executionId });
+    sink.abort(new Error("kit: the stall watchdog"));
+
+    await adapter.runTurn(input, sink);
+    expect(stopped).toBe("kit: the stall watchdog");
   });
 
   it("drops a notice for a turn that has settled", async () => {

@@ -219,11 +219,11 @@ export class AgentHostSupervisor {
     peer.onNotice("bindCas", (args) => this.turns.get(args.turnId)?.notices.bindCas(args));
   }
 
+  /** The live host's channel closed. A host stopped on purpose is no longer live when its channel closes (`stop`), so this never restarts one. */
   private onHostGone(peer: RunnerPeer, startedAt: number, reason: Error): void {
     if (this.live?.peer !== peer) return;
     this.live.kill();
     this.live = undefined;
-    if (this.stopping) return;
     if (Date.now() - startedAt > this.maxDelay) this.nextDelay = this.firstDelay;
     this.scheduleRestart(`exited (${reason.message})`);
   }
@@ -304,8 +304,9 @@ export function spawnHostProcess(
     env,
     stdio: ["ignore", "pipe", "pipe", "pipe"],
   });
-  relayLines(child.stdout, (line) => console.log(line));
-  relayLines(child.stderr, (line) => console.error(line));
+  // Piped above, so both streams exist.
+  relayLines(child.stdout!, (line) => console.log(line));
+  relayLines(child.stderr!, (line) => console.error(line));
   const pipe = child.stdio[AGENT_HOST_CHANNEL_FD] as Readable & Writable;
   const channel = streamChannel(pipe, pipe);
   child.on("exit", (code, signal) => channel.close(new Error(`agent host process ended (${signal ?? code})`)));
@@ -330,7 +331,6 @@ export function agentHostCommand(): { readonly command: string; readonly args: r
   return { command: process.execPath, args: [...loader, entry, AGENT_HOST_MODE_ARG] };
 }
 
-function relayLines(stream: Readable | null, write: (line: string) => void): void {
-  if (!stream) return;
+function relayLines(stream: Readable, write: (line: string) => void): void {
   createInterface({ input: stream, crlfDelay: Infinity }).on("line", write);
 }
