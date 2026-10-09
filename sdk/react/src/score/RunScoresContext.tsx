@@ -13,6 +13,7 @@ import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { useWhoAmI } from "../iam-policy/useWhoAmI.js";
 import {
+  judgeScoreOf,
   runHealthScoreOf,
   scoresByRun,
   type ViewerIdentity,
@@ -55,9 +56,12 @@ export function useRunScoresData(): RunScoresData | null {
 
 /**
  * The refetch schedule after a run completes: grading starts when the run
- * completes and writes its score a moment later, so the view asks again a
- * bounded number of times (about five seconds in all) and stops as soon as
- * the run's health score arrives.
+ * completes and writes its scores a moment later, so the view asks again a
+ * bounded number of times (about five seconds in all). It stops early only
+ * once both the health score and a judge score are read: the judge's
+ * pending score is written just after run health, and a run whose agent
+ * has no AI grading never gets one, so such a run takes all three reads.
+ * A pending judge grade is then followed by useSessionScores' own poll.
  */
 export const GRADING_REFETCH_DELAYS_MS: readonly number[] = [750, 1_500, 3_000];
 
@@ -138,8 +142,8 @@ function sessionIdOfRuns(runs: readonly Run[]): string | null {
 /**
  * Refetches on the {@link GRADING_REFETCH_DELAYS_MS} schedule when a run
  * the view already knew moves to COMPLETED, until its health score is
- * read. Runs already completed when the view mounted are covered by the
- * first fetch.
+ * read with a judge score. Runs already completed when the view mounted are
+ * covered by the first fetch.
  */
 function useRefetchOnCompletion(
   runs: readonly Run[],
@@ -171,7 +175,10 @@ function useRefetchOnCompletion(
           timers.current.push(
             setTimeout(() => {
               const scores = byRunRef.current.get(id) ?? NO_SCORES;
-              if (runHealthScoreOf(scores) !== undefined) {
+              if (
+                runHealthScoreOf(scores) !== undefined &&
+                judgeScoreOf(scores) !== undefined
+              ) {
                 waiting.current.delete(id);
                 return;
               }

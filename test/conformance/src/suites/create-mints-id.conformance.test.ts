@@ -62,6 +62,7 @@ import { makeApiKey } from "../support/apikeys";
 import { makeSlackChannelApp } from "../support/channelapps";
 import { makeSharedVault } from "../support/vaults";
 import { makeExecutionContext } from "../support/executioncontexts";
+import { makeEvaluator } from "../support/evaluators";
 import { makeMcpServer } from "../support/mcpservers";
 import { enableOrganizationMemory, makeMemory } from "../support/memories";
 import { foreignId, uniqueName, uniqueOrg } from "../support/naming";
@@ -425,6 +426,23 @@ const ROWS: readonly Row[] = [
     },
     async read(id) {
       return (await clients.memoryQuery.get({ value: id })).metadata?.id;
+    },
+  },
+  {
+    title: "[rpc:EvaluatorCommandController.create] Evaluator",
+    key: "EvaluatorCommandController.create",
+    kind: ApiResourceKind.evaluator,
+    async send({ org }, chosenId) {
+      const agent = await agentIn(org);
+      const created = await clients.evaluatorCommand.create({
+        ...makeEvaluator({ org, agentId: agent.id }),
+        metadata: { id: chosenId, org },
+      });
+      fixtures.defer(() => clients.evaluatorCommand.delete({ value: created.metadata!.id }));
+      return answerOf(this.key, created.metadata);
+    },
+    async read(id) {
+      return (await clients.evaluatorQuery.get({ value: id })).metadata?.id;
     },
   },
   {

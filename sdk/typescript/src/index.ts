@@ -278,6 +278,12 @@ export {
   type ScoreCriterionInput,
 } from "./gen/score.js";
 export {
+  EvaluatorClient,
+  buildEvaluatorProto,
+  toEvaluatorUpdateInput,
+  type EvaluatorInput,
+} from "./gen/evaluator.js";
+export {
   VaultClient,
   buildVaultProto,
   toVaultUpdateInput,

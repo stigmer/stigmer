@@ -82,6 +82,13 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | ChannelAppQueryController.getByReference | org |
 | ChannelAppQueryController.listByOrg | org |
 
+## `ai.stigmer.agentic.evaluator.v1`
+
+| Method | Fills |
+|---|---|
+| EvaluatorCommandController.create | metadata.org |
+| EvaluatorCommandController.update | metadata.org |
+
 ## `ai.stigmer.agentic.mcpserver.v1`
 
 | Method | Fills |

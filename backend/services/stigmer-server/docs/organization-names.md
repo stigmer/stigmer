@@ -82,6 +82,13 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | ChannelAppQueryController.getByReference | `org` |
 | ChannelAppQueryController.listByOrg | `org` |
 
+## `ai.stigmer.agentic.evaluator.v1`
+
+| Method | Organization fields |
+|---|---|
+| EvaluatorCommandController.create | `metadata.org` |
+| EvaluatorCommandController.update | `metadata.org` |
+
 ## `ai.stigmer.agentic.executioncontext.v1`
 
 | Method | Organization fields |

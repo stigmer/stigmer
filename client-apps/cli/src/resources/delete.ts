@@ -95,6 +95,9 @@ export const DELETE_HANDLERS: ReadonlyMap<ApiResourceKind, DeleteFn> = new Map<
   [ApiResourceKind.skill, (c, id) => c.skill.delete(id)],
   [ApiResourceKind.plugin, (c, id) => c.plugin.delete(id)],
   [ApiResourceKind.api_key, (c, id) => c.apiKey.delete(id)],
+  // Deleting an evaluator switches AI grading off for its agent; scores
+  // already recorded stay on their runs.
+  [ApiResourceKind.evaluator, (c, id) => c.evaluator.delete(id)],
 ]);
 
 // The deletable-types list for the unknown-type error, derived from the
