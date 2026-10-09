@@ -171,6 +171,10 @@ function ConnectDialogContent({
       void handleConnect();
       return;
     }
+    // A failed attempt refetches too: completeSignIn saves the login BEFORE
+    // the chained discovery runs, so even a failed attempt may have changed
+    // server state, and the dialog then offers "Discover Tools" instead of
+    // another popup round.
     oauth.startOAuth(serverId, activeOrg).then(
       () => {
         creds.refetch();
@@ -178,10 +182,6 @@ function ConnectDialogContent({
         onConnected?.(serverName);
       },
       () => {
-        // completeSignIn saves the login BEFORE the chained
-        // discovery runs, so even a failed attempt may have changed
-        // server state — refetch so the dialog offers "Discover Tools"
-        // instead of another popup round.
         creds.refetch();
         setPhase("error");
       },

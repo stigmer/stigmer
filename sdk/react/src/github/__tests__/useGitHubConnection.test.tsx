@@ -12,6 +12,8 @@
  *   did not start (no saved state) or a mismatched state, and after every
  *   callback, a refused one included, ends connecting and re-reads My vault.
  * - A blocked popup is reported, never thrown; reconcile re-reads My vault.
+ * - A sign-in that fails, in the popup or opening the shell's browser, is
+ *   reported as connectError and ends connecting; the popup is closed.
  * - Disconnect removes the `github.com` login from My vault; a removal the
  *   server refuses is reported as disconnectError, and the hook still
  *   reports connected.
@@ -34,12 +36,16 @@ import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { useGitHubConnection } from "../useGitHubConnection";
 
-const popup = vi.hoisted(() => ({ blocked: false }));
+const popup = vi.hoisted(() => ({ blocked: false, declined: false, closed: vi.fn() }));
 vi.mock("../../internal/oauthPopup.js", () => ({
   openOAuthPopup: vi.fn(() => (popup.blocked ? null : { location: { href: "" }, closed: false, close: vi.fn() })),
   popupBlockedError: vi.fn(() => new Error("blocked")),
-  waitForOAuthCallback: vi.fn(async () => ({ code: "code-1", state: "st-1" })),
-  closeOAuthPopup: vi.fn(),
+  waitForOAuthCallback: vi.fn(async (_popup: unknown, _state: string, onDispose: (dispose: () => void) => void) => {
+    onDispose(() => {});
+    if (popup.declined) throw new Error("access_denied: the person declined");
+    return { code: "code-1", state: "st-1" };
+  }),
+  closeOAuthPopup: popup.closed,
 }));
 
 const ORG = "org_acme";
@@ -109,6 +115,8 @@ function wrapperFor(client: Stigmer) {
 
 beforeEach(() => {
   popup.blocked = false;
+  popup.declined = false;
+  popup.closed.mockClear();
   sessionStorage.clear();
 });
 afterEach(() => {
@@ -157,6 +165,34 @@ describe("useGitHubConnection", () => {
     });
     expect(result.current.popupBlocked).toBe(true);
     expect(server.calls).toEqual([]);
+  });
+
+  it("reports a popup sign-in that fails, closing the popup and ending connecting", async () => {
+    popup.declined = true;
+    const server: Server = { mine: null, reads: 0, calls: [] };
+    const { result } = renderHook(() => useGitHubConnection(ORG), { wrapper: wrapperFor(clientFor(server)) });
+    await act(async () => {
+      await expect(result.current.connect()).rejects.toThrow("access_denied");
+    });
+    expect(result.current.connectError?.message).toContain("access_denied");
+    expect(result.current.isConnecting).toBe(false);
+    expect(popup.closed).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports a shell that cannot open the login page, and ends connecting", async () => {
+    const server: Server = { mine: null, reads: 0, calls: [] };
+    const openUrl = vi.fn(async () => {
+      throw new Error("no browser");
+    });
+    const { result } = renderHook(() => useGitHubConnection(ORG, { openUrl }), {
+      wrapper: wrapperFor(clientFor(server)),
+    });
+    await act(async () => {
+      await expect(result.current.connect()).rejects.toThrow("no browser");
+    });
+    expect(result.current.connectError?.message).toBe("no browser");
+    expect(result.current.isConnecting).toBe(false);
+    expect(server.calls).toEqual(["start:github.com:org_acme:mine:desktop:0"]);
   });
 
   it("opens the login page with the shell's return choice, and completes what the shell hands back", async () => {

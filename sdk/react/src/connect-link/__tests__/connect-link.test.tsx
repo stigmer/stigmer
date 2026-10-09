@@ -6,11 +6,15 @@
  *   and offers nothing to click;
  * - the callback page hands the login page's code, state or error to the
  *   server with the link's secret, forgets the secret, and sends the
- *   browser to the URL the server answers; a dead link says so.
+ *   browser to the URL the server answers; a dead link says so;
+ * - a start the server refuses for another reason says why and stays on
+ *   the page; a hook with no link starts nothing; a tab whose storage
+ *   cannot be read has no pending link; and the callback completes once
+ *   even when React runs its effect twice (StrictMode).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
+import { StrictMode, type ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
 import { Stigmer } from "@stigmer/sdk";
@@ -25,12 +29,13 @@ import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { ConnectLinkCallback } from "../ConnectLinkCallback";
 import { ConnectLinkView } from "../ConnectLinkView";
-import { CONNECT_LINK_TOKEN_KEY, pendingConnectLinkToken } from "../useConnectLink";
+import { CONNECT_LINK_TOKEN_KEY, pendingConnectLinkToken, useConnectLink } from "../useConnectLink";
 
 const TOKEN = "tok-123";
 
 interface World {
   readonly dead: boolean;
+  readonly startRefused?: boolean;
   readonly completed: CompleteConnectLinkInput[];
 }
 
@@ -47,8 +52,12 @@ function providers(world: World) {
             organizationName: "Acme Helpdesk",
           });
         },
-        startConnectLink: () =>
-          create(StartConnectLinkOutputSchema, { authorizationUrl: "https://slack.com/oauth/authorize?x=1", state: "st" }),
+        startConnectLink: () => {
+          if (world.startRefused === true) {
+            throw new ConnectError("nothing can sign in to https://mcp.slack.com/mcp", Code.FailedPrecondition);
+          }
+          return create(StartConnectLinkOutputSchema, { authorizationUrl: "https://slack.com/oauth/authorize?x=1", state: "st" });
+        },
         completeConnectLink: (input) => {
           world.completed.push(input);
           if (world.dead) throw new ConnectError("Connect link not found", Code.NotFound);
@@ -103,7 +112,49 @@ describe("ConnectLinkView", () => {
   });
 });
 
+describe("useConnectLink", () => {
+  it("a start the server refuses for another reason says why and stays on the page", async () => {
+    const { result } = renderHook(() => useConnectLink(TOKEN), {
+      wrapper: providers({ dead: false, startRefused: true, completed: [] }),
+    });
+    await waitFor(() => expect(result.current.info).not.toBeNull());
+    await act(() => result.current.start());
+    expect(result.current.error?.message).toContain("nothing can sign in to https://mcp.slack.com/mcp");
+    expect(result.current.isDead).toBe(false);
+    expect(result.current.isStarting).toBe(false);
+    expect(assign).not.toHaveBeenCalled();
+  });
+
+  it("with no link starts nothing", async () => {
+    const { result } = renderHook(() => useConnectLink(null), { wrapper: providers({ dead: false, completed: [] }) });
+    await act(() => result.current.start());
+    expect(assign).not.toHaveBeenCalled();
+    expect(result.current.isStarting).toBe(false);
+  });
+
+  it("a tab whose storage cannot be read has no pending link", () => {
+    vi.stubGlobal("sessionStorage", {
+      getItem: () => {
+        throw new DOMException("denied", "SecurityError");
+      },
+    });
+    expect(pendingConnectLinkToken()).toBeNull();
+  });
+});
+
 describe("ConnectLinkCallback", () => {
+  it("completes once even when React runs its effect twice", async () => {
+    const world: World = { dead: false, completed: [] };
+    render(
+      <StrictMode>
+        <ConnectLinkCallback token={TOKEN} />
+      </StrictMode>,
+      { wrapper: providers(world) },
+    );
+    await waitFor(() => expect(replace).toHaveBeenCalledTimes(1));
+    expect(world.completed).toHaveLength(1);
+  });
+
   it("completes with the code and state, forgets the secret, and goes to the answered URL", async () => {
     sessionStorage.setItem(CONNECT_LINK_TOKEN_KEY, TOKEN);
     const world: World = { dead: false, completed: [] };

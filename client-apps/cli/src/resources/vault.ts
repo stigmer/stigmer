@@ -159,14 +159,12 @@ export async function createConnectLink(
   ref: string,
   options: { readonly address: string; readonly returnUrl: string; readonly expiresInSeconds?: number },
 ): Promise<CommandResult> {
+  // A reference always resolves to a vault by id: a link names a shared vault.
   const { target, label } = await targetOf(controller, org, { kind: "ref", ref });
-  if (target.vault.case !== "id") {
-    throw new UsageError("a Connect link saves into a shared vault: name it with its reference");
-  }
   const link = await controller(VaultCommandController).createConnectLink(
     create(CreateConnectLinkInputSchema, {
       org: target.org,
-      vaultId: target.vault.value,
+      vaultId: target.vault.case === "id" ? target.vault.value : "",
       address: options.address,
       returnUrl: options.returnUrl,
       expiresInSeconds: options.expiresInSeconds ?? 0,

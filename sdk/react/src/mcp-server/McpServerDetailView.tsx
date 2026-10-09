@@ -257,17 +257,16 @@ export function McpServerDetailView({
   const handleOAuthSignIn = useCallback(async () => {
     if (!mcpServer?.metadata?.id) return;
 
+    // A failure refetches too (its error state is the oauth hook's):
+    // completeSignIn saves the login BEFORE the chained discovery runs, so a
+    // discovery-leg failure still changed server state. Without this, stale
+    // isOAuthConnected=false makes the next Connect click relaunch the popup
+    // instead of retrying discovery (stigmer/stigmer#229).
     try {
       await oauth.startOAuth(mcpServer.metadata.id, activeOrg ?? org);
       credentials.refetch();
       refetch();
     } catch {
-      // Error state is managed by the oauth hook — but refetch anyway:
-      // completeSignIn saves the login BEFORE the chained
-      // discovery runs, so a discovery-leg failure still changed server
-      // state. Without this, stale isOAuthConnected=false makes the next
-      // Connect click relaunch the popup instead of retrying discovery
-      // (stigmer/stigmer#229).
       credentials.refetch();
       refetch();
     }

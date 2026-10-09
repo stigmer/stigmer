@@ -9,13 +9,21 @@
  * connection fills it (a sign-in and a pasted login alike for every HTTP
  * tool at their address, whichever tool or page signed in; never a local
  * program, which has no address; the github.com login for an HTTP tool on
- * GitHub's own API).
+ * GitHub's own API), and which saved login "Sign in again" can renew (a
+ * sign-in's, never a pasted one).
  */
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { VaultConnectionSchema, VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
-import { gitHostOf, normalizeAddress, toolAddressOf, toolLoginKeyOf, vaultLoginServes } from "../address.js";
+import {
+  gitHostOf,
+  isSignInConnection,
+  normalizeAddress,
+  toolAddressOf,
+  toolLoginKeyOf,
+  vaultLoginServes,
+} from "../address.js";
 
 describe("normalizeAddress", () => {
   it.each([
@@ -201,5 +209,12 @@ describe("vaultLoginServes", () => {
     expect(vaultLoginServes({ "https://mcp.example.com/other": pastedLogin }, httpTool)).toBe(false);
     expect(vaultLoginServes(pasted, create(McpServerSchema, {}))).toBe(false);
     expect(vaultLoginServes(pasted, null)).toBe(false);
+  });
+});
+
+describe("isSignInConnection", () => {
+  it("is true for a sign-in's login and false for a pasted one", () => {
+    expect(isSignInConnection(create(VaultConnectionSchema, { source: VaultConnectionSource.sign_in }))).toBe(true);
+    expect(isSignInConnection(create(VaultConnectionSchema, { source: VaultConnectionSource.pasted }))).toBe(false);
   });
 });

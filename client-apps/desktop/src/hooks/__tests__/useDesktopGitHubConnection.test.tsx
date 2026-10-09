@@ -13,7 +13,9 @@
 //     state; an event carrying an error, or missing its code or state, is
 //     never completed;
 //   - the localhost server is one-shot, so it is started again after every
-//     callback, good or bad.
+//     callback, good or bad;
+//   - a server that fails to start, and a completion that fails, are logged,
+//     never thrown into the webview.
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -121,6 +123,30 @@ describe("useDesktopGitHubConnection", () => {
         expect(latestConfig()?.returnTo).toEqual({ kind: "loopback", port: 41001 }),
       );
       expect(tauri.callsTo("start_sign_in_callback_server")).toHaveLength(1);
+    });
+
+    it("logs a callback server that fails to start", async () => {
+      mockTauri({ start_sign_in_callback_server: () => Promise.reject(new Error("port in use")) });
+      renderHook(() => useDesktopGitHubConnection("acme"));
+      await waitFor(() =>
+        expect(console.error).toHaveBeenCalledWith(
+          "Failed to start the sign-in callback server:",
+          expect.anything(),
+        ),
+      );
+    });
+
+    it("logs a completion that fails", async () => {
+      const tauri = host();
+      sdk.handleCallback.mockRejectedValue(new Error("exchange refused"));
+      renderHook(() => useDesktopGitHubConnection("acme"));
+      await waitFor(() => expect(latestConfig()?.returnTo).toBeDefined());
+
+      await act(() => tauri.emit("sign-in-callback", { code: "c", state: "s" }));
+
+      await waitFor(() =>
+        expect(console.error).toHaveBeenCalledWith("GitHub sign-in failed:", expect.any(Error)),
+      );
     });
 
     it("completes the callback, then starts a fresh one-shot server", async () => {

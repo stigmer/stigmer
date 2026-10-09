@@ -36,26 +36,28 @@ export function ConnectLinkCallback({ token, className }: ConnectLinkCallbackPro
   const didRun = useRef(false);
 
   useEffect(() => {
-    if (didRun.current) return;
-    didRun.current = true;
-    const params = new URLSearchParams(window.location.search);
-    stigmer.vault
-      .completeConnectLink(
-        create(CompleteConnectLinkInputSchema, {
-          token,
-          state: params.get("state") ?? "",
-          code: params.get("code") ?? "",
-          error: params.get("error") ?? "",
-        }),
-      )
-      .then((answer) => {
-        clearPendingConnectLinkToken();
-        window.location.replace(answer.returnUrl);
-      })
-      .catch((err: unknown) => {
-        clearPendingConnectLinkToken();
-        setFailure(toError(err));
-      });
+    // React may run the effect twice (StrictMode): the link completes once.
+    if (!didRun.current) {
+      didRun.current = true;
+      const params = new URLSearchParams(window.location.search);
+      stigmer.vault
+        .completeConnectLink(
+          create(CompleteConnectLinkInputSchema, {
+            token,
+            state: params.get("state") ?? "",
+            code: params.get("code") ?? "",
+            error: params.get("error") ?? "",
+          }),
+        )
+        .then((answer) => {
+          clearPendingConnectLinkToken();
+          window.location.replace(answer.returnUrl);
+        })
+        .catch((err: unknown) => {
+          clearPendingConnectLinkToken();
+          setFailure(toError(err));
+        });
+    }
   }, [stigmer, token]);
 
   return (
