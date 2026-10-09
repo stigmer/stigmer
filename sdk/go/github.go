@@ -1,7 +1,8 @@
-// GitHub sign-in and repository reads. The OAuth exchange saves the token as
-// the github.com login in the caller's My vault and answers only the account
-// it belongs to; repository listing, search, branches, trees and file reads go
-// through the server, which uses that saved login, so no caller holds the token.
+// GitHub repository reads. GitHub is connected by the vault's sign-in at the
+// address github.com (VaultClient.StartSignIn and CompleteSignIn), which saves
+// the login in the caller's My vault; repository listing, search, branches,
+// trees and file reads go through the server, which uses that saved login, so
+// no caller holds the token.
 
 package stigmer
 
@@ -13,36 +14,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-// GetOAuthAuthorizeUrlParams configures a request to get the GitHub OAuth authorize URL.
-type GetOAuthAuthorizeUrlParams struct {
-	RedirectURI string
-	// Org is the organization whose My vault will keep the login, by slug or
-	// id; the caller must be a member of it, and the exchange names the same one.
-	Org string
-}
-
-// OAuthAuthorizeUrlResponse holds the authorize URL and CSRF state returned by the platform.
-type OAuthAuthorizeUrlResponse struct {
-	AuthorizeURL string
-	State        string
-}
-
-// ExchangeOAuthCodeParams configures a request to exchange a GitHub OAuth authorization code.
-type ExchangeOAuthCodeParams struct {
-	Code        string
-	State       string
-	RedirectURI string
-	// Org is the organization whose My vault keeps the login, by slug or id.
-	Org string
-}
-
-// GitHubConnectedAccount is the GitHub account a saved login belongs to.
-type GitHubConnectedAccount struct {
-	Login     string
-	TokenType string
-	Scope     string
-}
-
 // GitHubRepoParams names a repository read through the caller's saved login.
 type GitHubRepoParams struct {
 	// Org is the organization whose My vault holds the github.com login.
@@ -51,51 +22,15 @@ type GitHubRepoParams struct {
 	Repo  string
 }
 
-// GitHubClient provides GitHub sign-in and server-side repository reads.
+// GitHubClient provides server-side repository reads with the caller's github.com login.
 type GitHubClient struct {
-	github githubv1.GitHubServiceClient
-	query  githubv1.GitHubQueryControllerClient
+	query githubv1.GitHubQueryControllerClient
 }
 
 func newGitHubClient(conn grpc.ClientConnInterface) *GitHubClient {
 	return &GitHubClient{
-		github: githubv1.NewGitHubServiceClient(conn),
-		query:  githubv1.NewGitHubQueryControllerClient(conn),
+		query: githubv1.NewGitHubQueryControllerClient(conn),
 	}
-}
-
-// GetOAuthAuthorizeUrl returns the GitHub OAuth authorize URL to redirect the user to.
-func (g *GitHubClient) GetOAuthAuthorizeUrl(ctx context.Context, params *GetOAuthAuthorizeUrlParams) (*OAuthAuthorizeUrlResponse, error) {
-	resp, err := g.github.GetOAuthAuthorizeUrl(ctx, &githubv1.GetOAuthAuthorizeUrlRequest{
-		RedirectUri: params.RedirectURI,
-		Org:         params.Org,
-	})
-	if err != nil {
-		return nil, gen.WrapErr(err)
-	}
-	return &OAuthAuthorizeUrlResponse{
-		AuthorizeURL: resp.GetAuthorizeUrl(),
-		State:        resp.GetState(),
-	}, nil
-}
-
-// ExchangeOAuthCode exchanges an OAuth authorization code; the server saves the
-// login in the caller's My vault and returns the account it belongs to.
-func (g *GitHubClient) ExchangeOAuthCode(ctx context.Context, params *ExchangeOAuthCodeParams) (*GitHubConnectedAccount, error) {
-	resp, err := g.github.ExchangeOAuthCode(ctx, &githubv1.ExchangeOAuthCodeRequest{
-		Code:        params.Code,
-		State:       params.State,
-		RedirectUri: params.RedirectURI,
-		Org:         params.Org,
-	})
-	if err != nil {
-		return nil, gen.WrapErr(err)
-	}
-	return &GitHubConnectedAccount{
-		Login:     resp.GetLogin(),
-		TokenType: resp.GetTokenType(),
-		Scope:     resp.GetScope(),
-	}, nil
 }
 
 // ListRepositories returns one page (from 1) of the connected account's

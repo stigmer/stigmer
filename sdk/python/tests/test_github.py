@@ -2,7 +2,7 @@
 
 A fake stub captures the outgoing request proto, and each test asserts the
 SDK params reached the right fields, the organization above all, since the
-server refuses a connect or a read that names none.  The repository reads
+server refuses a read that names none.  The repository reads
 also hand back the server's answer as it came, and a refusal (the "connect
 GitHub first" precondition) reaches the caller as a StigmerError carrying
 its code.  Same pattern as test_billing.py.
@@ -13,34 +13,11 @@ from __future__ import annotations
 import grpc
 import pytest
 
-from ai.stigmer.platform.github.v1 import io_pb2, service_pb2
+from ai.stigmer.platform.github.v1 import io_pb2
 
 from stigmer import StigmerClient
 from stigmer._gen._errors import ErrorCode, StigmerError
-from stigmer._github import (
-    ExchangeOAuthCodeParams,
-    GetOAuthAuthorizeUrlParams,
-    GitHubRepoParams,
-)
-
-
-class _CapturingServiceStub:
-    def __init__(self) -> None:
-        self.authorize_in = None
-        self.exchange_in = None
-
-    def getOAuthAuthorizeUrl(self, req):  # noqa: N802 — proto RPC name
-        self.authorize_in = req
-        return service_pb2.GetOAuthAuthorizeUrlResponse(
-            authorize_url="https://github.com/login/oauth/authorize?state=s1",
-            state="s1",
-        )
-
-    def exchangeOAuthCode(self, req):  # noqa: N802 — proto RPC name
-        self.exchange_in = req
-        return service_pb2.ExchangeOAuthCodeResponse(
-            login="octocat", token_type="bearer", scope="repo"
-        )
+from stigmer._github import GitHubRepoParams
 
 
 class _FakeRpcError(grpc.RpcError):
@@ -137,42 +114,6 @@ _APP = GitHubRepoParams(org="acme", owner="acme", repo="app")
 def client():
     with StigmerClient("test-key", base_url="localhost:7234", insecure=True) as c:
         yield c
-
-
-class TestGitHubSignIn:
-    def test_authorize_url_sends_org_and_redirect(self, client: StigmerClient) -> None:
-        fake = _CapturingServiceStub()
-        client.github._stub = fake
-
-        resp = client.github.get_oauth_authorize_url(
-            GetOAuthAuthorizeUrlParams(
-                redirect_uri="https://app.example/callback", org="acme"
-            )
-        )
-        assert resp.state == "s1"
-
-        req = fake.authorize_in
-        assert req.org == "acme"
-        assert req.redirect_uri == "https://app.example/callback"
-
-    def test_exchange_sends_org(self, client: StigmerClient) -> None:
-        fake = _CapturingServiceStub()
-        client.github._stub = fake
-
-        account = client.github.exchange_oauth_code(
-            ExchangeOAuthCodeParams(
-                code="c1",
-                state="s1",
-                redirect_uri="https://app.example/callback",
-                org="acme",
-            )
-        )
-        assert account.login == "octocat"
-
-        req = fake.exchange_in
-        assert req.org == "acme"
-        assert req.code == "c1"
-        assert req.state == "s1"
 
 
 class TestGitHubRepositoryReads:

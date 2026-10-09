@@ -515,7 +515,7 @@ describe("toVaultUpdateInput", () => {
               authMethod: "mcp_oauth",
               tokenEndpoint: "https://linear.app/oauth/token",
               refreshToken: "",
-              mcpServerId: "mcp_linear",
+              loginApp: "org:oap_linear",
             },
             description: "Linear",
             savedBy: "ida_ana",
@@ -627,11 +627,9 @@ describe("toMcpServerUpdateInput", () => {
         repositoryUrl: "https://github.com/acme/github-mcp",
         githubStars: 4200,
         auth: {
-          oauthAppRef: { org: "acme", slug: "gh-oauth", kind: ApiResourceKind.oauth_app },
           targetEnvVar: "GH_TOKEN",
           tokenLifetimeHint: "8h",
           scopeHints: ["repo"],
-          discoveryUrl: "https://github.com/.well-known/oauth",
           oauthOnly: true,
         },
       },
@@ -689,6 +687,7 @@ describe("toOAuthAppUpdateInput", () => {
         vendorApprovalStatus: VendorApprovalStatus.APPROVED,
         vendorApprovalDocsUrl: "https://acme.example/vendor-docs",
         tokenEndpointAuthMethod: TokenEndpointAuthMethod.CLIENT_SECRET_POST,
+        addresses: ["github.com", "https://api.githubcopilot.com/mcp"],
       },
     });
 
