@@ -271,6 +271,13 @@ export {
   type MemoryProvenanceInput,
 } from "./gen/memory.js";
 export {
+  ScoreClient,
+  buildScoreProto,
+  toScoreUpdateInput,
+  type ScoreInput,
+  type ScoreCriterionInput,
+} from "./gen/score.js";
+export {
   VaultClient,
   buildVaultProto,
   toVaultUpdateInput,

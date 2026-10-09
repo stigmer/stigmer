@@ -89,7 +89,7 @@ describe("buildProgram", () => {
     const program = buildProgram();
     const runs = program.commands.find((command) => command.name() === "runs");
     const subs = runs?.commands.map((command) => command.name()).sort();
-    expect(subs).toEqual(["approve", "cancel", "logs", "pause", "resume", "terminate", "trace"]);
+    expect(subs).toEqual(["approve", "cancel", "logs", "pause", "resume", "scores", "terminate", "trace"]);
   });
 
   it("has no execution group: runs replaced it, and the old word is not an alias", () => {

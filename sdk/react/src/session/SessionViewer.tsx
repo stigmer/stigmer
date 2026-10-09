@@ -68,6 +68,7 @@ import type { SetupTabProps } from "./facets/SetupTab.js";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import type { SessionAudience, SessionPanelMode } from "./audience.js";
+import { showsRunScores } from "./audience.js";
 import type { SessionRunConfig } from "./run-config.js";
 
 /**
@@ -437,6 +438,10 @@ export function SessionViewer({
   // Curated audiences (endUser, guest, observer) lock the agent and hide the
   // integrator configuration; guest and observer add their own restrictions.
   const isCurated = audience !== "integrator" || isObserver;
+  // Thumbs and run-health flags are the audience's call: the Console's
+  // people and a conversation's reviewers grade runs, an embedded end user
+  // and a share-link visitor see neither.
+  const runScores = showsRunScores(isObserver ? "observer" : audience);
   // The one flag every panel affordance keys on: the host opted out
   // (`panel="none"`) or the audience forbids it (guests have no business
   // with session configuration). Everything the panel touches — the chip,
@@ -732,6 +737,7 @@ export function SessionViewer({
           isCurated={isCurated}
           isGuest={isGuest}
           isObserver={isObserver}
+          runScores={runScores}
           modelSelectorVisible={modelSelectorVisible}
           threadSlots={threadSlots}
         />
@@ -819,6 +825,8 @@ interface ConversationColumnProps {
    * stream indicators stay (watching an in-flight turn is the point).
    */
   readonly isObserver: boolean;
+  /** Whether the thread shows run scores (thumbs and run-health flags). */
+  readonly runScores: boolean;
   /**
    * Whether the composer offers the model picker — the composed result
    * of the host's `showModelSelector`, the guest strip, and a
@@ -851,6 +859,7 @@ const ConversationColumn = memo(function ConversationColumn({
   isCurated,
   isGuest,
   isObserver,
+  runScores,
   modelSelectorVisible,
   threadSlots,
 }: ConversationColumnProps) {
@@ -1008,6 +1017,7 @@ const ConversationColumn = memo(function ConversationColumn({
         planBuildPending={isBuildingFromPlan}
         contentColumn="center"
         slots={threadSlots}
+        runScores={runScores}
         className="stg:flex-1"
       />
       <div className={CONVERSATION_COLUMN_CLASS}>

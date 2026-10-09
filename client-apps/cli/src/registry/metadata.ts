@@ -90,6 +90,10 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
     ApiResourceKind.run,
     { name: "Run", displayName: "Run", idPrefix: "run", retiredIdPrefixes: ["aex"] },
   ],
+  [
+    ApiResourceKind.score,
+    { name: "Score", displayName: "Score", idPrefix: "scr" },
+  ],
 ]);
 
 // Kinds that are user-facing in the CLI and therefore registered as addressable
@@ -114,6 +118,7 @@ export const CLI_RELEVANT_KINDS: readonly ApiResourceKind[] = [
   ApiResourceKind.channel_app,
   ApiResourceKind.schedule,
   ApiResourceKind.session,
+  ApiResourceKind.score,
 ];
 
 /**

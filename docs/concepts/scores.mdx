@@ -1,0 +1,89 @@
+---
+title: Scores
+description:
+  A Score records how good a finished run was. Learn about a person's thumbs on
+  the final answer, the free run-health checks Stigmer runs on every completed
+  run, and who can see them.
+---
+
+Reading a whole conversation is the only way to know whether an Agent did a good
+job, and what you decide is lost the moment you close the tab. A **Score**
+writes it down. Each [run](/docs/concepts/agents#blueprint-vs-runtime) that
+completes can carry scores, and anyone who can see the run sees them.
+
+A run carries two kinds of score:
+
+- **Feedback**: a person's thumbs up or thumbs down on the final answer, with an
+  optional comment. For example, Priya marks last night's triage run "down:
+  picked the wrong label".
+- **Run health**: a free check Stigmer runs on its own as soon as a run
+  completes. It asks no AI model, so it costs nothing.
+
+## Feedback
+
+Under the Agent's final answer in the console there are thumbs up and down and a
+comment box (500 characters at most). Each person rates a run once; rating again
+changes your rating rather than adding a second one. Only you can change your
+rating, and you can delete it.
+
+Only a completed run can be rated. A run that failed or was cancelled has no
+final answer to judge.
+
+## Run health
+
+When a run completes, Stigmer checks it for three things:
+
+| Check                         | Flags a run when                                                                                                        |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `no-repeated-calls`           | The Agent called the same tool with the same inputs and got the same result three or more times in a row: it was stuck. |
+| `last-action-succeeded`       | The run completed, but its last tool call failed or was interrupted.                                                    |
+| `structured-output-delivered` | The run was asked for an answer in a fixed shape and gave none.                                                         |
+
+A check that does not apply to a run (a run that called no tools, or one not
+asked for a fixed shape) is marked not applicable. The run passes when every
+check that applies passes. A run with a problem shows a flag that opens to the
+reason, for example "ended on a failed action: create_ticket (step 7)". A reason
+is built from counts, tool names and step numbers, and never quotes what anyone
+typed.
+
+Run health is graded shortly after the run completes, so a score can appear a
+moment after the final answer does. If grading cannot run, the run's score says
+**not graded** with the reason. A run that could not be graded never reads as a
+failure.
+
+Each run-health score records the version of the checks that produced it, so
+results from a later version of the checks are never mixed with earlier ones.
+
+## Who sees scores
+
+Scores follow the run. Whoever can see the run sees all of its scores:
+
+- the person who owns the conversation;
+- the people it is shared with;
+- the reviewers of a channel conversation, such as an Agent connected to Slack.
+
+Nobody else does. An Organization's admins do not see the scores of a personal
+conversation, just as they do not see the conversation itself. The owner of the
+conversation can delete any score on it. Scores are deleted with their run, with
+the conversation, and with the Organization.
+
+The console shows scores to people working in it. Pages built for someone else's
+product, such as an embedded chat or a share link, show none.
+
+## Reading scores from the CLI
+
+```bash
+# Each person's thumbs and the run-health checks, one row per score
+stigmer runs scores run_01abc123
+
+# The same scores as JSON, for a script
+stigmer runs scores run_01abc123 -o json
+
+# One score by its id
+stigmer get score scr_01abc123
+```
+
+## Next steps
+
+- [Sessions](/docs/concepts/sessions): the conversation a run belongs to.
+- [`stigmer runs`](/docs/cli/commands/runs): the commands that inspect a run.

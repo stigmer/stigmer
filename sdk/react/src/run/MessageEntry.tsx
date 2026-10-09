@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo, useState, type ReactNode } from "react";
 import { Streamdown } from "streamdown";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
@@ -71,6 +71,13 @@ export interface MessageEntryProps {
    * inert chips until the real run record replaces it.
    */
   readonly runId?: string;
+  /**
+   * Extra controls for a `MESSAGE_AI` entry's quiet actions row, rendered
+   * beside copy once the message settles. The thread passes a completed
+   * run's `RunScores` here on its final answer. Ignored for other
+   * message types.
+   */
+  readonly actions?: ReactNode;
 }
 
 /**
@@ -105,6 +112,7 @@ export const MessageEntry = memo(function MessageEntry({
   interactionMode,
   attachments,
   runId: executionId,
+  actions,
 }: MessageEntryProps) {
   useRenderTracer("MessageEntry", {
     messageType: message.type,
@@ -137,6 +145,7 @@ export const MessageEntry = memo(function MessageEntry({
           content={message.content}
           isStreaming={message.isStreaming}
           className={className}
+          actions={actions}
         />
       );
     case MessageType.MESSAGE_THINKING:
@@ -250,10 +259,12 @@ function AiMessage({
   content,
   isStreaming,
   className,
+  actions,
 }: {
   content: string;
   isStreaming: boolean;
   className?: string;
+  actions?: ReactNode;
 }) {
   useRenderTracer("AiMessage", { contentLength: content.length, isStreaming });
 
@@ -287,8 +298,9 @@ function AiMessage({
           is still changing, so a copy would race the content. Copies the
           display markdown (fence-unwrapped), i.e. what the reader sees. */}
       {!isStreaming && markdown.trim().length > 0 && (
-        <div className="stg:mt-1 stg:flex stg:h-6 stg:items-center">
+        <div className="stg:mt-1 stg:flex stg:min-h-6 stg:items-start stg:gap-1">
           <CopyMessageButton text={markdown} variant="quiet" />
+          {actions}
         </div>
       )}
     </div>

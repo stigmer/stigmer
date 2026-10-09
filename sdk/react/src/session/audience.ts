@@ -60,6 +60,31 @@ export function includesMyVaultByDefault(audience: SessionAudience): boolean {
 }
 
 /**
+ * Whether a thread presented to this audience shows run scores: thumbs on
+ * a completed run's final answer and the run-health flags. The Console's
+ * people and a conversation's reviewers grade runs; that is part of what
+ * reviewing is for. An embedding product's end users and a share-link's
+ * visitors see neither: the server admits no rating from either (a
+ * PlatformClient user or a visitor is not a first-party person who can own
+ * one), and an integrator's own customers should not read the agent's
+ * health flags.
+ */
+export function showsRunScores(audience: SessionAudience): boolean {
+  switch (audience) {
+    case "integrator":
+    case "observer":
+      return true;
+    case "endUser":
+    case "guest":
+      return false;
+    default: {
+      const unknown: never = audience;
+      return unknown;
+    }
+  }
+}
+
+/**
  * Whether the session organisms offer the session panel surface.
  *
  * - `"auto"` (default) — the panel and its toggle chip are available

@@ -1,8 +1,8 @@
 // Command-level contract for the `stigmer runs` group: each verb hands the run
 // id and its flags to the right resource call and prints the success line the
 // group promises on stderr; `approve` refuses a missing --tool-call as a
-// usage error before any call; `logs` and
-// `trace` pass their flags through. The backend and the run resources are
+// usage error before any call; `logs`,
+// `trace` and `scores` pass their flags through. The backend and the run resources are
 // replaced at their module seams (the commands import them lazily); the
 // program, the flag parsing and the result rendering are real.
 
@@ -41,6 +41,9 @@ vi.mock("../../resources/run-logs.js", () => logs);
 const trace = vi.hoisted(() => ({ traceRun: vi.fn() }));
 vi.mock("../../resources/run-trace.js", () => trace);
 
+const scores = vi.hoisted(() => ({ showRunScores: vi.fn() }));
+vi.mock("../../resources/run-scores.js", () => scores);
+
 let stderr: string[];
 
 /** Runs `stigmer runs ...`, returning what it wrote to stderr. */
@@ -64,6 +67,7 @@ beforeEach(() => {
   approve.approveAgentToolCall.mockResolvedValue(undefined);
   logs.streamRunLogs.mockResolvedValue(undefined);
   trace.traceRun.mockResolvedValue(undefined);
+  scores.showRunScores.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -146,5 +150,17 @@ describe("stigmer runs trace", () => {
   it("passes -o json through", async () => {
     await runs("trace", "aex_1", "-o", "json");
     expect(trace.traceRun).toHaveBeenCalledWith(stigmer, "aex_1", "json");
+  });
+});
+
+describe("stigmer runs scores", () => {
+  it("renders the table by default", async () => {
+    await runs("scores", "run_1");
+    expect(scores.showRunScores).toHaveBeenCalledWith(stigmer, "run_1", "table");
+  });
+
+  it("passes -o json through", async () => {
+    await runs("scores", "run_1", "-o", "json");
+    expect(scores.showRunScores).toHaveBeenCalledWith(stigmer, "run_1", "json");
   });
 });

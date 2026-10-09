@@ -1,7 +1,7 @@
 Manage run lifecycle and observability.
 
-`stigmer runs` controls the lifecycle of runs and exposes their logs
-and traces. A run is addressed by its ID, `run_<ulid>`.
+`stigmer runs` controls the lifecycle of runs and exposes their logs, traces and
+scores. A run is addressed by its ID, `run_<ulid>`.
 
 The group is plural because `stigmer run` starts a run; `stigmer runs` manages
 one that already exists.
@@ -10,12 +10,14 @@ The subcommands fall into three areas:
 
 - **Lifecycle** — `cancel` gracefully stops a run in progress at its next safe
   point; `terminate` force-stops it immediately without cleanup (and cannot be
-  recovered); `pause` checkpoints a run in progress; `resume` continues a
-  paused one from its last checkpoint.
+  recovered); `pause` checkpoints a run in progress; `resume` continues a paused
+  one from its last checkpoint.
 - **Observability** — `logs` views or streams a run's messages; `trace` shows
-  the tool-call structure with status and timing.
-- **Approval** — `approve` submits a decision for a run waiting on an
-  approval for a tool call.
+  the tool-call structure with status and timing; `scores` shows how good a
+  finished run was: each person's thumbs and the run-health checks
+  ([Scores](/docs/concepts/scores)).
+- **Approval** — `approve` submits a decision for a run waiting on an approval
+  for a tool call.
 
 {/* AUTO_USAGE */}
 
@@ -48,6 +50,16 @@ stigmer runs logs run_01abc123 --follow
 stigmer runs trace run_01abc123 -o yaml
 ```
 
+### Read a run's scores
+
+```bash
+# People's thumbs and the run-health checks, one row per score
+stigmer runs scores run_01abc123
+
+# The scores as JSON, for a script
+stigmer runs scores run_01abc123 -o json
+```
+
 ### Approve a waiting run
 
 ```bash
@@ -61,11 +73,11 @@ stigmer runs approve run_01xyz789 --tool-call tc_abc --action approve
 
 ## Related commands
 
-| Command | Description |
-|---------|-------------|
-| [`stigmer run`](./run) | Start a new run |
+| Command                      | Description                          |
+| ---------------------------- | ------------------------------------ |
+| [`stigmer run`](./run)       | Start a new run                      |
 | [`stigmer resume`](./resume) | Re-attach to a session's live stream |
-| [`stigmer get`](./get) | Inspect a run by ID |
+| [`stigmer get`](./get)       | Inspect a run by ID                  |
 
 ## See also
 

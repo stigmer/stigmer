@@ -8,8 +8,8 @@ description: "manage run lifecycle and observability (run IDs: run_)"
 
 Manage run lifecycle and observability.
 
-`stigmer runs` controls the lifecycle of runs and exposes their logs and traces.
-A run is addressed by its ID, `run_<ulid>`.
+`stigmer runs` controls the lifecycle of runs and exposes their logs, traces and
+scores. A run is addressed by its ID, `run_<ulid>`.
 
 The group is plural because `stigmer run` starts a run; `stigmer runs` manages
 one that already exists.
@@ -21,7 +21,9 @@ The subcommands fall into three areas:
   recovered); `pause` checkpoints a run in progress; `resume` continues a paused
   one from its last checkpoint.
 - **Observability** — `logs` views or streams a run's messages; `trace` shows
-  the tool-call structure with status and timing.
+  the tool-call structure with status and timing; `scores` shows how good a
+  finished run was: each person's thumbs and the run-health checks
+  ([Scores](/docs/concepts/scores)).
 - **Approval** — `approve` submits a decision for a run waiting on an approval
   for a tool call.
 
@@ -58,6 +60,16 @@ stigmer runs logs run_01abc123 --follow
 
 # Show the tool-call timeline as YAML
 stigmer runs trace run_01abc123 -o yaml
+```
+
+### Read a run's scores
+
+```bash
+# People's thumbs and the run-health checks, one row per score
+stigmer runs scores run_01abc123
+
+# The scores as JSON, for a script
+stigmer runs scores run_01abc123 -o json
 ```
 
 ### Approve a waiting run
@@ -126,6 +138,19 @@ resume a paused run
 ```bash
 stigmer runs resume <run-id>
 ```
+
+### stigmer runs scores
+
+show a run's scores: people's thumbs and the run-health checks
+
+```bash
+stigmer runs scores <run-id> [flags]
+```
+
+| Flag             | Type     | Default | Description                         |
+| ---------------- | -------- | ------- | ----------------------------------- |
+| `--json`         | `bool`   |         | shorthand for --output json         |
+| `--output`, `-o` | `string` |         | output format: table, json, or yaml |
 
 ### stigmer runs terminate
 
