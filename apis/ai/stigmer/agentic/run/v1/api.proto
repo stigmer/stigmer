@@ -523,16 +523,20 @@ message RunValueSource {
   // declaration's default.
   string vault_id = 4;
 
-  // The entry: a secret's name, a connection's address, or the repository
+  // The entry: a secret's name, a login's address, or the repository
   // entry's name for its own token; empty for a declaration's default.
   string entry = 5;
 
-  // Whether the entry is a sign-in, renewed when the value is fetched.
-  bool sign_in = 6;
+  // Whether the entry is a login (a connection at an address) rather than a
+  // secret by name.
+  bool login = 6;
+
+  // Whether the login is a sign-in, renewed when the value is fetched.
+  bool sign_in = 7;
 
   // A declaration's own plain default, the one value a manifest holds: it
   // is a fixed setting of the agent or tool, never a secret.
-  string plain_value = 7;
+  string plain_value = 8;
 }
 
 // RunValueDeclarer names who declared a value a turn uses.
