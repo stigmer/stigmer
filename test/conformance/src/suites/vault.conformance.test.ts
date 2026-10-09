@@ -294,13 +294,16 @@ describe("Vault conformance — My vault", () => {
   it("[rpc:VaultCommandController.updateVisibility] My vault is never shared with the organization", async () => {
     const { org } = await target.provisionTenancy();
     const mine = await seedMine(org);
+    // An enforcing authorizer refuses first: only a shared vault's admins
+    // manage who may use it, and a My vault has none. A trusted-local
+    // server admits the call and the handler refuses it.
     await expectGrpcCode(
       () =>
         clients.vaultCommand.updateVisibility({
           resourceId: mine.metadata!.id,
           visibility: ApiResourceVisibility.visibility_org,
         }),
-      Code.FailedPrecondition,
+      target.capabilities.enforcingAuthorizer ? Code.PermissionDenied : Code.FailedPrecondition,
       "share My vault with the organization",
     );
   });
