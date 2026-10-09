@@ -241,9 +241,8 @@ Checks the user's My vault against an MCP server's `env` declarations
 and provides a mechanism to save missing credentials. Values are never
 read: a variable counts as provided when My vault holds a secret by its
 name, or, for the tool's login variable, a login a run would fill it from
-(`vaultLoginServes`: a sign-in made for this server, or a pasted
-login at an HTTP server's own URL; never a pasted login at a local
-program's discovery URL).
+(`vaultLoginServes`: a sign-in or a pasted login at an HTTP
+server's own URL; a local program takes its keys as secrets).
 
 Designed for the discovery flow on the MCP server detail page:
 before triggering discovery, the UI needs to ensure all required
@@ -258,15 +257,6 @@ active grant. The OAuth variable is excluded from `missingVariables`
 — it is acquired via [`useMcpServerOAuthConnect`](#usemcpserveroauthconnect), not a manual
 form. Additional non-OAuth vars still appear in `missingVariables`
 (mixed mode).
-
-**Org-override-aware**: for vendor-OAuth servers with an
-`oauth_app_ref`, the hook also composes `useOrgOAuthApp` to
-resolve which OAuth app the connect flow will use for `org`
-(`effectiveOAuthSource` / `isOrgOAuthApp` / `canBringOwnApp`).
-The `org` parameter must therefore be the caller's ACTIVE org — the
-org whose My vault holds the credentials and whose BYOA override
-applies — not necessarily the org that owns the MCP server (they
-differ when browsing another org's public server).
 
 Unlike [`useMcpServerSetup`](#usemcpserversetup) which manages multi-server setup
 for session creation, this hook is scoped to a single server and
@@ -293,18 +283,15 @@ function useMcpServerCredentials(org: string | null, mcpServer: McpServer | null
   type={{
     accessTokenExpiresAt: { type: "bigint", description: "When the OAuth access token expires (Unix timestamp seconds). `BigInt(0)` when no grant exists, `authMode` is `\"manual\"`, or the token does not expire. Useful for showing actual expiry in the UI." },
     authMode: { type: "McpServerAuthMode", description: "Credential acquisition mode derived from `spec.auth`.  - `\"manual\"` when `spec.auth` is absent: all env vars are user-entered. - `\"oauth\"` when `spec.auth` is present: the `target_env_var` is   acquired via OAuth. Check missingVariables for any   additional manual vars that are also needed (mixed mode).", typeDescriptionLink: "#mcpserverauthmode" },
-    canBringOwnApp: { type: "boolean", description: "`true` when the BYOA option is relevant for this server: the server uses vendor OAuth (`authMode === \"oauth\"` with an `oauth_app_ref`), no org override is currently active, AND the backend supports the org-override surface at all.  The last condition is an edition capability, confirmed by probing `getOrgOAuthApp` (see useOrgOAuthApp): the surface is hosted-only, so on OSS deployments — where the submit could only answer UNIMPLEMENTED — this stays `false` and no BYOA affordance renders (stigmer/stigmer#558).  When `true`, the UI should offer \"Use your own OAuth app\" as either a primary action (when vendor approval is blocked) or a secondary link (when vendor approval is granted)." },
     canDisconnect: { type: "boolean", description: "`true` when the user can disconnect (i.e., an OAuth grant exists). Always `false` when `authMode` is `\"manual\"` or no grant is present, a login the person saved themselves included." },
     connectionHealth: { type: "OAuthConnectionHealth", description: "Health of the OAuth connection for this server.  Provides a four-state signal beyond the binary `isOAuthConnected`: healthy, expired-but-refreshable, expired (re-auth needed), or no grant. `UNSPECIFIED` when `authMode` is `\"manual\"` or the status has not been fetched yet." },
-    effectiveOAuthSource: { type: "OAuthAppSource", description: "Where the effective OAuth app is resolved from for the caller's org — the same source the connect flow will use.  Resolved client-side from the `getOrgOAuthApp` RPC keyed on this hook's `org` parameter. It cannot come from the fetched McpServer: the caller's active org is client-side context the read RPCs never carry, so `status.oauth_status` fields 3-4 are never populated by any backend (see the OAuthStatus proto).  `UNSPECIFIED` when `authMode` is `\"manual\"` or while the override lookup has not yet resolved." },
-    error: { type: "Error | null", description: "Error from My vault, the sign-in status, or the org-override fetch, or `null`." },
-    isLoading: { type: "boolean", description: "`true` while My vault, the sign-in status, or the org-override lookup is being fetched." },
+    error: { type: "Error | null", description: "Error from My vault or the sign-in status, or `null`." },
+    isLoading: { type: "boolean", description: "`true` while My vault or the sign-in status is being fetched." },
     isOAuthConnected: { type: "boolean", description: "`true` when My vault holds a login a run would fill this server's `target_env_var` from: a sign-in made for this server (the `getOAuthGrantStatus` API), or a login the person saved themselves (a token pasted at an HTTP tool's own URL, or a secret by the variable's name). Always `false` when `authMode` is `\"manual\"`." },
-    isOrgOAuthApp: { type: "boolean", description: "`true` when an org-level BYOA override is active for this server and org. Derived from the `getOrgOAuthApp` lookup." },
     isReady: { type: "boolean", description: "`true` when all required (non-optional) credentials are available — both OAuth-managed and manual variables. For OAuth servers this means a login is connected (isOAuthConnected) AND any additional required manual vars are saved in My vault.  Servers whose env vars are all optional are always ready." },
     isSaving: { type: "boolean", description: "`true` while a save operation is in flight." },
-    isVendorApprovalBlocked: { type: "boolean", description: "`true` when the platform OAuth app's vendor approval is PENDING or REJECTED — i.e., the platform sign-in flow is blocked. Covers both statuses since the user-facing behavior is the same: sign-in is disabled and BYOA / manual entry are the available alternatives.  See also isVendorApprovalPending which only checks PENDING." },
-    isVendorApprovalPending: { type: "boolean", description: "`true` when the referenced OAuthApp's vendor approval is still pending. When pending, the platform-managed OAuth sign-in flow is unavailable and the sign-in button should be disabled. Users can still connect via manual token entry (manual override)." },
+    isVendorApprovalBlocked: { type: "boolean", description: "`true` when the login app's vendor approval is PENDING or REJECTED — i.e., sign-in is blocked. Covers both statuses since the user-facing behavior is the same: sign-in is disabled and manual entry (or an admin adding another login app for the address) is the alternative.  See also isVendorApprovalPending which only checks PENDING." },
+    isVendorApprovalPending: { type: "boolean", description: "`true` when the vendor approval of the organization's login app for this server's address is still pending. When pending, sign-in is unavailable and the sign-in button should be disabled. Users can still connect via manual token entry (manual override)." },
     manualEntrySupported: { type: "boolean", description: "`true` when a manually-entered static token is a valid way to authenticate this server. `false` for `oauth_only` servers whose hosted endpoint rejects static tokens (`spec.auth.oauth_only`), where OAuth is the sole credential path.  Connect surfaces use this to decide whether to offer the \"enter token manually\" affordance — offering it on an `oauth_only` server would send the user down a path that cannot succeed. Always `true` for manual-only and PAT-capable servers." },
     manualOverride: { type: "boolean", description: "When `true`, the user has opted to bypass OAuth and enter the `target_env_var` token manually. In this state:  - missingVariables includes the OAuth-managed variable - isReady no longer requires an active OAuth grant  Only meaningful when `authMode` is `\"oauth\"`. Has no effect on manual-only servers." },
     missingVariables: { type: "EnvVarFormVariable[]", description: "Required variables (non-optional) the user's My vault does not fill. Empty when all required variables are present, the server has no `env` declarations, or all declarations are optional.  When `authMode` is `\"oauth\"`, the OAuth-managed `target_env_var` is excluded from this list — it is acquired via the OAuth flow, not via a manual form. Only additional non-OAuth required vars appear here.  Optional env vars are never included — they are discoverable in the read-only EnvSection but do not block connect.  Suitable as direct input to EnvVarForm." },
@@ -313,7 +300,7 @@ function useMcpServerCredentials(org: string | null, mcpServer: McpServer | null
     saveCredentials: { type: "(values: Record<string, EnvVarInput>) => Promise<void>", description: "Save the provided credentials in the user's My vault (created by the server on the first save). For an HTTP server, a value for the tool's login variable is saved as a login at the tool's URL; every other value, and every value for a local program, as a secret by its name." },
     setManualOverride: { type: "(override: boolean) => void", description: "Toggle the manual override. Pass `true` to switch from OAuth to manual token entry; `false` to revert to the OAuth flow." },
     tokenLifetimeHint: { type: "string | null", description: "Informational hint about expected token lifetime, or `null`. Sourced from `spec.auth.token_lifetime_hint`." },
-    vendorApprovalDocsUrl: { type: "string | null", description: "Documentation URL for users who want to bring their own OAuth credentials while the platform's OAuth app is pending vendor approval. `null` when no documentation link is available." },
+    vendorApprovalDocsUrl: { type: "string | null", description: "Documentation URL for users while the login app is pending vendor approval. `null` when no documentation link is available." },
   }}
 />
 
@@ -414,18 +401,15 @@ const { mcpServers, totalCount, isLoading } = useMcpServerList("acme", {
 Action hook that orchestrates the full OAuth popup flow for MCP servers.
 
 Handles the complete lifecycle:
-1. Calls `initiateOAuthConnect` to get the authorization URL
-2. Opens a popup window to the OAuth consent screen
-3. Listens for the callback via `window.postMessage`
-4. Calls `completeOAuthConnect` to exchange the code for tokens
-5. Chains to `connect` for tool discovery
+1. Reads the server's address (its URL; a local program has none and
+   takes its keys as secrets)
+2. Runs the vault's sign-in at that address in a popup
+   (`startSignIn`, the login page, `completeSignIn`; vault/useVaultSignIn.ts)
+3. Chains to `connect` for tool discovery
 
-The popup is opened **synchronously** before the `initiateOAuthConnect`
-RPC to avoid browser popup blockers. A blank page is shown briefly
-while the RPC resolves, then the popup navigates to the auth URL.
-
-Popup plumbing (callback wait, COOP fallbacks, cancellation) lives in
-the shared `internal/oauthPopup.ts` machinery.
+The popup is opened **synchronously** before any RPC to avoid browser
+popup blockers. A blank page is shown briefly while the RPCs resolve,
+then the popup navigates to the login page.
 
 **Signature**
 
@@ -442,7 +426,7 @@ function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn
     failedPhase: { type: "OAuthConnectPhase | null", description: "The phase the flow was in when error was thrown, or `null` when there is no error.  The load-bearing value is `\"connecting\"`: it means OAuth sign-in completed (the grant is stored server-side) and only the chained tool-discovery `connect` failed. Consumers should branch on it to (a) render honest copy via getOAuthConnectErrorMessage and (b) retry with a bare `connect` instead of relaunching the popup." },
     isInProgress: { type: "boolean", description: "`true` while any phase of the OAuth flow is in progress." },
     phase: { type: "OAuthConnectPhase", description: "Current phase of the OAuth flow.", typeDescriptionLink: "#oauthconnectphase" },
-    startOAuth: { type: "(mcpServerId: string, org: string, options?: StartOAuthOptions) => Promise<McpServer>", description: "Start the OAuth connect flow for an MCP server.  Opens a popup for the OAuth consent screen, waits for the callback, exchanges the authorization code for tokens, then chains to the `connect` RPC for tool discovery. A sign-in saved into a shared vault (`options.vault`) chains no discovery: the connect lane reads only My vault.  **Must be called from a synchronous user-gesture handler** (e.g., an `onClick` callback) so the browser allows the popup. The popup is opened synchronously before any async work to avoid popup blockers." },
+    startOAuth: { type: "(mcpServerId: string, org: string, options?: StartOAuthOptions) => Promise<McpServer>", description: "Start the sign-in for an MCP server: a sign-in at the server's address (its URL), which fills every tool at that address.  Opens a popup for the login page, waits for the callback, has the server exchange the code and save the login, then chains to the `connect` RPC for tool discovery. A sign-in saved into a shared vault (`options.vault`) chains no discovery: the connect lane reads only My vault.  **Must be called from a synchronous user-gesture handler** (e.g., an `onClick` callback) so the browser allows the popup. The popup is opened synchronously before any async work to avoid popup blockers." },
   }}
 />
 
@@ -647,11 +631,12 @@ function useUpdateMcpServer(): UseUpdateMcpServerReturn
 
 ### EnvironmentAuthStep
 
-Wizard step 2: Environment variables and auth configuration.
+Wizard step 2: Environment variables and sign-in.
 
 Both sections are optional. Env vars start expanded if any exist;
-auth starts collapsed unless already enabled. No validation gate —
-the user can proceed with zero configuration.
+sign-in starts collapsed unless already enabled, and is offered only for
+an HTTP server: a local program takes its keys as environment variables.
+No validation gate — the user can proceed with zero configuration.
 
 Fully presentational: form state lives in the `data` prop and edits
 flow out through `updateData`, so standalone consumers (embedded
@@ -779,7 +764,6 @@ and [`useMcpServerConnect`](#usemcpserverconnect).
     className: { type: "string", description: "Additional CSS classes for the dialog element." },
     onClose: { type: "() => void", description: "Called when the dialog should close (backdrop click, cancel, or success).", required: true },
     onConnected: { type: "(serverName: string) => void", description: "Called after a successful connect with the server name." },
-    onOpenDetails: { type: "() => void", description: "Called when the user needs the server's detail page — today the \"Use your own OAuth app\" escape hatch shown when the platform OAuth app is vendor-approval blocked on an `oauth_only` server, since the BYOA form lives on the detail page, not in this dialog.  The host owns navigation (and should close the dialog itself if its route keeps this component mounted). When omitted, the blocked notice still explains the state; only the navigation affordance is dropped." },
     open: { type: "boolean", description: "Whether the dialog is open.", required: true },
     org: { type: "string", description: "Id of the organization that owns the MCP server (a slug is also accepted).", required: true },
     slug: { type: "string", description: "MCP server slug.", required: true },
@@ -1039,8 +1023,8 @@ function createInitialMcpServerWizardData(): McpServerWizardData
 User-facing message for an OAuth connect failure, honest about *where*
 the chain broke.
 
-The flow persists state in two acts: `completeOAuthConnect` stores the
-grant ("Connected" from then on), and only afterwards does the chained
+The flow persists state in two acts: `completeSignIn` saves the login
+("Connected" from then on), and only afterwards does the chained
 `connect` run tool discovery. A failure in the `"connecting"` phase
 therefore means sign-in itself SUCCEEDED — presenting the raw RPC error
 alone reads as if OAuth failed and sends users back through the popup
@@ -1108,7 +1092,6 @@ is rendered above the credentials form.
 
 <TypeTable
   type={{
-    canBringOwnApp: { type: "boolean", description: "`true` when the BYOA (Bring Your Own App) option is relevant: the server uses vendor OAuth and no org override exists." },
     connectionHealth: { type: "OAuthConnectionHealth", description: "Health of the OAuth connection. Drives the status dot color and label beyond the binary `isConnected` boolean." },
     disconnectError: { type: "Error | null", description: "Error from the most recent failed disconnect, or `null`." },
     error: { type: "Error | null", description: "Error from the most recent failed OAuth attempt, or `null`.", required: true },
@@ -1116,19 +1099,15 @@ is rendered above the credentials form.
     isConnected: { type: "boolean", description: "`true` when the OAuth token already exists in My vault.", required: true },
     isDisconnecting: { type: "boolean", description: "`true` while a disconnect operation is in flight." },
     isOAuthStranded: { type: "boolean", description: "`true` when the user is signed in but the server has no discovered tools — the \"signed in — tools not discovered yet\" state (stigmer/stigmer#229/#418). The action button reads \"Discover tools\" and `onSignIn` is expected to run bare discovery instead of the OAuth popup. The caller owns that branch; this prop only drives presentation." },
-    isOrgOAuthApp: { type: "boolean", description: "`true` when an org-level BYOA override is active." },
-    isRemovingOrgApp: { type: "boolean", description: "`true` while a remove-org-app operation is in flight." },
-    isVendorApprovalBlocked: { type: "boolean", description: "`true` when the platform OAuth app's vendor approval is PENDING or REJECTED — the platform sign-in flow is blocked. Covers both statuses. When omitted, falls back to `isVendorApprovalPending`." },
-    isVendorApprovalPending: { type: "boolean", description: "`true` when the platform's OAuth app is pending vendor approval. Disables the sign-in button and shows an informational message." },
+    isVendorApprovalBlocked: { type: "boolean", description: "`true` when the login app's vendor approval is PENDING or REJECTED — sign-in is blocked. Covers both statuses. When omitted, falls back to `isVendorApprovalPending`." },
+    isVendorApprovalPending: { type: "boolean", description: "`true` when the login app for the server's address is pending vendor approval. Disables the sign-in button and shows an informational message." },
     manualEntrySupported: { type: "boolean", description: "Whether a manually-entered static token can authenticate this server (`false` for `oauth_only` servers whose endpoint rejects static tokens). Consulted by the vendor-approval-blocked message so it never recommends manual entry on a server where it cannot work. When omitted, falls back to whether `onSwitchToManual` is wired on McpServerConfigPanelProps — callers gate that affordance on the same fact." },
-    onBringOwnApp: { type: "() => void", description: "Open the BYOA form. The parent is responsible for rendering the form/dialog and handling the mutation." },
     onClearDisconnectError: { type: "() => void", description: "Clear the disconnect error state." },
     onClearError: { type: "() => void", description: "Clear the OAuth error state.", required: true },
     onDisconnect: { type: "() => Promise<void>", description: "Called to disconnect the OAuth grant. When provided and the user is connected, a \"Disconnect\" link is shown. The parent is responsible for refreshing credentials after the promise resolves." },
-    onRemoveOrgApp: { type: "() => Promise<void>", description: "Remove the org's BYOA override. The parent is responsible for refreshing state after the promise resolves." },
     onSignIn: { type: "() => void", description: "Initiates the OAuth popup flow. Must be called from a click handler.", required: true },
     phase: { type: "OAuthConnectPhase", description: "Current phase of the OAuth flow.", required: true, typeDescriptionLink: "#oauthconnectphase" },
-    vendorApprovalDocsUrl: { type: "string | null", description: "Documentation URL for bringing your own OAuth token. Shown as a help link when `isVendorApprovalPending` is `true`." },
+    vendorApprovalDocsUrl: { type: "string | null", description: "Documentation URL for connecting while approval is pending. Shown as a help link when `isVendorApprovalPending` is `true`." },
   }}
 />
 
@@ -1219,10 +1198,7 @@ a `McpServerInput` for submission on the final step.
 
 <TypeTable
   type={{
-    authDiscoveryUrl: { type: "string", description: "OAuth discovery URL.", required: true },
     authEnabled: { type: "boolean", description: "Whether OAuth auth configuration is enabled.", required: true },
-    authOAuthAppOrg: { type: "string", description: "OAuth app reference — its organization, by slug or id.", required: true },
-    authOAuthAppSlug: { type: "string", description: "OAuth app reference — app slug.", required: true },
     authScopeHints: { type: "string", description: "OAuth scope hints (comma-separated, split on submit).", required: true },
     authTargetEnvVar: { type: "string", description: "Env var that receives the OAuth token.", required: true },
     authTokenLifetimeHint: { type: "string", description: "Token lifetime hint (e.g. \"1h\", \"never\").", required: true },
@@ -1269,7 +1245,7 @@ organization).
 
 <TypeTable
   type={{
-    id: { type: "string", description: "The vault's id (`metadata.id`), sent as `vault_id`.", required: true },
+    id: { type: "string", description: "The vault's id (`metadata.id`).", required: true },
     name: { type: "string", description: "The vault's display name, for the messages.", required: true },
     org: { type: "string", description: "The vault's organization id (`metadata.org`).", required: true },
   }}

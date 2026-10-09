@@ -48,7 +48,7 @@ export const DOMAIN_GROUPS: readonly DomainGroup[] = [
   },
   {
     label: "Vaults & Config",
-    slugs: ["vault", "workspace", "models"],
+    slugs: ["vault", "connect-link", "workspace", "models"],
   },
   {
     label: "Identity & Access",

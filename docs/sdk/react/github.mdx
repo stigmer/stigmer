@@ -11,11 +11,6 @@ description: Hooks and components for OAuth connection, repository search, and p
 
 Behavior hook that manages the GitHub connection lifecycle.
 
-Handles the OAuth flow: the authorize URL from the Stigmer backend,
-then the exchange, which the server completes by saving the token as
-the `github.com` login in the caller's My vault in `org`. The token
-never reaches the page.
-
 Pass `null` as `org` to disable (the hook reports not connected).
 
 **Signature**
@@ -35,17 +30,18 @@ function useGitHubConnection(org: string | null, config?: UseGitHubConnectionCon
 
 <TypeTable
   type={{
-    connect: { type: "(redirectUri: string, options?: GitHubConnectOptions) => Promise<void>", description: "Initiate the OAuth flow — redirect or popup based on options." },
+    connect: { type: "() => Promise<void>", description: "Sign in to GitHub. **Call it from a synchronous click handler**: in a browser the popup opens before any await." },
+    connectError: { type: "Error | null", description: "The last sign-in's failure, or `null`." },
     disconnect: { type: "() => void", description: "Remove the `github.com` login from My vault." },
     disconnectError: { type: "Error | null", description: "The last disconnect that failed to remove the login: My vault still holds it, so the hook still reports connected. `null` once a later disconnect starts, or when none failed." },
-    handleCallback: { type: "(code: string, state: string, redirectUri: string) => Promise<void>", description: "Handle the OAuth callback — the server exchanges the code and saves the login." },
+    handleCallback: { type: "(code: string, state: string) => Promise<void>", description: "Finish a sign-in a shell received outside the page (`openUrl` flows): the server exchanges the code and saves the login." },
     isConnected: { type: "boolean", description: "Whether My vault holds a `github.com` login." },
-    isConnecting: { type: "boolean", description: "Whether an OAuth popup is open and the flow is in progress." },
+    isConnecting: { type: "boolean", description: "Whether a sign-in is in progress." },
     isLoading: { type: "boolean", description: "Whether My vault is being read on mount." },
-    popupBlocked: { type: "boolean", description: "Whether the last popup `connect()` attempt was blocked by the browser. When `true`, the UI should prompt the user to allow popups or offer a redirect fallback (call `connect` without `{ popup: true }`)." },
+    popupBlocked: { type: "boolean", description: "Whether the last `connect()` was blocked by the browser's popup blocker. When `true`, the UI should ask the person to allow popups and try again." },
     readOrg: { type: "string | null", description: "The organization the GitHub reads go through (its My vault holds the login): set while connected, `null` otherwise. Pass it to useGitHubRepos, useGitHubSearch, useGitHubTreeLister and useGitHubFileReader." },
-    reconcile: { type: "() => void", description: "Re-read My vault. Call this when the exchange was handled elsewhere (e.g. by the web callback page during a desktop OAuth flow)." },
-    user: { type: "GitHubUser | null", description: "The connected GitHub account, when this browser saw it connect (the server returns the login on the exchange). `null` when not connected or not known here." },
+    reconcile: { type: "() => void", description: "Re-read My vault." },
+    user: { type: "GitHubUser | null", description: "The connected GitHub account, read from the saved login's description. `null` when not connected or not known." },
   }}
 />
 
@@ -54,11 +50,7 @@ function GitHubConnect({ org }: { org: string }) {
   const gh = useGitHubConnection(org);
   if (gh.isLoading) return <Skeleton />;
   if (!gh.isConnected) {
-    return (
-      <button onClick={() => gh.connect(window.location.href, { popup: true })}>
-        Connect GitHub
-      </button>
-    );
+    return <button onClick={() => void gh.connect()}>Connect GitHub</button>;
   }
   return <GitHubRepoPicker org={gh.readOrg!} onSelect={addRepo} />;
 }
@@ -67,10 +59,9 @@ function GitHubConnect({ org }: { org: string }) {
 ```tsx
 const gh = useGitHubConnection(org, {
   openUrl: (url) => invoke("open_auth_in_browser", { authUrl: url }),
-  callbackUrl: "https://app.stigmer.ai/auth/github/callback?source=desktop",
+  returnTo: { kind: "desktop" },
 });
-// The web callback page completes the exchange; the desktop deep link
-// handler calls gh.reconcile() to re-read My vault.
+// The deep link handler calls gh.handleCallback(code, state).
 ```
 
 
@@ -306,11 +297,6 @@ function RepoSelector({ org }: { org: string }) {
 
 ## Types
 
-### GITHUB_CALLBACK_MESSAGE_TYPE
-
-Message type sent from the OAuth callback popup to the opener.
-
-
 ### GitHubBranch
 
 A GitHub branch from the API.
@@ -318,17 +304,6 @@ A GitHub branch from the API.
 <TypeTable
   type={{
     name: { type: "string", description: "Branch name (e.g. `\"main\"`, `\"feat/new-feature\"`).", required: true },
-  }}
-/>
-
-
-### GitHubConnectOptions
-
-Options for `UseGitHubConnectionReturn.connect`.
-
-<TypeTable
-  type={{
-    popup: { type: "boolean", description: "When `true`, open the OAuth authorization page in a popup window instead of redirecting the current page. The callback page signals success via `postMessage` and the hook re-reads My vault — keeping the user on the same page.  Falls back to redirect if the popup is blocked by the browser." },
   }}
 />
 
@@ -399,15 +374,13 @@ function parseGitUrl(url: string): ParsedGitRepo | null
 
 ### UseGitHubConnectionConfig
 
-Optional configuration for [`useGitHubConnection`](#usegithubconnection).
-
-Enables desktop and non-browser environments to participate in the
-GitHub OAuth flow without relying on `window.open()` popups.
+Optional configuration for [`useGitHubConnection`](#usegithubconnection), for a desktop or
+other non-browser shell where the sign-in cannot run in a popup.
 
 <TypeTable
   type={{
-    callbackUrl: { type: "string", description: "Override the OAuth callback URL.  When provided, this replaces the `redirectUri` parameter passed to `connect()` by UI components like `WorkspaceEditor`. Use this to route the GitHub callback to a specific URL — for example, the Stigmer web console's callback page for desktop flows, or a localhost server for local development.  When the callback page handles the token exchange itself (cloud desktop flows), the consumer triggers re-reconciliation via UseGitHubConnectionReturn.reconcile after the callback completes externally.  When the consumer handles the exchange (localhost flows), the same URL must be passed to `handleCallback()` — GitHub requires an exact match between the authorize and exchange redirect URIs." },
-    openUrl: { type: "(url: string) => void | Promise<void>", description: "Custom function to open the authorization URL in a browser.  When provided, the hook calls this instead of `window.open()` during popup-mode `connect()` flows. This enables desktop environments (e.g. Tauri, Electron) where webview popups are blocked but the system browser is available.  When used with callbackUrl, the callback page processes the token exchange and the consumer calls UseGitHubConnectionReturn.reconcile to pick up the saved login from My vault.  When used without callbackUrl (e.g. localhost callback server), the consumer calls UseGitHubConnectionReturn.handleCallback with the code, state, and redirect URI to complete the exchange." },
+    openUrl: { type: "(url: string) => void | Promise<void>", description: "Opens the login page in the system browser instead of a popup. With it, `connect()` records the sign-in and opens the page; the shell receives the code and state (a deep link or its loopback page) and calls UseGitHubConnectionReturn.handleCallback." },
+    returnTo: { type: "SignInReturnTo", description: "Where GitHub's login page sends the person back to when `openUrl` is set: `desktop` (the console's callback page hands the result to the app) or `loopback` with the app's own port. Ignored without `openUrl`.", typeDescriptionLink: "/docs/sdk/react/vault#signinreturnto" },
   }}
 />
 
